@@ -58,6 +58,35 @@ When working with API keys and configuration:
 - Use session state for temporary values only
 - Reset session state when changing configuration
 
+## Build Process
+
+Please read [BUILD_PROCESS.md](./BUILD_PROCESS.md) for detailed information about the SwissKnife build process, including:
+
+- Different build approaches (`dev`, `build`, `build:tsx`, `build:bun`, etc.)
+- Common build issues and solutions
+- Best practices for handling dependencies
+
+If you encounter issues during development or building, refer to [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for solutions to common problems.
+
+### Build Guidelines
+
+When working with the SwissKnife codebase, follow these build guidelines:
+
+1. **Use appropriate build scripts**:
+   - `npm run dev` for local development
+   - `npm run build` for production builds
+   - `npm run build:tsx` if you encounter bundling issues
+
+2. **Handle dependencies carefully**:
+   - Be cautious with terminal UI libraries (chalk, ink, kleur)
+   - Properly handle Node.js built-in modules
+   - Test thoroughly after adding new dependencies
+
+3. **Test all builds**:
+   - Verify color formatting works correctly
+   - Check that all commands and features function as expected
+   - Test on different platforms if possible
+
 ## Making Changes to Models
 
 ### Adding a New Model Provider
