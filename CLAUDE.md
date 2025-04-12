@@ -50,6 +50,7 @@ SwissKnife is a command-line interface tool that provides access to various AI m
   - `commands/` - Command implementations
     - `model.tsx` - Model selection command
     - `config.tsx` - Configuration management command
+    - `mcp.ts` - MCP server management command
 - `docs/` - Developer documentation
   - `GETTING_STARTED.md` - Guide for new developers
   - `CONTRIBUTING.md` - Contribution guidelines
@@ -99,6 +100,134 @@ SwissKnife is a command-line interface tool that provides access to various AI m
 3. API key verification happens during the fetch models step
 4. The final configuration is saved to global config via `saveGlobalConfig()`
 
+### MCP (Model Context Protocol) Integration
+1. **Overview**:
+   - MCP is a protocol for server-client communication that extends SwissKnife's capabilities
+   - Enables access to external tools and services through a standardized interface
+   - Can be used to integrate decentralized storage (IPFS), vector search, GraphRAG, and more
+
+2. **Configuration System**:
+   - MCP servers are defined in three possible scopes:
+     - `project`: Local to the current project (stored in project config)
+     - `global`: Available across all projects (stored in global config)
+     - `mcprc`: Defined in the `.mcprc` file in the current directory
+   - Configuration includes server type, command, arguments, and environment variables
+
+3. **Server Types**:
+   - `stdio`: Subprocess-based servers that communicate via standard IO
+   - `sse`: HTTP-based servers that communicate via Server-Sent Events
+
+4. **Core Functions**:
+   - `addMcpServer(name, config, scope)`: Adds a new MCP server configuration
+   - `removeMcpServer(name, scope)`: Removes an MCP server configuration
+   - `listMCPServers()`: Lists all configured MCP servers
+   - `getClients()`: Connects to all configured servers and returns clients
+   - `getMCPTools()`: Retrieves available tools from all connected MCP servers
+
+5. **Usage in SwissKnife**:
+   - Tools from MCP servers are prefixed with `mcp__[server-name]__[tool-name]`
+   - The `mcp` command shows the status of all configured MCP servers
+   - MCP tools are automatically added to the available tools list
+
+6. **Example Configuration**:
+   ```javascript
+   // Add an IPFS MCP server
+   addMcpServer('ipfs-kit', {
+     type: 'stdio',
+     command: 'python',
+     args: ['-m', 'ipfs_kit_py.mcp.server'],
+     env: {
+       'IPFS_API_KEY': process.env.IPFS_API_KEY || ''
+     }
+   }, 'global');
+   ```
+
+7. **Implementing a New MCP Integration**:
+   - Define server configuration with appropriate command and arguments
+   - Add to appropriate scope (global for system-wide, project for project-specific)
+   - Use the provided tools through the standard tool interface
+   - Add appropriate error handling for server connection issues
+
+## IPFS Kit Integration Plan
+
+SwissKnife can be enhanced with decentralized storage, retrieval, and computation capabilities by integrating with `ipfs_kit_py` using the MCP protocol:
+
+### 1. MCP Server Configuration
+
+Configure the IPFS MCP server using the following pattern:
+
+```typescript
+// src/services/ipfsMcpClient.ts
+import { addMcpServer } from './mcpClient';
+
+export function configureIPFSMCPServer() {
+  addMcpServer('ipfs-kit', {
+    type: 'stdio',
+    command: 'python',
+    args: ['-m', 'ipfs_kit_py.mcp.server'], 
+    env: {
+      'IPFS_API_KEY': process.env.IPFS_API_KEY || ''
+    }
+  }, 'global');
+}
+```
+
+### 2. New Tools Implementation
+
+Create tools that leverage the IPFS MCP server capabilities:
+
+```typescript
+// src/tools/IPFSTool/IPFSTool.tsx
+import { Tool } from '../../Tool';
+import { z } from 'zod';
+
+export const IPFSTool: Tool = {
+  name: 'ipfs',
+  description: 'Perform IPFS operations',
+  
+  inputSchema: z.object({
+    operation: z.enum(['add', 'cat', 'pin', 'unpin', 'ls']),
+    content: z.string().optional(),
+    cid: z.string().optional(),
+    path: z.string().optional(),
+  }),
+  
+  async *call(args) {
+    // Implementation that calls MCP server
+  }
+};
+```
+
+### 3. Additional MCP-Based Capabilities
+
+The following features can be added via MCP integration:
+
+- **Storage Operations**: IPFS, S3, Filecoin, HuggingFace Hub
+- **Content Management**: Metadata indexing with ParquetCIDCache
+- **Vector Search**: FAISS integration for semantic similarity
+- **Knowledge Graphs**: IPLD-based graph database
+- **GraphRAG**: Enhanced retrieval augmented generation
+- **Model Serving**: Distributed model hosting and inference
+
+### 4. MCP Server Management Commands
+
+Extend the `/mcp` command to support IPFS Kit server management:
+
+```typescript
+// src/commands/ipfs.tsx
+export const help = 'Manage IPFS operations';
+export const description = 'Work with IPFS content and services';
+export const name = 'ipfs';
+export const type = 'local-jsx';
+
+export async function call(
+  onDone: (result?: string) => void,
+  { args }: { args?: string[] },
+): Promise<React.ReactNode> {
+  // Implementation for IPFS command
+}
+```
+
 ## Code Style Guidelines
 - **TypeScript**: Use TypeScript throughout the codebase
 - **Modules**: ES modules with import/export statements
@@ -136,6 +265,26 @@ When switching models or restarting the application, API keys (particularly for 
    - Use `addApiKey` to add keys to the appropriate array in config
    - Reset session state indices when changing providers or models
 
+### MCP Server Connection Issues
+When MCP servers fail to connect, it's often due to missing dependencies or configuration issues.
+
+**Solution:**
+1. Ensure the required packages are installed:
+   ```bash
+   pip install ipfs_kit_py
+   ```
+2. Check server configuration matches the installed package:
+   ```javascript
+   console.log('MCP Servers:', listMCPServers());
+   ```
+3. For stdio servers, ensure the command and args are correct
+4. For SSE servers, verify the URL is accessible
+5. Use the MCP error logs for detailed diagnostics:
+   ```javascript
+   // Found in utils/log.ts
+   logMCPError(serverName, errorMessage);
+   ```
+
 ### Round-Robin API Key Selection
 SwissKnife uses a round-robin approach to rotate through available API keys to prevent rate limiting.
 
@@ -170,6 +319,9 @@ Model definitions are in `src/constants/models.ts`. When adding new models:
 - `MISTRAL_API_KEY` - API key for Mistral
 - `SMALL_MODEL_API_KEY` - Anthropic API key for small model
 - `LARGE_MODEL_API_KEY` - Anthropic API key for large model
+- `IPFS_API_KEY` - API key for IPFS services (when using ipfs_kit_py)
+- `HUGGINGFACE_API_KEY` - API key for HuggingFace Hub
+- `FILECOIN_API_KEY` - API key for Filecoin services
 
 ## Debugging Tips
 1. Use `console.log()` for basic debugging (removed in production)
@@ -190,6 +342,12 @@ Model definitions are in `src/constants/models.ts`. When adding new models:
    } catch (error) {
      console.error('Full error:', error);
    }
+   ```
+5. For MCP server issues, check the connection status:
+   ```javascript
+   getClients().then(clients => {
+     console.log('MCP Clients:', clients);
+   });
    ```
 
 ## Contributing

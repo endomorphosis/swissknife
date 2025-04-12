@@ -2,8 +2,7 @@
   "name": "swissknife",
   "version": "0.0.53",
   "bin": {
-    "swissknife": "cli.mjs",
-    "kode": "cli.mjs"
+    "swissknife": "cli.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -23,11 +22,13 @@
   "files": [
     "cli.mjs",
     "yoga.wasm",
-    "install.sh"
+    "install.sh",
+    "dist"
   ],
   "scripts": {
     "dev": "tsx ./src/entrypoints/cli.tsx --verbose",
-    "build": "mkdir -p temp && node --no-warnings=ExperimentalWarning ./build-wrapper.js",
+    "build": "mkdir -p temp && tsx ./src/build/build.tsx",
+    "build:legacy": "mkdir -p temp && node --no-warnings=ExperimentalWarning ./build-wrapper.js",
     "build:original": "bun build src/entrypoints/cli.tsx --minify --outfile cli.mjs --target=node",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
@@ -80,9 +81,13 @@
     "undici": "^7.4.0",
     "wrap-ansi": "^9.0.0",
     "zod": "^3.24.2",
-    "zod-to-json-schema": "^3.24.3"
+    "zod-to-json-schema": "^3.24.3",
+    "prettier": "^3.5.3",
+    "react-devtools-core": "^6.1.1",
+    "tsx": "^4.19.3"
   },
   "devDependencies": {
+    "esbuild": "^0.20.2",
     "prettier": "^3.5.3",
     "react-devtools-core": "^6.1.1",
     "tsx": "^4.19.3"
