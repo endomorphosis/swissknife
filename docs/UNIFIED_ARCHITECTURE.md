@@ -19,27 +19,24 @@ The SwissKnife architecture combines all features into a cohesive, modular syste
 
 ```mermaid
 graph TD
-    subgraph SwissKnife CLI Application (TypeScript / Node.js)
-        A[CLI Interface (Ink/React)] --> B(Command System);
-        B --> C(Execution Context);
-        C --> D[AI Service (Agent, GoT)];
-        C --> E[Task Service (TaskNet)];
-        C --> F[Storage Service (VFS)];
-        C --> G[ML Service (Engine)];
-        C --> H[Config Service];
-        C --> I[Auth Service];
-        C --> J[MCP Client Service];
-        C --> K[Other Services...];
-
-        F --> L[IPFS Client];
+    subgraph "CLI Application"
+        cliInterface["CLI Interface - Ink/React"] --> commandSystem["Command System"];
+        commandSystem --> executionContext["Execution Context"];
+        executionContext --> aiService["AI Service - Agent, GoT"];
+        executionContext --> taskService["Task Service - TaskNet"];
+        executionContext --> storageService["Storage Service - VFS"];
+        executionContext --> mlService["ML Service - Engine"];
+        executionContext --> configService["Config Service"];
+        executionContext --> authService["Auth Service"];
+        executionContext --> mcpClientService["MCP Client Service"];
+        executionContext --> otherServices["Other Services..."];
+        storageService --> ipfsClient["IPFS Client"];
     end
 
-    L -- HTTP API Calls --> M((IPFS Kit MCP Server - External));
-    D -- API Calls --> N((AI Model APIs - External));
-
-    style M fill:#ddd, stroke:#333
-    style N fill:#ddd, stroke:#333
+    ipfsClient -- "HTTP API Calls" --> ipfsServer["IPFS Kit MCP Server - External"];
+    aiService -- "API Calls" --> aiModelApis["AI Model APIs - External"];
 ```
+
 *   The core application is a single TypeScript/Node.js process.
 *   Functionality is divided into services/domains accessed via an `ExecutionContext`.
 *   External dependencies like the IPFS Kit MCP Server and AI Model APIs are accessed via dedicated clients using network protocols (primarily HTTP).
@@ -52,48 +49,43 @@ The codebase is organized into focused domains that contain related functionalit
 
 ```mermaid
 graph TD
-    subgraph Root
-        A(src/) --> B(ai/);
-        A --> C(auth/);
-        A --> D(cli/);
-        A --> E(commands/);
-        A --> F(components/);
-        A --> G(config/);
-        A --> H(constants/);
-        A --> I(entrypoints/);
-        A --> J(ml/);
-        A --> K(services/);
-        A --> L(storage/);
-        A --> M(tasks/);
-        A --> N(types/);
-        A --> O(utils/);
-        P(test/) --> Q(unit/);
-        P --> R(integration/);
-        P --> S(e2e/);
-        P --> T(helpers/);
-        P --> U(mocks/);
-        P --> V(fixtures/);
-        P --> W(plans/);
-        X(docs/) --> Y(phase1/);
-        X --> Z(phase2/);
-        X --> AA(phase3/);
-        X --> AB(phase4/);
-        X --> AC(phase5/);
-        X --> AD(architecture/);
-        X --> AE(guides/);
-        AF(scripts/);
-        AG(package.json);
-        AH(tsconfig.json);
-        AI(jest.config.cjs);
-        AJ(README.md);
+    subgraph "Project Structure"
+        srcDir("src/") --> aiDir("ai/");
+        srcDir --> authDir("auth/");
+        srcDir --> cliDir("cli/");
+        srcDir --> commandsDir("commands/");
+        srcDir --> componentsDir("components/");
+        srcDir --> configDir("config/");
+        srcDir --> constantsDir("constants/");
+        srcDir --> entrypointsDir("entrypoints/");
+        srcDir --> mlDir("ml/");
+        srcDir --> servicesDir("services/");
+        srcDir --> storageDir("storage/");
+        srcDir --> tasksDir("tasks/");
+        srcDir --> typesDir("types/");
+        srcDir --> utilsDir("utils/");
+        testDir("test/") --> unitDir("unit/");
+        testDir --> integrationDir("integration/");
+        testDir --> e2eDir("e2e/");
+        testDir --> helpersDir("helpers/");
+        testDir --> mocksDir("mocks/");
+        testDir --> fixturesDir("fixtures/");
+        testDir --> plansDir("plans/");
+        docsDir("docs/") --> phase1Dir("phase1/");
+        docsDir --> phase2Dir("phase2/");
+        docsDir --> phase3Dir("phase3/");
+        docsDir --> phase4Dir("phase4/");
+        docsDir --> phase5Dir("phase5/");
+        docsDir --> architectureDir("architecture/");
+        docsDir --> guidesDir("guides/");
+        scriptsDir("scripts/");
+        packageJson["package.json"];
+        tsconfigJson["tsconfig.json"];
+        jestConfig["jest.config.cjs"];
+        readmeMd["README.md"];
     end
-    # ... (Further breakdown omitted for brevity - see PROJECT_STRUCTURE.md) ...
-
-    style A fill:#def
-    style P fill:#def
-    style X fill:#def
-    style AF fill:#def
 ```
+
 *(Refer to [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for a detailed file/directory breakdown)*.
 
 ## 3. Core Systems
