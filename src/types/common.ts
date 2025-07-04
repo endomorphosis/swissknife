@@ -1,124 +1,115 @@
+// src/types/common.js
 /**
  * Common type definitions for SwissKnife
  * 
- * This file contains type definitions that are used across multiple modules.
+ * This file contains JSDoc type definitions that are used across multiple modules.
  */
 
-// Content-addressable identifier
-export type CID = string;
+/**
+ * @typedef {string} CID - Content-addressable identifier
+ */
 
-// Unique identifiers for tasks and GoT nodes
-export type TaskID = string;
-export type GoTNodeID = string;
+/**
+ * @typedef {string} TaskID - Unique identifier for a task
+ */
 
-// Result of an operation that may fail
-export interface Result<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
+/**
+ * @typedef {string} GoTNodeID - Unique identifier for a Graph of Thought node
+ */
 
-// Function that returns a promise, used for async handlers
-export type AsyncHandler<T, U> = (input: T) => Promise<U>;
+/**
+ * @typedef {Object} Result
+ * @template T
+ * @property {boolean} success - Whether the operation succeeded
+ * @property {T} [data] - The result data if successful
+ * @property {string} [error] - Error message if failed
+ */
 
-// Generic key-value record type
-export type KeyValueRecord<T = any> = Record<string, T>;
+/**
+ * @typedef {Object} Metadata
+ * @property {number} createdAt - Creation timestamp
+ * @property {number} updatedAt - Last update timestamp
+ */
 
-// JSON serializable primitive types
-export type JSONPrimitive = string | number | boolean | null;
+/**
+ * @typedef {Object} PaginationOptions
+ * @property {number} [limit] - Maximum number of items to return
+ * @property {number} [offset] - Offset for pagination
+ * @property {number} [page] - Page number for pagination
+ */
 
-// JSON serializable array
-export type JSONArray = Array<JSONValue>;
+/**
+ * Sort direction enumeration
+ * @enum {string}
+ */
+export const SortDirection = {
+  ASC: 'asc',
+  DESC: 'desc'
+};
 
-// JSON serializable object
-export type JSONObject = { [key: string]: JSONValue };
+/**
+ * @typedef {Object} SortOptions
+ * @property {string} field - Field to sort by
+ * @property {string} direction - Sort direction
+ */
 
-// Any JSON serializable value
-export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+/**
+ * @typedef {Object} FilterOptions
+ * Key-value pairs for filtering
+ */
 
-// Metadata with timestamps
-export interface Metadata {
-  createdAt: number;
-  updatedAt: number;
-  [key: string]: any;
-}
+/**
+ * @typedef {Object} QueryOptions
+ * @property {PaginationOptions} [pagination] - Pagination options
+ * @property {SortOptions} [sort] - Sort options
+ * @property {FilterOptions} [filter] - Filter options
+ */
 
-// Options for pagination
-export interface PaginationOptions {
-  limit?: number;
-  offset?: number;
-  page?: number;
-}
+/**
+ * Status enumeration for asynchronous operations
+ * @enum {string}
+ */
+export const Status = {
+  PENDING: 'pending',
+  RUNNING: 'running',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  CANCELLED: 'cancelled'
+};
 
-// Sorting direction
-export enum SortDirection {
-  ASC = 'asc',
-  DESC = 'desc'
-}
+/**
+ * Priority levels enumeration
+ * @enum {number}
+ */
+export const Priority = {
+  LOW: 0,
+  MEDIUM: 1,
+  HIGH: 2,
+  CRITICAL: 3
+};
 
-// Options for sorting
-export interface SortOptions {
-  field: string;
-  direction: SortDirection;
-}
-
-// Options for filtering
-export interface FilterOptions {
-  [key: string]: any;
-}
-
-// Combined query options
-export interface QueryOptions {
-  pagination?: PaginationOptions;
-  sort?: SortOptions;
-  filter?: FilterOptions;
-}
-
-// Status of an asynchronous operation
-export enum Status {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled'
-}
-
-// Priority levels
-export enum Priority {
-  LOW = 0,
-  MEDIUM = 1,
-  HIGH = 2,
-  CRITICAL = 3
-}
-
-// Type guard function to check if a value is a JSON object
-export function isJSONObject(value: any): value is JSONObject {
+/**
+ * Check if a value is a JSON object
+ * @param {*} value - Value to check
+ * @returns {boolean} - True if the value is a JSON object
+ */
+export function isJSONObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-// Type guard function to check if a value is a JSON array
-export function isJSONArray(value: any): value is JSONArray {
+/**
+ * Check if a value is a JSON array
+ * @param {*} value - Value to check
+ * @returns {boolean} - True if the value is a JSON array
+ */
+export function isJSONArray(value) {
   return Array.isArray(value);
 }
 
-// Type guard function to check if a value is a JSON primitive
-export function isJSONPrimitive(value: any): value is JSONPrimitive {
-  return (
-    value === null ||
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean'
-  );
-}
-
-// Type guard function to check if a value is JSON serializable
-export function isJSONValue(value: any): value is JSONValue {
-  if (isJSONPrimitive(value)) return true;
-  if (isJSONArray(value)) {
-    return value.every(item => isJSONValue(item));
-  }
-  if (isJSONObject(value)) {
-    return Object.values(value).every(item => isJSONValue(item));
-  }
-  return false;
-}
+export default {
+  Status,
+  Priority,
+  SortDirection,
+  isJSONObject,
+  isJSONArray
+};

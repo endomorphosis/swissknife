@@ -4,11 +4,12 @@
 
 
 // Mock dependencies
-jest.mock('../../../src/performance/optimizer');
-jest.mock('../../../src/tasks/manager');
-jest.mock('../../../src/ipfs/client');
-jest.mock('../../../src/ai/agent/agent');
-jest.mock('../../../src/ai/models/model');
+import { PerformanceOptimizer } from '../../../src/performance/optimizer';
+import { TaskManager } from '../../../src/tasks/manager';
+import { IPFSKitClient } from '../../../src/ipfs/client';
+import { Agent } from '../../../src/ai/agent/agent';
+import { Model } from '../../../src/ai/models/model';
+import { performanceCommand } from '../../../src/cli/commands/performance';
 
 describe('Performance Command', () => {
   let mockOptimizer: jest.Mocked<PerformanceOptimizer>;
@@ -26,7 +27,7 @@ describe('Performance Command', () => {
     // Setup mock PerformanceOptimizer
     mockOptimizer = {
       optimize: jest.fn().mockResolvedValue(undefined)
-    } as unknown as jest.Mocked<PerformanceOptimizer>;
+    };
     
     (PerformanceOptimizer as jest.Mock).mockImplementation(() => mockOptimizer);
   });

@@ -1,6 +1,6 @@
 // src/ai/models/openai-model.ts
 
-import { BaseModel, IModel, ModelCapabilities, ModelGenerateInput, ModelGenerateOutput, ModelOptions } from './model.js';
+import { BaseModel, IModel, ModelCapabilities, ModelGenerateInput, ModelGenerateOutput, ModelOptions } from './model';
 import { AgentMessage, ThinkingPattern, ThinkingResult, ToolCallResult, ToolSelectionResult, Status } from '../types/ai';
 import { ConfigManager } from '../config/manager'; // Import ConfigManager directly
 import { logger } from '../utils/logger';

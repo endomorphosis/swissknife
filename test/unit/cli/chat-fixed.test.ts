@@ -5,6 +5,10 @@
 // Import the actual chat command implementation
 
 // Mock implementations
+import { ConfigurationManager } from '../../../src/utils/config/manager';
+import { AIService } from '../../../src/services/ai-service';
+import { chatCommand } from '../../../src/cli/commands/chat';
+
 jest.mock('../../../src/utils/config/manager');
 jest.mock('../../../src/services/ai-service');
 

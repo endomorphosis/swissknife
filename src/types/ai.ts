@@ -1,5 +1,5 @@
-import { CID, Status, TaskID } from './common.js';
-import { StorageProvider } from './storage.js'; 
+import { CID, Status, TaskID } from './common';
+import { StorageProvider } from './storage'; 
 import { TaskManager } from '../tasks/manager'; 
 import { InferenceExecutor } from '../ml/inference/executor'; 
 import { z, ZodType } from 'zod'; 
@@ -99,7 +99,7 @@ export type ToolOutput = string | Record<string, any> | Buffer;
  * Represents the context provided to a Tool during execution.
  */
 export interface ToolExecutionContext {
-  config: import('../config/manager.js').ConfigManager;  // Fixed to use ConfigManager
+  config: import('../config/manager').ConfigManager;  // Fixed to use ConfigManager
   storage: StorageProvider;
   taskManager: TaskManager; 
   taskId?: TaskID;
@@ -135,7 +135,7 @@ export interface Tool<T extends ZodType = ZodType> {
  * Represents the context available to the AI Agent during its operation.
  */
 export interface AgentContext {
-  config: import('../config/manager.js').ConfigManager; // Use ConfigManager directly
+  config: import('../config/manager').ConfigManager; // Use ConfigManager directly
   storage: StorageProvider;
   // Add other shared resources or state needed by the agent
 }

@@ -1,5 +1,4 @@
 // Minimal Jest setup file for basic environment configuration.
-// Minimal Jest setup file for basic environment configuration.
 // This file is referenced in jest.config.cjs under setupFilesAfterEnv.
 
 // Import and make global the test utility functions using relative path
@@ -42,5 +41,88 @@ jest.mock("nanoid", () => ({
   nanoid: () => "test-id",
 }));
 
+// Mock external dependencies
+jest.mock('express', () => {
+  const mockRouter = jest.fn(() => ({
+    use: jest.fn(),
+    post: jest.fn(),
+    get: jest.fn(),
+  }));
+  const mockExpress = jest.fn(() => ({
+    use: jest.fn(),
+    listen: jest.fn(),
+  }));
+  mockExpress.Router = mockRouter;
+  return mockExpress;
+});
+
+jest.mock('ws', () => ({
+  WebSocketServer: jest.fn(() => ({
+    on: jest.fn(),
+  })),
+}));
+
+jest.mock('@slack/web-api', () => ({
+  WebClient: jest.fn(() => ({})),
+}));
+jest.mock('@slack/socket-mode', () => ({
+  SocketModeClient: jest.fn(() => ({
+    on: jest.fn(),
+  })),
+}));
+
+jest.mock('@octokit/rest', () => ({
+  Octokit: jest.fn(() => ({
+    rest: {
+      pulls: {
+        create: jest.fn(),
+      },
+    },
+  })),
+}));
+
+// Mock internal dependencies
+jest.mock('../src/utils/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+jest.mock('../src/ai/models/SelectionLearningEngine', () => ({
+  SelectionLearningEngine: jest.fn(() => ({
+    predictOptimalModel: jest.fn(),
+  })),
+}));
+
+jest.mock('../src/monitoring/MetricsCollector', () => ({
+  MetricsCollector: jest.fn(() => ({
+    track: jest.fn(),
+  })),
+}));
+
+jest.mock('../src/plugins/PluginLoader', () => ({
+  PluginLoader: jest.fn(() => ({
+    loadManifest: jest.fn(),
+    loadCode: jest.fn(),
+  })),
+}));
+
+jest.mock('../src/plugins/PluginSandboxManager', () => ({
+  PluginSandboxManager: jest.fn(() => ({
+    createSandbox: jest.fn(),
+  })),
+}));
+
+jest.mock('../src/config/manager', () => ({
+  ConfigManager: {
+    getInstance: jest.fn(() => ({
+      get: jest.fn(),
+    })),
+  },
+}));
+
 // Set a default timeout for all tests to catch hanging tests
-jest.setTimeout(15000); // 15 seconds
+jest.setTimeout(15000);

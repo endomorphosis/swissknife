@@ -10,7 +10,7 @@
     "allowJs": true,
     "checkJs": false,
     "types": ["node", "jest"],
-    "module": "NodeNext",
+    "module": "CommonJS",
     "moduleResolution": "node",
     "target": "ES2022",
     "esModuleInterop": true,

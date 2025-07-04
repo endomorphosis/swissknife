@@ -3,7 +3,7 @@
  * Provides a browser-based terminal interface to the SwissKnife toolkit
  */
 
-window.TerminalApp = class TerminalApp {
+export class TerminalApp {
   constructor(windowElement, swissknife) {
     this.window = windowElement;
     this.swissknife = swissknife;
@@ -11,7 +11,22 @@ window.TerminalApp = class TerminalApp {
     this.historyIndex = 0;
     this.currentDirectory = '/';
     
+    // Initialize CLI adapter for enhanced command processing
+    this.initializeCLIAdapter();
+    
     this.init();
+  }
+
+  async initializeCLIAdapter() {
+    try {
+      // Dynamic import of CLI adapter
+      const { SwissKnifeCLIAdapter } = await import('../adapters/cli-adapter.js');
+      this.cliAdapter = new SwissKnifeCLIAdapter(this.swissknife);
+      console.log('✅ CLI adapter initialized in terminal');
+    } catch (error) {
+      console.warn('⚠️ Failed to load CLI adapter, using built-in commands:', error);
+      this.cliAdapter = null;
+    }
   }
 
   init() {
@@ -88,7 +103,28 @@ window.TerminalApp = class TerminalApp {
     // Clear input
     this.input.value = '';
 
-    // Execute command
+    // Try CLI adapter first for enhanced SwissKnife commands
+    if (this.cliAdapter) {
+      try {
+        const result = await this.cliAdapter.executeCommand(command);
+        if (result.success !== false) {
+          // CLI adapter handled the command successfully
+          if (result.output) {
+            this.addOutput(result.output, result.type || 'normal');
+          }
+          return;
+        } else if (result.error && !result.error.includes('Command not found')) {
+          // CLI adapter encountered an error (but not "command not found")
+          this.addOutput(result.error, 'error');
+          return;
+        }
+        // If CLI adapter didn't handle it, fall through to built-in commands
+      } catch (error) {
+        console.warn('CLI adapter error, falling back to built-in commands:', error);
+      }
+    }
+
+    // Execute built-in command processing
     await this.processCommand(command);
   }
 
@@ -724,8 +760,11 @@ This is a sample file in the SwissKnife Web Desktop.`;
   }
 
   showWelcome() {
-    this.addOutput('🔧 SwissKnife Web Terminal v1.0', 'welcome');
+    this.addOutput('🔧 SwissKnife Web Terminal v1.0 (Enhanced)', 'welcome');
+    this.addOutput('💾 Virtual Filesystem (VFS) integration enabled', 'info');
+    this.addOutput('🤗 Hugging Face Hub commands available', 'info');
     this.addOutput('Type "help" for available commands or "sk help" for SwissKnife CLI help.', 'info');
+    this.addOutput('Type "vfs" to explore the virtual filesystem capabilities.', 'info');
     this.addOutput('', '');
   }
 
@@ -885,3 +924,6 @@ This is a sample file in the SwissKnife Web Desktop.`;
     }
   }
 }
+
+// Also assign to window for legacy compatibility
+window.TerminalApp = TerminalApp;

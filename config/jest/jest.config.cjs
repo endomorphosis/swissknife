@@ -2,19 +2,25 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   rootDir: '../..',
-  extensionsToTreatAsEsm: ['.ts', '.tsx', '.mts', '.js', '.jsx', '.cjs'],
   transform: {
-    "^.+\\.(ts|tsx|mts)$": ["ts-jest", {
-      useESM: true,
+    "^.+\.(ts|tsx|mts|js|jsx)$": ["ts-jest", {
+      useESM: false,
       tsconfig: "config/typescript/tsconfig.test.json",
       diagnostics: false,
       isolatedModules: true
-    }],
-    "^.+\\.(js|jsx|cjs)$": "babel-jest"
+    }]
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(@modelcontextprotocol|ink|ink-testing-library|react-is|merkletreejs|ansi-escapes|environment|uuid|is-in-ci|auto-bind|patch-console|yoga-layout)/)"
+    "node_modules/"
   ],
+  resolver: 'ts-jest-resolver',
+  moduleNameMapper: {
+    "^uuid$": require.resolve('uuid'),
+    "^(merkletreejs)$": "<rootDir>/node_modules/merkletreejs/dist/index.js",
+    "^(zod)$": "<rootDir>/node_modules/zod/dist/esm/index.js",
+    "../types/ai": "<rootDir>/src/types/ai.ts",
+    "../types/common": "<rootDir>/src/types/common.ts",
+  },
   testEnvironmentOptions: {
     customExportConditions: ['node', 'node-addons'],
   },
@@ -30,10 +36,7 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/src/$1.ts",
     "^@test-helpers/(.*)$": "<rootDir>/test/helpers/$1",
     "../utils/test-helpers": "<rootDir>/test/utils/test-helpers.ts",
-    "^(merkletreejs)$": "<rootDir>/node_modules/merkletreejs/dist/esm/index.js",
-    "^(zod)$": "<rootDir>/node_modules/zod/dist/esm/index.js",
-    // Map .js imports to .ts files for source code
-    "^(.+)\\.js$": "$1.ts"
+    
   },
   testMatch: [
     "<rootDir>/test/**/*.test.ts",

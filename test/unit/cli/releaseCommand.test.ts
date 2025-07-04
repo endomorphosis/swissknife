@@ -2,6 +2,8 @@
  * Unit tests for release CLI command
  */
 
+import { ReleasePackager } from '../../../src/release/packager';
+import { releaseCommand } from '../../../src/cli/commands/release';
 
 // Mock dependencies
 jest.mock('../../../src/release/packager');

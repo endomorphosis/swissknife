@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
     "lib": [
       "ES2022",
       "DOM",
@@ -42,7 +42,7 @@
     ]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"],
-  "exclude": ["node_modules", "dist"],
+  "exclude": ["node_modules", "dist", "node_modules/@huggingface/hub"],
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node",
