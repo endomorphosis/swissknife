@@ -4,8 +4,6 @@ import '../css/desktop.css';
 import '../css/windows.css';
 import '../css/terminal.css';
 import '../css/apps.css';
-import '../css/strudel.css';
-import '../css/strudel-grandma.css';
 import SwissKnife from './swissknife-browser.js';
 import DesktopEnhancer from './desktop-enhancer.js';
 
@@ -308,14 +306,6 @@ class SwissKnifeDesktop {
             singleton: true
         });
         console.log('✅ Registered navi app');
-
-        this.apps.set('strudel', {
-            name: '🎵 Music Studio',
-            icon: '🎵',
-            component: 'GrandmaStrudelDAW',
-            singleton: false
-        });
-        console.log('✅ Registered strudel app');
         
         console.log('📱 Total apps registered:', this.apps.size);
         console.log('📱 Apps list:', Array.from(this.apps.keys()));
@@ -635,41 +625,6 @@ class SwissKnifeDesktop {
                 case 'naviapp':
                     // NAVI App - loads the chat application
                     this.loadNaviApp(contentElement);
-                    break;
-                    
-                case 'grandmastrudeldaw':
-                    console.log('🎵 Loading Grandma-Friendly Music Studio...');
-                    
-                    // Check if GrandmaStrudelDAW is already loaded globally
-                    if (window.GrandmaStrudelDAW && typeof window.GrandmaStrudelDAW === 'function') {
-                        console.log('✅ Using globally available GrandmaStrudelDAW');
-                        try {
-                            appInstance = new window.GrandmaStrudelDAW();
-                            // Store reference for tutorial
-                            window.strudelDAW = appInstance;
-                            await appInstance.start(contentElement);
-                        } catch (constructorError) {
-                            console.error('❌ Constructor error with GrandmaStrudelDAW:', constructorError);
-                            throw constructorError;
-                        }
-                    } else {
-                        console.log('⚠️ GrandmaStrudelDAW not found globally, trying dynamic import...');
-                        try {
-                            const StrudelModule = await import('./apps/strudel-grandma.js');
-                            console.log('📦 Imported grandma module:', StrudelModule);
-                            const GrandmaStrudelDAW = StrudelModule.default || StrudelModule.GrandmaStrudelDAW || window.GrandmaStrudelDAW;
-                            if (GrandmaStrudelDAW && typeof GrandmaStrudelDAW === 'function') {
-                                appInstance = new GrandmaStrudelDAW();
-                                window.strudelDAW = appInstance;
-                                await appInstance.start(contentElement);
-                            } else {
-                                throw new Error('GrandmaStrudelDAW is not a valid constructor');
-                            }
-                        } catch (importError) {
-                            console.error('❌ Failed to import GrandmaStrudelDAW:', importError);
-                            throw new Error(`Failed to load Music Studio: ${importError.message}`);
-                        }
-                    }
                     break;
                     
                 default:
