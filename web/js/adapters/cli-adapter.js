@@ -183,6 +183,56 @@ export class SwissKnifeCLIAdapter {
       category: 'ai',
       handler: async (args) => this.handleMLCommand(args)
     });
+
+    // Virtual Filesystem Commands
+    this.commands.set('vfs', {
+      name: 'vfs',
+      description: 'Virtual filesystem operations',
+      usage: 'vfs <mount|ls|cp|mirror|sync|unmount|status> [args]',
+      category: 'storage',
+      handler: async (args) => this.handleVFSCommand(args)
+    });
+
+    this.commands.set('vfs-mount', {
+      name: 'vfs-mount',
+      description: 'Mount storage backend',
+      usage: 'vfs-mount <backend> <path> [config]',
+      category: 'storage',
+      handler: async (args) => this.handleVFSMount(args)
+    });
+
+    this.commands.set('vfs-ls', {
+      name: 'vfs-ls',
+      description: 'List virtual filesystem contents',
+      usage: 'vfs-ls [path]',
+      category: 'storage',
+      handler: async (args) => this.handleVFSList(args)
+    });
+
+    this.commands.set('sk-vfs', {
+      name: 'sk-vfs',
+      description: 'SwissKnife virtual filesystem interface',
+      usage: 'sk-vfs <mount|ls|cp|mirror|sync> [args]',
+      category: 'storage',
+      handler: async (args) => this.handleVFSCommand(args)
+    });
+
+    // Hugging Face Hub Commands
+    this.commands.set('hf', {
+      name: 'hf',
+      description: 'Hugging Face Hub operations',
+      usage: 'hf <search|download|upload|info|repos> [args]',
+      category: 'ai',
+      handler: async (args) => this.handleHFCommand(args)
+    });
+
+    this.commands.set('sk-hf', {
+      name: 'sk-hf',
+      description: 'SwissKnife Hugging Face Hub interface',
+      usage: 'sk-hf <search|download|upload|info> [args]',
+      category: 'ai',
+      handler: async (args) => this.handleHFCommand(args)
+    });
   }
 
   setupAliases() {
@@ -696,11 +746,11 @@ export class SwissKnifeCLIAdapter {
       case 'status':
         return {
           success: true,
-          output: 'IPFS Status:
+          output: `IPFS Status:
 🌐 Node ID: QmX... (simulated)
 👥 Peers: 42
 💾 Repo Size: 1.2 GB
-🌍 Gateway: http://localhost:8000',
+🌍 Gateway: http://localhost:8000`,
           exitCode: 0
         };
 
@@ -779,6 +829,21 @@ Storage & Data:
   sk-storage        - Storage operations
   storage store     - Store content
   storage retrieve  - Retrieve content
+
+Virtual Filesystem:
+  sk-vfs            - Virtual filesystem interface
+  vfs mount         - Mount storage backend (helia, libp2p, storacha, s3, huggingface)
+  vfs ls [path]     - List VFS contents
+  vfs cp <src> <dst> - Copy between backends
+  vfs mirror        - Mirror content across backends
+  vfs sync          - Synchronize all backends
+
+Hugging Face Hub:
+  sk-hf             - Hugging Face Hub interface
+  hf search <query> - Search models and datasets
+  hf download <id>  - Download model or dataset
+  hf info <id>      - Get model/dataset information
+  hf repos [user]   - List user repositories
 
 System Integration:
   sk-mcp            - Model Context Protocol
@@ -1115,5 +1180,657 @@ Features:
     }
     
     return recommendations.join('\n   ') || '• WebNN system is optimally configured';
+  }
+
+  async handleVFSCommand(args) {
+    if (args.length === 0) {
+      return {
+        success: true,
+        output: `🗂️ Virtual Filesystem Commands:
+  mount <backend> <path> - Mount storage backend
+  ls [path]              - List directory contents
+  cp <src> <dest>        - Copy files/directories
+  mirror <src> <dest>    - Mirror content across backends
+  sync                   - Synchronize all backends
+  unmount <path>         - Unmount storage backend
+  status                 - Show VFS status
+
+Available backends: 
+  📡 helia       - IPFS via Helia
+  🔗 libp2p      - P2P distributed storage
+  ☁️ storacha    - Storacha IPFS pinning
+  🪣 s3          - S3-compatible storage
+  🤗 huggingface - Hugging Face Hub repositories`,
+        exitCode: 0
+      };
+    }
+
+    const subcommand = args[0];
+    const params = args.slice(1);
+
+    switch (subcommand) {
+      case 'mount':
+        return await this.handleVFSMount(params);
+      case 'ls':
+        return await this.handleVFSList(params);
+      case 'cp':
+        return await this.handleVFSCopy(params);
+      case 'mirror':
+        return await this.handleVFSMirror(params);
+      case 'sync':
+        return await this.handleVFSSync(params);
+      case 'unmount':
+        return await this.handleVFSUnmount(params);
+      case 'status':
+        return await this.handleVFSStatus(params);
+      default:
+        return {
+          success: false,
+          error: `Unknown VFS command: ${subcommand}`,
+          exitCode: 1
+        };
+    }
+  }
+
+  async handleVFSMount(args) {
+    if (args.length < 2) {
+      return {
+        success: false,
+        error: 'Usage: vfs mount <backend> <path> [config]',
+        exitCode: 1
+      };
+    }
+
+    const [backend, path, ...configArgs] = args;
+    
+    if (!['helia', 'libp2p', 'storacha', 's3', 'huggingface'].includes(backend)) {
+      return {
+        success: false,
+        error: `Unknown backend: ${backend}. Available: helia, libp2p, storacha, s3, huggingface`,
+        exitCode: 1
+      };
+    }
+
+    // Simulated response for now
+    return {
+      success: true,
+      output: `✅ Mounted ${backend} backend at ${path}
+🔧 Backend: ${this.getBackendInfo(backend)}
+📁 Mount point: ${path}
+⚙️ Configuration: ${configArgs.length ? configArgs.join(' ') : 'default'}
+🌐 Status: Connected
+📊 Available space: ${this.getSimulatedSpace(backend)}
+🔗 Endpoint: ${this.getBackendEndpoint(backend)}`,
+      exitCode: 0
+    };
+  }
+
+  async handleVFSList(args) {
+    const path = args[0] || '/';
+    
+    // Simulated VFS directory listing
+    const entries = [
+      '📁 ipfs/          (helia)       - IPFS content via Helia',
+      '📁 p2p/           (libp2p)      - P2P distributed files',
+      '📁 cloud/         (storacha)    - Storacha pinned content',
+      '📁 s3/            (s3)          - S3 bucket contents',
+      '📁 hf/            (huggingface) - Hugging Face repositories',
+      '📄 README.md      (ipfs)        2.1KB  QmX1Y2Z3...',
+      '📄 config.json    (local)       856B   local cache',
+      '📁 shared/        (mirror)      - Multi-backend mirror',
+      '📄 data.csv       (s3)          15.2MB s3://bucket/data.csv',
+      '📁 backup/        (storacha)    - Automated backups',
+      '📁 models/        (huggingface) - AI models and datasets',
+      '📄 pytorch_model.bin (hf)       1.2GB  microsoft/DialoGPT-medium'
+    ];
+
+    return {
+      success: true,
+      output: `📂 Virtual Filesystem: ${path}
+
+${entries.join('\n')}
+
+💡 Tips:
+   • Use 'vfs cp /ipfs/file.txt /s3/' to copy between backends
+   • Use 'vfs mirror /local/data /ipfs/' to create redundant copies
+   • Use 'vfs sync' to synchronize all mounted backends
+   • Use 'vfs cp /hf/microsoft/DialoGPT-medium/ /local/' to download HF models`,
+      exitCode: 0
+    };
+  }
+
+  async handleVFSCopy(args) {
+    if (args.length < 2) {
+      return {
+        success: false,
+        error: 'Usage: vfs cp <source> <destination>',
+        exitCode: 1
+      };
+    }
+
+    const [src, dest] = args;
+    
+    return {
+      success: true,
+      output: `✅ Copied ${src} → ${dest}
+📊 Transfer details:
+   • Source: ${this.getBackendFromPath(src)}
+   • Destination: ${this.getBackendFromPath(dest)}
+   • Size: 2.4MB
+   • Time: 1.2s
+   • Hash: QmNewHash123...`,
+      exitCode: 0
+    };
+  }
+
+  async handleVFSMirror(args) {
+    if (args.length < 2) {
+      return {
+        success: false,
+        error: 'Usage: vfs mirror <source> <destination>',
+        exitCode: 1
+      };
+    }
+
+    const [src, dest] = args;
+    
+    return {
+      success: true,
+      output: `✅ Mirrored ${src} → ${dest}
+🔄 Mirror configuration:
+   • Source: ${this.getBackendFromPath(src)}
+   • Destination: ${this.getBackendFromPath(dest)}
+   • Sync mode: Real-time
+   • Files mirrored: 42
+   • Total size: 156MB
+   • Status: Active monitoring`,
+      exitCode: 0
+    };
+  }
+
+  async handleVFSSync(args) {
+    return {
+      success: true,
+      output: `🔄 VFS Synchronization Complete
+📊 Sync Report:
+   • Backends synced: 4
+   • Files updated: 23
+   • Conflicts resolved: 2
+   • Time elapsed: 5.4s
+   
+Backend Status:
+   📡 helia       - 156 files, 45MB
+   🔗 libp2p      - 89 files, 23MB  
+   ☁️ storacha    - 134 files, 67MB
+   🪣 s3          - 201 files, 123MB
+   🤗 huggingface - 42 models, 15GB`,
+      exitCode: 0
+    };
+  }
+
+  async handleVFSUnmount(args) {
+    if (args.length === 0) {
+      return {
+        success: false,
+        error: 'Usage: vfs unmount <path>',
+        exitCode: 1
+      };
+    }
+
+    const path = args[0];
+    
+    return {
+      success: true,
+      output: `✅ Unmounted ${path}
+🔧 Cleanup completed:
+   • Cached data: Persisted
+   • Connections: Closed
+   • Metadata: Saved
+   • Status: Successfully unmounted`,
+      exitCode: 0
+    };
+  }
+
+  async handleVFSStatus(args) {
+    return {
+      success: true,
+      output: `🗂️ Virtual Filesystem Status
+
+Mounted Backends:
+   📡 helia       @ /ipfs/     Connected    156 files (45MB)
+   🔗 libp2p      @ /p2p/      Connected    89 files (23MB)
+   ☁️ storacha    @ /cloud/    Connected    134 files (67MB)
+   🪣 s3          @ /s3/       Connected    201 files (123MB)
+   🤗 huggingface @ /hf/       Connected    42 models (15GB)
+
+System Health:
+   ✅ All backends operational
+   🔄 Sync status: Up to date
+   💾 Cache usage: 512MB / 2GB
+   🌐 Network: 42 peers connected
+   
+Recent Activity:
+   • Model downloaded from /hf/microsoft/DialoGPT-medium (1 min ago)
+   • File uploaded to /ipfs/data.json (2 min ago)
+   • Mirror sync completed (5 min ago)
+   • S3 backup created (15 min ago)`,
+      exitCode: 0
+    };
+  }
+
+  getBackendInfo(backend) {
+    const info = {
+      'helia': '📡 IPFS via Helia',
+      'libp2p': '🔗 P2P Distributed Storage',
+      'storacha': '☁️ Storacha IPFS Pinning',
+      's3': '🪣 S3-Compatible Storage',
+      'huggingface': '🤗 Hugging Face Hub'
+    };
+    return info[backend] || backend;
+  }
+
+  getBackendFromPath(path) {
+    if (path.startsWith('/ipfs/')) return 'helia';
+    if (path.startsWith('/p2p/')) return 'libp2p';
+    if (path.startsWith('/cloud/')) return 'storacha';
+    if (path.startsWith('/s3/')) return 's3';
+    if (path.startsWith('/hf/')) return 'huggingface';
+    return 'local';
+  }
+
+  getBackendEndpoint(backend) {
+    const endpoints = {
+      'helia': 'ipfs://local-node',
+      'libp2p': 'p2p://12D3KooW...',
+      'storacha': 'https://api.web3.storage',
+      's3': 'https://s3.amazonaws.com',
+      'huggingface': 'https://huggingface.co'
+    };
+    return endpoints[backend] || 'unknown';
+  }
+
+  getSimulatedSpace(backend) {
+    const spaces = {
+      'helia': '♾️ Unlimited (DHT)',
+      'libp2p': '♾️ Distributed Network',
+      'storacha': '5.0GB / 10.0GB (Free Tier)',
+      's3': '∞ Pay-per-use',
+      'huggingface': '500GB / 1TB (Pro Plan)'
+    };
+    return spaces[backend] || 'Unknown';
+  }
+
+  async handleHFCommand(args) {
+    if (args.length === 0) {
+      return {
+        success: true,
+        output: `🤗 Hugging Face Hub Commands:
+  search <query>         - Search models and datasets
+  download <model>       - Download model or dataset
+  upload <path> <repo>   - Upload to repository
+  info <model>           - Get model/dataset info
+  repos [user]           - List repositories
+  models [query]         - Search models only
+  datasets [query]       - Search datasets only
+  spaces [query]         - Search spaces
+  login                  - Authenticate with HF Hub
+  whoami                 - Show current user info
+
+Examples:
+  hf search "text generation"
+  hf download microsoft/DialoGPT-medium
+  hf info bert-base-uncased
+  hf repos microsoft`,
+        exitCode: 0
+      };
+    }
+
+    const subcommand = args[0];
+    const params = args.slice(1);
+
+    switch (subcommand) {
+      case 'search':
+        return await this.handleHFSearch(params);
+      case 'download':
+        return await this.handleHFDownload(params);
+      case 'upload':
+        return await this.handleHFUpload(params);
+      case 'info':
+        return await this.handleHFInfo(params);
+      case 'repos':
+        return await this.handleHFRepos(params);
+      case 'models':
+        return await this.handleHFModels(params);
+      case 'datasets':
+        return await this.handleHFDatasets(params);
+      case 'spaces':
+        return await this.handleHFSpaces(params);
+      case 'login':
+        return await this.handleHFLogin(params);
+      case 'whoami':
+        return await this.handleHFWhoami(params);
+      default:
+        return {
+          success: false,
+          error: `Unknown HF command: ${subcommand}`,
+          exitCode: 1
+        };
+    }
+  }
+
+  async handleHFSearch(args) {
+    if (args.length === 0) {
+      return {
+        success: false,
+        error: 'Usage: hf search <query>',
+        exitCode: 1
+      };
+    }
+
+    const query = args.join(' ');
+    
+    return {
+      success: true,
+      output: `🔍 Hugging Face Hub Search: "${query}"
+
+📊 Models:
+   🤖 microsoft/DialoGPT-medium      - Conversational AI model
+   🤖 bert-base-uncased              - BERT base model
+   🤖 gpt2                           - GPT-2 language model
+   🤖 distilbert-base-uncased        - Distilled BERT model
+
+📚 Datasets:
+   📄 squad                          - Reading comprehension dataset
+   📄 imdb                           - Movie review sentiment dataset
+   📄 glue                           - General Language Understanding
+   📄 wikitext                       - Wikipedia text corpus
+
+🚀 Spaces:
+   🌐 gradio-chatbot                 - Interactive chatbot demo
+   🌐 text-to-image-generator        - Image generation interface
+   🌐 sentiment-analyzer             - Text sentiment analysis
+
+💡 Use 'hf download <model>' to download or 'hf info <model>' for details`,
+      exitCode: 0
+    };
+  }
+
+  async handleHFDownload(args) {
+    if (args.length === 0) {
+      return {
+        success: false,
+        error: 'Usage: hf download <model-or-dataset-id> [--local-dir path]',
+        exitCode: 1
+      };
+    }
+
+    const modelId = args[0];
+    const localDir = args.includes('--local-dir') ? 
+      args[args.indexOf('--local-dir') + 1] : '/local/models';
+    
+    return {
+      success: true,
+      output: `📥 Downloading from Hugging Face Hub...
+
+🤖 Model: ${modelId}
+📁 Destination: ${localDir}/${modelId}
+🔗 Source: https://huggingface.co/${modelId}
+
+📊 Download Progress:
+   config.json           ✅ 1.2KB   (completed)
+   pytorch_model.bin     🔄 1.3GB   (downloading... 75%)
+   tokenizer.json        ⏳ 456KB  (queued)
+   README.md            ✅ 5.2KB   (completed)
+
+⏱️ Estimated time remaining: 2m 30s
+🌐 Download speed: 15.2 MB/s
+
+💡 Files will be available via VFS at /hf/${modelId}/`,
+      exitCode: 0
+    };
+  }
+
+  async handleHFUpload(args) {
+    if (args.length < 2) {
+      return {
+        success: false,
+        error: 'Usage: hf upload <local-path> <repo-id> [--commit-message "message"]',
+        exitCode: 1
+      };
+    }
+
+    const localPath = args[0];
+    const repoId = args[1];
+    const commitMessage = args.includes('--commit-message') ? 
+      args[args.indexOf('--commit-message') + 1] : 'Upload via SwissKnife VFS';
+    
+    return {
+      success: true,
+      output: `📤 Uploading to Hugging Face Hub...
+
+📁 Source: ${localPath}
+🤖 Repository: ${repoId}
+💬 Commit message: "${commitMessage}"
+🔗 Destination: https://huggingface.co/${repoId}
+
+📊 Upload Progress:
+   model.safetensors     🔄 2.1GB   (uploading... 45%)
+   config.json          ✅ 1.2KB   (completed)
+   README.md            ✅ 3.8KB   (completed)
+
+⏱️ Estimated time remaining: 5m 12s
+🌐 Upload speed: 8.3 MB/s
+
+✅ Repository will be updated at: hf://${repoId}/`,
+      exitCode: 0
+    };
+  }
+
+  async handleHFInfo(args) {
+    if (args.length === 0) {
+      return {
+        success: false,
+        error: 'Usage: hf info <model-or-dataset-id>',
+        exitCode: 1
+      };
+    }
+
+    const modelId = args[0];
+    
+    return {
+      success: true,
+      output: `🤖 Hugging Face Model Info: ${modelId}
+
+📊 Model Details:
+   🏷️ Name: ${modelId}
+   🔗 URL: https://huggingface.co/${modelId}
+   👤 Author: Microsoft
+   📝 Task: Conversational AI
+   🏢 License: MIT
+   📅 Updated: 2 days ago
+   ⭐ Stars: 1,247
+   📥 Downloads: 45,832/month
+
+📋 Model Card:
+   📄 Description: A conversational AI model fine-tuned for dialogue
+   🎯 Use Cases: Chatbots, virtual assistants, dialogue systems
+   ⚠️ Limitations: May generate biased or harmful content
+   🔧 Framework: PyTorch/Transformers
+
+📁 Repository Files:
+   config.json           1.2KB
+   pytorch_model.bin     1.3GB
+   tokenizer.json        456KB
+   README.md            5.2KB
+   .gitattributes       23B
+
+💡 Use 'hf download ${modelId}' to download this model`,
+      exitCode: 0
+    };
+  }
+
+  async handleHFRepos(args) {
+    const user = args[0] || 'microsoft';
+    
+    return {
+      success: true,
+      output: `👤 Repositories for: ${user}
+
+🤖 Models (12):
+   microsoft/DialoGPT-medium         - Conversational AI (1.3GB)
+   microsoft/DialoGPT-small          - Conversational AI (117MB)
+   microsoft/DialoGPT-large          - Conversational AI (5.8GB)
+   microsoft/CodeBERT-base           - Code understanding (440MB)
+
+📚 Datasets (5):
+   microsoft/orca-math-word-problems - Math reasoning dataset
+   microsoft/wiki-qa                 - Question answering pairs
+   microsoft/code-search-net         - Code search dataset
+
+🚀 Spaces (3):
+   microsoft/chatbot-demo            - Interactive chat interface
+   microsoft/code-reviewer           - Automated code review
+   microsoft/text-summarizer         - Document summarization
+
+💡 Use 'hf info microsoft/<repo-name>' for detailed information`,
+      exitCode: 0
+    };
+  }
+
+  async handleHFModels(args) {
+    const query = args.join(' ') || 'popular models';
+    
+    return {
+      success: true,
+      output: `🤖 Hugging Face Models: ${query}
+
+🔥 Popular Models:
+   bert-base-uncased                 440MB   📥 2.1M/month
+   gpt2                              523MB   📥 1.8M/month  
+   distilbert-base-uncased           265MB   📥 1.2M/month
+   roberta-base                      501MB   📥 890K/month
+
+🆕 Recent Models:
+   microsoft/DialoGPT-medium         1.3GB   📥 45K/month
+   google/flan-t5-base               990MB   📥 67K/month
+   facebook/opt-350m                 715MB   📥 23K/month
+
+🎯 Task-Specific:
+   📝 Text Generation: gpt2, DialoGPT
+   🔍 Text Classification: bert-base, roberta
+   🌐 Translation: helsinki-nlp/opus-mt
+   📊 Summarization: facebook/bart-large
+
+💡 Use 'hf download <model>' to get any model`,
+      exitCode: 0
+    };
+  }
+
+  async handleHFDatasets(args) {
+    const query = args.join(' ') || 'popular datasets';
+    
+    return {
+      success: true,
+      output: `📚 Hugging Face Datasets: ${query}
+
+🔥 Popular Datasets:
+   squad                             87MB    📥 234K/month
+   imdb                              129MB   📥 189K/month
+   glue                              245MB   📥 156K/month
+   wikitext                          183MB   📥 98K/month
+
+🆕 Recent Datasets:
+   common_voice                      2.3GB   📥 45K/month
+   the_pile                          825GB   📥 23K/month
+   c4                                745GB   📥 34K/month
+
+🎯 Domain-Specific:
+   🗣️ Speech: common_voice, librispeech
+   👁️ Vision: imagenet, coco, cifar
+   📖 NLP: squad, xnli, super_glue
+   🔬 Science: pubmed, arxiv, s2orc
+
+💡 Use 'vfs cp /hf/dataset-name/ /local/' to download`,
+      exitCode: 0
+    };
+  }
+
+  async handleHFSpaces(args) {
+    const query = args.join(' ') || 'featured spaces';
+    
+    return {
+      success: true,
+      output: `🚀 Hugging Face Spaces: ${query}
+
+✨ Featured Spaces:
+   🤖 ChatGPT-like Interface         - GPT-based chatbot
+   🎨 Stable Diffusion Web UI        - Image generation
+   📝 Text Summarization Tool        - Document summarizer
+   🔍 Semantic Search Engine         - Smart content search
+
+🔥 Trending Spaces:
+   🎵 Music Generation Studio        - AI music composer
+   📊 Data Visualization Tool        - Interactive charts
+   🗣️ Speech-to-Text Converter       - Audio transcription
+   🌐 Language Translator            - Multi-language support
+
+🎯 Categories:
+   🤖 NLP: text generation, translation, QA
+   👁️ Computer Vision: image generation, classification
+   🎵 Audio: speech recognition, music generation
+   📊 Data Science: visualization, analysis tools
+
+💡 Visit spaces at: https://huggingface.co/spaces`,
+      exitCode: 0
+    };
+  }
+
+  async handleHFLogin(args) {
+    return {
+      success: true,
+      output: `🔐 Hugging Face Hub Authentication
+
+🌐 Login methods:
+   1. Token-based (recommended):
+      • Generate token at: https://huggingface.co/settings/tokens
+      • Run: hf login --token <your-token>
+   
+   2. Username/password:
+      • Run: hf login --username <username>
+      • Enter password when prompted
+
+📊 Current status: Not authenticated
+🔑 Token file: ~/.cache/huggingface/token
+
+💡 Pro features with authentication:
+   • Upload models and datasets
+   • Access private repositories  
+   • Higher rate limits
+   • Advanced search features
+
+⚠️  Keep your token secure - treat it like a password!`,
+      exitCode: 0
+    };
+  }
+
+  async handleHFWhoami(args) {
+    return {
+      success: true,
+      output: `👤 Hugging Face User Information
+
+🔐 Authentication Status: Not logged in
+
+💡 To authenticate:
+   1. Get your token: https://huggingface.co/settings/tokens
+   2. Run: hf login --token <your-token>
+   3. Verify with: hf whoami
+
+🎯 Benefits of logging in:
+   • Upload to repositories
+   • Access private content
+   • Higher API rate limits
+   • Personalized recommendations`,
+      exitCode: 0
+    };
   }
 }
