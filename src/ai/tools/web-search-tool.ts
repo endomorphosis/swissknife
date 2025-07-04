@@ -1,8 +1,8 @@
 // src/ai/tools/web-search-tool.ts
 
 import { Tool, OldToolParameter as ToolParameter, ValidationResult } from './tool.js';
-import { logger } from '../../utils/logger.js';
-import { z } from 'zod.js';
+import { logger } from '../utils/logger';
+import { z } from 'zod';
 
 /**
  * A tool that performs web searches

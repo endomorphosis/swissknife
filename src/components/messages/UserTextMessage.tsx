@@ -1,9 +1,9 @@
 import { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { UserBashInputMessage } from './UserBashInputMessage.js.js.js.js.js.js.js.js.js.js'
-import { UserCommandMessage } from './UserCommandMessage.js.js.js.js.js.js.js.js.js.js'
-import { UserPromptMessage } from './UserPromptMessage.js.js.js.js.js.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { NO_CONTENT_MESSAGE } from '../../services/claude.js.js.js.js.js.js.js.js.js.js'
+import { UserBashInputMessage } from './UserBashInputMessage.js'
+import { UserCommandMessage } from './UserCommandMessage.js'
+import { UserPromptMessage } from './UserPromptMessage.js'
+import * as React from 'react'
+import { NO_CONTENT_MESSAGE } from '../services/claude'
 
 type Props = {
   addMargin: boolean

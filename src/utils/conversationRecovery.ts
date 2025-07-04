@@ -1,4 +1,4 @@
-import { Tool } from '../ai/types.js';
+import { Tool } from '../ai/types';
 import fs from 'fs/promises';
 import { logError } from './log.js';
 

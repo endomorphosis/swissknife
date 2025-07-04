@@ -1,7 +1,7 @@
 import { CID, Status, TaskID } from './common.js';
 import { StorageProvider } from './storage.js'; 
-import { TaskManager } from '../tasks/manager.js'; 
-import { InferenceExecutor } from '../ml/inference/executor.js'; 
+import { TaskManager } from '../tasks/manager'; 
+import { InferenceExecutor } from '../ml/inference/executor'; 
 import { z, ZodType } from 'zod'; 
 
 /**
@@ -44,6 +44,17 @@ export interface ModelOptions {
   provider: string;
   parameters?: Record<string, any>;
   metadata?: Record<string, any>;
+  maxTokens?: number;
+  pricePerToken?: number;
+  source?: string;
+  capabilities?: ModelCapabilities; // Added to resolve TS2339 error in openai-factory.ts
+}
+
+export interface ModelCapabilities {
+  streaming: boolean;
+  tools: boolean;
+  structuredOutput: boolean;
+  images?: boolean;
 }
 
 export enum ModelProvider {
@@ -117,6 +128,7 @@ export interface Tool<T extends ZodType = ZodType> {
    * @returns A promise resolving to the tool's output.
    */
   execute(input: ToolInput<T>, context: ToolExecutionContext): Promise<ToolOutput>;
+  parameters?: any[]; // Added to resolve TS2339 error in openai-model.ts
 }
 
 /**
@@ -272,6 +284,8 @@ export interface ModelDefinition {
 /**
  * Represents the definition of a model provider and its available models.
  */
+export { Status };
+
 export interface ProviderDefinition {
   id: string;                 // Unique ID for the provider, e.g., "openai"
   name: string;               // Human-readable name, e.g., "OpenAI"

@@ -3,8 +3,8 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 import { Readable } from 'stream';
-import { logger } from '../utils/logger.js';
-import { ConfigurationManager } from '../config/manager.js';
+import { logger } from '../utils/logger';
+import { ConfigurationManager } from '../config/manager';
 
 /**
  * Options for IPFS add operations

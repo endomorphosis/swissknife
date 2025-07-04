@@ -1,8 +1,8 @@
 /**
  * Command to remove an MCP server from the configuration
  */
-import type { Command, LocalCommand } from '../types/command.js';
-import { removeMcpServer, ensureConfigScope } from '../services/mcpClient.js';
+import type { Command, LocalCommand } from '../types/command';
+import { removeMcpServer, ensureConfigScope } from '../services/mcpClient';
 
 const removeMcpServerCommand: LocalCommand = {
   type: 'local',

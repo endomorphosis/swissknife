@@ -8,47 +8,48 @@ module.exports = (env, argv) => {
   
   return {
     entry: {
-      main: './js/main.js',
-      'swissknife-browser': './js/swissknife-browser.js'
+      // For the clean GUI version, we don't need webpack bundling
+      // since index.html loads the scripts directly
+      main: './js/main.js'
     },
     
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: '[name].[contenthash].js',
+      filename: isProduction ? '[name].[contenthash].js' : '[name].js',
       clean: true,
       publicPath: './',
     },
     
-      resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.jsx'],
-        fallback: {
-          "buffer": require.resolve("buffer"),
-          "crypto": require.resolve("crypto-browserify"),
-          "stream": require.resolve("stream-browserify"),
-          "process": require.resolve("process/browser"),
-          "path": require.resolve("path-browserify"),
-          "os": require.resolve("os-browserify"),
-          "util": require.resolve("util"),
-          "fs": false,
-          "child_process": false,
-          "worker_threads": false,
-          "tty": false,
-          "net": false,
-          "http": false,
-          "https": false,
-          "url": false,
-          "querystring": false,
-          "zlib": false
-        },
-        alias: {
-          // Map source paths to web-compatible versions
-          '@swissknife/core': path.resolve(__dirname, '../src'),
-          '@swissknife/ai': path.resolve(__dirname, '../src/ai'),
-          '@swissknife/tasks': path.resolve(__dirname, '../src/tasks'),
-          '@swissknife/storage': path.resolve(__dirname, '../src/storage'),
-          '@swissknife/utils': path.resolve(__dirname, '../src/utils'),
-        }
+    resolve: {
+      extensions: ['.ts', '.tsx', '.js', '.jsx'],
+      fallback: {
+        "buffer": require.resolve("buffer"),
+        "crypto": require.resolve("crypto-browserify"),
+        "stream": require.resolve("stream-browserify"),
+        "process": require.resolve("process/browser"),
+        "path": require.resolve("path-browserify"),
+        "os": require.resolve("os-browserify"),
+        "util": require.resolve("util"),
+        "fs": false,
+        "child_process": false,
+        "worker_threads": false,
+        "tty": false,
+        "net": false,
+        "http": false,
+        "https": false,
+        "url": require.resolve("url"),
+        "querystring": false,
+        "zlib": false
       },
+      alias: {
+        // Map source paths to web-compatible versions
+        '@swissknife': path.resolve(__dirname, '../src'),
+        '@legacy': path.resolve(__dirname, 'js'),
+        '@': path.resolve(__dirname, 'src'),
+        '@/adapters/ai-adapter': path.resolve(__dirname, 'src/adapters/browser-ai-adapter.ts')
+      },
+      modules: [path.resolve(__dirname, 'src'), 'node_modules']
+    },
     
     module: {
       rules: [
@@ -58,8 +59,8 @@ module.exports = (env, argv) => {
             {
               loader: 'ts-loader',
               options: {
-                configFile: path.resolve(__dirname, 'tsconfig.web.json'),
-                transpileOnly: true
+                configFile: path.resolve(__dirname, 'tsconfig.json'),
+                transpileOnly: !isProduction
               }
             }
           ],
@@ -86,9 +87,9 @@ module.exports = (env, argv) => {
     
     plugins: [
       new HtmlWebpackPlugin({
-        template: './template.html',
+        template: './index.html', // Use existing index.html 
         filename: 'index.html',
-        inject: 'body',
+        inject: 'body', // Don't inject scripts since index.html already has them
         minify: isProduction ? {
           removeComments: true,
           collapseWhitespace: true,
@@ -108,6 +109,20 @@ module.exports = (env, argv) => {
           { from: 'css', to: 'css' },
           { from: 'assets', to: 'assets', noErrorOnMissing: true },
           { from: 'favicon.ico', to: 'favicon.ico', noErrorOnMissing: true },
+          // Legacy JS files for fallback/debugging - exclude broken files
+          { 
+            from: 'js', 
+            to: 'js', 
+            noErrorOnMissing: true,
+            globOptions: {
+              ignore: [
+                '**/strudel-broken.js',
+                '**/strudel-grandma-broken.js',
+                '**/apps/strudel-broken.js',
+                '**/apps/strudel-grandma-broken.js'
+              ]
+            }
+          }
         ],
       }),
       
@@ -121,6 +136,7 @@ module.exports = (env, argv) => {
       new (require('webpack')).DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(argv.mode),
         'process.env.BROWSER': JSON.stringify(true),
+        'process.env.UNIFIED_BUILD': JSON.stringify(true),
         'global': 'globalThis',
       }),
     ],
@@ -131,7 +147,7 @@ module.exports = (env, argv) => {
         new TerserPlugin({
           terserOptions: {
             compress: {
-              drop_console: true,
+              drop_console: false, // Keep console for stlite debugging
             },
           },
         }),
@@ -144,30 +160,43 @@ module.exports = (env, argv) => {
             name: 'vendors',
             chunks: 'all',
           },
+          stlite: {
+            test: /stlite/,
+            name: 'stlite',
+            chunks: 'all',
+            priority: 20,
+          },
           swissknife: {
             test: /[\\/]src[\\/]/,
             name: 'swissknife-core',
             chunks: 'all',
-            enforce: true,
+            priority: 10,
           },
         },
       },
     } : {
       splitChunks: {
         chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
       },
     },
     
     devServer: {
       static: {
         directory: path.join(__dirname, 'dist'),
-        watch: false,
+        watch: true,
       },
       compress: true,
-      port: 8080,
-      hot: false,
-      liveReload: false,
-      open: false,
+      port: 8000, // Changed to match unified system
+      hot: true,   // Enable hot reload for development
+      liveReload: true,
+      open: true,  // Auto-open browser
       historyApiFallback: true,
       allowedHosts: 'all',
       headers: {
@@ -179,6 +208,7 @@ module.exports = (env, argv) => {
           errors: true,
           warnings: false,
         },
+        logging: 'info',
       },
     },
     
@@ -188,8 +218,8 @@ module.exports = (env, argv) => {
     
     performance: {
       hints: isProduction ? 'warning' : false,
-      maxEntrypointSize: 2000000, // 2MB
-      maxAssetSize: 2000000, // 2MB
+      maxEntrypointSize: 3000000, // 3MB - increased for stlite
+      maxAssetSize: 3000000, // 3MB
     },
   };
 };

@@ -1,13 +1,13 @@
-import type { Command, LocalCommand } from '../types/command.js'; // Updated import path
-import { getContext } from '../context.js';
-import { getMessagesGetter, getMessagesSetter } from '../messages.js';
-import { API_ERROR_MESSAGE_PREFIX, querySonnet } from '../services/claude.js';
+import type { Command, LocalCommand } from '../types/command'; // Updated import path
+import { getContext } from '../context';
+import { getMessagesGetter, getMessagesSetter } from '../messages';
+import { API_ERROR_MESSAGE_PREFIX, querySonnet } from '../services/claude';
 import {
   createUserMessage,
   normalizeMessagesForAPI,
-} from '../utils/messages.js';
-import { getCodeStyle } from '../utils/style.js';
-import { clearTerminal } from '../utils/terminal.js';
+} from '../utils/messages';
+import { getCodeStyle } from '../utils/style';
+import { clearTerminal } from '../utils/terminal';
 
 const compactCommand: LocalCommand = {
   type: 'local',

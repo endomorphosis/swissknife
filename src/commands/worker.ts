@@ -2,8 +2,8 @@
 
 import { Command } from './registry.js';
 import { ExecutionContext } from './context.js';
-import { WorkerPool, WorkerPoolOptions } from '../workers/worker-pool.js';
-import chalk from 'chalk.js';
+import { WorkerPool, WorkerPoolOptions } from '../workers/worker-pool';
+import chalk from 'chalk';
 
 // Initialize the worker pool with default options
 const workerPool = WorkerPool.getInstance({
@@ -210,8 +210,8 @@ function getStatusString(status: string): string {
 }
 
 // Register common task handlers for workers
-import { ModelRegistry } from '../models/registry.js';
-import { ModelExecutionService } from '../models/execution.js';
+import { ModelRegistry } from '../models/registry';
+import { ModelExecutionService } from '../models/execution';
 
 // Register model execution task handler
 workerPool.registerTaskHandler('modelExecution', async (args) => {

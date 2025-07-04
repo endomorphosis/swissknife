@@ -1,7 +1,7 @@
 /**
  * Worker Pool Implementation
  */
-import { EventEmitter } from 'events.js';
+import { EventEmitter } from 'events';
 
 /**
  * Worker information

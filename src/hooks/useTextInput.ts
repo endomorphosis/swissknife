@@ -1,11 +1,11 @@
-import { useState } from 'react.js'
-import { type Key } from 'ink.js'
+import { useState } from 'react'
+import { type Key } from 'ink'
 import { useDoublePress } from './useDoublePress.js'
-import { Cursor } from '../utils/Cursor.js'
+import { Cursor } from '../utils/Cursor'
 import {
   getImageFromClipboard,
   CLIPBOARD_ERROR_MESSAGE,
-} from '../utils/imagePaste.js'
+} from '../utils/imagePaste'
 
 const IMAGE_PLACEHOLDER = '[Image pasted]'
 

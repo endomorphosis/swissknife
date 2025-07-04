@@ -1,6 +1,6 @@
 import type { MessageParam } from '@anthropic-ai/sdk/resources/index.mjs';
-import type { Tool } from '../Tool.js'; // Removed ToolUseContext
-import type { Message } from '../query.js';
+import type { Tool } from '../Tool'; // Removed ToolUseContext
+import type { Message } from '../query';
 
 /**
  * Defines the structure for a command-line option.

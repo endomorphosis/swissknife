@@ -9,8 +9,8 @@
  * - Secure retrieval and rotation
  */
 
-import { ConfigurationManager } from '../config/manager.js';
-import { encrypt, decrypt } from '../utils/encryption.js';
+import { ConfigurationManager } from '../config/manager';
+import { encrypt, decrypt } from '../utils/encryption';
 
 // Singleton instance
 let instance = null;

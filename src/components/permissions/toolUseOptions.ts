@@ -1,13 +1,13 @@
 import { type Option } from '@inkjs/ui'
-import chalk from 'chalk.js'
+import chalk from 'chalk'
 import {
   type ToolUseConfirm,
   toolUseConfirmGetPrefix,
 } from './PermissionRequest.js'
-import { isUnsafeCompoundCommand } from '../../utils/commands.js'
-import { getCwd } from '../../utils/state.js'
-import { getTheme } from '../../utils/theme.js'
-import { type OptionSubtree } from '../CustomSelect/select.js'
+import { isUnsafeCompoundCommand } from '../utils/commands'
+import { getCwd } from '../utils/state'
+import { getTheme } from '../utils/theme'
+import { type OptionSubtree } from '../CustomSelect/select'
 
 /**
  * Generates options for the tool use confirmation dialog

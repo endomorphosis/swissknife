@@ -2,11 +2,11 @@
 
 import { Command } from './registry.js';
 import { ExecutionContext } from './context.js';
-import { registerConfigurationSchemas } from '../config/schemas.js';
-import { migrateTomlConfig } from '../config/migration.js';
-import * as path from 'path.js';
-import * as fs from 'fs/promises.js';
-import chalk from 'chalk.js';
+import { registerConfigurationSchemas } from '../config/schemas';
+import { migrateTomlConfig } from '../config/migration';
+import * as path from 'path';
+import * as fs from 'fs/promises';
+import chalk from 'chalk';
 
 // Register schemas when this module is imported
 registerConfigurationSchemas();

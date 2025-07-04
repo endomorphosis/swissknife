@@ -2,10 +2,10 @@
 
 import { Command } from './registry.js';
 import { ExecutionContext } from './context.js';
-import { IntegrationRegistry } from '../integration/registry.js';
-import * as path from 'path.js';
-import * as fs from 'fs/promises.js';
-import chalk from 'chalk.js';
+import { IntegrationRegistry } from '../integration/registry';
+import * as path from 'path';
+import * as fs from 'fs/promises';
+import chalk from 'chalk';
 
 /**
  * Version command implementation

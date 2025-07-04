@@ -1,9 +1,9 @@
-import type { LocalCommand } from '../types/command.js';
-import { listMCPServers, getClients } from '../services/mcpClient.js';
-import { PRODUCT_COMMAND } from '../constants/product.js';
+import type { LocalCommand } from '../types/command';
+import { listMCPServers, getClients } from '../services/mcpClient';
+import { PRODUCT_COMMAND } from '../constants/product';
 import chalk from 'chalk';
-import { getTheme } from '../utils/theme.js';
-import { logError } from '../utils/log.js';
+import { getTheme } from '../utils/theme';
+import { logError } from '../utils/log';
 
 const mcpCommand: LocalCommand = {
   type: 'local',

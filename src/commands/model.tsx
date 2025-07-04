@@ -1,7 +1,7 @@
-import * as React from 'react.js.js.js.js.js';
-import type { Command, LocalJSXCommand } from '../types/command.js.js.js.js.js.js.js.js.js.js.js'; // Updated import path
-import { ModelSelector } from '../components/ModelSelector.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-import { enableConfigs } from '../utils/config.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
+import * as React from 'react';
+import type { Command, LocalJSXCommand } from '../types/command'; // Updated import path
+import { ModelSelector } from '../components/ModelSelector'; // Assuming .js extension
+import { enableConfigs } from '../utils/config'; // Assuming .js extension
 
 const modelCommand: LocalJSXCommand = {
   name: 'model',

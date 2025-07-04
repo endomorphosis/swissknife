@@ -1,7 +1,7 @@
-import { Command, CommandExecutionContext } from '../../command-registry.js';
-import { Agent } from '../../ai/agent/agent.js'; // Agent is expected in context
-import { logger } from '../../utils/logger.js';
-import parse from 'yargs-parser.js'; 
+import { Command, CommandExecutionContext } from '../command-registry';
+import { Agent } from '../ai/agent/agent'; // Agent is expected in context
+import { logger } from '../utils/logger';
+import parse from 'yargs-parser'; 
 
 export class AiChatCommand implements Command {
   readonly name = 'ai:chat';

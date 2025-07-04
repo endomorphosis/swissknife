@@ -1,6 +1,6 @@
-import type { Command, LocalCommand } from '../types/command.js'; // Updated import path
-import { logError } from '../utils/log.js'; // Assuming .js extension
-import { execFileNoThrow } from '../utils/execFileNoThrow.js'; // Assuming .js extension
+import type { Command, LocalCommand } from '../types/command'; // Updated import path
+import { logError } from '../utils/log'; // Assuming .js extension
+import { execFileNoThrow } from '../utils/execFileNoThrow'; // Assuming .js extension
 
 const isEnabled =
   process.platform === 'darwin' &&

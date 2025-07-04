@@ -5,13 +5,11 @@
  * for complex reasoning and task decomposition.
  */
 
-import { Command } from 'commander.js';
-import { GoTManager } from '../tasks/graph/manager.js';
-import { GoTNode } from '../tasks/graph/node.js';
-import { MCPClient } from '../storage/ipfs/mcp-client.js';
-import { ConfigurationManager } from '../config/manager.js';
-import { LogManager } from '../utils/logging/manager.js';
-import chalk from 'chalk.js';
+import { Command } from 'commander';
+import { GoTManager } from '../tasks/graph/manager';
+import { MCPClient } from '../storage/ipfs/mcp-client';
+import { ConfigurationManager } from '../config/manager';
+import chalk from 'chalk';
 
 export const got = new Command('got')
   .description('Interact with the Graph-of-Thought system')
@@ -35,7 +33,7 @@ got
       
       console.log(chalk.green(`✓ Created new Graph-of-Thought with ID: ${graphId}`));
       console.log(`\nUse this ID in subsequent commands to add nodes and manage the graph.`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error creating Graph-of-Thought: ${error.message}`));
     }
   });
@@ -76,7 +74,7 @@ got
       if (parentIds.length > 0) {
         console.log(`Connected to parent nodes: ${parentIds.join(', ')}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error adding node: ${error.message}`));
     }
   });
@@ -109,15 +107,15 @@ got
       console.log('───────────────────────────────────');
       
       nodes.forEach(node => {
-        const statusColor = {
+        const statusColor: { [key: string]: chalk.Chalk } = {
           'pending': chalk.yellow,
           'active': chalk.blue,
           'completed': chalk.green,
           'failed': chalk.red,
           'blocked': chalk.grey
-        }[node.status] || chalk.white;
+        };
         
-        console.log(`${chalk.bold(node.id)} (${chalk.cyan(node.type)}) - ${statusColor(node.status)}`);
+        console.log(`${chalk.bold(node.id)} (${chalk.cyan(node.type)}) - ${statusColor[node.status](node.status)}`);
         console.log(`Content: ${node.content.substring(0, 50)}${node.content.length > 50 ? '...' : ''}`);
         
         if (node.parentIds.length > 0) {
@@ -131,7 +129,7 @@ got
         console.log('───────────────────────────────────');
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error listing nodes: ${error.message}`));
     }
   });
@@ -169,7 +167,7 @@ got
         node.updateData(data);
         console.log(chalk.green(`✓ Updated node ${nodeId} data`));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error updating node: ${error.message}`));
     }
   });
@@ -208,7 +206,7 @@ got
       console.log(`CID: ${cid}`);
       console.log(`\nYou can retrieve this graph using the CID.`);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error persisting graph: ${error.message}`));
     }
   });
@@ -236,7 +234,7 @@ got
       
       // Add nodes
       for (const node of nodes) {
-        const nodeColor = {
+        const nodeColor: { [key: string]: string } = {
           'question': 'lightblue',
           'task': 'lightyellow',
           'thought': 'lightgreen',
@@ -245,10 +243,10 @@ got
           'result': 'lightgrey',
           'answer': 'lightcyan',
           'error': 'red'
-        }[node.type] || 'white';
+        };
         
         const label = `${node.type}\\n${node.content.substring(0, 20)}${node.content.length > 20 ? '...' : ''}`;
-        dot += `  "${node.id}" [label="${label}", fillcolor="${nodeColor}"];\n`;
+        dot += `  "${node.id}" [label="${label}", fillcolor="${nodeColor[node.type]}"];\n`;
       }
       
       dot += '\n';
@@ -273,7 +271,7 @@ got
         console.log(`dot -Tpng graph.dot -o graph.png`);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error visualizing graph: ${error.message}`));
     }
   });
@@ -297,7 +295,7 @@ got
       console.log(chalk.green(`✓ Graph execution completed`));
       
       // Show final answer nodes if any
-      const answerNodes = manager.getNodesByType(graphId, 'answer');
+      const answerNodes = manager.getNodesByType(graphId, 'answer' as any);
       if (answerNodes.length > 0) {
         console.log(chalk.yellow(`\nFinal Answers:`));
         answerNodes.forEach(node => {
@@ -307,7 +305,7 @@ got
         });
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error executing graph: ${error.message}`));
     }
   });

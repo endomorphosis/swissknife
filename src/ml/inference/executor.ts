@@ -1,7 +1,7 @@
-import { Tensor } from '../tensor/tensor.js';
-import { ModelOptimizer } from '../optimizers/optimizer.js';
-import { HardwareAccelerator } from '../hardware/accelerator.js';
-import { logger } from '../../utils/logger.js';
+import { Tensor } from '../tensor/tensor';
+import { ModelOptimizer } from '../optimizers/optimizer';
+import { HardwareAccelerator } from '../hardware/accelerator';
+import { logger } from '../utils/logger';
 
 // Placeholder for model representation
 type MLModel = any; 

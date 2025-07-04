@@ -2,8 +2,8 @@
  * Integration Registry - Manages bridges between different component systems
  */
 
-import { EventEmitter } from 'events.js';
-import { ConfigManager as ConfigurationManager } from '../config/manager.js';
+import { EventEmitter } from 'events';
+import { ConfigManager as ConfigurationManager } from '../config/manager';
 
 /**
  * Source and target system types

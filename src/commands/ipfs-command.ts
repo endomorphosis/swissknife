@@ -1,17 +1,17 @@
 // src/commands/ipfs-command.ts
 
-import { Command } from '../cli/command.js';
-import { IPFSKitClient } from '../ipfs/client.js';
-import { StorageService } from '../storage/service.js';
-import { logger } from '../utils/logger.js';
-import { ConfigurationManager } from '../config/manager.js';
-import chalk from 'chalk.js';
-import Table from 'cli-table3.js';
-import prettyBytes from 'pretty-bytes.js';
-import ora from 'ora.js';
-import path from 'path.js';
-import fs from 'fs/promises.js';
-import { createReadStream } from 'fs.js';
+import { Command } from '../cli/command';
+import { IPFSKitClient } from '../ipfs/client';
+import { StorageService } from '../storage/service';
+import { logger } from '../utils/logger';
+import { ConfigurationManager } from '../config/manager';
+import chalk from 'chalk';
+import Table from 'cli-table3';
+import prettyBytes from 'pretty-bytes';
+import ora from 'ora';
+import path from 'path';
+import fs from 'fs/promises';
+import { createReadStream } from 'fs';
 
 /**
  * Command for interacting with IPFS

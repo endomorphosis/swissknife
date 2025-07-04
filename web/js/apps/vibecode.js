@@ -3,7 +3,7 @@
  * Code editor with AI assistance and execution capabilities
  */
 
-export class VibeCodeApp {
+class VibeCodeApp {
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;
@@ -263,15 +263,7 @@ export class VibeCodeApp {
     const lineNumbers = window.querySelector('#line-numbers');
     
     // Set initial content
-    editor.value = `// Welcome to VibeCode!
-// Start typing your code here...
-
-function fibonacci(n) {
-  if (n <= 1) return n;
-  return fibonacci(n - 1) + fibonacci(n - 2);
-}
-
-console.log(fibonacci(10));`;
+    editor.value = `// Welcome to VibeCode!\n// Start typing your code here...\n\nfunction fibonacci(n) {\n  if (n <= 1) return n;\n  return fibonacci(n - 1) + fibonacci(n - 2);\n}\n\nconsole.log(fibonacci(10));`;
 
     this.updateLineNumbers(window);
     this.setLanguage(window, this.language);
@@ -945,4 +937,11 @@ console.log(fibonacci(10));`;
     // Placeholder for debug functionality
     this.desktop.showNotification('Debug functionality coming soon', 'info');
   }
+}
+
+// Export for use in main desktop
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = VibeCodeApp;
+} else {
+    window.VibeCodeApp = VibeCodeApp;
 }

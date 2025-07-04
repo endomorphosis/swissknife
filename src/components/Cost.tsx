@@ -1,5 +1,5 @@
-import * as React from 'react.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
+import * as React from 'react'
+import { Box, Text } from 'ink'
 
 type Props = {
   costUSD: number

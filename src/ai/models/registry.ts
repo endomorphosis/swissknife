@@ -1,5 +1,5 @@
 // src/ai/models/registry.ts
-import { BaseModel as Model, IModel, ModelOptions } from './model';
+import { BaseModel as Model, IModel, ModelOptions } from './model.js';
 
 export interface LazyModel {
   id: string;

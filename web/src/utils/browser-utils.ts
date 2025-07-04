@@ -48,7 +48,7 @@ export function detectBaseUrl(): string {
   }
   
   // Default fallback
-  return 'http://localhost:8080';
+  return 'http://localhost:8000';
 }
 
 /**

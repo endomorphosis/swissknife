@@ -2,7 +2,7 @@
  * Provides an abstraction layer over different hardware backends (WebGPU, WebNN, WASM, CPU)
  * for model execution, adapting logic from ipfs_accelerate_js.
  */
-import { HardwareBackend, HardwareAbstractionOptions } from '../types/hardware.js';
+import { HardwareBackend, HardwareAbstractionOptions } from '../types/hardware';
 
 export class HardwareAbstraction {
   private backends: HardwareBackend[] = [];

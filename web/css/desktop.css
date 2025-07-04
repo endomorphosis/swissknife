@@ -196,28 +196,7 @@ body, html {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.system-menu-button::before {
-    content: '';
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: white;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.system-menu-button::after {
-    content: '';
-    position: absolute;
-    width: 24px;
-    height: 4px;
-    background: white;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    user-select: none;
 }
 
 .system-menu-button:hover {
@@ -226,8 +205,9 @@ body, html {
     transform: translateY(-1px);
 }
 
-.swiss-logo {
-    font-size: 16px;
+.swiss-flag-square.active {
+    box-shadow: 0 0 12px rgba(255, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.3);
+    background: #ff3333;
 }
 
 .taskbar-apps {
@@ -611,19 +591,11 @@ body, html {
     background: #d63384;
 }
 
-/* Loading Screen */
+/* Loading Screen - Hidden to allow custom splash screen */
 .loading-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: linear-gradient(135deg, #1a1a2e, #16213e);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    animation: fadeOut 1s ease-in-out 3s forwards;
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
 }
 
 .loading-content {
@@ -695,21 +667,23 @@ body, html {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     background: #ff0000;
-    border: 2px solid #990000;
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     position: relative;
+    user-select: none;
 }
 
 .swiss-flag-square:hover {
     background: #ff3333;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
     transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
 .swiss-flag-square:active {
@@ -722,6 +696,9 @@ body, html {
     position: relative;
     width: 24px;
     height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .flag-cross-horizontal {
@@ -729,10 +706,11 @@ body, html {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 20px;
-    height: 4px;
+    width: 18px;
+    height: 3px;
     background: white;
     border-radius: 1px;
+    z-index: 2;
 }
 
 .flag-cross-vertical {
@@ -740,20 +718,16 @@ body, html {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 4px;
-    height: 20px;
+    width: 3px;
+    height: 18px;
     background: white;
     border-radius: 1px;
+    z-index: 2;
 }
 
 /* Enhanced system menu button styling */
 .system-menu-button {
     user-select: none;
-}
-
-/* Add glow effect on active */
-.swiss-flag-square.active {
-    box-shadow: 0 0 12px rgba(255, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Utility Classes */
@@ -801,8 +775,23 @@ body, html {
     }
     
     .swiss-flag-square {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
+    }
+    
+    .swiss-flag-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .flag-cross-horizontal {
+        width: 14px;
+        height: 2px;
+    }
+    
+    .flag-cross-vertical {
+        width: 2px;
+        height: 14px;
     }
     
     .taskbar-item {

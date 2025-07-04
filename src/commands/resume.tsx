@@ -1,9 +1,9 @@
-import * as React from 'react.js.js.js.js.js';
-import type { Command, LocalJSXCommand } from '../types/command.js.js.js.js.js.js.js.js.js.js.js'; // Updated import path
-import { ResumeConversation } from '../screens/ResumeConversation.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-// import { render } from 'ink.js.js.js.js.js'; // Rendering should happen outside the handler
-import { CACHE_PATHS, loadLogList } from '../utils/log.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-import type { Tool } from '../Tool.js.js.js.js.js.js.js.js.js.js.js'; // Import Tool type
+import * as React from 'react';
+import type { Command, LocalJSXCommand } from '../types/command';
+import { ResumeConversation } from '../screens/ResumeConversation';
+// import { render } from 'ink'; // Rendering should happen outside the handler
+import { CACHE_PATHS, loadLogList } from '../utils/log';
+import type { Tool } from '../Tool';
 
 const resumeCommand: LocalJSXCommand = {
   type: 'local-jsx',

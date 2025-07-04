@@ -3,10 +3,10 @@
  */
 
 import { EventEmitter } from 'events';
-import { ModelRegistry, ModelProvider } from '../registry.js';
-import { BaseModel as Model } from '../../ai/models/model.js';
-import { IntegrationRegistry } from '../../integration/registry.js';
-import { ConfigManager } from '../../config/manager.js';
+import { ModelRegistry, ModelProvider } from '../registry';
+import { BaseModel as Model } from '../ai/models/model';
+import { IntegrationRegistry } from '../integration/registry';
+import { ConfigManager } from '../config/manager';
 
 /**
  * Model execution options

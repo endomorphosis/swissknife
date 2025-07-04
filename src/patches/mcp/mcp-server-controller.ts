@@ -5,38 +5,38 @@
  * a clean API for starting, stopping, and interacting with the server.
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
 import {
   CallToolRequestSchema,
   CallToolResultSchema,
   ListToolsRequestSchema,
   ListToolsResultSchema,
   ToolSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod.js';
-import { zodToJsonSchema } from 'zod-to-json-schema.js';
-import { AgentTool } from '../../tools/AgentTool/AgentTool.js';
-import { BashTool } from '../../tools/BashTool/BashTool.js';
-import { FileEditTool } from '../../tools/FileEditTool/FileEditTool.js';
-import { FileReadTool } from '../../tools/FileReadTool/FileReadTool.js';
-import { GlobTool } from '../../tools/GlobTool/GlobTool.js';
-import { GrepTool } from '../../tools/GrepTool/GrepTool.js';
-import { FileWriteTool } from '../../tools/FileWriteTool/FileWriteTool.js';
-import { LSTool } from '../../tools/lsTool/lsTool.js';
-import { Tool } from '../../Tool.js';
-import { Command } from '../../commands.js';
-import review from '../../commands/review.js';
-import { lastX } from '../../utils/generators.js';
-import { MACRO } from '../../constants/macros.js';
-import { hasPermissionsToUseTool } from '../../permissions.js';
-import { getSlowAndCapableModel } from '../../utils/model.js';
-import { logError } from '../../utils/log.js';
-import { setCwd } from '../../utils/state.js';
+} from '@modelcontextprotocol/sdk/types';
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import { AgentTool } from '@/tools/AgentTool/AgentTool';
+import { BashTool } from '@/tools/BashTool/BashTool';
+import { FileEditTool } from '@/tools/FileEditTool/FileEditTool';
+import { FileReadTool } from '@/tools/FileReadTool/FileReadTool';
+import { GlobTool } from '@/tools/GlobTool/GlobTool';
+import { GrepTool } from '@/tools/GrepTool/GrepTool';
+import { FileWriteTool } from '@/tools/FileWriteTool/FileWriteTool';
+import { LSTool } from '@/tools/lsTool/lsTool';
+import { Tool } from '@/Tool';
+import { Command } from '@/commands';
+import review from '@/commands/review';
+import { lastX } from '@/utils/generators';
+import { MACRO } from '@/constants/macros';
+import { hasPermissionsToUseTool } from '@/permissions';
+import { getSlowAndCapableModel } from '@/utils/model';
+import { logError } from '@/utils/log';
+import { setCwd } from '@/utils/state';
 import { ServerTransport } from '@modelcontextprotocol/sdk/server/transport';
 
 import '../../patches';
-import { ToolExecutionContext, ToolInput } from '../../types/ai.js';
+import { ToolExecutionContext, ToolInput } from '../types/ai.js';
 
 /**
  * Controller for managing the MCP server

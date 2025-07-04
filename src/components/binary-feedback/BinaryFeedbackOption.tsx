@@ -1,17 +1,17 @@
-import { FileEditTool } from '../../tools/FileEditTool/FileEditTool.js.js.js.js.js.js.js.js.js.js'
-import { FileEditToolDiff } from '../permissions/FileEditPermissionRequest/FileEditToolDiff.js.js.js.js.js.js.js.js.js.js'
-import { Message } from '../Message.js.js.js.js.js.js.js.js.js.js'
+import { FileEditTool } from '../tools/FileEditTool/FileEditTool'
+import { FileEditToolDiff } from '../permissions/FileEditPermissionRequest/FileEditToolDiff'
+import { Message } from '../Message'
 import {
   normalizeMessages,
   type NormalizedMessage,
-} from '../../utils/messages.js.js.js.js.js.js.js.js.js.js.js'
-import type { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { useTerminalSize } from '../../hooks/useTerminalSize.js.js.js.js.js.js.js.js.js.js'
-import { FileWriteTool } from '../../tools/FileWriteTool/FileWriteTool.js.js.js.js.js.js.js.js.js.js'
-import { FileWriteToolDiff } from '../permissions/FileWritePermissionRequest/FileWriteToolDiff.js.js.js.js.js.js.js.js.js.js'
-import type { AssistantMessage } from '../../query.js.js.js.js.js.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { Box } from 'ink.js.js.js.js.js'
+} from '../utils/messages'
+import type { Tool } from '../Tool'
+import { useTerminalSize } from '../hooks/useTerminalSize'
+import { FileWriteTool } from '../tools/FileWriteTool/FileWriteTool'
+import { FileWriteToolDiff } from '../permissions/FileWritePermissionRequest/FileWriteToolDiff'
+import type { AssistantMessage } from '../query'
+import * as React from 'react'
+import { Box } from 'ink'
 
 type Props = {
   debug: boolean

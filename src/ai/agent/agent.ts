@@ -1,13 +1,13 @@
 // src/ai/agent/agent.ts
-import { ToolExecutor } from '../tools/executor.js';
-import { ThinkingManager } from '../thinking/manager.js';
+import { ToolExecutor } from '../tools/executor';
+import { ThinkingManager } from '../thinking/manager';
 import { 
     AgentMessage, 
     AgentOptions, 
     IModel, // Use IModel for the agent's model interface
     ToolCallResult,
     Tool // Using Tool from types/ai.js
-} from '../../types/ai.js';
+} from '../types/ai';
 import { v4 as uuidv4 } from 'uuid';
 
 export class Agent {

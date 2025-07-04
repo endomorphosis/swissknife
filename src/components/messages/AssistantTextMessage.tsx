@@ -1,26 +1,26 @@
 import { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import React from 'react.js.js.js.js.js'
-import { AssistantBashOutputMessage } from './AssistantBashOutputMessage.js.js.js.js.js.js.js.js.js.js'
-import { AssistantLocalCommandOutputMessage } from './AssistantLocalCommandOutputMessage.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import { Cost } from '../Cost.js.js.js.js.js.js.js.js.js.js'
+import React from 'react'
+import { AssistantBashOutputMessage } from './AssistantBashOutputMessage.js'
+import { AssistantLocalCommandOutputMessage } from './AssistantLocalCommandOutputMessage'
+import { getTheme } from '@/utils/theme'
+import { Box, Text } from 'ink'
+import { Cost } from '../Cost'
 import {
   API_ERROR_MESSAGE_PREFIX,
   CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE,
   INVALID_API_KEY_ERROR_MESSAGE,
   PROMPT_TOO_LONG_ERROR_MESSAGE,
-} from '../../services/claude.js.js.js.js.js.js.js.js.js.js.js'
+} from '../services/claude'
 import {
   CANCEL_MESSAGE,
   INTERRUPT_MESSAGE,
   INTERRUPT_MESSAGE_FOR_TOOL_USE,
   isEmptyMessageText,
   NO_RESPONSE_REQUESTED,
-} from '../../utils/messages.js.js.js.js.js.js.js.js.js.js.js'
-import { BLACK_CIRCLE } from '../../constants/figures.js.js.js.js.js.js.js.js.js.js'
-import { applyMarkdown } from '../../utils/markdown.js.js.js.js.js.js.js.js.js.js'
-import { useTerminalSize } from '../../hooks/useTerminalSize.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/messages'
+import { BLACK_CIRCLE } from '../constants/figures'
+import { applyMarkdown } from '../utils/markdown'
+import { useTerminalSize } from '../hooks/useTerminalSize'
 
 type Props = {
   param: TextBlockParam

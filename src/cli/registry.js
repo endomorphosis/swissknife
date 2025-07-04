@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 /**
  * Manages the registration and retrieval of CLI commands.

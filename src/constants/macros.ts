@@ -1,4 +1,4 @@
-import { version } from '../../package.json.js'
+import { version } from '../../package.json' assert { type: 'json' }
 
 export const MACRO = {
   VERSION: version,

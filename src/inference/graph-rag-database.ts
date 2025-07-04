@@ -4,10 +4,10 @@
  */
 
 // TODO: Import necessary types and libraries (Graph library, VectorStore implementation, DocumentStore implementation)
-// import { Graph } from 'some-graph-library.js'; // Example
-// import { VectorStore } from '../vector/vector-store.js'; // Assuming a VectorStore interface/class
-// import { DocumentStore } from '../storage/document-store.js'; // Assuming a DocumentStore interface/class
-// import { EmbeddingModel } from '../models/embedding-model.js'; // Assuming an embedding model interface/class
+// import { Graph } from 'some-graph-library'; // Example
+// import { VectorStore } from '../vector/vector-store'; // Assuming a VectorStore interface/class
+// import { DocumentStore } from '../storage/document-store'; // Assuming a DocumentStore interface/class
+// import { EmbeddingModel } from '../models/embedding-model'; // Assuming an embedding model interface/class
 
 // Placeholder types for demonstration
 type Graph = any;

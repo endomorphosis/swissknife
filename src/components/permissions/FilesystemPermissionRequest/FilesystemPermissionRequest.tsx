@@ -1,37 +1,37 @@
-import { Box, Text } from 'ink.js.js.js.js.js'
-import React, { useMemo } from 'react.js.js.js.js.js'
+import { Box, Text } from 'ink'
+import React, { useMemo } from 'react'
 import { Select } from '@inkjs/ui'
-import { getTheme } from '../../../utils/theme.js.js.js.js.js.js.js.js.js.js'
+import { getTheme } from '../utils/theme'
 import {
   PermissionRequestTitle,
   textColorForRiskScore,
-} from '../PermissionRequestTitle.js.js.js.js.js.js.js.js.js.js.js'
-import { logUnaryEvent } from '../../../utils/unaryLogging.js.js.js.js.js.js.js.js.js.js'
-import { env } from '../../../utils/env.js.js.js.js.js.js.js.js.js.js'
+} from '../PermissionRequestTitle'
+import { logUnaryEvent } from '../utils/unaryLogging'
+import { env } from '../utils/env'
 import {
   type PermissionRequestProps,
   type ToolUseConfirm,
-} from '../PermissionRequest.js.js.js.js.js.js.js.js.js.js.js'
-import chalk from 'chalk.js.js.js.js.js'
+} from '../PermissionRequest'
+import chalk from 'chalk'
 import {
   UnaryEvent,
   usePermissionRequestLogging,
-} from '../../../hooks/usePermissionRequestLogging.js.js.js.js.js.js.js.js.js.js.js'
-import { FileEditTool } from '../../../tools/FileEditTool/FileEditTool.js.js.js.js.js.js.js.js.js.js'
-import { FileWriteTool } from '../../../tools/FileWriteTool/FileWriteTool.js.js.js.js.js.js.js.js.js.js'
-import { GrepTool } from '../../../tools/GrepTool/GrepTool.js.js.js.js.js.js.js.js.js.js'
-import { GlobTool } from '../../../tools/GlobTool/GlobTool.js.js.js.js.js.js.js.js.js.js'
-import { LSTool } from '../../../tools/lsTool/lsTool.js.js.js.js.js.js.js.js.js.js'
-import { FileReadTool } from '../../../tools/FileReadTool/FileReadTool.js.js.js.js.js.js.js.js.js.js'
-import { NotebookEditTool } from '../../../tools/NotebookEditTool/NotebookEditTool.js.js.js.js.js.js.js.js.js.js'
-import { NotebookReadTool } from '../../../tools/NotebookReadTool/NotebookReadTool.js.js.js.js.js.js.js.js.js.js'
-import { FallbackPermissionRequest } from '../FallbackPermissionRequest.js.js.js.js.js.js.js.js.js.js'
+} from '../hooks/usePermissionRequestLogging'
+import { FileEditTool } from '../tools/FileEditTool/FileEditTool'
+import { FileWriteTool } from '../tools/FileWriteTool/FileWriteTool'
+import { GrepTool } from '../tools/GrepTool/GrepTool'
+import { GlobTool } from '../tools/GlobTool/GlobTool'
+import { LSTool } from '../tools/lsTool/lsTool'
+import { FileReadTool } from '../tools/FileReadTool/FileReadTool'
+import { NotebookEditTool } from '../tools/NotebookEditTool/NotebookEditTool'
+import { NotebookReadTool } from '../tools/NotebookReadTool/NotebookReadTool'
+import { FallbackPermissionRequest } from '../FallbackPermissionRequest'
 import {
   grantWritePermissionForOriginalDir,
   pathInOriginalCwd,
   toAbsolutePath,
-} from '../../../utils/permissions/filesystem.js.js.js.js.js.js.js.js.js.js.js'
-import { getCwd } from '../../../utils/state.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/permissions/filesystem'
+import { getCwd } from '../utils/state'
 
 function pathArgNameForToolUse(toolUseConfirm: ToolUseConfirm): string | null {
   switch (toolUseConfirm.tool) {

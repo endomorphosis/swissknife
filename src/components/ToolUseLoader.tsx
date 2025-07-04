@@ -1,8 +1,8 @@
-import { Box, Text } from 'ink.js.js.js.js.js'
-import React from 'react.js.js.js.js.js'
-import { useInterval } from '../hooks/useInterval.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { BLACK_CIRCLE } from '../constants/figures.js.js.js.js.js.js.js.js.js.js'
+import { Box, Text } from 'ink'
+import React from 'react'
+import { useInterval } from '../hooks/useInterval'
+import { getTheme } from '../utils/theme'
+import { BLACK_CIRCLE } from '../constants/figures'
 
 type Props = {
   isError: boolean

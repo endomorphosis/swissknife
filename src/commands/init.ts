@@ -1,6 +1,6 @@
-import type { Command, PromptCommand } from '../types/command.js'; // Updated import path
-import { markProjectOnboardingComplete } from '../ProjectOnboarding.js'; // Assuming .js extension
-import { PROJECT_FILE } from '../constants/product.js'; // Assuming .js extension
+import type { Command, PromptCommand } from '../types/command'; // Updated import path
+import { markProjectOnboardingComplete } from '../ProjectOnboarding'; // Assuming .js extension
+import { PROJECT_FILE } from '../constants/product'; // Assuming .js extension
 
 const initCommand: PromptCommand = {
   type: 'prompt',

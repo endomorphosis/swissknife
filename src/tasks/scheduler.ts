@@ -1,8 +1,8 @@
 // src/tasks/scheduler.ts
 
-import { TaskID } from '../types/common.js';
-import { Task, TaskStatus } from '../types/task.js';
-import { logger } from '../utils/logger.js';
+import { TaskID } from '../types/common';
+import { Task, TaskStatus } from '../types/task';
+import { logger } from '../utils/logger';
 
 /**
  * Options for the TaskScheduler

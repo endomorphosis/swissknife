@@ -1,5 +1,5 @@
 // src/ai/models/definitions/goose.ts
-import { ProviderDefinition, ModelProvider } from '../../../types/ai.js';
+import { ProviderDefinition, ModelProvider } from '../types/ai';
 
 const gooseProviderDefinition: ProviderDefinition = {
   id: ModelProvider.GOOSE, // Use enum value

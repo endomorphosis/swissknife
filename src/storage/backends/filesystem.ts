@@ -1,11 +1,11 @@
 // src/storage/backends/filesystem.ts
 
-import { StorageBackend, FileStat, DirEntry, StorageError, StorageErrorType, ReadFileOptions, WriteFileOptions } from '../backend.js';
-import * as fs from 'fs/promises.js';
-import { constants, createReadStream, createWriteStream, Stats } from 'fs.js';
-import * as path from 'path.js';
-import { logger } from '../../utils/logger.js';
-import { Readable, Writable } from 'stream.js';
+import { StorageBackend, FileStat, DirEntry, StorageError, StorageErrorType, ReadFileOptions, WriteFileOptions } from '../backend';
+import * as fs from 'fs/promises';
+import { constants, createReadStream, createWriteStream, Stats } from 'fs';
+import * as path from 'path';
+import { logger } from '../utils/logger';
+import { Readable, Writable } from 'stream';
 
 /**
  * Configuration options for the filesystem backend

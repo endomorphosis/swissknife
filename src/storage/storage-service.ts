@@ -3,8 +3,8 @@
 import { StorageBackend, DirEntry, FileStat } from './backend.js';
 import { FilesystemBackend } from './backends/filesystem.ts';
 import { IPFSBackend } from './backends/ipfs-backend.js';
-import { ConfigurationManager } from '../config/manager.js';
-import { logger } from '../utils/logger.js';
+import { ConfigurationManager } from '../config/manager';
+import { logger } from '../utils/logger';
 
 /**
  * Backend types supported by the storage service

@@ -1,10 +1,10 @@
 // src/integration/ipfs/accelerate-bridge.ts
 
-import { IntegrationBridge } from '../registry.js';
-import { ConfigManager } from '../../config/manager.js';
-import { loadNativeModule } from '../../utils/native-loader.js';
-import * as path from 'path.js';
-import * as fs from 'fs/promises.js';
+import { IntegrationBridge } from '../registry';
+import { ConfigManager } from '../config/manager';
+import { loadNativeModule } from '../utils/native-loader';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 
 /**
  * Bridge that provides integration with IPFS Accelerate JS

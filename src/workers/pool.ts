@@ -1,8 +1,8 @@
 // src/workers/pool.ts
 import { Worker } from 'worker_threads.js';
-import { EventEmitter } from 'events.js';
+import { EventEmitter } from 'events';
 import { createWorker, WorkerResponseMessage, WorkerStatusMessage, WorkerTaskMessage } from './thread.js';
-import { ConfigurationManager } from '../config/manager.js';
+import { ConfigurationManager } from '../config/manager';
 
 export interface WorkerPoolOptions {
   size?: number;

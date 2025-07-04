@@ -2,16 +2,16 @@
 import { 
     ThoughtGraph, 
     ThoughtNode as ThinkingThoughtNode // This is the node from ai/thinking/graph.js
-} from '../../ai/thinking/graph.js'; 
+} from '../ai/thinking/graph'; 
 import { 
     GoTNode, // This is the schedulable node from types/task.js
     // GoTNodeID, // Now from common.js
     ThoughtNodeType, // Unified enum
     TaskStatus     // Unified enum
-} from '../../types/task.js';
-import { GoTNodeID } from '../../types/common.js'; // Corrected import
-import { Model } from '../../ai/models/model.js';
-import { ThinkingManager, ReasoningStrategyType } from '../../ai/thinking/manager.js';
+} from '../types/task';
+import { GoTNodeID } from '../types/common'; // Corrected import
+import { Model } from '../ai/models/model';
+import { ThinkingManager, ReasoningStrategyType } from '../ai/thinking/manager';
 import { v4 as uuidv4 } from 'uuid';
 
 export enum DecompositionStrategy {

@@ -1,8 +1,8 @@
-import { useEffect } from 'react.js'
-import { logUnaryEvent, CompletionType } from '../../utils/unaryLogging.js'
-import { ToolUseConfirm } from '../../components/permissions/PermissionRequest.js'
-import { env } from '../../utils/env.js'
-import { logEvent } from '../../services/statsig.js'
+import { useEffect } from 'react'
+import { logUnaryEvent, CompletionType } from '../utils/unaryLogging'
+import { ToolUseConfirm } from '../components/permissions/PermissionRequest'
+import { env } from '../utils/env'
+import { logEvent } from '../services/statsig'
 
 type UnaryEventType = {
   completion_type: CompletionType

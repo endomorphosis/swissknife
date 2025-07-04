@@ -1,15 +1,15 @@
-import type { Command, LocalCommand } from '../types/command.js'; // Updated import path
-import { EOL, platform, homedir } from 'os.js';
-import { execFileNoThrow } from '../utils/execFileNoThrow.js'; // Assuming .js extension
-import chalk from 'chalk.js';
-import { getTheme } from '../utils/theme.js'; // Assuming .js extension
-import { env } from '../utils/env.js'; // Assuming .js extension
-import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js'; // Assuming .js extension
-import { markProjectOnboardingComplete } from '../ProjectOnboarding.js'; // Assuming .js extension
-import { readFileSync, writeFileSync } from 'fs.js';
-import { join } from 'path.js';
-import { safeParseJSON } from '../utils/json.js'; // Assuming .js extension
-import { logError } from '../utils/log.js'; // Assuming .js extension
+import type { Command, LocalCommand } from '../types/command'; // Updated import path
+import { EOL, platform, homedir } from 'os';
+import { execFileNoThrow } from '../utils/execFileNoThrow'; // Assuming .js extension
+import chalk from 'chalk';
+import { getTheme } from '../utils/theme'; // Assuming .js extension
+import { env } from '../utils/env'; // Assuming .js extension
+import { getGlobalConfig, saveGlobalConfig } from '../utils/config'; // Assuming .js extension
+import { markProjectOnboardingComplete } from '../ProjectOnboarding'; // Assuming .js extension
+import { readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
+import { safeParseJSON } from '../utils/json'; // Assuming .js extension
+import { logError } from '../utils/log'; // Assuming .js extension
 
 const terminalSetupCommand: LocalCommand = {
   type: 'local',

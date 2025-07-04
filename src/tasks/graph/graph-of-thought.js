@@ -1,7 +1,7 @@
 // src/tasks/graph/graph-of-thought.js
-import { ThoughtNodeType, TaskStatus } from '../../types/task.js';
-import { logger } from '../../utils/logger.js';
-import { FibonacciHeapScheduler } from '../scheduler/fibonacci-heap-scheduler.js'; 
+import { ThoughtNodeType, TaskStatus } from '../types/task';
+import { logger } from '../utils/logger';
+import { FibonacciHeapScheduler } from '../scheduler/fibonacci-heap-scheduler'; 
 import { DirectedAcyclicGraph } from './dag.js'; 
 
 /**

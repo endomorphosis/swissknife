@@ -1,8 +1,8 @@
-import { Box, Text, useInput } from 'ink.js.js.js.js.js'
-import React from 'react.js.js.js.js.js'
-import { Select } from './CustomSelect/select.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import Link from './Link.js.js.js.js.js.js.js.js.js.js'
+import { Box, Text, useInput } from 'ink'
+import React from 'react'
+import { Select } from './CustomSelect/select.js'
+import { getTheme } from '../utils/theme'
+import Link from './Link.js'
 
 interface Props {
   onDone: () => void

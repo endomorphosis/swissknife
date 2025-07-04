@@ -14,14 +14,14 @@ import {
 } from './mcp-types.js';
 import { 
   Client 
-} from '@modelcontextprotocol/sdk/client/index.js';
+} from '@modelcontextprotocol/sdk/client/index';
 import { 
   connectToServer as createServerConnection
 } from './mcpClient.js';
 import { 
   logEvent, 
   logError 
-} from '../utils/log.js';
+} from '../utils/log';
 
 /**
  * Semver constraint formats

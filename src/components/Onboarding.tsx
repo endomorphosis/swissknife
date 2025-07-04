@@ -1,21 +1,21 @@
-import React, { useState } from 'react.js.js.js.js.js'
-import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
-import { Box, Newline, Text, useInput } from 'ink.js.js.js.js.js'
+import React, { useState } from 'react'
+import { PRODUCT_NAME } from '../constants/product'
+import { Box, Newline, Text, useInput } from 'ink'
 import {
   getGlobalConfig,
   saveGlobalConfig,
   DEFAULT_GLOBAL_CONFIG,
   ProviderType,
-} from '../utils/config.js.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/config'
 import { OrderedList } from '@inkjs/ui'
-import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD.js.js.js.js.js.js.js.js.js.js'
-import { MIN_LOGO_WIDTH } from './Logo.js.js.js.js.js.js.js.js.js.js'
-import { Select } from './CustomSelect/select.js.js.js.js.js.js.js.js.js.js'
-import { StructuredDiff } from './StructuredDiff.js.js.js.js.js.js.js.js.js.js'
-import { getTheme, type ThemeNames } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { clearTerminal } from '../utils/terminal.js.js.js.js.js.js.js.js.js.js'
-import { PressEnterToContinue } from './PressEnterToContinue.js.js.js.js.js.js.js.js.js.js'
-import { ModelSelector } from './ModelSelector.js.js.js.js.js.js.js.js.js.js'
+import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD'
+import { MIN_LOGO_WIDTH } from './Logo.js'
+import { Select } from './CustomSelect/select.js'
+import { StructuredDiff } from './StructuredDiff.js'
+import { getTheme, type ThemeNames } from '../utils/theme'
+import { clearTerminal } from '../utils/terminal'
+import { PressEnterToContinue } from './PressEnterToContinue.js'
+import { ModelSelector } from './ModelSelector.js'
 type StepId = 'theme' | 'usage' | 'providers' | 'model'
 
 interface OnboardingStep {

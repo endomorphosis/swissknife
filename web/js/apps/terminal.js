@@ -3,18 +3,13 @@
  * Provides a browser-based terminal interface to the SwissKnife toolkit
  */
 
-import { SwissKnifeCLIAdapter } from '../adapters/cli-adapter.js';
-
-export class TerminalApp {
+window.TerminalApp = class TerminalApp {
   constructor(windowElement, swissknife) {
     this.window = windowElement;
     this.swissknife = swissknife;
     this.commandHistory = [];
     this.historyIndex = 0;
     this.currentDirectory = '/';
-    
-    // Initialize CLI adapter for enhanced commands
-    this.cliAdapter = new SwissKnifeCLIAdapter(swissknife);
     
     this.init();
   }
@@ -36,7 +31,7 @@ export class TerminalApp {
             <button class="btn-close">×</button>
           </div>
         </div>
-        <div class="terminal-body">
+        <div class="terminal-content">
           <div class="terminal-output" id="terminal-output"></div>
           <div class="terminal-input-line">
             <span class="terminal-prompt">swissknife@web:${this.currentDirectory}$ </span>
@@ -103,18 +98,6 @@ export class TerminalApp {
     const args = parts.slice(1);
 
     try {
-      // Check if it's a SwissKnife CLI command first
-      if (cmd.startsWith('sk') || ['ai', 'chat', 'task', 'config', 'models', 'storage', 'mcp', 'ipfs'].includes(cmd)) {
-        const result = await this.cliAdapter.executeCommand(command);
-        if (result.success) {
-          this.addOutput(result.output, result.type || 'normal');
-        } else {
-          this.addOutput(result.error, 'error');
-        }
-        return;
-      }
-
-      // Process built-in terminal commands
       switch (cmd) {
         case 'help':
           this.showHelp();
@@ -176,6 +159,42 @@ export class TerminalApp {
           this.showCommandHistory();
           break;
           
+        case 'agent':
+          await this.handleAgentCommand(args);
+          break;
+          
+        case 'chat':
+          await this.handleChatCommand(args);
+          break;
+          
+        case 'task':
+          await this.handleTaskCommand(args);
+          break;
+          
+        case 'config':
+          await this.handleConfigCommand(args);
+          break;
+          
+        case 'models':
+          await this.handleModelsCommand(args);
+          break;
+          
+        case 'storage':
+          await this.handleStorageCommand(args);
+          break;
+          
+        case 'mcp':
+          await this.handleMCPCommand(args);
+          break;
+          
+        case 'ipfs':
+          await this.handleIPFSCommand(args);
+          break;
+          
+        case 'ai':
+          await this.handleAICommand(args);
+          break;
+          
         case 'code':
           this.openVibeCode(args[0]);
           break;
@@ -189,6 +208,199 @@ export class TerminalApp {
       }
     } catch (error) {
       this.addOutput(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  async handleAgentCommand(args) {
+    if (!this.swissknife.isSwissKnifeReady) {
+      this.addOutput('SwissKnife core not initialized. Some features may be limited.', 'warning');
+      return;
+    }
+
+    if (args.length === 0) {
+      this.addOutput('Usage: agent <chat|execute> [message]');
+      return;
+    }
+
+    const subcommand = args[0];
+    const message = args.slice(1).join(' ');
+
+    switch (subcommand) {
+      case 'chat':
+        if (!message) {
+          this.addOutput('Usage: agent chat <message>');
+          return;
+        }
+        this.addOutput('Processing...', 'info');
+        const chatResult = await this.swissknife.swissknife.chat(message);
+        if (chatResult.success) {
+          this.addOutput(`AI: ${chatResult.response.content || chatResult.response}`, 'ai-response');
+        } else {
+          this.addOutput(`Error: ${chatResult.error}`, 'error');
+        }
+        break;
+        
+      case 'execute':
+        if (!message) {
+          this.addOutput('Usage: agent execute <task description>');
+          return;
+        }
+        this.addOutput('Executing task...', 'info');
+        const taskResult = await this.swissknife.swissknife.executeTask(message);
+        if (taskResult.success) {
+          this.addOutput(`Task completed: ${taskResult.result?.content || 'Done'}`, 'success');
+        } else {
+          this.addOutput(`Error: ${taskResult.error}`, 'error');
+        }
+        break;
+        
+      default:
+        this.addOutput(`Unknown agent command: ${subcommand}`, 'error');
+    }
+  }
+
+  async handleChatCommand(args) {
+    const message = args.join(' ');
+    if (!message) {
+      this.addOutput('Usage: chat <message>');
+      return;
+    }
+    
+    await this.handleAgentCommand(['chat', ...args]);
+  }
+
+  async handleTaskCommand(args) {
+    if (!this.swissknife.isSwissKnifeReady) {
+      this.addOutput('SwissKnife core not initialized.', 'warning');
+      return;
+    }
+
+    if (args.length === 0) {
+      this.addOutput('Usage: task <list|status|create> [args]');
+      return;
+    }
+
+    const subcommand = args[0];
+
+    switch (subcommand) {
+      case 'list':
+        const tasks = await this.swissknife.swissknife.listTasks();
+        if (tasks.length === 0) {
+          this.addOutput('No tasks found.');
+        } else {
+          this.addOutput('Active tasks:');
+          tasks.forEach(task => {
+            this.addOutput(`  ${task.id}: ${task.description} (${task.status})`);
+          });
+        }
+        break;
+        
+      case 'create':
+        const description = args.slice(1).join(' ');
+        if (!description) {
+          this.addOutput('Usage: task create <description>');
+          return;
+        }
+        const result = await this.swissknife.swissknife.executeTask(description);
+        if (result.success) {
+          this.addOutput(`Task created: ${result.task.id}`, 'success');
+        } else {
+          this.addOutput(`Error: ${result.error}`, 'error');
+        }
+        break;
+        
+      default:
+        this.addOutput(`Unknown task command: ${subcommand}`, 'error');
+    }
+  }
+
+  async handleConfigCommand(args) {
+    if (args.length === 0) {
+      const config = this.swissknife.swissknife.getConfig();
+      this.addOutput('Current configuration:');
+      this.addOutput(JSON.stringify(config, null, 2));
+      return;
+    }
+
+    const subcommand = args[0];
+    switch (subcommand) {
+      case 'get':
+        const key = args[1];
+        if (!key) {
+          this.addOutput('Usage: config get <key>');
+          return;
+        }
+        const config = this.swissknife.swissknife.getConfig();
+        const value = config[key];
+        this.addOutput(`${key}: ${JSON.stringify(value)}`);
+        break;
+        
+      case 'set':
+        const setKey = args[1];
+        const setValue = args.slice(2).join(' ');
+        if (!setKey || setValue === undefined) {
+          this.addOutput('Usage: config set <key> <value>');
+          return;
+        }
+        await this.swissknife.swissknife.updateConfig({ [setKey]: setValue });
+        this.addOutput(`Set ${setKey} = ${setValue}`, 'success');
+        break;
+        
+      default:
+        this.addOutput(`Unknown config command: ${subcommand}`, 'error');
+    }
+  }
+
+  async handleModelsCommand(args) {
+    const models = this.swissknife.swissknife.getAvailableModels();
+    if (models.length === 0) {
+      this.addOutput('No models available.');
+    } else {
+      this.addOutput('Available models:');
+      models.forEach(model => {
+        this.addOutput(`  ${model.id}: ${model.name} (${model.provider})`);
+      });
+    }
+  }
+
+  async handleStorageCommand(args) {
+    if (args.length === 0) {
+      this.addOutput('Usage: storage <store|retrieve> [args]');
+      return;
+    }
+
+    const subcommand = args[0];
+    switch (subcommand) {
+      case 'store':
+        const content = args.slice(1).join(' ');
+        if (!content) {
+          this.addOutput('Usage: storage store <content>');
+          return;
+        }
+        const storeResult = await this.swissknife.swissknife.storeContent(content);
+        if (storeResult.success) {
+          this.addOutput(`Content stored with hash: ${storeResult.hash}`, 'success');
+        } else {
+          this.addOutput(`Error: ${storeResult.error}`, 'error');
+        }
+        break;
+        
+      case 'retrieve':
+        const hash = args[1];
+        if (!hash) {
+          this.addOutput('Usage: storage retrieve <hash>');
+          return;
+        }
+        const retrieveResult = await this.swissknife.swissknife.retrieveContent(hash);
+        if (retrieveResult.success) {
+          this.addOutput(`Content: ${retrieveResult.content}`);
+        } else {
+          this.addOutput(`Error: ${retrieveResult.error}`, 'error');
+        }
+        break;
+        
+      default:
+        this.addOutput(`Unknown storage command: ${subcommand}`, 'error');
     }
   }
 
@@ -275,12 +487,27 @@ export class TerminalApp {
     
     // Simulate file content display
     const sampleContent = {
-      'config.json': '{\n  "theme": "dark",\n  "language": "en",\n  "ai_provider": "openai"\n}',
-      'README.md': '# SwissKnife Web Desktop\n\nA browser-based development environment.\n\n## Features\n- AI Chat\n- File Management\n- Terminal Access',
-      'data.json': '{\n  "version": "1.0.0",\n  "timestamp": "2025-06-27T10:30:00Z"\n}'
+      'config.json': `{
+  "theme": "dark",
+  "language": "en",
+  "ai_provider": "openai"
+}`,
+      'README.md': `# SwissKnife Web Desktop
+
+A browser-based development environment.
+
+## Features
+- AI Chat
+- File Management
+- Terminal Access`,
+      'data.json': `{
+  "version": "1.0.0",
+  "timestamp": "2025-06-27T10:30:00Z"
+}`
     };
     
-    const content = sampleContent[name] || `Content of ${name}:\nThis is a sample file in the SwissKnife Web Desktop.`;
+    const content = sampleContent[name] || `Content of ${name}:
+This is a sample file in the SwissKnife Web Desktop.`;
     this.addOutput(content);
   }
 
@@ -327,6 +554,160 @@ export class TerminalApp {
     this.commandHistory.forEach((cmd, index) => {
       this.addOutput(`${index + 1}  ${cmd}`);
     });
+  }
+
+  async handleAICommand(args) {
+    if (args.length === 0) {
+      this.addOutput('AI commands:');
+      this.addOutput('  ai models          - List available models');
+      this.addOutput('  ai chat <message>  - Start AI chat');
+      this.addOutput('  ai status          - Show AI engine status');
+      return;
+    }
+
+    const subcommand = args[0];
+    const params = args.slice(1);
+
+    switch (subcommand) {
+      case 'models':
+        this.addOutput('Available AI models:');
+        this.addOutput('  🤖 GPT-4 (OpenAI)');
+        this.addOutput('  🤖 Claude-3 (Anthropic)');
+        this.addOutput('  🤖 Gemini (Google)');
+        this.addOutput('  🤖 Local Models (WebNN)');
+        break;
+      
+      case 'chat':
+        if (params.length === 0) {
+          this.addOutput('Usage: ai chat <message>', 'error');
+          return;
+        }
+        const message = params.join(' ');
+        this.addOutput(`You: ${message}`);
+        this.addOutput('AI: I\'m a simulated AI response. In the full implementation, this would connect to actual AI services.');
+        break;
+      
+      case 'status':
+        this.addOutput('AI Engine Status:');
+        this.addOutput('  Status: Ready');
+        this.addOutput('  Active Model: GPT-4');
+        this.addOutput('  API Keys: Configured');
+        this.addOutput('  WebNN: ' + (this.checkWebNN() ? 'Available' : 'Not available'));
+        break;
+      
+      default:
+        this.addOutput(`Unknown AI command: ${subcommand}`, 'error');
+    }
+  }
+
+  async handleMCPCommand(args) {
+    if (args.length === 0) {
+      this.addOutput('MCP commands:');
+      this.addOutput('  mcp list           - List MCP servers');
+      this.addOutput('  mcp start <name>   - Start MCP server');
+      this.addOutput('  mcp stop <name>    - Stop MCP server');
+      this.addOutput('  mcp status         - Show MCP status');
+      return;
+    }
+
+    const subcommand = args[0];
+    const params = args.slice(1);
+
+    switch (subcommand) {
+      case 'list':
+        this.addOutput('MCP Servers:');
+        this.addOutput('  🔌 my-mcp-server (running)');
+        this.addOutput('  🔌 my-mcp-server4 (stopped)');
+        break;
+      
+      case 'start':
+        if (params.length === 0) {
+          this.addOutput('Usage: mcp start <server-name>', 'error');
+          return;
+        }
+        this.addOutput(`Starting MCP server: ${params[0]}...`);
+        setTimeout(() => {
+          this.addOutput(`✅ MCP server ${params[0]} started successfully`);
+        }, 1000);
+        break;
+      
+      case 'stop':
+        if (params.length === 0) {
+          this.addOutput('Usage: mcp stop <server-name>', 'error');
+          return;
+        }
+        this.addOutput(`Stopping MCP server: ${params[0]}...`);
+        setTimeout(() => {
+          this.addOutput(`⏹️ MCP server ${params[0]} stopped`);
+        }, 500);
+        break;
+      
+      case 'status':
+        this.addOutput('MCP Status:');
+        this.addOutput('  Active Servers: 1');
+        this.addOutput('  Total Servers: 2');
+        this.addOutput('  Health: Good');
+        break;
+      
+      default:
+        this.addOutput(`Unknown MCP command: ${subcommand}`, 'error');
+    }
+  }
+
+  async handleIPFSCommand(args) {
+    if (args.length === 0) {
+      this.addOutput('IPFS commands:');
+      this.addOutput('  ipfs add <file>    - Add file to IPFS');
+      this.addOutput('  ipfs get <hash>    - Get file from IPFS');
+      this.addOutput('  ipfs status        - Show IPFS status');
+      this.addOutput('  ipfs peers         - List connected peers');
+      return;
+    }
+
+    const subcommand = args[0];
+    const params = args.slice(1);
+
+    switch (subcommand) {
+      case 'status':
+        this.addOutput('IPFS Status:');
+        this.addOutput('  Node ID: QmX... (simulated)');
+        this.addOutput('  Peers: 42');
+        this.addOutput('  Repo Size: 1.2 GB');
+        this.addOutput('  Gateway: http://localhost:8080');
+        break;
+      
+      case 'peers':
+        this.addOutput('Connected IPFS peers:');
+        this.addOutput('  QmY... (peer 1)');
+        this.addOutput('  QmZ... (peer 2)');
+        this.addOutput('  QmA... (peer 3)');
+        break;
+      
+      case 'add':
+        if (params.length === 0) {
+          this.addOutput('Usage: ipfs add <file>', 'error');
+          return;
+        }
+        this.addOutput(`Adding ${params[0]} to IPFS...`);
+        setTimeout(() => {
+          this.addOutput(`Added ${params[0]}: QmSimulatedHash123...`);
+        }, 1000);
+        break;
+      
+      case 'get':
+        if (params.length === 0) {
+          this.addOutput('Usage: ipfs get <hash>', 'error');
+          return;
+        }
+        this.addOutput(`Retrieving ${params[0]} from IPFS...`);
+        setTimeout(() => {
+          this.addOutput(`✅ Retrieved and saved as ${params[0]}.data`);
+        }, 1500);
+        break;
+      
+      default:
+        this.addOutput(`Unknown IPFS command: ${subcommand}`, 'error');
+    }
   }
 
   openVibeCode(file) {

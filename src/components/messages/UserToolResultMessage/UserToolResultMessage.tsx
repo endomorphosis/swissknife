@@ -1,12 +1,12 @@
 import { ToolResultBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import * as React from 'react.js.js.js.js.js'
-import { Tool } from '../../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { Message, UserMessage } from '../../../query.js.js.js.js.js.js.js.js.js.js'
-import { CANCEL_MESSAGE, REJECT_MESSAGE } from '../../../utils/messages.js.js.js.js.js.js.js.js.js.js'
-import { UserToolCanceledMessage } from './UserToolCanceledMessage.js.js.js.js.js.js.js.js.js.js'
-import { UserToolErrorMessage } from './UserToolErrorMessage.js.js.js.js.js.js.js.js.js.js'
-import { UserToolRejectMessage } from './UserToolRejectMessage.js.js.js.js.js.js.js.js.js.js'
-import { UserToolSuccessMessage } from './UserToolSuccessMessage.js.js.js.js.js.js.js.js.js.js'
+import * as React from 'react'
+import { Tool } from '../Tool'
+import { Message, UserMessage } from '../query'
+import { CANCEL_MESSAGE, REJECT_MESSAGE } from '@/utils/messages'
+import { UserToolCanceledMessage } from './UserToolCanceledMessage.js'
+import { UserToolErrorMessage } from './UserToolErrorMessage.js'
+import { UserToolRejectMessage } from './UserToolRejectMessage.js'
+import { UserToolSuccessMessage } from './UserToolSuccessMessage.js'
 
 type Props = {
   param: ToolResultBlockParam

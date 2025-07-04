@@ -2,8 +2,8 @@
 
 import { ModelRegistry, registerProvider } from './registry.js';
 import { standardProviders } from './providers.js';
-import { ConfigManager } from '../config/manager.js';
-import { IntegrationRegistry } from '../integration/registry.js';
+import { ConfigManager } from '../config/manager';
+import { IntegrationRegistry } from '../integration/registry';
 
 /**
  * Initialize the model system

@@ -1,17 +1,17 @@
-import React from 'react.js.js.js.js.js'
-import { Box, Text, useInput } from 'ink.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
+import React from 'react'
+import { Box, Text, useInput } from 'ink'
+import { getTheme } from '../utils/theme'
 import { Select } from '@inkjs/ui'
 import {
   saveCurrentProjectConfig,
   getCurrentProjectConfig,
-} from '../utils/config.js.js.js.js.js.js.js.js.js.js.js'
-import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
-import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD.js.js.js.js.js.js.js.js.js.js'
-import { homedir } from 'os.js.js.js.js.js'
-import { getCwd } from '../utils/state.js.js.js.js.js.js.js.js.js.js'
-import Link from './Link.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/config'
+import { PRODUCT_NAME } from '../constants/product'
+import { logEvent } from '../services/statsig'
+import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD'
+import { homedir } from 'os'
+import { getCwd } from '../utils/state'
+import Link from './Link.js'
 
 type Props = {
   onDone(): void

@@ -1,13 +1,13 @@
-import React from 'react.js.js.js.js.js'
-import { Box, Text, useInput } from 'ink.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
+import React from 'react'
+import { Box, Text, useInput } from 'ink'
+import { getTheme } from '../utils/theme'
 import { Select } from '@inkjs/ui'
 import {
   saveCurrentProjectConfig,
   getCurrentProjectConfig,
-} from '../utils/config.js.js.js.js.js.js.js.js.js.js.js'
-import { MCPServerDialogCopy } from './MCPServerDialogCopy.js.js.js.js.js.js.js.js.js.js'
-import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/config'
+import { MCPServerDialogCopy } from './MCPServerDialogCopy.js'
+import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD'
 
 type Props = {
   serverName: string

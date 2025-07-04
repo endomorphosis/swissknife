@@ -1,10 +1,10 @@
 /**
  * Command to list configured MCP servers
  */
-import type { Command, LocalCommand } from '../types/command.js';
-import { listMCPServers } from '../services/mcpClient.js';
-import chalk from 'chalk.js';
-import { getTheme } from '../utils/theme.js';
+import type { Command, LocalCommand } from '../types/command';
+import { listMCPServers } from '../services/mcpClient';
+import chalk from 'chalk';
+import { getTheme } from '../utils/theme';
 
 const listMcpServersCommand: LocalCommand = {
   type: 'local',

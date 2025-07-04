@@ -1,8 +1,8 @@
-import { GoTNode } from '../../types/task.js'; // Keep GoTNode from here
-import { GoTNodeStatus } from '../graph/node.js'; // Import GoTNodeStatus directly
-import { StorageProvider } from '../../types/storage.js';
-import { logger } from '../../utils/logger.js';
-import { DirectedAcyclicGraph } from '../graph/dag.js'; // Import DAG
+import { GoTNode } from '../types/task'; // Keep GoTNode from here
+import { GoTNodeStatus } from '../graph/node'; // Import GoTNodeStatus directly
+import { StorageProvider } from '../types/storage';
+import { logger } from '../utils/logger';
+import { DirectedAcyclicGraph } from '../graph/dag'; // Import DAG
 import { FibonacciHeap, FibHeapNode } from './fibonacci-heap.js'; // Import external FibonacciHeap
 
 // --- Fibonacci Heap Scheduler ---

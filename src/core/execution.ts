@@ -5,9 +5,9 @@
 
 // TODO: Import necessary types and classes
 // import { Model } from './model.js'; // Assuming a Model class exists
-// import { HardwareBackend } from '../types/hardware.js'; // Assuming HardwareBackend type
-// import { WebGPUOptimizer } from '../services/webgpu-optimizer.js'; // Assuming WebGPUOptimizer class
-// import { ModelQuantizer } from '../utils/quantization.js'; // Assuming ModelQuantizer class
+// import { HardwareBackend } from '../types/hardware'; // Assuming HardwareBackend type
+// import { WebGPUOptimizer } from '../services/webgpu-optimizer'; // Assuming WebGPUOptimizer class
+// import { ModelQuantizer } from '../utils/quantization'; // Assuming ModelQuantizer class
 
 export class ExecutionEngine {
   private activeBackend: any | null = null; // Placeholder for HardwareBackend type

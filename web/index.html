@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwissKnife Web Desktop</title>
+    <link rel="stylesheet" href="css/desktop.css">
+    <link rel="stylesheet" href="css/windows.css">
+    <link rel="stylesheet" href="css/aero-enhanced.css">
+    <link rel="stylesheet" href="css/terminal.css">
+    <link rel="stylesheet" href="css/apps.css">
 </head>
 <body>
     <!-- Desktop Environment -->
@@ -37,10 +42,6 @@
                 <div class="icon-image">🧠</div>
                 <div class="icon-label">Models</div>
             </div>
-            <div class="icon" data-app="ipfs-explorer" title="IPFS Explorer">
-                <div class="icon-image">🌐</div>
-                <div class="icon-label">IPFS</div>
-            </div>
             <div class="icon" data-app="device-manager" title="Device Manager">
                 <div class="icon-image">🔧</div>
                 <div class="icon-label">Devices</div>
@@ -73,9 +74,11 @@
         <!-- System Panel/Taskbar -->
         <div class="system-panel">
             <div class="panel-left">
-                <div class="system-menu-button" id="system-menu-btn">
-                    <span class="swiss-logo">🇨🇭</span>
-                    <span>SwissKnife</span>
+                <div class="system-menu-button swiss-flag-square" id="system-menu-btn">
+                    <div class="swiss-flag-icon">
+                        <div class="flag-cross-horizontal"></div>
+                        <div class="flag-cross-vertical"></div>
+                    </div>
                 </div>
                 <div class="taskbar-apps" id="taskbar-apps"></div>
             </div>
@@ -102,7 +105,6 @@
             <div class="menu-section">
                 <div class="menu-item" data-app="task-manager">⚡ Task Manager</div>
                 <div class="menu-item" data-app="model-browser">🧠 Model Browser</div>
-                <div class="menu-item" data-app="ipfs-explorer">🌐 IPFS Explorer</div>
                 <div class="menu-item" data-app="device-manager">🔧 Device Manager</div>
             </div>
             <div class="menu-separator"></div>
@@ -172,20 +174,5 @@
     </div>
     
     <!-- Scripts -->
-    <script src="js/core/swissknife-core.js"></script>
-    <script src="js/core/window-manager.js"></script>
-    <script src="js/core/desktop-manager.js"></script>
-    <script src="js/core/ai-engine.js"></script>
-    <script src="js/core/storage-engine.js"></script>
-    <script src="js/core/webnn-engine.js"></script>
-    <script src="js/apps/terminal.js"></script>
-    <script src="js/apps/vibecode.js"></script>
-    <script src="js/apps/ai-chat.js"></script>
-    <script src="js/apps/file-manager.js"></script>
-    <script src="js/apps/task-manager.js"></script>
-    <script src="js/apps/model-browser.js"></script>
-    <script src="js/apps/ipfs-explorer.js"></script>
-    <script src="js/apps/settings.js"></script>
-    <script src="js/main.js"></script>
 </body>
 </html>

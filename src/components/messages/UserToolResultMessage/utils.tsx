@@ -1,10 +1,10 @@
 import { ToolUseBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Message } from '../../../query.js.js.js.js.js.js.js.js.js.js'
-import { useMemo } from 'react.js.js.js.js.js'
-import { Tool } from '../../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { GlobTool } from '../../../tools/GlobTool/GlobTool.js.js.js.js.js.js.js.js.js.js'
-import { GrepTool } from '../../../tools/GrepTool/GrepTool.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../../../services/statsig.js.js.js.js.js.js.js.js.js.js'
+import { Message } from '../query'
+import { useMemo } from 'react'
+import { Tool } from '../Tool'
+import { GlobTool } from '../tools/GlobTool/GlobTool'
+import { GrepTool } from '../tools/GrepTool/GrepTool'
+import { logEvent } from '../services/statsig'
 
 function getToolUseFromMessages(
   toolUseID: string,

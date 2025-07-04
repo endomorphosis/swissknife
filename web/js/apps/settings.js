@@ -2,7 +2,7 @@
  * Settings App for SwissKnife Web Desktop
  */
 
-export class SettingsApp {
+window.SettingsApp = class SettingsApp {
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;

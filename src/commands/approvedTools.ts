@@ -2,7 +2,7 @@ import {
   ProjectConfig,
   getCurrentProjectConfig as getCurrentProjectConfigDefault,
   saveCurrentProjectConfig as saveCurrentProjectConfigDefault,
-} from '../utils/config.js'
+} from '../utils/config'
 
 export type ProjectConfigHandler = {
   getCurrentProjectConfig: () => ProjectConfig

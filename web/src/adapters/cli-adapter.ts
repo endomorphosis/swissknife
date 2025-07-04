@@ -1,5 +1,5 @@
 /**
- * SwissKnife CLI Adapter for Web Terminal
+ * SwissKnife CLI Adapter - Unified Implementation
  * Provides access to SwissKnife CLI functionality within the browser terminal
  */
 
@@ -38,7 +38,7 @@ export class SwissKnifeCLIAdapter extends BrowserEventEmitter {
     super();
     this.context = {
       workingDirectory: '/home/user',
-      environment: { ...process.env, PATH: '/usr/local/bin:/usr/bin:/bin' },
+      environment: { PATH: '/usr/local/bin:/usr/bin:/bin' },
       user: 'user',
       history: []
     };
@@ -442,18 +442,7 @@ export class SwissKnifeCLIAdapter extends BrowserEventEmitter {
     if (args.length === 0) {
       return {
         success: true,
-        output: `SwissKnife CLI v1.0.0
-Usage: sk <command> [options]
-
-Available commands:
-  ai        AI model and chat management
-  task      Task management
-  storage   Storage operations
-  config    Configuration management
-  status    Show system status
-  version   Show version information
-
-Type 'sk <command> --help' for command-specific help.`,
+        output: `SwissKnife CLI v1.0.0\nUsage: sk <command> [options]\n\nAvailable commands:\n  ai        AI model and chat management\n  task      Task management\n  storage   Storage operations\n  config    Configuration management\n  status    Show system status\n  version   Show version information\n\nType 'sk <command> --help' for command-specific help.`,
         exitCode: 0
       };
     }
@@ -471,9 +460,9 @@ Type 'sk <command> --help' for command-specific help.`,
       case 'config':
         return this.handleConfig(subArgs);
       case 'status':
-        return this.handleStatus([]);
+        return this.handleStatus();
       case 'version':
-        return this.handleVersion([]);
+        return this.handleVersion();
       default:
         return {
           success: false,
@@ -487,12 +476,7 @@ Type 'sk <command> --help' for command-specific help.`,
     if (args.length === 0) {
       return {
         success: true,
-        output: `AI Management Commands:
-  list-models    List available AI models
-  switch-model   Switch active AI model
-  chat          Start interactive chat
-  generate      Generate text with prompt
-  status        Show AI system status`,
+        output: `AI Management Commands:\n  list-models    List available AI models\n  switch-model   Switch active AI model\n  chat          Start interactive chat\n  generate      Generate text with prompt\n  status        Show AI system status`,
         exitCode: 0
       };
     }
@@ -502,23 +486,14 @@ Type 'sk <command> --help' for command-specific help.`,
       case 'list-models':
         return {
           success: true,
-          output: `Available AI Models:
-• gpt-4o (OpenAI) - Current
-• claude-3-5-sonnet (Anthropic)
-• gemini-pro (Google)
-• llama-3.2 (Ollama)`,
+          output: `Available AI Models:\n• gpt-4o (OpenAI) - Current\n• claude-3-5-sonnet (Anthropic)\n• gemini-pro (Google)\n• llama-3.2 (Ollama)`,
           exitCode: 0
         };
       
       case 'status':
         return {
           success: true,
-          output: `AI System Status:
-Current Model: gpt-4o
-Provider: OpenAI
-Status: ✅ Online
-API Key: ••••••••
-Rate Limit: 500/hour (used: 23)`,
+          output: `AI System Status:\nCurrent Model: gpt-4o\nProvider: OpenAI\nStatus: ✅ Online`,
           exitCode: 0
         };
 
@@ -535,10 +510,7 @@ Rate Limit: 500/hour (used: 23)`,
     if (args.length === 0) {
       return {
         success: true,
-        output: `Starting interactive chat session...
-Type your message and press Enter. Type 'exit' to quit.
-
-Chat>`,
+        output: `Starting interactive chat session...\nType your message and press Enter. Type 'exit' to quit.\n\nChat>`,
         exitCode: 0
       };
     }
@@ -547,7 +519,7 @@ Chat>`,
     // This would integrate with the actual AI adapter
     return {
       success: true,
-      output: `AI Response: This is a simulated response to "${message}". Integration with real AI adapter coming soon.`,
+      output: `AI Response: This is a simulated response to "${message}".`,
       exitCode: 0
     };
   }
@@ -559,11 +531,7 @@ Chat>`,
       case 'list':
         return {
           success: true,
-          output: `Available Models:
-• gpt-4o (OpenAI) [Current]
-• claude-3-5-sonnet (Anthropic)
-• gemini-pro (Google)
-• llama-3.2 (Ollama)`,
+          output: `Available Models:\n• gpt-4o (OpenAI) [Current]\n• claude-3-5-sonnet (Anthropic)\n• gemini-pro (Google)\n• llama-3.2 (Ollama)`,
           exitCode: 0
         };
       
@@ -595,12 +563,7 @@ Chat>`,
     if (args.length === 0) {
       return {
         success: true,
-        output: `Task Management Commands:
-  create        Create a new task
-  list          List tasks
-  show <id>     Show task details
-  execute <id>  Execute a task
-  delete <id>   Delete a task`,
+        output: `Task Management Commands:\n  create        Create a new task\n  list          List tasks\n  show <id>     Show task details\n  execute <id>  Execute a task\n  delete <id>   Delete a task`,
         exitCode: 0
       };
     }
@@ -610,11 +573,7 @@ Chat>`,
       case 'list':
         return {
           success: true,
-          output: `Tasks:
-ID    Status     Priority  Title
-1     pending    high      Process dataset
-2     running    medium    Train AI model
-3     completed  low       Update docs`,
+          output: `Tasks:\nID    Status     Priority  Title\n1     pending    high      Process dataset\n2     running    medium    Train AI model\n3     completed  low       Update docs`,
           exitCode: 0
         };
       
@@ -679,11 +638,7 @@ ID    Status     Priority  Title
     if (args.length === 0) {
       return {
         success: true,
-        output: `Configuration Commands:
-  get <key>        Get configuration value
-  set <key> <val>  Set configuration value
-  list             List all configuration
-  reset            Reset to defaults`,
+        output: `Configuration Commands:\n  get <key>        Get configuration value\n  set <key> <val>  Set configuration value\n  list             List all configuration\n  reset            Reset to defaults`,
         exitCode: 0
       };
     }
@@ -693,11 +648,7 @@ ID    Status     Priority  Title
       case 'list':
         return {
           success: true,
-          output: `Configuration:
-ai.default_model=gpt-4o
-ai.api_timeout=30000
-tasks.max_concurrent=5
-storage.provider=local`,
+          output: `Configuration:\nai.default_model=gpt-4o\nai.api_timeout=30000\ntasks.max_concurrent=5\nstorage.provider=local`,
           exitCode: 0
         };
 
@@ -713,13 +664,7 @@ storage.provider=local`,
   private async handleStatus(): Promise<CLIResult> {
     return {
       success: true,
-      output: `SwissKnife Status:
-Version: 1.0.0
-Mode: Browser
-AI: ✅ Connected (gpt-4o)
-Tasks: ✅ 3 active
-Storage: ✅ Local + Cloud
-Config: ✅ Loaded`,
+      output: `SwissKnife Status:\nVersion: 1.0.0\nMode: Browser\nAI: ✅ Connected (gpt-4o)\nTasks: ✅ 3 active\nStorage: ✅ Local + Cloud\nConfig: ✅ Loaded`,
       exitCode: 0
     };
   }

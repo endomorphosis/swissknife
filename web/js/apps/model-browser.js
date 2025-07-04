@@ -3,7 +3,7 @@
  * Browse, download, and manage AI models for local inference
  */
 
-export class ModelBrowserApp {
+window.ModelBrowserApp = class ModelBrowserApp {
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;

@@ -6,12 +6,12 @@ import {
     TaskStatus, 
     TaskCreationOptions,
     ThoughtNodeType // For creating initial GoTNode
-} from '../types/task.js';
-import { TaskID, GoTNodeID } from '../types/common.js'; // Corrected import
-import { StorageProvider } from '../types/storage.js'; // Corrected import path AGAIN
-import { ThinkingManager } from '../ai/thinking/manager.js'; // For processing GoTNodes
-import { BaseModel } from '../ai/models/model.js'; // For ThinkingManager
-import { ThoughtGraph } from '../ai/thinking/graph.js'; // For context to ThinkingManager
+} from '../types/task';
+import { TaskID, GoTNodeID } from '../types/common'; // Corrected import
+import { StorageProvider } from '../types/storage'; // Corrected import path AGAIN
+import { ThinkingManager } from '../ai/thinking/manager'; // For processing GoTNodes
+import { BaseModel } from '../ai/models/model'; // For ThinkingManager
+import { ThoughtGraph } from '../ai/thinking/graph'; // For context to ThinkingManager
 import { v4 as uuidv4 } from 'uuid';
 
 // Placeholder for GraphProcessor, to be detailed in Week 9 tasks

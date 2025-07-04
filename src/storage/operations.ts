@@ -3,9 +3,9 @@
 import { PathResolver } from './path-resolver.js';
 import { StorageError, StorageErrorType, ReadFileOptions, WriteFileOptions, FileStat, DirEntry, StorageBackend } from './backend.js';
 import { ResolvedPath } from './registry.js';
-import { Readable, Writable } from 'stream.js';
-import { logger } from '../utils/logger.js';
-import path from 'path.js';
+import { Readable, Writable } from 'stream';
+import { logger } from '../utils/logger';
+import path from 'path';
 
 /**
  * Service providing high-level operations for the Virtual File System

@@ -1,12 +1,12 @@
-import { Hunk } from 'diff.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { intersperse } from '../utils/array.js.js.js.js.js.js.js.js.js.js'
-import { StructuredDiff } from './StructuredDiff.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { getCwd } from '../utils/state.js.js.js.js.js.js.js.js.js.js'
-import { relative } from 'path.js.js.js.js.js'
-import { useTerminalSize } from '../hooks/useTerminalSize.js.js.js.js.js.js.js.js.js.js'
+import { Hunk } from 'diff'
+import { Box, Text } from 'ink'
+import * as React from 'react'
+import { intersperse } from '../utils/array'
+import { StructuredDiff } from './StructuredDiff.js'
+import { getTheme } from '../utils/theme'
+import { getCwd } from '../utils/state'
+import { relative } from 'path'
+import { useTerminalSize } from '../hooks/useTerminalSize'
 
 type Props = {
   filePath: string

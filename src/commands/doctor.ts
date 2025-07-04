@@ -1,7 +1,7 @@
-import React from 'react.js';
-import type { Command, LocalJSXCommand } from '../types/command.js'; // Updated import path
-import { Doctor } from '../screens/Doctor.js'; // Assuming .js extension is needed
-import { PRODUCT_NAME } from '../constants/product.js'; // Assuming .js extension is needed
+import React from 'react';
+import type { Command, LocalJSXCommand } from '../types/command'; // Updated import path
+import { Doctor } from '../screens/Doctor'; // Assuming .js extension is needed
+import { PRODUCT_NAME } from '../constants/product'; // Assuming .js extension is needed
 
 const doctorCommand: LocalJSXCommand = {
   name: 'doctor',

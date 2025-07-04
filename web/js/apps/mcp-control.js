@@ -1,5 +1,5 @@
 // MCP Server Control App
-class MCPControlApp {
+window.MCPControlApp = class MCPControlApp {
     constructor() {
         this.name = 'MCP Control';
         this.icon = '🔌';
@@ -303,6 +303,3 @@ class MCPControlApp {
 
 // Create global instance
 const mcpControlApp = new MCPControlApp();
-
-// Export for window manager
-window.MCPControlApp = MCPControlApp;

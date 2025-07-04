@@ -1,7 +1,7 @@
 // src/tasks/scheduler/scheduler.ts
 import { FibonacciHeap, FibHeapNode } from './fibonacci-heap.js';
-import { GoTNode, TaskStatus } from '../../types/task.js';
-import { GoTNodeID } from '../../types/common.js';
+import { GoTNode, TaskStatus } from '../types/task';
+import { GoTNodeID } from '../types/common';
 
 // Define weights for priority calculation factors
 // These can be tuned based on desired scheduling behavior

@@ -1,7 +1,7 @@
 // src/commands/context.ts
 
-import { ConfigurationManager, IConfigManager } from '../config/manager.js';
-import { LogManager } from '../utils/logging.js';
+import { ConfigurationManager, IConfigManager } from '../config/manager';
+import { LogManager } from '../utils/logging';
 
 /**
  * Execution context provides shared resources and state during command execution

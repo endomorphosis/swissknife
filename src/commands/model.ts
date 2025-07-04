@@ -2,11 +2,11 @@
 
 import { Command } from './registry.js';
 import { ExecutionContext } from './context.js';
-import { ModelRegistry, Model, Provider } from '../models/registry.js';
-import { ModelExecutionService } from '../models/execution.js';
-import { initializeModelSystem } from '../models/init.js';
-import chalk from 'chalk.js';
-import * as fs from 'fs/promises.js';
+import { ModelRegistry, Model, Provider } from '../models/registry';
+import { ModelExecutionService } from '../models/execution';
+import { initializeModelSystem } from '../models/init';
+import chalk from 'chalk';
+import * as fs from 'fs/promises';
 
 // Initialize the model system when this module is imported
 initializeModelSystem().catch(error => {

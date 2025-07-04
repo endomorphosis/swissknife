@@ -25,16 +25,16 @@ import {
 import { 
   logEvent, 
   logError 
-} from '../utils/log.js';
+} from '../utils/log';
 import {
   Tool
-} from '../Tool.js';
+} from '../Tool';
 import {
   MCPTool
-} from '../tools/MCPTool/MCPTool.js';
+} from '../tools/MCPTool/MCPTool';
 import {
   Client
-} from '@modelcontextprotocol/sdk/client/index.js';
+} from '@modelcontextprotocol/sdk/client/index';
 import {
   ListToolsResult,
   ListToolsResultSchema,
@@ -44,13 +44,13 @@ import {
   ClientRequest,
   Result,
   ResultSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+} from '@modelcontextprotocol/sdk/types';
 import { 
   ImageBlockParam,
   ToolResultBlockParam,
 } from '@anthropic-ai/sdk/resources/index.mjs';
 
-import { memoize } from 'lodash-es.js';
+import { memoize } from 'lodash-es';
 
 /**
  * Client with version information

@@ -1,28 +1,34 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["ES2020", "DOM"],
-    "module": "ESNext", 
+    "lib": ["ES2020", "DOM", "DOM.Iterable", "ES2021"],
+    "module": "ESNext",
     "moduleResolution": "node",
-    "allowJs": true,
     "outDir": "./dist",
     "strict": false,
     "noImplicitAny": false,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
+    "jsx": "react-jsx",
     "declaration": false,
+    "declarationDir": null,
     "composite": false,
-    "noEmit": false
+    "noEmit": false,
+    "baseUrl": ".",
+    "paths": {
+      "@swissknife/*": ["../src/*"],
+      "@legacy/*": ["js/*"],
+      "@/*": ["src/*"]
+    },
+    "types": ["node", "webpack-env"]
   },
   "include": [
-    "./src/browser-main-working.ts",
-    "./src/utils/browser-utils.ts",
-    "./src/polyfills/browser-polyfills.ts"
+    "src/**/*",
+    "**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "js/**/*",
+    "legacy-js/**/*"
   ]
 }

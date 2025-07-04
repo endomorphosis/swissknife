@@ -1,14 +1,14 @@
-import { OpenAI } from 'openai.js'
+import { OpenAI } from 'openai'
 import {
   getGlobalConfig,
   GlobalConfig,
   getActiveApiKey,
   markApiKeyAsFailed,
   getApiKeys,
-} from '../utils/config.js'
-import { ProxyAgent, fetch, Response } from 'undici.js'
-import { setSessionState, getSessionState } from '../utils/sessionState.js'
-import { logEvent } from '../services/statsig.js'
+} from '../utils/config'
+import { ProxyAgent, fetch, Response } from 'undici'
+import { setSessionState, getSessionState } from '../utils/sessionState'
+import { logEvent } from '../services/statsig'
 
 enum ModelErrorType {
   MaxLength = '1024',

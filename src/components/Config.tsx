@@ -1,8 +1,8 @@
-import { Box, Text, useInput } from 'ink.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { useState } from 'react.js.js.js.js.js'
-import figures from 'figures.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
+import { Box, Text, useInput } from 'ink'
+import * as React from 'react'
+import { useState } from 'react'
+import figures from 'figures'
+import { getTheme } from '../utils/theme'
 import {
   GlobalConfig,
   saveGlobalConfig,
@@ -11,10 +11,10 @@ import {
   addApiKey,
   removeApiKey,
   getApiKeys,
-} from '../utils/config.js.js.js.js.js.js.js.js.js.js.js'
-import { getGlobalConfig } from '../utils/config.js.js.js.js.js.js.js.js.js.js'
-import chalk from 'chalk.js.js.js.js.js'
-import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/config'
+import { getGlobalConfig } from '../utils/config'
+import chalk from 'chalk'
+import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD'
 
 type Props = {
   onClose: () => void

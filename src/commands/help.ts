@@ -2,7 +2,7 @@
 
 import { Command, CommandRegistry } from './registry.js';
 import { ExecutionContext } from './context.js';
-import chalk from 'chalk.js';
+import chalk from 'chalk';
 
 /**
  * Help command implementation

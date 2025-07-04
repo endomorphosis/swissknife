@@ -1,5 +1,5 @@
-import { logger } from '../../utils/logger.js';
-import { Tensor } from '../tensor/tensor.js';
+import { logger } from '../utils/logger';
+import { Tensor } from '../tensor/tensor';
 
 // Placeholder for model representation
 type MLModel = any; 

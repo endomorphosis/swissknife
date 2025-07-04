@@ -1,7 +1,7 @@
-import React from 'react.js.js.js.js.js'
-import { Text } from 'ink.js.js.js.js.js'
-import Link from 'ink-link.js.js.js.js.js'
-import { PRODUCT_NAME, PRODUCT_COMMAND } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
+import React from 'react'
+import { Text } from 'ink'
+import Link from 'ink-link'
+import { PRODUCT_NAME, PRODUCT_COMMAND } from '../constants/product'
 
 export function MCPServerDialogCopy(): React.ReactNode {
   return (

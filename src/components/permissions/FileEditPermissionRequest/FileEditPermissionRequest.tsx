@@ -1,27 +1,27 @@
 import { Select } from '@inkjs/ui'
-import chalk from 'chalk.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import { basename, extname } from 'path.js.js.js.js.js'
-import React, { useMemo } from 'react.js.js.js.js.js'
+import chalk from 'chalk'
+import { Box, Text } from 'ink'
+import { basename, extname } from 'path'
+import React, { useMemo } from 'react'
 import {
   UnaryEvent,
   usePermissionRequestLogging,
-} from '../../../hooks/usePermissionRequestLogging.js.js.js.js.js.js.js.js.js.js.js'
-import { savePermission } from '../../../permissions.js.js.js.js.js.js.js.js.js.js'
-import { env } from '../../../utils/env.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../../../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { logUnaryEvent } from '../../../utils/unaryLogging.js.js.js.js.js.js.js.js.js.js'
+} from '../hooks/usePermissionRequestLogging'
+import { savePermission } from '../permissions'
+import { env } from '../utils/env'
+import { getTheme } from '../utils/theme'
+import { logUnaryEvent } from '../utils/unaryLogging'
 import {
   type ToolUseConfirm,
   toolUseConfirmGetPrefix,
-} from '../PermissionRequest.js.js.js.js.js.js.js.js.js.js.js'
+} from '../PermissionRequest'
 import {
   PermissionRequestTitle,
   textColorForRiskScore,
-} from '../PermissionRequestTitle.js.js.js.js.js.js.js.js.js.js.js'
-import { FileEditToolDiff } from './FileEditToolDiff.js.js.js.js.js.js.js.js.js.js'
-import { useTerminalSize } from '../../../hooks/useTerminalSize.js.js.js.js.js.js.js.js.js.js'
-import { pathInOriginalCwd } from '../../../utils/permissions/filesystem.js.js.js.js.js.js.js.js.js.js'
+} from '../PermissionRequestTitle'
+import { FileEditToolDiff } from './FileEditToolDiff.js'
+import { useTerminalSize } from '../hooks/useTerminalSize'
+import { pathInOriginalCwd } from '../utils/permissions/filesystem'
 
 function getOptions(path: string) {
   // Only show don't ask again option for edits in original working directory

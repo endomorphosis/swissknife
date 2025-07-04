@@ -2,11 +2,11 @@
  * Core Commands - Basic commands for the SwissKnife CLI
  */
 
-import { CommandRegistry, Command, LazyCommand } from '../command-registry.js';
-import pkg from '../../package.json.js' assert { type: 'json' };
+import { CommandRegistry, Command, LazyCommand } from '../command-registry';
+import pkg from '../packageon' assert { type: 'json' };
 const { version } = pkg;
-import { TaskManager } from '../tasks/manager.js';
-import { WorkerPool } from '../workers/pool.js';
+import { TaskManager } from '../tasks/manager';
+import { WorkerPool } from '../workers/pool';
 
 /**
  * Load core commands lazily

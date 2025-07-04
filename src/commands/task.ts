@@ -2,9 +2,9 @@
 
 import { Command } from './registry.js';
 import { ExecutionContext } from './context.js';
-import { TaskRegistry } from '../tasks/registry.js';
-import { TaskManager, TaskStatus, TaskInstance } from '../tasks/manager.js';
-import chalk from 'chalk.js';
+import { TaskRegistry } from '../tasks/registry';
+import { TaskManager, TaskStatus, TaskInstance } from '../tasks/manager';
+import chalk from 'chalk';
 
 // Get singletons
 const taskRegistry = TaskRegistry.getInstance();
@@ -304,7 +304,7 @@ function getStatusColor(status: TaskStatus): (text: string) => string {
 }
 
 // Register common tasks
-import { registerTask } from '../tasks/registry.js';
+import { registerTask } from '../tasks/registry';
 
 // Register text generation task
 registerTask({

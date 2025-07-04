@@ -3,7 +3,7 @@
  * Provides access to SwissKnife CLI functionality within the browser terminal
  */
 
-import { WebNNModelInference } from '../ml/webnn-inference.js';
+import { WebNNModelInference } from '../ml/webnn-inference';
 
 export class SwissKnifeCLIAdapter {
   constructor(swissknife) {
@@ -349,7 +349,7 @@ export class SwissKnifeCLIAdapter {
         } else {
           return {
             success: true,
-            output: `🤖 AI: I'm a simulated AI response. SwissKnife core is still initializing. Your message: "${message}"`,
+            output: `🤖 AI: I am a simulated AI response. SwissKnife core is still initializing. Your message: "${message}"`,
             exitCode: 0
           };
         }
@@ -696,7 +696,11 @@ export class SwissKnifeCLIAdapter {
       case 'status':
         return {
           success: true,
-          output: 'IPFS Status:\n🌐 Node ID: QmX... (simulated)\n👥 Peers: 42\n💾 Repo Size: 1.2 GB\n🌍 Gateway: http://localhost:8080',
+          output: 'IPFS Status:
+🌐 Node ID: QmX... (simulated)
+👥 Peers: 42
+💾 Repo Size: 1.2 GB
+🌍 Gateway: http://localhost:8000',
           exitCode: 0
         };
 

@@ -4,7 +4,7 @@ import { IntegrationRegistry } from './registry.js';
 import { GooseMCPBridge } from './goose/mcp-bridge.js';
 import { IPFSAccelerateBridge } from './ipfs/accelerate-bridge.js';
 import { LegacySwissKnifeBridge } from './legacy/swissknife-bridge.js';
-import { ConfigManager } from '../config/manager.js';
+import { ConfigManager } from '../config/manager';
 
 /**
  * Initialize the integration framework

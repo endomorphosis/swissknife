@@ -1,9 +1,9 @@
-import { PRODUCT_NAME, PRODUCT_URL } from '../../constants/product.js'
-import { TOOL_NAME as AGENT_TOOL_NAME } from '../AgentTool/constants.js'
-import { FileReadTool } from '../FileReadTool/FileReadTool.js'
-import { TOOL_NAME_FOR_PROMPT as GLOB_TOOL_NAME } from '../GlobTool/prompt.js'
-import { TOOL_NAME_FOR_PROMPT as GREP_TOOL_NAME } from '../GrepTool/prompt.js'
-import { LSTool } from '../lsTool/lsTool.js'
+import { PRODUCT_NAME, PRODUCT_URL } from '../constants/product'
+import { TOOL_NAME as AGENT_TOOL_NAME } from '../AgentTool/constants'
+import { FileReadTool } from '../FileReadTool/FileReadTool'
+import { TOOL_NAME_FOR_PROMPT as GLOB_TOOL_NAME } from '../GlobTool/prompt'
+import { TOOL_NAME_FOR_PROMPT as GREP_TOOL_NAME } from '../GrepTool/prompt'
+import { LSTool } from '../lsTool/lsTool'
 
 export const MAX_OUTPUT_LENGTH = 30000
 export const MAX_RENDERED_LINES = 50

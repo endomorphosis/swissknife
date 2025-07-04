@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger.js';
+import { logger } from '../utils/logger';
 
 /**
  * Placeholder class representing a multi-dimensional array (Tensor).

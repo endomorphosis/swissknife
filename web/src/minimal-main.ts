@@ -1,0 +1,213 @@
+// Minimal Unified Main Entry Point
+// Focuses only on web desktop + stlite integration
+
+import { StliteManager } from './core/stlite-manager';
+
+// Enhanced global declarations for the web environment
+declare global {
+    interface Window {
+        stlite: any;
+        stliteLoadStatus: string;
+        SwissKnifeDesktop: any;
+        SwissKnifeApps: any;
+    }
+}
+
+console.log('🚀 MINIMAL UNIFIED: Initializing SwissKnife Web Desktop...');
+
+// Initialize stlite management
+const stliteManager = new StliteManager();
+
+// Initialize the desktop system
+async function initializeDesktop() {
+    try {
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            await new Promise(resolve => {
+                document.addEventListener('DOMContentLoaded', resolve);
+            });
+        }
+
+        console.log('🔧 MINIMAL UNIFIED: DOM ready, initializing systems...');
+
+        // Initialize stlite
+        await stliteManager.initialize();
+        console.log('✅ MINIMAL UNIFIED: Stlite management ready');
+
+        // Hide splash screen
+        const splashScreen = document.getElementById('initial-splash-screen');
+        if (splashScreen) {
+            splashScreen.style.opacity = '0';
+            setTimeout(() => {
+                splashScreen.style.display = 'none';
+            }, 500);
+        }
+
+        // Initialize basic desktop functionality
+        initializeBasicDesktop();
+        
+        console.log('✅ MINIMAL UNIFIED: Desktop initialization complete');
+
+    } catch (error) {
+        console.error('❌ MINIMAL UNIFIED: Initialization failed:', error);
+    }
+}
+
+function initializeBasicDesktop() {
+    // Basic desktop icon click handlers
+    const icons = document.querySelectorAll('.icon[data-app]');
+    icons.forEach(icon => {
+        icon.addEventListener('click', (e) => {
+            const app = (e.currentTarget as HTMLElement).getAttribute('data-app');
+            console.log(`📱 Opening app: ${app}`);
+            
+            if (app === 'vibecode') {
+                openStreamlitEditor();
+            } else {
+                console.log(`⚠️ App ${app} not yet implemented in minimal build`);
+            }
+        });
+    });
+
+    // Update system time
+    updateSystemTime();
+    setInterval(updateSystemTime, 1000);
+}
+
+function updateSystemTime() {
+    const timeElement = document.getElementById('system-time');
+    if (timeElement) {
+        const now = new Date();
+        timeElement.textContent = now.toLocaleTimeString();
+    }
+}
+
+function openStreamlitEditor() {
+    // Create a simple Streamlit editor window
+    const windowsContainer = document.getElementById('windows-container');
+    if (!windowsContainer) return;
+
+    const editorWindow = document.createElement('div');
+    editorWindow.className = 'window streamlit-editor-window';
+    editorWindow.style.cssText = `
+        position: absolute;
+        top: 50px;
+        left: 50px;
+        width: 800px;
+        height: 600px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+    `;
+
+    const titleBar = document.createElement('div');
+    titleBar.style.cssText = `
+        background: #f0f0f0;
+        padding: 8px 12px;
+        border-bottom: 1px solid #ccc;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: move;
+    `;
+    titleBar.innerHTML = `
+        <span>📝 Streamlit Editor</span>
+        <button onclick="this.closest('.window').remove()" style="background: #ff5f56; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer;">×</button>
+    `;
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+        flex: 1;
+        padding: 20px;
+        overflow: auto;
+    `;
+
+    // Create Streamlit container
+    const streamlitContainer = document.createElement('div');
+    streamlitContainer.id = 'streamlit-container';
+    streamlitContainer.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    `;
+
+    content.appendChild(streamlitContainer);
+    editorWindow.appendChild(titleBar);
+    editorWindow.appendChild(content);
+    windowsContainer.appendChild(editorWindow);
+
+    // Mount Streamlit
+    const sampleCode = `import streamlit as st
+
+st.title("🎯 SwissKnife Streamlit Editor")
+st.write("Welcome to the enhanced Streamlit editor!")
+
+name = st.text_input("What's your name?")
+if name:
+    st.success(f"Hello, {name}! 👋")
+
+st.info("This is running with the unified stlite management system.")
+
+# Sample data visualization
+import pandas as pd
+import numpy as np
+
+data = pd.DataFrame({
+    'x': np.random.randn(100),
+    'y': np.random.randn(100)
+})
+
+st.subheader("Sample Chart")
+st.scatter_chart(data)`;
+
+    if (window.stlite && window.stlite.mount) {
+        window.stlite.mount(
+            {
+                entrypoint: 'streamlit_app.py',
+                files: {
+                    'streamlit_app.py': sampleCode
+                }
+            },
+            streamlitContainer
+        );
+    } else {
+        streamlitContainer.innerHTML = '<p>❌ Stlite not available</p>';
+    }
+
+    // Make window draggable
+    let isDragging = false;
+    let dragOffset = { x: 0, y: 0 };
+
+    titleBar.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        const rect = editorWindow.getBoundingClientRect();
+        dragOffset.x = e.clientX - rect.left;
+        dragOffset.y = e.clientY - rect.top;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            editorWindow.style.left = (e.clientX - dragOffset.x) + 'px';
+            editorWindow.style.top = (e.clientY - dragOffset.y) + 'px';
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+}
+
+// Global exports for legacy compatibility
+window.SwissKnifeDesktop = {
+    openStreamlitEditor,
+    stliteManager
+};
+
+// Start initialization
+initializeDesktop();

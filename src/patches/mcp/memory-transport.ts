@@ -5,7 +5,7 @@
  * This allows direct communication between client and server without network or process boundaries.
  */
 
-import { MCPTransportType, MCPTransportOptions, MCPTransport } from '../../services/mcp-transport.js';
+import { MCPTransportType, MCPTransportOptions, MCPTransport } from '../services/mcp-transport';
 
 /**
  * Shared memory channel that connects paired transports

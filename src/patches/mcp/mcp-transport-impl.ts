@@ -5,9 +5,9 @@
  * to fix issues after the refactoring.
  */
 
-import { MCPTransportType, MCPTransportOptions } from '../../services/mcp-transport.js';
-import WebSocket from 'ws.js';
-import axios from 'axios.js';
+import { MCPTransportType, MCPTransportOptions } from '../services/mcp-transport';
+import WebSocket from 'ws';
+import axios from 'axios';
 
 /**
  * Properly implemented WebSocket transport for MCP

@@ -1,24 +1,24 @@
 import type { ImageBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { existsSync, readFileSync, statSync } from 'fs.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import * as path from 'path.js.js.js.js.js'
-import { extname, relative } from 'path.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { z } from 'zod.js.js.js.js.js'
-import { FallbackToolUseRejectedMessage } from '../../components/FallbackToolUseRejectedMessage.js.js.js.js.js.js.js.js.js.js'
-import { HighlightedCode } from '../../components/HighlightedCode.js.js.js.js.js.js.js.js.js.js'
-import type { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { getCwd } from '../../utils/state.js.js.js.js.js.js.js.js.js.js'
+import { existsSync, readFileSync, statSync } from 'fs'
+import { Box, Text } from 'ink'
+import * as path from 'path'
+import { extname, relative } from 'path'
+import * as React from 'react'
+import { z } from 'zod'
+import { FallbackToolUseRejectedMessage } from '@/components/FallbackToolUseRejectedMessage'
+import { HighlightedCode } from '@/components/HighlightedCode'
+import type { Tool } from '@/Tool'
+import { getCwd } from '@/utils/state'
 import {
   addLineNumbers,
   findSimilarFile,
   normalizeFilePath,
   readTextContent,
-} from '../../utils/file.js.js.js.js.js.js.js.js.js.js.js'
-import { logError } from '../../utils/log.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { DESCRIPTION, PROMPT } from './prompt.js.js.js.js.js.js.js.js.js.js'
-import { hasReadPermission } from '../../utils/permissions/filesystem.js.js.js.js.js.js.js.js.js.js'
+} from '@/utils/file'
+import { logError } from '@/utils/log'
+import { getTheme } from '@/utils/theme'
+import { DESCRIPTION, PROMPT } from './prompt.js'
+import { hasReadPermission } from '@/utils/permissions/filesystem'
 
 const MAX_LINES_TO_RENDER = 3
 const MAX_OUTPUT_SIZE = 0.25 * 1024 * 1024 // 0.25MB in bytes

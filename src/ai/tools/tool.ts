@@ -14,8 +14,8 @@ export {
     ToolOutput, 
     ToolExecutionContext,
     // Re-exporting ZodType for convenience if tools define schemas here, though not strictly necessary
-    // ZodType as _ZodType // Example if needed, but usually imported directly from 'zod.js' by implementers
-} from '../../types/ai.js';
+    // ZodType as _ZodType // Example if needed, but usually imported directly from 'zod' by implementers
+} from '../types/ai';
 
 // The old Phase 2 ToolParameter interface is no longer used as primary definition,
 // as parameters are now defined by a Zod schema in the Tool interface.
@@ -32,8 +32,8 @@ export interface OldToolParameter {
 
 // Example of how a base class for tools might look (optional)
 /*
-import { z, ZodType } from 'zod.js';
-import { Tool as ITool, ToolInput, ToolOutput, ToolExecutionContext } from '../../types/ai.js';
+import { z, ZodType } from 'zod';
+import { Tool as ITool, ToolInput, ToolOutput, ToolExecutionContext } from '../types/ai';
 
 export abstract class BaseTool<T extends ZodType> implements ITool<T> {
   abstract readonly name: string;

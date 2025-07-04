@@ -2,8 +2,8 @@
 
 import { Command } from './registry.js';
 import { ExecutionContext } from './context.js';
-import { IntegrationRegistry } from '../integration/registry.js';
-import chalk from 'chalk.js';
+import { IntegrationRegistry } from '../integration/registry';
+import chalk from 'chalk';
 
 /**
  * Bridge command implementation

@@ -5,11 +5,11 @@
  */
 
 // TODO: Import necessary libraries (IPFS client, IPLD codecs, UUID generation)
-// import { create, IPFSHTTPClient } from 'ipfs-http-client.js'; // Example IPFS client
+// import { create, IPFSHTTPClient } from 'ipfs-http-client'; // Example IPFS client
 // import * as dagCbor from '@ipld/dag-cbor'; // Example IPLD codec
-// import { CID } from 'multiformats/cid.js'; // CID implementation
-// import { v4 as uuidv4 } from 'uuid.js'; // UUID generation
-// import { VirtualFilesystem } from '../storage/virtual-filesystem.js'; // VFS for persistence
+// import { CID } from 'multiformats/cid'; // CID implementation
+// import { v4 as uuidv4 } from 'uuid'; // UUID generation
+// import { VirtualFilesystem } from '../storage/virtual-filesystem'; // VFS for persistence
 
 // Placeholder types for demonstration
 type IPFSClient = any;

@@ -1,4 +1,4 @@
-import { zipObject } from 'lodash-es.js'
+import { zipObject } from 'lodash-es'
 import {
   getCurrentProjectConfig,
   McpServerConfig,
@@ -8,19 +8,19 @@ import {
   getMcprcConfig,
   addMcprcServerForTesting,
   removeMcprcServerForTesting,
-} from '../utils/config.js'
-import { existsSync, readFileSync, writeFileSync } from 'fs.js'
-import { join } from 'path.js'
-import { getCwd } from '../utils/state.js'
-import { safeParseJSON } from '../utils/json.js'
+} from '../utils/config'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { join } from 'path'
+import { getCwd } from '../utils/state'
+import { safeParseJSON } from '../utils/json'
 import {
   ImageBlockParam,
   MessageParam,
   ToolResultBlockParam,
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
+import { Client } from '@modelcontextprotocol/sdk/client/index'
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio'
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse'
 import {
   CallToolResultSchema,
   ClientRequest,
@@ -30,14 +30,14 @@ import {
   ListToolsResultSchema,
   Result,
   ResultSchema,
-} from '@modelcontextprotocol/sdk/types.js'
-import { memoize, pickBy } from 'lodash-es.js'
-import type { Tool } from '../Tool.js'
-import { MCPTool } from '../tools/MCPTool/MCPTool.js'
-import { logMCPError } from '../utils/log.js'
-import { Command } from '../commands.js'
-import { logEvent } from '../services/statsig.js'
-import { PRODUCT_COMMAND } from '../constants/product.js'
+} from '@modelcontextprotocol/sdk/types'
+import { memoize, pickBy } from 'lodash-es'
+import type { Tool } from '../Tool'
+import { MCPTool } from '../tools/MCPTool/MCPTool'
+import { logMCPError } from '../utils/log'
+import { Command } from '../commands'
+import { logEvent } from '../services/statsig'
+import { PRODUCT_COMMAND } from '../constants/product'
 
 type McpName = string
 

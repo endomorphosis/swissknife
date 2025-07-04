@@ -5,21 +5,21 @@ import {
   Message,
   ProgressMessage,
   UserMessage,
-} from '../query.js.js.js.js.js.js.js.js.js.js.js'
-import { getCommand, hasCommand } from '../commands.js.js.js.js.js.js.js.js.js.js.js'
-import { MalformedCommandError } from './errors.js.js.js.js.js.js.js.js.js.js.js'
-import { logError } from './log.js.js.js.js.js.js.js.js.js.js.js'
+} from '../query'
+import { getCommand, hasCommand } from '../commands'
+import { MalformedCommandError } from './errors.js'
+import { logError } from './log.js'
 import { resolve } from 'path'
 import { last, memoize } from 'lodash-es'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js.js'
+import { logEvent } from '../services/statsig'
 // Import basic types without explicit type interfaces
-import type { Tool } from '../Tool.js.js.js.js.js.js.js.js.js.js.js'
+import type { Tool } from '../Tool'
 
 // Define the type interfaces locally to avoid circular dependencies
 type SetToolJSXFn = any // Simplify for now
 type ToolUseContext = any  // Simplify for now
-import { lastX } from '../utils/generators.js.js.js.js.js.js.js.js.js.js.js'
-import { NO_CONTENT_MESSAGE } from '../services/claude.js.js.js.js.js.js.js.js.js.js.js'
+import { lastX } from '../utils/generators'
+import { NO_CONTENT_MESSAGE } from '../services/claude'
 import {
   ImageBlockParam,
   TextBlockParam,
@@ -29,13 +29,13 @@ import {
   ContentBlockParam,
   ContentBlock,
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { setCwd } from './state.js.js.js.js.js.js.js.js.js.js.js'
-import { getCwd } from './state.js.js.js.js.js.js.js.js.js.js.js'
+import { setCwd } from './state.js'
+import { getCwd } from './state.js'
 import chalk from 'chalk'
 import * as React from 'react'
-import { UserBashInputMessage } from '../components/messages/UserBashInputMessage.js.js.js.js.js.js.js.js.js.js.js'
-import { Spinner } from '../components/Spinner.js.js.js.js.js.js.js.js.js.js.js'
-import { BashTool } from '../tools/BashTool/BashTool.js.js.js.js.js.js.js.js.js.js.js'
+import { UserBashInputMessage } from '../components/messages/UserBashInputMessage'
+import { Spinner } from '../components/Spinner'
+import { BashTool } from '../tools/BashTool/BashTool'
 import { ToolUseBlock } from '@anthropic-ai/sdk/resources/index.mjs'
 
 export const INTERRUPT_MESSAGE = '[Request interrupted by user]'

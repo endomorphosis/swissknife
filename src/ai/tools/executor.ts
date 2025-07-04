@@ -4,7 +4,7 @@ import {
     ToolInput, 
     ToolOutput, 
     ToolExecutionContext 
-} from '../../types/ai.js'; // Using Zod-based Tool from types/ai.js
+} from '../types/ai'; // Using Zod-based Tool from types/ai.js
 import { ZodType } from 'zod';
 
 // TODO: These would be properly injected or accessed in a real app

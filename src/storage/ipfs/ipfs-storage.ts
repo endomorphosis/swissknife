@@ -2,11 +2,11 @@ import {
   StorageProvider,
   ListOptions,
   StorageItemMetadata,
-} from '../../types/storage.js';
-import { CID } from '../../types/common.js'; // Import CID directly from common
-import { Task, TaskID } from '../../types/task.js'; 
+} from '../types/storage';
+import { CID } from '../types/common'; // Import CID directly from common
+import { Task, TaskID } from '../types/task'; 
 import { MCPClient } from './mcp-client.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../utils/logger';
 
 /**
  * StorageProvider implementation that uses an MCPClient to interact with an IPFS node.

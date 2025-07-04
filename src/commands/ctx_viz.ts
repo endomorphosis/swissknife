@@ -1,11 +1,11 @@
-import type { Command, LocalCommand } from '../types/command.js'; // Updated import path
-import type { Tool } from '../Tool.js';
-import Table from 'cli-table3.js';
-import { getSystemPrompt } from '../constants/prompts.js';
-import { getContext } from '../context.js';
-import { zodToJsonSchema } from 'zod-to-json-schema.js';
-import { getMessagesGetter } from '../messages.js';
-import { PROJECT_FILE } from '../constants/product.js';
+import type { Command, LocalCommand } from '../types/command'; // Updated import path
+import type { Tool } from '../Tool';
+import Table from 'cli-table3';
+import { getSystemPrompt } from '../constants/prompts';
+import { getContext } from '../context';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import { getMessagesGetter } from '../messages';
+import { PROJECT_FILE } from '../constants/product';
 // Quick and dirty estimate of bytes per token for rough token counts
 const BYTES_PER_TOKEN = 4
 

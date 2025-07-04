@@ -1,8 +1,8 @@
-import { Command, CommandExecutionContext } from '../../command-registry.js';
-import { ToolRegistry } from '../../tools/registry.js';
-import { ToolExecutor } from '../../tools/executor.js';
-import { logger } from '../../utils/logger.js';
-import parse from 'yargs-parser.js';
+import { Command, CommandExecutionContext } from '../command-registry';
+import { ToolRegistry } from '../tools/registry';
+import { ToolExecutor } from '../tools/executor';
+import { logger } from '../utils/logger';
+import parse from 'yargs-parser';
 
 export class AgentToolCommand implements Command {
   readonly name = 'agent:tool';

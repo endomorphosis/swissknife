@@ -1,13 +1,13 @@
-import * as React from 'react.js.js.js.js.js'
-import { existsSync, readFileSync } from 'fs.js.js.js.js.js'
-import { useMemo } from 'react.js.js.js.js.js'
-import { StructuredDiff } from '../../StructuredDiff.js.js.js.js.js.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import { getTheme } from '../../../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { intersperse } from '../../../utils/array.js.js.js.js.js.js.js.js.js.js'
-import { getCwd } from '../../../utils/state.js.js.js.js.js.js.js.js.js.js'
-import { relative } from 'path.js.js.js.js.js'
-import { getPatch } from '../../../utils/diff.js.js.js.js.js.js.js.js.js.js'
+import * as React from 'react'
+import { existsSync, readFileSync } from 'fs'
+import { useMemo } from 'react'
+import { StructuredDiff } from '../StructuredDiff'
+import { Box, Text } from 'ink'
+import { getTheme } from '../utils/theme'
+import { intersperse } from '../utils/array'
+import { getCwd } from '../utils/state'
+import { relative } from 'path'
+import { getPatch } from '../utils/diff'
 
 type Props = {
   file_path: string

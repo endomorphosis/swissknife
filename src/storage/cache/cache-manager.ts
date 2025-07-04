@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger.js';
+import { logger } from '../utils/logger';
 
 // TODO: Add options for TTL, max size, eviction policies
 interface CacheManagerOptions {

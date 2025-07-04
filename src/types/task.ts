@@ -1,5 +1,5 @@
 import { CID, GoTNodeID, TaskID } from './common.js'; // Assuming common.js exists and is correct
-import { GoTNodeType, GoTNodeStatus } from '../tasks/graph/node.js'; // Import GoTNode types and statuses
+import { GoTNodeType, GoTNodeStatus } from '../tasks/graph/node'; // Import GoTNode types and statuses
 
 /**
  * Represents the status specifically for a Task or a GoTNode execution lifecycle.

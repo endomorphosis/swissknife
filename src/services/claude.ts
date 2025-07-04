@@ -3,45 +3,45 @@ import Anthropic, { APIConnectionError, APIError } from '@anthropic-ai/sdk'
 import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk'
 import { AnthropicVertex } from '@anthropic-ai/vertex-sdk'
 import type { BetaUsage } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import chalk from 'chalk.js'
-import { createHash, randomUUID } from 'crypto.js'
+import chalk from 'chalk'
+import { createHash, randomUUID } from 'crypto'
 import 'dotenv/config'
 
-import { addToTotalCost } from '../cost-tracker.js'
-import type { AssistantMessage, UserMessage } from '../query.js'
-import { Tool } from '../Tool.js'
+import { addToTotalCost } from '../cost-tracker'
+import type { AssistantMessage, UserMessage } from '../query'
+import { Tool } from '../Tool'
 import {
   getAnthropicApiKey,
   getOrCreateUserID,
   getGlobalConfig,
   getActiveApiKey,
   markApiKeyAsFailed,
-} from '../utils/config.js'
-import { logError, SESSION_ID } from '../utils/log.js'
-import { USER_AGENT } from '../utils/http.js'
+} from '../utils/config'
+import { logError, SESSION_ID } from '../utils/log'
+import { USER_AGENT } from '../utils/http'
 import {
   createAssistantAPIErrorMessage,
   normalizeContentFromAPI,
-} from '../utils/messages.js'
-import { countTokens } from '../utils/tokens.js'
+} from '../utils/messages'
+import { countTokens } from '../utils/tokens'
 import { logEvent } from './statsig.js'
 import { withVCR } from './vcr.js'
-import { zodToJsonSchema } from 'zod-to-json-schema.js'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 import type { BetaMessageStream } from '@anthropic-ai/sdk/lib/BetaMessageStream.mjs'
 import type {
   Message as APIMessage,
   MessageParam,
   TextBlockParam,
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { SMALL_FAST_MODEL, USE_BEDROCK, USE_VERTEX } from '../utils/model.js'
-import { getCLISyspromptPrefix } from '../constants/prompts.js'
-import { getVertexRegionForModel } from '../utils/model.js'
-import OpenAI from 'openai.js'
-import type { ChatCompletionStream } from 'openai/lib/ChatCompletionStream.js'
+import { SMALL_FAST_MODEL, USE_BEDROCK, USE_VERTEX } from '../utils/model'
+import { getCLISyspromptPrefix } from '../constants/prompts'
+import { getVertexRegionForModel } from '../utils/model'
+import OpenAI from 'openai'
+import type { ChatCompletionStream } from 'openai/lib/ChatCompletionStream'
 import { ContentBlock } from '@anthropic-ai/sdk/resources/messages/messages'
-import { nanoid } from 'nanoid.js'
+import { nanoid } from 'nanoid'
 import { getCompletion } from './openai.js'
-import { getReasoningEffort } from '../utils/thinking.js'
+import { getReasoningEffort } from '../utils/thinking'
 
 interface StreamResponse extends APIMessage {
   ttftMs?: number

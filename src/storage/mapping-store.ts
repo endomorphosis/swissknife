@@ -3,7 +3,7 @@
 import { StorageError, StorageErrorType } from './backend.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 /**
  * Interface for storing path-to-CID mappings for IPFS backend

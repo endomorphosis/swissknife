@@ -1,9 +1,9 @@
 // src/storage/local/file-storage.ts
-import { StorageProvider, AddOptions, StorageItemMetadata } from '../../types/storage.js';
-import { CID } from '../../types/common.js'; // Assuming CID is string
-import * as fs from 'fs/promises.js';
-import * as path from 'path.js';
-import * as crypto from 'crypto.js';
+import { StorageProvider, AddOptions, StorageItemMetadata } from '../types/storage';
+import { CID } from '../types/common'; // Assuming CID is string
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import * as crypto from 'crypto';
 
 export interface FileStorageOptions {
   basePath: string;

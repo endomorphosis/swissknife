@@ -1,7 +1,7 @@
-import { Box, Text } from 'ink.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { extractTag } from '../../utils/messages.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js'
+import { Box, Text } from 'ink'
+import * as React from 'react'
+import { extractTag } from '../utils/messages'
+import { getTheme } from '../utils/theme'
 import { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
 
 type Props = {

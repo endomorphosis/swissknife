@@ -1,5 +1,5 @@
 // src/config/schemas.ts
-import { z, ZodTypeAny } from 'zod.js'; // Import Zod
+import { z, ZodTypeAny } from 'zod'; // Import Zod
 import { ConfigurationManager } from './manager.js';
 
 /**

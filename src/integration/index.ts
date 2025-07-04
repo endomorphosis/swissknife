@@ -9,14 +9,14 @@ export { IntegrationRegistry, type IntegrationBridge } from './registry.js';
 export { GooseBridge, type GooseBridgeConfig } from './bridges/goose-bridge.js';
 
 // Graph-of-Thought Components
-export { GoTNode, type GoTNodeType, type GoTNodeStatus, type GoTNodeData } from '../tasks/graph/node.js';
-export { GoTManager } from '../tasks/graph/manager.js';
+export { GoTNode, type GoTNodeType, type GoTNodeStatus, type GoTNodeData } from '../tasks/graph/node';
+export { GoTManager } from '../tasks/graph/manager';
 
 // Task Scheduling Components
-export { FibonacciHeap, FibHeapScheduler } from '../tasks/scheduler/fibonacci-heap.js';
+export { FibonacciHeap, FibHeapScheduler } from '../tasks/scheduler/fibonacci-heap';
 
 // IPFS Storage Components
-export { MCPClient, type MCPClientConfig, type AddContentOptions, type IPLDNode } from '../storage/ipfs/mcp-client.js';
+export { MCPClient, type MCPClientConfig, type AddContentOptions, type IPLDNode } from '../storage/ipfs/mcp-client';
 
 /**
  * Initialize the Phase 1 integration components

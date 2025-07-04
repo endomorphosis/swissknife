@@ -6,7 +6,7 @@
 
 // TODO: Import necessary FAISS bindings or library interfaces.
 // This might involve a native Node.js module or WASM bindings.
-// Example: import * as faiss from 'faiss-node.js'; // Hypothetical library
+// Example: import * as faiss from 'faiss-node'; // Hypothetical library
 
 // Placeholder for the actual FAISS index object type
 type FaissIndex = any;

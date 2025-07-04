@@ -1,13 +1,13 @@
-import React from 'react.js.js.js.js.js'
-import { render } from 'ink.js.js.js.js.js'
-import { REPL } from './REPL.js.js.js.js.js.js.js.js.js.js'
-import { deserializeMessages } from '../utils/conversationRecovery.js.js.js.js.js.js.js.js.js.js'
-import { LogSelector } from '../components/LogSelector.js.js.js.js.js.js.js.js.js.js'
-import type { LogOption } from '../types/logs.js.js.js.js.js.js.js.js.js.js'
-import { logError, getNextAvailableLogForkNumber } from '../utils/log.js.js.js.js.js.js.js.js.js.js'
-import type { Tool } from '../Tool.js.js.js.js.js.js.js.js.js.js'
-import { Command } from '../commands.js.js.js.js.js.js.js.js.js.js'
-import { isDefaultSlowAndCapableModel } from '../utils/model.js.js.js.js.js.js.js.js.js.js'
+import React from 'react'
+import { render } from 'ink'
+import { REPL } from './REPL.js'
+import { deserializeMessages } from '../utils/conversationRecovery'
+import { LogSelector } from '../components/LogSelector'
+import type { LogOption } from '../utils/log'
+import { logError, getNextAvailableLogForkNumber } from '../utils/log'
+import type { Tool } from '../Tool'
+import { Command } from '../commands'
+import { isDefaultSlowAndCapableModel } from '../utils/model'
 
 type Props = {
   commands: Command[]

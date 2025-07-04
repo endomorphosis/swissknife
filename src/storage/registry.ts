@@ -1,9 +1,9 @@
 // src/storage/registry.ts
 
 import { StorageBackend, StorageError, StorageErrorType } from './backend.js';
-import { ConfigurationManager } from '../config/manager.js';
-import { logger } from '../utils/logger.js';
-import path from 'path.js';
+import { ConfigurationManager } from '../config/manager';
+import { logger } from '../utils/logger';
+import path from 'path';
 
 /**
  * Mount point configuration

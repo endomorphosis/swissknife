@@ -1,11 +1,11 @@
 // src/integration/legacy/swissknife-bridge.ts
 
-import { IntegrationBridge } from '../registry.js';
-import { ConfigManager } from '../../config/manager.js';
-import * as path from 'path.js';
-import * as fs from 'fs/promises.js';
+import { IntegrationBridge } from '../registry';
+import { ConfigManager } from '../config/manager';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 import * as child_process from 'child_process.js';
-import { promisify } from 'util.js';
+import { promisify } from 'util';
 
 const exec = promisify(child_process.exec);
 

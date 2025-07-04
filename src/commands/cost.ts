@@ -1,5 +1,5 @@
-import type { Command, LocalCommand } from '../types/command.js'; // Updated import path
-import { formatTotalCost } from '../cost-tracker.js'; // Assuming .js extension is needed
+import type { Command, LocalCommand } from '../types/command'; // Updated import path
+import { formatTotalCost } from '../cost-tracker'; // Assuming .js extension is needed
 
 const costCommand: LocalCommand = {
   type: 'local',

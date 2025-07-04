@@ -1,12 +1,12 @@
 // src/integration/ai-storage-bridge.ts
 
-import { AIService } from '../ai/service.js';
-import { StorageService } from '../storage/service.js';
-import { Agent } from '../ai/agent/agent.js';
-import { Tool } from '../ai/tools/tool.js';
-import { logger } from '../utils/logger.js';
-import { ConfigurationManager } from '../config/manager.js';
-import * as path from 'path.js';
+import { AIService } from '../ai/service';
+import { StorageService } from '../storage/service';
+import { Agent } from '../ai/agent/agent';
+import { Tool } from '../ai/tools/tool';
+import { logger } from '../utils/logger';
+import { ConfigurationManager } from '../config/manager';
+import * as path from 'path';
 
 /**
  * Bridge for integrating AI and Storage systems

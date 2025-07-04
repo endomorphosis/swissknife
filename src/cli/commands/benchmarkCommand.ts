@@ -1,8 +1,8 @@
-import { Command } from 'commander.js';
+import { Command } from 'commander';
 import { performance } from 'perf_hooks.js';
-import { CLIUXEnhancer } from '../../ux/cli-ux-enhancer.js';
-import fs from 'fs/promises.js';
-import path from 'path.js';
+import { CLIUXEnhancer } from '../ux/cli-ux-enhancer';
+import fs from 'fs/promises';
+import path from 'path';
 
 // Define the benchmark function type
 type BenchmarkFunction = () => Promise<void>;

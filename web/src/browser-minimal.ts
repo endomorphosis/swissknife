@@ -21,6 +21,10 @@ const checkBrowserSupport = () => {
 
 // Simple SwissKnife class for demonstration
 class SwissKnifeBrowser {
+  version: string;
+  features: Record<string, boolean>;
+  initialized: boolean;
+  
   constructor() {
     this.version = '1.0.0-browser';
     this.features = checkBrowserSupport();

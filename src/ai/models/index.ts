@@ -1,7 +1,7 @@
 // src/ai/models/index.ts
 import { ModelRegistry } from './registry.js';
 import { BaseModel as Model, IModel } from './model.js';
-import { ModelOptions, ProviderDefinition, ModelDefinition } from '../../types/ai.js';
+import { ModelOptions, ProviderDefinition, ModelDefinition } from '../types/ai';
 import openaiProviderDefinition from './definitions/openai.js';
 import gooseProviderDefinition from './definitions/goose.js';
 

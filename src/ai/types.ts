@@ -4,7 +4,7 @@
  * Type definitions for the AI agent system.
  */
 
-import { GoTNode } from '../tasks/graph/node.js';
+import { GoTNode } from '../tasks/graph/node';
 
 /**
  * Supported AI model providers

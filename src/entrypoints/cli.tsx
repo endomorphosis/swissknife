@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node --no-warnings=ExperimentalWarning --enable-source-maps
-import { initSentry } from '../services/sentry.js.js.js.js.js.js.js.js.js.js'
-import { PRODUCT_COMMAND, PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
+import { initSentry } from '../services/sentry'
+import { PRODUCT_COMMAND, PRODUCT_NAME } from '../constants/product'
 initSentry() // Initialize Sentry as early as possible
 
 // XXX: Without this line (and the Object.keys, even though it seems like it does nothing!),
@@ -9,17 +9,17 @@ initSentry() // Initialize Sentry as early as possible
 import * as dontcare from '@anthropic-ai/sdk/shims/node'
 Object.keys(dontcare)
 
-import React from 'react.js.js.js.js.js'
-import { ReadStream } from 'tty.js.js.js.js.js'
-import { openSync, existsSync } from 'fs.js.js.js.js.js'
-import { render, RenderOptions } from 'ink.js.js.js.js.js'
-import { REPL } from '../screens/REPL.js.js.js.js.js.js.js.js.js.js'
-import { addToHistory } from '../history.js.js.js.js.js.js.js.js.js.js'
-import { getContext, setContext, removeContext } from '../context.js.js.js.js.js.js.js.js.js.js'
+import React from 'react'
+import { ReadStream } from 'tty'
+import { openSync, existsSync } from 'fs'
+import { render, RenderOptions } from 'ink'
+import { REPL } from '../screens/REPL'
+import { addToHistory } from '../history'
+import { getContext, setContext, removeContext } from '../context'
 import { Command } from '@commander-js/extra-typings'
-import { ask } from '../utils/ask.js.js.js.js.js.js.js.js.js.js'
-import { hasPermissionsToUseTool } from '../permissions.js.js.js.js.js.js.js.js.js.js'
-import { getTools } from '../tools.js.js.js.js.js.js.js.js.js.js'
+import { ask } from '../utils/ask'
+import { hasPermissionsToUseTool } from '../permissions'
+import { getTools } from '../tools'
 import {
   getGlobalConfig,
   getCurrentProjectConfig,
@@ -32,29 +32,29 @@ import {
   getConfigForCLI,
   listConfigForCLI,
   enableConfigs,
-} from '../utils/config.js.js.js.js.js.js.js.js.js.js.js'
-import { cwd } from 'process.js.js.js.js.js'
-import { dateToFilename, logError, parseLogFilename } from '../utils/log.js.js.js.js.js.js.js.js.js.js'
-import { Onboarding } from '../components/Onboarding.js.js.js.js.js.js.js.js.js.js'
-import { Doctor } from '../screens/Doctor.js.js.js.js.js.js.js.js.js.js'
-import { ApproveApiKey } from '../components/ApproveApiKey.js.js.js.js.js.js.js.js.js.js'
-import { TrustDialog } from '../components/TrustDialog.js.js.js.js.js.js.js.js.js.js'
-import { checkHasTrustDialogAccepted } from '../utils/config.js.js.js.js.js.js.js.js.js.js'
-import { isDefaultSlowAndCapableModel } from '../utils/model.js.js.js.js.js.js.js.js.js.js'
-import { LogList } from '../screens/LogList.js.js.js.js.js.js.js.js.js.js'
-import { ResumeConversation } from '../screens/ResumeConversation.js.js.js.js.js.js.js.js.js.js'
-import { startMCPServer } from './mcp.js.js.js.js.js.js.js.js.js.js'
-import { env } from '../utils/env.js.js.js.js.js.js.js.js.js.js'
-import { getCwd, setCwd, setOriginalCwd } from '../utils/state.js.js.js.js.js.js.js.js.js.js'
-import { omit } from 'lodash-es.js.js.js.js.js'
-import { getCommands } from '../commands.js.js.js.js.js.js.js.js.js.js'
-import { getNextAvailableLogForkNumber, loadLogList } from '../utils/log.js.js.js.js.js.js.js.js.js.js'
-import { loadMessagesFromLog } from '../utils/conversationRecovery.js.js.js.js.js.js.js.js.js.js'
-import { cleanupOldMessageFilesInBackground } from '../utils/cleanup.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/config'
+import { cwd } from 'process'
+import { dateToFilename, logError, parseLogFilename } from '../utils/log'
+import { Onboarding } from '../components/Onboarding'
+import { Doctor } from '../screens/Doctor'
+import { ApproveApiKey } from '../components/ApproveApiKey'
+import { TrustDialog } from '../components/TrustDialog'
+import { checkHasTrustDialogAccepted } from '../utils/config'
+import { isDefaultSlowAndCapableModel } from '../utils/model'
+import { LogList } from '../screens/LogList'
+import { ResumeConversation } from '../screens/ResumeConversation'
+import { startMCPServer } from './mcp.js'
+import { env } from '../utils/env'
+import { getCwd, setCwd, setOriginalCwd } from '../utils/state'
+import { omit } from 'lodash-es'
+import { getCommands } from '../commands'
+import { getNextAvailableLogForkNumber, loadLogList } from '../utils/log'
+import { loadMessagesFromLog } from '../utils/conversationRecovery'
+import { cleanupOldMessageFilesInBackground } from '../utils/cleanup'
 import {
   handleListApprovedTools,
   handleRemoveApprovedTool,
-} from '../commands/approvedTools.js.js.js.js.js.js.js.js.js.js.js'
+} from '../commands/approvedTools'
 import {
   addMcpServer,
   getMcpServer,
@@ -63,25 +63,25 @@ import {
   removeMcpServer,
   getClients,
   ensureConfigScope,
-} from '../services/mcpClient.js.js.js.js.js.js.js.js.js.js.js'
-import { handleMcprcServerApprovals } from '../services/mcpServerApproval.js.js.js.js.js.js.js.js.js.js'
-import { checkGate, initializeStatsig, logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
-import { getExampleCommands } from '../utils/exampleCommands.js.js.js.js.js.js.js.js.js.js'
-import { cursorShow } from 'ansi-escapes.js.js.js.js.js'
-import ansiColors from 'ansi-colors.js.js.js.js.js'
+} from '../services/mcpClient'
+import { handleMcprcServerApprovals } from '../services/mcpServerApproval'
+import { checkGate, initializeStatsig, logEvent } from '../services/statsig'
+import { getExampleCommands } from '../utils/exampleCommands'
+import { cursorShow } from 'ansi-escapes'
+import ansiColors from 'ansi-colors'
 import {
   getLatestVersion,
   installGlobalPackage,
   assertMinVersion,
-} from '../utils/autoUpdater.js.js.js.js.js.js.js.js.js.js.js'
-import { CACHE_PATHS } from '../utils/log.js.js.js.js.js.js.js.js.js.js'
-import { PersistentShell } from '../utils/PersistentShell.js.js.js.js.js.js.js.js.js.js'
-import { GATE_USE_EXTERNAL_UPDATER } from '../constants/betas.js.js.js.js.js.js.js.js.js.js'
-import { clearTerminal } from '../utils/terminal.js.js.js.js.js.js.js.js.js.js'
-import { showInvalidConfigDialog } from '../components/InvalidConfigDialog.js.js.js.js.js.js.js.js.js.js'
-import { ConfigParseError } from '../utils/errors.js.js.js.js.js.js.js.js.js.js'
-import { grantReadPermissionForOriginalDir } from '../utils/permissions/filesystem.js.js.js.js.js.js.js.js.js.js'
-import { MACRO } from '../constants/macros.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/autoUpdater'
+import { CACHE_PATHS } from '../utils/log'
+import { PersistentShell } from '../utils/PersistentShell'
+import { GATE_USE_EXTERNAL_UPDATER } from '../constants/betas'
+import { clearTerminal } from '../utils/terminal'
+import { showInvalidConfigDialog } from '../components/InvalidConfigDialog'
+import { ConfigParseError } from '../utils/errors'
+import { grantReadPermissionForOriginalDir } from '../utils/permissions/filesystem'
+import { MACRO } from '../constants/macros'
 export function completeOnboarding(): void {
   const config = getGlobalConfig()
   saveGlobalConfig({

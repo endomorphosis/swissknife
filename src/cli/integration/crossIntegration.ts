@@ -1,7 +1,7 @@
-import { TaskCommand } from '../commands/taskCommand.js';
-import { IPFSCommand } from '../commands/ipfsCommand.js';
-import { AgentCommand } from '../commands/agentCommand.js';
-import { logger } from '../../utils/logger.js';
+import { TaskCommand } from '../commands/taskCommand';
+import { IPFSCommand } from '../commands/ipfsCommand';
+import { AgentCommand } from '../commands/agentCommand';
+import { logger } from '../utils/logger';
 
 /**
  * Cross-component integration for Phase 4 CLI

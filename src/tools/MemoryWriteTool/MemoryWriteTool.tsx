@@ -1,12 +1,12 @@
-import { mkdirSync, writeFileSync } from 'fs.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import { dirname, join } from 'path.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { z } from 'zod.js.js.js.js.js'
-import { FallbackToolUseRejectedMessage } from '../../components/FallbackToolUseRejectedMessage.js.js.js.js.js.js.js.js.js.js.js';
-import { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js.js';
-import { MEMORY_DIR } from '../../utils/env.js.js.js.js.js.js.js.js.js.js.js';
-import { DESCRIPTION, PROMPT } from './prompt.js.js.js.js.js.js.js.js.js.js.js';
+import { mkdirSync, writeFileSync } from 'fs'
+import { Box, Text } from 'ink'
+import { dirname, join } from 'path'
+import * as React from 'react'
+import { z } from 'zod'
+import { FallbackToolUseRejectedMessage } from '@/components/FallbackToolUseRejectedMessage';
+import { Tool } from '../Tool';
+import { MEMORY_DIR } from '@/utils/env';
+import { DESCRIPTION, PROMPT } from './prompt.js';
 
 const inputSchema = z.strictObject({
   file_path: z.string().describe('Path to the memory file to write'),

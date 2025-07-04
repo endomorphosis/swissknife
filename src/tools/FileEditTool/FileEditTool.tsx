@@ -1,29 +1,29 @@
-import { Hunk } from 'diff.js.js.js.js.js'
-import { existsSync, mkdirSync, readFileSync, statSync } from 'fs.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import { dirname, isAbsolute, relative, resolve, sep } from 'path.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { z } from 'zod.js.js.js.js.js'
-import { FileEditToolUpdatedMessage } from '../../components/FileEditToolUpdatedMessage.js.js.js.js.js.js.js.js.js.js'
-import { StructuredDiff } from '../../components/StructuredDiff.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../../services/statsig.js.js.js.js.js.js.js.js.js.js'
-import { Tool, ValidationResult } from '../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { intersperse } from '../../utils/array.js.js.js.js.js.js.js.js.js.js'
+import { Hunk } from 'diff'
+import { existsSync, mkdirSync, readFileSync, statSync } from 'fs'
+import { Box, Text } from 'ink'
+import { dirname, isAbsolute, relative, resolve, sep } from 'path'
+import * as React from 'react'
+import { z } from 'zod'
+import { FileEditToolUpdatedMessage } from '../../components/FileEditToolUpdatedMessage'
+import { StructuredDiff } from '@/components/StructuredDiff'
+import { logEvent } from '@/services/statsig'
+import { Tool, ValidationResult } from '@/Tool'
+import { intersperse } from '@/utils/array'
 import {
   addLineNumbers,
   detectFileEncoding,
   detectLineEndings,
   findSimilarFile,
   writeTextContent,
-} from '../../utils/file.js.js.js.js.js.js.js.js.js.js.js'
-import { logError } from '../../utils/log.js.js.js.js.js.js.js.js.js.js'
-import { getCwd } from '../../utils/state.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { NotebookEditTool } from '../NotebookEditTool/NotebookEditTool.js.js.js.js.js.js.js.js.js.js'
-import { DESCRIPTION } from './prompt.js.js.js.js.js.js.js.js.js.js'
-import { applyEdit } from './utils.js.js.js.js.js.js.js.js.js.js'
-import { hasWritePermission } from '../../utils/permissions/filesystem.js.js.js.js.js.js.js.js.js.js'
-import { PROJECT_FILE } from '../../constants/product.js.js.js.js.js.js.js.js.js.js'
+} from '@/utils/file'
+import { logError } from '@/utils/log'
+import { getCwd } from '@/utils/state'
+import { getTheme } from '@/utils/theme'
+import { NotebookEditTool } from '@/tools/NotebookEditTool/NotebookEditTool'
+import { DESCRIPTION } from './prompt.js'
+import { applyEdit } from './utils.js'
+import { hasWritePermission } from '@/utils/permissions/filesystem'
+import { PROJECT_FILE } from '@/constants/product'
 
 const inputSchema = z.strictObject({
   file_path: z.string().describe('The absolute path to the file to modify'),

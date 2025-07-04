@@ -2,11 +2,11 @@
  * Model Commands - Commands for interacting with AI models
  */
 
-import { CommandRegistry, Command } from '../command-registry.js';
-import { ModelRegistry, Model, Provider } from '../models/registry.js';
-import { ModelExecutionService } from '../models/execution/service.js';
-import * as fs from 'fs/promises.js';
-import * as path from 'path.js';
+import { CommandRegistry, Command } from '../command-registry';
+import { ModelRegistry, Model, Provider } from '../models/registry';
+import { ModelExecutionService } from '../models/execution/service';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 /**
  * Load model commands

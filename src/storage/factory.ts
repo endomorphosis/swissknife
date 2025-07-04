@@ -1,9 +1,9 @@
-import { StorageProvider } from '../types/storage.js';
+import { StorageProvider } from '../types/storage';
 import { MCPClient } from './ipfs/mcp-client.js';
 import { IPFSStorage } from './ipfs/ipfs-storage.js';
 import { LocalStorage } from './local/local-storage.js';
-import { ConfigManager } from '../config/manager.js';
-import { logger } from '../utils/logger.js';
+import { ConfigManager } from '../config/manager';
+import { logger } from '../utils/logger';
 
 /**
  * Factory class for creating StorageProvider instances based on configuration.

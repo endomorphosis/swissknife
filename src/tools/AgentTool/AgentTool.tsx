@@ -1,33 +1,33 @@
 import { TextBlock } from '@anthropic-ai/sdk/resources/index.mjs'
-import chalk from 'chalk.js.js.js.js.js'
-import { last, memoize } from 'lodash-es.js.js.js.js.js'
-import { EOL } from 'os.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { z } from 'zod.js.js.js.js.js'
-import { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { FallbackToolUseRejectedMessage } from '../../components/FallbackToolUseRejectedMessage.js.js.js.js.js.js.js.js.js.js'
-import { getAgentPrompt } from '../../constants/prompts.js.js.js.js.js.js.js.js.js.js'
-import { getContext } from '../../context.js.js.js.js.js.js.js.js.js.js'
-import { hasPermissionsToUseTool } from '../../permissions.js.js.js.js.js.js.js.js.js.js'
-import { AssistantMessage, Message as MessageType, query } from '../../query.js.js.js.js.js.js.js.js.js.js'
-import { formatDuration, formatNumber } from '../../utils/format.js.js.js.js.js.js.js.js.js.js'
+import chalk from 'chalk'
+import { last, memoize } from 'lodash-es'
+import { EOL } from 'os'
+import * as React from 'react'
+import { z } from 'zod'
+import { Tool } from '../Tool'
+import { FallbackToolUseRejectedMessage } from '@/components/FallbackToolUseRejectedMessage'
+import { getAgentPrompt } from '@/constants/prompts'
+import { getContext } from '@/context'
+import { hasPermissionsToUseTool } from '@/permissions'
+import { AssistantMessage, Message as MessageType, query } from '@/query'
+import { formatDuration, formatNumber } from '@/utils/format'
 import {
   getMessagesPath,
   getNextAvailableLogSidechainNumber,
   overwriteLog,
-} from '../../utils/log.js.js.js.js.js.js.js.js.js.js.js'
-import { applyMarkdown } from '../../utils/markdown.js.js.js.js.js.js.js.js.js.js'
+} from '@/utils/log'
+import { applyMarkdown } from '@/utils/markdown'
 import {
   createAssistantMessage,
   createUserMessage,
   getLastAssistantMessageId,
   INTERRUPT_MESSAGE,
   normalizeMessages,
-} from '../../utils/messages.js.js.js.js.js.js.js.js.js.js.js'
-import { getSlowAndCapableModel } from '../../utils/model.js.js.js.js.js.js.js.js.js.js'
-import { getMaxThinkingTokens } from '../../utils/thinking.js.js.js.js.js.js.js.js.js.js'
-import { getAgentTools, getPrompt } from './prompt.js.js.js.js.js.js.js.js.js.js'
-import { TOOL_NAME } from './constants.js.js.js.js.js.js.js.js.js.js'
+} from '@/utils/messages'
+import { getSlowAndCapableModel } from '@/utils/model'
+import { getMaxThinkingTokens } from '@/utils/thinking'
+import { getAgentTools, getPrompt } from './prompt.js'
+import { TOOL_NAME } from './constants.js'
 
 const inputSchema = z.object({
   prompt: z.string().describe('The task for the agent to perform'),

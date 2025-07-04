@@ -1,8 +1,8 @@
-import { Box, Text } from 'ink.js.js.js.js.js'
-import React from 'react.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { ASCII_LOGO } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
-import chalk from 'chalk.js.js.js.js.js'
+import { Box, Text } from 'ink'
+import React from 'react'
+import { getTheme } from '../utils/theme'
+import { ASCII_LOGO } from '../constants/product'
+import chalk from 'chalk'
 
 export function AsciiLogo(): React.ReactNode {
   const theme = getTheme()

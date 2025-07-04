@@ -1,9 +1,9 @@
 // src/models/execution.ts
 
-import { ModelRegistry } from './registry.ts';
-import { BaseModel } from '../ai/models/model.ts';
-import { IntegrationRegistry } from '../integration/registry.ts';
-import { ConfigManager as ConfigurationManager } from '../config/manager.ts';
+import { ModelRegistry } from './registry.js';
+import { BaseModel } from '../ai/models/model';
+import { IntegrationRegistry } from '../integration/registry';
+import { ConfigManager as ConfigurationManager } from '../config/manager';
 
 /**
  * Options for model execution

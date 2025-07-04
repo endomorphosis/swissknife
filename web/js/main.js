@@ -1,9 +1,4 @@
 // SwissKnife Web Desktop - Main Application
-import '../css/aero-enhanced.css';
-import '../css/desktop.css';
-import '../css/windows.css';
-import '../css/terminal.css';
-import '../css/apps.css';
 import SwissKnife from './swissknife-browser.js';
 import DesktopEnhancer from './desktop-enhancer.js';
 
@@ -1882,7 +1877,16 @@ class SwissKnifeDesktop {
                 <p>SwissKnife Desktop Environment</p>
                 <p>Version 1.0.0</p>
                 <p>A modern web-based desktop experience</p>
-                <button onclick="this.closest('.modal-overlay').remove()">Close</button>
+                <p>Built with Swiss precision 🏔️</p>
+                <br>
+                <p><strong>Features:</strong></p>
+                <ul style="text-align: left; display: inline-block;">
+                    <li>AI-powered terminal and chat</li>
+                    <li>File management</li>
+                    <li>Code editing with VibeCode</li>
+                    <li>IPFS integration</li>
+                    <li>Window snapping and Aero effects</li>
+                </ul>
             </div>
         `;
         document.body.appendChild(aboutDialog);

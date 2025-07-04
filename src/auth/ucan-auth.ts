@@ -4,10 +4,10 @@
  */
 
 // TODO: Import necessary libraries for DIDs, key management, UCAN parsing/validation
-// Example: import * as ucan from 'ucans.js'; // UCAN library
-// Example: import { Ed25519Provider } from 'key-did-provider-ed25519.js'; // For key generation
-// Example: import { DID } from 'dids.js'; // DID library
-// Example: import KeyResolver from 'key-did-resolver.js'; // DID resolver
+// Example: import * as ucan from 'ucans'; // UCAN library
+// Example: import { Ed25519Provider } from 'key-did-provider-ed25519'; // For key generation
+// Example: import { DID } from 'dids'; // DID library
+// Example: import KeyResolver from 'key-did-resolver'; // DID resolver
 
 // Placeholder types for demonstration
 type Keystore = any; // Manages cryptographic keys

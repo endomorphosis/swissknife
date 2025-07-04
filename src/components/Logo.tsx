@@ -1,15 +1,15 @@
-import { Box, Text, Newline } from 'ink.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
+import { Box, Text, Newline } from 'ink'
+import * as React from 'react'
+import { getTheme } from '../utils/theme'
+import { PRODUCT_NAME } from '../constants/product'
 import {
   isDefaultApiKey,
   getAnthropicApiKey,
   getGlobalConfig,
-} from '../utils/config.js.js.js.js.js.js.js.js.js.js'
-import { getCwd } from '../utils/state.js.js.js.js.js.js.js.js.js.js'
-import { AsciiLogo } from './AsciiLogo.js.js.js.js.js.js.js.js.js.js'
-import type { WrappedClient } from '../services/mcpClient.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/config'
+import { getCwd } from '../utils/state'
+import { AsciiLogo } from './AsciiLogo.js'
+import type { WrappedClient } from '../services/mcpClient'
 
 export const MIN_LOGO_WIDTH = 50
 

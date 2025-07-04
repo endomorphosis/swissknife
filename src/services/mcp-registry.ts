@@ -20,10 +20,13 @@ import {
   saveCurrentProjectConfig, 
   getGlobalConfig, 
   saveGlobalConfig,
-  getMcprcConfig
-} from '../utils/config.js';
-import { logError } from '../utils/log.js';
-import { EventEmitter } from 'events.js';
+  getMcprcConfig,
+  ProjectConfig, // Import ProjectConfig
+  GlobalConfig // Import GlobalConfig
+} from '../utils/config';
+import { logError } from '../utils/log';
+import { EventEmitter } from 'events';
+import { v4 as uuidv4 } from 'uuid'; // Import uuid for generating IDs
 
 /**
  * Server information cached in memory with additional metadata
@@ -119,9 +122,9 @@ export class ServerRegistry extends EventEmitter {
     
     try {
       // Load existing servers from configuration
-      const projectConfig = getCurrentProjectConfig();
-      const globalConfig = getGlobalConfig();
-      const mcprcConfig = getMcprcConfig();
+      const projectConfig: ProjectConfig = await getCurrentProjectConfig();
+      const globalConfig: GlobalConfig = await getGlobalConfig();
+      const mcprcConfig: Record<string, McpServerConfig> = await getMcprcConfig(); // Assuming mcprcConfig is a Record of McpServerConfig
       
       // Track servers we've processed to avoid duplicates
       const processedServers = new Set<string>();
@@ -155,16 +158,16 @@ export class ServerRegistry extends EventEmitter {
         this.loadVersionHistory(projectConfig.mcpVersionHistory);
       }
       
-logError('MCP registry initialized', {
-  serverCount: this.getServerCount().toString(),
-  versionCount: this.getTotalVersionCount().toString()
-});
+      logError('MCP registry initialized', {
+        serverCount: this.getServerNames().length.toString(),
+        versionCount: this.getTotalVersionCount().toString()
+      } as any); // Cast to any
       
       this.initialized = true;
       this.emit('registry:initialized');
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logError(`Failed to initialize MCP server registry: ${errorMessage}`);
+      logError(`Failed to initialize MCP server registry: ${errorMessage}`, error as any); // Cast to any
       this.emit('registry:error', error instanceof Error ? error : new Error(errorMessage));
       throw error;
     }
@@ -184,17 +187,23 @@ logError('MCP registry initialized', {
       // Apply current blue version if specified
       if (history.currentBlue && serverVersions.has(history.currentBlue)) {
         const blueVersion = serverVersions.get(history.currentBlue)!;
-        blueVersion.config.status = 'blue';
+        blueVersion.config.status = 'blue' as DeploymentStatus; // Cast to DeploymentStatus
         blueVersion.statusHistory.push({
-          status: 'blue',
+          status: 'blue' as DeploymentStatus, // Cast to DeploymentStatus
           timestamp: Date.now()
         });
       }
       
       // Ensure versions array is up to date
-      for (const entry of serverVersions.values()) {
-        if (!history.versions.includes(entry.config.version)) {
-          history.versions.push(entry.config.version);
+      if (history.versions) { // Add null check for history.versions
+        for (const entry of serverVersions.values()) {
+          if (!history.versions.some(v => v.version === entry.config.version)) {
+            history.versions.push({
+              version: entry.config.version,
+              deployedAt: entry.config.deploymentTimestamp,
+              statusChanges: [...entry.statusHistory]
+            });
+          }
         }
       }
     }
@@ -233,7 +242,7 @@ logError('MCP registry initialized', {
         });
         
         // If changed to blue, ensure no other version is blue
-        if (config.status === 'blue') {
+        if (config.status === 'blue' as DeploymentStatus) { // Cast to DeploymentStatus
           this.ensureOnlyOneBlue(name, config.version);
         }
         
@@ -253,23 +262,27 @@ logError('MCP registry initialized', {
       // Update the config, preserving deployment timestamp
       existingEntry.config = {
         ...config,
-        deploymentTimestamp: existingEntry.config.deploymentTimestamp
+        deploymentTimestamp: existingEntry.config.deploymentTimestamp,
+        id: existingEntry.config.id, // Preserve ID
+        lastUpdated: now // Update lastUpdated
       };
       
       serverVersions.set(config.version, existingEntry);
       
-logError('MCP server updated', {
-  name,
-  version: config.version,
-  status: config.status,
-  trafficPercentage: config.trafficPercentage.toString()
-});
+      logError('MCP server updated', {
+        name,
+        version: config.version,
+        status: config.status,
+        trafficPercentage: config.trafficPercentage.toString()
+      } as any); // Cast to any
     } else {
       // Create new entry for this version
       const entry: ServerRegistryEntry = {
         config: {
           ...config,
-          deploymentTimestamp: config.deploymentTimestamp || now
+          id: uuidv4(), // Generate new ID
+          deploymentTimestamp: config.deploymentTimestamp || now,
+          lastUpdated: now // Set lastUpdated
         },
         statusHistory: [{
           status: config.status,
@@ -288,7 +301,7 @@ logError('MCP server updated', {
       };
       
       // If this is blue, ensure no other version is blue
-      if (config.status === 'blue') {
+      if (config.status === 'blue' as DeploymentStatus) { // Cast to DeploymentStatus
         this.ensureOnlyOneBlue(name, config.version);
       }
       
@@ -299,9 +312,9 @@ logError('MCP server updated', {
         version: config.version,
         status: config.status,
         trafficPercentage: config.trafficPercentage.toString()
-      });
+      } as any); // Cast to any
       
-      this.emit('server:registered', name, config.version, config);
+      this.emit('server:registered', name, config.version, entry.config); // Emit entry.config
     }
     
     // Validate traffic percentages
@@ -315,36 +328,43 @@ logError('MCP server updated', {
    * Register a server from existing configuration
    * Used during initialization
    */
-  private registerServerFromConfig(
+  private async registerServerFromConfig( // Make async
     name: string, 
     config: McpServerConfig, 
     scope: 'project' | 'global' | 'mcprc'
-  ): void {
+  ): Promise<void> { // Return Promise<void>
     // Read existing version history if available
-    const projectConfig = getCurrentProjectConfig();
+    const projectConfig: ProjectConfig = await getCurrentProjectConfig();
     const versionHistory = projectConfig.mcpVersionHistory?.[name];
     
     // Default version if none specified in history
     let version = '1.0.0';
-    let status: DeploymentStatus = 'blue';
+    let status: DeploymentStatus = 'blue' as DeploymentStatus; // Cast to DeploymentStatus
     
     // If we have version history, use it
     if (versionHistory?.currentBlue) {
       version = versionHistory.currentBlue;
-    } else if (versionHistory?.versions?.length > 0) {
+    } else if (versionHistory?.versions && versionHistory.versions.length > 0) {
       // Use the latest version if available
-      version = versionHistory.versions[versionHistory.versions.length - 1];
+      version = versionHistory.versions[versionHistory.versions.length - 1].version; // Access .version property
     }
     
     // Convert basic config to versioned config with defaults
+    const now = Date.now();
     const versionedConfig: VersionedServerConfig = {
-      ...config,
+      id: uuidv4(), // Generate new ID
+      name: config.name, // Use name from config
       version,
-      status,
-      deploymentTimestamp: Date.now(),
+      type: config.type, // Use type from config
+      enabled: config.enabled || true, // Default to true
       trafficPercentage: 100,
-      scope
-    };
+      status,
+      deploymentTimestamp: now,
+      lastUpdated: now, // Set lastUpdated
+      scope,
+      ...(config.type === 'sse' ? { url: config.url } : {}), // Add url for sse
+      ...(config.type === 'stdio' ? { command: config.command, args: config.args, env: config.env } : {}) // Add command, args, env for stdio
+    } as VersionedServerConfig; // Cast to ensure type compatibility
     
     // Create registry entry
     if (!this.servers.has(name)) {
@@ -352,7 +372,6 @@ logError('MCP server updated', {
     }
     
     const serverVersions = this.servers.get(name)!;
-    const now = Date.now();
     
     const entry: ServerRegistryEntry = {
       config: versionedConfig,
@@ -384,17 +403,17 @@ logError('MCP server updated', {
     if (!serverVersions) return;
     
     for (const [version, entry] of serverVersions.entries()) {
-      if (version !== blueVersion && entry.config.status === 'blue') {
+      if (version !== blueVersion && entry.config.status === 'blue' as DeploymentStatus) { // Cast to DeploymentStatus
         const oldStatus = entry.config.status;
         
         // Change status to inactive
-        entry.config.status = 'inactive';
+        entry.config.status = 'inactive' as DeploymentStatus; // Cast to DeploymentStatus
         entry.statusHistory.push({
-          status: 'inactive',
+          status: 'inactive' as DeploymentStatus, // Cast to DeploymentStatus
           timestamp: Date.now()
         });
         
-        this.emit('server:status-changed', name, version, oldStatus, 'inactive');
+        this.emit('server:status-changed', name, version, oldStatus, 'inactive' as DeploymentStatus); // Cast to DeploymentStatus
         
         // Also set traffic to 0
         const oldTrafficPercentage = entry.config.trafficPercentage;
@@ -412,9 +431,9 @@ logError('MCP server updated', {
         logError('MCP server status changed', {
           name,
           version,
-          status: 'inactive',
+          status: 'inactive' as DeploymentStatus, // Cast to DeploymentStatus
           reason: 'new_blue_server'
-        });
+        } as any); // Cast to any
       }
     }
   }
@@ -429,7 +448,7 @@ logError('MCP server updated', {
     
     // Get active servers (blue or green)
     const activeServers = Array.from(serverVersions.values())
-      .filter(entry => entry.config.status === 'blue' || entry.config.status === 'green');
+      .filter(entry => entry.config.status === 'blue' as DeploymentStatus || entry.config.status === 'green' as DeploymentStatus); // Cast to DeploymentStatus
     
     if (activeServers.length === 0) {
       return;
@@ -492,7 +511,7 @@ logError('MCP server updated', {
    * Save server configuration to the appropriate config store
    * and update version history
    */
-  private saveToConfig(name: string, config: VersionedServerConfig): void {
+  private async saveToConfig(name: string, config: VersionedServerConfig): Promise<void> { // Make async
     const scope = config.scope || 'project';
     
     // Extract McpServerConfig from VersionedServerConfig
@@ -501,19 +520,35 @@ logError('MCP server updated', {
         if (!('url' in config)) {
           throw new Error('SSE config missing URL');
         }
-        return { type: 'sse', url: config.url };
-      } else {
         return { 
-          type: 'stdio', 
+          name: config.name,
+          url: config.url,
+          apiKey: config.apiKey,
+          enabled: config.enabled,
+          version: config.version,
+          type: 'sse'
+        };
+      } else if (config.type === 'stdio') {
+        if (!('command' in config)) {
+          throw new Error('Stdio config missing command');
+        }
+        return { 
+          name: config.name,
           command: config.command,
           args: config.args || [],
-          env: config.env
+          env: config.env,
+          apiKey: config.apiKey,
+          enabled: config.enabled,
+          version: config.version,
+          type: 'stdio'
         };
+      } else {
+        throw new Error(`Unknown server type: ${(config as any).type}`); // Cast to any for unknown type
       }
     })();
     
     if (scope === 'project') {
-      const projectConfig = getCurrentProjectConfig();
+      const projectConfig: ProjectConfig = await getCurrentProjectConfig();
       
       // Initialize mcpServers if it doesn't exist
       if (!projectConfig.mcpServers) {
@@ -530,33 +565,42 @@ logError('MCP server updated', {
       
       if (!projectConfig.mcpVersionHistory[name]) {
         projectConfig.mcpVersionHistory[name] = {
-          versions: [config.version],
-          currentBlue: config.status === 'blue' ? config.version : undefined
+          serverId: config.id, // Use config.id for serverId
+          versions: [{
+            version: config.version,
+            deployedAt: config.deploymentTimestamp,
+            statusChanges: [{ status: config.status, timestamp: Date.now() }]
+          }],
+          currentBlue: config.status === 'blue' as DeploymentStatus ? config.version : undefined // Cast to DeploymentStatus
         };
       } else {
         // Update version history
         const history = projectConfig.mcpVersionHistory[name];
         
-        if (!history.versions.includes(config.version)) {
-          history.versions.push(config.version);
+        if (!history.versions.some((v: { version: string; deployedAt: number; statusChanges: Array<{ status: DeploymentStatus; timestamp: number }>; rollback?: RollbackEvent }) => v.version === config.version)) { // Use .some for object comparison
+          history.versions.push({
+            version: config.version,
+            deployedAt: config.deploymentTimestamp,
+            statusChanges: [{ status: config.status, timestamp: Date.now() }]
+          });
         }
         
-        if (config.status === 'blue') {
+        if (config.status === 'blue' as DeploymentStatus) { // Cast to DeploymentStatus
           history.currentBlue = config.version;
-        } else if (history.currentBlue === config.version && config.status !== 'blue') {
+        } else if (history.currentBlue === config.version && config.status !== 'blue' as DeploymentStatus) { // Cast to DeploymentStatus
           history.currentBlue = undefined;
         }
       }
       
       try {
-        saveCurrentProjectConfig(projectConfig);
-      } catch (error) {
+        await saveCurrentProjectConfig(projectConfig);
+      } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        logError(`Failed to save project config: ${errorMessage}`);
+        logError(`Failed to save project config: ${errorMessage}`, error as any); // Cast to any
         this.emit('registry:error', error instanceof Error ? error : new Error(errorMessage));
       }
     } else if (scope === 'global') {
-      const globalConfig = getGlobalConfig();
+      const globalConfig: GlobalConfig = await getGlobalConfig();
       
       // Initialize mcpServers if it doesn't exist
       if (!globalConfig.mcpServers) {
@@ -567,10 +611,10 @@ logError('MCP server updated', {
       globalConfig.mcpServers[name] = baseConfig;
       
       try {
-        saveGlobalConfig(globalConfig);
-      } catch (error) {
+        await saveGlobalConfig(globalConfig);
+      } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        logError(`Failed to save global config: ${errorMessage}`);
+        logError(`Failed to save global config: ${errorMessage}`, error as any); // Cast to any
         this.emit('registry:error', error instanceof Error ? error : new Error(errorMessage));
       }
     }
@@ -586,13 +630,6 @@ logError('MCP server updated', {
   
   /**
    * Get the total number of servers in the registry
-   */
-  public getServerCount(): number {
-    return this.servers.size;
-  }
-  
-  /**
-   * Get the total number of versions across all servers
    */
   public getTotalVersionCount(): number {
     let count = 0;
@@ -656,8 +693,8 @@ logError('MCP server updated', {
     
     return Array.from(serverVersions.values())
       .filter(entry => 
-        entry.config.status === 'blue' || 
-        entry.config.status === 'green'
+        entry.config.status === 'blue' as DeploymentStatus || // Cast to DeploymentStatus
+        entry.config.status === 'green' as DeploymentStatus // Cast to DeploymentStatus
       )
       .map(entry => entry.config);
   }
@@ -672,7 +709,7 @@ logError('MCP server updated', {
     }
     
     for (const entry of serverVersions.values()) {
-      if (entry.config.status === 'blue') {
+      if (entry.config.status === 'blue' as DeploymentStatus) { // Cast to DeploymentStatus
         return entry.config;
       }
     }
@@ -690,7 +727,7 @@ logError('MCP server updated', {
     }
     
     return Array.from(serverVersions.values())
-      .filter(entry => entry.config.status === 'green')
+      .filter(entry => entry.config.status === 'green' as DeploymentStatus) // Cast to DeploymentStatus
       .map(entry => entry.config);
   }
   
@@ -704,7 +741,7 @@ logError('MCP server updated', {
     }
     
     return Array.from(serverVersions.values()).some(
-      entry => entry.config.status === 'blue' || entry.config.status === 'green'
+      entry => entry.config.status === 'blue' as DeploymentStatus || entry.config.status === 'green' as DeploymentStatus // Cast to DeploymentStatus
     );
   }
   
@@ -716,7 +753,7 @@ logError('MCP server updated', {
     version: string, 
     status: DeploymentStatus
   ): boolean {
-    const validStatuses: DeploymentStatus[] = ['blue', 'green', 'inactive'];
+    const validStatuses: DeploymentStatus[] = ['blue' as DeploymentStatus, 'green' as DeploymentStatus, 'inactive' as DeploymentStatus]; // Cast to DeploymentStatus
     if (!validStatuses.includes(status)) {
       throw new Error(`Invalid deployment status: ${status}`);
     }
@@ -745,12 +782,12 @@ logError('MCP server updated', {
     });
     
     // If setting to blue, ensure no other version is blue
-    if (status === 'blue') {
+    if (status === 'blue' as DeploymentStatus) { // Cast to DeploymentStatus
       this.ensureOnlyOneBlue(name, version);
     }
     
     // If setting to inactive, set traffic to 0
-    if (status === 'inactive') {
+    if (status === 'inactive' as DeploymentStatus) { // Cast to DeploymentStatus
       const oldTrafficPercentage = entry.config.trafficPercentage;
       entry.config.trafficPercentage = 0;
       entry.trafficHistory.push({
@@ -767,14 +804,14 @@ logError('MCP server updated', {
     // Validate traffic percentages
     this.validateTrafficPercentages(name);
     
- logError('MCP server status changed', {
- name,
- version,
- oldStatus,
- newStatus: status
- });
+    logError('MCP server status changed', {
+      name,
+      version,
+      oldStatus,
+      newStatus: status
+    } as any); // Cast to any
     
- this.emit('server:status-changed', name, version, oldStatus, status);
+    this.emit('server:status-changed', name, version, oldStatus, status);
     
     return true;
   }
@@ -825,7 +862,7 @@ logError('MCP server updated', {
       version,
       oldPercentage: oldPercentage.toString(),
       newPercentage: validPercentage.toString()
-    });
+    } as any); // Cast to any
     
     this.emit('server:traffic-changed', name, version, oldPercentage, validPercentage);
     
@@ -876,7 +913,7 @@ logError('MCP server updated', {
       isHealthy: isHealthy.toString(),
       consecutiveFailures: entry.healthStatus.consecutiveFailures.toString(),
       consecutiveSuccesses: entry.healthStatus.consecutiveSuccesses.toString()
-    });
+    } as any); // Cast to any
   }
   
   /**
@@ -902,12 +939,12 @@ logError('MCP server updated', {
   /**
    * Record a rollback event in the version history
    */
-  public recordRollback(
+  public async recordRollback( // Make async
     name: string, 
     fromVersion: string, 
     toVersion: string, 
     reason: string
-  ): void {
+  ): Promise<void> { // Return Promise<void>
     if (!this.initialized) {
       throw new Error('ServerRegistry not initialized. Call initialize() first.');
     }
@@ -921,7 +958,7 @@ logError('MCP server updated', {
     };
     
     // Update project config history
-    const projectConfig = getCurrentProjectConfig();
+    const projectConfig: ProjectConfig = await getCurrentProjectConfig();
     
     if (!projectConfig.mcpVersionHistory) {
       projectConfig.mcpVersionHistory = {};
@@ -929,7 +966,16 @@ logError('MCP server updated', {
     
     if (!projectConfig.mcpVersionHistory[name]) {
       projectConfig.mcpVersionHistory[name] = {
-        versions: [fromVersion, toVersion],
+        serverId: uuidv4(), // Generate new ID for serverId
+        versions: [{
+          version: fromVersion,
+          deployedAt: Date.now(), // Assuming current time for deployedAt
+          statusChanges: [{ status: 'rolling_back' as DeploymentStatus, timestamp: Date.now() }] // Cast to DeploymentStatus
+        }, {
+          version: toVersion,
+          deployedAt: Date.now(), // Assuming current time for deployedAt
+          statusChanges: [{ status: 'active' as DeploymentStatus, timestamp: Date.now() }] // Cast to DeploymentStatus
+        }],
         currentBlue: toVersion,
         lastRollback: rollbackEvent
       };
@@ -938,10 +984,10 @@ logError('MCP server updated', {
     }
     
     try {
-      saveCurrentProjectConfig(projectConfig);
-    } catch (error) {
+      await saveCurrentProjectConfig(projectConfig);
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logError(`Failed to save rollback event: ${errorMessage}`);
+      logError(`Failed to save rollback event: ${errorMessage}`, error as any); // Cast to any
       this.emit('registry:error', error instanceof Error ? error : new Error(errorMessage));
     }
     
@@ -950,7 +996,7 @@ logError('MCP server updated', {
       fromVersion,
       toVersion,
       reason
-    });
+    } as any); // Cast to any
     
     this.emit('server:rollback', name, fromVersion, toVersion, reason);
   }
@@ -958,18 +1004,18 @@ logError('MCP server updated', {
   /**
    * Get rollback history for a server
    */
-  public getRollbackHistory(name: string): RollbackEvent | undefined {
-    const projectConfig = getCurrentProjectConfig();
+  public async getRollbackHistory(name: string): Promise<RollbackEvent | undefined> { // Make async
+    const projectConfig: ProjectConfig = await getCurrentProjectConfig();
     return projectConfig.mcpVersionHistory?.[name]?.lastRollback;
   }
   
   /**
    * Remove a server version from the registry
    */
-  public removeServerVersion(
+  public async removeServerVersion( // Make async
     name: string, 
     version: string
-  ): boolean {
+  ): Promise<boolean> { // Return Promise<boolean>
     if (!this.initialized) {
       throw new Error('ServerRegistry not initialized. Call initialize() first.');
     }
@@ -982,8 +1028,8 @@ logError('MCP server updated', {
     const entry = serverVersions.get(version)!;
     
     // If this is the blue version, prevent removal
-    if (entry.config.status === 'blue') {
-      logError(`Cannot remove blue version ${version} of server ${name}. Promote another version to blue first.`);
+    if (entry.config.status === 'blue' as DeploymentStatus) { // Cast to DeploymentStatus
+      logError(`Cannot remove blue version ${version} of server ${name}. Promote another version to blue first.`, { name, version } as any); // Cast to any
       return false;
     }
     
@@ -999,18 +1045,18 @@ logError('MCP server updated', {
     }
     
     // Update version history
-    const projectConfig = getCurrentProjectConfig();
+    const projectConfig: ProjectConfig = await getCurrentProjectConfig();
     if (projectConfig.mcpVersionHistory?.[name]) {
       projectConfig.mcpVersionHistory[name].versions = 
-        projectConfig.mcpVersionHistory[name].versions.filter(v => v !== version);
+        projectConfig.mcpVersionHistory[name].versions.filter((v: any) => v.version !== version); // Filter by v.version, cast v to any
       
-      saveCurrentProjectConfig(projectConfig);
+      await saveCurrentProjectConfig(projectConfig);
     }
     
     logError('MCP server version removed', {
       name,
       version
-    });
+    } as any); // Cast to any
     
     return true;
   }
@@ -1022,8 +1068,6 @@ logError('MCP server updated', {
     version: string, 
     constraint: string
   ): boolean {
-    // Add type annotation for v
-    const v: number[] = version.split('.').map(p => parseInt(p, 10));
     // For phase 1, we'll implement a simple version matching system
     // This will be expanded in phase 2 with the traffic manager
     

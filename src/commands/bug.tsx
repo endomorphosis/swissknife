@@ -1,7 +1,7 @@
-import * as React from 'react.js.js.js.js.js'; // Import React explicitly
-import type { Command, LocalJSXCommand } from '../types/command.js.js.js.js.js.js.js.js.js.js.js'; // Updated import path
-import { Bug } from '../components/Bug.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
+import * as React from 'react'; // Import React explicitly
+import type { Command, LocalJSXCommand } from '../types/command'; // Updated import path
+import { Bug } from '../components/Bug'; // Assuming .js extension
+import { PRODUCT_NAME } from '../constants/product'; // Assuming .js extension
 
 const bugCommand: LocalJSXCommand = {
   type: 'local-jsx',

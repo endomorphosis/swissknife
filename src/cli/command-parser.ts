@@ -1,4 +1,4 @@
-import { CommandRegistry, Command, CommandOption, CommandExecutionContext } from '@/command-registry.js';
+import { CommandRegistry, Command, CommandOption, CommandExecutionContext } from '@/command-registry';
 
 /**
  * Represents the result of parsing a command line.

@@ -1,14 +1,14 @@
-import { z } from 'zod.js.js.js.js.js'
-import React from 'react.js.js.js.js.js'
-import { Text } from 'ink.js.js.js.js.js'
-import { Tool, ToolUseContext } from '../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { DESCRIPTION, PROMPT } from './prompt.js.js.js.js.js.js.js.js.js.js'
+import { z } from 'zod'
+import React from 'react'
+import { Text } from 'ink'
+import { Tool, ToolUseContext } from '../Tool'
+import { DESCRIPTION, PROMPT } from './prompt.js'
 import {
   StickerRequestForm,
   FormData,
-} from '../../components/StickerRequestForm.js.js.js.js.js.js.js.js.js.js.js'
-import { checkGate, logEvent } from '../../services/statsig.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js'
+} from '../components/StickerRequestForm'
+import { checkGate, logEvent } from '../services/statsig'
+import { getTheme } from '../utils/theme'
 
 const stickerRequestSchema = z.object({
   trigger: z.string(),

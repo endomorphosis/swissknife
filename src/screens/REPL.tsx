@@ -1,45 +1,45 @@
 import { ToolUseBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Box, Newline, Static } from 'ink.js.js.js.js.js'
+import { Box, Newline, Static } from 'ink'
 import ProjectOnboarding, {
   markProjectOnboardingComplete,
-} from '../ProjectOnboarding.js.js.js.js.js.js.js.js.js.js.js'
-import { CostThresholdDialog } from '../components/CostThresholdDialog.js.js.js.js.js.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react.js.js.js.js.js'
-import { Command } from '../commands.js.js.js.js.js.js.js.js.js.js'
-import { Logo } from '../components/Logo.js.js.js.js.js.js.js.js.js.js'
-import { Message } from '../components/Message.js.js.js.js.js.js.js.js.js.js'
-import { MessageResponse } from '../components/MessageResponse.js.js.js.js.js.js.js.js.js.js'
-import { MessageSelector } from '../components/MessageSelector.js.js.js.js.js.js.js.js.js.js'
+} from '../ProjectOnboarding'
+import { CostThresholdDialog } from '../components/CostThresholdDialog'
+import * as React from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { Command } from '../commands'
+import { Logo } from '../components/Logo'
+import { Message } from '../components/Message'
+import { MessageResponse } from '../components/MessageResponse'
+import { MessageSelector } from '../components/MessageSelector'
 import {
   PermissionRequest,
   type ToolUseConfirm,
-} from '../components/permissions/PermissionRequest.js.js.js.js.js.js.js.js.js.js.js'
-import PromptInput from '../components/PromptInput.js.js.js.js.js.js.js.js.js.js'
-import { Spinner } from '../components/Spinner.js.js.js.js.js.js.js.js.js.js'
-import { getSystemPrompt } from '../constants/prompts.js.js.js.js.js.js.js.js.js.js'
-import { getContext } from '../context.js.js.js.js.js.js.js.js.js.js'
-import { getTotalCost, useCostSummary } from '../cost-tracker.js.js.js.js.js.js.js.js.js.js'
-import { useLogStartupTime } from '../hooks/useLogStartupTime.js.js.js.js.js.js.js.js.js.js'
-import { addToHistory } from '../history.js.js.js.js.js.js.js.js.js.js'
-import { useApiKeyVerification } from '../hooks/useApiKeyVerification.js.js.js.js.js.js.js.js.js.js'
-import { useCancelRequest } from '../hooks/useCancelRequest.js.js.js.js.js.js.js.js.js.js'
-import useCanUseTool from '../hooks/useCanUseTool.js.js.js.js.js.js.js.js.js.js'
-import { useLogMessages } from '../hooks/useLogMessages.js.js.js.js.js.js.js.js.js.js'
-import { setMessagesGetter, setMessagesSetter } from '../messages.js.js.js.js.js.js.js.js.js.js'
+} from '../components/permissions/PermissionRequest'
+import PromptInput from '../components/PromptInput'
+import { Spinner } from '../components/Spinner'
+import { getSystemPrompt } from '../constants/prompts'
+import { getContext } from '../context'
+import { getTotalCost, useCostSummary } from '../cost-tracker'
+import { useLogStartupTime } from '../hooks/useLogStartupTime'
+import { addToHistory } from '../history'
+import { useApiKeyVerification } from '../hooks/useApiKeyVerification'
+import { useCancelRequest } from '../hooks/useCancelRequest'
+import useCanUseTool from '../hooks/useCanUseTool'
+import { useLogMessages } from '../hooks/useLogMessages'
+import { setMessagesGetter, setMessagesSetter } from '../messages'
 import {
   type AssistantMessage,
   type BinaryFeedbackResult,
   type Message as MessageType,
   type ProgressMessage,
   query,
-} from '../query.js.js.js.js.js.js.js.js.js.js.js'
-import type { WrappedClient } from '../services/mcpClient.js.js.js.js.js.js.js.js.js.js'
-import type { Tool } from '../Tool.js.js.js.js.js.js.js.js.js.js'
-import { AutoUpdaterResult } from '../utils/autoUpdater.js.js.js.js.js.js.js.js.js.js'
-import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
-import { getNextAvailableLogForkNumber } from '../utils/log.js.js.js.js.js.js.js.js.js.js'
+} from '../query'
+import type { WrappedClient } from '../services/mcpClient'
+import type { Tool } from '../Tool'
+import { AutoUpdaterResult } from '../utils/autoUpdater'
+import { getGlobalConfig, saveGlobalConfig } from '../utils/config'
+import { logEvent } from '../services/statsig'
+import { getNextAvailableLogForkNumber } from '../utils/log'
 import {
   getErroredToolUseMessages,
   getInProgressToolUseIDs,
@@ -53,12 +53,12 @@ import {
   normalizeMessagesForAPI,
   processUserInput,
   reorderMessages,
-} from '../utils/messages.js.js.js.js.js.js.js.js.js.js.js'
-import { getSlowAndCapableModel } from '../utils/model.js.js.js.js.js.js.js.js.js.js'
-import { clearTerminal, updateTerminalTitle } from '../utils/terminal.js.js.js.js.js.js.js.js.js.js'
-import { BinaryFeedback } from '../components/binary-feedback/BinaryFeedback.js.js.js.js.js.js.js.js.js.js'
-import { getMaxThinkingTokens } from '../utils/thinking.js.js.js.js.js.js.js.js.js.js'
-import { getOriginalCwd } from '../utils/state.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/messages'
+import { getSlowAndCapableModel } from '../utils/model'
+import { clearTerminal, updateTerminalTitle } from '../utils/terminal'
+import { BinaryFeedback } from '../components/binary-feedback/BinaryFeedback'
+import { getMaxThinkingTokens } from '../utils/thinking'
+import { getOriginalCwd } from '../utils/state'
 
 type Props = {
   commands: Command[]

@@ -5,15 +5,12 @@
  * for accessing Goose AI capabilities.
  */
 
-import { Command } from 'commander.js';
-import { IntegrationRegistry } from '../integration/registry.js';
-import { GooseBridge } from '../integration/bridges/goose-bridge.js';
-import { LogManager } from '../utils/logging/manager.js';
-import chalk from 'chalk.js';
-import fs from 'fs.js';
-import path from 'path.js';
-
-const logger = LogManager.getInstance();
+import { Command } from 'commander';
+import { IntegrationRegistry } from '../integration/registry';
+import { GooseBridge } from '../integration/bridges/goose-bridge';
+import chalk from 'chalk';
+import fs from 'fs';
+import path from 'path';
 
 export const goose = new Command('goose')
   .description('Interact with the Goose AI Integration Bridge')
@@ -67,13 +64,13 @@ goose
         
         // Get version information
         const versionInfo = await bridge.call('getVersion', {});
-        console.log(`Version: ${versionInfo.version}`);
+        console.log(`Version: ${(versionInfo as any).version}`);
       } else {
         console.log(chalk.yellow('Goose bridge is registered but not initialized'));
         console.log('Run any goose command to automatically initialize the bridge');
       }
-    } catch (error) {
-      console.error(chalk.red(`Error checking Goose bridge status: ${error.message}`));
+    } catch (error: unknown) {
+      console.error(chalk.red(`Error checking Goose bridge status: ${(error as Error).message}`));
     }
   });
 
@@ -83,18 +80,18 @@ goose
   .action(async () => {
     try {
       const bridge = await getGooseBridge();
-      const models = await bridge.call('listModels', {});
+      const models = await bridge.call('listModels', {}) as Array<any>; // Assuming models is an array of objects
       
       console.log(chalk.green('Available AI Models:'));
       console.log('───────────────────────────────────');
       
-      models.forEach(model => {
+      models.forEach((model: any) => { // Explicitly type model as any for now
         console.log(`${chalk.bold(model.id)} - ${model.name}`);
         console.log(`Provider: ${model.provider}`);
         console.log('───────────────────────────────────');
       });
-    } catch (error) {
-      console.error(chalk.red(`Error listing models: ${error.message}`));
+    } catch (error: unknown) {
+      console.error(chalk.red(`Error listing models: ${(error as Error).message}`));
     }
   });
 
@@ -104,18 +101,18 @@ goose
   .action(async () => {
     try {
       const bridge = await getGooseBridge();
-      const tools = await bridge.call('listTools', {});
+      const tools = await bridge.call('listTools', {}) as Array<any>; // Assuming tools is an array of objects
       
       console.log(chalk.green('Available Tools:'));
       console.log('───────────────────────────────────');
       
-      tools.forEach(tool => {
+      tools.forEach((tool: any) => { // Explicitly type tool as any for now
         console.log(`${chalk.bold(tool.name)}`);
         console.log(`Description: ${tool.description}`);
         console.log('───────────────────────────────────');
       });
-    } catch (error) {
-      console.error(chalk.red(`Error listing tools: ${error.message}`));
+    } catch (error: unknown) {
+      console.error(chalk.red(`Error listing tools: ${(error as Error).message}`));
     }
   });
 
@@ -167,14 +164,14 @@ goose
       // Display the response
       console.log('───────────────────────────────────');
       console.log(chalk.green('Response:'));
-      console.log(response.content);
+      console.log((response as any).content); // Type assertion for response
       console.log('───────────────────────────────────');
       
       // Check for tool calls
-      if (response.toolCalls && response.toolCalls.length > 0) {
-        console.log(chalk.yellow(`\nTool Calls: ${response.toolCalls.length}`));
+      if ((response as any).toolCalls && (response as any).toolCalls.length > 0) {
+        console.log(chalk.yellow(`\nTool Calls: ${(response as any).toolCalls.length}`));
         
-        response.toolCalls.forEach((toolCall, index) => {
+        (response as any).toolCalls.forEach((toolCall: any, index: number) => { // Explicitly type toolCall and index
           console.log(`${index + 1}. Tool: ${toolCall.name}`);
           console.log(`   ${JSON.stringify(toolCall.arguments)}`);
         });
@@ -182,12 +179,12 @@ goose
       
       // Save to file if specified
       if (options.output) {
-        fs.writeFileSync(options.output, response.content);
+        fs.writeFileSync(options.output, (response as any).content); // Type assertion for response
         console.log(chalk.green(`\n✓ Response saved to ${options.output}`));
       }
       
-    } catch (error) {
-      console.error(chalk.red(`Error processing message: ${error.message}`));
+    } catch (error: unknown) {
+      console.error(chalk.red(`Error processing message: ${(error as Error).message}`));
     }
   });
 

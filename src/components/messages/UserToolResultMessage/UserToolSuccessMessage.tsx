@@ -1,9 +1,9 @@
 import { ToolResultBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Box } from 'ink.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { Tool } from '../../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { Message, UserMessage } from '../../../query.js.js.js.js.js.js.js.js.js.js'
-import { useGetToolFromMessages } from './utils.js.js.js.js.js.js.js.js.js.js'
+import { Box } from 'ink'
+import * as React from 'react'
+import { Tool } from '../Tool'
+import { Message, UserMessage } from '../query'
+import { useGetToolFromMessages } from './utils.js'
 
 type Props = {
   param: ToolResultBlockParam

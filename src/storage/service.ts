@@ -5,9 +5,9 @@ import { PathResolver } from './path-resolver.js';
 import { StorageOperations } from './operations.js';
 import { FilesystemBackend } from './backends/filesystem.js';
 import { IPFSBackend } from './backends/ipfs-backend.js';
-import { ConfigurationManager } from '../config/manager.js';
-import { logger } from '../utils/logger.js';
-import * as path from 'path.js';
+import { ConfigurationManager } from '../config/manager';
+import { logger } from '../utils/logger';
+import * as path from 'path';
 
 /**
  * Options for configuring the Storage Service

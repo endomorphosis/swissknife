@@ -7,7 +7,7 @@
  * and comprehensive performance metrics.
  */
 
-import { EventEmitter } from 'events.js';
+import { EventEmitter } from 'events';
 
 // Event priority levels
 export const Priority = {

@@ -1,20 +1,20 @@
-import { Box, Text, useInput } from 'ink.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { useMemo, useState, useEffect } from 'react.js.js.js.js.js'
-import figures from 'figures.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { Message as MessageComponent } from './Message.js.js.js.js.js.js.js.js.js.js'
-import { randomUUID } from 'crypto.js.js.js.js.js'
-import { type Tool } from '../Tool.js.js.js.js.js.js.js.js.js.js'
+import { Box, Text, useInput } from 'ink'
+import * as React from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import figures from 'figures'
+import { getTheme } from '../utils/theme'
+import { Message as MessageComponent } from './Message.js'
+import { randomUUID } from 'crypto'
+import { type Tool } from '../Tool'
 import {
   createUserMessage,
   isEmptyMessageText,
   isNotEmptyMessage,
   normalizeMessages,
-} from '../utils/messages.js.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
-import type { AssistantMessage, UserMessage } from '../query.js.js.js.js.js.js.js.js.js.js'
-import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/messages'
+import { logEvent } from '../services/statsig'
+import type { AssistantMessage, UserMessage } from '../query'
+import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD'
 
 type Props = {
   erroredToolUseIDs: Set<string>

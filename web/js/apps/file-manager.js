@@ -3,7 +3,7 @@
  * Manages content-addressed storage and local files
  */
 
-export class FileManagerApp {
+window.FileManagerApp = class FileManagerApp {
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;

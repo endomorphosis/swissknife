@@ -3,7 +3,7 @@
  * Connects to actual SwissKnife task management and workflow systems
  */
 
-import { BrowserEventEmitter, generateId, BrowserStorage, getApiUrl, getSecretKey } from '../utils/browser-utils';
+import { BrowserEventEmitter, generateId, getApiUrl, getSecretKey } from '../utils/browser-utils';
 
 export interface TaskConfig {
   id: string;
@@ -71,12 +71,12 @@ export class SwissKnifeTaskAdapter extends BrowserEventEmitter {
       const config = localStorage.getItem('gooseConfig');
       if (config) {
         const parsed = JSON.parse(config);
-        return parsed.GOOSE_PORT ? `http://localhost:${parsed.GOOSE_PORT}` : 'http://localhost:8080';
+        return parsed.GOOSE_PORT ? `http://localhost:${parsed.GOOSE_PORT}` : 'http://localhost:8000';
       }
     } catch (error) {
       console.warn('Could not detect base URL:', error);
     }
-    return 'http://localhost:8080';
+    return 'http://localhost:8000';
   }
 
   private getHeaders(): Record<string, string> {
@@ -516,3 +516,4 @@ export class SwissKnifeTaskAdapter extends BrowserEventEmitter {
     }
   }
 }
+export {};

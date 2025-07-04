@@ -1,5 +1,5 @@
-import type { Command, PromptCommand, CommandOption } from '../types/command.js'; // Updated import path
-import { BashTool } from '../tools/BashTool/BashTool.js'; // Assuming .js extension
+import type { Command, PromptCommand, CommandOption } from '../types/command'; // Updated import path
+import { BashTool } from '../tools/BashTool/BashTool'; // Assuming .js extension
 
 const reviewCommand: PromptCommand = {
   type: 'prompt',

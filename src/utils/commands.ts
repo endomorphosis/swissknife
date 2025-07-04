@@ -1,7 +1,7 @@
 import { memoize } from 'lodash-es'
-import { API_ERROR_MESSAGE_PREFIX, queryHaiku } from '../services/claude.js'
+import { API_ERROR_MESSAGE_PREFIX, queryHaiku } from '../services/claude'
 import { type ControlOperator, parse, ParseEntry } from 'shell-quote'
-import { PRODUCT_NAME } from '../constants/product.js'
+import { PRODUCT_NAME } from '../constants/product'
 
 const SINGLE_QUOTE = '__SINGLE_QUOTE__'
 const DOUBLE_QUOTE = '__DOUBLE_QUOTE__'

@@ -4,7 +4,7 @@
  */
 
 // TODO: Import necessary libraries if needed (e.g., for UUID generation, specific backend clients)
-// import { v4 as uuidv4 } from 'uuid.js'; // Example for UUIDs
+// import { v4 as uuidv4 } from 'uuid'; // Example for UUIDs
 
 /**
  * Interface defining the contract for all storage backends supported by the VFS.

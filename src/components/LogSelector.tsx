@@ -1,10 +1,10 @@
-import React from 'react.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
+import React from 'react'
+import { Box, Text } from 'ink'
 import { Select } from '@inkjs/ui'
-import type { LogOption } from '../types/logs.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { useTerminalSize } from '../hooks/useTerminalSize.js.js.js.js.js.js.js.js.js.js'
-import { formatDate } from '../utils/log.js.js.js.js.js.js.js.js.js.js'
+import type { LogOption } from '../types/logs'
+import { getTheme } from '../utils/theme'
+import { useTerminalSize } from '../hooks/useTerminalSize'
+import { formatDate } from '../utils/log'
 
 type LogSelectorProps = {
   logs: LogOption[]

@@ -5,7 +5,7 @@
  */
 
 // TODO: Import necessary types (GraphRAGDatabase, etc.)
-// import { GraphRAGDatabase } from '../inference/graph-rag-database.js'; // Assuming GraphRAGDatabase exists
+// import { GraphRAGDatabase } from '../inference/graph-rag-database'; // Assuming GraphRAGDatabase exists
 
 // Placeholder types
 type GraphRAGDatabase = any;

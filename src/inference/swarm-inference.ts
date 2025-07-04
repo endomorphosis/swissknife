@@ -5,7 +5,7 @@
  */
 
 // TODO: Import necessary types (DataLakeConnector, DataPartition, potentially networking/peer discovery libs)
-import { DataLakeConnector, DataPartition } from '../connectors/data-lake.js';
+import { DataLakeConnector, DataPartition } from '../connectors/data-lake';
 
 // Placeholder types
 type SwarmPeer = any; // Represents a node participating in the swarm

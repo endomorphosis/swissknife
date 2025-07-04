@@ -1,9 +1,9 @@
 import { StorageProvider } from '@statsig/client-core'
-import * as fs from 'fs.js'
-import * as path from 'path.js'
-import { homedir } from 'os.js'
-import { logError } from '../utils/log.js'
-import { existsSync, unlinkSync } from 'fs.js'
+import * as fs from 'fs'
+import * as path from 'path'
+import { homedir } from 'os'
+import { logError } from '../utils/log'
+import { existsSync, unlinkSync } from 'fs'
 
 const STATSIG_DIR = path.join(homedir(), '.claude', 'statsig')
 

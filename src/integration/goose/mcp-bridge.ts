@@ -1,7 +1,7 @@
 // src/integration/goose/mcp-bridge.ts
 
-import { IntegrationBridge } from '../registry.js';
-import { ConfigManager } from '../../config/manager.js';
+import { IntegrationBridge } from '../registry';
+import { ConfigManager } from '../config/manager';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 

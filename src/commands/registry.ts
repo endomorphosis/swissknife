@@ -1,6 +1,6 @@
 // src/commands/registry.ts
 import { ExecutionContext } from './context.js';
-import { LogManager } from '../utils/logging/manager.js';
+import { LogManager } from '../utils/logging/manager';
 
 export interface CommandOption {
   name: string;

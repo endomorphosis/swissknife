@@ -3,13 +3,13 @@ import type {
   TextBlockParam,
 } from '@anthropic-ai/sdk/resources/index.mjs'
 
-import { existsSync, readFileSync } from 'fs.js.js.js.js.js'
-import { Text } from 'ink.js.js.js.js.js'
-import { extname, isAbsolute, relative, resolve } from 'path.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { z } from 'zod.js.js.js.js.js'
-import { FallbackToolUseRejectedMessage } from '../../components/FallbackToolUseRejectedMessage.js.js.js.js.js.js.js.js.js.js.js';
-import { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js.js';
+import { existsSync, readFileSync } from 'fs'
+import { Text } from 'ink'
+import { extname, isAbsolute, relative, resolve } from 'path'
+import * as React from 'react'
+import { z } from 'zod'
+import { FallbackToolUseRejectedMessage } from '@/components/FallbackToolUseRejectedMessage';
+import { Tool } from '@/Tool';
 import {
   NotebookCellSource,
   NotebookContent,
@@ -18,12 +18,12 @@ import {
   NotebookCellSourceOutput,
   NotebookCellOutput,
   NotebookCellType,
-} from '../../types/notebook.js.js.js.js.js.js.js.js.js.js.js';
-import { formatOutput } from '../BashTool/utils.js.js.js.js.js.js.js.js.js.js.js';
-import { getCwd } from '../../utils/state.js.js.js.js.js.js.js.js.js.js.js';
-import { findSimilarFile } from '../../utils/file.js.js.js.js.js.js.js.js.js.js.js';
-import { DESCRIPTION, PROMPT } from './prompt.js.js.js.js.js.js.js.js.js.js.js';
-import { hasReadPermission } from '../../utils/permissions/filesystem.js.js.js.js.js.js.js.js.js.js.js';
+} from '@/types/notebook';
+import { formatOutput } from '@/tools/BashTool/utils';
+import { getCwd } from '@/utils/state';
+import { findSimilarFile } from '@/utils/file';
+import { DESCRIPTION, PROMPT } from './prompt.js';
+import { hasReadPermission } from '@/utils/permissions/filesystem';
 
 const inputSchema = z.strictObject({
   notebook_path: z

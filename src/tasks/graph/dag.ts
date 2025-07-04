@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger.js';
+import { logger } from '../utils/logger';
 
 // Generic Node type constraint (must have an 'id' property)
 type NodeWithId = { id: string };

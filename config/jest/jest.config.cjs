@@ -2,7 +2,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   rootDir: '../..',
-  extensionsToTreatAsEsm: ['.ts', '.tsx', '.mts'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx', '.mts', '.js', '.jsx', '.cjs'],
   transform: {
     "^.+\\.(ts|tsx|mts)$": ["ts-jest", {
       useESM: true,
@@ -31,7 +31,9 @@ module.exports = {
     "^@test-helpers/(.*)$": "<rootDir>/test/helpers/$1",
     "../utils/test-helpers": "<rootDir>/test/utils/test-helpers.ts",
     "^(merkletreejs)$": "<rootDir>/node_modules/merkletreejs/dist/esm/index.js",
-    "^(zod)$": "<rootDir>/node_modules/zod/dist/esm/index.js"
+    "^(zod)$": "<rootDir>/node_modules/zod/dist/esm/index.js",
+    // Map .js imports to .ts files for source code
+    "^(.+)\\.js$": "$1.ts"
   },
   testMatch: [
     "<rootDir>/test/**/*.test.ts",

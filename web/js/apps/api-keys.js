@@ -1,5 +1,5 @@
 // API Key Manager App
-class APIKeysApp {
+window.APIKeysApp = class APIKeysApp {
     constructor() {
         this.name = 'API Keys';
         this.icon = '🔑';
@@ -405,6 +405,3 @@ class APIKeysApp {
 
 // Create global instance
 const apiKeysApp = new APIKeysApp();
-
-// Export for window manager
-window.APIKeysApp = APIKeysApp;

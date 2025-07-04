@@ -1,11 +1,11 @@
-import React from 'react.js.js.js.js.js'
-import { Box, Newline, Text, useInput } from 'ink.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
+import React from 'react'
+import { Box, Newline, Text, useInput } from 'ink'
+import { getTheme } from '../utils/theme'
 import { Select } from '@inkjs/ui'
-import { render } from 'ink.js.js.js.js.js'
-import { writeFileSync } from 'fs.js.js.js.js.js'
-import { ConfigParseError } from '../utils/errors.js.js.js.js.js.js.js.js.js.js'
-import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD.js.js.js.js.js.js.js.js.js.js'
+import { render } from 'ink'
+import { writeFileSync } from 'fs'
+import { ConfigParseError } from '../utils/errors'
+import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD'
 interface InvalidConfigHandlerProps {
   error: ConfigParseError
 }

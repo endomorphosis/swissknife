@@ -2,8 +2,8 @@
 
 import { StorageRegistry, ResolvedPath } from './registry.js';
 import { StorageError, StorageErrorType } from './backend.js';
-import path from 'path.js';
-import { logger } from '../utils/logger.js';
+import path from 'path';
+import { logger } from '../utils/logger';
 
 /**
  * Service for resolving virtual paths to their appropriate backend and relative paths

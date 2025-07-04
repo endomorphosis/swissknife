@@ -1,7 +1,7 @@
 import { Worker } from 'worker_threads.js';
-import path from 'path.js';
-import os from 'os.js';
-import { logger } from '../../utils/logger.js';
+import path from 'path';
+import os from 'os';
+import { logger } from '../utils/logger';
 
 // Define the structure of messages sent to/from workers
 export interface TaskPayload { 

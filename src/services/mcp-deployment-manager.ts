@@ -9,7 +9,6 @@ import { ServerRegistry } from './mcp-registry.js';
 import { 
   VersionedServerConfig, 
   DeploymentStatus, 
-  DeploymentOptions,
   ServerVersionInfo,
   VersionHistoryEntry
 } from './mcp-types.js';
@@ -19,7 +18,7 @@ import {
   getGlobalConfig,
   getMcprcConfig
 } from '../utils/config.js';
-import { logEvent, logError } from '../utils/log.js';
+import { logError, logInfo } from '../utils/log.js';
 
 /**
  * MCP Deployment Manager
@@ -62,15 +61,14 @@ export class DeploymentManager {
     serverName: string,
     version: string,
     serverConfig: McpServerConfig,
-    options: DeploymentOptions = {}
+    options: Record<string, any> = {}
   ): Promise<boolean> {
     try {
       // Set defaults for options
       const {
         initialTrafficPercentage = 0,
         initialStatus = 'green',
-        scope = 'project',
-        metadata = {}
+        scope = 'project'
       } = options;
       
       // Validate version format (semver-ish: x.y.z)
@@ -89,8 +87,8 @@ export class DeploymentManager {
         const blueVersion = this.registry.getBlueVersion(serverName);
         if (blueVersion) {
           // We can't have two blue versions, so demote the existing one
-          this.registry.updateServerStatus(serverName, blueVersion.version, 'inactive');
-          logEvent('mcp_blue_version_demoted', {
+          this.registry.updateServerStatus(serverName, blueVersion.version, DeploymentStatus.DISABLED);
+          logInfo('mcp_blue_version_demoted', {
             serverName,
             version: blueVersion.version,
             reason: 'new_blue_deployment'
@@ -101,18 +99,20 @@ export class DeploymentManager {
       // Create versioned config
       const versionedConfig: VersionedServerConfig = {
         ...serverConfig,
+        id: `${serverName}-${version}`,
         version,
         status: initialStatus,
         deploymentTimestamp: Date.now(),
+        lastUpdated: Date.now(),
         trafficPercentage: initialTrafficPercentage,
-        scope,
-        metadata
+        enabled: serverConfig.enabled ?? true,
+        scope
       };
       
       // Register the server version
       this.registry.registerServer(serverName, versionedConfig);
       
-      logEvent('mcp_version_deployed', {
+      logInfo('mcp_version_deployed', {
         serverName,
         version,
         status: initialStatus,
@@ -142,8 +142,8 @@ export class DeploymentManager {
       }
       
       // Check if it's already blue
-      if (serverVersion.status === 'blue') {
-        logEvent('mcp_already_blue', {
+      if (serverVersion.status === DeploymentStatus.ACTIVE) {
+        logInfo('mcp_already_blue', {
           serverName,
           version
         });
@@ -151,12 +151,12 @@ export class DeploymentManager {
       }
       
       // Update status to blue (this will automatically demote any existing blue version)
-      const result = this.registry.updateServerStatus(serverName, version, 'blue');
+      const result = this.registry.updateServerStatus(serverName, version, DeploymentStatus.ACTIVE);
       
       // Ensure it gets 100% traffic
       this.registry.updateTrafficPercentage(serverName, version, 100);
       
-      logEvent('mcp_promoted_to_blue', {
+      logInfo('mcp_promoted_to_blue', {
         serverName,
         version
       });
@@ -195,7 +195,7 @@ export class DeploymentManager {
       }
       
       // Update status and traffic of problematic version
-      this.registry.updateServerStatus(serverName, problematicVersion, 'inactive');
+      this.registry.updateServerStatus(serverName, problematicVersion, DeploymentStatus.DISABLED);
       this.registry.updateTrafficPercentage(serverName, problematicVersion, 0);
       
       // Ensure blue version has 100% traffic
@@ -209,7 +209,7 @@ export class DeploymentManager {
         reason
       );
       
-      logEvent('mcp_rollback_executed', {
+      logInfo('mcp_rollback_executed', {
         serverName,
         fromVersion: problematicVersion,
         toVersion: blueVersion.version,
@@ -242,7 +242,7 @@ export class DeploymentManager {
       // Update traffic percentage
       const result = this.registry.updateTrafficPercentage(serverName, version, percentage);
       
-      logEvent('mcp_traffic_updated', {
+      logInfo('mcp_traffic_updated', {
         serverName,
         version,
         percentage: percentage.toString()
@@ -287,6 +287,8 @@ export class DeploymentManager {
           version: config.version,
           status: config.status,
           trafficPercentage: config.trafficPercentage,
+          deploymentTimestamp: config.deploymentTimestamp,
+          config,
           deployedAt: new Date(config.deploymentTimestamp).toISOString(),
           type: config.type === 'sse' ? 'sse' : 'stdio',
           scope: config.scope || 'project',
@@ -306,10 +308,10 @@ export class DeploymentManager {
   /**
    * Get version history for a server version
    */
-  public getVersionHistory(
+  public async getVersionHistory(
     serverName: string,
     version: string
-  ): VersionHistoryEntry[] {
+  ): Promise<VersionHistoryEntry[]> {
     try {
       const history = this.registry.getVersionHistory(serverName, version);
       if (!history) {
@@ -321,7 +323,7 @@ export class DeploymentManager {
       // Add status changes
       for (const status of history.statusHistory) {
         entries.push({
-          type: 'status',
+          type: 'deployment',
           timestamp: status.timestamp,
           datetime: new Date(status.timestamp).toISOString(),
           details: `Status changed to ${status.status}`
@@ -339,7 +341,7 @@ export class DeploymentManager {
       }
       
       // Add rollback if this version was involved
-      const rollback = this.registry.getRollbackHistory(serverName);
+      const rollback = await this.registry.getRollbackHistory(serverName);
       if (rollback) {
         if (rollback.fromVersion === version) {
           entries.push({
@@ -374,9 +376,9 @@ export class DeploymentManager {
   public async migrateExistingServers(): Promise<number> {
     try {
       // Get all server configurations
-      const projectConfig = getCurrentProjectConfig();
-      const globalConfig = getGlobalConfig();
-      const mcprcConfig = getMcprcConfig();
+      const projectConfig = await getCurrentProjectConfig();
+      const globalConfig = await getGlobalConfig();
+      const mcprcConfig = await getMcprcConfig();
       
       // Track servers we've processed
       const processedServers = new Set<string>();
@@ -401,10 +403,13 @@ export class DeploymentManager {
         // Create versioned config
         const versionedConfig: VersionedServerConfig = {
           ...config,
+          id: `${name}-1.0.0`,
           version: '1.0.0', // Initial version
-          status: 'blue',   // Mark as stable
+          status: DeploymentStatus.ACTIVE,   // Mark as stable
           deploymentTimestamp: Date.now(),
+          lastUpdated: Date.now(),
           trafficPercentage: 100,
+          enabled: config.enabled ?? true,
           scope
         };
         
@@ -422,7 +427,7 @@ export class DeploymentManager {
       
       // Process mcprc servers
       for (const [name, config] of Object.entries(mcprcConfig)) {
-        processServer(name, config, 'mcprc');
+        processServer(name, config as McpServerConfig, 'mcprc');
       }
       
       // Process global servers
@@ -432,7 +437,7 @@ export class DeploymentManager {
         }
       }
       
-      logEvent('mcp_servers_migrated', {
+      logInfo('mcp_servers_migrated', {
         count: count.toString()
       });
       

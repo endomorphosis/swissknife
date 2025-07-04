@@ -1,27 +1,27 @@
-import { Box, Text } from 'ink.js.js.js.js.js'
-import React, { useMemo } from 'react.js.js.js.js.js'
+import { Box, Text } from 'ink'
+import React, { useMemo } from 'react'
 import { Select } from '@inkjs/ui'
-import { basename, extname } from 'path.js.js.js.js.js'
-import { getTheme } from '../../../utils/theme.js.js.js.js.js.js.js.js.js.js'
+import { basename, extname } from 'path'
+import { getTheme } from '../utils/theme'
 import {
   PermissionRequestTitle,
   textColorForRiskScore,
-} from '../PermissionRequestTitle.js.js.js.js.js.js.js.js.js.js.js'
-import { logUnaryEvent } from '../../../utils/unaryLogging.js.js.js.js.js.js.js.js.js.js'
-import { env } from '../../../utils/env.js.js.js.js.js.js.js.js.js.js'
-import { savePermission } from '../../../permissions.js.js.js.js.js.js.js.js.js.js'
+} from '../PermissionRequestTitle'
+import { logUnaryEvent } from '../utils/unaryLogging'
+import { env } from '../utils/env'
+import { savePermission } from '../permissions'
 import {
   type ToolUseConfirm,
   toolUseConfirmGetPrefix,
-} from '../PermissionRequest.js.js.js.js.js.js.js.js.js.js.js'
-import { existsSync } from 'fs.js.js.js.js.js'
-import chalk from 'chalk.js.js.js.js.js'
+} from '../PermissionRequest'
+import { existsSync } from 'fs'
+import chalk from 'chalk'
 import {
   UnaryEvent,
   usePermissionRequestLogging,
-} from '../../../hooks/usePermissionRequestLogging.js.js.js.js.js.js.js.js.js.js.js'
-import { FileWriteToolDiff } from './FileWriteToolDiff.js.js.js.js.js.js.js.js.js.js'
-import { useTerminalSize } from '../../../hooks/useTerminalSize.js.js.js.js.js.js.js.js.js.js'
+} from '../hooks/usePermissionRequestLogging'
+import { FileWriteToolDiff } from './FileWriteToolDiff.js'
+import { useTerminalSize } from '../hooks/useTerminalSize'
 
 type Props = {
   toolUseConfirm: ToolUseConfirm

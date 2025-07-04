@@ -1,6 +1,6 @@
 // src/tasks/delegation/delegator.ts
-import { GoTNode } from '../../types/task.js'; // Using GoTNode as the schedulable/delegable unit
-import { GoTNodeID } from '../../types/common.js'; // Corrected import
+import { GoTNode } from '../types/task'; // Using GoTNode as the schedulable/delegable unit
+import { GoTNodeID } from '../types/common'; // Corrected import
 import { MerkleClock } from '@src/tasks/coordination/merkle_clock'; // For worker clocks
 
 export interface Worker {

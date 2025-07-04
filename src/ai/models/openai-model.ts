@@ -1,9 +1,9 @@
 // src/ai/models/openai-model.ts
 
 import { BaseModel, IModel, ModelCapabilities, ModelGenerateInput, ModelGenerateOutput, ModelOptions } from './model.js';
-import { AgentMessage, ThinkingPattern, ThinkingResult, ToolCallResult, ToolSelectionResult, Status } from '../../types/ai.js';
-import { ConfigurationManager } from '../../config/manager.js';
-import { logger } from '../../utils/logger.js';
+import { AgentMessage, ThinkingPattern, ThinkingResult, ToolCallResult, ToolSelectionResult, Status } from '../types/ai';
+import { ConfigManager } from '../config/manager'; // Import ConfigManager directly
+import { logger } from '../utils/logger';
 
 /**
  * OpenAI API response for chat completions
@@ -51,27 +51,29 @@ export interface OpenAIModelOptions {
 export class OpenAIModel extends BaseModel {
   private apiKey: string;
   private apiUrl: string;
-  private configManager: ConfigurationManager;
+  private configManager: ConfigManager; // Type as the instance
   
   constructor(options: ModelOptions, openaiOptions: OpenAIModelOptions = {}) {
     super(options); // Pass ModelOptions to BaseModel constructor
     
-    this.configManager = ConfigurationManager.getInstance();
+    this.configManager = ConfigManager.getInstance(); // Use ConfigManager directly
     
     // Get API key from openaiOptions, config, or environment variable
     this.apiKey = openaiOptions.apiKey || 
       this.configManager.get<string>('ai.openai.apiKey') || 
       process.env.OPENAI_API_KEY || 
       '';
+    // Ensure apiKey is always a string, handling undefined from process.env
+    this.apiKey = (this.apiKey === undefined ? '' : String(this.apiKey));
       
     if (!this.apiKey) {
       logger.warn('No OpenAI API key provided. The model will not function correctly.');
     }
     
-    this.apiUrl = openaiOptions.apiUrl || 
-      this.configManager.get<string>('ai.openai.apiUrl', 'https://api.openai.com/v1');
+    this.apiUrl = String(openaiOptions.apiUrl || 
+      this.configManager.get<string>('ai.openai.apiUrl', 'https://api.openai.com/v1') || '');
       
-    logger.debug(`OpenAIModel initialized for model ${this.name}`); // Use this.name from BaseModel
+    logger.debug(`OpenAIModel initialized for model ${this.getName()}`); // Use public getter
   }
   
   /**
@@ -123,12 +125,15 @@ export class OpenAIModel extends BaseModel {
    */
   async generateStructuredThinking(
     prompt: string,
-    options: ModelGenerateInput = {}
+    options: ModelGenerateInput // Removed default empty object
   ): Promise<ThinkingResult> {
     const startTime = Date.now();
     const pattern = options.pattern || ThinkingPattern.GraphOfThought;
     
     try {
+      // Call the super.generate method first to handle common logic and usage tracking
+      await super.generate(options);
+
       // Create a system message based on the thinking pattern
       const systemMessage = this.getThinkingSystemPrompt(pattern);
       
@@ -191,22 +196,27 @@ export class OpenAIModel extends BaseModel {
    */
   async generateToolSelection(
     prompt: string,
-    options: ModelGenerateInput = {}
+    options: ModelGenerateInput // Removed default empty object
   ): Promise<ToolSelectionResult> {
     if (!options.availableTools || options.availableTools.length === 0) {
       return { toolCalls: [] };
     }
     
     try {
+      // Call the super.generate method first to handle common logic and usage tracking
+      await super.generate(options);
+
       // Create a system message for tool selection
       const systemMessage = `
 You are an assistant that helps determine which tools to use to respond to a user's message.
 You have access to the following tools:
 
 ${options.availableTools.map(tool => {
+  // Add null check for tool.parameters
+  const params = tool.parameters || [];
   return `Tool: ${tool.name}
 Description: ${tool.description}
-Parameters: ${tool.parameters.map(p => `${p.name} (${p.type}${p.required ? ', required' : ''}): ${p.description}`).join(', ')}`;
+Parameters: ${params.map(p => `${p.name} (${p.type}${p.required ? ', required' : ''}): ${p.description}`).join(', ')}`;
 }).join('\n\n')}
 
 Analyze the user's message and determine which tools should be called, if any.
@@ -224,24 +234,27 @@ When suggesting tool calls, provide the tool name and the arguments as a properl
       const response = await this.callOpenAIAPI(messages, {
         ...options,
         enableToolCalling: true,
-        tools: options.availableTools.map(tool => ({
-          type: 'function',
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: {
-              type: 'object',
-              properties: (tool.parameters as any[]).reduce((acc: Record<string, any>, param: any) => {
-                acc[param.name] = {
-                  type: param.type,
-                  description: param.description
-                };
-                return acc;
-              }, {} as Record<string, any>),
-              required: (tool.parameters as any[]).filter((p: any) => p.required).map((p: any) => p.name)
+        tools: options.availableTools.map(tool => {
+          const params = tool.parameters || [];
+          return {
+            type: 'function',
+            function: {
+              name: tool.name,
+              description: tool.description,
+              parameters: {
+                type: 'object',
+                properties: params.reduce((acc: Record<string, any>, param: any) => {
+                  acc[param.name] = {
+                    type: param.type,
+                    description: param.description
+                  };
+                  return acc;
+                }, {} as Record<string, any>),
+                required: params.filter((p: any) => p.required).map((p: any) => p.name)
+              }
             }
-          }
-        }))
+          };
+        })
       });
       
       // Extract tool calls from the response
@@ -282,14 +295,20 @@ When suggesting tool calls, provide the tool name and the arguments as a properl
     message: string,
     history: AgentMessage[] = [],
     toolResults: ToolCallResult[],
-    options: ModelGenerateInput = {}
+    options: Partial<ModelGenerateInput> = {} // Make options partial here
   ): Promise<string> {
     try {
       // Format messages for the OpenAI API, including tool results
       const messages = this.formatMessagesForAPIWithToolResults(message, history, toolResults);
       
+      // Ensure prompt is included in options for callOpenAIAPI
+      const callOptions: ModelGenerateInput = {
+        prompt: message, // Use the message as the prompt for this call
+        ...options
+      };
+
       // Make API call
-      const response = await this.callOpenAIAPI(messages, options);
+      const response = await this.callOpenAIAPI(messages, callOptions);
       
       // Extract and return content
       return response.choices[0]?.message?.content || '';
@@ -305,12 +324,12 @@ When suggesting tool calls, provide the tool name and the arguments as a properl
    */
   private async callOpenAIAPI(
     messages: Array<{role: string, content: string}>,
-    options: ModelGenerateInput & {
+    options: ModelGenerateInput & { // Revert to full ModelGenerateInput
       structuredOutput?: boolean,
       structuredOutputFormat?: any,
       enableToolCalling?: boolean,
       tools?: any[]
-    } = {}
+    }
   ): Promise<OpenAIChatResponse> {
     // Prepare request body
     const requestBody: Record<string, any> = {

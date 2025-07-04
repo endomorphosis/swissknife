@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stlite Integration Test</title>
+    
+    <!-- Stlite CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.83.0/build/stlite.css">
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .streamlit-container {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #ff5252;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌟 Stlite Integration Test</h1>
+        <p>Testing the stlite integration as documented in the official README.</p>
+        
+        <div class="status" id="status">Loading stlite...</div>
+        
+        <button onclick="runStreamlitTest()" id="runBtn" disabled>Run Test Streamlit App</button>
+        
+        <div id="streamlit-app" class="streamlit-container"></div>
+    </div>
+
+    <!-- Stlite JavaScript Module -->
+    <script type="module">
+        import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.83.0/build/stlite.js";
+        // Make stlite mount function globally available
+        window.stlite = { mount };
+        
+        // Update status
+        document.getElementById('status').textContent = '✅ Stlite loaded successfully!';
+        document.getElementById('runBtn').disabled = false;
+        
+        console.log('✅ Stlite loaded and available globally');
+    </script>
+    
+    <script>
+        async function runStreamlitTest() {
+            const container = document.getElementById('streamlit-app');
+            const status = document.getElementById('status');
+            
+            status.textContent = '🚀 Running Streamlit app...';
+            container.innerHTML = '';
+            
+            try {
+                const { mount } = window.stlite;
+                
+                await mount(
+                    {
+                        requirements: ["pandas", "numpy", "matplotlib"],
+                        entrypoint: "streamlit_app.py",
+                        files: {
+                            "streamlit_app.py": `import streamlit as st
+import pandas as pd
+import numpy as np
+import asyncio
+
+# Streamlit App Title
+st.title("🌟 Stlite Test App")
+
+# Basic widgets
+st.write("Hello from stlite! This Streamlit app runs entirely in your browser.")
+
+# Generate sample data
+data_size = st.slider("Data size", 10, 100, 50)
+data = {
+    'x': np.random.randn(data_size),
+    'y': np.random.randn(data_size)
+}
+df = pd.DataFrame(data)
+
+# Display data
+if st.checkbox("Show raw data"):
+    st.write(df.head())
+
+# Create chart
+st.line_chart(df)
+
+# Demo async functionality (stlite-specific)
+if st.button("Demo Async Sleep"):
+    with st.spinner("Waiting 2 seconds..."):
+        await asyncio.sleep(0.1)  # Small delay to show spinner
+        await asyncio.sleep(2)    # Main delay - use asyncio.sleep in stlite
+    st.success("Async operation completed!")
+
+# Note about stlite
+st.info("💡 This app runs entirely in your browser using stlite (Streamlit + WebAssembly)")
+`
+                        },
+                        streamlitConfig: {
+                            "theme.base": "light",
+                            "theme.primaryColor": "#ff6b6b",
+                            "client.toolbarMode": "viewer",
+                            "client.showErrorDetails": true,
+                        }
+                    },
+                    container
+                );
+                
+                status.textContent = '✅ Streamlit app running successfully!';
+                
+            } catch (error) {
+                console.error('Error running Streamlit app:', error);
+                status.textContent = '❌ Error: ' + error.message;
+                container.innerHTML = `
+                    <div style="padding: 20px; color: #d32f2f;">
+                        <h3>Error running Streamlit app</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

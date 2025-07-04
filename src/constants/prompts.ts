@@ -1,13 +1,13 @@
-import { env } from '../utils/env.js'
-import { getIsGit } from '../utils/git.js'
+import { env } from '../utils/env'
+import { getIsGit } from '../utils/git'
 import {
   INTERRUPT_MESSAGE,
   INTERRUPT_MESSAGE_FOR_TOOL_USE,
-} from '../utils/messages.js'
-import { getCwd } from '../utils/state.js'
+} from '../utils/messages'
+import { getCwd } from '../utils/state'
 import { PRODUCT_NAME, PROJECT_FILE, PRODUCT_COMMAND } from './product.js'
-import { BashTool } from '../tools/BashTool/BashTool.js'
-import { getSlowAndCapableModel } from '../utils/model.js'
+import { BashTool } from '../tools/BashTool/BashTool'
+import { getSlowAndCapableModel } from '../utils/model'
 import { MACRO } from './macros.js'
 export function getCLISyspromptPrefix(): string {
   return `You are ${PRODUCT_NAME}, a CLI for coding.`

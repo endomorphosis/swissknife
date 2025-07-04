@@ -7,8 +7,8 @@
  * comprehensive performance metrics.
  */
 
-import { EventEmitter } from 'events.js';
-import WebSocket from 'ws.js';
+import { EventEmitter } from 'events';
+import WebSocket from 'ws';
 
 // Connection states
 const ConnectionState = {

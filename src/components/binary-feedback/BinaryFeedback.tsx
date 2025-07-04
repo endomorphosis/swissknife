@@ -1,15 +1,15 @@
-import { default as React, useCallback } from 'react.js.js.js.js.js'
-import { useNotifyAfterTimeout } from '../../hooks/useNotifyAfterTimeout.js.js.js.js.js.js.js.js.js.js'
-import { AssistantMessage, BinaryFeedbackResult } from '../../query.js.js.js.js.js.js.js.js.js.js'
-import type { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js'
-import type { NormalizedMessage } from '../../utils/messages.js.js.js.js.js.js.js.js.js.js'
-import { BinaryFeedbackView } from './BinaryFeedbackView.js.js.js.js.js.js.js.js.js.js'
+import { default as React, useCallback } from 'react'
+import { useNotifyAfterTimeout } from '@/hooks/useNotifyAfterTimeout'
+import { AssistantMessage, BinaryFeedbackResult } from '../query'
+import type { Tool } from '../Tool'
+import type { NormalizedMessage } from '../utils/messages'
+import { BinaryFeedbackView } from './BinaryFeedbackView.js'
 import {
   type BinaryFeedbackChoose,
   getBinaryFeedbackResultForChoice,
   logBinaryFeedbackEvent,
-} from './utils.js.js.js.js.js.js.js.js.js.js.js'
-import { PRODUCT_NAME } from '../../constants/product.js.js.js.js.js.js.js.js.js.js'
+} from './utils.js'
+import { PRODUCT_NAME } from '@/constants/product'
 
 type Props = {
   m1: AssistantMessage

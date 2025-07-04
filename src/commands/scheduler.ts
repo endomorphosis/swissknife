@@ -5,14 +5,14 @@
  * for priority-based task scheduling.
  */
 
-import { Command } from 'commander.js';
-import { FibHeapScheduler } from '../tasks/scheduler/fibonacci-heap.js';
-import { LogManager } from '../utils/logging/manager.js';
-import chalk from 'chalk.js';
-import { v4 as uuidv4 } from 'uuid.js';
+import { Command } from 'commander';
+import { FibonacciHeap } from '../tasks/scheduler/fibonacci-heap';
+import { LogManager } from '../utils/logging/manager';
+import chalk from 'chalk';
+import { v4 as uuidv4 } from 'uuid';
 
 // Create a singleton scheduler instance
-const scheduler = new FibHeapScheduler<any>();
+const scheduler = new FibonacciHeap<any>();
 const logger = LogManager.getInstance();
 
 // In-memory task storage for CLI demonstration
@@ -54,14 +54,14 @@ taskScheduler
       scheduledTasks.set(taskId, task);
       
       // Add to scheduler
-      scheduler.scheduleTask(priority, task);
+      scheduler.insert(priority, task);
       
       logger.info(`Added task to scheduler`, { taskId, priority });
       console.log(chalk.green(`✓ Added task to scheduler with ID: ${taskId}`));
       console.log(`Description: ${description}`);
       console.log(`Priority: ${priority}`);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error adding task: ${error.message}`));
     }
   });
@@ -71,7 +71,7 @@ taskScheduler
   .description('List all scheduled tasks')
   .action(async () => {
     try {
-      const count = scheduler.getTaskCount();
+      const count = scheduler.size();
       
       if (count === 0) {
         console.log(chalk.yellow('No tasks currently scheduled'));
@@ -94,7 +94,7 @@ taskScheduler
       }
       console.log('───────────────────────────────────');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error listing tasks: ${error.message}`));
     }
   });
@@ -104,12 +104,12 @@ taskScheduler
   .description('Get and remove the next highest priority task')
   .action(async () => {
     try {
-      if (!scheduler.hasTasks()) {
+      if (scheduler.isEmpty()) {
         console.log(chalk.yellow('No tasks currently scheduled'));
         return;
       }
       
-      const task = scheduler.getNextTask();
+      const task = scheduler.extractMin();
       
       if (!task) {
         console.log(chalk.yellow('Failed to retrieve next task'));
@@ -130,10 +130,10 @@ taskScheduler
       }
       console.log('───────────────────────────────────');
       
-      const remaining = scheduler.getTaskCount();
+      const remaining = scheduler.size();
       console.log(`${remaining} task(s) remaining in scheduler`);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error getting next task: ${error.message}`));
     }
   });
@@ -143,12 +143,12 @@ taskScheduler
   .description('View the next highest priority task without removing it')
   .action(async () => {
     try {
-      if (!scheduler.hasTasks()) {
+      if (scheduler.isEmpty()) {
         console.log(chalk.yellow('No tasks currently scheduled'));
         return;
       }
       
-      const task = scheduler.peekNextTask();
+      const task = scheduler.findMin();
       
       if (!task) {
         console.log(chalk.yellow('Failed to peek at next task'));
@@ -167,7 +167,7 @@ taskScheduler
       console.log('───────────────────────────────────');
       console.log(chalk.yellow('Note: Task remains in the scheduler (peek only)'));
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error peeking at next task: ${error.message}`));
     }
   });
@@ -177,9 +177,9 @@ taskScheduler
   .description('Get the number of scheduled tasks')
   .action(async () => {
     try {
-      const count = scheduler.getTaskCount();
+      const count = scheduler.size();
       console.log(`${count} task(s) currently scheduled`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error getting task count: ${error.message}`));
     }
   });
@@ -191,8 +191,8 @@ taskScheduler
     try {
       // Since we don't have a direct clear method, we'll just extract all tasks
       let count = 0;
-      while (scheduler.hasTasks()) {
-        scheduler.getNextTask();
+      while (!scheduler.isEmpty()) {
+        scheduler.extractMin();
         count++;
       }
       
@@ -200,7 +200,7 @@ taskScheduler
       scheduledTasks.clear();
       
       console.log(chalk.green(`✓ Cleared ${count} task(s) from the scheduler`));
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red(`Error clearing tasks: ${error.message}`));
     }
   });

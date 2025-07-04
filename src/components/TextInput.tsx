@@ -1,9 +1,9 @@
-import React from 'react.js.js.js.js.js'
-import { Text, useInput } from 'ink.js.js.js.js.js'
-import chalk from 'chalk.js.js.js.js.js'
-import { useTextInput } from '../hooks/useTextInput.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { type Key } from 'ink.js.js.js.js.js'
+import React from 'react'
+import { Text, useInput } from 'ink'
+import chalk from 'chalk'
+import { useTextInput } from '../hooks/useTextInput'
+import { getTheme } from '../utils/theme'
+import { type Key } from 'ink'
 
 export type Props = {
   /**

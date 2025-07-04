@@ -1,7 +1,7 @@
 // src/cli/commands/index.ts
 // Register and export all CLI commands
 
-import { Command } from 'commander.js';
+import { Command } from 'commander';
 import performanceCommand from './performanceCommand.js';
 import releaseCommand from './releaseCommand.js';
 import testCommand from './testCommand.js';

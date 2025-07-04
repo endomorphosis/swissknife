@@ -3,7 +3,7 @@ import {
   MessageParam,
   ToolUseBlock,
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { UUID } from 'crypto.js'
+import { UUID } from 'crypto'
 import type { Tool, ToolUseContext } from './Tool.js'
 import {
   messagePairValidForBinaryFeedback,

@@ -1,16 +1,16 @@
-import fs from 'fs/promises.js';
-import path from 'path.js';
-import os from 'os.js';
-import crypto from 'crypto.js';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
+import crypto from 'crypto';
 import {
   StorageProvider,
   ListOptions,
   StorageItemMetadata,
-} from '../../types/storage.js';
-import { CID, TaskID } from '../../types/common.js'; // Import TaskID from common.js
-import { Task } from '../../types/task.js'; // Keep Task import
-import { ConfigManager } from '../../config/manager.js';
-import { logger } from '../../utils/logger.js';
+} from '../types/storage';
+import { CID, TaskID } from '../types/common'; // Import TaskID from common.js
+import { Task } from '../types/task'; // Keep Task import
+import { ConfigManager } from '../config/manager';
+import { logger } from '../utils/logger';
 
 /**
  * StorageProvider implementation using the local filesystem.

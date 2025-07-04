@@ -1,6 +1,6 @@
-import React from 'react.js'
-import { memoize } from 'lodash-es.js'
-import chalk from 'chalk.js'
+import React from 'react'
+import { memoize } from 'lodash-es'
+import chalk from 'chalk'
 import {
   StatsigClient,
   StatsigOptions,
@@ -9,15 +9,15 @@ import {
 } from '@statsig/js-client'
 import './browserMocks.js' // Initialize browser mocks
 import { FileSystemStorageProvider } from './statsigStorage.js'
-import { STATSIG_CLIENT_KEY } from '../constants/keys.js'
-import { env } from '../utils/env.js'
-import { getUser } from '../utils/user.js'
-import { logError } from '../utils/log.js'
-import { SESSION_ID } from '../utils/log.js'
-import { getBetas } from '../utils/betas.js'
-import { getIsGit } from '../utils/git.js'
-import { getSlowAndCapableModel } from '../utils/model.js'
-import { MACRO } from '../constants/macros.js'
+import { STATSIG_CLIENT_KEY } from '../constants/keys'
+import { env } from '../utils/env'
+import { getUser } from '../utils/user'
+import { logError } from '../utils/log'
+import { SESSION_ID } from '../utils/log'
+import { getBetas } from '../utils/betas'
+import { getIsGit } from '../utils/git'
+import { getSlowAndCapableModel } from '../utils/model'
+import { MACRO } from '../constants/macros'
 const gateValues: Record<string, boolean> = {}
 let client: StatsigClient | null = null
 

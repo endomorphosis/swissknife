@@ -1,19 +1,19 @@
-import * as crypto from 'crypto.js'
-import * as http from 'http.js'
-import { IncomingMessage, ServerResponse } from 'http.js'
-import * as url from 'url.js'
+import * as crypto from 'crypto'
+import * as http from 'http'
+import { IncomingMessage, ServerResponse } from 'http'
+import * as url from 'url'
 
-import { OAUTH_CONFIG } from '../constants/oauth.js'
-import { openBrowser } from '../utils/browser.js'
-import { logEvent } from '../services/statsig.js'
-import { logError } from '../utils/log.js'
+import { OAUTH_CONFIG } from '../constants/oauth'
+import { openBrowser } from '../utils/browser'
+import { logEvent } from '../services/statsig'
+import { logError } from '../utils/log'
 import { resetAnthropicClient } from './claude.js'
 import {
   AccountInfo,
   getGlobalConfig,
   saveGlobalConfig,
   normalizeApiKeyForConfig,
-} from '../utils/config.js'
+} from '../utils/config'
 
 // Base64URL encoding function (RFC 4648)
 function base64URLEncode(buffer: Buffer): string {

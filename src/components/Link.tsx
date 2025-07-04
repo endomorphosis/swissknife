@@ -1,7 +1,7 @@
-import InkLink from 'ink-link.js.js.js.js.js'
-import { Text } from 'ink.js.js.js.js.js'
-import React from 'react.js.js.js.js.js'
-import { env } from '../utils/env.js.js.js.js.js.js.js.js.js.js'
+import InkLink from 'ink-link'
+import { Text } from 'ink'
+import React from 'react'
+import { env } from '../utils/env'
 
 type LinkProps = {
   url: string

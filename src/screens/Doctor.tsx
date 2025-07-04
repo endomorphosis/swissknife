@@ -1,18 +1,18 @@
-import React, { useCallback, useEffect, useState } from 'react.js.js.js.js.js'
-import { Box, Text, useInput } from 'ink.js.js.js.js.js'
+import React, { useCallback, useEffect, useState } from 'react'
+import { Box, Text, useInput } from 'ink'
 import { Select } from '@inkjs/ui'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { ConfigureNpmPrefix } from './ConfigureNpmPrefix.tsx.js.js.js.js.js.js.js.js.js.js'
-import { platform } from 'process.js.js.js.js.js'
+import { getTheme } from '../utils/theme'
+import { ConfigureNpmPrefix } from './ConfigureNpmPrefix'
+import { platform } from 'process'
 import {
   checkNpmPermissions,
   getDefaultNpmPrefix,
   getPermissionsCommand,
-} from '../utils/autoUpdater.js.js.js.js.js.js.js.js.js.js.js'
-import { saveGlobalConfig, getGlobalConfig } from '../utils/config.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
-import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
-import { PressEnterToContinue } from '../components/PressEnterToContinue.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/autoUpdater'
+import { saveGlobalConfig, getGlobalConfig } from '../utils/config'
+import { logEvent } from '../services/statsig'
+import { PRODUCT_NAME } from '../constants/product'
+import { PressEnterToContinue } from '../components/PressEnterToContinue'
 
 type Props = {
   onDone: () => void

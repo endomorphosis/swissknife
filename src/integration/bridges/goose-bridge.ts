@@ -5,9 +5,9 @@
  * This is part of the Phase 1 clean room reimplementation of Goose features.
  */
 
-import { IntegrationBridge } from '../registry.js';
-import { LogManager } from '../../utils/logging/manager.js';
-import { ConfigurationManager } from '../../config/manager.js';
+import { IntegrationBridge } from '../registry';
+import { LogManager } from '../utils/logging/manager';
+import { ConfigurationManager } from '../config/manager';
 
 export interface GooseBridgeConfig {
   endpoint?: string;

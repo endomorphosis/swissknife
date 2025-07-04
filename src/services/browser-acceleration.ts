@@ -3,7 +3,7 @@
  * adapting logic from the ipfs_accelerate_js library.
  */
 import { HardwareAbstraction } from './hardware-abstraction.js'; // Assuming this will be created based on the plan
-import { BrowserCapabilities } from '../types/hardware.js'; // Assuming this will be created based on the plan
+import { BrowserCapabilities } from '../types/hardware'; // Assuming this will be created based on the plan
 
 export class BrowserAccelerator {
   // Note: The HardwareAbstraction dependency assumes it will be created later as per the plan.

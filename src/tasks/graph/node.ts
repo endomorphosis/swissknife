@@ -17,7 +17,11 @@ export enum GoTNodeType {
   ERROR = 'error',
   INTERMEDIATE = 'intermediate',
   HYPOTHESIS = 'hypothesis',
-  SYNTHESIS = 'synthesis'
+  SYNTHESIS = 'synthesis',
+  THOUGHT = 'thought',
+  DECISION = 'decision',
+  ACTION = 'action',
+  RESULT = 'result'
 }
 
 // Node status enum

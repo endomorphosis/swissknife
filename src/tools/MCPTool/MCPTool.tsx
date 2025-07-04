@@ -1,11 +1,11 @@
-import { Box, Text } from 'ink.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { z } from 'zod.js.js.js.js.js'
-import { FallbackToolUseRejectedMessage } from '../../components/FallbackToolUseRejectedMessage.js.js.js.js.js.js.js.js.js.js.js'
-import { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js.js'
-import { DESCRIPTION, PROMPT } from './prompt.js.js.js.js.js.js.js.js.js.js.js'
-import { OutputLine } from '../BashTool/OutputLine.js.js.js.js.js.js.js.js.js.js.js'
+import { Box, Text } from 'ink'
+import * as React from 'react'
+import { z } from 'zod'
+import { FallbackToolUseRejectedMessage } from '@/components/FallbackToolUseRejectedMessage'
+import { Tool } from '../Tool'
+import { getTheme } from '@/utils/theme'
+import { DESCRIPTION, PROMPT } from './prompt.js'
+import { OutputLine } from '@/tools/BashTool/OutputLine'
 
 // Allow any input object since MCP tools define their own schemas
 const inputSchema = z.object({}).passthrough()

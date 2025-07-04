@@ -1,7 +1,7 @@
-import * as React from 'react.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { Text } from 'ink.js.js.js.js.js'
-import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
+import * as React from 'react'
+import { getTheme } from '../utils/theme'
+import { Text } from 'ink'
+import { PRODUCT_NAME } from '../constants/product'
 
 export function FallbackToolUseRejectedMessage(): React.ReactNode {
   return (

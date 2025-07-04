@@ -1,6 +1,6 @@
-import { MACRO } from '../constants/macros.js';
-import type { Command, LocalCommand, CommandOption } from '../types/command.js'; // Updated import path
-import { RELEASE_NOTES } from '../constants/releaseNotes.js'; // Assuming .js extension
+import { MACRO } from '../constants/macros';
+import type { Command, LocalCommand, CommandOption } from '../types/command'; // Updated import path
+import { RELEASE_NOTES } from '../constants/releaseNotes'; // Assuming .js extension
 
 const releaseNotesCommand: LocalCommand = {
   description: 'Show release notes for the current or specified version',

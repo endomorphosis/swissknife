@@ -4,9 +4,9 @@
  * Manages application configuration settings with singleton pattern
  */
 
-import * as fs from 'fs/promises.js';
-import * as path from 'path.js';
-import * as os from 'os.js';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import * as os from 'os';
 
 // Configuration file paths
 const CONFIG_DIR = path.join(os.homedir(), '.swissknife');

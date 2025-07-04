@@ -1,5 +1,5 @@
-import { useEffect } from 'react.js'
-import { logEvent } from '../services/statsig.js'
+import { useEffect } from 'react'
+import { logEvent } from '../services/statsig'
 
 export function useLogStartupTime(): void {
   useEffect(() => {

@@ -1,10 +1,10 @@
-import React from 'react.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
+import React from 'react'
+import { Box, Text } from 'ink'
+import { getGlobalConfig, saveGlobalConfig } from '../utils/config'
+import { getTheme } from '../utils/theme'
 import { Select } from '@inkjs/ui'
-import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD.js.js.js.js.js.js.js.js.js.js'
-import chalk from 'chalk.js.js.js.js.js'
+import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD'
+import chalk from 'chalk'
 
 type Props = {
   customApiKeyTruncated: string

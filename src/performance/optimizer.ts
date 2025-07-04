@@ -1,7 +1,7 @@
 import { performance } from 'perf_hooks';
-import { TaskManager } from '../tasks/manager.js';
-import { IPFSKitClient } from '../ipfs/client.js';
-import { Agent } from '../ai/agent/agent.js';
+import { TaskManager } from '../tasks/manager';
+import { IPFSKitClient } from '../ipfs/client';
+import { Agent } from '../ai/agent/agent';
 
 export class PerformanceOptimizer {
   private taskManager: TaskManager;

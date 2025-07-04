@@ -1,5 +1,5 @@
-import chalk from 'chalk.js'
-import { useEffect } from 'react.js'
+import chalk from 'chalk'
+import { useEffect } from 'react'
 import { formatDuration } from './utils/format.js'
 import {
   getCurrentProjectConfig,

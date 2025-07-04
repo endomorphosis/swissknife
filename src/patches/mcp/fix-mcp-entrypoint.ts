@@ -6,34 +6,34 @@
  * 3. Proper imports to support JSX
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js'
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { Server } from '@modelcontextprotocol/sdk/server/index'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio'
 import {
   CallToolRequestSchema,
   CallToolResultSchema,
   ListToolsRequestSchema,
   ListToolsResultSchema,
   ToolSchema,
-} from '@modelcontextprotocol/sdk/types.js'
-import { z } from 'zod.js'
-import { zodToJsonSchema } from 'zod-to-json-schema.js'
-import { AgentTool } from '../tools/AgentTool/AgentTool.js'
-import { hasPermissionsToUseTool } from '../permissions.js'
-import { setCwd } from '../utils/state.js'
-import { getSlowAndCapableModel } from '../utils/model.js'
-import { logError } from '../utils/log.js'
-import { LSTool } from '../tools/lsTool/lsTool.js'
-import { BashTool } from '../tools/BashTool/BashTool.js'
-import { FileEditTool } from '../tools/FileEditTool/FileEditTool.js'
-import { FileReadTool } from '../tools/FileReadTool/FileReadTool.js'
-import { GlobTool } from '../tools/GlobTool/GlobTool.js'
-import { GrepTool } from '../tools/GrepTool/GrepTool.js'
-import { FileWriteTool } from '../tools/FileWriteTool/FileWriteTool.js'
-import { Tool } from '../Tool.js'
-import { Command } from '../commands.js'
-import review from '../commands/review.js'
-import { lastX } from '../utils/generators.js'
-import { MACRO } from '../constants/macros.js'
+} from '@modelcontextprotocol/sdk/types'
+import { z } from 'zod'
+import { zodToJsonSchema } from 'zod-to-json-schema'
+import { AgentTool } from '../tools/AgentTool/AgentTool'
+import { hasPermissionsToUseTool } from '../permissions'
+import { setCwd } from '../utils/state'
+import { getSlowAndCapableModel } from '../utils/model'
+import { logError } from '../utils/log'
+import { LSTool } from '../tools/lsTool/lsTool'
+import { BashTool } from '../tools/BashTool/BashTool'
+import { FileEditTool } from '../tools/FileEditTool/FileEditTool'
+import { FileReadTool } from '../tools/FileReadTool/FileReadTool'
+import { GlobTool } from '../tools/GlobTool/GlobTool'
+import { GrepTool } from '../tools/GrepTool/GrepTool'
+import { FileWriteTool } from '../tools/FileWriteTool/FileWriteTool'
+import { Tool } from '../Tool'
+import { Command } from '../commands'
+import review from '../commands/review'
+import { lastX } from '../utils/generators'
+import { MACRO } from '../constants/macros'
 type ToolInput = z.infer<typeof ToolSchema.shape.inputSchema>
 
 const state: {

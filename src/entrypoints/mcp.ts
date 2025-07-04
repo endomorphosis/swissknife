@@ -5,7 +5,7 @@
  * It uses the MCPServerController to manage the server lifecycle.
  */
 
-import { MCPServerController } from '../patches/mcp/mcp-server-controller.js';
+import { MCPServerController } from '../patches/mcp/mcp-server-controller';
 
 // Import patches first to ensure they're applied
 import '../patches/index';

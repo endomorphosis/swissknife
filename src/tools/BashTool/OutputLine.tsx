@@ -1,8 +1,8 @@
-import { Box, Text } from 'ink.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { MAX_RENDERED_LINES } from './prompt.js.js.js.js.js.js.js.js.js.js'
-import chalk from 'chalk.js.js.js.js.js'
+import { Box, Text } from 'ink'
+import * as React from 'react'
+import { getTheme } from '../utils/theme'
+import { MAX_RENDERED_LINES } from './prompt.js'
+import chalk from 'chalk'
 
 function renderTruncatedContent(content: string, totalLines: number): string {
   const allLines = content.split('\n')

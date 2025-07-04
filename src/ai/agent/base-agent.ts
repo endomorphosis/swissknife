@@ -15,14 +15,15 @@ import {
   ToolCall, 
   ToolContext,
   ThinkingState 
-} from '../types.js';
-import { GoTManager } from '../../tasks/graph/manager.js';
-import { LogManager } from '../../utils/logging/manager.js';
-import { ModelRegistry } from '../models/registry.js';
+} from '../types';
+import { GoTManager } from '../tasks/graph/manager';
+import { GoTNodeType, GoTNodeStatus } from '../tasks/graph/node';
+import { LogManager } from '../utils/logging/manager';
+import { ModelRegistry } from '../models/registry';
 const modelRegistry = ModelRegistry.getInstance();
 const getModelProvider = (modelId: string) => modelRegistry.getModelProvider(modelId);
 
-import type { ModelSelector } from '../types.js';
+import type { ModelSelector } from '../types';
 
 export class BaseAIAgent implements AIAgent {
   private tools: Map<string, Tool> = new Map();
@@ -204,7 +205,7 @@ export class BaseAIAgent implements AIAgent {
       
       // Create the root question node
       const rootNode = this.gotManager.createNode(graphId, {
-        type: 'question',
+        type: GoTNodeType.QUESTION,
         content: question,
         data: {
           conversationId: context.conversationId,
@@ -254,43 +255,43 @@ export class BaseAIAgent implements AIAgent {
       
       // Based on the current node type, determine the next step
       switch (currentNode.type) {
-        case 'question':
+        case GoTNodeType.QUESTION:
           // For a question node, create thought nodes to decompose the problem
           await this.decomposeQuestion(state, context);
           break;
           
-        case 'thought':
+        case GoTNodeType.THOUGHT:
           // For a thought node, either create sub-thoughts or reach a conclusion
           await this.processThought(state, context);
           break;
           
-        case 'task':
+        case GoTNodeType.TASK:
           // For a task node, execute the task and store the result
           await this.executeTask(state, context);
           break;
           
-        case 'decision':
+        case GoTNodeType.DECISION:
           // For a decision node, make a decision and create next steps
           await this.makeDecision(state, context);
           break;
           
-        case 'action':
+        case GoTNodeType.ACTION:
           // For an action node, execute the action
           await this.executeAction(state, context);
           break;
           
-        case 'result':
+        case GoTNodeType.RESULT:
           // For a result node, analyze the result
           await this.analyzeResult(state, context);
           break;
           
-        case 'answer':
+        case GoTNodeType.ANSWER:
           // For an answer node, mark as completed
           state.completed = true;
           state.conclusions.push(currentNode.content);
           break;
           
-        case 'error':
+        case GoTNodeType.ERROR:
           // For an error node, attempt recovery or mark as completed
           await this.handleError(state, context);
           break;
@@ -302,7 +303,7 @@ export class BaseAIAgent implements AIAgent {
         this.logger.error('Error continuing thinking process', error);
         
         const errorNode = this.gotManager.createNode(state.graphId, {
-          type: 'error',
+          type: GoTNodeType.ERROR,
           content: `Error: ${error.message}`,
           parentIds: [state.currentNodeId],
           data: { 
@@ -377,7 +378,7 @@ Format your response as a JSON array of objects with 'aspect' and 'explanation' 
       
       // Fallback: Create a single thought node with the entire response
       const thoughtNode = this.gotManager.createNode(state.graphId, {
-        type: 'thought',
+        type: GoTNodeType.THOUGHT,
         content: response.content,
         parentIds: [state.currentNodeId]
       });
@@ -390,7 +391,7 @@ Format your response as a JSON array of objects with 'aspect' and 'explanation' 
     // Create thought nodes for each aspect
     for (const aspect of aspects) {
       const thoughtNode = this.gotManager.createNode(state.graphId, {
-        type: 'thought',
+        type: GoTNodeType.THOUGHT,
         content: aspect.aspect,
         parentIds: [state.currentNodeId],
         data: {
@@ -469,7 +470,7 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
       
       // Fallback: Create a conclusion node with the entire response
       const conclusionNode = this.gotManager.createNode(state.graphId, {
-        type: 'answer',
+        type: GoTNodeType.ANSWER,
         content: response.content,
         parentIds: [state.currentNodeId]
       });
@@ -487,7 +488,7 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
         
         for (const subThought of subThoughts) {
           const subThoughtNode = this.gotManager.createNode(state.graphId, {
-            type: 'thought',
+            type: GoTNodeType.THOUGHT,
             content: typeof subThought === 'string' ? subThought : JSON.stringify(subThought),
             parentIds: [state.currentNodeId]
           });
@@ -500,7 +501,7 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
         
         for (const task of tasks) {
           const taskNode = this.gotManager.createNode(state.graphId, {
-            type: 'task',
+            type: GoTNodeType.TASK,
             content: typeof task === 'string' ? task : JSON.stringify(task),
             parentIds: [state.currentNodeId]
           });
@@ -514,7 +515,7 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
           : JSON.stringify(analysis.content);
           
         const conclusionNode = this.gotManager.createNode(state.graphId, {
-          type: 'answer',
+          type: GoTNodeType.ANSWER,
           content: conclusion,
           parentIds: [state.currentNodeId]
         });
@@ -525,14 +526,14 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
       default:
         // Create a general follow-up node with the response content
         const followUpNode = this.gotManager.createNode(state.graphId, {
-          type: 'thought',
+          type: GoTNodeType.THOUGHT,
           content: response.content,
           parentIds: [state.currentNodeId]
         });
     }
     
     // Mark the current thought node as completed
-    this.gotManager.updateNodeStatus(state.currentNodeId, 'completed');
+    this.gotManager.updateNodeStatus(state.currentNodeId, GoTNodeStatus.COMPLETED);
     
     // Update the current node to the next ready node
     const readyNodes = this.gotManager.getReadyNodes(state.graphId);
@@ -540,7 +541,7 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
       state.currentNodeId = readyNodes[0].id;
     } else {
       // If no ready nodes, check if there are any answer nodes
-      const answerNodes = this.gotManager.getNodesByType(state.graphId, 'answer');
+      const answerNodes = this.gotManager.getNodesByType(state.graphId, GoTNodeType.ANSWER);
       if (answerNodes.length > 0) {
         state.currentNodeId = answerNodes[0].id;
         state.completed = true;
@@ -561,7 +562,7 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
     
     // Create a result node to store the task result
     const resultNode = this.gotManager.createNode(state.graphId, {
-      type: 'result',
+      type: GoTNodeType.RESULT,
       content: `Result for task: ${taskNode.content}`,
       parentIds: [state.currentNodeId],
       data: {
@@ -572,7 +573,7 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
     });
     
     // Mark the task as completed
-    this.gotManager.updateNodeStatus(state.currentNodeId, 'completed');
+    this.gotManager.updateNodeStatus(state.currentNodeId, GoTNodeStatus.COMPLETED);
     
     // Update the current node to the result node
     state.currentNodeId = resultNode.id;
@@ -591,13 +592,13 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
     
     // Create an action node based on the decision
     const actionNode = this.gotManager.createNode(state.graphId, {
-      type: 'action',
+      type: GoTNodeType.ACTION,
       content: `Action based on decision: ${decisionNode.content}`,
       parentIds: [state.currentNodeId]
     });
     
     // Mark the decision as completed
-    this.gotManager.updateNodeStatus(state.currentNodeId, 'completed');
+    this.gotManager.updateNodeStatus(state.currentNodeId, GoTNodeStatus.COMPLETED);
     
     // Update the current node to the action node
     state.currentNodeId = actionNode.id;
@@ -616,7 +617,7 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
     
     // Create a result node to store the action result
     const resultNode = this.gotManager.createNode(state.graphId, {
-      type: 'result',
+      type: GoTNodeType.RESULT,
       content: `Result for action: ${actionNode.content}`,
       parentIds: [state.currentNodeId],
       data: {
@@ -627,7 +628,7 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
     });
     
     // Mark the action as completed
-    this.gotManager.updateNodeStatus(state.currentNodeId, 'completed');
+    this.gotManager.updateNodeStatus(state.currentNodeId, GoTNodeStatus.COMPLETED);
     
     // Update the current node to the result node
     state.currentNodeId = resultNode.id;
@@ -644,15 +645,15 @@ Format your response as a JSON object with 'action' (one of: 'break_down', 'crea
       throw new Error(`Result node not found: ${state.currentNodeId}`);
     }
     
-    // Create a thought node based on the result analysis
+    // Create a thought node based on the data analysis
     const thoughtNode = this.gotManager.createNode(state.graphId, {
-      type: 'thought',
+      type: GoTNodeType.THOUGHT,
       content: `Analysis of result: ${resultNode.content}`,
       parentIds: [state.currentNodeId]
     });
     
     // Mark the result as completed
-    this.gotManager.updateNodeStatus(state.currentNodeId, 'completed');
+    this.gotManager.updateNodeStatus(state.currentNodeId, GoTNodeStatus.COMPLETED);
     
     // Update the current node to the thought node
     state.currentNodeId = thoughtNode.id;

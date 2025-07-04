@@ -1,8 +1,8 @@
 // src/config/migration.ts
-import * as fs from 'fs/promises.js';
+import * as fs from 'fs/promises';
 // @ts-ignore
 import TOML from '@iarna/toml';
-import * as path from 'path.js';
+import * as path from 'path';
 
 /**
  * Migrates configuration from a TOML file to the JSON configuration.

@@ -1,30 +1,30 @@
-import { Hunk } from 'diff.js.js.js.js.js'
-import { existsSync, mkdirSync, readFileSync, statSync } from 'fs.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import { EOL } from 'os.js.js.js.js.js'
-import { dirname, extname, isAbsolute, relative, resolve, sep } from 'path.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { z } from 'zod.js.js.js.js.js'
-import { FileEditToolUpdatedMessage } from '../../components/FileEditToolUpdatedMessage.js.js.js.js.js.js.js.js.js.js'
-import { HighlightedCode } from '../../components/HighlightedCode.js.js.js.js.js.js.js.js.js.js'
-import { StructuredDiff } from '../../components/StructuredDiff.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../../services/statsig.js.js.js.js.js.js.js.js.js.js'
-import type { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { intersperse } from '../../utils/array.js.js.js.js.js.js.js.js.js.js'
+import { Hunk } from 'diff'
+import { existsSync, mkdirSync, readFileSync, statSync } from 'fs'
+import { Box, Text } from 'ink'
+import { EOL } from 'os'
+import { dirname, extname, isAbsolute, relative, resolve, sep } from 'path'
+import * as React from 'react'
+import { z } from 'zod'
+import { FileEditToolUpdatedMessage } from '@/components/FileEditToolUpdatedMessage'
+import { HighlightedCode } from '@/components/HighlightedCode'
+import { StructuredDiff } from '@/components/StructuredDiff'
+import { logEvent } from '@/services/statsig'
+import type { Tool } from '@/Tool'
+import { intersperse } from '@/utils/array'
 import {
   addLineNumbers,
   detectFileEncoding,
   detectLineEndings,
   detectRepoLineEndings,
   writeTextContent,
-} from '../../utils/file.js.js.js.js.js.js.js.js.js.js.js'
-import { logError } from '../../utils/log.js.js.js.js.js.js.js.js.js.js'
-import { getCwd } from '../../utils/state.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { PROMPT } from './prompt.js.js.js.js.js.js.js.js.js.js'
-import { hasWritePermission } from '../../utils/permissions/filesystem.js.js.js.js.js.js.js.js.js.js'
-import { getPatch } from '../../utils/diff.js.js.js.js.js.js.js.js.js.js'
-import { PROJECT_FILE } from '../../constants/product.js.js.js.js.js.js.js.js.js.js'
+} from '@/utils/file'
+import { logError } from '@/utils/log'
+import { getCwd } from '@/utils/state'
+import { getTheme } from '@/utils/theme'
+import { PROMPT } from './prompt.js'
+import { hasWritePermission } from '@/utils/permissions/filesystem'
+import { getPatch } from '@/utils/diff'
+import { PROJECT_FILE } from '@/constants/product'
 
 const MAX_LINES_TO_RENDER = 10
 const MAX_LINES_TO_RENDER_FOR_ASSISTANT = 16000

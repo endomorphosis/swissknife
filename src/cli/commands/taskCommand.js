@@ -4,7 +4,7 @@
  * This module provides commands for managing tasks through the CLI interface.
  */
 
-import { TaskManager } from '../../tasks/manager.js';
+import { TaskManager } from '../tasks/manager';
 
 export class TaskCommand {
   constructor() {

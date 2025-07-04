@@ -1,10 +1,10 @@
-import { Command } from '../commands.js.js.js.js.js.js.js.js.js.js'
-import { PRODUCT_COMMAND, PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { Box, Text, useInput } from 'ink.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { PressEnterToContinue } from './PressEnterToContinue.js.js.js.js.js.js.js.js.js.js'
-import { MACRO } from '../constants/macros.js.js.js.js.js.js.js.js.js.js'
+import { Command } from '../commands'
+import { PRODUCT_COMMAND, PRODUCT_NAME } from '../constants/product'
+import * as React from 'react'
+import { Box, Text, useInput } from 'ink'
+import { getTheme } from '../utils/theme'
+import { PressEnterToContinue } from './PressEnterToContinue.js'
+import { MACRO } from '../constants/macros'
 export function Help({
   commands,
   onClose,

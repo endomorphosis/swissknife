@@ -2,7 +2,7 @@
  * AI Chat App for SwissKnife Web Desktop
  */
 
-export class AIChatApp {
+window.AIChatApp = class AIChatApp {
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;

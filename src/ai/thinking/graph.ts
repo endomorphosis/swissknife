@@ -1,16 +1,16 @@
 // src/ai/thinking/graph.ts
 import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is installed
-import { ThoughtNodeType, TaskStatus } from '../../types/task'; // Unified enums
+import { GoTNodeType, GoTNodeStatus } from '../tasks/graph/node'; // Unified enums
 
 // NodeType and NodeStatus enums are now imported from types/task.js
 
 export interface ThoughtNode {
   id: string;
   content: string;
-  type: ThoughtNodeType; // Unified
+  type: GoTNodeType; // Unified
   children: string[];
   parents: string[]; // Added for Phase 3 (DAGs, explicit parent tracking)
-  status: TaskStatus; // Unified
+  status: GoTNodeStatus; // Unified
   result?: any;
   contentCid?: string; // For IPFS/IPLD integration (Phase 3)
   resultCid?: string;  // For IPFS/IPLD integration (Phase 3)
@@ -40,19 +40,19 @@ export class ThoughtGraph {
 
   addNode(
     content: string,
-    type: ThoughtNodeType, // Unified
+    type: GoTNodeType, // Unified
     metadata?: Record<string, any>,
     id?: string
   ): ThoughtNode {
     const nodeId = id || uuidv4();
-    const now = Date.now();
+    const now = Date.now(); // Fixed typo
     const node: ThoughtNode = {
       id: nodeId,
       content,
       type,
       children: [],
           parents: [],
-          status: TaskStatus.PENDING, // Unified
+          status: GoTNodeStatus.PENDING, // Unified
           // contentCid and resultCid will be set if/when content/result is stored in IPFS
           metadata: metadata || {},
           createdAt: now,
@@ -266,22 +266,22 @@ export class ThoughtGraph {
       return undefined;
     }
     node.result = result;
-    node.status = TaskStatus.COMPLETED; // Unified
+    node.status = GoTNodeStatus.COMPLETED; // Unified
     node.error = undefined; // Clear error on successful completion
     node.updatedAt = Date.now();
     return { ...node };
   }
 
-  setNodeStatus(nodeId: string, status: TaskStatus, error?: string): ThoughtNode | undefined { // Unified
+  setNodeStatus(nodeId: string, status: GoTNodeStatus, error?: string): ThoughtNode | undefined { // Unified
     const node = this.nodes.get(nodeId);
     if (!node) {
       return undefined;
     }
     node.status = status; // Unified
     node.updatedAt = Date.now();
-    if (status === TaskStatus.FAILED) { // Unified
+    if (status === GoTNodeStatus.FAILED) { // Unified
       node.error = error;
-    } else if (status === TaskStatus.COMPLETED) { // Unified
+    } else if (status === GoTNodeStatus.COMPLETED) { // Unified
       node.error = undefined; // Clear error if manually set to completed
     }
     return { ...node };
@@ -311,10 +311,10 @@ export class ThoughtGraph {
         const node: ThoughtNode = {
           id: nodeData.id,
           content: nodeData.content,
-          type: nodeData.type,
+          type: nodeData.type as GoTNodeType, // Cast to GoTNodeType
           children: nodeData.children || [],
           parents: nodeData.parents || [],
-          status: nodeData.status || TaskStatus.PENDING, // Unified
+          status: nodeData.status as GoTNodeStatus || GoTNodeStatus.PENDING, // Unified
           result: nodeData.result,
           contentCid: nodeData.contentCid,
           resultCid: nodeData.resultCid,

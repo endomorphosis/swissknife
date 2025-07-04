@@ -1,6 +1,6 @@
-import { useInput } from 'ink.js'
+import { useInput } from 'ink'
 import { useDoublePress } from './useDoublePress.js'
-import { useState } from 'react.js'
+import { useState } from 'react'
 
 type ExitState = {
   pending: boolean

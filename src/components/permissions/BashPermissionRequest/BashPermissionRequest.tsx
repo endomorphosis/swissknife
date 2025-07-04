@@ -1,18 +1,18 @@
-import { Box, Text } from 'ink.js.js.js.js.js'
-import React, { useMemo } from 'react.js.js.js.js.js'
-import { UnaryEvent } from '../../../hooks/usePermissionRequestLogging.js.js.js.js.js.js.js.js.js.js'
-import { savePermission } from '../../../permissions.js.js.js.js.js.js.js.js.js.js'
-import { BashTool } from '../../../tools/BashTool/BashTool.js.js.js.js.js.js.js.js.js.js'
-import { getTheme } from '../../../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { usePermissionRequestLogging } from '../hooks.js.js.js.js.js.js.js.js.js.js'
+import { Box, Text } from 'ink'
+import React, { useMemo } from 'react'
+import { UnaryEvent } from '../hooks/usePermissionRequestLogging'
+import { savePermission } from '../permissions'
+import { BashTool } from '../tools/BashTool/BashTool'
+import { getTheme } from '../utils/theme'
+import { usePermissionRequestLogging } from '../hooks'
 import {
   type ToolUseConfirm,
   toolUseConfirmGetPrefix,
-} from '../PermissionRequest.js.js.js.js.js.js.js.js.js.js.js'
-import { PermissionRequestTitle } from '../PermissionRequestTitle.js.js.js.js.js.js.js.js.js.js'
-import { logUnaryPermissionEvent } from '../utils.js.js.js.js.js.js.js.js.js.js'
-import { Select } from '../../CustomSelect/select.js.js.js.js.js.js.js.js.js.js'
-import { toolUseOptions } from '../toolUseOptions.js.js.js.js.js.js.js.js.js.js'
+} from '../PermissionRequest'
+import { PermissionRequestTitle } from '../PermissionRequestTitle'
+import { logUnaryPermissionEvent } from '../utils'
+import { Select } from '../CustomSelect/select'
+import { toolUseOptions } from '../toolUseOptions'
 
 type Props = {
   toolUseConfirm: ToolUseConfirm

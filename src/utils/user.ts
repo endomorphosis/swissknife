@@ -4,7 +4,7 @@ import { env } from './env.js'
 import { type StatsigUser } from '@statsig/js-client'
 import { execFileNoThrow } from './execFileNoThrow.js'
 import { logError, SESSION_ID } from './log.js'
-import { MACRO } from '../constants/macros.js'
+import { MACRO } from '../constants/macros'
 export const getGitEmail = memoize(async (): Promise<string | undefined> => {
   const result = await execFileNoThrow('git', ['config', 'user.email'])
   if (result.code !== 0) {

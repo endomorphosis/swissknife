@@ -1,4 +1,4 @@
-import { z, ZodType } from 'zod.js';
+import { z, ZodType } from 'zod';
 import { ToolOutput, ToolExecutionContext } from './types/ai.js';
 
 export interface Tool<T extends ZodType = ZodType> {

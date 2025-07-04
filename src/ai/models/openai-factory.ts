@@ -2,9 +2,9 @@
 
 import { BaseModel, ModelOptions, ModelCapabilities } from './model.js';
 import { OpenAIModel, OpenAIModelOptions } from './openai-model.js';
-import { ModelRegistry } from '../../models/registry.js';
-import { logger } from '../../utils/logger.js';
-import { ConfigurationManager } from '../../config/manager.js';
+import { ModelRegistry } from '../models/registry';
+import { logger } from '../utils/logger';
+import { ConfigManager } from '../config/manager'; // Import the class directly
 
 /**
  * Types of OpenAI models available
@@ -20,11 +20,11 @@ export enum OpenAIModelType {
  */
 export class OpenAIModelFactory {
   private registry: ModelRegistry;
-  private config: ConfigurationManager;
+  private config: ConfigManager; // Type as the instance
   
   constructor() {
     this.registry = ModelRegistry.getInstance();
-    this.config = ConfigurationManager.getInstance();
+    this.config = ConfigManager.getInstance(); // Use ConfigManager directly
   }
   
   /**

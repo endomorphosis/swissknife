@@ -1,8 +1,8 @@
-import * as React from 'react.js.js.js.js.js';
-import type { Command, LocalJSXCommand } from '../types/command.js.js.js.js.js.js.js.js.js.js.js'; // Updated import path
-import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-import { clearTerminal } from '../utils/terminal.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-import { Text } from 'ink.js.js.js.js.js';
+import * as React from 'react';
+import type { Command, LocalJSXCommand } from '../types/command'; // Updated import path
+import { getGlobalConfig, saveGlobalConfig } from '../utils/config'; // Assuming .js extension
+import { clearTerminal } from '../utils/terminal'; // Assuming .js extension
+import { Text } from 'ink';
 
 const logoutCommand: LocalJSXCommand = {
   type: 'local-jsx',

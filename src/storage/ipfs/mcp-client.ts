@@ -5,11 +5,11 @@
  * which provides IPFS and content-addressable storage capabilities.
  */
 
-import axios, { AxiosInstance } from 'axios.js';
-import { ConfigManager } from '../../config/manager.js';
-import { logger } from '../../utils/logger.js';
-import { CID } from '../../types/common.js';
-import { ListOptions, StorageItemMetadata } from '../../types/storage.js';
+import axios, { AxiosInstance } from 'axios';
+import { ConfigManager } from '../config/manager';
+import { logger } from '../utils/logger';
+import { CID } from '../types/common';
+import { ListOptions, StorageItemMetadata } from '../types/storage';
 
 // MCP Client configuration options
 export interface MCPClientConfig {
@@ -58,7 +58,7 @@ export class MCPClient {
     const configManager = ConfigManager.getInstance();
     
     this.config = {
-      baseUrl: config?.baseUrl || configManager.get('storage.mcp.baseUrl', 'http://localhost:5001'),
+      baseUrl: (config?.baseUrl || configManager.get('storage.mcp.baseUrl', 'http://localhost:5001')) as string,
       timeout: config?.timeout || configManager.get('storage.mcp.timeout', 30000),
       apiKey: config?.apiKey || configManager.get('storage.mcp.apiKey', ''),
       namespace: config?.namespace || configManager.get('storage.mcp.namespace', 'swissknife')
@@ -288,7 +288,7 @@ export class MCPClient {
       
       // Convert base64 blocks back to Buffer
       for (const [cid, data] of Object.entries(blocks)) {
-        decodedBlocks[cid] = Buffer.from(data, 'base64');
+        decodedBlocks[cid] = Buffer.from(data as string, 'base64');
       }
       
       return {

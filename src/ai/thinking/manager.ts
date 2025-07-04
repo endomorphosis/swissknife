@@ -1,7 +1,7 @@
 // src/ai/thinking/manager.ts
 import { ThoughtGraph, ThoughtNode } from './graph.js';
-import { ThoughtNodeType, TaskStatus } from '../../types/task.js'; // Import unified enums
-import { IModel, Tool } from '../../types/ai.js'; // Use IModel interface and Zod-based Tool
+import { GoTNodeType, GoTNodeStatus } from '../tasks/graph/node'; // Import unified enums
+import { IModel, Tool } from '../types/ai'; // Use IModel interface and Zod-based Tool
 import { v4 as uuidv4 } from 'uuid';
 
 // Placeholder for LLM interaction result
@@ -55,7 +55,7 @@ export class ThinkingManager {
 
   private async _isNodeReady(nodeId: string, graph: ThoughtGraph): Promise<boolean> {
     const node = graph.getNode(nodeId);
-    if (!node || node.status !== TaskStatus.PENDING) { // Use TaskStatus
+    if (!node || node.status !== GoTNodeStatus.PENDING) { // Use GoTNodeStatus
       return false; // Only pending nodes can become ready
     }
     if (node.parents.length === 0) {
@@ -63,7 +63,7 @@ export class ThinkingManager {
     }
     for (const parentId of node.parents) {
       const parentNode = graph.getNode(parentId);
-      if (!parentNode || parentNode.status !== TaskStatus.COMPLETED) { // Use TaskStatus
+      if (!parentNode || parentNode.status !== GoTNodeStatus.COMPLETED) { // All parents must be completed
         return false; // All parents must be completed
       }
     }
@@ -86,15 +86,15 @@ export class ThinkingManager {
     while(changedInIteration) {
         changedInIteration = false;
         for (const currentNode of processingOrder) {
-            if (currentNode.status === TaskStatus.PENDING) { // Use TaskStatus
+            if (currentNode.status === GoTNodeStatus.PENDING) { // Use GoTNodeStatus
                 if (await this._isNodeReady(currentNode.id, graph)) {
-                    graph.setNodeStatus(currentNode.id, TaskStatus.SCHEDULED); // Changed READY to SCHEDULED
+                    graph.setNodeStatus(currentNode.id, GoTNodeStatus.PENDING); // Changed to PENDING, as SCHEDULED is not in GoTNodeStatus
                     changedInIteration = true;
                 }
             }
 
-            if (currentNode.status === TaskStatus.SCHEDULED) { // Changed READY to SCHEDULED
-                graph.setNodeStatus(currentNode.id, TaskStatus.PROCESSING); // Changed IN_PROGRESS to PROCESSING
+            if (currentNode.status === GoTNodeStatus.PENDING) { // Changed to PENDING
+                graph.setNodeStatus(currentNode.id, GoTNodeStatus.IN_PROGRESS); // Changed to IN_PROGRESS
                 changedInIteration = true; // Status changed
 
                 try {
@@ -111,36 +111,36 @@ export class ThinkingManager {
                     };
 
                     switch (nodeToProcess.type) {
-                        case ThoughtNodeType.QUESTION: // Use ThoughtNodeType
+                        case GoTNodeType.QUESTION: // Use GoTNodeType
                             result = await this._processQuestionNode(processorInput);
                             break;
-                        case ThoughtNodeType.HYPOTHESIS: // Use ThoughtNodeType
+                        case GoTNodeType.HYPOTHESIS: // Use GoTNodeType
                             result = await this._processHypothesisNode(processorInput);
                             break;
-                        case ThoughtNodeType.RESEARCH: // Use ThoughtNodeType
+                        case GoTNodeType.RESEARCH: // Use GoTNodeType
                             result = await this._processResearchNode(processorInput);
                             break;
-                        case ThoughtNodeType.ANALYSIS: // Use ThoughtNodeType
+                        case GoTNodeType.ANALYSIS: // Use GoTNodeType
                             result = await this._processAnalysisNode(processorInput);
                             break;
-                        case ThoughtNodeType.CONCLUSION: // Use ThoughtNodeType
+                        case GoTNodeType.ANSWER: // Use GoTNodeType.ANSWER for CONCLUSION
                             result = await this._processConclusionNode(processorInput);
                             break;
-                        case ThoughtNodeType.DECOMPOSITION: // Use ThoughtNodeType
+                        case GoTNodeType.THOUGHT: // Use GoTNodeType.THOUGHT for DECOMPOSITION
                             result = await this._processDecompositionNode(processorInput);
                             break;
-                        case ThoughtNodeType.SYNTHESIS: // Use ThoughtNodeType
+                        case GoTNodeType.SYNTHESIS: // Use GoTNodeType
                             result = await this._processSynthesisNode(processorInput);
                             break;
                         default:
                             console.warn(`Unknown node type: ${nodeToProcess.type}`);
-                            graph.setNodeStatus(nodeToProcess.id, TaskStatus.FAILED, `Unknown node type: ${nodeToProcess.type}`); // Use TaskStatus
+                            graph.setNodeStatus(nodeToProcess.id, GoTNodeStatus.FAILED, `Unknown node type: ${nodeToProcess.type}`); // Use GoTNodeStatus
                             continue;
                     }
                     graph.setNodeResult(nodeToProcess.id, result);
                 } catch (error: any) {
                     console.error(`Error processing node ${currentNode.id}:`, error);
-                    graph.setNodeStatus(currentNode.id, TaskStatus.FAILED, error.message || 'Unknown error'); // Use TaskStatus
+                    graph.setNodeStatus(currentNode.id, GoTNodeStatus.FAILED, error.message || 'Unknown error'); // Use GoTNodeStatus
                 }
                 changedInIteration = true; // Status changed to COMPLETED or FAILED
             }
@@ -307,7 +307,7 @@ export class ThinkingManager {
     // This logic might need to be more sophisticated, perhaps looking at specific
     // node types (e.g., RESEARCH nodes) or specific content patterns.
     graph.traverse((node: ThoughtNode, _depth: number) => {
-      if (node.status === TaskStatus.COMPLETED && node.result && typeof node.result.requestTool === 'string') { // Use TaskStatus
+      if (node.status === GoTNodeStatus.COMPLETED && node.result && typeof node.result.requestTool === 'string') { // Use GoTNodeStatus
         // A node's result might explicitly request a tool
         const toolName = node.result.requestTool;
         const toolArgs = node.result.toolArgs || {};
@@ -353,11 +353,11 @@ export class ThinkingManager {
     if (conclusionNodes.length > 0) {
         // Simple: take the first completed conclusion node's result
         finalContent = `Conclusion: ${JSON.stringify(conclusionNodes[0].result)}`;
-    } else if (rootNode && rootNode.status === TaskStatus.COMPLETED) { // Use TaskStatus
+    } else if (rootNode && rootNode.status === GoTNodeStatus.COMPLETED) { // Use GoTNodeStatus
         finalContent = `Result: ${JSON.stringify(rootNode.result)}`;
     } else {
         // Fallback: try to find any completed node
-        const completedNodes = graph.getAllNodes().filter((n: ThoughtNode) => n.status === TaskStatus.COMPLETED); // Use TaskStatus
+        const completedNodes = graph.getAllNodes().filter((n: ThoughtNode) => n.status === GoTNodeStatus.COMPLETED); // Use GoTNodeStatus
         if (completedNodes.length > 0) {
             finalContent = `Processed: ${JSON.stringify(completedNodes[completedNodes.length -1].result)}`;
         }

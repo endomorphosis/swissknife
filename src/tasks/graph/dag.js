@@ -3,7 +3,7 @@
  * JavaScript implementation of Directed Acyclic Graph (DAG)
  * This is a JavaScript version of the TypeScript DAG implementation
  */
-import { logger } from '../../utils/logger.js';
+import { logger } from '../utils/logger';
 
 /**
  * Represents a node within the DAG, storing the actual data

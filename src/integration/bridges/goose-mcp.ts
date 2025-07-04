@@ -2,8 +2,8 @@
  * Goose MCP Bridge - Bridge to the Goose MCP system
  */
 
-import { IntegrationBridge, SystemType } from '../registry.js';
-import { ConfigurationManager } from '../../config/manager.js';
+import { IntegrationBridge, SystemType } from '../registry';
+import { ConfigurationManager } from '../config/manager';
 
 /**
  * Configuration for the Goose MCP Bridge

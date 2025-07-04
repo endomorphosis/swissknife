@@ -7,8 +7,8 @@
 
 import { EventEmitter } from 'events';
 import { GoTNode, GoTNodeType, GoTNodeStatus } from './node.js';
-import { LogManager } from '../../utils/logging/manager.js';
-import { MCPClient } from '../../storage/ipfs/mcp-client.js';
+import { LogManager } from '../utils/logging/manager';
+import { MCPClient } from '../storage/ipfs/mcp-client';
 
 export class GoTManager extends EventEmitter {
   private static instance: GoTManager;
@@ -308,7 +308,8 @@ export class GoTManager extends EventEmitter {
           parentIds: [] // We'll represent these as IPLD links
         };
         
-        const { cid } = await this.mcpClient.addNode(nodeData);
+        const result = await this.mcpClient.addNode(nodeData);
+        const cid = result.cid;
         cidMap.set(node.id, cid);
       }
       
@@ -336,10 +337,11 @@ export class GoTManager extends EventEmitter {
         const nodeObj = await this.mcpClient.getNode(nodeCid);
         
         // Update the node with links
-        const { cid: updatedCid } = await this.mcpClient.addNode(
+        const result = await this.mcpClient.addNode(
           nodeObj.data,
           [...childLinks, ...parentLinks]
         );
+        const updatedCid = result.cid;
         
         // Update the CID map
         cidMap.set(node.id, updatedCid);
@@ -359,7 +361,8 @@ export class GoTManager extends EventEmitter {
         cid
       }));
       
-      const { cid: graphCid } = await this.mcpClient.addNode(graphMetadata, nodeLinks);
+      const result = await this.mcpClient.addNode(graphMetadata, nodeLinks);
+      const graphCid = result.cid;
       
       this.logger.info(`Persisted graph ${graphId} to IPFS`, { cid: graphCid });
       

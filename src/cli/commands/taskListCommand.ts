@@ -1,7 +1,7 @@
-import { Command, CommandExecutionContext } from '../../command-registry.js';
-import { TaskManager } from '../../tasks/manager.js'; 
-import { logger } from '../../utils/logger.js';
-import parse from 'yargs-parser.js'; 
+import { Command, CommandExecutionContext } from '../command-registry';
+import { TaskManager } from '../tasks/manager'; 
+import { logger } from '../utils/logger';
+import parse from 'yargs-parser'; 
 
 export class TaskListCommand implements Command {
   readonly name = 'task:list';

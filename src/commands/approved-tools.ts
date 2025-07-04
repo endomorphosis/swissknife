@@ -1,9 +1,9 @@
-import type { Command, LocalCommand, CommandOption } from '../types/command.js';
+import type { Command, LocalCommand, CommandOption } from '../types/command';
 import {
   handleListApprovedTools,
   handleRemoveApprovedTool,
 } from './approvedTools.js'; // Import handlers from the original file
-import { getCwd } from '../utils/state.js'; // Assuming getCwd exists
+import { getCwd } from '../utils/state'; // Assuming getCwd exists
 
 const listSubCommand: LocalCommand = {
   type: 'local',

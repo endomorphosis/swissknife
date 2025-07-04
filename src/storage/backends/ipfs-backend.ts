@@ -1,9 +1,9 @@
 // src/storage/backends/ipfs-backend.ts
 
-import { StorageBackend, DirEntry, FileStat } from '../backend.js';
-import { IPFSKitClient } from '../../ipfs/client.js';
-import { ConfigurationManager } from '../../config/manager.js';
-import { logger } from '../../utils/logger.js';
+import { StorageBackend, DirEntry, FileStat } from '../backend';
+import { IPFSKitClient } from '../ipfs/client';
+import { ConfigurationManager } from '../config/manager';
+import { logger } from '../utils/logger';
 
 /**
  * Storage backend for IPFS

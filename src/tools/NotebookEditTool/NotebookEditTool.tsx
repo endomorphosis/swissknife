@@ -1,21 +1,21 @@
-import { existsSync, readFileSync } from 'fs.js.js.js.js.js'
-import { Box, Text } from 'ink.js.js.js.js.js'
-import { extname, isAbsolute, relative, resolve } from 'path.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { z } from 'zod.js.js.js.js.js'
-import { FallbackToolUseRejectedMessage } from '../../components/FallbackToolUseRejectedMessage.js.js.js.js.js.js.js.js.js.js'
-import { HighlightedCode } from '../../components/HighlightedCode.js.js.js.js.js.js.js.js.js.js'
-import type { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js'
-import { NotebookCellType, NotebookContent } from '../../types/notebook.js.js.js.js.js.js.js.js.js.js'
+import { existsSync, readFileSync } from 'fs'
+import { Box, Text } from 'ink'
+import { extname, isAbsolute, relative, resolve } from 'path'
+import * as React from 'react'
+import { z } from 'zod'
+import { FallbackToolUseRejectedMessage } from '@/components/FallbackToolUseRejectedMessage'
+import { HighlightedCode } from '@/components/HighlightedCode'
+import type { Tool } from '@/Tool'
+import { NotebookCellType, NotebookContent } from '@/types/notebook'
 import {
   detectFileEncoding,
   detectLineEndings,
   writeTextContent,
-} from '../../utils/file.js.js.js.js.js.js.js.js.js.js.js'
-import { safeParseJSON } from '../../utils/json.js.js.js.js.js.js.js.js.js.js'
-import { getCwd } from '../../utils/state.js.js.js.js.js.js.js.js.js.js'
-import { DESCRIPTION, PROMPT } from './prompt.js.js.js.js.js.js.js.js.js.js'
-import { hasWritePermission } from '../../utils/permissions/filesystem.js.js.js.js.js.js.js.js.js.js'
+} from '@/utils/file'
+import { safeParseJSON } from '@/utils/json'
+import { getCwd } from '@/utils/state'
+import { DESCRIPTION, PROMPT } from './prompt.js'
+import { hasWritePermission } from '@/utils/permissions/filesystem'
 
 const inputSchema = z.strictObject({
   notebook_path: z

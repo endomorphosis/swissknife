@@ -1,4 +1,4 @@
-import { logEvent } from '../services/statsig.js'
+import { logEvent } from '../services/statsig'
 
 export type CompletionType =
   | 'str_replace_single'

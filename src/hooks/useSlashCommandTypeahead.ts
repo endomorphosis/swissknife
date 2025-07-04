@@ -1,6 +1,6 @@
-import { useInput } from 'ink.js'
-import { useState, useCallback } from 'react.js'
-import { Command, getCommand } from '../commands.js'
+import { useInput } from 'ink'
+import { useState, useCallback } from 'react'
+import { Command, getCommand } from '../commands'
 
 type Props = {
   commands: Command[]

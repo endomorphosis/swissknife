@@ -3,8 +3,8 @@ import {
   ToolExecutionContext,
   ToolInput,
   ToolOutput,
-} from '../../../types/ai.js'; // Use relative paths
-import { z } from 'zod.js'; // Import Zod
+} from '../types/ai'; // Use relative paths
+import { z } from 'zod'; // Import Zod
 
 // Define the Zod schema for the input
 const EchoInputSchema = z.object({

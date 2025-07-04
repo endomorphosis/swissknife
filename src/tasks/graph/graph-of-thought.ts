@@ -1,10 +1,10 @@
-import { GoTNode, GoTResult, ThoughtNodeType, TaskStatus } from '../../types/task.js';
-import { StorageProvider } from '../../types/storage.js';
-import { logger } from '../../utils/logger.js';
-import { FibonacciHeapScheduler } from '../scheduler/fibonacci-heap-scheduler.js'; 
+import { GoTNode, GoTResult, ThoughtNodeType, TaskStatus } from '../types/task';
+import { StorageProvider } from '../types/storage';
+import { logger } from '../utils/logger';
+import { FibonacciHeapScheduler } from '../scheduler/fibonacci-heap-scheduler'; 
 import { DirectedAcyclicGraph } from './dag.js'; 
-import { Agent } from '../../ai/agent/agent.js'; // Import Agent
-import { ModelGenerateInput } from '../../types/ai.js'; // Import ModelGenerateInput
+import { Agent } from '../ai/agent/agent'; // Import Agent
+import { ModelGenerateInput } from '../types/ai'; // Import ModelGenerateInput
 
 interface GoTEngineOptions {
   storage: StorageProvider;

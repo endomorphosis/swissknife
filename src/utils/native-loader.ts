@@ -1,7 +1,7 @@
 // src/utils/native-loader.ts
 
 import * as path from 'path';
-import { ConfigManager } from '../config/manager.js';
+import { ConfigManager } from '../config/manager';
 
 // Map of module names to loaded modules
 const loadedModules: Map<string, any> = new Map();

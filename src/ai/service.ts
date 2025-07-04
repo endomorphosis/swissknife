@@ -1,12 +1,12 @@
 // src/ai/service.ts
 
 import { Agent } from './agent/agent.js';
-import { ModelRegistry } from '../models/registry.js';
+import { ModelRegistry } from '../models/registry';
 import { OpenAIModelFactory } from './models/openai-factory.js';
-import { ConfigManager } from '../config/manager.js';
-import { logger } from '../utils/logger.js';
+import { ConfigManager } from '../config/manager';
+import { logger } from '../utils/logger';
 import { Tool } from './tools/tool.js';
-import { TaskManager } from '../tasks/manager.js';
+import { TaskManager } from '../tasks/manager';
 
 /**
  * Options for configuring the AI service

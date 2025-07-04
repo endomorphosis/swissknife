@@ -1,9 +1,9 @@
-import * as React from 'react.js.js.js.js.js';
-import type { Command, LocalJSXCommand } from '../types/command.js.js.js.js.js.js.js.js.js.js.js'; // Updated import path
-import { Onboarding } from '../components/Onboarding.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-import { clearTerminal } from '../utils/terminal.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-import { clearConversation } from './clear.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
+import * as React from 'react';
+import type { Command, LocalJSXCommand } from '../types/command';
+import { Onboarding } from '../components/Onboarding';
+import { clearTerminal } from '../utils/terminal';
+import { getGlobalConfig, saveGlobalConfig } from '../utils/config';
+import { clearConversation } from './clear.js';
 
 const onboardingCommand: LocalJSXCommand = {
   type: 'local-jsx',

@@ -1,8 +1,8 @@
 // src/models/registry.ts
 
-import { BaseModel } from '../ai/models/model.js';
-import { logger } from '../utils/logger.js';
-import { ConfigManager } from '../config/manager.js';
+import { BaseModel } from '../ai/models/model';
+import { logger } from '../utils/logger';
+import { ConfigManager } from '../config/manager';
 
 /**
  * Interface for model capabilities

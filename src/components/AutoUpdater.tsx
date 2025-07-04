@@ -1,18 +1,18 @@
-import { Box, Text } from 'ink.js.js.js.js.js'
-import * as React from 'react.js.js.js.js.js'
-import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { gte } from 'semver.js.js.js.js.js'
-import { useEffect, useState } from 'react.js.js.js.js.js'
-import { isAutoUpdaterDisabled } from '../utils/config.js.js.js.js.js.js.js.js.js.js'
+import { Box, Text } from 'ink'
+import * as React from 'react'
+import { getTheme } from '../utils/theme'
+import { gte } from 'semver'
+import { useEffect, useState } from 'react'
+import { isAutoUpdaterDisabled } from '../utils/config'
 import {
   AutoUpdaterResult,
   getLatestVersion,
   installGlobalPackage,
-} from '../utils/autoUpdater.js.js.js.js.js.js.js.js.js.js.js'
-import { useInterval } from '../hooks/useInterval.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
-import { MACRO } from '../constants/macros.js.js.js.js.js.js.js.js.js.js'
-import { PRODUCT_COMMAND } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
+} from '../utils/autoUpdater'
+import { useInterval } from '../hooks/useInterval'
+import { logEvent } from '../services/statsig'
+import { MACRO } from '../constants/macros'
+import { PRODUCT_COMMAND } from '../constants/product'
 type Props = {
   debug: boolean
   isUpdating: boolean

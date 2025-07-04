@@ -14,7 +14,7 @@ import { NotebookEditTool } from './tools/NotebookEditTool/NotebookEditTool.js'
 import { NotebookReadTool } from './tools/NotebookReadTool/NotebookReadTool.js'
 import { ThinkTool } from './tools/ThinkTool/ThinkTool.js'
 import { getMCPTools } from './services/mcpClient.js'
-import { memoize } from 'lodash-es.js'
+import { memoize } from 'lodash-es'
 
 const ANT_ONLY_TOOLS = [MemoryReadTool, MemoryWriteTool]
 

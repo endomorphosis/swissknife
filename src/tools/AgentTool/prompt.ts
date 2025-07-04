@@ -1,12 +1,12 @@
-import { type Tool } from '../../Tool.js'
-import { getTools, getReadOnlyTools } from '../../tools.js'
-import { AgentTool } from '../AgentTool/AgentTool.js'
-import { BashTool } from '../BashTool/BashTool.js'
-import { FileWriteTool } from '../FileWriteTool/FileWriteTool.js'
-import { FileEditTool } from '../FileEditTool/FileEditTool.js'
-import { NotebookEditTool } from '../NotebookEditTool/NotebookEditTool.js'
-import { GlobTool } from '../GlobTool/GlobTool.js'
-import { FileReadTool } from '../FileReadTool/FileReadTool.js'
+import { type Tool } from '@/Tool'
+import { getTools, getReadOnlyTools } from '@/tools'
+import { AgentTool } from '../AgentTool/AgentTool'
+import { BashTool } from '../BashTool/BashTool'
+import { FileWriteTool } from '../FileWriteTool/FileWriteTool'
+import { FileEditTool } from '../FileEditTool/FileEditTool'
+import { NotebookEditTool } from '../NotebookEditTool/NotebookEditTool'
+import { GlobTool } from '../GlobTool/GlobTool'
+import { FileReadTool } from '../FileReadTool/FileReadTool'
 
 export async function getAgentTools(
   dangerouslySkipPermissions: boolean,
