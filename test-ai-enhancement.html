@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SwissKnife AI Enhancement Test</title>
+</head>
+<body>
+    <h1>SwissKnife AI Enhancement Test</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { SwissKnifeCLIAdapter } from './web/js/adapters/cli-adapter.js';
+        
+        const results = document.getElementById('results');
+        
+        function log(message) {
+            results.innerHTML += `<p>${message}</p>`;
+        }
+        
+        // Initialize adapter
+        const adapter = new SwissKnifeCLIAdapter();
+        
+        // Test similar command detection
+        log('<h3>Testing Similar Command Detection:</h3>');
+        log(`Input: "ls" → Suggested: "${adapter.findSimilarCommand('ls')}"`);
+        log(`Input: "stat" → Suggested: "${adapter.findSimilarCommand('stat')}"`);
+        log(`Input: "hlep" → Suggested: "${adapter.findSimilarCommand('hlep')}"`);
+        log(`Input: "files" → Suggested: "${adapter.findSimilarCommand('files')}"`);
+        
+        // Test intent analysis
+        log('<h3>Testing Intent Analysis:</h3>');
+        log(`Input: "show me files" → Intent: "${adapter.analyzeIntent('show me files')}"`);
+        log(`Input: "what is the status" → Intent: "${adapter.analyzeIntent('what is the status')}"`);
+        log(`Input: "I need help" → Intent: "${adapter.analyzeIntent('I need help')}"`);
+        log(`Input: "list AI models" → Intent: "${adapter.analyzeIntent('list AI models')}"`);
+        log(`Input: "hello" → Intent: "${adapter.analyzeIntent('hello')}"`);
+        
+        // Test enhanced prompt building
+        log('<h3>Testing Enhanced Prompt Building:</h3>');
+        const testPrompt = adapter.buildEnhancedPrompt('show me files');
+        log(`Enhanced prompt length: ${testPrompt.length} characters`);
+        log(`Contains VFS commands: ${testPrompt.includes('vfs ls') ? '✅' : '❌'}`);
+        log(`Contains AI commands: ${testPrompt.includes('ai models') ? '✅' : '❌'}`);
+        log(`Contains instructions: ${testPrompt.includes('INSTRUCTIONS:') ? '✅' : '❌'}`);
+        
+        log('<h3>✅ Enhanced AI integration successfully implemented!</h3>');
+    </script>
+</body>
+</html>

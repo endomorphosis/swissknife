@@ -66,6 +66,10 @@
                 <div class="icon-image"><img src="/assets/icons/navi-icon.png" style="width: 32px; height: 32px; border-radius: 4px;"></div>
                 <div class="icon-label">NAVI</div>
             </div>
+            <div class="icon" data-app="peer-manager" title="Peer Manager">
+                <div class="icon-image">🔗</div>
+                <div class="icon-label">Peers</div>
+            </div>
         </div>
         
         <!-- Windows Container -->
@@ -86,6 +90,7 @@
                 <div class="system-status">
                     <span id="ai-status" class="status-indicator">🤖</span>
                     <span id="ipfs-status" class="status-indicator">🌐</span>
+                    <span id="p2p-status" class="status-indicator">🔗</span>
                     <span id="gpu-status" class="status-indicator">🎮</span>
                 </div>
                 <div class="system-time" id="system-time"></div>
@@ -114,6 +119,7 @@
                 <div class="menu-item" data-app="api-keys">🔑 API Keys</div>
                 <div class="menu-item" data-app="cron">⏰ AI Cron</div>
                 <div class="menu-item" data-app="navi"><img src="/assets/icons/navi-icon.png" style="width: 16px; height: 16px; border-radius: 2px; vertical-align: middle; margin-right: 4px;"> NAVI</div>
+                <div class="menu-item" data-app="peer-manager">🔗 Peer Manager</div>
                 <div class="menu-item" onclick="showAbout()">ℹ️ About</div>
             </div>
         </div>
@@ -174,5 +180,7 @@
     </div>
     
     <!-- Scripts -->
+    <script src="js/apps/api-keys.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

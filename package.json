@@ -28,7 +28,7 @@
   "scripts": {
     "dev": "tsx ./src/entrypoints/cli.tsx --verbose",
     "dev:phase1": "tsx ./src/cli-phase1.ts",
-    "build": "tsc -p tsconfig.test.json && mkdir -p temp && node --no-warnings=ExperimentalWarning ./build-wrapper.js",
+    "build": "./node_modules/.bin/webpack --config web/webpack.config.js",
     "benchmark": "tsx ./benchmark/run.js",
     "benchmark:ai": "tsx ./benchmark/ai-service.benchmark.ts",
     "test:chat": "tsx ./test/unit/cli/chat.test.ts",

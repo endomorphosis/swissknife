@@ -37,6 +37,8 @@ body, html {
     background: var(--bg-color);
     color: var(--text-color);
     user-select: none;
+    font-size: 18px; /* Increased for readability */
+    line-height: 1.6; /* Increased for readability */
 }
 
 /* Desktop Environment */
@@ -124,11 +126,9 @@ body, html {
 }
 
 .icon-image {
-    font-size: 32px;
+    font-size: 40px; /* Increased for readability */
     margin-bottom: 4px;
     filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
-}
-
 .icon-label {
     font-size: 11px;
     text-align: center;

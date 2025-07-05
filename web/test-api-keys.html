@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Keys Manager Test</title>
+    <link rel="stylesheet" href="css/apps.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-header {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #2d2d30;
+            border-radius: 8px;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 4px;
+            color: white;
+            z-index: 2000;
+            min-width: 250px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .notification.success { background: #4caf50; }
+        .notification.error { background: #f44336; }
+        .notification.info { background: #2196f3; }
+        .notification.warning { background: #ff9800; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🔑 API Keys Manager Test</h1>
+            <p>Testing the comprehensive API Keys Manager with 100+ providers</p>
+            <button onclick="loadAPIKeysManager()" class="btn-primary">Load API Keys Manager</button>
+        </div>
+        
+        <div id="api-keys-container"></div>
+    </div>
+
+    <script src="js/apps/api-keys.js"></script>
+    <script>
+        // Global notification system for testing
+        window.showNotification = function(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        };
+
+        // Load and test the API Keys Manager
+        async function loadAPIKeysManager() {
+            try {
+                const container = document.getElementById('api-keys-container');
+                
+                if (!window.APIKeysApp) {
+                    showNotification('APIKeysApp class not found!', 'error');
+                    return;
+                }
+                
+                // Create a new instance
+                const apiKeysManager = new window.APIKeysApp();
+                
+                // Render the app
+                const html = await apiKeysManager.render();
+                container.innerHTML = html;
+                
+                // Mount the app
+                await apiKeysManager.onMount();
+                
+                // Make it available globally for testing
+                window.testApiKeysApp = apiKeysManager;
+                
+                showNotification('API Keys Manager loaded successfully! 🎉', 'success');
+                console.log('API Keys Manager providers:', apiKeysManager.providers.length);
+                console.log('Categories:', Object.keys(apiKeysManager.categories));
+                
+            } catch (error) {
+                console.error('Error loading API Keys Manager:', error);
+                showNotification('Error loading API Keys Manager: ' + error.message, 'error');
+            }
+        }
+
+        // Auto-load on page ready
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(loadAPIKeysManager, 500);
+        });
+    </script>
+</body>
+</html>

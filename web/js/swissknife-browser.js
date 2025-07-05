@@ -8,6 +8,21 @@
 // Browser polyfills for Node.js modules
 import { Buffer } from 'buffer';
 import process from 'process';
+// Temporarily comment out problematic libp2p imports that cause webpack build issues
+// TODO: Re-enable when we need P2P functionality or find browser-compatible alternatives
+/*
+import { createLibp2p } from 'libp2p';
+import { webSockets } from '@libp2p/websockets';
+import * as filters from '@libp2p/websockets/filters';
+import { noise } from '@libp2p/noise';
+import { yamux } from '@chainsafe/libp2p-yamux';
+import { mplex } from '@libp2p/mplex';
+import { kadDHT } from '@libp2p/kad-dht';
+import { gossipsub } from '@chainsafe/libp2p-gossipsub';
+import { identify } from '@libp2p/identify';
+import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
+import { webRTC } from '@libp2p/webrtc';
+*/
 
 // Make globals available
 if (typeof window !== 'undefined') {
@@ -15,6 +30,17 @@ if (typeof window !== 'undefined') {
   window.process = process;
   window.global = window;
 }
+
+// Import VFS and adapters - make problematic ones conditional
+import { VirtualFileSystem } from './core/vfs.js';
+import { IndexedDBAdapter } from './core/storage-adapters/indexeddb-adapter.js';
+// Temporarily disable Helia adapter due to webpack globalThis issues
+// import { HeliaAdapter } from './core/storage-adapters/helia-adapter.js';
+// Conditional imports for problematic adapters
+// import { Web3StorageAdapter } from './core/storage-adapters/web3storage-adapter.js';
+// import { S3Adapter } from './core/storage-adapters/s3-adapter.js';
+// import { HuggingFaceAdapter } from './core/storage-adapters/huggingface-adapter.js';
+import { ReplicationManager } from './core/replication-manager.js';
 
 /**
  * Browser-adapted SwissKnife Core Engine
@@ -24,13 +50,143 @@ export class SwissKnifeBrowser {
   constructor() {
     this.initialized = false;
     this.config = new Map();
-    this.models = [];
+    this.modelsList = [];
     this.tasks = new Map();
     
     // Default configuration
     this.config.set('storage', 'localstorage');
     this.config.set('ai.provider', 'openai');
     this.config.set('debug', false);
+    
+    // Initialize network API namespace for P2P functionality
+    this.network = {
+      libp2p: null, // Will hold the libp2p instance
+      start: async () => this.startLibp2p(),
+      stop: async () => this.stopLibp2p(),
+      getPeerId: () => this.network.libp2p ? this.network.libp2p.peerId.toString() : null,
+      getConnections: () => this.network.libp2p ? this.network.libp2p.getConnections().map(conn => conn.remotePeer.toString()) : [],
+      subscribe: async (topic, handler) => {
+        if (!this.network.libp2p) throw new Error('Libp2p not started.');
+        this.network.libp2p.pubsub.subscribe(topic);
+        this.network.libp2p.pubsub.addEventListener('message', (evt) => {
+          if (evt.detail.topic === topic) {
+            handler(evt.detail.data.toString());
+          }
+        });
+      },
+      publish: async (topic, message) => {
+        if (!this.network.libp2p) throw new Error('Libp2p not started.');
+        await this.network.libp2p.pubsub.publish(topic, new TextEncoder().encode(message));
+      },
+      getActivePeers: async () => {
+        console.log('Getting active peers...');
+        return this.network.libp2p ? this.network.libp2p.getPeers().map(peerId => peerId.toString()) : [];
+      },
+      queryPeerModels: async (peerId) => {
+        console.log('Querying peer models for:', peerId);
+        return []; // Placeholder for future implementation
+      },
+      announceFiles: async (files) => {
+        if (!this.network.libp2p) throw new Error('Libp2p not started.');
+        const message = JSON.stringify({ type: 'ANNOUNCE_FILES', files });
+        for (const peerId of this.network.libp2p.getPeers()) {
+          if (peerId.toString() === this.network.libp2p.peerId.toString()) continue; // Don't send to self
+          try {
+            const { stream } = await this.network.libp2p.dialProtocol(peerId, '/swissknife/peer-info/1.0.0');
+            const { readable, writable } = stream;
+            const writer = writable.getWriter();
+            await writer.write(new TextEncoder().encode(message));
+            writer.close();
+            const reader = readable.getReader();
+            const { value } = await reader.read();
+            const response = JSON.parse(new TextDecoder().decode(value));
+            console.log(`Announcement response from ${peerId.toString()}:`, response);
+            reader.releaseLock();
+            stream.close();
+          } catch (error) {
+            console.warn(`Failed to announce files to peer ${peerId.toString()}:`, error);
+          }
+        }
+      },
+      queryFiles: async (peerId) => {
+        if (!this.network.libp2p) throw new Error('Libp2p not started.');
+        const message = JSON.stringify({ type: 'QUERY_FILES' });
+        try {
+          const { stream } = await this.network.libp2p.dialProtocol(peerId, '/swissknife/peer-info/1.0.0');
+          const { readable, writable } = stream;
+          const writer = writable.getWriter();
+          await writer.write(new TextEncoder().encode(message));
+          writer.close();
+          const reader = readable.getReader();
+          const { value } = await reader.read();
+          const response = JSON.parse(new TextDecoder().decode(value));
+          console.log(`Query response from ${peerId.toString()}:`, response);
+          reader.releaseLock();
+          stream.close();
+          return response.files || [];
+        } catch (error) {
+          console.error(`Failed to query files from peer ${peerId.toString()}:`, error);
+          return [];
+        }
+      },
+      requestFile: async (peerId, hash) => {
+        if (!this.network.libp2p) throw new Error('Libp2p not started.');
+        const message = JSON.stringify({ type: 'REQUEST_FILE', hash });
+        try {
+          const { stream } = await this.network.libp2p.dialProtocol(peerId, '/swissknife/file-transfer/1.0.0');
+          const { readable, writable } = stream;
+          const writer = writable.getWriter();
+          await writer.write(new TextEncoder().encode(message));
+          writer.close();
+          const reader = readable.getReader();
+          const chunks = [];
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+          }
+          const fileContent = new TextDecoder().decode(Uint8Array.from(chunks.flat()));
+          console.log(`Received file content for hash ${hash} from ${peerId.toString()}`);
+          reader.releaseLock();
+          stream.close();
+          return fileContent;
+        } catch (error) {
+          console.error(`Failed to request file ${hash} from peer ${peerId.toString()}:`, error);
+          throw error;
+        }
+      }
+    };
+
+    // Initialize models API namespace for compatibility with Model Browser
+    this.models = {
+      list: () => this.getAvailableModels(),
+      load: async (options) => {
+        console.log('Model load requested:', options);
+        return {
+          success: true,
+          message: 'Model loading simulated - functionality not yet implemented'
+        };
+      },
+      import: async (options) => {
+        console.log('Model import requested:', options);
+        return {
+          success: true,
+          message: 'Model import simulated - functionality not yet implemented'
+        };
+      },
+      configureApi: async (options) => {
+        console.log('Model API configuration requested:', options);
+        return {
+          success: true,
+          message: 'API configuration simulated - functionality not yet implemented'
+        };
+      }
+    };
+
+    // Initialize Replication Manager
+    this.replication = new ReplicationManager(this.storage, this.network);
+    // Example: Configure replication targets (this would be dynamic in a real app)
+    this.replication.configureReplication(['helia', 'web3storage', 's3', 'huggingface', 'peers']);
   }
 
   /**
@@ -47,10 +203,14 @@ export class SwissKnifeBrowser {
         });
       }
       
-      // Set up API keys
-      if (options.openaiApiKey) {
-        this.config.set('openai.apiKey', options.openaiApiKey);
-        localStorage.setItem('swissknife_openai_key', options.openaiApiKey);
+      // Set up API keys - check localStorage first, then options
+      let apiKey = options.openaiApiKey || localStorage.getItem('swissknife_openai_key');
+      if (apiKey) {
+        this.config.set('openai.apiKey', apiKey);
+        localStorage.setItem('swissknife_openai_key', apiKey);
+        console.log('✅ OpenAI API key configured');
+      } else {
+        console.log('⚠️ No OpenAI API key found - AI features will be limited');
       }
       
       // Initialize storage
@@ -58,6 +218,9 @@ export class SwissKnifeBrowser {
       
       // Initialize AI models
       await this.initializeModels();
+
+      // Initialize libp2p
+      await this.startLibp2p();
       
       this.initialized = true;
       console.log('SwissKnife browser initialization complete');
@@ -76,17 +239,47 @@ export class SwissKnifeBrowser {
   }
 
   async initializeStorage(options = {}) {
-    // Use IndexedDB for browser storage
-    this.storage = {
-      type: options.type || 'indexeddb',
-      dbName: options.dbName || 'swissknife-web'
-    };
-    console.log('Storage initialized:', this.storage.type);
+    // Initialize VFS with adapters
+    this.storage = new VirtualFileSystem({}, options.defaultAdapter || 'indexeddb');
+    this.storage.addAdapter('indexeddb', new IndexedDBAdapter(options.dbName, options.storeName));
+    
+    // Temporarily disable Helia adapter due to webpack globalThis issues
+    // const heliaAdapter = new HeliaAdapter();
+    // await heliaAdapter.init(); // Initialize Helia node
+    // this.storage.addAdapter('helia', heliaAdapter); // Add Helia adapter
+
+    // Commented out problematic adapters that cause webpack build issues
+    // TODO: Re-enable with dynamic imports when needed
+    /*
+    const web3StorageAdapter = new Web3StorageAdapter();
+    // Web3StorageAdapter requires authentication (privateKey, proof) to initialize.
+    // This will be handled later, likely via a settings UI or UCAN flow.
+    // For now, it's added but not fully initialized.
+    this.storage.addAdapter('web3storage', web3StorageAdapter);
+
+    const s3Adapter = new S3Adapter();
+    // S3Adapter requires region, accessKeyId, secretAccessKey, and bucketName to initialize.
+    // This will be handled later, likely via a settings UI.
+    this.storage.addAdapter('s3', s3Adapter);
+
+    const huggingFaceAdapter = new HuggingFaceAdapter();
+    // HuggingFaceAdapter requires a token to initialize.
+    // This will be handled later, likely via a settings UI.
+    this.storage.addAdapter('huggingface', huggingFaceAdapter);
+    */
+
+    // Set initial active adapter based on options or default
+    if (options.activeAdapter) {
+        this.storage.setAdapter(options.activeAdapter);
+    } else {
+        this.storage.setAdapter(this.storage.defaultAdapter);
+    }
+    console.log(`Storage initialized with active adapter: ${this.storage.getActiveAdapterName()}`);
   }
 
   async initializeModels() {
     // Add default models
-    this.models = [
+    this.modelsList = [
       {
         id: 'gpt-4',
         name: 'GPT-4',
@@ -100,7 +293,7 @@ export class SwissKnifeBrowser {
         description: 'OpenAI GPT-3.5 Turbo model'
       }
     ];
-    console.log('Models initialized:', this.models.length);
+    console.log('Models initialized:', this.modelsList.length);
   }
 
   /**
@@ -228,7 +421,7 @@ export class SwissKnifeBrowser {
    * List available AI models
    */
   getAvailableModels() {
-    return this.models;
+    return this.modelsList;
   }
 
   /**
@@ -252,10 +445,30 @@ export class SwissKnifeBrowser {
       // Persist certain config to localStorage
       if (key.includes('apiKey')) {
         localStorage.setItem(`swissknife_${key.replace('.', '_')}`, value);
+        console.log(`✅ Updated ${key} in localStorage`);
       }
     }
     
     return this.getConfig();
+  }
+
+  /**
+   * Refresh API keys from localStorage
+   */
+  async refreshAPIKeys() {
+    const openaiKey = localStorage.getItem('swissknife_openai_key');
+    if (openaiKey) {
+      this.config.set('openai.apiKey', openaiKey);
+      console.log('✅ Refreshed OpenAI API key from localStorage');
+    }
+    
+    const anthropicKey = localStorage.getItem('swissknife_anthropic_key');
+    if (anthropicKey) {
+      this.config.set('anthropic.apiKey', anthropicKey);
+      console.log('✅ Refreshed Anthropic API key from localStorage');
+    }
+    
+    return true;
   }
 
   /**
@@ -387,9 +600,135 @@ export class SwissKnifeBrowser {
   async shutdown() {
     try {
       this.initialized = false;
+      await this.stopLibp2p();
       console.log('SwissKnife browser instance shut down');
     } catch (error) {
       console.error('Error during shutdown:', error);
+    }
+  }
+
+  // Temporarily disabled libp2p functionality due to webpack build issues
+  // TODO: Re-enable when we resolve the browser compatibility issues
+  /*
+  async startLibp2p() {
+    if (this.network.libp2p) {
+      console.log('Libp2p already running.');
+      return;
+    }
+    try {
+      this.network.libp2p = await createLibp2p({
+        transports: [
+          webSockets({
+            filter: filters.all
+          }),
+          webRTC(),
+          circuitRelayTransport()
+        ],
+        connectionEncryption: [noise()],
+        streamMuxers: [yamux(), mplex()],
+        peerDiscovery: [
+          kadDHT({
+            protocol: '/ipfs/kad/1.0.0',
+            clientMode: true,
+          })
+        ],
+        services: {
+          pubsub: gossipsub({ emitSelf: true }),
+          identify: identify(),
+          peerInfo: (context) => {
+            context.handle('/swissknife/peer-info/1.0.0', async ({ stream }) => {
+              try {
+                const { readable, writable } = stream;
+                const reader = readable.getReader();
+                const writer = writable.getWriter();
+
+                // Read incoming message
+                const { value: messageBytes, done } = await reader.read();
+                if (done) return;
+
+                const message = new TextDecoder().decode(messageBytes);
+                const parsedMessage = JSON.parse(message);
+
+                console.log(`Received peer-info message from ${stream.remotePeer.toString()}:`, parsedMessage);
+
+                if (parsedMessage.type === 'ANNOUNCE_FILES') {
+                  // Store announced files/hashes from peer
+                  // For now, just log. Later, integrate with VFS or a peer file index.
+                  console.log(`Peer ${stream.remotePeer.toString()} announced files:`, parsedMessage.files);
+                  // Send acknowledgment
+                  await writer.write(new TextEncoder().encode(JSON.stringify({ status: 'ACK', message: 'Announcement received' })));
+                } else if (parsedMessage.type === 'QUERY_FILES') {
+                  // Respond with local files/hashes
+                  // For now, send a mock response. Later, integrate with VFS.
+                  const localFiles = [
+                    { path: '/my-local-file.txt', hash: 'QmLocalHash1' },
+                    { path: '/another-file.jpg', hash: 'QmLocalHash2' }
+                  ];
+                  await writer.write(new TextEncoder().encode(JSON.stringify({ type: 'FILES_RESPONSE', files: localFiles })));
+                } else {
+                  await writer.write(new TextEncoder().encode(JSON.stringify({ status: 'ERROR', message: 'Unknown message type' })));
+                }
+              } catch (error) {
+                console.error('Error handling peer-info stream:', error);
+              } finally {
+                stream.close();
+              }
+            });
+          },
+          fileTransfer: (context) => {
+            context.handle('/swissknife/file-transfer/1.0.0', async ({ stream }) => {
+              try {
+                const { readable, writable } = stream;
+                const reader = readable.getReader();
+                const writer = writable.getWriter();
+
+                // Read file request (e.g., { type: 'REQUEST_FILE', hash: 'Qm...' })
+                const { value: requestBytes, done: requestDone } = await reader.read();
+                if (requestDone) return;
+
+                const request = JSON.parse(new TextDecoder().decode(requestBytes));
+                console.log(`Received file transfer request from ${stream.remotePeer.toString()}:`, request);
+
+                if (request.type === 'REQUEST_FILE' && request.hash) {
+                  // Simulate fetching file content from local storage (VFS)
+                  // In a real scenario, this would involve reading from the VFS
+                  const fileContent = `Mock content for hash: ${request.hash}`; // Replace with actual VFS read
+                  await writer.write(new TextEncoder().encode(fileContent));
+                  console.log(`Sent mock content for hash ${request.hash} to ${stream.remotePeer.toString()}`);
+                } else {
+                  await writer.write(new TextEncoder().encode('ERROR: Invalid file request'));
+                }
+              } catch (error) {
+                console.error('Error handling file transfer stream:', error);
+              } finally {
+                stream.close();
+              }
+            });
+          }
+        }
+      });
+
+      await this.network.libp2p.start();
+      console.log(`Libp2p started with Peer ID: ${this.network.libp2p.peerId.toString()}`);
+      console.log('Libp2p listening on addresses:', this.network.libp2p.getMultiaddrs().map(ma => ma.toString()));
+    } catch (error) {
+      console.error('Failed to start libp2p:', error);
+      throw error;
+    }
+  }
+  */
+
+  async startLibp2p() {
+    console.log('libp2p functionality temporarily disabled for browser compatibility');
+    return Promise.resolve();
+  }
+
+  async stopLibp2p() {
+    if (this.network.libp2p) {
+      console.log('Stopping libp2p...');
+      await this.network.libp2p.stop();
+      this.network.libp2p = null;
+      console.log('Libp2p stopped.');
     }
   }
 }

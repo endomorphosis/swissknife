@@ -233,7 +233,7 @@ class SwissKnifeDesktop {
         this.apps.set('file-manager', {
             name: 'File Manager',
             icon: '📁',
-            component: 'FileManagerApp',
+            component: 'FileManagerApp', // Changed to the actual component name
             singleton: true
         });
         
@@ -301,6 +301,14 @@ class SwissKnifeDesktop {
             singleton: true
         });
         console.log('✅ Registered navi app');
+
+        this.apps.set('peer-manager', {
+            name: 'Peer Manager',
+            icon: '🔗',
+            component: 'PeerManagerApp',
+            singleton: true
+        });
+        console.log('✅ Registered peer-manager app');
         
         console.log('📱 Total apps registered:', this.apps.size);
         console.log('📱 Apps list:', Array.from(this.apps.keys()));
@@ -434,6 +442,22 @@ class SwissKnifeDesktop {
             console.error(`❌ Failed to launch ${appConfig.name}:`, error);
         }
     }
+
+    // Alias method for backwards compatibility with other apps
+    async openApp(appId, options = {}) {
+        console.log(`🔗 Opening app via openApp: ${appId}`, options);
+        
+        // Handle app ID aliases
+        const appAliases = {
+            'AIChat': 'ai-chat',
+            'ModelBrowser': 'model-browser',
+            'api-keys': 'api-keys',
+            'terminal': 'terminal'
+        };
+        
+        const actualAppId = appAliases[appId] || appId;
+        return await this.launchApp(actualAppId);
+    }
     
     async createWindow(options) {
         const windowId = `window-${++this.windowCounter}`;
@@ -539,25 +563,53 @@ class SwissKnifeDesktop {
                     break;
                     
                 case 'aichatapp':
-                    // Placeholder for AI Chat app
-                    contentElement.innerHTML = `
-                        <div class="app-placeholder">
-                            <h2>🤖 AI Chat</h2>
-                            <p>AI Chat functionality will be implemented here.</p>
-                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
-                        </div>
-                    `;
+                    console.log('🤖 Loading AI Chat app...');
+                    // Import and instantiate AI Chat app
+                    try {
+                        const AIChatModule = await import('./apps/ai-chat.js');
+                        const AIChatApp = AIChatModule.default || window.AIChatApp;
+                        if (AIChatApp) {
+                            appInstance = new AIChatApp(this);
+                            const chatContent = appInstance.createWindow();
+                            contentElement.innerHTML = chatContent;
+                            await appInstance.initialize(contentElement); // Pass contentElement and initialize after DOM is set
+                            
+                            // Set up event listeners for the loaded app
+                            appInstance.setupEventListeners(contentElement);
+                            appInstance.populateConversationList(contentElement);
+                            // Call populateModelSelector and updateModelStatus directly from initialize
+                            // AIChatApp's initialize method will handle DOM readiness
+                            // appInstance.populateModelSelector(contentElement); // Removed, now handled by initialize
+                            // appInstance.updateModelStatus(contentElement); // Removed, now handled by initialize
+                        } else {
+                            throw new Error('AIChatApp class not found');
+                        }
+                    } catch (importError) {
+                        console.warn('Failed to import AI Chat module, trying window.AIChatApp:', importError);
+                        // Fallback to global AIChatApp
+                        if (window.AIChatApp) {
+                            appInstance = new window.AIChatApp(this);
+                            await appInstance.initialize();
+                            const chatContent = appInstance.createWindow();
+                            contentElement.innerHTML = chatContent;
+                            
+                            // Set up event listeners for the loaded app
+                            appInstance.setupEventListeners(contentElement);
+                            appInstance.populateConversationList(contentElement);
+                            appInstance.populateModelSelector(contentElement);
+                            appInstance.updateModelStatus(contentElement);
+                        } else {
+                            throw new Error('AIChatApp not available');
+                        }
+                    }
                     break;
                     
                 case 'filemanagerapp':
-                    // Placeholder for File Manager
-                    contentElement.innerHTML = `
-                        <div class="app-placeholder">
-                            <h2>📁 File Manager</h2>
-                            <p>File management functionality will be implemented here.</p>
-                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
-                        </div>
-                    `;
+                    console.log('📁 Loading File Manager app...');
+                    const { FileManagerApp } = await import('./apps/file-manager-app.js');
+                    appInstance = new FileManagerApp(this);
+                    contentElement.innerHTML = appInstance.createWindow();
+                    await appInstance.initialize(contentElement);
                     break;
                     
                 case 'vibecodeapp':
@@ -620,6 +672,37 @@ class SwissKnifeDesktop {
                 case 'naviapp':
                     // NAVI App - loads the chat application
                     this.loadNaviApp(contentElement);
+                    break;
+                    
+                case 'peermanagerapp':
+                    // Peer Manager App
+                    console.log('🔗 Loading Peer Manager app...');
+                    try {
+                        const PeerManagerModule = await import('./apps/peer-manager.js');
+                        const PeerManagerApp = PeerManagerModule.default || window.PeerManagerApp;
+                        if (PeerManagerApp) {
+                            appInstance = new PeerManagerApp(this);
+                            window.peerManagerApp = appInstance; // Set global reference
+                            await appInstance.initialize();
+                            const peerContent = appInstance.createWindow();
+                            contentElement.innerHTML = peerContent;
+                            appInstance.setupEventListeners(contentElement);
+                        } else {
+                            throw new Error('PeerManagerApp class not found');
+                        }
+                    } catch (importError) {
+                        console.warn('Failed to import Peer Manager module, trying window.PeerManagerApp:', importError);
+                        if (window.PeerManagerApp) {
+                            appInstance = new window.PeerManagerApp(this);
+                            window.peerManagerApp = appInstance; // Set global reference
+                            await appInstance.initialize();
+                            const peerContent = appInstance.createWindow();
+                            contentElement.innerHTML = peerContent;
+                            appInstance.setupEventListeners(contentElement);
+                        } else {
+                            throw new Error('PeerManagerApp not available');
+                        }
+                    }
                     break;
                     
                 default:
@@ -1372,10 +1455,28 @@ class SwissKnifeDesktop {
         aiStatus.className = 'status-indicator ' + (hwStatus.webnn ? 'active' : 'inactive');
         aiStatus.title = `AI Engine: ${hwStatus.webnn ? 'WebNN Available' : 'API Only'}`;
         
-        // Update IPFS status
+        // Update IPFS status (Helia)
         const ipfsStatus = document.getElementById('ipfs-status');
-        ipfsStatus.className = 'status-indicator inactive'; // TODO: implement IPFS detection
-        ipfsStatus.title = 'IPFS: Not connected';
+        const heliaAdapter = this.swissknife.storage.adapters.helia;
+        if (heliaAdapter && heliaAdapter.isReady) {
+            ipfsStatus.className = 'status-indicator active';
+            ipfsStatus.title = `IPFS: Connected (Peer ID: ${heliaAdapter.helia.peerId.toString().substring(0, 8)}...)`;
+        } else {
+            ipfsStatus.className = 'status-indicator inactive';
+            ipfsStatus.title = 'IPFS: Not connected';
+        }
+
+        // Update P2P status (Libp2p)
+        const p2pStatus = document.getElementById('p2p-status');
+        const libp2pNode = this.swissknife.network.libp2p;
+        if (libp2pNode && libp2pNode.isStarted()) {
+            const connectedPeers = libp2pNode.getConnections().length;
+            p2pStatus.className = 'status-indicator active';
+            p2pStatus.title = `P2P: Connected (Peers: ${connectedPeers}, ID: ${libp2pNode.peerId.toString().substring(0, 8)}...)`;
+        } else {
+            p2pStatus.className = 'status-indicator inactive';
+            p2pStatus.title = 'P2P: Not connected';
+        }
         
         // Update GPU status
         const gpuStatus = document.getElementById('gpu-status');
@@ -1932,67 +2033,34 @@ class SwissKnifeDesktop {
         console.log(`Loaded ${savedCrons.filter(c => c.status === 'active').length} active cron jobs`);
     }
     
-    loadAPIKeysApp(contentElement) {
-        contentElement.innerHTML = `
-            <div class="api-keys-app">
-                <div class="app-header">
-                    <h2>🔑 API Key Manager</h2>
-                    <p>Manage your API keys for various services</p>
-                </div>
-                
-                <div class="api-keys-content">
-                    <div class="api-keys-list">
-                        <div class="api-key-item">
-                            <div class="api-key-service">🤖 OpenAI</div>
-                            <div class="api-key-status">
-                                <span class="status-indicator ${localStorage.getItem('swissknife_openai_key') ? 'active' : 'inactive'}">
-                                    ${localStorage.getItem('swissknife_openai_key') ? 'Configured' : 'Not Set'}
-                                </span>
-                            </div>
-                            <div class="api-key-actions">
-                                <button class="btn-small" onclick="this.closest('.api-keys-app').querySelector('#openai-key-input').style.display='block'">
-                                    ${localStorage.getItem('swissknife_openai_key') ? 'Update' : 'Set'}
-                                </button>
-                                ${localStorage.getItem('swissknife_openai_key') ? '<button class="btn-small btn-danger" onclick="localStorage.removeItem(\'swissknife_openai_key\'); location.reload();">Remove</button>' : ''}
-                            </div>
-                        </div>
-                        
-                        <div class="api-key-input-group" id="openai-key-input" style="display: none;">
-                            <input type="password" id="openai-key" placeholder="Enter your OpenAI API key" value="${localStorage.getItem('swissknife_openai_key') || ''}">
-                            <button onclick="localStorage.setItem('swissknife_openai_key', document.getElementById('openai-key').value); location.reload();" class="btn-primary">Save</button>
-                            <button onclick="document.getElementById('openai-key-input').style.display='none'" class="btn-secondary">Cancel</button>
-                        </div>
-                        
-                        <div class="api-key-item">
-                            <div class="api-key-service">🧠 Anthropic</div>
-                            <div class="api-key-status">
-                                <span class="status-indicator inactive">Not Set</span>
-                            </div>
-                            <div class="api-key-actions">
-                                <button class="btn-small">Set</button>
-                            </div>
-                        </div>
-                        
-                        <div class="api-key-item">
-                            <div class="api-key-service">🌐 IPFS</div>
-                            <div class="api-key-status">
-                                <span class="status-indicator inactive">Not Connected</span>
-                            </div>
-                            <div class="api-key-actions">
-                                <button class="btn-small">Configure</button>
-                            </div>
-                        </div>
+    async loadAPIKeysApp(contentElement) {
+        try {
+            // Initialize the comprehensive API Keys Manager
+            if (!window.apiKeysApp) {
+                window.apiKeysApp = new window.APIKeysApp();
+            }
+            
+            const html = await window.apiKeysApp.render();
+            contentElement.innerHTML = html;
+            
+            // Mount the app to activate all functionality
+            await window.apiKeysApp.onMount();
+            
+        } catch (error) {
+            console.error('Error loading API Keys Manager:', error);
+            contentElement.innerHTML = `
+                <div class="api-keys-app">
+                    <div class="app-header">
+                        <h2>🔑 API Key Manager</h2>
+                        <p style="color: #f44336;">Error loading API Keys Manager: ${error.message}</p>
                     </div>
-                    
-                    <div class="api-keys-help">
-                        <h3>📖 Help</h3>
-                        <p>• API keys are stored locally in your browser</p>
-                        <p>• Keys are never transmitted except to their respective services</p>
-                        <p>• You can remove keys at any time</p>
+                    <div class="api-keys-content">
+                        <p>Please refresh the page to try again.</p>
+                        <button onclick="location.reload()" class="btn-primary">Refresh Page</button>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
     
     loadMCPControlApp(contentElement) {
@@ -2087,63 +2155,103 @@ class SwissKnifeDesktop {
         `;
     }
     
-    loadModelBrowserApp(contentElement) {
-        contentElement.innerHTML = `
-            <div class="model-browser-app">
-                <div class="app-header">
-                    <h2>🧠 Model Browser</h2>
-                    <p>Browse and manage AI models</p>
-                </div>
-                
-                <div class="model-categories">
-                    <button class="model-category active">All Models</button>
-                    <button class="model-category">Language</button>
-                    <button class="model-category">Vision</button>
-                    <button class="model-category">Audio</button>
-                    <button class="model-category">Local</button>
-                </div>
-                
-                <div class="model-grid">
-                    <div class="model-card">
-                        <div class="model-icon">🤖</div>
-                        <div class="model-info">
-                            <div class="model-name">GPT-4</div>
-                            <div class="model-provider">OpenAI</div>
-                            <div class="model-description">Advanced language model</div>
-                        </div>
-                        <div class="model-status">
-                            <span class="status-indicator ${localStorage.getItem('swissknife_openai_key') ? 'active' : 'inactive'}">
-                                ${localStorage.getItem('swissknife_openai_key') ? 'Available' : 'API Key Required'}
-                            </span>
-                        </div>
+    async loadModelBrowserApp(contentElement) {
+        try {
+            console.log('🧠 Loading Model Browser app...');
+            
+            // Import the Model Browser app
+            const { ModelBrowserApp } = await import('./apps/model-browser.js');
+            
+            // Create and initialize the Model Browser
+            const modelBrowser = new ModelBrowserApp(this);
+            await modelBrowser.initialize();
+            
+            // Create the window content
+            const windowContent = modelBrowser.createWindow();
+            
+            // Insert the content into the window
+            contentElement.innerHTML = windowContent;
+            
+            // Set up event listeners for the loaded app
+            modelBrowser.setupEventListeners(contentElement);
+            
+            console.log('✅ Model Browser app loaded successfully');
+            return modelBrowser;
+            
+        } catch (error) {
+            console.error('❌ Failed to load Model Browser app:', error);
+            
+            // Fallback to placeholder
+            contentElement.innerHTML = `
+                <div class="model-browser-app">
+                    <div class="app-header">
+                        <h2>🧠 Model Browser</h2>
+                        <p style="color: #f48771;">Failed to load Model Browser: ${error.message}</p>
+                        <p>Using fallback interface...</p>
                     </div>
                     
-                    <div class="model-card">
-                        <div class="model-icon">👁️</div>
-                        <div class="model-info">
-                            <div class="model-name">CLIP</div>
-                            <div class="model-provider">Local</div>
-                            <div class="model-description">Vision-language model</div>
-                        </div>
-                        <div class="model-status">
-                            <span class="status-indicator inactive">Not Loaded</span>
-                        </div>
+                    <div class="model-categories">
+                        <button class="model-category active">All Models</button>
+                        <button class="model-category">Language</button>
+                        <button class="model-category">Vision</button>
+                        <button class="model-category">Audio</button>
+                        <button class="model-category">Local</button>
                     </div>
                     
-                    <div class="model-card">
-                        <div class="model-icon">🎵</div>
-                        <div class="model-info">
-                            <div class="model-name">Whisper</div>
-                            <div class="model-provider">OpenAI</div>
-                            <div class="model-description">Speech recognition</div>
+                    <div class="model-grid">
+                        <div class="model-card">
+                            <div class="model-icon">🤖</div>
+                            <div class="model-info">
+                                <div class="model-name">GPT-4</div>
+                                <div class="model-provider">OpenAI</div>
+                                <div class="model-description">Advanced language model</div>
+                            </div>
+                            <div class="model-status">
+                                <span class="status-indicator ${localStorage.getItem('swissknife_openai_key') ? 'active' : 'inactive'}">
+                                    ${localStorage.getItem('swissknife_openai_key') ? 'Available' : 'API Key Required'}
+                                </span>
+                            </div>
                         </div>
-                        <div class="model-status">
-                            <span class="status-indicator inactive">Not Available</span>
+                        
+                        <div class="model-card">
+                            <div class="model-icon">👁️</div>
+                            <div class="model-info">
+                                <div class="model-name">CLIP</div>
+                                <div class="model-provider">Local</div>
+                                <div class="model-description">Vision-language model</div>
+                            </div>
+                            <div class="model-status">
+                                <span class="status-indicator inactive">Not Loaded</span>
+                            </div>
+                        </div>
+                        
+                        <div class="model-card">
+                            <div class="model-icon">🎵</div>
+                            <div class="model-info">
+                                <div class="model-name">Whisper</div>
+                                <div class="model-provider">OpenAI</div>
+                                <div class="model-description">Speech recognition</div>
+                            </div>
+                            <div class="model-status">
+                                <span class="status-indicator inactive">Not Available</span>
+                            </div>
+                        </div>
+                        
+                        <div class="model-card">
+                            <div class="model-icon">💡</div>
+                            <div class="model-info">
+                                <div class="model-name">More Models</div>
+                                <div class="model-provider">Various</div>
+                                <div class="model-description">Use full Model Browser for more options</div>
+                            </div>
+                            <div class="model-status">
+                                <span class="status-indicator">Reload Required</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
     
     loadIPFSExplorerApp(contentElement) {
@@ -2267,101 +2375,41 @@ class SwissKnifeDesktop {
                 
                 <div class="device-tabs">
                     <button class="device-tab active" data-tab="devices">Devices</button>
-                    <button class="device-tab" data-tab="drivers">Drivers</button>
+                    <button class="device-tab" data-tab="microphone">Microphone Test</button>
+                    <button class="device-tab" data-tab="screen-share">Screen Share</button>
                     <button class="device-tab" data-tab="performance">Performance</button>
                 </div>
                 
                 <div class="device-content">
                     <!-- Devices Tab -->
                     <div class="device-tab-content active" id="devices-tab">
-                        <div class="device-tree">
-                            <div class="device-category">
-                                <div class="category-header">
-                                    <span class="category-icon">🖥️</span>
-                                    <span class="category-name">Display adapters</span>
-                                    <span class="expand-icon">▼</span>
-                                </div>
-                                <div class="category-items">
-                                    <div class="device-item">
-                                        <span class="device-icon">📺</span>
-                                        <span class="device-name">Generic Display Adapter</span>
-                                        <span class="device-status working">Working</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="device-category">
-                                <div class="category-header">
-                                    <span class="category-icon">🔊</span>
-                                    <span class="category-name">Audio devices</span>
-                                    <span class="expand-icon">▼</span>
-                                </div>
-                                <div class="category-items">
-                                    <div class="device-item">
-                                        <span class="device-icon">🎵</span>
-                                        <span class="device-name">Default Audio Device</span>
-                                        <span class="device-status working">Working</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="device-category">
-                                <div class="category-header">
-                                    <span class="category-icon">🖱️</span>
-                                    <span class="category-name">Input devices</span>
-                                    <span class="expand-icon">▼</span>
-                                </div>
-                                <div class="category-items">
-                                    <div class="device-item">
-                                        <span class="device-icon">⌨️</span>
-                                        <span class="device-name">Standard Keyboard</span>
-                                        <span class="device-status working">Working</span>
-                                    </div>
-                                    <div class="device-item">
-                                        <span class="device-icon">🖱️</span>
-                                        <span class="device-name">Standard Mouse</span>
-                                        <span class="device-status working">Working</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="device-category">
-                                <div class="category-header">
-                                    <span class="category-icon">🌐</span>
-                                    <span class="category-name">Network adapters</span>
-                                    <span class="expand-icon">▼</span>
-                                </div>
-                                <div class="category-items">
-                                    <div class="device-item">
-                                        <span class="device-icon">📡</span>
-                                        <span class="device-name">Network Adapter</span>
-                                        <span class="device-status working">Working</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <h3>Available Devices</h3>
+                        <div class="device-list" id="device-list">
+                            <p>Loading devices...</p>
                         </div>
                     </div>
                     
-                    <!-- Drivers Tab -->
-                    <div class="device-tab-content" id="drivers-tab">
-                        <div class="drivers-list">
-                            <div class="driver-item">
-                                <div class="driver-info">
-                                    <div class="driver-name">Browser WebGL Driver</div>
-                                    <div class="driver-version">Version 1.0.0</div>
-                                    <div class="driver-date">Date: ${new Date().toLocaleDateString()}</div>
-                                </div>
-                                <div class="driver-status working">Up to date</div>
-                            </div>
-                            
-                            <div class="driver-item">
-                                <div class="driver-info">
-                                    <div class="driver-name">Web Audio API Driver</div>
-                                    <div class="driver-version">Version 1.0.0</div>
-                                    <div class="driver-date">Date: ${new Date().toLocaleDateString()}</div>
-                                </div>
-                                <div class="driver-status working">Up to date</div>
-                            </div>
+                    <!-- Microphone Test Tab -->
+                    <div class="device-tab-content" id="microphone-tab">
+                        <h3>Microphone Test</h3>
+                        <p>Click the button below to test your microphone.</p>
+                        <button id="start-mic-test" class="btn-primary">Start Microphone Test</button>
+                        <button id="stop-mic-test" class="btn-secondary" style="display:none;">Stop Microphone Test</button>
+                        <div class="mic-status" style="margin-top: 15px;">
+                            <p id="mic-status-message"></p>
+                            <canvas id="mic-visualizer" width="300" height="50" style="border: 1px solid #ccc; display: none;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Screen Share Tab -->
+                    <div class="device-tab-content" id="screen-share-tab">
+                        <h3>Screen Share Test</h3>
+                        <p>Click the button below to share your screen.</p>
+                        <button id="start-screen-share" class="btn-primary">Start Screen Share</button>
+                        <button id="stop-screen-share" class="btn-secondary" style="display:none;">Stop Screen Share</button>
+                        <div class="screen-share-status" style="margin-top: 15px;">
+                            <p id="screen-share-status-message"></p>
+                            <video id="screen-share-video" autoplay style="width: 100%; max-width: 600px; border: 1px solid #ccc; margin-top: 10px; display: none;"></video>
                         </div>
                     </div>
                     
@@ -2415,28 +2463,254 @@ class SwissKnifeDesktop {
                 if (targetContent) {
                     targetContent.classList.add('active');
                 }
-            });
-        });
-        
-        // Add category expand/collapse functionality
-        const categoryHeaders = contentElement.querySelectorAll('.category-header');
-        categoryHeaders.forEach(header => {
-            header.addEventListener('click', () => {
-                const category = header.parentElement;
-                const items = category.querySelector('.category-items');
-                const expandIcon = header.querySelector('.expand-icon');
-                
-                if (category.classList.contains('collapsed')) {
-                    category.classList.remove('collapsed');
-                    items.style.display = 'block';
-                    expandIcon.textContent = '▼';
-                } else {
-                    category.classList.add('collapsed');
-                    items.style.display = 'none';
-                    expandIcon.textContent = '▶';
+
+                // Special handling for device enumeration when 'devices' tab is clicked
+                if (tabName === 'devices') {
+                    enumerateDevices(contentElement);
                 }
             });
         });
+        
+        // Device Enumeration
+        const enumerateDevices = async (element) => {
+            const deviceListDiv = element.querySelector('#device-list');
+            deviceListDiv.innerHTML = '<p>Loading devices...</p>';
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                deviceListDiv.innerHTML = ''; // Clear loading message
+                
+                const audioInputDevices = devices.filter(d => d.kind === 'audioinput');
+                const videoInputDevices = devices.filter(d => d.kind === 'videoinput');
+                const audioOutputDevices = devices.filter(d => d.kind === 'audiooutput');
+
+                const createDeviceCategory = (title, icon, deviceArray) => {
+                    if (deviceArray.length === 0) {
+                        return `
+                            <div class="device-category">
+                                <div class="category-header">
+                                    <span class="category-icon">${icon}</span>
+                                    <span class="category-name">${title} (0)</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="category-items">
+                                    <div class="device-item no-devices">No ${title.toLowerCase()} found.</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    let itemsHtml = deviceArray.map(device => `
+                        <div class="device-item">
+                            <span class="device-icon">${icon}</span>
+                            <span class="device-name">${device.label || `(ID: ${device.deviceId.substring(0, 8)}...) - Please grant permissions to see name`}</span>
+                            <span class="device-status working">Available</span>
+                        </div>
+                    `).join('');
+                    return `
+                        <div class="device-category">
+                            <div class="category-header">
+                                <span class="category-icon">${icon}</span>
+                                <span class="category-name">${title} (${deviceArray.length})</span>
+                                <span class="expand-icon">▼</span>
+                            </div>
+                            <div class="category-items">
+                                ${itemsHtml}
+                            </div>
+                        </div>
+                    `;
+                };
+
+                let allDevicesHtml = '';
+                allDevicesHtml += createDeviceCategory('Audio Input Devices', '🎤', audioInputDevices);
+                allDevicesHtml += createDeviceCategory('Video Input Devices', '📹', videoInputDevices);
+                allDevicesHtml += createDeviceCategory('Audio Output Devices', '🔊', audioOutputDevices);
+
+                if (allDevicesHtml === '') {
+                    deviceListDiv.innerHTML = `
+                        <p style="text-align: center; padding: 20px; color: #888;">
+                            No media devices found or permissions not granted.
+                            <br>
+                            Please ensure you have a microphone/webcam connected and have granted browser permissions.
+                        </p>
+                    `;
+                } else {
+                    deviceListDiv.innerHTML = `<div class="device-tree">${allDevicesHtml}</div>`;
+                }
+
+                // Re-add category expand/collapse functionality for newly added elements
+                const categoryHeaders = element.querySelectorAll('.category-header');
+                categoryHeaders.forEach(header => {
+                    header.addEventListener('click', () => {
+                        const category = header.parentElement;
+                        const items = category.querySelector('.category-items');
+                        const expandIcon = header.querySelector('.expand-icon');
+                        
+                        if (category.classList.contains('collapsed')) {
+                            category.classList.remove('collapsed');
+                            items.style.display = 'block';
+                            expandIcon.textContent = '▼';
+                        } else {
+                            category.classList.add('collapsed');
+                            items.style.display = 'none';
+                            expandIcon.textContent = '▶';
+                        }
+                    });
+                });
+
+            } catch (err) {
+                console.error('Error enumerating devices:', err);
+                deviceListDiv.innerHTML = `
+                    <p style="color: red; text-align: center; padding: 20px;">
+                        Error enumerating devices: ${err.message}.
+                        <br>
+                        Please ensure microphone/camera permissions are granted and try again.
+                    </p>
+                `;
+            }
+        };
+
+        // Initial device enumeration when the app loads
+        enumerateDevices(contentElement);
+
+        // Microphone Test Logic
+        let mediaStream = null;
+        let audioContext = null;
+        let analyser = null;
+        let dataArray = null;
+        let source = null;
+        let animationFrameId = null;
+
+        const startMicTestButton = contentElement.querySelector('#start-mic-test');
+        const stopMicTestButton = contentElement.querySelector('#stop-mic-test');
+        const micStatusMessage = contentElement.querySelector('#mic-status-message');
+        const micVisualizer = contentElement.querySelector('#mic-visualizer');
+        const canvasCtx = micVisualizer.getContext('2d');
+
+        const startMicrophoneTest = async () => {
+            try {
+                micStatusMessage.textContent = 'Requesting microphone access...';
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                micStatusMessage.textContent = 'Microphone access granted. Speaking into the microphone...';
+                micStatusMessage.style.color = 'green';
+                startMicTestButton.style.display = 'none';
+                stopMicTestButton.style.display = 'inline-block';
+                micVisualizer.style.display = 'block';
+
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(analyser);
+
+                drawVisualizer();
+
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                micStatusMessage.textContent = `Error: ${err.message}. Please ensure microphone permissions are granted.`;
+                micStatusMessage.style.color = 'red';
+                startMicTestButton.style.display = 'inline-block';
+                stopMicTestButton.style.display = 'none';
+                micVisualizer.style.display = 'none';
+            }
+        };
+
+        const stopMicrophoneTest = () => {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            micStatusMessage.textContent = 'Microphone test stopped.';
+            micStatusMessage.style.color = 'black';
+            startMicTestButton.style.display = 'inline-block';
+            stopMicTestButton.style.display = 'none';
+            micVisualizer.style.display = 'none';
+            canvasCtx.clearRect(0, 0, micVisualizer.width, micVisualizer.height); // Clear visualizer
+        };
+
+        const drawVisualizer = () => {
+            animationFrameId = requestAnimationFrame(drawVisualizer);
+
+            analyser.getByteFrequencyData(dataArray);
+
+            canvasCtx.clearRect(0, 0, micVisualizer.width, micVisualizer.height);
+            canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+            canvasCtx.fillRect(0, 0, micVisualizer.width, micVisualizer.height);
+
+            const barWidth = (micVisualizer.width / analyser.frequencyBinCount) * 2.5;
+            let barHeight;
+            let x = 0;
+
+            for (let i = 0; i < analyser.frequencyBinCount; i++) {
+                barHeight = dataArray[i];
+
+                canvasCtx.fillStyle = 'rgb(' + (barHeight + 100) + ',50,50)';
+                canvasCtx.fillRect(x, micVisualizer.height - barHeight / 2, barWidth, barHeight / 2);
+
+                x += barWidth + 1;
+            }
+        };
+
+        startMicTestButton.addEventListener('click', startMicrophoneTest);
+        stopMicTestButton.addEventListener('click', stopMicrophoneTest);
+
+        // Screen Share Logic
+        let screenStream = null;
+        const startScreenShareButton = contentElement.querySelector('#start-screen-share');
+        const stopScreenShareButton = contentElement.querySelector('#stop-screen-share');
+        const screenShareStatusMessage = contentElement.querySelector('#screen-share-status-message');
+        const screenShareVideo = contentElement.querySelector('#screen-share-video');
+
+        const startScreenShare = async () => {
+            try {
+                screenShareStatusMessage.textContent = 'Requesting screen share...';
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }); // Audio can be true if needed
+                screenShareVideo.srcObject = screenStream;
+                screenShareVideo.style.display = 'block';
+                screenShareStatusMessage.textContent = 'Screen sharing started.';
+                screenShareStatusMessage.style.color = 'green';
+                startScreenShareButton.style.display = 'none';
+                stopScreenShareButton.style.display = 'inline-block';
+
+                screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+                    stopScreenShare();
+                    screenShareStatusMessage.textContent = 'Screen sharing ended by user.';
+                    screenShareStatusMessage.style.color = 'black';
+                });
+
+            } catch (err) {
+                console.error('Error accessing screen share:', err);
+                screenShareStatusMessage.textContent = `Error: ${err.message}. Screen sharing requires user permission.`;
+                screenShareStatusMessage.style.color = 'red';
+                startScreenShareButton.style.display = 'inline-block';
+                stopScreenShareButton.style.display = 'none';
+                screenShareVideo.style.display = 'none';
+            }
+        };
+
+        const stopScreenShare = () => {
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                screenStream = null;
+            }
+            screenShareVideo.srcObject = null;
+            screenShareVideo.style.display = 'none';
+            screenShareStatusMessage.textContent = 'Screen sharing stopped.';
+            screenShareStatusMessage.style.color = 'black';
+            startScreenShareButton.style.display = 'inline-block';
+            stopScreenShareButton.style.display = 'none';
+        };
+
+        startScreenShareButton.addEventListener('click', startScreenShare);
+        stopScreenShareButton.addEventListener('click', stopScreenShare);
         
         // Simulate performance metrics
         const updatePerformanceMetrics = () => {
@@ -2472,6 +2746,9 @@ class SwissKnifeDesktop {
                         mutation.removedNodes.forEach((node) => {
                             if (node === windowElement) {
                                 clearInterval(performanceInterval);
+                                // Stop any active media streams when the window is closed
+                                stopMicrophoneTest();
+                                stopScreenShare();
                                 observer.disconnect();
                             }
                         });
@@ -2482,10 +2759,30 @@ class SwissKnifeDesktop {
         }
     }
 
+    async loadPeerManagerApp(contentElement) {
+        try {
+            console.log('🔗 Loading Peer Manager app...');
+            const { PeerManagerApp } = await import('./apps/peer-manager-app.js');
+            const peerManager = new PeerManagerApp(this);
+            contentElement.innerHTML = peerManager.createWindow();
+            await peerManager.initialize(contentElement);
+            console.log('✅ Peer Manager app loaded successfully');
+            return peerManager;
+        } catch (error) {
+            console.error('❌ Failed to load Peer Manager app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🔗 Peer Manager</h2>
+                    <p style="color: #f48771;">Failed to load Peer Manager: ${error.message}</p>
+                    <p>Please check console for details.</p>
+                </div>
+            `;
+        }
+    }
+
     loadNaviApp(contentElement) {
-        // Check if the chat app exists before creating iframe
-        const chatAppPath = window.location.origin + '/chat/webapp/app.html';
-        
+        // Since the chat app doesn't exist yet, go directly to placeholder
+        // This avoids the 404 error in console
         contentElement.innerHTML = `
             <div class="navi-app" style="width: 100%; height: 100%; position: relative;">
                 <div class="navi-loading" style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f5f5f5;">
@@ -2498,21 +2795,11 @@ class SwissKnifeDesktop {
             </div>
         `;
         
-        // Test if chat app is available first
-        fetch(chatAppPath, { method: 'HEAD' })
-            .then(response => {
-                if (response.ok) {
-                    // Chat app exists, load it in iframe
-                    this.loadNaviIframe(contentElement, chatAppPath);
-                } else {
-                    // Chat app not found, show placeholder
-                    this.showNaviPlaceholder(contentElement);
-                }
-            })
-            .catch(() => {
-                // Network error or chat app not available
-                this.showNaviPlaceholder(contentElement);
-            });
+        // For now, directly show the placeholder since chat app is not implemented yet
+        // TODO: Implement actual NAVI chat application
+        setTimeout(() => {
+            this.showNaviPlaceholder(contentElement);
+        }, 1000); // Brief loading simulation
     }
     
     loadNaviIframe(contentElement, chatAppPath) {

@@ -32,25 +32,45 @@ export class TerminalApp {
   init() {
     this.createTerminalUI();
     this.setupEventListeners();
+    this.setupResizeHandler();
     this.showWelcome();
+  }
+
+  setupResizeHandler() {
+    // Handle window resize for responsive line spacing
+    const handleResize = () => {
+      const terminalOutput = this.window.querySelector('.terminal-output');
+      if (terminalOutput) {
+        // Force reflow to recalculate line heights
+        const currentOverflow = terminalOutput.style.overflow;
+        terminalOutput.style.overflow = 'hidden';
+        terminalOutput.offsetHeight; // Force reflow
+        terminalOutput.style.overflow = currentOverflow || 'auto';
+        
+        // Update all terminal lines to recalculate spacing
+        const terminalLines = terminalOutput.querySelectorAll('.terminal-line');
+        terminalLines.forEach(line => {
+          line.style.lineHeight = '';  // Reset to CSS default
+          line.offsetHeight; // Force recalculation
+        });
+      }
+    };
+
+    // Listen for window resize events
+    window.addEventListener('resize', handleResize);
+    
+    // Store handler for cleanup
+    this.resizeHandler = handleResize;
   }
 
   createTerminalUI() {
     this.window.innerHTML = `
       <div class="terminal-container">
-        <div class="terminal-header">
-          <div class="terminal-title">SwissKnife Terminal</div>
-          <div class="terminal-controls">
-            <button class="btn-minimize">-</button>
-            <button class="btn-maximize">□</button>
-            <button class="btn-close">×</button>
-          </div>
-        </div>
         <div class="terminal-content">
           <div class="terminal-output" id="terminal-output"></div>
           <div class="terminal-input-line">
             <span class="terminal-prompt">swissknife@web:${this.currentDirectory}$ </span>
-            <input type="text" class="terminal-input" id="terminal-input" autocomplete="off" spellcheck="false">
+            <input type="text" class="terminal-input" id="terminal-input" autocomplete="off" spellcheck="false" placeholder="Type any command or question...">
           </div>
         </div>
       </div>
@@ -64,14 +84,37 @@ export class TerminalApp {
   setupEventListeners() {
     this.input.addEventListener('keydown', this.handleKeyDown.bind(this));
     
-    // Window controls
-    this.window.querySelector('.btn-close').addEventListener('click', () => {
-      this.window.remove();
+    // Focus input when terminal is clicked, but preserve text selection
+    this.window.addEventListener('click', (event) => {
+      // Only focus if we're not in the middle of text selection
+      if (window.getSelection().toString().length === 0) {
+        // Check if click was in the output area vs input area
+        const clickedElement = event.target;
+        const outputArea = this.window.querySelector('.terminal-output');
+        const inputArea = this.window.querySelector('.terminal-input-line');
+        
+        // If clicking in output area and no text is selected, focus input
+        if (outputArea && outputArea.contains(clickedElement) && this.input) {
+          // Small delay to allow selection to complete first
+          setTimeout(() => {
+            if (window.getSelection().toString().length === 0) {
+              this.input.focus();
+            }
+          }, 50);
+        } else if (inputArea && inputArea.contains(clickedElement) && this.input) {
+          this.input.focus();
+        }
+      }
     });
     
-    this.window.querySelector('.btn-minimize').addEventListener('click', () => {
-      this.window.style.display = 'none';
-    });
+    // Prevent mousedown on output from interfering with selection
+    const outputArea = this.window.querySelector('.terminal-output');
+    if (outputArea) {
+      outputArea.addEventListener('mousedown', (event) => {
+        // Allow text selection to proceed normally
+        event.stopPropagation();
+      });
+    }
   }
 
   handleKeyDown(event) {
@@ -760,11 +803,18 @@ This is a sample file in the SwissKnife Web Desktop.`;
   }
 
   showWelcome() {
-    this.addOutput('🔧 SwissKnife Web Terminal v1.0 (Enhanced)', 'welcome');
+    this.addOutput('🔧 SwissKnife VibeCoding Terminal v1.0 (Enhanced)', 'welcome');
+    this.addOutput('🤖 AI-powered coding interface with natural language processing', 'info');
     this.addOutput('💾 Virtual Filesystem (VFS) integration enabled', 'info');
     this.addOutput('🤗 Hugging Face Hub commands available', 'info');
-    this.addOutput('Type "help" for available commands or "sk help" for SwissKnife CLI help.', 'info');
-    this.addOutput('Type "vfs" to explore the virtual filesystem capabilities.', 'info');
+    this.addOutput('', '');
+    this.addOutput('💡 VibeCoding Interface:', 'category');
+    this.addOutput('   • Type any question or request - the AI will understand', 'info');
+    this.addOutput('   • Use "help" for system commands', 'info');
+    this.addOutput('   • Use "api-key set openai sk-..." to enable AI features', 'info');
+    this.addOutput('   • All text is selectable for copying', 'info');
+    this.addOutput('', '');
+    this.addOutput('Try typing: "hello" or "write a python function to sort a list"', 'info');
     this.addOutput('', '');
   }
 
@@ -816,38 +866,53 @@ This is a sample file in the SwissKnife Web Desktop.`;
     const line = document.createElement('div');
     line.className = `terminal-line terminal-${type}`;
     
+    // Ensure the line element supports text selection
+    line.style.userSelect = 'text';
+    line.style.webkitUserSelect = 'text';
+    line.style.mozUserSelect = 'text';
+    line.style.msUserSelect = 'text';
+    
     // Handle different output types with appropriate styling
     switch (type) {
       case 'command':
-        line.innerHTML = `<span class="terminal-prompt-echo">${text}</span>`;
+        line.innerHTML = `<span class="terminal-prompt-echo">${this.escapeHtml(text)}</span>`;
         break;
       case 'error':
-        line.innerHTML = `<span class="terminal-error">❌ ${text}</span>`;
+        line.innerHTML = `<span class="terminal-error">❌ ${this.escapeHtml(text)}</span>`;
         break;
       case 'warning':
-        line.innerHTML = `<span class="terminal-warning">⚠️ ${text}</span>`;
+        line.innerHTML = `<span class="terminal-warning">⚠️ ${this.escapeHtml(text)}</span>`;
         break;
       case 'success':
-        line.innerHTML = `<span class="terminal-success">✅ ${text}</span>`;
+        line.innerHTML = `<span class="terminal-success">✅ ${this.escapeHtml(text)}</span>`;
         break;
       case 'info':
-        line.innerHTML = `<span class="terminal-info">ℹ️ ${text}</span>`;
+        line.innerHTML = `<span class="terminal-info">ℹ️ ${this.escapeHtml(text)}</span>`;
         break;
       case 'welcome':
-        line.innerHTML = `<span class="terminal-welcome">${text}</span>`;
+        line.innerHTML = `<span class="terminal-welcome">${this.escapeHtml(text)}</span>`;
         break;
       case 'help':
-        line.innerHTML = `<span class="terminal-help">${text}</span>`;
+        line.innerHTML = `<span class="terminal-help">${this.escapeHtml(text)}</span>`;
         break;
       case 'category':
-        line.innerHTML = `<span class="terminal-category">📁 ${text}</span>`;
+        line.innerHTML = `<span class="terminal-category">📁 ${this.escapeHtml(text)}</span>`;
         break;
       case 'ai-response':
-        line.innerHTML = `<span class="terminal-ai">🤖 ${text}</span>`;
+        line.innerHTML = `<span class="terminal-ai">🤖 ${this.escapeHtml(text)}</span>`;
         break;
       default:
         line.textContent = text;
     }
+    
+    // Ensure any nested span elements also support text selection
+    const spans = line.querySelectorAll('span');
+    spans.forEach(span => {
+      span.style.userSelect = 'text';
+      span.style.webkitUserSelect = 'text';
+      span.style.mozUserSelect = 'text';
+      span.style.msUserSelect = 'text';
+    });
     
     this.output.appendChild(line);
     
@@ -855,6 +920,12 @@ This is a sample file in the SwissKnife Web Desktop.`;
     requestAnimationFrame(() => {
       this.output.scrollTop = this.output.scrollHeight;
     });
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   showStatus() {
