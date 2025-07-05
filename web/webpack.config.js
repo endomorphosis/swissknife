@@ -26,7 +26,8 @@ module.exports = (env, argv) => {
         "buffer": require.resolve("buffer"),
         "crypto": require.resolve("crypto-browserify"),
         "stream": require.resolve("stream-browserify"),
-        "process": require.resolve("process/browser"),
+        // "process": require.resolve("process/browser"), // Handled by ProvidePlugin
+        // "process/browser": require.resolve("process/browser"), // Handled by ProvidePlugin
         "path": require.resolve("path-browserify"),
         "os": require.resolve("os-browserify"),
         "util": require.resolve("util"),
@@ -39,14 +40,18 @@ module.exports = (env, argv) => {
         "https": false,
         "url": require.resolve("url"),
         "querystring": false,
-        "zlib": false
+        "zlib": false,
+        "assert": require.resolve("assert"),
+        "events": require.resolve("events"),
+        "constants": require.resolve("constants-browserify")
       },
       alias: {
         // Map source paths to web-compatible versions
         '@swissknife': path.resolve(__dirname, '../src'),
         '@legacy': path.resolve(__dirname, 'js'),
         '@': path.resolve(__dirname, 'src'),
-        '@/adapters/ai-adapter': path.resolve(__dirname, 'src/adapters/browser-ai-adapter.ts')
+        '@/adapters/ai-adapter': path.resolve(__dirname, 'src/adapters/browser-ai-adapter.ts'),
+        "process": "process/browser" // Explicitly alias process to its browser polyfill
       },
       modules: [path.resolve(__dirname, 'src'), 'node_modules']
     },
@@ -130,6 +135,8 @@ module.exports = (env, argv) => {
       new (require('webpack')).ProvidePlugin({
         Buffer: ['buffer', 'Buffer'],
         process: 'process/browser',
+        global: 'globalThis',
+        globalThis: 'globalThis' // Explicitly provide globalThis
       }),
       
       // Define environment variables
@@ -137,7 +144,7 @@ module.exports = (env, argv) => {
         'process.env.NODE_ENV': JSON.stringify(argv.mode),
         'process.env.BROWSER': JSON.stringify(true),
         'process.env.UNIFIED_BUILD': JSON.stringify(true),
-        'global': 'globalThis',
+        'global': 'window', // Use window for global in browser
       }),
     ],
     
@@ -192,6 +199,10 @@ module.exports = (env, argv) => {
         directory: path.join(__dirname, 'dist'),
         watch: true,
       },
+      watchFiles: ['js/**/*', 'css/**/*', 'assets/**/*', 'index.html'], // Explicitly watch only relevant files
+      watchOptions: {
+        ignored: /node_modules/, // Ignore node_modules
+      },
       compress: true,
       port: 8000, // Changed to match unified system
       hot: true,   // Enable hot reload for development
@@ -216,6 +227,10 @@ module.exports = (env, argv) => {
     
     target: 'web',
     
+    node: {
+      global: true,
+    },
+
     performance: {
       hints: isProduction ? 'warning' : false,
       maxEntrypointSize: 3000000, // 3MB - increased for stlite

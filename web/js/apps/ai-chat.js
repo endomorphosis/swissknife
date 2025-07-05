@@ -2,7 +2,7 @@
  * AI Chat App for SwissKnife Web Desktop
  */
 
-window.AIChatApp = class AIChatApp {
+export class AIChatApp {
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;
@@ -11,9 +11,44 @@ window.AIChatApp = class AIChatApp {
     this.selectedModel = 'gpt-4';
   }
 
-  async initialize() {
+  async initialize(contentElement) {
+    this.contentElement = contentElement;
     this.swissknife = this.desktop.swissknife;
     await this.loadConversations();
+    
+    // Initialize with a default conversation if none exists
+    if (!this.currentConversation) {
+      this.startNewConversation(this.contentElement);
+    }
+
+    // Populate and update model status after content is rendered
+    this.populateModelSelector(this.contentElement);
+    this.updateModelStatus(this.contentElement);
+  }
+
+  populateModelSelector(containerElement) {
+    const modelSelect = containerElement.querySelector('#model-select');
+    if (!modelSelect) {
+        console.error('AIChatApp: #model-select element not found in containerElement.');
+        return;
+    }
+    modelSelect.innerHTML = '';
+    if (this.swissknife && this.swissknife.isSwissKnifeReady) {
+      try {
+        const models = this.swissknife.getAvailableModels(); // Fixed: Removed double swissknife
+        if (models && models.length > 0) {
+          // Check for user's default model first
+          const defaultModelId = localStorage.getItem('swissknife_default_model');
+          if (defaultModelId && models.find(m => m.id === defaultModelId)) {
+            this.selectedModel = defaultModelId;
+          } else {
+            this.selectedModel = models[0].id;
+          }
+        }
+      } catch (error) {
+        console.warn('AIChatApp: Could not get available models:', error);
+      }
+    }
   }
 
   createWindow() {
@@ -30,10 +65,12 @@ window.AIChatApp = class AIChatApp {
           <div class="model-selector">
             <label for="model-select">Model:</label>
             <select id="model-select">
-              <option value="gpt-4">GPT-4</option>
-              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-              <option value="claude-3">Claude 3</option>
+              <!-- Models will be populated dynamically -->
             </select>
+            <div class="model-status" id="model-status">
+              <span id="model-status-indicator">🔄</span>
+              <span id="model-status-text">Loading...</span>
+            </div>
           </div>
         </div>
         <div class="chat-main">
@@ -43,12 +80,12 @@ window.AIChatApp = class AIChatApp {
               <p>Start a new conversation or select an existing one from the sidebar.</p>
             </div>
           </div>
-          <div class="chat-input-container">
-            <div class="chat-input-toolbar">
-              <button class="tool-btn" id="attach-btn" title="Attach File">📎</button>
-              <button class="tool-btn" id="voice-btn" title="Voice Input">🎤</button>
-              <button class="tool-btn" id="code-btn" title="Code Mode">💻</button>
-            </div>
+          <div class="chat-input-container">          <div class="chat-input-toolbar">
+            <button class="tool-btn" id="attach-btn" title="Attach File">📎</button>
+            <button class="tool-btn" id="voice-btn" title="Voice Input">🎤</button>
+            <button class="tool-btn" id="code-btn" title="Code Mode">💻</button>
+            <button class="tool-btn" id="api-key-btn" title="Configure API Keys">🔑</button>
+          </div>
             <div class="chat-input-wrapper">
               <textarea id="chat-input" placeholder="Type your message... (Shift+Enter for new line, Enter to send)" rows="3"></textarea>
               <button id="send-btn" class="send-btn">Send</button>
@@ -58,39 +95,37 @@ window.AIChatApp = class AIChatApp {
       </div>
     `;
 
-    const window = this.desktop.createWindow({
-      title: 'AI Chat',
-      content: content,
-      width: 800,
-      height: 600,
-      resizable: true
-    });
-
-    this.setupEventListeners(window);
-    this.populateConversationList(window);
-    
-    return window;
+    return content;
   }
 
-  setupEventListeners(window) {
-    const chatInput = window.querySelector('#chat-input');
-    const sendBtn = window.querySelector('#send-btn');
-    const newChatBtn = window.querySelector('.new-chat-btn');
-    const modelSelect = window.querySelector('#model-select');
+  setupEventListeners(containerElement) {
+    const chatInput = containerElement.querySelector('#chat-input');
+    const sendBtn = containerElement.querySelector('#send-btn');
+    const newChatBtn = containerElement.querySelector('.new-chat-btn');
+    const modelSelect = containerElement.querySelector('#model-select');
+    const apiKeyBtn = containerElement.querySelector('#api-key-btn');
 
     // Send message on Enter (but allow Shift+Enter for new lines)
     chatInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        this.sendMessage(window);
+        this.sendMessage(containerElement);
       }
     });
 
-    sendBtn.addEventListener('click', () => this.sendMessage(window));
-    newChatBtn.addEventListener('click', () => this.startNewConversation(window));
+    sendBtn.addEventListener('click', () => this.sendMessage(containerElement));
+    newChatBtn.addEventListener('click', () => this.startNewConversation(containerElement));
     
     modelSelect.addEventListener('change', (e) => {
       this.selectedModel = e.target.value;
+      this.updateModelStatus(containerElement);
+    });
+
+    // API Key button
+    apiKeyBtn.addEventListener('click', () => {
+      if (this.desktop && this.desktop.openApp) {
+        this.desktop.openApp('api-keys');
+      }
     });
 
     // Auto-resize textarea
@@ -98,59 +133,91 @@ window.AIChatApp = class AIChatApp {
       chatInput.style.height = 'auto';
       chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
     });
+
+    // Update send button state
+    const updateSendButton = () => {
+      const hasText = chatInput.value.trim().length > 0;
+      const isReady = this.swissknife && this.swissknife.isSwissKnifeReady;
+      sendBtn.disabled = !hasText || !isReady;
+    };
+
+    chatInput.addEventListener('input', updateSendButton);
+    updateSendButton();
+
+    // Periodically check if SwissKnife becomes ready
+    const checkReadiness = () => {
+      updateSendButton();
+      if (!this.swissknife || !this.swissknife.isSwissKnifeReady) {
+        setTimeout(checkReadiness, 1000);
+      }
+    };
+    checkReadiness();
   }
 
-  async sendMessage(window) {
-    const chatInput = window.querySelector('#chat-input');
+  async sendMessage(containerElement) {
+    const chatInput = containerElement.querySelector('#chat-input');
     const message = chatInput.value.trim();
     
     if (!message) return;
+
+    // Check if SwissKnife is ready
+    if (!this.swissknife || !this.swissknife.isSwissKnifeReady) {
+      this.addMessageToChat(containerElement, 'SwissKnife AI is still initializing. Please wait a moment and try again.', 'error');
+      return;
+    }
 
     // Clear input
     chatInput.value = '';
     chatInput.style.height = 'auto';
 
     // Add user message to chat
-    this.addMessageToChat(window, message, 'user');
+    this.addMessageToChat(containerElement, message, 'user');
 
     // Show typing indicator
-    const typingIndicator = this.addTypingIndicator(window);
+    const typingIndicator = this.addTypingIndicator(containerElement);
 
     try {
-      // Send to SwissKnife AI
-      const response = await this.swissknife.chat({
-        message: message,
-        model: this.selectedModel,
-        conversationId: this.currentConversation?.id
-      });
+      // Send to SwissKnife AI using the correct API
+      const response = await this.swissknife.swissknife.chat(message);
 
       // Remove typing indicator
       typingIndicator.remove();
 
-      // Add AI response
-      this.addMessageToChat(window, response.message, 'assistant');
+      if (response.success) {
+        // Add AI response
+        const responseText = response.response.content || response.response;
+        this.addMessageToChat(containerElement, responseText, 'assistant');
 
-      // Update conversation
-      if (response.conversationId) {
-        this.currentConversation = {
-          id: response.conversationId,
-          title: this.generateConversationTitle(message),
-          messages: [...(this.currentConversation?.messages || []), 
-                    { role: 'user', content: message },
-                    { role: 'assistant', content: response.message }]
-        };
+        // Update conversation
+        if (!this.currentConversation) {
+          this.currentConversation = {
+            id: Date.now().toString(),
+            title: this.generateConversationTitle(message),
+            messages: [],
+            createdAt: new Date().toISOString()
+          };
+        }
+
+        this.currentConversation.messages.push(
+          { role: 'user', content: message, timestamp: new Date().toISOString() },
+          { role: 'assistant', content: responseText, timestamp: new Date().toISOString() }
+        );
+        
         await this.saveConversation(this.currentConversation);
-        this.populateConversationList(window);
+        this.populateConversationList(containerElement);
+      } else {
+        this.addMessageToChat(containerElement, `Error: ${response.error}`, 'error');
       }
 
     } catch (error) {
       typingIndicator.remove();
-      this.addMessageToChat(window, `Error: ${error.message}`, 'error');
+      console.error('AI Chat error:', error);
+      this.addMessageToChat(containerElement, `Error: ${error.message}`, 'error');
     }
   }
 
-  addMessageToChat(window, message, role) {
-    const chatMessages = window.querySelector('#chat-messages');
+  addMessageToChat(containerElement, message, role) {
+    const chatMessages = containerElement.querySelector('#chat-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}-message`;
     
@@ -188,8 +255,8 @@ window.AIChatApp = class AIChatApp {
     return messageDiv;
   }
 
-  addTypingIndicator(window) {
-    const chatMessages = window.querySelector('#chat-messages');
+  addTypingIndicator(containerElement) {
+    const chatMessages = containerElement.querySelector('#chat-messages');
     const typingDiv = document.createElement('div');
     typingDiv.className = 'message assistant-message typing';
     typingDiv.innerHTML = `
@@ -219,15 +286,21 @@ window.AIChatApp = class AIChatApp {
     return div.innerHTML;
   }
 
-  startNewConversation(window) {
+  startNewConversation(containerElement) {
     this.currentConversation = null;
-    const chatMessages = window.querySelector('#chat-messages');
-    chatMessages.innerHTML = `
-      <div class="welcome-message">
-        <h3>New Conversation</h3>
-        <p>What would you like to talk about?</p>
-      </div>
-    `;
+    
+    // Only update DOM if containerElement is provided and chat-messages exists
+    if (containerElement) {
+      const chatMessages = containerElement.querySelector('#chat-messages');
+      if (chatMessages) {
+        chatMessages.innerHTML = `
+          <div class="welcome-message">
+            <h3>New Conversation</h3>
+            <p>What would you like to talk about?</p>
+          </div>
+        `;
+      }
+    }
   }
 
   generateConversationTitle(firstMessage) {
@@ -264,8 +337,8 @@ window.AIChatApp = class AIChatApp {
     }
   }
 
-  populateConversationList(window) {
-    const conversationList = window.querySelector('.conversation-list');
+  populateConversationList(containerElement) {
+    const conversationList = containerElement.querySelector('.conversation-list');
     conversationList.innerHTML = '';
     
     this.conversations.forEach(conversation => {
@@ -285,35 +358,41 @@ window.AIChatApp = class AIChatApp {
       
       item.addEventListener('click', (e) => {
         if (!e.target.classList.contains('delete-btn')) {
-          this.loadConversation(window, conversation);
+          this.loadConversation(containerElement, conversation);
         }
       });
       
       const deleteBtn = item.querySelector('.delete-btn');
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.deleteConversation(window, conversation.id);
+        this.deleteConversation(containerElement, conversation.id);
       });
       
       conversationList.appendChild(item);
     });
   }
 
-  loadConversation(window, conversation) {
+  loadConversation(containerElement, conversation) {
     this.currentConversation = conversation;
-    const chatMessages = window.querySelector('#chat-messages');
+    const chatMessages = containerElement.querySelector('#chat-messages');
     chatMessages.innerHTML = '';
     
     conversation.messages.forEach(message => {
-      this.addMessageToChat(window, message.content, message.role);
+      this.addMessageToChat(containerElement, message.content, message.role);
     });
     
-    this.populateConversationList(window);
+    this.populateConversationList(containerElement);
   }
 
-  async deleteConversation(window, conversationId) {
+  async deleteConversation(containerElement, conversationId) {
     this.conversations = this.conversations.filter(c => c.id !== conversationId);
-    await this.saveConversation();
+    
+    // Save the updated conversations list
+    try {
+      localStorage.setItem('swissknife_conversations', JSON.stringify(this.conversations));
+    } catch (error) {
+      console.error('Failed to save conversations after deletion:', error);
+    }
     
     if (this.currentConversation?.id === conversationId) {
       this.startNewConversation(window);
@@ -321,4 +400,104 @@ window.AIChatApp = class AIChatApp {
     
     this.populateConversationList(window);
   }
+
+  populateModelSelector(containerElement) {
+    const modelSelect = containerElement.querySelector('#model-select');
+    if (!modelSelect) {
+        console.error('AIChatApp: #model-select element not found in containerElement.');
+        return;
+    }
+    modelSelect.innerHTML = '';
+
+    if (this.swissknife && this.swissknife.isSwissKnifeReady) {
+      try {
+        const models = this.swissknife.getAvailableModels(); // Fixed: Removed double swissknife
+        const defaultModel = localStorage.getItem('swissknife_default_model');
+        
+        if (models && models.length > 0) {
+          models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = `${model.name} (${model.provider})`;
+            if (model.source === 'api') {
+              const hasKey = localStorage.getItem(`swissknife_${model.provider.toLowerCase()}_key`);
+              if (!hasKey) {
+                option.textContent += ' - needs API key';
+                option.disabled = true;
+              }
+            }
+            if (defaultModel === model.id) {
+              option.selected = true;
+              this.selectedModel = model.id;
+            }
+            modelSelect.appendChild(option);
+          });
+        } else {
+          const option = document.createElement('option');
+          option.textContent = 'No models available';
+          option.disabled = true;
+          modelSelect.appendChild(option);
+        }
+      } catch (error) {
+        console.error('AIChatApp: Failed to populate model selector:', error);
+        const option = document.createElement('option');
+        option.textContent = 'Error loading models';
+        option.disabled = true;
+        modelSelect.appendChild(option);
+      }
+    } else {
+      const option = document.createElement('option');
+      option.textContent = 'Initializing...';
+      option.disabled = true;
+      modelSelect.appendChild(option);
+    }
+  }
+
+  updateModelStatus(containerElement) {
+    const statusIndicator = containerElement.querySelector('#model-status-indicator');
+    const statusText = containerElement.querySelector('#model-status-text');
+    
+    if (!statusIndicator || !statusText) {
+        console.error('AIChatApp: Model status elements not found in containerElement.');
+        return;
+    }
+
+    if (this.swissknife && this.swissknife.isSwissKnifeReady) {
+      statusIndicator.textContent = '✅';
+      statusText.textContent = 'Ready';
+      
+      // Check API key for selected model
+      if (this.selectedModel) {
+        try {
+          const models = this.swissknife.getAvailableModels(); // Fixed: Removed double swissknife
+          const model = models.find(m => m.id === this.selectedModel);
+          if (model && model.source === 'api') {
+            const hasKey = localStorage.getItem(`swissknife_${model.provider.toLowerCase()}_key`);
+            if (!hasKey) {
+              statusIndicator.textContent = '⚠️';
+              statusText.textContent = 'API key required';
+            }
+          }
+        } catch (error) {
+          console.warn('AIChatApp: Could not check API key status:', error);
+        }
+      }
+    } else {
+      statusIndicator.textContent = '🔄';
+      statusText.textContent = 'Initializing...';
+      
+      // Retry after a delay
+      setTimeout(() => {
+        this.updateModelStatus(containerElement);
+        this.populateModelSelector(containerElement);
+      }, 2000);
+    }
+  }
 }
+
+// Also assign to window for global access
+if (typeof window !== 'undefined') {
+  window.AIChatApp = AIChatApp;
+}
+
+export default AIChatApp;

@@ -58,6 +58,15 @@ export class SwissKnifeCLIAdapter {
       handler: async (args) => this.handleTaskCommand(args)
     });
 
+    // API Key management command
+    this.commands.set('api-key', {
+      name: 'api-key',
+      description: 'Manage API keys for AI services',
+      usage: 'api-key <set|get|clear> [provider] [key]',
+      category: 'config',
+      handler: async (args) => this.handleAPIKeyCommand(args)
+    });
+
     // Legacy command support
     this.commands.set('ai', {
       name: 'ai',
@@ -72,15 +81,34 @@ export class SwissKnifeCLIAdapter {
       description: 'Quick AI chat (legacy)',
       usage: 'chat <message>',
       category: 'ai',
-      handler: async (args) => this.handleAICommand(args)
+      handler: async (args) => this.handleAICommand(['chat', ...args])
     });
 
-    this.commands.set('task', {
-      name: 'task',
-      description: 'Task management (legacy)',
-      usage: 'task <list|create|status> [args]',
-      category: 'tasks',
-      handler: async (args) => this.handleTaskCommand(args)
+    // Model Browser command
+    this.commands.set('model-browser', {
+      name: 'model-browser',
+      description: 'Open the Model Browser for advanced model management',
+      usage: 'model-browser',
+      category: 'ai',
+      handler: async (args) => this.handleModelBrowserCommand(args)
+    });
+
+    // Model management commands
+    this.commands.set('models', {
+      name: 'models',
+      description: 'List and manage AI models',
+      usage: 'models [list|default|install|remove] [args]',
+      category: 'ai',
+      handler: async (args) => this.handleModelsCommand(args)
+    });
+
+    // Help command
+    this.commands.set('help', {
+      name: 'help',
+      description: 'Show available commands and usage information',
+      usage: 'help [command]',
+      category: 'core',
+      handler: async (args) => this.handleHelpCommand(args)
     });
   }
 
@@ -96,7 +124,7 @@ export class SwissKnifeCLIAdapter {
         return await this.executeCommand(aliasCommand);
       }
 
-      // Check for registered commands
+      // Check for registered commands first
       if (this.commands.has(commandName)) {
         const command = this.commands.get(commandName);
         const result = await command.handler(args);
@@ -115,16 +143,68 @@ export class SwissKnifeCLIAdapter {
         };
       }
 
-      return {
-        success: false,
-        output: '',
-        error: `Command not found: ${commandName}. Try 'sk help' for available commands.`
-      };
+      // If no command matches, treat it as an AI query (vibecoding behavior)
+      console.log('🤖 No command found, treating as AI query:', commandLine);
+      
+      // First, check if it's a misspelled or partial command
+      const potentialCommand = this.findSimilarCommand(commandName);
+      if (potentialCommand) {
+        return {
+          success: false,
+          output: '',
+          error: `Command not found: ${commandName}. Did you mean '${potentialCommand}'? Type 'help' for available commands.`,
+          type: 'error'
+        };
+      }
+      
+      if (this.swissknife && this.swissknife.isSwissKnifeReady) {
+        try {
+          // Enhanced prompt engineering for better tool usage
+          const enhancedPrompt = this.buildEnhancedPrompt(commandLine);
+          const result = await this.swissknife.swissknife.chat(enhancedPrompt);
+          if (result.success) {
+            // Add to history
+            this.context.history.push(commandLine);
+            if (this.context.history.length > 100) {
+              this.context.history.shift();
+            }
+
+            return {
+              success: true,
+              output: `🤖 AI: ${result.response.content || result.response}`,
+              type: 'ai-response'
+            };
+          } else {
+            return {
+              success: false,
+              output: '',
+              error: `AI Error: ${result.error}`,
+              type: 'error'
+            };
+          }
+        } catch (error) {
+          console.error('AI chat error:', error);
+          return {
+            success: false,
+            output: '',
+            error: `AI Chat Error: ${error.message}`,
+            type: 'error'
+          };
+        }
+      } else {
+        // SwissKnife not ready yet
+        return {
+          success: true,
+          output: `🤖 AI: I'm still initializing. Your query "${commandLine}" will be processed once I'm ready. Try 'ai status' to check my status.`,
+          type: 'warning'
+        };
+      }
     } catch (error) {
       return {
         success: false,
         output: '',
-        error: `Error executing command: ${error.message}`
+        error: `Error executing command: ${error.message}`,
+        type: 'error'
       };
     }
   }
@@ -179,7 +259,15 @@ export class SwissKnifeCLIAdapter {
     if (args.length === 0) {
       return {
         success: true,
-        output: 'AI Commands:\n  models - List available models\n  chat <message> - Chat with AI\n  status - Show AI status',
+        output: `🤖 AI Commands:
+  models - List available AI models
+  chat <message> - Chat with AI
+  status - Show AI status
+  
+Examples:
+  ai chat "Explain quantum computing"
+  ai models
+  ai status`,
         exitCode: 0
       };
     }
@@ -189,11 +277,139 @@ export class SwissKnifeCLIAdapter {
 
     switch (subcommand) {
       case 'models':
-        return {
-          success: true,
-          output: 'Available AI Models:\n🤖 GPT-4 (OpenAI)\n🤖 Claude-3 (Anthropic)\n🤖 Gemini (Google)',
-          exitCode: 0
-        };
+        if (this.swissknife && this.swissknife.isSwissKnifeReady) {
+          try {
+            const models = this.swissknife.swissknife.getAvailableModels();
+            const defaultModel = localStorage.getItem('swissknife_default_model');
+            
+            let modelList = '🤖 Available AI Models:\n\n';
+            
+            // Local models
+            const localModels = models.filter(m => m.source === 'local' || !m.source);
+            if (localModels.length > 0) {
+              modelList += '📱 Local Models:\n';
+              localModels.forEach(m => {
+                const isDefault = defaultModel === m.id ? ' ⭐' : '';
+                modelList += `  ${m.name} (${m.provider})${isDefault}\n`;
+              });
+              modelList += '\n';
+            }
+            
+            // API models
+            const apiModels = models.filter(m => m.source === 'api');
+            if (apiModels.length > 0) {
+              modelList += '☁️ API Models:\n';
+              apiModels.forEach(m => {
+                const isDefault = defaultModel === m.id ? ' ⭐' : '';
+                const hasKey = this.checkApiKeyForModel(m) ? ' ✓' : ' (needs API key)';
+                modelList += `  ${m.name} (${m.provider})${hasKey}${isDefault}\n`;
+              });
+              modelList += '\n';
+            }
+            
+            // P2P models
+            const p2pModels = models.filter(m => m.source === 'p2p');
+            if (p2pModels.length > 0) {
+              modelList += '🌐 P2P Network Models:\n';
+              p2pModels.forEach(m => {
+                const isDefault = defaultModel === m.id ? ' ⭐' : '';
+                modelList += `  ${m.name} (${m.provider}) - via ${m.peerName || m.peerId}${isDefault}\n`;
+              });
+              modelList += '\n';
+            }
+            
+            if (defaultModel) {
+              modelList += `\n🌟 Default Model: ${this.getModelNameById(defaultModel)}\n`;
+            } else {
+              modelList += '\n💡 No default model set. Use "ai default <model-id>" to set one.\n';
+            }
+            
+            modelList += '\n📖 Use "ai default <model-id>" to set default model';
+            modelList += '\n🔧 Use "model-browser" to open the Model Browser for management';
+            
+            return {
+              success: true,
+              output: modelList,
+              exitCode: 0
+            };
+          } catch (error) {
+            return {
+              success: false,
+              output: '',
+              error: `Failed to get models: ${error.message}`,
+              exitCode: 1
+            };
+          }
+        } else {
+          return {
+            success: true,
+            output: `🤖 Available AI Models:
+📱 Local Models:
+  GPT-3.5 Turbo (OpenAI)
+  GPT-4 (OpenAI)
+  
+☁️ API Models:
+  OpenAI GPT-4 (needs API key)
+  OpenAI GPT-3.5 Turbo (needs API key)
+  Anthropic Claude 3 Haiku (needs API key)
+
+⚠️ SwissKnife core initializing - showing default model list
+🔧 Use "model-browser" to open the Model Browser for full management`,
+            exitCode: 0
+          };
+        }
+
+      case 'default':
+        if (params.length === 0) {
+          const defaultModel = localStorage.getItem('swissknife_default_model');
+          if (defaultModel) {
+            return {
+              success: true,
+              output: `🌟 Current default model: ${this.getModelNameById(defaultModel)}\n\n💡 Use "ai default clear" to remove default\n💡 Use "ai default <model-id>" to change default`,
+              exitCode: 0
+            };
+          } else {
+            return {
+              success: true,
+              output: '❌ No default model set\n\n💡 Use "ai default <model-id>" to set a default model\n🔧 Use "model-browser" to browse and select models',
+              exitCode: 0
+            };
+          }
+        }
+        
+        const action = params[0];
+        if (action === 'clear') {
+          localStorage.removeItem('swissknife_default_model');
+          if (this.swissknife && this.swissknife.swissknife) {
+            await this.swissknife.swissknife.updateConfig({ defaultModel: null });
+          }
+          return {
+            success: true,
+            output: '✅ Default model cleared',
+            exitCode: 0
+          };
+        } else {
+          // Set default model
+          const modelId = params.join(' ');
+          try {
+            localStorage.setItem('swissknife_default_model', modelId);
+            if (this.swissknife && this.swissknife.swissknife) {
+              await this.swissknife.swissknife.updateConfig({ defaultModel: modelId });
+            }
+            return {
+              success: true,
+              output: `✅ Default model set to: ${modelId}`,
+              exitCode: 0
+            };
+          } catch (error) {
+            return {
+              success: false,
+              output: '',
+              error: `Failed to set default model: ${error.message}`,
+              exitCode: 1
+            };
+          }
+        }
 
       case 'chat':
         if (params.length === 0) {
@@ -208,6 +424,7 @@ export class SwissKnifeCLIAdapter {
         
         if (this.swissknife && this.swissknife.isSwissKnifeReady) {
           try {
+            console.log('🤖 Processing AI chat request:', message);
             const result = await this.swissknife.swissknife.chat(message);
             if (result.success) {
               return {
@@ -224,6 +441,7 @@ export class SwissKnifeCLIAdapter {
               };
             }
           } catch (error) {
+            console.error('AI chat error:', error);
             return {
               success: false,
               output: '',
@@ -234,15 +452,32 @@ export class SwissKnifeCLIAdapter {
         } else {
           return {
             success: true,
-            output: `🤖 AI: I am a simulated AI response. SwissKnife core is still initializing. Your message: "${message}"`,
+            output: `🤖 AI: I'm currently initializing. SwissKnife core is still loading - please try again in a moment. Your message: "${message}"`,
             exitCode: 0
           };
         }
 
       case 'status':
+        const apiKeyConfigured = localStorage.getItem('swissknife_openai_key') ? 'Configured' : 'Not configured';
+        const coreStatus = this.swissknife?.isSwissKnifeReady ? 'Ready' : 'Initializing';
+        const defaultModel = localStorage.getItem('swissknife_default_model');
+        const currentModel = defaultModel ? this.getModelNameById(defaultModel) : 'No default set';
+        
         return {
           success: true,
-          output: `AI Engine Status:\n✅ Status: ${this.swissknife?.isSwissKnifeReady ? 'Ready' : 'Initializing'}\n🤖 Active Model: GPT-4\n🔑 API Keys: Configured`,
+          output: `🤖 AI Engine Status:
+✅ Core Status: ${coreStatus}
+🔑 API Keys: ${apiKeyConfigured}
+🤖 Current Default Model: ${currentModel}
+🌐 Provider: ${defaultModel ? 'Various' : 'Not set'}
+💾 Storage: IndexedDB
+
+${apiKeyConfigured === 'Not configured' ? 
+  '⚠️ To enable AI chat, please set your OpenAI API key in Settings > API Keys' : 
+  '✅ AI chat functionality is available'}
+
+💡 Use "model-browser" to browse and set default models
+💡 Use "ai models" to see all available models`,
           exitCode: 0
         };
 
@@ -305,6 +540,148 @@ export class SwissKnifeCLIAdapter {
           success: false,
           output: '',
           error: `Unknown task command: ${subcommand}`,
+          exitCode: 1
+        };
+    }
+  }
+
+  async handleAPIKeyCommand(args) {
+    if (args.length === 0) {
+      return {
+        success: true,
+        output: `🔑 API Key Management:
+  set <provider> <key>   - Set API key for provider
+  get <provider>         - Check if API key is configured
+  clear <provider>       - Clear API key for provider
+  list                   - List supported providers
+
+Supported providers:
+  openai                 - OpenAI (GPT models)
+  anthropic              - Anthropic (Claude models)
+
+Examples:
+  api-key set openai sk-1234567890abcdef...
+  api-key get openai
+  api-key clear openai`,
+        exitCode: 0
+      };
+    }
+
+    const subcommand = args[0];
+    const provider = args[1];
+    const key = args[2];
+
+    switch (subcommand) {
+      case 'set':
+        if (!provider || !key) {
+          return {
+            success: false,
+            error: 'Usage: api-key set <provider> <key>',
+            exitCode: 1
+          };
+        }
+
+        if (!['openai', 'anthropic'].includes(provider)) {
+          return {
+            success: false,
+            error: `Unsupported provider: ${provider}. Supported: openai, anthropic`,
+            exitCode: 1
+          };
+        }
+
+        try {
+          localStorage.setItem(`swissknife_${provider}_key`, key);
+          
+          // Update SwissKnife config if available
+          if (this.swissknife && this.swissknife.swissknife) {
+            await this.swissknife.swissknife.updateConfig({
+              [`${provider}.apiKey`]: key
+            });
+            // Also refresh API keys to make sure they're loaded
+            await this.swissknife.swissknife.refreshAPIKeys();
+          }
+
+          return {
+            success: true,
+            output: `✅ API key for ${provider} has been set successfully
+🔄 Configuration updated and ready for use
+💡 Try typing "hello" or any AI query to test it!`,
+            exitCode: 0
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: `Failed to set API key: ${error.message}`,
+            exitCode: 1
+          };
+        }
+
+      case 'get':
+        if (!provider) {
+          return {
+            success: false,
+            error: 'Usage: api-key get <provider>',
+            exitCode: 1
+          };
+        }
+
+        const storedKey = localStorage.getItem(`swissknife_${provider}_key`);
+        if (storedKey) {
+          const maskedKey = storedKey.substring(0, 8) + '...' + storedKey.substring(storedKey.length - 4);
+          return {
+            success: true,
+            output: `🔑 API key for ${provider}: ${maskedKey} (configured)`,
+            exitCode: 0
+          };
+        } else {
+          return {
+            success: true,
+            output: `❌ No API key configured for ${provider}`,
+            exitCode: 0
+          };
+        }
+
+      case 'clear':
+        if (!provider) {
+          return {
+            success: false,
+            error: 'Usage: api-key clear <provider>',
+            exitCode: 1
+          };
+        }
+
+        try {
+          localStorage.removeItem(`swissknife_${provider}_key`);
+          return {
+            success: true,
+            output: `✅ API key for ${provider} has been cleared`,
+            exitCode: 0
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: `Failed to clear API key: ${error.message}`,
+            exitCode: 1
+          };
+        }
+
+      case 'list':
+        const providers = ['openai', 'anthropic'];
+        const providerStatus = providers.map(p => {
+          const hasKey = localStorage.getItem(`swissknife_${p}_key`) ? '✅' : '❌';
+          return `  ${hasKey} ${p}`;
+        }).join('\n');
+
+        return {
+          success: true,
+          output: `🔑 API Key Status:\n${providerStatus}`,
+          exitCode: 0
+        };
+
+      default:
+        return {
+          success: false,
+          error: `Unknown API key command: ${subcommand}`,
           exitCode: 1
         };
     }
@@ -443,8 +820,8 @@ async handleVFSList(args) {
     '📁 p2p/           (libp2p)      - P2P distributed files',
     '📁 cloud/         (storacha)    - Storacha pinned content',
     '📁 s3/            (s3)          - S3 bucket contents',
-    '� hf/            (huggingface) - Hugging Face repositories',
-    '�📄 README.md      (ipfs)        2.1KB  QmX1Y2Z3...',
+    '📁 hf/            (huggingface) - Hugging Face repositories',
+    '📄 README.md      (ipfs)        2.1KB  QmX1Y2Z3...',
     '📄 config.json    (local)       856B   local cache',
     '📁 shared/        (mirror)      - Multi-backend mirror',
     '📄 data.csv       (s3)          15.2MB s3://bucket/data.csv',
@@ -692,37 +1069,63 @@ Examples:
 }
 
 getHelpText() {
-  return `🔧 SwissKnife CLI v1.0.0 (Web Terminal)
+  return `🔧 SwissKnife VibeCoding CLI v1.0.0 (Web Terminal)
 
-Core Commands:
+🤖 VibeCoding Interface:
+  Just type anything! The AI will understand your requests.
+  Examples:
+    hello
+    write a python function to sort a list
+    explain quantum computing
+    create a react component for a todo list
+    help me debug this error: undefined variable
+
+🛠️ System Commands:
   sk                 - Main SwissKnife interface
   sk help           - Show this help
   sk version        - Show version information
   sk status         - Show system status
 
-AI Commands:
-  sk-ai <message>   - Chat with AI
-  ai models         - List available AI models
+🤖 AI Commands:
+  ai models         - List available AI models with sources
+  ai default        - View/set default model
+  ai default <id>   - Set default model
+  ai default clear  - Clear default model
+  ai chat <message> - Chat with AI (explicit)
   ai status         - Show AI engine status
 
-Task Management:
+🤖 Model Management:
+  model-browser     - Open advanced Model Browser
+  models list       - List all available models
+  models default    - Manage default model
+  models install    - Install a model
+  models remove     - Remove a model
+
+⚙️ Configuration:
+  api-key set <provider> <key> - Set API key for AI provider
+  api-key get <provider>       - Check API key status
+  api-key list                 - List all providers
+
+📋 Task Management:
   sk-task list      - List all tasks
   sk-task create    - Create new task
-  task status       - Show task manager status
 
-Virtual Filesystem:
+🗂️ Virtual Filesystem:
   vfs mount         - Mount storage backend (helia, libp2p, storacha, s3, huggingface)
   vfs ls [path]     - List VFS contents
   vfs cp <src> <dst> - Copy between backends
-  vfs mirror        - Mirror content across backends
   vfs sync          - Synchronize all backends
 
-Hugging Face Hub:
+🤗 Hugging Face Hub:
   hf search <query> - Search models and datasets
   hf download <id>  - Download model or dataset
   hf info <id>      - Get model/dataset information
 
-For more detailed help on any command, use: <command> --help`;
+💡 To enable AI responses, set your OpenAI API key:
+   api-key set openai sk-your-api-key-here
+
+🎯 Remember: You can type anything, and if it's not a system command,
+   the AI will treat it as a natural language query!`;
 }
 
 getStatusText() {
@@ -782,5 +1185,367 @@ getBackendEndpoint(backend) {
     'huggingface': 'https://huggingface.co'
   };
   return endpoints[backend] || 'unknown';
+}
+
+getSimulatedSpace(backend) {
+  const spaces = {
+    'helia': '∞ (distributed)',
+    'libp2p': '∞ (p2p network)',
+    'storacha': '100GB available',
+    's3': '1TB available',
+    'huggingface': '∞ (hub storage)'
+  };
+  return spaces[backend] || 'Unknown';
+}
+
+findSimilarCommand(input) {
+  const commands = Array.from(this.commands.keys());
+  const threshold = 0.6;
+  
+  // Check for exact prefix matches first
+  const prefixMatches = commands.filter(cmd => cmd.startsWith(input) || input.startsWith(cmd));
+  if (prefixMatches.length > 0) {
+    return prefixMatches[0];
+  }
+  
+  // Check for common typos
+  const typoMap = {
+    'helo': 'hello',
+    'hlep': 'help',
+    '/help': 'help',
+    'halp': 'help',
+    'stat': 'status',
+    'ls': 'vfs ls',
+    'list': 'vfs ls',
+    'files': 'vfs ls'
+  };
+  
+  if (typoMap[input]) {
+    return typoMap[input];
+  }
+  
+  // Fuzzy matching using Levenshtein distance
+  let bestMatch = null;
+  let bestScore = 0;
+  
+  for (const cmd of commands) {
+    const score = this.calculateSimilarity(input, cmd);
+    if (score > threshold && score > bestScore) {
+      bestScore = score;
+      bestMatch = cmd;
+    }
+  }
+  
+  return bestMatch;
+}
+
+calculateSimilarity(a, b) {
+  const matrix = [];
+  const aLen = a.length;
+  const bLen = b.length;
+  
+  if (aLen === 0) return bLen === 0 ? 1 : 0;
+  if (bLen === 0) return 0;
+  
+  for (let i = 0; i <= bLen; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= aLen; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= bLen; i++) {
+    for (let j = 1; j <= aLen; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  const distance = matrix[bLen][aLen];
+  return 1 - distance / Math.max(aLen, bLen);
+}
+
+buildEnhancedPrompt(userInput) {
+  // Analyze the user input to determine intent
+  const availableCommands = Array.from(this.commands.keys());
+  const intent = this.analyzeIntent(userInput);
+  
+  let enhancedPrompt = `You are SwissKnife AI, a powerful terminal assistant with access to advanced tools and commands.
+
+CONTEXT:
+- Current directory: ${this.context.workingDirectory}
+- Available commands: ${availableCommands.join(', ')}
+- User input: "${userInput}"
+- Detected intent: ${intent}
+
+AVAILABLE TOOLS & CAPABILITIES:
+1. Virtual Filesystem (VFS): Access to multiple storage backends (IPFS, S3, Hugging Face Hub, etc.)
+   - Use 'vfs ls' to list files
+   - Use 'vfs status' to check mounted backends
+   - Use 'vfs mount <backend> <path>' to mount storage
+
+2. AI & ML Operations:
+   - Use 'ai models' to list available AI models
+   - Use 'ai status' to check AI engine status
+   - Use 'hf search <query>' to search Hugging Face Hub
+
+3. System Operations:
+   - Use 'sk status' for system status
+   - Use 'help' for command help
+   - Use 'sk-task' for task management
+
+INSTRUCTIONS:
+${this.getInstructionsForIntent(intent, userInput)}
+
+Please respond as SwissKnife AI and ${intent === 'command_request' ? 'suggest the appropriate command(s) or execute the requested action' : 'answer helpfully while mentioning relevant commands when applicable'}.
+
+User Query: ${userInput}`;
+
+  return enhancedPrompt;
+}
+
+analyzeIntent(input) {
+  const lowerInput = input.toLowerCase();
+  
+  // Command requests
+  if (lowerInput.includes('list') || lowerInput.includes('show') || lowerInput.includes('display')) {
+    if (lowerInput.includes('file') || lowerInput.includes('directory') || lowerInput.includes('folder')) {
+      return 'list_files';
+    }
+    if (lowerInput.includes('model') || lowerInput.includes('ai')) {
+      return 'list_models';
+    }
+    if (lowerInput.includes('command') || lowerInput.includes('help')) {
+      return 'show_help';
+    }
+    return 'list_general';
+  }
+  
+  // Status requests
+  if (lowerInput.includes('status') || lowerInput.includes('health') || lowerInput.includes('check')) {
+    return 'check_status';
+  }
+  
+  // Help requests
+  if (lowerInput.includes('help') || lowerInput.includes('how') || lowerInput.includes('command')) {
+    return 'show_help';
+  }
+  
+  // VFS operations
+  if (lowerInput.includes('filesystem') || lowerInput.includes('storage') || lowerInput.includes('mount')) {
+    return 'vfs_operation';
+  }
+  
+  // AI/ML requests
+  if (lowerInput.includes('model') || lowerInput.includes('ai') || lowerInput.includes('ml')) {
+    return 'ai_operation';
+  }
+  
+  // Greetings
+  if (lowerInput.match(/^(hello|hi|hey|greetings?)$/)) {
+    return 'greeting';
+  }
+  
+  return 'general_query';
+}
+
+getInstructionsForIntent(intent, userInput) {
+  switch (intent) {
+    case 'list_files':
+      return `The user wants to see files. Suggest using 'vfs ls' to list files in the virtual filesystem, or 'vfs status' to see mounted backends.`;
+    
+    case 'list_models':
+      return `The user wants to see AI models. Suggest using 'ai models' to list available models or 'hf search <query>' to search Hugging Face Hub.`;
+    
+    case 'show_help':
+      return `The user needs help. Suggest using 'help' for general commands, 'sk help' for SwissKnife commands, or 'vfs' for filesystem help.`;
+    
+    case 'check_status':
+      return `The user wants status information. Suggest using 'sk status' for system status, 'ai status' for AI engine status, or 'vfs status' for filesystem status.`;
+    
+    case 'vfs_operation':
+      return `The user is asking about filesystem operations. Suggest relevant 'vfs' commands like 'vfs ls', 'vfs mount', 'vfs status', etc.`;
+    
+    case 'ai_operation':
+      return `The user is asking about AI/ML operations. Suggest 'ai' commands like 'ai models', 'ai status', or 'hf' commands for Hugging Face Hub.`;
+    
+    case 'greeting':
+      return `Respond warmly and mention that you can help with commands, file operations, AI tasks, and more. Suggest typing 'help' to see available commands.`;
+    
+    default:
+      return `Answer the user's question helpfully and suggest relevant commands when appropriate.`;
+  }
+}
+
+getModelNameById(modelId) {
+  // Try to get the actual model name from available models
+  if (this.swissknife && this.swissknife.isSwissKnifeReady) {
+    try {
+      const models = this.swissknife.swissknife.getAvailableModels();
+      const model = models.find(m => m.id === modelId);
+      return model ? model.name : modelId;
+    } catch (error) {
+      return modelId;
+    }
+  }
+  return modelId;
+}
+
+checkApiKeyForModel(model) {
+  const provider = model.provider.toLowerCase();
+  return !!localStorage.getItem(`swissknife_${provider}_key`);
+}
+
+async handleModelBrowserCommand(args) {
+  if (typeof window !== 'undefined' && window.desktop) {
+    try {
+      window.desktop.openApp('ModelBrowser');
+      return {
+        success: true,
+        output: '🤖 Model Browser opened',
+        exitCode: 0
+      };
+    } catch (error) {
+      return {
+        success: false,
+        output: '',
+        error: `Failed to open Model Browser: ${error.message}`,
+        exitCode: 1
+      };
+    }
+  } else {
+    return {
+      success: false,
+      output: '',
+      error: 'Model Browser is only available in the web interface',
+      exitCode: 1
+    };
+  }
+}
+
+async handleModelsCommand(args) {
+  if (args.length === 0 || args[0] === 'list') {
+    return await this.handleAICommand(['models']);
+  }
+
+  const subcommand = args[0];
+  const params = args.slice(1);
+
+  switch (subcommand) {
+    case 'default':
+      return await this.handleAICommand(['default', ...params]);
+      
+    case 'install':
+      if (params.length === 0) {
+        return {
+          success: false,
+          output: '',
+          error: 'Usage: models install <model-id>',
+          exitCode: 1
+        };
+      }
+      
+      const modelId = params.join(' ');
+      try {
+        // Simulate model installation
+        return {
+          success: true,
+          output: `📥 Installing model: ${modelId}\n\n💡 For full installation management, use "model-browser"`,
+          exitCode: 0
+        };
+      } catch (error) {
+        return {
+          success: false,
+          output: '',
+          error: `Failed to install model: ${error.message}`,
+          exitCode: 1
+        };
+      }
+
+    case 'remove':
+      if (params.length === 0) {
+        return {
+          success: false,
+          output: '',
+          error: 'Usage: models remove <model-id>',
+          exitCode: 1
+        };
+      }
+      
+      const removeModelId = params.join(' ');
+      try {
+        // Simulate model removal
+        return {
+          success: true,
+          output: `🗑️ Removing model: ${removeModelId}\n\n💡 For full removal management, use "model-browser"`,
+          exitCode: 0
+        };
+      } catch (error) {
+        return {
+          success: false,
+          output: '',
+          error: `Failed to remove model: ${error.message}`,
+          exitCode: 1
+        };
+      }
+
+    default:
+      return {
+        success: false,
+        output: '',
+        error: `Unknown models command: ${subcommand}\n\nAvailable commands: list, default, install, remove`,
+        exitCode: 1
+      };
+  }
+}
+
+getCommandsByCategory() {
+  const categories = {};
+  
+  for (const [name, command] of this.commands) {
+    const category = command.category || 'other';
+    if (!categories[category]) {
+      categories[category] = [];
+    }
+    categories[category].push(command);
+  }
+  
+  return categories;
+}
+
+async handleHelpCommand(args) {
+  if (args.length === 0) {
+    return {
+      success: true,
+      output: this.getHelpText(),
+      exitCode: 0
+    };
+  }
+
+  const commandName = args[0];
+  
+  if (this.commands.has(commandName)) {
+    const command = this.commands.get(commandName);
+    return {
+      success: true,
+      output: `📖 ${command.name} - ${command.description}\n\nUsage: ${command.usage}\nCategory: ${command.category}`,
+      exitCode: 0
+    };
+  } else {
+    return {
+      success: false,
+      output: '',
+      error: `Command '${commandName}' not found. Use 'help' to see all available commands.`,
+      exitCode: 1
+    };
+  }
 }
 }
