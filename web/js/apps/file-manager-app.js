@@ -1186,7 +1186,7 @@ export class FileManagerApp {
                 flex-direction: column;
                 height: 100%;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: #ffffff;
+                background: #2f2f2fff;
             }
             
             /* Toolbar */
@@ -1195,7 +1195,7 @@ export class FileManagerApp {
                 align-items: center;
                 gap: 8px;
                 padding: 8px 16px;
-                background: #f8f9fa;
+                background: #2f2f2fff;
                 border-bottom: 1px solid #e9ecef;
                 flex-shrink: 0;
             }
@@ -1317,7 +1317,7 @@ export class FileManagerApp {
             /* Cloud Services Panel */
             .cloud-services-panel {
                 width: 300px;
-                background: #f8f9fa;
+                background: #2f2f2fff;
                 border-right: 1px solid #e9ecef;
                 display: flex;
                 flex-direction: column;
@@ -1327,7 +1327,7 @@ export class FileManagerApp {
             .cloud-panel-header {
                 padding: 12px 16px;
                 border-bottom: 1px solid #e9ecef;
-                background: white;
+                background: #2f2f2fff;
                 font-weight: 600;
                 font-size: 14px;
                 display: flex;
@@ -1389,7 +1389,7 @@ export class FileManagerApp {
             
             /* Cloud Service Cards */
             .cloud-service-card {
-                background: white;
+                background: #2f2f2fff;
                 border: 1px solid #e9ecef;
                 border-radius: 6px;
                 padding: 12px;
@@ -1718,7 +1718,7 @@ export class FileManagerApp {
                 justify-content: space-between;
                 padding: 16px 20px;
                 border-bottom: 1px solid #e9ecef;
-                background: #f8f9fa;
+                background:  #2d2d30;
             }
             
             .modal-header h3 {
@@ -1753,8 +1753,8 @@ export class FileManagerApp {
                 gap: 8px;
                 justify-content: flex-end;
                 padding: 16px 20px;
-                border-top: 1px solid #e9ecef;
-                background: #f8f9fa;
+                border: 1px solid #e9ecef;
+                background:  #2d2d30;
             }
             
             .form-group {
