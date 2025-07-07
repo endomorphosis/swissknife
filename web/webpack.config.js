@@ -200,11 +200,8 @@ module.exports = (env, argv) => {
         watch: true,
       },
       watchFiles: ['js/**/*', 'css/**/*', 'assets/**/*', 'index.html'], // Explicitly watch only relevant files
-      watchOptions: {
-        ignored: /node_modules/, // Ignore node_modules
-      },
       compress: true,
-      port: 8000, // Changed to match unified system
+      port: 8080, // Changed to match unified system
       hot: true,   // Enable hot reload for development
       liveReload: true,
       open: true,  // Auto-open browser

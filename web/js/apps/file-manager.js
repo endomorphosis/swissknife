@@ -590,7 +590,7 @@ window.FileManagerApp = class FileManagerApp {
 
   async downloadFile(file) {
     try {
-      const content = await this.swissknife.storage.retrieve({
+      const content = await this.swissknife.storage.read({
         path: file.path,
         hash: file.hash
       });

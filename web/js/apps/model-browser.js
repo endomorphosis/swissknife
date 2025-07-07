@@ -667,40 +667,26 @@ console.log(result);</code></pre>
     downloadingModel.textContent = model.name;
     downloadModal.style.display = 'flex';
 
+    const modelUrl = `https://huggingface.co/${model.id}/resolve/main/pytorch_model.bin`;
+    const destinationPath = `/models/${model.id}/pytorch_model.bin`;
+
     try {
-      // Simulate download progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 10;
-        if (progress > 100) progress = 100;
+        const storage = this.swissknife.storage;
+        const result = await storage.write({ path: destinationPath, content: blob, metadata: { url: modelUrl, downloadedAt: new Date().toISOString() } });
 
-        downloadProgress.style.width = progress + '%';
-        downloadStatus.textContent = `Downloading... ${Math.round(progress)}%`;
-        downloadSpeed.textContent = `${(Math.random() * 10 + 5).toFixed(1)} MB/s`;
-        
-        const eta = Math.max(0, (100 - progress) * 2);
-        downloadEta.textContent = eta > 0 ? `${Math.round(eta)}s remaining` : 'Almost done...';
-
-        if (progress >= 100) {
-          clearInterval(interval);
-          downloadStatus.textContent = 'Installing...';
-          
-          setTimeout(async () => {
-            // Add to installed models
-            this.installedModels.push(model);
-            
+        if (result.success) {
+            this.installedModels.push({ ...model, path: result.path });
             downloadModal.style.display = 'none';
-            this.renderModelDetails(window);
-            this.renderModelList(window);
-            
+            this.renderModelDetails(windowContainer);
+            this.renderModelList(windowContainer);
             this.desktop.showNotification(`${model.name} installed successfully`, 'success');
-          }, 2000);
+        } else {
+            downloadModal.style.display = 'none';
+            this.desktop.showNotification(`Failed to install ${model.name}: ${result.error}`, 'error');
         }
-      }, 500);
-
     } catch (error) {
-      downloadModal.style.display = 'none';
-      this.desktop.showNotification(`Failed to install ${model.name}: ${error.message}`, 'error');
+        downloadModal.style.display = 'none';
+        this.desktop.showNotification(`Failed to install ${model.name}: ${error.message}`, 'error');
     }
   }
 

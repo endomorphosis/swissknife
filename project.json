@@ -1,0 +1,14 @@
+{
+  "name": "swissknife Web Multi Agent AI toolkit",
+  "tagline": "a virtual desktop and 3d avatar for AI entertainment",
+  "description": "a virtual filesystem connected to filecoin / storacha / filcdn",
+  "team": [
+    {
+      "name": "Benjamin Barber",
+      "email": "starworks5@gmail.com"
+    }
+  ],
+  "demo_url": "https://github.com/endomorphosis/swissknife/blob/main/web/package.json#L8",
+  "video_url": "",
+  "technologies": ["React"]
+}

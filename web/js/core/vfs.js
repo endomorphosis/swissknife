@@ -126,4 +126,36 @@ export class VirtualFileSystem {
         }
         return this.activeAdapter.status();
     }
+
+    // Alias for write
+    async store(options) {
+        return this.write(options);
+    }
+
+    // Alias for read
+    async retrieve(options) {
+        return this.read(options);
+    }
+
+    // Extended VFS methods for file manager
+    async listFiles(path) {
+        if (!this.activeAdapter || typeof this.activeAdapter.list !== 'function') {
+            throw new Error('Active adapter not set or does not implement list() method.');
+        }
+        return this.activeAdapter.list({ path });
+    }
+
+    async renameFile(oldPath, newName) {
+        if (!this.activeAdapter || typeof this.activeAdapter.rename !== 'function') {
+            throw new Error('Active adapter not set or does not implement rename() method.');
+        }
+        return this.activeAdapter.rename(oldPath, newName);
+    }
+
+    async deleteFile(path) {
+        if (!this.activeAdapter || typeof this.activeAdapter.delete !== 'function') {
+            throw new Error('Active adapter not set or does not implement delete() method.');
+        }
+        return this.activeAdapter.delete({ path });
+    }
 }

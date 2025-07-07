@@ -178,7 +178,7 @@ export class AIChatApp {
 
     try {
       // Send to SwissKnife AI using the correct API
-      const response = await this.swissknife.swissknife.chat(message);
+      const response = await this.swissknife.ai.chat(message, this.selectedModel);
 
       // Remove typing indicator
       typingIndicator.remove();

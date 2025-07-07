@@ -720,7 +720,7 @@ export class FileManagerApp {
 
     async listFiles(path = this.currentPath) {
         try {
-            const result = await this.vfs.listFiles(path);
+            const result = await this.vfs.list({ path });
             
             if (result.error) {
                 this.showNotification(`Error listing files: ${result.error}`, 'error');
@@ -728,7 +728,7 @@ export class FileManagerApp {
             }
             
             this.currentPath = path;
-            this.currentFiles = result.files || [];
+            this.currentFiles = result || [];
             
             // Sort files
             this.currentFiles = this.sortFiles(this.currentFiles);
@@ -2138,7 +2138,7 @@ export class FileManagerApp {
         const folderName = prompt('Enter folder name:');
         if (folderName) {
             try {
-                await this.vfs.createFolder(this.currentPath + folderName);
+                await this.vfs.createDirectory({ path: this.currentPath + folderName });
                 this.showNotification(`Created folder: ${folderName}`, 'success');
                 this.refreshFiles();
             } catch (error) {
@@ -2330,7 +2330,7 @@ export class FileManagerApp {
         const folderName = prompt('Enter folder name:');
         if (folderName) {
             try {
-                await this.vfs.createFolder(this.currentPath + folderName);
+                await this.vfs.createDirectory({ path: this.currentPath + folderName });
                 this.showNotification(`Created folder: ${folderName}`, 'success');
                 this.refreshFiles();
             } catch (error) {

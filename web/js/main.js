@@ -34,6 +34,17 @@ class SwissKnifeDesktop {
             if (result.success) {
                 this.isSwissKnifeReady = true;
                 console.log('SwissKnife core initialized successfully');
+
+                // Initialize StorageEngine with VFS
+                const { StorageEngine } = await import('./core/storage-engine.js');
+                this.swissknife.storageEngine = new StorageEngine(this.swissknife.storage);
+                await this.swissknife.storageEngine.initialize();
+
+                // Initialize AIEngine
+                const { AIEngine } = await import('./core/ai-engine.js');
+                this.swissknife.ai = new AIEngine();
+                await this.swissknife.ai.initialize();
+
             } else {
                 console.warn('SwissKnife core initialization failed:', result.error);
                 // Continue with limited functionality
@@ -538,194 +549,50 @@ class SwissKnifeDesktop {
                 throw new Error(`Content element not found for window ${window.id}`);
             }
             
-            // Handle different app types
             let appInstance;
             
             switch (componentName.toLowerCase()) {
                 case 'terminalapp':
-                    console.log('🖥️ Loading Terminal app...');
-                    // Import and instantiate Terminal app
-                    const TerminalModule = await import('./apps/terminal.js');
-                    const TerminalApp = TerminalModule.TerminalApp;
+                    const { TerminalApp } = await import('./apps/terminal.js');
                     appInstance = new TerminalApp(contentElement, this);
                     break;
                     
-                case 'devicemanagerapp':
-                    console.log('🔧 Loading Device Manager app...');
-                    // Device Manager
-                    this.loadDeviceManagerApp(contentElement);
-                    break;
-                    
-                case 'naviapp':
-                    console.log('🤖 Loading NAVI app...');
-                    // NAVI App - loads the chat application
-                    this.loadNaviApp(contentElement);
-                    break;
-                    
                 case 'aichatapp':
-                    console.log('🤖 Loading AI Chat app...');
-                    // Import and instantiate AI Chat app
-                    try {
-                        const AIChatModule = await import('./apps/ai-chat.js');
-                        const AIChatApp = AIChatModule.default || window.AIChatApp;
-                        if (AIChatApp) {
-                            appInstance = new AIChatApp(this);
-                            const chatContent = appInstance.createWindow();
-                            contentElement.innerHTML = chatContent;
-                            await appInstance.initialize(contentElement); // Pass contentElement and initialize after DOM is set
-                            
-                            // Set up event listeners for the loaded app
-                            appInstance.setupEventListeners(contentElement);
-                            appInstance.populateConversationList(contentElement);
-                            // Call populateModelSelector and updateModelStatus directly from initialize
-                            // AIChatApp's initialize method will handle DOM readiness
-                            // appInstance.populateModelSelector(contentElement); // Removed, now handled by initialize
-                            // appInstance.updateModelStatus(contentElement); // Removed, now handled by initialize
-                        } else {
-                            throw new Error('AIChatApp class not found');
-                        }
-                    } catch (importError) {
-                        console.warn('Failed to import AI Chat module, trying window.AIChatApp:', importError);
-                        // Fallback to global AIChatApp
-                        if (window.AIChatApp) {
-                            appInstance = new window.AIChatApp(this);
-                            await appInstance.initialize();
-                            const chatContent = appInstance.createWindow();
-                            contentElement.innerHTML = chatContent;
-                            
-                            // Set up event listeners for the loaded app
-                            appInstance.setupEventListeners(contentElement);
-                            appInstance.populateConversationList(contentElement);
-                            appInstance.populateModelSelector(contentElement);
-                            appInstance.updateModelStatus(contentElement);
-                        } else {
-                            throw new Error('AIChatApp not available');
-                        }
-                    }
+                    const { default: AIChatApp } = await import('./apps/ai-chat.js');
+                    appInstance = new AIChatApp(this);
+                    contentElement.innerHTML = appInstance.createWindow();
+                    await appInstance.initialize(contentElement);
                     break;
                     
                 case 'filemanagerapp':
-                    console.log('📁 Loading File Manager app...');
                     const { FileManagerApp } = await import('./apps/file-manager-app.js');
                     appInstance = new FileManagerApp(this);
                     contentElement.innerHTML = appInstance.createWindow();
                     await appInstance.initialize(contentElement);
                     break;
                     
-                case 'vibecodeapp':
-                    // Placeholder for VibeCode
-                    contentElement.innerHTML = `
-                        <div class="app-placeholder">
-                            <h2>💻 VibeCode</h2>
-                            <p>WebNN/WebGPU powered code editor will be implemented here.</p>
-                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'settingsapp':
-                    // Placeholder for Settings
-                    contentElement.innerHTML = `
-                        <div class="app-placeholder">
-                            <h2>⚙️ Settings</h2>
-                            <p>Configuration settings will be implemented here.</p>
-                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'apikeysapp':
-                    // API Keys Manager
-                    this.loadAPIKeysApp(contentElement);
-                    break;
-                    
-                case 'mcpcontrolapp':
-                    // MCP Control Panel
-                    this.loadMCPControlApp(contentElement);
-                    break;
-                    
-                case 'taskmanagerapp':
-                    // Task Manager
-                    this.loadTaskManagerApp(contentElement);
-                    break;
-                    
                 case 'modelbrowserapp':
-                    // Model Browser
-                    this.loadModelBrowserApp(contentElement);
+                    const { ModelBrowserApp } = await import('./apps/model-browser.js');
+                    appInstance = new ModelBrowserApp(this);
+                    contentElement.innerHTML = appInstance.createWindow();
+                    await appInstance.initialize();
+                    appInstance.setupEventListeners(contentElement);
+                    appInstance.renderModelList(contentElement);
                     break;
-                    
-                case 'ipfsexplorerapp':
-                    // IPFS Explorer
-                    this.loadIPFSExplorerApp(contentElement);
-                    break;
-                    
-                case 'cronapp':
-                    // AI Cron Scheduler
-                    this.loadCronApp(contentElement);
-                    break;
-                    
-                case 'devicemanagerapp':
-                    // Device Manager
-                    this.loadDeviceManagerApp(contentElement);
-                    break;
-                    
-                case 'naviapp':
-                    // NAVI App - loads the chat application
-                    this.loadNaviApp(contentElement);
-                    break;
-                    
-                case 'peermanagerapp':
-                    // Peer Manager App
-                    console.log('🔗 Loading Peer Manager app...');
-                    try {
-                        const PeerManagerModule = await import('./apps/peer-manager.js');
-                        const PeerManagerApp = PeerManagerModule.default || window.PeerManagerApp;
-                        if (PeerManagerApp) {
-                            appInstance = new PeerManagerApp(this);
-                            window.peerManagerApp = appInstance; // Set global reference
-                            await appInstance.initialize();
-                            const peerContent = appInstance.createWindow();
-                            contentElement.innerHTML = peerContent;
-                            appInstance.setupEventListeners(contentElement);
-                        } else {
-                            throw new Error('PeerManagerApp class not found');
-                        }
-                    } catch (importError) {
-                        console.warn('Failed to import Peer Manager module, trying window.PeerManagerApp:', importError);
-                        if (window.PeerManagerApp) {
-                            appInstance = new window.PeerManagerApp(this);
-                            window.peerManagerApp = appInstance; // Set global reference
-                            await appInstance.initialize();
-                            const peerContent = appInstance.createWindow();
-                            contentElement.innerHTML = peerContent;
-                            appInstance.setupEventListeners(contentElement);
-                        } else {
-                            throw new Error('PeerManagerApp not available');
-                        }
-                    }
-                    break;
-                    
+
                 default:
-                    throw new Error(`Unknown app component: ${componentName}`);
+                    contentElement.innerHTML = `<div class="app-placeholder"><h2>${componentName}</h2><p>This app is not yet implemented.</p></div>`;
+                    break;
             }
             
-            // Store app instance reference if created
             if (appInstance) {
                 window.appInstance = appInstance;
             }
             
         } catch (error) {
             console.error(`Failed to load app component ${componentName}:`, error);
-            
-            // Show error in window
             const contentElement = document.getElementById(`${window.id}-content`);
-            contentElement.innerHTML = `
-                <div style="padding: 20px; text-align: center; color: #f48771;">
-                    <h3>Failed to load application</h3>
-                    <p>${error.message}</p>
-                    <button onclick="this.closest('.window').remove()" style="margin-top: 10px; padding: 5px 10px;">Close</button>
-                </div>
-            `;
+            contentElement.innerHTML = `<div style="padding: 20px; text-align: center; color: #f48771;"><h3>Failed to load application</h3><p>${error.message}</p></div>`;
         }
     }
     
