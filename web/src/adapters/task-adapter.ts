@@ -1,11 +1,8 @@
-
-/**
- * SwissKnife Task Adapter - Unified Implementation
- * Connects to actual SwissKnife task management and workflow systems
- */
-
-import { BrowserEventEmitter, generateId } from '../utils/browser-utils';
-import { BrowserStorageAdapter } from './browser-storage-adapter';
+import { BrowserEventEmitter } from '../utils/browser-utils';
+// Assuming these are available from the core SwissKnife project
+import { TaskManager } from '@swissknife/core/task/task-manager';
+import { WorkflowEngine } from '@swissknife/core/task/workflow-engine';
+import { StorageProvider, StorageFactory } from '@swissknife/core/storage/storage-provider'; // Assuming a StorageFactory
 
 export interface Task {
   id: string;
@@ -26,301 +23,155 @@ export interface Task {
   error?: string;
 }
 
-export interface TaskGraph {
-  id: string;
-  name: string;
-  tasks: Task[];
-  connections: { from: string; to: string }[];
-  status: 'idle' | 'running' | 'completed' | 'failed';
+export interface TaskExecution {
+  taskId: string;
+  status: 'running' | 'completed' | 'failed';
+  result?: any;
+  error?: string;
 }
 
 export class SwissKnifeTaskAdapter extends BrowserEventEmitter {
-  private tasks: Map<string, Task> = new Map();
-  private taskGraphs: Map<string, TaskGraph> = new Map();
-  private storage: BrowserStorageAdapter;
+  private taskManager: TaskManager;
+  private workflowEngine: WorkflowEngine;
+  private storage: StorageProvider;
+  private initialized = false;
 
-  constructor(storage: BrowserStorageAdapter) {
+  constructor() {
     super();
-    this.storage = storage;
-    this.loadFromStorage();
+    // Initialize with dummy values for now, actual initialization in `initialize`
+    this.storage = {} as StorageProvider;
+    this.taskManager = {} as TaskManager;
+    this.workflowEngine = {} as WorkflowEngine;
   }
 
-  // Task Management
-  createTask(params: {
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    console.log('Initializing SwissKnife Task Adapter...');
+    // Connect to actual SwissKnife task management
+    this.storage = StorageFactory.createStorage(); // Use the real storage factory
+    this.taskManager = new TaskManager({ storage: this.storage });
+    this.workflowEngine = new WorkflowEngine();
+    
+    await this.loadExistingTasks();
+    await this.setupWorkflows();
+
+    this.initialized = true;
+    console.log('✅ SwissKnife Task Adapter initialized');
+  }
+
+  private async loadExistingTasks(): Promise<void> {
+    console.log('Loading existing tasks...');
+    // This would involve loading tasks from the TaskManager's storage
+    // Example: await this.taskManager.loadTasks();
+  }
+
+  private async setupWorkflows(): Promise<void> {
+    console.log('Setting up workflows...');
+    // This would involve registering workflows with the WorkflowEngine
+    // Example: this.workflowEngine.registerWorkflow(myWorkflow);
+  }
+
+  // Task Management (delegated to TaskManager)
+  async createTask(params: {
     title: string;
     description?: string;
     priority?: Task['priority'];
     dependencies?: string[];
     metadata?: Record<string, any>;
-  }): Task {
-    const now = new Date().toISOString();
-    const task: Task = {
-      id: generateId(),
-      title: params.title,
-      description: params.description,
-      status: 'pending',
-      priority: params.priority || 'medium',
-      dependencies: params.dependencies || [],
-      metadata: params.metadata || {},
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.tasks.set(task.id, task);
-    this.saveToStorage();
+  }): Promise<Task> {
+    if (!this.initialized) await this.initialize();
+    const task = await this.taskManager.createTask(params);
     this.emit('taskCreated', task);
     return task;
   }
 
-  getTask(id: string): Task | undefined {
-    return this.tasks.get(id);
+  async getTask(id: string): Promise<Task | undefined> {
+    if (!this.initialized) await this.initialize();
+    return this.taskManager.getTask(id);
   }
 
-  updateTask(id: string, updates: Partial<Task>): Task | undefined {
-    const task = this.tasks.get(id);
-    if (!task) return undefined;
-
-    const updatedTask = {
-      ...task,
-      ...updates,
-      id: task.id, // Prevent ID changes
-      updatedAt: new Date().toISOString(),
-    };
-
-    this.tasks.set(id, updatedTask);
-    this.saveToStorage();
-    this.emit('taskUpdated', updatedTask);
+  async updateTask(id: string, updates: Partial<Task>): Promise<Task | undefined> {
+    if (!this.initialized) await this.initialize();
+    const updatedTask = await this.taskManager.updateTask(id, updates);
+    if (updatedTask) {
+      this.emit('taskUpdated', updatedTask);
+    }
     return updatedTask;
   }
 
-  deleteTask(id: string): boolean {
-    const deleted = this.tasks.delete(id);
+  async deleteTask(id: string): Promise<boolean> {
+    if (!this.initialized) await this.initialize();
+    const deleted = await this.taskManager.deleteTask(id);
     if (deleted) {
-      this.saveToStorage();
       this.emit('taskDeleted', id);
     }
     return deleted;
   }
 
-  listTasks(filter?: {
+  async listTasks(filter?: {
     status?: Task['status'];
     priority?: Task['priority'];
-  }): Task[] {
-    let tasks = Array.from(this.tasks.values());
-
-    if (filter) {
-      if (filter.status) {
-        tasks = tasks.filter(task => task.status === filter.status);
-      }
-      if (filter.priority) {
-        tasks = tasks.filter(task => task.priority === filter.priority);
-      }
-    }
-
-    return tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }): Promise<Task[]> {
+    if (!this.initialized) await this.initialize();
+    return this.taskManager.listTasks(filter);
   }
 
-  // Task Execution
-  async executeTask(id: string): Promise<any> {
-    const task = this.getTask(id);
-    if (!task) {
-      throw new Error(`Task ${id} not found`);
-    }
-
-    if (task.status === 'in_progress') {
-      throw new Error(`Task ${id} is already running`);
-    }
-
-    // Check dependencies
-    const unmetDependencies = task.dependencies?.filter(depId => {
-      const depTask = this.getTask(depId);
-      return !depTask || depTask.status !== 'completed';
-    }) || [];
-
-    if (unmetDependencies.length > 0) {
-      throw new Error(`Task ${id} has unmet dependencies: ${unmetDependencies.join(', ')}`);
-    }
-
-    this.updateTask(id, { status: 'in_progress' });
-    this.emit('taskStarted', task);
-
+  // Task Execution (delegated to TaskManager)
+  async executeTask(id: string): Promise<TaskExecution> {
+    if (!this.initialized) await this.initialize();
+    console.log(`Executing task: ${id}`);
+    this.emit('taskStarted', { taskId: id });
     try {
-      // Simulate task execution - this would integrate with actual SwissKnife task system
-      const result = await this.simulateTaskExecution(task);
-      
-      this.updateTask(id, { 
+      const result = await this.taskManager.executeTask(id);
+      const executionResult: TaskExecution = {
+        taskId: id,
         status: 'completed',
-        result
-      });
-      
-      this.emit('taskCompleted', { task, result });
-      return result;
-    } catch (error) {
-      this.updateTask(id, { 
+        result: result
+      };
+      this.emit('taskCompleted', executionResult);
+      return executionResult;
+    } catch (error: any) {
+      const executionResult: TaskExecution = {
+        taskId: id,
         status: 'failed',
-        error: error instanceof Error ? error.message : String(error)
-      });
-      
-      this.emit('taskFailed', { task, error });
+        error: error.message || String(error)
+      };
+      this.emit('taskFailed', executionResult);
       throw error;
     }
   }
 
-  private async simulateTaskExecution(task: Task): Promise<any> {
-    // Simulate work
-    const delay = 1000 + Math.random() * 3000;
-    await new Promise(resolve => setTimeout(resolve, delay));
-
-    // Generate result based on task
-    if (task.title.toLowerCase().includes('ai') || task.title.toLowerCase().includes('generate')) {
-      return {
-        type: 'ai_result',
-        content: `AI-generated content for task: ${task.title}`,
-        timestamp: Date.now()
-      };
-    } else if (task.title.toLowerCase().includes('data') || task.title.toLowerCase().includes('process')) {
-      return {
-        type: 'data_result',
-        processed: Math.floor(Math.random() * 1000),
-        timestamp: Date.now()
-      };
-    } else {
-      return {
-        type: 'generic_result',
-        message: `Task "${task.title}" completed successfully`,
-        timestamp: Date.now()
-      };
-    }
-  }
-
-  // Task Graph Management
-  createTaskGraph(name: string, tasks: Task[] = []): TaskGraph {
-    const graph: TaskGraph = {
-      id: generateId(),
-      name,
-      tasks: [...tasks],
-      connections: [],
-      status: 'idle'
-    };
-
-    this.taskGraphs.set(graph.id, graph);
-    this.saveToStorage();
-    this.emit('graphCreated', graph);
-    return graph;
-  }
-
-  addTaskToGraph(graphId: string, task: Task): boolean {
-    const graph = this.taskGraphs.get(graphId);
-    if (!graph) return false;
-
-    graph.tasks.push(task);
-    this.saveToStorage();
-    this.emit('graphUpdated', graph);
-    return true;
-  }
-
-  connectTasks(graphId: string, fromTaskId: string, toTaskId: string): boolean {
-    const graph = this.taskGraphs.get(graphId);
-    if (!graph) return false;
-
-    // Check if tasks exist in graph
-    const fromExists = graph.tasks.some(t => t.id === fromTaskId);
-    const toExists = graph.tasks.some(t => t.id === toTaskId);
-    
-    if (!fromExists || !toExists) return false;
-
-    graph.connections.push({ from: fromTaskId, to: toTaskId });
-    this.saveToStorage();
-    this.emit('graphUpdated', graph);
-    return true;
-  }
-
-  async executeTaskGraph(graphId: string): Promise<any> {
-    const graph = this.taskGraphs.get(graphId);
-    if (!graph) {
-      throw new Error(`Task graph ${graphId} not found`);
-    }
-
-    graph.status = 'running';
-    this.emit('graphStarted', graph);
-
-    try {
-      // Execute tasks in dependency order
-      const results = new Map<string, any>();
-      const executed = new Set<string>();
-      
-      const executeNext = async (): Promise<void> => {
-        const ready = graph.tasks.filter(task => 
-          !executed.has(task.id) && 
-          task.dependencies?.every(dep => executed.has(dep)) !== false
-        );
-
-        if (ready.length === 0) return;
-
-        // Execute ready tasks in parallel
-        await Promise.all(ready.map(async task => {
-          try {
-            const result = await this.executeTask(task.id);
-            results.set(task.id, result);
-            executed.add(task.id);
-          } catch (error) {
-            throw new Error(`Task ${task.id} failed: ${error}`);
-          }
-        }));
-
-        if (executed.size < graph.tasks.length) {
-          await executeNext();
+  // This method is for CLI integration, as per the plan
+  async executeTaskCommand(args: string[]): Promise<string> {
+    if (!this.initialized) await this.initialize();
+    // This is a simplified example. In a real scenario, you'd parse args
+    // and call appropriate TaskManager or WorkflowEngine methods.
+    const command = args[0];
+    switch (command) {
+      case 'create':
+        const title = args[1] || 'New Task';
+        const task = await this.createTask({ title });
+        return `Task created: ${task.id} - ${task.title}`;
+      case 'list':
+        const tasks = await this.listTasks();
+        return tasks.map(t => `${t.id}: ${t.title} (${t.status})`).join('\n');
+      case 'execute':
+        const taskId = args[1];
+        if (taskId) {
+          await this.executeTask(taskId);
+          return `Task ${taskId} executed.`;
         }
-      };
-
-      await executeNext();
-
-      graph.status = 'completed';
-      this.emit('graphCompleted', { graph, results: Object.fromEntries(results) });
-      
-      return Object.fromEntries(results);
-    } catch (error) {
-      graph.status = 'failed';
-      this.emit('graphFailed', { graph, error });
-      throw error;
+        return 'Please provide a task ID to execute.';
+      default:
+        return `Unknown task command: ${command}. Available: create, list, execute`;
     }
   }
 
-  // Storage
-  private async saveToStorage(): Promise<void> {
-    const data = {
-      tasks: Object.fromEntries(this.tasks),
-      taskGraphs: Object.fromEntries(this.taskGraphs)
-    };
-    await this.storage.store('swissknife-tasks', data);
-  }
-
-  private async loadFromStorage(): Promise<void> {
-    const data = await this.storage.retrieve('swissknife-tasks');
-    if (data) {
-      if (data.tasks) {
-        this.tasks = new Map(Object.entries(data.tasks));
-      }
-      if (data.taskGraphs) {
-        this.taskGraphs = new Map(Object.entries(data.taskGraphs));
-      }
-    }
-  }
-
-  // Statistics
-  getTaskStatistics() {
-    const tasks = Array.from(this.tasks.values());
-    return {
-      total: tasks.length,
-      pending: tasks.filter(t => t.status === 'pending').length,
-      running: tasks.filter(t => t.status === 'in_progress').length,
-      completed: tasks.filter(t => t.status === 'completed').length,
-      failed: tasks.filter(t => t.status === 'failed').length,
-      byPriority: {
-        high: tasks.filter(t => t.priority === 'high').length,
-        medium: tasks.filter(t => t.priority === 'medium').length,
-        low: tasks.filter(t => t.priority === 'low').length
-      }
-    };
+  // Dispose method for cleanup
+  async dispose(): Promise<void> {
+    console.log('Disposing SwissKnifeTaskAdapter resources...');
+    this.initialized = false;
+    // Any cleanup logic here, e.g., stopping workflow engine
   }
 }

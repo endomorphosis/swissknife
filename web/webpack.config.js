@@ -13,7 +13,7 @@ module.exports = (env, argv) => {
     entry: {
       // For the clean GUI version, we don't need webpack bundling
       // since index.html loads the scripts directly
-      main: './js/main.js'
+      main: './src/unified-main.ts'
     },
     
     output: {
@@ -23,6 +23,10 @@ module.exports = (env, argv) => {
       publicPath: './',
     },
     
+    experiments: {
+      asyncWebAssembly: true,
+      topLevelAwait: true
+    },
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx'],
       fallback: {
@@ -52,12 +56,28 @@ module.exports = (env, argv) => {
         '@legacy': path.resolve(__dirname, 'js'),
         '@': path.resolve(__dirname, 'src'),
         '@/adapters/ai-adapter': path.resolve(__dirname, 'src/adapters/browser-ai-adapter.ts'),
+        '@swissknife/wasm': path.resolve(__dirname, 'src/wasm'),
+        '@swissknife/core': path.resolve(__dirname, '../src'),
         "process": "process/browser", // Explicitly alias process to its browser polyfill
+        'buffer': 'buffer/', // Explicitly alias buffer to its polyfill
         'globalThis': path.resolve(__dirname, './src/polyfills/globalThis.js'),
         'window': path.resolve(__dirname, './src/polyfills/globalThis.js'), // Alias window to globalThis polyfill
         'global': path.resolve(__dirname, './src/polyfills/globalThis.js'), // Alias global to globalThis polyfill
       },
       modules: [path.resolve(__dirname, 'src'), 'node_modules']
+    },
+    module: {
+      rules: [
+        {
+          test: /\.tsx?$/,
+          use: 'ts-loader',
+          exclude: /node_modules/,
+        },
+        {
+          test: /\.wasm$/,
+          type: 'webassembly/async'
+        }
+      ]
     },
     
     

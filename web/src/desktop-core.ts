@@ -4,6 +4,17 @@ import SwissKnife from '../js/swissknife-browser.js';
 import DesktopEnhancer from '../js/desktop-enhancer.js';
 
 class DesktopCore {
+    windows: Map<string, any>;
+    windowCounter: number;
+    activeWindow: any;
+    apps: Map<string, any>;
+    swissknife: any;
+    isSwissKnifeReady: boolean;
+    enhancer: any;
+    currentTheme: string;
+    dragState: any;
+    currentAppWindowId: string | null;
+
     constructor() {
         this.windows = new Map();
         this.windowCounter = 0;
@@ -310,6 +321,14 @@ class DesktopCore {
             singleton: false
         });
         console.log('✅ Registered strudel app');
+
+        this.apps.set('phased-cleanup', {
+            name: '🧹 Phased Cleanup',
+            icon: '🧹',
+            component: 'PhasedCleanupApp',
+            singleton: true
+        });
+        console.log('✅ Registered phased-cleanup app');
         
         console.log('📱 Total apps registered:', this.apps.size);
         console.log('📱 Apps list:', Array.from(this.apps.keys()));
@@ -631,6 +650,14 @@ class DesktopCore {
                     this.loadNaviApp(contentElement);
                     break;
                     
+                case 'phasedcleanupapp':
+                    console.log('🧹 Loading Phased Cleanup app...');
+                    const PhasedCleanupModule = await import('./apps/PhasedCleanupApp');
+                    const PhasedCleanupApp = PhasedCleanupModule.default;
+                    appInstance = new PhasedCleanupApp();
+                    appInstance.render(contentElement);
+                    break;
+
                 case 'grandmastrudeldaw':
                     console.log('🎵 Loading Grandma-Friendly Music Studio...');
                     
