@@ -1,6 +1,6 @@
-import { Command, CommandExecutionContext } from '../command-registry';
-import { TaskManager } from '../tasks/manager'; // Assuming TaskManager is available in context
-import { logger } from '../utils/logger';
+import { Command, CommandExecutionContext } from '../../command-registry';
+import { TaskManager } from '../../tasks/manager'; // Assuming TaskManager is available in context
+import { logger } from '../../utils/logger';
 // Use a library like yargs-parser for robust argument parsing
 import parse from 'yargs-parser'; 
 

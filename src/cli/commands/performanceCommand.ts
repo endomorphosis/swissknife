@@ -1,11 +1,11 @@
 import { Command } from 'commander';
-import { PerformanceOptimizer } from '../performance/optimizer';
-import { TaskManager } from '../tasks/manager';
-import { IPFSKitClient } from '../ipfs/client';
-import { Agent } from '../ai/agent/agent';
-import { Model } from '../ai/models/model';
-import { StorageProvider } from '../types/storage';
-import { ModelOptions } from '../types/ai';
+import { PerformanceOptimizer } from '../../performance/optimizer';
+import { TaskManager } from '../../tasks/manager';
+import { IPFSKitClient } from '../../ipfs/client';
+import { Agent } from '../../ai/agent/agent';
+import { Model } from '../../ai/models/model';
+import { StorageProvider } from '../../types/storage';
+import { ModelOptions } from '../../types/ai';
 
 const performanceCommand = new Command('performance')
   .description('Run performance optimization tasks')

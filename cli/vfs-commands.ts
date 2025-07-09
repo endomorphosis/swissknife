@@ -1,3 +1,6 @@
+import { VirtualFilesystem } from '../src/storage/vfs/VirtualFilesystem';
+import { CommandResult } from '../src/types/command';
+
 // cli/vfs-commands.ts
 export class VFSCommands {
   constructor(private vfs: VirtualFilesystem) {}
@@ -29,8 +32,7 @@ export class VFSCommands {
         const size = entry.size ? this.formatSize(entry.size) : '';
         const backend = entry.backend || '';
         return `${type} ${entry.name.padEnd(30)} ${size.padStart(10)} ${backend}`;
-      }).join('
-');
+      }).join('\n');
 
       return {
         success: true,

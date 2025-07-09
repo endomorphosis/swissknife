@@ -1,4 +1,4 @@
-import type { Command, PromptCommand } from '../types/command'; // Updated import path
+import type { Command, PromptCommand } from '../../types/command'; // Updated import path
 import { markProjectOnboardingComplete } from '../ProjectOnboarding'; // Assuming .js extension
 import { PROJECT_FILE } from '../constants/product'; // Assuming .js extension
 

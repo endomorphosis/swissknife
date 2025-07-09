@@ -1,4 +1,4 @@
-import type { Command, PromptCommand } from '../types/command'; // Updated import path
+import type { Command, PromptCommand } from '../../types/command'; // Updated import path
 
 const prCommentsCommand: PromptCommand = {
   type: 'prompt',

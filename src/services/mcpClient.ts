@@ -18,9 +18,9 @@ import {
   MessageParam,
   ToolResultBlockParam,
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Client } from '@modelcontextprotocol/sdk/client/index'
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio'
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse'
+import { Client } from '@modelcontextprotocol/sdk/dist/esm/client/index.js'
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/dist/esm/client/stdio.js'
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/dist/esm/client/sse.js'
 import {
   CallToolResultSchema,
   ClientRequest,
@@ -30,7 +30,7 @@ import {
   ListToolsResultSchema,
   Result,
   ResultSchema,
-} from '@modelcontextprotocol/sdk/types'
+} from '@modelcontextprotocol/sdk/dist/esm/types.js'
 import { memoize, pickBy } from 'lodash-es'
 import type { Tool } from '../Tool'
 import { MCPTool } from '../tools/MCPTool/MCPTool'

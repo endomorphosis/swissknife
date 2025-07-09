@@ -1,7 +1,7 @@
 /**
  * Command to add an MCP server to the configuration
  */
-import type { Command, LocalCommand } from '../types/command';
+import type { Command, LocalCommand } from '../../types/command';
 import { addMcpServer, parseEnvVars, ensureConfigScope } from '../services/mcpClient';
 import { McpServerConfig } from '../utils/config';
 

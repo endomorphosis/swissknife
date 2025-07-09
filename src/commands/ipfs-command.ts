@@ -1,10 +1,10 @@
 // src/commands/ipfs-command.ts
 
-import { Command } from '../cli/command';
-import { IPFSKitClient } from '../ipfs/client';
-import { StorageService } from '../storage/service';
-import { logger } from '../utils/logger';
-import { ConfigurationManager } from '../config/manager';
+import { Command } from '../../cli/command';
+import { IPFSKitClient } from '../../ipfs/client';
+import { StorageService } from '../../storage/service';
+import { logger } from '../../utils/logger';
+import { ConfigurationManager } from '../../config/manager';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import prettyBytes from 'pretty-bytes';

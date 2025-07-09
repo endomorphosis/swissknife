@@ -6,8 +6,8 @@
  */
 
 import { IntegrationBridge } from '../registry';
-import { LogManager } from '../utils/logging/manager';
-import { ConfigurationManager } from '../config/manager';
+import { LogManager } from '../../utils/logging/manager';
+import { ConfigurationManager } from '../../config/manager';
 
 export interface GooseBridgeConfig {
   endpoint?: string;

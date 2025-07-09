@@ -1,4 +1,6 @@
 // src/ai/reasoning/strategies/ReasoningStrategies.ts
+import { ThoughtNode, ThoughtAlternative } from '../../../types/ai';
+
 export class ReasoningStrategies {
   
   async analyticalDecomposition(node: ThoughtNode): Promise<ThoughtAlternative> {

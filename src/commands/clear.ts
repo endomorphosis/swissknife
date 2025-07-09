@@ -1,4 +1,4 @@
-import type { Command, LocalCommand } from '../types/command'; // Updated import path
+import type { Command, LocalCommand } from '../../types/command'; // Updated import path
 import { getMessagesSetter } from '../messages';
 import { getContext } from '../context';
 import { getCodeStyle } from '../utils/style';

@@ -5,7 +5,7 @@ import {
 } from '../utils/config'
 
 export type ProjectConfigHandler = {
-  getCurrentProjectConfig: () => ProjectConfig
+  getCurrentProjectConfig: () => Promise<ProjectConfig>
   saveCurrentProjectConfig: (config: ProjectConfig) => void
 }
 
@@ -18,22 +18,22 @@ const defaultConfigHandler: ProjectConfigHandler = {
 /**
  * Handler for the 'approved-tools list' command
  */
-export function handleListApprovedTools(
+export async function handleListApprovedTools(
   cwd: string,
   projectConfigHandler: ProjectConfigHandler = defaultConfigHandler,
-): string {
-  const projectConfig = projectConfigHandler.getCurrentProjectConfig()
+): Promise<string> {
+  const projectConfig = await projectConfigHandler.getCurrentProjectConfig()
   return `Allowed tools for ${cwd}:\n${projectConfig.allowedTools.join('\n')}`
 }
 
 /**
  * Handler for the 'approved-tools remove' command
  */
-export function handleRemoveApprovedTool(
+export async function handleRemoveApprovedTool(
   tool: string,
   projectConfigHandler: ProjectConfigHandler = defaultConfigHandler,
-): { success: boolean; message: string } {
-  const projectConfig = projectConfigHandler.getCurrentProjectConfig()
+): Promise<{ success: boolean; message: string }> {
+  const projectConfig = await projectConfigHandler.getCurrentProjectConfig()
   const originalToolCount = projectConfig.allowedTools.length
   const updatedAllowedTools = projectConfig.allowedTools.filter(t => t !== tool)
 

@@ -6,22 +6,22 @@ import React, { useMemo } from 'react'
 import {
   UnaryEvent,
   usePermissionRequestLogging,
-} from '../hooks/usePermissionRequestLogging'
-import { savePermission } from '../permissions'
-import { env } from '../utils/env'
-import { getTheme } from '../utils/theme'
-import { logUnaryEvent } from '../utils/unaryLogging'
+} from '../../hooks/usePermissionRequestLogging'
+import { savePermission } from '../../permissions'
+import { env } from '../../utils/env'
+import { getTheme } from '../../utils/theme'
+import { logUnaryEvent } from '../../utils/unaryLogging'
 import {
   type ToolUseConfirm,
   toolUseConfirmGetPrefix,
-} from '../PermissionRequest'
+} from '../../PermissionRequest'
 import {
   PermissionRequestTitle,
   textColorForRiskScore,
 } from '../PermissionRequestTitle'
 import { FileEditToolDiff } from './FileEditToolDiff.js'
-import { useTerminalSize } from '../hooks/useTerminalSize'
-import { pathInOriginalCwd } from '../utils/permissions/filesystem'
+import { useTerminalSize } from '../../hooks/useTerminalSize'
+import { pathInOriginalCwd } from '../../utils/permissions/filesystem'
 
 function getOptions(path: string) {
   // Only show don't ask again option for edits in original working directory

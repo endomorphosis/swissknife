@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Box, Text } from 'ink'
-import { getTheme } from '../utils/theme'
+import { getTheme } from '../../utils/theme'
 
 export type RiskScoreCategory = 'low' | 'moderate' | 'high'
 

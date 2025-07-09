@@ -1,17 +1,17 @@
 import { Box, Text } from 'ink'
 import React, { useMemo } from 'react'
-import { UnaryEvent } from '../hooks/usePermissionRequestLogging'
-import { savePermission } from '../permissions'
-import { BashTool } from '../tools/BashTool/BashTool'
-import { getTheme } from '../utils/theme'
-import { usePermissionRequestLogging } from '../hooks'
+import { UnaryEvent } from '../../hooks/usePermissionRequestLogging'
+import { savePermission } from '../../permissions'
+import { BashTool } from '../../tools/BashTool/BashTool'
+import { getTheme } from '../../utils/theme'
+import { usePermissionRequestLogging } from '../../hooks/usePermissionRequestLogging'
 import {
   type ToolUseConfirm,
   toolUseConfirmGetPrefix,
 } from '../PermissionRequest'
 import { PermissionRequestTitle } from '../PermissionRequestTitle'
-import { logUnaryPermissionEvent } from '../utils'
-import { Select } from '../CustomSelect/select'
+import { logUnaryPermissionEvent } from '../../utils/unaryLogging'
+import { Select } from '../../CustomSelect/select'
 import { toolUseOptions } from '../toolUseOptions'
 
 type Props = {

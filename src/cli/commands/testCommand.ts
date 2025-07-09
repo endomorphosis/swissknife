@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { TestRunner } from '../testing/test-runner';
-import { CLIUXEnhancer } from '../ux/cli-ux-enhancer';
+import { TestRunner } from '../../testing/test-runner';
+import { CLIUXEnhancer } from '../../ux/cli-ux-enhancer';
 
 const testCommand = new Command('test')
   .description('Run tests for the SwissKnife CLI')

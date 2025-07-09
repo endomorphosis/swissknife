@@ -1,7 +1,7 @@
 # SwissKnife
 
 <div align="center">
-  <img src="src/ux/splash.png" alt="SwissKnife Logo" width="400"/>
+  <img src="src/ux/splash.jpg" alt="SwissKnife Logo" width="400"/>
 </div>
 
 ```

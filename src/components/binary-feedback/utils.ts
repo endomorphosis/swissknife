@@ -1,10 +1,10 @@
 import { TextBlock, ToolUseBlock } from '@anthropic-ai/sdk/resources/index.mjs'
 import { AssistantMessage, BinaryFeedbackResult } from '../query'
-import { MAIN_QUERY_TEMPERATURE } from '../services/claude'
-import { getDynamicConfig, logEvent } from '../services/statsig'
+import { MAIN_QUERY_TEMPERATURE } from '../../services/claude'
+import { getDynamicConfig, logEvent } from '../../services/statsig'
 
 import { isEqual, zip } from 'lodash-es'
-import { getGitState } from '../utils/git'
+import { getGitState } from '../../utils/git'
 
 export type BinaryFeedbackChoice =
   | 'prefer-left'

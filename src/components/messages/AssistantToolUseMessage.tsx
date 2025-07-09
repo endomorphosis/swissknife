@@ -1,13 +1,13 @@
 import { Box, Text } from 'ink'
 import React from 'react'
-import { logError } from '../utils/log'
+import { logError } from '../../utils/log'
 import { ToolUseBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Tool } from '../Tool'
+import { Tool } from '../../Tool'
 import { Cost } from '../Cost'
 import { ToolUseLoader } from '../ToolUseLoader'
-import { getTheme } from '../utils/theme'
-import { BLACK_CIRCLE } from '../constants/figures'
-import { ThinkTool } from '../tools/ThinkTool/ThinkTool'
+import { getTheme } from '../../utils/theme'
+import { BLACK_CIRCLE } from '../../constants/figures'
+import { ThinkTool } from '../../tools/ThinkTool/ThinkTool'
 import { AssistantThinkingMessage } from './AssistantThinkingMessage.js'
 
 type Props = {

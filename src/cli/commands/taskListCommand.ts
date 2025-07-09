@@ -1,6 +1,6 @@
-import { Command, CommandExecutionContext } from '../command-registry';
-import { TaskManager } from '../tasks/manager'; 
-import { logger } from '../utils/logger';
+import { Command, CommandExecutionContext } from '../../command-registry';
+import { TaskManager } from '../../tasks/manager'; 
+import { logger } from '../../utils/logger';
 import parse from 'yargs-parser'; 
 
 export class TaskListCommand implements Command {

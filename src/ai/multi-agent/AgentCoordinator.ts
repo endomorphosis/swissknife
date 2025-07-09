@@ -1,4 +1,9 @@
 // src/ai/multi-agent/AgentCoordinator.ts
+import { Agent, AgentTeam, AgentTeamConfig, AgentSpec } from '../../types/ai';
+import { CommunicationHub } from './Communication';
+import { TaskDistributor } from './TaskDistributor';
+import { ConflictResolver } from './ConflictResolver';
+
 export class AgentCoordinator {
   private agents: Map<string, Agent> = new Map();
   private communicationHub: CommunicationHub;

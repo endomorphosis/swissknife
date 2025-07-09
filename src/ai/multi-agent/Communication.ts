@@ -1,5 +1,5 @@
 // src/ai/multi-agent/Communication.ts
-export class CommunicationHub {
+import { PriorityQueue, MessageHandler, BroadcastChannel, AgentMessage, MessageType } from '../../types/ai';
   private messageQueue: PriorityQueue<AgentMessage>;
   private subscriptions: Map<string, MessageHandler[]> = new Map();
   private broadcastChannels: Map<string, BroadcastChannel> = new Map();

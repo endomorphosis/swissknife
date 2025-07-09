@@ -1,5 +1,5 @@
 import * as React from 'react'; // Import React explicitly
-import type { Command, LocalJSXCommand } from '../types/command'; // Updated import path
+import type { Command, LocalJSXCommand } from '../../types/command'; // Updated import path
 import { Bug } from '../components/Bug'; // Assuming .js extension
 import { PRODUCT_NAME } from '../constants/product'; // Assuming .js extension
 

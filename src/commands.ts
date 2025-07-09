@@ -1,5 +1,5 @@
 // Import the new Command type and the registry
-import type { Command } from './types/command.js';
+import type { Command } from './types/command';
 import { CommandRegistry } from './command-registry.js';
 
 // Import refactored command objects

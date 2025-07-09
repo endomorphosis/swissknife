@@ -1,13 +1,13 @@
 import { Box, Text } from 'ink'
 import React, { useMemo } from 'react'
 import { Select } from '@inkjs/ui'
-import { getTheme } from '../utils/theme'
+import { getTheme } from '../../utils/theme'
 import {
   PermissionRequestTitle,
   textColorForRiskScore,
 } from '../PermissionRequestTitle'
-import { logUnaryEvent } from '../utils/unaryLogging'
-import { env } from '../utils/env'
+import { logUnaryEvent } from '../../utils/unaryLogging'
+import { env } from '../../utils/env'
 import {
   type PermissionRequestProps,
   type ToolUseConfirm,
@@ -16,22 +16,22 @@ import chalk from 'chalk'
 import {
   UnaryEvent,
   usePermissionRequestLogging,
-} from '../hooks/usePermissionRequestLogging'
-import { FileEditTool } from '../tools/FileEditTool/FileEditTool'
-import { FileWriteTool } from '../tools/FileWriteTool/FileWriteTool'
-import { GrepTool } from '../tools/GrepTool/GrepTool'
-import { GlobTool } from '../tools/GlobTool/GlobTool'
-import { LSTool } from '../tools/lsTool/lsTool'
-import { FileReadTool } from '../tools/FileReadTool/FileReadTool'
-import { NotebookEditTool } from '../tools/NotebookEditTool/NotebookEditTool'
-import { NotebookReadTool } from '../tools/NotebookReadTool/NotebookReadTool'
+} from '../../hooks/usePermissionRequestLogging'
+import { FileEditTool } from '../../tools/FileEditTool/FileEditTool'
+import { FileWriteTool } from '../../tools/FileWriteTool/FileWriteTool'
+import { GrepTool } from '../../tools/GrepTool/GrepTool'
+import { GlobTool } from '../../tools/GlobTool/GlobTool'
+import { LSTool } from '../../tools/lsTool/lsTool'
+import { FileReadTool } from '../../tools/FileReadTool/FileReadTool'
+import { NotebookEditTool } from '../../tools/NotebookEditTool/NotebookEditTool'
+import { NotebookReadTool } from '../../tools/NotebookReadTool/NotebookReadTool'
 import { FallbackPermissionRequest } from '../FallbackPermissionRequest'
 import {
   grantWritePermissionForOriginalDir,
   pathInOriginalCwd,
   toAbsolutePath,
-} from '../utils/permissions/filesystem'
-import { getCwd } from '../utils/state'
+} from '../../utils/permissions/filesystem'
+import { getCwd } from '../../utils/state'
 
 function pathArgNameForToolUse(toolUseConfirm: ToolUseConfirm): string | null {
   switch (toolUseConfirm.tool) {

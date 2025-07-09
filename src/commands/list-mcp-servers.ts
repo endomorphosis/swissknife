@@ -1,7 +1,7 @@
 /**
  * Command to list configured MCP servers
  */
-import type { Command, LocalCommand } from '../types/command';
+import type { Command, LocalCommand } from '../../types/command';
 import { listMCPServers } from '../services/mcpClient';
 import chalk from 'chalk';
 import { getTheme } from '../utils/theme';

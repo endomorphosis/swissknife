@@ -294,3 +294,39 @@ export interface ProviderDefinition {
   defaultModel?: string;       // ID of the default model for this provider
   models: ModelDefinition[];  // List of model definitions offered by this provider
 }
+
+/**
+ * Represents a request for model selection.
+ */
+export interface ModelRequest {
+  type: string; // e.g., 'code_generation', 'creative_writing', 'general'
+  length?: number; // e.g., length of input text
+  priority?: 'low' | 'medium' | 'high'; // e.g., latency requirements
+  // Add other relevant characteristics of the request
+}
+
+/**
+ * Represents the result of a model selection.
+ */
+export interface ModelSelection {
+  model: string; // ID of the selected model
+  confidence: number; // Confidence score (0.0 - 1.0)
+  reason: string; // Explanation for the selection
+}
+
+/**
+ * Defines a rule for model selection.
+ */
+export interface ModelSelectionRule {
+  condition: (request: ModelRequest) => boolean; // Function to evaluate if rule applies
+  modelPreference: string[]; // Ordered list of preferred model IDs
+  reason: string; // Explanation for this rule
+}
+
+/**
+ * Interface for a learning engine that predicts optimal model selection.
+ */
+export interface SelectionLearningEngine {
+  predictOptimalModel(request: ModelRequest): Promise<ModelSelection>;
+  // Potentially methods for training or updating the engine
+}

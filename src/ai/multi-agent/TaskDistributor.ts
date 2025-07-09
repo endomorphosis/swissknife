@@ -1,5 +1,5 @@
 // src/ai/multi-agent/TaskDistributor.ts
-export class TaskDistributor {
+import { Agent, AgentCapability, LoadBalancer, PerformanceMonitor, DistributedTask, TaskAssignment, TaskRequirements } from '../../types/ai';
   private availableAgents: Map<string, AgentCapability> = new Map();
   private loadBalancer: LoadBalancer;
   private performanceMonitor: PerformanceMonitor;

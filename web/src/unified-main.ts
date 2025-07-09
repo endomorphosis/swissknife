@@ -12,7 +12,7 @@ import '../css/strudel.css';
 import { StliteManager } from './core/stlite-manager';
 
 // Enhanced Streamlit Editor
-import { StreamlitEditorApp } from './apps/streamlit-editor';
+import { StreamlitEditor } from './apps/streamlit-editor';
 
 class UnifiedSwissKnifeApp {
     private stlite: StliteManager;
@@ -102,7 +102,7 @@ class UnifiedSwissKnifeApp {
     private launchUnifiedStreamlitEditor() {
         // Create enhanced Streamlit Editor using the legacy window system
         if (window.desktop && window.desktop.createWindow) {
-            const streamlitApp = new StreamlitEditorApp({
+            const streamlitApp = new StreamlitEditor({
                 swissknife: (window as any).swissknife,
                 stlite: this.stlite,
                 windows: (window as any).desktop

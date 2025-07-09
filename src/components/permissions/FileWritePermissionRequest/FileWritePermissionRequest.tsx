@@ -2,14 +2,14 @@ import { Box, Text } from 'ink'
 import React, { useMemo } from 'react'
 import { Select } from '@inkjs/ui'
 import { basename, extname } from 'path'
-import { getTheme } from '../utils/theme'
+import { getTheme } from '../../utils/theme'
 import {
   PermissionRequestTitle,
   textColorForRiskScore,
 } from '../PermissionRequestTitle'
-import { logUnaryEvent } from '../utils/unaryLogging'
-import { env } from '../utils/env'
-import { savePermission } from '../permissions'
+import { logUnaryEvent } from '../../utils/unaryLogging'
+import { env } from '../../utils/env'
+import { savePermission } from '../../permissions'
 import {
   type ToolUseConfirm,
   toolUseConfirmGetPrefix,
@@ -19,9 +19,9 @@ import chalk from 'chalk'
 import {
   UnaryEvent,
   usePermissionRequestLogging,
-} from '../hooks/usePermissionRequestLogging'
+} from '../../hooks/usePermissionRequestLogging'
 import { FileWriteToolDiff } from './FileWriteToolDiff.js'
-import { useTerminalSize } from '../hooks/useTerminalSize'
+import { useTerminalSize } from '../../hooks/useTerminalSize'
 
 type Props = {
   toolUseConfirm: ToolUseConfirm

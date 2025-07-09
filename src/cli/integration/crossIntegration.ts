@@ -1,7 +1,7 @@
 import { TaskCommand } from '../commands/taskCommand';
 import { IPFSCommand } from '../commands/ipfsCommand';
 import { AgentCommand } from '../commands/agentCommand';
-import { logger } from '../utils/logger';
+import { logger } from '../../utils/logger';
 
 /**
  * Cross-component integration for Phase 4 CLI

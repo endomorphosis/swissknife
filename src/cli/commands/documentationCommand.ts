@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { DocumentationGenerator } from '../documentation/doc-generator';
-import { CLIUXEnhancer } from '../ux/cli-ux-enhancer';
+import { DocumentationGenerator } from '../../documentation/doc-generator';
+import { CLIUXEnhancer } from '../../ux/cli-ux-enhancer';
 
 const documentationCommand = new Command('docs')
   .description('Generate documentation for the SwissKnife CLI')

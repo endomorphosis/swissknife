@@ -1,7 +1,7 @@
 // src/ai/tools/web-search-tool.ts
 
-import { Tool, OldToolParameter as ToolParameter, ValidationResult } from './tool.js';
-import { logger } from '../utils/logger';
+import { Tool, OldToolParameter as ToolParameter } from './tool.js';
+import { logger } from '../../utils/logger';
 import { z } from 'zod';
 
 /**

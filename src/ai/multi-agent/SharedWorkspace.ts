@@ -1,4 +1,8 @@
 // src/ai/multi-agent/SharedWorkspace.ts
+import { CollaborativeDocument, ResourceLock, ChangeEvent, MessageType } from '../../types/ai';
+import { v4 as uuidv4 } from 'uuid';
+import { CommunicationHub } from './Communication';
+
 export class SharedWorkspace {
   private documents: Map<string, CollaborativeDocument> = new Map();
   private locks: Map<string, ResourceLock> = new Map();

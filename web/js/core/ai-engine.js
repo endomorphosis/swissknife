@@ -5,7 +5,8 @@ import { WebNNModelInference } from '../ml/webnn-inference.js';
  * Integrates with WebNN for local inference and provides a unified interface for AI tasks.
  */
 export class AIEngine {
-    constructor() {
+    constructor(swissknife) {
+        this.swissknife = swissknife;
         this.webnnInference = new WebNNModelInference();
         this.ready = false;
         this.models = [];
@@ -19,14 +20,15 @@ export class AIEngine {
         return { success: true };
     }
 
-    async chat(message, modelName = 'default') {
+    async chat(message, modelId = 'default') {
         if (!this.ready) {
             return { success: false, error: 'AI Engine not initialized' };
         }
 
+        // Fallback to WebNN or other methods if not a local IPFS Accelerate model
         try {
-            const response = await this.webnnInference.runInference(modelName, message);
-            return { success: true, response: response.result };
+            const response = await this.swissknife.chat(message, { modelId: modelId });
+            return { success: true, response: response.response };
         } catch (error) {
             console.error('AI Chat error:', error);
             return { success: false, error: error.message };

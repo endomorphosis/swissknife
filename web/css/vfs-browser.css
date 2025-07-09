@@ -1,0 +1,29 @@
+/* Styles for VFS Browser App */
+.vfs-browser-app {
+    padding: 15px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-color);
+    background-color: var(--window-bg-color);
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.vfs-browser-app .app-header {
+    font-size: 1.5em;
+    margin-bottom: 15px;
+    color: var(--header-color);
+    text-align: center;
+}
+
+.vfs-browser-app .app-content {
+    line-height: 1.6;
+}
+
+.vfs-browser-app ul {
+    list-style-type: disc;
+    margin-left: 20px;
+}
+
+.vfs-browser-app li {
+    margin-bottom: 5px;
+}

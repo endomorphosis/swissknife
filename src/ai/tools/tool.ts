@@ -15,7 +15,7 @@ export {
     ToolExecutionContext,
     // Re-exporting ZodType for convenience if tools define schemas here, though not strictly necessary
     // ZodType as _ZodType // Example if needed, but usually imported directly from 'zod' by implementers
-} from '../types/ai';
+} from '../../types/ai';
 
 // The old Phase 2 ToolParameter interface is no longer used as primary definition,
 // as parameters are now defined by a Zod schema in the Tool interface.

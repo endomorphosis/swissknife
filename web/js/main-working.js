@@ -158,6 +158,110 @@ class SwissKnifeDesktop {
             singleton: false,
             description: 'Explore IPFS network and content'
         });
+
+        this.apps.set('agent-studio', {
+            name: 'Agent Studio',
+            icon: '🧑‍💻',
+            component: 'agent-studio',
+            singleton: false,
+            description: 'Design and manage AI agents'
+        });
+
+        this.apps.set('integration-hub', {
+            name: 'Integration Hub',
+            icon: '🔗',
+            component: 'integration-hub',
+            singleton: false,
+            description: 'Manage integrations with external services'
+        });
+
+        this.apps.set('ipfs-browser', {
+            name: 'IPFS Browser',
+            icon: '🌐',
+            component: 'ipfs-browser',
+            singleton: false,
+            description: 'Browse IPFS content'
+        });
+
+        this.apps.set('mcp-manager', {
+            name: 'MCP Manager',
+            icon: '⚙️',
+            component: 'mcp-manager',
+            singleton: true,
+            description: 'Manage Model Context Protocol servers'
+        });
+
+        this.apps.set('model-dashboard', {
+            name: 'Model Dashboard',
+            icon: '📊',
+            component: 'model-dashboard',
+            singleton: false,
+            description: 'Monitor and manage AI models'
+        });
+
+        this.apps.set('multi-agent-dashboard', {
+            name: 'Multi-Agent Dashboard',
+            icon: '👥',
+            component: 'multi-agent-dashboard',
+            singleton: false,
+            description: 'Manage and visualize multi-agent systems'
+        });
+
+        this.apps.set('reasoning-studio', {
+            name: 'Reasoning Studio',
+            icon: '🧠',
+            component: 'reasoning-studio',
+            singleton: false,
+            description: 'Develop and test AI reasoning flows'
+        });
+
+        this.apps.set('storage-manager', {
+            name: 'Storage Manager',
+            icon: '🗄️',
+            component: 'storage-manager',
+            singleton: true,
+            description: 'Manage various storage backends'
+        });
+
+        this.apps.set('streamlit-editor', {
+            name: 'Streamlit Editor',
+            icon: '📝',
+            component: 'streamlit-editor',
+            singleton: false,
+            description: 'Edit and run Streamlit applications'
+        });
+
+        this.apps.set('task-net-visualizer', {
+            name: 'TaskNet Visualizer',
+            icon: '🕸️',
+            component: 'task-net-visualizer',
+            singleton: false,
+            description: 'Visualize task networks'
+        });
+
+        this.apps.set('tool-orchestrator', {
+            name: 'Tool Orchestrator',
+            icon: '🛠️',
+            component: 'tool-orchestrator',
+            singleton: false,
+            description: 'Orchestrate AI tools and services'
+        });
+
+        this.apps.set('vfs-browser', {
+            name: 'VFS Browser',
+            icon: '🗂️',
+            component: 'vfs-browser',
+            singleton: false,
+            description: 'Browse the Virtual File System'
+        });
+
+        this.apps.set('vfs-explorer', {
+            name: 'VFS Explorer',
+            icon: '📂',
+            component: 'vfs-explorer',
+            singleton: false,
+            description: 'Explore the Virtual File System'
+        });
     }
     
     setupEventListeners() {
@@ -390,6 +494,45 @@ class SwissKnifeDesktop {
                 case 'ipfs-explorer':
                     await this.createIPFSExplorerApp(contentElement);
                     break;
+                case 'agent-studio':
+                    await this.createAgentStudioApp(contentElement);
+                    break;
+                case 'integration-hub':
+                    await this.createIntegrationHubApp(contentElement);
+                    break;
+                case 'ipfs-browser':
+                    await this.createIPFSBrowserApp(contentElement);
+                    break;
+                case 'mcp-manager':
+                    await this.createMCPManagerApp(contentElement);
+                    break;
+                case 'model-dashboard':
+                    await this.createModelDashboardApp(contentElement);
+                    break;
+                case 'multi-agent-dashboard':
+                    await this.createMultiAgentDashboardApp(contentElement);
+                    break;
+                case 'reasoning-studio':
+                    await this.createReasoningStudioApp(contentElement);
+                    break;
+                case 'storage-manager':
+                    await this.createStorageManagerApp(contentElement);
+                    break;
+                case 'streamlit-editor':
+                    await this.createStreamlitEditorApp(contentElement);
+                    break;
+                case 'task-net-visualizer':
+                    await this.createTaskNetVisualizerApp(contentElement);
+                    break;
+                case 'tool-orchestrator':
+                    await this.createToolOrchestratorApp(contentElement);
+                    break;
+                case 'vfs-browser':
+                    await this.createVFSBrowserApp(contentElement);
+                    break;
+                case 'vfs-explorer':
+                    await this.createVFSExplorerApp(contentElement);
+                    break;
                     
                 default:
                     this.createPlaceholderApp(contentElement, appConfig);
@@ -477,117 +620,153 @@ class SwissKnifeDesktop {
     }
     
     async createTaskManagerApp(contentElement) {
-        // Create a simple task manager for now
-        contentElement.innerHTML = `
-            <div class="task-manager-app">
-                <div class="app-header">
-                    <h2>⚡ Task Manager</h2>
-                </div>
-                <div class="tasks-content">
-                    <div class="task-list">
-                        <h3>Running Processes</h3>
-                        <div class="process-item">
-                            <span class="process-name">SwissKnife Desktop</span>
-                            <span class="process-cpu">15%</span>
-                            <span class="process-memory">128MB</span>
-                        </div>
-                        <div class="process-item">
-                            <span class="process-name">AI Engine</span>
-                            <span class="process-cpu">8%</span>
-                            <span class="process-memory">64MB</span>
-                        </div>
-                        <div class="process-item">
-                            <span class="process-name">Storage Engine</span>
-                            <span class="process-cpu">3%</span>
-                            <span class="process-memory">32MB</span>
-                        </div>
-                        <div class="process-item">
-                            <span class="process-name">Window Manager</span>
-                            <span class="process-cpu">2%</span>
-                            <span class="process-memory">16MB</span>
-                        </div>
-                    </div>
-                    <div class="system-stats">
-                        <h3>System Resources</h3>
-                        <div class="stat-row">
-                            <span>CPU Usage:</span>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 28%"></div>
-                            </div>
-                            <span>28%</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Memory:</span>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 45%"></div>
-                            </div>
-                            <span>240MB / 512MB</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Storage:</span>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 12%"></div>
-                            </div>
-                            <span>120MB / 1GB</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        return { name: 'Task Manager' };
+        const { TaskManagerApp } = await import('./apps/task-manager-app.js');
+        const taskManager = new TaskManagerApp(this);
+        await taskManager.initialize();
+        const window = taskManager.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.task-manager-app'));
+        return taskManager;
     }
     
     async createIPFSExplorerApp(contentElement) {
-        // Create a simple IPFS explorer for now
-        contentElement.innerHTML = `
-            <div class="ipfs-explorer-app">
-                <div class="app-header">
-                    <h2>🌐 IPFS Explorer</h2>
-                    <div class="ipfs-actions">
-                        <button class="btn-primary">🔄 Refresh</button>
-                        <button class="btn-secondary">➕ Add Content</button>
-                    </div>
-                </div>
-                <div class="ipfs-content">
-                    <div class="ipfs-stats">
-                        <div class="stat-card">
-                            <h4>Node Status</h4>
-                            <span class="status-indicator online">Online</span>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Peers</h4>
-                            <span class="stat-value">42</span>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Repo Size</h4>
-                            <span class="stat-value">1.2 GB</span>
-                        </div>
-                    </div>
-                    <div class="ipfs-files">
-                        <h3>Pinned Content</h3>
-                        <div class="file-item">
-                            <span class="file-icon">📄</span>
-                            <span class="file-name">config.json</span>
-                            <span class="file-hash">QmX1...</span>
-                            <span class="file-size">1.2KB</span>
-                        </div>
-                        <div class="file-item">
-                            <span class="file-icon">📁</span>
-                            <span class="file-name">website/</span>
-                            <span class="file-hash">QmY2...</span>
-                            <span class="file-size">-</span>
-                        </div>
-                        <div class="file-item">
-                            <span class="file-icon">🎵</span>
-                            <span class="file-name">music.mp3</span>
-                            <span class="file-hash">QmZ3...</span>
-                            <span class="file-size">4.2MB</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        return { name: 'IPFS Explorer' };
+        const { IPFSExplorerApp } = await import('./apps/ipfs-explorer-app.js');
+        const ipfsExplorer = new IPFSExplorerApp(this);
+        await ipfsExplorer.initialize();
+        const window = ipfsExplorer.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.ipfs-explorer-app'));
+        return ipfsExplorer;
+    }
+
+    async createAgentStudioApp(contentElement) {
+        const { AgentStudio } = await import('../src/apps/AgentStudio.js');
+        const app = new AgentStudio(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.agent-studio-app'));
+        return app;
+    }
+
+    async createIntegrationHubApp(contentElement) {
+        const { IntegrationHub } = await import('../src/apps/IntegrationHub.js');
+        const app = new IntegrationHub(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.integration-hub-app'));
+        return app;
+    }
+
+    async createIPFSBrowserApp(contentElement) {
+        const { IPFSBrowser } = await import('../src/apps/IPFSBrowser.js');
+        const app = new IPFSBrowser(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.ipfs-browser-app'));
+        return app;
+    }
+
+    async createMCPManagerApp(contentElement) {
+        const { MCPManager } = await import('../src/apps/MCPManager.js');
+        const app = new MCPManager(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.mcp-manager-app'));
+        return app;
+    }
+
+    async createModelDashboardApp(contentElement) {
+        const { ModelDashboard } = await import('../src/apps/ModelDashboard.js');
+        const app = new ModelDashboard(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.model-dashboard-app'));
+        return app;
+    }
+
+    async createMultiAgentDashboardApp(contentElement) {
+        const { MultiAgentDashboard } = await import('../src/apps/MultiAgentDashboard.js');
+        const app = new MultiAgentDashboard(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.multi-agent-dashboard-app'));
+        return app;
+    }
+
+    async createReasoningStudioApp(contentElement) {
+        const { ReasoningStudio } = await import('../src/apps/ReasoningStudio.js');
+        const app = new ReasoningStudio(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.reasoning-studio-app'));
+        return app;
+    }
+
+    async createStorageManagerApp(contentElement) {
+        const { StorageManager } = await import('../src/apps/StorageManager.js');
+        const app = new StorageManager(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.storage-manager-app'));
+        return app;
+    }
+
+    async createStreamlitEditorApp(contentElement) {
+        const { StreamlitEditor } = await import('../src/apps/streamlit-editor.js');
+        const app = new StreamlitEditor(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.streamlit-editor-app'));
+        return app;
+    }
+
+    async createTaskNetVisualizerApp(contentElement) {
+        const { TaskNetVisualizer } = await import('../src/apps/TaskNetVisualizer.js');
+        const app = new TaskNetVisualizer(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.task-net-visualizer-app'));
+        return app;
+    }
+
+    async createToolOrchestratorApp(contentElement) {
+        const { ToolOrchestrator } = await import('../src/apps/ToolOrchestrator.js');
+        const app = new ToolOrchestrator(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.tool-orchestrator-app'));
+        return app;
+    }
+
+    async createVFSBrowserApp(contentElement) {
+        const { VFSBrowser } = await import('../src/apps/VFSBrowser.js');
+        const app = new VFSBrowser(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.vfs-browser-app'));
+        return app;
+    }
+
+    async createVFSExplorerApp(contentElement) {
+        const { VFSExplorer } = await import('../src/apps/VFSExplorer.js');
+        const app = new VFSExplorer(this);
+        await app.initialize();
+        const window = app.createWindow();
+        contentElement.innerHTML = '';
+        contentElement.appendChild(window.querySelector('.vfs-explorer-app'));
+        return app;
     }
 
     setupWindowControls(windowElement) {

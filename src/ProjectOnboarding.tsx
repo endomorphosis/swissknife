@@ -45,11 +45,11 @@ export default function ProjectOnboarding({
   workspaceDir,
 }: Props): React.ReactNode {
   // Check if project onboarding has already been completed
-  const projectConfig = getCurrentProjectConfig()
+  const projectConfig = await getCurrentProjectConfig()
   const showOnboarding = !projectConfig.hasCompletedProjectOnboarding
 
   // Get previous version from config
-  const config = getGlobalConfig()
+  const config = await getGlobalConfig()
   const previousVersion = config.lastReleaseNotesSeen
 
   // Get release notes to show

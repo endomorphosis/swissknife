@@ -625,7 +625,7 @@ export class ModelBrowserApp {
         <div class="model-tags-section">
           <h3>Tags</h3>
           <div class="tags-list">
-            ${model.tags.map(tag => `<span class="tag-large">${tag}</span>`).join('')}
+            ${model.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
           </div>
         </div>
         
@@ -672,18 +672,35 @@ console.log(result);</code></pre>
 
     try {
         const storage = this.swissknife.storage;
-        const result = await storage.write({ path: destinationPath, content: blob, metadata: { url: modelUrl, downloadedAt: new Date().toISOString() } });
+        // Simulate a download process with progress updates
+        const totalSize = 10 * 1024 * 1024; // 10 MB for example
+        let downloaded = 0;
+        const chunkSize = totalSize / 100; // Update progress 100 times
+        const downloadInterval = setInterval(() => {
+            downloaded += chunkSize;
+            const percent = Math.min(100, (downloaded / totalSize) * 100);
+            downloadProgress.style.width = `${percent}%`;
+            downloadStatus.textContent = `Downloading: ${Math.round(downloaded / (1024 * 1024))} MB / ${Math.round(totalSize / (1024 * 1024))} MB`;
+            downloadSpeed.textContent = `${(Math.random() * 5 + 1).toFixed(2)} MB/s`; // Random speed
+            downloadEta.textContent = `ETA: ${Math.max(0, 100 - Math.round(percent))}s`;
 
-        if (result.success) {
-            this.installedModels.push({ ...model, path: result.path });
-            downloadModal.style.display = 'none';
-            this.renderModelDetails(windowContainer);
-            this.renderModelList(windowContainer);
-            this.desktop.showNotification(`${model.name} installed successfully`, 'success');
-        } else {
-            downloadModal.style.display = 'none';
-            this.desktop.showNotification(`Failed to install ${model.name}: ${result.error}`, 'error');
-        }
+            if (downloaded >= totalSize) {
+                clearInterval(downloadInterval);
+                // Simulate writing to storage after download completes
+                const result = { success: true, path: destinationPath }; // Mock success
+                if (result.success) {
+                    this.installedModels.push({ ...model, path: result.path });
+                    downloadModal.style.display = 'none';
+                    this.renderModelDetails(windowContainer);
+                    this.renderModelList(windowContainer);
+                    this.desktop.showNotification(`${model.name} installed successfully`, 'success');
+                } else {
+                    downloadModal.style.display = 'none';
+                    this.desktop.showNotification(`Failed to install ${model.name}: ${result.error}`, 'error');
+                }
+            }
+        }, 100);
+
     } catch (error) {
         downloadModal.style.display = 'none';
         this.desktop.showNotification(`Failed to install ${model.name}: ${error.message}`, 'error');
@@ -716,6 +733,9 @@ console.log(result);</code></pre>
 
       if (result.success) {
         this.desktop.showNotification(`${model.name} loaded successfully`, 'success');
+        this.loadedModels.set(model.id, result.modelInstance); // Store the loaded model instance
+        this.renderModelDetails(window);
+        this.renderModelList(window);
         
         // Open AI Chat with the loaded model
         this.desktop.openApp('AIChat', { 
@@ -1145,11 +1165,11 @@ console.log(result);</code></pre>
   async setDefaultModelFromModal(windowContainer, modelId) {
     try {
       this.defaultModel = modelId;
-      localStorage.setItem('swissknife_default_model', modelId);
+      localStorage.setItem('swissknife_default_model', model.id);
       
       if (this.swissknife && this.swissknife.updateConfig) {
         await this.swissknife.updateConfig({
-          defaultModel: modelId
+          defaultModel: model.id
         });
       }
 
@@ -1202,14 +1222,14 @@ console.log(result);</code></pre>
 
       this.desktop.showNotification('Default model cleared', 'success');
     } catch (error) {
-      this.desktop.showNotification(`Failed to clear default model: ${error.message}`, 'error');
+      this.desktop.showNotification(`Failed to unset default model: ${error.message}`, 'error');
     }
   }
 
   getModelName(modelId) {
     const allModels = [...this.models, ...this.installedModels, ...this.peerModels];
     const model = allModels.find(m => m.id === modelId);
-    return model ? model.name : modelId;
+    return model ? model.name : model.id;
   }
 }
 

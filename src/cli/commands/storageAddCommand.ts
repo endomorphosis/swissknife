@@ -1,6 +1,6 @@
-import { Command, CommandExecutionContext } from '../command-registry';
-import { StorageProvider } from '../types/storage'; // Need StorageProvider
-import { logger } from '../utils/logger';
+import { Command, CommandExecutionContext } from '../../command-registry';
+import { StorageProvider } from '../../types/storage'; // Need StorageProvider
+import { logger } from '../../utils/logger';
 import fs from 'fs/promises';
 import path from 'path';
 import parse from 'yargs-parser'; 

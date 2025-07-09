@@ -1,5 +1,5 @@
-import { queryHaiku } from '../services/claude'
-import { extractTag } from '../utils/messages'
+import { queryHaiku } from '../../services/claude'
+import { extractTag } from '../../utils/messages'
 import { MAX_OUTPUT_LENGTH } from './prompt.js'
 
 export function formatOutput(content: string): {

@@ -1,7 +1,7 @@
 # SwissKnife Web Desktop
 
 <div align="center">
-  <img src="assets/splash.png" alt="SwissKnife Web Desktop" width="400"/>
+  <img src="assets/splash.jpg" alt="SwissKnife Web Desktop" width="400"/>
 </div>
 
 A browser-based desktop environment for SwissKnife, featuring a complete desktop UI with windowing system, terminal, AI chat, and more.

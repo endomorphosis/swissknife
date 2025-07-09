@@ -1,5 +1,5 @@
 // src/ai/workflows/WorkflowIntelligence.ts
-export class WorkflowIntelligenceEngine {
+import { WorkflowTemplate, WorkflowAdaptationEngine, WorkflowOptimizationEngine, WorkflowConstraints, GeneratedWorkflow, ObjectiveAnalysis, WorkflowStructure } from '../../types/ai';
   private workflowTemplates: Map<string, WorkflowTemplate> = new Map();
   private adaptationEngine: WorkflowAdaptationEngine;
   private optimizationEngine: WorkflowOptimizationEngine;

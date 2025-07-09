@@ -1,4 +1,4 @@
-import type { Command, LocalCommand } from '../types/command'; // Updated import path
+import type { Command, LocalCommand } from '../../types/command'; // Updated import path
 import { logError } from '../utils/log'; // Assuming .js extension
 import { execFileNoThrow } from '../utils/execFileNoThrow'; // Assuming .js extension
 

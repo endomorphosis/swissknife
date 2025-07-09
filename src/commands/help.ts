@@ -1,7 +1,7 @@
 // src/commands/help.ts
 
-import { Command, CommandRegistry } from './registry.js';
-import { ExecutionContext } from './context.js';
+import { Command, CommandRegistry } from '../../command-registry';
+import { ExecutionContext } from '../../commands/context';
 import chalk from 'chalk';
 
 /**

@@ -2,8 +2,8 @@
  * Integration Commands - Commands for managing integration bridges
  */
 
-import { CommandRegistry, Command } from '../command-registry';
-import { IntegrationRegistry, IntegrationBridge, SystemType } from '../integration/registry';
+import { CommandRegistry, Command } from '../../command-registry';
+import { IntegrationRegistry, IntegrationBridge, SystemType } from '../../integration/registry';
 import { GooseMCPBridge } from '../integration/bridges/goose-mcp';
 
 /**

@@ -21,6 +21,7 @@ class VibeCodeApp {
   }
 
   createWindow() {
+    this.injectStyles();
     const content = `
       <div class="vibecode-container">
         <div class="vibecode-toolbar">

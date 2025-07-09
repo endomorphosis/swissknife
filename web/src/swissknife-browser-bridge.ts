@@ -91,16 +91,16 @@ export class SwissKnifeBrowserBridge extends BrowserEventEmitter {
 
   private setupEventHandlers(): void {
     // AI Events
-    this.ai.on('requestStarted', (data) => this.emit('ai:requestStarted', data));
-    this.ai.on('requestCompleted', (data) => this.emit('ai:requestCompleted', data));
-    this.ai.on('requestError', (data) => this.emit('ai:requestError', data));
+    this.ai.on('requestStarted', (data: any) => this.emit('ai:requestStarted', data));
+    this.ai.on('requestCompleted', (data: any) => this.emit('ai:requestCompleted', data));
+    this.ai.on('requestError', (data: any) => this.emit('ai:requestError', data));
 
     // Task Events  
-    this.tasks.on('taskCreated', (task) => this.emit('task:created', task));
-    this.tasks.on('taskUpdated', (task) => this.emit('task:updated', task));
-    this.tasks.on('taskStarted', (task) => this.emit('task:started', task));
-    this.tasks.on('taskExecutionCompleted', (data) => this.emit('task:completed', data));
-    this.tasks.on('taskFailed', (data) => this.emit('task:failed', data));
+    this.tasks.on('taskCreated', (task: any) => this.emit('task:created', task));
+    this.tasks.on('taskUpdated', (task: any) => this.emit('task:updated', task));
+    this.tasks.on('taskStarted', (task: any) => this.emit('task:started', task));
+    this.tasks.on('taskExecutionCompleted', (data: any) => this.emit('task:completed', data));
+    this.tasks.on('taskFailed', (data: any) => this.emit('task:failed', data));
   }
 
   // Configuration Management

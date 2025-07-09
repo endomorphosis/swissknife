@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, Text } from 'ink'
-import { getTheme } from '../utils/theme'
-import { applyMarkdown } from '../utils/markdown'
+import { getTheme } from '../../utils/theme'
+import { applyMarkdown } from '../../utils/markdown'
 import {
   ThinkingBlock,
   ThinkingBlockParam,

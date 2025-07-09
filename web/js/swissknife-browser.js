@@ -8,21 +8,22 @@
 // Browser polyfills for Node.js modules
 import { Buffer } from 'buffer';
 import process from 'process';
-// Temporarily comment out problematic libp2p imports that cause webpack build issues
-// TODO: Re-enable when we need P2P functionality or find browser-compatible alternatives
-/*
 import { createLibp2p } from 'libp2p';
 import { webSockets } from '@libp2p/websockets';
 import * as filters from '@libp2p/websockets/filters';
-import { noise } from '@libp2p/noise';
+import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { mplex } from '@libp2p/mplex';
 import { kadDHT } from '@libp2p/kad-dht';
 import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { identify } from '@libp2p/identify';
-import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
-import { webRTC } from '@libp2p/webrtc';
-*/
+// // import { circuitRelayTransport } from '@libp2p/circuit-relay-transport';
+
+// Storacha imports
+import { Client } from '@storacha/client';
+import * as UCANModule from '@storacha/ucn';
+import * as CapabilitiesModule from '@storacha/capabilities';
+import { StoreIndexedDB } from '@storacha/access';
 
 // Make globals available
 if (typeof window !== 'undefined') {
@@ -52,6 +53,11 @@ export class SwissKnifeBrowser {
     this.config = new Map();
     this.modelsList = [];
     this.tasks = new Map();
+
+    // Initialize Storacha components
+    this.ucan = UCANModule;
+    this.capabilities = CapabilitiesModule;
+    this.access = new Client(new StoreIndexedDB());
     
     // Default configuration
     this.config.set('storage', 'localstorage');
@@ -220,7 +226,7 @@ export class SwissKnifeBrowser {
       await this.initializeModels();
 
       // Initialize libp2p
-      await this.startLibp2p();
+      // await this.startLibp2p();
       
       this.initialized = true;
       console.log('SwissKnife browser initialization complete');
@@ -719,8 +725,110 @@ export class SwissKnifeBrowser {
   */
 
   async startLibp2p() {
-    console.log('libp2p functionality temporarily disabled for browser compatibility');
-    return Promise.resolve();
+    if (this.network.libp2p) {
+      console.log('Libp2p already running.');
+      return;
+    }
+    try {
+      this.network.libp2p = await createLibp2p({
+        transports: [
+          webSockets({
+            filter: filters.all
+          }),
+          webRTC(),
+          circuitRelayTransport()
+        ],
+        connectionEncryption: [noise()],
+        streamMuxers: [yamux(), mplex()],
+        peerDiscovery: [
+          kadDHT({
+            protocol: '/ipfs/kad/1.0.0',
+            clientMode: true,
+          })
+        ],
+        services: {
+          pubsub: gossipsub({ emitSelf: true }),
+          identify: identify(),
+          peerInfo: (context) => {
+            context.handle('/swissknife/peer-info/1.0.0', async ({ stream }) => {
+              try {
+                const { readable, writable } = stream;
+                const reader = readable.getReader();
+                const writer = writable.getWriter();
+
+                // Read incoming message
+                const { value: messageBytes, done } = await reader.read();
+                if (done) return;
+
+                const message = new TextDecoder().decode(messageBytes);
+                const parsedMessage = JSON.parse(message);
+
+                console.log(`Received peer-info message from ${stream.remotePeer.toString()}:`, parsedMessage);
+
+                if (parsedMessage.type === 'ANNOUNCE_FILES') {
+                  // Store announced files/hashes from peer
+                  // For now, just log. Later, integrate with VFS or a peer file index.
+                  console.log(`Peer ${stream.remotePeer.toString()} announced files:`, parsedMessage.files);
+                  // Send acknowledgment
+                  await writer.write(new TextEncoder().encode(JSON.stringify({ status: 'ACK', message: 'Announcement received' })));
+                } else if (parsedMessage.type === 'QUERY_FILES') {
+                  // Respond with local files/hashes
+                  // For now, send a mock response. Later, integrate with VFS.
+                  const localFiles = [
+                    { path: '/my-local-file.txt', hash: 'QmLocalHash1' },
+                    { path: '/another-file.jpg', hash: 'QmLocalHash2' }
+                  ];
+                  await writer.write(new TextEncoder().encode(JSON.stringify({ type: 'FILES_RESPONSE', files: localFiles })));
+                } else {
+                  await writer.write(new TextEncoder().encode(JSON.stringify({ status: 'ERROR', message: 'Unknown message type' })));
+                }
+              } catch (error) {
+                console.error('Error handling peer-info stream:', error);
+              } finally {
+                stream.close();
+              }
+            });
+          },
+          fileTransfer: (context) => {
+            context.handle('/swissknife/file-transfer/1.0.0', async ({ stream }) => {
+              try {
+                const { readable, writable } = stream;
+                const reader = readable.getReader();
+                const writer = writable.getWriter();
+
+                // Read file request (e.g., { type: 'REQUEST_FILE', hash: 'Qm...' })
+                const { value: requestBytes, done: requestDone } = await reader.read();
+                if (requestDone) return;
+
+                const request = JSON.parse(new TextDecoder().decode(requestBytes));
+                console.log(`Received file transfer request from ${stream.remotePeer.toString()}:`, request);
+
+                if (request.type === 'REQUEST_FILE' && request.hash) {
+                  // Simulate fetching file content from local storage (VFS)
+                  // In a real scenario, this would involve reading from the VFS
+                  const fileContent = `Mock content for hash: ${request.hash}`; // Replace with actual VFS read
+                  await writer.write(new TextEncoder().encode(fileContent));
+                  console.log(`Sent mock content for hash ${request.hash} to ${stream.remotePeer.toString()}`);
+                } else {
+                  await writer.write(new TextEncoder().encode('ERROR: Invalid file request'));
+                }
+              } catch (error) {
+                console.error('Error handling file transfer stream:', error);
+              } finally {
+                stream.close();
+              }
+            });
+          }
+        }
+      });
+
+      await this.network.libp2p.start();
+      console.log(`Libp2p started with Peer ID: ${this.network.libp2p.peerId.toString()}`);
+      console.log('Libp2p listening on addresses:', this.network.libp2p.getMultiaddrs().map(ma => ma.toString()));
+    } catch (error) {
+      console.error('Failed to start libp2p:', error);
+      throw error;
+    }
   }
 
   async stopLibp2p() {

@@ -3,8 +3,6 @@
  */
 
 import { CommandRegistry, Command, LazyCommand } from '../command-registry';
-import pkg from '../packageon' assert { type: 'json' };
-const { version } = pkg;
 import { TaskManager } from '../tasks/manager';
 import { WorkerPool } from '../workers/pool';
 

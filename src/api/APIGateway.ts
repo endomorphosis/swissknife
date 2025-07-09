@@ -1,4 +1,8 @@
 // src/api/APIGateway.ts
+import { Express, Router } from 'express';
+import { WebSocketServer } from 'ws';
+import { APIVersion, RateLimiter, AuthenticationManager, APIMonitor } from '../types/api';
+
 export class SwissKnifeAPIGateway {
   private expressApp: Express;
   private wsServer: WebSocketServer;

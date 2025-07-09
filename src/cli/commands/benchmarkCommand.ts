@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { performance } from 'perf_hooks.js';
-import { CLIUXEnhancer } from '../ux/cli-ux-enhancer';
+import { performance } from 'perf_hooks';
+import { CLIUXEnhancer } from '../../ux/cli-ux-enhancer';
 import fs from 'fs/promises';
 import path from 'path';
 

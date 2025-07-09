@@ -6,8 +6,8 @@
  */
 
 import axios, { AxiosInstance } from 'axios';
-import { ConfigManager } from '../config/manager';
-import { logger } from '../utils/logger';
+import { ConfigManager } from '../../config/manager';
+import { logger } from '../../utils/logger';
 import { CID } from '../types/common';
 import { ListOptions, StorageItemMetadata } from '../types/storage';
 

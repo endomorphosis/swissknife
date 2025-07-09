@@ -1,4 +1,4 @@
-import type { Command, LocalCommand } from '../types/command'; // Updated import path
+import type { Command, LocalCommand } from '../../types/command'; // Updated import path
 import { getContext } from '../context';
 import { getMessagesGetter, getMessagesSetter } from '../messages';
 import { API_ERROR_MESSAGE_PREFIX, querySonnet } from '../services/claude';

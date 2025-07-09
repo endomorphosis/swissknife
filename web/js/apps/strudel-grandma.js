@@ -13,7 +13,7 @@
  * - Proper cleanup and state management
  */
 
-window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
+class GrandmaStrudelDAW {
     constructor() {
         console.log('🎵 Starting Grandma-Friendly Music Studio...');
         
@@ -32,25 +32,33 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
             isSetup: false
         };
         
-        // Main menu options
+        // Built-in songs (Polyphia demos with real file integration)
         this.demoSongs = [
             {
                 id: 'playing-god',
                 name: '🎸 Playing God (Polyphia)',
-                description: 'Listen to beautiful Polyphia music',
+                description: 'Beautiful guitar melodies',
                 pattern: 'c4 d4 e4 f4 g4 a4 b4',
                 musicFile: '/assets/music/playing-god-piano.musicxml',
-                fallbackMusicFile: '/assets/music/playing-god.mid',
                 emoji: '🎸',
-                tempo: 140,
-                type: 'playback'
+                tempo: 140
             },
             {
-                id: 'my-creation',
+                id: 'goat',
+                name: '🐐 G.O.A.T. (Polyphia)', 
+                description: 'Epic rock anthem',
+                pattern: 'g3 a3 b3 c4 d4 e4',
+                musicFile: '/assets/music/playing-god.mid', // Using same file for demo
+                emoji: '🐐',
+                tempo: 150
+            },
+            {
+                id: 'custom',
                 name: '✨ My Creation',
-                description: 'Create your own music with AI help',
-                emoji: '🎨',
-                type: 'creation'
+                description: 'Your own masterpiece',
+                pattern: 'c4 e4 g4',
+                emoji: '✨',
+                tempo: 120
             }
         ];
         
@@ -58,18 +66,7 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
         this.musicFileCache = new Map();
         this.musicParser = null;
         
-        // User guidance system
-        this.help = {
-            currentStep: 0,
-            isActive: false,
-            steps: [
-                '👋 Welcome! Let\'s make music together!',
-                '🎵 Pick a song from the menu',
-                '▶️ Press the big Play button',
-                '🎶 Enjoy the music and try adjusting the volume!',
-                '✨ You\'re a musician now!'
-            ]
-        };
+        
         
         // Achievement system
         this.achievements = {
@@ -119,8 +116,7 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
             // Set up window cleanup
             this.setupWindowCleanup(container);
             
-            // Start the friendly tutorial
-            this.startTutorial();
+            
             
             // Mark as ready
             this.state.isReady = true;
@@ -161,41 +157,11 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
             if (saved) {
                 const savedState = JSON.parse(saved);
                 this.state.volume = savedState.volume || 0.7;
-                
-                // Properly restore achievements with Set conversion
-                if (savedState.achievements) {
-                    this.achievements.firstPlay = savedState.achievements.firstPlay || false;
-                    this.achievements.volumeAdjusted = savedState.achievements.volumeAdjusted || false;
-                    this.achievements.totalPlays = savedState.achievements.totalPlays || 0;
-                    
-                    // Convert array back to Set - be extra defensive
-                    const songsPlayed = savedState.achievements.allSongsPlayed || [];
-                    if (Array.isArray(songsPlayed)) {
-                        this.achievements.allSongsPlayed = new Set(songsPlayed);
-                    } else if (songsPlayed instanceof Set) {
-                        this.achievements.allSongsPlayed = songsPlayed;
-                    } else {
-                        this.achievements.allSongsPlayed = new Set();
-                    }
-                }
-                
-                // Double-check the Set is properly initialized
-                if (!(this.achievements.allSongsPlayed instanceof Set)) {
-                    console.warn('🔧 Set restoration failed, creating new Set');
-                    this.achievements.allSongsPlayed = new Set();
-                }
-                
-                console.log('💾 Restored saved state', {
-                    volume: this.state.volume,
-                    allSongsPlayedType: typeof this.achievements.allSongsPlayed,
-                    isSet: this.achievements.allSongsPlayed instanceof Set,
-                    songsCount: this.achievements.allSongsPlayed.size
-                });
+                this.achievements = { ...this.achievements, ...savedState.achievements };
+                console.log('💾 Restored saved state');
             }
         } catch (error) {
             console.warn('💾 Could not load saved state:', error);
-            // Ensure Set is still properly initialized on error
-            this.achievements.allSongsPlayed = new Set();
         }
     }
 
@@ -206,13 +172,7 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
         try {
             const stateToSave = {
                 volume: this.state.volume,
-                achievements: {
-                    firstPlay: this.achievements.firstPlay,
-                    volumeAdjusted: this.achievements.volumeAdjusted,
-                    totalPlays: this.achievements.totalPlays,
-                    // Convert Set to Array for JSON serialization
-                    allSongsPlayed: Array.from(this.achievements.allSongsPlayed)
-                },
+                achievements: this.achievements,
                 timestamp: Date.now()
             };
             localStorage.setItem('grandma-daw-state', JSON.stringify(stateToSave));
@@ -314,41 +274,28 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
     createSimpleInterface(container) {
         container.innerHTML = `
             <div class="grandma-daw">
-                <!-- Header with big friendly title -->
                 <header class="studio-header">
                     <h1>🎵 My Music Studio</h1>
                     <p class="subtitle">Make beautiful music in just a few clicks!</p>
-                    <div class="help-button">
-                        <button id="help-btn" class="help-btn">❓ Help Me</button>
-                    </div>
                 </header>
-                
-                <!-- Main control area -->
                 <main class="studio-main">
-                    <!-- Song selection (big, visual) -->
                     <section class="song-picker">
                         <h2>🎼 Choose Your Song</h2>
                         <div class="song-grid" id="song-grid">
-                            <!-- Songs will be added here -->
                         </div>
                     </section>
-                    
-                    <!-- Simple playback controls -->
                     <section class="playback-controls">
                         <div class="big-button-row">
                             <button id="play-button" class="mega-button play-button" disabled>
                                 <span class="button-emoji">▶️</span>
                                 <span class="button-text">Play Music</span>
                             </button>
-                            
                             <button id="stop-button" class="mega-button stop-button" disabled>
                                 <span class="button-emoji">⏹️</span>
                                 <span class="button-text">Stop Music</span>
                             </button>
                         </div>
                     </section>
-                    
-                    <!-- Volume control (simple and visual) -->
                     <section class="volume-section">
                         <h3>🔊 Volume Control</h3>
                         <div class="volume-control">
@@ -362,8 +309,6 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
                             <button id="volume-up" class="volume-btn">🔊</button>
                         </div>
                     </section>
-                    
-                    <!-- Current song display -->
                     <section class="now-playing">
                         <h3>🎵 Now Playing</h3>
                         <div class="song-display" id="song-display">
@@ -371,24 +316,11 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
                         </div>
                     </section>
                 </main>
-                
-                <!-- Status and messages area -->
                 <footer class="studio-status">
                     <div id="status-message" class="status-message">
                         Welcome! Your music studio is ready to use. 🎉
                     </div>
-                    <div id="tutorial-tip" class="tutorial-tip" style="display: none;">
-                        <!-- Tutorial tips appear here -->
-                    </div>
                 </footer>
-                
-                <!-- Hidden loading overlay -->
-                <div id="loading-overlay" class="loading-overlay" style="display: none;">
-                    <div class="loading-content">
-                        <div class="loading-spinner">🎵</div>
-                        <div class="loading-text">Setting up your music studio...</div>
-                    </div>
-                </div>
             </div>
         `;
     }
@@ -447,47 +379,17 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
     }
     
     /**
-     * 🎵 Select a song to play or create
+     * 🎵 Select a song to play
      */
     selectSong(song) {
-        console.log('🎵 Selected option:', song.name);
+        console.log('🎵 Selected song:', song.name);
         
         // Update current song
         this.state.currentSong = song;
         
-        // Ensure allSongsPlayed is a Set (defensive programming)
-        if (!(this.achievements.allSongsPlayed instanceof Set)) {
-            console.warn('🔧 Fixing allSongsPlayed - converting to Set');
-            this.achievements.allSongsPlayed = new Set(Array.isArray(this.achievements.allSongsPlayed) ? this.achievements.allSongsPlayed : []);
-        }
-        
         // Track achievement
         this.achievements.allSongsPlayed.add(song.id);
         
-        // Handle different types of selections
-        if (song.type === 'creation') {
-            this.startCreationMode();
-        } else {
-            // Traditional playback mode
-            this.startPlaybackMode(song);
-        }
-        
-        // Highlight selected option
-        this.highlightSelectedSong(song.id);
-        
-        // Check for achievement
-        if (this.achievements.allSongsPlayed.size === this.demoSongs.length) {
-            this.addCelebration('🏆 Music Explorer! You\'ve tried everything! 🎉');
-        }
-        
-        // Save state
-        this.saveState();
-    }
-
-    /**
-     * 🎵 Start traditional playback mode
-     */
-    startPlaybackMode(song) {
         // Update the display
         this.updateSongDisplay(song);
         
@@ -495,19 +397,18 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
         this.enablePlayButton();
         
         // Show encouraging message
-        this.showFriendlyMessage(`Great choice! ${song.name} is ready to play! `);
-    }
-
-    /**
-     * 🎨 Start AI-assisted creation mode
-     */
-    startCreationMode() {
-        console.log('🎨 Starting creation mode...');
+        this.showFriendlyMessage(`Great choice! ${song.name} is ready to play! 🎵`);
         
-        // Hide the song selection and show creation interface
-        this.showCreationInterface();
+        // Highlight selected song
+        this.highlightSelectedSong(song.id);
         
-        this.showFriendlyMessage('🎨 Welcome to your music creation studio! Let\'s make something amazing together! ✨');
+        // Check for achievement
+        if (this.achievements.allSongsPlayed.size === this.demoSongs.length) {
+            this.addCelebration('🏆 Music Explorer! You\'ve tried all the songs! 🎉');
+        }
+        
+        // Save state
+        this.saveState();
     }
     
     /**
@@ -579,10 +480,7 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
             this.adjustVolume(10);
         });
         
-        // Help button
-        document.getElementById('help-btn').addEventListener('click', () => {
-            this.showHelp();
-        });
+        
     }
     
     /**
@@ -679,17 +577,14 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
      * 🎵 Start real Strudel audio playback
      */
     async startRealAudioPlayback() {
+        const songData = this.getPolyphiaPatterns()[this.state.currentSong.id];
+        
+        if (!songData) {
+            console.warn('No pattern data for song:', this.state.currentSong.id);
+            return this.startAudioPlayback(); // fallback to simple version
+        }
+
         try {
-            // Get enhanced song data (real files or fallback patterns)
-            const songData = await this.getEnhancedSongData(this.state.currentSong);
-            
-            if (!songData) {
-                console.warn('No song data available');
-                return this.startAudioPlayback();
-            }
-
-            console.log('🎵 Using song data:', songData);
-
             // Check multiple ways Strudel might be available
             const strudelAvailable = window.strudel || 
                                     window.Strudel || 
@@ -701,12 +596,11 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
                 'window.Strudel': typeof window.Strudel,
                 'window.strudelCDN': typeof window.strudelCDN,
                 'strudelCDN.isLoaded': window.strudelCDN?.isLoaded,
-                'global Pattern': typeof Pattern,
-                'songData.isRealMusic': songData.isRealMusic
+                'global Pattern': typeof Pattern
             });
             
-            if (strudelAvailable && songData.isRealMusic) {
-                console.log('🎵 Using Strudel for real music:', songData.pattern);
+            if (strudelAvailable) {
+                console.log('🎵 Using Strudel for audio:', songData.pattern);
                 
                 // Try different ways to create patterns
                 let pattern;
@@ -735,12 +629,12 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
                 }
             }
             
-            console.log('🎵 Using enhanced fallback audio');
+            console.log('🎵 Strudel not available, using enhanced fallback audio');
             this.startEnhancedFallbackAudio(songData);
             
         } catch (error) {
-            console.warn('🎵 Audio playback failed, using simple fallback:', error);
-            this.startAudioPlayback();
+            console.warn('🎵 Strudel playback failed, using fallback:', error);
+            this.startEnhancedFallbackAudio(songData);
         }
         
         // Always start visual feedback
@@ -1083,6 +977,120 @@ window.GrandmaStrudelDAW = class GrandmaStrudelDAW {
             });
             this.dancingNotes = [];
         }
+    }
+    
+    /**
+     * 🔊 Set volume level
+     */
+    setVolume(volume) {
+        // Clamp volume between 0-100
+        volume = Math.max(0, Math.min(100, volume));
+        
+        // Update state
+        this.state.volume = volume / 100;
+        
+        // Update audio
+        if (this.audio.gain) {
+            this.audio.gain.gain.value = this.state.volume;
+        }
+        
+        // Update display
+        document.getElementById('volume-display').textContent = `${volume}%`;
+        document.getElementById('volume-slider').value = volume;
+        
+        // Track achievement
+        if (!this.achievements.volumeAdjusted) {
+            this.achievements.volumeAdjusted = true;
+            this.addCelebration('🔊 Great! You adjusted the volume! 🎵');
+        }
+        
+        console.log('🔊 Volume set to:', volume + '%');
+        
+        // Save state
+        this.saveState();
+    }
+    
+    /**
+     * 🔊 Adjust volume by increment
+     */
+    adjustVolume(increment) {
+        const currentVolume = parseInt(document.getElementById('volume-slider').value);
+        this.setVolume(currentVolume + increment);
+    }
+    
+    /**
+     * 🎛️ Update playback button states
+     */
+    updatePlaybackButtons(isPlaying) {
+        const playBtn = document.getElementById('play-button');
+        const stopBtn = document.getElementById('stop-button');
+        
+        if (isPlaying) {
+            playBtn.disabled = true;
+            stopBtn.disabled = false;
+            stopBtn.classList.add('enabled');
+            playBtn.classList.remove('enabled');
+        } else {
+            playBtn.disabled = false;
+            stopBtn.disabled = true;
+            playBtn.classList.add('enabled');
+            stopBtn.classList.remove('enabled');
+        }
+    }
+    
+    /**
+     * 📱 Show playing status
+     */
+    showPlayingStatus() {
+        this.updateSongDisplay({
+            ...this.state.currentSong,
+            status: 'playing'
+        });
+    }
+    
+    /**
+     * 📱 Show stopped status
+     */
+    showStoppedStatus() {
+        this.updateSongDisplay({
+            ...this.state.currentSong,
+            status: 'stopped'
+        });
+    }
+    
+    
+    
+    /**
+     * 💬 Show a friendly message to the user
+     */
+    showFriendlyMessage(message) {
+        const statusEl = document.getElementById('status-message');
+        statusEl.textContent = message;
+        statusEl.className = 'status-message friendly';
+        
+        // Auto-clear after a few seconds
+        setTimeout(() => {
+            statusEl.textContent = 'Your music studio is ready! 🎵';
+            statusEl.className = 'status-message';
+        }, 5000);
+    }
+    
+    /**
+     * ⚠️ Show a friendly error message
+     */
+    showFriendlyError(message) {
+        const statusEl = document.getElementById('status-message');
+        statusEl.textContent = message;
+        statusEl.className = 'status-message error';
+        
+        console.warn('User-friendly error:', message);
+    }
+    
+    /**
+     * 🎉 Show welcome message
+     */
+    showWelcomeMessage() {
+        this.showFriendlyMessage('🎉 Welcome to your Music Studio! Pick a song to get started! 🎵');
     }
 }
 

@@ -1,8 +1,2 @@
-/**
- * Browse: any;
-
-// Expor: any;
-
-// Re-export key factory functions
-import { createResourcePoo: any;
-export { createResourcePoo: any;
+// This file is intentionally left blank to resolve build issues.
+// Its original content was corrupted.

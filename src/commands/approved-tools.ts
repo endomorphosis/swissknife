@@ -1,4 +1,4 @@
-import type { Command, LocalCommand, CommandOption } from '../types/command';
+import type { Command, LocalCommand, CommandOption } from '../../types/command';
 import {
   handleListApprovedTools,
   handleRemoveApprovedTool,

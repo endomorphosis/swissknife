@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { logger } from '../utils/logger';
+import { logger } from '../../utils/logger';
 
 /**
  * IPFS command class for CLI integration

@@ -1,9 +1,9 @@
 // src/cli/commands/agent/chat.ts
 import { Command } from 'commander';
-import { createReadlineInterface } from '../utils/readline';
-import { AIService } from '../ai/service';
-import { createExecutionContext } from '../commands/context';
-import { logger } from '../utils/logger';
+import { createReadlineInterface } from '../../../utils/readline';
+import { AIService } from '../../../ai/service';
+import { createExecutionContext } from '../../../commands/context';
+import { logger } from '../../../utils/logger';
 import chalk from 'chalk';
 
 interface ChatCommandOptions {

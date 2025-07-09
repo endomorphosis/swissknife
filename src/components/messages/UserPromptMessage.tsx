@@ -1,9 +1,9 @@
 import React from 'react'
 import { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
 import { Box, Text } from 'ink'
-import { getTheme } from '../utils/theme'
-import { logError } from '../utils/log'
-import { useTerminalSize } from '../hooks/useTerminalSize'
+import { getTheme } from '../../utils/theme'
+import { logError } from '../../utils/log'
+import { useTerminalSize } from '../../hooks/useTerminalSize'
 
 type Props = {
   addMargin: boolean

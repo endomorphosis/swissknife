@@ -1,8 +1,8 @@
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import typescript from '@rollup/plugin-typescript';
-import { terser } from 'rollup-plugin-terser';
-import pkg from './package.json';
+const resolve = require('@rollup/plugin-node-resolve');
+const commonjs = require('@rollup/plugin-commonjs');
+const typescript = require('@rollup/plugin-typescript');
+const terser = require('@rollup/plugin-terser');
+const pkg = require('./package.json');
 
 // Banner to add to the top of each file
 const banner = `/**
@@ -13,7 +13,7 @@ const banner = `/**
  * @copyright IPFS Accelerate Team
  */`;
 
-export default [
+module.exports = [
   // Browser-friendly UMD build
   {
     input: 'src/index.ts',

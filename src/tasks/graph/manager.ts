@@ -7,8 +7,8 @@
 
 import { EventEmitter } from 'events';
 import { GoTNode, GoTNodeType, GoTNodeStatus } from './node.js';
-import { LogManager } from '../utils/logging/manager';
-import { MCPClient } from '../storage/ipfs/mcp-client';
+import { LogManager } from '../../utils/logging/manager';
+import { MCPClient } from '../../storage/ipfs/mcp-client';
 
 export class GoTManager extends EventEmitter {
   private static instance: GoTManager;

@@ -44,6 +44,7 @@ import { isDefaultSlowAndCapableModel } from '../utils/model'
 import { LogList } from '../screens/LogList'
 import { ResumeConversation } from '../screens/ResumeConversation'
 import { startMCPServer } from './mcp.js'
+import { initIPFSNode, stopIPFSNode, addFile, getFile, resolveCID } from '../ipfs/index.ts'
 import { env } from '../utils/env'
 import { getCwd, setCwd, setOriginalCwd } from '../utils/state'
 import { omit } from 'lodash-es'
@@ -540,6 +541,61 @@ ${commandList}`,
   const mcp = program
     .command('mcp')
     .description('Configure and manage MCP servers')
+
+  mcp
+  const storacha = program
+    .command('storacha')
+    .description('Manage Storacha operations');
+
+  storacha
+    .command('client <action>')
+    .description('Interact with Storacha client')
+    .action(async (action) => {
+      const { Client } = await import('@storacha/client');
+      const client = new Client();
+      console.log(`Storacha Client action: ${action}`);
+      // Example: Call a Storacha client function
+      // await client.someFunction(action);
+      process.exit(0);
+    });
+
+  storacha
+    .command('ucn <action>')
+    .description('Manage Storacha UCN')
+    .action(async (action) => {
+      const { UCAN } = await import('@storacha/ucn');
+      const ucan = new UCAN();
+      console.log(`Storacha UCN action: ${action}`);
+      // Example: Call a Storacha UCN function
+      // await ucan.someFunction(action);
+      process.exit(0);
+    });
+
+  storacha
+    .command('capabilities <action>')
+    .description('Manage Storacha Capabilities')
+    .action(async (action) => {
+      const { Capabilities } = await import('@storacha/capabilities');
+      const capabilities = new Capabilities();
+      console.log(`Storacha Capabilities action: ${action}`);
+      // Example: Call a Storacha Capabilities function
+      // await capabilities.someFunction(action);
+      process.exit(0);
+    });
+
+  storacha
+    .command('access <action>')
+    .description('Manage Storacha Access')
+    .action(async (action) => {
+      const { Access } = await import('@storacha/access');
+      const access = new Access();
+      console.log(`Storacha Access action: ${action}`);
+      // Example: Call a Storacha Access function
+      // await access.someFunction(action);
+      process.exit(0);
+    });
+
+  mcp
 
   mcp
     .command('serve')

@@ -17,8 +17,8 @@ import {
   listMCPServers,
   McpServerConfig
 } from '../services/mcpClient';
-import { Command, LocalCommand } from '../types/command';
-import { logEvent } from '../utils/log';
+import { Command, LocalCommand } from '../../types/command';
+import { logEvent } from '../../utils/log';
 import chalk from 'chalk';
 import { getTheme } from '../utils/theme';
 

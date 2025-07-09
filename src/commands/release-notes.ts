@@ -1,5 +1,5 @@
 import { MACRO } from '../constants/macros';
-import type { Command, LocalCommand, CommandOption } from '../types/command'; // Updated import path
+import type { Command, LocalCommand, CommandOption } from '../../types/command'; // Updated import path
 import { RELEASE_NOTES } from '../constants/releaseNotes'; // Assuming .js extension
 
 const releaseNotesCommand: LocalCommand = {

@@ -5,9 +5,9 @@ import {
     AgentMessage, 
     AgentOptions, 
     IModel, // Use IModel for the agent's model interface
-    ToolCallResult,
+    ToolCall,
     Tool // Using Tool from types/ai.js
-} from '../types/ai';
+} from '../../types/ai';
 import { v4 as uuidv4 } from 'uuid';
 
 export class Agent {

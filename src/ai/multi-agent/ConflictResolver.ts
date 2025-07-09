@@ -1,5 +1,5 @@
 // src/ai/multi-agent/ConflictResolver.ts
-export class ConflictResolver {
+import { ConflictType, ResolutionStrategy, AgentConflict, ConflictResolution, ResolutionType } from '../../types/ai';
   private resolutionStrategies: Map<ConflictType, ResolutionStrategy> = new Map();
 
   async resolveConflict(conflict: AgentConflict): Promise<ConflictResolution> {

@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { ReleasePackager } from '../release/packager';
+import { ReleasePackager } from '../../release/packager';
 
 const releaseCommand = new Command('release')
   .description('Create distributable packages for release')

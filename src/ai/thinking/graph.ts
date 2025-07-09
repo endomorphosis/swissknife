@@ -1,6 +1,7 @@
 // src/ai/thinking/graph.ts
 import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is installed
-import { GoTNodeType, GoTNodeStatus } from '../tasks/graph/node'; // Unified enums
+import { GoTNodeType, GoTNodeStatus } from '../../tasks/graph/node'; // Unified enums
+import { ThoughtNode } from '../../types/ai';
 
 // NodeType and NodeStatus enums are now imported from types/task.js
 

@@ -1,25 +1,44 @@
-// web/src/apps/TaskNetVisualizer.ts
-export class TaskNetVisualizerApp {
-  private canvas: HTMLCanvasElement;
-  private taskGraph: TaskGraph;
-  private nodeRenderer: NodeRenderer;
+/**
+ * TaskNet Visualizer App for SwissKnife Web Desktop
+ */
 
-  renderTaskGraph(rootTaskId: string): void {
-    const task = this.taskManager.getTask(rootTaskId);
-    const graph = this.taskManager.getGoTGraph(rootTaskId);
-    
-    // Render nodes and connections
-    this.nodeRenderer.renderNodes(graph.getAllNodes());
-    this.nodeRenderer.renderConnections(graph.getConnections());
-    
-    // Add interactive controls
-    this.addNodeInteraction();
-    this.addRealTimeUpdates();
+export class TaskNetVisualizer {
+  private desktop: any;
+  constructor(desktop: any) {
+    this.desktop = desktop;
   }
 
-  async decomposeTask(nodeId: string): Promise<void> {
-    // Trigger task decomposition
-    await this.taskManager.decomposeNode(nodeId);
-    this.refreshVisualization();
+  async initialize() {
+    // TODO: Implement initialization logic for TaskNet Visualizer
+    console.log('TaskNet Visualizer initialized.');
+  }
+
+  createWindow() {
+    const content = `
+      <div class="task-net-visualizer-app">
+        <div class="app-header">
+          <h2>🕸️ TaskNet Visualizer</h2>
+        </div>
+        <div class="app-content">
+          <p>Welcome to TaskNet Visualizer! This application is under development.</p>
+          <p>Future features will include:</p>
+          <ul>
+            <li>Visualizing task networks and dependencies</li>
+            <li>Monitoring task execution flow</li>
+            <li>Debugging task-related issues</li>
+          </ul>
+        </div>
+      </div>
+    `;
+
+    const window = this.desktop.createWindow({
+      title: 'TaskNet Visualizer',
+      content: content,
+      width: 800,
+      height: 600,
+      resizable: true
+    });
+
+    return window;
   }
 }

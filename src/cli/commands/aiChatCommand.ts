@@ -1,6 +1,6 @@
-import { Command, CommandExecutionContext } from '../command-registry';
-import { Agent } from '../ai/agent/agent'; // Agent is expected in context
-import { logger } from '../utils/logger';
+import { Command, CommandExecutionContext } from '../../command-registry';
+import { Agent } from '../../ai/agent/agent'; // Agent is expected in context
+import { logger } from '../../utils/logger';
 import parse from 'yargs-parser'; 
 
 export class AiChatCommand implements Command {

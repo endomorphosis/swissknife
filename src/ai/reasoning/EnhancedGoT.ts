@@ -1,4 +1,7 @@
 // src/ai/reasoning/EnhancedGoT.ts
+import { ThoughtGraph, ReasoningEngine, GoTVisualizer, GoTPersistence, ReasoningOptions, ReasoningSession, ThoughtNode, ThoughtAlternative } from '../../types/ai';
+import { v4 as uuidv4 } from 'uuid';
+
 export class EnhancedGraphOfThought {
   private thoughtGraph: ThoughtGraph;
   private reasoningEngine: ReasoningEngine;

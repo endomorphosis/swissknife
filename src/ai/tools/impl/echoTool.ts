@@ -3,7 +3,7 @@ import {
   ToolExecutionContext,
   ToolInput,
   ToolOutput,
-} from '../types/ai'; // Use relative paths
+} from '../../../types/ai'; // Using Zod-based Tool from types/ai.js
 import { z } from 'zod'; // Import Zod
 
 // Define the Zod schema for the input

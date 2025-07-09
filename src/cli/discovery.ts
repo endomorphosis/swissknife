@@ -1,4 +1,9 @@
 // src/cli/discovery.ts
+export interface CommandInfo {
+  category: string;
+  commands: string[];
+}
+
 export class CommandDiscovery {
   static discoverCommands(): CommandInfo[] {
     return [

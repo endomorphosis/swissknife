@@ -2,6 +2,9 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+const NodePolyfillWebpackPlugin = require('node-polyfill-webpack-plugin');
+
+
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -23,27 +26,25 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx'],
       fallback: {
-        "buffer": require.resolve("buffer"),
+        "assert": require.resolve("assert/"),
+        "buffer": require.resolve("buffer/"),
         "crypto": require.resolve("crypto-browserify"),
-        "stream": require.resolve("stream-browserify"),
-        // "process": require.resolve("process/browser"), // Handled by ProvidePlugin
-        // "process/browser": require.resolve("process/browser"), // Handled by ProvidePlugin
-        "path": require.resolve("path-browserify"),
+        "events": require.resolve("events/"),
+        "fs": false, // fs is not available in browser
         "os": require.resolve("os-browserify"),
-        "util": require.resolve("util"),
-        "fs": false,
+        "path": require.resolve("path-browserify"),
+        "process": require.resolve("process/browser"),
+        "stream": require.resolve("stream-browserify"),
+        "util": require.resolve("util/"),
+        "url": require.resolve("url/"),
+        "querystring": require.resolve("querystring-es3"),
+        "zlib": require.resolve("browserify-zlib"),
         "child_process": false,
         "worker_threads": false,
         "tty": false,
         "net": false,
         "http": false,
         "https": false,
-        "url": require.resolve("url"),
-        "querystring": false,
-        "zlib": false,
-        "assert": require.resolve("assert"),
-        "events": require.resolve("events"),
-        "constants": require.resolve("constants-browserify")
       },
       alias: {
         // Map source paths to web-compatible versions
@@ -51,44 +52,16 @@ module.exports = (env, argv) => {
         '@legacy': path.resolve(__dirname, 'js'),
         '@': path.resolve(__dirname, 'src'),
         '@/adapters/ai-adapter': path.resolve(__dirname, 'src/adapters/browser-ai-adapter.ts'),
-        "process": "process/browser" // Explicitly alias process to its browser polyfill
+        "process": "process/browser", // Explicitly alias process to its browser polyfill
+        'globalThis': path.resolve(__dirname, './src/polyfills/globalThis.js'),
+        'window': path.resolve(__dirname, './src/polyfills/globalThis.js'), // Alias window to globalThis polyfill
+        'global': path.resolve(__dirname, './src/polyfills/globalThis.js'), // Alias global to globalThis polyfill
       },
       modules: [path.resolve(__dirname, 'src'), 'node_modules']
     },
     
-    module: {
-      rules: [
-        {
-          test: /\.tsx?$/,
-          use: [
-            {
-              loader: 'ts-loader',
-              options: {
-                configFile: path.resolve(__dirname, 'tsconfig.json'),
-                transpileOnly: !isProduction
-              }
-            }
-          ],
-          exclude: /node_modules/,
-        },
-        {
-          test: /\.css$/,
-          use: ['style-loader', 'css-loader'],
-        },
-        {
-          test: /\.(png|svg|jpg|jpeg|gif|ico)$/i,
-          type: 'asset/resource',
-        },
-        {
-          test: /\.(woff|woff2|eot|ttf|otf)$/i,
-          type: 'asset/resource',
-        },
-        {
-          test: /\.worker\.js$/,
-          use: { loader: 'worker-loader' },
-        },
-      ],
-    },
+    
+    
     
     plugins: [
       new HtmlWebpackPlugin({
@@ -130,16 +103,48 @@ module.exports = (env, argv) => {
           }
         ],
       }),
+      new NodePolyfillWebpackPlugin(),
       
       // Provide global variables for Node.js compatibility
       new (require('webpack')).ProvidePlugin({
         Buffer: ['buffer', 'Buffer'],
         process: 'process/browser',
-        global: 'globalThis',
-        globalThis: 'globalThis' // Explicitly provide globalThis
+        global: ['globalthis'],
+        globalThis: ['globalthis']
+      }),
+      new (require('webpack')).NormalModuleReplacementPlugin(/globalThis/, function(resource) {
+        resource.request = path.resolve(__dirname, './src/polyfills/globalThis.js');
+      }),
+      new (require('webpack')).NormalModuleReplacementPlugin(/window/, function(resource) {
+        resource.request = path.resolve(__dirname, './src/polyfills/globalThis.js');
+      }),
+      new (require('webpack')).NormalModuleReplacementPlugin(/global/, function(resource) {
+        resource.request = path.resolve(__dirname, './src/polyfills/globalThis.js');
       }),
       
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:assert$/, require.resolve('assert/')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:buffer$/, require.resolve('buffer/')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:crypto$/, require.resolve('crypto-browserify')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:events$/, require.resolve('events/')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:fs$/, false),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:os$/, require.resolve('os-browserify')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:path$/, require.resolve('path-browserify')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:process$/, require.resolve('process/browser')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:util$/, require.resolve('util/')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:url$/, require.resolve('url/')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:querystring$/, require.resolve('querystring-es3')),
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:zlib$/, require.resolve('browserify-zlib')),
+
+      new (require('webpack')).IgnorePlugin({
+        resourceRegExp: /\.\/config\.js$/,
+        contextRegExp: /libp2p\/dist\/src$/,
+      }),
+
       // Define environment variables
+      new (require('webpack')).IgnorePlugin({
+        resourceRegExp: /conf/
+      }),
+
       new (require('webpack')).DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(argv.mode),
         'process.env.BROWSER': JSON.stringify(true),

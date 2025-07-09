@@ -1,9 +1,9 @@
 import * as React from 'react'
 import { Tool } from '../Tool'
 import { Message } from '../query'
-import { FallbackToolUseRejectedMessage } from '../FallbackToolUseRejectedMessage'
+import { FallbackToolUseRejectedMessage } from '../../FallbackToolUseRejectedMessage'
 import { useGetToolFromMessages } from './utils.js'
-import { useTerminalSize } from '../hooks/useTerminalSize'
+import { useTerminalSize } from '../../hooks/useTerminalSize'
 
 type Props = {
   toolUseID: string

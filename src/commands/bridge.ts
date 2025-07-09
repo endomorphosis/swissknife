@@ -130,7 +130,7 @@ export const bridgeCommand: Command = {
         }
         
         if (args.json) {
-          const bridgeInfo = {
+          const bridgeInfo: any = {
             id: bridge.id,
             name: bridge.name,
             source: bridge.source,
@@ -143,8 +143,8 @@ export const bridgeCommand: Command = {
             try {
               const version = await bridge.call('get_version', {});
               bridgeInfo.version = version;
-            } catch (error) {
-              bridgeInfo.error = 'Failed to retrieve version information';
+            } catch (error: any) {
+              bridgeInfo.error = error.message || 'Failed to retrieve version information';
             }
           }
           

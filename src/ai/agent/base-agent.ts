@@ -15,15 +15,15 @@ import {
   ToolCall, 
   ToolContext,
   ThinkingState 
-} from '../types';
-import { GoTManager } from '../tasks/graph/manager';
-import { GoTNodeType, GoTNodeStatus } from '../tasks/graph/node';
-import { LogManager } from '../utils/logging/manager';
-import { ModelRegistry } from '../models/registry';
+} from '../../types';
+import { GoTManager } from '../../tasks/graph/manager';
+import { GoTNodeType, GoTNodeStatus } from '../../tasks/graph/node';
+import { LogManager } from '../../utils/logging/manager';
+import { ModelRegistry } from '../../models/registry';
 const modelRegistry = ModelRegistry.getInstance();
 const getModelProvider = (modelId: string) => modelRegistry.getModelProvider(modelId);
 
-import type { ModelSelector } from '../types';
+import type { ModelSelector } from '../../types';
 
 export class BaseAIAgent implements AIAgent {
   private tools: Map<string, Tool> = new Map();

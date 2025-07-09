@@ -1,4 +1,7 @@
 // src/api/WebSocketAPI.ts
+import { WebSocketServer, WebSocket } from 'ws';
+import { Server } from 'http';
+
 export class WebSocketAPI {
   private wsServer: WebSocketServer;
   private connections: Map<string, WebSocket> = new Map();

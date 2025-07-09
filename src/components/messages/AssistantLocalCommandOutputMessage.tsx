@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { extractTag } from '../utils/messages'
-import { getTheme } from '../utils/theme'
+import { extractTag } from '../../utils/messages'
+import { getTheme } from '../../utils/theme'
 import { Box, Text } from 'ink'
 
 export function AssistantLocalCommandOutputMessage({

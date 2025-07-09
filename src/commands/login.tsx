@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { Command, LocalJSXCommand } from '../types/command'; // Updated import path
+import type { Command, LocalJSXCommand } from '../../types/command'; // Updated import path
 import { ConsoleOAuthFlow } from '../components/ConsoleOAuthFlow'; // Assuming .js extension
 import { clearTerminal } from '../utils/terminal'; // Assuming .js extension
 import { isLoggedInToAnthropic } from '../utils/auth'; // Assuming .js extension

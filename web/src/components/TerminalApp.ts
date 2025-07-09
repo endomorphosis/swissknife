@@ -58,7 +58,7 @@ export class TerminalApplication {
       output.innerHTML = '';
     });
 
-    this.cliAdapter.on('command:executed', (data) => {
+    this.cliAdapter.on('command:executed', (data: any) => {
       this.addToHistory(data.input);
     });
 

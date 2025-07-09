@@ -1,4 +1,4 @@
-import type { Command, LocalCommand } from '../types/command'; // Updated import path
+import type { Command, LocalCommand } from '../../types/command'; // Updated import path
 import type { Tool } from '../Tool';
 import Table from 'cli-table3';
 import { getSystemPrompt } from '../constants/prompts';

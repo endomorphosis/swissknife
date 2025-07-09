@@ -1,5 +1,5 @@
 // src/ai/multi-agent/CollaborativeWorkflow.ts
-export class CollaborativeWorkflow {
+import { WorkflowDefinition, Agent, SharedContext, ProgressTracker, WorkflowResult, WorkflowStage } from '../../types/ai';
   private workflow: WorkflowDefinition;
   private participants: Map<string, Agent> = new Map();
   private sharedContext: SharedContext;

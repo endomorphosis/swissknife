@@ -1,5 +1,5 @@
 // src/ai/models/ModelOrchestrator.ts
-export class ModelOrchestrator {
+import { ModelInstance, ModelLoadBalancer, ModelPerformanceMonitor, CostOptimizer, ModelRequest, ModelResponse, RequestCharacteristics } from '../../types/ai';
   private modelPool: Map<string, ModelInstance> = new Map();
   private loadBalancer: ModelLoadBalancer;
   private performanceMonitor: ModelPerformanceMonitor;

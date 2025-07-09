@@ -1,7 +1,7 @@
-import { Command, CommandExecutionContext } from '../command-registry';
-import { TaskManager } from '../tasks/manager'; 
-import { TaskID } from '../types/common';
-import { logger } from '../utils/logger';
+import { Command, CommandExecutionContext } from '../../command-registry';
+import { TaskManager } from '../../tasks/manager'; 
+import { TaskID } from '../../types/common';
+import { logger } from '../../utils/logger';
 import parse from 'yargs-parser'; 
 
 export class TaskStatusCommand implements Command {

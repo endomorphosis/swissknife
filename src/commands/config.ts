@@ -146,7 +146,7 @@ export const configCommand: Command = {
           return 1;
         }
         
-        let current = config.config;
+        let current: any = config.getRawConfig();
         
         // Navigate to parent object
         for (let i = 0; i < parts.length - 1; i++) {

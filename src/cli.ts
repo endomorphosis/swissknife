@@ -1,5 +1,5 @@
 import React from 'react'; // Needed if using Ink components directly for rendering
-import { render, Box, Text } from 'ink'; // Example Ink components
+import { render, Box, Text, RenderOptions } from 'ink'; // Example Ink components
 import { CommandRegistry, CommandExecutionContext } from './command-registry';
 import { ConfigManager } from './config/manager';
 import { logger } from './utils/logger';
@@ -8,7 +8,7 @@ import { StorageProvider } from './types/storage';
 import { TaskManager } from './tasks/manager'; 
 import { Agent } from './ai/agent/agent'; // Import Agent
 import { ModelRegistry } from './ai/models/registry'; // Import ModelRegistry
-import { Model } from './types/ai'; // Import Model type
+import { IModel, AgentOptions } from './types/ai'; // Import Model type
 // Import command implementations
 import { TaskCreateCommand } from './cli/commands/taskCreateCommand'; 
 import { AiChatCommand } from './cli/commands/aiChatCommand'; 
@@ -33,7 +33,7 @@ export class CLI {
   private taskManager: TaskManager;
   private storage: StorageProvider;
   private modelRegistry: ModelRegistry;
-  private defaultModel: Model; // Store the default model
+  private defaultModel: IModel; // Store the default model
   private program: any; // Commander program
 
   constructor() {
@@ -54,15 +54,15 @@ export class CLI {
 
     this.taskManager = new TaskManager({ storage: this.storage });
     
-    this.agent = new Agent({ 
+    this.agent = new Agent({
         model: this.defaultModel, 
-        storage: this.storage, 
-        config: this.configManager,
+        // storage: this.storage, // Agent does not directly take storage
+        // config: this.configManager, // Agent does not directly take config
         // TODO: Pass tools dynamically or from config later
         // tools: [new EchoTool()], 
         // TODO: Make useGraphOfThought configurable
         // useGraphOfThought: this.configManager.get('ai.useGoT') 
-    }); 
+    } as AgentOptions); 
 
     this.registerCommands();
     logger.info('CLI initialized.');

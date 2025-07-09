@@ -1,11 +1,11 @@
 // src/cli/integration/phase5-integration.ts
 // This file integrates Phase 5 components with the existing CLI framework
 
-import { CommandRegistry } from '../command-registry';
+import { CommandRegistry } from '../../command-registry';
 import { Command } from 'commander';
-import { registerPhase5Commands } from '../commands/index';
-import { logger } from '../utils/logger';
-import { CLIUXEnhancer } from '../ux/cli-ux-enhancer';
+import { registerPhase5Commands } from '../../commands/index';
+import { logger } from '../../utils/logger';
+import { CLIUXEnhancer } from '../../ux/cli-ux-enhancer';
 
 /**
  * Adapter command that bridges between our custom command registry and 

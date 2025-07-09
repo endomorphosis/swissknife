@@ -1,30 +1,44 @@
-// web/src/apps/AgentStudio.ts
-export class AgentStudioApp {
-  private agents: Map<string, Agent> = new Map();
-  private templates: AgentTemplate[] = [];
+/**
+ * Agent Studio App for SwissKnife Web Desktop
+ */
 
-  async createAgent(config: AgentConfig): Promise<Agent> {
-    const agent = await this.aiService.createAgent(
-      config.id, 
-      config.modelId, 
-      {
-        tools: config.enabledTools,
-        temperature: config.temperature,
-        systemPrompt: config.systemPrompt
-      }
-    );
-    
-    this.agents.set(config.id, agent);
-    return agent;
+export class AgentStudio {
+  private desktop: any;
+  constructor(desktop: any) {
+    this.desktop = desktop;
   }
 
-  async deployMultiAgentWorkflow(workflow: WorkflowConfig): Promise<void> {
-    // Create multiple agents for collaborative tasks
-    for (const agentConfig of workflow.agents) {
-      await this.createAgent(agentConfig);
-    }
-    
-    // Set up communication channels
-    await this.setupAgentCommunication(workflow.communication);
+  async initialize() {
+    // TODO: Implement initialization logic for Agent Studio
+    console.log('Agent Studio initialized.');
+  }
+
+  createWindow() {
+    const content = `
+      <div class="agent-studio-app">
+        <div class="app-header">
+          <h2>🧑‍💻 Agent Studio</h2>
+        </div>
+        <div class="app-content">
+          <p>Welcome to Agent Studio! This application is under development.</p>
+          <p>Future features will include:</p>
+          <ul>
+            <li>Agent creation and management</li>
+            <li>Agent interaction and testing</li>
+            <li>Agent deployment</li>
+          </ul>
+        </div>
+      </div>
+    `;
+
+    const window = this.desktop.createWindow({
+      title: 'Agent Studio',
+      content: content,
+      width: 800,
+      height: 600,
+      resizable: true
+    });
+
+    return window;
   }
 }

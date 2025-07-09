@@ -1,5 +1,5 @@
 // src/ai/workflows/AdaptiveExecution.ts
-export class AdaptiveWorkflowExecution {
+import { ExecutionMonitor, AdaptationTrigger, ContingencyPlan, GeneratedWorkflow, WorkflowResult, WorkflowExecution, WorkflowNode } from '../../types/ai';
   private executionMonitor: ExecutionMonitor;
   private adaptationTriggers: AdaptationTrigger[] = [];
   private contingencyPlans: Map<string, ContingencyPlan> = new Map();

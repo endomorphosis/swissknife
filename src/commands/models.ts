@@ -3,8 +3,9 @@
  */
 
 import { CommandRegistry, Command } from '../command-registry';
-import { ModelRegistry, Model, Provider } from '../models/registry';
-import { ModelExecutionService } from '../models/execution/service';
+import { ModelRegistry } from '../../ai/models/registry';
+import { ModelExecutionService } from '../../models/execution/service';
+import { IModel as Model, ProviderDefinition as Provider } from '../../types/ai';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

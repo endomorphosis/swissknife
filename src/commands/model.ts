@@ -2,9 +2,10 @@
 
 import { Command } from './registry.js';
 import { ExecutionContext } from './context.js';
-import { ModelRegistry, Model, Provider } from '../models/registry';
-import { ModelExecutionService } from '../models/execution';
-import { initializeModelSystem } from '../models/init';
+import { ModelRegistry } from '../../ai/models/registry';
+import { ModelExecutionService } from '../../models/execution';
+import { initializeModelSystem } from '../../models/init';
+import { IModel as Model, ProviderDefinition as Provider } from '../../types/ai';
 import chalk from 'chalk';
 import * as fs from 'fs/promises';
 

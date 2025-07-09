@@ -1,21 +1,44 @@
-// web/src/apps/MCPManager.ts
-export class MCPManagerApp {
-  private mcpServers: Map<string, MCPServer> = new Map();
-  private connectedClients: MCPClient[] = [];
+/**
+ * MCP Manager App for SwissKnife Web Desktop
+ */
 
-  async startMCPServer(config: MCPServerConfig): Promise<MCPServer> {
-    const server = new MCPServer(config);
-    await server.start();
-    
-    this.mcpServers.set(config.name, server);
-    return server;
+export class MCPManager {
+  private desktop: any;
+  constructor(desktop: any) {
+    this.desktop = desktop;
   }
 
-  async connectToMCPServer(endpoint: string): Promise<MCPClient> {
-    const client = new MCPClient(endpoint);
-    await client.connect();
-    
-    this.connectedClients.push(client);
-    return client;
+  async initialize() {
+    // TODO: Implement initialization logic for MCP Manager
+    console.log('MCP Manager initialized.');
+  }
+
+  createWindow() {
+    const content = `
+      <div class="mcp-manager-app">
+        <div class="app-header">
+          <h2>⚙️ MCP Manager</h2>
+        </div>
+        <div class="app-content">
+          <p>Welcome to MCP Manager! This application is under development.</p>
+          <p>Future features will include:</p>
+          <ul>
+            <li>Managing Model Context Protocol servers</li>
+            <li>Configuring MCP settings</li>
+            <li>Monitoring MCP server status</li>
+          </ul>
+        </div>
+      </div>
+    `;
+
+    const window = this.desktop.createWindow({
+      title: 'MCP Manager',
+      content: content,
+      width: 800,
+      height: 600,
+      resizable: true
+    });
+
+    return window;
   }
 }

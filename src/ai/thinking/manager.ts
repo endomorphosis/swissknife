@@ -1,7 +1,7 @@
 // src/ai/thinking/manager.ts
-import { ThoughtGraph, ThoughtNode } from './graph.js';
-import { GoTNodeType, GoTNodeStatus } from '../tasks/graph/node'; // Import unified enums
-import { IModel, Tool } from '../types/ai'; // Use IModel interface and Zod-based Tool
+import { ThoughtGraph } from './graph.js';
+import { GoTNodeType, GoTNodeStatus } from '../../tasks/graph/node'; // Import unified enums
+import { IModel, Tool, GoTNode } from '../../types/ai'; // Use IModel interface and Zod-based Tool
 import { v4 as uuidv4 } from 'uuid';
 
 // Placeholder for LLM interaction result

@@ -1,4 +1,4 @@
-import type { LocalCommand } from '../types/command';
+import type { LocalCommand } from '../../types/command';
 import { listMCPServers, getClients } from '../services/mcpClient';
 import { PRODUCT_COMMAND } from '../constants/product';
 import chalk from 'chalk';

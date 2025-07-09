@@ -1,7 +1,7 @@
-import { Command, CommandExecutionContext } from '../command-registry';
-import { ToolRegistry } from '../tools/registry';
-import { ToolExecutor } from '../tools/executor';
-import { logger } from '../utils/logger';
+import { Command, CommandExecutionContext } from '../../command-registry';
+import { ToolRegistry } from '../../tools/registry';
+import { ToolExecutor } from '../../tools/executor';
+import { logger } from '../../utils/logger';
 import parse from 'yargs-parser';
 
 export class AgentToolCommand implements Command {

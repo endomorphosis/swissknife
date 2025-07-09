@@ -1,40 +1,44 @@
-// web/src/apps/ModelDashboard.ts
-export class ModelDashboardApp {
-  private modelOrchestrator: ModelOrchestrator;
-  private performanceMonitor: ModelPerformanceMonitor;
-  private realTimeMetrics: RealTimeMetrics;
+/**
+ * Model Dashboard App for SwissKnife Web Desktop
+ */
 
-  private renderDashboard(): JSX.Element {
-    return (
-      <div className="model-dashboard">
-        <div className="model-grid">
-          {this.renderModelCards()}
-        </div>
-        <div className="performance-charts">
-          {this.renderPerformanceCharts()}
-        </div>
-        <div className="cost-analysis">
-          {this.renderCostAnalysis()}
-        </div>
-        <div className="selection-insights">
-          {this.renderSelectionInsights()}
-        </div>
-      </div>
-    );
+export class ModelDashboard {
+  private desktop: any;
+  constructor(desktop: any) {
+    this.desktop = desktop;
   }
 
-  private renderModelCards(): JSX.Element {
-    return (
-      <>
-        {this.availableModels.map(model => (
-          <ModelCard 
-            key={model.id}
-            model={model}
-            metrics={this.realTimeMetrics.getModelMetrics(model.id)}
-            onSelect={() => this.selectModel(model.id)}
-          />
-        ))}
-      </>
-    );
+  async initialize() {
+    // TODO: Implement initialization logic for Model Dashboard
+    console.log('Model Dashboard initialized.');
+  }
+
+  createWindow() {
+    const content = `
+      <div class="model-dashboard-app">
+        <div class="app-header">
+          <h2>📊 Model Dashboard</h2>
+        </div>
+        <div class="app-content">
+          <p>Welcome to Model Dashboard! This application is under development.</p>
+          <p>Future features will include:</p>
+          <ul>
+            <li>Monitoring and managing AI models</li>
+            <li>Viewing model performance metrics</li>
+            <li>Deploying and undeploying models</li>
+          </ul>
+        </div>
+      </div>
+    `;
+
+    const window = this.desktop.createWindow({
+      title: 'Model Dashboard',
+      content: content,
+      width: 800,
+      height: 600,
+      resizable: true
+    });
+
+    return window;
   }
 }

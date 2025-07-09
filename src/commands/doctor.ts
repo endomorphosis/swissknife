@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Command, LocalJSXCommand } from '../types/command'; // Updated import path
+import type { Command, LocalJSXCommand } from '../../types/command'; // Updated import path
 import { Doctor } from '../screens/Doctor'; // Assuming .js extension is needed
 import { PRODUCT_NAME } from '../constants/product'; // Assuming .js extension is needed
 

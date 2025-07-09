@@ -5,15 +5,15 @@
  * a clean API for starting, stopping, and interacting with the server.
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
+import { Server } from '@modelcontextprotocol/sdk/dist/esm/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/dist/esm/server/stdio.js';
 import {
   CallToolRequestSchema,
   CallToolResultSchema,
   ListToolsRequestSchema,
   ListToolsResultSchema,
   ToolSchema,
-} from '@modelcontextprotocol/sdk/types';
+} from '@modelcontextprotocol/sdk/dist/esm/types.js';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { AgentTool } from '@/tools/AgentTool/AgentTool';
@@ -33,7 +33,7 @@ import { hasPermissionsToUseTool } from '@/permissions';
 import { getSlowAndCapableModel } from '@/utils/model';
 import { logError } from '@/utils/log';
 import { setCwd } from '@/utils/state';
-import { ServerTransport } from '@modelcontextprotocol/sdk/server/transport';
+import { ServerTransport } from '@modelcontextprotocol/sdk/dist/esm/server/transport.js';
 
 import '../../patches';
 import { ToolExecutionContext, ToolInput } from '../types/ai.js';
