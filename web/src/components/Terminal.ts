@@ -16,7 +16,7 @@ export class TerminalApp {
   private taskAdapter: SwissKnifeTaskAdapter;
   private storageAdapter: SwissKnifeStorageAdapter;
   private configAdapter: SwissKnifeConfigAdapter;
-  private fileSystem: VirtualFileSystem; // Placeholder
+  private fileSystem: FileSystemAdapter;
   private currentLine: string = '';
   private commandHistory: string[] = [];
   private historyIndex: number = -1;
@@ -27,7 +27,7 @@ export class TerminalApp {
     this.taskAdapter = new SwissKnifeTaskAdapter();
     this.storageAdapter = new SwissKnifeStorageAdapter();
     this.configAdapter = new SwissKnifeConfigAdapter();
-    this.fileSystem = new VirtualFileSystem(); // Initialize placeholder
+    this.fileSystem = new FileSystemAdapter(); // Initialize the real FileSystemAdapter
   }
 
   async initializeTerminal(terminalElement: HTMLElement) {

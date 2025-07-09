@@ -104,7 +104,7 @@ class DesktopCore {
         console.log('📋 System menu items found:', menuItems.length);
         
         menuItems.forEach((item, index) => {
-            const appId = item.dataset.app;
+            const appId = (item as HTMLElement).dataset.app;
             const text = item.textContent.trim();
             console.log(`  Menu item ${index + 1}: ${appId} (${text})`);
         });
@@ -113,7 +113,8 @@ class DesktopCore {
         const naviIcon = document.querySelector('.icon[data-app="navi"] img');
         if (naviIcon) {
             console.log('🤖 NAVI icon found, checking if image loaded...');
-            if (naviIcon.complete && naviIcon.naturalHeight !== 0) {
+            const naviImage = naviIcon as HTMLImageElement;
+            if (naviImage.complete && naviImage.naturalHeight !== 0) {
                 console.log('✅ NAVI icon image loaded successfully');
             } else {
                 console.log('❌ NAVI icon image failed to load');
@@ -380,7 +381,7 @@ class DesktopCore {
         console.log('📋 Found menu items:', menuItems.length);
         
         menuItems.forEach((item, index) => {
-            const appId = item.dataset.app;
+            const appId = (item as HTMLElement).dataset.app;
             console.log(`📋 Setting up menu item ${index + 1}: ${appId}`);
             
             item.addEventListener('click', () => {
@@ -1132,7 +1133,7 @@ class DesktopCore {
         
         // Hide and remove after 3 seconds
         setTimeout(() => {
-            notification.classList.remove('show');
+            (notification as HTMLElement).classList.remove('show');
             setTimeout(() => notification.remove(), 300);
         }, 3000);
     }
@@ -1928,7 +1929,7 @@ class DesktopCore {
                 this.minimizeWindow(windowId);
                 break;
             case 'maximize':
-                this.maximizeWindow(windowId);
+                this.toggleMaximizeWindow(windowElement);
                 break;
             case 'close':
                 this.closeWindow(windowId);

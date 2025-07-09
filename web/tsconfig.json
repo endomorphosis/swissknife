@@ -19,12 +19,15 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "incremental": true,
-    "noEmit": false,
+    "noEmit": true,
     "baseUrl": ".",
     "paths": {
-        "@swissknife/core/*": ["../src/*"],
-        "@/*": ["src/*"],
-        "@/adapters/ai-adapter": ["src/adapters/ai-adapter"]
+        "@swissknife/core/*": ["src/*"],
+        "@/*": ["web/src/*"],
+        "@/adapters/ai-adapter": ["web/src/adapters/ai-adapter"],
+        "../types/*": ["src/types/*"],
+        "../utils/*": ["src/utils/*"],
+        "../config/*": ["src/config/*"]
       }
   },
   "include": [
