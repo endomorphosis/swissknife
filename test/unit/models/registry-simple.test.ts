@@ -26,7 +26,7 @@ jest.mock('../../../src/config/manager', () => ({
 // Import required classes
 import { ModelRegistry } from '../../../src/models/registry';
 import { BaseModel } from '../../../src/ai/models/model';
-import { Status } from '../../../src/types/common';
+import { Status } from '@types/common';
 
 // Simple mock model class
 class MockModel extends BaseModel {

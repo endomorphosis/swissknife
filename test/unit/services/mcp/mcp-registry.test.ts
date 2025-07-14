@@ -15,7 +15,7 @@ import {
 } from '../../src';
 
 // Mock the config utilities
-jest.mock('../../../../src/services/mcpClient', () => ({
+jest.mock('@services/mcpClient', () => ({
   getCurrentProjectConfig: jest.fn(),
   saveCurrentProjectConfig: jest.fn(),
   getGlobalConfig: jest.fn(),
@@ -23,7 +23,7 @@ jest.mock('../../../../src/services/mcpClient', () => ({
 }));
 
 // Mock the logging utilities
-jest.mock('../../../../src/utils/log', () => ({
+jest.mock('@utils/log', () => ({
   logEvent: jest.fn(),
   logError: jest.fn()
 }));

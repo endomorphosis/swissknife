@@ -1,4 +1,4 @@
-import { EnhancedGraphOfThought } from '../../../../src/ai/reasoning/EnhancedGoT';
+import { EnhancedGraphOfThought } from '@ai/reasoning/EnhancedGoT';
 
 describe('EnhancedGraphOfThought', () => {
   it('should be defined', () => {

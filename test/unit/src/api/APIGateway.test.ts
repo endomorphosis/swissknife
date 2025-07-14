@@ -1,4 +1,4 @@
-import { SwissKnifeAPIGateway } from '../../../../src/api/APIGateway';
+import { SwissKnifeAPIGateway } from '@api/APIGateway';
 
 describe('SwissKnifeAPIGateway', () => {
   it('should be defined', () => {

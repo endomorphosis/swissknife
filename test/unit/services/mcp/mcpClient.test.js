@@ -59,7 +59,7 @@ jest.mock('fs', () => ({
 }));
 
 // Import the functions we need to mock
-const { getCurrentProjectConfig, getGlobalConfig, getMcprcConfig } = require('../../../../src/utils/config');
+const { getCurrentProjectConfig, getGlobalConfig, getMcprcConfig } = require('@utils/config');
 
 describe('MCP Client Service', () => {
     beforeEach(() => {

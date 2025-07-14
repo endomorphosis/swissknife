@@ -1,4 +1,4 @@
-import { StorachaBackend } from '../../../../src/storage/vfs/backends/StorachaBackend.js';
+import { StorachaBackend } from '@storage/vfs/backends/StorachaBackend.ts';
 
 describe('StorachaBackend', () => {
   it('should be defined', () => {

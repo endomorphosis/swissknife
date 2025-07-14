@@ -63,7 +63,7 @@ describe('MCP Client Service', () => {
       rejectedMcprcServers: ['rejected-server'],
     })
     
-    const getGlobalConfigMock = require('../../../../src/utils/config').getGlobalConfig as jest.Mock
+    const getGlobalConfigMock = require('@utils/config').getGlobalConfig as jest.Mock
     getGlobalConfigMock.mockReturnValue({
       mcpServers: {
         'global-server': { 

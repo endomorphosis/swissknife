@@ -1,4 +1,4 @@
-import { VirtualFilesystem } from '../../../../src/storage/vfs/VirtualFilesystem';
+import { VirtualFilesystem } from '@storage/vfs/VirtualFilesystem';
 
 describe('VirtualFilesystem', () => {
   it('should be defined', () => {

@@ -296,6 +296,7 @@ export class SwissKnifeBrowserBridge extends BrowserEventEmitter {
       
       this.emit('dataImported', { tasksCount: data.tasks?.length || 0 });
     } catch (error) {
+      logError('Error importing data:', error);
       this.emit('importError', error);
       throw error;
     }

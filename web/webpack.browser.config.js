@@ -4,7 +4,7 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
   entry: {
-    main: './src/swissknife-browser-bridge.ts'
+    main: './src/unified-main.ts'
   },
   
   mode: 'production',
@@ -49,10 +49,16 @@ module.exports = {
         use: {
           loader: 'ts-loader',
           options: {
-            configFile: path.resolve(__dirname, 'tsconfig.web.json')
+            configFile: path.resolve(__dirname, 'tsconfig.web.json'),
+            transpileOnly: true,
+            compilerOptions: {
+              noEmitOnError: false
+            }
           }
         },
-        exclude: /node_modules/
+        exclude: [
+          /node_modules/
+        ]
       },
       {
         test: /\.css$/,

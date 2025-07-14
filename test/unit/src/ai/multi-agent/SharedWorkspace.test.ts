@@ -1,4 +1,4 @@
-import { SharedWorkspace } from '../../../../src/ai/multi-agent/SharedWorkspace';
+import { SharedWorkspace } from '@ai/multi-agent/SharedWorkspace';
 
 describe('SharedWorkspace', () => {
   it('should be defined', () => {

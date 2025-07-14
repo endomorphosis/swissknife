@@ -1,4 +1,4 @@
-import * as ProgressIndicator from '../../../../web/src/components/common/ProgressIndicator';
+import * as ProgressIndicator from '@web-components/common/ProgressIndicator';
 
 describe('ProgressIndicator', () => {
   it('should be defined', () => {

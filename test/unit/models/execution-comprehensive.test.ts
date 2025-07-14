@@ -50,8 +50,8 @@ import {
 } from '../../../src/models/execution.js';
 import { ModelRegistry } from '../../../src/models/registry.js';
 import { BaseModel } from '../../../src/ai/models/model.js';
-import { IntegrationRegistry } from '../../../src/integration/registry.js';
-import { ConfigManager } from '../../../src/config/manager.js';
+import { IntegrationRegistry } from '@integrations/registry.js';
+import { ConfigManager } from '@config/manager.js';
 
 describe('ModelExecutionService Comprehensive Tests', () => {
   let executionService: ModelExecutionService;

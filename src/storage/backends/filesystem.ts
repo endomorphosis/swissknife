@@ -4,7 +4,7 @@ import { StorageBackend, FileStat, DirEntry, StorageError, StorageErrorType, Rea
 import * as fs from 'fs/promises';
 import { constants, createReadStream, createWriteStream, Stats } from 'fs';
 import * as path from 'path';
-import { logger } from '../utils/logger';
+import { logger } from '../../utils/logger';
 import { Readable, Writable } from 'stream';
 
 /**

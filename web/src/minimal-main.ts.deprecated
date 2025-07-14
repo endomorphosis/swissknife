@@ -49,7 +49,7 @@ async function initializeDesktop() {
         console.log('✅ MINIMAL UNIFIED: Desktop initialization complete');
 
     } catch (error) {
-        console.error('❌ MINIMAL UNIFIED: Initialization failed:', error);
+        logError('❌ MINIMAL UNIFIED: Initialization failed:', error);
     }
 }
 

@@ -1,4 +1,4 @@
-import { WebSocketAPI } from '../../../../src/api/WebSocketAPI';
+import { WebSocketAPI } from '@api/WebSocketAPI';
 
 describe('WebSocketAPI', () => {
   it('should be defined', () => {

@@ -23,7 +23,7 @@ jest.mock('../../../src/integration/registry', () => ({
   },
 }));
 
-jest.mock('../../../src/config/manager', () => ({
+jest.mock('@config/manager', () => ({
   ConfigManager: {
     getInstance: jest.fn(() => ({
       get: jest.fn(),

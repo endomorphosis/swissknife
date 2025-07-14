@@ -22,7 +22,7 @@ export class FileSystemAdapter {
       this.currentPath = '/';
       return true;
     } catch (error) {
-      console.error('User denied directory access:', error);
+      logError('User denied directory access:', error);
       this.directoryHandle = null;
       return false;
     }

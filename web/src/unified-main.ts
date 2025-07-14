@@ -10,26 +10,111 @@ import '../css/strudel.css';
 
 // Unified Stlite integration
 import { StliteManager } from './core/stlite-manager';
+import { BrowserStorageAdapter } from './adapters/browser-storage-adapter';
+import { initializeErrorLogger, logError } from './utils/error-logger';
 
 // Enhanced Streamlit Editor
 import { StreamlitEditor } from './apps/streamlit-editor';
 
 class UnifiedSwissKnifeApp {
     private stlite: StliteManager;
-    private legacySystemReady: boolean = false;
+    private storageAdapter: BrowserStorageAdapter;
 
     constructor() {
+        this.storageAdapter = new BrowserStorageAdapter({ type: 'indexeddb' }); // Or 'localstorage' or 'memory'
+        initializeErrorLogger(this.storageAdapter);
         this.init();
     }
 
     private async init() {
         console.log('🚀 UNIFIED: Initializing enhanced SwissKnife Web Desktop...');
 
+        if (!(window as any).desktop) {
+            (window as any).desktop = {
+                createWindow: (options: any) => {
+                    const windowsContainer = document.getElementById('windows-container');
+                    if (!windowsContainer) {
+                        logError('Windows container not found!');
+                        return;
+                    }
+
+                    const windowElement = document.createElement('div');
+                    windowElement.className = 'window';
+                    windowElement.style.cssText = `
+                        position: absolute;
+                        top: 50px;
+                        left: 50px;
+                        width: ${options.width || 800}px;
+                        height: ${options.height || 600}px;
+                        background: white;
+                        border: 1px solid #ccc;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                        z-index: 1000;
+                        display: flex;
+                        flex-direction: column;
+                    `;
+
+                    const titleBar = document.createElement('div');
+                    titleBar.style.cssText = `
+                        background: #f0f0f0;
+                        padding: 8px 12px;
+                        border-bottom: 1px solid #ccc;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        cursor: move;
+                    `;
+                    titleBar.innerHTML = `
+                        <span>${options.title || 'New Window'}</span>
+                        <button onclick="this.closest('.window').remove()" style="background: #ff5f56; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer;">×</button>
+                    `;
+
+                    const contentElement = document.createElement('div');
+                    contentElement.style.cssText = `
+                        flex: 1;
+                        overflow: auto;
+                    `;
+                    if (typeof options.content === 'string') {
+                        contentElement.innerHTML = options.content;
+                    } else if (options.content instanceof HTMLElement) {
+                        contentElement.appendChild(options.content);
+                    }
+
+                    windowElement.appendChild(titleBar);
+                    windowElement.appendChild(contentElement);
+                    windowsContainer.appendChild(windowElement);
+
+                    // Make window draggable
+                    let isDragging = false;
+                    let dragOffset = { x: 0, y: 0 };
+
+                    titleBar.addEventListener('mousedown', (e: MouseEvent) => {
+                        isDragging = true;
+                        const rect = windowElement.getBoundingClientRect();
+                        dragOffset.x = e.clientX - rect.left;
+                        dragOffset.y = e.clientY - rect.top;
+                    });
+
+                    document.addEventListener('mousemove', (e: MouseEvent) => {
+                        if (isDragging) {
+                            windowElement.style.left = (e.clientX - dragOffset.x) + 'px';
+                            windowElement.style.top = (e.clientY - dragOffset.y) + 'px';
+                        }
+                    });
+
+                    document.addEventListener('mouseup', () => {
+                        isDragging = false;
+                    });
+
+                    return windowElement;
+                }
+            };
+        }
+
         // Initialize unified stlite management FIRST
         await this.initializeStlite();
         
-        // Wait for legacy system to be ready, then enhance it
-        this.waitForLegacySystem();
+        this.initializeBasicDesktop();
         
         console.log('✅ UNIFIED: Enhanced SwissKnife Web Desktop ready!');
     }
@@ -42,85 +127,44 @@ class UnifiedSwissKnifeApp {
         console.log('✅ UNIFIED: Stlite management system ready');
     }
 
-    private waitForLegacySystem() {
-        // Wait for the legacy main.js system to initialize
-        const checkLegacySystem = () => {
-            if (window.desktop && window.desktop.apps) {
-                this.legacySystemReady = true;
-                this.enhanceLegacySystem();
-            } else {
-                setTimeout(checkLegacySystem, 100);
-            }
-        };
-        
-        checkLegacySystem();
-    }
-
-    private enhanceLegacySystem() {
-        console.log('� UNIFIED: Enhancing legacy system with unified features...');
-        
-        // Replace the old vibecode app with unified Streamlit Editor
-        this.enhanceVibeCodeApp();
-        
-        // Add global unified access
-        this.setupGlobalAccess();
-        
-        console.log('✅ UNIFIED: Legacy system enhanced successfully');
-    }
-
-    private enhanceVibeCodeApp() {
-        // Override the legacy VibeCodeApp with our unified version
-        if (window.desktop && window.desktop.apps) {
-            const vibeCodeConfig = window.desktop.apps.get('vibecode');
-            if (vibeCodeConfig) {
-                // Update the app configuration
-                vibeCodeConfig.name = 'Streamlit Editor';
-                vibeCodeConfig.icon = '⭐';
-                vibeCodeConfig.title = 'Unified Streamlit Development Environment';
+    private initializeBasicDesktop() {
+        // Basic desktop icon click handlers
+        const icons = document.querySelectorAll('.icon[data-app]');
+        icons.forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                const app = (e.currentTarget as HTMLElement).getAttribute('data-app');
+                console.log(`📱 Opening app: ${app}`);
                 
-                // Store reference to unified stlite
-                vibeCodeConfig.stliteManager = this.stlite;
-                
-                console.log('✅ UNIFIED: VibeCode enhanced with unified Streamlit editor');
-            }
-        }
-        
-        // Enhance the vibecode app launch to use unified stlite
-        const originalLaunchApp = window.desktop?.launchApp?.bind(window.desktop);
-        if (originalLaunchApp) {
-            window.desktop.launchApp = (appId: string) => {
-                if (appId === 'vibecode') {
-                    console.log('🚀 UNIFIED: Launching enhanced Streamlit Editor...');
+                if (app === 'vibecode') {
                     this.launchUnifiedStreamlitEditor();
                 } else {
-                    originalLaunchApp(appId);
+                    console.log(`⚠️ App ${app} not yet implemented in this build`);
                 }
-            };
+            });
+        });
+
+        // Update system time
+        this.updateSystemTime();
+        setInterval(() => this.updateSystemTime(), 1000);
+    }
+
+    private updateSystemTime() {
+        const timeElement = document.getElementById('system-time');
+        if (timeElement) {
+            const now = new Date();
+            timeElement.textContent = now.toLocaleTimeString();
         }
     }
 
     private launchUnifiedStreamlitEditor() {
-        // Create enhanced Streamlit Editor using the legacy window system
-        if (window.desktop && window.desktop.createWindow) {
-            const streamlitApp = new StreamlitEditor({
-                swissknife: (window as any).swissknife,
-                stlite: this.stlite,
-                windows: (window as any).desktop
-            });
+        const streamlitApp = new StreamlitEditor({
+            swissknife: (window as any).swissknife,
+            stlite: this.stlite,
+            windows: (window as any).desktop // Pass the desktop object
+        });
 
-            const appWindow = (window as any).desktop.createWindow({
-                title: '⭐ Streamlit Editor',
-                icon: '⭐',
-                content: streamlitApp.render(),
-                width: 1200,
-                height: 800,
-                app: streamlitApp
-            });
-
-            streamlitApp.onMount(appWindow);
-            
-            console.log('✅ UNIFIED: Enhanced Streamlit Editor launched successfully');
-        }
+        const appWindow = streamlitApp.createWindow(); // Use the createWindow method from StreamlitEditor
+        streamlitApp.onMount(appWindow); // Call onMount after the window is created and mounted to DOM
     }
 
     private setupGlobalAccess() {
@@ -128,25 +172,12 @@ class UnifiedSwissKnifeApp {
         window.unifiedSwissKnife = this;
         window.stliteManager = this.stlite;
         
-        // Enhanced debugging capabilities
-        window.debugUnified = {
-            stliteStatus: () => this.stlite.getStatus(),
-            isStliteReady: () => this.stlite.isReady(),
-            isRealStlite: () => this.stlite.isRealStlite(),
-            launchStreamlitEditor: () => this.launchUnifiedStreamlitEditor(),
-            systemReady: () => this.legacySystemReady
-        };
-        
         console.log('🔧 UNIFIED: Global access and debugging tools available');
     }
 
     // Public API
     public getStliteManager(): StliteManager {
         return this.stlite;
-    }
-
-    public isReady(): boolean {
-        return this.legacySystemReady && this.stlite.isReady();
     }
 }
 

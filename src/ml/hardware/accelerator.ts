@@ -29,15 +29,41 @@ class CpuBackend implements ExecutionBackend {
 }
 
 class GpuBackend implements ExecutionBackend {
-  readonly type = 'gpu'; // Could be 'webgpu' or 'webgl' specifically
-  async isSupported(): Promise<boolean> { 
-    // TODO: Add actual check for WebGPU/WebGL support
-    logger.warn('GPU support check not implemented.'); 
-    return false; 
+  readonly type = 'webgpu'; // Explicitly WebGPU
+  async isSupported(): Promise<boolean> {
+    if (!('gpu' in navigator)) {
+      logger.warn('WebGPU not supported in this browser.');
+      return false;
+    }
+    try {
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        logger.warn('No WebGPU adapter found.');
+        return false;
+      }
+      // You might want to check for specific features here if needed
+      return true;
+    } catch (error) {
+      logger.error('Error checking WebGPU support:', error);
+      return false;
+    }
   }
-  prepareInput(input: Tensor): any { throw new Error('GPU backend not implemented.'); }
-  async runInference(model: MLModel, preparedInput: any): Promise<any> { throw new Error('GPU backend not implemented.'); }
-  formatOutput(backendOutput: any): Tensor { throw new Error('GPU backend not implemented.'); }
+  prepareInput(input: Tensor): any { 
+    // TODO: Convert Tensor to GPUBuffer
+    logger.warn('WebGPU prepareInput not fully implemented.');
+    return input.getData(); // Placeholder
+  }
+  async runInference(model: MLModel, preparedInput: any): Promise<any> { 
+    // TODO: Implement actual WebGPU inference
+    logger.warn('WebGPU runInference not fully implemented.');
+    // Placeholder: simulate some GPU work
+    return new Promise(resolve => setTimeout(() => resolve(preparedInput), 100));
+  }
+  formatOutput(backendOutput: any): Tensor { 
+    // TODO: Convert GPUBuffer output back to Tensor
+    logger.warn('WebGPU formatOutput not fully implemented.');
+    return new Tensor(backendOutput, []); // Placeholder shape
+  }
 }
 
 // --- Hardware Accelerator Class ---

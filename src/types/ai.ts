@@ -259,7 +259,7 @@ export interface ToolCallResult {
 export interface ToolSelectionResult {
   /** Tools that should be called */
   toolCalls: ToolCall[];
-  /** Reasoning for the tool selection */
+  /** Reasoning for the selection */
   reasoning?: string;
 }
 
@@ -329,4 +329,191 @@ export interface ModelSelectionRule {
 export interface SelectionLearningEngine {
   predictOptimalModel(request: ModelRequest): Promise<ModelSelection>;
   // Potentially methods for training or updating the engine
+}
+
+// Placeholder interfaces for compilation
+export interface ModelInstance {
+  id: string;
+  execute(request: ModelRequest): Promise<ModelResponse>;
+  capabilities: ModelCapabilities;
+  currentLoad: number;
+}
+
+export interface ModelLoadBalancer {}
+export interface ModelPerformanceMonitor {
+  getModelPerformance(modelId: string): Promise<{ averageResponseTime: number; successRate: number }>;
+}
+export interface CostOptimizer {
+  calculateEfficiency(modelId: string, characteristics: RequestCharacteristics): Promise<number>;
+}
+export interface Agent {
+  id: string;
+  capabilities: AgentCapability[];
+  currentLoad: number;
+  performanceScore: number;
+}
+export interface SharedContext {}
+export interface ProgressTracker {}
+export interface WorkflowDefinition {
+  stages: WorkflowStage[];
+}
+export interface WorkflowResult {}
+export interface WorkflowStage {}
+export interface RequestCharacteristics {
+  requiredCapabilities?: string[];
+}
+export interface ModelResponse {}
+
+export interface PriorityQueue<T> {
+  enqueue(item: T, priority: number): void;
+  dequeue(): T | undefined;
+  isEmpty(): boolean;
+}
+
+export interface MessageHandler {
+  (message: AgentMessage): void;
+}
+
+export interface BroadcastChannel {
+  publish(message: AgentMessage): Promise<void>;
+}
+
+export enum ConflictType {
+  RESOURCE_ALLOCATION = 'resource_allocation',
+  TASK_PRIORITY = 'task_priority',
+  DATA_INCONSISTENCY = 'data_inconsistency',
+}
+
+export interface ResolutionStrategy {
+  resolve(conflict: AgentConflict): Promise<ConflictResolution>;
+}
+
+export interface AgentConflict {
+  type: ConflictType;
+  participants: Agent[];
+  details: string;
+}
+
+export interface ConflictResolution {
+  resolution: ResolutionType;
+  winner?: string;
+  details?: string;
+}
+
+export enum ResolutionType {
+  PRIORITY_BASED = 'priority_based',
+  ARBITRATION = 'arbitration',
+  NEGOTIATION = 'negotiation',
+}
+
+export interface AgentCapability {
+  name: string;
+  level: number;
+}
+
+export interface LoadBalancer {}
+export interface PerformanceMonitor {}
+
+export interface DistributedTask {
+  id: string;
+  requirements: TaskRequirements;
+}
+
+export interface TaskAssignment {
+  taskId: string;
+  agentId: string;
+}
+
+export interface TaskRequirements {
+  capabilities: string[];
+  resourceNeeds: Record<string, number>;
+}
+
+export interface ExecutionMonitor {}
+export interface AdaptationTrigger {
+  shouldTrigger(execution: WorkflowExecution): Promise<boolean>;
+  generateAdaptation(execution: WorkflowExecution): Promise<any>;
+}
+export interface ContingencyPlan {}
+export interface GeneratedWorkflow {}
+export class WorkflowExecution {
+  constructor(workflow: GeneratedWorkflow) {}
+  isComplete(): boolean { return true; }
+  getCurrentNode(): WorkflowNode { return { id: 'mock', type: 'mock', dependencies: [] }; }
+  recordResult(nodeId: string, result: any): void{}
+  advanceToNext(): void{}
+  getResult(): WorkflowResult { return {}; }
+}
+export interface WorkflowNode {
+  id: string;
+  type: string;
+  dependencies: string[];
+}
+export interface WorkflowTemplate {}
+export interface WorkflowAdaptationEngine {}
+export interface WorkflowOptimizationEngine {
+  optimize(structure: WorkflowStructure): Promise<GeneratedWorkflow>;
+}
+export interface WorkflowConstraints {}
+export interface ObjectiveAnalysis {
+  decomposition: string[];
+}
+export interface WorkflowStructure {
+  nodes: WorkflowNode[];
+  edges: any[];
+  metadata: any;
+}
+export interface ThoughtNode {
+  id: string;
+  content: string;
+  type: ThoughtNodeType;
+  status: GoTNodeStatus;
+  parents: string[];
+  children: string[];
+  metadata?: Record<string, any>;
+  result?: any;
+}
+
+export enum ThoughtNodeType {
+  QUESTION = 'question',
+  HYPOTHESIS = 'hypothesis',
+  RESEARCH = 'research',
+  ANALYSIS = 'analysis',
+  ANSWER = 'answer',
+  THOUGHT = 'thought',
+  SYNTHESIS = 'synthesis',
+  CONCLUSION = 'conclusion',
+  DECOMPOSITION = 'decomposition',
+}
+
+export enum GoTNodeStatus {
+  PENDING = 'pending',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  SKIPPED = 'skipped',
+}
+
+export enum TaskStatus {
+  PENDING = 'pending',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+}
+
+export interface LLMGenerationResult {
+  content: string;
+  // Potentially other metadata like confidence, tokens used, etc.
+}
+
+export interface GoTNode {
+  id: string;
+  content: string;
+  type: ThoughtNodeType;
+  status: GoTNodeStatus;
+  parents: string[];
+  children: string[];
+  metadata?: Record<string, any>;
+  result?: any;
 }

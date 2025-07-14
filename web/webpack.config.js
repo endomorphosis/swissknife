@@ -10,10 +10,11 @@ module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
   
   return {
+    context: path.resolve(__dirname, '..'),
     entry: {
       // For the clean GUI version, we don't need webpack bundling
       // since index.html loads the scripts directly
-      main: './src/unified-main.ts'
+      main: './web/src/unified-main.ts'
     },
     
     output: {
@@ -26,6 +27,9 @@ module.exports = (env, argv) => {
     experiments: {
       asyncWebAssembly: true,
       topLevelAwait: true
+    },
+    resolveLoader: {
+      modules: [path.resolve(__dirname, 'node_modules')],
     },
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx'],
@@ -53,10 +57,10 @@ module.exports = (env, argv) => {
       alias: {
         // Map source paths to web-compatible versions
         '@swissknife': path.resolve(__dirname, '../src'),
-        '@legacy': path.resolve(__dirname, 'js'),
-        '@': path.resolve(__dirname, 'src'),
-        '@/adapters/ai-adapter': path.resolve(__dirname, 'src/adapters/browser-ai-adapter.ts'),
-        '@swissknife/wasm': path.resolve(__dirname, 'src/wasm'),
+        '@legacy': path.resolve(__dirname, 'web/js'),
+        '@': path.resolve(__dirname, 'web/src'),
+        '@/adapters/ai-adapter': path.resolve(__dirname, 'web/src/adapters/browser-ai-adapter.ts'),
+        '@swissknife/wasm': path.resolve(__dirname, 'web/src/wasm'),
         '@swissknife/core': path.resolve(__dirname, '../src'),
         "process": "process/browser", // Explicitly alias process to its browser polyfill
         'buffer': 'buffer/', // Explicitly alias buffer to its polyfill
@@ -89,7 +93,7 @@ module.exports = (env, argv) => {
     
     plugins: [
       new HtmlWebpackPlugin({
-        template: './index.html', // Use existing index.html 
+        template: './web/index.html', // Use existing index.html 
         filename: 'index.html',
         inject: 'body', // Don't inject scripts since index.html already has them
         minify: isProduction ? {
@@ -108,12 +112,12 @@ module.exports = (env, argv) => {
       
       new CopyWebpackPlugin({
         patterns: [
-          { from: 'css', to: 'css' },
-          { from: 'assets', to: 'assets', noErrorOnMissing: true },
-          { from: 'favicon.ico', to: 'favicon.ico', noErrorOnMissing: true },
+          { from: 'web/css', to: 'css' },
+          { from: 'web/assets', to: 'assets', noErrorOnMissing: true },
+          { from: 'web/favicon.ico', to: 'favicon.ico', noErrorOnMissing: true },
           // Legacy JS files for fallback/debugging - exclude broken files
           { 
-            from: 'js', 
+            from: 'web/js', 
             to: 'js', 
             noErrorOnMissing: true,
             globOptions: {
@@ -215,7 +219,7 @@ module.exports = (env, argv) => {
         chunks: 'all',
         cacheGroups: {
           vendor: {
-            test: /[\\/]node_modules[\\/]/,
+            test: /[\\/]node_modules[\\]/,
             name: 'vendors',
             chunks: 'all',
           },

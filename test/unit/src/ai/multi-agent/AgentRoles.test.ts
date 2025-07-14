@@ -1,4 +1,4 @@
-import { AgentRoleManager } from '../../../../src/ai/multi-agent/AgentRoles';
+import { AgentRoleManager } from '@ai/multi-agent/AgentRoles';
 
 describe('AgentRoleManager', () => {
   it('should be defined', () => {

@@ -4,7 +4,7 @@
 
 
 
-const { MCPTransportFactory, MCPClient, MCPTransportType } = require('@src/services/mcp-transport') as { MCPTransportFactory: any, MCPClient: any, MCPTransportType: any };
+import { MCPTransportFactory, MCPClient, MCPTransportType } from '@services/mcp-transport';
 
 describe('MCP Transport Service', () => {
   describe('MCPTransportFactory', () => {

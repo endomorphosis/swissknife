@@ -1,4 +1,4 @@
-import { CommandDiscovery } from '../../../../src/cli/discovery';
+import { CommandDiscovery } from '@cli/discovery';
 
 describe('CommandDiscovery', () => {
   it('should be defined', () => {

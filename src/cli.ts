@@ -14,7 +14,18 @@ import { TaskCreateCommand } from './cli/commands/taskCreateCommand';
 import { AiChatCommand } from './cli/commands/aiChatCommand'; 
 import { StorageAddCommand } from './cli/commands/storageAddCommand'; 
 import { TaskStatusCommand } from './cli/commands/taskStatusCommand'; 
-import { TaskListCommand } from './cli/commands/taskListCommand'; // Import TaskListCommand
+import { TaskListCommand } from './cli/commands/taskListCommand'; 
+import { ConfigGetCommand, ConfigSetCommand, ConfigRemoveCommand, ConfigListCommand } from './cli/commands/configCommands';
+import { ApprovedToolsListCommand, ApprovedToolsRemoveCommand } from './cli/commands/approvedToolsCommands';
+import { McpServeCommand, McpAddSseCommand, McpAddCommand, McpRemoveCommand, McpListCommand, McpAddJsonCommand, McpGetCommand, McpAddFromClaudeDesktopCommand, McpResetProjectChoicesCommand, McpResetMcprcChoicesCommand } from './cli/commands/mcpCommands';
+import { StorachaClientCommand, StorachaUcnCommand, StorachaCapabilitiesCommand, StorachaAccessCommand } from './cli/commands/storachaCommands';
+import { DoctorCommand } from './cli/commands/doctorCommand';
+import { UpdateCommand } from './cli/commands/updateCommand';
+import { LogCommand } from './cli/commands/logCommand';
+import { ResumeCommand } from './cli/commands/resumeCommand';
+import { ErrorCommand } from './cli/commands/errorCommand';
+import { ContextGetCommand, ContextSetCommand, ContextListCommand, ContextRemoveCommand } from './cli/commands/contextCommands';
+
 // Import Phase 5 commands
 import { 
   registerPhase5Commands 
@@ -71,8 +82,7 @@ export class CLI {
   /**
    * Register all available commands.
    */
-  private registerCommands(): void {
-    logger.debug('Registering commands...');
+  private registerCommands(): void {    logger.debug('Registering commands...');
     
     // Register core commands
     this.commandRegistry.register(new TaskCreateCommand());
@@ -80,6 +90,35 @@ export class CLI {
     this.commandRegistry.register(new StorageAddCommand());
     this.commandRegistry.register(new TaskStatusCommand());
     this.commandRegistry.register(new TaskListCommand());
+    this.commandRegistry.register(new ConfigGetCommand());
+    this.commandRegistry.register(new ConfigSetCommand());
+    this.commandRegistry.register(new ConfigRemoveCommand());
+    this.commandRegistry.register(new ConfigListCommand());
+    this.commandRegistry.register(new ApprovedToolsListCommand());
+    this.commandRegistry.register(new ApprovedToolsRemoveCommand());
+    this.commandRegistry.register(new McpServeCommand());
+    this.commandRegistry.register(new McpAddSseCommand());
+    this.commandRegistry.register(new McpAddCommand());
+    this.commandRegistry.register(new McpRemoveCommand());
+    this.commandRegistry.register(new McpListCommand());
+    this.commandRegistry.register(new McpAddJsonCommand());
+    this.commandRegistry.register(new McpGetCommand());
+    this.commandRegistry.register(new McpAddFromClaudeDesktopCommand());
+    this.commandRegistry.register(new McpResetProjectChoicesCommand());
+    this.commandRegistry.register(new McpResetMcprcChoicesCommand());
+    this.commandRegistry.register(new StorachaClientCommand());
+    this.commandRegistry.register(new StorachaUcnCommand());
+    this.commandRegistry.register(new StorachaCapabilitiesCommand());
+    this.commandRegistry.register(new StorachaAccessCommand());
+    this.commandRegistry.register(new DoctorCommand());
+    this.commandRegistry.register(new UpdateCommand());
+    this.commandRegistry.register(new LogCommand());
+    this.commandRegistry.register(new ResumeCommand());
+    this.commandRegistry.register(new ErrorCommand());
+    this.commandRegistry.register(new ContextGetCommand());
+    this.commandRegistry.register(new ContextSetCommand());
+    this.commandRegistry.register(new ContextListCommand());
+    this.commandRegistry.register(new ContextRemoveCommand());
     
     // Register Phase 5 commands via the helper function
     this.registerPhase5Commands();
@@ -118,8 +157,7 @@ export class CLI {
             return this.agent as T;
           case 'StorageProvider':
             return this.storage as T;
-          default:
-            throw new Error(`Service not found: ${serviceName}`);
+          default:            throw new Error(`Service not found: ${serviceName}`);
         }
       },
     };
@@ -282,8 +320,7 @@ return await helpCommand.execute({}, context);
     
     return await command.execute(args, context);
   } catch (error) {
-    console.error('Error:', error);
-    return 1;
+    console.error('Error:', error);    return 1;
   }
 }
 

@@ -1,4 +1,4 @@
-import * as CodeEditor from '../../../../web/src/components/common/CodeEditor';
+import * as CodeEditor from '@web-components/common/CodeEditor';
 
 describe('CodeEditor', () => {
   it('should be defined', () => {

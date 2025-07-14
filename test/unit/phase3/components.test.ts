@@ -3,7 +3,7 @@
  */
 
 import { FibonacciHeapScheduler } from '../../../src/tasks/scheduler/fibonacci-heap-scheduler';
-import { ThoughtGraph, ThoughtNode } from '../../../src/ai/thinking/graph'; // Import ThoughtGraph and ThoughtNode
+import { ThoughtGraph, ThoughtNode } from '@ai/thinking/graph'; // Import ThoughtGraph and ThoughtNode
 import { MerkleClock } from '@src/tasks/coordination/merkle_clock';
 import { ThoughtNodeType } from '@src/types/task'; // Import ThoughtNodeType
 

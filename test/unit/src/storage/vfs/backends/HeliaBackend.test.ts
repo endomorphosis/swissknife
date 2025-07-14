@@ -1,4 +1,4 @@
-import { HeliaBackend } from '../../../../src/storage/vfs/backends/HeliaBackend';
+import { HeliaBackend } from '@storage/vfs/backends/HeliaBackend';
 
 describe('HeliaBackend', () => {
   it('should be defined', () => {

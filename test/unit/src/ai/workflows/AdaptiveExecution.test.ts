@@ -1,4 +1,4 @@
-import { AdaptiveWorkflowExecution } from '../../../../src/ai/workflows/AdaptiveExecution';
+import { AdaptiveWorkflowExecution } from '@ai/workflows/AdaptiveExecution';
 
 describe('AdaptiveWorkflowExecution', () => {
   it('should be defined', () => {

@@ -1,23 +1,10 @@
 // src/ai/thinking/manager.ts
 import { ThoughtGraph } from './graph.js';
-import { GoTNodeType, GoTNodeStatus } from '../../tasks/graph/node'; // Import unified enums
-import { IModel, Tool, GoTNode } from '../../types/ai'; // Use IModel interface and Zod-based Tool
+import { IModel, Tool, GoTNode, GoTNodeType, GoTNodeStatus, LLMGenerationResult, TaskStatus } from '../../types/ai'; // Use IModel interface and Zod-based Tool
 import { v4 as uuidv4 } from 'uuid';
 
-// Placeholder for LLM interaction result
-interface LLMGenerationResult {
-  content: string;
-  // Potentially other metadata like confidence, tokens used, etc.
-}
-
-// Assuming Model class will have a method like:
-// interface Model {
-//   generate(options: { prompt: string; /* other params */ }): Promise<LLMGenerationResult>;
-// }
-
-
 export interface NodeProcessorInput {
-  node: ThoughtNode;
+  node: GoTNode;
   graph: ThoughtGraph;
   model: IModel; // Changed to IModel
   strategy: ReasoningStrategyType; // Added for Phase 3 Reasoning Strategies
@@ -48,7 +35,7 @@ export class ThinkingManager {
   async createThinkingGraph(initialContent: string, _model: IModel, rootId?: string): Promise<ThoughtGraph> { // Changed to IModel
     const graph = new ThoughtGraph();
     const newRootId = rootId || uuidv4();
-    graph.addNode(initialContent, ThoughtNodeType.QUESTION, {}, newRootId); // Use ThoughtNodeType
+    graph.addNode(initialContent, GoTNodeType.QUESTION, {}, newRootId); // Use ThoughtNodeType
     // The root node is initially PENDING. processGraph will pick it up.
     return graph;
   }
@@ -188,20 +175,20 @@ export class ThinkingManager {
     switch (strategy) {
       case ReasoningStrategyType.DEPTH_FIRST_EXPANSION:
         // Create one HYPOTHESIS child to explore deeply
-        const hypothesisNode = graph.addNode(generatedHypotheses[0], ThoughtNodeType.HYPOTHESIS, node.metadata);
+        const hypothesisNode = graph.addNode(generatedHypotheses[0], GoTNodeType.HYPOTHESIS, node.metadata);
         graph.addChild(node.id, hypothesisNode.id);
         break;
       case ReasoningStrategyType.BREADTH_FIRST_EXPANSION:
         // Create multiple HYPOTHESIS children for parallel exploration
         generatedHypotheses.forEach(hypoText => {
-          const childNode = graph.addNode(hypoText, ThoughtNodeType.HYPOTHESIS, node.metadata);
+          const childNode = graph.addNode(hypoText, GoTNodeType.HYPOTHESIS, node.metadata);
           graph.addChild(node.id, childNode.id);
         });
         break;
       case ReasoningStrategyType.SIMPLE_SEQUENTIAL:
       default:
         // Simple: just mark as processed, or generate one simple next step (e.g. analysis)
-        const analysisNode = graph.addNode(`Analyze: ${node.content}`, ThoughtNodeType.ANALYSIS, node.metadata);
+        const analysisNode = graph.addNode(`Analyze: ${node.content}`, GoTNodeType.ANALYSIS, node.metadata);
         graph.addChild(node.id, analysisNode.id);
         break;
     }
@@ -215,7 +202,7 @@ export class ThinkingManager {
     const researchPrompt = `To validate/invalidate the hypothesis: "${node.content}", what research steps are needed?`;
     const llmResult = await this._simulateLLMCall(researchPrompt, model);
     // For simplicity, create one research node
-    const researchNode = graph.addNode(`Research for: ${node.content} (based on LLM: ${llmResult.content.substring(0,30)}...)`, ThoughtNodeType.RESEARCH, node.metadata);
+    const researchNode = graph.addNode(`Research for: ${node.content} (based on LLM: ${llmResult.content.substring(0,30)}...)`, GoTNodeType.RESEARCH, node.metadata);
     graph.addChild(node.id, researchNode.id);
     return { validationPlan: `Created research node ${researchNode.id}` };
   }
@@ -228,7 +215,7 @@ export class ThinkingManager {
     // For now, simulate finding some data.
     const researchData = await this._simulateLLMCall(`Simulate research findings for: "${node.content}"`, model);
     // Create an ANALYSIS child node
-    const analysisNode = graph.addNode(`Analyze data for: ${node.content}`, ThoughtNodeType.ANALYSIS, node.metadata);
+    const analysisNode = graph.addNode(`Analyze data for: ${node.content}`, GoTNodeType.ANALYSIS, node.metadata);
     graph.addChild(node.id, analysisNode.id);
     // Store the "found" data in the research node's result.
     return { researchData: researchData.content, nextStepNodeId: analysisNode.id };
@@ -280,7 +267,7 @@ export class ThinkingManager {
     } catch { subQuestions = [llmResult.content]; }
 
     subQuestions.forEach(qText => {
-        const subNode = graph.addNode(qText, ThoughtNodeType.QUESTION, node.metadata);
+        const subNode = graph.addNode(qText, GoTNodeType.QUESTION, node.metadata);
         graph.addChild(node.id, subNode.id);
     });
     return { decompositionResult: `Decomposed into ${subQuestions.length} sub-questions.` };
@@ -306,7 +293,7 @@ export class ThinkingManager {
     const toolRequests: Array<{name: string, args: any}> = [];
     // This logic might need to be more sophisticated, perhaps looking at specific
     // node types (e.g., RESEARCH nodes) or specific content patterns.
-    graph.traverse((node: ThoughtNode, _depth: number) => {
+    graph.traverse((node: GoTNode, _depth: number) => {
       if (node.status === GoTNodeStatus.COMPLETED && node.result && typeof node.result.requestTool === 'string') { // Use GoTNodeStatus
         // A node's result might explicitly request a tool
         const toolName = node.result.requestTool;
@@ -319,18 +306,16 @@ export class ThinkingManager {
         for (const tool of availableTools) {
           if (node.content.toLowerCase().includes(`use tool ${tool.name.toLowerCase()}`)) {
             // Basic argument extraction - needs significant improvement for real use
-            const argMatch = node.content.match(new RegExp(`use tool ${tool.name.toLowerCase()}\\s*(?:with\\s*(.*?))?(?:for\\s*(.*?))?$`, 'i'));
-            let args: any = {};
-            if (argMatch && argMatch[1]) {
-                try {
-                    args = JSON.parse(argMatch[1]);
-                } catch (e) {
-                    args = { rawArgs: argMatch[1]}; // Fallback
-                }
-            } else if (argMatch && argMatch[2]) {
-                 args = { query: argMatch[2]}; // Fallback for "for..."
+            const argMatch = node.content.match(new RegExp(`use tool ${tool.name.toLowerCase()}\s*(?:with\s*(.*?))?(?:for\s*(.*?))?$
+`, 'i'));
+            if (argMatch) {
+              const args = argMatch[1] || argMatch[2] || '{}';
+              try {
+                toolRequests.push({ name: tool.name, args: JSON.parse(args) });
+              } catch (e) {
+                console.error(`Could not parse arguments for tool ${tool.name}: ${args}`);
+              }
             }
-            toolRequests.push({ name: tool.name, args });
           }
         }
       }
@@ -338,35 +323,16 @@ export class ThinkingManager {
     return toolRequests;
   }
 
-  async generateResponse(
-    graph: ThoughtGraph, 
-    _model: IModel, // Changed to IModel, may not be needed if response is synthesized from graph
-    toolResults?: import('../../types/ai.js').ToolCallResult[] // Changed to use ToolCallResult[]
-  ): Promise<string> {
-    // Find a "CONCLUSION" node or the root node if no conclusion.
-    // Or synthesize from multiple completed nodes.
-    let finalContent = "Could not determine a final response from the thought process.";
-    const rootNode = graph.getRoot();
+  async generateResponse(graph: ThoughtGraph, model: IModel, toolResults?: any[]): Promise<string> { // Changed to IModel
+    const finalNode = graph.findNode(node => node.type === GoTNodeType.ANSWER && node.status === GoTNodeStatus.COMPLETED); // Use GoTNodeType.ANSWER for CONCLUSION
 
-    const conclusionNodes = graph.getAllNodes().filter((n: ThoughtNode) => n.type === ThoughtNodeType.CONCLUSION && n.status === TaskStatus.COMPLETED); // Use ThoughtNodeType and TaskStatus
-    
-    if (conclusionNodes.length > 0) {
-        // Simple: take the first completed conclusion node's result
-        finalContent = `Conclusion: ${JSON.stringify(conclusionNodes[0].result)}`;
-    } else if (rootNode && rootNode.status === GoTNodeStatus.COMPLETED) { // Use GoTNodeStatus
-        finalContent = `Result: ${JSON.stringify(rootNode.result)}`;
-    } else {
-        // Fallback: try to find any completed node
-        const completedNodes = graph.getAllNodes().filter((n: ThoughtNode) => n.status === GoTNodeStatus.COMPLETED); // Use GoTNodeStatus
-        if (completedNodes.length > 0) {
-            finalContent = `Processed: ${JSON.stringify(completedNodes[completedNodes.length -1].result)}`;
-        }
-    }
-    // Incorporate tool results if any (this part needs more thought on how tools integrate with graph nodes)
-    if (toolResults && toolResults.length > 0) {
-        finalContent += "\n\nTool Results:\n" + toolResults.map(tr => `${tr.toolName}: ${tr.result || tr.error}`).join("\n"); // Use tr.toolName
+    if (finalNode && finalNode.result?.finalConclusion) {
+      return finalNode.result.finalConclusion;
     }
 
-    return finalContent;
+    // Fallback: Synthesize a response from the graph if no explicit conclusion node is found/completed
+    const synthesisPrompt = `Based on the following thought process, what is the final answer or summary? Graph: ${JSON.stringify(graph.serialize(), null, 2)} Tool results: ${JSON.stringify(toolResults, null, 2)}`;
+    const llmResult = await this._simulateLLMCall(synthesisPrompt, model);
+    return llmResult.content;
   }
 }

@@ -140,7 +140,7 @@ describe('ModelExecutionService', () => {
     modelExecutionService = ModelExecutionService.getInstance();
     
     // Get mock registry instance
-    const { ModelRegistry } = require('../../../../src/models/registry');
+    const { ModelRegistry } = require('@models/registry');
     modelRegistry = ModelRegistry.getInstance();
     
     // Clear all mocks

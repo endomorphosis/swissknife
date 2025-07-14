@@ -64,7 +64,7 @@ export class StateManager {
       try {
         subscriber.onStateChange(path, value);
       } catch (error) {
-        console.error(`Error notifying subscriber for ${path}:`, error);
+        logError(`Error notifying subscriber for ${path}:`, error);
       }
     }
   }

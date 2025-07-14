@@ -1,4 +1,4 @@
-import { ConflictResolver } from '../../../../src/ai/multi-agent/ConflictResolver';
+import { ConflictResolver } from '@ai/multi-agent/ConflictResolver';
 
 describe('ConflictResolver', () => {
   it('should be defined', () => {

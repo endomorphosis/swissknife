@@ -1,5 +1,5 @@
 
-import { MonitoringSystem } from '../../../src/monitoring/MonitoringSystem';
+import { MonitoringSystem } from '@monitoring/MonitoringSystem';
 
 describe('MonitoringSystem', () => {
   it('should be able to create an instance', () => {

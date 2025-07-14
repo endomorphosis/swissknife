@@ -1,16 +1,20 @@
+import { jest, expect } from '@jest/globals';
 // Mock common dependencies
 jest.mock("chalk", () => ({ default: (str) => str, red: (str) => str, green: (str) => str, blue: (str) => str }));
 jest.mock("nanoid", () => ({ nanoid: () => "test-id" }));
-jest.mock("fs", () => ({ promises: { readFile: jest.fn(), writeFile: jest.fn(), mkdir: jest.fn() } }));
 /**
  * Test for array utility functions (JavaScript version)
  */
 
 // Import the array utility
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // Read and evaluate the TypeScript file (simple approach)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const arrayUtilPath = path.resolve(__dirname, '../../../src/utils/array.ts');
 let intersperse;
 

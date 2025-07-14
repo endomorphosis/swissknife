@@ -43,7 +43,7 @@ export class StliteManager {
       this._loadRealStlite();
 
     } catch (error) {
-      console.error('❌ StliteManager: Error during initialization:', error);
+      logError('❌ StliteManager: Error during initialization:', error);
       this.loadStatus = 'error';
       throw error;
     }

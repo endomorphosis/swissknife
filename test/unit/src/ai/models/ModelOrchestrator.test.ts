@@ -1,4 +1,4 @@
-import { ModelOrchestrator } from '../../../../src/ai/models/ModelOrchestrator';
+import { ModelOrchestrator } from '@ai/models/ModelOrchestrator';
 
 describe('ModelOrchestrator', () => {
   it('should be defined', () => {

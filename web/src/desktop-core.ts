@@ -2,8 +2,12 @@
 
 import SwissKnife from '../js/swissknife-browser.js';
 import DesktopEnhancer from '../js/desktop-enhancer.js';
-
-class DesktopCore {
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import ErrorLogViewer from './components/ErrorLogViewer';
+import ConversationHistoryViewer from './components/ConversationHistoryViewer';
+import { Conversation } from './adapters/browser-ai-adapter';
+import { ConfigManagerApp } from './apps/ConfigManagerApp';
     windows: Map<string, any>;
     windowCounter: number;
     activeWindow: any;
@@ -51,7 +55,7 @@ class DesktopCore {
                 // Continue with limited functionality
             }
         } catch (error) {
-            console.error('Error initializing SwissKnife core:', error);
+            logError('Error initializing SwissKnife core:', error);
             // Continue with limited functionality
         }
         
@@ -94,7 +98,8 @@ class DesktopCore {
         console.log('🖥️ Desktop icons found:', desktopIcons.length);
         
         desktopIcons.forEach((icon, index) => {
-            const appId = icon.dataset.app;
+            const htmlIcon = icon as HTMLElement;
+            const appId = htmlIcon.dataset.app;
             const label = icon.querySelector('.icon-label')?.textContent;
             console.log(`  Icon ${index + 1}: ${appId} (${label})`);
         });
@@ -199,12 +204,13 @@ class DesktopCore {
         
         // Update background image
         if (desktopBg) {
+            const bgElement = desktopBg as HTMLElement;
             if (theme === 'day') {
                 // Bright daylight Swiss Alps
-                desktopBg.style.backgroundImage = "url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop&q=80')";
+                bgElement.style.backgroundImage = "url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop&q=80')";
             } else {
                 // Sunset/golden hour Swiss Alps
-                desktopBg.style.backgroundImage = "url('https://images.unsplash.com/photo-1544550285-f813152fb2fd?w=1920&h=1080&fit=crop&q=80')";
+                bgElement.style.backgroundImage = "url('https://images.unsplash.com/photo-1544550285-f813152fb2fd?w=1920&h=1080&fit=crop&q=80')";
             }
         }
         
@@ -329,6 +335,13 @@ class DesktopCore {
             component: 'PhasedCleanupApp',
             singleton: true
         });
+
+        this.apps.set('error-logs', {
+            name: 'Error Logs',
+            icon: '❌',
+            component: 'ErrorLogApp',
+            singleton: true
+        });
         console.log('✅ Registered phased-cleanup app');
         
         console.log('📱 Total apps registered:', this.apps.size);
@@ -343,7 +356,8 @@ class DesktopCore {
         console.log('🖱️ Found desktop icons:', desktopIcons.length);
         
         desktopIcons.forEach((icon, index) => {
-            const appId = icon.dataset.app;
+            const htmlIcon = icon as HTMLElement;
+            const appId = htmlIcon.dataset.app;
             console.log(`🔗 Setting up icon ${index + 1}: ${appId}`);
             
             icon.addEventListener('click', (e) => {
@@ -371,7 +385,7 @@ class DesktopCore {
         
         // Close menu when clicking outside
         document.addEventListener('click', (e) => {
-            if (!systemMenu.contains(e.target) && !systemMenuBtn.contains(e.target)) {
+            if (!systemMenu.contains(e.target as Node) && !systemMenuBtn.contains(e.target as Node)) {
                 systemMenu.classList.remove('visible');
             }
         });
@@ -398,8 +412,8 @@ class DesktopCore {
         
         // Desktop right-click context menu
         document.addEventListener('contextmenu', (e) => {
-            if (e.target.classList.contains('desktop-background') || 
-                e.target.classList.contains('desktop')) {
+            if ((e.target as HTMLElement).classList.contains('desktop-background') || 
+                (e.target as HTMLElement).classList.contains('desktop')) {
                 e.preventDefault();
                 this.showContextMenu(e.clientX, e.clientY);
             }
@@ -412,8 +426,8 @@ class DesktopCore {
         
         // Window management events
         document.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.window')) {
-                this.focusWindow(e.target.closest('.window'));
+            if ((e.target as HTMLElement).closest('.window')) {
+                this.focusWindow((e.target as HTMLElement).closest('.window') as HTMLElement);
             }
         });
     }
@@ -657,6 +671,16 @@ class DesktopCore {
                     const PhasedCleanupApp = PhasedCleanupModule.default;
                     appInstance = new PhasedCleanupApp();
                     appInstance.render(contentElement);
+                    break;
+
+                case 'conversationhistoryapp':
+                    console.log('💬 Loading Conversation History app...');
+                    this.loadConversationHistoryApp(contentElement);
+                    break;
+
+                case 'conversationhistoryapp':
+                    console.log('💬 Loading Conversation History app...');
+                    this.loadConversationHistoryApp(contentElement);
                     break;
 
                 case 'grandmastrudeldaw':
@@ -1161,26 +1185,26 @@ class DesktopCore {
         let isDragging = false;
         let startX, startY, startLeft, startTop;
         
-        titlebar.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('window-control')) return;
-            
+        titlebar.addEventListener('mousedown', (e: MouseEvent) => {
+            if ((e.target as HTMLElement).classList.contains('window-control')) return;
+
             isDragging = true;
             startX = e.clientX;
             startY = e.clientY;
             startLeft = parseInt(windowElement.style.left);
             startTop = parseInt(windowElement.style.top);
-            
+
             // Set up snapping state
             this.dragState.isDragging = true;
             this.dragState.draggedWindow = windowElement;
-            
+
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
-            
+
             e.preventDefault();
         });
         
-        const handleMouseMove = (e) => {
+        const handleMouseMove = (e: MouseEvent) => {
             if (!isDragging) return;
             
             const deltaX = e.clientX - startX;
@@ -1464,9 +1488,9 @@ class DesktopCore {
         
         // Add taskbar app right-click functionality
         document.addEventListener('contextmenu', (e) => {
-            if (e.target.closest('.taskbar-app')) {
+            if ((e.target as HTMLElement).closest('.taskbar-app')) {
                 e.preventDefault();
-                const taskbarApp = e.target.closest('.taskbar-app');
+                const taskbarApp = (e.target as HTMLElement).closest('.taskbar-app') as HTMLElement;
                 const windowId = taskbarApp.id.replace('taskbar-', '');
                 this.showTaskbarAppContextMenu(e.clientX, e.clientY, windowId);
             }
@@ -1599,7 +1623,7 @@ class DesktopCore {
         ];
     }
         
-    handleWindowDragSnapping(e) {
+    handleWindowDragSnapping(e: MouseEvent) {
         if (!this.dragState.draggedWindow) return;
         
         const mouseX = e.clientX;
@@ -1818,7 +1842,7 @@ class DesktopCore {
             
             // Add event listeners for menu items
             taskbarMenu.addEventListener('click', (e) => {
-                const action = e.target.dataset.action;
+                const action = (e.target as HTMLElement).dataset.action;
                 if (action) {
                     console.log('SwissKnife: Taskbar context menu action:', action);
                     this.handleTaskbarMenuAction(action);
@@ -1864,7 +1888,7 @@ class DesktopCore {
             
             // Add event listeners for menu items
             appMenu.addEventListener('click', (e) => {
-                const action = e.target.dataset.action;
+                const action = (e.target as HTMLElement).dataset.action;
                 if (action && this.currentAppWindowId) {
                     console.log('SwissKnife: Taskbar app context menu action:', action, 'for window:', this.currentAppWindowId);
                     this.handleAppMenuAction(action, this.currentAppWindowId);
@@ -1917,13 +1941,16 @@ class DesktopCore {
         console.log('SwissKnife: Handling app menu action:', action, 'for window:', windowId);
         const windowElement = document.getElementById(windowId);
         if (!windowElement) {
-            console.error('SwissKnife: Window not found:', windowId);
+            logError('SwissKnife: Window not found:', windowId);
             return;
         }
         
         switch (action) {
             case 'restore':
-                this.restoreWindow(windowId);
+                this.focusWindow(windowElement);
+                if (windowElement.classList.contains('minimized')) {
+                    windowElement.classList.remove('minimized');
+                }
                 break;
             case 'minimize':
                 this.minimizeWindow(windowId);
@@ -1965,7 +1992,7 @@ class DesktopCore {
     updateSystemMetrics() {
         // Collect and display system metrics
         const metrics = {
-            memory: performance.memory ? {
+            memory: (performance as any).memory ? {
                 used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
                 total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
                 limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
@@ -1992,6 +2019,26 @@ class DesktopCore {
             }
         });
         console.log(`Loaded ${savedCrons.filter(c => c.status === 'active').length} active cron jobs`);
+    }
+
+    loadErrorLogApp(contentElement: HTMLElement) {
+        const root = ReactDOM.createRoot(contentElement);
+        root.render(React.createElement(ErrorLogViewer));
+    }
+
+    loadConversationHistoryApp(contentElement: HTMLElement) {
+        const root = ReactDOM.createRoot(contentElement);
+        root.render(React.createElement(ConversationHistoryViewer, {
+            aiAdapter: this.swissknife.ai,
+            onConversationLoad: (conversation: Conversation) => {
+                // Logic to load conversation into main chat interface
+                // This will depend on how your main chat component is structured.
+                // For now, we'll just log it.
+                console.log('Loading conversation:', conversation);
+                // You might want to emit an event or call a method on a global chat manager
+                // e.g., window.swissknife.chatManager.loadConversation(conversation);
+            }
+        }));
     }
     
     loadAPIKeysApp(contentElement) {
@@ -2699,7 +2746,7 @@ class DesktopCore {
         const originalFetch = window.fetch;
         window.fetch = async (url, options = {}) => {
             // Handle status endpoints that don't exist in static hosting
-            if (url.includes('/status') || url.includes('/api/status')) {
+            if ((typeof url === 'string' && url.includes('/status')) || (typeof url === 'string' && url.includes('/api/status'))) {
                 console.log(`Mocking API call to: ${url}`);
                 return new Response(JSON.stringify({
                     status: 'ok',

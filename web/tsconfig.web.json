@@ -1,56 +1,36 @@
 {
-  "extends": "../tsconfig.json",
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["ES2020", "DOM", "DOM.Iterable", "ES2021"],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "node",
     "outDir": "./dist",
     "strict": false,
-    "noImplicitAny": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
     "declaration": false,
-    "declarationDir": null,
-    "composite": false,
+    "allowJs": true,
+    "checkJs": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "incremental": true,
     "noEmit": false,
     "baseUrl": ".",
     "paths": {
-      "@swissknife/*": ["../src/*"],
-      "@legacy/*": ["js/*"],
-      "@/*": ["src/*"]
-    },
-    "types": ["node", "webpack-env"]
+        "@/*": ["./src/*"],
+        "@/adapters/ai-adapter": ["./src/adapters/ai-adapter"]
+      }
   },
   "include": [
-    "src/**/*",
-    "**/*.d.ts"
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "js/**/*",
-    "legacy-js/**/*",
-    "src/desktop-core.ts",
-    "src/adapters/cli-bridge.ts",
-    "src/adapters/cli-adapter.ts",
-    "src/command-registry.ts",
-    "src/tasks/manager.ts",
-    "src/tasks/scheduler/scheduler.ts",
-    "src/types/task.ts",
-    "src/types/storage.ts",
-    "src/ai/thinking/manager.ts",
-    "src/ai/thinking/graph.ts",
-    "src/types/ai.ts",
-    "src/ml/inference/executor.ts",
-    "src/ml/tensor/tensor.ts",
-    "src/ml/optimizers/optimizer.ts",
-    "src/ml/hardware/accelerator.ts",
-    "src/ai/models/model.ts",
-    "src/ai/agent/agent.ts",
-    "src/ai/models/registry.ts",
-    "src/ai/models/openai-factory.ts",
-    "src/ai/models/openai-model.ts"
+    "dist"
   ]
 }

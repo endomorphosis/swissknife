@@ -104,7 +104,7 @@ export class SwissKnifeTaskAdapter extends BrowserEventEmitter {
       this.initialized = true;
       console.log('✅ SwissKnife Task Adapter initialized');
     } catch (error) {
-      console.error('Failed to initialize task adapter:', error);
+      logError('Failed to initialize task adapter:', error);
       this.initialized = true;
     }
   }

@@ -1,4 +1,6 @@
 // src/ai/models/IntelligentSelector.ts
+import { ModelRequest, ModelSelection, ModelSelectionRule, SelectionLearningEngine } from '../types/ai';
+
 export class IntelligentModelSelector {
   private selectionRules: ModelSelectionRule[] = [];
   private learningEngine: SelectionLearningEngine;

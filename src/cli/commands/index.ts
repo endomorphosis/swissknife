@@ -8,13 +8,47 @@ import testCommand from './testCommand.js';
 import documentationCommand from './documentationCommand.js';
 import benchmarkCommand from './benchmarkCommand.js';
 
-// Function to register all Phase 5 commands with a commander instance
-export function registerPhase5Commands(program: Command): void {
-  program.addCommand(performanceCommand);
-  program.addCommand(releaseCommand);
-  program.addCommand(testCommand);
-  program.addCommand(documentationCommand);
-  program.addCommand(benchmarkCommand);
+export class CLI {
+  private program: Command;
+
+  private constructor() {
+    this.program = new Command();
+    this.program.name('swissknife').description('SwissKnife CLI').version('0.0.1');
+    this.registerCommands();
+  }
+
+  public static async create(): Promise<CLI> {
+    const cli = new CLI();
+    return cli;
+  }
+
+  private registerCommands(): void {
+    this.program.addCommand(performanceCommand);
+    this.program.addCommand(releaseCommand);
+    this.program.addCommand(testCommand);
+    this.program.addCommand(documentationCommand);
+    this.program.addCommand(benchmarkCommand);
+
+    // Add a help command if not already present
+    this.program.helpOption('-h, --help', 'Display help for command');
+  }
+
+  public async run(argv: string[]): Promise<void> {
+    await this.program.parseAsync(argv, { from: 'node' });
+  }
+
+  public renderHelp(): void {
+    this.program.outputHelp();
+  }
+
+  public getCommands(): string[] {
+    const commands: string[] = [];
+    this.program.commands.forEach(cmd => {
+      commands.push(cmd.name());
+      cmd.aliases().forEach(alias => commands.push(alias));
+    });
+    return commands;
+  }
 }
 
 export {

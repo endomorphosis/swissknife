@@ -1,4 +1,4 @@
-import * as DataGrid from '../../../../web/src/components/common/DataGrid';
+import * as DataGrid from '@web-components/common/DataGrid';
 
 describe('DataGrid', () => {
   it('should be defined', () => {

@@ -50,7 +50,7 @@ const main = async () => {
     }
     
   } catch (error) {
-    console.error('Error initializing SwissKnife Browser:', error);
+    logError('Error initializing SwissKnife Browser:', error);
   }
 };
 

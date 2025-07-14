@@ -10,38 +10,32 @@ import { ConfigurationManager } from '@src/config/manager';
  */
 
 // Mock dependencies
-jest.mock('@src/tasks/manager');
-jest.mock('@src/ipfs/client');
-jest.mock('@src/storage/mapping-store');
-jest.mock('@src/storage/manager');
-jest.mock('@src/ai/models/model');
 
-// Mock model for Agent constructor
-class MockModel extends Model {
-  constructor() {
-    super({ id: 'mock-model', name: 'Mock Model', provider: 'mock' });
-  }
-  async generate() {
-    return {
-      content: 'Mock response',
-      status: 'success' as any
-    };
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
 
 describe('Phase 2: Integration Tests', () => {
   describe('Agent and Task Integration', () => {
     let agent: Agent;
     let taskManager: jest.Mocked<TaskManager>;
-    let model: MockModel; // Use MockModel type here
+    let model: Model; // Use Model type here
     let configManager: ConfigurationManager;
     
     beforeEach(() => {
       jest.clearAllMocks();
       
       // Mock config and model
-      configManager = {} as ConfigurationManager;
-      model = new MockModel(); // Instantiate MockModel
+      configManager = ConfigurationManager.getInstance();
+      model = new Model({ id: 'mock-model', name: 'Mock Model', provider: 'mock' });
       
       // Create agent and mock task manager
       agent = new Agent({ model }); // Pass model to Agent

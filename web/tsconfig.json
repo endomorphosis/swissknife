@@ -15,27 +15,22 @@
     "declaration": false,
     "allowJs": true,
     "checkJs": false,
-    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "incremental": true,
-    "noEmit": true,
+    "noEmit": false,
     "baseUrl": ".",
     "paths": {
-        "@swissknife/core/*": ["src/*"],
-        "@/*": ["web/src/*"],
-        "@/adapters/ai-adapter": ["web/src/adapters/ai-adapter"],
-        "../types/*": ["src/types/*"],
-        "../utils/*": ["src/utils/*"],
-        "../config/*": ["src/config/*"]
-      }
+      "@swissknife/*": ["../src/*"],
+      "@legacy/*": ["js/*"],
+      "@/*": ["src/*"],
+      "@/adapters/ai-adapter": ["src/adapters/browser-ai-adapter.ts"],
+      "@swissknife/wasm/*": ["src/wasm/*"],
+      "@swissknife/core/*": ["../src/*"]
+    }
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
+  "files": [
+    "src/unified-main.ts",
+    "src/global.d.ts"
   ]
 }

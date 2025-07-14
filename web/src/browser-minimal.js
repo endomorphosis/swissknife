@@ -148,7 +148,7 @@ const initializeSwissKnife = async () => {
     console.log('✅ SwissKnife Browser initialized successfully!');
     
   } catch (error) {
-    console.error('❌ Error initializing SwissKnife Browser:', error);
+    logError('❌ Error initializing SwissKnife Browser:', error);
     
     document.body.innerHTML = `
       <div style="padding: 20px; text-align: center; color: #ef4444;">

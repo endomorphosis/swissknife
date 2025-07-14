@@ -2,6 +2,7 @@
  * Unit tests for EventSystem
  */
 import { EventBus } from '../../../../src/utils/events/EventBus.js';
+import { jest, expect } from '@jest/globals';
 
 // Helper function for creating deferred promises
 function createDeferred() {

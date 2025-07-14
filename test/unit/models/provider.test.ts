@@ -1,5 +1,5 @@
 import { ProviderDefinition, ModelProvider } from '@src/types/ai';
-import openaiProviderDefinition from '@src/ai/models/definitions/openai';
+import openaiProviderDefinition from '@ai/models/definitions/openai';
 
 describe('ProviderDefinition', () => {
   it('should have valid structure for openai provider', () => {

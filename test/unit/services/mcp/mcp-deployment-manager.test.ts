@@ -518,9 +518,7 @@ describe('DeploymentManager', () => {
     
     it('should migrate servers without version history', async () => {
       // Mock configs with servers
-      const getCurrentProjectConfig = require('../../../../src/utils/config').getCurrentProjectConfig;
-      const getGlobalConfig = require('../../../../src/utils/config').getGlobalConfig;
-      const getMcprcConfig = require('../../../../src/utils/config').getMcprcConfig;
+      const { getCurrentProjectConfig, getGlobalConfig, getMcprcConfig } = require('@utils/config');
       
       getCurrentProjectConfig.mockReturnValue({
         mcpServers: {
@@ -587,7 +585,7 @@ describe('DeploymentManager', () => {
     
     it('should skip servers with existing version history', async () => {
       // Mock configs with existing version history
-      const getCurrentProjectConfig = require('../../../../src/utils/config').getCurrentProjectConfig;
+      const { getCurrentProjectConfig } = require('@utils/config');
       
       getCurrentProjectConfig.mockReturnValue({
         mcpServers: {

@@ -1,8 +1,14 @@
 // src/ai/multi-agent/Communication.ts
 import { PriorityQueue, MessageHandler, BroadcastChannel, AgentMessage, MessageType } from '../../types/ai';
+
+export class Communication {
   private messageQueue: PriorityQueue<AgentMessage>;
   private subscriptions: Map<string, MessageHandler[]> = new Map();
   private broadcastChannels: Map<string, BroadcastChannel> = new Map();
+
+  constructor(messageQueue: PriorityQueue<AgentMessage>) {
+    this.messageQueue = messageQueue;
+  }
 
   async sendMessage(message: AgentMessage): Promise<void> {
     // Route message based on type and priority
@@ -26,6 +32,20 @@ import { PriorityQueue, MessageHandler, BroadcastChannel, AgentMessage, MessageT
       this.subscriptions.set(channel, []);
     }
     this.subscriptions.get(channel)!.push(handler);
+  }
+
+  private getBroadcastChannel(channelName?: string): BroadcastChannel {
+    // Placeholder for getting or creating a broadcast channel
+    return { publish: jest.fn() };
+  }
+
+  private directMessage(message: AgentMessage): Promise<void> {
+    // Placeholder for direct message handling
+    return Promise.resolve();
+  }
+
+  private logCommunication(message: AgentMessage): void {
+    // Placeholder for logging communication
   }
 }
 

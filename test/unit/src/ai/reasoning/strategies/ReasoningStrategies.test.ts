@@ -1,4 +1,4 @@
-import { ReasoningStrategies } from '../../../../src/ai/reasoning/strategies/ReasoningStrategies';
+import { ReasoningStrategies } from '@ai/reasoning/strategies/ReasoningStrategies';
 
 describe('ReasoningStrategies', () => {
   it('should be defined', () => {

@@ -1,4 +1,4 @@
-import { WorkflowIntelligenceEngine } from '../../../../src/ai/workflows/WorkflowIntelligence';
+import { WorkflowIntelligenceEngine } from '@ai/workflows/WorkflowIntelligence';
 
 describe('WorkflowIntelligenceEngine', () => {
   it('should be defined', () => {

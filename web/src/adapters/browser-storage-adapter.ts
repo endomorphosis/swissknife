@@ -91,6 +91,10 @@ export class BrowserStorageAdapter {
         if (!db.objectStoreNames.contains('config')) {
           db.createObjectStore('config', { keyPath: 'key' });
         }
+        
+        if (!db.objectStoreNames.contains('errors')) {
+          db.createObjectStore('errors', { keyPath: 'timestamp' });
+        }
       };
     });
   }
@@ -138,6 +142,41 @@ export class BrowserStorageAdapter {
         return this.listMemory(prefix);
       default:
         return [];
+    }
+  }
+
+  async saveErrorLog(error: ErrorLogEntry): Promise<void> {
+    switch (this.storageType) {
+      case 'indexeddb':
+        return this.saveErrorLogIndexedDB(error);
+      case 'localstorage':
+        return this.saveErrorLogLocalStorage(error);
+      case 'memory':
+        return this.saveErrorLogMemory(error);
+    }
+  }
+
+  async getErrorLogs(): Promise<ErrorLogEntry[]> {
+    switch (this.storageType) {
+      case 'indexeddb':
+        return this.getErrorLogsIndexedDB();
+      case 'localstorage':
+        return this.getErrorLogsLocalStorage();
+      case 'memory':
+        return this.getErrorLogsMemory();
+      default:
+        return [];
+    }
+  }
+
+  async clearErrorLogs(): Promise<void> {
+    switch (this.storageType) {
+      case 'indexeddb':
+        return this.clearErrorLogsIndexedDB();
+      case 'localstorage':
+        return this.clearErrorLogsLocalStorage();
+      case 'memory':
+        return this.clearErrorLogsMemory();
     }
   }
 
@@ -203,6 +242,45 @@ export class BrowserStorageAdapter {
     });
   }
 
+  private async saveErrorLogIndexedDB(error: ErrorLogEntry): Promise<void> {
+    if (!this.db) throw new Error('IndexedDB not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['errors'], 'readwrite');
+      const store = transaction.objectStore('errors');
+      const request = store.put(error);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async getErrorLogsIndexedDB(): Promise<ErrorLogEntry[]> {
+    if (!this.db) throw new Error('IndexedDB not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['errors'], 'readonly');
+      const store = transaction.objectStore('errors');
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result as ErrorLogEntry[]);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async clearErrorLogsIndexedDB(): Promise<void> {
+    if (!this.db) throw new Error('IndexedDB not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['errors'], 'readwrite');
+      const store = transaction.objectStore('errors');
+      const request = store.clear();
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // localStorage implementations
   private async storeLocalStorage(key: string, data: any): Promise<void> {
     try {
@@ -250,6 +328,30 @@ export class BrowserStorageAdapter {
     return keys;
   }
 
+  private async saveErrorLogLocalStorage(error: ErrorLogEntry): Promise<void> {
+    try {
+      const logs = await this.getErrorLogsLocalStorage();
+      logs.push(error);
+      localStorage.setItem('swissknife:error_logs', JSON.stringify(logs));
+    } catch (e) {
+      console.error('Failed to save error log to localStorage:', e);
+    }
+  }
+
+  private async getErrorLogsLocalStorage(): Promise<ErrorLogEntry[]> {
+    try {
+      const logs = localStorage.getItem('swissknife:error_logs');
+      return logs ? JSON.parse(logs) : [];
+    } catch (e) {
+      logError('Failed to retrieve error logs from localStorage:', e);
+      return [];
+    }
+  }
+
+  private async clearErrorLogsLocalStorage(): Promise<void> {
+    localStorage.removeItem('swissknife:error_logs');
+  }
+
   // Memory implementations
   private async storeMemory(key: string, data: any): Promise<void> {
     this.memoryStore.set(key, {
@@ -270,6 +372,20 @@ export class BrowserStorageAdapter {
   private async listMemory(prefix?: string): Promise<string[]> {
     const keys = Array.from(this.memoryStore.keys());
     return prefix ? keys.filter(key => key.startsWith(prefix)) : keys;
+  }
+
+  private async saveErrorLogMemory(error: ErrorLogEntry): Promise<void> {
+    let logs = this.memoryStore.get('error_logs') || [];
+    logs.push(error);
+    this.memoryStore.set('error_logs', logs);
+  }
+
+  private async getErrorLogsMemory(): Promise<ErrorLogEntry[]> {
+    return this.memoryStore.get('error_logs') || [];
+  }
+
+  private async clearErrorLogsMemory(): Promise<void> {
+    this.memoryStore.delete('error_logs');
   }
 
   async dispose(): Promise<void> {

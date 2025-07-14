@@ -35,7 +35,7 @@ export class BrowserConfigManager {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.config));
     } catch (error) {
-      console.error('Failed to save config to localStorage:', error);
+      logError('Failed to save config to localStorage:', error);
     }
   }
 

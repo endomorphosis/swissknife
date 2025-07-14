@@ -5,7 +5,7 @@
 
 import { Model } from '../../../src/ai/models/model.js';
 import { LazyModel, ModelRegistry } from '../../../src/ai/models/registry.js';
-import { Status } from '../../../src/types/common.js';
+import { Status } from '@types/common.js';
 
 // Create a mock model instance for testing
 function createMockModel(id: string, name: string, provider: string) {

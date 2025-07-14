@@ -2,7 +2,7 @@
  * Minimal test for ModelExecutionService to verify basic functionality
  */
 
-import { ModelExecutionService } from '../../../../src/models/execution/service';
+import { ModelExecutionService } from '@models/execution/service';
 
 describe('ModelExecutionService - Basic', () => {
   test('should be defined', () => {

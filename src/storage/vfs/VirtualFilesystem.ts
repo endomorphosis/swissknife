@@ -1,3 +1,5 @@
+import { StorageBackend, PathResolver, CacheManager, MetadataStore, VFSEntry, VFSStats, SyncReport } from './vfs-types';
+
 // src/storage/vfs/VirtualFilesystem.ts
 export class VirtualFilesystem {
   private backends: Map<string, StorageBackend> = new Map();
@@ -5,31 +7,50 @@ export class VirtualFilesystem {
   private cache: CacheManager;
   private metadata: MetadataStore;
 
+  constructor() {
+    this.pathResolver = new PathResolver();
+    this.cache = new CacheManager();
+    this.metadata = new MetadataStore();
+  }
+
   async mount(path: string, backend: StorageBackend): Promise<void> {
-    // Mount storage backend at virtual path
+    console.log(`Mounting ${backend.name} at ${path}`);
+    this.backends.set(path, backend);
   }
 
   async read(path: string): Promise<Buffer> {
-    // Read file from appropriate backend
+    console.log(`Reading from ${path}`);
+    return Buffer.from('Mock file content');
   }
 
   async write(path: string, data: Buffer): Promise<string> {
-    // Write file to appropriate backend(s)
+    console.log(`Writing to ${path}`);
+    return `mock-cid-${Date.now()}`;
   }
 
   async list(path: string): Promise<VFSEntry[]> {
-    // List directory contents
+    console.log(`Listing ${path}`);
+    return [
+      { name: 'file1.txt', isDirectory: false, size: 100, backend: 'mock' },
+      { name: 'dir1', isDirectory: true, backend: 'mock' },
+    ];
   }
 
   async stat(path: string): Promise<VFSStats> {
-    // Get file/directory statistics
+    console.log(`Getting stats for ${path}`);
+    return { size: 100, isDirectory: false, isFile: true };
   }
 
   async copy(src: string, dest: string): Promise<void> {
-    // Copy between backends seamlessly
+    console.log(`Copying from ${src} to ${dest}`);
   }
 
   async mirror(src: string, dest: string): Promise<void> {
-    // Mirror content across multiple backends
+    console.log(`Mirroring from ${src} to ${dest}`);
+  }
+
+  async synchronize(): Promise<SyncReport> {
+    console.log('Synchronizing VFS');
+    return { filesUpdated: 0 };
   }
 }

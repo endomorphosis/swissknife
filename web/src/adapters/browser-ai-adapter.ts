@@ -29,6 +29,14 @@ export interface ChatMessage {
   timestamp?: string;
 }
 
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AIResponse {
   content: string;
   model?: string;
@@ -53,6 +61,7 @@ export class BrowserAIAdapter extends BrowserEventEmitter { // Renamed class and
   private initialized = false;
   private storage: BrowserStorageAdapter;
   private config: BrowserConfigManager; // Added config manager
+  private currentConversationId: string | null = null;
 
   constructor(options: BrowserAIOptions) { // Updated constructor to take options
     super();
@@ -228,7 +237,7 @@ How can I assist you today?`;
       
       return true;
     } catch (error) {
-      console.error('Failed to switch model:', error);
+      logError('Failed to switch model:', error);
       return false;
     }
   }
@@ -241,31 +250,105 @@ How can I assist you today?`;
     return this.initialized;
   }
 
-  async getChatHistory(): Promise<ChatMessage[]> {
+  async getChatHistory(conversationId?: string): Promise<ChatMessage[]> {
+    const idToFetch = conversationId || this.currentConversationId;
+    if (!idToFetch) {
+      return [];
+    }
     try {
-      const stored = await this.storage.retrieve('swissknife_chat_history');
-      if (stored) {
-        return stored;
-      }
+      const conversation = await this.storage.retrieve(`conversation:${idToFetch}`);
+      return conversation ? conversation.messages : [];
     } catch (error) {
-      console.warn('Could not load chat history:', error);
+      console.warn(`Could not load chat history for ${idToFetch}:`, error);
     }
     return [];
   }
 
   async saveChatMessage(message: ChatMessage): Promise<void> {
+    if (!this.currentConversationId) {
+      await this.startNewConversation('New Conversation'); // Auto-start a new conversation if none is active
+    }
+
     try {
-      const history = await this.getChatHistory();
-      history.push({
-        ...message,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Keep only last 50 messages
-      const trimmed = history.slice(-50);
-      await this.storage.store('swissknife_chat_history', trimmed);
+      const conversation: Conversation = await this.storage.retrieve(`conversation:${this.currentConversationId}`);
+      if (conversation) {
+        conversation.messages.push({
+          ...message,
+          timestamp: new Date().toISOString()
+        });
+        conversation.updatedAt = new Date().toISOString();
+        // Keep only last 50 messages
+        conversation.messages = conversation.messages.slice(-50);
+        await this.storage.store(`conversation:${this.currentConversationId}`, conversation);
+      } else {
+        // This case should ideally not happen if startNewConversation is called
+        console.warn('No active conversation found, message not saved.');
+      }
     } catch (error) {
       console.warn('Could not save chat message:', error);
+    }
+  }
+
+  async startNewConversation(title: string): Promise<string> {
+    const newId = `conv-${Date.now()}`;
+    const newConversation: Conversation = {
+      id: newId,
+      title: title,
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await this.storage.store(`conversation:${newId}`, newConversation);
+    this.currentConversationId = newId;
+    return newId;
+  }
+
+  async loadConversation(id: string): Promise<Conversation | null> {
+    try {
+      const conversation = await this.storage.retrieve(`conversation:${id}`);
+      if (conversation) {
+        this.currentConversationId = id;
+        return conversation;
+      }
+    } catch (error) {
+      console.warn(`Could not load conversation ${id}:`, error);
+    }
+    return null;
+  }
+
+  async listConversations(): Promise<Conversation[]> {
+    try {
+      const keys = await this.storage.list('conversation:');
+      const conversations: Conversation[] = [];
+      for (const key of keys) {
+        const conversation = await this.storage.retrieve(key);
+        if (conversation) {
+          // Return only metadata, not full messages for listing
+          conversations.push({
+            id: conversation.id,
+            title: conversation.title,
+            createdAt: conversation.createdAt,
+            updatedAt: conversation.updatedAt,
+            messages: [], // Exclude messages for list view
+          });
+        }
+      }
+      // Sort by most recently updated
+      return conversations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    } catch (error) {
+      console.warn('Could not list conversations:', error);
+    }
+    return [];
+  }
+
+  async deleteConversation(id: string): Promise<void> {
+    try {
+      await this.storage.delete(`conversation:${id}`);
+      if (this.currentConversationId === id) {
+        this.currentConversationId = null;
+      }
+    } catch (error) {
+      console.warn(`Could not delete conversation ${id}:`, error);
     }
   }
 

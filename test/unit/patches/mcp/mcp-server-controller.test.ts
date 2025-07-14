@@ -10,6 +10,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { MCPServerController } from '@mcp-server/controller';
+import { createMemoryPair, MemoryChannel, MemoryTransport } from '@utils/memory-transport';
 
 describe('MCPServerController', () => {
   let tempDir: string;

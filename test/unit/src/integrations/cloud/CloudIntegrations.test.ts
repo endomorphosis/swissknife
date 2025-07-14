@@ -1,4 +1,4 @@
-import { CloudIntegrations } from '../../../../src/integrations/cloud/CloudIntegrations';
+import { CloudIntegrations } from '@integrations/cloud/CloudIntegrations';
 
 describe('CloudIntegrations', () => {
   it('should be defined', () => {

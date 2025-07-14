@@ -50,7 +50,7 @@ jest.mock('../../../../src/integration/registry', () => ({
 }));
 
 // @ts-ignore - JS module import
-import { ModelExecutionService } from '../../../../src/models/execution/service.js';
+import { ModelExecutionService } from '@models/execution/service.js';
 
 describe('ModelExecutionService - Simple', () => {
   test('should be importable', () => {

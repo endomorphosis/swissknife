@@ -1,4 +1,4 @@
-import { StorageBackend } from '../../../../src/storage/vfs/StorageBackend';
+import { StorageBackend } from '@storage/vfs/StorageBackend';
 
 describe('StorageBackend', () => {
   it('should be defined', () => {

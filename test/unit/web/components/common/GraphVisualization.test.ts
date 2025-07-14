@@ -1,4 +1,4 @@
-import * as GraphVisualization from '../../../../web/src/components/common/GraphVisualization';
+import * as GraphVisualization from '@web-components/common/GraphVisualization';
 
 describe('GraphVisualization', () => {
   it('should be defined', () => {

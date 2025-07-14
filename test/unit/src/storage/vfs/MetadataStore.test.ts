@@ -1,4 +1,4 @@
-import { MetadataStore } from '../../../../src/storage/vfs/MetadataStore';
+import { MetadataStore } from '@storage/vfs/MetadataStore';
 
 describe('MetadataStore', () => {
   it('should be defined', () => {

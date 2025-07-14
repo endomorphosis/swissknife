@@ -31,7 +31,7 @@ jest.mock('../../../../src/services/mcpClient', () => ({
 }));
 
 // Mock the logging utilities
-jest.mock('../../../../src/utils/log', () => ({
+jest.mock('@utils/log', () => ({
     logEvent: jest.fn(),
     logError: jest.fn()
 }));

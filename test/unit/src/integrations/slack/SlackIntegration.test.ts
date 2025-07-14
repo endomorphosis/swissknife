@@ -1,4 +1,4 @@
-import { SlackIntegration } from '../../../../src/integrations/slack/SlackIntegration';
+import { SlackIntegration } from '@integrations/slack/SlackIntegration';
 
 describe('SlackIntegration', () => {
   it('should be defined', () => {

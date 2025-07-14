@@ -1,4 +1,4 @@
-import { PluginFramework } from '../../../../src/plugins/PluginFramework';
+import { PluginFramework } from '@plugins/PluginFramework';
 
 describe('PluginFramework', () => {
   it('should be defined', () => {

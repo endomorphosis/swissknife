@@ -1,5 +1,5 @@
 import { ProviderRegistry } from '../../../src/models/provider-registry.ts';
-import { BaseProvider } from '../../../src/ai/models/provider.ts';
+import { BaseProvider } from '@ai/models/provider.ts';
 
 // Define a mock Provider class extending BaseProvider
 class MockProvider extends BaseProvider {

@@ -37,21 +37,11 @@ export interface InferenceOptions {
 export class WebNNInferenceServer {
   // TODO: Replace 'any' with actual types once defined
   private modelCache: Map<string, CompiledModel> = new Map();
-  private deviceManager: DeviceManager | null = null; // Assuming a DeviceManager handles backend selection
+  private deviceManager: DeviceManager;
 
   constructor(deviceManager?: DeviceManager) {
-    // TODO: Initialize DeviceManager properly. It should handle backend detection (WebNN, WebGPU).
-    // this.deviceManager = deviceManager || new DeviceManager();
+    this.deviceManager = deviceManager || new DefaultDeviceManager();
     console.log('WebNNInferenceServer initialized.');
-    // For placeholder:
-    this.deviceManager = {
-        initialize: async () => true,
-        getBestDevice: async (preference?: string) => ({ /* Placeholder device */
-            id: preference || 'placeholder-device',
-            compileModel: async (path: string) => ({ id: path, compiled: true }),
-            execute: async (model: any, input: any, opts: any) => ({ result: `Executed ${model.id} on ${preference || 'placeholder'}` })
-        })
-    };
   }
 
   /**

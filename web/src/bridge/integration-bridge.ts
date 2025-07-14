@@ -157,9 +157,7 @@ export class IntegrationBridge extends BrowserEventEmitter {
   }
 
   async getCLICommands(): Promise<string[]> {
-    // This would come from the CLI adapter or command processor
-    // For now, return a hardcoded list or derive from commandProcessor
-    return ['sk-task', 'sk-ai', 'sk-config', 'sk-storage', 'ls', 'cd', 'pwd', 'help'];
+    return this.cliAdapter.getAvailableCommands();
   }
 
   // Dispose method for cleanup

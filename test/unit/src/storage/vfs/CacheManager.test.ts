@@ -1,4 +1,4 @@
-import { CacheManager } from '../../../../src/storage/vfs/CacheManager';
+import { CacheManager } from '@storage/vfs/CacheManager';
 
 describe('CacheManager', () => {
   it('should be defined', () => {

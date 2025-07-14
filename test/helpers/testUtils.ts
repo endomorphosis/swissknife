@@ -1,13 +1,13 @@
 // Mock common dependencies
-import { jest } from '@jest/globals';
-import * as path from 'path';
-import * as fs from 'fs/promises';
-import * as os from 'os';
 
-jest.mock("chalk", () => ({ default: (str: any) => str, red: (str: any) => str, green: (str: any) => str, blue: (str: any) => str }));
+const path = require('path');
+const fs = require('fs/promises');
+const os = require('os');
+
+jest.mock("chalk", () => ({ default: (str) => str, red: (str) => str, green: (str) => str, blue: (str) => str }));
 jest.mock("nanoid", () => ({ nanoid: () => "test-id" }));
 jest.mock("fs", () => ({
-  ...(jest.requireActual("fs") as any), // Import and retain default behavior, cast to any for spread
+  ...(jest.requireActual("fs")), // Import and retain default behavior
   promises: {
     readFile: jest.fn(),
     writeFile: jest.fn(),
@@ -23,11 +23,11 @@ jest.mock("fs", () => ({
 }));
 
 /**
- * Universal test utilities (TypeScript ESM version)
+ * Universal test utilities (TypeScript CommonJS version)
  */
 
 // Test helper functions
-export function createMockModel(id: string, name: string, provider: string) {
+exports.createMockModel = function(id, name, provider) {
   return {
     id,
     name,
@@ -35,83 +35,81 @@ export function createMockModel(id: string, name: string, provider: string) {
     parameters: { temperature: 0.7 },
     metadata: { version: '1.0' }
   };
-}
+};
 
-export async function createTempTestDir(): Promise<string> {
+exports.createTempTestDir = async function() {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'swissknife-test-'));
   return tempDir;
-}
+};
 
-export async function removeTempTestDir(dirPath: string) {
+exports.removeTempTestDir = async function(dirPath) {
   try {
     await fs.rm(dirPath, { recursive: true, force: true });
   } catch (error) {
     console.warn('Failed to remove temp directory:', error);
   }
-}
+};
 
-export function createMockStorage() {
+exports.createMockStorage = function() {
   return {
     store: jest.fn(),
     retrieve: jest.fn(),
     delete: jest.fn(),
     list: jest.fn()
   };
-}
+};
 
-export function createMockLogger() {
+exports.createMockLogger = function() {
   return {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn()
   };
-}
+};
 
 // Mock implementations for common classes
-export class MockModel {
-  config: any;
-  constructor(config: any) {
+exports.MockModel = class MockModel {
+  constructor(config) {
     this.config = config;
   }
   
-  async execute(input: any) {
+  async execute(input) {
     return { output: `Mock output for ${input}` };
   }
-}
+};
 
-export class MockStorage {
-  data: Map<string, any>;
+exports.MockStorage = class MockStorage {
   constructor() {
     this.data = new Map();
   }
   
-  async store(key: string, value: any) {
+  async store(key, value) {
     this.data.set(key, value);
   }
   
-  async retrieve(key: string) {
+  async retrieve(key) {
     return this.data.get(key);
   }
   
-  async delete(key: string) {
+  async delete(key) {
     this.data.delete(key);
   }
   
   async list() {
     return Array.from(this.data.keys());
   }
-}
+};
 
-export const testConfig = {
+exports.testConfig = {
   tempDir: os.tmpdir(),
   timeout: 10000,
   retries: 3
 };
 
 // Function to mock environment variables
-export function mockEnv(envVars: Record<string, string>): () => void {
-  const originalEnv: Record<string, string | undefined> = {};
+exports.mockEnv = function(envVars) {
+  const originalEnv = {};
   for (const key in envVars) {
     originalEnv[key] = process.env[key];
     process.env[key] = envVars[key];
@@ -125,10 +123,10 @@ export function mockEnv(envVars: Record<string, string>): () => void {
       }
     }
   };
-}
+};
 
 // Function to restore environment variables (this will be returned by mockEnv)
-export function restoreEnv() {
+exports.restoreEnv = function() {
   // This function is returned by mockEnv, so it will have access to the originalEnv closure
   // No need to define it here, it's just a placeholder for clarity in the export.
-}
+};

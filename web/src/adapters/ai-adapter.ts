@@ -131,7 +131,7 @@ export class SwissKnifeAIAdapter extends BrowserEventEmitter {
         tokens: response.usage // Assuming response has usage info
       };
     } catch (error: any) {
-      console.error(`Error generating response from ${providerId}/${modelName}:`, error);
+      logError(`Error generating response from ${providerId}/${modelName}:`, error);
       throw new Error(`AI response generation failed: ${error.message || error}`);
     }
   }

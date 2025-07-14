@@ -19,7 +19,7 @@ jest.mock('@/ipfs/client.ts', () => ({
     getContent: jest.fn().mockResolvedValue('test content')
   }))
 }));
-jest.mock('@/ai/agent/agent.ts', () => ({
+jest.mock('@ai/agent/agent.ts', () => ({
   Agent: jest.fn().mockImplementation(() => ({
     processMessage: jest.fn().mockResolvedValue({ content: 'response' })
   }))

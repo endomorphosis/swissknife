@@ -10,9 +10,9 @@
     "allowJs": true,
     "checkJs": false,
     "types": ["node", "jest"],
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
+    "target": "ESNext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true
@@ -25,7 +25,8 @@
     "test/**/*.tsx",
     "test/**/*.mts"
   ],
-  "exclude": [
+  "outDir": "../../tmp-test",
+    "exclude": [
     "node_modules",
     "dist"
   ]

@@ -53,7 +53,7 @@ jest.mock('../../../../src/utils/config.js', () => ({
 }));
 
 // Mock logging
-jest.mock('../../../../src/utils/log.js', () => ({
+jest.mock('@utils/log', () => ({
   logEvent: jest.fn(),
   logError: jest.fn(),
 }));

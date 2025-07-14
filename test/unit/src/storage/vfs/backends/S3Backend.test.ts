@@ -1,4 +1,4 @@
-import { S3Backend } from '../../../../src/storage/vfs/backends/S3Backend';
+import { S3Backend } from '@storage/vfs/backends/S3Backend';
 
 describe('S3Backend', () => {
   it('should be defined', () => {

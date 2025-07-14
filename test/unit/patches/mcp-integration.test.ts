@@ -3,7 +3,7 @@
  * Tests that our MCP patch system properly loads and fixes issues
  */
 
-import '../../../src/patches'; // Import patches to ensure they're applied
+import '@src/patches'; // Import patches to ensure they're applied
 
 // Import after patches to get the patched versions
 

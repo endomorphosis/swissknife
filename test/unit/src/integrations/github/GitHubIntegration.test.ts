@@ -1,4 +1,4 @@
-import { GitHubIntegration } from '../../../../src/integrations/github/GitHubIntegration';
+import { GitHubIntegration } from '@integrations/github/GitHubIntegration';
 
 describe('GitHubIntegration', () => {
   it('should be defined', () => {

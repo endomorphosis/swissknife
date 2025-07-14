@@ -32,7 +32,7 @@ jest.mock('../../../src/integration/registry.ts', () => ({
   }
 }));
 
-jest.mock('../../../src/config/manager.ts', () => ({
+jest.mock('@config/manager.ts', () => ({
   ConfigManager: {
     getInstance: () => mockConfigManager
   }
