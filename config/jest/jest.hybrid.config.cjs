@@ -81,6 +81,5 @@ module.exports = {
     "!src/**/*.d.ts"
   ],
   
-  // Use minimal setup for stability
-  setupFilesAfterEnv: ['<rootDir>/test/jest.setup.minimal.mjs']
+  setupFilesAfterEnv: ['<rootDir>/test/jest.setup.minimal.js']
 };

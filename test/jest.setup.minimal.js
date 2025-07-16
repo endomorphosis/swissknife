@@ -91,30 +91,30 @@ jest.mock('../src/utils/logger', () => ({
   },
 }));
 
-jest.mock('../src/ai/models/SelectionLearningEngine', () => ({
-  SelectionLearningEngine: jest.fn(() => ({
+/* jest.mock('../src/ai/models/IntelligentSelector', () => ({
+  IntelligentSelector: jest.fn(() => ({
     predictOptimalModel: jest.fn(),
   })),
-}));
+})); */
 
-jest.mock('../src/monitoring/MetricsCollector', () => ({
+/* jest.mock('../src/monitoring/MetricsCollector', () => ({
   MetricsCollector: jest.fn(() => ({
     track: jest.fn(),
   })),
-}));
+})); */
 
-jest.mock('../src/plugins/PluginLoader', () => ({
+/* jest.mock('../src/plugins/PluginLoader', () => ({
   PluginLoader: jest.fn(() => ({
     loadManifest: jest.fn(),
     loadCode: jest.fn(),
   })),
-}));
+})); */
 
-jest.mock('../src/plugins/PluginSandboxManager', () => ({
+/* jest.mock('../src/plugins/PluginSandboxManager', () => ({
   PluginSandboxManager: jest.fn(() => ({
     createSandbox: jest.fn(),
   })),
-}));
+})); */
 
 jest.mock('../src/config/manager', () => ({
   ConfigManager: {
