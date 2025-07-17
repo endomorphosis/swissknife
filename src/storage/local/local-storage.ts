@@ -9,8 +9,8 @@ import {
 } from '../types/storage';
 import { CID, TaskID } from '../types/common'; // Import TaskID from common.js
 import { Task } from '../types/task'; // Keep Task import
-import { ConfigManager } from '../config/manager';
-import { logger } from '../utils/logger';
+import { ConfigManager } from '@/config/manager';
+import { logger } from '@/utils/log';
 
 /**
  * StorageProvider implementation using the local filesystem.

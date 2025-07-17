@@ -44,27 +44,31 @@ type Props = {
 export default function ProjectOnboarding({
   workspaceDir,
 }: Props): React.ReactNode {
-  // Check if project onboarding has already been completed
-  const projectConfig = await getCurrentProjectConfig()
-  const showOnboarding = !projectConfig.hasCompletedProjectOnboarding
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
+  const [hasReleaseNotes, setHasReleaseNotes] = React.useState(false);
+  const [releaseNotesToShow, setReleaseNotesToShow] = React.useState<string[]>([]);
 
-  // Get previous version from config
-  const config = await getGlobalConfig()
-  const previousVersion = config.lastReleaseNotesSeen
-
-  // Get release notes to show
-  let releaseNotesToShow: string[] = []
-  if (!previousVersion || gt(MACRO.VERSION, previousVersion)) {
-    releaseNotesToShow = RELEASE_NOTES[MACRO.VERSION] || []
-  }
-  const hasReleaseNotes = releaseNotesToShow.length > 0
-
-  // Mark release notes as seen when they're displayed without onboarding
   React.useEffect(() => {
-    if (hasReleaseNotes && !showOnboarding) {
-      markReleaseNotesSeen()
-    }
-  }, [hasReleaseNotes, showOnboarding])
+    const loadOnboardingData = async () => {
+      const projectConfig = await getCurrentProjectConfig();
+      setShowOnboarding(!projectConfig.hasCompletedProjectOnboarding);
+
+      const config = await getGlobalConfig();
+      const previousVersion = config.lastReleaseNotesSeen;
+
+      let notes: string[] = [];
+      if (!previousVersion || gt(MACRO.VERSION, previousVersion)) {
+        notes = RELEASE_NOTES[MACRO.VERSION] || [];
+      }
+      setHasReleaseNotes(notes.length > 0);
+      setReleaseNotesToShow(notes);
+
+      if (notes.length > 0 && !showOnboarding) {
+        markReleaseNotesSeen();
+      }
+    };
+    loadOnboardingData();
+  }, [showOnboarding]);
 
   // We only want to show either onboarding OR release notes (with preference for onboarding)
   // If there's no onboarding to show and no release notes, return null

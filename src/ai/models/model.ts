@@ -4,8 +4,8 @@ import {
     IModel, 
     ModelGenerateInput, 
     ModelGenerateOutput 
-} from '../types/ai';
-import { Status } from '../types/common';
+} from '@src/types/ai';
+import { Status } from '@src/types/common';
 
 export type { IModel, ModelOptions, ModelGenerateInput, ModelGenerateOutput };
 

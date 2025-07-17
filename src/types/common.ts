@@ -102,7 +102,7 @@ export function isJSONObject(value) {
  * @param {*} value - Value to check
  * @returns {boolean} - True if the value is a JSON array
  */
-export function isJSONArray(value) {
+export function isJSONArray(value: any) {
   return Array.isArray(value);
 }
 

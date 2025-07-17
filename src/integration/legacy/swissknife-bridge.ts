@@ -1,13 +1,30 @@
 // src/integration/legacy/swissknife-bridge.ts
 
 import { IntegrationBridge } from '../registry';
-import { ConfigManager } from '../config/manager';
+import { ConfigManager } from '@/config/manager';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import * as child_process from 'child_process.js';
-import { promisify } from 'util';
 
-const exec = promisify(child_process.exec);
+// Dynamically import child_process and util for Node.js environment
+let child_process: typeof import('child_process');
+let promisify: typeof import('util').promisify;
+
+async function loadNodeModules() {
+  if (typeof window === 'undefined') { // Check if in Node.js environment
+    child_process = await import('child_process');
+    const util = await import('util');
+    promisify = util.promisify;
+  }
+}
+
+loadNodeModules();
+
+const exec = async (command: string) => {
+  if (!child_process || !promisify) {
+    throw new Error('Node.js child_process or util not loaded.');
+  }
+  return promisify(child_process.exec)(command);
+};
 
 /**
  * Bridge that provides integration with legacy SwissKnife functionality

@@ -2,7 +2,7 @@
 // This file is referenced in jest.config.cjs under setupFilesAfterEnv.
 
 // Import and make global the test utility functions using relative path
-const { mockEnv, restoreEnv } = require('./helpers/testUtils.ts'); // Changed to relative import with .ts
+import { mockEnv, restoreEnv } from './helpers/testUtils'; // Changed to relative import with .ts
 global.mockEnv = mockEnv;
 global.restoreEnv = restoreEnv;
 

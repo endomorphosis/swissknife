@@ -3,14 +3,11 @@ module.exports = {
   testEnvironment: 'node',
   rootDir: '../..',
   transform: {
-    "^.+\.(ts|tsx|mts|js|jsx)$": ["ts-jest", {
-      useESM: true,
-      tsconfig: "config/typescript/tsconfig.test.json",
-      diagnostics: false
-    }]
+    "^.+\.(ts|tsx)$": ["ts-jest", { tsconfig: './tsconfig.json', allowJs: true }],
+    "^.+\.(js|jsx|mjs)$": ["babel-jest", { configFile: "./babel.config.cjs" }]
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(?:.pnpm/)?(@web3-storage|@helia)/)"
+    "node_modules/(?!.*(src|test)|(?:.pnpm/)?(@web3-storage|@helia)/)"
   ],
   // Add this to ensure Jest processes .mjs files as modules
   "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node", "mjs"],
@@ -78,8 +75,8 @@ module.exports = {
   globals: {
     'crypto': require('crypto'),
   },
-    setupFilesAfterEnv: ['<rootDir>/test/jest.setup.minimal.js'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+    setupFilesAfterEnv: ['<rootDir>/test/jest.setup.minimal.mjs'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node', 'mjs'],
   modulePaths: ['<rootDir>/src', '<rootDir>/test'],
   testMatch: [
     "<rootDir>/test/**/*.test.ts",

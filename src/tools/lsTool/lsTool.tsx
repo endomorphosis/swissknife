@@ -58,7 +58,7 @@ export const LSTool = {
     return `path: "${verbose ? path : relativePath}"`
   },
   renderToolUseRejectedMessage() {
-    return <FallbackToolUseRejectedMessage />
+    return 'Tool use rejected.';
   },
   renderToolResultMessage(content, { verbose }) {
     if (typeof content !== 'string') {

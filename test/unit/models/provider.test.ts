@@ -1,5 +1,5 @@
-import { ProviderDefinition, ModelProvider } from '@src/types/ai';
-import openaiProviderDefinition from '@ai/models/definitions/openai';
+import { ProviderDefinition, ModelProvider, ModelDefinition } from '@src/types/ai';
+import openaiProviderDefinition from '../../../../src/ai/models/definitions/openai';
 
 describe('ProviderDefinition', () => {
   it('should have valid structure for openai provider', () => {
@@ -16,7 +16,7 @@ describe('ProviderDefinition', () => {
   it('should have valid model definitions in openai provider', () => {
     const models = openaiProviderDefinition.models;
     
-    models.forEach(model => {
+    models.forEach((model: ModelDefinition) => {
       expect(model.id).toBeDefined();
       expect(model.name).toBeDefined();
       expect(model.provider).toBe(ModelProvider.OPENAI);
@@ -30,7 +30,7 @@ describe('ProviderDefinition', () => {
     
     // Verify that the default model exists in the models list
     const defaultModelExists = openaiProviderDefinition.models.some(
-      model => model.id === openaiProviderDefinition.defaultModel
+      (model: ModelDefinition) => model.id === openaiProviderDefinition.defaultModel
     );
     expect(defaultModelExists).toBe(true);
   });

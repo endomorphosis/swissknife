@@ -42,6 +42,7 @@ export interface ModelOptions {
   id: string;
   name: string;
   provider: string;
+  description?: string; // Added description property
   parameters?: Record<string, any>;
   metadata?: Record<string, any>;
   maxTokens?: number;

@@ -137,8 +137,8 @@ describe('Task Queue', () => {
   describe('task filtering', () => {
     beforeEach(() => {
       const task1 = queue.createTask('Task 1', undefined, 'high');
-      const task2 = queue.createTask('Task 2', undefined, 'low');
-      const task3 = queue.createTask('Task 3', undefined, 'high');
+      queue.createTask('Task 2', undefined, 'low');
+      queue.createTask('Task 3', undefined, 'high');
       
       queue.updateTaskStatus(task1.id, 'completed');
     });

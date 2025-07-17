@@ -2,7 +2,7 @@
  * Test for array utility functions
  */
 
-import { intersperse } from '../../../src/utils/array.ts';
+import { intersperse } from '../../../src/utils/array';
 
 describe('Array Utilities', () => {
   describe('intersperse', () => {

@@ -3,11 +3,12 @@
 import SwissKnife from '../js/swissknife-browser.js';
 import DesktopEnhancer from '../js/desktop-enhancer.js';
 import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import ErrorLogViewer from './components/ErrorLogViewer';
 import ConversationHistoryViewer from './components/ConversationHistoryViewer';
 import { Conversation } from './adapters/browser-ai-adapter';
 import { ConfigManagerApp } from './apps/ConfigManagerApp';
+    export class SwissKnifeDesktop {
     windows: Map<string, any>;
     windowCounter: number;
     activeWindow: any;
@@ -564,124 +565,12 @@ import { ConfigManagerApp } from './apps/ConfigManagerApp';
                 case 'terminalapp':
                     console.log('🖥️ Loading Terminal app...');
                     // Import and instantiate Terminal app
-                    const TerminalModule = await import('./apps/terminal.js');
+                    const TerminalModule = await import('./components/Terminal.js');
                     const TerminalApp = TerminalModule.TerminalApp;
                     appInstance = new TerminalApp(contentElement, this);
                     break;
                     
-                case 'devicemanagerapp':
-                    console.log('🔧 Loading Device Manager app...');
-                    // Device Manager
-                    this.loadDeviceManagerApp(contentElement);
-                    break;
-                    
-                case 'naviapp':
-                    console.log('🤖 Loading NAVI app...');
-                    // NAVI App - loads the chat application
-                    this.loadNaviApp(contentElement);
-                    break;
-                    
-                case 'aichatapp':
-                    // Placeholder for AI Chat app
-                    contentElement.innerHTML = `\
-                        <div class="app-placeholder">\
-                            <h2>🤖 AI Chat</h2>\
-                            <p>AI Chat functionality will be implemented here.</p>\
-                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>\
-                        </div>\
-                    `;
-                    break;
-                    
-                case 'filemanagerapp':
-                    // Placeholder for File Manager
-                    contentElement.innerHTML = `\
-                        <div class="app-placeholder">\
-                            <h2>📁 File Manager</h2>\
-                            <p>File management functionality will be implemented here.</p>\
-                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>\
-                        </div>\
-                    `;
-                    break;
-                    
-                case 'vibecodeapp':
-                    // Placeholder for VibeCode
-                    contentElement.innerHTML = `\
-                        <div class="app-placeholder">\
-                            <h2>💻 VibeCode</h2>\
-                            <p>WebNN/WebGPU powered code editor will be implemented here.</p>\
-                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>\
-                        </div>\
-                    `;
-                    break;
-                    
-                case 'settingsapp':
-                    // Placeholder for Settings
-                    contentElement.innerHTML = `\
-                        <div class="app-placeholder">\
-                            <h2>⚙️ Settings</h2>\
-                            <p>Configuration settings will be implemented here.</p>\
-                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>\
-                        </div>\
-                    `;
-                    break;
-                    
-                case 'apikeysapp':
-                    // API Keys Manager
-                    this.loadAPIKeysApp(contentElement);
-                    break;
-                    
-                case 'mcpcontrolapp':
-                    // MCP Control Panel
-                    this.loadMCPControlApp(contentElement);
-                    break;
-                    
-                case 'taskmanagerapp':
-                    // Task Manager
-                    this.loadTaskManagerApp(contentElement);
-                    break;
-                    
-                case 'modelbrowserapp':
-                    // Model Browser
-                    this.loadModelBrowserApp(contentElement);
-                    break;
-                    
-                case 'ipfsexplorerapp':
-                    // IPFS Explorer
-                    this.loadIPFSExplorerApp(contentElement);
-                    break;
-                    
-                case 'cronapp':
-                    // AI Cron Scheduler
-                    this.loadCronApp(contentElement);
-                    break;
-                    
-                case 'devicemanagerapp':
-                    // Device Manager
-                    this.loadDeviceManagerApp(contentElement);
-                    break;
-                    
-                case 'naviapp':
-                    // NAVI App - loads the chat application
-                    this.loadNaviApp(contentElement);
-                    break;
-                    
-                case 'phasedcleanupapp':
-                    console.log('🧹 Loading Phased Cleanup app...');
-                    const PhasedCleanupModule = await import('./apps/PhasedCleanupApp');
-                    const PhasedCleanupApp = PhasedCleanupModule.default;
-                    appInstance = new PhasedCleanupApp();
-                    appInstance.render(contentElement);
-                    break;
-
-                case 'conversationhistoryapp':
-                    console.log('💬 Loading Conversation History app...');
-                    this.loadConversationHistoryApp(contentElement);
-                    break;
-
-                case 'conversationhistoryapp':
-                    console.log('💬 Loading Conversation History app...');
-                    this.loadConversationHistoryApp(contentElement);
-                    break;
+                case 'devicemanagerapp':console.log('🔧 Loading Device Manager app...');                    // Device Managerthis.loadDeviceManagerApp(contentElement);                    break;                    case 'naviapp':console.log('🤖 Loading NAVI app...');                    // NAVI App - loads the chat applicationthis.loadNaviApp(contentElement);                    break;                    case 'aichatapp':// Placeholder for AI Chat appcontentElement.innerHTML = `                        <div class="app-placeholder">                            <h2>🤖 AI Chat</h2>                            <p>AI Chat functionality will be implemented here.</p>                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>                        </div>                    `;                    break;                    case 'filemanagerapp':// Placeholder for File ManagercontentElement.innerHTML = `                        <div class="app-placeholder">                            <h2>📁 File Manager</h2>                            <p>File management functionality will be implemented here.</p>                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>                        </div>                    `;                    break;                    case 'vibecodeapp':// Placeholder for VibeCodecontentElement.innerHTML = `                        <div class="app-placeholder">                            <h2>💻 VibeCode</h2>                            <p>WebNN/WebGPU powered code editor will be implemented here.</p>                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>                        </div>                    `;                    break;                    case 'settingsapp':// Placeholder for SettingscontentElement.innerHTML = `                        <div class="app-placeholder">                            <h2>⚙️ Settings</h2>                            <p>Configuration settings will be implemented here.</p>                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>                        </div>                    `;                    break;                    case 'apikeysapp':// API Keys Managerthis.loadAPIKeysApp(contentElement);                    break;                    case 'mcpcontrolapp':// MCP Control Panelthis.loadMCPControlApp(contentElement);                    break;                    case 'taskmanagerapp':// Task Managerthis.loadTaskManagerApp(contentElement);                    break;                    case 'modelbrowserapp':// Model Browserthis.loadModelBrowserApp(contentElement);                    break;                    case 'ipfsexplorerapp':// IPFS Explorerthis.loadIPFSExplorerApp(contentElement);                    break;                    case 'cronapp':// AI Cron Schedulerthis.loadCronApp(contentElement);                    break;                    case 'phasedcleanupapp':console.log('🧹 Loading Phased Cleanup app...');                    const PhasedCleanupModule = await import('./apps/PhasedCleanupApp');                    const PhasedCleanupApp = PhasedCleanupModule.default;                    appInstance = new PhasedCleanupApp();                    appInstance.render(contentElement);                    break;                case 'conversationhistoryapp':console.log('💬 Loading Conversation History app...');                    this.loadConversationHistoryApp(contentElement);                    break;
 
                 case 'grandmastrudeldaw':
                     console.log('🎵 Loading Grandma-Friendly Music Studio...');
@@ -701,7 +590,7 @@ import { ConfigManagerApp } from './apps/ConfigManagerApp';
                     } else {
                         console.log('⚠️ GrandmaStrudelDAW not found globally, trying dynamic import...');
                         try {
-                            const StrudelModule = await import('./apps/strudel-grandma.js');
+                            const StrudelModule = await import('../js/apps/strudel-grandma.js');
                             console.log('📦 Imported grandma module:', StrudelModule);
                             const GrandmaStrudelDAW = StrudelModule.default || StrudelModule.GrandmaStrudelDAW || window.GrandmaStrudelDAW;
                             if (GrandmaStrudelDAW && typeof GrandmaStrudelDAW === 'function') {

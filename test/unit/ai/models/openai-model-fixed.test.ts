@@ -66,7 +66,7 @@ global.fetch = jest.fn();
 
 // Import the class under test
 import { OpenAIModel } from '../../../../src/ai/models/openai-model';
-import { ThinkingPattern } from '../../../../src/types/ai';
+import { ThinkingPattern, ModelOptions, AgentMessage } from '../../../../src/types/ai';
 
 describe('OpenAIModel', () => {
   let model: OpenAIModel;
@@ -86,9 +86,10 @@ describe('OpenAIModel', () => {
       description: 'OpenAI GPT-4 model',
       provider: 'openai',
       capabilities: {
-        text_generation: true,
-        tool_calling: true,
-        structured_output: true
+        streaming: true,
+        tools: true,
+        structuredOutput: true,
+        images: false
       }
     };
     
@@ -100,10 +101,17 @@ describe('OpenAIModel', () => {
 
   describe('constructor', () => {
     it('should initialize with provided options', () => {
-      const mockModelDefinition = {
+      const mockModelDefinition: ModelOptions = {
         id: 'gpt-3.5-turbo',
         name: 'GPT-3.5 Turbo',
-        description: 'OpenAI GPT-3.5 Turbo model'
+        description: 'OpenAI GPT-3.5 Turbo model',
+        provider: 'openai', // Added missing provider
+        capabilities: {
+          streaming: false,
+          tools: false,
+          structuredOutput: false,
+          images: false
+        }
       };
       
       const testModel = new OpenAIModel(mockModelDefinition, {
@@ -117,7 +125,7 @@ describe('OpenAIModel', () => {
     });
 
     it('should fall back to config manager for API key', () => {
-      const mockModelDefinition = { id: 'gpt-4', name: 'GPT-4' };
+      const mockModelDefinition: ModelOptions = { id: 'gpt-4', name: 'GPT-4', provider: 'openai', description: 'OpenAI GPT-4 model', capabilities: { streaming: false, tools: false, structuredOutput: false, images: false } };
       const testModel = new OpenAIModel(mockModelDefinition);
       
       expect(testModel).toBeDefined();
@@ -126,7 +134,7 @@ describe('OpenAIModel', () => {
     it('should fall back to environment variable for API key', () => {
       process.env.OPENAI_API_KEY = 'env-api-key';
       
-      const mockModelDefinition = { id: 'gpt-4', name: 'GPT-4' };
+      const mockModelDefinition: ModelOptions = { id: 'gpt-4', name: 'GPT-4', provider: 'openai', capabilities: { streaming: false, tools: false, structuredOutput: false, images: false } };
       const testModel = new OpenAIModel(mockModelDefinition);
       
       expect(testModel).toBeDefined();
@@ -135,7 +143,7 @@ describe('OpenAIModel', () => {
     });
   });
 
-  describe('generateResponse', () => {
+  describe('generate', () => {
     it('should generate a response successfully', async () => {
       // Mock successful API response
       const mockResponse = {
@@ -163,9 +171,9 @@ describe('OpenAIModel', () => {
       
       mockFetch.mockResolvedValue(mockResponse as any);
       
-      const result = await model.generateResponse('Hello');
+      const result = await model.generate({ prompt: 'Hello' });
       
-      expect(result).toBe('Hello! How can I help you today?');
+      expect(result.content).toBe('Hello! How can I help you today?');
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.openai.com/v1/chat/completions',
         expect.objectContaining({
@@ -189,12 +197,12 @@ describe('OpenAIModel', () => {
       
       mockFetch.mockResolvedValue(mockResponse as any);
       
-      const history = [
-        { role: 'user' as const, content: 'Previous message' },
-        { role: 'assistant' as const, content: 'Previous response' }
+      const history: AgentMessage[] = [
+        { id: '1', conversationId: 'conv1', role: 'user', content: 'Previous message', timestamp: new Date().toISOString() },
+        { id: '2', conversationId: 'conv1', role: 'assistant', content: 'Previous response', timestamp: new Date().toISOString() }
       ];
       
-      await model.generateResponse('Current message', history);
+      await model.generate({ prompt: 'Current message', messages: history });
       
       const callArgs = mockFetch.mock.calls[0];
       const requestBody = JSON.parse(callArgs[1]?.body as string);
@@ -212,7 +220,7 @@ describe('OpenAIModel', () => {
         text: jest.fn().mockResolvedValue('Unauthorized')
       } as any);
       
-      await expect(model.generateResponse('Hello')).rejects.toThrow(
+      await expect(model.generate({ prompt: 'Hello' })).rejects.toThrow(
         'Failed to generate response: OpenAI API error: 401 Unauthorized'
       );
     });
@@ -228,8 +236,8 @@ describe('OpenAIModel', () => {
       
       mockFetch.mockResolvedValue(mockResponse as any);
       
-      const result = await model.generateResponse('Hello');
-      expect(result).toBe('');
+      const result = await model.generate({ prompt: 'Hello' });
+      expect(result.content).toBe('');
     });
   });
 
@@ -255,9 +263,7 @@ describe('OpenAIModel', () => {
       
       mockFetch.mockResolvedValue(mockResponse as any);
       
-      const result = await model.generateStructuredThinking('Analyze this problem', {
-        pattern: ThinkingPattern.GraphOfThought
-      });
+      const result = await model.generateStructuredThinking({ prompt: 'Analyze this problem', pattern: ThinkingPattern.GraphOfThought });
       
       expect(result.pattern).toBe(ThinkingPattern.GraphOfThought);
       expect(result.steps).toHaveLength(2);
@@ -275,14 +281,13 @@ describe('OpenAIModel', () => {
             message: {
               content: 'Invalid JSON response from API'
             }
-          }],
-          usage: { prompt_tokens: 20, completion_tokens: 10, total_tokens: 30 }
+          }]
         })
       };
       
       mockFetch.mockResolvedValue(mockResponse as any);
       
-      const result = await model.generateStructuredThinking('Test prompt');
+      const result = await model.generateStructuredThinking({ prompt: 'Test prompt' });
       
       expect(result.steps).toHaveLength(1);
       expect(result.steps[0].content).toBe('Invalid JSON response from API');
@@ -293,7 +298,7 @@ describe('OpenAIModel', () => {
     it('should handle API errors in structured thinking', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
       
-      const result = await model.generateStructuredThinking('Test prompt');
+      const result = await model.generateStructuredThinking({ prompt: 'Test prompt' });
       
       expect(result.pattern).toBe(ThinkingPattern.Direct); // default pattern
       expect(result.steps).toEqual([]);
@@ -304,9 +309,7 @@ describe('OpenAIModel', () => {
 
   describe('generateToolSelection', () => {
     it('should return empty tool calls when no tools available', async () => {
-      const result = await model.generateToolSelection('Test prompt', {
-        availableTools: []
-      });
+      const result = await model.generateToolSelection({ prompt: 'Test prompt', availableTools: [] });
       
       expect(result.toolCalls).toEqual([]);
     });
@@ -327,8 +330,7 @@ describe('OpenAIModel', () => {
                 }
               }]
             }
-          }],
-          usage: { prompt_tokens: 30, completion_tokens: 15, total_tokens: 45 }
+          }]
         })
       };
       
@@ -344,9 +346,7 @@ describe('OpenAIModel', () => {
         ]
       }];
       
-      const result = await model.generateToolSelection('Add 5 and 3', {
-        availableTools
-      });
+      const result = await model.generateToolSelection({ prompt: 'Add 5 and 3', availableTools });
       
       expect(result.toolCalls).toHaveLength(1);
       expect(result.toolCalls[0].toolName).toBe('calculator');
@@ -488,9 +488,7 @@ describe('OpenAIModel', () => {
       mockFetch.mockResolvedValue(mockResponse as any);
       
       // Test Chain of Thought pattern
-      await model.generateStructuredThinking('Test', { 
-        pattern: ThinkingPattern.ChainOfThought 
-      });
+      await model.generateStructuredThinking('Test', { pattern: ThinkingPattern.ChainOfThought });
       
       const callArgs = mockFetch.mock.calls[0];
       const requestBody = JSON.parse(callArgs[1]?.body as string);
@@ -511,7 +509,9 @@ describe('OpenAIModel', () => {
       
       mockFetch.mockResolvedValue(mockResponse as any);
       
-      await model.generateResponse('Test', [], {
+      await model.generate({
+        prompt: 'Test',
+        messages: [],
         temperature: 0.5,
         maxTokens: 500,
         stopSequences: ['STOP']

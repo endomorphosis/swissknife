@@ -2,26 +2,7 @@
 import { ExecutionContext } from './context.js';
 import { LogManager } from '../utils/logging/manager';
 
-export interface CommandOption {
-  name: string;
-  alias?: string;
-  type: 'string' | 'number' | 'boolean' | 'array';
-  description: string;
-  required?: boolean;
-  default?: any;
-}
-
-export interface Command {
-  id: string;
-  name: string;
-  description: string;
-  subcommands?: Command[];
-  options?: CommandOption[];
-  category?: string;
-  examples?: string[];
-  aliases?: string[];
-  handler: (args: any, context: ExecutionContext) => Promise<number>;
-}
+import { Command, CommandOption, CommandExecutionContext } from '../types/command';
 
 export interface LazyCommand {
   id: string;

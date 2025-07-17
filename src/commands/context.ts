@@ -6,7 +6,8 @@ import { LogManager } from '../utils/logging';
 /**
  * Execution context provides shared resources and state during command execution
  */
-export interface ExecutionContext {
+import { CommandExecutionContext as ExecutionContext } from '../types/command';
+  export interface CommandExecutionContext {
   config: IConfigManager; // Use the implemented ConfigurationManager
   logger: LogManager; // Use the implemented LogManager
   models: any; // Will be replaced with ModelRegistry once implemented

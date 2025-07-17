@@ -8,10 +8,17 @@ import '../css/terminal.css';
 import '../css/apps.css';
 import '../css/strudel.css';
 
+// Polyfills for Node.js globals
+(window as any).process = (window as any).process || {};
+(window as any).process.env = (window as any).process.env || {};
+(window as any).Buffer = (window as any).Buffer || require('buffer').Buffer;
+
 // Unified Stlite integration
 import { StliteManager } from './core/stlite-manager';
 import { BrowserStorageAdapter } from './adapters/browser-storage-adapter';
 import { initializeErrorLogger, logError } from './utils/error-logger';
+import SwissKnifeBrowser from '../js/swissknife-browser'; // Import SwissKnifeBrowser
+import { Desktop as SwissKnifeDesktop } from './desktop-core'; // Import the main desktop core
 
 // Enhanced Streamlit Editor
 import { StreamlitEditor } from './apps/streamlit-editor';
@@ -19,102 +26,38 @@ import { StreamlitEditor } from './apps/streamlit-editor';
 class UnifiedSwissKnifeApp {
     private stlite: StliteManager;
     private storageAdapter: BrowserStorageAdapter;
+    private swissknife: typeof SwissKnifeBrowser; // Type for SwissKnifeBrowser
+    private desktop: SwissKnifeDesktop; // Type for SwissKnifeDesktop
 
     constructor() {
         this.storageAdapter = new BrowserStorageAdapter({ type: 'indexeddb' }); // Or 'localstorage' or 'memory'
         initializeErrorLogger(this.storageAdapter);
+        this.swissknife = SwissKnifeBrowser; // Assign the imported SwissKnifeBrowser
+        this.desktop = new SwissKnifeDesktop(); // Initialize the main desktop core
         this.init();
     }
 
     private async init() {
         console.log('🚀 UNIFIED: Initializing enhanced SwissKnife Web Desktop...');
 
-        if (!(window as any).desktop) {
-            (window as any).desktop = {
-                createWindow: (options: any) => {
-                    const windowsContainer = document.getElementById('windows-container');
-                    if (!windowsContainer) {
-                        logError('Windows container not found!');
-                        return;
-                    }
+        // Initialize SwissKnifeBrowser
+        await this.swissknife.initialize({
+            config: { storage: 'localstorage' },
+            storage: { type: 'indexeddb', dbName: 'swissknife-web' },
+            ai: { autoRegisterModels: true, autoRegisterTools: true },
+            openaiApiKey: localStorage.getItem('swissknife_openai_key')
+        });
+        (window as any).swissknife = this.swissknife; // Make it globally accessible for now
 
-                    const windowElement = document.createElement('div');
-                    windowElement.className = 'window';
-                    windowElement.style.cssText = `
-                        position: absolute;
-                        top: 50px;
-                        left: 50px;
-                        width: ${options.width || 800}px;
-                        height: ${options.height || 600}px;
-                        background: white;
-                        border: 1px solid #ccc;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                        z-index: 1000;
-                        display: flex;
-                        flex-direction: column;
-                    `;
-
-                    const titleBar = document.createElement('div');
-                    titleBar.style.cssText = `
-                        background: #f0f0f0;
-                        padding: 8px 12px;
-                        border-bottom: 1px solid #ccc;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        cursor: move;
-                    `;
-                    titleBar.innerHTML = `
-                        <span>${options.title || 'New Window'}</span>
-                        <button onclick="this.closest('.window').remove()" style="background: #ff5f56; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer;">×</button>
-                    `;
-
-                    const contentElement = document.createElement('div');
-                    contentElement.style.cssText = `
-                        flex: 1;
-                        overflow: auto;
-                    `;
-                    if (typeof options.content === 'string') {
-                        contentElement.innerHTML = options.content;
-                    } else if (options.content instanceof HTMLElement) {
-                        contentElement.appendChild(options.content);
-                    }
-
-                    windowElement.appendChild(titleBar);
-                    windowElement.appendChild(contentElement);
-                    windowsContainer.appendChild(windowElement);
-
-                    // Make window draggable
-                    let isDragging = false;
-                    let dragOffset = { x: 0, y: 0 };
-
-                    titleBar.addEventListener('mousedown', (e: MouseEvent) => {
-                        isDragging = true;
-                        const rect = windowElement.getBoundingClientRect();
-                        dragOffset.x = e.clientX - rect.left;
-                        dragOffset.y = e.clientY - rect.top;
-                    });
-
-                    document.addEventListener('mousemove', (e: MouseEvent) => {
-                        if (isDragging) {
-                            windowElement.style.left = (e.clientX - dragOffset.x) + 'px';
-                            windowElement.style.top = (e.clientY - dragOffset.y) + 'px';
-                        }
-                    });
-
-                    document.addEventListener('mouseup', () => {
-                        isDragging = false;
-                    });
-
-                    return windowElement;
-                }
-            };
-        }
+        // Initialize the main desktop
+        await this.desktop.init();
+        (window as any).desktop = this.desktop; // Make it globally accessible
 
         // Initialize unified stlite management FIRST
         await this.initializeStlite();
         
-        this.initializeBasicDesktop();
+        this.initializeDesktopApps(); // Use the desktop's app initialization
+        this.setupGlobalAccess();
         
         console.log('✅ UNIFIED: Enhanced SwissKnife Web Desktop ready!');
     }
@@ -127,8 +70,8 @@ class UnifiedSwissKnifeApp {
         console.log('✅ UNIFIED: Stlite management system ready');
     }
 
-    private initializeBasicDesktop() {
-        // Basic desktop icon click handlers
+    private initializeDesktopApps() {
+        // Use the desktop's existing app launching mechanism
         const icons = document.querySelectorAll('.icon[data-app]');
         icons.forEach(icon => {
             icon.addEventListener('click', (e) => {
@@ -138,39 +81,42 @@ class UnifiedSwissKnifeApp {
                 if (app === 'vibecode') {
                     this.launchUnifiedStreamlitEditor();
                 } else {
-                    console.log(`⚠️ App ${app} not yet implemented in this build`);
+                    // Use the desktop's launchApp for other applications
+                    this.desktop.launchApp(app);
                 }
             });
         });
 
-        // Update system time
-        this.updateSystemTime();
-        setInterval(() => this.updateSystemTime(), 1000);
-    }
-
-    private updateSystemTime() {
-        const timeElement = document.getElementById('system-time');
-        if (timeElement) {
-            const now = new Date();
-            timeElement.textContent = now.toLocaleTimeString();
-        }
+        // Update system time (handled by desktop-core)
+        // this.updateSystemTime();
+        // setInterval(() => this.updateSystemTime(), 1000);
     }
 
     private launchUnifiedStreamlitEditor() {
         const streamlitApp = new StreamlitEditor({
-            swissknife: (window as any).swissknife,
+            swissknife: this.swissknife, // Pass the initialized swissknife instance
             stlite: this.stlite,
-            windows: (window as any).desktop // Pass the desktop object
+            windows: this.desktop // Pass the desktop instance
         });
 
-        const appWindow = streamlitApp.createWindow(); // Use the createWindow method from StreamlitEditor
-        streamlitApp.onMount(appWindow); // Call onMount after the window is created and mounted to DOM
+        // Use the desktop's createWindow method
+        this.desktop.createWindow({
+            title: 'VibeCode Editor',
+            icon: '📝',
+            appId: 'vibecode',
+            width: 1000,
+            height: 700
+        }).then(appWindow => {
+            streamlitApp.onMount(appWindow);
+        });
     }
 
     private setupGlobalAccess() {
         // Provide global access to unified features
         window.unifiedSwissKnife = this;
         window.stliteManager = this.stlite;
+        window.swissknife = this.swissknife; // Ensure global access to swissknife instance
+        window.desktop = this.desktop; // Ensure global access to desktop instance
         
         console.log('🔧 UNIFIED: Global access and debugging tools available');
     }
@@ -178,6 +124,14 @@ class UnifiedSwissKnifeApp {
     // Public API
     public getStliteManager(): StliteManager {
         return this.stlite;
+    }
+
+    public getSwissKnife(): typeof SwissKnifeBrowser {
+        return this.swissknife;
+    }
+
+    public getDesktop(): SwissKnifeDesktop {
+        return this.desktop;
     }
 }
 
@@ -187,8 +141,8 @@ declare global {
         unifiedSwissKnife: UnifiedSwissKnifeApp;
         stliteManager: StliteManager;
         debugUnified: any;
-        desktop: any;
-        swissknife: any;
+        desktop: SwissKnifeDesktop; // Stronger typing
+        swissknife: typeof SwissKnifeBrowser; // Stronger typing
     }
 }
 

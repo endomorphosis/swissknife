@@ -79,8 +79,7 @@ export class McpAddCommand implements Command {
   readonly id = 'mcp:add';
   readonly name = 'mcp add';
   readonly description = 'Add a server (run without arguments for interactive wizard)';
-  readonly help = 'Usage: swissknife mcp add [name] [commandOrUrl] [args...] [--scope <scope>] [--env <env...>]
-';
+  readonly help = `Usage: swissknife mcp add [name] [commandOrUrl] [args...] [--scope <scope>] [--env <env...>]`;
 
   parseArguments(args: string[]): Record<string, any> {
     const name = args[0];
@@ -121,7 +120,7 @@ export class McpAddCommand implements Command {
         logEvent('tengu_mcp_add', { name, type: 'stdio', scope: configScope });
         const parsedEnv = parseEnvVars(env);
         addMcpServer(name, { type: 'stdio', command: commandOrUrl, args: args || [], env: parsedEnv }, configScope);
-        console.log(`Added stdio MCP server ${name} with command: ${commandOrUrl} ${(args || []).join(' ')} to ${configScope} config`);
+        console.log("Added stdio MCP server " + name + " with command: " + commandOrUrl + " " + (args || []).join(' ') + " to " + configScope + " config");
       }
       process.exit(0);
     } catch (error) {

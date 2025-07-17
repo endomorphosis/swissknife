@@ -345,8 +345,4 @@ class DesktopEnhancer {
 }
 
 // Export for use in main desktop
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = DesktopEnhancer;
-} else {
-    window.DesktopEnhancer = DesktopEnhancer;
-}
+export default DesktopEnhancer;

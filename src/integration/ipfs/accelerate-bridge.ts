@@ -1,8 +1,8 @@
 // src/integration/ipfs/accelerate-bridge.ts
 
 import { IntegrationBridge } from '../registry';
-import { ConfigManager } from '../config/manager';
-import { loadNativeModule } from '../utils/native-loader';
+import { ConfigManager } from '@/config/manager';
+import { loadNativeModule } from '@/utils/native-loader';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 

@@ -6,7 +6,7 @@ import {
 import { CID } from '../types/common'; // Import CID directly from common
 import { Task, TaskID } from '../types/task'; 
 import { MCPClient } from './mcp-client.js';
-import { logger } from '../utils/logger';
+import { logger } from '@/utils/log';
 
 /**
  * StorageProvider implementation that uses an MCPClient to interact with an IPFS node.

@@ -1,4 +1,5 @@
-import { CommandRegistry, Command, CommandOption, CommandExecutionContext } from '@/command-registry';
+import { CommandRegistry } from '../commands/registry';
+import { Command } from '../types/command';
 
 /**
  * Represents the result of parsing a command line.
@@ -24,7 +25,7 @@ export class CommandParser {
    * @param argv The raw command-line arguments (e.g., process.argv).
    * @returns A ParsedCommandLine object if a command is found, otherwise null.
    */
-  parseCommandLine(argv: string[]): ParsedCommandLine | null {
+  async parseCommandLine(argv: string[]): Promise<ParsedCommandLine | null> {
     // Remove 'node' and 'script.js' from argv
     const args = argv.slice(2);
 
@@ -32,39 +33,29 @@ export class CommandParser {
       return null; // No command provided
     }
 
-    let currentCommandName = '';
+    let commandPath: string[] = [];
     let command: Command | undefined;
-    const subcommands: string[] = [];
-    let commandArgs: string[] = [];
+    let remainingArgsIndex = 0;
 
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
 
       if (arg.startsWith('-')) {
         // This is an option, so the command part is over
-        commandArgs = args.slice(i);
+        remainingArgsIndex = i;
         break;
       }
 
-      // Try to find a command or subcommand
-      const potentialCommandName = currentCommandName ? `${currentCommandName}:${arg}` : arg;
-      const foundCommand = this.registry.getCommand(potentialCommandName);
+      const potentialCommandName = commandPath.length > 0 ? `${commandPath.join(':')}:${arg}` : arg;
+      const foundCommand = await this.registry.getCommand(potentialCommandName);
 
       if (foundCommand) {
         command = foundCommand;
-        currentCommandName = potentialCommandName;
-        if (currentCommandName !== arg) {
-          subcommands.push(arg);
-        }
-      } else if (command) {
-        // If a command was already found, and the current arg is not a sub-command,
-        // then it must be an argument for the found command.
-        commandArgs = args.slice(i);
-        break;
+        commandPath.push(arg);
+        remainingArgsIndex = i + 1;
       } else {
-        // No command found yet, and current arg is not an option.
-        // This means the initial command is not registered.
-        return null;
+        // If the current arg is not part of a command path, then the command path is complete
+        break;
       }
     }
 
@@ -72,13 +63,13 @@ export class CommandParser {
       return null; // No valid command found
     }
 
-    // Parse arguments using the command's specific parser
-    const parsedArgs = command.parseArguments(commandArgs);
+    const commandArgs = args.slice(remainingArgsIndex);
+    const parsedArgs = command.parseArguments ? command.parseArguments(commandArgs) : {};
 
     return {
       command,
       args: parsedArgs,
-      subcommands,
+      subcommands: commandPath.slice(0, commandPath.length - 1),
     };
   }
 }
