@@ -1,10 +1,14 @@
-import { VirtualFilesystem } from '../src/storage/vfs/VirtualFilesystem';
 import { CommandResult } from '../src/types/command';
 import { StorageBackend } from '../src/storage/vfs/vfs-types';
+import { VFSManager } from '../src/storage/vfs/VFSManager';
 
 // cli/vfs-commands.ts
 export class VFSCommands {
-  constructor(private vfs: VirtualFilesystem) {}
+  private vfs: VirtualFilesystem;
+
+  constructor() {
+    this.vfs = VFSManager.getInstance().getVFS();
+  }
 
   async mount(backend: string, path: string, config: any): Promise<CommandResult> {
     try {

@@ -1,5 +1,5 @@
 // src/ai/models/definitions/openai.ts
-import { ProviderDefinition, ModelProvider } from '../types/ai';
+import { ProviderDefinition, ModelProvider } from '../../../types/ai';
 
 const openaiProviderDefinition: ProviderDefinition = {
   id: ModelProvider.OPENAI, // Use enum value

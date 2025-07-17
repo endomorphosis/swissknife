@@ -1,4 +1,4 @@
-import { CID, Status, TaskID } from './common';
+import type { Status } from './common';
 import { StorageProvider } from './storage'; 
 import { TaskManager } from '../tasks/manager'; 
 import { InferenceExecutor } from '../ml/inference/executor'; 
@@ -12,7 +12,7 @@ export interface ModelGenerateInput {
   temperature?: number;
   maxTokens?: number;
   stopSequences?: string[];
-  taskId?: TaskID; 
+  taskId?: string; 
   userId?: string;
   messages?: AgentMessage[]; // Added for chat history
   availableTools?: Tool[]; // Added for tool selection
@@ -103,7 +103,7 @@ export interface ToolExecutionContext {
   config: import('../config/manager').ConfigManager;  // Fixed to use ConfigManager
   storage: StorageProvider;
   taskManager: TaskManager; 
-  taskId?: TaskID;
+  taskId?: string;
   userId?: string;
   callTool?: (toolName: string, input: Record<string, any>) => Promise<ToolOutput>; // Input type changed
   inferenceExecutor?: InferenceExecutor; 
@@ -285,7 +285,7 @@ export interface ModelDefinition {
 /**
  * Represents the definition of a model provider and its available models.
  */
-export { Status };
+
 
 export interface ProviderDefinition {
   id: string;                 // Unique ID for the provider, e.g., "openai"
@@ -438,10 +438,10 @@ export interface AdaptationTrigger {
 export interface ContingencyPlan {}
 export interface GeneratedWorkflow {}
 export class WorkflowExecution {
-  constructor(workflow: GeneratedWorkflow) {}
+  constructor(_workflow: GeneratedWorkflow) {}
   isComplete(): boolean { return true; }
   getCurrentNode(): WorkflowNode { return { id: 'mock', type: 'mock', dependencies: [] }; }
-  recordResult(nodeId: string, result: any): void{}
+  recordResult(_nodeId: string, _result: any): void{}
   advanceToNext(): void{}
   getResult(): WorkflowResult { return {}; }
 }

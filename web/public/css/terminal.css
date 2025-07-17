@@ -1,0 +1,606 @@
+/* SwissKnife Web Desktop - Terminal Styling */
+
+.terminal-container {
+    width: 100%;
+    height: 100%;
+    background: #0c0c0c;
+    color: #cccccc;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    overflow: hidden;
+    position: relative;
+}
+
+.terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, #1e1e1e 0%, #2d2d30 100%);
+    border-bottom: 1px solid #3e3e42;
+    font-size: 12px;
+}
+
+.terminal-tabs {
+    display: flex;
+    gap: 2px;
+}
+
+.terminal-tab {
+    padding: 4px 12px;
+    background: #2d2d30;
+    border: 1px solid #3e3e42;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 11px;
+    color: #cccccc;
+}
+
+.terminal-tab.active {
+    background: #0c0c0c;
+    border-bottom-color: #0c0c0c;
+}
+
+.terminal-tab:hover:not(.active) {
+    background: #3e3e42;
+}
+
+.terminal-tab-close {
+    margin-left: 6px;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.terminal-tab-close:hover {
+    opacity: 1;
+    color: #e94560;
+}
+
+.terminal-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.terminal-control-btn {
+    padding: 2px 6px;
+    background: #3e3e42;
+    border: 1px solid #5a5a5f;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    color: #cccccc;
+    transition: all 0.2s ease;
+}
+
+.terminal-control-btn:hover {
+    background: #4e4e52;
+    border-color: #6a6a6f;
+}
+
+.terminal-screen {
+    height: calc(100% - 40px);
+    background: #0c0c0c;
+    position: relative;
+    overflow: hidden;
+}
+
+.terminal-body {
+    height: calc(100% - 40px);
+    display: flex;
+    flex-direction: column;
+    background: #0c0c0c;
+    position: relative;
+}
+
+.terminal-output {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-content {
+    padding: 12px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.terminal-line {
+    display: block;
+    margin: 0;
+    min-height: 1.4em;
+}
+
+/* Terminal line types */
+.terminal-line.command {
+    color: #569cd6;
+    margin-bottom: 4px;
+}
+
+.terminal-line.error {
+    color: #f48771;
+}
+
+.terminal-line.warning {
+    color: #dcdcaa;
+}
+
+.terminal-line.success {
+    color: #4ec9b0;
+}
+
+.terminal-line.info {
+    color: #9cdcfe;
+}
+
+.terminal-line.ai-response {
+    color: #c586c0;
+    background: rgba(197, 134, 192, 0.1);
+    padding: 4px 8px;
+    border-left: 3px solid #c586c0;
+    margin: 4px 0;
+}
+
+.terminal-line.welcome {
+    color: #4fc1ff;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.terminal-line.help {
+    color: #dcdcaa;
+    font-weight: bold;
+}
+
+.terminal-line.category {
+    color: #ffcc02;
+    font-weight: bold;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+/* Terminal output element styles */
+.terminal-prompt-echo {
+    color: #569cd6;
+}
+
+.terminal-error {
+    color: #f48771;
+}
+
+.terminal-warning {
+    color: #dcdcaa;
+}
+
+.terminal-success {
+    color: #4ec9b0;
+}
+
+.terminal-info {
+    color: #9cdcfe;
+}
+
+.terminal-welcome {
+    color: #4fc1ff;
+    font-weight: bold;
+}
+
+.terminal-help {
+    color: #dcdcaa;
+    font-weight: bold;
+}
+
+.terminal-category {
+    color: #ffcc02;
+    font-weight: bold;
+}
+
+.terminal-ai {
+    color: #c586c0;
+}
+
+.terminal-prompt {
+    color: #4ec9b0;
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+.terminal-input-line {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #0c0c0c;
+    border-top: 1px solid #3e3e42;
+    flex-shrink: 0;
+    min-height: 40px;
+}
+
+.terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #cccccc;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+.terminal-input::selection {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Terminal Color Themes */
+.terminal-container.theme-matrix {
+    background: #000000;
+    color: #00ff00;
+}
+
+.terminal-container.theme-matrix .terminal-cursor {
+    background: #00ff00;
+}
+
+.terminal-container.theme-cyberpunk {
+    background: #0a0a0a;
+    color: #ff00ff;
+}
+
+.terminal-container.theme-cyberpunk .terminal-cursor {
+    background: #ff00ff;
+}
+
+.terminal-container.theme-hacker {
+    background: #001100;
+    color: #00ff41;
+}
+
+.terminal-container.theme-hacker .terminal-cursor {
+    background: #00ff41;
+}
+
+/* Command Autocomplete */
+.terminal-autocomplete {
+    position: absolute;
+    background: #2d2d30;
+    border: 1px solid #3e3e42;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+}
+
+.autocomplete-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 12px;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+    background: #094771;
+}
+
+.autocomplete-item-command {
+    color: #dcdcaa;
+    font-weight: bold;
+}
+
+.autocomplete-item-description {
+    color: #9cdcfe;
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+/* Terminal History */
+.terminal-history {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(45, 45, 48, 0.95);
+    border-bottom: 1px solid #3e3e42;
+    max-height: 50%;
+    overflow-y: auto;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+
+.history-item {
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(62, 62, 66, 0.3);
+}
+
+.history-item:hover {
+    background: #3e3e42;
+}
+
+.history-item-time {
+    color: #808080;
+    font-size: 10px;
+}
+
+.history-item-command {
+    color: #dcdcaa;
+    margin-top: 2px;
+}
+
+/* Terminal Search */
+.terminal-search {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #2d2d30;
+    border: 1px solid #3e3e42;
+    border-radius: 4px;
+    padding: 4px 8px;
+    display: none;
+}
+
+.terminal-search.active {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.terminal-search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #cccccc;
+    font-family: inherit;
+    font-size: 12px;
+    width: 150px;
+}
+
+.terminal-search-controls {
+    display: flex;
+    gap: 2px;
+}
+
+.terminal-search-btn {
+    background: #3e3e42;
+    border: 1px solid #5a5a5f;
+    border-radius: 2px;
+    color: #cccccc;
+    cursor: pointer;
+    font-size: 10px;
+    padding: 1px 4px;
+}
+
+.terminal-search-btn:hover {
+    background: #4e4e52;
+}
+
+/* Terminal Status Bar */
+.terminal-status {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: #2d2d30;
+    border-top: 1px solid #3e3e42;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    font-size: 10px;
+    color: #808080;
+}
+
+.terminal-status-left {
+    display: flex;
+    gap: 12px;
+}
+
+.terminal-status-right {
+    display: flex;
+    gap: 12px;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ec9b0;
+}
+
+.status-dot.error {
+    background: #f48771;
+}
+
+.status-dot.warning {
+    background: #ffcc02;
+}
+
+/* Terminal Performance Monitoring */
+.terminal-perf {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(45, 45, 48, 0.8);
+    border: 1px solid #3e3e42;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 10px;
+    color: #808080;
+    display: none;
+}
+
+.terminal-perf.visible {
+    display: block;
+}
+
+.perf-metric {
+    margin: 2px 0;
+}
+
+.perf-value {
+    color: #4ec9b0;
+    font-weight: bold;
+}
+
+/* Responsive Terminal */
+@media (max-width: 768px) {
+    .terminal-container {
+        font-size: 12px;
+    }
+    
+    .terminal-content {
+        padding: 8px;
+    }
+    
+    .terminal-header {
+        padding: 6px 8px;
+    }
+    
+    .terminal-tab {
+        padding: 3px 8px;
+        font-size: 10px;
+    }
+    
+    .terminal-search-input {
+        width: 120px;
+    }
+}
+
+/* Accessibility */
+.terminal-container:focus-within {
+    outline: 2px solid #4ec9b0;
+    outline-offset: -2px;
+}
+
+.terminal-input:focus {
+    outline: none;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .terminal-container {
+        background: #000000;
+        color: #ffffff;
+    }
+    
+    .terminal-header {
+        background: #333333;
+        border-bottom-color: #ffffff;
+    }
+    
+    .terminal-cursor {
+        background: #ffffff;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .terminal-cursor {
+        animation: none;
+        opacity: 1;
+    }
+    
+    .autocomplete-item,
+    .history-item,
+    .terminal-tab {
+        transition: none;
+    }
+}
+
+/* App placeholder styles - Aero Tinted Glass */
+.app-placeholder {
+    padding: 40px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(20, 25, 35, 0.7);
+    backdrop-filter: blur(25px) saturate(150%);
+    -webkit-backdrop-filter: blur(25px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 
+                0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.app-placeholder::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.03) 50%, 
+        rgba(255, 255, 255, 0.01) 100%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.app-placeholder h2 {
+    color: rgba(233, 69, 96, 0.9);
+    margin-bottom: 16px;
+    font-size: 24px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    position: relative;
+    z-index: 1;
+}
+
+.app-placeholder p {
+    margin-bottom: 24px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 16px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    position: relative;
+    z-index: 1;
+}
+
+.app-placeholder button {
+    padding: 10px 20px;
+    background: rgba(220, 53, 69, 0.8);
+    border: 1px solid rgba(220, 53, 69, 0.4);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.95);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    position: relative;
+    z-index: 1;
+}
+
+.app-placeholder button:hover {
+    background: rgba(220, 53, 69, 0.9);
+    border-color: rgba(220, 53, 69, 0.6);
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
+    transform: translateY(-1px);
+}

@@ -1,5 +1,5 @@
-import { ProviderDefinition, ModelProvider, ModelDefinition } from '@src/types/ai';
-import openaiProviderDefinition from '../../../../src/ai/models/definitions/openai';
+import { ModelProvider, ModelDefinition } from '@src/types/ai';
+import openaiProviderDefinition from '../../../src/ai/models/definitions/openai';
 
 describe('ProviderDefinition', () => {
   it('should have valid structure for openai provider', () => {
@@ -38,6 +38,6 @@ describe('ProviderDefinition', () => {
   it('should have required environment variable configuration', () => {
     expect(openaiProviderDefinition.envVar).toBeDefined();
     expect(typeof openaiProviderDefinition.envVar).toBe('string');
-    expect(openaiProviderDefinition.envVar.length).toBeGreaterThan(0);
+    expect(openaiProviderDefinition.envVar?.length).toBeGreaterThan(0);
   });
 });

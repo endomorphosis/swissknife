@@ -1,9 +1,9 @@
 // src/ai/models/openai-model.ts
 
-import { BaseModel, IModel, ModelCapabilities, ModelGenerateInput, ModelGenerateOutput, ModelOptions } from './model';
-import { AgentMessage, ThinkingPattern, ThinkingResult, ToolCallResult, ToolSelectionResult, Status } from '../types/ai';
-import { ConfigManager } from '../config/manager'; // Import ConfigManager directly
-import { logger } from '../utils/logger';
+import { BaseModel, ModelGenerateInput, ModelGenerateOutput, ModelOptions } from './model';
+import { AgentMessage, ThinkingPattern, ThinkingResult, ToolCallResult, ToolSelectionResult } from '../../types/ai';
+import { ConfigManager } from '../../config/manager'; // Import ConfigManager directly
+import { logger } from '../../utils/logger';
 
 /**
  * OpenAI API response for chat completions
@@ -101,22 +101,18 @@ export class OpenAIModel extends BaseModel {
       return {
         ...baseOutput, // Include base output properties
         content: content,
-        status: baseOutput.status, // Assuming status is handled by BaseModel or remains COMPLETED
+        status: baseOutput.status,
         modelUsed: this.id,
         usage: response.usage ? {
           promptTokens: response.usage.prompt_tokens,
           completionTokens: response.usage.completion_tokens,
           totalTokens: response.usage.total_tokens,
         } : baseOutput.usage,
-        cost: baseOutput.cost, // Assuming cost is handled by BaseModel or calculated here
+        cost: baseOutput.cost,
       };
     } catch (error) {
       logger.error('Error generating response with OpenAI:', error);
-      return {
-        ...baseOutput,
-        status: Status.FAILED,
-        error: `Failed to generate response: ${error instanceof Error ? error.message : String(error)}`
-      };
+      throw error;
     }
   }
   
@@ -124,8 +120,7 @@ export class OpenAIModel extends BaseModel {
    * Generates structured thinking using the OpenAI API
    */
   async generateStructuredThinking(
-    prompt: string,
-    options: ModelGenerateInput // Removed default empty object
+    options: ModelGenerateInput
   ): Promise<ThinkingResult> {
     const startTime = Date.now();
     const pattern = options.pattern || ThinkingPattern.GraphOfThought;
@@ -140,7 +135,7 @@ export class OpenAIModel extends BaseModel {
       // Format messages for the API
       const messages = [
         { role: 'system', content: systemMessage },
-        { role: 'user', content: prompt }
+        { role: 'user', content: options.prompt }
       ];
       
       // Make API call with structured output format
@@ -181,7 +176,7 @@ export class OpenAIModel extends BaseModel {
       
       // Return a simplified thinking result on error
       return {
-        pattern,
+        pattern: ThinkingPattern.Direct,
         steps: [],
         summary: 'Error during thinking analysis',
         error: error instanceof Error ? error.message : String(error),
@@ -195,8 +190,7 @@ export class OpenAIModel extends BaseModel {
    * Determines which tools should be called for a user request
    */
   async generateToolSelection(
-    prompt: string,
-    options: ModelGenerateInput // Removed default empty object
+    options: ModelGenerateInput
   ): Promise<ToolSelectionResult> {
     if (!options.availableTools || options.availableTools.length === 0) {
       return { toolCalls: [] };
@@ -227,7 +221,7 @@ When suggesting tool calls, provide the tool name and the arguments as a properl
       // Format messages for the API
       const messages = [
         { role: 'system', content: systemMessage },
-        { role: 'user', content: prompt }
+        { role: 'user', content: options.prompt }
       ];
       
       // Make API call with tool calling functionality enabled

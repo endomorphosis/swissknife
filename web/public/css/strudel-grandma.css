@@ -1,0 +1,651 @@
+/**
+ * 🎵 Grandma-Friendly Strudel DAW Styles
+ * 
+ * Beautiful, accessible, and intuitive styling for users of all ages.
+ * Large buttons, friendly colors, clear typography.
+ */
+
+/* === BASE STYLES === */
+.grandma-daw {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.grandma-daw * {
+    box-sizing: border-box;
+}
+
+/* === HEADER === */
+.studio-header {
+    text-align: center;
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.studio-header h1 {
+    font-size: 3rem;
+    margin: 0 0 10px 0;
+    color: #4a5568;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.studio-header .subtitle {
+    font-size: 1.3rem;
+    color: #718096;
+    margin: 0;
+    font-weight: 300;
+}
+
+.help-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.help-btn {
+    background: #48bb78;
+    color: white;
+    border: none;
+    border-radius: 15px;
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+}
+
+.help-btn:hover {
+    background: #38a169;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+}
+
+/* === MAIN CONTENT === */
+.studio-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    gap: 30px;
+}
+
+/* === SONG PICKER === */
+.song-picker {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.song-picker h2 {
+    font-size: 2rem;
+    color: #4a5568;
+    margin: 0 0 25px 0;
+    text-align: center;
+}
+
+.song-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.song-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 25px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    border: 3px solid transparent;
+}
+
+.song-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border-color: #ffd700;
+}
+
+.song-card.selected {
+    border-color: #ffd700;
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+    transform: translateY(-3px);
+}
+
+.song-emoji {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.song-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.song-description {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin-bottom: 20px;
+}
+
+.select-song-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.select-song-btn:hover {
+    background: rgba(255,255,255,0.3);
+    border-color: rgba(255,255,255,0.5);
+}
+
+/* === PLAYBACK CONTROLS === */
+.playback-controls {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.big-button-row {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.mega-button {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 30px 50px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(66, 153, 225, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-width: 200px;
+    opacity: 0.5;
+}
+
+.mega-button.enabled {
+    opacity: 1;
+}
+
+.mega-button:not(:disabled):hover.enabled {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(66, 153, 225, 0.4);
+}
+
+.mega-button:disabled {
+    cursor: not-allowed;
+    background: #a0aec0;
+    box-shadow: none;
+}
+
+.button-emoji {
+    font-size: 2rem;
+}
+
+.button-text {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.stop-button.enabled {
+    background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+    box-shadow: 0 8px 25px rgba(245, 101, 101, 0.3);
+}
+
+.stop-button.enabled:hover {
+    box-shadow: 0 12px 35px rgba(245, 101, 101, 0.4);
+}
+
+/* === VOLUME SECTION === */
+.volume-section {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.volume-section h3 {
+    font-size: 1.5rem;
+    color: #4a5568;
+    margin: 0 0 25px 0;
+}
+
+.volume-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.volume-btn {
+    background: #ed8936;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(237, 137, 54, 0.3);
+}
+
+.volume-btn:hover {
+    background: #dd6b20;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(237, 137, 54, 0.4);
+}
+
+.volume-slider-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-width: 300px;
+}
+
+.volume-slider {
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    background: #e2e8f0;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #4299e1;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(66, 153, 225, 0.3);
+    transition: all 0.3s ease;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+    background: #3182ce;
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(66, 153, 225, 0.4);
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #4299e1;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 10px rgba(66, 153, 225, 0.3);
+}
+
+.volume-display {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #4a5568;
+    background: #f7fafc;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid #e2e8f0;
+}
+
+/* === NOW PLAYING === */
+.now-playing {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.now-playing h3 {
+    font-size: 1.5rem;
+    color: #4a5568;
+    margin: 0 0 20px 0;
+}
+
+.song-display {
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-song {
+    font-size: 1.2rem;
+    color: #a0aec0;
+    font-style: italic;
+}
+
+.current-song {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    border-radius: 15px;
+    padding: 25px;
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 500px;
+}
+
+.current-song.playing {
+    border-color: #48bb78;
+    background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+    animation: gentlePulse 2s ease-in-out infinite;
+}
+
+@keyframes gentlePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+.song-emoji-large {
+    font-size: 3.5rem;
+    flex-shrink: 0;
+}
+
+.song-info {
+    text-align: left;
+    flex: 1;
+}
+
+.song-title-large {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2d3748;
+    margin-bottom: 5px;
+}
+
+.song-desc {
+    font-size: 1rem;
+    color: #718096;
+    margin-bottom: 8px;
+}
+
+.song-status {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #4a5568;
+    padding: 5px 12px;
+    background: #e2e8f0;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.song-status.playing {
+    color: #38a169;
+    background: #c6f6d5;
+    animation: statusBlink 1.5s ease-in-out infinite;
+}
+
+@keyframes statusBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* === STATUS FOOTER === */
+.studio-status {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    margin-top: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.status-message {
+    font-size: 1.1rem;
+    color: #4a5568;
+    margin: 0;
+    padding: 15px;
+    border-radius: 10px;
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.status-message.friendly {
+    background: #e6fffa;
+    border-color: #4fd1c7;
+    color: #234e52;
+}
+
+.status-message.error {
+    background: #fed7d7;
+    border-color: #fc8181;
+    color: #742a2a;
+}
+
+/* === TUTORIAL === */
+.tutorial-tip {
+    margin-top: 20px;
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
+    animation: tutorialEntrance 0.5s ease-out;
+}
+
+@keyframes tutorialEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tip-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.tip-text {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #744210;
+    flex: 1;
+    min-width: 200px;
+}
+
+.tip-next, .tip-skip {
+    background: #38a169;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.tip-skip {
+    background: #a0aec0;
+}
+
+.tip-next:hover {
+    background: #2f855a;
+    transform: translateY(-1px);
+}
+
+.tip-skip:hover {
+    background: #718096;
+    transform: translateY(-1px);
+}
+
+/* === LOADING OVERLAY === */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-content {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.loading-spinner {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 1.3rem;
+    color: #4a5568;
+    font-weight: bold;
+}
+
+/* === RESPONSIVE DESIGN === */
+@media (max-width: 768px) {
+    .grandma-daw {
+        padding: 15px;
+    }
+    
+    .studio-header h1 {
+        font-size: 2.2rem;
+    }
+    
+    .studio-header .subtitle {
+        font-size: 1.1rem;
+    }
+    
+    .help-button {
+        position: static;
+        text-align: center;
+        margin-top: 20px;
+    }
+    
+    .song-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .big-button-row {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .mega-button {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .volume-control {
+        flex-direction: column;
+    }
+    
+    .volume-slider-container {
+        min-width: 250px;
+    }
+    
+    .current-song {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .song-info {
+        text-align: center;
+    }
+    
+    .tip-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .tip-text {
+        min-width: auto;
+    }
+}
+
+/* === ACCESSIBILITY === */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .grandma-daw {
+        background: #000;
+        color: #fff;
+    }
+    
+    .studio-header,
+    .song-picker,
+    .playback-controls,
+    .volume-section,
+    .now-playing,
+    .studio-status {
+        background: #fff;
+        color: #000;
+        border: 2px solid #000;
+    }
+}
+
+/* Large text support */
+@media (prefers-font-size: large) {
+    .grandma-daw {
+        font-size: 1.2em;
+    }
+}

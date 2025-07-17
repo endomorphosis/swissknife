@@ -1,0 +1,29 @@
+/* Styles for TaskNet Visualizer App */
+.task-net-visualizer-app {
+    padding: 15px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-color);
+    background-color: var(--window-bg-color);
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.task-net-visualizer-app .app-header {
+    font-size: 1.5em;
+    margin-bottom: 15px;
+    color: var(--header-color);
+    text-align: center;
+}
+
+.task-net-visualizer-app .app-content {
+    line-height: 1.6;
+}
+
+.task-net-visualizer-app ul {
+    list-style-type: disc;
+    margin-left: 20px;
+}
+
+.task-net-visualizer-app li {
+    margin-bottom: 5px;
+}

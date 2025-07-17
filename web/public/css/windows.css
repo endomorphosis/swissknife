@@ -1,0 +1,615 @@
+/* SwissKnife Web Desktop - Window Management */
+
+.windows-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 48px); /* Account for taskbar */
+    z-index: 100;
+    pointer-events: none;
+}
+
+.window {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    pointer-events: all;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    min-width: 320px;
+    min-height: 200px;
+    width: 600px;
+    height: 400px;
+    resize: both;
+}
+
+.window::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.05) 50%, 
+        rgba(255, 255, 255, 0.02) 100%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.window.focused {
+    border-color: rgba(233, 69, 96, 0.6);
+    box-shadow: 0 12px 48px rgba(233, 69, 96, 0.2);
+    z-index: 500;
+}
+
+.window.maximized {
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: calc(100vh - 48px) !important;
+    border-radius: 0;
+    transform: none !important; /* Prevent any transforms */
+    perspective: none !important; /* Disable 3D transforms */
+}
+
+/* Disable hover effects on maximized windows */
+.window.maximized:hover,
+.window.maximized:focus,
+.window.maximized:active {
+    transform: none !important; /* Disable any hover transforms */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important; /* Keep original shadow */
+    animation: none !important; /* Disable animations */
+    transition: none !important; /* Disable transitions on hover */
+    perspective: none !important; /* Disable 3D perspective */
+}
+
+/* Disable ALL possible hover effects on maximized windows */
+.window.maximized > *:hover,
+.window.maximized > * > *:hover,
+.window.maximized .window-content > *:hover {
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+    perspective: none !important;
+}
+
+/* Prevent any CSS animations or keyframes from affecting maximized windows */
+.window.maximized,
+.window.maximized *,
+.window.maximized::before,
+.window.maximized::after,
+.window.maximized *::before,
+.window.maximized *::after {
+    animation: none !important;
+    transform: none !important;
+    perspective: none !important;
+    transform-style: flat !important;
+}
+
+.window.minimized {
+    transform: scale(0.8);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.window.resizing {
+    transition: none;
+}
+
+/* Window Title Bar */
+.window-titlebar {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    background: linear-gradient(180deg, 
+        rgba(74, 144, 226, 0.4) 0%, 
+        rgba(74, 144, 226, 0.2) 50%,
+        rgba(74, 144, 226, 0.1) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0 8px;
+    cursor: move;
+    user-select: none;
+    backdrop-filter: blur(10px);
+    position: relative;
+}
+
+.window-titlebar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.3) 50%, 
+        transparent 100%);
+}
+
+.window-icon {
+    font-size: 14px;
+    margin-right: 8px;
+}
+
+.window-title {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 500;
+    color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.window-controls {
+    display: flex;
+    gap: 2px;
+}
+
+.window-control {
+    width: 24px;
+    height: 20px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.window-control:hover {
+    transform: scale(1.05);
+}
+
+.window-control.minimize {
+    background: rgba(255, 193, 7, 0.8);
+    color: #000;
+}
+
+.window-control.minimize:hover {
+    background: rgba(255, 193, 7, 1);
+}
+
+.window-control.maximize {
+    background: rgba(40, 167, 69, 0.8);
+    color: #fff;
+}
+
+.window-control.maximize:hover {
+    background: rgba(40, 167, 69, 1);
+}
+
+.window-control.close {
+    background: rgba(220, 53, 69, 0.8);
+    color: #fff;
+}
+
+.window-control.close:hover {
+    background: rgba(220, 53, 69, 1);
+}
+
+/* Window Content */
+.window-content {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    overflow: auto;
+    position: relative;
+}
+
+/* Window Resize Handles */
+.window-resize-handle {
+    position: absolute;
+    background: transparent;
+}
+
+.window-resize-handle.n {
+    top: -3px;
+    left: 8px;
+    right: 8px;
+    height: 6px;
+    cursor: ns-resize;
+}
+
+.window-resize-handle.s {
+    bottom: -3px;
+    left: 8px;
+    right: 8px;
+    height: 6px;
+    cursor: ns-resize;
+}
+
+.window-resize-handle.e {
+    top: 8px;
+    right: -3px;
+    bottom: 8px;
+    width: 6px;
+    cursor: ew-resize;
+}
+
+.window-resize-handle.w {
+    top: 8px;
+    left: -3px;
+    bottom: 8px;
+    width: 6px;
+    cursor: ew-resize;
+}
+
+.window-resize-handle.ne {
+    top: -3px;
+    right: -3px;
+    width: 12px;
+    height: 12px;
+    cursor: ne-resize;
+}
+
+.window-resize-handle.nw {
+    top: -3px;
+    left: -3px;
+    width: 12px;
+    height: 12px;
+    cursor: nw-resize;
+}
+
+.window-resize-handle.se {
+    bottom: -3px;
+    right: -3px;
+    width: 12px;
+    height: 12px;
+    cursor: se-resize;
+}
+
+.window-resize-handle.sw {
+    bottom: -3px;
+    left: -3px;
+    width: 12px;
+    height: 12px;
+    cursor: sw-resize;
+}
+
+/* Window States */
+.window-enter {
+    animation: windowEnter 0.3s ease-out;
+}
+
+@keyframes windowEnter {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.window-exit {
+    animation: windowExit 0.2s ease-in;
+}
+
+@keyframes windowExit {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+}
+
+/* Window Context Menu */
+.window-context-menu {
+    position: absolute;
+    background: rgba(26, 26, 46, 0.95);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    border-radius: 4px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    z-index: 2000;
+    min-width: 140px;
+    overflow: hidden;
+}
+
+.window-context-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 11px;
+}
+
+.window-context-item:hover {
+    background: rgba(233, 69, 96, 0.2);
+}
+
+.window-context-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.window-context-item.disabled:hover {
+    background: transparent;
+}
+
+/* Modal Windows */
+.window.modal {
+    z-index: 1000;
+}
+
+.window.modal::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+}
+
+/* Snap Zones for Window Management */
+.snap-zone {
+    position: fixed;
+    background: rgba(233, 69, 96, 0.3);
+    border: 2px dashed rgba(233, 69, 96, 0.6);
+    border-radius: 4px;
+    z-index: 2000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.snap-zone.active {
+    opacity: 1;
+}
+
+.snap-zone.left {
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: calc(100vh - 48px);
+}
+
+.snap-zone.right {
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: calc(100vh - 48px);
+}
+
+.snap-zone.top {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+}
+
+.snap-zone.bottom {
+    bottom: 48px;
+    left: 0;
+    width: 100%;
+    height: 50%;
+}
+
+.snap-zone.fullscreen {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 48px);
+}
+
+/* Window Loading State */
+.window-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(26, 26, 46, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.window-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(233, 69, 96, 0.3);
+    border-top: 3px solid #e94560;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Window Behavior */
+@media (max-width: 768px) {
+    .window {
+        min-width: 280px;
+        min-height: 180px;
+    }
+    
+    .window-titlebar {
+        height: 36px;
+        padding: 0 12px;
+    }
+    
+    .window-title {
+        font-size: 13px;
+    }
+    
+    .window-control {
+        width: 28px;
+        height: 24px;
+        font-size: 12px;
+    }
+    
+    /* Mobile: make windows full screen by default */
+    .window:not(.modal) {
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: calc(100vh - 48px) !important;
+        border-radius: 0;
+    }
+}
+
+/* Accessibility */
+.window:focus-within {
+    outline: 2px solid rgba(233, 69, 96, 0.5);
+    outline-offset: -2px;
+}
+
+.window-control:focus {
+    outline: 1px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 1px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .window {
+        border-color: #ffffff;
+        background: #000000;
+    }
+    
+    .window-titlebar {
+        background: #333333;
+        border-bottom-color: #ffffff;
+    }
+    
+    .window-title {
+        color: #ffffff;
+    }
+}
+
+/* Window Snapping */
+.snap-preview {
+    position: fixed;
+    background: rgba(100, 149, 237, 0.3);
+    border: 2px solid rgba(100, 149, 237, 0.8);
+    pointer-events: none;
+    z-index: 10000;
+    border-radius: 8px;
+    backdrop-filter: blur(2px);
+    box-shadow: 0 4px 20px rgba(100, 149, 237, 0.4);
+    animation: snapPreviewPulse 0.3s ease-in-out;
+}
+
+@keyframes snapPreviewPulse {
+    0% { 
+        opacity: 0; 
+        transform: scale(0.95); 
+    }
+    100% { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+/* Snapped Window Styles */
+.window-snapped {
+    border-radius: 0 !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    pointer-events: auto; /* Keep window functional */
+    transform: none !important; /* Prevent any transforms */
+    perspective: none !important; /* Disable 3D transforms */
+}
+
+.window-snapped * {
+    cursor: default !important; /* Override all cursor styles */
+    transform: none !important; /* Prevent child transforms */
+    perspective: none !important; /* Disable 3D transforms on children */
+}
+
+.window-snapped:hover,
+.window-snapped:focus,
+.window-snapped:active {
+    transform: none !important; /* Disable any hover transforms */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important; /* Keep original shadow */
+    animation: none !important; /* Disable animations */
+    transition: none !important; /* Disable transitions on hover */
+    perspective: none !important; /* Disable 3D perspective */
+}
+
+/* Disable ALL possible hover effects on snapped windows */
+.window-snapped > *:hover,
+.window-snapped > * > *:hover,
+.window-snapped .window-content > *:hover {
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+    perspective: none !important;
+}
+
+/* Prevent any CSS animations or keyframes from affecting snapped windows */
+.window-snapped,
+.window-snapped *,
+.window-snapped::before,
+.window-snapped::after,
+.window-snapped *::before,
+.window-snapped *::after {
+    animation: none !important;
+    transform: none !important;
+    perspective: none !important;
+    transform-style: flat !important;
+}
+
+.window-snapped .window-titlebar {
+    cursor: move !important; /* Keep draggable cursor only on titlebar */
+    border-radius: 0;
+}
+
+.window-snapped .window-titlebar:hover {
+    background: inherit !important; /* Disable hover background changes */
+}
+
+.window-snapped .window-content {
+    border-radius: 0;
+}
+
+.window-snapped .window-content:hover {
+    background: inherit !important; /* Disable hover background changes */
+}
+
+/* Disable resize cursor when snapped */
+.window-snapped .window-resize-handle {
+    display: none !important;
+    cursor: default !important;
+}
+
+/* Improve snapped window appearance */
+.window-snapped::before {
+    border-radius: 0;
+}
+
+/* Responsive snap zones for different screen sizes */
+@media (max-width: 1200px) {
+    .snap-preview {
+        border-width: 1px;
+    }
+}
+
+@media (max-width: 768px) {
+    .snap-preview {
+        background: rgba(100, 149, 237, 0.4);
+        border-width: 2px;
+    }
+}

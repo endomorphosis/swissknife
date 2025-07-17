@@ -5,7 +5,7 @@ import {
     ModelGenerateInput, 
     ModelGenerateOutput 
 } from '@src/types/ai';
-import { Status } from '@src/types/common';
+import { StatusEnum } from '@src/types/common';
 
 export type { IModel, ModelOptions, ModelGenerateInput, ModelGenerateOutput };
 
@@ -73,7 +73,7 @@ export class BaseModel implements IModel {
     
     return {
       content: outputContent,
-      status: Status.COMPLETED, // Assuming Status enum from common.ts
+      status: StatusEnum.COMPLETED, // Assuming Status enum from common.ts
       modelUsed: this.id,
       usage,
       cost: 0.0001, // Placeholder cost

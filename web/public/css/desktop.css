@@ -1,0 +1,810 @@
+/* SwissKnife Web Desktop - Main Styling */
+
+/* CSS Variables */
+:root {
+    --bg-color: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-hover: #0f3460;
+    --surface-color: #0f3460;
+    --border-color: #e94560;
+    --text-color: #eee;
+    --text-secondary: #ccc;
+    --accent-color: #e94560;
+    --accent-color-dark: #cc3a57;
+    --success-color: #28a745;
+    --success-color-hover: #218838;
+    --warning-color: #ffc107;
+    --warning-color-hover: #e0a800;
+    --error-color: #dc3545;
+    --error-color-hover: #c82333;
+    --error-color-rgb: 220, 53, 69;
+    --info-color: #17a2b8;
+    --info-color-hover: #138496;
+    --secondary-color: #6c757d;
+}
+
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    font-family: 'Segoe UI', 'Liberation Sans', 'DejaVu Sans', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg-color);
+    color: var(--text-color);
+    user-select: none;
+}
+
+/* Desktop Environment */
+.desktop {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.desktop-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop&q=80') center/cover no-repeat;
+    background-attachment: fixed;
+    transition: background-image 0.5s ease-in-out;
+}
+
+.desktop-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(1px);
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Desktop Icons */
+.desktop-icons {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, 80px);
+    grid-template-rows: repeat(auto-fit, 100px);
+    gap: 20px;
+    z-index: 10;
+    max-height: calc(100vh - 120px);
+    overflow: hidden;
+    justify-content: start;
+    align-content: start;
+}
+
+.icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 80px;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.icon:hover {
+    background: rgba(220, 53, 69, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4), 0 0 8px rgba(220, 53, 69, 0.3);
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.icon:hover .icon-label {
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.icon:active {
+    transform: translateY(0);
+    background: rgba(220, 53, 69, 0.4);
+}
+
+.icon-image {
+    font-size: 32px;
+    margin-bottom: 4px;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.icon-label {
+    font-size: 11px;
+    text-align: center;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    word-wrap: break-word;
+}
+
+/* System Panel (Taskbar) */
+.system-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    z-index: 1000;
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.3);
+}
+
+.system-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, 
+        rgba(255, 255, 255, 0.05) 0%, 
+        rgba(255, 255, 255, 0.02) 100%);
+    pointer-events: none;
+}
+
+.panel-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.panel-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.system-menu-button {
+    width: 36px;
+    height: 36px;
+    background: #ff0000;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.system-menu-button:hover {
+    background: #cc0000;
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.swiss-flag-square.active {
+    box-shadow: 0 0 12px rgba(255, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.3);
+    background: #ff3333;
+}
+
+.taskbar-apps {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    height: 100%;
+}
+
+.taskbar-app {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(15, 52, 96, 0.6);
+    border: 1px solid rgba(233, 69, 96, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    max-width: 200px;
+    overflow: hidden;
+}
+
+.taskbar-app:hover {
+    background: rgba(15, 52, 96, 0.8);
+    color: #ffffff;
+}
+
+.taskbar-app.active {
+    background: rgba(233, 69, 96, 0.3);
+    border-color: rgba(233, 69, 96, 0.6);
+}
+
+.taskbar-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    max-width: 180px;
+    min-width: 120px;
+}
+
+.taskbar-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.taskbar-item.active {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.taskbar-item.minimized {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    opacity: 0.7;
+}
+
+.taskbar-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.taskbar-label {
+    font-size: 13px;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+/* System Status */
+.system-status {
+    display: flex;
+    gap: 8px;
+}
+
+.status-indicator {
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-indicator:hover {
+    background: rgba(233, 69, 96, 0.2);
+}
+
+.status-indicator.active {
+    color: #4CAF50;
+}
+
+.status-indicator.inactive {
+    color: #666;
+}
+
+.status-indicator.error {
+    color: #f44336;
+}
+
+.system-time {
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    min-width: 80px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.system-time-main {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.system-time-date {
+    font-size: 10px;
+    opacity: 0.8;
+    line-height: 1;
+}
+
+.system-time-zone {
+    font-size: 9px;
+    opacity: 0.6;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+/* System Menu positioning and styling handled by aero-enhanced.css */
+
+.system-menu::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.04) 50%, 
+        rgba(255, 255, 255, 0.02) 100%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.menu-section {
+    padding: 8px 0;
+}
+
+.menu-title {
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(233, 69, 96, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.menu-item:hover {
+    background: rgba(233, 69, 96, 0.3);
+    color: #ffffff;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.menu-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 4px 8px;
+}
+
+/* Context Menu - Enhanced Aero Tinted Glass */
+.context-menu {
+    position: fixed;
+    background: rgba(20, 25, 35, 0.8);
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 
+                0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    z-index: 2000;
+    min-width: 200px;
+    overflow: hidden;
+    animation: contextSlide 0.2s ease-out;
+    position: relative;
+}
+
+.context-menu::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.04) 50%, 
+        rgba(255, 255, 255, 0.02) 100%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes contextSlide {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.context-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    position: relative;
+    overflow: hidden;
+}
+
+.context-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(220, 53, 69, 0.3) 50%, 
+        transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.context-item:hover::before {
+    transform: translateX(0);
+}
+
+.context-item:hover {
+    background: rgba(220, 53, 69, 0.25);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.context-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 2px 6px;
+}
+
+/* Context Menu Items - for new taskbar context menus */
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    position: relative;
+    overflow: hidden;
+}
+
+.context-menu-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(220, 53, 69, 0.3) 50%, 
+        transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.context-menu-item:hover::before {
+    transform: translateX(0);
+}
+
+.context-menu-item:hover {
+    background: rgba(220, 53, 69, 0.25);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.context-menu-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 4px 8px;
+}
+
+/* Modal overlay for dialogs */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+.modal-content {
+    background: rgba(20, 25, 35, 0.95);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #e94560;
+}
+
+.modal-content button {
+    background: #e94560;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: background 0.2s ease;
+}
+
+.modal-content button:hover {
+    background: #d63384;
+}
+
+/* Loading Screen - Hidden to allow custom splash screen */
+.loading-screen {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+.loading-content {
+    text-align: center;
+    max-width: 600px;
+}
+
+.loading-logo .ascii-art {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    line-height: 1;
+    color: #e94560;
+    margin-bottom: 20px;
+    white-space: pre;
+}
+
+.loading-text h2 {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: #ffffff;
+}
+
+.loading-text p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 20px;
+}
+
+.loading-progress {
+    width: 100%;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(233, 69, 96, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e94560, #0f3460);
+    border-radius: 2px;
+    width: 0%;
+    animation: progressFill 3s ease-in-out forwards;
+}
+
+@keyframes progressFill {
+    to { width: 100%; }
+}
+
+.loading-status {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'Courier New', monospace;
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+/* Swiss Flag Square Button */
+.swiss-flag-square {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: #ff0000;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    position: relative;
+    user-select: none;
+}
+
+.swiss-flag-square:hover {
+    background: #ff3333;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.swiss-flag-square:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    background: #cc0000;
+}
+
+.swiss-flag-icon {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flag-cross-horizontal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 3px;
+    background: white;
+    border-radius: 1px;
+    z-index: 2;
+}
+
+.flag-cross-vertical {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 3px;
+    height: 18px;
+    background: white;
+    border-radius: 1px;
+    z-index: 2;
+}
+
+/* Enhanced system menu button styling */
+.system-menu-button {
+    user-select: none;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+.fade-out {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .desktop-icons {
+        grid-template-columns: repeat(auto-fill, 60px);
+        gap: 15px;
+    }
+    
+    .icon {
+        width: 60px;
+        padding: 6px;
+    }
+    
+    .icon-image {
+        font-size: 24px;
+    }
+    
+    .icon-label {
+        font-size: 10px;
+    }
+    
+    .system-panel {
+        height: 44px;
+        padding: 0 8px;
+    }
+    
+    .system-menu {
+        width: 200px;
+    }
+    
+    .swiss-flag-square {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .swiss-flag-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .flag-cross-horizontal {
+        width: 14px;
+        height: 2px;
+    }
+    
+    .flag-cross-vertical {
+        width: 2px;
+        height: 14px;
+    }
+    
+    .taskbar-item {
+        padding: 4px 8px;
+        min-width: 80px;
+        max-width: 120px;
+    }
+    
+    .taskbar-label {
+        font-size: 11px;
+    }
+    
+    .taskbar-icon {
+        font-size: 14px;
+    }
+}

@@ -17,8 +17,9 @@ import '../css/strudel.css';
 import { StliteManager } from './core/stlite-manager';
 import { BrowserStorageAdapter } from './adapters/browser-storage-adapter';
 import { initializeErrorLogger, logError } from './utils/error-logger';
-import SwissKnifeBrowser from '../js/swissknife-browser'; // Import SwissKnifeBrowser
+import SwissKnifeBrowser from './swissknife-browser'; // Import SwissKnifeBrowser
 import { Desktop as SwissKnifeDesktop } from './desktop-core'; // Import the main desktop core
+import { vfsApi } from './api/vfs-api'; // Import vfsApi
 
 // Enhanced Streamlit Editor
 import { StreamlitEditor } from './apps/streamlit-editor';
@@ -39,6 +40,14 @@ class UnifiedSwissKnifeApp {
 
     private async init() {
         console.log('🚀 UNIFIED: Initializing enhanced SwissKnife Web Desktop...');
+
+        // Example: Use vfsApi to list files
+        try {
+            const lsResult = await vfsApi.ls('/');
+            console.log('VFS API ls / result:', lsResult);
+        } catch (error) {
+            console.error('Error using VFS API ls:', error);
+        }
 
         // Initialize SwissKnifeBrowser
         await this.swissknife.initialize({
@@ -80,6 +89,10 @@ class UnifiedSwissKnifeApp {
                 
                 if (app === 'vibecode') {
                     this.launchUnifiedStreamlitEditor();
+                } else if (app === 'api-keys') {
+                    this.desktop.launchApp(app, APIKeysApp);
+                } else if (app === 'strudel') {
+                    this.desktop.launchApp(app, GrandmaStrudelDAW);
                 } else {
                     // Use the desktop's launchApp for other applications
                     this.desktop.launchApp(app);

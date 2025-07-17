@@ -5,13 +5,8 @@
  * This file contains JSDoc type definitions that are used across multiple modules.
  */
 
-/**
- * @typedef {string} CID - Content-addressable identifier
- */
-
-/**
- * @typedef {string} TaskID - Unique identifier for a task
- */
+export type CID = string;
+export type TaskID = string;
 
 /**
  * @typedef {string} GoTNodeID - Unique identifier for a Graph of Thought node
@@ -67,15 +62,16 @@ export const SortDirection = {
 
 /**
  * Status enumeration for asynchronous operations
- * @enum {string}
  */
-export const Status = {
+export type Status = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+export const StatusEnum = {
   PENDING: 'pending',
   RUNNING: 'running',
   COMPLETED: 'completed',
   FAILED: 'failed',
   CANCELLED: 'cancelled'
-};
+} as const;
 
 /**
  * Priority levels enumeration
@@ -93,7 +89,7 @@ export const Priority = {
  * @param {*} value - Value to check
  * @returns {boolean} - True if the value is a JSON object
  */
-export function isJSONObject(value) {
+export function isJSONObject(value: any): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
@@ -102,12 +98,12 @@ export function isJSONObject(value) {
  * @param {*} value - Value to check
  * @returns {boolean} - True if the value is a JSON array
  */
-export function isJSONArray(value: any) {
+export function isJSONArray(value: any): value is any[] {
   return Array.isArray(value);
 }
 
 export default {
-  Status,
+  Status: StatusEnum,
   Priority,
   SortDirection,
   isJSONObject,

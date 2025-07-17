@@ -1,0 +1,60 @@
+
+/* Aero Glass Theme for SwissKnife Web Desktop */
+
+/* Window Styling */
+.window {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+}
+
+.window-titlebar {
+    background: rgba(0, 0, 0, 0.2);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* File Manager App */
+.file-manager-app {
+    background: transparent;
+    color: #fff; 
+}
+
+.file-manager-toolbar {
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.file-manager-sidebar {
+    background: rgba(0, 0, 0, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.file-list-container {
+    background: transparent;
+}
+
+.file-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.file-item.selected {
+    background: rgba(0, 120, 215, 0.5);
+    border-color: rgba(0, 120, 215, 0.8);
+}
+
+.file-name, .file-size, .file-modified, .file-hash {
+    color: #f0f0f0;
+}
+
+.file-list.list-view .file-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.file-list.grid-view .file-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}

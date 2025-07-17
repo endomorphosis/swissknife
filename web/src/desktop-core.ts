@@ -1,13 +1,26 @@
 
 
-import SwissKnife from '../js/swissknife-browser.js';
-import DesktopEnhancer from '../js/desktop-enhancer.js';
-import React from 'react';
+
+
 import { createRoot } from 'react-dom/client';
-import ErrorLogViewer from './components/ErrorLogViewer';
-import ConversationHistoryViewer from './components/ConversationHistoryViewer';
+// import ErrorLogViewer from './components/ErrorLogViewer';
+// import ConversationHistoryViewer from './components/ConversationHistoryViewer';
 import { Conversation } from './adapters/browser-ai-adapter';
 import { ConfigManagerApp } from './apps/ConfigManagerApp';
+import { APIKeysApp } from './apps/api-keys';
+import { GrandmaStrudelDAW } from './apps/strudel-grandma';
+// import AIChatApp from './apps/AIChatApp';
+import FileManagerApp from './apps/FileManagerApp';
+import TaskManagerApp from './apps/TaskManagerApp';
+import ModelBrowserApp from './apps/ModelBrowserApp';
+import IPFSExplorerApp from './apps/IPFSExplorerApp';
+import SettingsApp from './apps/SettingsApp';
+import CronApp from './apps/CronApp';
+import DeviceManagerApp from './apps/DeviceManagerApp';
+import NaviApp from './apps/NaviApp';
+import PhasedCleanupApp from './apps/PhasedCleanupApp';
+import { MCPManager } from './apps/MCPManager';
+import { StreamlitEditor } from './apps/streamlit-editor';
     export class SwissKnifeDesktop {
     windows: Map<string, any>;
     windowCounter: number;
@@ -25,9 +38,7 @@ import { ConfigManagerApp } from './apps/ConfigManagerApp';
         this.windowCounter = 0;
         this.activeWindow = null;
         this.apps = new Map();
-        this.swissknife = SwissKnife;
         this.isSwissKnifeReady = false;
-        this.enhancer = null;
         this.currentTheme = 'day'; // 'day' or 'sunset'
         
         this.init();
@@ -60,8 +71,7 @@ import { ConfigManagerApp } from './apps/ConfigManagerApp';
             // Continue with limited functionality
         }
         
-        // Initialize desktop enhancer
-        await this.initializeEnhancer();
+        
         
         // Initialize desktop components
         this.initializeDesktop();
@@ -153,15 +163,7 @@ import { ConfigManagerApp } from './apps/ConfigManagerApp';
         this.setupWindowManagement();
     }
     
-    async initializeEnhancer() {
-        // Initialize desktop enhancer for Aero effects, window snapping, etc.
-        try {
-            this.enhancer = new DesktopEnhancer();
-            console.log('Desktop enhancer initialized successfully');
-        } catch (error) {
-            console.error('Failed to initialize desktop enhancer:', error);
-        }
-    }
+    
     
     initializeTheme() {
         // Check for saved theme preference
@@ -236,113 +238,113 @@ import { ConfigManagerApp } from './apps/ConfigManagerApp';
         });
         console.log('✅ Registered terminal app');
         
-        this.apps.set('vibecode', {
-            name: 'VibeCode Editor',
-            icon: '📝',
-            component: 'VibeCodeApp',
-            singleton: false
-        });
+        // this.apps.set('vibecode', {
+        //     name: 'VibeCode Editor',
+        //     icon: '📝',
+        //     component: 'VibeCodeApp',
+        //     singleton: false
+        // });
         
-        this.apps.set('ai-chat', {
-            name: 'AI Chat',
-            icon: '🤖',
-            component: 'AIChatApp',
-            singleton: false
-        });
+        // this.apps.set('ai-chat', {
+        //     name: 'AI Chat',
+        //     icon: '🤖',
+        //     component: 'AIChatApp',
+        //     singleton: false
+        // });
         
-        this.apps.set('file-manager', {
-            name: 'File Manager',
-            icon: '📁',
-            component: 'FileManagerApp',
-            singleton: true
-        });
+        // this.apps.set('file-manager', {
+        //     name: 'File Manager',
+        //     icon: '📁',
+        //     component: 'FileManagerApp',
+        //     singleton: true
+        // });
         
-        this.apps.set('task-manager', {
-            name: 'Task Manager',
-            icon: '⚡',
-            component: 'TaskManagerApp',
-            singleton: true
-        });
+        // this.apps.set('task-manager', {
+        //     name: 'Task Manager',
+        //     icon: '⚡',
+        //     component: 'TaskManagerApp',
+        //     singleton: true
+        // });
         
-        this.apps.set('model-browser', {
-            name: 'Model Browser',
-            icon: '🧠',
-            component: 'ModelBrowserApp',
-            singleton: true
-        });
+        // this.apps.set('model-browser', {
+        //     name: 'Model Browser',
+        //     icon: '🧠',
+        //     component: 'ModelBrowserApp',
+        //     singleton: true
+        // });
         
-        this.apps.set('ipfs-explorer', {
-            name: 'IPFS Explorer',
-            icon: '🌐',
-            component: 'IPFSExplorerApp',
-            singleton: true
-        });
+        // this.apps.set('ipfs-explorer', {
+        //     name: 'IPFS Explorer',
+        //     icon: '🌐',
+        //     component: 'IPFSExplorerApp',
+        //     singleton: true
+        // });
         
-        this.apps.set('settings', {
-            name: 'Settings',
-            icon: '⚙️',
-            component: 'SettingsApp',
-            singleton: true
-        });
+        // this.apps.set('settings', {
+        //     name: 'Settings',
+        //     icon: '⚙️',
+        //     component: 'SettingsApp',
+        //     singleton: true
+        // });
 
-        this.apps.set('mcp-control', {
-            name: 'MCP Control',
-            icon: '🔌',
-            component: 'MCPControlApp',
-            singleton: true
-        });
+        // this.apps.set('mcp-control', {
+        //     name: 'MCP Control',
+        //     icon: '🔌',
+        //     component: 'MCPControlApp',
+        //     singleton: true
+        // });
 
-        this.apps.set('api-keys', {
-            name: 'API Keys',
-            icon: '🔑',
-            component: 'APIKeysApp',
-            singleton: true
-        });
+        // this.apps.set('api-keys', {
+        //     name: 'API Keys',
+        //     icon: '🔑',
+        //     component: 'APIKeysApp',
+        //     singleton: true
+        // });
 
-        this.apps.set('cron', {
-            name: 'AI Cron Scheduler',
-            icon: '⏰',
-            component: 'CronApp',
-            singleton: true
-        });
+        // this.apps.set('cron', {
+        //     name: 'AI Cron Scheduler',
+        //     icon: '⏰',
+        //     component: 'CronApp',
+        //     singleton: true
+        // });
 
-        this.apps.set('device-manager', {
-            name: 'Device Manager',
-            icon: '🔧',
-            component: 'DeviceManagerApp',
-            singleton: true
-        });
-        console.log('✅ Registered device-manager app');
+        // this.apps.set('device-manager', {
+        //     name: 'Device Manager',
+        //     icon: '🔧',
+        //     component: 'DeviceManagerApp',
+        //     singleton: true
+        // });
+        // console.log('✅ Registered device-manager app');
 
-        this.apps.set('navi', {
-            name: 'NAVI',
-            icon: '<img src="/assets/icons/navi-icon.png" style="width: 24px; height: 24px; border-radius: 4px;">',
-            component: 'NaviApp',
-            singleton: true
-        });
-        console.log('✅ Registered navi app');
+        // this.apps.set('navi', {
+        //     name: 'NAVI',
+        //     icon: '<img src="/assets/icons/navi-icon.png" style="width: 24px; height: 24px; border-radius: 4px;">',
+        //     component: 'NaviApp',
+        //     singleton: true
+        // });
+        // console.log('✅ Registered navi app');
 
-        this.apps.set('strudel', {
-            name: '🎵 Music Studio',
-            icon: '🎵',
-            component: 'GrandmaStrudelDAW',
-            singleton: false
-        });
-        console.log('✅ Registered strudel app');
+        // this.apps.set('strudel', {
+        //     name: '🎵 Music Studio',
+        //     icon: '🎵',
+        //     component: 'GrandmaStrudelDAW',
+        //     singleton: false
+        // });
+        // console.log('✅ Registered strudel app');
 
-        this.apps.set('phased-cleanup', {
-            name: '🧹 Phased Cleanup',
-            icon: '🧹',
-            component: 'PhasedCleanupApp',
-            singleton: true
-        });
+        // this.apps.set('phased-cleanup', {
+        //     name: '🧹 Phased Cleanup',
+        //     icon: '🧹',
+        //     component: 'PhasedCleanupApp',
+        //     singleton: true
+        // });
 
-        this.apps.set('error-logs', {
-            name: 'Error Logs',
-            icon: '❌',
-            component: 'ErrorLogApp',
-            singleton: true
-        });
+        // this.apps.set('error-logs', {
+//     name: 'Error Logs',
+//     icon: '❌',
+//     component: 'ErrorLogApp',
+//     singleton: true
+// });
         console.log('✅ Registered phased-cleanup app');
         
         console.log('📱 Total apps registered:', this.apps.size);
@@ -570,42 +572,72 @@ import { ConfigManagerApp } from './apps/ConfigManagerApp';
                     appInstance = new TerminalApp(contentElement, this);
                     break;
                     
-                case 'devicemanagerapp':console.log('🔧 Loading Device Manager app...');                    // Device Managerthis.loadDeviceManagerApp(contentElement);                    break;                    case 'naviapp':console.log('🤖 Loading NAVI app...');                    // NAVI App - loads the chat applicationthis.loadNaviApp(contentElement);                    break;                    case 'aichatapp':// Placeholder for AI Chat appcontentElement.innerHTML = `                        <div class="app-placeholder">                            <h2>🤖 AI Chat</h2>                            <p>AI Chat functionality will be implemented here.</p>                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>                        </div>                    `;                    break;                    case 'filemanagerapp':// Placeholder for File ManagercontentElement.innerHTML = `                        <div class="app-placeholder">                            <h2>📁 File Manager</h2>                            <p>File management functionality will be implemented here.</p>                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>                        </div>                    `;                    break;                    case 'vibecodeapp':// Placeholder for VibeCodecontentElement.innerHTML = `                        <div class="app-placeholder">                            <h2>💻 VibeCode</h2>                            <p>WebNN/WebGPU powered code editor will be implemented here.</p>                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>                        </div>                    `;                    break;                    case 'settingsapp':// Placeholder for SettingscontentElement.innerHTML = `                        <div class="app-placeholder">                            <h2>⚙️ Settings</h2>                            <p>Configuration settings will be implemented here.</p>                            <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>                        </div>                    `;                    break;                    case 'apikeysapp':// API Keys Managerthis.loadAPIKeysApp(contentElement);                    break;                    case 'mcpcontrolapp':// MCP Control Panelthis.loadMCPControlApp(contentElement);                    break;                    case 'taskmanagerapp':// Task Managerthis.loadTaskManagerApp(contentElement);                    break;                    case 'modelbrowserapp':// Model Browserthis.loadModelBrowserApp(contentElement);                    break;                    case 'ipfsexplorerapp':// IPFS Explorerthis.loadIPFSExplorerApp(contentElement);                    break;                    case 'cronapp':// AI Cron Schedulerthis.loadCronApp(contentElement);                    break;                    case 'phasedcleanupapp':console.log('🧹 Loading Phased Cleanup app...');                    const PhasedCleanupModule = await import('./apps/PhasedCleanupApp');                    const PhasedCleanupApp = PhasedCleanupModule.default;                    appInstance = new PhasedCleanupApp();                    appInstance.render(contentElement);                    break;                case 'conversationhistoryapp':console.log('💬 Loading Conversation History app...');                    this.loadConversationHistoryApp(contentElement);                    break;
+                case 'devicemanagerapp':
+                    console.log('🔧 Loading Device Manager app...');
+                    createRoot(contentElement).render(React.createElement(DeviceManagerApp));
+                    break;                    case 'naviapp':
+                    console.log('🤖 Loading NAVI app...');
+                    createRoot(contentElement).render(React.createElement(NaviApp));
+                    break;                    //                 case 'aichatapp':
+//                     console.log('🤖 Loading AI Chat app...');
+//                     createRoot(contentElement).render(React.createElement(AIChatApp));
+//                     break;                    //                 case 'filemanagerapp':
+//                     console.log('📁 Loading File Manager app...');
+//                     createRoot(contentElement).render(React.createElement(FileManagerApp));
+//                     break;                    case 'vibecodeapp': // This is the StreamlitEditor
+                    console.log('📝 Loading VibeCode (Streamlit Editor) app...');
+                    const streamlitEditorApp = new StreamlitEditor({
+                        swissknife: this.swissknife,
+                        stlite: (window as any).stliteManager, // Access stliteManager from global window
+                        windows: this // Pass the desktop instance
+                    });
+                    streamlitEditorApp.onMount(contentElement);
+                    appInstance = streamlitEditorApp;
+                    break;                    case 'settingsapp':
+                    console.log('⚙️ Loading Settings app...');
+                    createRoot(contentElement).render(React.createElement(SettingsApp));
+                    break;                                        case 'mcpcontrolapp':
+                    console.log('🔌 Loading MCP Control app...');
+                    createRoot(contentElement).render(React.createElement(MCPManager));
+                    break;                    case 'taskmanagerapp':
+                    console.log('⚡ Loading Task Manager app...');
+                    createRoot(contentElement).render(React.createElement(TaskManagerApp));
+                    break;                    case 'modelbrowserapp':
+                    console.log('🧠 Loading Model Browser app...');
+                    createRoot(contentElement).render(React.createElement(ModelBrowserApp));
+                    break;                    case 'ipfsexplorerapp':
+                    console.log('🌐 Loading IPFS Explorer app...');
+                    createRoot(contentElement).render(React.createElement(IPFSExplorerApp));
+                    break;                    case 'cronapp':
+                    console.log('⏰ Loading AI Cron app...');
+                    createRoot(contentElement).render(React.createElement(CronApp));
+                    break;                    case 'phasedcleanupapp':
+                    console.log('🧹 Loading Phased Cleanup app...');
+                    createRoot(contentElement).render(React.createElement(PhasedCleanupApp));
+                    break;                //                 case 'conversationhistoryapp':
+//                     console.log('💬 Loading Conversation History app...');
+//                     createRoot(contentElement).render(React.createElement(ConversationHistoryViewer, {
+//                         aiAdapter: this.swissknife.ai,
+//                         onConversationLoad: (conversation: Conversation) => {
+//                             console.log('Loading conversation:', conversation);
+//                         }
+//                     }));
+//                     break;
 
                 case 'grandmastrudeldaw':
                     console.log('🎵 Loading Grandma-Friendly Music Studio...');
-                    
-                    // Check if GrandmaStrudelDAW is already loaded globally
-                    if (window.GrandmaStrudelDAW && typeof window.GrandmaStrudelDAW === 'function') {
-                        console.log('✅ Using globally available GrandmaStrudelDAW');
-                        try {
-                            appInstance = new window.GrandmaStrudelDAW();
-                            // Store reference for tutorial
-                            window.strudelDAW = appInstance;
-                            await appInstance.start(contentElement);
-                        } catch (constructorError) {
-                            console.error('❌ Constructor error with GrandmaStrudelDAW:', constructorError);
-                            throw constructorError;
-                        }
-                    } else {
-                        console.log('⚠️ GrandmaStrudelDAW not found globally, trying dynamic import...');
-                        try {
-                            const StrudelModule = await import('../js/apps/strudel-grandma.js');
-                            console.log('📦 Imported grandma module:', StrudelModule);
-                            const GrandmaStrudelDAW = StrudelModule.default || StrudelModule.GrandmaStrudelDAW || window.GrandmaStrudelDAW;
-                            if (GrandmaStrudelDAW && typeof GrandmaStrudelDAW === 'function') {
-                                appInstance = new GrandmaStrudelDAW();
-                                window.strudelDAW = appInstance;
-                                await appInstance.start(contentElement);
-                            } else {
-                                throw new Error('GrandmaStrudelDAW is not a valid constructor');
-                            }
-                        } catch (importError) {
-                            console.error('❌ Failed to import GrandmaStrudelDAW:', importError);
-                            throw new Error(`Failed to load Music Studio: ${importError.message}`);
-                        }
+                    try {
+                        const StrudelModule = await import('./apps/strudel-grandma');
+                        const GrandmaStrudelDAW = StrudelModule.GrandmaStrudelDAW;
+                        appInstance = new GrandmaStrudelDAW();
+                        await appInstance.start(contentElement);
+                    } catch (error) {
+                        console.error('❌ Failed to load GrandmaStrudelDAW:', error);
+                        throw new Error(`Failed to load Music Studio: ${error.message}`);
                     }
                     break;
+
+                
                     
                 default:
                     throw new Error(`Unknown app component: ${componentName}`);
@@ -1910,10 +1942,10 @@ import { ConfigManagerApp } from './apps/ConfigManagerApp';
         console.log(`Loaded ${savedCrons.filter(c => c.status === 'active').length} active cron jobs`);
     }
 
-    loadErrorLogApp(contentElement: HTMLElement) {
-        const root = ReactDOM.createRoot(contentElement);
-        root.render(React.createElement(ErrorLogViewer));
-    }
+    // loadErrorLogApp(contentElement: HTMLElement) {
+//     const root = ReactDOM.createRoot(contentElement);
+//     root.render(React.createElement(ErrorLogViewer));
+// }
 
     loadConversationHistoryApp(contentElement: HTMLElement) {
         const root = ReactDOM.createRoot(contentElement);
@@ -1930,68 +1962,7 @@ import { ConfigManagerApp } from './apps/ConfigManagerApp';
         }));
     }
     
-    loadAPIKeysApp(contentElement) {
-        contentElement.innerHTML = `\
-            <div class="api-keys-app">\
-                <div class="app-header">\
-                    <h2>🔑 API Key Manager</h2>\
-                    <p>Manage your API keys for various services</p>\
-                </div>\
-                \
-                <div class="api-keys-content">\
-                    <div class="api-keys-list">\
-                        <div class="api-key-item">\
-                            <div class="api-key-service">🤖 OpenAI</div>\
-                            <div class="api-key-status">\
-                                <span class="status-indicator ${localStorage.getItem('swissknife_openai_key') ? 'active' : 'inactive'}">\
-                                    ${localStorage.getItem('swissknife_openai_key') ? 'Configured' : 'Not Set'}\
-                                </span>\
-                            </div>\
-                            <div class="api-key-actions">\
-                                <button class="btn-small" onclick="this.closest('.api-keys-app').querySelector('#openai-key-input').style.display='block'">\
-                                    ${localStorage.getItem('swissknife_openai_key') ? 'Update' : 'Set'}\
-                                </button>\
-                                ${localStorage.getItem('swissknife_openai_key') ? '<button class="btn-small btn-danger" onclick="localStorage.removeItem(\'swissknife_openai_key\'); location.reload();">Remove</button>' : ''}\
-                            </div>\
-                        </div>\
-                        \
-                        <div class="api-key-input-group" id="openai-key-input" style="display: none;">\
-                            <input type="password" id="openai-key" placeholder="Enter your OpenAI API key" value="${localStorage.getItem('swissknife_openai_key') || ''}">\
-                            <button onclick="localStorage.setItem('swissknife_openai_key', document.getElementById('openai-key').value); location.reload();" class="btn-primary">Save</button>\
-                            <button onclick="document.getElementById('openai-key-input').style.display='none'" class="btn-secondary">Cancel</button>\
-                        </div>\
-                        \
-                        <div class="api-key-item">\
-                            <div class="api-key-service">🧠 Anthropic</div>\
-                            <div class="api-key-status">\
-                                <span class="status-indicator inactive">Not Set</span>\
-                            </div>\
-                            <div class="api-key-actions">\
-                                <button class="btn-small">Set</button>\
-                            </div>\
-                        </div>\
-                        \
-                        <div class="api-key-item">\
-                            <div class="api-key-service">🌐 IPFS</div>\
-                            <div class="api-key-status">\
-                                <span class="status-indicator inactive">Not Connected</span>\
-                            </div>\
-                            <div class="api-key-actions">\
-                                <button class="btn-small">Configure</button>\
-                            </div>\
-                        </div>\
-                    </div>\
-                    \
-                    <div class="api-keys-help">\
-                        <h3>📖 Help</h3>\
-                        <p>• API keys are stored locally in your browser</p>\
-                        <p>• Keys are never transmitted except to their respective services</p>\
-                        <p>• You can remove keys at any time</p>\
-                    </div>\
-                </div>\
-            </div>\
-        `;
-    }
+    
     
     loadMCPControlApp(contentElement) {
         contentElement.innerHTML = `\
