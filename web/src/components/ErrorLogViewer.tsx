@@ -3,7 +3,7 @@ import { getErrorLogs, clearErrorLogs } from '../utils/error-logger';
 import { ErrorLogEntry } from '../types/error-types';
 
 const ErrorLogViewer: React.FC = () => {
-  const [logs, setLogs] = React.useState<ErrorLogEntry[]>([]);
+  const [logs, setLogs] = useState<ErrorLogEntry[]>([]);
 
   useEffect(() => {
     const fetchLogs = async () => {

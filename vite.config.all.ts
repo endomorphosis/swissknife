@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env.BUILD_TARGET': JSON.stringify('web'),
         'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development'),
+        global: 'window',
       },
       root: resolve(__dirname, 'web'),
       build: {
@@ -53,17 +54,14 @@ export default defineConfig(({ mode }) => {
         emptyOutDir: true,
         rollupOptions: {
           input: {
-            main: resolve(__dirname, 'web/templates/unified.html'),
-            'desktop-core': resolve(__dirname, 'web/src/desktop-core.ts'),
-            'web-js': resolve(__dirname, 'web/js/main.js'), // Assuming main.js is the primary entry for old JS
-            'web-css': resolve(__dirname, 'web/css/aero.css'), // Assuming aero.css is a primary CSS entry
+            main: resolve(__dirname, 'web/index.html'),
           },
           output: {
             entryFileNames: `assets/[name].[hash].js`,
             chunkFileNames: `assets/[name].[hash].js`,
             assetFileNames: `assets/[name].[hash].[ext]`,
           },
-           external: ['child_process', 'stubborn-fs', './src/integration/legacy/swissknife-bridge.ts', 'react-dom/client'],
+           external: ['child_process', 'stubborn-fs', './src/integration/legacy/swissknife-bridge.ts'],
         },
       },
       resolve: {
@@ -81,7 +79,7 @@ export default defineConfig(({ mode }) => {
         },
       },
       server: {
-        port: 8080,
+        port: 8000,
         open: true,
         hot: true,
         liveReload: true,
@@ -91,12 +89,12 @@ export default defineConfig(({ mode }) => {
           'Cross-Origin-Embedder-Policy': 'require-corp',
           'Cross-Origin-Opener-Policy': 'same-origin',
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+          'Access-Control-Allow-.methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
           'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
         },
       },
       optimizeDeps: {
-        include: ['react-dom/client', 'xterm', 'react/jsx-runtime'],
+        include: ['react-dom/client', 'xterm'],
       },
       publicDir: resolve(__dirname, 'web/public'),
     };

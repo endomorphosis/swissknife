@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwissKnife Web Desktop</title>
+    <link rel="stylesheet" href="css/desktop.css">
+    <link rel="stylesheet" href="css/windows.css">
+    <link rel="stylesheet" href="css/aero-enhanced.css">
+    <link rel="stylesheet" href="css/terminal.css">
+    <link rel="stylesheet" href="css/apps.css">
+</head>
+<body>
+    <!-- Desktop Environment -->
+    <div id="desktop" class="desktop">
+        <!-- Desktop Background -->
+        <div class="desktop-background"></div>
+        
+        <!-- Desktop Icons -->
+        <div class="desktop-icons">
+            <div class="icon" data-app="terminal" title="SwissKnife Terminal">
+                <div class="icon-image">🖥️</div>
+                <div class="icon-label">Terminal</div>
+            </div>
+            <div class="icon" data-app="vibecode" title="VibeCode Editor">
+                <div class="icon-image">📝</div>
+                <div class="icon-label">VibeCode</div>
+            </div>
+            <div class="icon" data-app="ai-chat" title="AI Chat">
+                <div class="icon-image">🤖</div>
+                <div class="icon-label">AI Chat</div>
+            </div>
+            <div class="icon" data-app="file-manager" title="File Manager">
+                <div class="icon-image">📁</div>
+                <div class="icon-label">Files</div>
+            </div>
+            <div class="icon" data-app="task-manager" title="Task Manager">
+                <div class="icon-image">⚡</div>
+                <div class="icon-label">Tasks</div>
+            </div>
+            <div class="icon" data-app="model-browser" title="Model Browser">
+                <div class="icon-image">🧠</div>
+                <div class="icon-label">Models</div>
+            </div>
+            <div class="icon" data-app="device-manager" title="Device Manager">
+                <div class="icon-image">🔧</div>
+                <div class="icon-label">Devices</div>
+            </div>
+            <div class="icon" data-app="settings" title="Settings">
+                <div class="icon-image">⚙️</div>
+                <div class="icon-label">Settings</div>
+            </div>
+            <div class="icon" data-app="mcp-control" title="MCP Control">
+                <div class="icon-image">🔌</div>
+                <div class="icon-label">MCP Control</div>
+            </div>
+            <div class="icon" data-app="api-keys" title="API Keys">
+                <div class="icon-image">🔑</div>
+                <div class="icon-label">API Keys</div>
+            </div>
+            <div class="icon" data-app="cron" title="AI Cron">
+                <div class="icon-image">⏰</div>
+                <div class="icon-label">AI Cron</div>
+            </div>
+            <div class="icon" data-app="navi" title="NAVI">
+                <div class="icon-image"><img src="/assets/icons/navi-icon.png" style="width: 32px; height: 32px; border-radius: 4px;"></div>
+                <div class="icon-label">NAVI</div>
+            </div>
+            <div class="icon" data-app="peer-manager" title="Peer Manager">
+                <div class="icon-image">🔗</div>
+                <div class="icon-label">Peers</div>
+            </div>
+            <div class="icon" data-app="strudel" title="Strudel Music">
+                <div class="icon-image">🎵</div>
+                <div class="icon-label">Strudel</div>
+            </div>
+        </div>
+        
+        <!-- Windows Container -->
+        <div id="windows-container" class="windows-container"></div>
+        
+        <!-- System Panel/Taskbar -->
+        <div class="system-panel">
+            <div class="panel-left">
+                <div class="system-menu-button swiss-flag-square" id="system-menu-btn">
+                    <div class="swiss-flag-icon">
+                        <div class="flag-cross-horizontal"></div>
+                        <div class="flag-cross-vertical"></div>
+                    </div>
+                </div>
+                <div class="taskbar-apps" id="taskbar-apps"></div>
+            </div>
+            <div class="panel-right">
+                <div class="system-status">
+                    <span id="ai-status" class="status-indicator">🤖</span>
+                    <span id="ipfs-status" class="status-indicator">🌐</span>
+                    <span id="p2p-status" class="status-indicator">🔗</span>
+                    <span id="gpu-status" class="status-indicator">🎮</span>
+                </div>
+                <div class="system-time" id="system-time"></div>
+            </div>
+        </div>
+        
+        <!-- System Menu -->
+        <div id="system-menu" class="system-menu">
+            <div class="menu-section">
+                <div class="menu-title">Applications</div>
+                <div class="menu-item" data-app="terminal">🖥️ Terminal</div>
+                <div class="menu-item" data-app="vibecode">📝 VibeCode</div>
+                <div class="menu-item" data-app="ai-chat">🤖 AI Chat</div>
+                <div class="menu-item" data-app="file-manager">📁 File Manager</div>
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-section">
+                <div class="menu-item" data-app="task-manager">⚡ Task Manager</div>
+                <div class="menu-item" data-app="model-browser">🧠 Model Browser</div>
+                <div class="menu-item" data-app="device-manager">🔧 Device Manager</div>
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-section">
+                <div class="menu-item" data-app="settings">⚙️ Settings</div>
+                <div class="menu-item" data-app="mcp-control">🔌 MCP Control</div>
+                <div class="menu-item" data-app="api-keys">🔑 API Keys</div>
+                <div class="menu-item" data-app="cron">⏰ AI Cron</div>
+                <div class="menu-item" data-app="navi"><img src="/assets/icons/navi-icon.png" style="width: 16px; height: 16px; border-radius: 2px; vertical-align: middle; margin-right: 4px;"> NAVI</div>
+                <div class="menu-item" data-app="peer-manager">🔗 Peer Manager</div>
+                <div class="menu-item" data-app="strudel">🎵 Strudel</div>
+                <div class="menu-item" onclick="showAbout()">ℹ️ About</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <pre class="ascii-art">
+    ██████████╔═════╗██████████
+    ██████████║█████║██████████
+    ██████████║█████║██████████
+    ██████████║█████║██████████
+    ╔═════════╝█████╚═════════╗
+    ║█████████████████████████║
+    ║█████████████████████████║
+    ╚═════════╗█████╔═════════╝
+    ██████████║█████║██████████
+    ██████████║█████║██████████
+    ██████████║█████║██████████
+    ██████████╚═════╝██████████
+███████╗██╗    ██╗██╗███████╗███████╗
+██╔════╝██║    ██║██║██╔════╝██╔════╝
+███████╗██║ █╗ ██║██║███████╗███████╗
+╚════██║██║███╗██║██║╚════██║╚════██║
+███████║╚███╔███╔╝██║███████║███████║
+╚══════╝ ╚══╝╚══╝ ╚═╝╚══════╝╚══════╝
+██╗  ██╗███╗   ██╗██╗███████╗███████╗
+██║ ██╔╝████╗  ██║██║██╔════╝██╔════╝
+█████╔╝ ██╔██╗ ██║██║█████╗  █████╗  
+██╔═██╗ ██║╚██╗██║██║██╔══╝  ██╔══╝  
+██║  ██╗██║ ╚████║██║██║     ███████╗
+╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝╚═╝     ╚══════╝
+                </pre>
+            </div>
+            <div class="loading-text">
+                <h2>SwissKnife Web Desktop</h2>
+                <p>Initializing AI-powered development environment...</p>
+                <div class="loading-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="loading-progress"></div>
+                    </div>
+                    <div class="loading-status" id="loading-status">Starting up...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <div class="context-item" onclick="openTerminalHere()">🖥️ Open Terminal Here</div>
+        <div class="context-item" onclick="createNewFile()">📄 New File</div>
+        <div class="context-item" onclick="createNewFolder()">📁 New Folder</div>
+        <div class="context-separator"></div>
+        <div class="context-item" onclick="refreshDesktop()">🔄 Refresh</div>
+        <div class="context-item" onclick="showDesktopProperties()">⚙️ Properties</div>
+    </div>
+    
+    <!-- Scripts -->
+    <script type="module" src="js/apps/api-keys.js"></script>
+    <script type="module" src="js/apps/strudel-grandma.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

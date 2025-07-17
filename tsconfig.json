@@ -1,1 +1,3 @@
-config/typescript/tsconfig.json
+{
+  "extends": "./web/tsconfig.json"
+}
