@@ -1,6 +1,6 @@
 // FIXME: Complex template literal
 /**;
- * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_hf_\.py;"
+ * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_hf_backslash.py;"
  * Conversion date: 2025-03-11 04:08:52;
  * This file was automatically converted from Python to TypeScript.;
  * Conversion fidelity might not be 100%, please manual review recommended.;
@@ -35,9 +35,9 @@ try ${$1} catch(error) { any)) { any {torch: any: any: any = MagicMock());
 try ${$1} catch(error: any): any {transformers: any: any: any = MagicMock());
   TRANSFORMERS_AVAILABLE: any: any: any = false;
   console.log($1))"Warning: transformers !available, using mock implementation")}"
-class test_hf_\ {
+class test_hf_backslash {
   /**;
- * Test class for ((\;
+ * Test class for test_hf_backslash;
  */;
   
   $1($2) {
@@ -195,7 +195,7 @@ class test_hf_\ {
 if ((($1) {
   try {
     console.log($1))`$1`);
-    test_instance) {any = test_hf_\());
+    test_instance) {any = test_hf_backslash());
     results) { any: any: any = test_instance.__test__());
     console.log($1))`$1`)}
 // Extract implementation status;
