@@ -1458,3 +1458,6 @@ Make it musical and interesting!`,
     generateAISuggestions(window) { /* Implementation */ }
     handleCodeKeyDown(window, e) { /* Implementation */ }
 }
+
+// Export with the expected name for app registration
+export const StrudelAIDAWApp = StrudelAIDAW;
