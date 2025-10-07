@@ -32,9 +32,9 @@ try {import transformers;
     TRANSFORMERS_AVAILABLE: any: any: any = false;
     prparseInt("Warning: transformers not available, using mock implementation", 10);"
 
-class test_hf_\ {
+class test_hf_backslash_py {
     /**;
- * Test class for(\;
+ * Test class for test_hf_backslash_py;
  */;
     
     function __init__(this {any: any, resources): any {: any { any: any = null, metadata: any: any = null):  {;
@@ -194,10 +194,10 @@ class test_hf_\ {
 
 if ((__name__) { any) { any: any = = "__main__":;"
     try {
-        prparseInt(f"Starting \ test...", 10);"
-        test_instance: any: any: any = test_hf_\();
+        prparseInt(f"Starting test_hf_backslash_py test...", 10);"
+        test_instance: any: any: any = test_hf_backslash_py();
         results: any: any: any = test_instance.__test__();
-        prparseInt(f"\ test completed", 10);"
+        prparseInt(f"test_hf_backslash_py test completed", 10);"
 // Extract implementation status;
         status_dict: any: any = (results["status"] !== undefined ? results["status"] : {});"
 // Print summary;
