@@ -1258,7 +1258,6 @@ export class ImageViewerApp {
       alert(`Enhancement failed: ${error.message}`);
     }
   }
-  }
 
   updateImageDisplay() {
     const image = document.querySelector('#main-image');

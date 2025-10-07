@@ -758,7 +758,7 @@ export class DeviceManagerApp {
   async updateNetworkStats() {
     // Update network statistics
     const stats = {
-      'network-interfaces-count': navigator.connection ? (navigator.connection.effectiveType ? 1 : 0) : 1
+      'network-interfaces-count': navigator.connection ? (navigator.connection.effectiveType ? 1 : 0) : 1,
       'wifi-networks-count': Math.floor(Math.random() * 10) + 5,
       'p2p-peers-count': this.p2pSystem?.peers?.size || 0,
       'bluetooth-devices-count': this.hardwareInfo.audio?.inputDevices?.length || 0
