@@ -200,6 +200,27 @@ class SwissKnifeDesktop {
             singleton: false
         });
         
+        this.apps.set('strudel-ai-daw', {
+            name: 'Strudel AI DAW',
+            icon: '🎼',
+            component: 'StrudelAIDAWApp',
+            singleton: false
+        });
+        
+        this.apps.set('music-studio', {
+            name: 'Music Studio Classic',
+            icon: '🎸',
+            component: 'MusicStudioApp',
+            singleton: false
+        });
+        
+        this.apps.set('p2p-chat', {
+            name: 'P2P Chat Classic',
+            icon: '💭',
+            component: 'P2PChatApp',
+            singleton: false
+        });
+        
         this.apps.set('p2p-chat-unified', {
             name: 'P2P Chat - Unified',
             icon: '💬',
