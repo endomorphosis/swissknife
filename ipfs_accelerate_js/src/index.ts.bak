@@ -1,7 +1,0 @@
-/// <reference path="./types/webgpu.d.ts" />
-/// <reference path="./types/webnn.d.ts" />
-
-// Auto: any;
-export: any;
-export * import { * } from: any;
-export: any;
