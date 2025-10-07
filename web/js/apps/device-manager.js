@@ -776,8 +776,6 @@ export class DeviceManagerApp {
     
     // Network interface data from actual browser APIs
     const interfaces = await this.getNetworkInterfaces();
-      }
-    ];
     
     table.innerHTML = `
       <table class="data-table">
