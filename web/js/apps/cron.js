@@ -975,7 +975,6 @@ export class CronApp {
         message: `Task "${task.name}" ${task.status}`,
         time: task.lastRun || new Date()
       }));
-    ];
     
     container.innerHTML = logs.map(log => `
       <div class="log-entry log-${log.level}">

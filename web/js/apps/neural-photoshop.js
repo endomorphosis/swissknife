@@ -1723,9 +1723,8 @@ export class NeuralPhotoshopApp {
       const processedData = await this.backgroundRemovalService.removeBackground(imageData);
       
       this.applyBackgroundRemoval(processedData);
-        ctx.putImageData(imageData, 0, 0);
-        this.redrawCanvas();
-      }
+      ctx.putImageData(imageData, 0, 0);
+      this.redrawCanvas();
       
       this.hideAIProgress();
       this.showNotification('✅ Background removed successfully!');

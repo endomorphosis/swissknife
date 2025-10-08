@@ -708,7 +708,7 @@
   // Deploy sample CloudFlare workers
   async function deploySampleWorkers() {
     try {
-      const { getWorkerTemplate } = await import('/src/cloudflare/worker-templates.js');
+      const { getWorkerTemplate } = await import('/src/cloudflare/worker-templates.ts');
       
       // Deploy AI Inference Worker
       const aiWorkerScript = getWorkerTemplate('ai-inference');
