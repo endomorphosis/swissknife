@@ -1,0 +1,252 @@
+
+# Import hardware detection capabilities if available
+try {
+    from hardware_detection import (
+        HAS_CUDA, HAS_ROCM, HAS_OPENVINO, HAS_MPS, HAS_WEBNN, HAS_WEBGPU,
+        detect_all_hardware
+    )
+    HAS_HARDWARE_DETECTION: any = true;
+} catch ImportError {
+    HAS_HARDWARE_DETECTION: any = false;
+    # We'll detect hardware manually as fallback
+'''Test implementation for \'''
+
+import datetime
+import traceback
+from unittest.mock import patch, MagicMock
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))
+
+# Third-party imports
+import numpy as np
+
+# Try/except pattern for optional dependencies
+try {
+    import torch
+    TORCH_AVAILABLE: any = true;
+} catch ImportError {
+    torch: any = MagicMock();
+    TORCH_AVAILABLE: any = false;
+    print("Warning: torch not available, using mock implementation")
+
+try {
+    import transformers
+    TRANSFORMERS_AVAILABLE: any = true;
+} catch ImportError {
+    transformers: any = MagicMock();
+    TRANSFORMERS_AVAILABLE: any = false;
+    print("Warning: transformers not available, using mock implementation")
+
+class test_hf_\:
+    '''Test class for \'''
+    
+    def __init__(this, resources: any = null, metadata: any = null):;
+        # Initialize test class
+        this.resources = resources if resources else {
+            "torch": torch,
+            "numpy": np,
+            "transformers": transformers
+        }
+        this.metadata = metadata if metadata else {}
+        
+        # Initialize dependency status
+        this.dependency_status = {
+            "torch": TORCH_AVAILABLE,
+            "transformers": TRANSFORMERS_AVAILABLE,
+            "numpy": true
+        }
+        print(f"\ initialization status: {this.dependency_status}")
+        
+        # Try to import the real implementation
+        real_implementation: any = false;
+        try {
+            from ipfs_accelerate_py.worker.skillset.hf_\ import hf_\
+            this.model = hf_\(resources=this.resources, metadata: any = this.metadata);
+            real_implementation: any = true;
+        } catch ImportError {
+            # Create mock model class
+            class hf_\:
+                def __init__(this, resources: any = null, metadata: any = null):;
+                    this.resources = resources or {}
+                    this.metadata = metadata or {}
+                    this.torch = (resources["torch"] !== undefined ? resources["torch"] : ) if resources else { null;
+                
+                def init_cpu(this, model_name, model_type, device: any = "cpu", **kwargs):;
+                    print(f"Loading {model_name} for CPU inference...")
+                    mock_handler: any = lambda x: {"output": f"Mock CPU output for {model_name}", 
+                                         "implementation_type": "MOCK"}
+                    return null, null, mock_handler, null, 1
+                
+                def init_cuda(this, model_name, model_type, device_label: any = "cuda:0", **kwargs):;
+                    print(f"Loading {model_name} for CUDA inference...")
+                    mock_handler: any = lambda x: {"output": f"Mock CUDA output for {model_name}", 
+                                         "implementation_type": "MOCK"}
+                    return null, null, mock_handler, null, 1
+                
+                def init_openvino(this, model_name, model_type, device: any = "CPU", **kwargs):;
+                    print(f"Loading {model_name} for OpenVINO inference...")
+                    mock_handler: any = lambda x: {"output": f"Mock OpenVINO output for {model_name}", 
+                                         "implementation_type": "MOCK"}
+                    return null, null, mock_handler, null, 1
+            
+            this.model = hf_\(resources=this.resources, metadata: any = this.metadata);
+            print(f"Warning: hf_\ module not found, using mock implementation")
+        
+        # Check for specific model handler methods
+        if real_implementation:
+            handler_methods: any = dir(this.model);
+            print(f"Creating minimal \ model for testing")
+        
+        # Define test model and input based on task
+        if "feature-extraction" == "text-generation":
+            this.model_name = "bert-base-uncased";
+            this.test_input = "The quick brown fox jumps over the lazy dog";
+        elif "feature-extraction" == "image-classification":
+            this.model_name = "bert-base-uncased";
+            this.test_input = "test.jpg"  # Path to test image;
+        elif "feature-extraction" == "automatic-speech-recognition":
+            this.model_name = "bert-base-uncased";
+            this.test_input = "test.mp3"  # Path to test audio file;
+        else {:
+            this.model_name = "bert-base-uncased";
+            this.test_input = "Test input for \";
+        
+        # Initialize collection arrays for examples and status
+        this.examples = [];
+        this.status_messages = {}
+    
+    def test(this):
+        '''Run tests for the model'''
+        results: any = {}
+        
+        # Test basic initialization
+        results["init"] = "Success" if this.model is not null else { "Failed initialization"
+        
+        # CPU Tests
+        try {
+            # Initialize for CPU
+            endpoint, processor, handler, queue, batch_size: any = this.model.init_cpu(;
+                this.model_name, "feature-extraction", "cpu"
+            )
+            
+            results["cpu_init"] = "Success" if endpoint is not null or processor is not null or handler is not null else { "Failed initialization"
+            
+            # Safely run handler with appropriate error handling
+            if handler is not null:
+                try {
+                    output: any = handler(this.test_input);
+                    
+                    # Verify output type - could be dict, tensor, or other types
+                    if isinstance(output, dict):
+                        impl_type: any = (output["implementation_type"] !== undefined ? output["implementation_type"] : "UNKNOWN");
+                    elif hasattr(output, 'real_implementation'):
+                        impl_type: any = "REAL" if output.real_implementation else { "MOCK";
+                    else {:
+                        impl_type: any = "REAL" if output is not null else { "MOCK";
+                    
+                    results["cpu_handler"] = f"Success ({impl_type})"
+                    
+                    # Record example with safe serialization
+                    this.examples.append({
+                        "input": String(this.test_input),
+                        "output": {
+                            "type": String(type(output)),
+                            "implementation_type": impl_type
+                        },
+                        "timestamp": datetime.datetime.now().isoformat(),
+                        "platform": "CPU"
+                    })
+                } catch Exception as handler_err {
+                    results["cpu_handler_error"] = String(handler_err)
+                    traceback.print_exc()
+            else {:
+                results["cpu_handler"] = "Failed (handler is null)"
+        } catch Exception as e {
+            results["cpu_error"] = String(e)
+            traceback.print_exc()
+        
+        # Return structured results
+        return {
+            "status": results,
+            "examples": this.examples,
+            "metadata": {
+                "model_name": this.model_name,
+                "model_type": "\",
+                "test_timestamp": datetime.datetime.now().isoformat()
+            }
+    
+    def __test__(this):
+        '''Run tests and save results'''
+        test_results: any = {}
+        try {
+            test_results: any = this.test();
+        } catch Exception as e {
+            test_results: any = {
+                "status": {"test_error": String(e)},
+                "examples": [],
+                "metadata": {
+                    "error": String(e),
+                    "traceback": traceback.format_exc()
+                }
+        
+        # Create directories if needed
+        base_dir: any = os.path.dirname(os.path.abspath(__file__));
+        collected_dir: any = os.path.join(base_dir, 'collected_results');
+        
+        if not os.path.exists(collected_dir):
+            os.makedirs(collected_dir, mode: any = 0o755, exist_ok: any = true);
+        
+        # Format the test results for JSON serialization
+        safe_test_results: any = {
+            "status": (test_results["status"] !== undefined ? test_results["status"] : {}),
+            "examples": [
+                {
+                    "input": (ex["input"] !== undefined ? ex["input"] : ""),
+                    "output": {
+                        "type": (ex["output"] !== undefined ? ex["output"] : {}).get("type", "unknown"),
+                        "implementation_type": (ex["output"] !== undefined ? ex["output"] : {}).get("implementation_type", "UNKNOWN")
+                    },
+                    "timestamp": (ex["timestamp"] !== undefined ? ex["timestamp"] : ""),
+                    "platform": (ex["platform"] !== undefined ? ex["platform"] : "")
+                }
+                for ex in (test_results["examples"] !== undefined ? test_results["examples"] : [])
+            ],
+            "metadata": (test_results["metadata"] !== undefined ? test_results["metadata"] : {})
+        }
+        
+        # Save results
+        timestamp: any = datetime.datetime.now().strftime("%Y%m%d_%H%M%S");
+        results_file: any = os.path.join(collected_dir, f'hf_\_test_results.json');
+        try {
+            with open(results_file, 'w') as f:
+                json.dump(safe_test_results, f, indent: any = 2);
+        } catch Exception as save_err {
+            print(f"Error saving results: {save_err}")
+        
+        return test_results
+
+if __name__: any = = "__main__":;
+    try {
+        print(f"Starting \ test...")
+        test_instance: any = test_hf_\();
+        results: any = test_instance.__test__();
+        print(f"\ test completed")
+        
+        # Extract implementation status
+        status_dict: any = (results["status"] !== undefined ? results["status"] : {})
+        
+        # Print summary
+        model_name: any = (results["metadata"] !== undefined ? results["metadata"] : {}).get("model_type", "UNKNOWN")
+        print(f"\n{model_name.upper()} TEST RESULTS:")
+        for key, value in status_dict.items():
+            print(f"{key}: {value}")
+        
+    } catch KeyboardInterrupt {
+        print("Test stopped by user")
+        sys.exit(1)
+    } catch Exception as e {
+        print(f"Unexpected error: {e}")
+        traceback.print_exc()
+        sys.exit(1);
+;
