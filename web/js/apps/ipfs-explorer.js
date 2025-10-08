@@ -1440,7 +1440,7 @@ export class IPFSExplorerApp {
     });
   }
 
-  displayPeerList() {
+  async displayPeerList() {
     const table = document.getElementById('peers-table');
     if (!table) return;
     

@@ -95,6 +95,13 @@ class SwissKnifeDesktop {
             singleton: true
         });
         
+        this.apps.set('todo', {
+            name: 'Todo & Goals',
+            icon: '📋',
+            component: 'TodoApp',
+            singleton: false
+        });
+        
         this.apps.set('model-browser', {
             name: 'AI Model Browser',
             icon: '🧠',
@@ -186,6 +193,41 @@ class SwissKnifeDesktop {
             singleton: false
         });
         
+        this.apps.set('music-studio-unified', {
+            name: 'Music Studio',
+            icon: '🎵',
+            component: 'MusicStudioUnifiedApp',
+            singleton: false
+        });
+        
+        this.apps.set('strudel-ai-daw', {
+            name: 'Strudel AI DAW',
+            icon: '🎼',
+            component: 'StrudelAIDAWApp',
+            singleton: false
+        });
+        
+        this.apps.set('music-studio', {
+            name: 'Music Studio Classic',
+            icon: '🎸',
+            component: 'MusicStudioApp',
+            singleton: false
+        });
+        
+        this.apps.set('p2p-chat', {
+            name: 'P2P Chat Classic',
+            icon: '💭',
+            component: 'P2PChatApp',
+            singleton: false
+        });
+        
+        this.apps.set('p2p-chat-unified', {
+            name: 'P2P Chat - Unified',
+            icon: '💬',
+            component: 'P2PChatUnifiedApp',
+            singleton: false
+        });
+        
         this.apps.set('p2p-network', {
             name: 'P2P Network Manager',
             icon: '🔗',
@@ -219,6 +261,27 @@ class SwissKnifeDesktop {
             name: 'Clock & Timers',
             icon: '🕐',
             component: 'ClockApp',
+            singleton: true
+        });
+        
+        this.apps.set('calendar', {
+            name: 'Calendar & Events',
+            icon: '📅',
+            component: 'CalendarApp',
+            singleton: true
+        });
+        
+        this.apps.set('peertube', {
+            name: 'PeerTube - P2P Video Player',
+            icon: '📺',
+            component: 'PeerTubeApp',
+            singleton: false
+        });
+        
+        this.apps.set('friends-list', {
+            name: 'Friends & Network',
+            icon: '👥',
+            component: 'FriendsListApp',
             singleton: true
         });
         
