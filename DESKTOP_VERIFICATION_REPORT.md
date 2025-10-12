@@ -124,6 +124,15 @@ The SwissKnife virtual desktop application is **fully functional** and ready for
 - Placeholder component
 - Not yet fully implemented
 
+### 3. Images Application ⚠️
+- Shows "[object Object]" display error
+- Placeholder/incomplete implementation
+
+### 4. Friends Application ⚠️
+- Shows "SwissKnife app loading..." message
+- Placeholder component
+- Not yet fully implemented
+
 ## Desktop Environment Features
 
 ### Window Management
@@ -268,7 +277,7 @@ npm run build:workers
 
 - **Desktop Environment**: ✅ PASS
 - **Window Management**: ✅ PASS
-- **Application Launching**: ✅ PASS (tested 12 apps)
+- **Application Launching**: ✅ PASS (tested 14 apps)
 - **Terminal Application**: ✅ PASS (full functionality)
 - **Calculator Application**: ✅ PASS (all modes working)
 - **Clock Application**: ✅ PASS (all features working)
@@ -281,13 +290,15 @@ npm run build:workers
 - **Settings**: ✅ PASS (configuration interface)
 - **Calendar Application**: ⚠️ PLACEHOLDER (in development)
 - **Todo Application**: ⚠️ PLACEHOLDER (in development)
+- **Images Application**: ⚠️ PLACEHOLDER (incomplete implementation)
+- **Friends Application**: ⚠️ PLACEHOLDER (in development)
 
 ### Testing Statistics
 - **Total Applications**: 38 available
-- **Tested**: 12 applications (32%)
-- **Fully Functional**: 10 applications (83% of tested)
-- **Placeholder/In-Development**: 2 applications (17% of tested)
-- **Not Yet Tested**: 26 applications (68%)
+- **Tested**: 14 applications (37%)
+- **Fully Functional**: 10 applications (71% of tested)
+- **Placeholder/In-Development**: 4 applications (29% of tested)
+- **Not Yet Tested**: 24 applications (63%)
 
 ## Recommendations
 
