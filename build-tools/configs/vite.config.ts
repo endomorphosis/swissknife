@@ -10,9 +10,9 @@ export default defineConfig({
       // Treat these as standard multi-entry inputs instead of library mode to
       // avoid path rewriting issues we observed (build-tools/configs prefixing).
       input: {
-        cli: resolve(__dirname, 'src/entrypoints/cli.tsx'),
-        web: resolve(__dirname, 'web/src/index.ts'),
-        ipfs: resolve(__dirname, 'ipfs_accelerate_js/src/index.ts')
+        cli: resolve(__dirname, '../../src/entrypoints/cli.tsx'),
+        web: resolve(__dirname, '../../web/src/index.ts'),
+        ipfs: resolve(__dirname, '../../ipfs_accelerate_js/src/index.ts')
       },
       external: [
         'node:fs',
@@ -37,9 +37,9 @@ export default defineConfig({
   // Module resolution
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
-      '@web': resolve(__dirname, 'web/src'),
-      '@ipfs': resolve(__dirname, 'ipfs_accelerate_js/src'),
+      '@': resolve(__dirname, '../../src'),
+      '@web': resolve(__dirname, '../../web/src'),
+      '@ipfs': resolve(__dirname, '../../ipfs_accelerate_js/src'),
       // Browser polyfills
       'crypto': 'crypto-browserify',
       'stream': 'stream-browserify',

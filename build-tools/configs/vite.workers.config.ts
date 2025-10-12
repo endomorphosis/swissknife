@@ -6,13 +6,13 @@ export default defineConfig({
     outDir: 'dist/workers',
     lib: {
       entry: {
-        'compute-worker': resolve(__dirname, 'src/workers/compute-worker.ts'),
-        'audio-worker': resolve(__dirname, 'src/workers/audio-worker.ts'),
-        'ai-worker': resolve(__dirname, 'src/workers/ai-worker.ts'),
-        'file-worker': resolve(__dirname, 'src/workers/file-worker.ts'),
-        'crypto-worker': resolve(__dirname, 'src/workers/crypto-worker.ts'),
-        'p2p-worker': resolve(__dirname, 'src/workers/p2p-worker.ts'),
-        'ipfs-worker': resolve(__dirname, 'src/workers/ipfs-worker.ts')
+        'compute-worker': resolve(__dirname, '../../src/workers/compute-worker.ts'),
+        'audio-worker': resolve(__dirname, '../../src/workers/audio-worker.ts'),
+        'ai-worker': resolve(__dirname, '../../src/workers/ai-worker.ts'),
+        'file-worker': resolve(__dirname, '../../src/workers/file-worker.ts'),
+        'crypto-worker': resolve(__dirname, '../../src/workers/crypto-worker.ts'),
+        'p2p-worker': resolve(__dirname, '../../src/workers/p2p-worker.ts'),
+        'ipfs-worker': resolve(__dirname, '../../src/workers/ipfs-worker.ts')
       },
       formats: ['es'],
       fileName: (format, entryName) => `${entryName}.js`
@@ -30,9 +30,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
-      '@workers': resolve(__dirname, 'src/workers'),
-      '@shared': resolve(__dirname, 'src/shared')
+      '@': resolve(__dirname, '../../src'),
+      '@workers': resolve(__dirname, '../../src/workers'),
+      '@shared': resolve(__dirname, '../../src/shared')
     }
   },
   define: {
