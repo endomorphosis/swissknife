@@ -28,35 +28,35 @@ The SwissKnife virtual desktop application is **fully functional** and ready for
 
 ## Verified Working Applications
 
-### Terminal Application ✅
+### 1. Terminal Application ✅
 - AI-powered terminal interface
 - P2P connectivity support
 - IPFS storage commands
 - Complete command system (help, ai, p2p, ipfs, desktop)
 - Session management with tabs
 
-### Calculator Application ✅
+### 2. Calculator Application ✅
 - Standard calculator mode
 - Scientific mode
 - Programmer mode
 - Unit converter mode
 - Full button interface with operations
 
-### Clock & Timers Application ✅
+### 3. Clock & Timers Application ✅
 - Real-time clock display
 - World clocks (Local, New York, London, Tokyo, Sydney)
 - Stopwatch functionality
 - Timer functionality
 - Alarms functionality
 
-### Notes Application ✅
+### 4. Notes Application ✅
 - Markdown support
 - Tag-based organization
 - Search functionality
 - Sample notes included
 - Create/Import note functionality
 
-### System Monitor Application ✅
+### 5. System Monitor Application ✅
 - Real-time CPU monitoring (49.4%)
 - Real-time RAM monitoring (62.8%)
 - Real-time GPU monitoring (58.8%)
@@ -64,6 +64,35 @@ The SwissKnife virtual desktop application is **fully functional** and ready for
 - System uptime tracking
 - P2P network status (12 peers, 8 shared models)
 - IPFS node status (234 peers, 45 pinned items)
+
+### 6. VibeCode Application ✅
+- Streamlit code editor
+- Syntax highlighting
+- AI assistance button
+- Run/Save/New file functionality
+- Split view with preview panel
+- Sample Streamlit code included
+
+### 7. AI Chat Application ✅
+- AI provider selection (OpenAI, Anthropic, Google, Local Models)
+- Model selection dropdown
+- Context source configuration (Desktop State, File Contents, Code Context, System Info, P2P Network, IPFS Content)
+- Session management
+- Voice input support
+- Code generation capabilities
+- Multi-language translation
+
+## Placeholder/In-Development Applications
+
+### 1. Calendar Application ⚠️
+- Shows "SwissKnife app loading..." message
+- Placeholder component
+- Not yet fully implemented
+
+### 2. Todo Application ⚠️
+- Shows "SwissKnife app loading..." message
+- Placeholder component
+- Not yet fully implemented
 
 ## Desktop Environment Features
 
@@ -209,12 +238,23 @@ npm run build:workers
 
 - **Desktop Environment**: ✅ PASS
 - **Window Management**: ✅ PASS
-- **Application Launching**: ✅ PASS (tested 5 apps)
+- **Application Launching**: ✅ PASS (tested 9 apps)
 - **Terminal Application**: ✅ PASS (full functionality)
 - **Calculator Application**: ✅ PASS (all modes working)
 - **Clock Application**: ✅ PASS (all features working)
 - **Notes Application**: ✅ PASS (full functionality)
 - **System Monitor**: ✅ PASS (real-time monitoring)
+- **VibeCode Application**: ✅ PASS (Streamlit editor working)
+- **AI Chat Application**: ✅ PASS (full AI chat functionality)
+- **Calendar Application**: ⚠️ PLACEHOLDER (in development)
+- **Todo Application**: ⚠️ PLACEHOLDER (in development)
+
+### Testing Statistics
+- **Total Applications**: 38 available
+- **Tested**: 9 applications (24%)
+- **Fully Functional**: 7 applications (78% of tested)
+- **Placeholder/In-Development**: 2 applications (22% of tested)
+- **Not Yet Tested**: 29 applications (76%)
 
 ## Recommendations
 
