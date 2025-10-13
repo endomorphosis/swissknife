@@ -6,7 +6,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     lib: {
-      entry: resolve(__dirname, 'src/cli-simple.ts'),
+      entry: resolve(__dirname, '../../src/cli-simple.ts'),
       name: 'SwissKnifeCLI',
       fileName: 'cli',
       formats: ['es']
@@ -26,7 +26,7 @@ export default defineConfig({
   
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
+      '@': resolve(__dirname, '../../src')
     }
   },
   
