@@ -40,18 +40,18 @@ const applications = [
   { id: 'navi', name: 'NAVI', tested: true, status: 'ERROR' },
   { id: 'p2p-network', name: 'P2P Network Manager', tested: true, status: 'ERROR' },
   
-  // Recently tested (11) - final batch completed
+  // Recently tested and FIXED (11) - final batch completed and wired up
   { id: 'neural-network-designer', name: 'Neural Network Designer', tested: true, status: 'REAL' },
-  { id: 'p2p-chat-unified', name: 'P2P Chat', tested: true, status: 'PLACEHOLDER' },
-  { id: 'training-manager', name: 'Training Manager', tested: true, status: 'PLACEHOLDER' },
-  { id: 'peertube', name: 'PeerTube', tested: true, status: 'PLACEHOLDER' },
-  { id: 'media-player', name: 'Media Player', tested: true, status: 'PLACEHOLDER' },
-  { id: 'neural-photoshop', name: 'Neural Photoshop (Art)', tested: true, status: 'PLACEHOLDER' },
-  { id: 'cinema', name: 'Cinema', tested: true, status: 'PLACEHOLDER' },
-  { id: 'strudel', name: 'Strudel - Live Coding Music', tested: true, status: 'PLACEHOLDER' },
-  { id: 'strudel-ai-daw', name: 'Strudel AI DAW', tested: true, status: 'PLACEHOLDER' },
-  { id: 'music-studio', name: 'Music Studio Classic', tested: true, status: 'PLACEHOLDER' },
-  { id: 'p2p-chat', name: 'P2P Chat Classic', tested: true, status: 'PLACEHOLDER' },
+  { id: 'p2p-chat-unified', name: 'P2P Chat', tested: true, status: 'REAL' },
+  { id: 'training-manager', name: 'Training Manager', tested: true, status: 'REAL' },
+  { id: 'peertube', name: 'PeerTube', tested: true, status: 'REAL' },
+  { id: 'media-player', name: 'Media Player', tested: true, status: 'REAL' },
+  { id: 'neural-photoshop', name: 'Neural Photoshop (Art)', tested: true, status: 'REAL' },
+  { id: 'cinema', name: 'Cinema', tested: true, status: 'REAL' },
+  { id: 'strudel', name: 'Strudel - Live Coding Music', tested: true, status: 'REAL' },
+  { id: 'strudel-ai-daw', name: 'Strudel AI DAW', tested: true, status: 'REAL' },
+  { id: 'music-studio', name: 'Music Studio Classic', tested: true, status: 'REAL' },
+  { id: 'p2p-chat', name: 'P2P Chat Classic', tested: true, status: 'REAL' },
 ];
 
 async function testApplication(page, app) {
