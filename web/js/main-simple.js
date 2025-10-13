@@ -601,6 +601,46 @@ class SwissKnifeDesktop {
                     await this.createNeuralNetworkDesignerApp(contentElement);
                     break;
                     
+                case 'P2PChatUnifiedApp':
+                    await this.createP2PChatUnifiedApp(contentElement);
+                    break;
+                    
+                case 'TrainingManagerApp':
+                    await this.createTrainingManagerApp(contentElement);
+                    break;
+                    
+                case 'PeerTubeApp':
+                    await this.createPeerTubeApp(contentElement);
+                    break;
+                    
+                case 'NeuralPhotoshopApp':
+                    await this.createNeuralPhotoshopApp(contentElement);
+                    break;
+                    
+                case 'CinemaApp':
+                    await this.createCinemaApp(contentElement);
+                    break;
+                    
+                case 'MediaPlayer':
+                    await this.createMediaPlayerApp(contentElement);
+                    break;
+                    
+                case 'GrandmaStrudelDAW':
+                    await this.createGrandmaStrudelDAWApp(contentElement);
+                    break;
+                    
+                case 'MusicStudioUnifiedApp':
+                    await this.createMusicStudioUnifiedApp(contentElement);
+                    break;
+                    
+                case 'MusicStudioApp':
+                    await this.createMusicStudioApp(contentElement);
+                    break;
+                    
+                case 'P2PChatApp':
+                    await this.createP2PChatApp(contentElement);
+                    break;
+                    
                 default:
                     this.createPlaceholderApp(contentElement, componentName);
             }
@@ -1159,6 +1199,108 @@ class SwissKnifeDesktop {
         const html = await neuralNetworkDesigner.createWindow();
         contentElement.innerHTML = html;
         return neuralNetworkDesigner;
+    }
+    
+    async createP2PChatUnifiedApp(contentElement) {
+        const { UnifiedP2PChatApp } = await import('./apps/p2p-chat-unified.js');
+        const p2pChat = new UnifiedP2PChatApp(this);
+        await p2pChat.initialize();
+        const html = await p2pChat.render();
+        contentElement.innerHTML = html;
+        return p2pChat;
+    }
+    
+    async createTrainingManagerApp(contentElement) {
+        const TrainingModule = await import('./apps/training-manager.js');
+        // Wait for IIFE to execute
+        await new Promise(resolve => setTimeout(resolve, 10));
+        if (window.createTrainingManagerApp) {
+            const app = window.createTrainingManagerApp();
+            app.init(contentElement);
+            return app;
+        } else if (TrainingModule.TrainingManagerApp) {
+            const training = new TrainingModule.TrainingManagerApp();
+            await training.initialize();
+            const html = await training.render();
+            contentElement.innerHTML = html;
+            return training;
+        }
+    }
+    
+    async createPeerTubeApp(contentElement) {
+        const { PeerTubeApp } = await import('./apps/peertube.js');
+        const peertube = new PeerTubeApp(this);
+        await peertube.initialize();
+        const html = await peertube.render();
+        contentElement.innerHTML = html;
+        return peertube;
+    }
+    
+    async createNeuralPhotoshopApp(contentElement) {
+        const { NeuralPhotoshopApp } = await import('./apps/neural-photoshop.js');
+        const neuralPhotoshop = new NeuralPhotoshopApp(contentElement, this);
+        await neuralPhotoshop.initialize();
+        return neuralPhotoshop;
+    }
+    
+    async createCinemaApp(contentElement) {
+        const { CinemaApp } = await import('./apps/cinema.js');
+        const cinema = new CinemaApp();
+        await cinema.createInterface(contentElement);
+        return cinema;
+    }
+    
+    async createMediaPlayerApp(contentElement) {
+        const MediaPlayerModule = await import('./apps/media-player.js');
+        if (MediaPlayerModule.MediaPlayer) {
+            const mediaPlayer = new MediaPlayerModule.MediaPlayer(this);
+            await mediaPlayer.initialize();
+            const html = await mediaPlayer.render();
+            contentElement.innerHTML = html;
+            return mediaPlayer;
+        }
+    }
+    
+    async createGrandmaStrudelDAWApp(contentElement) {
+        const StrudelModule = await import('./apps/strudel-grandma.js');
+        if (StrudelModule.StrudelGrandmaApp) {
+            const strudel = new StrudelModule.StrudelGrandmaApp(this);
+            await strudel.initialize();
+            const html = await strudel.render();
+            contentElement.innerHTML = html;
+            return strudel;
+        }
+    }
+    
+    async createMusicStudioUnifiedApp(contentElement) {
+        const MusicStudioModule = await import('./apps/music-studio-unified.js');
+        if (MusicStudioModule.UnifiedMusicStudioApp) {
+            const musicStudio = new MusicStudioModule.UnifiedMusicStudioApp(this);
+            await musicStudio.initialize();
+            const html = await musicStudio.render();
+            contentElement.innerHTML = html;
+            return musicStudio;
+        }
+    }
+    
+    async createMusicStudioApp(contentElement) {
+        const MusicStudioModule = await import('./apps/music-studio.js');
+        if (MusicStudioModule.MusicStudioApp) {
+            const musicStudio = new MusicStudioModule.MusicStudioApp(this);
+            await musicStudio.initialize();
+            const html = await musicStudio.render();
+            contentElement.innerHTML = html;
+            return musicStudio;
+        }
+    }
+    
+    async createP2PChatApp(contentElement) {
+        const { P2PChatApp } = await import('./apps/p2p-chat.js');
+        const p2pChat = new P2PChatApp(this);
+        await p2pChat.initialize();
+        const html = await p2pChat.render();
+        contentElement.innerHTML = html;
+        return p2pChat;
     }
 
     createPlaceholderApp(contentElement, componentName) {

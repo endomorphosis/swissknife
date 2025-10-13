@@ -17,6 +17,8 @@ export class TrainingManagerApp {
 
   async initialize() {
     console.log('🎯 Initializing Training Manager...');
+    // Wait a bit for the IIFE to execute
+    await new Promise(resolve => setTimeout(resolve, 100));
     return this;
   }
 
@@ -25,6 +27,21 @@ export class TrainingManagerApp {
   }
 
   render() {
+    // If the global function exists, use it to get the real implementation
+    if (window.createTrainingManagerApp) {
+      // Create a container and let the global function populate it
+      const containerId = `training-manager-${Date.now()}`;
+      setTimeout(() => {
+        const container = document.getElementById(containerId);
+        if (container) {
+          const app = window.createTrainingManagerApp();
+          app.init(container);
+        }
+      }, 50);
+      return `<div id="${containerId}" class="training-manager-container"></div>`;
+    }
+    
+    // Fallback to placeholder if global function not available yet
     return `
       <div class="training-manager-container">
         <div class="app-placeholder">
