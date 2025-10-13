@@ -581,6 +581,18 @@ class SwissKnifeDesktop {
                     await this.createClockApp(contentElement);
                     break;
                     
+                case 'CalendarApp':
+                    await this.createCalendarApp(contentElement);
+                    break;
+                    
+                case 'TodoApp':
+                    await this.createTodoApp(contentElement);
+                    break;
+                    
+                case 'FriendsListApp':
+                    await this.createFriendsListApp(contentElement);
+                    break;
+                    
                 case 'ImageViewerApp':
                     await this.createImageViewerApp(contentElement);
                     break;
@@ -1047,6 +1059,69 @@ class SwissKnifeDesktop {
         const html = await clock.render();
         contentElement.innerHTML = html;
         return clock;
+    }
+
+    async createCalendarApp(contentElement) {
+        try {
+            const { CalendarApp } = await import('./apps/calendar.js');
+            const calendar = new CalendarApp(this);
+            await calendar.initialize();
+            const html = await calendar.render();
+            contentElement.innerHTML = html;
+            return calendar;
+        } catch (error) {
+            console.error('Failed to load Calendar app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>📅 Calendar & Events</h2>
+                    <p>Event management with reminders and scheduling</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
+    }
+
+    async createTodoApp(contentElement) {
+        try {
+            const { TodoApp } = await import('./apps/todo.js');
+            const todo = new TodoApp(this);
+            await todo.initialize();
+            const html = await todo.createWindowConfig();
+            contentElement.innerHTML = html;
+            return todo;
+        } catch (error) {
+            console.error('Failed to load Todo app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>📋 Todo & Goals</h2>
+                    <p>Plain text goal management system</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
+    }
+
+    async createFriendsListApp(contentElement) {
+        try {
+            const { FriendsListApp } = await import('./apps/friends-list.js');
+            const friendsList = new FriendsListApp(this);
+            await friendsList.initialize();
+            const html = await friendsList.render();
+            contentElement.innerHTML = html;
+            return friendsList;
+        } catch (error) {
+            console.error('Failed to load Friends List app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>👥 Friends & Identity</h2>
+                    <p>Decentralized identity management with cross-platform linking</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createImageViewerApp(contentElement) {
