@@ -787,12 +787,34 @@ class SwissKnifeDesktop {
     }
 
     async createModelBrowserApp(contentElement) {
-        const { ModelBrowserApp } = await import('./apps/model-browser.js');
-        const modelBrowser = new ModelBrowserApp(this);
-        await modelBrowser.initialize();
-        const html = await modelBrowser.render();
-        contentElement.innerHTML = html;
-        return modelBrowser;
+        try {
+            const { ModelBrowserApp } = await import('./apps/model-browser.js');
+            const modelBrowser = new ModelBrowserApp(this);
+            await modelBrowser.initialize();
+            // ModelBrowserApp.render() returns a config object, get HTML from createWindow()
+            const windowContent = modelBrowser.createWindow();
+            // Extract content string from the window content
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else if (windowContent && windowContent.content) {
+                contentElement.innerHTML = windowContent.content;
+            } else {
+                // Fallback: call render and extract content from config
+                const config = await modelBrowser.render();
+                contentElement.innerHTML = config.content || 'Model Browser loading...';
+            }
+            return modelBrowser;
+        } catch (error) {
+            console.error('Failed to load Model Browser app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>📚 AI Model Manager</h2>
+                    <p>AI model management with P2P sharing and IPFS integration</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createHuggingFaceApp(contentElement) {
@@ -850,21 +872,58 @@ class SwissKnifeDesktop {
     }
 
     async createIPFSExplorerApp(contentElement) {
-        const { IPFSExplorerApp } = await import('./apps/ipfs-explorer.js');
-        const ipfsExplorer = new IPFSExplorerApp(this);
-        await ipfsExplorer.initialize();
-        const html = await ipfsExplorer.render();
-        contentElement.innerHTML = html;
-        return ipfsExplorer;
+        try {
+            const { IPFSExplorerApp } = await import('./apps/ipfs-explorer.js');
+            const ipfsExplorer = new IPFSExplorerApp(this);
+            await ipfsExplorer.initialize();
+            // IPFSExplorerApp.render() returns a config object, get HTML from createWindow()
+            const windowContent = ipfsExplorer.createWindow();
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else if (windowContent && windowContent.content) {
+                contentElement.innerHTML = windowContent.content;
+            } else {
+                const config = await ipfsExplorer.render();
+                contentElement.innerHTML = config.content || 'IPFS Explorer loading...';
+            }
+            return ipfsExplorer;
+        } catch (error) {
+            console.error('Failed to load IPFS Explorer app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🌍 IPFS Explorer</h2>
+                    <p>IPFS file management with P2P integration</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createDeviceManagerApp(contentElement) {
-        const { DeviceManagerApp } = await import('./apps/device-manager.js');
-        const deviceManager = new DeviceManagerApp(this);
-        await deviceManager.initialize();
-        const html = await deviceManager.render();
-        contentElement.innerHTML = html;
-        return deviceManager;
+        try {
+            const { DeviceManagerApp } = await import('./apps/device-manager.js');
+            const deviceManager = new DeviceManagerApp(this);
+            await deviceManager.initialize();
+            // DeviceManagerApp has createWindow() not render()
+            const windowContent = deviceManager.createWindow();
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else {
+                contentElement.innerHTML = 'Device Manager loading...';
+            }
+            return deviceManager;
+        } catch (error) {
+            console.error('Failed to load Device Manager app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🔧 Device Manager</h2>
+                    <p>Hardware monitoring and device discovery</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createSettingsApp(contentElement) {
@@ -887,12 +946,34 @@ class SwissKnifeDesktop {
     }
 
     async createAPIKeysApp(contentElement) {
-        const { APIKeysApp } = await import('./apps/api-keys.js');
-        const apiKeys = new APIKeysApp(this);
-        await apiKeys.initialize();
-        const html = await apiKeys.render();
-        contentElement.innerHTML = html;
-        return apiKeys;
+        try {
+            // APIKeysApp is not an ES6 export, it's created globally
+            await import('./apps/api-keys.js');
+            // Wait for the script to execute and create window.APIKeysApp
+            await new Promise(resolve => setTimeout(resolve, 10));
+            
+            if (window.APIKeysApp) {
+                const apiKeys = new window.APIKeysApp();
+                if (apiKeys.initialize) {
+                    await apiKeys.initialize();
+                }
+                const html = await apiKeys.render();
+                contentElement.innerHTML = html;
+                return apiKeys;
+            } else {
+                throw new Error('APIKeysApp not found on window object');
+            }
+        } catch (error) {
+            console.error('Failed to load API Keys app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🔑 API Keys</h2>
+                    <p>Secure API key management with encryption</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createGitHubApp(contentElement) {
@@ -925,12 +1006,29 @@ class SwissKnifeDesktop {
     }
 
     async createNaviApp(contentElement) {
-        const { NaviApp } = await import('./apps/navi.js');
-        const navi = new NaviApp(this);
-        await navi.initialize();
-        const html = await navi.render();
-        contentElement.innerHTML = html;
-        return navi;
+        try {
+            const { NAVIApp } = await import('./apps/navi.js');
+            const navi = new NAVIApp(this);
+            await navi.initialize();
+            // NAVIApp has createWindow() not render()
+            const windowContent = navi.createWindow();
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else {
+                contentElement.innerHTML = 'NAVI loading...';
+            }
+            return navi;
+        } catch (error) {
+            console.error('Failed to load NAVI app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🤖 NAVI</h2>
+                    <p>Advanced AI Assistant with voice interaction</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createCalculatorApp(contentElement) {
