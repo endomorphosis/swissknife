@@ -9,9 +9,9 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-// All 38 applications to test (27 tested, 11 remaining)
+// All 38 applications to test (100% COMPLETE - 38/38 tested)
 const applications = [
-  // Already tested (27) - from DESKTOP_VERIFICATION_REPORT.md
+  // Tested in previous batches (27) - from DESKTOP_VERIFICATION_REPORT.md
   { id: 'terminal', name: 'Terminal', tested: true, status: 'REAL' },
   { id: 'vibecode', name: 'VibeCode', tested: true, status: 'REAL' },
   { id: 'ai-chat', name: 'AI Chat', tested: true, status: 'REAL' },
@@ -40,18 +40,18 @@ const applications = [
   { id: 'navi', name: 'NAVI', tested: true, status: 'ERROR' },
   { id: 'p2p-network', name: 'P2P Network Manager', tested: true, status: 'ERROR' },
   
-  // Need to test (11) - remaining applications
-  { id: 'p2p-chat-unified', name: 'P2P Chat', tested: false },
-  { id: 'neural-network-designer', name: 'Neural Network Designer', tested: false },
-  { id: 'training-manager', name: 'Training Manager', tested: false },
-  { id: 'peertube', name: 'PeerTube', tested: false },
-  { id: 'media-player', name: 'Media Player', tested: false },
-  { id: 'neural-photoshop', name: 'Neural Photoshop (Art)', tested: false },
-  { id: 'cinema', name: 'Cinema', tested: false },
-  { id: 'strudel', name: 'Strudel - Live Coding Music', tested: false },
-  { id: 'strudel-ai-daw', name: 'Strudel AI DAW', tested: false },
-  { id: 'music-studio', name: 'Music Studio Classic', tested: false },
-  { id: 'p2p-chat', name: 'P2P Chat Classic', tested: false },
+  // Recently tested (11) - final batch completed
+  { id: 'neural-network-designer', name: 'Neural Network Designer', tested: true, status: 'REAL' },
+  { id: 'p2p-chat-unified', name: 'P2P Chat', tested: true, status: 'PLACEHOLDER' },
+  { id: 'training-manager', name: 'Training Manager', tested: true, status: 'PLACEHOLDER' },
+  { id: 'peertube', name: 'PeerTube', tested: true, status: 'PLACEHOLDER' },
+  { id: 'media-player', name: 'Media Player', tested: true, status: 'PLACEHOLDER' },
+  { id: 'neural-photoshop', name: 'Neural Photoshop (Art)', tested: true, status: 'PLACEHOLDER' },
+  { id: 'cinema', name: 'Cinema', tested: true, status: 'PLACEHOLDER' },
+  { id: 'strudel', name: 'Strudel - Live Coding Music', tested: true, status: 'PLACEHOLDER' },
+  { id: 'strudel-ai-daw', name: 'Strudel AI DAW', tested: true, status: 'PLACEHOLDER' },
+  { id: 'music-studio', name: 'Music Studio Classic', tested: true, status: 'PLACEHOLDER' },
+  { id: 'p2p-chat', name: 'P2P Chat Classic', tested: true, status: 'PLACEHOLDER' },
 ];
 
 async function testApplication(page, app) {
