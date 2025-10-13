@@ -9,22 +9,29 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-// All 34 applications to test
+// All 38 applications to test
 const applications = [
-  // Already tested (6)
+  // Already tested (18) - from DESKTOP_VERIFICATION_REPORT.md
   { id: 'terminal', name: 'Terminal', tested: true, status: 'REAL' },
   { id: 'vibecode', name: 'VibeCode', tested: true, status: 'REAL' },
   { id: 'ai-chat', name: 'AI Chat', tested: true, status: 'REAL' },
   { id: 'calculator', name: 'Calculator', tested: true, status: 'REAL' },
   { id: 'settings', name: 'Settings', tested: true, status: 'REAL' },
   { id: 'file-manager', name: 'File Manager', tested: true, status: 'REAL' },
+  { id: 'task-manager', name: 'Task Manager', tested: true, status: 'REAL' },
+  { id: 'notes', name: 'Notes', tested: true, status: 'REAL' },
+  { id: 'clock', name: 'Clock & Timers', tested: true, status: 'REAL' },
+  { id: 'system-monitor', name: 'System Monitor', tested: true, status: 'REAL' },
+  { id: 'huggingface', name: 'Hugging Face Hub', tested: true, status: 'REAL' },
+  { id: 'openrouter', name: 'OpenRouter Hub', tested: true, status: 'REAL' },
+  { id: 'calendar', name: 'Calendar & Events', tested: true, status: 'PLACEHOLDER' },
+  { id: 'todo', name: 'Todo & Goals', tested: true, status: 'PLACEHOLDER' },
+  { id: 'image-viewer', name: 'Image Viewer', tested: true, status: 'PLACEHOLDER' },
+  { id: 'friends-list', name: 'Friends & Network', tested: true, status: 'PLACEHOLDER' },
+  { id: 'music-studio-unified', name: 'Music Studio', tested: true, status: 'PLACEHOLDER' },
+  { id: 'model-browser', name: 'AI Model Manager', tested: true, status: 'PARTIAL' },
   
-  // Need to test (28)
-  { id: 'task-manager', name: 'Task Manager', tested: false },
-  { id: 'todo', name: 'Todo & Goals', tested: false },
-  { id: 'model-browser', name: 'AI Model Manager', tested: false },
-  { id: 'huggingface', name: 'Hugging Face Hub', tested: false },
-  { id: 'openrouter', name: 'OpenRouter Hub', tested: false },
+  // Need to test (20) - remaining applications
   { id: 'ipfs-explorer', name: 'IPFS Explorer', tested: false },
   { id: 'device-manager', name: 'Device Manager', tested: false },
   { id: 'mcp-control', name: 'MCP Control', tested: false },
@@ -37,17 +44,14 @@ const applications = [
   { id: 'p2p-chat-unified', name: 'P2P Chat', tested: false },
   { id: 'neural-network-designer', name: 'Neural Network Designer', tested: false },
   { id: 'training-manager', name: 'Training Manager', tested: false },
-  { id: 'music-studio-unified', name: 'Music Studio', tested: false },
-  { id: 'clock', name: 'Clock & Timers', tested: false },
-  { id: 'calendar', name: 'Calendar & Events', tested: false },
   { id: 'peertube', name: 'PeerTube', tested: false },
-  { id: 'friends-list', name: 'Friends & Network', tested: false },
-  { id: 'image-viewer', name: 'Image Viewer', tested: false },
-  { id: 'notes', name: 'Notes', tested: false },
   { id: 'media-player', name: 'Media Player', tested: false },
-  { id: 'system-monitor', name: 'System Monitor', tested: false },
   { id: 'neural-photoshop', name: 'Neural Photoshop (Art)', tested: false },
   { id: 'cinema', name: 'Cinema', tested: false },
+  { id: 'strudel', name: 'Strudel - Live Coding Music', tested: false },
+  { id: 'strudel-ai-daw', name: 'Strudel AI DAW', tested: false },
+  { id: 'music-studio', name: 'Music Studio Classic', tested: false },
+  { id: 'p2p-chat', name: 'P2P Chat Classic', tested: false },
 ];
 
 async function testApplication(page, app) {
@@ -123,11 +127,14 @@ async function main() {
   
   console.log(`📊 Testing ${appsToTest.length} applications...`);
   
-  for (const app of appsToTest.slice(0, 10)) { // Test first 10 for now
+  for (const app of appsToTest) { // Test all remaining apps
     const result = await testApplication(page, app);
     results.push({ ...app, ...result });
     app.tested = true;
     app.status = result.status;
+    
+    // Small delay between apps
+    await page.waitForTimeout(500);
   }
   
   await browser.close();
