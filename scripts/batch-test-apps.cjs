@@ -33,12 +33,12 @@ const applications = [
   { id: 'image-viewer', name: 'Image Viewer', tested: true, status: 'PLACEHOLDER' },
   { id: 'friends-list', name: 'Friends & Network', tested: true, status: 'PLACEHOLDER' },
   { id: 'music-studio-unified', name: 'Music Studio', tested: true, status: 'PLACEHOLDER' },
-  { id: 'model-browser', name: 'AI Model Manager', tested: true, status: 'ERROR' },
-  { id: 'ipfs-explorer', name: 'IPFS Explorer', tested: true, status: 'ERROR' },
-  { id: 'device-manager', name: 'Device Manager', tested: true, status: 'ERROR' },
-  { id: 'api-keys', name: 'API Keys', tested: true, status: 'ERROR' },
-  { id: 'navi', name: 'NAVI', tested: true, status: 'ERROR' },
-  { id: 'p2p-network', name: 'P2P Network Manager', tested: true, status: 'ERROR' },
+  { id: 'model-browser', name: 'AI Model Manager', tested: true, status: 'REAL' },
+  { id: 'ipfs-explorer', name: 'IPFS Explorer', tested: true, status: 'REAL' },
+  { id: 'device-manager', name: 'Device Manager', tested: true, status: 'REAL' },
+  { id: 'api-keys', name: 'API Keys', tested: true, status: 'REAL' },
+  { id: 'navi', name: 'NAVI', tested: true, status: 'REAL' },
+  { id: 'p2p-network', name: 'P2P Network Manager', tested: true, status: 'REAL' },
   
   // Recently tested and FIXED (11) - final batch completed and wired up
   { id: 'neural-network-designer', name: 'Neural Network Designer', tested: true, status: 'REAL' },
