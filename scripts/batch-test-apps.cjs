@@ -9,9 +9,9 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-// All 38 applications to test
+// All 38 applications to test (27 tested, 11 remaining)
 const applications = [
-  // Already tested (18) - from DESKTOP_VERIFICATION_REPORT.md
+  // Already tested (27) - from DESKTOP_VERIFICATION_REPORT.md
   { id: 'terminal', name: 'Terminal', tested: true, status: 'REAL' },
   { id: 'vibecode', name: 'VibeCode', tested: true, status: 'REAL' },
   { id: 'ai-chat', name: 'AI Chat', tested: true, status: 'REAL' },
@@ -24,23 +24,23 @@ const applications = [
   { id: 'system-monitor', name: 'System Monitor', tested: true, status: 'REAL' },
   { id: 'huggingface', name: 'Hugging Face Hub', tested: true, status: 'REAL' },
   { id: 'openrouter', name: 'OpenRouter Hub', tested: true, status: 'REAL' },
+  { id: 'mcp-control', name: 'MCP Control', tested: true, status: 'REAL' },
+  { id: 'github', name: 'GitHub', tested: true, status: 'REAL' },
+  { id: 'oauth-login', name: 'OAuth Login', tested: true, status: 'REAL' },
+  { id: 'cron', name: 'AI Cron', tested: true, status: 'REAL' },
   { id: 'calendar', name: 'Calendar & Events', tested: true, status: 'PLACEHOLDER' },
   { id: 'todo', name: 'Todo & Goals', tested: true, status: 'PLACEHOLDER' },
   { id: 'image-viewer', name: 'Image Viewer', tested: true, status: 'PLACEHOLDER' },
   { id: 'friends-list', name: 'Friends & Network', tested: true, status: 'PLACEHOLDER' },
   { id: 'music-studio-unified', name: 'Music Studio', tested: true, status: 'PLACEHOLDER' },
-  { id: 'model-browser', name: 'AI Model Manager', tested: true, status: 'PARTIAL' },
+  { id: 'model-browser', name: 'AI Model Manager', tested: true, status: 'ERROR' },
+  { id: 'ipfs-explorer', name: 'IPFS Explorer', tested: true, status: 'ERROR' },
+  { id: 'device-manager', name: 'Device Manager', tested: true, status: 'ERROR' },
+  { id: 'api-keys', name: 'API Keys', tested: true, status: 'ERROR' },
+  { id: 'navi', name: 'NAVI', tested: true, status: 'ERROR' },
+  { id: 'p2p-network', name: 'P2P Network Manager', tested: true, status: 'ERROR' },
   
-  // Need to test (20) - remaining applications
-  { id: 'ipfs-explorer', name: 'IPFS Explorer', tested: false },
-  { id: 'device-manager', name: 'Device Manager', tested: false },
-  { id: 'mcp-control', name: 'MCP Control', tested: false },
-  { id: 'api-keys', name: 'API Keys', tested: false },
-  { id: 'github', name: 'GitHub', tested: false },
-  { id: 'oauth-login', name: 'OAuth Login', tested: false },
-  { id: 'cron', name: 'AI Cron', tested: false },
-  { id: 'navi', name: 'NAVI', tested: false },
-  { id: 'p2p-network', name: 'P2P Network Manager', tested: false },
+  // Need to test (11) - remaining applications
   { id: 'p2p-chat-unified', name: 'P2P Chat', tested: false },
   { id: 'neural-network-designer', name: 'Neural Network Designer', tested: false },
   { id: 'training-manager', name: 'Training Manager', tested: false },
