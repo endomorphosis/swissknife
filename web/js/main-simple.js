@@ -564,6 +564,8 @@ class SwissKnifeDesktop {
         
         // Setup window controls
         this.setupWindowControls(windowElement);
+        // Setup window dragging
+        this.setupWindowDragging(windowElement);
         // Bring to front on interaction
         windowElement.addEventListener('mousedown', () => this.focusWindow(windowElement));
         
@@ -580,6 +582,8 @@ class SwissKnifeDesktop {
         this.windows.set(windowId, window);
         // Focus newly created window
         this.focusWindow(windowElement);
+        // Update taskbar
+        this.updateTaskbar();
         
         return window;
     }
@@ -1596,8 +1600,96 @@ class SwissKnifeDesktop {
                     this.activeWindow = null;
                 }
                 this.updateSystemStatus();
+                this.updateTaskbar();
             });
         }
+    }
+    
+    setupWindowDragging(windowElement) {
+        const titlebar = windowElement.querySelector('.window-titlebar');
+        if (!titlebar) return;
+        
+        let isDragging = false;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+        
+        titlebar.addEventListener('mousedown', (e) => {
+            // Don't drag if clicking on window controls
+            if (e.target.classList.contains('window-control')) return;
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseInt(windowElement.style.left) || 0;
+            startTop = parseInt(windowElement.style.top) || 0;
+            
+            e.preventDefault();
+            
+            const handleMouseMove = (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newLeft = startLeft + deltaX;
+                const newTop = Math.max(0, startTop + deltaY); // Prevent dragging above viewport
+                
+                windowElement.style.left = newLeft + 'px';
+                windowElement.style.top = newTop + 'px';
+            };
+            
+            const handleMouseUp = () => {
+                isDragging = false;
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        });
+        
+        // Make titlebar cursor indicate it's draggable
+        titlebar.style.cursor = 'move';
+    }
+    
+    updateTaskbar() {
+        const taskbarApps = document.getElementById('taskbar-apps');
+        if (!taskbarApps) return;
+        
+        // Get all windows
+        const windows = Array.from(this.windows.values());
+        
+        // Create taskbar icons for each window
+        taskbarApps.innerHTML = windows.map(window => {
+            const icon = window.element.querySelector('.window-icon')?.textContent || '📦';
+            const title = window.title || 'Window';
+            const isActive = this.activeWindow === window.element;
+            
+            return `
+                <div class="taskbar-app ${isActive ? 'active' : ''}" 
+                     data-window-id="${window.id}" 
+                     title="${title}"
+                     style="cursor: pointer;">
+                    ${icon}
+                </div>
+            `;
+        }).join('');
+        
+        // Add click handlers to taskbar icons
+        const taskbarIcons = taskbarApps.querySelectorAll('.taskbar-app');
+        taskbarIcons.forEach(icon => {
+            icon.addEventListener('click', () => {
+                const windowId = icon.dataset.windowId;
+                const window = this.windows.get(windowId);
+                if (window && window.element) {
+                    this.focusWindow(window.element);
+                    // If minimized, restore it
+                    if (window.minimized) {
+                        window.element.style.display = 'block';
+                        window.minimized = false;
+                    }
+                }
+            });
+        });
     }
 
     // Focus/bring-to-front an existing window element
@@ -1611,6 +1703,8 @@ class SwissKnifeDesktop {
         }
         windowElement.classList.add('window-active');
         this.activeWindow = windowElement;
+        // Update taskbar to reflect active window
+        this.updateTaskbar();
     }
     
     updateSystemTime() {
