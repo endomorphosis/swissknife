@@ -18,28 +18,36 @@ async function main() {
     const tsxPath = join(__dirname, 'node_modules', '.bin', 'tsx');
     const existingCliPath = join(__dirname, 'src', 'entrypoints', 'cli.tsx');
     
-    if (existsSync(tsxPath) && existsSync(existingCliPath)) {
+  // Only attempt to run the full TypeScript CLI when explicitly enabled
+  if (process.env.SWISSKNIFE_FULL_CLI === '1' && existsSync(tsxPath) && existsSync(existingCliPath)) {
       try {
         const { spawn } = await import('child_process');
-        
-        const child = spawn('node', [tsxPath, existingCliPath, ...process.argv.slice(2)], {
+        // Use modern Node flag to import tsx instead of deprecated --loader
+        const nodeArgs = ['--import', 'tsx', existingCliPath, ...process.argv.slice(2)];
+
+        const child = spawn(process.execPath, nodeArgs, {
           stdio: 'inherit',
           cwd: __dirname,
           env: {
             ...process.env,
-            NODE_OPTIONS: '--loader=tsx/esm --no-warnings'
+            NODE_OPTIONS: '--no-warnings'
           }
         });
-        
+
         child.on('exit', (code) => {
-          process.exit(code || 0);
+          if (!code) {
+            process.exit(0);
+          } else {
+            console.warn(`Full CLI exited with code ${code}, falling back to simplified CLI...`);
+            vibeCodeFallback();
+          }
         });
-        
+
         child.on('error', (error) => {
           console.warn('Existing CLI system not available, using vibe coding fallback...');
           vibeCodeFallback();
         });
-        
+
         return;
       } catch (error) {
         console.warn('Could not run existing CLI system, using vibe coding fallback...');
