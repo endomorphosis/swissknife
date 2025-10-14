@@ -11,11 +11,12 @@
     "checkJs": false,
     "types": ["node", "jest"],
     "module": "NodeNext",
-    "moduleResolution": "node",
+    "moduleResolution": "NodeNext",
     "target": "ES2022",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "isolatedModules": true
   },
   "include": [
     "src/**/*.ts",

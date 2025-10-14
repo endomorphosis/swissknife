@@ -2,10 +2,21 @@
 // Minimal Jest setup file for basic environment configuration.
 // This file is referenced in jest.config.cjs under setupFilesAfterEnv.
 
-// Import and make global the test utility functions using relative path
-const { mockEnv, restoreEnv } = require('./helpers/testUtils.ts'); // Changed to relative import with .ts
-global.mockEnv = mockEnv;
-global.restoreEnv = restoreEnv;
+// Minimal environment helpers (inline to avoid transpiling TS in setup)
+global.mockEnv = (envVars) => {
+  const originalEnv = {};
+  for (const key in envVars) {
+    originalEnv[key] = process.env[key];
+    process.env[key] = envVars[key];
+  }
+  return () => {
+    for (const key in originalEnv) {
+      if (originalEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = originalEnv[key];
+    }
+  };
+};
+global.restoreEnv = () => { /* no-op placeholder; actual restore is returned by mockEnv */ };
 
 // Mock fs module explicitly to control file system operations in tests
 jest.mock('fs', () => {

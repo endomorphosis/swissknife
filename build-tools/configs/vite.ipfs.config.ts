@@ -8,7 +8,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     lib: {
-      entry: resolve(__dirname, 'ipfs_accelerate_js/src/index.simple.ts'),
+      entry: resolve(__dirname, '../../ipfs_accelerate_js/src/index.simple.ts'),
       name: 'IPFSAccelerate',
       fileName: (format) => `ipfs-accelerate.${format}.js`,
       formats: ['es', 'cjs', 'umd']
@@ -35,8 +35,8 @@ export default defineConfig({
   
   resolve: {
     alias: {
-      '@ipfs': resolve(__dirname, 'ipfs_accelerate_js/src'),
-      '@': resolve(__dirname, 'src'),
+      '@ipfs': resolve(__dirname, '../../ipfs_accelerate_js/src'),
+      '@': resolve(__dirname, '../../src'),
       // Browser polyfills for WebGPU testing
       'crypto': 'crypto-browserify',
       'stream': 'stream-browserify',

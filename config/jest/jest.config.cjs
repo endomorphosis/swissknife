@@ -1,16 +1,18 @@
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
   rootDir: '../..',
-  extensionsToTreatAsEsm: ['.ts', '.tsx', '.mts'],
   transform: {
-    "^.+\\.(ts|tsx|mts)$": ["ts-jest", {
-      useESM: true,
-      tsconfig: "config/typescript/tsconfig.test.json",
-      diagnostics: false,
-      isolatedModules: true
+    "^.+\\.(ts|tsx|mts)$": ["babel-jest", {
+      presets: [
+        ["@babel/preset-env", { targets: { node: "current" } }],
+        "@babel/preset-typescript"
+      ],
+      plugins: ["@babel/plugin-transform-modules-commonjs"]
     }],
-    "^.+\\.(js|jsx|cjs)$": "babel-jest"
+    "^.+\\.(js|jsx|cjs)$": ["babel-jest", {
+      presets: [["@babel/preset-env", { targets: { node: "current" } }]],
+      plugins: ["@babel/plugin-transform-modules-commonjs"]
+    }]
   },
   transformIgnorePatterns: [
     "node_modules/(?!(@modelcontextprotocol|ink|ink-testing-library|react-is|merkletreejs|ansi-escapes|environment|uuid|is-in-ci|auto-bind|patch-console|yoga-layout)/)"

@@ -1258,21 +1258,37 @@ export class SystemMonitorApp {
   }
 
   initializeCharts() {
-    // Initialize simple canvas-based charts
-    this.initChart('cpu-chart', this.chartData.cpu, '#60a5fa');
-    this.initChart('memory-chart', this.chartData.memory, '#34d399');
-    this.initChart('gpu-chart', this.chartData.gpu, '#fbbf24');
-    this.initChart('network-chart', this.chartData.network, '#a78bfa');
+    // Initialize charts for current view
+    if (this.currentView === 'overview') {
+      this._redrawOverviewCharts();
+    }
   }
 
   initChart(canvasId, data, color) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+    let node = document.getElementById(canvasId);
+    if (!node) return;
 
-    const ctx = canvas.getContext('2d');
+    // If the node isn't a canvas (e.g., view switched or container reused), try to find a nested canvas
+    if (!(node instanceof HTMLCanvasElement)) {
+      const nested = node.querySelector?.('canvas');
+      if (nested instanceof HTMLCanvasElement) {
+        node = nested;
+      } else {
+        // Not a canvas; skip drawing to avoid getContext errors
+        return;
+      }
+    }
+
+    const canvas = node;
+    const ctx = typeof canvas.getContext === 'function' ? canvas.getContext('2d') : null;
+    if (!ctx) return;
+
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+    // Avoid setting NaN dimensions in rare cases where rect is 0 during reflow
+    const width = Math.max(1, Math.floor(rect.width || canvas.clientWidth || 0));
+    const height = Math.max(1, Math.floor(rect.height || canvas.clientHeight || 0));
+    canvas.width = width;
+    canvas.height = height;
 
     this.drawChart(ctx, data, color, canvas.width, canvas.height);
   }
@@ -1314,11 +1330,36 @@ export class SystemMonitorApp {
     ctx.globalAlpha = 1;
   }
 
-  updateCharts() {
+  _redrawOverviewCharts() {
     this.initChart('cpu-chart', this.chartData.cpu, '#60a5fa');
     this.initChart('memory-chart', this.chartData.memory, '#34d399');
     this.initChart('gpu-chart', this.chartData.gpu, '#fbbf24');
     this.initChart('network-chart', this.chartData.network, '#a78bfa');
+  }
+
+  updateCharts() {
+    // Only redraw charts when overview view is visible
+    if (this.currentView !== 'overview') return;
+
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const minIntervalMs = 200; // small debounce/throttle
+
+    // If a draw is already scheduled, skip
+    if (this._chartsScheduled) return;
+
+    if (this._lastChartsUpdate && (now - this._lastChartsUpdate) < minIntervalMs) {
+      this._chartsScheduled = true;
+      const delay = Math.max(0, minIntervalMs - (now - this._lastChartsUpdate));
+      setTimeout(() => {
+        this._chartsScheduled = false;
+        this._lastChartsUpdate = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        this._redrawOverviewCharts();
+      }, delay);
+      return;
+    }
+
+    this._lastChartsUpdate = now;
+    this._redrawOverviewCharts();
   }
 
   checkAlerts() {

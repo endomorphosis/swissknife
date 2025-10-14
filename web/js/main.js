@@ -1090,13 +1090,19 @@ class SwissKnifeDesktop {
                         const TrainingModule = await import('./apps/training-manager.js');
                         console.log('📦 Imported Training Manager module:', TrainingModule);
                         
+                        // Give the IIFE time to execute and create the global function
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                        
                         // Check for global function first (most likely to work)
                         if (window.createTrainingManagerApp) {
+                            console.log('✅ Using global createTrainingManagerApp function');
                             appInstance = window.createTrainingManagerApp();
                             appInstance.init(contentElement);
                         } else if (TrainingModule.TrainingManagerApp) {
+                            console.log('⚠️ Global function not found, using exported class');
                             // Fallback to exported class if available
                             appInstance = new TrainingModule.TrainingManagerApp();
+                            await appInstance.initialize();
                             if (appInstance.render) {
                                 const html = await appInstance.render();
                                 contentElement.innerHTML = html;

@@ -708,7 +708,15 @@
   // Deploy sample CloudFlare workers
   async function deploySampleWorkers() {
     try {
-      const { getWorkerTemplate } = await import('/src/cloudflare/worker-templates.ts');
+      // Optional dynamic import for dev-only templates; wrap to avoid build-time resolution failure
+      let getWorkerTemplate;
+      try {
+        const cfModule = '/src/cloudflare/worker-templates.ts';
+        ({ getWorkerTemplate } = await import(/* @vite-ignore */ cfModule));
+      } catch (e) {
+        console.warn('Cloudflare worker templates not available in web build, using stub');
+        getWorkerTemplate = (name) => `// stub worker: ${name}`;
+      }
       
       // Deploy AI Inference Worker
       const aiWorkerScript = getWorkerTemplate('ai-inference');

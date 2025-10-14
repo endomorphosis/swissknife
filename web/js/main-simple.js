@@ -9,6 +9,7 @@ class SwissKnifeDesktop {
         this.activeWindow = null;
         this.apps = new Map();
         this.isSwissKnifeReady = false;
+        this.zIndexCounter = 100;
         
         this.init();
     }
@@ -47,6 +48,88 @@ class SwissKnifeDesktop {
         
         // Setup window management
         this.setupWindowManagement();
+
+        // Inject basic styles for active window focus cue (once)
+        if (!document.getElementById('swissknife-active-window-style')) {
+            const style = document.createElement('style');
+            style.id = 'swissknife-active-window-style';
+            style.textContent = `
+                .window { box-shadow: 0 8px 18px rgba(0,0,0,0.18); }
+                .window.window-active { box-shadow: 0 12px 28px rgba(0,0,0,0.28); }
+                .window.window-active .window-titlebar { outline: 2px solid #3b82f6; outline-offset: -2px; }
+                #graphics-limited-badge { position: fixed; top: 8px; right: 8px; z-index: 99999; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; }
+                #graphics-limited-badge .badge { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f59e0b; color: #111; border: 1px solid #b45309; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 12px; }
+                #graphics-limited-badge .badge b { font-weight: 700; }
+                #graphics-limited-badge .close { margin-left: 6px; cursor: pointer; border: none; background: transparent; font-size: 14px; line-height: 1; color: #111; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Detect WebGL capabilities and show badge if limited
+        this.detectAndShowGraphicsBadge();
+    }
+
+    // Detect WebGL/renderer info and show a small badge if only software rendering is available
+    detectAndShowGraphicsBadge() {
+        const info = this.getWebGLInfo();
+        this.graphicsInfo = info;
+
+        // If unsupported at all, or software renderer detected, show limited graphics badge
+        const shouldShow = !info.supported || info.isSoftware;
+        if (!shouldShow) return;
+
+        if (document.getElementById('graphics-limited-badge')) return;
+
+        const container = document.createElement('div');
+        container.id = 'graphics-limited-badge';
+        const renderer = info.renderer || 'Unknown Renderer';
+        const label = !info.supported ? 'Graphics unavailable' : 'Limited graphics (software)';
+        container.innerHTML = `
+            <div class="badge" title="${renderer}">
+                <span>⚠️</span>
+                <span><b>${label}</b>${info.supported ? ` · ${renderer}` : ''}</span>
+                <button class="close" aria-label="Dismiss" title="Dismiss">×</button>
+            </div>
+        `;
+        document.body.appendChild(container);
+
+        const closeBtn = container.querySelector('.close');
+        if (closeBtn) closeBtn.addEventListener('click', () => container.remove());
+    }
+
+    // Query WebGL support and renderer details
+    getWebGLInfo() {
+        try {
+            const canvas = document.createElement('canvas');
+            let gl = canvas.getContext('webgl2');
+            let contextName = 'webgl2';
+            if (!gl) { gl = canvas.getContext('webgl'); contextName = gl ? 'webgl' : null; }
+            if (!gl) {
+                // Try again with failIfMajorPerformanceCaveat to differentiate software paths
+                gl = canvas.getContext('webgl', { failIfMajorPerformanceCaveat: true }) || null;
+                if (!gl) return { supported: false, isSoftware: true, renderer: null, vendor: null, contextName: null };
+                contextName = 'webgl';
+            }
+
+            const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+            const vendor = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+            const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+            const r = (renderer || '').toLowerCase();
+            // Heuristics for software renderers across platforms
+            const softwareHints = ['swiftshader', 'llvmpipe', 'software', 'softpipe', 'angle (software)', 'mesa offscreen'];
+            const isSoftware = softwareHints.some(h => r.includes(h));
+
+            // Also consider major performance caveat: request with flag and see if it fails
+            let caveat = false;
+            try {
+                const g2 = canvas.getContext(contextName || 'webgl', { failIfMajorPerformanceCaveat: true });
+                caveat = !g2; // if it fails, there is a major performance caveat
+            } catch { /* ignore */ }
+
+            return { supported: true, isSoftware: isSoftware || caveat, renderer, vendor, contextName };
+        } catch {
+            return { supported: false, isSoftware: true, renderer: null, vendor: null, contextName: null };
+        }
     }
     
     initializeApps() {
@@ -453,6 +536,7 @@ class SwissKnifeDesktop {
         windowElement.style.top = options.y + 'px';
         windowElement.style.width = options.width + 'px';
         windowElement.style.height = options.height + 'px';
+        windowElement.style.zIndex = String(++this.zIndexCounter);
         
         // Create window structure
         windowElement.innerHTML = `
@@ -478,20 +562,30 @@ class SwissKnifeDesktop {
             windowsContainer.appendChild(windowElement);
         }
         
-        // Setup window controls
-        this.setupWindowControls(windowElement);
-        
-        // Store window reference
+        // Store window reference BEFORE setting up controls (so controls can access window data)
         const window = {
             id: windowId,
             element: windowElement,
             appId: options.appId,
             title: options.title,
             minimized: false,
-            maximized: false
+            maximized: false,
+            preMaximizeState: null
         };
         
         this.windows.set(windowId, window);
+        
+        // Setup window controls (needs window to be in map first)
+        this.setupWindowControls(windowElement);
+        // Setup window dragging
+        this.setupWindowDragging(windowElement);
+        // Bring to front on interaction
+        windowElement.addEventListener('mousedown', () => this.focusWindow(windowElement));
+        
+        // Focus newly created window
+        this.focusWindow(windowElement);
+        // Update taskbar
+        this.updateTaskbar();
         
         return window;
     }
@@ -581,6 +675,18 @@ class SwissKnifeDesktop {
                     await this.createClockApp(contentElement);
                     break;
                     
+                case 'CalendarApp':
+                    await this.createCalendarApp(contentElement);
+                    break;
+                    
+                case 'TodoApp':
+                    await this.createTodoApp(contentElement);
+                    break;
+                    
+                case 'FriendsListApp':
+                    await this.createFriendsListApp(contentElement);
+                    break;
+                    
                 case 'ImageViewerApp':
                     await this.createImageViewerApp(contentElement);
                     break;
@@ -599,6 +705,46 @@ class SwissKnifeDesktop {
                     
                 case 'NeuralNetworkDesignerApp':
                     await this.createNeuralNetworkDesignerApp(contentElement);
+                    break;
+                    
+                case 'P2PChatUnifiedApp':
+                    await this.createP2PChatUnifiedApp(contentElement);
+                    break;
+                    
+                case 'TrainingManagerApp':
+                    await this.createTrainingManagerApp(contentElement);
+                    break;
+                    
+                case 'PeerTubeApp':
+                    await this.createPeerTubeApp(contentElement);
+                    break;
+                    
+                case 'NeuralPhotoshopApp':
+                    await this.createNeuralPhotoshopApp(contentElement);
+                    break;
+                    
+                case 'CinemaApp':
+                    await this.createCinemaApp(contentElement);
+                    break;
+                    
+                case 'MediaPlayer':
+                    await this.createMediaPlayerApp(contentElement);
+                    break;
+                    
+                case 'GrandmaStrudelDAW':
+                    await this.createGrandmaStrudelDAWApp(contentElement);
+                    break;
+                    
+                case 'MusicStudioUnifiedApp':
+                    await this.createMusicStudioUnifiedApp(contentElement);
+                    break;
+                    
+                case 'MusicStudioApp':
+                    await this.createMusicStudioApp(contentElement);
+                    break;
+                    
+                case 'P2PChatApp':
+                    await this.createP2PChatApp(contentElement);
                     break;
                     
                 default:
@@ -716,6 +862,10 @@ class SwissKnifeDesktop {
         await strudelAI.initialize();
         const html = await strudelAI.render();
         contentElement.innerHTML = html;
+        // Ensure the component wires up events and audio after content is in DOM
+        if (typeof strudelAI.mount === 'function') {
+            await strudelAI.mount(contentElement);
+        }
         return strudelAI;
     }
 
@@ -747,12 +897,32 @@ class SwissKnifeDesktop {
     }
 
     async createModelBrowserApp(contentElement) {
-        const { ModelBrowserApp } = await import('./apps/model-browser.js');
-        const modelBrowser = new ModelBrowserApp(this);
-        await modelBrowser.initialize();
-        const html = await modelBrowser.render();
-        contentElement.innerHTML = html;
-        return modelBrowser;
+        try {
+            const { ModelBrowserApp } = await import('./apps/model-browser.js');
+            const modelBrowser = new ModelBrowserApp(this);
+            await modelBrowser.initialize();
+            // Use the app's render() which returns a config with HTML content
+            const config = await modelBrowser.render();
+            contentElement.innerHTML = config.content || (typeof config === 'string' ? config : 'Model Browser loading...');
+            // Wire up events and initial render into the provided container
+            if (typeof modelBrowser.setupEventListeners === 'function') {
+                modelBrowser.setupEventListeners(contentElement);
+            }
+            if (typeof modelBrowser.renderModelList === 'function') {
+                modelBrowser.renderModelList(contentElement);
+            }
+            return modelBrowser;
+        } catch (error) {
+            console.error('Failed to load Model Browser app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>📚 AI Model Manager</h2>
+                    <p>AI model management with P2P sharing and IPFS integration</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createHuggingFaceApp(contentElement) {
@@ -810,21 +980,58 @@ class SwissKnifeDesktop {
     }
 
     async createIPFSExplorerApp(contentElement) {
-        const { IPFSExplorerApp } = await import('./apps/ipfs-explorer.js');
-        const ipfsExplorer = new IPFSExplorerApp(this);
-        await ipfsExplorer.initialize();
-        const html = await ipfsExplorer.render();
-        contentElement.innerHTML = html;
-        return ipfsExplorer;
+        try {
+            const { IPFSExplorerApp } = await import('./apps/ipfs-explorer.js');
+            const ipfsExplorer = new IPFSExplorerApp(this);
+            await ipfsExplorer.initialize();
+            // IPFSExplorerApp.render() returns a config object, get HTML from createWindow()
+            const windowContent = ipfsExplorer.createWindow();
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else if (windowContent && windowContent.content) {
+                contentElement.innerHTML = windowContent.content;
+            } else {
+                const config = await ipfsExplorer.render();
+                contentElement.innerHTML = config.content || 'IPFS Explorer loading...';
+            }
+            return ipfsExplorer;
+        } catch (error) {
+            console.error('Failed to load IPFS Explorer app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🌍 IPFS Explorer</h2>
+                    <p>IPFS file management with P2P integration</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createDeviceManagerApp(contentElement) {
-        const { DeviceManagerApp } = await import('./apps/device-manager.js');
-        const deviceManager = new DeviceManagerApp(this);
-        await deviceManager.initialize();
-        const html = await deviceManager.render();
-        contentElement.innerHTML = html;
-        return deviceManager;
+        try {
+            const { DeviceManagerApp } = await import('./apps/device-manager.js');
+            const deviceManager = new DeviceManagerApp(this);
+            await deviceManager.initialize();
+            // DeviceManagerApp has createWindow() not render()
+            const windowContent = deviceManager.createWindow();
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else {
+                contentElement.innerHTML = 'Device Manager loading...';
+            }
+            return deviceManager;
+        } catch (error) {
+            console.error('Failed to load Device Manager app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🔧 Device Manager</h2>
+                    <p>Hardware monitoring and device discovery</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createSettingsApp(contentElement) {
@@ -847,12 +1054,34 @@ class SwissKnifeDesktop {
     }
 
     async createAPIKeysApp(contentElement) {
-        const { APIKeysApp } = await import('./apps/api-keys.js');
-        const apiKeys = new APIKeysApp(this);
-        await apiKeys.initialize();
-        const html = await apiKeys.render();
-        contentElement.innerHTML = html;
-        return apiKeys;
+        try {
+            // APIKeysApp is not an ES6 export, it's created globally
+            await import('./apps/api-keys.js');
+            // Wait for the script to execute and create window.APIKeysApp
+            await new Promise(resolve => setTimeout(resolve, 10));
+            
+            if (window.APIKeysApp) {
+                const apiKeys = new window.APIKeysApp();
+                if (apiKeys.initialize) {
+                    await apiKeys.initialize();
+                }
+                const html = await apiKeys.render();
+                contentElement.innerHTML = html;
+                return apiKeys;
+            } else {
+                throw new Error('APIKeysApp not found on window object');
+            }
+        } catch (error) {
+            console.error('Failed to load API Keys app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🔑 API Keys</h2>
+                    <p>Secure API key management with encryption</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createGitHubApp(contentElement) {
@@ -885,12 +1114,29 @@ class SwissKnifeDesktop {
     }
 
     async createNaviApp(contentElement) {
-        const { NaviApp } = await import('./apps/navi.js');
-        const navi = new NaviApp(this);
-        await navi.initialize();
-        const html = await navi.render();
-        contentElement.innerHTML = html;
-        return navi;
+        try {
+            const { NAVIApp } = await import('./apps/navi.js');
+            const navi = new NAVIApp(this);
+            await navi.initialize();
+            // NAVIApp has createWindow() not render()
+            const windowContent = navi.createWindow();
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else {
+                contentElement.innerHTML = 'NAVI loading...';
+            }
+            return navi;
+        } catch (error) {
+            console.error('Failed to load NAVI app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🤖 NAVI</h2>
+                    <p>Advanced AI Assistant with voice interaction</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createCalculatorApp(contentElement) {
@@ -909,6 +1155,67 @@ class SwissKnifeDesktop {
         const html = await clock.render();
         contentElement.innerHTML = html;
         return clock;
+    }
+
+    async createCalendarApp(contentElement) {
+        try {
+            const { CalendarApp } = await import('./apps/calendar.js');
+            const calendar = new CalendarApp(this);
+            await calendar.initialize();
+            const html = await calendar.render();
+            contentElement.innerHTML = html;
+            return calendar;
+        } catch (error) {
+            console.error('Failed to load Calendar app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>📅 Calendar & Events</h2>
+                    <p>Event management with reminders and scheduling</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
+    }
+
+    async createTodoApp(contentElement) {
+        try {
+            const { TodoApp } = await import('./apps/todo.js');
+            const todo = new TodoApp(this);
+            await todo.initialize();
+            const html = await todo.createWindowConfig();
+            contentElement.innerHTML = html;
+            return todo;
+        } catch (error) {
+            console.error('Failed to load Todo app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>📋 Todo & Goals</h2>
+                    <p>Plain text goal management system</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
+    }
+
+    async createFriendsListApp(contentElement) {
+        try {
+            const { FriendsListApp } = await import('./apps/friends-list.js');
+            const friendsList = new FriendsListApp(this);
+            await friendsList.createInterface(contentElement);
+            return friendsList;
+        } catch (error) {
+            console.error('Failed to load Friends List app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>👥 Friends & Identity</h2>
+                    <p>Decentralized identity management with cross-platform linking</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createImageViewerApp(contentElement) {
@@ -1160,6 +1467,112 @@ class SwissKnifeDesktop {
         contentElement.innerHTML = html;
         return neuralNetworkDesigner;
     }
+    
+    async createP2PChatUnifiedApp(contentElement) {
+        const { UnifiedP2PChatApp } = await import('./apps/p2p-chat-unified.js');
+        const p2pChat = new UnifiedP2PChatApp(this);
+        await p2pChat.initialize();
+        const html = await p2pChat.render();
+        contentElement.innerHTML = html;
+        return p2pChat;
+    }
+    
+    async createTrainingManagerApp(contentElement) {
+        const TrainingModule = await import('./apps/training-manager.js');
+        // Wait for IIFE to execute
+        await new Promise(resolve => setTimeout(resolve, 10));
+        if (window.createTrainingManagerApp) {
+            const app = window.createTrainingManagerApp();
+            app.init(contentElement);
+            return app;
+        } else if (TrainingModule.TrainingManagerApp) {
+            const training = new TrainingModule.TrainingManagerApp();
+            await training.initialize();
+            const html = await training.render();
+            contentElement.innerHTML = html;
+            return training;
+        }
+    }
+    
+    async createPeerTubeApp(contentElement) {
+        const { PeerTubeApp } = await import('./apps/peertube.js');
+        const peertube = new PeerTubeApp(this);
+        await peertube.initialize();
+        // PeerTubeApp exposes a createInterface(container) API (no render() return)
+        await peertube.createInterface(contentElement);
+        return peertube;
+    }
+    
+    async createNeuralPhotoshopApp(contentElement) {
+        const { NeuralPhotoshopApp } = await import('./apps/neural-photoshop.js');
+        const neuralPhotoshop = new NeuralPhotoshopApp(contentElement, this);
+        await neuralPhotoshop.initialize();
+        // The initialize method sets innerHTML, but we need to make sure it happens
+        // Neural Photoshop is fully initialized and rendered within its initialize() method
+        return neuralPhotoshop;
+    }
+    
+    async createCinemaApp(contentElement) {
+        const { CinemaApp } = await import('./apps/cinema.js');
+        const cinema = new CinemaApp();
+        await cinema.createInterface(contentElement);
+        return cinema;
+    }
+    
+    async createMediaPlayerApp(contentElement) {
+        const MediaPlayerModule = await import('./apps/media-player.js');
+        if (MediaPlayerModule.MediaPlayer) {
+            // MediaPlayer has initialize(container) and returns HTML via createInterface() internally
+            const mediaPlayer = new MediaPlayerModule.MediaPlayer();
+            await mediaPlayer.initialize(contentElement);
+            return mediaPlayer;
+        }
+    }
+    
+    async createGrandmaStrudelDAWApp(contentElement) {
+        const StrudelModule = await import('./apps/strudel-grandma.js');
+        // The module exports GrandmaStrudelDAW, not StrudelGrandmaApp
+        const StrudelClass = StrudelModule.GrandmaStrudelDAW || StrudelModule.default;
+        if (StrudelClass) {
+            const strudel = new StrudelClass();
+            // GrandmaStrudelDAW uses start(container) method instead of initialize/render
+            await strudel.start(contentElement);
+            return strudel;
+        } else {
+            console.error('GrandmaStrudelDAW not found in module');
+            contentElement.innerHTML = '<div style="padding: 20px;">Error: Could not load Strudel app</div>';
+        }
+    }
+    
+    async createMusicStudioUnifiedApp(contentElement) {
+        const MusicStudioModule = await import('./apps/music-studio-unified.js');
+        if (MusicStudioModule.UnifiedMusicStudioApp) {
+            const musicStudio = new MusicStudioModule.UnifiedMusicStudioApp(this);
+            await musicStudio.initialize();
+            const html = await musicStudio.render();
+            contentElement.innerHTML = html;
+            return musicStudio;
+        }
+    }
+    
+    async createMusicStudioApp(contentElement) {
+        await import('./apps/music-studio.js');
+        // Music Studio exports window.renderMusicStudioApp
+        if (window.renderMusicStudioApp) {
+            window.renderMusicStudioApp(contentElement);
+        } else {
+            contentElement.innerHTML = '<div style="padding: 20px;">Music Studio Classic loading...</div>';
+        }
+    }
+    
+    async createP2PChatApp(contentElement) {
+        const { P2PChatApp } = await import('./apps/p2p-chat.js');
+        const p2pChat = new P2PChatApp(this);
+        await p2pChat.initialize();
+        const html = await p2pChat.render();
+        contentElement.innerHTML = html;
+        return p2pChat;
+    }
 
     createPlaceholderApp(contentElement, componentName) {
         contentElement.innerHTML = `
@@ -1185,11 +1598,166 @@ class SwissKnifeDesktop {
     
     setupWindowControls(windowElement) {
         const closeBtn = windowElement.querySelector('.window-control.close');
+        const minimizeBtn = windowElement.querySelector('.window-control.minimize');
+        const maximizeBtn = windowElement.querySelector('.window-control.maximize');
+        const windowId = windowElement.id;
+        const windowData = this.windows.get(windowId);
+        
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
+                // Remove from tracking map if present
+                this.windows.delete(windowElement.id);
                 windowElement.remove();
+                if (this.activeWindow === windowElement) {
+                    this.activeWindow = null;
+                }
+                this.updateSystemStatus();
+                this.updateTaskbar();
             });
         }
+        
+        if (minimizeBtn && windowData) {
+            minimizeBtn.addEventListener('click', () => {
+                windowElement.style.display = 'none';
+                windowData.minimized = true;
+                this.updateTaskbar();
+            });
+        }
+        
+        if (maximizeBtn && windowData) {
+            maximizeBtn.addEventListener('click', () => {
+                if (windowData.maximized) {
+                    // Restore to original size and position
+                    windowElement.style.left = windowData.preMaximizeState.x + 'px';
+                    windowElement.style.top = windowData.preMaximizeState.y + 'px';
+                    windowElement.style.width = windowData.preMaximizeState.width + 'px';
+                    windowElement.style.height = windowData.preMaximizeState.height + 'px';
+                    windowData.maximized = false;
+                } else {
+                    // Save current state before maximizing
+                    windowData.preMaximizeState = {
+                        x: parseInt(windowElement.style.left) || 0,
+                        y: parseInt(windowElement.style.top) || 0,
+                        width: parseInt(windowElement.style.width) || 800,
+                        height: parseInt(windowElement.style.height) || 600
+                    };
+                    
+                    // Maximize to fill desktop (leaving space for taskbar)
+                    const desktop = document.getElementById('desktop');
+                    const taskbar = document.getElementById('taskbar');
+                    const taskbarHeight = taskbar ? taskbar.offsetHeight : 50;
+                    
+                    windowElement.style.left = '0px';
+                    windowElement.style.top = '0px';
+                    windowElement.style.width = desktop.clientWidth + 'px';
+                    windowElement.style.height = (desktop.clientHeight - taskbarHeight) + 'px';
+                    windowData.maximized = true;
+                }
+            });
+        }
+    }
+    
+    setupWindowDragging(windowElement) {
+        const titlebar = windowElement.querySelector('.window-titlebar');
+        if (!titlebar) return;
+        
+        let isDragging = false;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+        
+        titlebar.addEventListener('mousedown', (e) => {
+            // Don't drag if clicking on window controls
+            if (e.target.classList.contains('window-control')) return;
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseInt(windowElement.style.left) || 0;
+            startTop = parseInt(windowElement.style.top) || 0;
+            
+            e.preventDefault();
+            
+            const handleMouseMove = (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newLeft = startLeft + deltaX;
+                const newTop = Math.max(0, startTop + deltaY); // Prevent dragging above viewport
+                
+                windowElement.style.left = newLeft + 'px';
+                windowElement.style.top = newTop + 'px';
+            };
+            
+            const handleMouseUp = () => {
+                isDragging = false;
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        });
+        
+        // Make titlebar cursor indicate it's draggable
+        titlebar.style.cursor = 'move';
+    }
+    
+    updateTaskbar() {
+        const taskbarApps = document.getElementById('taskbar-apps');
+        if (!taskbarApps) return;
+        
+        // Get all windows
+        const windows = Array.from(this.windows.values());
+        
+        // Create taskbar icons for each window
+        taskbarApps.innerHTML = windows.map(window => {
+            const icon = window.element.querySelector('.window-icon')?.textContent || '📦';
+            const title = window.title || 'Window';
+            const isActive = this.activeWindow === window.element;
+            
+            return `
+                <div class="taskbar-app ${isActive ? 'active' : ''}" 
+                     data-window-id="${window.id}" 
+                     title="${title}"
+                     style="cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0 12px;">
+                    <span style="font-size: 18px;">${icon}</span>
+                    <span style="font-size: 13px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</span>
+                </div>
+            `;
+        }).join('');
+        
+        // Add click handlers to taskbar icons
+        const taskbarIcons = taskbarApps.querySelectorAll('.taskbar-app');
+        taskbarIcons.forEach(icon => {
+            icon.addEventListener('click', () => {
+                const windowId = icon.dataset.windowId;
+                const window = this.windows.get(windowId);
+                if (window && window.element) {
+                    this.focusWindow(window.element);
+                    // If minimized, restore it
+                    if (window.minimized) {
+                        window.element.style.display = 'block';
+                        window.minimized = false;
+                    }
+                }
+            });
+        });
+    }
+
+    // Focus/bring-to-front an existing window element
+    focusWindow(windowElement) {
+        if (!windowElement) return;
+        // Update z-index to bring it to front
+        windowElement.style.zIndex = String(++this.zIndexCounter);
+        // Update active class bookkeeping
+        if (this.activeWindow && this.activeWindow !== windowElement) {
+            this.activeWindow.classList.remove('window-active');
+        }
+        windowElement.classList.add('window-active');
+        this.activeWindow = windowElement;
+        // Update taskbar to reflect active window
+        this.updateTaskbar();
     }
     
     updateSystemTime() {

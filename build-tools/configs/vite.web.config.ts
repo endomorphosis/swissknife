@@ -10,7 +10,8 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: './web/index.html'
+      input: './web/index.html',
+      external: ['/src/cloudflare/worker-templates.ts']
     },
     target: 'es2020'
   },
@@ -48,8 +49,6 @@ export default defineConfig({
       'react-dom',
       '@anthropic-ai/sdk',
       'openai',
-      '@strudel/core',
-      '@strudel/webaudio',
       'crypto-browserify',
       'stream-browserify',
       'path-browserify',
