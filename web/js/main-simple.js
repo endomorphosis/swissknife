@@ -562,14 +562,7 @@ class SwissKnifeDesktop {
             windowsContainer.appendChild(windowElement);
         }
         
-        // Setup window controls
-        this.setupWindowControls(windowElement);
-        // Setup window dragging
-        this.setupWindowDragging(windowElement);
-        // Bring to front on interaction
-        windowElement.addEventListener('mousedown', () => this.focusWindow(windowElement));
-        
-        // Store window reference
+        // Store window reference BEFORE setting up controls (so controls can access window data)
         const window = {
             id: windowId,
             element: windowElement,
@@ -581,6 +574,14 @@ class SwissKnifeDesktop {
         };
         
         this.windows.set(windowId, window);
+        
+        // Setup window controls (needs window to be in map first)
+        this.setupWindowControls(windowElement);
+        // Setup window dragging
+        this.setupWindowDragging(windowElement);
+        // Bring to front on interaction
+        windowElement.addEventListener('mousedown', () => this.focusWindow(windowElement));
+        
         // Focus newly created window
         this.focusWindow(windowElement);
         // Update taskbar
