@@ -581,6 +581,18 @@ class SwissKnifeDesktop {
                     await this.createClockApp(contentElement);
                     break;
                     
+                case 'CalendarApp':
+                    await this.createCalendarApp(contentElement);
+                    break;
+                    
+                case 'TodoApp':
+                    await this.createTodoApp(contentElement);
+                    break;
+                    
+                case 'FriendsListApp':
+                    await this.createFriendsListApp(contentElement);
+                    break;
+                    
                 case 'ImageViewerApp':
                     await this.createImageViewerApp(contentElement);
                     break;
@@ -599,6 +611,46 @@ class SwissKnifeDesktop {
                     
                 case 'NeuralNetworkDesignerApp':
                     await this.createNeuralNetworkDesignerApp(contentElement);
+                    break;
+                    
+                case 'P2PChatUnifiedApp':
+                    await this.createP2PChatUnifiedApp(contentElement);
+                    break;
+                    
+                case 'TrainingManagerApp':
+                    await this.createTrainingManagerApp(contentElement);
+                    break;
+                    
+                case 'PeerTubeApp':
+                    await this.createPeerTubeApp(contentElement);
+                    break;
+                    
+                case 'NeuralPhotoshopApp':
+                    await this.createNeuralPhotoshopApp(contentElement);
+                    break;
+                    
+                case 'CinemaApp':
+                    await this.createCinemaApp(contentElement);
+                    break;
+                    
+                case 'MediaPlayer':
+                    await this.createMediaPlayerApp(contentElement);
+                    break;
+                    
+                case 'GrandmaStrudelDAW':
+                    await this.createGrandmaStrudelDAWApp(contentElement);
+                    break;
+                    
+                case 'MusicStudioUnifiedApp':
+                    await this.createMusicStudioUnifiedApp(contentElement);
+                    break;
+                    
+                case 'MusicStudioApp':
+                    await this.createMusicStudioApp(contentElement);
+                    break;
+                    
+                case 'P2PChatApp':
+                    await this.createP2PChatApp(contentElement);
                     break;
                     
                 default:
@@ -747,12 +799,34 @@ class SwissKnifeDesktop {
     }
 
     async createModelBrowserApp(contentElement) {
-        const { ModelBrowserApp } = await import('./apps/model-browser.js');
-        const modelBrowser = new ModelBrowserApp(this);
-        await modelBrowser.initialize();
-        const html = await modelBrowser.render();
-        contentElement.innerHTML = html;
-        return modelBrowser;
+        try {
+            const { ModelBrowserApp } = await import('./apps/model-browser.js');
+            const modelBrowser = new ModelBrowserApp(this);
+            await modelBrowser.initialize();
+            // ModelBrowserApp.render() returns a config object, get HTML from createWindow()
+            const windowContent = modelBrowser.createWindow();
+            // Extract content string from the window content
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else if (windowContent && windowContent.content) {
+                contentElement.innerHTML = windowContent.content;
+            } else {
+                // Fallback: call render and extract content from config
+                const config = await modelBrowser.render();
+                contentElement.innerHTML = config.content || 'Model Browser loading...';
+            }
+            return modelBrowser;
+        } catch (error) {
+            console.error('Failed to load Model Browser app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>📚 AI Model Manager</h2>
+                    <p>AI model management with P2P sharing and IPFS integration</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createHuggingFaceApp(contentElement) {
@@ -810,21 +884,58 @@ class SwissKnifeDesktop {
     }
 
     async createIPFSExplorerApp(contentElement) {
-        const { IPFSExplorerApp } = await import('./apps/ipfs-explorer.js');
-        const ipfsExplorer = new IPFSExplorerApp(this);
-        await ipfsExplorer.initialize();
-        const html = await ipfsExplorer.render();
-        contentElement.innerHTML = html;
-        return ipfsExplorer;
+        try {
+            const { IPFSExplorerApp } = await import('./apps/ipfs-explorer.js');
+            const ipfsExplorer = new IPFSExplorerApp(this);
+            await ipfsExplorer.initialize();
+            // IPFSExplorerApp.render() returns a config object, get HTML from createWindow()
+            const windowContent = ipfsExplorer.createWindow();
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else if (windowContent && windowContent.content) {
+                contentElement.innerHTML = windowContent.content;
+            } else {
+                const config = await ipfsExplorer.render();
+                contentElement.innerHTML = config.content || 'IPFS Explorer loading...';
+            }
+            return ipfsExplorer;
+        } catch (error) {
+            console.error('Failed to load IPFS Explorer app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🌍 IPFS Explorer</h2>
+                    <p>IPFS file management with P2P integration</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createDeviceManagerApp(contentElement) {
-        const { DeviceManagerApp } = await import('./apps/device-manager.js');
-        const deviceManager = new DeviceManagerApp(this);
-        await deviceManager.initialize();
-        const html = await deviceManager.render();
-        contentElement.innerHTML = html;
-        return deviceManager;
+        try {
+            const { DeviceManagerApp } = await import('./apps/device-manager.js');
+            const deviceManager = new DeviceManagerApp(this);
+            await deviceManager.initialize();
+            // DeviceManagerApp has createWindow() not render()
+            const windowContent = deviceManager.createWindow();
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else {
+                contentElement.innerHTML = 'Device Manager loading...';
+            }
+            return deviceManager;
+        } catch (error) {
+            console.error('Failed to load Device Manager app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🔧 Device Manager</h2>
+                    <p>Hardware monitoring and device discovery</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createSettingsApp(contentElement) {
@@ -847,12 +958,34 @@ class SwissKnifeDesktop {
     }
 
     async createAPIKeysApp(contentElement) {
-        const { APIKeysApp } = await import('./apps/api-keys.js');
-        const apiKeys = new APIKeysApp(this);
-        await apiKeys.initialize();
-        const html = await apiKeys.render();
-        contentElement.innerHTML = html;
-        return apiKeys;
+        try {
+            // APIKeysApp is not an ES6 export, it's created globally
+            await import('./apps/api-keys.js');
+            // Wait for the script to execute and create window.APIKeysApp
+            await new Promise(resolve => setTimeout(resolve, 10));
+            
+            if (window.APIKeysApp) {
+                const apiKeys = new window.APIKeysApp();
+                if (apiKeys.initialize) {
+                    await apiKeys.initialize();
+                }
+                const html = await apiKeys.render();
+                contentElement.innerHTML = html;
+                return apiKeys;
+            } else {
+                throw new Error('APIKeysApp not found on window object');
+            }
+        } catch (error) {
+            console.error('Failed to load API Keys app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🔑 API Keys</h2>
+                    <p>Secure API key management with encryption</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createGitHubApp(contentElement) {
@@ -885,12 +1018,29 @@ class SwissKnifeDesktop {
     }
 
     async createNaviApp(contentElement) {
-        const { NaviApp } = await import('./apps/navi.js');
-        const navi = new NaviApp(this);
-        await navi.initialize();
-        const html = await navi.render();
-        contentElement.innerHTML = html;
-        return navi;
+        try {
+            const { NAVIApp } = await import('./apps/navi.js');
+            const navi = new NAVIApp(this);
+            await navi.initialize();
+            // NAVIApp has createWindow() not render()
+            const windowContent = navi.createWindow();
+            if (typeof windowContent === 'string') {
+                contentElement.innerHTML = windowContent;
+            } else {
+                contentElement.innerHTML = 'NAVI loading...';
+            }
+            return navi;
+        } catch (error) {
+            console.error('Failed to load NAVI app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>🤖 NAVI</h2>
+                    <p>Advanced AI Assistant with voice interaction</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createCalculatorApp(contentElement) {
@@ -909,6 +1059,69 @@ class SwissKnifeDesktop {
         const html = await clock.render();
         contentElement.innerHTML = html;
         return clock;
+    }
+
+    async createCalendarApp(contentElement) {
+        try {
+            const { CalendarApp } = await import('./apps/calendar.js');
+            const calendar = new CalendarApp(this);
+            await calendar.initialize();
+            const html = await calendar.render();
+            contentElement.innerHTML = html;
+            return calendar;
+        } catch (error) {
+            console.error('Failed to load Calendar app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>📅 Calendar & Events</h2>
+                    <p>Event management with reminders and scheduling</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
+    }
+
+    async createTodoApp(contentElement) {
+        try {
+            const { TodoApp } = await import('./apps/todo.js');
+            const todo = new TodoApp(this);
+            await todo.initialize();
+            const html = await todo.createWindowConfig();
+            contentElement.innerHTML = html;
+            return todo;
+        } catch (error) {
+            console.error('Failed to load Todo app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>📋 Todo & Goals</h2>
+                    <p>Plain text goal management system</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
+    }
+
+    async createFriendsListApp(contentElement) {
+        try {
+            const { FriendsListApp } = await import('./apps/friends-list.js');
+            const friendsList = new FriendsListApp(this);
+            await friendsList.initialize();
+            const html = await friendsList.render();
+            contentElement.innerHTML = html;
+            return friendsList;
+        } catch (error) {
+            console.error('Failed to load Friends List app:', error);
+            contentElement.innerHTML = `
+                <div class="app-placeholder">
+                    <h2>👥 Friends & Identity</h2>
+                    <p>Decentralized identity management with cross-platform linking</p>
+                    <p>Failed to load: ${error.message}</p>
+                    <button onclick="this.closest('.window').querySelector('.window-control.close').click()">Close</button>
+                </div>
+            `;
+        }
     }
 
     async createImageViewerApp(contentElement) {
@@ -1159,6 +1372,108 @@ class SwissKnifeDesktop {
         const html = await neuralNetworkDesigner.createWindow();
         contentElement.innerHTML = html;
         return neuralNetworkDesigner;
+    }
+    
+    async createP2PChatUnifiedApp(contentElement) {
+        const { UnifiedP2PChatApp } = await import('./apps/p2p-chat-unified.js');
+        const p2pChat = new UnifiedP2PChatApp(this);
+        await p2pChat.initialize();
+        const html = await p2pChat.render();
+        contentElement.innerHTML = html;
+        return p2pChat;
+    }
+    
+    async createTrainingManagerApp(contentElement) {
+        const TrainingModule = await import('./apps/training-manager.js');
+        // Wait for IIFE to execute
+        await new Promise(resolve => setTimeout(resolve, 10));
+        if (window.createTrainingManagerApp) {
+            const app = window.createTrainingManagerApp();
+            app.init(contentElement);
+            return app;
+        } else if (TrainingModule.TrainingManagerApp) {
+            const training = new TrainingModule.TrainingManagerApp();
+            await training.initialize();
+            const html = await training.render();
+            contentElement.innerHTML = html;
+            return training;
+        }
+    }
+    
+    async createPeerTubeApp(contentElement) {
+        const { PeerTubeApp } = await import('./apps/peertube.js');
+        const peertube = new PeerTubeApp(this);
+        await peertube.initialize();
+        const html = await peertube.render();
+        contentElement.innerHTML = html;
+        return peertube;
+    }
+    
+    async createNeuralPhotoshopApp(contentElement) {
+        const { NeuralPhotoshopApp } = await import('./apps/neural-photoshop.js');
+        const neuralPhotoshop = new NeuralPhotoshopApp(contentElement, this);
+        await neuralPhotoshop.initialize();
+        return neuralPhotoshop;
+    }
+    
+    async createCinemaApp(contentElement) {
+        const { CinemaApp } = await import('./apps/cinema.js');
+        const cinema = new CinemaApp();
+        await cinema.createInterface(contentElement);
+        return cinema;
+    }
+    
+    async createMediaPlayerApp(contentElement) {
+        const MediaPlayerModule = await import('./apps/media-player.js');
+        if (MediaPlayerModule.MediaPlayer) {
+            const mediaPlayer = new MediaPlayerModule.MediaPlayer(this);
+            await mediaPlayer.initialize();
+            const html = await mediaPlayer.render();
+            contentElement.innerHTML = html;
+            return mediaPlayer;
+        }
+    }
+    
+    async createGrandmaStrudelDAWApp(contentElement) {
+        const StrudelModule = await import('./apps/strudel-grandma.js');
+        if (StrudelModule.StrudelGrandmaApp) {
+            const strudel = new StrudelModule.StrudelGrandmaApp(this);
+            await strudel.initialize();
+            const html = await strudel.render();
+            contentElement.innerHTML = html;
+            return strudel;
+        }
+    }
+    
+    async createMusicStudioUnifiedApp(contentElement) {
+        const MusicStudioModule = await import('./apps/music-studio-unified.js');
+        if (MusicStudioModule.UnifiedMusicStudioApp) {
+            const musicStudio = new MusicStudioModule.UnifiedMusicStudioApp(this);
+            await musicStudio.initialize();
+            const html = await musicStudio.render();
+            contentElement.innerHTML = html;
+            return musicStudio;
+        }
+    }
+    
+    async createMusicStudioApp(contentElement) {
+        const MusicStudioModule = await import('./apps/music-studio.js');
+        if (MusicStudioModule.MusicStudioApp) {
+            const musicStudio = new MusicStudioModule.MusicStudioApp(this);
+            await musicStudio.initialize();
+            const html = await musicStudio.render();
+            contentElement.innerHTML = html;
+            return musicStudio;
+        }
+    }
+    
+    async createP2PChatApp(contentElement) {
+        const { P2PChatApp } = await import('./apps/p2p-chat.js');
+        const p2pChat = new P2PChatApp(this);
+        await p2pChat.initialize();
+        const html = await p2pChat.render();
+        contentElement.innerHTML = html;
+        return p2pChat;
     }
 
     createPlaceholderApp(contentElement, componentName) {
