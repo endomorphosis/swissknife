@@ -576,7 +576,8 @@ class SwissKnifeDesktop {
             appId: options.appId,
             title: options.title,
             minimized: false,
-            maximized: false
+            maximized: false,
+            preMaximizeState: null
         };
         
         this.windows.set(windowId, window);
@@ -1529,12 +1530,16 @@ class SwissKnifeDesktop {
     
     async createGrandmaStrudelDAWApp(contentElement) {
         const StrudelModule = await import('./apps/strudel-grandma.js');
-        if (StrudelModule.StrudelGrandmaApp) {
-            const strudel = new StrudelModule.StrudelGrandmaApp(this);
-            await strudel.initialize();
-            const html = await strudel.render();
-            contentElement.innerHTML = html;
+        // The module exports GrandmaStrudelDAW, not StrudelGrandmaApp
+        const StrudelClass = StrudelModule.GrandmaStrudelDAW || StrudelModule.default;
+        if (StrudelClass) {
+            const strudel = new StrudelClass();
+            // GrandmaStrudelDAW uses start(container) method instead of initialize/render
+            await strudel.start(contentElement);
             return strudel;
+        } else {
+            console.error('GrandmaStrudelDAW not found in module');
+            contentElement.innerHTML = '<div style="padding: 20px;">Error: Could not load Strudel app</div>';
         }
     }
     
@@ -1592,6 +1597,11 @@ class SwissKnifeDesktop {
     
     setupWindowControls(windowElement) {
         const closeBtn = windowElement.querySelector('.window-control.close');
+        const minimizeBtn = windowElement.querySelector('.window-control.minimize');
+        const maximizeBtn = windowElement.querySelector('.window-control.maximize');
+        const windowId = windowElement.id;
+        const windowData = this.windows.get(windowId);
+        
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
                 // Remove from tracking map if present
@@ -1602,6 +1612,46 @@ class SwissKnifeDesktop {
                 }
                 this.updateSystemStatus();
                 this.updateTaskbar();
+            });
+        }
+        
+        if (minimizeBtn && windowData) {
+            minimizeBtn.addEventListener('click', () => {
+                windowElement.style.display = 'none';
+                windowData.minimized = true;
+                this.updateTaskbar();
+            });
+        }
+        
+        if (maximizeBtn && windowData) {
+            maximizeBtn.addEventListener('click', () => {
+                if (windowData.maximized) {
+                    // Restore to original size and position
+                    windowElement.style.left = windowData.preMaximizeState.x + 'px';
+                    windowElement.style.top = windowData.preMaximizeState.y + 'px';
+                    windowElement.style.width = windowData.preMaximizeState.width + 'px';
+                    windowElement.style.height = windowData.preMaximizeState.height + 'px';
+                    windowData.maximized = false;
+                } else {
+                    // Save current state before maximizing
+                    windowData.preMaximizeState = {
+                        x: parseInt(windowElement.style.left) || 0,
+                        y: parseInt(windowElement.style.top) || 0,
+                        width: parseInt(windowElement.style.width) || 800,
+                        height: parseInt(windowElement.style.height) || 600
+                    };
+                    
+                    // Maximize to fill desktop (leaving space for taskbar)
+                    const desktop = document.getElementById('desktop');
+                    const taskbar = document.getElementById('taskbar');
+                    const taskbarHeight = taskbar ? taskbar.offsetHeight : 50;
+                    
+                    windowElement.style.left = '0px';
+                    windowElement.style.top = '0px';
+                    windowElement.style.width = desktop.clientWidth + 'px';
+                    windowElement.style.height = (desktop.clientHeight - taskbarHeight) + 'px';
+                    windowData.maximized = true;
+                }
             });
         }
     }
@@ -1669,8 +1719,9 @@ class SwissKnifeDesktop {
                 <div class="taskbar-app ${isActive ? 'active' : ''}" 
                      data-window-id="${window.id}" 
                      title="${title}"
-                     style="cursor: pointer;">
-                    ${icon}
+                     style="cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0 12px;">
+                    <span style="font-size: 18px;">${icon}</span>
+                    <span style="font-size: 13px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</span>
                 </div>
             `;
         }).join('');
