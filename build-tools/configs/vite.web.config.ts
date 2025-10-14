@@ -10,7 +10,8 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: './web/index.html'
+      input: './web/index.html',
+      external: ['/src/cloudflare/worker-templates.ts']
     },
     target: 'es2020'
   },
@@ -22,9 +23,9 @@ export default defineConfig({
   
   resolve: {
     alias: {
-      '@web': resolve(__dirname, '../../web/src'),
-      '@': resolve(__dirname, '../../src'),
-      '@ipfs': resolve(__dirname, '../../ipfs_accelerate_js/src'),
+      '@web': resolve(__dirname, 'web/src'),
+      '@': resolve(__dirname, 'src'),
+      '@ipfs': resolve(__dirname, 'ipfs_accelerate_js/src'),
       // Browser polyfills
       'crypto': 'crypto-browserify',
       'stream': 'stream-browserify',
@@ -48,8 +49,6 @@ export default defineConfig({
       'react-dom',
       '@anthropic-ai/sdk',
       'openai',
-      '@strudel/core',
-      '@strudel/webaudio',
       'crypto-browserify',
       'stream-browserify',
       'path-browserify',

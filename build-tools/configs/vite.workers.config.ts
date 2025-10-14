@@ -6,13 +6,9 @@ export default defineConfig({
     outDir: 'dist/workers',
     lib: {
       entry: {
-        'compute-worker': resolve(__dirname, '../../src/workers/compute-worker.ts'),
-        'audio-worker': resolve(__dirname, '../../src/workers/audio-worker.ts'),
-        'ai-worker': resolve(__dirname, '../../src/workers/ai-worker.ts'),
-        'file-worker': resolve(__dirname, '../../src/workers/file-worker.ts'),
-        'crypto-worker': resolve(__dirname, '../../src/workers/crypto-worker.ts'),
-        'p2p-worker': resolve(__dirname, '../../src/workers/p2p-worker.ts'),
-        'ipfs-worker': resolve(__dirname, '../../src/workers/ipfs-worker.ts')
+        'worker': resolve(__dirname, '../../src/workers/worker.ts'),
+        'worker-thread': resolve(__dirname, '../../src/workers/worker-thread.ts'),
+        'worker-pool': resolve(__dirname, '../../src/workers/worker-pool.ts')
       },
       formats: ['es'],
       fileName: (format, entryName) => `${entryName}.js`
