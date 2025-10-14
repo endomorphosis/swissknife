@@ -1505,6 +1505,8 @@ class SwissKnifeDesktop {
         const { NeuralPhotoshopApp } = await import('./apps/neural-photoshop.js');
         const neuralPhotoshop = new NeuralPhotoshopApp(contentElement, this);
         await neuralPhotoshop.initialize();
+        // The initialize method sets innerHTML, but we need to make sure it happens
+        // Neural Photoshop is fully initialized and rendered within its initialize() method
         return neuralPhotoshop;
     }
     
@@ -1548,13 +1550,12 @@ class SwissKnifeDesktop {
     }
     
     async createMusicStudioApp(contentElement) {
-        const MusicStudioModule = await import('./apps/music-studio.js');
-        if (MusicStudioModule.MusicStudioApp) {
-            const musicStudio = new MusicStudioModule.MusicStudioApp(this);
-            await musicStudio.initialize();
-            const html = await musicStudio.render();
-            contentElement.innerHTML = html;
-            return musicStudio;
+        await import('./apps/music-studio.js');
+        // Music Studio exports window.renderMusicStudioApp
+        if (window.renderMusicStudioApp) {
+            window.renderMusicStudioApp(contentElement);
+        } else {
+            contentElement.innerHTML = '<div style="padding: 20px;">Music Studio Classic loading...</div>';
         }
     }
     
