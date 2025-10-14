@@ -755,7 +755,7 @@ stack(
     async setupRealTimeProcessing() {
         console.log('⚡ Setting up real-time audio processing...');
         
-        // Prefer AudioWorkletNode when available
+        // Use AudioWorkletNode for modern audio processing
         try {
             if (this.audioContext.audioWorklet && typeof this.audioContext.audioWorklet.addModule === 'function') {
                 const workletUrl = new URL('../audio/strudel-processor.js', import.meta.url);
@@ -768,22 +768,12 @@ stack(
                 this.isUsingWorklet = true;
                 console.log('✅ AudioWorklet real-time processing enabled');
                 return;
+            } else {
+                console.warn('⚠️ AudioWorklet not available in this browser. Real-time processing disabled.');
             }
         } catch (error) {
-            console.warn('⚠️ AudioWorklet setup failed, falling back:', error);
-        }
-
-        // Fallback: ScriptProcessorNode (deprecated)
-        try {
-            this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 0, 2);
-            this.scriptProcessor.onaudioprocess = (event) => {
-                this.processAudio(event);
-            };
-            this.scriptProcessor.connect(this.masterGain);
-            this.isUsingWorklet = false;
-            console.log('✅ Real-time audio processing enabled via ScriptProcessor (fallback)');
-        } catch (error) {
-            console.warn('⚠️ Real-time processing not available:', error);
+            console.warn('⚠️ AudioWorklet setup failed:', error);
+            console.log('Real-time processing disabled. Audio playback will still work.');
         }
     }
 

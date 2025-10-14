@@ -90,7 +90,8 @@ export class NeuralPhotoshopApp {
     
     // Render the application interface
     if (this.container) {
-      this.container.innerHTML = this.createWindow();
+      const windowConfig = this.createWindow();
+      this.container.innerHTML = windowConfig.content;
       
       // Set up event handlers after a short delay
       setTimeout(() => {
@@ -3029,7 +3030,7 @@ export class NeuralPhotoshopApp {
   // Modern app framework methods
   async initialize() {
     console.log('🎨 Initializing Neural Photoshop app...');
-    this.swissknife = this.desktop.swissknife;
+    this.swissknife = this.desktop?.swissknife;
     
     // Initialize canvas and AI systems
     await this.initializeCanvas();
@@ -3038,6 +3039,18 @@ export class NeuralPhotoshopApp {
     // Create default project
     this.createNewProject();
     
+    // Render the application interface if container is provided
+    if (this.container) {
+      const windowConfig = this.createWindow();
+      this.container.innerHTML = windowConfig.content;
+      
+      // Set up event handlers after a short delay
+      setTimeout(() => {
+        this.setupEventHandlers(this.container);
+        console.log('✅ Neural Photoshop initialized in virtual desktop');
+      }, 100);
+    }
+    
     console.log('✅ Neural Photoshop initialized');
     return this;
   }
@@ -3045,16 +3058,7 @@ export class NeuralPhotoshopApp {
   async render() {
     console.log('🎨 Rendering Neural Photoshop app...');
     const windowConfig = this.createWindow();
-    
-    // Set up event handlers after the HTML is rendered
-    setTimeout(() => {
-      const container = document.querySelector('.neural-photoshop-container');
-      if (container) {
-        this.setupEventHandlers(container);
-      }
-    }, 100);
-    
-    return windowConfig;
+    return windowConfig.content;
   }
 
   // Static method to launch the GUI version

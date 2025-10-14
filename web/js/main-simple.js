@@ -562,24 +562,30 @@ class SwissKnifeDesktop {
             windowsContainer.appendChild(windowElement);
         }
         
-        // Setup window controls
-        this.setupWindowControls(windowElement);
-        // Bring to front on interaction
-        windowElement.addEventListener('mousedown', () => this.focusWindow(windowElement));
-        
-        // Store window reference
+        // Store window reference BEFORE setting up controls (so controls can access window data)
         const window = {
             id: windowId,
             element: windowElement,
             appId: options.appId,
             title: options.title,
             minimized: false,
-            maximized: false
+            maximized: false,
+            preMaximizeState: null
         };
         
         this.windows.set(windowId, window);
+        
+        // Setup window controls (needs window to be in map first)
+        this.setupWindowControls(windowElement);
+        // Setup window dragging
+        this.setupWindowDragging(windowElement);
+        // Bring to front on interaction
+        windowElement.addEventListener('mousedown', () => this.focusWindow(windowElement));
+        
         // Focus newly created window
         this.focusWindow(windowElement);
+        // Update taskbar
+        this.updateTaskbar();
         
         return window;
     }
@@ -1501,6 +1507,8 @@ class SwissKnifeDesktop {
         const { NeuralPhotoshopApp } = await import('./apps/neural-photoshop.js');
         const neuralPhotoshop = new NeuralPhotoshopApp(contentElement, this);
         await neuralPhotoshop.initialize();
+        // The initialize method sets innerHTML, but we need to make sure it happens
+        // Neural Photoshop is fully initialized and rendered within its initialize() method
         return neuralPhotoshop;
     }
     
@@ -1523,12 +1531,16 @@ class SwissKnifeDesktop {
     
     async createGrandmaStrudelDAWApp(contentElement) {
         const StrudelModule = await import('./apps/strudel-grandma.js');
-        if (StrudelModule.StrudelGrandmaApp) {
-            const strudel = new StrudelModule.StrudelGrandmaApp(this);
-            await strudel.initialize();
-            const html = await strudel.render();
-            contentElement.innerHTML = html;
+        // The module exports GrandmaStrudelDAW, not StrudelGrandmaApp
+        const StrudelClass = StrudelModule.GrandmaStrudelDAW || StrudelModule.default;
+        if (StrudelClass) {
+            const strudel = new StrudelClass();
+            // GrandmaStrudelDAW uses start(container) method instead of initialize/render
+            await strudel.start(contentElement);
             return strudel;
+        } else {
+            console.error('GrandmaStrudelDAW not found in module');
+            contentElement.innerHTML = '<div style="padding: 20px;">Error: Could not load Strudel app</div>';
         }
     }
     
@@ -1544,13 +1556,12 @@ class SwissKnifeDesktop {
     }
     
     async createMusicStudioApp(contentElement) {
-        const MusicStudioModule = await import('./apps/music-studio.js');
-        if (MusicStudioModule.MusicStudioApp) {
-            const musicStudio = new MusicStudioModule.MusicStudioApp(this);
-            await musicStudio.initialize();
-            const html = await musicStudio.render();
-            contentElement.innerHTML = html;
-            return musicStudio;
+        await import('./apps/music-studio.js');
+        // Music Studio exports window.renderMusicStudioApp
+        if (window.renderMusicStudioApp) {
+            window.renderMusicStudioApp(contentElement);
+        } else {
+            contentElement.innerHTML = '<div style="padding: 20px;">Music Studio Classic loading...</div>';
         }
     }
     
@@ -1587,6 +1598,11 @@ class SwissKnifeDesktop {
     
     setupWindowControls(windowElement) {
         const closeBtn = windowElement.querySelector('.window-control.close');
+        const minimizeBtn = windowElement.querySelector('.window-control.minimize');
+        const maximizeBtn = windowElement.querySelector('.window-control.maximize');
+        const windowId = windowElement.id;
+        const windowData = this.windows.get(windowId);
+        
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
                 // Remove from tracking map if present
@@ -1596,8 +1612,137 @@ class SwissKnifeDesktop {
                     this.activeWindow = null;
                 }
                 this.updateSystemStatus();
+                this.updateTaskbar();
             });
         }
+        
+        if (minimizeBtn && windowData) {
+            minimizeBtn.addEventListener('click', () => {
+                windowElement.style.display = 'none';
+                windowData.minimized = true;
+                this.updateTaskbar();
+            });
+        }
+        
+        if (maximizeBtn && windowData) {
+            maximizeBtn.addEventListener('click', () => {
+                if (windowData.maximized) {
+                    // Restore to original size and position
+                    windowElement.style.left = windowData.preMaximizeState.x + 'px';
+                    windowElement.style.top = windowData.preMaximizeState.y + 'px';
+                    windowElement.style.width = windowData.preMaximizeState.width + 'px';
+                    windowElement.style.height = windowData.preMaximizeState.height + 'px';
+                    windowData.maximized = false;
+                } else {
+                    // Save current state before maximizing
+                    windowData.preMaximizeState = {
+                        x: parseInt(windowElement.style.left) || 0,
+                        y: parseInt(windowElement.style.top) || 0,
+                        width: parseInt(windowElement.style.width) || 800,
+                        height: parseInt(windowElement.style.height) || 600
+                    };
+                    
+                    // Maximize to fill desktop (leaving space for taskbar)
+                    const desktop = document.getElementById('desktop');
+                    const taskbar = document.getElementById('taskbar');
+                    const taskbarHeight = taskbar ? taskbar.offsetHeight : 50;
+                    
+                    windowElement.style.left = '0px';
+                    windowElement.style.top = '0px';
+                    windowElement.style.width = desktop.clientWidth + 'px';
+                    windowElement.style.height = (desktop.clientHeight - taskbarHeight) + 'px';
+                    windowData.maximized = true;
+                }
+            });
+        }
+    }
+    
+    setupWindowDragging(windowElement) {
+        const titlebar = windowElement.querySelector('.window-titlebar');
+        if (!titlebar) return;
+        
+        let isDragging = false;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+        
+        titlebar.addEventListener('mousedown', (e) => {
+            // Don't drag if clicking on window controls
+            if (e.target.classList.contains('window-control')) return;
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseInt(windowElement.style.left) || 0;
+            startTop = parseInt(windowElement.style.top) || 0;
+            
+            e.preventDefault();
+            
+            const handleMouseMove = (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newLeft = startLeft + deltaX;
+                const newTop = Math.max(0, startTop + deltaY); // Prevent dragging above viewport
+                
+                windowElement.style.left = newLeft + 'px';
+                windowElement.style.top = newTop + 'px';
+            };
+            
+            const handleMouseUp = () => {
+                isDragging = false;
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        });
+        
+        // Make titlebar cursor indicate it's draggable
+        titlebar.style.cursor = 'move';
+    }
+    
+    updateTaskbar() {
+        const taskbarApps = document.getElementById('taskbar-apps');
+        if (!taskbarApps) return;
+        
+        // Get all windows
+        const windows = Array.from(this.windows.values());
+        
+        // Create taskbar icons for each window
+        taskbarApps.innerHTML = windows.map(window => {
+            const icon = window.element.querySelector('.window-icon')?.textContent || '📦';
+            const title = window.title || 'Window';
+            const isActive = this.activeWindow === window.element;
+            
+            return `
+                <div class="taskbar-app ${isActive ? 'active' : ''}" 
+                     data-window-id="${window.id}" 
+                     title="${title}"
+                     style="cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0 12px;">
+                    <span style="font-size: 18px;">${icon}</span>
+                    <span style="font-size: 13px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</span>
+                </div>
+            `;
+        }).join('');
+        
+        // Add click handlers to taskbar icons
+        const taskbarIcons = taskbarApps.querySelectorAll('.taskbar-app');
+        taskbarIcons.forEach(icon => {
+            icon.addEventListener('click', () => {
+                const windowId = icon.dataset.windowId;
+                const window = this.windows.get(windowId);
+                if (window && window.element) {
+                    this.focusWindow(window.element);
+                    // If minimized, restore it
+                    if (window.minimized) {
+                        window.element.style.display = 'block';
+                        window.minimized = false;
+                    }
+                }
+            });
+        });
     }
 
     // Focus/bring-to-front an existing window element
@@ -1611,6 +1756,8 @@ class SwissKnifeDesktop {
         }
         windowElement.classList.add('window-active');
         this.activeWindow = windowElement;
+        // Update taskbar to reflect active window
+        this.updateTaskbar();
     }
     
     updateSystemTime() {
