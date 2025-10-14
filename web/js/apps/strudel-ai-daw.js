@@ -51,12 +51,44 @@ export class StrudelAIDAW {
 
     async initialize() {
         this.swissknife = this.desktop.swissknife;
+        // Pre-initialize audio-related members without touching AudioContext
+        // (creating AudioContext often requires a user gesture; we finish setup in mount())
         await this.setupAudioEngine();
         await this.loadStrudelSDK();
     }
 
-    createWindow() {
-        const content = `
+    /**
+     * Minimal pre-setup for audio engine; full setup happens in initializeAudioEngine(container)
+     */
+    async setupAudioEngine() {
+        this.masterGain = null;
+        // analyser, audioContext and other nodes are created on mount when DOM is ready
+        return Promise.resolve();
+    }
+
+    /**
+     * Render returns the HTML content string to be mounted by the desktop shell.
+     */
+    async render() {
+        return this.getContentHTML();
+    }
+
+    /**
+     * Called after the HTML has been inserted into the container. Sets up listeners and audio.
+     */
+    async mount(container) {
+        try {
+            this.setupEventListeners(container);
+            await this.initializeEditor(container);
+            this.setupVisualization(container);
+            await this.initializeAudioEngine(container);
+        } catch (err) {
+            console.error('Failed to mount Strudel AI DAW:', err);
+        }
+    }
+
+    getContentHTML() {
+        return `
             <div class="strudel-ai-daw">
                 <!-- Top Menu Bar -->
                 <div class="daw-menubar">
@@ -226,7 +258,7 @@ note('c2 d2 e2 f2').sound('sine').lpf(400).room(0.2)"></textarea>
                         </div>
                         
                         <div class="controls-footer">
-                            <button class="preset-btn" id="save-preset">💾 Save Preset</button>
+                            <button class="preset-btn" id="save-preset">💾 Save Preset</</button>
                             <button class="preset-btn" id="load-preset">📁 Load Preset</button>
                         </div>
                     </div>
@@ -431,21 +463,21 @@ Examples:
                 </div>
             </div>
         `;
+    }
 
-        const window = this.desktop.createWindow({
+    createWindow() {
+        // Legacy API: returns a desktop window object using the same HTML
+        const content = this.getContentHTML();
+        const win = this.desktop.createWindow({
             title: '🎵 Strudel AI DAW - AI-Powered Music Studio',
-            content: content,
+            content,
             width: 1600,
             height: 1000,
             resizable: true
         });
-
-        this.setupEventListeners(window);
-        this.initializeEditor(window);
-        this.setupVisualization(window);
-        this.initializeAudioEngine(window);
-        
-        return window;
+        // Attach behaviors when using the legacy createWindow path
+        this.mount(win);
+        return win;
     }
 
     setupEventListeners(window) {

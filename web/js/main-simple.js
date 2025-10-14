@@ -768,6 +768,10 @@ class SwissKnifeDesktop {
         await strudelAI.initialize();
         const html = await strudelAI.render();
         contentElement.innerHTML = html;
+        // Ensure the component wires up events and audio after content is in DOM
+        if (typeof strudelAI.mount === 'function') {
+            await strudelAI.mount(contentElement);
+        }
         return strudelAI;
     }
 

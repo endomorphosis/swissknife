@@ -232,8 +232,9 @@ export class FriendsListApp {
           multiaddrs: ['/ip4/127.0.0.1/tcp/4001'],
           isStarted: () => false,
           getConnections: () => [],
-        dial: (addr) => Promise.resolve()
-      };
+          dial: (addr) => Promise.resolve()
+        };
+      }
       
       console.log('✅ P2P nodes initialized');
     } catch (error) {
