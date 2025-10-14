@@ -2,6 +2,12 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
 	testDir: './test/e2e',
+	timeout: 180 * 1000,
+	// Limit to Playwright-based specs only to avoid running Jest e2e tests
+	testMatch: [
+		'**/test/e2e/strudel-ai-daw.smoke.test.ts',
+		'**/test/e2e/screenshot-and-verify-all-apps.test.ts'
+	],
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,

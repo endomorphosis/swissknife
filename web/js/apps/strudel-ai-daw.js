@@ -258,7 +258,7 @@ note('c2 d2 e2 f2').sound('sine').lpf(400).room(0.2)"></textarea>
                         </div>
                         
                         <div class="controls-footer">
-                            <button class="preset-btn" id="save-preset">💾 Save Preset</</button>
+                            <button class="preset-btn" id="save-preset">💾 Save Preset</button>
                             <button class="preset-btn" id="load-preset">📁 Load Preset</button>
                         </div>
                     </div>
@@ -583,7 +583,11 @@ stack(
             console.log('🎵 Initializing advanced audio engine...');
             
             // Initialize Web Audio Context
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
+            if (typeof AudioContextCtor !== 'function') {
+                throw new Error('Web Audio API is not available in this environment');
+            }
+            this.audioContext = new AudioContextCtor();
             
             // Set up analyser for visualization
             this.analyser = this.audioContext.createAnalyser();
@@ -606,6 +610,8 @@ stack(
             await this.setupRealTimeProcessing();
             
             console.log('✅ Advanced audio engine initialized successfully');
+            // Ensure visualization starts now that analyser exists
+            this.startVisualization();
             
         } catch (error) {
             console.error('❌ Failed to initialize audio engine:', error);
@@ -749,14 +755,33 @@ stack(
     async setupRealTimeProcessing() {
         console.log('⚡ Setting up real-time audio processing...');
         
-        // Set up script processor for audio generation
+        // Prefer AudioWorkletNode when available
+        try {
+            if (this.audioContext.audioWorklet && typeof this.audioContext.audioWorklet.addModule === 'function') {
+                const workletUrl = new URL('../audio/strudel-processor.js', import.meta.url);
+                await this.audioContext.audioWorklet.addModule(workletUrl);
+                this.audioNode = new AudioWorkletNode(this.audioContext, 'strudel-processor');
+                this.audioNode.connect(this.masterGain);
+                // Initialize worklet state
+                this.audioNode.port.postMessage({ type: 'setBPM', value: this.bpm });
+                this.audioNode.port.postMessage({ type: 'setVolume', value: this.masterVolume });
+                this.isUsingWorklet = true;
+                console.log('✅ AudioWorklet real-time processing enabled');
+                return;
+            }
+        } catch (error) {
+            console.warn('⚠️ AudioWorklet setup failed, falling back:', error);
+        }
+
+        // Fallback: ScriptProcessorNode (deprecated)
         try {
             this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 0, 2);
             this.scriptProcessor.onaudioprocess = (event) => {
                 this.processAudio(event);
             };
             this.scriptProcessor.connect(this.masterGain);
-            console.log('✅ Real-time audio processing enabled');
+            this.isUsingWorklet = false;
+            console.log('✅ Real-time audio processing enabled via ScriptProcessor (fallback)');
         } catch (error) {
             console.warn('⚠️ Real-time processing not available:', error);
         }
@@ -841,26 +866,26 @@ stack(
                 console.log('📦 Using real Strudel SDK...');
                 this.strudelEngine = window.Strudel;
             } else {
-                // Load Strudel SDK from CDN
-                console.log('📦 Loading Strudel SDK from CDN...');
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/@strudel.cycles/core';
-                script.onload = () => {
-                    if (window.Strudel) {
-                        this.strudelEngine = window.Strudel;
-                        console.log('✅ Strudel SDK loaded from CDN');
+                // Load Strudel SDK from an ESM-friendly CDN.
+                // Note: unpkg default build is CJS and throws 'exports is not defined' in browsers.
+                // We prefer esm.sh which serves ESM bundles for direct browser import.
+                console.log('📦 Loading Strudel SDK via ESM CDN...');
+                try {
+                    const mod = await import(/* @vite-ignore */ 'https://esm.sh/@strudel.cycles/core?bundle');
+                    const engine = mod?.default || mod?.Strudel || mod;
+                    if (engine) {
+                        this.strudelEngine = engine;
+                        console.log('✅ Strudel SDK loaded via ESM import');
                     } else {
+                        console.warn('⚠️ Strudel ESM module did not expose an engine, falling back');
                         this.setupFallbackEngine();
                     }
-                };
-                script.onerror = () => {
-                    console.warn('⚠️ Could not load Strudel SDK, using fallback');
+                } catch (e) {
+                    console.warn('⚠️ ESM import failed, falling back to global loader:', e);
+                    // Secondary attempt: try jsDelivr with ?module hint (still may be CJS depending on package config)
+                    await new Promise((resolve) => setTimeout(resolve, 300));
                     this.setupFallbackEngine();
-                };
-                document.head.appendChild(script);
-                
-                // Simulate loading time
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                }
             }
             
             if (!this.strudelEngine) {
@@ -1072,6 +1097,11 @@ stack(
                 await this.strudelEngine.evaluate(this.currentCode);
                 await this.strudelEngine.start();
             }
+
+            // Notify worklet
+            if (this.isUsingWorklet && this.audioNode) {
+                this.audioNode.port.postMessage({ type: 'setPlaying', value: true });
+            }
             
             this.addConsoleMessage(window, '▶️ Playback started', 'info');
             
@@ -1092,6 +1122,9 @@ stack(
         if (this.strudelEngine) {
             this.strudelEngine.stop();
         }
+        if (this.isUsingWorklet && this.audioNode) {
+            this.audioNode.port.postMessage({ type: 'setPlaying', value: false });
+        }
         
         this.addConsoleMessage(window, '⏸️ Playback paused', 'info');
     }
@@ -1103,6 +1136,9 @@ stack(
         
         if (this.strudelEngine) {
             this.strudelEngine.stop();
+        }
+        if (this.isUsingWorklet && this.audioNode) {
+            this.audioNode.port.postMessage({ type: 'setPlaying', value: false });
         }
         
         this.addConsoleMessage(window, '⏹️ Playback stopped', 'info');
@@ -1123,6 +1159,9 @@ stack(
         if (this.strudelEngine) {
             this.strudelEngine.setTempo(this.bpm);
         }
+        if (this.isUsingWorklet && this.audioNode) {
+            this.audioNode.port.postMessage({ type: 'setBPM', value: this.bpm });
+        }
         this.addConsoleMessage(window, `🎵 BPM set to ${this.bpm}`, 'info');
     }
 
@@ -1130,6 +1169,9 @@ stack(
         this.masterVolume = parseFloat(volume);
         if (this.masterGain) {
             this.masterGain.gain.value = this.masterVolume;
+        }
+        if (this.isUsingWorklet && this.audioNode) {
+            this.audioNode.port.postMessage({ type: 'setVolume', value: this.masterVolume });
         }
         
         const display = window.querySelector('#volume-display');

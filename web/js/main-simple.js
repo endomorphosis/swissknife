@@ -9,6 +9,7 @@ class SwissKnifeDesktop {
         this.activeWindow = null;
         this.apps = new Map();
         this.isSwissKnifeReady = false;
+        this.zIndexCounter = 100;
         
         this.init();
     }
@@ -47,6 +48,88 @@ class SwissKnifeDesktop {
         
         // Setup window management
         this.setupWindowManagement();
+
+        // Inject basic styles for active window focus cue (once)
+        if (!document.getElementById('swissknife-active-window-style')) {
+            const style = document.createElement('style');
+            style.id = 'swissknife-active-window-style';
+            style.textContent = `
+                .window { box-shadow: 0 8px 18px rgba(0,0,0,0.18); }
+                .window.window-active { box-shadow: 0 12px 28px rgba(0,0,0,0.28); }
+                .window.window-active .window-titlebar { outline: 2px solid #3b82f6; outline-offset: -2px; }
+                #graphics-limited-badge { position: fixed; top: 8px; right: 8px; z-index: 99999; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; }
+                #graphics-limited-badge .badge { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f59e0b; color: #111; border: 1px solid #b45309; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 12px; }
+                #graphics-limited-badge .badge b { font-weight: 700; }
+                #graphics-limited-badge .close { margin-left: 6px; cursor: pointer; border: none; background: transparent; font-size: 14px; line-height: 1; color: #111; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Detect WebGL capabilities and show badge if limited
+        this.detectAndShowGraphicsBadge();
+    }
+
+    // Detect WebGL/renderer info and show a small badge if only software rendering is available
+    detectAndShowGraphicsBadge() {
+        const info = this.getWebGLInfo();
+        this.graphicsInfo = info;
+
+        // If unsupported at all, or software renderer detected, show limited graphics badge
+        const shouldShow = !info.supported || info.isSoftware;
+        if (!shouldShow) return;
+
+        if (document.getElementById('graphics-limited-badge')) return;
+
+        const container = document.createElement('div');
+        container.id = 'graphics-limited-badge';
+        const renderer = info.renderer || 'Unknown Renderer';
+        const label = !info.supported ? 'Graphics unavailable' : 'Limited graphics (software)';
+        container.innerHTML = `
+            <div class="badge" title="${renderer}">
+                <span>⚠️</span>
+                <span><b>${label}</b>${info.supported ? ` · ${renderer}` : ''}</span>
+                <button class="close" aria-label="Dismiss" title="Dismiss">×</button>
+            </div>
+        `;
+        document.body.appendChild(container);
+
+        const closeBtn = container.querySelector('.close');
+        if (closeBtn) closeBtn.addEventListener('click', () => container.remove());
+    }
+
+    // Query WebGL support and renderer details
+    getWebGLInfo() {
+        try {
+            const canvas = document.createElement('canvas');
+            let gl = canvas.getContext('webgl2');
+            let contextName = 'webgl2';
+            if (!gl) { gl = canvas.getContext('webgl'); contextName = gl ? 'webgl' : null; }
+            if (!gl) {
+                // Try again with failIfMajorPerformanceCaveat to differentiate software paths
+                gl = canvas.getContext('webgl', { failIfMajorPerformanceCaveat: true }) || null;
+                if (!gl) return { supported: false, isSoftware: true, renderer: null, vendor: null, contextName: null };
+                contextName = 'webgl';
+            }
+
+            const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+            const vendor = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+            const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+            const r = (renderer || '').toLowerCase();
+            // Heuristics for software renderers across platforms
+            const softwareHints = ['swiftshader', 'llvmpipe', 'software', 'softpipe', 'angle (software)', 'mesa offscreen'];
+            const isSoftware = softwareHints.some(h => r.includes(h));
+
+            // Also consider major performance caveat: request with flag and see if it fails
+            let caveat = false;
+            try {
+                const g2 = canvas.getContext(contextName || 'webgl', { failIfMajorPerformanceCaveat: true });
+                caveat = !g2; // if it fails, there is a major performance caveat
+            } catch { /* ignore */ }
+
+            return { supported: true, isSoftware: isSoftware || caveat, renderer, vendor, contextName };
+        } catch {
+            return { supported: false, isSoftware: true, renderer: null, vendor: null, contextName: null };
+        }
     }
     
     initializeApps() {
@@ -453,6 +536,7 @@ class SwissKnifeDesktop {
         windowElement.style.top = options.y + 'px';
         windowElement.style.width = options.width + 'px';
         windowElement.style.height = options.height + 'px';
+        windowElement.style.zIndex = String(++this.zIndexCounter);
         
         // Create window structure
         windowElement.innerHTML = `
@@ -480,6 +564,8 @@ class SwissKnifeDesktop {
         
         // Setup window controls
         this.setupWindowControls(windowElement);
+        // Bring to front on interaction
+        windowElement.addEventListener('mousedown', () => this.focusWindow(windowElement));
         
         // Store window reference
         const window = {
@@ -492,6 +578,8 @@ class SwissKnifeDesktop {
         };
         
         this.windows.set(windowId, window);
+        // Focus newly created window
+        this.focusWindow(windowElement);
         
         return window;
     }
@@ -807,17 +895,15 @@ class SwissKnifeDesktop {
             const { ModelBrowserApp } = await import('./apps/model-browser.js');
             const modelBrowser = new ModelBrowserApp(this);
             await modelBrowser.initialize();
-            // ModelBrowserApp.render() returns a config object, get HTML from createWindow()
-            const windowContent = modelBrowser.createWindow();
-            // Extract content string from the window content
-            if (typeof windowContent === 'string') {
-                contentElement.innerHTML = windowContent;
-            } else if (windowContent && windowContent.content) {
-                contentElement.innerHTML = windowContent.content;
-            } else {
-                // Fallback: call render and extract content from config
-                const config = await modelBrowser.render();
-                contentElement.innerHTML = config.content || 'Model Browser loading...';
+            // Use the app's render() which returns a config with HTML content
+            const config = await modelBrowser.render();
+            contentElement.innerHTML = config.content || (typeof config === 'string' ? config : 'Model Browser loading...');
+            // Wire up events and initial render into the provided container
+            if (typeof modelBrowser.setupEventListeners === 'function') {
+                modelBrowser.setupEventListeners(contentElement);
+            }
+            if (typeof modelBrowser.renderModelList === 'function') {
+                modelBrowser.renderModelList(contentElement);
             }
             return modelBrowser;
         } catch (error) {
@@ -1111,9 +1197,7 @@ class SwissKnifeDesktop {
         try {
             const { FriendsListApp } = await import('./apps/friends-list.js');
             const friendsList = new FriendsListApp(this);
-            await friendsList.initialize();
-            const html = await friendsList.render();
-            contentElement.innerHTML = html;
+            await friendsList.createInterface(contentElement);
             return friendsList;
         } catch (error) {
             console.error('Failed to load Friends List app:', error);
@@ -1408,8 +1492,8 @@ class SwissKnifeDesktop {
         const { PeerTubeApp } = await import('./apps/peertube.js');
         const peertube = new PeerTubeApp(this);
         await peertube.initialize();
-        const html = await peertube.render();
-        contentElement.innerHTML = html;
+        // PeerTubeApp exposes a createInterface(container) API (no render() return)
+        await peertube.createInterface(contentElement);
         return peertube;
     }
     
@@ -1430,10 +1514,9 @@ class SwissKnifeDesktop {
     async createMediaPlayerApp(contentElement) {
         const MediaPlayerModule = await import('./apps/media-player.js');
         if (MediaPlayerModule.MediaPlayer) {
-            const mediaPlayer = new MediaPlayerModule.MediaPlayer(this);
-            await mediaPlayer.initialize();
-            const html = await mediaPlayer.render();
-            contentElement.innerHTML = html;
+            // MediaPlayer has initialize(container) and returns HTML via createInterface() internally
+            const mediaPlayer = new MediaPlayerModule.MediaPlayer();
+            await mediaPlayer.initialize(contentElement);
             return mediaPlayer;
         }
     }
@@ -1506,9 +1589,28 @@ class SwissKnifeDesktop {
         const closeBtn = windowElement.querySelector('.window-control.close');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
+                // Remove from tracking map if present
+                this.windows.delete(windowElement.id);
                 windowElement.remove();
+                if (this.activeWindow === windowElement) {
+                    this.activeWindow = null;
+                }
+                this.updateSystemStatus();
             });
         }
+    }
+
+    // Focus/bring-to-front an existing window element
+    focusWindow(windowElement) {
+        if (!windowElement) return;
+        // Update z-index to bring it to front
+        windowElement.style.zIndex = String(++this.zIndexCounter);
+        // Update active class bookkeeping
+        if (this.activeWindow && this.activeWindow !== windowElement) {
+            this.activeWindow.classList.remove('window-active');
+        }
+        windowElement.classList.add('window-active');
+        this.activeWindow = windowElement;
     }
     
     updateSystemTime() {

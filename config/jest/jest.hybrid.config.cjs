@@ -5,6 +5,7 @@ const baseConfig = require('./jest.config.cjs');
 
 module.exports = {
   ...baseConfig,
+  extensionsToTreatAsEsm: ['.ts', '.tsx', '.mts'],
   
   // Define test patterns for working tests only
   testMatch: [

@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+
+// This test opens many apps and takes screenshots; give it extra time
+test.setTimeout(180_000);
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -17,7 +20,7 @@ test('Discover, screenshot, and verify all desktop applications', async ({ page 
   });
 
   await page.goto('/');
-  await page.waitForSelector('.desktop', { timeout: 30000 });
+  await page.waitForSelector('.desktop', { timeout: 60000 });
   await page.waitForSelector('.desktop-icons', { timeout: 10000 });
 
   const desktopOverviewPath = path.join(screenshotsDir, '00-desktop-overview.png');

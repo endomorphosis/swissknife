@@ -456,8 +456,8 @@ export class ModelBrowserApp {
 
   async loadInstalledModels() {
     try {
-      const result = await this.swissknife.models.list();
-      this.installedModels = result.models || [];
+      const result = await this.swissknife?.models?.list?.();
+      this.installedModels = (result && (result.models || result)) || [];
     } catch (error) {
       console.error('Failed to load installed models:', error);
       this.installedModels = [];
@@ -1266,7 +1266,7 @@ console.log(result);</code></pre>
   updateDisplay() {
     // Call the original renderModelList if it exists
     if (typeof this.renderModelList === 'function') {
-      const container = document.querySelector('.model-browser-app');
+      const container = document.querySelector('.model-browser-container');
       if (container) {
         this.renderModelList(container);
       }

@@ -580,12 +580,79 @@ class MediaPlayer {
             }
 
             .eq-slider {
-                writing-mode: bt-lr;
-                -webkit-appearance: slider-vertical;
+                /* Standards-based vertical range slider */
+                writing-mode: vertical-lr;
+                direction: rtl; /* so low is at bottom, high at top */
+                -webkit-appearance: none;
+                appearance: none;
                 width: 20px;
                 height: 100px;
                 background: #001100;
                 outline: none;
+                border-radius: 4px;
+            }
+
+            /* Track styling for WebKit/Blink */
+            .eq-slider::-webkit-slider-runnable-track {
+                width: 6px;
+                background: #003300;
+                border: 1px solid #00ff00;
+                border-radius: 3px;
+            }
+            .eq-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 16px;
+                height: 16px;
+                background: #00ff00;
+                border: 1px solid #00cc00;
+                border-radius: 50%;
+                margin-top: -5px; /* center thumb over narrow track */
+            }
+
+            /* Firefox */
+            .eq-slider::-moz-range-track {
+                width: 6px;
+                background: #003300;
+                border: 1px solid #00ff00;
+                border-radius: 3px;
+            }
+            .eq-slider::-moz-range-thumb {
+                width: 16px;
+                height: 16px;
+                background: #00ff00;
+                border: 1px solid #00cc00;
+                border-radius: 50%;
+            }
+
+            /* Orientation-scoped overrides */
+            /* Default styles already target vertical orientation via .eq-slider base. */
+            .vertical-eq .eq-slider {
+                writing-mode: vertical-lr;
+                direction: rtl;
+                width: 20px;
+                height: 100px;
+            }
+            .vertical-eq .eq-slider::-webkit-slider-runnable-track { width: 6px; height: auto; }
+            .vertical-eq .eq-slider::-moz-range-track { width: 6px; height: auto; }
+
+            /* Horizontal fallback */
+            .horizontal-eq .eq-slider {
+                writing-mode: horizontal-tb;
+                direction: ltr;
+                width: 100px;
+                height: 20px;
+            }
+            .horizontal-eq .eq-slider::-webkit-slider-runnable-track {
+                width: auto; /* override vertical */
+                height: 6px;
+            }
+            .horizontal-eq .eq-slider::-moz-range-track {
+                width: auto; /* override vertical */
+                height: 6px;
+            }
+            .horizontal-eq .eq-slider::-webkit-slider-thumb {
+                margin-top: -5px; /* keep centered over horizontal track */
             }
 
             .eq-label {
@@ -652,9 +719,24 @@ class MediaPlayer {
     /**
      * 🎮 Initialize the media player
      */
-    async initialize(container) {
+    async initialize(container, options = {}) {
         this.container = container;
         container.innerHTML = this.createInterface();
+        
+        // Determine vertical slider support and preference
+        const prefersVertical = options.useVerticalSliders !== undefined ? !!options.useVerticalSliders : true;
+        const supportsVertical = (window.CSS && typeof CSS.supports === 'function')
+            ? (CSS.supports('writing-mode', 'vertical-lr') && CSS.supports('direction', 'rtl'))
+            : false;
+        const useVertical = prefersVertical && supportsVertical;
+        this.useVertical = useVertical;
+        
+        // Apply orientation class for EQ sliders
+        const root = container.querySelector('#mediaPlayerContainer');
+        if (root) {
+            root.classList.toggle('vertical-eq', useVertical);
+            root.classList.toggle('horizontal-eq', !useVertical);
+        }
         
         // Store references to key elements
         this.progressBar = container.querySelector('#progressBar');
@@ -680,8 +762,11 @@ class MediaPlayer {
         this.updateDisplay();
         
         // Set initial volume
-        this.setVolume(80);
-        
+        if (this.volumeSlider) {
+            const vol = parseInt(this.volumeSlider.value, 10);
+            if (!isNaN(vol)) this.setVolume(vol);
+        }
+
         console.log('🎵 Media Player initialized successfully');
     }
 
@@ -701,9 +786,11 @@ class MediaPlayer {
      */
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            
-            switch(e.key) {
+            // Ignore typing in inputs/textareas
+            const tag = (e.target && e.target.tagName) ? e.target.tagName : '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+            switch (e.key) {
                 case ' ':
                     e.preventDefault();
                     this.togglePlay();
@@ -712,14 +799,14 @@ class MediaPlayer {
                     if (e.ctrlKey) {
                         this.nextTrack();
                     } else {
-                        this.seekRelative(10);
+                        this.seekRelative(5);
                     }
                     break;
                 case 'ArrowLeft':
                     if (e.ctrlKey) {
                         this.previousTrack();
                     } else {
-                        this.seekRelative(-10);
+                        this.seekRelative(-5);
                     }
                     break;
                 case 'ArrowUp':
@@ -732,10 +819,11 @@ class MediaPlayer {
                 case 'M':
                     this.toggleMute();
                     break;
+                default:
+                    break;
             }
         });
     }
-
     /**
      * ▶️ Toggle play/pause
      */
@@ -1038,10 +1126,11 @@ class MediaPlayer {
         
         const frequencies = ['60', '170', '310', '600', '1K', '3K', '6K', '12K', '14K', '16K'];
         
+        const orientAttr = this.useVertical ? 'vertical' : 'horizontal';
         container.innerHTML = frequencies.map((freq, index) => `
             <div class="eq-band">
                 <input type="range" class="eq-slider" min="-12" max="12" value="${this.eqBands[index]}" 
-                       orient="vertical" data-band="${index}" 
+                       orient="${orientAttr}" data-band="${index}" 
                        oninput="mediaPlayer.setEQBand(${index}, this.value)">
                 <div class="eq-label">${freq}</div>
             </div>

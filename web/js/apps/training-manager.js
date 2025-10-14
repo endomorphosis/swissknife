@@ -663,7 +663,10 @@ export class TrainingManagerApp {
   }
 
   function renderJobsList() {
-    const jobsList = document.querySelector('#jobs-list');
+    const container = document.querySelector('.training-manager-container');
+    if (!container) return;
+    const jobsList = container.querySelector('#jobs-list');
+    if (!jobsList) return;
     
     if (trainingJobs.length === 0) {
       jobsList.innerHTML = `
@@ -723,6 +726,95 @@ export class TrainingManagerApp {
     });
   }
 
+  // Model management: load existing model (local file or IPFS CID placeholder)
+  function loadExistingModel() {
+    try {
+      // Ask for an IPFS CID or let the user pick a local file
+      const cid = prompt('Enter IPFS CID to register a model version (leave empty to select a local file).', '');
+      if (cid && cid.trim()) {
+        // Register a placeholder entry for the CID so it shows up in the Versions panel
+        const versionEntry = {
+          id: `ipfs_${Date.now()}`,
+          metadata: {
+            type: 'trained-model',
+            name: `IPFS Model ${cid.slice(0, 8)}…`,
+            version: 'ipfs',
+            accuracy: 'N/A',
+            loss: 'N/A',
+            size: 0,
+            created: new Date().toISOString(),
+            cid
+          }
+        };
+        modelVersions.unshift(versionEntry);
+        try {
+          localStorage.setItem('training-manager-versions', JSON.stringify(modelVersions));
+        } catch (e) {
+          console.warn('Failed to persist model versions to localStorage:', e);
+        }
+        renderModelVersions();
+        alert('Registered IPFS model CID. You can load it from the Versions panel.');
+        return;
+      }
+
+      // Create a hidden file input to load a local model file
+      let fileInput = document.getElementById('training-manager-model-file-input');
+      if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.id = 'training-manager-model-file-input';
+        fileInput.accept = '.json,.bin,.onnx,.pt,.pth,.h5,.ckpt';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+      }
+
+      fileInput.onchange = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          // Try to read JSON for metadata; otherwise treat as binary
+          let parsed;
+          if (file.name.endsWith('.json')) {
+            const text = await file.text();
+            try { parsed = JSON.parse(text); } catch (_) { /* ignore parse error */ }
+          }
+
+          const versionEntry = {
+            id: `local_${Date.now()}`,
+            metadata: {
+              type: 'trained-model',
+              name: parsed?.name || file.name.replace(/\.[^.]+$/, ''),
+              version: parsed?.version || 'local',
+              accuracy: parsed?.metrics?.finalAccuracy ?? parsed?.accuracy ?? 'N/A',
+              loss: parsed?.metrics?.finalLoss ?? parsed?.loss ?? 'N/A',
+              size: file.size,
+              created: new Date().toISOString(),
+              filename: file.name
+            }
+          };
+
+          modelVersions.unshift(versionEntry);
+          try {
+            localStorage.setItem('training-manager-versions', JSON.stringify(modelVersions));
+          } catch (err) {
+            console.warn('Failed to persist model versions to localStorage:', err);
+          }
+          renderModelVersions();
+          alert(`Imported model "${versionEntry.metadata.name}". You can load it from the Versions panel.`);
+        } finally {
+          // Reset value so the same file can be chosen again later
+          e.target.value = '';
+        }
+      };
+
+      // Trigger the file chooser
+      fileInput.click();
+    } catch (error) {
+      console.error('Failed to load existing model:', error);
+      alert(`Failed to load model: ${error.message}`);
+    }
+  }
+
   function selectJob(jobId) {
     activeJob = trainingJobs.find(job => job.id === jobId);
     renderJobDetails();
@@ -730,8 +822,11 @@ export class TrainingManagerApp {
   }
 
   function renderJobDetails() {
-    const detailsEl = document.querySelector('#job-details');
-    const actionsEl = document.querySelector('#detail-actions');
+    const container = document.querySelector('.training-manager-container');
+    if (!container) return;
+    const detailsEl = container.querySelector('#job-details');
+    const actionsEl = container.querySelector('#detail-actions');
+    if (!detailsEl || !actionsEl) return;
     
     if (!activeJob) {
       detailsEl.innerHTML = `
@@ -854,6 +949,15 @@ export class TrainingManagerApp {
         ` : ''}
       </div>
     `;
+  }
+
+  // Debounced jobs list render to reduce reflows on frequent updates
+  let jobsListRenderTimer;
+  function scheduleRenderJobsList(delay = 120) {
+    clearTimeout(jobsListRenderTimer);
+    jobsListRenderTimer = setTimeout(() => {
+      renderJobsList();
+    }, delay);
   }
 
   function loadModelVersions() {
@@ -986,7 +1090,7 @@ export class TrainingManagerApp {
     await executeTrainingJob(job);
     
     updateJobStats();
-    renderJobsList();
+  scheduleRenderJobsList();
   }
 
   async function executeTrainingJob(job) {
@@ -1024,7 +1128,7 @@ export class TrainingManagerApp {
           await saveModelCheckpoint(job, epoch);
         }
         
-        renderJobsList();
+  scheduleRenderJobsList();
         if (activeJob === job) {
           renderJobDetails();
         }
@@ -1050,7 +1154,7 @@ export class TrainingManagerApp {
     }
     
     updateJobStats();
-    renderJobsList();
+  scheduleRenderJobsList();
     if (activeJob === job) {
       renderJobDetails();
     }
@@ -1158,7 +1262,7 @@ export class TrainingManagerApp {
     if (activeJob && activeJob.status === 'running') {
       activeJob.status = 'paused';
       addJobLog(activeJob, 'Training paused by user');
-      renderJobsList();
+  scheduleRenderJobsList();
       renderJobDetails();
     }
   }
@@ -1167,7 +1271,7 @@ export class TrainingManagerApp {
     if (activeJob && activeJob.status === 'paused') {
       activeJob.status = 'running';
       addJobLog(activeJob, 'Training resumed by user');
-      renderJobsList();
+  scheduleRenderJobsList();
       renderJobDetails();
     }
   }
@@ -1177,7 +1281,7 @@ export class TrainingManagerApp {
       if (confirm(`Stop training job "${activeJob.name}"? This action cannot be undone.`)) {
         activeJob.status = 'cancelled';
         addJobLog(activeJob, 'Training cancelled by user');
-        renderJobsList();
+  scheduleRenderJobsList();
         renderJobDetails();
         updateJobStats();
       }
@@ -1191,7 +1295,7 @@ export class TrainingManagerApp {
         addJobLog(job, 'Training paused (bulk action)');
       }
     });
-    renderJobsList();
+  scheduleRenderJobsList();
     if (activeJob) renderJobDetails();
   }
 
@@ -1202,7 +1306,7 @@ export class TrainingManagerApp {
         addJobLog(job, 'Training resumed (bulk action)');
       }
     });
-    renderJobsList();
+  scheduleRenderJobsList();
     if (activeJob) renderJobDetails();
   }
 
