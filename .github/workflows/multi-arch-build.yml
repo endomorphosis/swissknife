@@ -17,6 +17,9 @@ jobs:
   build-and-test:
     name: Build on ${{ matrix.os }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -284,6 +287,8 @@ jobs:
     name: Package Release Binaries
     runs-on: ubuntu-latest
     needs: build-and-test
+    permissions:
+      contents: read
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     
     steps:
@@ -342,6 +347,8 @@ jobs:
     name: Multi-Architecture Build Summary
     runs-on: ubuntu-latest
     needs: [build-and-test, docker-multiarch]
+    permissions:
+      contents: read
     if: always()
     
     steps:
