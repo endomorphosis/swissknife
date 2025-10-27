@@ -1,15 +1,29 @@
 # Multi-stage Dockerfile for SwissKnife Production Deployment
+# Supports multi-architecture builds: linux/amd64, linux/arm64
 # Stage 1: Build environment
-FROM node:18-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
+
+# Build arguments for cross-compilation
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
+
+# Display build information
+RUN echo "Building for platform: $TARGETPLATFORM" && \
+    echo "Build platform: $BUILDPLATFORM" && \
+    echo "Target OS: $TARGETOS" && \
+    echo "Target Architecture: $TARGETARCH"
 
 # Copy package files
 COPY package*.json ./
 COPY yarn.lock* pnpm-lock.yaml* ./
 
 # Install dependencies with production optimizations
-RUN npm ci --only=production --no-audit --no-fund
+# Use legacy-peer-deps flag for compatibility
+RUN npm ci --legacy-peer-deps --only=production --no-audit --no-fund
 
 # Copy source code
 COPY . .
@@ -18,13 +32,25 @@ COPY . .
 RUN npm run build:all
 
 # Stage 2: Production runtime
-FROM node:18-alpine AS production
+FROM --platform=$TARGETPLATFORM node:20-alpine AS production
+
+# Build arguments for runtime
+ARG TARGETPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
 
+# Display runtime platform information
+RUN echo "Runtime platform: $TARGETPLATFORM" && \
+    echo "Runtime OS: $TARGETOS" && \
+    echo "Runtime Architecture: $TARGETARCH" && \
+    echo "Node version: $(node --version)" && \
+    echo "NPM version: $(npm --version)"
+
 # Install production dependencies only
 COPY package*.json ./
-RUN npm ci --only=production --no-audit --no-fund && npm cache clean --force
+RUN npm ci --legacy-peer-deps --only=production --no-audit --no-fund && npm cache clean --force
 
 # Copy built artifacts from builder stage
 COPY --from=builder /app/dist ./dist
