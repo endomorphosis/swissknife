@@ -34,6 +34,8 @@
     "build:collaborative": "vite build --config vite.web.config.ts --mode collaborative",
   "build:workers": "vite build --config build-tools/configs/vite.workers.config.ts",
   "build:all": "npm run build:cli && npm run build:web && npm run build:ipfs",
+  "build:platform": "bash scripts/build-platform.sh",
+  "build:platform:help": "bash scripts/build-platform.sh help",
   "desktop": "vite dev --config vite.web.config.ts",
     "desktop:collaborative": "vite dev --config vite.web.config.ts --mode collaborative",
     "desktop:distributed": "vite dev --config vite.web.config.ts --mode distributed",

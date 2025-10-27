@@ -193,6 +193,26 @@ npm run build:workers      # Build web workers and audio workers
 npm run build:ai           # Build AI integration components (Hugging Face + OpenRouter)
 ```
 
+### 🏗️ Multi-Architecture Build Commands
+```bash
+# Build for current platform (auto-detects architecture)
+npm run build:all
+
+# Docker multi-architecture builds
+docker buildx build --platform linux/amd64,linux/arm64 -f build-tools/docker/Dockerfile -t swissknife:latest .
+
+# Verify current platform
+node -e "console.log('Platform:', process.platform, 'Arch:', process.arch)"
+```
+
+**Supported Platforms:**
+- ✅ Linux x86_64 (AMD64)
+- ✅ Linux ARM64 (aarch64) - Raspberry Pi 4+, AWS Graviton, etc.
+- ✅ macOS x86_64 (Intel)
+- ✅ macOS ARM64 (Apple Silicon)
+
+📘 **See [Multi-Architecture Build Guide](./docs/MULTI_ARCH_BUILD.md)** for detailed instructions
+
 ### 🧪 Testing Commands (Collaborative Test Suite)
 ```bash
 npm run test                    # Run core unit test suite
@@ -298,6 +318,8 @@ swissknife/
 ## 📚 Documentation Suite
 
 **Complete professional documentation with collaboration guides:**
+
+- **[MULTI_ARCH_BUILD.md](./docs/MULTI_ARCH_BUILD.md)** - ✅ **NEW**: Comprehensive multi-architecture build guide (x86_64, ARM64)
 
 - **[COLLABORATION_IMPLEMENTATION_PLAN.md](./COLLABORATION_IMPLEMENTATION_PLAN.md)** - ✅ Comprehensive collaborative features roadmap and architecture
 - **[UNIFIED_INTEGRATION_PLAN.md](./UNIFIED_INTEGRATION_PLAN.md)** - ✅ Completed unified integration roadmap
