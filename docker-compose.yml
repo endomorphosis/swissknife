@@ -1,0 +1,111 @@
+# Docker Compose for SwissKnife Development & CI/CD
+version: '3.8'
+
+services:
+  # Main SwissKnife application
+  swissknife:
+    build:
+      context: .
+      dockerfile: build-tools/docker/Dockerfile
+      args:
+        - NODE_VERSION=20
+        - BUILDPLATFORM=linux/amd64
+        - TARGETPLATFORM=linux/amd64
+    image: swissknife:latest
+    container_name: swissknife-app
+    ports:
+      - "3001:3001"  # Web GUI
+      - "8080:8080"  # Additional services
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - swissknife-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # GitHub Actions Runner container (for self-hosted CI/CD)
+  github-runner:
+    build:
+      context: .
+      dockerfile: build-tools/docker/Dockerfile.runner
+      args:
+        - GITHUB_REPOSITORY=endomorphosis/swissknife
+        - RUNNER_NAME=swissknife-docker-runner
+        - RUNNER_LABELS=self-hosted,linux,docker,swissknife,container
+    image: swissknife-runner:latest
+    container_name: swissknife-runner
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - RUNNER_NAME=swissknife-docker-runner-${HOSTNAME}
+      - RUNNER_LABELS=self-hosted,linux,docker,swissknife,container
+      - REPO_OWNER=endomorphosis
+      - REPO_NAME=swissknife
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./runner-data:/runner/_work
+      - ./runner-logs:/runner/logs
+    networks:
+      - swissknife-network
+    restart: unless-stopped
+    depends_on:
+      - swissknife
+    privileged: true  # Required for Docker-in-Docker
+
+  # Development container for testing
+  swissknife-dev:
+    build:
+      context: .
+      dockerfile: build-tools/docker/Dockerfile.dev
+    image: swissknife:dev
+    container_name: swissknife-dev
+    ports:
+      - "3002:3001"  # Development port
+      - "5173:5173"  # Vite dev server
+    environment:
+      - NODE_ENV=development
+      - VITE_DEV_PORT=5173
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - swissknife-network
+    command: npm run dev
+    profiles:
+      - dev
+
+  # Multi-architecture build service
+  swissknife-multiarch:
+    build:
+      context: .
+      dockerfile: build-tools/docker/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: swissknife:multiarch
+    container_name: swissknife-multiarch
+    profiles:
+      - multiarch
+
+networks:
+  swissknife-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  swissknife-data:
+    driver: local
+  runner-data:
+    driver: local
+  runner-logs:
+    driver: local

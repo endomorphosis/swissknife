@@ -1,0 +1,47 @@
+# Development Dockerfile for SwissKnife
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    bash \
+    openssh-client \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/cache/apk/*
+
+# Copy package files
+COPY package*.json ./
+COPY yarn.lock* pnpm-lock.yaml* ./
+
+# Install dependencies with dev dependencies
+RUN npm ci --legacy-peer-deps --no-audit
+
+# Copy source code
+COPY . .
+
+# Create non-root user
+RUN addgroup -g 1001 -S swissknife && \
+    adduser -S swissknife -u 1001 -G swissknife && \
+    chown -R swissknife:swissknife /app
+
+USER swissknife
+
+# Expose development ports
+EXPOSE 3001 5173
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3001/ || curl -f http://localhost:5173/ || exit 1
+
+# Default command for development
+CMD ["npm", "run", "dev"]
+
+# Labels
+LABEL maintainer="Benjamin Barber <starworks5@gmail.com>"
+LABEL description="SwissKnife Development Environment"
+LABEL version="dev"

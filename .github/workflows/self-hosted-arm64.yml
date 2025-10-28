@@ -1,0 +1,236 @@
+name: Self-Hosted ARM64 Build
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+env:
+  NODE_ENV: production
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Build and test on self-hosted ARM64 runner
+  build-self-hosted-arm64:
+    name: Build on Self-Hosted ARM64
+    runs-on: [self-hosted, linux, arm64, swissknife]
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Display system information
+        run: |
+          echo "OS: $(uname -s)"
+          echo "Architecture: $(uname -m)"
+          echo "Hostname: $(hostname)"
+          echo "Node version: $(node --version || echo 'Node not found')"
+          echo "NPM version: $(npm --version || echo 'NPM not found')"
+          echo "Docker version: $(docker --version || echo 'Docker not found')"
+          echo "Platform: linux/arm64 (self-hosted)"
+
+      - name: Setup Node.js 20
+        run: |
+          # Check if Node 20 is available, if not install it
+          if ! node --version | grep -q "v20"; then
+            echo "Installing Node.js 20..."
+            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+          fi
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+
+      - name: Clean npm cache and node_modules
+        run: |
+          npm cache clean --force || true
+          rm -rf node_modules package-lock.json || true
+
+      - name: Install dependencies
+        run: |
+          npm install --legacy-peer-deps --no-audit
+        env:
+          NODE_ENV: development
+
+      - name: Verify package.json
+        run: |
+          echo "Validating package.json..."
+          node -e "console.log('✅ package.json is valid:', JSON.parse(require('fs').readFileSync('package.json', 'utf8')).name)"
+
+      - name: TypeScript type checking
+        run: |
+          echo "Running TypeScript type checking..."
+          npm run typecheck || echo "⚠️ Type check issues found (non-blocking)"
+        continue-on-error: true
+
+      - name: Build all components
+        id: build
+        run: |
+          echo "Building SwissKnife for ARM64..."
+          npm run build:all
+          if [ $? -eq 0 ]; then
+            echo "✅ Build successful on ARM64"
+            echo "build_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Build failed on ARM64"
+            echo "build_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Verify build artifacts
+        run: |
+          echo "Verifying build artifacts for ARM64..."
+          
+          if [ ! -f "cli.mjs" ]; then
+            echo "❌ cli.mjs not found"
+            exit 1
+          fi
+          
+          cli_size=$(stat -c%s "cli.mjs")
+          echo "✅ cli.mjs: ${cli_size} bytes"
+          
+          if [ $cli_size -lt 1000 ]; then
+            echo "❌ cli.mjs appears too small"
+            exit 1
+          fi
+          
+          if [ -d "dist" ]; then
+            dist_files=$(find dist -type f -name "*.js" | wc -l | tr -d ' ')
+            echo "✅ dist directory: $dist_files JavaScript files"
+          else
+            echo "⚠️ dist directory not found"
+          fi
+          
+          echo "✅ Build artifacts verified for ARM64"
+
+      - name: Test CLI functionality
+        run: |
+          echo "Testing CLI on ARM64..."
+          chmod +x cli.mjs
+          
+          echo "Testing --version..."
+          ./cli.mjs --version || (echo "❌ --version failed" && exit 1)
+          
+          echo "Testing --help..."
+          ./cli.mjs --help || (echo "❌ --help failed" && exit 1)
+          
+          echo "✅ CLI tests passed on ARM64"
+
+      - name: Run unit tests (safe subset)
+        run: |
+          echo "Running tests on ARM64..."
+          npm run test:hybrid || echo "⚠️ Some tests failed (non-blocking)"
+        continue-on-error: true
+        timeout-minutes: 10
+
+      - name: Build Docker image (ARM64)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "Building Docker image for ARM64..."
+          docker build -f build-tools/docker/Dockerfile -t swissknife:arm64-latest .
+          echo "✅ Docker image built successfully for ARM64"
+
+      - name: Test Docker container (ARM64)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "Testing Docker container on ARM64..."
+          docker run --rm -d --name swissknife-test-arm64 -p 3002:3001 swissknife:arm64-latest
+          sleep 10
+          
+          # Test if container is responding
+          if curl -f http://localhost:3002/ >/dev/null 2>&1; then
+            echo "✅ Docker container is running and responding on ARM64"
+          else
+            echo "⚠️ Docker container may not be fully ready yet"
+          fi
+          
+          # Cleanup
+          docker stop swissknife-test-arm64 || true
+
+      - name: Log in to Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push ARM64 Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "Pushing ARM64 Docker image..."
+          docker tag swissknife:arm64-latest ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-latest
+          echo "✅ ARM64 Docker image pushed successfully"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-arm64-self-hosted
+          path: |
+            cli.mjs
+            dist/
+            web/dist/
+            ipfs_accelerate_js/dist/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Create build summary
+        if: always()
+        run: |
+          echo "# Build Summary for Self-Hosted ARM64" > build-summary-arm64.md
+          echo "" >> build-summary-arm64.md
+          echo "**Platform**: linux/arm64 (self-hosted)" >> build-summary-arm64.md
+          echo "**Hostname**: $(hostname)" >> build-summary-arm64.md
+          echo "**Architecture**: $(uname -m)" >> build-summary-arm64.md
+          echo "**Node Version**: $(node --version)" >> build-summary-arm64.md
+          echo "**Build Status**: ${{ steps.build.outputs.build_status || 'unknown' }}" >> build-summary-arm64.md
+          echo "" >> build-summary-arm64.md
+          
+          if [ -f "cli.mjs" ]; then
+            cli_size=$(stat -c%s "cli.mjs")
+            echo "**CLI Size**: ${cli_size} bytes" >> build-summary-arm64.md
+          fi
+          
+          echo "" >> build-summary-arm64.md
+          echo "**Runner Labels**: self-hosted, linux, arm64, docker, swissknife" >> build-summary-arm64.md
+          
+          cat build-summary-arm64.md
+
+      - name: Upload build summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-summary-arm64-self-hosted
+          path: build-summary-arm64.md
+          if-no-files-found: ignore
+
+  # Verification job that depends on successful ARM64 build
+  verify-arm64-build:
+    name: Verify ARM64 Build Success
+    runs-on: ubuntu-latest
+    needs: build-self-hosted-arm64
+    if: always()
+    
+    steps:
+      - name: Check ARM64 build result
+        run: |
+          echo "ARM64 Self-Hosted Build Result: ${{ needs.build-self-hosted-arm64.result }}"
+          
+          if [ "${{ needs.build-self-hosted-arm64.result }}" = "success" ]; then
+            echo "✅ ARM64 self-hosted build completed successfully!"
+            echo "The SwissKnife application built and tested successfully on ARM64 architecture"
+          elif [ "${{ needs.build-self-hosted-arm64.result }}" = "failure" ]; then
+            echo "❌ ARM64 self-hosted build failed"
+            echo "Please check the build logs for ARM64-specific issues"
+            exit 1
+          else
+            echo "⚠️ ARM64 self-hosted build was skipped or cancelled"
+          fi

@@ -1,0 +1,85 @@
+# GitHub Actions Self-Hosted Runner Docker Image
+# Supports Docker-in-Docker for building containers
+FROM ubuntu:22.04
+
+# Build arguments
+ARG GITHUB_REPOSITORY
+ARG RUNNER_NAME=swissknife-docker-runner
+ARG RUNNER_LABELS=self-hosted,linux,docker,swissknife
+
+# Environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV RUNNER_ALLOW_RUNASROOT=1
+ENV GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+ENV RUNNER_NAME=${RUNNER_NAME}
+ENV RUNNER_LABELS=${RUNNER_LABELS}
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    jq \
+    tar \
+    gzip \
+    ca-certificates \
+    apt-transport-https \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    sudo \
+    build-essential \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Docker
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+# Install additional build tools
+RUN npm install -g pnpm yarn
+
+# Create runner user
+RUN useradd -m -s /bin/bash runner && \
+    usermod -aG docker runner && \
+    usermod -aG sudo runner && \
+    echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set up runner directory
+WORKDIR /runner
+RUN chown -R runner:runner /runner
+
+# Download and install GitHub Actions runner
+RUN RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name' | sed 's/^v//') && \
+    curl -o actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz && \
+    tar xzf actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz && \
+    rm actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz && \
+    ./bin/installdependencies.sh && \
+    chown -R runner:runner /runner
+
+# Create startup script
+COPY build-tools/docker/runner-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Switch to runner user
+USER runner
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8080/_runner_status || exit 1
+
+# Entry point
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Labels
+LABEL maintainer="Benjamin Barber <starworks5@gmail.com>"
+LABEL description="GitHub Actions Self-Hosted Runner for SwissKnife"
+LABEL version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/endomorphosis/swissknife"
