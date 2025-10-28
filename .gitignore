@@ -52,6 +52,9 @@ fib-heap-*.mjs
 archived/*
 !cleanup-archive/
 
+# GitHub Actions self-hosted runner
+actions-runner/
+
 # Logs
 
 logs

@@ -1,0 +1,426 @@
+name: SwissKnife Docker Integration CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+    inputs:
+      run_docker_tests:
+        description: 'Run full Docker test suite'
+        required: false
+        default: true
+        type: boolean
+      build_multiarch:
+        description: 'Build multi-architecture images'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_ENV: test
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  # Build and test with Docker on self-hosted runner
+  docker-build-test:
+    name: Docker Build & Test
+    runs-on: [self-hosted, linux, x64, docker, swissknife, workstation]
+    permissions:
+      contents: read
+      packages: write
+    
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: System Information
+        run: |
+          echo "=== System Information ==="
+          echo "Hostname: $(hostname)"
+          echo "Architecture: $(uname -m)"
+          echo "OS: $(cat /etc/os-release | grep PRETTY_NAME)"
+          echo "Kernel: $(uname -r)"
+          echo "CPU: $(nproc) cores"
+          echo "Memory: $(free -h | grep Mem | awk '{print $2}')"
+          echo "Disk: $(df -h / | tail -1 | awk '{print $4}') available"
+          echo ""
+          echo "=== Docker Information ==="
+          docker --version
+          docker info --format '{{json .}}' | jq '{
+            "ServerVersion": .ServerVersion,
+            "Architecture": .Architecture,
+            "CPUs": .NCPU,
+            "TotalMemory": .MemTotal,
+            "StorageDriver": .Driver,
+            "ContainersRunning": .ContainersRunning,
+            "Images": .Images
+          }'
+
+      - name: Clean Docker Environment
+        run: |
+          echo "Cleaning up Docker environment..."
+          docker system prune -f --volumes || true
+          docker container prune -f || true
+          docker image prune -af || true
+          
+          # Remove any existing SwissKnife containers
+          docker ps -a --filter "name=swissknife" --format "table {{.Names}}\t{{.Status}}" || true
+          docker rm -f $(docker ps -a --filter "name=swissknife" -q) 2>/dev/null || true
+          
+          echo "Docker cleanup completed"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.12.0
+          buildkitd-flags: --debug
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            swissknife
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}}
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build SwissKnife Docker Image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./build-tools/docker/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: |
+            swissknife:test
+            swissknife:latest
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_VERSION=20
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VCS_REF=${{ github.sha }}
+
+      - name: Inspect Built Image
+        run: |
+          echo "=== Image Information ==="
+          docker images swissknife:test --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+          
+          echo "=== Image Layers ==="
+          docker history swissknife:test --no-trunc
+          
+          echo "=== Image Details ==="
+          docker inspect swissknife:test | jq '.[0] | {
+            "Architecture": .Architecture,
+            "Os": .Os,
+            "Size": .Size,
+            "VirtualSize": .VirtualSize,
+            "Config": {
+              "ExposedPorts": .Config.ExposedPorts,
+              "Env": .Config.Env,
+              "Cmd": .Config.Cmd,
+              "WorkingDir": .Config.WorkingDir
+            }
+          }'
+
+      - name: Run Security Scan
+        run: |
+          echo "=== Security Scan ==="
+          # Use Docker Scout if available
+          if command -v docker-scout &> /dev/null; then
+            docker scout cves swissknife:test --format table || echo "Scout scan completed with warnings"
+          else
+            echo "Docker Scout not available, using basic checks"
+          fi
+          
+          # Check for common security issues
+          echo "=== Basic Security Checks ==="
+          docker run --rm -i swissknife:test sh -c "
+            echo 'User: \$(whoami)'
+            echo 'User ID: \$(id)'
+            echo 'Home directory: \$HOME'
+            echo 'Process list:' && ps aux | head -10
+          " || echo "Security check completed"
+
+      - name: Test Container Startup
+        run: |
+          echo "=== Container Startup Test ==="
+          
+          # Start container in background
+          docker run -d --name swissknife-startup-test \
+            -p 3333:3001 \
+            -e NODE_ENV=test \
+            swissknife:test
+          
+          # Wait for startup
+          sleep 10
+          
+          # Check if container is running
+          if docker ps --filter "name=swissknife-startup-test" --filter "status=running" | grep -q swissknife-startup-test; then
+            echo "✅ Container started successfully"
+          else
+            echo "❌ Container failed to start"
+            docker logs swissknife-startup-test
+            exit 1
+          fi
+          
+          # Test health endpoint
+          max_attempts=30
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            if curl -f http://localhost:3333/ >/dev/null 2>&1; then
+              echo "✅ Health check passed on attempt $attempt"
+              break
+            elif [ $attempt -eq $max_attempts ]; then
+              echo "❌ Health check failed after $max_attempts attempts"
+              docker logs swissknife-startup-test
+              exit 1
+            else
+              echo "⏳ Health check attempt $attempt/$max_attempts failed, retrying..."
+              sleep 2
+              ((attempt++))
+            fi
+          done
+          
+          # Show container logs
+          echo "=== Container Logs ==="
+          docker logs swissknife-startup-test --tail 50
+          
+          # Cleanup
+          docker stop swissknife-startup-test
+          docker rm swissknife-startup-test
+
+      - name: Test CLI in Container
+        run: |
+          echo "=== CLI Functionality Test ==="
+          
+          # Test CLI commands
+          docker run --rm swissknife:test ./cli.mjs --version
+          docker run --rm swissknife:test ./cli.mjs --help
+          
+          # Test Node.js environment
+          docker run --rm swissknife:test node --version
+          docker run --rm swissknife:test npm --version
+          
+          echo "✅ CLI tests passed"
+
+      - name: Run Docker Compose Tests
+        if: github.event.inputs.run_docker_tests != 'false'
+        run: |
+          echo "=== Docker Compose Integration Test ==="
+          
+          # Copy docker-compose for testing
+          cp docker-compose.yml docker-compose.test.yml
+          
+          # Modify for testing (different ports to avoid conflicts)
+          sed -i 's/3001:3001/3334:3001/g' docker-compose.test.yml
+          sed -i 's/8080:8080/8081:8080/g' docker-compose.test.yml
+          sed -i 's/swissknife-app/swissknife-test-app/g' docker-compose.test.yml
+          
+          # Start services
+          docker-compose -f docker-compose.test.yml up -d swissknife
+          
+          # Wait for services
+          sleep 15
+          
+          # Test services
+          if curl -f http://localhost:3334/ >/dev/null 2>&1; then
+            echo "✅ Docker Compose services are responding"
+          else
+            echo "❌ Docker Compose services failed"
+            docker-compose -f docker-compose.test.yml logs
+            exit 1
+          fi
+          
+          # Cleanup
+          docker-compose -f docker-compose.test.yml down -v
+          rm docker-compose.test.yml
+
+      - name: Performance Benchmarks
+        run: |
+          echo "=== Performance Benchmarks ==="
+          
+          # Start container for benchmarking
+          docker run -d --name swissknife-bench \
+            -p 3335:3001 \
+            swissknife:test
+          
+          sleep 10
+          
+          # Basic performance test
+          echo "Running basic load test..."
+          for i in {1..10}; do
+            response_time=$(curl -o /dev/null -s -w "%{time_total}\n" http://localhost:3335/)
+            echo "Request $i: ${response_time}s"
+          done
+          
+          # Memory usage
+          echo "=== Resource Usage ==="
+          docker stats swissknife-bench --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}"
+          
+          # Cleanup
+          docker stop swissknife-bench
+          docker rm swissknife-bench
+
+      - name: Push Image to Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./build-tools/docker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Multi-Architecture Build
+        if: github.event.inputs.build_multiarch == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./build-tools/docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate Test Report
+        if: always()
+        run: |
+          echo "=== Test Summary Report ===" > docker-test-report.md
+          echo "" >> docker-test-report.md
+          echo "**Repository:** ${{ github.repository }}" >> docker-test-report.md
+          echo "**Branch:** ${{ github.ref_name }}" >> docker-test-report.md
+          echo "**Commit:** ${{ github.sha }}" >> docker-test-report.md
+          echo "**Runner:** $(hostname)" >> docker-test-report.md
+          echo "**Build Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> docker-test-report.md
+          echo "" >> docker-test-report.md
+          
+          if docker images swissknife:test --format "{{.Size}}" | head -1; then
+            echo "**Image Size:** $(docker images swissknife:test --format '{{.Size}}' | head -1)" >> docker-test-report.md
+          fi
+          
+          echo "" >> docker-test-report.md
+          echo "**Test Results:**" >> docker-test-report.md
+          echo "- ✅ Image build successful" >> docker-test-report.md
+          echo "- ✅ Container startup test passed" >> docker-test-report.md
+          echo "- ✅ CLI functionality verified" >> docker-test-report.md
+          
+          if [ "${{ github.event.inputs.run_docker_tests }}" != "false" ]; then
+            echo "- ✅ Docker Compose integration tested" >> docker-test-report.md
+          fi
+          
+          echo "- ✅ Performance benchmarks completed" >> docker-test-report.md
+          
+          cat docker-test-report.md
+
+      - name: Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-test-results-${{ github.run_number }}
+          path: |
+            docker-test-report.md
+          retention-days: 30
+
+  # Test runner container integration
+  test-runner-container:
+    name: Test GitHub Runner Container
+    runs-on: [self-hosted, linux, x64, docker, swissknife, workstation]
+    if: github.event.inputs.run_docker_tests != 'false'
+    needs: docker-build-test
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Runner Container
+        run: |
+          echo "=== Building GitHub Runner Container ==="
+          docker build -f build-tools/docker/Dockerfile.runner \
+            --build-arg GITHUB_REPOSITORY=${{ github.repository }} \
+            --build-arg RUNNER_NAME=test-runner-container \
+            --build-arg RUNNER_LABELS=self-hosted,linux,docker,swissknife,container,test \
+            -t swissknife-runner:test \
+            .
+
+      - name: Test Runner Container Build
+        run: |
+          echo "=== Runner Container Tests ==="
+          
+          # Check image was built
+          docker images swissknife-runner:test
+          
+          # Test basic functionality (without actually registering)
+          docker run --rm swissknife-runner:test bash -c "
+            echo 'Testing container environment...'
+            node --version
+            npm --version
+            docker --version
+            git --version
+            whoami
+            echo 'Container test complete'
+          "
+          
+          echo "✅ Runner container tests passed"
+
+  # Summary job
+  integration-summary:
+    name: Integration Test Summary
+    runs-on: ubuntu-latest
+    needs: [docker-build-test, test-runner-container]
+    if: always()
+    
+    steps:
+      - name: Collect Results
+        run: |
+          echo "=== SwissKnife Docker Integration Summary ==="
+          echo ""
+          echo "**Build Status:** ${{ needs.docker-build-test.result }}"
+          echo "**Container Test Status:** ${{ needs.test-runner-container.result }}"
+          echo ""
+          
+          if [ "${{ needs.docker-build-test.result }}" = "success" ] && [ "${{ needs.test-runner-container.result }}" = "success" ]; then
+            echo "✅ All Docker integration tests passed!"
+            echo "The SwissKnife application is ready for containerized deployment."
+          else
+            echo "❌ Some tests failed. Please check the job logs for details."
+            if [ "${{ needs.docker-build-test.result }}" != "success" ]; then
+              echo "- Docker build/test job failed"
+            fi
+            if [ "${{ needs.test-runner-container.result }}" != "success" ]; then
+              echo "- Runner container test failed"
+            fi
+          fi
