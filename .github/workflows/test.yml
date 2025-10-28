@@ -24,7 +24,7 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --legacy-peer-deps
     
     - name: Lint (optional)
       run: npm run format:check
@@ -82,7 +82,7 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --legacy-peer-deps
     
     - name: Run benchmark tests
       run: npm run test:benchmark
@@ -142,7 +142,7 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --legacy-peer-deps
     
     - name: Build
       run: npm run build
