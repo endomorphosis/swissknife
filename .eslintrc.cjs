@@ -6,8 +6,10 @@ module.exports = {
     sourceType: 'module',
     ecmaFeatures: {
       jsx: true
-    },
-    project: './tsconfig.json'
+    }
+    // NOTE: project option removed to avoid issues with multi-project TypeScript setup
+    // Type-aware linting is disabled but basic linting still works
+    // project: './tsconfig.json'
   },
   env: {
     node: true,
