@@ -1,10 +1,12 @@
 name: SonarQube Analysis
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    types: [ opened, synchronize, reopened ]
+  # Disabled - requires SONAR_TOKEN and SONAR_HOST_URL secrets to be configured
+  # Re-enable by uncommenting the triggers below
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   types: [ opened, synchronize, reopened ]
   workflow_dispatch:
 
 jobs:
@@ -30,7 +32,7 @@ jobs:
         run: npm run test:coverage
       
       - name: Generate test execution report
-        run: npm run test:ci
+        run: npm run test:ci-safe
         env:
           JEST_JUNIT_OUTPUT_DIR: .
           JEST_JUNIT_OUTPUT_NAME: test-report.xml
