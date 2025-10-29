@@ -174,8 +174,8 @@ jobs:
           npm run docs:complete-system
           
           # Generate API documentation for programming agents
-          echo "📚 Generating API documentation with TypeDoc..."
-          npm run docs:api || echo "API documentation generation had warnings"
+          echo "📚 Generating API documentation..."
+          npm run docs:api || node scripts/automation/generate-api-docs-simple.cjs
           
           # Generate code structure analysis for agents
           echo "🗺️ Generating code structure mapping..."
