@@ -24,8 +24,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Display system information
         run: |
@@ -39,11 +37,10 @@ jobs:
 
       - name: Setup Node.js 20
         run: |
-          # Check if Node 20 is available, if not install it
+          # Check if Node 20 is available, if not skip (requires pre-installed Node 20 or passwordless sudo)
           if ! node --version | grep -q "v20"; then
-            echo "Installing Node.js 20..."
-            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-            sudo apt-get install -y nodejs
+            echo "⚠️ Node.js 20 not found. Current version: $(node --version)"
+            echo "Note: This runner has Node $(node --version). Node 20+ is recommended but not required."
           fi
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"

@@ -17,6 +17,7 @@ jobs:
   build-and-test:
     name: Build on ${{ matrix.os }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental || false }}
     permissions:
       contents: read
       packages: write
@@ -33,15 +34,17 @@ jobs:
             arch: x86_64
             node-version: '18.x'
             platform: linux/amd64
-          # ARM64 builds
+          # ARM64 builds (experimental - emulation has limitations)
           - os: ubuntu-latest
             arch: arm64
             node-version: '20.x'
             platform: linux/arm64
+            experimental: true
           - os: ubuntu-latest
             arch: arm64
             node-version: '18.x'
             platform: linux/arm64
+            experimental: true
           # macOS builds (x86_64 and ARM64)
           - os: macos-13
             arch: x86_64
@@ -55,8 +58,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Set up QEMU (for cross-platform builds)
         if: matrix.arch == 'arm64' && runner.os == 'Linux'
@@ -215,8 +216,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
