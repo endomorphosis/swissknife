@@ -1,13 +1,17 @@
 # Webpack config files
+web/webpack*.config.js
 web/webpack.*.config.js
 build-tools/webpack.*.config.js
 
-# Build output
+# Build output and test artifacts
 dist/
 build/
 node_modules/
 coverage/
+web/test-dist/
+web/dist/
 
 # Generated files
 *.min.js
 *.bundle.js
+*.compilation-test.js

@@ -1,10 +1,12 @@
 name: SonarQube Analysis
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    types: [ opened, synchronize, reopened ]
+  # Disabled - requires SONAR_TOKEN and SONAR_HOST_URL secrets to be configured
+  # Re-enable by uncommenting the triggers below
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   types: [ opened, synchronize, reopened ]
   workflow_dispatch:
 
 jobs:

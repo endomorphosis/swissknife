@@ -75,7 +75,7 @@
     "test:ci-safe": "jest --config=config/jest/jest.hybrid.config.cjs --ci --coverage --maxWorkers=1",
     "test:unit": "jest test/unit --config=config/jest/jest.config.cjs",
     "test:e2e": "jest test/e2e --config=config/jest/jest.config.cjs",
-    "test:benchmark": "jest test/benchmark --config=config/jest/jest.config.cjs",
+    "test:benchmark": "jest test/benchmark --config=config/jest/jest.config.cjs --passWithNoTests",
     "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit --config=config/jest/jest.config.cjs",
     "test:verify-build": "node ./test/verify-build.js",
     "test:staging": "jest test/e2e --config jest.staging.config.js",
