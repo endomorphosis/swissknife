@@ -1,0 +1,46 @@
+{
+  "generated": "2025-10-29T04:25:37.971Z",
+  "purpose": "Help programming agents understand and interact with the codebase",
+  "structure": {
+    "cli": {
+      "path": "src/",
+      "description": "CLI tool with P2P integration"
+    },
+    "web": {
+      "path": "web/",
+      "description": "Virtual desktop with 27+ applications"
+    },
+    "ipfs": {
+      "path": "ipfs_accelerate_js/",
+      "description": "IPFS acceleration and distributed computing"
+    },
+    "docs": {
+      "path": "docs/",
+      "description": "Comprehensive documentation suite"
+    }
+  },
+  "entryPoints": {
+    "cli": "src/entrypoints/cli.ts",
+    "desktop": "web/main.ts",
+    "ipfs": "ipfs_accelerate_js/src/index.ts"
+  },
+  "keyFeatures": [
+    "P2P collaboration",
+    "AI integration (Hugging Face, OpenRouter)",
+    "Distributed computing",
+    "Virtual desktop environment",
+    "Web workers architecture"
+  ],
+  "buildCommands": {
+    "all": "npm run build:all",
+    "cli": "npm run build:cli",
+    "web": "npm run build:web",
+    "test": "npm run test"
+  },
+  "documentation": {
+    "api": "docs/api/",
+    "userGuide": "README.md",
+    "developer": "docs/DEVELOPER_GUIDE.md",
+    "architecture": "docs/UNIFIED_ARCHITECTURE.md"
+  }
+}

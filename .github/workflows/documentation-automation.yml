@@ -1,4 +1,4 @@
-name: 📸 SwissKnife Documentation Automation
+name: 📚 SwissKnife Documentation Automation for Users & Agents
 
 on:
   push:
@@ -173,6 +173,14 @@ jobs:
           # Always run complete system analysis
           npm run docs:complete-system
           
+          # Generate API documentation for programming agents
+          echo "📚 Generating API documentation..."
+          npm run docs:api || node scripts/automation/generate-api-docs-simple.cjs
+          
+          # Generate code structure analysis for agents
+          echo "🗺️ Generating code structure mapping..."
+          node scripts/automation/generate-agent-docs.cjs
+          
           echo "✅ Enhanced documentation generation completed"
           echo "status=success" >> $GITHUB_OUTPUT
         continue-on-error: true
@@ -332,6 +340,8 @@ jobs:
           - Performance: ${{ steps.performance-check.outputs.grade }} grade
           - Generation time: ${{ steps.performance-check.outputs.generation_time }}ms
           - Memory usage: ${{ steps.performance-check.outputs.memory_usage }}MB
+          - API docs: Updated for programming agents
+          - Agent guides: Codebase map and structure analysis
           
           Automated by: ${{ github.workflow }} (${{ github.event_name }})"
           
@@ -361,6 +371,8 @@ jobs:
             docs/automation/screenshot-data.json
             docs/automation/dashboard.html
             docs/automation/dashboard-data.json
+            docs/api/
+            docs/agents/
             test-results/
             change-summary.md
           retention-days: 30
@@ -408,6 +420,8 @@ jobs:
           echo "📊 **Reports Available**:" >> $GITHUB_STEP_SUMMARY
           echo "- Performance Report: \`docs/automation/performance-report.md\`" >> $GITHUB_STEP_SUMMARY
           echo "- Quality Report: \`docs/automation/quality-report.md\`" >> $GITHUB_STEP_SUMMARY
+          echo "- API Documentation: \`docs/api/\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Agent Codebase Map: \`docs/agents/codebase-map.md\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.quality-gate.outputs.failed }}" == "true" ]; then
             echo "⚠️ **Quality Alert**: Documentation quality below threshold (${{ env.QUALITY_THRESHOLD }}/100)" >> $GITHUB_STEP_SUMMARY

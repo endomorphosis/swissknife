@@ -1,11 +1,29 @@
-# SwissKnife API Documentation
+#!/usr/bin/env node
 
-**Version**: 0.0.53
-**Generated**: 2025-10-29T04:25:38.018Z
+/**
+ * Simple API Documentation Generator
+ * Creates basic API documentation when TypeDoc fails
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const apiDocsDir = path.join(__dirname, '../../docs/api');
+
+// Ensure directory exists
+fs.mkdirSync(apiDocsDir, { recursive: true });
+
+// Read package.json for project info
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8'));
+
+const apiDocs = `# SwissKnife API Documentation
+
+**Version**: ${packageJson.version}
+**Generated**: ${new Date().toISOString()}
 
 ## Overview
 
-SwissKnife is a Use swissknife, an AI assistant, right from your terminal. swissknife can understand your codebase, edit files, run terminal commands, and handle entire workflows for you..
+SwissKnife is a ${packageJson.description || 'revolutionary collaborative virtual desktop environment'}.
 
 ## Project Structure
 
@@ -13,113 +31,79 @@ This is a TypeScript/JavaScript project with multiple components:
 
 ### Main Components
 
-1. **CLI Tool** (`src/`)
-   - Entry point: `src/entrypoints/cli.tsx`
+1. **CLI Tool** (\`src/\`)
+   - Entry point: \`src/entrypoints/cli.tsx\`
    - P2P integration and distributed task execution
    - AI-powered command assistance
 
-2. **Web Desktop** (`web/`)
-   - Entry point: `web/main.ts`
+2. **Web Desktop** (\`web/\`)
+   - Entry point: \`web/main.ts\`
    - 27+ professional applications
    - Real-time collaboration features
 
-3. **IPFS Accelerate** (`ipfs_accelerate_js/`)
-   - Entry point: `ipfs_accelerate_js/src/index.ts`
+3. **IPFS Accelerate** (\`ipfs_accelerate_js/\`)
+   - Entry point: \`ipfs_accelerate_js/src/index.ts\`
    - Distributed computing
    - AI inference acceleration
 
 ## Key Modules
 
 ### AI Integration
-- `src/ai/service.ts` - AI service integration
-- `src/ai/types.ts` - AI type definitions
+- \`src/ai/service.ts\` - AI service integration
+- \`src/ai/types.ts\` - AI type definitions
 
 ### Commands
-- `src/commands/` - CLI command implementations
+- \`src/commands/\` - CLI command implementations
 - Over 30+ commands for various operations
 
 ### Workers
-- `src/workers/` - Background worker implementations
-- `web/workers/` - Browser-side workers
+- \`src/workers/\` - Background worker implementations
+- \`web/workers/\` - Browser-side workers
 
 ### P2P Networking
-- `src/collaboration/` - P2P collaboration engine
+- \`src/collaboration/\` - P2P collaboration engine
 - Real-time state synchronization
 
 ### Utilities
-- `src/utils/` - Shared utility functions
-- `web/src/utils/` - Web-specific utilities
+- \`src/utils/\` - Shared utility functions
+- \`web/src/utils/\` - Web-specific utilities
 
 ## Build Commands
 
-```bash
+\`\`\`bash
 npm run build:all    # Build all components
 npm run build:cli    # Build CLI only
 npm run build:web    # Build web GUI only
 npm run build:ipfs   # Build IPFS module only
-```
+\`\`\`
 
 ## Test Commands
 
-```bash
+\`\`\`bash
 npm run test              # Run tests
 npm run test:vite        # Vite integration tests
 npm run test:browser     # Browser tests
 npm run test:collaborative # P2P collaboration tests
-```
+\`\`\`
 
 ## Documentation Commands
 
-```bash
+\`\`\`bash
 npm run docs:api             # Generate API documentation
 npm run docs:complete-system # Generate comprehensive docs
-```
+\`\`\`
 
 ## Dependencies
 
 ### Main Dependencies
-- **@anthropic-ai/bedrock-sdk**: ^0.12.4
-- **@anthropic-ai/claude-code**: ^0.2.29
-- **@anthropic-ai/sdk**: ^0.39.0
-- **@anthropic-ai/vertex-sdk**: ^0.7.0
-- **@commander-js/extra-typings**: ^12.0.0
-- **@iarna/toml**: ^2.2.5
-- **@inkjs/ui**: ^2.0.0
-- **@modelcontextprotocol/sdk**: ^1.12.1
-- **@multiformats/multiaddr**: ^12.1.14
-- **@sentry/node**: ^9.3.0
-- **@statsig/js-client**: ^3.12.2
-- **@types/lodash-es**: ^4.17.12
-- **ansi-colors**: ^4.1.3
-- **ansi-escapes**: ^7.0.0
-- **assert**: ^2.1.0
-- **buffer**: ^6.0.3
-- **chalk**: ^4.1.2
-- **cli-highlight**: ^2.1.11
-- **cli-table3**: ^0.6.5
-- **commander**: ^12.0.0
+${Object.entries(packageJson.dependencies || {}).slice(0, 20).map(([name, version]) => 
+  `- **${name}**: ${version}`
+).join('\n')}
 
 ### Dev Dependencies
-- **jest-cli**: 29.7.0
-- **jest-util**: 29.7.0
-- **@babel/core**: ^7.17.0
-- **@babel/plugin-proposal-class-properties**: ^7.18.6
-- **@babel/plugin-transform-class-properties**: ^7.27.1
-- **@babel/plugin-transform-private-methods**: ^7.27.1
-- **@babel/plugin-transform-runtime**: ^7.27.4
-- **@babel/preset-env**: ^7.16.0
-- **@babel/preset-react**: ^7.27.1
-- **@babel/preset-typescript**: ^7.27.1
-- **@babel/runtime**: ^7.17.0
-- **@jest/globals**: ^27.5.1
-- **@lhci/cli**: ^0.12.0
-- **@playwright/test**: ^1.55.0
-- **@types/chai**: ^5.2.2
-- **@types/diff**: ^7.0.2
-- **@types/ink**: ^0.5.2
-- **@types/ink-testing-library**: ^1.0.4
-- **@types/jest**: ^29.5.12
-- **@types/minimist**: ^1.2.5
+${Object.entries(packageJson.devDependencies || {}).slice(0, 20).map(([name, version]) => 
+  `- **${name}**: ${version}`
+).join('\n')}
 
 ## TypeScript Configuration
 
@@ -140,28 +124,28 @@ The project uses TypeScript with the following key configurations:
 ## Getting Started for Developers
 
 1. **Clone and Install**:
-   ```bash
+   \`\`\`bash
    git clone https://github.com/endomorphosis/swissknife.git
    cd swissknife
    npm install --legacy-peer-deps
-   ```
+   \`\`\`
 
 2. **Run Development Server**:
-   ```bash
+   \`\`\`bash
    npm run desktop:collaborative
-   ```
+   \`\`\`
 
 3. **Build for Production**:
-   ```bash
+   \`\`\`bash
    npm run build:all
-   ```
+   \`\`\`
 
 ## For Programming Agents
 
 When working with this codebase:
 
-1. **Start with the codebase map**: See `docs/agents/codebase-map.md`
-2. **Check TypeScript definitions**: All major types are defined in `**/types.ts` files
+1. **Start with the codebase map**: See \`docs/agents/codebase-map.md\`
+2. **Check TypeScript definitions**: All major types are defined in \`**/types.ts\` files
 3. **Follow existing patterns**: Look at existing files in the same directory as examples
 4. **Test your changes**: Run appropriate tests before committing
 5. **Use the build system**: Always use npm scripts rather than direct tools
@@ -175,10 +159,16 @@ When working with this codebase:
 
 ## License
 
-AGPL-3.0
+${packageJson.license || 'AGPL-3.0'}
 
 ---
 
 **Note**: For detailed API documentation of individual functions and classes, please refer to the inline JSDoc comments in the source code. This overview provides a high-level understanding of the project structure and key components.
 
 **TypeDoc**: Full API documentation generation via TypeDoc requires proper TypeScript project references. If TypeDoc generation fails, refer to this overview for project structure understanding.
+`;
+
+fs.writeFileSync(path.join(apiDocsDir, 'README.md'), apiDocs);
+
+console.log('✅ Basic API documentation generated successfully');
+console.log('📁 Generated: docs/api/README.md');
