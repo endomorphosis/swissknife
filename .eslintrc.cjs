@@ -6,8 +6,13 @@ module.exports = {
     sourceType: 'module',
     ecmaFeatures: {
       jsx: true
-    },
-    project: './tsconfig.json'
+    }
+    // NOTE: project option removed to avoid issues with multi-project TypeScript setup
+    // This disables type-aware linting rules (e.g., @typescript-eslint/no-floating-promises,
+    // @typescript-eslint/no-misused-promises) but allows basic linting to work across all
+    // project files without tsconfig matching errors.
+    // Type checking is still performed by the separate 'typecheck' npm script.
+    // project: './tsconfig.json'
   },
   env: {
     node: true,
