@@ -21,9 +21,9 @@ RUN echo "Building for platform: $TARGETPLATFORM" && \
 COPY package*.json ./
 COPY yarn.lock* pnpm-lock.yaml* ./
 
-# Install dependencies with production optimizations
+# Install ALL dependencies (including devDependencies) needed for build
 # Use legacy-peer-deps flag for compatibility
-RUN npm ci --legacy-peer-deps --only=production --no-audit --no-fund
+RUN npm ci --legacy-peer-deps --no-audit --no-fund
 
 # Copy source code
 COPY . .

@@ -30,7 +30,7 @@ jobs:
         run: npm run test:coverage
       
       - name: Generate test execution report
-        run: npm run test:ci
+        run: npm run test:ci-safe
         env:
           JEST_JUNIT_OUTPUT_DIR: .
           JEST_JUNIT_OUTPUT_NAME: test-report.xml
