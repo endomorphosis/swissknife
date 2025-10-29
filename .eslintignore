@@ -1,0 +1,13 @@
+# Webpack config files
+web/webpack.*.config.js
+build-tools/webpack.*.config.js
+
+# Build output
+dist/
+build/
+node_modules/
+coverage/
+
+# Generated files
+*.min.js
+*.bundle.js
