@@ -8,26 +8,27 @@
 const fs = require('fs');
 const path = require('path');
 
-// Create agent-friendly documentation
-const agentDocs = {
-  generated: new Date().toISOString(),
-  purpose: 'Help programming agents understand and interact with the codebase',
-  structure: {
-    cli: { path: 'src/', description: 'CLI tool with P2P integration' },
-    web: { path: 'web/', description: 'Virtual desktop with 27+ applications' },
-    ipfs: { path: 'ipfs_accelerate_js/', description: 'IPFS acceleration and distributed computing' },
-    docs: { path: 'docs/', description: 'Comprehensive documentation suite' }
-  },
-  entryPoints: {
-    cli: 'src/entrypoints/cli.ts',
-    desktop: 'web/main.ts',
-    ipfs: 'ipfs_accelerate_js/src/index.ts'
-  },
-  keyFeatures: [
-    'P2P collaboration',
-    'AI integration (Hugging Face, OpenRouter)',
-    'Distributed computing',
-    'Virtual desktop environment',
+try {
+  // Create agent-friendly documentation
+  const agentDocs = {
+    generated: new Date().toISOString(),
+    purpose: 'Help programming agents understand and interact with the codebase',
+    structure: {
+      cli: { path: 'src/', description: 'CLI tool with P2P integration' },
+      web: { path: 'web/', description: 'Virtual desktop with 27+ applications' },
+      ipfs: { path: 'ipfs_accelerate_js/', description: 'IPFS acceleration and distributed computing' },
+      docs: { path: 'docs/', description: 'Comprehensive documentation suite' }
+    },
+    entryPoints: {
+      cli: 'src/entrypoints/cli.ts',
+      desktop: 'web/main.ts',
+      ipfs: 'ipfs_accelerate_js/src/index.ts'
+    },
+    keyFeatures: [
+      'P2P collaboration',
+      'AI integration (Hugging Face, OpenRouter)',
+      'Distributed computing',
+      'Virtual desktop environment',
     'Web workers architecture'
   ],
   buildCommands: {
@@ -44,11 +45,24 @@ const agentDocs = {
   }
 };
 
-fs.mkdirSync('docs/agents', { recursive: true });
-fs.writeFileSync(
-  'docs/agents/codebase-map.json',
-  JSON.stringify(agentDocs, null, 2)
-);
+// Create directory with error handling
+try {
+  fs.mkdirSync('docs/agents', { recursive: true });
+} catch (error) {
+  console.error('❌ Failed to create docs/agents directory:', error.message);
+  process.exit(1);
+}
+
+// Write JSON file with error handling
+try {
+  fs.writeFileSync(
+    'docs/agents/codebase-map.json',
+    JSON.stringify(agentDocs, null, 2)
+  );
+} catch (error) {
+  console.error('❌ Failed to write codebase-map.json:', error.message);
+  process.exit(1);
+}
 
 // Create markdown version for easy reading
 const mdContent = `# SwissKnife Codebase Map for Programming Agents
@@ -106,5 +120,17 @@ Key patterns to understand:
 - Hybrid local + P2P + cloud computing
 `;
 
-fs.writeFileSync('docs/agents/codebase-map.md', mdContent);
-console.log('✅ Agent documentation generated successfully');
+// Write markdown file with error handling
+try {
+  fs.writeFileSync('docs/agents/codebase-map.md', mdContent);
+  console.log('✅ Agent documentation generated successfully');
+} catch (error) {
+  console.error('❌ Failed to write codebase-map.md:', error.message);
+  process.exit(1);
+}
+
+} catch (error) {
+  console.error('❌ Unexpected error during agent documentation generation:', error.message);
+  console.error(error.stack);
+  process.exit(1);
+}
