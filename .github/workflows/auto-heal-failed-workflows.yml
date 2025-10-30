@@ -302,8 +302,10 @@ jobs:
           RUN_ID: ${{ needs.check-failure.outputs.run_id }}
           BRANCH_NAME: ${{ needs.check-failure.outputs.branch_name }}
           UPDATED_AT: ${{ github.event.workflow_run.updated_at }}
+          WORKFLOW_SLUG: ${{ steps.create-branch.outputs.workflow_slug }}
         run: |
           branch_name="${{ steps.create-branch.outputs.branch_name }}"
+          workflow_slug="${{ steps.create-branch.outputs.workflow_slug }}"
           
           # Read failure summary and errors from files
           FAILURE_SUMMARY=$(cat /tmp/failure-analysis/summary.md)
@@ -311,7 +313,7 @@ jobs:
           
           # Create PR body with instructions for Copilot using environment variables
           cat > /tmp/pr-body.md << EOF
-          # 🤖 Auto-Heal: Fix Failed Workflow
+          # 🤖 Auto-Heal: Fix Failed Workflow (Draft - Copilot Invoked)
 
           ## Workflow Failure Details
 
@@ -322,15 +324,36 @@ jobs:
 
           ---
 
-          ## 🎯 GitHub Copilot Agent Task
+          ## 🎯 GitHub Copilot Invoked
 
-          **GitHub Copilot has been invoked on this PR** to automatically analyze and fix the workflow failure.
+          **This is a draft PR with `@github-copilot` mentioned in the comments** to potentially trigger automatic fixing.
 
-          ### Copilot Instructions:
+          A structured task file has been created for GitHub Copilot to work on this fix.
 
-          1. **Analyze the failure logs** provided in the tracking file under \`.github/auto-heal-tracking/\`
-          2. **Identify the root cause** of the workflow failure from the error messages
-          3. **Implement minimal fixes** to resolve the issue without breaking existing functionality
+          ### 📋 Task File Location
+
+          \`\`\`
+          .github/copilot-tasks/fix-${workflow_slug}.md
+          \`\`\`
+
+          This task file contains:
+          - ✅ Detailed failure analysis
+          - ✅ Step-by-step fixing instructions
+          - ✅ Validation checklist
+          - ✅ Links to error logs and resources
+
+          ### 🤖 What to Expect
+
+          1. **GitHub Copilot has been mentioned** in a comment on this PR
+          2. **Copilot may automatically respond** and start working on the fix
+          3. **Monitor this PR** for Copilot's activity and proposed changes
+          4. **If Copilot doesn't respond**, you can open this PR in Copilot Workspace manually
+
+          ### 🔧 Quick Fix Instructions (if manual intervention needed)
+
+          1. **Analyze the failure logs** in \`.github/auto-heal-tracking/\`
+          2. **Identify the root cause** from the error messages below
+          3. **Implement minimal fixes** to \`.github/workflows/${WORKFLOW_NAME}.yml\`
           4. **Test your changes** to ensure the workflow will pass
           5. **Document the fix** in your commit messages
 
@@ -348,44 +371,54 @@ jobs:
 
           ## 📋 Fix Checklist
 
+          - [ ] Review task file: \`.github/copilot-tasks/fix-${workflow_slug}.md\`
           - [ ] Analyze root cause from error logs
           - [ ] Review workflow file: \`.github/workflows/${WORKFLOW_NAME}.yml\`
           - [ ] Implement fix with minimal changes
           - [ ] Verify fix doesn't break other workflows
           - [ ] Update documentation if needed
           - [ ] Ensure all CI checks pass
+          - [ ] Mark PR as ready for review once fixes are complete
 
           ---
 
           ## 🤖 Auto-Heal System
 
-          This PR was automatically created by the Auto-Heal workflow system when the "${WORKFLOW_NAME}" workflow failed.
+          This draft PR was automatically created by the Auto-Heal workflow system when the "${WORKFLOW_NAME}" workflow failed.
 
           **Status:**
-          - ✅ GitHub Copilot agent has been invoked to fix the issue
-          - ⏳ Waiting for Copilot to analyze and implement fixes
-          - 🔄 Monitor this PR for updates from Copilot
+          - ✅ Draft PR created with GitHub Copilot invoked
+          - ✅ Task file created for GitHub Copilot
+          - ✅ Tracking file created with failure analysis
+          - ⏳ Ready for Copilot Workspace or manual fixes
+          - 🔄 Monitor this PR for updates
 
-          **Manual intervention:** If Copilot cannot automatically fix the issue, you can manually review and implement the fixes.
+          **How to proceed:**
+          1. **GitHub Copilot Workspace**: Open this PR in Copilot Workspace and reference the task file
+          2. **Manual Fix**: Review the task file and implement fixes manually
+          3. **Hybrid**: Use Copilot to assist while reviewing the structured task
 
           **Related Links:**
           - [Failed Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${RUN_ID})
           - [Workflow File](/.github/workflows/${WORKFLOW_NAME}.yml)
+          - [Task File](/.github/copilot-tasks/fix-${workflow_slug}.md)
           - [Tracking File](/.github/auto-heal-tracking/)
 
           ---
 
-          *This is an automated PR created by the Auto-Heal workflow system with GitHub Copilot integration.*
+          *This is an automated PR created by the Auto-Heal workflow system with GitHub Copilot task integration.*
           EOF
           
-          # Create the PR - use environment variable for title to prevent injection
+          # Create the PR as a DRAFT - use environment variable for title to prevent injection
           # Use the default branch as base (not the failed workflow's branch)
+          # Creating as draft allows GitHub Copilot to be invoked on it
           default_branch="${{ github.event.repository.default_branch }}"
           pr_url=$(gh pr create \
             --title "🤖 Auto-heal: Fix ${WORKFLOW_NAME} workflow failure" \
             --body-file /tmp/pr-body.md \
             --base "$default_branch" \
             --head "$branch_name" \
+            --draft \
             --label "auto-heal,workflow-failure,automated")
           
           echo "Created PR: $pr_url"
@@ -395,7 +428,101 @@ jobs:
           pr_number=$(echo "$pr_url" | grep -oP '\d+$')
           echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
       
-      - name: Add Copilot Agent Instructions as Comment
+      - name: Create Copilot Task File
+        if: steps.create-pr.outputs.pr_number != ''
+        env:
+          WORKFLOW_NAME: ${{ needs.check-failure.outputs.workflow_name }}
+          WORKFLOW_SLUG: ${{ steps.create-branch.outputs.workflow_slug }}
+          RUN_ID: ${{ needs.check-failure.outputs.run_id }}
+        run: |
+          # Create a structured task file for GitHub Copilot
+          mkdir -p .github/copilot-tasks
+          
+          # Read failure summary and errors
+          FAILURE_SUMMARY=$(cat /tmp/failure-analysis/summary.md)
+          ERROR_DETAILS=$(cat /tmp/failure-analysis/errors.txt)
+          
+          # Create task file with structured instructions
+          cat > ".github/copilot-tasks/fix-${WORKFLOW_SLUG}.md" << EOF
+          # GitHub Copilot Task: Fix ${WORKFLOW_NAME} Workflow Failure
+          
+          ## Task Overview
+          
+          **Type**: Automated Workflow Fix  
+          **Priority**: High  
+          **Created**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")  
+          **Failed Workflow**: ${WORKFLOW_NAME}  
+          **Run ID**: ${RUN_ID}
+          
+          ## Objective
+          
+          Fix the failing GitHub Actions workflow by analyzing error logs and implementing minimal, surgical changes to resolve the issues.
+          
+          ## Context
+          
+          ${FAILURE_SUMMARY}
+          
+          ## Error Details
+          
+          ${ERROR_DETAILS}
+          
+          ## Required Actions
+          
+          ### 1. Analysis Phase
+          - [ ] Review the workflow file: \`.github/workflows/${WORKFLOW_NAME}.yml\`
+          - [ ] Examine error messages and identify root cause
+          - [ ] Check related configuration files if needed
+          - [ ] Identify the specific lines/sections causing the failure
+          
+          ### 2. Implementation Phase
+          - [ ] Make minimal changes to fix the identified issues
+          - [ ] Ensure changes don't break other workflows
+          - [ ] Follow existing code style and conventions
+          - [ ] Update any related documentation if necessary
+          
+          ### 3. Validation Phase
+          - [ ] Verify the fix addresses the root cause
+          - [ ] Ensure no new issues are introduced
+          - [ ] Check that the workflow syntax is valid
+          - [ ] Test that related workflows still function
+          
+          ## Guidelines
+          
+          1. **Minimal Changes**: Only modify what's necessary to fix the issue
+          2. **Preserve Functionality**: Don't refactor unrelated code
+          3. **Follow Conventions**: Maintain existing patterns and style
+          4. **Document Changes**: Clear commit messages explaining the fix
+          5. **Test Thoroughly**: Ensure the fix works before completing
+          
+          ## Success Criteria
+          
+          - ✅ Workflow passes without errors
+          - ✅ No other workflows are broken
+          - ✅ Changes are minimal and focused
+          - ✅ Code follows repository conventions
+          - ✅ All CI checks pass
+          
+          ## Resources
+          
+          - Failed Run: https://github.com/${{ github.repository }}/actions/runs/${RUN_ID}
+          - Workflow File: .github/workflows/${WORKFLOW_NAME}.yml
+          - Tracking File: .github/auto-heal-tracking/${WORKFLOW_SLUG}-*.md
+          - Error Logs: See tracking file for complete logs
+          
+          ## Notes
+          
+          This task was automatically generated by the Auto-Heal system. The workflow failed and needs to be fixed to restore CI/CD functionality.
+          
+          EOF
+          
+          # Add the task file to git
+          git add .github/copilot-tasks/
+          git commit -m "Add Copilot task file for ${WORKFLOW_NAME} fix"
+          git push origin "${{ steps.create-branch.outputs.branch_name }}"
+          
+          echo "Created Copilot task file: .github/copilot-tasks/fix-${WORKFLOW_SLUG}.md"
+      
+      - name: Invoke GitHub Copilot Agent
         if: steps.create-pr.outputs.pr_number != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -403,37 +530,57 @@ jobs:
           WORKFLOW_SLUG: ${{ steps.create-branch.outputs.workflow_slug }}
           PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
         run: |
-          # Add a comment with specific instructions for the Copilot agent
-          gh pr comment "${PR_NUMBER}" --body "@copilot Please analyze this workflow failure and implement the necessary fixes.
+          # Add a comment with @github-copilot mention to invoke the agent
+          gh pr comment "${PR_NUMBER}" --body "@github-copilot 
 
-          ## 🤖 Task for GitHub Copilot
+          ## 🤖 Automated Workflow Fix Request
 
-          This PR was automatically created because the **${WORKFLOW_NAME}** workflow failed. Please:
+          This draft PR was automatically created to fix the **${WORKFLOW_NAME}** workflow failure.
 
-          ### Analysis Required:
-          1. Review the workflow file: \`.github/workflows/${WORKFLOW_NAME}.yml\`
-          2. Examine the error logs in the tracking file under \`.github/auto-heal-tracking/\`
-          3. Identify the root cause of the failure
+          ### 📋 Task File Created
+          
+          A structured task file has been created at \`.github/copilot-tasks/fix-${WORKFLOW_SLUG}.md\` with:
+          - Detailed failure analysis
+          - Step-by-step fixing instructions
+          - Validation checklist
+          - Links to error logs and resources
 
-          ### Fixing Guidelines:
-          - Make minimal, surgical changes only
-          - Focus on fixing the specific failure
-          - Don't refactor unrelated code
-          - Maintain existing code style and conventions
-          - Test your changes to ensure they work
+          ### 🎯 Task for GitHub Copilot
 
-          ### Testing:
-          - Ensure fixes resolve the workflow failure
-          - Verify no other workflows are broken
-          - Check that all tests pass
+          Please review and fix this workflow failure:
 
-          Please proceed with analyzing the failure logs and implementing the fixes. 🚀"
+          1. **Review** the task file: \`.github/copilot-tasks/fix-${WORKFLOW_SLUG}.md\`
+          2. **Analyze** the error logs in the tracking file under \`.github/auto-heal-tracking/\`
+          3. **Identify** the root cause from the error messages
+          4. **Implement** minimal fixes to the workflow file: \`.github/workflows/${WORKFLOW_NAME}.yml\`
+          5. **Validate** that your changes resolve the issue
+
+          ### 📝 Fixing Guidelines
+
+          - ✅ Make minimal, surgical changes only
+          - ✅ Focus on fixing the specific failure
+          - ✅ Maintain existing code style and conventions
+          - ✅ Test your changes to ensure they work
+          - ❌ Don't refactor unrelated code
+          - ❌ Don't modify working workflows
+
+          ### 🚀 Ready to Start?
+
+          Please analyze the task file and error logs, then implement the fix. All the information you need is in this PR!
+
+          ---
+
+          *If you're a human reviewer, you can also:*
+          1. *Open GitHub Copilot Workspace for this PR*
+          2. *Reference the task file in your prompt*
+          3. *Or collaborate with Copilot to implement the fixes*"
       
       - name: Create GitHub Issue for Manual Review
         if: steps.create-pr.outputs.pr_number != ''
         env:
           GH_TOKEN: ${{ github.token }}
           WORKFLOW_NAME: ${{ needs.check-failure.outputs.workflow_name }}
+          WORKFLOW_SLUG: ${{ steps.create-branch.outputs.workflow_slug }}
           RUN_ID: ${{ needs.check-failure.outputs.run_id }}
           PR_URL: ${{ steps.create-pr.outputs.pr_url }}
           PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
@@ -443,29 +590,55 @@ jobs:
             --title "⚠️ Workflow Failure: ${WORKFLOW_NAME} requires attention" \
             --body "## Workflow Failure Alert
 
-          A workflow has failed and an auto-heal PR has been created.
+          A workflow has failed and an auto-heal **draft PR** has been created with `@github-copilot` invoked.
 
           **Failed Workflow**: ${WORKFLOW_NAME}  
           **Run ID**: [${RUN_ID}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${RUN_ID})  
-          **Auto-Heal PR**: ${PR_URL}  
+          **Auto-Heal Draft PR**: ${PR_URL} (with @github-copilot invoked)
 
-          ### 🤖 GitHub Copilot Integration
+          ### 🤖 GitHub Copilot Agent Invoked
 
-          A GitHub Copilot agent has been invoked on PR #${PR_NUMBER} to automatically analyze and fix the issue.
+          A draft PR has been created and GitHub Copilot has been mentioned in a comment to potentially trigger automatic fixing.
 
-          **To check Copilot's progress:**
-          1. Visit the PR: ${PR_URL}
-          2. Review Copilot's analysis in the comments
-          3. Monitor any commits made by Copilot
+          **Task File**: \`.github/copilot-tasks/fix-${WORKFLOW_SLUG}.md\`
 
-          ### Next Steps:
-          1. Wait for GitHub Copilot agent to analyze and fix the issue
-          2. Review the auto-heal PR: ${PR_URL}
-          3. If Copilot cannot fix automatically, manually review and fix the issues
-          4. Merge the PR once fixes are verified and all checks pass
+          This task file includes:
+          - ✅ Detailed failure analysis
+          - ✅ Step-by-step fixing instructions  
+          - ✅ Validation checklist
+          - ✅ Links to error logs and resources
+
+          ### 📋 What Happens Next
+
+          **Automatic (if Copilot responds):**
+          - GitHub Copilot may automatically analyze the task file
+          - Copilot may implement fixes based on the error analysis
+          - Monitor the PR for Copilot's activity
+
+          **Manual (if needed):**
+          1. Review the draft PR: ${PR_URL}
+          2. Check if Copilot has responded or started working
+          3. If not, you can open the PR in Copilot Workspace
+          4. Or implement fixes manually using the task file
+
+          ### 📊 Resources
+
+          - **Draft PR**: ${PR_URL} (with @github-copilot invoked)
+          - **Task File**: \`.github/copilot-tasks/fix-${WORKFLOW_SLUG}.md\`
+          - **Tracking File**: \`.github/auto-heal-tracking/${WORKFLOW_SLUG}-*.md\`
+          - **Failed Run**: [View Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${RUN_ID})
+          - **Workflow File**: \`.github/workflows/${WORKFLOW_NAME}.yml\`
+
+          ### ✅ Next Steps
+
+          1. Monitor the draft PR for Copilot activity: ${PR_URL}
+          2. If Copilot responds, review its proposed fixes
+          3. If Copilot doesn't respond, use Copilot Workspace or fix manually
+          4. Mark PR as ready for review once fixes are implemented
+          5. Merge the PR once fixes are verified and all checks pass
 
           This issue will be automatically closed when the PR is merged." \
-            --label "workflow-failure,auto-heal,needs-review,copilot-assisted" || echo "Issue creation failed or already exists")
+            --label "workflow-failure,auto-heal,needs-review,copilot-task" || echo "Issue creation failed or already exists")
           
           echo "Created issue: $issue_url"
           echo "issue_url=$issue_url" >> $GITHUB_OUTPUT
@@ -477,20 +650,26 @@ jobs:
           PR_URL: ${{ steps.create-pr.outputs.pr_url }}
           PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
           RUN_ID: ${{ needs.check-failure.outputs.run_id }}
+          WORKFLOW_SLUG: ${{ steps.create-branch.outputs.workflow_slug }}
         run: |
           echo "## Auto-Heal Workflow Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Auto-heal PR created successfully**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Auto-heal draft PR created with @github-copilot invoked**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: ${BRANCH_NAME}" >> $GITHUB_STEP_SUMMARY
-          echo "- **PR**: ${PR_URL}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Draft PR**: ${PR_URL} (with @github-copilot invoked)" >> $GITHUB_STEP_SUMMARY
           echo "- **PR Number**: #${PR_NUMBER}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Task File**: \`.github/copilot-tasks/fix-${WORKFLOW_SLUG}.md\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### What happens next?" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. 🤖 **GitHub Copilot agent has been invoked** on the PR to automatically analyze and implement fixes" >> $GITHUB_STEP_SUMMARY
-          echo "2. 👀 Monitor the PR for Copilot's analysis and commits" >> $GITHUB_STEP_SUMMARY
-          echo "3. 👨‍💻 If Copilot cannot fix automatically, you can manually review and fix the issues" >> $GITHUB_STEP_SUMMARY
-          echo "4. ✅ Once fixed and all checks pass, merge the PR to resolve the workflow failure" >> $GITHUB_STEP_SUMMARY
+          echo "1. 🤖 **GitHub Copilot invoked** - @github-copilot mentioned in PR comment" >> $GITHUB_STEP_SUMMARY
+          echo "2. 👀 **Monitor the PR** - Check if Copilot responds and starts working" >> $GITHUB_STEP_SUMMARY
+          echo "3. 🔧 **Manual if needed** - If Copilot doesn't respond, use Copilot Workspace or fix manually" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ **Mark ready & merge** - Once fixed and checks pass, mark PR ready for review and merge" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Failed Workflow Run**: [${RUN_ID}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${RUN_ID})" >> $GITHUB_STEP_SUMMARY
+          echo "### Resources" >> $GITHUB_STEP_SUMMARY
+          echo "- **Draft PR with @github-copilot**: ${PR_URL}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Failed Workflow Run**: [${RUN_ID}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${RUN_ID})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Task File**: \`.github/copilot-tasks/fix-${WORKFLOW_SLUG}.md\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tracking File**: \`.github/auto-heal-tracking/\`" >> $GITHUB_STEP_SUMMARY

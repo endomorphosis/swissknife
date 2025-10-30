@@ -6,8 +6,9 @@ The Auto-Heal Workflow System is an automated self-healing mechanism for GitHub 
 
 1. Detects the failure
 2. Analyzes the error logs and failure details
-3. Creates a new pull request with comprehensive failure information
-4. Provides instructions for GitHub Copilot agents to automatically fix the issues
+3. Creates a structured task file for GitHub Copilot
+4. Creates a new pull request with comprehensive failure information
+5. Provides instructions for GitHub Copilot agents to automatically fix the issues
 
 ## How It Works
 
@@ -35,23 +36,38 @@ When a failure is detected, the system:
    - Error logs from failed jobs
    - Specific error messages
 
+### Task File Creation
+
+The system creates a structured task file in `.github/copilot-tasks/` with:
+
+- **Task Overview**: Type, priority, workflow information
+- **Objective**: Clear description of what needs to be fixed
+- **Context**: Failure summary and background
+- **Error Details**: Extracted error messages and logs
+- **Required Actions**: Step-by-step checklist
+- **Guidelines**: Best practices and constraints
+- **Success Criteria**: How to verify the fix
+- **Resources**: Links to relevant files
+
 ### Auto-Heal PR Creation
 
 The system creates a new branch and pull request with:
 
 - **Comprehensive failure summary**: Workflow name, run ID, branch, conclusion
 - **Error analysis**: Extracted error messages and patterns
+- **Task file reference**: Link to the structured Copilot task file
 - **Instructions for fixing**: Step-by-step guidance for GitHub Copilot agents
 - **Tracking file**: Detailed failure information stored in `.github/auto-heal-tracking/`
 
 ### GitHub Copilot Integration
 
-The PR is specifically formatted to work with GitHub Copilot agents:
+The PR is specifically formatted to work with GitHub Copilot:
 
-1. Clear task description in the PR body
-2. Specific instructions as a PR comment mentioning `@github-copilot`
-3. Checklist of items to fix
-4. Error logs and context for analysis
+1. **Structured task file** in `.github/copilot-tasks/` for Copilot to reference
+2. **Clear task description** in the PR body with task file location
+3. **Specific instructions** as a PR comment for Copilot
+4. **Checklist of items** to fix
+5. **Error logs and context** for analysis
 
 ## Usage
 
@@ -59,24 +75,39 @@ The PR is specifically formatted to work with GitHub Copilot agents:
 
 The auto-heal system runs automatically when any workflow fails. No manual intervention is required for it to trigger.
 
-### With GitHub Copilot Agents
+### With GitHub Copilot Workspace
 
 Once an auto-heal PR is created:
 
-1. Navigate to the PR
-2. GitHub Copilot can analyze the failure details
-3. Copilot can automatically implement fixes based on the error analysis
-4. Review and merge the fixes
+1. **Navigate to the PR** created by Auto-Heal
+2. **Open GitHub Copilot Workspace** for the PR
+3. **Reference the task file** in your Copilot prompt:
+   ```
+   Please review and complete the task in .github/copilot-tasks/fix-[workflow-name].md
+   ```
+4. **Let Copilot analyze** and implement fixes automatically
+5. **Review and merge** the fixes
+
+### With GitHub Copilot in PR Comments
+
+Alternatively, you can use Copilot directly in PR comments:
+
+1. Navigate to the auto-heal PR
+2. Comment with `@github-copilot`
+3. Reference the task file path
+4. Copilot can suggest or implement fixes
+5. Review and commit changes
 
 ### Manual Fixing
 
 Alternatively, developers can:
 
 1. Review the auto-heal PR
-2. Examine the failure details in the PR description
-3. Check the tracking file in `.github/auto-heal-tracking/`
-4. Manually implement fixes
-5. Push commits to the auto-heal branch
+2. **Read the task file** in `.github/copilot-tasks/`
+3. Examine the failure details in the PR description
+4. Check the tracking file in `.github/auto-heal-tracking/`
+5. Manually implement fixes
+6. Push commits to the auto-heal branch
 
 ## Configuration
 
