@@ -10,7 +10,7 @@ Simplify the auto-heal workflow to follow the VS Code pattern:
 ## 📊 Changes Overview
 
 ### Metrics
-- **Lines of code**: 676 → 433 (35% reduction)
+- **Lines of code**: 676 → 436 (35% reduction)
 - **Steps removed**: 3 redundant steps eliminated
 - **Complexity**: Significantly simplified
 - **Maintainability**: Improved with single source of truth
