@@ -2,7 +2,19 @@ name: Auto-Heal Failed Workflows
 
 on:
   workflow_run:
-    workflows: ["*"]  # Monitor all workflows
+    workflows:
+      - "SwissKnife CD (Deployment)"
+      - "SwissKnife CI - Robust"
+      - "SwissKnife CI"
+      - "SwissKnife Docker Integration CI"
+      - "📚 SwissKnife Documentation Automation for Users & Agents"
+      - "Multi-Architecture Build"
+      - "Build and Publish"
+      - "Production Deployment"
+      - "Release Management"
+      - "Self-Hosted ARM64 Build"
+      - "SonarQube Analysis"
+      - "Version Bump"
     types:
       - completed
 
