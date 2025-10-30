@@ -16,10 +16,15 @@ on:
           - 'build_error'
           - 'lint_error'
 
+permissions:
+  contents: read
+
 jobs:
   simulate-failure:
     name: Simulate Workflow Failure
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout repository
@@ -73,6 +78,7 @@ jobs:
   verify-auto-heal-triggered:
     name: Verify Auto-Heal Will Trigger
     runs-on: ubuntu-latest
+    permissions: {}
     if: failure()
     needs: simulate-failure
     
