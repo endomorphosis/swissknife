@@ -1,0 +1,90 @@
+name: Test Auto-Heal System (Example)
+
+# This is an example workflow that can be used to test the auto-heal system
+# DO NOT enable this workflow by default - it's for testing purposes only
+
+on:
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      failure_type:
+        description: 'Type of failure to simulate'
+        required: true
+        type: choice
+        options:
+          - 'syntax_error'
+          - 'test_failure'
+          - 'build_error'
+          - 'lint_error'
+
+permissions:
+  contents: read
+
+jobs:
+  simulate-failure:
+    name: Simulate Workflow Failure
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      
+      - name: Simulate failure based on input
+        run: |
+          echo "Simulating failure type: ${{ github.event.inputs.failure_type }}"
+          
+          case "${{ github.event.inputs.failure_type }}" in
+            syntax_error)
+              echo "Creating a syntax error..."
+              node -e "console.log('This will cause a syntax error')"
+              # This will fail with a syntax error
+              node -e "invalid javascript code here"
+              ;;
+            test_failure)
+              echo "Simulating test failure..."
+              echo "FAIL: Test suite failed"
+              exit 1
+              ;;
+            build_error)
+              echo "Simulating build error..."
+              echo "ERROR: Build compilation failed"
+              echo "src/components/App.tsx:42:5 - error TS2322: Type 'string' is not assignable to type 'number'"
+              exit 1
+              ;;
+            lint_error)
+              echo "Simulating linting error..."
+              echo "ESLint found 5 errors:"
+              echo "  error  Missing semicolon  semi"
+              echo "  error  Unexpected console statement  no-console"
+              exit 1
+              ;;
+            *)
+              echo "Unknown failure type"
+              exit 1
+              ;;
+          esac
+      
+      - name: This step should not run
+        if: success()
+        run: echo "This step should not be reached if failure simulation worked"
+
+  # This job will only run if the previous job fails
+  verify-auto-heal-triggered:
+    name: Verify Auto-Heal Will Trigger
+    runs-on: ubuntu-latest
+    permissions: {}
+    if: failure()
+    needs: simulate-failure
+    
+    steps:
+      - name: Check auto-heal workflow
+        run: |
+          echo "The simulate-failure job failed as expected"
+          echo "The auto-heal workflow should now be triggered"
+          echo "Check the Actions tab for a running 'Auto-Heal Failed Workflows' workflow"
