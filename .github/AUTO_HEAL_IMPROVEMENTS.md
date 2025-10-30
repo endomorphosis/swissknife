@@ -122,7 +122,7 @@ A structured task file has been created for GitHub Copilot to work on this fix.
 
 2. **Reference the task file:**
    ```
-   Please review and complete the task in .github/copilot-tasks/fix-[workflow-name].md
+   Please review and complete the task in .github/copilot-tasks/fix-[workflow-slug].md
    ```
 
 3. **Let Copilot work:**
@@ -139,7 +139,7 @@ A structured task file has been created for GitHub Copilot to work on this fix.
 
 1. **Open the task file:**
    ```bash
-   cat .github/copilot-tasks/fix-[workflow-name].md
+   cat .github/copilot-tasks/fix-[workflow-slug].md
    ```
 
 2. **Review the failure analysis:**
@@ -174,7 +174,14 @@ Analyzed all workflows in `.github/workflows/`:
 
 ### ⚠️ Some Workflows Missing Explicit Permissions
 
-Workflows without explicit `permissions:` section:
+**Note:** This list was generated at the time of analysis. Verify current state with:
+```bash
+for workflow in .github/workflows/*.yml; do 
+  grep -q "permissions:" "$workflow" || echo "Missing: $(basename $workflow)"
+done
+```
+
+Workflows without explicit `permissions:` section (as of analysis):
 - `cd.yml`
 - `ci-robust.yml`
 - `ci.yml`
@@ -365,5 +372,5 @@ ls -la .github/auto-heal-tracking/
 
 ---
 
-**Last Updated:** 2025-10-30  
+**Last Updated:** Version 2.0 release  
 **Version:** 2.0 (with Copilot task file integration)
