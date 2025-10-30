@@ -15,6 +15,7 @@ on:
       - "Self-Hosted ARM64 Build"
       - "SonarQube Analysis"
       - "Version Bump"
+      - "Test Auto-Heal System (Example)"
     types:
       - completed
 
