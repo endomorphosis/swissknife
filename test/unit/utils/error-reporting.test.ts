@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { GitHubIssueReporter } from '../src/utils/error-reporting/github-issue-reporter.js';
-import { JavaScriptErrorHandler } from '../src/utils/error-reporting/javascript-error-handler.js';
+import { GitHubIssueReporter } from '../src/utils/error_reporting/github-issue-reporter.js';
+import { JavaScriptErrorHandler } from '../src/utils/error_reporting/javascript-error-handler.js';
 
 describe('GitHubIssueReporter', () => {
   let reporter: GitHubIssueReporter;

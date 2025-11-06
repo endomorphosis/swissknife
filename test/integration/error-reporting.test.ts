@@ -4,9 +4,9 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { GitHubIssueReporter } from '../../src/utils/error-reporting/github-issue-reporter.js';
-import { JavaScriptErrorHandler } from '../../src/utils/error-reporting/javascript-error-handler.js';
-import { ErrorReportingSystem } from '../../src/utils/error-reporting/index.js';
+import { GitHubIssueReporter } from '../../src/utils/error_reporting/github-issue-reporter.js';
+import { JavaScriptErrorHandler } from '../../src/utils/error_reporting/javascript-error-handler.js';
+import { ErrorReportingSystem } from '../../src/utils/error_reporting/index.js';
 
 describe('Error Reporting Integration Tests', () => {
   describe('GitHubIssueReporter Integration', () => {

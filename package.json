@@ -149,7 +149,8 @@
     "docker:build": "docker build -t swissknife:latest -f Dockerfile .",
     "docker:run": "docker run -p 3001:3001 swissknife:latest",
     "docker:push": "docker tag swissknife:latest hallucinate-llc/swissknife:latest && docker push hallucinate-llc/swissknife:latest",
-    "benchmark": "node benchmark/run.js"
+    "benchmark": "node benchmark/run.js",
+    "demo:error-reporting": "npx tsx examples/demo-error-reporting.js"
   },
   "optionalDependencies": {
     "@img/sharp-darwin-arm64": "^0.33.5",

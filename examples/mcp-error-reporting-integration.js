@@ -5,12 +5,12 @@
  * Add this code to your MCP server initialization to enable automatic error reporting.
  */
 
-import { initializeErrorReporting } from '../src/utils/error-reporting/index.js';
+import { initializeErrorReporting } from '../src/utils/error_reporting/index.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
-dotenv.config({ path: '.env.error-reporting' });
+dotenv.config({ path: '.env.error_reporting' });
 
 /**
  * Initialize error reporting for MCP server
@@ -76,12 +76,12 @@ export async function reportMCPError(error, context = {}) {
  * Example usage in MCP server code:
  * 
  * // At server startup:
- * import { initializeMCPErrorReporting } from './examples/mcp-error-reporting-integration.js';
+ * import { initializeMCPErrorReporting } from './examples/mcp-error_reporting-integration.js';
  * 
  * const errorReporting = initializeMCPErrorReporting();
  * 
  * // In error handlers:
- * import { reportMCPError } from './examples/mcp-error-reporting-integration.js';
+ * import { reportMCPError } from './examples/mcp-error_reporting-integration.js';
  * 
  * try {
  *   // MCP server operation
