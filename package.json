@@ -169,6 +169,7 @@
     "@inkjs/ui": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "@multiformats/multiaddr": "^12.1.14",
+    "@octokit/rest": "^20.0.2",
     "@sentry/node": "^9.3.0",
     "@statsig/js-client": "^3.12.2",
     "@types/lodash-es": "^4.17.12",
