@@ -320,6 +320,7 @@ swissknife/
 **Complete professional documentation with collaboration guides:**
 
 - **[MULTI_ARCH_BUILD.md](./docs/MULTI_ARCH_BUILD.md)** - ✅ **NEW**: Comprehensive multi-architecture build guide (x86_64, ARM64)
+- **[ERROR_REPORTING_SETUP.md](./docs/ERROR_REPORTING_SETUP.md)** - ✅ **NEW**: Automated error reporting system setup and configuration
 
 - **[COLLABORATION_IMPLEMENTATION_PLAN.md](./COLLABORATION_IMPLEMENTATION_PLAN.md)** - ✅ Comprehensive collaborative features roadmap and architecture
 - **[UNIFIED_INTEGRATION_PLAN.md](./UNIFIED_INTEGRATION_PLAN.md)** - ✅ Completed unified integration roadmap
@@ -445,12 +446,37 @@ npm run test:neural-networks  # Test collaborative neural network design
 
 ---
 
+## 🔍 Error Reporting & Monitoring
+
+SwissKnife includes an **automated error reporting system** that converts runtime errors into GitHub issues:
+
+✅ **Automatic Error Capture** - Captures errors from JavaScript, Python, and browser environments  
+✅ **GitHub Integration** - Automatically creates detailed GitHub issues from errors  
+✅ **Smart Deduplication** - Prevents duplicate issues for the same error  
+✅ **Rich Context** - Includes stack traces, environment info, and custom context  
+✅ **Multi-Runtime Support** - Works in Node.js, browser, Python, and Docker containers  
+
+**Quick Start:**
+
+```bash
+# Enable error reporting
+export ERROR_REPORTING_ENABLED=true
+export GITHUB_TOKEN=your_github_token_here
+
+# Errors are now automatically reported to GitHub
+```
+
+See [Error Reporting Setup Guide](./docs/ERROR_REPORTING_SETUP.md) for detailed configuration.
+
+---
+
 ## 🔒 Privacy & Security
 
 - **🏠 Local Processing**: SwissKnife primarily processes data locally  
 - **🚫 No Telemetry**: No telemetry collection by default  
 - **🔐 Secure Credentials**: API keys stored securely using OS keychain or environment variables  
 - **🌐 External APIs**: Interaction with AI providers subject to their privacy policies  
+- **🐛 Error Reporting**: Optional automated error reporting - disabled by default  
 
 ## 📜 License
 

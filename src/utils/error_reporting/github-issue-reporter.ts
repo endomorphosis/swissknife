@@ -1,0 +1,300 @@
+/**
+ * GitHub Issue Reporter
+ * Automatically creates GitHub issues from runtime errors
+ */
+
+import { Octokit } from '@octokit/rest';
+
+export interface ErrorReport {
+  title: string;
+  error: Error;
+  context?: {
+    component?: string;
+    runtime?: 'javascript' | 'python' | 'docker' | 'browser';
+    userAgent?: string;
+    timestamp?: string;
+    stackTrace?: string;
+    [key: string]: any;
+  };
+  severity?: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface GitHubIssueReporterConfig {
+  enabled: boolean;
+  githubToken?: string;
+  owner: string;
+  repo: string;
+  labels?: string[];
+  assignees?: string[];
+  maxIssuesPerHour?: number;
+  deduplicateWindow?: number; // milliseconds
+}
+
+export class GitHubIssueReporter {
+  private config: GitHubIssueReporterConfig;
+  private octokit?: Octokit;
+  private recentErrors: Map<string, number> = new Map();
+  private issueCreationCount: { count: number; resetTime: number } = {
+    count: 0,
+    resetTime: Date.now() + 3600000, // 1 hour from now
+  };
+
+  constructor(config: GitHubIssueReporterConfig) {
+    this.config = {
+      maxIssuesPerHour: 10,
+      deduplicateWindow: 3600000, // 1 hour
+      ...config,
+    };
+
+    if (this.config.enabled && this.config.githubToken) {
+      this.octokit = new Octokit({
+        auth: this.config.githubToken,
+      });
+    }
+  }
+
+  /**
+   * Report an error and create a GitHub issue
+   */
+  async reportError(report: ErrorReport): Promise<boolean> {
+    if (!this.config.enabled) {
+      console.log('[ErrorReporter] Error reporting is disabled');
+      return false;
+    }
+
+    if (!this.octokit) {
+      console.warn('[ErrorReporter] GitHub token not configured');
+      return false;
+    }
+
+    // Check rate limiting
+    if (!this.checkRateLimit()) {
+      console.warn('[ErrorReporter] Rate limit exceeded');
+      return false;
+    }
+
+    // Check for duplicate errors
+    if (this.isDuplicate(report)) {
+      console.log('[ErrorReporter] Duplicate error, skipping');
+      return false;
+    }
+
+    try {
+      // Create GitHub issue
+      const issue = await this.createIssue(report);
+      console.log(`[ErrorReporter] Created issue #${issue.data.number}`);
+
+      // Track this error
+      this.trackError(report);
+
+      return true;
+    } catch (error) {
+      console.error('[ErrorReporter] Failed to create issue:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Create a GitHub issue from error report
+   */
+  private async createIssue(report: ErrorReport) {
+    const title = this.formatIssueTitle(report);
+    const body = this.formatIssueBody(report);
+    const labels = this.getIssueLabels(report);
+
+    return this.octokit!.issues.create({
+      owner: this.config.owner,
+      repo: this.config.repo,
+      title,
+      body,
+      labels,
+      assignees: this.config.assignees,
+    });
+  }
+
+  /**
+   * Format issue title
+   */
+  private formatIssueTitle(report: ErrorReport): string {
+    const prefix = report.severity ? `[${report.severity.toUpperCase()}]` : '[ERROR]';
+    const runtime = report.context?.runtime ? `[${report.context.runtime}]` : '';
+    const component = report.context?.component ? `${report.context.component}: ` : '';
+
+    return `${prefix}${runtime} ${component}${report.title}`;
+  }
+
+  /**
+   * Format issue body with error details
+   */
+  private formatIssueBody(report: ErrorReport): string {
+    const sections: string[] = [];
+
+    // Error description
+    sections.push('## Error Description');
+    sections.push(report.error.message);
+    sections.push('');
+
+    // Error details
+    sections.push('## Error Details');
+    sections.push('```');
+    sections.push(`Name: ${report.error.name}`);
+    sections.push(`Message: ${report.error.message}`);
+    if (report.context?.timestamp) {
+      sections.push(`Timestamp: ${report.context.timestamp}`);
+    }
+    if (report.context?.component) {
+      sections.push(`Component: ${report.context.component}`);
+    }
+    if (report.context?.runtime) {
+      sections.push(`Runtime: ${report.context.runtime}`);
+    }
+    sections.push('```');
+    sections.push('');
+
+    // Stack trace
+    if (report.error.stack || report.context?.stackTrace) {
+      sections.push('## Stack Trace');
+      sections.push('```');
+      sections.push(report.context?.stackTrace || report.error.stack || 'No stack trace available');
+      sections.push('```');
+      sections.push('');
+    }
+
+    // Additional context
+    if (report.context) {
+      const additionalContext = Object.entries(report.context)
+        .filter(([key]) => !['component', 'runtime', 'timestamp', 'stackTrace'].includes(key))
+        .map(([key, value]) => `- **${key}**: ${JSON.stringify(value)}`)
+        .join('\n');
+
+      if (additionalContext) {
+        sections.push('## Additional Context');
+        sections.push(additionalContext);
+        sections.push('');
+      }
+    }
+
+    // Metadata
+    sections.push('---');
+    sections.push('*This issue was automatically generated by the SwissKnife error reporting system.*');
+
+    return sections.join('\n');
+  }
+
+  /**
+   * Get appropriate labels for the issue
+   */
+  private getIssueLabels(report: ErrorReport): string[] {
+    const labels = [...(this.config.labels || [])];
+
+    // Add severity label
+    if (report.severity) {
+      labels.push(`severity:${report.severity}`);
+    }
+
+    // Add runtime label
+    if (report.context?.runtime) {
+      labels.push(`runtime:${report.context.runtime}`);
+    }
+
+    // Add component label
+    if (report.context?.component) {
+      labels.push(`component:${report.context.component}`);
+    }
+
+    // Always add auto-generated label
+    labels.push('auto-generated', 'bug');
+
+    return labels;
+  }
+
+  /**
+   * Check if error is duplicate
+   */
+  private isDuplicate(report: ErrorReport): boolean {
+    const errorKey = this.getErrorKey(report);
+    const lastReported = this.recentErrors.get(errorKey);
+
+    if (!lastReported) {
+      return false;
+    }
+
+    const timeSinceLastReport = Date.now() - lastReported;
+    return timeSinceLastReport < this.config.deduplicateWindow!;
+  }
+
+  /**
+   * Track error to prevent duplicates
+   */
+  private trackError(report: ErrorReport): void {
+    const errorKey = this.getErrorKey(report);
+    this.recentErrors.set(errorKey, Date.now());
+
+    // Clean up old entries
+    this.cleanupOldErrors();
+  }
+
+  /**
+   * Generate unique key for error
+   */
+  private getErrorKey(report: ErrorReport): string {
+    const parts = [
+      report.error.name,
+      report.error.message,
+      report.context?.component || 'unknown',
+      report.context?.runtime || 'unknown',
+    ];
+
+    return parts.join('::');
+  }
+
+  /**
+   * Clean up old error tracking entries
+   */
+  private cleanupOldErrors(): void {
+    const now = Date.now();
+    const cutoff = now - this.config.deduplicateWindow!;
+
+    for (const [key, timestamp] of this.recentErrors.entries()) {
+      if (timestamp < cutoff) {
+        this.recentErrors.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Check rate limiting
+   */
+  private checkRateLimit(): boolean {
+    const now = Date.now();
+
+    // Reset counter if time window has passed
+    if (now > this.issueCreationCount.resetTime) {
+      this.issueCreationCount.count = 0;
+      this.issueCreationCount.resetTime = now + 3600000;
+    }
+
+    // Check if we've exceeded the limit
+    if (this.issueCreationCount.count >= this.config.maxIssuesPerHour!) {
+      return false;
+    }
+
+    // Increment counter
+    this.issueCreationCount.count++;
+    return true;
+  }
+
+  /**
+   * Check if reporter is enabled and configured
+   */
+  isEnabled(): boolean {
+    return this.config.enabled && !!this.octokit;
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): GitHubIssueReporterConfig {
+    return { ...this.config, githubToken: this.config.githubToken ? '***' : undefined };
+  }
+}

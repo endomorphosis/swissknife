@@ -160,6 +160,13 @@ web_modules/
 .env.test.local
 .env.production.local
 .env.local
+.env.error-reporting
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
 
 # parcel-bundler cache (https://parceljs.org/)
 
