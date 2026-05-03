@@ -1,47 +1,5 @@
 [
   {
-    "timestamp": "2025-09-15T16:17:31.229Z",
-    "quality": {
-      "overallScore": 85,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 62,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 156,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 19,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
     "timestamp": "2025-09-16T06:47:44.867Z",
     "quality": {
       "overallScore": 85,
@@ -2059,6 +2017,48 @@
   },
   {
     "timestamp": "2026-04-26T03:08:43.270Z",
+    "quality": {
+      "overallScore": 85,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 62,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 19,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-05-03T03:09:25.870Z",
     "quality": {
       "overallScore": 85,
       "completeness": 82,
