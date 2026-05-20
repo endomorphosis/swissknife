@@ -21,8 +21,10 @@ import { EventEmitter } from 'events';
 // ---------------------------------------------------------------------------
 
 export const MCP_P2P_PROTOCOL_ID = '/mcp+p2p/1.0.0';
-/** Default maximum frame size: 4 MiB */
-export const DEFAULT_MAX_FRAME_BYTES = 4 * 1024 * 1024;
+/** Default maximum frame size: 16 MiB (MCP++ Profile E reference default). */
+export const DEFAULT_MAX_FRAME_BYTES = 16 * 1024 * 1024;
+/** Minimum allowed maximum frame size: 1 MiB. */
+export const MIN_MAX_FRAME_BYTES = 1024 * 1024;
 /** Fixed-window rate limiter: max messages per window */
 export const RATE_LIMIT_MAX_MSGS = 200;
 /** Fixed-window rate limiter: window duration (ms) */
@@ -137,6 +139,11 @@ export class MCPp2pSession extends EventEmitter {
     super();
     this.stream = stream;
     this.maxFrameBytes = options.maxFrameBytes ?? DEFAULT_MAX_FRAME_BYTES;
+    if (this.maxFrameBytes < MIN_MAX_FRAME_BYTES) {
+      throw new Error(
+        `maxFrameBytes must be >= ${MIN_MAX_FRAME_BYTES}, got ${this.maxFrameBytes}`,
+      );
+    }
     this.rateLimiter = new FixedWindowRateLimiter(
       options.rateLimitMaxMsgs ?? RATE_LIMIT_MAX_MSGS,
       options.rateLimitWindowMs ?? RATE_LIMIT_WINDOW_MS,

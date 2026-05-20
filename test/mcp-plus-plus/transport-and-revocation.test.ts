@@ -281,6 +281,28 @@ describe('UCANRevocationRegistry', () => {
     expect(registry.isTokenRevoked(token)).toBe(true);
   });
 
+  it('revokeTokenChain() revokes a token and its proof chain', () => {
+    const keystore = new DIDKeystore();
+    const auth = new UCANAuth(keystore, registry);
+    const rootIssuer = keystore.generateKey();
+    const midIssuer = keystore.generateKey();
+    const leafAudience = keystore.generateKey();
+
+    const root = auth.issueToken(rootIssuer, midIssuer, [{ rsc: '*', cap: '*' }]);
+    const leaf = auth.issueToken(
+      midIssuer,
+      leafAudience,
+      [{ rsc: 'storage/*', cap: 'WRITE' }],
+      3600,
+      [root],
+    );
+
+    const count = registry.revokeTokenChain(leaf, 'did:key:zRevoker', 'chain compromised');
+    expect(count).toBe(2);
+    expect(registry.isTokenRevoked(leaf)).toBe(true);
+    expect(registry.isTokenRevoked(root)).toBe(true);
+  });
+
   it('getRevocation() returns entry with metadata', () => {
     registry.revoke('sha256:' + 'b'.repeat(64), 'did:key:z1', 'test reason');
     const entry = registry.getRevocation('sha256:' + 'b'.repeat(64))!;

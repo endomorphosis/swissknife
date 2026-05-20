@@ -4,7 +4,12 @@
  * principle that peer identity ≠ execution authority.
  */
 
-import { MCPp2pSession, P2PStream, DEFAULT_MAX_FRAME_BYTES } from '../../src/services/mcp-p2p-session';
+import {
+  MCPp2pSession,
+  P2PStream,
+  DEFAULT_MAX_FRAME_BYTES,
+  MIN_MAX_FRAME_BYTES,
+} from '../../src/services/mcp-p2p-session';
 
 // ---------------------------------------------------------------------------
 // Mock P2PStream
@@ -76,6 +81,20 @@ function makeInitResponse(): Buffer {
 // ---------------------------------------------------------------------------
 
 describe('MCPp2pSession framing (MCP++ §5.1)', () => {
+  it('uses 16 MiB as the default max frame size', () => {
+    expect(DEFAULT_MAX_FRAME_BYTES).toBe(16 * 1024 * 1024);
+  });
+
+  it('rejects maxFrameBytes below the minimum guardrail', () => {
+    const stream = makeMockStream();
+    expect(
+      () =>
+        new MCPp2pSession(stream, {
+          maxFrameBytes: MIN_MAX_FRAME_BYTES - 1,
+        }),
+    ).toThrow(/maxFrameBytes must be >=/i);
+  });
+
   it('writes a u32 big-endian length-prefixed frame', async () => {
     const stream = makeMockStream({ inbound: [makeInitResponse()] });
     const session = new MCPp2pSession(stream);

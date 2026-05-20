@@ -416,6 +416,47 @@ export class UCANRevocationRegistry {
     return this.revoke(cid, revokedBy, reason);
   }
 
+  /**
+   * Revoke a UCAN token and every token in its proof chain.
+   *
+   * Alignment note: mirrors MCP++ delegation-chain revocation behavior used by
+   * reference implementations where revocation can be applied transitively over
+   * linked proofs.
+   *
+   * @returns number of newly-revoked token CIDs.
+   */
+  revokeTokenChain(rawToken: string, revokedBy?: string, reason?: string): number {
+    const stack: string[] = [rawToken];
+    const seen = new Set<string>();
+    let added = 0;
+
+    while (stack.length > 0) {
+      const token = stack.pop()!;
+      if (seen.has(token)) continue;
+      seen.add(token);
+
+      const cid = UCANAuth.computeCID(Buffer.from(token, 'utf8'));
+      if (!this.revocations.has(cid)) {
+        this.revoke(cid, revokedBy, reason);
+        added++;
+      }
+
+      // Best-effort chain traversal: malformed proofs are ignored.
+      try {
+        const parsed = UCANAuth.decode(token);
+        for (const proof of parsed.payload.prf) {
+          if (typeof proof === 'string' && proof.length > 0) {
+            stack.push(proof);
+          }
+        }
+      } catch {
+        // ignore decode failures while revoking by raw-token CID
+      }
+    }
+
+    return added;
+  }
+
   /** Returns `true` if `tokenCid` has been revoked. */
   isRevoked(tokenCid: string): boolean {
     return this.revocations.has(tokenCid);
