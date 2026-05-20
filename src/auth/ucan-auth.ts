@@ -57,9 +57,12 @@ export class UCANAuth {
   private keystore: DIDKeystore;
   /** Cache of successfully validated tokens (keyed by token string) */
   private validatedCache: Map<string, ParsedUCAN> = new Map();
+  /** Optional revocation registry; defaults to the shared singleton. */
+  private revocationRegistry: UCANRevocationRegistry;
 
-  constructor(keystore?: DIDKeystore) {
+  constructor(keystore?: DIDKeystore, revocationRegistry?: UCANRevocationRegistry) {
     this.keystore = keystore ?? DIDKeystore.getInstance();
+    this.revocationRegistry = revocationRegistry ?? UCANRevocationRegistry.getInstance();
   }
 
   async initialize(): Promise<void> {
@@ -162,11 +165,15 @@ export class UCANAuth {
   // ---------------------------------------------------------------------------
 
   /**
-   * Validate a UCAN token: structure → expiry/nbf → Ed25519 signature → proof chain.
+   * Validate a UCAN token: revocation → structure → expiry/nbf → Ed25519 signature → proof chain.
    * Returns true only when all checks pass.
    */
   async validateToken(token: string): Promise<boolean> {
-    // Fast path: already validated in this session
+    // Revocation check MUST come before the validation cache so that a token
+    // that was previously validated but later revoked is correctly rejected.
+    if (this.revocationRegistry.isTokenRevoked(token)) return false;
+
+    // Fast path: already validated in this session (and not revoked above)
     if (this.validatedCache.has(token)) return true;
 
     let parsed: ParsedUCAN;
@@ -343,4 +350,112 @@ function buildSpkiFromRawEd25519(rawPubKey: Uint8Array): Buffer {
   return Buffer.concat([Buffer.from([0x30, inner.length]), inner]);
 }
 
-// TODO: Add methods for UCAN delegation revocation tracking.
+// ---------------------------------------------------------------------------
+// UCAN Revocation Registry (MCP++ Profile C §7)
+// ---------------------------------------------------------------------------
+
+/**
+ * An entry in the revocation registry.
+ */
+export interface RevocationEntry {
+  /** CID of the revoked UCAN token (sha256: prefixed hex of the raw token bytes) */
+  tokenCid: string;
+  /** ISO-8601 timestamp of when the revocation was recorded */
+  revokedAt: string;
+  /** Optional free-form reason for revocation */
+  reason?: string;
+  /** DID of the principal that issued the revocation */
+  revokedBy?: string;
+}
+
+/**
+ * In-process UCAN delegation revocation registry.
+ *
+ * Per MCP++ Profile C §7, any issuer or their delegate can publish a
+ * revocation for a token CID.  Once recorded, any subsequent call to
+ * `UCANAuth.validateToken()` (or `can()`) that encounters the revoked CID
+ * will immediately return `false`.
+ *
+ * Persistence strategy: The registry is in-memory by default.  Persistent
+ * stores (database, IPFS pinset, etc.) can be plugged in by sub-classing or
+ * by subscribing to the `onRevocation` callback.
+ */
+export class UCANRevocationRegistry {
+  private readonly revocations: Map<string, RevocationEntry> = new Map();
+  private onRevocation?: (entry: RevocationEntry) => void;
+
+  constructor(opts?: { onRevocation?: (entry: RevocationEntry) => void }) {
+    this.onRevocation = opts?.onRevocation;
+  }
+
+  /**
+   * Record a revocation for `tokenCid`.
+   *
+   * @param tokenCid   `sha256:<hex>` CID of the token to revoke.
+   * @param revokedBy  Optional DID of the revoker.
+   * @param reason     Optional human-readable revocation reason.
+   */
+  revoke(tokenCid: string, revokedBy?: string, reason?: string): RevocationEntry {
+    const entry: RevocationEntry = {
+      tokenCid,
+      revokedAt: new Date().toISOString(),
+      revokedBy,
+      reason,
+    };
+    this.revocations.set(tokenCid, entry);
+    this.onRevocation?.(entry);
+    return entry;
+  }
+
+  /**
+   * Revoke a token by its raw encoded string.
+   * Computes the CID internally.
+   */
+  revokeToken(rawToken: string, revokedBy?: string, reason?: string): RevocationEntry {
+    const cid = UCANAuth.computeCID(Buffer.from(rawToken, 'utf8'));
+    return this.revoke(cid, revokedBy, reason);
+  }
+
+  /** Returns `true` if `tokenCid` has been revoked. */
+  isRevoked(tokenCid: string): boolean {
+    return this.revocations.has(tokenCid);
+  }
+
+  /** Returns `true` if the raw token string has been revoked. */
+  isTokenRevoked(rawToken: string): boolean {
+    const cid = UCANAuth.computeCID(Buffer.from(rawToken, 'utf8'));
+    return this.isRevoked(cid);
+  }
+
+  /** Return the revocation entry for `tokenCid`, or `undefined` if not revoked. */
+  getRevocation(tokenCid: string): RevocationEntry | undefined {
+    return this.revocations.get(tokenCid);
+  }
+
+  /** List all current revocations. */
+  listRevocations(): RevocationEntry[] {
+    return Array.from(this.revocations.values());
+  }
+
+  /** Remove a revocation (un-revoke). Use with care; prefer immutable append-only records in production. */
+  removeRevocation(tokenCid: string): boolean {
+    return this.revocations.delete(tokenCid);
+  }
+
+  /** Purge all revocations (e.g., for testing). */
+  clear(): void {
+    this.revocations.clear();
+  }
+
+  // ── Singleton ──────────────────────────────────────────────────────────────
+
+  private static _instance: UCANRevocationRegistry | null = null;
+
+  /** Returns the process-wide shared revocation registry. */
+  static getInstance(): UCANRevocationRegistry {
+    if (!UCANRevocationRegistry._instance) {
+      UCANRevocationRegistry._instance = new UCANRevocationRegistry();
+    }
+    return UCANRevocationRegistry._instance;
+  }
+}
