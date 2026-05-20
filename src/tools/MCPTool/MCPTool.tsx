@@ -15,6 +15,11 @@ export type MCPToolType = Tool & {
   renderToolUseRejectedMessage: () => React.ReactNode;
   renderToolResultMessage: (output: any, options: { verbose: boolean }) => React.ReactNode;
   renderResultForAssistant: (content: any) => any;
+  /**
+   * MCP++ Profile A: CID of this tool's registered Interface Descriptor.
+   * Present only when `mcpPlusPlus.enableIDL` is enabled; `undefined` otherwise.
+   */
+  interface_cid?: string;
 };
 
 export const MCPTool: MCPToolType = {

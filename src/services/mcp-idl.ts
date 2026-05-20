@@ -267,4 +267,9 @@ export class InterfaceRepository {
     }
     return InterfaceRepository._instance;
   }
+
+  /** Alias for `getInstance()` — used by consumers that prefer a more explicit name. */
+  static getSharedInstance(): InterfaceRepository {
+    return InterfaceRepository.getInstance();
+  }
 }

@@ -38,6 +38,45 @@ import { logMCPError } from '../utils/log.js'
 import { Command } from '../commands.js'
 import { logEvent } from '../services/statsig.js'
 import { PRODUCT_COMMAND } from '../constants/product.js'
+import { getGlobalConfig } from '../utils/config.js'
+
+// Lazily-imported MCP++ modules — only loaded when the matching feature flag
+// is enabled, so users without the optional deps don't hit import errors.
+async function getMcpPlusPlusEnvelope() {
+  return import('./mcp-envelope.js') as Promise<typeof import('./mcp-envelope.js')>
+}
+async function getMcpPlusPlusEventDAG() {
+  return import('./event-dag.js') as Promise<typeof import('./event-dag.js')>
+}
+async function getMcpPlusPlusIDL() {
+  return import('./mcp-idl.js') as Promise<typeof import('./mcp-idl.js')>
+}
+
+/**
+ * Module-level EventDAG singleton — shared across all tool calls within a
+ * process so that causal ordering is maintained across the session.
+ */
+let _eventDAG: import('./event-dag.js').EventDAG | null = null
+async function getEventDAG(): Promise<import('./event-dag.js').EventDAG> {
+  if (!_eventDAG) {
+    const { EventDAG } = await getMcpPlusPlusEventDAG()
+    _eventDAG = new EventDAG()
+  }
+  return _eventDAG
+}
+
+/**
+ * Module-level InterfaceRepository singleton for IDL descriptor caching.
+ * Re-uses the shared instance so the registry and the client share the same store.
+ */
+let _idlRepo: import('./mcp-idl.js').InterfaceRepository | null = null
+async function getIDLRepo(): Promise<import('./mcp-idl.js').InterfaceRepository> {
+  if (!_idlRepo) {
+    const { InterfaceRepository } = await getMcpPlusPlusIDL()
+    _idlRepo = InterfaceRepository.getSharedInstance()
+  }
+  return _idlRepo
+}
 
 type McpName = string
 
@@ -407,31 +446,75 @@ export const getMCPTools = memoize(async (): Promise<Tool[]> => {
     'tools',
   )
 
+  const cfg = getGlobalConfig().mcpPlusPlus ?? {}
+
+  // Pre-load IDL repo once if needed
+  const idlRepo = cfg.enableIDL ? await getIDLRepo() : null
+  const { computeInterfaceCID } = cfg.enableIDL
+    ? await getMcpPlusPlusIDL()
+    : { computeInterfaceCID: undefined }
+
   // Properly integrate MCP tool with the base MCPTool
   return toolsList.flatMap(({ client, result: { tools } }) =>
     tools.map(
-      (tool): Tool => ({
-        ...MCPTool,
-        name: 'mcp__' + client.name + '__' + tool.name,
-        async description() {
-          return tool.description ?? ''
-        },
-        async prompt() {
-          return tool.description ?? ''
-        },
-        inputJSONSchema: tool.inputSchema as Tool['inputJSONSchema'],
-        async *call(args: Record<string, unknown>) {
-          const data = await callMCPTool({ client, tool: tool.name, args })
-          yield {
-            type: 'result' as const,
-            data,
-            resultForAssistant: data,
+      (tool): Tool => {
+        // Compute and register the interface_cid when IDL is enabled
+        let interfaceCid: string | undefined
+        if (idlRepo && computeInterfaceCID) {
+          try {
+            const descriptor = {
+              name: tool.name,
+              namespace: client.name,
+              version: '1.0.0',
+              methods: [
+                {
+                  name: tool.name,
+                  inputSchema: tool.inputSchema as Record<string, unknown>,
+                  description: tool.description,
+                },
+              ],
+              errors: [],
+              requires: [],
+              compatibility: {},
+              semanticTags: [],
+            }
+            interfaceCid = computeInterfaceCID(descriptor)
+            idlRepo.register(descriptor)
+          } catch {
+            // Non-fatal: IDL registration is best-effort
           }
-        },
-        userFacingName() {
-          return `${client.name}:${tool.name} (MCP)`
-        },
-      }),
+        }
+
+        return {
+          ...MCPTool,
+          name: 'mcp__' + client.name + '__' + tool.name,
+          // MCP++ Profile A: expose interface_cid so the UI can surface compat info
+          ...(interfaceCid !== undefined ? { interface_cid: interfaceCid } : {}),
+          async description() {
+            return tool.description ?? ''
+          },
+          async prompt() {
+            return tool.description ?? ''
+          },
+          inputJSONSchema: tool.inputSchema as Tool['inputJSONSchema'],
+          async *call(args: Record<string, unknown>) {
+            const data = await callMCPTool({
+              client,
+              tool: tool.name,
+              args,
+              interfaceCid,
+            })
+            yield {
+              type: 'result' as const,
+              data,
+              resultForAssistant: data,
+            }
+          },
+          userFacingName() {
+            return `${client.name}:${tool.name} (MCP)`
+          },
+        }
+      },
     ),
   )
 })
@@ -440,11 +523,34 @@ async function callMCPTool({
   client: { client, name },
   tool,
   args,
+  interfaceCid,
 }: {
   client: ConnectedClient
   tool: string
   args: Record<string, unknown>
+  interfaceCid?: string
 }): Promise<ToolResultBlockParam['content']> {
+  const cfg = getGlobalConfig().mcpPlusPlus ?? {}
+
+  // ── MCP++ Phase 4: Build CID-native execution envelope ──────────────────
+  let envelope: import('./mcp-envelope.js').ExecutionEnvelope | undefined
+  if (cfg.enableCIDEnvelopes && interfaceCid) {
+    try {
+      const { buildEnvelope } = await getMcpPlusPlusEnvelope()
+      const dag = cfg.enableEventDAG ? await getEventDAG() : null
+      // getTips() returns StoredEventNode[]; extract just the CID strings for causal parents
+      const tipCids = dag ? dag.getTips().map((n: { cid: string }) => n.cid) : []
+      envelope = buildEnvelope(
+        { toolName: tool, params: args },
+        interfaceCid,
+        undefined,   // ucanProofToken — set by caller if UCAN is enabled
+        tipCids,     // parent CIDs from current DAG frontier
+      )
+    } catch {
+      // Non-fatal: envelope building is best-effort
+    }
+  }
+
   const result = await client.callTool(
     {
       name: tool,
@@ -457,6 +563,49 @@ async function callMCPTool({
     const errorMessage = `Error calling tool ${tool}: ${result.error || 'Unknown error'}`
     logMCPError(name, errorMessage)
     throw Error(errorMessage)
+  }
+
+  // ── MCP++ Phase 4: Build receipt & Phase 5: Record event in DAG ─────────
+  if (cfg.enableCIDEnvelopes && envelope) {
+    try {
+      const { buildReceipt } = await getMcpPlusPlusEnvelope()
+      const outputBytes = Buffer.from(JSON.stringify(result), 'utf8')
+      const receipt = buildReceipt(envelope, outputBytes)
+
+      // Phase 5 — append event to the DAG
+      if (cfg.enableEventDAG) {
+        const dag = await getEventDAG()
+        dag.appendEvent({
+          intent_cid: envelope.intent_cid,
+          interface_cid: envelope.interface_cid,
+          proofs: envelope.proof_cid ? [envelope.proof_cid] : [],
+          decision_outcome: 'PERMIT',
+          outputs: [receipt.output_cid],
+          parents: envelope.parents,
+          timestamp: new Date().toISOString(),
+          // envelope_cid is the one computed by buildReceipt (stable, canonical)
+          envelope_cid: receipt.envelope_cid,
+        })
+      }
+
+      // Pin receipt + output CIDs via IPFS if available (best-effort)
+      if (cfg.enableCIDEnvelopes) {
+        Promise.resolve().then(async () => {
+          try {
+            const { computeReceiptCID } = await getMcpPlusPlusEnvelope()
+            const { IPFSKitClient } = await import('../ipfs/client.js') as typeof import('../ipfs/client.js')
+            const ipfs = new IPFSKitClient()
+            const receiptCid = computeReceiptCID(receipt)
+            const receiptJson = JSON.stringify(receipt)
+            await ipfs.addContent(receiptJson, { pin: true, filename: `${receiptCid}.json` })
+          } catch {
+            // IPFS not configured or unavailable — silently skip
+          }
+        })
+      }
+    } catch {
+      // Non-fatal: provenance recording is best-effort
+    }
   }
 
   // Handle toolResult-type response
