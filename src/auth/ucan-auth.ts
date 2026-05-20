@@ -431,7 +431,8 @@ export class UCANRevocationRegistry {
     let added = 0;
 
     while (stack.length > 0) {
-      const token = stack.pop()!;
+      const token = stack.pop();
+      if (!token) continue;
       if (seen.has(token)) continue;
       seen.add(token);
 
