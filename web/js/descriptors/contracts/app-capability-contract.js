@@ -21,7 +21,10 @@ export const UIContractSchema = Object.freeze({
 
 export const DataContractSchema = Object.freeze({
     required: ['entities'],
-    optional: ['result', 'task', 'provenance']
+    optional: ['result', 'task', 'provenance'],
+    conventions: {
+        fieldNaming: 'camelCase'
+    }
 });
 
 export const CompatibilityPolicy = Object.freeze({

@@ -162,6 +162,11 @@ export class DescriptorAppRuntime {
             }
 
             streamBucket.push(streamHandle);
+
+            if (this.streamGeneration.get(appId) !== generation || this.streams.get(appId) !== streamBucket) {
+                const lastHandle = streamBucket.pop();
+                lastHandle?.close?.();
+            }
         }));
     }
 

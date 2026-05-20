@@ -1,3 +1,5 @@
+const STREAM_HEARTBEAT_INTERVAL_MS = 5000;
+
 export class OrbClient {
     constructor(options = {}) {
         this.options = options;
@@ -88,7 +90,7 @@ export class OrbClient {
                     status: 'heartbeat'
                 });
             }
-        }, 5000);
+        }, STREAM_HEARTBEAT_INTERVAL_MS);
 
         return {
             close: () => clearInterval(timer)
