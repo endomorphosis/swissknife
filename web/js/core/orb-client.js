@@ -3,10 +3,27 @@ export class OrbClient {
         this.options = options;
         this.registry = new Map();
         this.transport = options.transport || null;
+        this.idCounter = 0;
     }
 
     createCorrelationId(scope = 'orb') {
-        return `${scope}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+        const uuidSegment = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : this.generateFallbackId();
+
+        return `${scope}-${uuidSegment}`;
+    }
+
+    generateFallbackId() {
+        this.idCounter += 1;
+        if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+            const bytes = new Uint8Array(8);
+            crypto.getRandomValues(bytes);
+            const randomHex = Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+            return `${Date.now().toString(16)}-${this.idCounter.toString(16)}-${randomHex}`;
+        }
+
+        return `${Date.now().toString(16)}-${this.idCounter.toString(16)}-${Math.random().toString(16).slice(2, 14)}`;
     }
 
     registerService(serviceName, descriptor = {}) {
@@ -55,6 +72,13 @@ export class OrbClient {
     }
 
     async stream(serviceRef, streamName, onEvent) {
+        if (!serviceRef || !serviceRef.name) {
+            throw new Error('serviceRef.name is required for stream');
+        }
+        if (!streamName) {
+            throw new Error('streamName is required');
+        }
+
         const timer = setInterval(() => {
             if (typeof onEvent === 'function') {
                 onEvent({
@@ -79,4 +103,3 @@ export class OrbClient {
         };
     }
 }
-

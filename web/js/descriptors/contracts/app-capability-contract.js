@@ -30,4 +30,3 @@ export const CompatibilityPolicy = Object.freeze({
     enforceDeprecationWindow: true,
     breakOnIncompatibleChanges: true
 });
-

@@ -10,6 +10,8 @@ export class DescriptorAppRuntime {
         this.replayLog = [];
         this.sequence = 0;
         this.streams = new Map();
+        this.streamStartQueue = new Map();
+        this.streamGeneration = new Map();
 
         (options.descriptors || []).forEach((descriptor) => this.registerDescriptor(descriptor));
     }
@@ -36,7 +38,7 @@ export class DescriptorAppRuntime {
                 name: descriptor.ui.window.title || descriptor.meta.name,
                 icon: descriptor.ui.window.icon || '🧩',
                 component: 'DescriptorAppComponent',
-                singleton: Boolean(descriptor.ui.window.singleton ?? true),
+                singleton: descriptor.ui.window.singleton ?? true,
                 descriptorApp: true
             });
         }
@@ -112,7 +114,7 @@ export class DescriptorAppRuntime {
             this.bindActions(appId, descriptor, options.contentElement, correlationId);
         }
 
-        this.startStreams(appId, descriptor, correlationId);
+        await this.scheduleStartStreams(appId, descriptor, correlationId);
         this.recordReplay(appId, 'rendered', { serviceStatuses }, correlationId);
 
         return { html, state, correlationId };
@@ -136,18 +138,42 @@ export class DescriptorAppRuntime {
     }
 
     async startStreams(appId, descriptor, correlationId) {
-        const active = this.streams.get(appId) || [];
-        active.forEach((stream) => stream.close?.());
-        this.streams.set(appId, []);
+        const generation = (this.streamGeneration.get(appId) || 0) + 1;
+        this.streamGeneration.set(appId, generation);
 
-        for (const service of descriptor.services) {
-            for (const streamName of service.streams || []) {
-                const streamHandle = await this.orbClient.stream(service, streamName, (event) => {
-                    this.recordReplay(appId, 'stream', { streamName, event }, correlationId);
-                });
-                this.streams.get(appId).push(streamHandle);
+        const active = this.streams.get(appId) || [];
+        active.forEach((stream) => stream?.close?.());
+
+        const streamBucket = [];
+        this.streams.set(appId, streamBucket);
+
+        const streamDefs = descriptor.services.flatMap((service) =>
+            (service.streams || []).map((streamName) => ({ service, streamName }))
+        );
+
+        await Promise.all(streamDefs.map(async ({ service, streamName }) => {
+            const streamHandle = await this.orbClient.stream(service, streamName, (event) => {
+                this.recordReplay(appId, 'stream', { streamName, event }, correlationId);
+            });
+
+            if (this.streamGeneration.get(appId) !== generation || this.streams.get(appId) !== streamBucket) {
+                streamHandle?.close?.();
+                return;
             }
-        }
+
+            streamBucket.push(streamHandle);
+        }));
+    }
+
+    async scheduleStartStreams(appId, descriptor, correlationId) {
+        const previous = this.streamStartQueue.get(appId) || Promise.resolve();
+        const queuedStart = previous
+            .catch((error) => {
+                console.warn(`Previous stream initialization failed for ${appId}:`, error);
+            })
+            .then(() => this.startStreams(appId, descriptor, correlationId));
+
+        this.streamStartQueue.set(appId, queuedStart);
+        await queuedStart;
     }
 }
-

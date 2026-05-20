@@ -24,6 +24,20 @@ describe('Descriptor runtime', () => {
   });
 
   test('renders template-backed descriptor app', async () => {
+    const listeners = {};
+    let invokeCalled = false;
+    const mockOrbClient = {
+      createCorrelationId: () => 'test-correlation',
+      discover: async () => ({ discovered: true }),
+      bind: async () => ({ bound: true }),
+      authorize: async () => ({ authorized: true }),
+      invoke: async () => {
+        invokeCalled = true;
+        return { ok: true };
+      },
+      stream: async () => ({ close: () => null })
+    };
+
     const descriptor = {
       contractVersion: '1.0.0',
       lifecycle: ['discover', 'bind', 'authorize', 'invoke', 'stream_updates', 'recover'],
@@ -34,18 +48,33 @@ describe('Descriptor runtime', () => {
         template: 'dashboard',
         window: { title: 'Test App', icon: '🧪', singleton: true },
         regions: [{ name: 'Overview', description: 'overview region' }],
-        commands: []
+        commands: [{ action: 'ping', label: 'Ping' }]
       },
       dataContracts: { entities: { test: { fields: ['id'] } } },
-      stateModel: { conflictPolicy: 'last-write-wins' }
+      stateModel: { conflictPolicy: 'last-write-wins' },
+      actions: {
+        ping: { service: 'test-service', operation: 'ping' }
+      }
     };
 
-    const runtime = new DescriptorAppRuntime({ descriptors: [descriptor] });
-    const mount = { innerHTML: '', querySelectorAll: () => [] };
+    const runtime = new DescriptorAppRuntime({ descriptors: [descriptor], orbClient: mockOrbClient });
+    const button = {
+      dataset: { action: 'ping' },
+      addEventListener: (eventName, handler) => {
+        listeners[eventName] = handler;
+      }
+    };
+    const mount = {
+      innerHTML: '',
+      querySelectorAll: (selector) => selector === '[data-action]' ? [button] : []
+    };
     const result = await runtime.renderApp('test-app', { contentElement: mount });
 
     expect(result.html).toContain('Test App');
     expect(mount.innerHTML).toContain('Overview');
+    expect(typeof listeners.click).toBe('function');
+    await listeners.click();
+    expect(invokeCalled).toBe(true);
   });
 
   test('renders named template packs', () => {

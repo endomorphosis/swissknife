@@ -7,6 +7,17 @@ function escapeHtml(value = '') {
         .replaceAll("'", '&#39;');
 }
 
+function escapeAttr(value = '') {
+    return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+}
+
+const DEFAULT_REGION_DESCRIPTION = 'No description';
+
 function renderStatusBanner(policyState = 'ready') {
     const map = {
         ready: '🟢 Ready',
@@ -29,7 +40,7 @@ const TemplateRenderers = {
                 </div>
                 <div class="descriptor-toolbar">
                     ${(ctx.commands || []).map((cmd) => `
-                        <button class="descriptor-command-btn" data-action="${escapeHtml(cmd.action)}">${escapeHtml(cmd.label)}</button>
+                        <button class="descriptor-command-btn" data-action="${escapeAttr(cmd.action)}">${escapeHtml(cmd.label)}</button>
                     `).join('')}
                 </div>
                 <div class="descriptor-layout">
@@ -62,7 +73,7 @@ const TemplateRenderers = {
                     ${(ctx.regions || []).map((region) => `
                         <article class="descriptor-card">
                             <h4>${escapeHtml(region.name)}</h4>
-                            <p>${escapeHtml(region.description || 'No description')}</p>
+                            <p>${escapeHtml(region.description || DEFAULT_REGION_DESCRIPTION)}</p>
                         </article>
                     `).join('')}
                 </div>
@@ -80,4 +91,3 @@ export function renderTemplate(templateName, context = {}) {
     const renderer = TemplateRenderers[templateName] || TemplateRenderers.dashboard;
     return renderer(context);
 }
-

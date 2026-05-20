@@ -84,4 +84,3 @@ export function validateDescriptor(descriptor) {
 export function defaultCompatibilityPolicy() {
     return { ...CompatibilityPolicy };
 }
-

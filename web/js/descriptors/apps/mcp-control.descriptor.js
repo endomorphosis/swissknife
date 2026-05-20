@@ -8,7 +8,7 @@ export const mcpControlDescriptor = {
     lifecycle: AppCapabilityLifecycle,
     compatibilityPolicy: {
         semver: true,
-        additiveMinorOnly: true,
+        allowMinorAdditiveOnly: true,
         deprecationsRequired: true
     },
     meta: {
@@ -74,4 +74,3 @@ export const mcpControlDescriptor = {
         }
     }
 };
-
