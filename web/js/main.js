@@ -3,6 +3,8 @@
 // import SwissKnife from './swissknife-browser.js'; // Temporarily disabled due to buffer import issues
 // Import DesktopEnhancer - will be available as window.DesktopEnhancer
 import './desktop-enhancer.js';
+import { DescriptorAppRuntime } from './core/descriptor-runtime.js';
+import { desktopAppDescriptors } from './descriptors/apps/index.js';
 
 class SwissKnifeDesktop {
     constructor() {
@@ -14,6 +16,8 @@ class SwissKnifeDesktop {
         this.isSwissKnifeReady = false;
         this.enhancer = null;
         this.currentTheme = 'day'; // 'day' or 'sunset'
+        this.descriptorRuntime = null;
+        this.descriptorAppIds = new Set();
         
         this.init();
     }
@@ -51,6 +55,7 @@ class SwissKnifeDesktop {
         
         // Initialize desktop enhancer
         await this.initializeEnhancer();
+        this.initializeDescriptorRuntime();
         
         // Initialize desktop components
         this.initializeDesktop();
@@ -482,6 +487,39 @@ class SwissKnifeDesktop {
         
         console.log('📱 Total apps registered:', this.apps.size);
         console.log('📱 Apps list:', Array.from(this.apps.keys()));
+
+        this.registerDescriptorDrivenApps();
+    }
+
+    initializeDescriptorRuntime() {
+        try {
+            this.descriptorRuntime = new DescriptorAppRuntime({
+                descriptors: desktopAppDescriptors
+            });
+            console.log(`🧩 Descriptor runtime initialized with ${desktopAppDescriptors.length} app descriptors`);
+        } catch (error) {
+            console.error('Failed to initialize descriptor runtime:', error);
+        }
+    }
+
+    registerDescriptorDrivenApps() {
+        if (!this.descriptorRuntime) return;
+
+        const descriptorRegistrations = this.descriptorRuntime.getDesktopRegistrations();
+        descriptorRegistrations.forEach((registration) => {
+            this.apps.set(registration.appId, {
+                name: registration.name,
+                icon: registration.icon,
+                component: registration.component,
+                singleton: registration.singleton,
+                descriptorApp: true
+            });
+            this.descriptorAppIds.add(registration.appId);
+        });
+
+        if (descriptorRegistrations.length > 0) {
+            console.log(`🧩 Registered descriptor-driven apps: ${descriptorRegistrations.map((app) => app.appId).join(', ')}`);
+        }
     }
     
     setupEventListeners() {
@@ -1447,6 +1485,10 @@ class SwissKnifeDesktop {
                         `;
                     }
                     break;
+
+                case 'descriptorappcomponent':
+                    await this.loadDescriptorApp(window.appId, contentElement);
+                    break;
                     
                 default:
                     throw new Error(`Unknown app component: ${componentName}`);
@@ -1470,6 +1512,17 @@ class SwissKnifeDesktop {
                 </div>
             `;
         }
+    }
+
+    async loadDescriptorApp(appId, contentElement) {
+        if (!this.descriptorRuntime) {
+            throw new Error('Descriptor runtime is not initialized');
+        }
+
+        await this.descriptorRuntime.renderApp(appId, {
+            desktop: this,
+            contentElement
+        });
     }
     
     async loadScript(src) {
