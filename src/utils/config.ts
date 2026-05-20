@@ -13,7 +13,19 @@ import type { ThemeNames } from './theme.js'
 import { getSessionState, setSessionState } from './sessionState.js'
 import type { McpVersionHistory } from '../services/mcp-types.js'
 
-export type McpStdioServerConfig = {
+export type McpPlusPlusConfig = {
+  enableP2P?: boolean
+  enableUCAN?: boolean
+  enableIDL?: boolean
+  enableCIDEnvelopes?: boolean
+  enableEventDAG?: boolean
+  enablePolicyEval?: boolean
+  enablePubSub?: boolean
+  /** Optional rendezvous multiaddr for NAT traversal */
+  p2pRendezvousAddr?: string
+  /** Maximum libp2p frame size in bytes (default 4 MiB) */
+  p2pMaxFrameBytes?: number
+}
   type?: 'stdio' // Optional for backwards compatibility
   command: string
   args: string[]
@@ -148,6 +160,7 @@ export type GlobalConfig = {
   shiftEnterKeyBindingInstalled?: boolean
   proxy?: string
   stream?: boolean
+  mcpPlusPlus?: McpPlusPlusConfig
 }
 
 export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {

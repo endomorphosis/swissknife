@@ -1,18 +1,22 @@
 /**
- * Implements UCAN (User Controlled Authorization Network) based authentication and authorization.
- * Based on the integration plan.
+ * Implements UCAN (User Controlled Authorization Network) based authentication
+ * and authorization using Node.js native Ed25519 crypto.
+ *
+ * Token format: base64url(header).base64url(payload).base64url(signature)
+ *   header  = { alg: "EdDSA", typ: "UCAN" }
+ *   payload = UCANClaim JSON
+ *   signature = Ed25519 sign(base64url(header) + "." + base64url(payload))
+ *
+ * References: MCP++ Profile C — Capability Delegation (UCAN)
  */
 
-// TODO: Import necessary libraries for DIDs, key management, UCAN parsing/validation
-// Example: import * as ucan from 'ucans.js'; // UCAN library
-// Example: import { Ed25519Provider } from 'key-did-provider-ed25519.js'; // For key generation
-// Example: import { DID } from 'dids.js'; // DID library
-// Example: import KeyResolver from 'key-did-resolver.js'; // DID resolver
-
-// Placeholder types for demonstration
-type Keystore = any; // Manages cryptographic keys
-type DIDResolver = any; // Resolves DIDs to public keys/documents
-type UCANToken = any; // Represents a parsed UCAN token
+import {
+  DIDKeystore,
+  base64urlEncode,
+  base64urlDecode,
+  didToPublicKeyBytes,
+} from './did-keystore.js';
+import { createHash, createPublicKey, verify as cryptoVerify } from 'crypto';
 
 /**
  * Represents the payload (claims) of a UCAN token.
@@ -33,292 +37,310 @@ export interface UCANClaim {
 }
 
 /**
+ * Parsed / decoded UCAN token (internal representation).
+ */
+export interface ParsedUCAN {
+  header: { alg: string; typ: string };
+  payload: UCANClaim;
+  /** Raw base64url-encoded signature */
+  signatureB64: string;
+  /** The original signing input: `<headerB64>.<payloadB64>` */
+  signingInput: string;
+}
+
+/**
  * Manages UCAN creation, validation, and capability checking.
+ *
+ * Uses the `DIDKeystore` for real Ed25519 key management.
  */
 export class UCANAuth {
-  // TODO: Replace 'any' with actual types
-  private keystore: Keystore | null = null; // Should manage the user's/service's private keys
-  private didResolver: DIDResolver | null = null; // Used to resolve DIDs during validation
-  private tokenCache: Map<string, UCANToken> = new Map(); // Cache for validated/parsed tokens
+  private keystore: DIDKeystore;
+  /** Cache of successfully validated tokens (keyed by token string) */
+  private validatedCache: Map<string, ParsedUCAN> = new Map();
 
-  /**
-   * Creates an instance of UCANAuth.
-   * Dependencies like keystore and DID resolver should be injected or configured.
-   */
-  constructor(keystore?: Keystore, didResolver?: DIDResolver) {
-    // TODO: Initialize keystore and DID resolver properly
-    this.keystore = keystore || { /* Placeholder Keystore */
-        generateKeypair: async () => ({ publicKey: 'mockPublicKey', privateKey: 'mockPrivateKey' }),
-        getPrivateKey: async (did: string) => 'mockPrivateKey',
-        sign: async (data: Uint8Array, privateKey: string) => new Uint8Array([1, 2, 3]) // Mock signature
-    };
-    this.didResolver = didResolver || { /* Placeholder DIDResolver */
-        initialize: async () => {},
-        resolve: async (did: string) => 'mockPublicKey' // Mock public key resolution
-    };
-    console.log('UCANAuth initialized (with placeholders).');
+  constructor(keystore?: DIDKeystore) {
+    this.keystore = keystore ?? DIDKeystore.getInstance();
   }
 
-  /**
-   * Initializes the UCANAuth service, including its dependencies.
-   * @returns {Promise<void>}
-   */
   async initialize(): Promise<void> {
-    console.log('Initializing UCANAuth dependencies...');
-    try {
-      // await this.keystore?.initialize(); // If keystore needs async init
-      await this.didResolver?.initialize(); // If resolver needs async init
-      console.log('UCANAuth dependencies initialized.');
-    } catch (error) {
-      console.error('Failed to initialize UCANAuth dependencies:', error);
-      throw error;
+    // Keystore is synchronously initialized; nothing async required here.
+  }
+
+  // ---------------------------------------------------------------------------
+  // DID Management
+  // ---------------------------------------------------------------------------
+
+  /** Create a new Ed25519 did:key identity and return the DID. */
+  createDID(): string {
+    return this.keystore.generateKey();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Token Encoding / Decoding
+  // ---------------------------------------------------------------------------
+
+  /** Encode a UCAN token (header + payload) as a base64url string without signing. */
+  private encodeUnsigned(header: object, payload: UCANClaim): string {
+    const headerB64 = base64urlEncode(
+      Buffer.from(JSON.stringify(header), 'utf8'),
+    );
+    const payloadB64 = base64urlEncode(
+      Buffer.from(JSON.stringify(payload), 'utf8'),
+    );
+    return `${headerB64}.${payloadB64}`;
+  }
+
+  /**
+   * Decode a UCAN token string into its structured parts.
+   * Does NOT verify the signature.
+   */
+  static decode(token: string): ParsedUCAN {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      throw new Error('Invalid UCAN: expected 3 dot-separated parts');
     }
+    const [headerB64, payloadB64, signatureB64] = parts;
+    const header = JSON.parse(
+      base64urlDecode(headerB64).toString('utf8'),
+    );
+    const payload = JSON.parse(
+      base64urlDecode(payloadB64).toString('utf8'),
+    ) as UCANClaim;
+    return { header, payload, signatureB64, signingInput: `${headerB64}.${payloadB64}` };
   }
 
-  /**
-   * Creates a new DID (Decentralized Identifier) and associated keypair.
-   * @returns {Promise<{ did: string, privateKey: string }>} The DID string and the private key (handle securely!).
-   */
-  async createDID(): Promise<{ did: string, privateKey: string }> {
-    if (!this.keystore) throw new Error('Keystore not initialized.');
-    console.log('Generating new DID and keypair...');
-    // TODO: Implement actual keypair generation and DID creation (e.g., using did:key)
-    // Example:
-    // const seed = new Uint8Array(32); // Generate random seed
-    // crypto.getRandomValues(seed);
-    // const provider = new Ed25519Provider(seed);
-    // const didInstance = new DID({ provider, resolver: KeyResolver.getResolver() });
-    // await didInstance.authenticate();
-    // const did = didInstance.id;
-    // const privateKey = seed; // Or however the key is represented
-
-    const keypair = await this.keystore.generateKeypair();
-    // Assuming did:key format for simplicity
-    const did = `did:key:${keypair.publicKey}`; // Placeholder format
-    console.log(`Generated DID: ${did}`);
-    return {
-      did,
-      privateKey: keypair.privateKey // WARNING: Handle private key securely!
-    };
-  }
+  // ---------------------------------------------------------------------------
+  // Issuing Tokens
+  // ---------------------------------------------------------------------------
 
   /**
-   * Issues a new UCAN token, signed by the issuer DID.
-   * @param {string} issuerDID - The DID of the entity issuing the token.
-   * @param {string} audienceDID - The DID of the entity the token is intended for.
-   * @param {UCANClaim['att']} capabilities - The capabilities being granted.
-   * @param {number} [lifetimeInSeconds=3600] - How long the token should be valid for (default: 1 hour).
-   * @param {string[]} [proofs=[]] - An array of UCAN tokens (as strings) that delegate the necessary authority.
-   * @param {string} [nonce] - Optional nonce.
-   * @param {any[]} [facts] - Optional facts.
-   * @returns {Promise<string>} The encoded UCAN token as a string.
+   * Issue a signed UCAN token.
+   *
+   * @param issuerDID   must be present in the keystore
+   * @param audienceDID target identity
+   * @param capabilities MCP++ capability attenuations
+   * @param lifetimeInSeconds default 3600
+   * @param proofs  proof chain (encoded UCAN strings delegating authority)
+   * @param nonce   optional nonce
+   * @param facts   optional facts
    */
-  async issueToken(
+  issueToken(
     issuerDID: string,
     audienceDID: string,
     capabilities: UCANClaim['att'],
-    lifetimeInSeconds: number = 3600,
+    lifetimeInSeconds = 3600,
     proofs: string[] = [],
     nonce?: string,
-    facts?: any[]
-  ): Promise<string> {
-    if (!this.keystore) throw new Error('Keystore not initialized.');
-    console.log(`Issuing UCAN: ${issuerDID} -> ${audienceDID}`);
-
-    // TODO: Use actual UCAN library to build and sign the token.
-    // Example using 'ucans' library:
-    /*
-    const privateKey = await this.keystore.getPrivateKey(issuerDID); // Get the issuer's key
-    if (!privateKey) throw new Error(`Issuer private key not found for ${issuerDID}`);
-
-    const ucanInstance = await ucan.build({
-      issuer: issuerDID, // The DID object or string
-      audience: audienceDID,
-      lifetimeInSeconds: lifetimeInSeconds,
-      capabilities: capabilities, // Ensure format matches library requirements
-      proofs: proofs,
-      nonce: nonce,
-      facts: facts,
-      // Need to provide signing function using the private key
-      sign: async (data: Uint8Array) => this.keystore.sign(data, privateKey)
-    });
-
-    const encodedToken = ucan.encode(ucanInstance);
-    // Optional: Cache the parsed token?
-    // this.tokenCache.set(encodedToken, ucanInstance);
-    return encodedToken;
-    */
-
-    // Placeholder implementation:
+    facts?: unknown[],
+  ): string {
+    if (!this.keystore.hasDID(issuerDID)) {
+      throw new Error(`Issuer DID not found in keystore: ${issuerDID}`);
+    }
     const now = Math.floor(Date.now() / 1000);
-    const claim: UCANClaim = {
+    const header = { alg: 'EdDSA', typ: 'UCAN' };
+    const payload: UCANClaim = {
       iss: issuerDID,
       aud: audienceDID,
       exp: now + lifetimeInSeconds,
       nbf: now,
       nnc: nonce,
-      fct: facts,
+      fct: facts as UCANClaim['fct'],
       att: capabilities,
-      prf: proofs
+      prf: proofs,
     };
-    // Simulate signing and encoding
-    const header = { alg: 'EdDSA', typ: 'JWT' }; // Example header
-    const encodedHeader = btoa(JSON.stringify(header));
-    const encodedPayload = btoa(JSON.stringify(claim));
-    const signature = 'mockSignature'; // Simulate signature
-    const encodedToken = `${encodedHeader}.${encodedPayload}.${signature}`;
-    console.log(`Issued UCAN (placeholder): ${encodedToken}`);
-    return encodedToken;
+    const signingInput = this.encodeUnsigned(header, payload);
+    const sigBytes = this.keystore.sign(
+      Buffer.from(signingInput, 'utf8'),
+      issuerDID,
+    );
+    const sigB64 = base64urlEncode(Buffer.from(sigBytes));
+    return `${signingInput}.${sigB64}`;
   }
 
+  // ---------------------------------------------------------------------------
+  // Validation
+  // ---------------------------------------------------------------------------
+
   /**
-   * Validates a UCAN token string, checking signature, expiration, and proof chain.
-   * @param {string} token - The encoded UCAN token string.
-   * @returns {Promise<boolean>} True if the token is valid, false otherwise.
+   * Validate a UCAN token: structure → expiry/nbf → Ed25519 signature → proof chain.
+   * Returns true only when all checks pass.
    */
   async validateToken(token: string): Promise<boolean> {
-    if (!this.didResolver) throw new Error('DID Resolver not initialized.');
-    console.log(`Validating UCAN: ${token.substring(0, 20)}...`);
+    // Fast path: already validated in this session
+    if (this.validatedCache.has(token)) return true;
 
-    // Check cache first? (Be careful with caching validation results if time-sensitive)
-
-    // TODO: Use actual UCAN library for parsing and validation.
-    // Example using 'ucans' library:
-    /*
+    let parsed: ParsedUCAN;
     try {
-      const parsedToken = ucan.decode(token);
-
-      // Basic structural validation done by decode? Check library docs.
-
-      // Check expiration and nbf
-      const now = Math.floor(Date.now() / 1000);
-      if (parsedToken.payload.exp && parsedToken.payload.exp < now) {
-        console.warn('UCAN validation failed: Token expired.');
-        return false;
-      }
-      if (parsedToken.payload.nbf && parsedToken.payload.nbf > now) {
-         console.warn('UCAN validation failed: Token not yet valid (nbf).');
-         return false;
-      }
-
-      // Verify signature using the issuer's public key (resolved via DID)
-      const isValidSignature = await ucan.isValid(parsedToken, {
-         checkSignature: async (did: string, data: Uint8Array, sig: Uint8Array) => {
-             const publicKey = await this.didResolver.resolve(did); // Resolve DID to get key
-             if (!publicKey) return false;
-             // Need a verify function based on the key type
-             return verifySignature(publicKey, data, sig); // Hypothetical verify function
-         }
-      });
-      if (!isValidSignature) {
-         console.warn('UCAN validation failed: Invalid signature.');
-         return false;
-      }
-
-      // Recursively validate proof chain
-      if (parsedToken.payload.prf && parsedToken.payload.prf.length > 0) {
-        console.log('Validating UCAN proof chain...');
-        for (const proofToken of parsedToken.payload.prf) {
-          const isValidProof = await this.validateToken(proofToken); // Recursive call
-          if (!isValidProof) {
-            console.warn('UCAN validation failed: Invalid proof in chain.');
-            return false;
-          }
-          // TODO: Check if the proof actually delegates the necessary capabilities
-          // This requires comparing capabilities between parent and child UCANs.
-          // Check library functions like ucan.canDelegate(...)
-        }
-      }
-
-      console.log('UCAN validation successful.');
-      // Optional: Cache the validated token (parsed form)
-      // this.tokenCache.set(token, parsedToken);
-      return true;
-
-    } catch (error) {
-      console.error('UCAN validation failed:', error);
+      parsed = UCANAuth.decode(token);
+    } catch {
       return false;
     }
-    */
 
-    // Placeholder validation:
-    console.log('UCAN validation successful (placeholder).');
-    return true; // Assume valid for placeholder
+    const now = Math.floor(Date.now() / 1000);
+    if (parsed.payload.exp !== undefined && parsed.payload.exp < now) {
+      return false; // expired
+    }
+    if (parsed.payload.nbf !== undefined && parsed.payload.nbf > now) {
+      return false; // not yet valid
+    }
+
+    // Verify Ed25519 signature
+    const sigOk = this.verifyTokenSignature(parsed);
+    if (!sigOk) return false;
+
+    // Recursively validate proof chain
+    for (const proofToken of parsed.payload.prf) {
+      const proofValid = await this.validateToken(proofToken);
+      if (!proofValid) return false;
+
+      // Verify delegation linkage: proof.aud must equal this token's iss
+      let proofParsed: ParsedUCAN;
+      try {
+        proofParsed = UCANAuth.decode(proofToken);
+      } catch {
+        return false;
+      }
+      if (proofParsed.payload.aud !== parsed.payload.iss) {
+        return false; // proof was not issued to this token's issuer
+      }
+    }
+
+    this.validatedCache.set(token, parsed);
+    return true;
   }
 
   /**
-   * Checks if a given UCAN token grants specific capabilities for a resource.
-   * This involves checking the 'att' field and potentially the proof chain.
-   * @param {string} token - The encoded UCAN token string.
-   * @param {string} resource - The resource identifier being accessed.
-   * @param {string} capability - The capability required (e.g., 'WRITE').
-   * @returns {Promise<boolean>} True if the capability is granted, false otherwise.
+   * Verify the Ed25519 signature on a decoded UCAN.
+   * Public key is derived from the `iss` DID.
    */
-  async can(token: string, resource: string, capability: string): Promise<boolean> {
-     console.log(`Checking capability: Resource='${resource}', Capability='${capability}'`);
-     // 1. Validate the token first
-     const isValid = await this.validateToken(token);
-     if (!isValid) {
-       console.warn(`Capability check failed: Token is invalid.`);
-       return false;
-     }
+  private verifyTokenSignature(parsed: ParsedUCAN): boolean {
+    try {
+      const signingInputBytes = Buffer.from(parsed.signingInput, 'utf8');
+      const sigBytes = base64urlDecode(parsed.signatureB64);
+      const issuerDID = parsed.payload.iss;
 
-     // TODO: Use actual UCAN library to parse and check capabilities.
-     // Example using 'ucans' library:
-     /*
-     try {
-        const parsedToken = ucan.decode(token); // Assume already validated
+      // Try keystore first (if we hold the key locally)
+      if (this.keystore.hasDID(issuerDID)) {
+        return this.keystore.verify(signingInputBytes, sigBytes, issuerDID);
+      }
 
-        // Check attenuations directly on the token
-        const hasDirectCapability = parsedToken.payload.att.some(att =>
-            this.resourceMatches(att.rsc, resource) && att.cap === capability // && checkCaveats(att.nb)
-        );
-
-        if (hasDirectCapability) {
-            console.log('Capability found directly in token.');
-            return true;
-        }
-
-        // If not found directly, check the proof chain
-        console.log('Capability not found directly, checking proof chain...');
-        if (parsedToken.payload.prf && parsedToken.payload.prf.length > 0) {
-            for (const proofToken of parsedToken.payload.prf) {
-                // Recursively check if the proof grants the capability
-                const proofGrantsCapability = await this.can(proofToken, resource, capability);
-                if (proofGrantsCapability) {
-                    // TODO: Crucially, verify that the *current* token (parsedToken)
-                    // was properly delegated the authority *from* the proofToken.
-                    // This involves checking if parsedToken.payload.iss === proofToken.payload.aud
-                    // and potentially comparing attenuations. Use library functions if available.
-                    // Example: const canDelegate = ucan.canDelegate(proofToken, parsedToken, capability, resource);
-                    // if (canDelegate) {
-                         console.log('Capability found via valid delegation in proof chain.');
-                         return true;
-                    // }
-                }
-            }
-        }
-
-        console.log('Capability not granted by token or valid proof chain.');
-        return false;
-
-     } catch (error) {
-        console.error('Error during capability check:', error);
-        return false;
-     }
-     */
-
-     // Placeholder check:
-     console.log('Capability check successful (placeholder).');
-     return true; // Assume granted for placeholder
+      // Otherwise derive public key from the DID itself
+      const pubKeyBytes = didToPublicKeyBytes(issuerDID);
+      const spkiDer = buildSpkiFromRawEd25519(pubKeyBytes);
+      const publicKey = createPublicKey({ key: spkiDer, format: 'der', type: 'spki' });
+      return cryptoVerify(null, signingInputBytes, publicKey, sigBytes);
+    } catch {
+      return false;
+    }
   }
 
-  // Helper for resource matching (e.g., handling wildcards) - Placeholder
+  // ---------------------------------------------------------------------------
+  // Capability checking (MCP++ Profile C §6)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Returns true if `token` (and its proof chain) grant `capability` on `resource`.
+   *
+   * Alignment with MCP++ Profile C:
+   *   rsc = CID-prefixed resource URI or `mcp++/<method>`
+   *   cap = MCP++ capability string  (e.g. `mcp++/invoke`, `mcp++/read-cid`)
+   */
+  async can(
+    token: string,
+    resource: string,
+    capability: string,
+  ): Promise<boolean> {
+    const isValid = await this.validateToken(token);
+    if (!isValid) return false;
+
+    const parsed = UCANAuth.decode(token);
+    return this.claimGrantsCapability(parsed, resource, capability, token);
+  }
+
+  /**
+   * Recursively check whether `parsed` grants capability on resource,
+   * either directly in `att` or through a delegating proof token.
+   */
+  private async claimGrantsCapability(
+    parsed: ParsedUCAN,
+    resource: string,
+    capability: string,
+    _rawToken: string,
+  ): Promise<boolean> {
+    // Direct check
+    const direct = parsed.payload.att.some(
+      att =>
+        this.resourceMatches(att.rsc, resource) &&
+        this.capabilityMatches(att.cap, capability),
+    );
+    if (direct) return true;
+
+    // Check proof chain — each proof must have been validated already
+    for (const proofToken of parsed.payload.prf) {
+      let proofParsed: ParsedUCAN;
+      try {
+        proofParsed = UCANAuth.decode(proofToken);
+      } catch {
+        continue;
+      }
+      const proofGrants = await this.claimGrantsCapability(
+        proofParsed,
+        resource,
+        capability,
+        proofToken,
+      );
+      if (proofGrants) {
+        // Verify the current token was delegated from the proof
+        if (proofParsed.payload.aud === parsed.payload.iss) return true;
+      }
+    }
+    return false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  /** Matches a resource pattern against an actual resource. */
   private resourceMatches(pattern: string, actual: string): boolean {
-      if (pattern === '*') return true; // Basic wildcard
-      // TODO: Implement more sophisticated matching if needed (e.g., prefix matching)
-      return pattern === actual;
+    if (pattern === '*') return true;
+    if (pattern.endsWith('/*')) {
+      return actual.startsWith(pattern.slice(0, -2));
+    }
+    return pattern === actual;
   }
 
-  // TODO: Add methods for UCAN delegation, revocation (if supported), etc.
+  /** Matches a capability pattern against a requested capability. */
+  private capabilityMatches(granted: string, requested: string): boolean {
+    if (granted === '*') return true;
+    return granted === requested;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Utility: compute a SHA-256 CID from arbitrary data
+  // ---------------------------------------------------------------------------
+
+  /** Returns a `sha256:<hex>` content identifier string for `data`. */
+  static computeCID(data: Buffer | Uint8Array | string): string {
+    const input = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
+    const hash = createHash('sha256').update(input).digest('hex');
+    return `sha256:${hash}`;
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Internal helper — used by signature verification when no keystore entry
+// ---------------------------------------------------------------------------
+
+/** Build a minimal 44-byte SPKI DER for a raw 32-byte Ed25519 public key. */
+function buildSpkiFromRawEd25519(rawPubKey: Uint8Array): Buffer {
+  const oid = Buffer.from([0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70]);
+  const bitStr = Buffer.concat([
+    Buffer.from([0x03, 0x21, 0x00]),
+    Buffer.from(rawPubKey),
+  ]);
+  const inner = Buffer.concat([oid, bitStr]);
+  return Buffer.concat([Buffer.from([0x30, inner.length]), inner]);
+}
+
+// TODO: Add methods for UCAN delegation revocation tracking.

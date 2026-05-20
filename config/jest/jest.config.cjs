@@ -33,7 +33,8 @@ module.exports = {
     "^@test-helpers/(.*)$": "<rootDir>/test/helpers/$1",
     "../utils/test-helpers": "<rootDir>/test/utils/test-helpers.ts",
     "^(merkletreejs)$": "<rootDir>/node_modules/merkletreejs/dist/esm/index.js",
-    "^(zod)$": "<rootDir>/node_modules/zod/dist/esm/index.js"
+    "^(zod)$": "<rootDir>/node_modules/zod/dist/esm/index.js",
+    "^(\\.{1,2}/.+)\\.js$": "$1"
   },
   testMatch: [
     "<rootDir>/test/**/*.test.ts",

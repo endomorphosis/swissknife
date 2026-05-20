@@ -133,35 +133,118 @@ class WebSocketTransport extends BaseTransport {
 }
 
 class Libp2pTransport extends BaseTransport {
-  // TODO: Add libp2p specific properties 
-  constructor(options: MCPTransportOptions) { 
-    super(options); 
+  private session: import('./mcp-p2p-session.js').MCPp2pSession | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectBaseDelayMs = 1000;
+
+  constructor(options: MCPTransportOptions) {
+    super(options);
   }
-  
+
   async connect(): Promise<boolean> {
-    console.log(`Connecting libp2p to ${this.options.endpoint}...`);
-    // TODO: Implement libp2p node creation, dialing, protocol negotiation (/mcp/1.0.0)
-    this.connected = true; // Placeholder
-    console.log('libp2p connected (placeholder).');
-    return true;
+    try {
+      // Dynamically import libp2p to allow graceful degradation when
+      // optional transport sub-packages are not installed.
+      const { createLibp2p } = await import('libp2p');
+      const { MCP_P2P_PROTOCOL_ID, MCPp2pSession } = await import(
+        './mcp-p2p-session.js'
+      );
+
+      const libp2pOptions: Record<string, unknown> = {
+        ...(this.options.libp2pOptions ?? {}),
+      };
+
+      // Try to load noise + yamux if available (graceful degradation)
+      try {
+        const { noise } = await import('@chainsafe/libp2p-noise');
+        const { yamux } = await import('@chainsafe/libp2p-yamux');
+        libp2pOptions.connectionEncrypters = [noise()];
+        libp2pOptions.streamMuxers = [yamux()];
+      } catch {
+        // Transport sub-packages not installed; proceed without encryption layer
+        // (only acceptable for local dev / testing).
+      }
+
+      const node = await createLibp2p(libp2pOptions as Parameters<typeof createLibp2p>[0]);
+      await node.start();
+
+      const endpoint = this.options.endpoint;
+      const stream = await node.dialProtocol(endpoint, MCP_P2P_PROTOCOL_ID) as unknown as import('./mcp-p2p-session.js').P2PStream;
+
+      this.session = new MCPp2pSession(stream, {
+        maxFrameBytes:
+          typeof this.options.libp2pOptions?.maxFrameBytes === 'number'
+            ? this.options.libp2pOptions.maxFrameBytes
+            : undefined,
+      });
+
+      await this.session.handshake({
+        name: 'swissknife',
+        version: '0.0.53',
+      });
+
+      // Forward session messages to this transport's 'message' event
+      this.session.on('message', (msg: unknown) => this.emit('message', msg));
+      this.session.on('close', () => {
+        this.connected = false;
+        this.emit('disconnect');
+        if (this.options.reconnect) {
+          this.scheduleReconnect().catch(() => undefined);
+        }
+      });
+      this.session.on('error', (err: Error) => {
+        console.error('[Libp2pTransport] Session error:', err.message);
+      });
+
+      this.connected = true;
+      this.reconnectAttempts = 0;
+      return true;
+    } catch (err) {
+      console.error('[Libp2pTransport] connect() failed:', err);
+      return false;
+    }
   }
-  
+
   async disconnect(): Promise<void> {
-    console.log('Disconnecting libp2p...');
-    // TODO: Close libp2p stream/connection, potentially stop node
     this.connected = false;
+    if (this.session) {
+      await this.session.close();
+      this.session = null;
+    }
     this.emit('disconnect');
-    console.log('libp2p disconnected.');
   }
-  
+
   async send(message: unknown): Promise<void> {
-    if (!this.isConnected()) throw new Error('libp2p not connected.');
-    console.log('Sending libp2p message:', message);
-    // TODO: Send message over the established libp2p stream (e.g., using lp.pushable)
+    if (!this.isConnected() || !this.session) {
+      throw new Error('libp2p not connected.');
+    }
+    await this.session.sendNotification(
+      message as import('./mcp-p2p-session.js').JsonRpcNotification,
+    );
   }
-  
+
   async receive(): Promise<unknown> {
-    throw new Error('libp2p receive() not typically used; listen for "message" event on stream.');
+    throw new Error(
+      'libp2p receive() not used; listen for "message" event on the transport.',
+    );
+  }
+
+  /** Expose the underlying session for higher-level callers (e.g. envelope layer). */
+  getSession(): import('./mcp-p2p-session.js').MCPp2pSession | null {
+    return this.session;
+  }
+
+  private async scheduleReconnect(): Promise<void> {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('[Libp2pTransport] Max reconnect attempts reached.');
+      return;
+    }
+    const delay =
+      this.reconnectBaseDelayMs * Math.pow(2, this.reconnectAttempts);
+    this.reconnectAttempts++;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    await this.connect();
   }
 }
 

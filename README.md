@@ -470,6 +470,42 @@ See [Error Reporting Setup Guide](./docs/ERROR_REPORTING_SETUP.md) for detailed 
 
 ---
 
+## 🌐 Peer-to-Peer & Enhanced Security (MCP++)
+
+SwissKnife integrates the **MCP++** extension suite for decentralised,
+cryptographically-secured agent-to-agent communication:
+
+| Feature | Profile | Description |
+|---------|---------|-------------|
+| **UCAN Auth** | C | Ed25519 capability delegation — every tool call proves its authority |
+| **P2P Transport** | E | libp2p streams replace HTTP; framed JSON-RPC with abuse resistance |
+| **MCP-IDL** | A | CID-addressed interface contracts for stable tool references |
+| **CID Envelopes** | B | Content-addressed inputs/outputs for verifiable, reproducible execution |
+| **Temporal Policy** | D | Deontic permissions/prohibitions/obligations with deadlines |
+| **Event DAG** | — | Causal provenance graph linking every tool call to its authorisation |
+
+### Quick Start
+
+```bash
+# Connect to a peer
+swissknife mcp-plus-plus p2p connect /ip4/192.168.1.1/tcp/4001/p2p/QmPeer...
+
+# List interface descriptors
+swissknife mcp-plus-plus idl list
+
+# Audit execution history
+swissknife mcp-plus-plus receipts --output-cid sha256:abc123...
+
+# Enable features
+swissknife mcp-plus-plus config enable enableP2P
+swissknife mcp-plus-plus config enable enableUCAN
+```
+
+→ Full documentation: [docs/mcp-plus-plus.md](./docs/mcp-plus-plus.md)
+→ Normative spec: [endomorphosis/Mcp-Plus-Plus](https://github.com/endomorphosis/Mcp-Plus-Plus)
+
+---
+
 ## 🔒 Privacy & Security
 
 - **🏠 Local Processing**: SwissKnife primarily processes data locally  
