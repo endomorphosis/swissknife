@@ -137,7 +137,7 @@ export class DescriptorAppRuntime {
         });
     }
 
-    isStreamGenerationStale(appId, generation, streamBucket) {
+    hasStreamStateChanged(appId, generation, streamBucket) {
         return this.streamGeneration.get(appId) !== generation || this.streams.get(appId) !== streamBucket;
     }
 
@@ -160,17 +160,12 @@ export class DescriptorAppRuntime {
                 this.recordReplay(appId, 'stream', { streamName, event }, correlationId);
             });
 
-            if (this.isStreamGenerationStale(appId, generation, streamBucket)) {
+            if (this.hasStreamStateChanged(appId, generation, streamBucket)) {
                 streamHandle?.close?.();
                 return;
             }
 
             streamBucket.push(streamHandle);
-
-            if (this.isStreamGenerationStale(appId, generation, streamBucket)) {
-                const lastHandle = streamBucket.pop();
-                lastHandle?.close?.();
-            }
         }));
     }
 
