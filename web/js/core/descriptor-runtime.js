@@ -137,7 +137,7 @@ export class DescriptorAppRuntime {
         });
     }
 
-    hasStreamStateChanged(appId, generation, streamBucket) {
+    isStreamHandleInvalid(appId, generation, streamBucket) {
         return this.streamGeneration.get(appId) !== generation || this.streams.get(appId) !== streamBucket;
     }
 
@@ -156,11 +156,18 @@ export class DescriptorAppRuntime {
         );
 
         await Promise.all(streamDefs.map(async ({ service, streamName }) => {
+            if (this.isStreamHandleInvalid(appId, generation, streamBucket)) {
+                return;
+            }
+
             const streamHandle = await this.orbClient.stream(service, streamName, (event) => {
+                if (this.isStreamHandleInvalid(appId, generation, streamBucket)) {
+                    return;
+                }
                 this.recordReplay(appId, 'stream', { streamName, event }, correlationId);
             });
 
-            if (this.hasStreamStateChanged(appId, generation, streamBucket)) {
+            if (this.isStreamHandleInvalid(appId, generation, streamBucket)) {
                 streamHandle?.close?.();
                 return;
             }
