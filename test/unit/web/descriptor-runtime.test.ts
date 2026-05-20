@@ -1,8 +1,8 @@
-import { DescriptorAppRuntime } from '../../../../web/js/core/descriptor-runtime.js';
-import { validateDescriptor } from '../../../../web/js/core/idl-contracts.js';
-import { renderTemplate } from '../../../../web/js/core/ui-templates.js';
-import { mcpControlDescriptor } from '../../../../web/js/descriptors/apps/mcp-control.descriptor.js';
-import { ipfsExplorerDescriptor } from '../../../../web/js/descriptors/apps/ipfs-explorer.descriptor.js';
+import { DescriptorAppRuntime } from '../../../web/js/core/descriptor-runtime.js';
+import { validateDescriptor } from '../../../web/js/core/idl-contracts.js';
+import { renderTemplate } from '../../../web/js/core/ui-templates.js';
+import { mcpControlDescriptor } from '../../../web/js/descriptors/apps/mcp-control.descriptor.js';
+import { ipfsExplorerDescriptor } from '../../../web/js/descriptors/apps/ipfs-explorer.descriptor.js';
 
 describe('Descriptor runtime', () => {
   test('validates pilot descriptors', () => {
@@ -62,4 +62,3 @@ describe('Descriptor runtime', () => {
     expect(html).toContain('ipfs_datasets');
   });
 });
-
