@@ -53,12 +53,12 @@ export const ipfsExplorerDescriptor = {
     },
     dataContracts: {
         entities: {
-            dataset: { fields: ['id', 'name', 'cid', 'size', 'createdAt'] },
+            dataset: { fields: ['id', 'name', 'cid', 'size', 'created_at'] },
             task: { fields: ['id', 'status', 'progress', 'worker'] },
-            result: { fields: ['id', 'taskId', 'artifactCid', 'completedAt'] }
+            result: { fields: ['id', 'task_id', 'artifact_cid', 'completed_at'] }
         },
         provenance: {
-            fields: ['correlationId', 'timestamp', 'source', 'cid']
+            fields: ['correlation_id', 'timestamp', 'source', 'cid']
         }
     },
     permissions: ['ipfs:read', 'ipfs:pin', 'ipfs:publish', 'inference:run'],

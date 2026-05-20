@@ -23,7 +23,7 @@ export const DataContractSchema = Object.freeze({
     required: ['entities'],
     optional: ['result', 'task', 'provenance'],
     conventions: {
-        fieldNaming: 'camelCase'
+        fieldNaming: 'snake_case'
     }
 });
 

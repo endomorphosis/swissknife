@@ -22,15 +22,15 @@ export const mcpControlDescriptor = {
             name: 'mcp_registry',
             version: '1.0.0',
             endpoint: 'mcp://registry',
-            operations: ['list_servers', 'inspect_server', 'restart_server'],
-            streams: ['server_health', 'connection_activity']
+            operations: ['interfaces/list', 'interfaces/get', 'interfaces/compat'],
+            streams: ['notifications/tools/list_changed', 'notifications/resources/list_changed']
         },
         {
             name: 'mcp_transport',
             version: '1.0.0',
             endpoint: 'mcp://transport',
-            operations: ['list_connections', 'disconnect'],
-            streams: ['transport_events']
+            operations: ['capabilities/list', 'tools/list', 'ping'],
+            streams: ['notifications/progress']
         }
     ],
     ui: {
@@ -52,11 +52,11 @@ export const mcpControlDescriptor = {
     },
     dataContracts: {
         entities: {
-            service: { fields: ['id', 'name', 'status', 'version'] },
-            connection: { fields: ['id', 'status', 'latencyMs'] }
+            service: { fields: ['id', 'name', 'status', 'version', 'interface_cid'] },
+            connection: { fields: ['id', 'status', 'latency_ms', 'peer_did'] }
         },
         provenance: {
-            fields: ['correlationId', 'timestamp', 'source']
+            fields: ['correlation_id', 'event_cid', 'decision_cid', 'source']
         }
     },
     permissions: ['mcp:discover', 'mcp:invoke', 'mcp:stream'],
@@ -66,11 +66,11 @@ export const mcpControlDescriptor = {
     actions: {
         refreshServices: {
             service: 'mcp_registry',
-            operation: 'list_servers'
+            operation: 'interfaces/list'
         },
         openMetrics: {
             service: 'mcp_transport',
-            operation: 'list_connections'
+            operation: 'capabilities/list'
         }
     }
 };
