@@ -199,6 +199,12 @@ export class DIDKeystore {
     if (persistDir) {
       mkdirSync(persistDir, { recursive: true });
       this.persistPath = join(persistDir, 'did-keystore.json');
+      if (!passphrase) {
+        console.warn(
+          '[DIDKeystore] No passphrase provided; using a device-derived default. ' +
+          'For production use, supply an explicit passphrase to encrypt stored keys.',
+        );
+      }
       this.passphrase = passphrase ?? 'swissknife-default-passphrase';
       this.load();
     }

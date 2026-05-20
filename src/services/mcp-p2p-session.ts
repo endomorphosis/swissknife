@@ -23,9 +23,9 @@ import { EventEmitter } from 'events';
 export const MCP_P2P_PROTOCOL_ID = '/mcp+p2p/1.0.0';
 /** Default maximum frame size: 4 MiB */
 export const DEFAULT_MAX_FRAME_BYTES = 4 * 1024 * 1024;
-/** Leaky-bucket: max messages per window */
+/** Fixed-window rate limiter: max messages per window */
 export const RATE_LIMIT_MAX_MSGS = 200;
-/** Leaky-bucket: window duration (ms) */
+/** Fixed-window rate limiter: window duration (ms) */
 export const RATE_LIMIT_WINDOW_MS = 1000;
 
 // ---------------------------------------------------------------------------
@@ -81,10 +81,11 @@ export interface JsonRpcNotification {
 export type JsonRpcMessage = JsonRpcRequest | JsonRpcResponse | JsonRpcNotification;
 
 // ---------------------------------------------------------------------------
-// LeakyBucket — simple per-peer rate limiter
+// FixedWindowRateLimiter — per-peer rate limiter
 // ---------------------------------------------------------------------------
 
-class LeakyBucket {
+/** Fixed-window rate limiter: allows up to `maxMsgs` per `windowMs`. */
+class FixedWindowRateLimiter {
   private count = 0;
   private lastReset = Date.now();
 
@@ -113,7 +114,7 @@ class LeakyBucket {
 export class MCPp2pSession extends EventEmitter {
   private stream: P2PStream;
   private maxFrameBytes: number;
-  private rateLimiter: LeakyBucket;
+  private rateLimiter: FixedWindowRateLimiter;
   private inFlight: Map<
     string | number,
     { resolve: (r: JsonRpcResponse) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
@@ -136,7 +137,7 @@ export class MCPp2pSession extends EventEmitter {
     super();
     this.stream = stream;
     this.maxFrameBytes = options.maxFrameBytes ?? DEFAULT_MAX_FRAME_BYTES;
-    this.rateLimiter = new LeakyBucket(
+    this.rateLimiter = new FixedWindowRateLimiter(
       options.rateLimitMaxMsgs ?? RATE_LIMIT_MAX_MSGS,
       options.rateLimitWindowMs ?? RATE_LIMIT_WINDOW_MS,
     );

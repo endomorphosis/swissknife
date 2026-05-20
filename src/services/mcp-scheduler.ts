@@ -92,27 +92,12 @@ export class RiskScorer {
 }
 
 function countViolations(node: StoredEventNode): number {
-  // A DENY decision CID in the node indicates a policy violation that still
-  // proceeded (should not happen in a well-behaved system, but we detect it).
-  // By convention, decision CIDs for DENY outcomes contain the prefix 'deny:'.
-  if (
-    node.decision_cid &&
-    node.decision_cid.includes('deny:')
-  ) {
-    return 1;
-  }
-  return 0;
+  // A DENY decision indicates a policy violation that still proceeded.
+  return node.decision_outcome === 'DENY' ? 1 : 0;
 }
 
 function countMissedObligations(node: StoredEventNode): number {
-  // Obligation_spawned decisions carry an 'obligation:' prefix convention.
-  if (
-    node.decision_cid &&
-    node.decision_cid.includes('obligation:overdue:')
-  ) {
-    return 1;
-  }
-  return 0;
+  return node.obligation_overdue ? 1 : 0;
 }
 
 function normaliseScore(factors: RiskFactors): number {

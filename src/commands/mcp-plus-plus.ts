@@ -13,6 +13,9 @@ import { InterfaceRepository } from '../services/mcp-idl.js';
 import { EventDAG } from '../services/event-dag.js';
 import chalk from 'chalk';
 
+/** Number of CID characters to display in listings (truncated for readability). */
+const CID_DISPLAY_LENGTH = 20;
+
 // ---------------------------------------------------------------------------
 // `mcp-plus-plus` top-level command with sub-commands
 // ---------------------------------------------------------------------------
@@ -97,7 +100,7 @@ const mcpPlusPlusCommand: LocalCommand = {
         const lines = cids.map(cid => {
           const desc = repo.getDescriptor(cid);
           const label = desc ? `${desc.name}@${desc.version} (${desc.namespace})` : '<unknown>';
-          return `  ${chalk.cyan(cid.slice(0, 20) + '…')}  ${label}`;
+          return `  ${chalk.cyan(cid.slice(0, CID_DISPLAY_LENGTH) + '…')}  ${label}`;
         });
         return ['Interface Descriptors:', ...lines].join('\n');
       }
@@ -149,7 +152,7 @@ const mcpPlusPlusCommand: LocalCommand = {
       const lines = nodes.map(n => {
         const outputs = n.outputs.join(', ') || 'none';
         return [
-          `  Event: ${chalk.cyan(n.cid.slice(0, 20) + '…')}`,
+          `  Event: ${chalk.cyan(n.cid.slice(0, CID_DISPLAY_LENGTH) + '…')}`,
           `    Interface: ${n.interface_cid.slice(0, 20)}…`,
           `    Outputs:   ${outputs}`,
           `    Timestamp: ${n.timestamp}`,

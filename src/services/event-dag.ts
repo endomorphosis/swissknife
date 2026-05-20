@@ -29,6 +29,10 @@ export interface EventNode {
   proofs: string[];
   /** CID of the policy decision (from temporal deontic evaluation) */
   decision_cid?: string;
+  /** Outcome of the policy decision, if known */
+  decision_outcome?: 'PERMIT' | 'DENY' | 'OBLIGATION_SPAWNED';
+  /** Whether any spawned obligation was overdue at event time */
+  obligation_overdue?: boolean;
   /** CID(s) of the output(s) produced */
   outputs: string[];
   /** Parent event CIDs — establishes causal order without global consensus */

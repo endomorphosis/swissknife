@@ -228,6 +228,7 @@ describe('RiskScorer', () => {
       intent_cid: 'sha256:a' + '0'.repeat(63),
       interface_cid: 'sha256:i' + '0'.repeat(63),
       proofs: [], // no proof → unauthorised
+      decision_outcome: 'PERMIT',
       outputs: [],
       parents: [],
       timestamp: new Date().toISOString(),
@@ -243,6 +244,7 @@ describe('RiskScorer', () => {
       intent_cid: 'sha256:a' + '0'.repeat(63),
       interface_cid: 'sha256:i' + '0'.repeat(63),
       proofs: ['some-proof'],
+      decision_outcome: 'PERMIT',
       outputs: [outputCid],
       parents: [],
       timestamp: new Date().toISOString(),
