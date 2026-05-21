@@ -1,0 +1,180 @@
+# MCP++ Conformance Matrix (Phase 1 Baseline)
+
+**Status:** Draft baseline for implementation kickoff  
+**Last updated:** 2026-05-21  
+**Scope:** SwissKnife MCP++ Profiles A-E with parity tracking against:
+- `endomorphosis/mcp_plus_plus` (spec intent)
+- `endomorphosis/ipfs_accelerate_py` (conformance discipline and rollout gates)
+- `endomorphosis/ipfs_datasets_py` (runtime and security reference patterns)
+
+---
+
+## 1) Baseline Summary
+
+| Profile | Area | SwissKnife Status | Notes |
+|---|---|---|---|
+| A | MCP-IDL interface contracts | PASS | Deterministic canonicalization + CID repository + compat/select APIs implemented and tested. |
+| B | CID-native envelopes & receipts | PASS | Envelope/receipt content addressing and signing path implemented and tested. |
+| C | UCAN capability delegation | PARTIAL | Core token issue/validate/can + revocation present; missing DelegationManager lifecycle and persistent/IPFS-backed delegation graph management. |
+| D | Temporal deontic policy | PASS | Policy registration/evaluation/obligation tracking and decision CID implemented and tested. |
+| E | P2P transport/session | PARTIAL | Session framing, handshake, correlation, and rate limits implemented; missing PubSubBus abstraction and transport hardening parity features from references. |
+
+---
+
+## 2) Detailed Conformance Matrix
+
+### Profile A — MCP-IDL
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| Deterministic canonicalization for descriptors | PASS | `src/services/mcp-idl.ts` (`canonicalize`, `stableStringify`) |
+| Deterministic interface CID generation (`sha256:<hex>`) | PASS | `src/services/mcp-idl.ts` (`computeInterfaceCID`) |
+| Repository APIs (`register/list/get/compat/select`) | PASS | `src/services/mcp-idl.ts` (`InterfaceRepository`) |
+| CLI integration for listing and compatibility checks | PASS | `src/commands/mcp-plus-plus.ts` (`idl list/get/compat`) |
+| Test coverage for determinism and repository behavior | PASS | `test/mcp-plus-plus/mcp-idl.test.ts`, `test/mcp-plus-plus/integration-pipeline.test.ts` |
+
+### Profile B — CID-native artifacts
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| ExecutionEnvelope with content-addressed input/intent/proof | PASS | `src/services/mcp-envelope.ts` (`buildEnvelope`) |
+| ExecutionReceipt with content-addressed output | PASS | `src/services/mcp-envelope.ts` (`buildReceipt`) |
+| Deterministic receipt CID generation | PASS | `src/services/mcp-envelope.ts` (`computeReceiptCID`) |
+| Optional signature flow for receipts | PASS | `src/services/mcp-envelope.ts` (`buildReceipt`) |
+| Test coverage for CID determinism and envelope/receipt lifecycle | PASS | `test/mcp-plus-plus/mcp-envelope.test.ts`, `test/mcp-plus-plus/integration-pipeline.test.ts` |
+
+### Profile C — UCAN delegation
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| UCAN token issue/parse/validate (Ed25519, did:key) | PASS | `src/auth/ucan-auth.ts` |
+| Capability checks with wildcard resource support | PASS | `src/auth/ucan-auth.ts` (`can`) |
+| Proof-chain validation (delegation linkage) | PASS | `src/auth/ucan-auth.ts` (`validateToken`) + `test/mcp-plus-plus/ucan-auth.test.ts` |
+| Revocation registry integration | PASS | `src/auth/ucan-auth.ts` (`UCANRevocationRegistry`, revocation checks) + `test/mcp-plus-plus/transport-and-revocation.test.ts` |
+| Delegation lifecycle manager (merge/reload/query/persistence) parity with references | GAP | Not present (`DelegationManager` pattern from `ipfs_datasets_py` not implemented yet) |
+| Persistent/IPFS-backed delegation state | GAP | Not present |
+| Natural language policy-to-UCAN compilation | GAP | Not present |
+
+### Profile D — Temporal deontic policy
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| Policy model (permissions/prohibitions/obligations/temporal constraints) | PASS | `src/services/mcp-policy.ts` (`Policy`, related types) |
+| Decision engine with deny precedence and temporal checks | PASS | `src/services/mcp-policy.ts` (`evaluatePolicy`) |
+| Obligation tracking and overdue detection | PASS | `src/services/mcp-policy.ts` + `test/mcp-plus-plus/policy-and-scheduler.test.ts` |
+| Deterministic policy decision CID | PASS | `src/services/mcp-policy.ts` (`decision_cid`) |
+| Compliance/audit policy integration (reference parity) | PARTIAL | Core policy engine exists, but `ComplianceChecker`/`PolicyAuditLog` equivalents are missing |
+
+### Profile E — P2P transport/session
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| Length-prefixed framing with max frame guardrails | PASS | `src/services/mcp-p2p-session.ts` (`DEFAULT_MAX_FRAME_BYTES`, frame parsing/writing) |
+| Initialize/initialized handshake flow | PASS | `src/services/mcp-p2p-session.ts` (`handshake`) |
+| Request/response correlation for concurrent in-flight messages | PASS | `src/services/mcp-p2p-session.ts` + `test/mcp-plus-plus/mcp-p2p-session.test.ts` |
+| Rate-limiting of inbound messages | PASS | `src/services/mcp-p2p-session.ts` (`FixedWindowRateLimiter`) |
+| Transport abstraction + factory | PASS | `src/services/mcp-transport.ts` (`MCPTransportFactory`) |
+| Structured PubSubBus lifecycle parity (subscribe/topic mapping/resubscribe metrics) | GAP | Existing `MCPPubSub` exists in `mcp-discovery.ts` but no dedicated `PubSubBus` abstraction matching reference pattern |
+| Hardened recovery semantics (oversize/malformed frame codes, churn backoff policy, explicit state machine) | PARTIAL | Some guardrails and reconnect exist; full hardening/state machine parity is not complete |
+| Capability negotiation/downgrade and stricter handshake gating | PARTIAL | Handshake exists; explicit compatibility negotiation framework not fully formalized |
+
+---
+
+## 3) Reference-Pattern Parity Gaps
+
+### From `ipfs_datasets_py`
+
+1. **DelegationManager parity gap (critical):**  
+   Missing persistent delegation graph management (`add`, `merge`, `active_tokens_by_*`, `reload_from_ipfs`, revocation lifecycle integration).
+
+2. **PubSubBus parity gap (high):**  
+   Missing dedicated bus abstraction with subscription IDs, topic counters, handler hot-swap (`resubscribe`) and topic/subscription introspection.
+
+3. **ComplianceChecker parity gap (high):**  
+   Missing automated compliance checks and backup-oriented operational guardrails.
+
+4. **PolicyAuditLog parity gap (high):**  
+   Missing immutable/append-only audit stream for policy and revocation decisions.
+
+### From `ipfs_accelerate_py`
+
+1. **Spec gap matrix discipline (high):**  
+   No maintained PASS/PARTIAL/GAP matrix with evidence and closure criteria (this document establishes baseline).
+
+2. **Conformance gate and cutover criteria (high):**  
+   No formal release gates tied to test evidence and interoperability checks.
+
+3. **Server/runtime unification rollout approach (medium):**  
+   Staged migration and feature-flag cutover criteria not yet codified for MCP++ runtime hardening.
+
+---
+
+## 4) Critical Gaps Requiring Immediate Attention
+
+Priority order for implementation start:
+
+1. **C1 — Delegation lifecycle management**  
+   Implement `DelegationManager` with persistent store and revocation-aware merge/reload semantics.
+
+2. **E1 — P2P pub/sub operational abstraction**  
+   Introduce `PubSubBus` with deterministic lifecycle control and metrics.
+
+3. **E2 — Transport hardening**  
+   Add explicit state machine, deterministic failure codes, and standardized backoff policy.
+
+4. **D1/C2 — Compliance + audit integration**  
+   Add policy/compliance audit logs and operational traceability primitives.
+
+---
+
+## 5) Conformance Gates for Production Release
+
+### Gate G1 — Baseline correctness (must pass)
+- All Profile A/B/C/D/E MCP++ tests pass:
+  - `test/mcp-plus-plus/mcp-idl.test.ts`
+  - `test/mcp-plus-plus/mcp-envelope.test.ts`
+  - `test/mcp-plus-plus/ucan-auth.test.ts`
+  - `test/mcp-plus-plus/policy-and-scheduler.test.ts`
+  - `test/mcp-plus-plus/mcp-p2p-session.test.ts`
+  - `test/mcp-plus-plus/integration-pipeline.test.ts`
+
+### Gate G2 — Security and delegation parity (must pass)
+- DelegationManager implemented with lifecycle operations.
+- Revocation flows persist and are queryable.
+- UCAN delegation chain tests include merge/reload and persistence scenarios.
+
+### Gate G3 — Transport resilience parity (must pass)
+- Structured PubSubBus abstraction in place.
+- Explicit reconnection/backoff behavior validated.
+- Malformed/oversize frame handling produces deterministic behavior and test coverage.
+
+### Gate G4 — Compliance and auditability (must pass)
+- Compliance and policy audit components implemented.
+- Audit replay path verifies decision/provenance consistency.
+
+### Gate G5 — Interoperability and rollout (must pass)
+- Capability negotiation documented and enforced.
+- Cross-runtime interoperability tests with Python reference behavior added.
+- Feature-flagged rollout path and rollback criteria documented.
+
+---
+
+## 6) Initial Remediation Backlog (Phase 1 Output)
+
+- [ ] Implement `src/auth/delegation-manager.ts` with persistence + merge/reload operations.
+- [ ] Implement `src/services/mcp-pubsub-bus.ts` and adapt `mcp-discovery.ts` integration points.
+- [ ] Introduce transport session state machine + deterministic error taxonomy in `mcp-p2p-session.ts`.
+- [ ] Add compliance and policy audit primitives (`compliance-checker`, `policy-audit-log`).
+- [ ] Add conformance status CLI output (`mcp-plus-plus conformance status`).
+- [ ] Add requirement-to-test mapping doc and keep this matrix updated per merged feature.
+
+---
+
+## 7) Ownership and Update Policy
+
+- Update this matrix on every MCP++ PR that changes Profiles A-E behavior.
+- New entries must include both implementation and test evidence.
+- Status definitions:
+  - **PASS:** Implemented with tests and no known parity blockers.
+  - **PARTIAL:** Implemented but missing parity, hardening, or coverage.
+  - **GAP:** Not implemented or not yet aligned with required behavior.
