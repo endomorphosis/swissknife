@@ -10,7 +10,7 @@
  * References: docs/spec/mcp-idl.md in endomorphosis/Mcp-Plus-Plus
  */
 
-import { createHash } from 'crypto';
+import { createHash, type BinaryLike } from 'crypto';
 
 // ---------------------------------------------------------------------------
 // Types (§4)
@@ -21,10 +21,21 @@ export interface MethodSignature {
   /** Compact JSON Schema (or CID reference to schema) */
   inputSchema?: Record<string, unknown>;
   outputSchema?: Record<string, unknown>;
+  /** MCP++ spec-compatible snake_case aliases */
+  input_schema?: Record<string, unknown>;
+  output_schema?: Record<string, unknown>;
   /** CID-addressed schemas (alternative to inline) */
   inputSchemaCid?: string;
   outputSchemaCid?: string;
+  /** MCP++ spec-compatible snake_case aliases */
+  input_schema_cid?: string;
+  output_schema_cid?: string;
   errorSchemaCids?: string[];
+  error_schema_cids?: string[];
+  eventSchema?: Record<string, unknown>;
+  event_schema?: Record<string, unknown>;
+  eventSchemaCid?: string;
+  event_schema_cid?: string;
   description?: string;
 }
 
@@ -37,6 +48,8 @@ export interface ErrorDefinition {
 export interface CompatibilityMetadata {
   compatibleWith?: string[]; // interface_cid list
   supersedes?: string[];     // interface_cid list
+  /** MCP++ spec-compatible snake_case alias */
+  compatible_with?: string[]; // interface_cid list
 }
 
 export interface ResourceCostHints {
@@ -63,8 +76,14 @@ export interface InterfaceDescriptor {
   semanticTags?: string[];
   observability?: { trace?: boolean; provenance?: boolean };
   interactionPatterns?: { requestResponse?: boolean; eventStreams?: boolean };
+  /** MCP++ spec-compatible snake_case alias */
+  interaction_patterns?: { request_response?: boolean; event_streams?: boolean } | string[];
   resourceCostHints?: ResourceCostHints;
+  /** MCP++ spec-compatible snake_case alias */
+  resource_cost_hints?: ResourceCostHints;
   schemaHash?: string;
+  /** MCP++ spec-compatible snake_case alias */
+  schema_hash?: string;
 }
 
 export interface CompatibilityVerdict {
@@ -111,14 +130,14 @@ function stableStringify(value: unknown): string {
  */
 export function computeInterfaceCID(descriptor: InterfaceDescriptor): string {
   const bytes = canonicalize(descriptor);
-  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  return `sha256:${createHash('sha256').update(bytes as unknown as BinaryLike).digest('hex')}`;
 }
 
 /** Compute a CID for arbitrary bytes / strings. */
 export function computeCID(data: Buffer | Uint8Array | string): string {
   const input =
-    typeof data === 'string' ? Buffer.from(data, 'utf8') : Buffer.from(data);
-  return `sha256:${createHash('sha256').update(input).digest('hex')}`;
+    typeof data === 'string' ? Buffer.from(data, 'utf8') : Buffer.from(data as Uint8Array);
+  return `sha256:${createHash('sha256').update(input as unknown as BinaryLike).digest('hex')}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +229,7 @@ export class InterfaceRepository {
     // Collect alternatives from compatibility metadata
     const allAlts = [
       ...(descriptor.compatibility.compatibleWith ?? []),
+      ...(descriptor.compatibility.compatible_with ?? []),
       ...(descriptor.compatibility.supersedes ?? []),
     ];
     for (const altCid of allAlts) {
