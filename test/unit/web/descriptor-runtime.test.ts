@@ -93,6 +93,10 @@ describe('Descriptor runtime', () => {
   });
 
   test('resolves auto template from descriptor capabilities', () => {
+    const allOperations = ipfsExplorerDescriptor.services.flatMap((service) => service.operations || []);
+    expect(allOperations).toContain('run_inference_job');
+    expect(allOperations).toContain('job_status');
+
     const resolution = resolveDescriptorTemplate(ipfsExplorerDescriptor);
     expect(resolution.template).toBe('job-console');
     expect(resolution.reason).toBe('inference_or_progress_stream_detected');
