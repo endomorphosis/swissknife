@@ -16,7 +16,7 @@ export const ServiceContractSchema = Object.freeze({
 
 export const UIContractSchema = Object.freeze({
     required: ['template', 'window', 'regions'],
-    optional: ['commands', 'menus', 'permissions', 'themeTokens', 'i18n']
+    optional: ['commands', 'menus', 'permissions', 'themeTokens', 'i18n', 'template_candidates', 'generation_policy']
 });
 
 export const DataContractSchema = Object.freeze({

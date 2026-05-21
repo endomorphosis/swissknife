@@ -29,6 +29,11 @@ function renderStatusBanner(policyState = 'ready') {
     return `<div class="descriptor-status-banner">${map[policyState] || map.ready}</div>`;
 }
 
+function renderTemplateHint(templateReason = '') {
+    if (!templateReason) return '';
+    return `<div class="descriptor-template-hint">Template policy: ${escapeHtml(templateReason)}</div>`;
+}
+
 const TemplateRenderers = {
     explorer(ctx) {
         return `
@@ -37,6 +42,7 @@ const TemplateRenderers = {
                 <div class="descriptor-header">
                     <h2>${escapeHtml(ctx.title)}</h2>
                     <p>${escapeHtml(ctx.description || '')}</p>
+                    ${renderTemplateHint(ctx.templateReason)}
                 </div>
                 <div class="descriptor-toolbar">
                     ${(ctx.commands || []).map((cmd) => `
@@ -68,6 +74,7 @@ const TemplateRenderers = {
                 <div class="descriptor-header">
                     <h2>${escapeHtml(ctx.title)}</h2>
                     <p>${escapeHtml(ctx.description || '')}</p>
+                    ${renderTemplateHint(ctx.templateReason)}
                 </div>
                 <div class="descriptor-grid">
                     ${(ctx.regions || []).map((region) => `

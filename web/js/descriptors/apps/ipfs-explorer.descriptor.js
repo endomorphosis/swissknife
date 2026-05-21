@@ -34,7 +34,12 @@ export const ipfsExplorerDescriptor = {
         }
     ],
     ui: {
-        template: 'explorer',
+        template: 'auto',
+        template_candidates: ['explorer', 'job-console', 'form-wizard'],
+        generation_policy: {
+            mode: 'capability_inferred',
+            objective: 'dataset_and_inference_workflows'
+        },
         window: {
             title: 'IPFS Explorer',
             icon: '🌐',

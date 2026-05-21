@@ -35,6 +35,11 @@ export const mcpControlDescriptor = {
     ],
     ui: {
         template: 'dashboard',
+        template_candidates: ['dashboard', 'explorer'],
+        generation_policy: {
+            mode: 'explicit_preferred',
+            objective: 'registry_and_transport_control'
+        },
         window: {
             title: 'MCP Control',
             icon: '🔌',

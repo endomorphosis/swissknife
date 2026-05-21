@@ -1,6 +1,7 @@
 import { validateDescriptor } from './idl-contracts.js';
 import { renderTemplate } from './ui-templates.js';
 import { OrbClient } from './orb-client.js';
+import { resolveDescriptorTemplate } from './template-policy.js';
 
 export class DescriptorAppRuntime {
     constructor(options = {}) {
@@ -100,13 +101,15 @@ export class DescriptorAppRuntime {
             }
         }
 
-        const html = renderTemplate(descriptor.ui.template, {
+        const templateResolution = resolveDescriptorTemplate(descriptor);
+        const html = renderTemplate(templateResolution.template, {
             title: descriptor.ui.window.title || descriptor.meta.name,
             description: descriptor.meta.description,
             regions: descriptor.ui.regions || [],
             commands: descriptor.ui.commands || [],
             services: serviceStatuses,
-            policyState: 'ready'
+            policyState: 'ready',
+            templateReason: templateResolution.reason
         });
 
         if (options.contentElement) {
@@ -115,9 +118,19 @@ export class DescriptorAppRuntime {
         }
 
         await this.scheduleStartStreams(appId, descriptor, correlationId);
-        this.recordReplay(appId, 'rendered', { serviceStatuses }, correlationId);
+        this.recordReplay(appId, 'rendered', {
+            serviceStatuses,
+            template: templateResolution.template,
+            templateReason: templateResolution.reason
+        }, correlationId);
 
-        return { html, state, correlationId };
+        return {
+            html,
+            state,
+            correlationId,
+            template: templateResolution.template,
+            templateReason: templateResolution.reason
+        };
     }
 
     bindActions(appId, descriptor, container, correlationId) {
