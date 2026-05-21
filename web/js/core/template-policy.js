@@ -44,7 +44,7 @@ export function resolveDescriptorTemplate(descriptor = {}) {
 
     if (
         hasAny(capabilities.operations, ['browse_datasets', 'get_dataset', 'index_dataset', 'pin_content', 'publish_content']) ||
-        hasAny(capabilities.streams, ['dataset_index_progress', 'dataset_sync_events', 'notifications/resources/list_changed'])
+        hasAny(capabilities.streams, ['dataset_index_progress', 'dataset_sync_events'])
     ) {
         return {
             template: 'explorer',

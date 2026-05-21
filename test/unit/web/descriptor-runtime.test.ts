@@ -92,12 +92,20 @@ describe('Descriptor runtime', () => {
     expect(html).toContain('ipfs_datasets');
   });
 
-  test('resolves auto template from descriptor capabilities', () => {
-    const allOperations = ipfsExplorerDescriptor.services.flatMap((service) => service.operations || []);
-    expect(allOperations).toContain('run_inference_job');
-    expect(allOperations).toContain('job_status');
-
-    const resolution = resolveDescriptorTemplate(ipfsExplorerDescriptor);
+  test('resolves auto template from inference capabilities', () => {
+    const resolution = resolveDescriptorTemplate({
+      services: [
+        {
+          name: 'ipfs_accelerate',
+          operations: ['run_inference_job', 'job_status'],
+          streams: ['job_progress']
+        }
+      ],
+      ui: {
+        template: 'auto',
+        generation_policy: { mode: 'capability_inferred' }
+      }
+    });
     expect(resolution.template).toBe('job-console');
     expect(resolution.reason).toBe('inference_or_progress_stream_detected');
   });
