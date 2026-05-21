@@ -49,14 +49,14 @@ export function resolveDescriptorTemplate(descriptor = {}) {
     if (hasInferenceOperations) {
         return {
             template: 'job-console',
-            reason: hasInferenceStreams ? 'inference_or_progress_stream_detected' : 'inference_capabilities_detected'
+            reason: hasInferenceStreams ? 'inference_operations_with_streams' : 'inference_operations_only'
         };
     }
 
     if (hasExplorerOperations) {
         return {
             template: 'explorer',
-            reason: hasExplorerStreams ? 'content_exploration_capabilities_detected' : 'content_exploration_operations_detected'
+            reason: hasExplorerStreams ? 'content_exploration_with_streams' : 'content_exploration_operations_only'
         };
     }
 

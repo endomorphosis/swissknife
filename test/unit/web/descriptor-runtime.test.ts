@@ -107,7 +107,7 @@ describe('Descriptor runtime', () => {
       }
     });
     expect(resolution.template).toBe('job-console');
-    expect(resolution.reason).toBe('inference_or_progress_stream_detected');
+    expect(resolution.reason).toBe('inference_operations_with_streams');
   });
 
   test('renderApp returns resolved template metadata', async () => {
@@ -133,7 +133,7 @@ describe('Descriptor runtime', () => {
     const runtime = new DescriptorAppRuntime({ descriptors: [descriptor] });
     const result = await runtime.renderApp('auto-template-app');
     expect(result.template).toBe('job-console');
-    expect(result.templateReason).toBe('inference_or_progress_stream_detected');
-    expect(result.html).toContain('Template policy: inference_or_progress_stream_detected');
+    expect(result.templateReason).toBe('inference_operations_with_streams');
+    expect(result.html).toContain('Template policy: inference_operations_with_streams');
   });
 });
