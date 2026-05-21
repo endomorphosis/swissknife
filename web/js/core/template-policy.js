@@ -1,4 +1,14 @@
 const DEFAULT_TEMPLATE = 'dashboard';
+const INFERENCE_OPERATIONS = Object.freeze(['run_inference_job', 'job_status']);
+const INFERENCE_STREAMS = Object.freeze(['job_progress', 'hardware_telemetry']);
+const EXPLORER_OPERATIONS = Object.freeze([
+    'browse_datasets',
+    'get_dataset',
+    'index_dataset',
+    'pin_content',
+    'publish_content'
+]);
+const EXPLORER_STREAMS = Object.freeze(['dataset_index_progress', 'dataset_sync_events']);
 
 function collectCapabilities(descriptor = {}) {
     const services = Array.isArray(descriptor.services) ? descriptor.services : [];
@@ -33,8 +43,8 @@ export function resolveDescriptorTemplate(descriptor = {}) {
     const capabilities = collectCapabilities(descriptor);
 
     if (
-        hasAny(capabilities.operations, ['run_inference_job', 'job_status']) ||
-        hasAny(capabilities.streams, ['job_progress', 'hardware_telemetry'])
+        hasAny(capabilities.operations, INFERENCE_OPERATIONS) ||
+        hasAny(capabilities.streams, INFERENCE_STREAMS)
     ) {
         return {
             template: 'job-console',
@@ -43,8 +53,8 @@ export function resolveDescriptorTemplate(descriptor = {}) {
     }
 
     if (
-        hasAny(capabilities.operations, ['browse_datasets', 'get_dataset', 'index_dataset', 'pin_content', 'publish_content']) ||
-        hasAny(capabilities.streams, ['dataset_index_progress', 'dataset_sync_events'])
+        hasAny(capabilities.operations, EXPLORER_OPERATIONS) ||
+        hasAny(capabilities.streams, EXPLORER_STREAMS)
     ) {
         return {
             template: 'explorer',
