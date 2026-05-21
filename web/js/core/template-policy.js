@@ -41,24 +41,22 @@ export function resolveDescriptorTemplate(descriptor = {}) {
     }
 
     const capabilities = collectCapabilities(descriptor);
+    const hasInferenceOperations = hasAny(capabilities.operations, INFERENCE_OPERATIONS);
+    const hasExplorerOperations = hasAny(capabilities.operations, EXPLORER_OPERATIONS);
+    const hasInferenceStreams = hasAny(capabilities.streams, INFERENCE_STREAMS);
+    const hasExplorerStreams = hasAny(capabilities.streams, EXPLORER_STREAMS);
 
-    if (
-        hasAny(capabilities.operations, INFERENCE_OPERATIONS) ||
-        hasAny(capabilities.streams, INFERENCE_STREAMS)
-    ) {
+    if (hasInferenceOperations) {
         return {
             template: 'job-console',
-            reason: 'inference_or_progress_stream_detected'
+            reason: hasInferenceStreams ? 'inference_or_progress_stream_detected' : 'inference_capabilities_detected'
         };
     }
 
-    if (
-        hasAny(capabilities.operations, EXPLORER_OPERATIONS) ||
-        hasAny(capabilities.streams, EXPLORER_STREAMS)
-    ) {
+    if (hasExplorerOperations) {
         return {
             template: 'explorer',
-            reason: 'content_exploration_capabilities_detected'
+            reason: hasExplorerStreams ? 'content_exploration_capabilities_detected' : 'content_exploration_operations_detected'
         };
     }
 
