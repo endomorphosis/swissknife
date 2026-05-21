@@ -24,7 +24,7 @@ function collectCapabilities(descriptor = {}) {
     };
 }
 
-function hasAny(values, probes) {
+function includesAny(values, probes) {
     return probes.some((probe) => values.includes(probe));
 }
 
@@ -41,10 +41,10 @@ export function resolveDescriptorTemplate(descriptor = {}) {
     }
 
     const capabilities = collectCapabilities(descriptor);
-    const hasInferenceOperations = hasAny(capabilities.operations, INFERENCE_OPERATIONS);
-    const hasExplorerOperations = hasAny(capabilities.operations, EXPLORER_OPERATIONS);
-    const hasInferenceStreams = hasAny(capabilities.streams, INFERENCE_STREAMS);
-    const hasExplorerStreams = hasAny(capabilities.streams, EXPLORER_STREAMS);
+    const hasInferenceOperations = includesAny(capabilities.operations, INFERENCE_OPERATIONS);
+    const hasExplorerOperations = includesAny(capabilities.operations, EXPLORER_OPERATIONS);
+    const hasInferenceStreams = includesAny(capabilities.streams, INFERENCE_STREAMS);
+    const hasExplorerStreams = includesAny(capabilities.streams, EXPLORER_STREAMS);
 
     if (hasInferenceOperations) {
         return {
