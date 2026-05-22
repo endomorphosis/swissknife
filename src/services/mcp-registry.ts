@@ -302,6 +302,10 @@ logError('MCP server updated', {
       });
       
       this.emit('server:registered', name, config.version, config);
+
+      // MCP++ Phase 3: Auto-publish an Interface Descriptor for this server
+      // when IDL is enabled.  This is fire-and-forget (best-effort).
+      this.publishIDLDescriptor(name, config);
     }
     
     // Validate traffic percentages
@@ -1112,5 +1116,45 @@ logError('MCP server updated', {
     
     // Also remove all listeners
     this.removeAllListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // MCP++ Phase 3 — IDL auto-publish
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Publish a minimal Interface Descriptor for a server to the shared
+   * InterfaceRepository when `mcpPlusPlus.enableIDL` is enabled.
+   *
+   * This is fire-and-forget: failures are swallowed so that registry
+   * operations are never blocked by optional MCP++ features.
+   */
+  private publishIDLDescriptor(
+    name: string,
+    config: VersionedServerConfig,
+  ): void {
+    const cfg = getGlobalConfig().mcpPlusPlus ?? {};
+    if (!cfg.enableIDL) return;
+
+    // Defer to keep the hot path synchronous
+    Promise.resolve().then(async () => {
+      try {
+        const { InterfaceRepository } = await import('./mcp-idl.js') as typeof import('./mcp-idl.js');
+        const repo = InterfaceRepository.getSharedInstance();
+        const descriptor = {
+          name,
+          namespace: 'mcp-server',
+          version: config.version,
+          methods: [],          // Tool-level methods are added later via getMCPTools()
+          errors: [],
+          requires: cfg.enableUCAN ? ['mcp++/ucan'] : [],
+          compatibility: {},
+          semanticTags: ['mcp-server'],
+        };
+        repo.register(descriptor);
+      } catch {
+        // IDL unavailable or descriptor already registered — ignore
+      }
+    });
   }
 }
