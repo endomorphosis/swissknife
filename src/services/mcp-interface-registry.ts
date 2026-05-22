@@ -11,6 +11,11 @@ import {
   type MCPUIProfileDescriptor,
   type TemplateSelection,
 } from './mcp-ui-profile.js';
+import {
+  verifyMCPUIProfileDescriptorTrust,
+  type MCPUIDescriptorTrustPolicy,
+  type MCPUIDescriptorTrustResult,
+} from './mcp-descriptor-trust.js';
 
 export const MCP_INTERFACE_METHODS = {
   list: 'interfaces/list',
@@ -44,6 +49,7 @@ export interface LaunchResolutionRequest {
   preferred_version?: string;
   required_methods?: string[];
   allow_compatibility_fallback?: boolean;
+  trust_policy?: MCPUIDescriptorTrustPolicy;
 }
 
 export interface LaunchResolution {
@@ -51,6 +57,7 @@ export interface LaunchResolution {
   descriptor: MCPUIProfileDescriptor;
   compatibility: CompatibilityVerdict;
   template: TemplateSelection;
+  trust: MCPUIDescriptorTrustResult;
   fallback: boolean;
   reason: string;
 }
@@ -138,7 +145,8 @@ export class MCPInterfaceDiscoveryRegistry {
       .filter((entry): entry is DiscoveredInterface & { ui_profile: MCPUIProfileDescriptor; template: TemplateSelection } => {
         return entry.ui_profile !== undefined && entry.template !== undefined;
       })
-      .filter(entry => matchesLaunchRequest(entry.ui_profile, request));
+      .filter(entry => matchesLaunchRequest(entry.ui_profile, request))
+      .filter(entry => trustAllowsLaunch(entry.ui_profile, request.trust_policy));
 
     const compatible = candidates
       .filter(entry => entry.compatible)
@@ -154,6 +162,7 @@ export class MCPInterfaceDiscoveryRegistry {
         descriptor: selected.ui_profile,
         compatibility: selected.compatibility,
         template: selected.template,
+        trust: verifyMCPUIProfileDescriptorTrust(selected.ui_profile, request.trust_policy),
         fallback: exact === undefined && request.preferred_version !== undefined,
         reason: exact ? 'preferred version matched' : 'latest compatible descriptor selected',
       };
@@ -216,6 +225,9 @@ export class MCPInterfaceDiscoveryRegistry {
       if (!matchesLaunchRequest(uiDescriptor, { ...request, preferred_version: undefined })) {
         continue;
       }
+      if (!trustAllowsLaunch(uiDescriptor, request.trust_policy)) {
+        continue;
+      }
       const compatibility = await this.backend.compat(cid);
       if (!compatibility.compatible) {
         continue;
@@ -225,6 +237,7 @@ export class MCPInterfaceDiscoveryRegistry {
         descriptor: uiDescriptor,
         compatibility,
         template: selectTemplateForDescriptor(uiDescriptor),
+        trust: verifyMCPUIProfileDescriptorTrust(uiDescriptor, request.trust_policy),
         fallback: true,
         reason: 'compatibility fallback selected',
       };
@@ -232,6 +245,13 @@ export class MCPInterfaceDiscoveryRegistry {
 
     return null;
   }
+}
+
+function trustAllowsLaunch(
+  descriptor: MCPUIProfileDescriptor,
+  policy?: MCPUIDescriptorTrustPolicy,
+): boolean {
+  return verifyMCPUIProfileDescriptorTrust(descriptor, policy).launch_allowed;
 }
 
 function matchesLaunchRequest(

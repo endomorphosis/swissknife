@@ -373,6 +373,81 @@ const TELEMETRY_OUTPUT_SCHEMA = {
   required: ['correlation_id', 'events'],
 };
 
+const WORKFLOW_SELECT_DATASET_INPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    root_cid: CID_SCHEMA,
+    path: { type: 'string', default: '/' },
+    query: { type: 'string' },
+  },
+};
+
+const WORKFLOW_SELECT_DATASET_OUTPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    correlation_id: CORRELATION_ID_SCHEMA,
+    dataset_cid: CID_SCHEMA,
+    dataset_id: { type: 'string' },
+    path: { type: 'string' },
+    provenance: PROVENANCE_SCHEMA,
+  },
+  required: ['correlation_id', 'dataset_cid'],
+};
+
+const WORKFLOW_PIN_DATASET_INPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    correlation_id: CORRELATION_ID_SCHEMA,
+    dataset_cid: CID_SCHEMA,
+    recursive: { type: 'boolean', default: true },
+  },
+  required: ['correlation_id', 'dataset_cid'],
+};
+
+const WORKFLOW_PIN_DATASET_OUTPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    correlation_id: CORRELATION_ID_SCHEMA,
+    job_id: { type: 'string' },
+    pinned_cid: CID_SCHEMA,
+    status: { type: 'string', enum: ['queued', 'running', 'completed'] },
+    provenance: PROVENANCE_SCHEMA,
+  },
+  required: ['correlation_id', 'pinned_cid', 'status'],
+};
+
+const WORKFLOW_PUBLISH_ARTIFACT_INPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    correlation_id: CORRELATION_ID_SCHEMA,
+    job_id: { type: 'string' },
+    artifact_cid: CID_SCHEMA,
+    destination: { type: 'string', enum: ['ipfs', 'ipns', 'car'] },
+    metadata: {
+      type: 'object',
+      additionalProperties: true,
+    },
+  },
+  required: ['correlation_id', 'artifact_cid', 'destination'],
+};
+
+const WORKFLOW_PUBLISH_ARTIFACT_OUTPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    correlation_id: CORRELATION_ID_SCHEMA,
+    publication_id: { type: 'string' },
+    artifact_cid: CID_SCHEMA,
+    provenance: PROVENANCE_SCHEMA,
+  },
+  required: ['correlation_id', 'publication_id', 'artifact_cid'],
+};
+
 export const ipfsDatasetsUIProfileDescriptor: MCPUIProfileDescriptor = {
   name: 'ipfs-datasets-workbench',
   namespace: 'org.endomorphosis.ipfs_datasets_py',
@@ -771,9 +846,315 @@ export const ipfsAccelerateUIProfileDescriptor: MCPUIProfileDescriptor = {
   },
 };
 
+export const ipfsDatasetInferenceWorkflowDescriptor: MCPUIProfileDescriptor = {
+  name: 'ipfs-dataset-inference-workflow',
+  namespace: 'org.endomorphosis.ipfs_workflows.dataset_inference',
+  version: '0.1.0',
+  methods: [
+    {
+      name: 'select_dataset',
+      input_schema: WORKFLOW_SELECT_DATASET_INPUT_SCHEMA,
+      output_schema: WORKFLOW_SELECT_DATASET_OUTPUT_SCHEMA,
+      description: 'Select a dataset CID or path as the source for a generated inference workflow.',
+    },
+    {
+      name: 'pin_dataset',
+      input_schema: WORKFLOW_PIN_DATASET_INPUT_SCHEMA,
+      output_schema: WORKFLOW_PIN_DATASET_OUTPUT_SCHEMA,
+      event_schema: DATASET_PROGRESS_EVENT_SCHEMA,
+      description: 'Pin the selected dataset CID before inference.',
+    },
+    {
+      name: 'run_inference_job',
+      input_schema: INFERENCE_JOB_INPUT_SCHEMA,
+      output_schema: INFERENCE_JOB_OUTPUT_SCHEMA,
+      event_schema: TELEMETRY_EVENT_SCHEMA,
+      description: 'Run inference against the pinned dataset artifact.',
+    },
+    {
+      name: 'job_status',
+      input_schema: JOB_STATUS_INPUT_SCHEMA,
+      output_schema: JOB_STATUS_OUTPUT_SCHEMA,
+      event_schema: TELEMETRY_EVENT_SCHEMA,
+      description: 'Track inference job status and output artifact state.',
+    },
+    {
+      name: 'publish_artifact',
+      input_schema: WORKFLOW_PUBLISH_ARTIFACT_INPUT_SCHEMA,
+      output_schema: WORKFLOW_PUBLISH_ARTIFACT_OUTPUT_SCHEMA,
+      event_schema: DATASET_PROGRESS_EVENT_SCHEMA,
+      description: 'Publish the inference artifact back to an IPFS destination.',
+    },
+    {
+      name: 'telemetry',
+      input_schema: TELEMETRY_INPUT_SCHEMA,
+      output_schema: TELEMETRY_OUTPUT_SCHEMA,
+      event_schema: TELEMETRY_EVENT_SCHEMA,
+      description: 'Subscribe to workflow telemetry across dataset and compute operations.',
+    },
+  ],
+  errors: [
+    { name: 'DatasetNotFound', code: 404 },
+    { name: 'InvalidCID', code: 422 },
+    { name: 'HardwareUnavailable', code: 503 },
+    { name: 'InferenceFailed', code: 500 },
+    { name: 'WorkflowCompensationFailed', code: 500 },
+    { name: 'PermissionDenied', code: 403 },
+  ],
+  requires: [],
+  compatibility: {
+    compatible_with: [],
+    supersedes: [],
+  },
+  semanticTags: ['ipfs', 'dataset', 'inference', 'workflow', 'mcp++', 'generated-ui'],
+  observability: { trace: true, provenance: true },
+  interaction_patterns: { request_response: true, event_streams: true },
+  resource_cost_hints: {
+    tokensPerCall: 768,
+    latencyMs: 800,
+    bytesPerCall: 12288,
+  },
+  meta: {
+    profile: SWISSKNIFE_MCP_UI_PROFILE,
+    profile_version: SWISSKNIFE_MCP_UI_PROFILE_VERSION,
+    app_id: 'ipfs-dataset-inference-workflow',
+    title: 'IPFS Dataset Inference Workflow',
+    description: 'Generated workflow that selects a dataset, pins it, runs inference, and publishes artifacts.',
+    publisher: 'endomorphosis',
+    icon: 'git-branch',
+  },
+  services: [
+    {
+      id: 'datasets',
+      interface_type: 'dataset',
+      transport: 'mcp-server',
+      endpoint: 'mcp://ipfs_datasets_py',
+      operations: ['select_dataset', 'pin_dataset', 'publish_artifact'],
+    },
+    {
+      id: 'accelerate',
+      interface_type: 'compute',
+      transport: 'mcp-server',
+      endpoint: 'mcp://ipfs_accelerate_py',
+      operations: ['run_inference_job', 'job_status', 'telemetry'],
+    },
+  ],
+  ui: {
+    primary_template: 'graph-viewer',
+    templates: [
+      {
+        kind: 'graph-viewer',
+        title: 'Workflow Graph',
+        operations: ['select_dataset', 'pin_dataset', 'run_inference_job', 'publish_artifact'],
+        regions: [
+          { id: 'workflow-graph', kind: 'graph', operation: 'publish_artifact' },
+          { id: 'workflow-provenance', kind: 'provenance', operation: 'publish_artifact' },
+        ],
+      },
+      {
+        kind: 'job-console',
+        title: 'Workflow Jobs',
+        operations: ['pin_dataset', 'run_inference_job', 'job_status', 'telemetry'],
+        regions: [
+          { id: 'workflow-job-status', kind: 'status', operation: 'job_status' },
+          { id: 'workflow-telemetry', kind: 'timeline', operation: 'telemetry' },
+        ],
+      },
+    ],
+    sections: [
+      { id: 'workflow-graph', title: 'Workflow Graph', kind: 'graph', operation: 'publish_artifact' },
+      { id: 'workflow-command', title: 'Workflow Command', kind: 'form', operation: 'select_dataset' },
+      { id: 'workflow-jobs', title: 'Workflow Jobs', kind: 'timeline', operation: 'job_status' },
+      { id: 'workflow-audit', title: 'Workflow Audit', kind: 'audit', operation: 'publish_artifact' },
+    ],
+  },
+  data_contracts: {
+    operations: [
+      {
+        method: 'select_dataset',
+        title: 'Select Dataset',
+        input_schema: WORKFLOW_SELECT_DATASET_INPUT_SCHEMA,
+        output_schema: WORKFLOW_SELECT_DATASET_OUTPUT_SCHEMA,
+        idempotent: true,
+      },
+      {
+        method: 'pin_dataset',
+        title: 'Pin Dataset',
+        input_schema: WORKFLOW_PIN_DATASET_INPUT_SCHEMA,
+        output_schema: WORKFLOW_PIN_DATASET_OUTPUT_SCHEMA,
+        stream: {
+          kind: 'progress',
+          event_schema: DATASET_PROGRESS_EVENT_SCHEMA,
+          correlation_id_field: 'correlation_id',
+          generation_key: 'workflow_dataset_pin_generation',
+        },
+        retry_policy: { max_attempts: 3, backoff_ms: 1000 },
+      },
+      {
+        method: 'run_inference_job',
+        title: 'Run Inference Job',
+        input_schema: INFERENCE_JOB_INPUT_SCHEMA,
+        output_schema: INFERENCE_JOB_OUTPUT_SCHEMA,
+        stream: {
+          kind: 'job-status',
+          event_schema: TELEMETRY_EVENT_SCHEMA,
+          correlation_id_field: 'correlation_id',
+          generation_key: 'workflow_inference_generation',
+        },
+        retry_policy: { max_attempts: 1, backoff_ms: 0 },
+      },
+      {
+        method: 'job_status',
+        title: 'Job Status',
+        input_schema: JOB_STATUS_INPUT_SCHEMA,
+        output_schema: JOB_STATUS_OUTPUT_SCHEMA,
+        stream: {
+          kind: 'job-status',
+          event_schema: TELEMETRY_EVENT_SCHEMA,
+          correlation_id_field: 'correlation_id',
+          generation_key: 'workflow_job_status_generation',
+        },
+        idempotent: true,
+      },
+      {
+        method: 'publish_artifact',
+        title: 'Publish Artifact',
+        input_schema: WORKFLOW_PUBLISH_ARTIFACT_INPUT_SCHEMA,
+        output_schema: WORKFLOW_PUBLISH_ARTIFACT_OUTPUT_SCHEMA,
+        stream: {
+          kind: 'progress',
+          event_schema: DATASET_PROGRESS_EVENT_SCHEMA,
+          correlation_id_field: 'correlation_id',
+          generation_key: 'workflow_artifact_publish_generation',
+        },
+        retry_policy: { max_attempts: 2, backoff_ms: 1000 },
+      },
+      {
+        method: 'telemetry',
+        title: 'Telemetry',
+        input_schema: TELEMETRY_INPUT_SCHEMA,
+        output_schema: TELEMETRY_OUTPUT_SCHEMA,
+        stream: {
+          kind: 'telemetry',
+          event_schema: TELEMETRY_EVENT_SCHEMA,
+          correlation_id_field: 'correlation_id',
+          generation_key: 'workflow_telemetry_generation',
+        },
+        idempotent: true,
+      },
+    ],
+    schemas: {
+      DatasetProgressEvent: DATASET_PROGRESS_EVENT_SCHEMA,
+      InferenceTelemetryEvent: TELEMETRY_EVENT_SCHEMA,
+      Provenance: PROVENANCE_SCHEMA,
+    },
+  },
+  permissions: {
+    default_deny: true,
+    operations: {
+      select_dataset: ['dataset/read'],
+      pin_dataset: ['dataset/pin'],
+      run_inference_job: ['compute/run', 'dataset/read'],
+      job_status: ['compute/read', 'artifact/read'],
+      publish_artifact: ['artifact/publish', 'dataset/publish'],
+      telemetry: ['compute/read', 'compute/telemetry'],
+    },
+  },
+  state_model: {
+    keys: [
+      'workflow_graph',
+      'workflow_correlation_id',
+      'selected_dataset_cid',
+      'pinned_dataset_cid',
+      'inference_job_id',
+      'artifact_cid',
+      'publication_id',
+      'provenance_by_correlation_id',
+    ],
+    events: [
+      'workflow.dataset.selected',
+      'workflow.dataset.pinned',
+      'workflow.inference.started',
+      'workflow.inference.progress',
+      'workflow.artifact.published',
+      'workflow.compensation.requested',
+    ],
+    projections: ['workflow_graph', 'workflow_job_timeline', 'workflow_audit_region'],
+    replay: true,
+  },
+  workflow_graph: {
+    id: 'dataset-inference-artifact-publish',
+    title: 'Dataset Inference Artifact Publish',
+    description: 'Select dataset -> pin dataset -> run inference -> publish artifact.',
+    shared_state_keys: [
+      'workflow_correlation_id',
+      'selected_dataset_cid',
+      'pinned_dataset_cid',
+      'inference_job_id',
+      'artifact_cid',
+      'publication_id',
+    ],
+    steps: [
+      {
+        id: 'select_dataset',
+        title: 'Select Dataset',
+        operation: 'select_dataset',
+        service_id: 'datasets',
+        write_state_keys: ['workflow_correlation_id', 'selected_dataset_cid'],
+      },
+      {
+        id: 'pin_dataset',
+        title: 'Pin Dataset',
+        operation: 'pin_dataset',
+        service_id: 'datasets',
+        depends_on: ['select_dataset'],
+        read_state_keys: ['workflow_correlation_id', 'selected_dataset_cid'],
+        write_state_keys: ['pinned_dataset_cid'],
+        compensation: {
+          operation: 'publish_artifact',
+          service_id: 'datasets',
+          state_keys: ['workflow_correlation_id', 'pinned_dataset_cid'],
+          reason: 'Publish a failure marker or replacement artifact if pinning cannot complete.',
+        },
+      },
+      {
+        id: 'run_inference',
+        title: 'Run Inference',
+        operation: 'run_inference_job',
+        service_id: 'accelerate',
+        depends_on: ['pin_dataset'],
+        read_state_keys: ['workflow_correlation_id', 'pinned_dataset_cid'],
+        write_state_keys: ['inference_job_id'],
+        rollback: {
+          operation: 'job_status',
+          service_id: 'accelerate',
+          state_keys: ['workflow_correlation_id', 'inference_job_id'],
+          reason: 'Recover or mark the active inference job before retrying.',
+        },
+      },
+      {
+        id: 'publish_artifact',
+        title: 'Publish Artifact',
+        operation: 'publish_artifact',
+        service_id: 'datasets',
+        depends_on: ['run_inference'],
+        read_state_keys: ['workflow_correlation_id', 'inference_job_id', 'artifact_cid'],
+        write_state_keys: ['publication_id'],
+        compensation: {
+          operation: 'publish_artifact',
+          service_id: 'datasets',
+          state_keys: ['workflow_correlation_id', 'artifact_cid', 'publication_id'],
+          reason: 'Publish a corrected artifact or failure marker after a failed publication.',
+        },
+      },
+    ],
+  },
+};
+
 export const IPFS_MCP_UI_PROFILE_DESCRIPTORS: MCPUIProfileDescriptor[] = [
   ipfsDatasetsUIProfileDescriptor,
   ipfsAccelerateUIProfileDescriptor,
+  ipfsDatasetInferenceWorkflowDescriptor,
 ];
 
 export function getIPFSMCPUIProfileDescriptors(): MCPUIProfileDescriptor[] {

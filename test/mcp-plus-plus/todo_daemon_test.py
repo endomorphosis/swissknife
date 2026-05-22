@@ -114,6 +114,46 @@ class TodoDaemonTest(unittest.TestCase):
         self.assertEqual(todo_daemon.find_task(tasks, "MCPUI-B")["status"], "pending")
         self.assertFalse(self.state_file.exists())
 
+    def test_backend_sync_mirrors_stable_task_ids_and_dependencies(self):
+        backend_file = self.root / "backend.json"
+        tasks = todo_daemon.load_tasks(self.todo_file)
+
+        state = todo_daemon.sync_backend_mirror(tasks, backend_file, self.root)
+
+        self.assertTrue(backend_file.exists())
+        self.assertEqual(state["tasks"]["MCPUI-B"]["backend_task_id"], "swissknife:mcp-ui:MCPUI-B")
+        self.assertEqual(
+            state["tasks"]["MCPUI-B"]["dependencies"],
+            ["swissknife:mcp-ui:MCPUI-A"],
+        )
+        self.assertIn("backend", state)
+
+    def test_claim_and_complete_keep_backend_mirror_consistent(self):
+        backend_file = self.root / "backend.json"
+
+        claimed = todo_daemon.claim_task(
+            None,
+            "worker-1",
+            self.todo_file,
+            self.state_file,
+            backend_file,
+            self.root,
+        )
+        backend_after_claim = json.loads(backend_file.read_text())
+        self.assertEqual(backend_after_claim["tasks"][claimed["id"]]["status"], "in_progress")
+
+        todo_daemon.complete_task(
+            claimed["id"],
+            "worker-1",
+            "done",
+            self.todo_file,
+            self.state_file,
+            backend_file,
+            self.root,
+        )
+        backend_after_complete = json.loads(backend_file.read_text())
+        self.assertEqual(backend_after_complete["tasks"][claimed["id"]]["status"], "done")
+
 
 if __name__ == "__main__":
     unittest.main()

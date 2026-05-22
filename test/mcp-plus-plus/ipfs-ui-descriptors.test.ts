@@ -7,8 +7,10 @@ import {
   IPFS_MCP_UI_PROFILE_DESCRIPTORS,
   getIPFSMCPUIProfileDescriptors,
   ipfsAccelerateUIProfileDescriptor,
+  ipfsDatasetInferenceWorkflowDescriptor,
   ipfsDatasetsUIProfileDescriptor,
 } from '../../src/services/mcp-ipfs-ui-descriptors';
+import { generateSchemaDrivenUI } from '../../src/services/mcp-schema-ui-generator';
 import {
   selectTemplateForDescriptor,
   validateMCPUIProfileDescriptor,
@@ -44,6 +46,24 @@ describe('IPFS MCP++ UI descriptor fixtures', () => {
     expect(methods).toEqual(new Set(['hardware_profile', 'run_inference_job', 'job_status', 'telemetry']));
     expect(streamKinds).toEqual(['job-status', 'job-status', 'telemetry']);
     expect(selectTemplateForDescriptor(ipfsAccelerateUIProfileDescriptor).kind).toBe('job-console');
+  });
+
+  it('models a composed dataset to inference to artifact publish workflow graph', () => {
+    const workflow = ipfsDatasetInferenceWorkflowDescriptor.workflow_graph;
+    const generated = generateSchemaDrivenUI(ipfsDatasetInferenceWorkflowDescriptor);
+
+    expect(workflow?.steps.map(step => step.id)).toEqual([
+      'select_dataset',
+      'pin_dataset',
+      'run_inference',
+      'publish_artifact',
+    ]);
+    expect(workflow?.steps[1].depends_on).toEqual(['select_dataset']);
+    expect(workflow?.steps[2].depends_on).toEqual(['pin_dataset']);
+    expect(workflow?.steps[3].depends_on).toEqual(['run_inference']);
+    expect(workflow?.steps.some(step => step.rollback || step.compensation)).toBe(true);
+    expect(generated.template).toBe('graph-viewer');
+    expect(generated.workflow_graph?.id).toBe('dataset-inference-artifact-publish');
   });
 
   it('can publish static descriptors and resolve them through MCP++ discovery', async () => {

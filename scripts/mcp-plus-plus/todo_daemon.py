@@ -24,6 +24,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_TODO_FILE = REPO_ROOT / "docs/mcp-plus-plus/TEMPLATE_DRIVEN_UI_UX_TODO.md"
 DEFAULT_STATE_FILE = REPO_ROOT / ".codex/todo-daemon/state.json"
+DEFAULT_BACKEND_STATE_FILE = REPO_ROOT / ".codex/todo-daemon/ipfs_datasets_backend.json"
 
 START_MARKER = "<!-- codex-todo-queue:start -->"
 END_MARKER = "<!-- codex-todo-queue:end -->"
@@ -216,6 +217,68 @@ def save_state(state: dict[str, Any], state_file: Path = DEFAULT_STATE_FILE) -> 
     state_file.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
 
 
+def stable_backend_task_id(task_id: str) -> str:
+    return f"swissknife:mcp-ui:{task_id}"
+
+
+def detect_ipfs_datasets_backend(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    sibling = repo_root.parent / "ipfs_datasets_py"
+    if sibling.exists() and str(sibling) not in sys.path:
+        sys.path.insert(0, str(sibling))
+
+    try:
+        from ipfs_datasets_py.mcp_server.mcplusplus.task_queue import create_task_queue
+
+        queue = create_task_queue()
+        return {
+            "available": bool(getattr(queue, "available", False)),
+            "mode": "ipfs_datasets_py.mcp_server.mcplusplus.task_queue",
+            "reason": "backend wrapper detected" if getattr(queue, "available", False) else "backend wrapper detected but task queue provider is unavailable",
+        }
+    except Exception as exc:
+        return {
+            "available": False,
+            "mode": "local-mirror",
+            "reason": str(exc),
+        }
+
+
+def task_backend_record(task: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "backend_task_id": stable_backend_task_id(task["id"]),
+        "source_task_id": task["id"],
+        "title": task["title"],
+        "status": task["status"],
+        "priority": task["priority"],
+        "dependencies": [stable_backend_task_id(dep) for dep in task["dependencies"]],
+        "source_dependencies": task["dependencies"],
+        "target_files": task["target_files"],
+        "validation": task["validation"],
+        "done_criteria": task["done_criteria"],
+        "prompt": task["prompt"],
+        "updated": task.get("updated"),
+    }
+
+
+def sync_backend_mirror(
+    tasks: list[dict[str, Any]],
+    backend_state_file: Path = DEFAULT_BACKEND_STATE_FILE,
+    repo_root: Path = REPO_ROOT,
+) -> dict[str, Any]:
+    backend_state_file.parent.mkdir(parents=True, exist_ok=True)
+    state = {
+        "version": 1,
+        "updated": utc_now(),
+        "backend": detect_ipfs_datasets_backend(repo_root),
+        "tasks": {
+            task["id"]: task_backend_record(task)
+            for task in tasks
+        },
+    }
+    backend_state_file.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+    return state
+
+
 def record_history(
     state: dict[str, Any],
     action: str,
@@ -240,6 +303,8 @@ def claim_task(
     worker: str,
     todo_file: Path = DEFAULT_TODO_FILE,
     state_file: Path = DEFAULT_STATE_FILE,
+    backend_state_file: Path | None = None,
+    repo_root: Path = REPO_ROOT,
 ) -> dict[str, Any]:
     tasks = load_tasks(todo_file)
     task = select_next_task(tasks) if task_id is None else find_task(tasks, task_id)
@@ -263,6 +328,8 @@ def claim_task(
     }
     record_history(state, "claim", task["id"], worker)
     save_state(state, state_file)
+    if backend_state_file is not None:
+        sync_backend_mirror(load_tasks(todo_file), backend_state_file, repo_root)
     return find_task(tasks, task["id"])
 
 
@@ -272,6 +339,8 @@ def complete_task(
     note: str | None = None,
     todo_file: Path = DEFAULT_TODO_FILE,
     state_file: Path = DEFAULT_STATE_FILE,
+    backend_state_file: Path | None = None,
+    repo_root: Path = REPO_ROOT,
 ) -> dict[str, Any]:
     tasks = load_tasks(todo_file)
     task = set_task_status(tasks, task_id, "done")
@@ -281,6 +350,8 @@ def complete_task(
     state.setdefault("claims", {}).pop(task_id, None)
     record_history(state, "complete", task_id, worker, note)
     save_state(state, state_file)
+    if backend_state_file is not None:
+        sync_backend_mirror(load_tasks(todo_file), backend_state_file, repo_root)
     return task
 
 
@@ -291,6 +362,8 @@ def fail_task(
     blocked: bool = False,
     todo_file: Path = DEFAULT_TODO_FILE,
     state_file: Path = DEFAULT_STATE_FILE,
+    backend_state_file: Path | None = None,
+    repo_root: Path = REPO_ROOT,
 ) -> dict[str, Any]:
     tasks = load_tasks(todo_file)
     task = set_task_status(tasks, task_id, "blocked" if blocked else "failed")
@@ -300,6 +373,8 @@ def fail_task(
     state.setdefault("claims", {}).pop(task_id, None)
     record_history(state, "block" if blocked else "fail", task_id, worker, note)
     save_state(state, state_file)
+    if backend_state_file is not None:
+        sync_backend_mirror(load_tasks(todo_file), backend_state_file, repo_root)
     return task
 
 
@@ -439,19 +514,43 @@ def cmd_prompt(args: argparse.Namespace) -> int:
 
 
 def cmd_claim(args: argparse.Namespace) -> int:
-    task = claim_task(args.task_id, args.worker, args.todo_file, args.state_file)
+    task = claim_task(
+        args.task_id,
+        args.worker,
+        args.todo_file,
+        args.state_file,
+        None if args.disable_backend_sync else args.backend_state_file,
+        args.repo_root,
+    )
     print(f"Claimed {describe_task(task)} for {args.worker}")
     return 0
 
 
 def cmd_complete(args: argparse.Namespace) -> int:
-    task = complete_task(args.task_id, args.worker, args.note, args.todo_file, args.state_file)
+    task = complete_task(
+        args.task_id,
+        args.worker,
+        args.note,
+        args.todo_file,
+        args.state_file,
+        None if args.disable_backend_sync else args.backend_state_file,
+        args.repo_root,
+    )
     print(f"Completed {describe_task(task)}")
     return 0
 
 
 def cmd_fail(args: argparse.Namespace) -> int:
-    task = fail_task(args.task_id, args.worker, args.note, args.blocked, args.todo_file, args.state_file)
+    task = fail_task(
+        args.task_id,
+        args.worker,
+        args.note,
+        args.blocked,
+        args.todo_file,
+        args.state_file,
+        None if args.disable_backend_sync else args.backend_state_file,
+        args.repo_root,
+    )
     print(f"Updated {describe_task(task)}")
     return 0
 
@@ -466,8 +565,32 @@ def cmd_set_status(args: argparse.Namespace) -> int:
     if args.status in {"done", "failed", "blocked"}:
         state.setdefault("claims", {}).pop(args.task_id, None)
     save_state(state, args.state_file)
+    if not args.disable_backend_sync:
+        sync_backend_mirror(load_tasks(args.todo_file), args.backend_state_file, args.repo_root)
 
     print(f"Updated {describe_task(task)}")
+    return 0
+
+
+def cmd_backend_status(args: argparse.Namespace) -> int:
+    backend = detect_ipfs_datasets_backend(args.repo_root)
+    if args.json:
+        print(json.dumps(backend, indent=2))
+    else:
+        status = "available" if backend["available"] else "unavailable"
+        print(f"ipfs_datasets_py backend: {status} ({backend['mode']})")
+        print(f"Reason: {backend['reason']}")
+    return 0
+
+
+def cmd_backend_sync(args: argparse.Namespace) -> int:
+    tasks = load_tasks(args.todo_file)
+    state = sync_backend_mirror(tasks, args.backend_state_file, args.repo_root)
+    if args.json:
+        print(json.dumps(state, indent=2))
+    else:
+        print(f"Mirrored {len(state['tasks'])} tasks to {args.backend_state_file}")
+        print(f"Backend: {state['backend']['mode']} available={state['backend']['available']}")
     return 0
 
 
@@ -489,7 +612,8 @@ def cmd_run_once(args: argparse.Namespace) -> int:
         print(prompt)
         return 0
 
-    claimed = claim_task(task["id"], args.worker, args.todo_file, args.state_file)
+    backend_state_file = None if args.disable_backend_sync else args.backend_state_file
+    claimed = claim_task(task["id"], args.worker, args.todo_file, args.state_file, backend_state_file, args.repo_root)
     print(f"Running {describe_task(claimed)} with codex exec")
     result = subprocess.run(cmd, input=prompt, text=True, cwd=args.repo_root)
 
@@ -500,6 +624,8 @@ def cmd_run_once(args: argparse.Namespace) -> int:
             "codex exec returned 0",
             args.todo_file,
             args.state_file,
+            backend_state_file,
+            args.repo_root,
         )
     else:
         fail_task(
@@ -509,6 +635,8 @@ def cmd_run_once(args: argparse.Namespace) -> int:
             False,
             args.todo_file,
             args.state_file,
+            backend_state_file,
+            args.repo_root,
         )
 
     return result.returncode
@@ -561,6 +689,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Manage the SwissKnife MCP++ automation queue.")
     parser.add_argument("--todo-file", type=Path, default=DEFAULT_TODO_FILE)
     parser.add_argument("--state-file", type=Path, default=DEFAULT_STATE_FILE)
+    parser.add_argument("--backend-state-file", type=Path, default=DEFAULT_BACKEND_STATE_FILE)
+    parser.add_argument("--disable-backend-sync", action="store_true")
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
 
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -604,6 +734,14 @@ def build_parser() -> argparse.ArgumentParser:
     set_status.add_argument("--note")
     set_status.set_defaults(func=cmd_set_status)
 
+    backend_status = subcommands.add_parser("backend-status", help="show optional ipfs_datasets_py task queue backend status")
+    backend_status.add_argument("--json", action="store_true")
+    backend_status.set_defaults(func=cmd_backend_status)
+
+    backend_sync = subcommands.add_parser("backend-sync", help="mirror markdown queue into the optional backend state file")
+    backend_sync.add_argument("--json", action="store_true")
+    backend_sync.set_defaults(func=cmd_backend_sync)
+
     run_once = subcommands.add_parser("run-once", help="run one queue item or print the planned run")
     add_codex_options(run_once)
     run_once.set_defaults(func=cmd_run_once)
@@ -623,6 +761,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     args.todo_file = args.todo_file.resolve()
     args.state_file = args.state_file.resolve()
+    args.backend_state_file = args.backend_state_file.resolve()
     args.repo_root = args.repo_root.resolve()
 
     try:

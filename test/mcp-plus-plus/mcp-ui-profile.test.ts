@@ -207,6 +207,147 @@ describe('SwissKnife MCP++ UI Profile conformance', () => {
     expect(selection.kind).toBe('job-console');
     expect(selection.reason).toContain('progress');
   });
+
+  it('selects a graph viewer from state model signals when operation names are generic', () => {
+    const descriptor = datasetDescriptor({
+      name: 'lineage-inspector',
+      methods: [
+        {
+          name: 'inspect',
+          input_schema: { type: 'object' },
+          output_schema: { type: 'object' },
+        },
+      ],
+      services: [
+        {
+          id: 'lineage',
+          interface_type: 'generic',
+          operations: ['inspect'],
+        },
+      ],
+      ui: {
+        primary_template: 'graph-viewer',
+        templates: [{ kind: 'dashboard', operations: ['inspect'] }],
+      },
+      data_contracts: {
+        operations: [
+          {
+            method: 'inspect',
+            input_schema: { type: 'object' },
+            output_schema: { type: 'object' },
+          },
+        ],
+      },
+      permissions: {
+        default_deny: false,
+        operations: {
+          inspect: [],
+        },
+      },
+      state_model: {
+        keys: ['lineage_graph'],
+        events: ['provenance.recorded'],
+        projections: ['provenance_graph'],
+      },
+    });
+
+    const selection = selectTemplateForDescriptor(descriptor);
+
+    expect(selection.kind).toBe('graph-viewer');
+    expect(selection.reason).toContain('state model');
+  });
+
+  it('rejects template mappings that do not satisfy template capability contracts', () => {
+    const descriptor = datasetDescriptor({
+      ui: {
+        primary_template: 'graph-viewer',
+        templates: [{ kind: 'graph-viewer', operations: ['browse'] }],
+      },
+    });
+
+    const result = validateMCPUIProfileDescriptor(descriptor);
+
+    expect(result.conformant).toBe(false);
+    expect(result.errors.map(error => error.path)).toContain('ui.templates[0].operations');
+    expect(result.errors.map(error => error.message).join('\n')).toContain('graph-viewer template requires');
+  });
+
+  it('accepts workflow graphs with dependencies, shared state, and compensation actions', () => {
+    const descriptor = datasetDescriptor({
+      state_model: {
+        keys: ['current_path', 'selected_cid', 'pin_jobs'],
+        events: ['dataset.selected', 'dataset.pin.progress'],
+        projections: ['workflow_graph'],
+        replay: true,
+      },
+      workflow_graph: {
+        id: 'dataset-pin',
+        shared_state_keys: ['selected_cid', 'pin_jobs'],
+        steps: [
+          {
+            id: 'select',
+            operation: 'browse',
+            service_id: 'datasets',
+            write_state_keys: ['selected_cid'],
+          },
+          {
+            id: 'pin',
+            operation: 'pin',
+            service_id: 'datasets',
+            depends_on: ['select'],
+            read_state_keys: ['selected_cid'],
+            write_state_keys: ['pin_jobs'],
+            compensation: {
+              operation: 'browse',
+              service_id: 'datasets',
+              state_keys: ['selected_cid'],
+            },
+          },
+        ],
+      },
+    });
+
+    const result = validateMCPUIProfileDescriptor(descriptor);
+
+    expect(result.conformant).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('rejects workflow graphs with missing operation references or incompatible state keys', () => {
+    const descriptor = datasetDescriptor({
+      workflow_graph: {
+        id: 'bad-workflow',
+        shared_state_keys: ['selected_cid', 'missing_shared_key'],
+        steps: [
+          {
+            id: 'select',
+            operation: 'missing_operation',
+            service_id: 'datasets',
+            write_state_keys: ['selected_cid'],
+          },
+          {
+            id: 'pin',
+            operation: 'pin',
+            service_id: 'datasets',
+            depends_on: ['select', 'missing_step'],
+            read_state_keys: ['not_shared'],
+          },
+        ],
+      },
+    });
+
+    const result = validateMCPUIProfileDescriptor(descriptor);
+
+    expect(result.conformant).toBe(false);
+    expect(result.errors.map(error => error.path)).toEqual(
+      expect.arrayContaining([
+        'workflow_graph.shared_state_keys',
+        'workflow_graph.steps[0].operation',
+        'workflow_graph.steps[1].depends_on',
+        'workflow_graph.steps[1].read_state_keys',
+      ]),
+    );
+  });
 });
 
 describe('MCP interface discovery registry', () => {

@@ -104,6 +104,41 @@ export interface MCPUIStateModel {
   replay?: boolean;
 }
 
+export interface MCPUIDescriptorTrustMetadata {
+  signed_by: string;
+  signature_algorithm: 'Ed25519';
+  signature: string;
+  signed_at: string;
+  canonical_cid: string;
+}
+
+export interface MCPUIWorkflowAction {
+  operation: string;
+  service_id?: string;
+  state_keys?: string[];
+  reason?: string;
+}
+
+export interface MCPUIWorkflowStep {
+  id: string;
+  title?: string;
+  operation: string;
+  service_id?: string;
+  depends_on?: string[];
+  read_state_keys?: string[];
+  write_state_keys?: string[];
+  rollback?: MCPUIWorkflowAction;
+  compensation?: MCPUIWorkflowAction;
+}
+
+export interface MCPUIWorkflowGraph {
+  id: string;
+  title?: string;
+  description?: string;
+  shared_state_keys: string[];
+  steps: MCPUIWorkflowStep[];
+}
+
 export interface MCPUIProfileDescriptor extends InterfaceDescriptor {
   meta: MCPUIProfileMeta;
   services: MCPUIServiceDescriptor[];
@@ -111,6 +146,8 @@ export interface MCPUIProfileDescriptor extends InterfaceDescriptor {
   data_contracts: MCPUIDataContracts;
   permissions: MCPUIPermissions;
   state_model: MCPUIStateModel;
+  workflow_graph?: MCPUIWorkflowGraph;
+  trust?: MCPUIDescriptorTrustMetadata;
 }
 
 export interface MCPUIConformanceIssue {
@@ -130,23 +167,40 @@ export interface TemplateSelection {
   required_operations: string[];
 }
 
-export const TEMPLATE_CONTRACTS: Record<TemplateKind, { requires_one_of: string[]; stream?: StreamKind[] }> = {
+export interface TemplateContract {
+  requires_one_of: string[];
+  interface_types?: InterfaceType[];
+  stream?: StreamKind[];
+  state_signals?: string[];
+}
+
+export const TEMPLATE_CONTRACTS: Record<TemplateKind, TemplateContract> = {
   dashboard: {
     requires_one_of: ['status', 'metrics', 'telemetry', 'list', 'summary'],
+    interface_types: ['compute', 'dataset', 'workflow', 'storage', 'generic'],
     stream: ['events', 'progress', 'telemetry', 'job-status'],
+    state_signals: ['dashboard', 'metrics', 'summary', 'telemetry'],
   },
   explorer: {
     requires_one_of: ['browse', 'list', 'get', 'search'],
+    interface_types: ['dataset', 'document', 'storage', 'generic'],
+    state_signals: ['selected', 'current', 'browser', 'explorer'],
   },
   'form-wizard': {
     requires_one_of: ['create', 'update', 'submit', 'run', 'publish'],
+    interface_types: ['dataset', 'compute', 'workflow', 'document', 'storage', 'generic'],
+    state_signals: ['draft', 'wizard', 'form'],
   },
   'job-console': {
     requires_one_of: ['run', 'start', 'job_status', 'status', 'cancel'],
+    interface_types: ['compute', 'workflow', 'dataset', 'generic'],
     stream: ['progress', 'telemetry', 'job-status'],
+    state_signals: ['job', 'progress', 'timeline', 'telemetry'],
   },
   'graph-viewer': {
     requires_one_of: ['graph', 'neighbors', 'lineage', 'provenance'],
+    interface_types: ['graph', 'workflow', 'dataset', 'generic'],
+    state_signals: ['graph', 'lineage', 'provenance'],
   },
 };
 
@@ -211,9 +265,18 @@ export function validateMCPUIProfileDescriptor(
   validateMeta(descriptor.meta, errors);
   validateServices(descriptor.services, methodNames, errors);
   validateDataContracts(descriptor.data_contracts, descriptor.methods ?? [], methodNames, errors, warnings);
-  validateUI(descriptor.ui, methodNames, errors);
+  validateUI(
+    descriptor.ui,
+    methodNames,
+    descriptor.services,
+    descriptor.data_contracts,
+    descriptor.state_model,
+    errors,
+    warnings,
+  );
   validatePermissions(descriptor.permissions, methodNames, errors, warnings);
   validateStateModel(descriptor.state_model, descriptor.data_contracts, errors, warnings);
+  validateWorkflowGraph(descriptor.workflow_graph, methodNames, descriptor.services, descriptor.state_model, errors);
 
   return {
     conformant: errors.length === 0,
@@ -248,6 +311,7 @@ export function selectTemplateForDescriptor(
   const streamKinds = contracts.map(operation => operation.stream?.kind ?? 'none');
   const names = contracts.map(operation => operation.method.toLowerCase());
   const interfaceTypes = new Set(descriptor.services.map(service => service.interface_type));
+  const stateSignals = getStateSignals(descriptor.state_model);
 
   if (streamKinds.some(kind => kind === 'progress' || kind === 'job-status')) {
     return {
@@ -257,10 +321,14 @@ export function selectTemplateForDescriptor(
     };
   }
 
-  if (interfaceTypes.has('graph') || names.some(name => name.includes('graph') || name.includes('lineage'))) {
+  if (
+    interfaceTypes.has('graph')
+    || names.some(name => name.includes('graph') || name.includes('lineage'))
+    || stateSignals.some(signal => TEMPLATE_CONTRACTS['graph-viewer'].state_signals?.some(token => signal.includes(token)))
+  ) {
     return {
       kind: 'graph-viewer',
-      reason: 'graph interface or graph-shaped operation names',
+      reason: 'graph interface, operation names, or state model signals',
       required_operations: operationMatches(names, TEMPLATE_CONTRACTS['graph-viewer'].requires_one_of),
     };
   }
@@ -273,10 +341,13 @@ export function selectTemplateForDescriptor(
     };
   }
 
-  if (streamKinds.some(kind => kind === 'telemetry' || kind === 'events')) {
+  if (
+    streamKinds.some(kind => kind === 'telemetry' || kind === 'events')
+    || stateSignals.some(signal => TEMPLATE_CONTRACTS.dashboard.state_signals?.some(token => signal.includes(token)))
+  ) {
     return {
       kind: 'dashboard',
-      reason: 'operation exposes telemetry or event stream',
+      reason: 'operation exposes telemetry/events or dashboard-shaped state model',
       required_operations: operationMatches(names, TEMPLATE_CONTRACTS.dashboard.requires_one_of),
     };
   }
@@ -408,7 +479,15 @@ function validateDataContracts(
   }
 }
 
-function validateUI(ui: unknown, methodNames: Set<string>, errors: MCPUIConformanceIssue[]): void {
+function validateUI(
+  ui: unknown,
+  methodNames: Set<string>,
+  services: unknown,
+  dataContracts: unknown,
+  stateModel: unknown,
+  errors: MCPUIConformanceIssue[],
+  warnings: MCPUIConformanceIssue[],
+): void {
   if (!isRecord(ui)) {
     push(errors, 'ui', 'UI section is required.');
     return;
@@ -437,7 +516,73 @@ function validateUI(ui: unknown, methodNames: Set<string>, errors: MCPUIConforma
         push(errors, `ui.templates[${index}].operations`, `Unknown template operation: ${String(operation)}.`);
       }
     }
+    validateTemplateContract(template, index, services, dataContracts, stateModel, errors, warnings);
   });
+}
+
+function validateTemplateContract(
+  template: Record<string, unknown>,
+  index: number,
+  services: unknown,
+  dataContracts: unknown,
+  stateModel: unknown,
+  errors: MCPUIConformanceIssue[],
+  warnings: MCPUIConformanceIssue[],
+): void {
+  const kind = template.kind as TemplateKind;
+  if (!TEMPLATE_KINDS.has(kind) || !Array.isArray(template.operations)) {
+    return;
+  }
+
+  const contract = TEMPLATE_CONTRACTS[kind];
+  const operationNames = template.operations.filter(isNonEmptyString).map(operation => operation.toLowerCase());
+  const operationContracts = isRecord(dataContracts) && Array.isArray(dataContracts.operations)
+    ? dataContracts.operations.filter(isRecord)
+    : [];
+  const serviceTypes = Array.isArray(services)
+    ? services.filter(isRecord).map(service => service.interface_type).filter(isNonEmptyString)
+    : [];
+  const stateSignals = getStateSignals(stateModel);
+
+  const hasRequiredOperation = operationNames.some(name => (
+    contract.requires_one_of.some(token => name.includes(token))
+  ));
+  const hasStateSignal = contract.state_signals
+    ? stateSignals.some(signal => contract.state_signals?.some(token => signal.includes(token)))
+    : false;
+
+  if (!hasRequiredOperation && !hasStateSignal) {
+    push(
+      errors,
+      `ui.templates[${index}].operations`,
+      `${kind} template requires an operation or state signal matching one of: ${contract.requires_one_of.join(', ')}.`,
+    );
+  }
+
+  if (contract.interface_types && serviceTypes.length > 0) {
+    const hasCompatibleService = serviceTypes.some(type => contract.interface_types?.includes(type as InterfaceType));
+    if (!hasCompatibleService) {
+      push(
+        warnings,
+        `ui.templates[${index}].kind`,
+        `${kind} template has no service with an expected interface type: ${contract.interface_types.join(', ')}.`,
+      );
+    }
+  }
+
+  if (contract.stream) {
+    const mappedStreams = operationContracts
+      .filter(operation => operationNames.includes(String(operation.method).toLowerCase()))
+      .map(operation => isRecord(operation.stream) ? operation.stream.kind : 'none');
+    const hasRequiredStream = mappedStreams.some(kindName => contract.stream?.includes(kindName as StreamKind));
+    if (!hasRequiredStream) {
+      push(
+        errors,
+        `ui.templates[${index}].operations`,
+        `${kind} template requires a mapped operation with stream kind: ${contract.stream.join(', ')}.`,
+      );
+    }
+  }
 }
 
 function validatePermissions(
@@ -497,6 +642,227 @@ function validateStateModel(
   }
 }
 
+function validateWorkflowGraph(
+  workflowGraph: unknown,
+  methodNames: Set<string>,
+  services: unknown,
+  stateModel: unknown,
+  errors: MCPUIConformanceIssue[],
+): void {
+  if (workflowGraph === undefined) {
+    return;
+  }
+  if (!isRecord(workflowGraph)) {
+    push(errors, 'workflow_graph', 'Workflow graph must be an object.');
+    return;
+  }
+  if (!isNonEmptyString(workflowGraph.id)) {
+    push(errors, 'workflow_graph.id', 'Workflow graph id is required.');
+  }
+  if (!Array.isArray(workflowGraph.shared_state_keys) || !workflowGraph.shared_state_keys.every(isNonEmptyString)) {
+    push(errors, 'workflow_graph.shared_state_keys', 'Workflow shared state keys must be strings.');
+    return;
+  }
+  if (!Array.isArray(workflowGraph.steps) || workflowGraph.steps.length === 0) {
+    push(errors, 'workflow_graph.steps', 'Workflow graph must declare at least one step.');
+    return;
+  }
+
+  const declaredStateKeys = new Set(
+    isRecord(stateModel) && Array.isArray(stateModel.keys)
+      ? stateModel.keys.filter(isNonEmptyString)
+      : [],
+  );
+  const sharedStateKeys = new Set(workflowGraph.shared_state_keys);
+  for (const key of sharedStateKeys) {
+    if (!declaredStateKeys.has(key)) {
+      push(
+        errors,
+        'workflow_graph.shared_state_keys',
+        `Workflow shared state key is not declared in state_model.keys: ${key}.`,
+      );
+    }
+  }
+
+  const serviceOperations = new Map<string, Set<string>>();
+  if (Array.isArray(services)) {
+    for (const service of services) {
+      if (!isRecord(service) || !isNonEmptyString(service.id) || !Array.isArray(service.operations)) {
+        continue;
+      }
+      serviceOperations.set(
+        service.id,
+        new Set(service.operations.filter(isNonEmptyString)),
+      );
+    }
+  }
+
+  const stepIds = new Set<string>();
+  workflowGraph.steps.forEach((step, index) => {
+    if (!isRecord(step)) {
+      push(errors, `workflow_graph.steps[${index}]`, 'Workflow step must be an object.');
+      return;
+    }
+    if (!isNonEmptyString(step.id)) {
+      push(errors, `workflow_graph.steps[${index}].id`, 'Workflow step id is required.');
+      return;
+    }
+    if (stepIds.has(step.id)) {
+      push(errors, `workflow_graph.steps[${index}].id`, `Duplicate workflow step id: ${step.id}.`);
+    }
+    stepIds.add(step.id);
+  });
+
+  workflowGraph.steps.forEach((step, index) => {
+    if (!isRecord(step)) {
+      return;
+    }
+    validateWorkflowOperationRef(step, `workflow_graph.steps[${index}]`, methodNames, serviceOperations, errors);
+    validateWorkflowStringArray(step.depends_on, `workflow_graph.steps[${index}].depends_on`, errors);
+    validateWorkflowStateKeys(step.read_state_keys, `workflow_graph.steps[${index}].read_state_keys`, sharedStateKeys, errors);
+    validateWorkflowStateKeys(step.write_state_keys, `workflow_graph.steps[${index}].write_state_keys`, sharedStateKeys, errors);
+
+    if (Array.isArray(step.depends_on)) {
+      for (const dependency of step.depends_on) {
+        if (!isNonEmptyString(dependency) || !stepIds.has(dependency)) {
+          push(errors, `workflow_graph.steps[${index}].depends_on`, `Unknown workflow dependency: ${String(dependency)}.`);
+        } else if (dependency === step.id) {
+          push(errors, `workflow_graph.steps[${index}].depends_on`, `Workflow step cannot depend on itself: ${dependency}.`);
+        }
+      }
+    }
+
+    validateWorkflowAction(step.rollback, `workflow_graph.steps[${index}].rollback`, methodNames, serviceOperations, sharedStateKeys, errors);
+    validateWorkflowAction(step.compensation, `workflow_graph.steps[${index}].compensation`, methodNames, serviceOperations, sharedStateKeys, errors);
+  });
+
+  validateWorkflowAcyclic(workflowGraph.steps, errors);
+}
+
+function validateWorkflowAction(
+  action: unknown,
+  path: string,
+  methodNames: Set<string>,
+  serviceOperations: Map<string, Set<string>>,
+  sharedStateKeys: Set<string>,
+  errors: MCPUIConformanceIssue[],
+): void {
+  if (action === undefined) {
+    return;
+  }
+  if (!isRecord(action)) {
+    push(errors, path, 'Workflow action must be an object.');
+    return;
+  }
+  validateWorkflowOperationRef(action, path, methodNames, serviceOperations, errors);
+  validateWorkflowStateKeys(action.state_keys, `${path}.state_keys`, sharedStateKeys, errors);
+}
+
+function validateWorkflowOperationRef(
+  value: Record<string, unknown>,
+  path: string,
+  methodNames: Set<string>,
+  serviceOperations: Map<string, Set<string>>,
+  errors: MCPUIConformanceIssue[],
+): void {
+  if (!isNonEmptyString(value.operation)) {
+    push(errors, `${path}.operation`, 'Workflow operation reference is required.');
+    return;
+  }
+  if (!methodNames.has(value.operation)) {
+    push(errors, `${path}.operation`, `Unknown workflow operation: ${value.operation}.`);
+  }
+  if (value.service_id === undefined) {
+    return;
+  }
+  if (!isNonEmptyString(value.service_id)) {
+    push(errors, `${path}.service_id`, 'Workflow service id must be a string.');
+    return;
+  }
+  const operations = serviceOperations.get(value.service_id);
+  if (!operations) {
+    push(errors, `${path}.service_id`, `Unknown workflow service: ${value.service_id}.`);
+    return;
+  }
+  if (isNonEmptyString(value.operation) && !operations.has(value.operation)) {
+    push(
+      errors,
+      `${path}.service_id`,
+      `Workflow service ${value.service_id} does not bind operation ${value.operation}.`,
+    );
+  }
+}
+
+function validateWorkflowStringArray(
+  values: unknown,
+  path: string,
+  errors: MCPUIConformanceIssue[],
+): void {
+  if (values !== undefined && (!Array.isArray(values) || !values.every(isNonEmptyString))) {
+    push(errors, path, 'Workflow references must be strings.');
+  }
+}
+
+function validateWorkflowStateKeys(
+  values: unknown,
+  path: string,
+  sharedStateKeys: Set<string>,
+  errors: MCPUIConformanceIssue[],
+): void {
+  if (values === undefined) {
+    return;
+  }
+  if (!Array.isArray(values) || !values.every(isNonEmptyString)) {
+    push(errors, path, 'Workflow state keys must be strings.');
+    return;
+  }
+  for (const key of values) {
+    if (!sharedStateKeys.has(key)) {
+      push(errors, path, `Workflow state key is not declared in workflow_graph.shared_state_keys: ${key}.`);
+    }
+  }
+}
+
+function validateWorkflowAcyclic(steps: unknown[], errors: MCPUIConformanceIssue[]): void {
+  const graph = new Map<string, string[]>();
+  for (const step of steps) {
+    if (!isRecord(step) || !isNonEmptyString(step.id)) {
+      continue;
+    }
+    graph.set(
+      step.id,
+      Array.isArray(step.depends_on) ? step.depends_on.filter(isNonEmptyString) : [],
+    );
+  }
+
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const visit = (id: string): boolean => {
+    if (visited.has(id)) {
+      return false;
+    }
+    if (visiting.has(id)) {
+      return true;
+    }
+    visiting.add(id);
+    for (const dependency of graph.get(id) ?? []) {
+      if (graph.has(dependency) && visit(dependency)) {
+        return true;
+      }
+    }
+    visiting.delete(id);
+    visited.add(id);
+    return false;
+  };
+
+  for (const id of graph.keys()) {
+    if (visit(id)) {
+      push(errors, 'workflow_graph.steps', 'Workflow graph dependencies must be acyclic.');
+      return;
+    }
+  }
+}
+
 function hasInputSchema(operation: Record<string, unknown>, method?: MethodSignature): boolean {
   return isRecord(operation.input_schema)
     || isNonEmptyString(operation.input_schema_cid)
@@ -518,6 +884,19 @@ function hasOutputSchema(operation: Record<string, unknown>, method?: MethodSign
 function operationMatches(names: string[], tokens: string[]): string[] {
   const matches = names.filter(name => tokens.some(token => name.includes(token)));
   return matches.length > 0 ? matches : names.slice(0, 1);
+}
+
+function getStateSignals(stateModel: unknown): string[] {
+  if (!isRecord(stateModel)) {
+    return [];
+  }
+  return [
+    ...(Array.isArray(stateModel.keys) ? stateModel.keys : []),
+    ...(Array.isArray(stateModel.events) ? stateModel.events : []),
+    ...(Array.isArray(stateModel.projections) ? stateModel.projections : []),
+  ]
+    .filter(isNonEmptyString)
+    .map(signal => signal.toLowerCase());
 }
 
 function push(issues: MCPUIConformanceIssue[], path: string, message: string): void {
