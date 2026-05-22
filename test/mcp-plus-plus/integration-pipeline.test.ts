@@ -216,3 +216,37 @@ describe('IDL compat check', () => {
     expect(verdict.requiresMissing).toContain('mcp++/ucan');
   });
 });
+
+// ── Descriptor-only generated app workflow quality gate ─────────────────────
+
+import { runGeneratedAppQualityGate } from '../../src/services/mcp-generated-app-quality-gates.js';
+import { IPFS_MCP_UI_PROFILE_DESCRIPTORS } from '../../src/services/mcp-ipfs-ui-descriptors.js';
+
+describe('Generated MCP++ app workflow pipeline', () => {
+  it('chains dataset selection, pinning, inference, artifact collection, and publication', async () => {
+    const report = await runGeneratedAppQualityGate({
+      descriptors: IPFS_MCP_UI_PROFILE_DESCRIPTORS,
+      app_id: 'ipfs-dataset-inference-workflow',
+      invoke_operation: 'select_dataset',
+      stream_operation: 'pin_dataset',
+    });
+
+    expect(report.workflow?.completed_steps).toEqual([
+      'select_dataset',
+      'pin_dataset',
+      'run_inference',
+      'collect_artifact',
+      'publish_artifact',
+    ]);
+    expect(report.workflow?.final_state).toMatchObject({
+      artifact_cid: 'bafybeigdyrzt5artifact',
+      publication_id: 'quality-gate-publication',
+    });
+    expect(report.workflow?.recovery_paths).toMatchObject({
+      failed_pin_retry: true,
+      failed_inference_rollback: true,
+      stream_reconnect: true,
+      artifact_publish_retry: true,
+    });
+  });
+});

@@ -42,6 +42,9 @@ export interface GeneratedCommand {
   title: string;
   required_capabilities: string[];
   idempotent: boolean;
+  hidden?: boolean;
+  policy_outcome?: GeneratedUIPolicyOutcome;
+  denial_reasons?: string[];
   disabled_reason?: string;
 }
 
@@ -124,6 +127,18 @@ export interface GeneratedValidationResult {
   errors: GeneratedValidationIssue[];
 }
 
+export type GeneratedUIPolicyOutcome = 'permit' | 'deny' | 'unavailable';
+
+export interface GeneratedUIPolicyDecision {
+  outcome: GeneratedUIPolicyOutcome;
+  reasons?: string[];
+  visibility?: 'enabled' | 'disabled' | 'hidden';
+}
+
+export interface GeneratedSchemaDrivenUIOptions {
+  policy_decisions?: Record<string, GeneratedUIPolicyDecision>;
+}
+
 interface SchemaField {
   name: string;
   path: string;
@@ -134,8 +149,11 @@ interface SchemaField {
 export function generateSchemaDrivenUI(
   descriptor: MCPUIProfileDescriptor,
   templateSelection: TemplateSelection = selectTemplateForDescriptor(descriptor),
+  options: GeneratedSchemaDrivenUIOptions = {},
 ): GeneratedSchemaDrivenUI {
-  const commands = descriptor.data_contracts.operations.map(operation => generateCommand(descriptor, operation));
+  const commands = descriptor.data_contracts.operations.map(
+    operation => generateCommand(descriptor, operation, options.policy_decisions?.[operation.method]),
+  );
   const forms = descriptor.data_contracts.operations.map(operation => generateOperationForm(descriptor, operation));
   const resultRenderers = descriptor.data_contracts.operations.map(operation => generateResultRenderer(descriptor, operation));
   const widgets = [
@@ -261,17 +279,31 @@ export function escapeGeneratedUIText(value: string): string {
 function generateCommand(
   descriptor: MCPUIProfileDescriptor,
   operation: MCPUIOperationContract,
+  policyDecision?: GeneratedUIPolicyDecision,
 ): GeneratedCommand {
   const requiredCapabilities = descriptor.permissions.operations[operation.method] ?? [];
+  const policyReasons = policyDecision?.outcome === 'permit'
+    ? []
+    : sanitizeReasons(policyDecision?.reasons ?? []);
+  const hidden = policyDecision?.visibility === 'hidden';
+  const policyDisabled = policyDecision !== undefined
+    && policyDecision.outcome !== 'permit'
+    && policyDecision.visibility !== 'hidden';
+  const defaultReason = descriptor.permissions.default_deny && requiredCapabilities.length > 0
+    ? `Requires ${requiredCapabilities.join(', ')}`
+    : undefined;
   return {
     id: `${operation.method}.command`,
     operation: operation.method,
     title: operation.title ?? humanize(operation.method),
     required_capabilities: requiredCapabilities,
     idempotent: Boolean(operation.idempotent),
-    disabled_reason: descriptor.permissions.default_deny && requiredCapabilities.length > 0
-      ? `Requires ${requiredCapabilities.join(', ')}`
-      : undefined,
+    hidden,
+    policy_outcome: policyDecision?.outcome,
+    denial_reasons: policyReasons.length > 0 ? policyReasons : undefined,
+    disabled_reason: policyDisabled
+      ? policyReasons.join('; ') || 'Operation is denied by policy.'
+      : defaultReason,
   };
 }
 
@@ -319,6 +351,10 @@ function generatePolicyWidgets(
     widget: 'policy-denial-panel',
     label: `Policy for ${humanize(operation.method)}`,
   }];
+}
+
+function sanitizeReasons(reasons: string[]): string[] {
+  return reasons.map(reason => escapeGeneratedUIText(reason));
 }
 
 function generateStreamWidgets(operation: MCPUIOperationContract): GeneratedWidgetBinding[] {
@@ -402,8 +438,8 @@ function selectRendererKind(
 ): GeneratedRendererKind {
   const fieldNames = fields.map(field => field.name.toLowerCase());
   if (operation.stream?.kind === 'progress' || fieldNames.includes('progress')) return 'timeline';
-  if (operation.stream?.kind === 'job-status' || fieldNames.includes('status')) return 'status';
   if (fieldNames.some(name => ['entries', 'rows', 'items'].includes(name))) return 'table';
+  if (operation.stream?.kind === 'job-status' || fieldNames.includes('status')) return 'status';
   if (fieldNames.some(name => name.includes('provenance'))) return 'provenance';
   if (fieldNames.some(name => name.includes('artifact') || name.includes('cid'))) return 'artifact-ref';
   if (schema.type === 'array') return 'list';

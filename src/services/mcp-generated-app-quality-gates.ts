@@ -21,6 +21,8 @@ import {
   validateMCPUIProfileDescriptor,
   type MCPUIOperationContract,
   type MCPUIProfileDescriptor,
+  type MCPUIWorkflowAction,
+  type MCPUIWorkflowStep,
 } from './mcp-ui-profile.js';
 
 export interface GeneratedAppQualityGateOptions {
@@ -44,6 +46,43 @@ export interface GeneratedAppQualityGateReport {
     first_event: ORBStreamEvent;
     recovered: boolean;
     binding_generation: number;
+  };
+  workflow?: GeneratedWorkflowQualityGateReport;
+}
+
+export interface GeneratedWorkflowStepReport {
+  id: string;
+  operation: string;
+  service_id?: string;
+  status: 'completed' | 'denied' | 'failed';
+  attempts: number;
+  receipt_cid?: string;
+  output?: unknown;
+  error?: string;
+}
+
+export interface GeneratedWorkflowActionReport {
+  operation: string;
+  service_id?: string;
+  reason?: string;
+  status: 'completed' | 'denied' | 'failed';
+  receipt_cid?: string;
+  output?: unknown;
+  error?: string;
+}
+
+export interface GeneratedWorkflowQualityGateReport {
+  graph_id: string;
+  completed_steps: string[];
+  steps: GeneratedWorkflowStepReport[];
+  final_state: Record<string, unknown>;
+  rollback?: GeneratedWorkflowActionReport;
+  compensation?: GeneratedWorkflowActionReport;
+  recovery_paths: {
+    failed_pin_retry: boolean;
+    failed_inference_rollback: boolean;
+    stream_reconnect: boolean;
+    artifact_publish_retry: boolean;
   };
 }
 
@@ -76,24 +115,17 @@ export async function runGeneratedAppQualityGate(
     throw new Error(`Descriptor ${descriptor.name} has no invokable operation.`);
   }
 
-  const local = new LocalORBTransportAdapter();
-  local.registerHandler(invokeOperation, ({ binding, context }) => sampleOutput(binding.operation, context.correlation_id));
-
   const streamOperation = options.stream_operation
     ?? firstOperation(descriptor, operation => operation.stream !== undefined);
-  if (streamOperation) {
-    local.registerStreamHandler(streamOperation, async function* ({ binding, context }) {
-      yield {
-        correlation_id: context.correlation_id ?? 'quality-gate-stream',
-        interface_cid: binding.interface_cid,
-        operation: binding.operation.method,
-        event: sampleStreamEvent(binding.operation, context.correlation_id),
-        received_at: '2026-05-21T00:00:00.000Z',
-      };
-    });
-  }
 
-  const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+  const local = new LocalORBTransportAdapter();
+  const attemptsByOperation = new Map<string, number>();
+  registerQualityGateHandlers(local, descriptor, attemptsByOperation);
+
+  const router = new MCPCapabilityRouter({
+    adapters: createDefaultORBAdapters(local),
+    operation_policies: zeroBackoffRetryPolicies(descriptor),
+  });
   const descriptorSource = {
     cid: launch.cid,
     descriptor,
@@ -140,6 +172,16 @@ export async function runGeneratedAppQualityGate(
     };
   }
 
+  const workflow = descriptor.workflow_graph
+    ? await executeWorkflowQualityGate({
+      router,
+      descriptorSource,
+      descriptor,
+      attemptsByOperation,
+      stream_reconnect: Boolean(stream?.recovered),
+    })
+    : undefined;
+
   return {
     app_id: options.app_id,
     descriptor_cid: launch.cid,
@@ -149,6 +191,7 @@ export async function runGeneratedAppQualityGate(
     invocation,
     denial,
     stream,
+    workflow,
   };
 }
 
@@ -182,6 +225,205 @@ function firstOperation(
   return descriptor.data_contracts.operations.find(predicate)?.method;
 }
 
+function registerQualityGateHandlers(
+  local: LocalORBTransportAdapter,
+  descriptor: MCPUIProfileDescriptor,
+  attemptsByOperation: Map<string, number>,
+): void {
+  for (const operation of descriptor.data_contracts.operations) {
+    local.registerHandler(operation.method, ({ binding, input, context }) => {
+      const attempts = (attemptsByOperation.get(binding.operation.method) ?? 0) + 1;
+      attemptsByOperation.set(binding.operation.method, attempts);
+      if (shouldSimulateTransientFailure(binding.operation.method, attempts)) {
+        throw new Error(`Simulated transient failure for ${binding.operation.method}.`);
+      }
+      return sampleOutput(binding.operation, context.correlation_id, input);
+    });
+
+    if (operation.stream) {
+      local.registerStreamHandler(operation.method, async function* ({ binding, context }) {
+        yield {
+          correlation_id: context.correlation_id ?? 'quality-gate-stream',
+          interface_cid: binding.interface_cid,
+          operation: binding.operation.method,
+          event: sampleStreamEvent(binding.operation, context.correlation_id),
+          received_at: '2026-05-21T00:00:00.000Z',
+        };
+      });
+    }
+  }
+}
+
+function shouldSimulateTransientFailure(operation: string, attempt: number): boolean {
+  return attempt === 1 && (operation === 'pin_dataset' || operation === 'publish_artifact');
+}
+
+function zeroBackoffRetryPolicies(descriptor: MCPUIProfileDescriptor) {
+  return Object.fromEntries(
+    descriptor.data_contracts.operations
+      .filter(operation => operation.retry_policy)
+      .map(operation => [
+        operation.method,
+        {
+          retry: {
+            max_attempts: operation.retry_policy?.max_attempts ?? 1,
+            backoff_ms: 0,
+          },
+        },
+      ]),
+  );
+}
+
+async function executeWorkflowQualityGate(options: {
+  router: MCPCapabilityRouter;
+  descriptorSource: { cid: string; descriptor: MCPUIProfileDescriptor };
+  descriptor: MCPUIProfileDescriptor;
+  attemptsByOperation: Map<string, number>;
+  stream_reconnect: boolean;
+}): Promise<GeneratedWorkflowQualityGateReport> {
+  const graph = options.descriptor.workflow_graph;
+  if (!graph) {
+    throw new Error('Workflow quality gate requires descriptor.workflow_graph.');
+  }
+
+  const state: Record<string, unknown> = {
+    workflow_correlation_id: 'quality-gate-workflow',
+  };
+  const reports: GeneratedWorkflowStepReport[] = [];
+  for (const step of orderWorkflowSteps(graph.steps)) {
+    const binding = await options.router.bind({
+      descriptors: [options.descriptorSource],
+      operation: step.operation,
+      service_id: step.service_id,
+    });
+    const operation = binding.operation;
+    const input = sampleWorkflowInput(operation, step, state);
+    const capabilities = options.descriptor.permissions.operations[operation.method] ?? [];
+    const attemptsBefore = options.attemptsByOperation.get(operation.method) ?? 0;
+    try {
+      const response = await options.router.invoke({
+        handle: binding.handle,
+        input,
+        context: {
+          correlation_id: String(state.workflow_correlation_id),
+          capabilities,
+        },
+      });
+      const attemptsAfter = options.attemptsByOperation.get(operation.method) ?? attemptsBefore;
+      const report: GeneratedWorkflowStepReport = {
+        id: step.id,
+        operation: step.operation,
+        service_id: step.service_id,
+        status: response.denied ? 'denied' : 'completed',
+        attempts: Math.max(1, attemptsAfter - attemptsBefore),
+        receipt_cid: response.receipt.receipt_cid,
+        output: response.output,
+      };
+      reports.push(report);
+      if (response.denied) {
+        break;
+      }
+      applyWorkflowStepOutput(step, response.output, state);
+    } catch (error) {
+      const attemptsAfter = options.attemptsByOperation.get(operation.method) ?? attemptsBefore;
+      reports.push({
+        id: step.id,
+        operation: step.operation,
+        service_id: step.service_id,
+        status: 'failed',
+        attempts: Math.max(1, attemptsAfter - attemptsBefore),
+        error: errorMessage(error),
+      });
+      break;
+    }
+  }
+
+  const rollbackStep = graph.steps.find(step => step.rollback);
+  const rollback = rollbackStep?.rollback
+    ? await exerciseWorkflowAction(options, rollbackStep.rollback, state)
+    : undefined;
+  const compensationStep = graph.steps.find(step => step.compensation);
+  const compensation = compensationStep?.compensation
+    ? await exerciseWorkflowAction(options, compensationStep.compensation, state)
+    : undefined;
+
+  return {
+    graph_id: graph.id,
+    completed_steps: reports.filter(report => report.status === 'completed').map(report => report.id),
+    steps: reports,
+    final_state: { ...state },
+    rollback,
+    compensation,
+    recovery_paths: {
+      failed_pin_retry: (options.attemptsByOperation.get('pin_dataset') ?? 0) > 1,
+      failed_inference_rollback: rollback?.status === 'completed',
+      stream_reconnect: options.stream_reconnect,
+      artifact_publish_retry: (options.attemptsByOperation.get('publish_artifact') ?? 0) > 1,
+    },
+  };
+}
+
+async function exerciseWorkflowAction(
+  options: {
+    router: MCPCapabilityRouter;
+    descriptorSource: { cid: string; descriptor: MCPUIProfileDescriptor };
+    descriptor: MCPUIProfileDescriptor;
+  },
+  action: MCPUIWorkflowAction,
+  state: Record<string, unknown>,
+): Promise<GeneratedWorkflowActionReport> {
+  const binding = await options.router.bind({
+    descriptors: [options.descriptorSource],
+    operation: action.operation,
+    service_id: action.service_id,
+  });
+  const capabilities = options.descriptor.permissions.operations[action.operation] ?? [];
+  try {
+    const response = await options.router.invoke({
+      handle: binding.handle,
+      input: sampleWorkflowActionInput(binding.operation, action, state),
+      context: {
+        correlation_id: String(state.workflow_correlation_id ?? 'quality-gate-workflow'),
+        capabilities,
+      },
+    });
+    return {
+      operation: action.operation,
+      service_id: action.service_id,
+      reason: action.reason,
+      status: response.denied ? 'denied' : 'completed',
+      receipt_cid: response.receipt.receipt_cid,
+      output: response.output,
+    };
+  } catch (error) {
+    return {
+      operation: action.operation,
+      service_id: action.service_id,
+      reason: action.reason,
+      status: 'failed',
+      error: errorMessage(error),
+    };
+  }
+}
+
+function orderWorkflowSteps(steps: MCPUIWorkflowStep[]): MCPUIWorkflowStep[] {
+  const remaining = new Map(steps.map(step => [step.id, step]));
+  const completed = new Set<string>();
+  const ordered: MCPUIWorkflowStep[] = [];
+  while (remaining.size > 0) {
+    const ready = Array.from(remaining.values()).find(
+      step => (step.depends_on ?? []).every(dependency => completed.has(dependency)),
+    );
+    if (!ready) {
+      throw new Error('Workflow graph dependencies could not be ordered.');
+    }
+    ordered.push(ready);
+    remaining.delete(ready.id);
+    completed.add(ready.id);
+  }
+  return ordered;
+}
+
 function sampleInput(operation: MCPUIOperationContract): Record<string, unknown> {
   const properties = operation.input_schema?.properties;
   const input: Record<string, unknown> = {};
@@ -197,7 +439,123 @@ function sampleInput(operation: MCPUIOperationContract): Record<string, unknown>
   return input;
 }
 
-function sampleOutput(operation: MCPUIOperationContract, correlationId?: string): Record<string, unknown> {
+function sampleWorkflowInput(
+  operation: MCPUIOperationContract,
+  step: MCPUIWorkflowStep,
+  state: Record<string, unknown>,
+): Record<string, unknown> {
+  const input = sampleInput(operation);
+  for (const key of step.read_state_keys ?? []) {
+    const inputKey = workflowInputKey(key);
+    const value = state[key];
+    if (value !== undefined) {
+      input[inputKey] = value;
+    }
+  }
+  return fillWorkflowInput(operation, input, state);
+}
+
+function sampleWorkflowActionInput(
+  operation: MCPUIOperationContract,
+  action: MCPUIWorkflowAction,
+  state: Record<string, unknown>,
+): Record<string, unknown> {
+  const input = sampleInput(operation);
+  for (const key of action.state_keys ?? []) {
+    const inputKey = workflowInputKey(key);
+    const value = state[key];
+    if (value !== undefined) {
+      input[inputKey] = value;
+    }
+  }
+  return fillWorkflowInput(operation, input, state);
+}
+
+function fillWorkflowInput(
+  operation: MCPUIOperationContract,
+  input: Record<string, unknown>,
+  state: Record<string, unknown>,
+): Record<string, unknown> {
+  input.correlation_id = input.correlation_id ?? state.workflow_correlation_id ?? 'quality-gate-workflow';
+  if (operation.method === 'select_dataset') {
+    input.root_cid = input.root_cid ?? 'bafybeigdyrzt5dataset';
+    input.path = input.path ?? '/';
+  }
+  if (operation.method === 'pin_dataset') {
+    input.dataset_cid = input.dataset_cid ?? state.selected_dataset_cid ?? 'bafybeigdyrzt5dataset';
+  }
+  if (operation.method === 'run_inference_job') {
+    input.model_id = input.model_id ?? 'quality-gate-model';
+    input.input_ref = input.input_ref ?? { cid: state.pinned_dataset_cid ?? state.selected_dataset_cid ?? 'bafybeigdyrzt5dataset' };
+    input.publish_artifacts = input.publish_artifacts ?? true;
+  }
+  if (operation.method === 'job_status') {
+    input.job_id = input.job_id ?? state.inference_job_id ?? 'quality-gate-job';
+  }
+  if (operation.method === 'publish_artifact') {
+    input.job_id = input.job_id ?? state.inference_job_id ?? 'quality-gate-job';
+    input.artifact_cid = input.artifact_cid ?? state.artifact_cid ?? 'bafybeigdyrzt5artifact';
+    input.destination = input.destination ?? 'ipfs';
+  }
+  return input;
+}
+
+function workflowInputKey(stateKey: string): string {
+  return ({
+    workflow_correlation_id: 'correlation_id',
+    selected_dataset_cid: 'dataset_cid',
+    pinned_dataset_cid: 'dataset_cid',
+    inference_job_id: 'job_id',
+  } as Record<string, string>)[stateKey] ?? stateKey;
+}
+
+function applyWorkflowStepOutput(
+  step: MCPUIWorkflowStep,
+  output: unknown,
+  state: Record<string, unknown>,
+): void {
+  if (!isRecord(output)) {
+    return;
+  }
+  for (const key of step.write_state_keys ?? []) {
+    const value = workflowStateValue(key, output, state);
+    if (value !== undefined) {
+      state[key] = value;
+    }
+  }
+}
+
+function workflowStateValue(
+  stateKey: string,
+  output: Record<string, unknown>,
+  state: Record<string, unknown>,
+): unknown {
+  if (stateKey === 'workflow_correlation_id') {
+    return output.correlation_id ?? state.workflow_correlation_id;
+  }
+  if (stateKey === 'selected_dataset_cid') {
+    return output.dataset_cid ?? output.cid;
+  }
+  if (stateKey === 'pinned_dataset_cid') {
+    return output.pinned_cid ?? output.dataset_cid ?? output.cid;
+  }
+  if (stateKey === 'inference_job_id') {
+    return output.job_id;
+  }
+  if (stateKey === 'artifact_cid') {
+    return output.artifact_cid;
+  }
+  if (stateKey === 'publication_id') {
+    return output.publication_id;
+  }
+  return output[stateKey];
+}
+
+function sampleOutput(
+  operation: MCPUIOperationContract,
+  correlationId?: string,
+  input?: unknown,
+): Record<string, unknown> {
   const output: Record<string, unknown> = {};
   const properties = operation.output_schema?.properties;
   if (isRecord(properties)) {
@@ -206,6 +564,37 @@ function sampleOutput(operation: MCPUIOperationContract, correlationId?: string)
     }
   }
   output.correlation_id = correlationId ?? output.correlation_id ?? 'quality-gate-invoke';
+  if (operation.method === 'select_dataset') {
+    output.dataset_cid = 'bafybeigdyrzt5dataset';
+    output.dataset_id = 'quality-gate-dataset';
+    output.path = '/';
+  }
+  if (operation.method === 'pin_dataset') {
+    output.job_id = 'quality-gate-pin-job';
+    output.pinned_cid = isRecord(input) && typeof input.dataset_cid === 'string'
+      ? input.dataset_cid
+      : 'bafybeigdyrzt5dataset';
+    output.status = 'completed';
+  }
+  if (operation.method === 'run_inference_job') {
+    output.job_id = 'quality-gate-inference-job';
+    output.status = 'running';
+    output.telemetry_stream = 'quality-gate-telemetry';
+  }
+  if (operation.method === 'job_status') {
+    output.job_id = isRecord(input) && typeof input.job_id === 'string'
+      ? input.job_id
+      : 'quality-gate-inference-job';
+    output.status = 'completed';
+    output.progress = 1;
+    output.artifact_cid = 'bafybeigdyrzt5artifact';
+  }
+  if (operation.method === 'publish_artifact') {
+    output.publication_id = 'quality-gate-publication';
+    output.artifact_cid = isRecord(input) && typeof input.artifact_cid === 'string'
+      ? input.artifact_cid
+      : 'bafybeigdyrzt5artifact';
+  }
   return output;
 }
 
@@ -216,13 +605,29 @@ function sampleStreamEvent(operation: MCPUIOperationContract, correlationId?: st
     timestamp: '2026-05-21T00:00:00.000Z',
   };
   if (operation.stream?.kind === 'progress') {
-    event.operation = operation.method;
+    event.operation = progressEventOperation(operation.method);
     event.progress = 0.5;
   }
   if (operation.stream?.kind === 'telemetry' || operation.stream?.kind === 'job-status') {
     event.metrics = { latency_ms: 1 };
   }
   return event;
+}
+
+function progressEventOperation(method: string): string {
+  if (method.includes('pin')) {
+    return 'pin';
+  }
+  if (method.includes('publish')) {
+    return 'publish';
+  }
+  if (method.includes('sync')) {
+    return 'sync';
+  }
+  if (method.includes('index')) {
+    return 'index';
+  }
+  return method;
 }
 
 function sampleValue(schema: Record<string, unknown>): unknown {
@@ -244,6 +649,10 @@ function sampleValue(schema: Record<string, unknown>): unknown {
     default:
       return sampleString(schema);
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function sampleString(schema: Record<string, unknown>): string {

@@ -26,6 +26,8 @@ export type McpPlusPlusConfig = {
   /** Maximum libp2p frame size in bytes (default 4 MiB) */
   p2pMaxFrameBytes?: number
 }
+
+export type McpStdioServerConfig = {
   type?: 'stdio' // Optional for backwards compatibility
   command: string
   args: string[]

@@ -4,6 +4,7 @@ import {
 } from '../../src/services/mcp-generated-app-quality-gates';
 import {
   IPFS_MCP_UI_PROFILE_DESCRIPTORS,
+  ipfsDatasetInferenceWorkflowDescriptor,
   ipfsDatasetsUIProfileDescriptor,
 } from '../../src/services/mcp-ipfs-ui-descriptors';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
@@ -36,5 +37,39 @@ describe('generated app quality gates', () => {
       app_id: 'ipfs-datasets-workbench',
       invoke_operation: 'browse',
     })).rejects.toThrow(/Descriptor quality gate failed/);
+  });
+
+  it('executes the descriptor-only dataset-to-inference workflow with recovery paths', async () => {
+    const report = await runGeneratedAppQualityGate({
+      descriptors: IPFS_MCP_UI_PROFILE_DESCRIPTORS,
+      app_id: 'ipfs-dataset-inference-workflow',
+      invoke_operation: 'select_dataset',
+      stream_operation: 'pin_dataset',
+    });
+
+    expect(report.launch.template.kind).toBe('graph-viewer');
+    expect(report.generated_ui.workflow_graph?.steps).toHaveLength(5);
+    expect(report.workflow?.completed_steps).toEqual([
+      'select_dataset',
+      'pin_dataset',
+      'run_inference',
+      'collect_artifact',
+      'publish_artifact',
+    ]);
+    expect(report.workflow?.final_state).toMatchObject({
+      workflow_correlation_id: 'quality-gate-workflow',
+      selected_dataset_cid: 'bafybeigdyrzt5dataset',
+      pinned_dataset_cid: 'bafybeigdyrzt5dataset',
+      inference_job_id: 'quality-gate-inference-job',
+      artifact_cid: 'bafybeigdyrzt5artifact',
+      publication_id: 'quality-gate-publication',
+    });
+    expect(report.workflow?.recovery_paths).toEqual({
+      failed_pin_retry: true,
+      failed_inference_rollback: true,
+      stream_reconnect: true,
+      artifact_publish_retry: true,
+    });
+    expect(ipfsDatasetInferenceWorkflowDescriptor.workflow_graph?.steps[3].id).toBe('collect_artifact');
   });
 });

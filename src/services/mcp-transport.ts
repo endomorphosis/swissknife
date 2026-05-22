@@ -152,7 +152,8 @@ class WebSocketTransport extends BaseTransport {
 
         this.ws.on('message', (raw) => {
           try {
-            const msg = JSON.parse(typeof raw === 'string' ? raw : raw.toString());
+            const text = typeof raw === 'string' ? raw : String(raw);
+            const msg = JSON.parse(text);
             this.emit('message', msg);
           } catch {
             this.emit('message', raw);
@@ -249,6 +250,7 @@ class Libp2pTransport extends BaseTransport {
     try {
       // Dynamically import libp2p to allow graceful degradation when
       // optional transport sub-packages are not installed.
+      // @ts-ignore optional runtime dependency
       const { createLibp2p } = await import('libp2p');
       const { MCP_P2P_PROTOCOL_ID, MCPp2pSession } = await import(
         './mcp-p2p-session.js'
@@ -260,7 +262,9 @@ class Libp2pTransport extends BaseTransport {
 
       // Try to load noise + yamux if available (graceful degradation)
       try {
+        // @ts-ignore optional runtime dependency
         const { noise } = await import('@chainsafe/libp2p-noise');
+        // @ts-ignore optional runtime dependency
         const { yamux } = await import('@chainsafe/libp2p-yamux');
         libp2pOptions.connectionEncrypters = [noise()];
         libp2pOptions.streamMuxers = [yamux()];
@@ -523,6 +527,7 @@ class HttpsTransport extends BaseTransport {
     // HTTPS is connectionless per request; mark as ready to send requests.
     // Optionally do a HEAD/OPTIONS probe to verify the endpoint is reachable.
     try {
+      // @ts-ignore optional runtime dependency
       const { default: fetch } = await import('node-fetch');
       const controller = new AbortController();
       const timeout = this.options.timeout ?? 10_000;
@@ -576,6 +581,7 @@ class HttpsTransport extends BaseTransport {
   }
 
   private async doPost(message: unknown): Promise<unknown> {
+    // @ts-ignore optional runtime dependency
     const { default: fetch } = await import('node-fetch');
     const controller = new AbortController();
     const timeout = this.options.timeout ?? 30_000;

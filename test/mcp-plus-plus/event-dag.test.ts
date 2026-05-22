@@ -129,6 +129,35 @@ describe('EventDAG', () => {
     });
   });
 
+  describe('audit lineage indexes', () => {
+    it('returns correlation and artifact lineage with causal parents', () => {
+      const correlationId = 'corr-lineage';
+      const artifactCid = 'bafybeigdyrzt5artifact';
+      const command = dag.appendEvent(makeNode({
+        correlation_id: correlationId,
+        operation: 'select_dataset',
+        outputs: ['bafybeigdyrzt5dataset'],
+      }));
+      const publish = dag.appendEvent(makeNode({
+        correlation_id: correlationId,
+        operation: 'publish_artifact',
+        parents: [command],
+        outputs: [artifactCid],
+        artifact_cids: [artifactCid],
+        receipt_cid: 'sha256:receipt',
+        provenance_refs: [correlationId],
+      }));
+
+      expect(dag.getCorrelationLineage(correlationId).map(node => node.cid)).toEqual(
+        expect.arrayContaining([command, publish]),
+      );
+      expect(dag.getArtifactLineage(artifactCid).map(node => node.cid)).toEqual(
+        expect.arrayContaining([command, publish]),
+      );
+      expect(dag.getArtifactLineage(artifactCid)[0].operation).toBe('publish_artifact');
+    });
+  });
+
   describe('getTips', () => {
     it('returns only the frontier nodes', () => {
       const root = dag.appendEvent(makeNode());

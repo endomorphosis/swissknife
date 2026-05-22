@@ -13,6 +13,7 @@ import {
 } from './mcp-ui-profile.js';
 import {
   verifyMCPUIProfileDescriptorTrust,
+  type MCPUIDescriptorTrustKeystore,
   type MCPUIDescriptorTrustPolicy,
   type MCPUIDescriptorTrustResult,
 } from './mcp-descriptor-trust.js';
@@ -62,6 +63,11 @@ export interface LaunchResolution {
   reason: string;
 }
 
+export interface MCPInterfaceDiscoveryRegistryOptions {
+  publish_trust_policy?: MCPUIDescriptorTrustPolicy;
+  trust_keystore?: MCPUIDescriptorTrustKeystore;
+}
+
 export class LocalMCPInterfaceRegistryBackend implements MCPInterfaceRegistryBackend {
   constructor(private readonly repository: InterfaceRepository = new InterfaceRepository()) {}
 
@@ -87,10 +93,26 @@ export class LocalMCPInterfaceRegistryBackend implements MCPInterfaceRegistryBac
 }
 
 export class MCPInterfaceDiscoveryRegistry {
-  constructor(private readonly backend: MCPInterfaceRegistryBackend) {}
+  constructor(
+    private readonly backend: MCPInterfaceRegistryBackend,
+    private readonly options: MCPInterfaceDiscoveryRegistryOptions = {},
+  ) {}
 
-  publish(descriptor: MCPUIProfileDescriptor): string {
+  publish(
+    descriptor: MCPUIProfileDescriptor,
+    trustPolicy: MCPUIDescriptorTrustPolicy | undefined = this.options.publish_trust_policy,
+  ): string {
     assertMCPUIProfileDescriptor(descriptor);
+    if (trustPolicy) {
+      const trust = verifyMCPUIProfileDescriptorTrust(
+        descriptor,
+        trustPolicy,
+        this.options.trust_keystore,
+      );
+      if (!trust.launch_allowed) {
+        throw new Error(`Descriptor publish rejected by trust policy: ${trust.reasons.join('; ')}`);
+      }
+    }
     if (!isLocalBackend(this.backend)) {
       throw new Error('Descriptor publish requires a writable local MCP interface backend.');
     }

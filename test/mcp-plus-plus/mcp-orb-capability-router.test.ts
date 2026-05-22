@@ -198,6 +198,44 @@ describe('MCP ORB capability router contracts', () => {
     expect(second.done).toBe(true);
   });
 
+  it('stamps recovered stream events with binding identity, generation, correlation, and lineage', async () => {
+    const local = new LocalORBTransportAdapter();
+    local.registerStreamHandler('sync_status', async function* ({ binding, context }) {
+      yield {
+        correlation_id: context.correlation_id ?? 'corr-stream',
+        interface_cid: binding.interface_cid,
+        operation: binding.operation.method,
+        event: { status: 'running', progress: 0.75 },
+        event_cid: 'sha256:event-after-recovery',
+        received_at: '2026-05-21T00:00:02.000Z',
+      };
+    });
+    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const binding = await router.bind({
+      descriptors: [source()],
+      operation: 'sync_status',
+    });
+
+    const recovery = await router.recover(binding.handle, { correlation_id: 'corr-stream' }, 'network reconnect');
+    const subscription = await router.stream(binding.handle, {
+      correlation_id: 'corr-stream',
+      capabilities: ['dataset/read', 'dataset/progress'],
+    });
+    const first = await subscription.events[Symbol.asyncIterator]().next();
+
+    expect(recovery.recovered).toBe(true);
+    expect(first.value.correlation_id).toBe('corr-stream');
+    expect(first.value.binding_handle).toBe(binding.handle);
+    expect(first.value.binding_generation).toBe(1);
+    expect(first.value.recovery_lineage).toEqual([
+      expect.objectContaining({
+        generation: 1,
+        previous_generation: 0,
+        reason: 'network reconnect',
+      }),
+    ]);
+  });
+
   it('rejects stale or unknown binding handles before invocation', async () => {
     const router = new MCPCapabilityRouter();
 

@@ -31,6 +31,47 @@ Align with reference implementations to achieve:
 
 ---
 
+## Descriptor-Generated Desktop Rollout Addendum
+
+**Current rollout status:** Foundation, generation, IPFS workflow packs, trust/policy rendering, replay, and quality-gate plumbing are implemented behind descriptor-driven paths. A generated desktop app can now launch from an MCP++ UI Profile descriptor plus template mapping without a bespoke virtual desktop shell.
+
+### Release Gates
+
+1. **Descriptor contract gate:** `validateMCPUIProfileDescriptor`, `descriptor_cli.mjs lint`, `descriptor_cli.mjs validate`, and `descriptor_cli.mjs compat` must pass for every published descriptor.
+2. **Trust gate:** protected registries must use `publish_trust_policy` or launch `trust_policy` when signatures, publisher allowlists, or signer allowlists are required.
+3. **Generation gate:** `generateSchemaDrivenUI` must produce commands, forms, renderers, widgets, workflow graph metadata, and policy-aware command states without mapping failures.
+4. **Runtime gate:** `runGeneratedAppQualityGate` must pass for launch, invocation, stream, recovery, denial, composed workflow execution, replay restoration, and provenance audit.
+5. **Inspector gate:** descriptor and replay logs must be inspectable through `inspectMCPUIProfileDescriptor`, `inspectGeneratedAppReplayLog`, and `web/js/descriptor-inspector.js`.
+
+### Observability Requirements
+
+- Persist replay logs per app instance with `app_id`, `app_instance_id`, descriptor name, descriptor version, and interface CID.
+- Project audit lineage by `correlation_id`, ORB receipt, stream event, workflow step, and artifact CID.
+- Stamp recovered stream events with binding handle, binding generation, generation key, and recovery lineage.
+- Surface policy denials, hidden actions, missing capabilities, stale stream rejections, duplicate event suppression, and workflow shared-state projections in inspector tooling.
+
+### Rollback Criteria
+
+- Disable descriptor launch for a publisher/signature pair if trust verification fails or an allowlist changes.
+- Fall back to the latest compatible descriptor only when `allow_compatibility_fallback` is enabled and compatibility checks pass.
+- Preserve the previous hand-coded app shell until the generated app quality gate passes for the equivalent workflow.
+- Roll back a generated app release if replay restoration cannot reconstruct command, stream, audit, and workflow projections from persisted logs.
+
+### Migration From Hand-Coded Virtual Desktop Apps
+
+1. Extract the app's service calls into MCP++ methods and operation contracts.
+2. Publish a SwissKnife MCP++ UI Profile descriptor with `meta`, `services`, `ui`, `data_contracts`, `permissions`, `state_model`, and optional `workflow_graph`.
+3. Replace hard-coded controls with schema-driven command/form/result bindings.
+4. Move bespoke progress panels to stream profiles and generated timeline/status widgets.
+5. Move manual audit UI to the built-in audit region backed by replay projections.
+6. Validate with the descriptor CLI, run the generated app quality gate, inspect mappings and replay logs, then remove the bespoke shell once parity is confirmed.
+
+### Descriptor-Only Definition of Done
+
+A new virtual desktop app is considered shippable when a signed or policy-accepted MCP++ UI Profile descriptor and template mapping can be published, discovered, launched, invoked, streamed, recovered, replayed, and inspected with no app-specific shell code. The IPFS dataset-to-inference workflow is the current reference path for this definition.
+
+---
+
 ## Phase 1: Architecture Alignment & Baseline Assessment
 
 ### 1.1 Create MCP++ Conformance Matrix
@@ -894,4 +935,3 @@ Features intentionally deferred to future phases:
 **Next Review:** 2026-06-03  
 **Owner:** SwissKnife MCP++ Team  
 **Approvers:** @endomorphosis
-
