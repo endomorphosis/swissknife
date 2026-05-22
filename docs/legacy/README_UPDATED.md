@@ -1,6 +1,6 @@
 # SwissKnife - AI Development Toolkit 
 
-> **⚠️ Current Status**: This project is undergoing major infrastructure repair. See [REPOSITORY_AUDIT_REPORT.md](REPOSITORY_AUDIT_REPORT.md) for current state and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for roadmap.
+> **⚠️ Current Status**: This project is undergoing major infrastructure repair. See [REPOSITORY_AUDIT_REPORT.md](REPOSITORY_AUDIT_REPORT.md) for current state and [../mcp-plus-plus/IMPLEMENTATION_PLAN_TODO_QUEUE.md](../mcp-plus-plus/IMPLEMENTATION_PLAN_TODO_QUEUE.md) for roadmap.
 
 A TypeScript-based AI development toolkit designed to provide unified access to AI models, task management, and development workflows.
 
@@ -44,7 +44,7 @@ A TypeScript-based AI development toolkit designed to provide unified access to 
 
 If you want to help fix this project, please:
 
-1. **Check Current Issues**: Review [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for detailed breakdown of work needed
+1. **Check Current Issues**: Review [../mcp-plus-plus/IMPLEMENTATION_PLAN_TODO_QUEUE.md](../mcp-plus-plus/IMPLEMENTATION_PLAN_TODO_QUEUE.md) for detailed breakdown of work needed
 2. **Pick an Issue**: Choose from the GitHub issues created for parallel development
 3. **Follow Templates**: Use the issue templates in `.github/ISSUE_TEMPLATE/`
 4. **Test Infrastructure First**: Start with Priority 1 infrastructure issues
@@ -89,7 +89,7 @@ This project aims to provide:
 
 ### Key Documents:
 - [Repository Audit Report](REPOSITORY_AUDIT_REPORT.md) - Current state analysis
-- [Implementation Plan](IMPLEMENTATION_PLAN.md) - Roadmap for fixes
+- [Implementation Plan](../mcp-plus-plus/IMPLEMENTATION_PLAN_TODO_QUEUE.md) - Roadmap for fixes
 - [Architecture Documentation](../phase1/cli_architecture.md) - System design (may be outdated)
 - [Phase Documentation](../integration/phase1-components-guide.md) - Development phases (may be outdated)
 
@@ -98,12 +98,12 @@ This project aims to provide:
 We welcome contributions! However, please note the current state:
 
 1. **Infrastructure First**: Help fix the critical infrastructure issues
-2. **Check Dependencies**: Understand what depends on what in the [implementation plan](IMPLEMENTATION_PLAN.md)
+2. **Check Dependencies**: Understand what depends on what in the [implementation plan](../mcp-plus-plus/IMPLEMENTATION_PLAN_TODO_QUEUE.md)
 3. **Use Issue Templates**: Follow the structured issue templates for consistency
 4. **Test Your Changes**: Ensure fixes don't break other components
 
 ### Contribution Workflow:
-1. Review [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
+1. Review [../mcp-plus-plus/IMPLEMENTATION_PLAN_TODO_QUEUE.md](../mcp-plus-plus/IMPLEMENTATION_PLAN_TODO_QUEUE.md)
 2. Pick an appropriate issue for your skill level
 3. Create a feature branch following our naming conventions
 4. Make minimal, focused changes

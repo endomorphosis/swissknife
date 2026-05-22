@@ -1,8 +1,8 @@
 {
-  "generated": "2026-05-22T05:46:28.029Z",
+  "generated": "2026-05-22T07:41:36.507Z",
   "summary": {
     "totalFiles": 652,
-    "brokenLinks": 19,
+    "brokenLinks": 14,
     "repairSuggestions": 0,
     "validationStatus": "FAIL"
   },
@@ -58,59 +58,24 @@
     },
     {
       "file": "legacy/README_UPDATED.md",
-      "target": "IMPLEMENTATION_PLAN.md",
-      "text": "IMPLEMENTATION_PLAN.md",
-      "type": "link",
-      "position": 204
-    },
-    {
-      "file": "legacy/README_UPDATED.md",
-      "target": "IMPLEMENTATION_PLAN.md",
-      "text": "IMPLEMENTATION_PLAN.md",
-      "type": "link",
-      "position": 1980
-    },
-    {
-      "file": "legacy/README_UPDATED.md",
       "target": "REPOSITORY_AUDIT_REPORT.md",
       "text": "Repository Audit Report",
       "type": "link",
-      "position": 3605
-    },
-    {
-      "file": "legacy/README_UPDATED.md",
-      "target": "IMPLEMENTATION_PLAN.md",
-      "text": "Implementation Plan",
-      "type": "link",
-      "position": 3686
-    },
-    {
-      "file": "legacy/README_UPDATED.md",
-      "target": "IMPLEMENTATION_PLAN.md",
-      "text": "implementation plan",
-      "type": "link",
-      "position": 4181
-    },
-    {
-      "file": "legacy/README_UPDATED.md",
-      "target": "IMPLEMENTATION_PLAN.md",
-      "text": "IMPLEMENTATION_PLAN.md",
-      "type": "link",
-      "position": 4415
+      "position": 3717
     },
     {
       "file": "legacy/README_UPDATED.md",
       "target": "LICENSE.md",
       "text": "AGPL License",
       "type": "link",
-      "position": 4755
+      "position": 4979
     },
     {
       "file": "legacy/README_UPDATED.md",
       "target": "REPOSITORY_AUDIT_REPORT.md",
       "text": "REPOSITORY_AUDIT_REPORT.md",
       "type": "link",
-      "position": 5227
+      "position": 5451
     },
     {
       "file": "p2p/README.md",
@@ -145,7 +110,7 @@
   "recommendations": [
     {
       "priority": "high",
-      "issue": "19 broken links found",
+      "issue": "14 broken links found",
       "action": "Fix broken internal references using repair suggestions",
       "impact": "Critical for documentation accuracy score"
     }

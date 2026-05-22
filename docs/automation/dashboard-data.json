@@ -1,22 +1,22 @@
 {
-  "timestamp": "2026-05-22T05:46:28.338Z",
+  "timestamp": "2026-05-22T07:41:36.796Z",
   "summary": {
-    "qualityScore": 85,
+    "qualityScore": 87,
     "qualityGrade": "B",
     "totalFiles": 30,
-    "brokenLinks": 19,
+    "brokenLinks": 14,
     "missingScreenshots": 0,
     "generationTime": 29,
-    "lastUpdate": "2026-05-22T05:46:27.749Z",
+    "lastUpdate": "2026-05-22T07:41:36.289Z",
     "status": "needs-improvement"
   },
   "analytics": {
-    "timestamp": "2026-05-22T05:46:27.749Z",
+    "timestamp": "2026-05-22T07:41:36.289Z",
     "quality": {
-      "overallScore": 85,
+      "overallScore": 87,
       "completeness": 82,
       "consistency": 100,
-      "accuracy": 62,
+      "accuracy": 72,
       "maintainability": 100
     },
     "content": {
@@ -41,7 +41,7 @@
     },
     "linkValidation": {
       "totalLinks": 652,
-      "brokenLinks": 19,
+      "brokenLinks": 14,
       "repairedLinks": 0,
       "validationStatus": "FAIL"
     },
@@ -103,10 +103,10 @@
     }
   },
   "linkValidation": {
-    "generated": "2026-05-22T05:46:28.029Z",
+    "generated": "2026-05-22T07:41:36.507Z",
     "summary": {
       "totalFiles": 652,
-      "brokenLinks": 19,
+      "brokenLinks": 14,
       "repairSuggestions": 0,
       "validationStatus": "FAIL"
     },
@@ -162,59 +162,24 @@
       },
       {
         "file": "legacy/README_UPDATED.md",
-        "target": "IMPLEMENTATION_PLAN.md",
-        "text": "IMPLEMENTATION_PLAN.md",
-        "type": "link",
-        "position": 204
-      },
-      {
-        "file": "legacy/README_UPDATED.md",
-        "target": "IMPLEMENTATION_PLAN.md",
-        "text": "IMPLEMENTATION_PLAN.md",
-        "type": "link",
-        "position": 1980
-      },
-      {
-        "file": "legacy/README_UPDATED.md",
         "target": "REPOSITORY_AUDIT_REPORT.md",
         "text": "Repository Audit Report",
         "type": "link",
-        "position": 3605
-      },
-      {
-        "file": "legacy/README_UPDATED.md",
-        "target": "IMPLEMENTATION_PLAN.md",
-        "text": "Implementation Plan",
-        "type": "link",
-        "position": 3686
-      },
-      {
-        "file": "legacy/README_UPDATED.md",
-        "target": "IMPLEMENTATION_PLAN.md",
-        "text": "implementation plan",
-        "type": "link",
-        "position": 4181
-      },
-      {
-        "file": "legacy/README_UPDATED.md",
-        "target": "IMPLEMENTATION_PLAN.md",
-        "text": "IMPLEMENTATION_PLAN.md",
-        "type": "link",
-        "position": 4415
+        "position": 3717
       },
       {
         "file": "legacy/README_UPDATED.md",
         "target": "LICENSE.md",
         "text": "AGPL License",
         "type": "link",
-        "position": 4755
+        "position": 4979
       },
       {
         "file": "legacy/README_UPDATED.md",
         "target": "REPOSITORY_AUDIT_REPORT.md",
         "text": "REPOSITORY_AUDIT_REPORT.md",
         "type": "link",
-        "position": 5227
+        "position": 5451
       },
       {
         "file": "p2p/README.md",
@@ -249,14 +214,14 @@
     "recommendations": [
       {
         "priority": "high",
-        "issue": "19 broken links found",
+        "issue": "14 broken links found",
         "action": "Fix broken internal references using repair suggestions",
         "impact": "Critical for documentation accuracy score"
       }
     ]
   },
   "screenshots": {
-    "generated": "2026-05-22T05:46:28.101Z",
+    "generated": "2026-05-22T07:41:36.571Z",
     "summary": {
       "totalMissing": 0,
       "availableScreenshots": 1,
@@ -271,12 +236,6 @@
     "recommendations": []
   },
   "trends": [
-    {
-      "timestamp": "2026-03-22T03:06:41.224Z",
-      "qualityScore": 85,
-      "totalFiles": 30,
-      "brokenLinks": 54
-    },
     {
       "timestamp": "2026-03-29T03:07:50.490Z",
       "qualityScore": 85,
@@ -328,6 +287,12 @@
     {
       "timestamp": "2026-05-22T05:46:27.749Z",
       "qualityScore": 85,
+      "totalFiles": 30,
+      "brokenLinks": 54
+    },
+    {
+      "timestamp": "2026-05-22T07:41:36.289Z",
+      "qualityScore": 87,
       "totalFiles": 30,
       "brokenLinks": 54
     }
