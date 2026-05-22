@@ -3,6 +3,7 @@
 // import SwissKnife from './swissknife-browser.js'; // Temporarily disabled due to buffer import issues
 // Import DesktopEnhancer - will be available as window.DesktopEnhancer
 import './desktop-enhancer.js';
+import './generated-app-launcher.js';
 
 class SwissKnifeDesktop {
     constructor() {
@@ -13,6 +14,7 @@ class SwissKnifeDesktop {
         this.swissknife = null; // SwissKnife disabled due to buffer import issues
         this.isSwissKnifeReady = false;
         this.enhancer = null;
+        this.generatedAppLauncher = null;
         this.currentTheme = 'day'; // 'day' or 'sunset'
         
         this.init();
@@ -479,9 +481,39 @@ class SwissKnifeDesktop {
             singleton: true
         });
         console.log('✅ Registered oauth-login app');
+
+        this.initializeGeneratedApps().catch(error => {
+            console.warn('Generated MCP++ app discovery skipped:', error);
+        });
         
         console.log('📱 Total apps registered:', this.apps.size);
         console.log('📱 Apps list:', Array.from(this.apps.keys()));
+    }
+
+    async initializeGeneratedApps() {
+        const launcher = window.MCPGeneratedAppLauncher;
+        const registry = window.mcpInterfaceRegistry || window.swissknifeMCPRegistry;
+        if (!launcher || !registry) {
+            console.log('MCP++ generated app registry unavailable; using registered static apps only');
+            return;
+        }
+
+        this.generatedAppLauncher = launcher;
+        const generatedApps = await launcher.discoverGeneratedApps(registry, { compatible_only: true });
+        generatedApps.forEach(generatedApp => {
+            this.apps.set(generatedApp.app_id, {
+                name: generatedApp.title,
+                icon: generatedApp.icon,
+                component: 'GeneratedMCPApp',
+                singleton: false,
+                generated: true,
+                generatedApp
+            });
+        });
+
+        if (generatedApps.length > 0) {
+            console.log('✅ Registered generated MCP++ apps:', generatedApps.map(app => app.app_id));
+        }
     }
     
     setupEventListeners() {
@@ -605,7 +637,7 @@ class SwissKnifeDesktop {
             
             console.log(`🎨 Loading app component: ${appConfig.component}`);
             // Load app component
-            await this.loadAppComponent(window, appConfig.component);
+            await this.loadAppComponent(window, appConfig.component, appConfig);
             
             console.log(`✅ Successfully launched ${appConfig.name}`);
         } catch (error) {
@@ -682,7 +714,7 @@ class SwissKnifeDesktop {
         return window;
     }
     
-    async loadAppComponent(window, componentName) {
+    async loadAppComponent(window, componentName, appConfig = {}) {
         console.log(`🎨 Loading app component: ${componentName}`);
         
         try {
@@ -1447,6 +1479,11 @@ class SwissKnifeDesktop {
                         `;
                     }
                     break;
+
+                case 'generatedmcpapp':
+                    console.log('🧩 Loading generated MCP++ app...');
+                    this.loadGeneratedMCPApp(contentElement, appConfig);
+                    break;
                     
                 default:
                     throw new Error(`Unknown app component: ${componentName}`);
@@ -1470,6 +1507,19 @@ class SwissKnifeDesktop {
                 </div>
             `;
         }
+    }
+
+    loadGeneratedMCPApp(contentElement, appConfig) {
+        const launcher = this.generatedAppLauncher || window.MCPGeneratedAppLauncher;
+        if (!launcher || !appConfig.generatedApp) {
+            throw new Error('Generated MCP++ app launcher is unavailable');
+        }
+
+        const capabilities = window.swissknifeCapabilities || [];
+        contentElement.innerHTML = launcher.renderGeneratedApp(appConfig.generatedApp, {
+            desktop: this,
+            capabilities
+        });
     }
     
     async loadScript(src) {

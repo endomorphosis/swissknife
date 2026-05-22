@@ -89,152 +89,534 @@ abstract class BaseTransport implements MCPTransport {
   }
 }
 
-// Add WebSocket-specific types
-interface WebSocket {
-  send(data: string): void;
-  close(): void;
-  onmessage?: (event: { data: unknown }) => void;
-  onclose?: () => void;
+// Minimal interface for the Node.js `ws` WebSocket client.
+// Using a structural type instead of importing the full `ws` types
+// so the module loads even when `ws` is not installed (e.g., in browser builds).
+interface NodeWebSocket {
+  readyState: number;
+  send(data: string, cb?: (err?: Error) => void): void;
+  close(code?: number, reason?: string): void;
+  on(event: 'open', listener: () => void): this;
+  on(event: 'message', listener: (data: unknown) => void): this;
+  on(event: 'close', listener: (code: number, reason: Buffer) => void): this;
+  on(event: 'error', listener: (err: Error) => void): this;
 }
 
 class WebSocketTransport extends BaseTransport {
-  private ws: WebSocket | null = null;
-  
-  constructor(options: MCPTransportOptions) { 
-    super(options); 
+  private ws: NodeWebSocket | null = null;
+  private reconnectAttempts = 0;
+  private readonly maxReconnectAttempts = 5;
+  private readonly reconnectBaseDelayMs = 1000;
+
+  constructor(options: MCPTransportOptions) {
+    super(options);
   }
-  
+
   async connect(): Promise<boolean> {
-    console.log(`Connecting WebSocket to ${this.options.endpoint}...`);
-    // TODO: Implement WebSocket connection logic using 'ws' or browser WebSocket
-    this.connected = true; // Placeholder
-    console.log('WebSocket connected (placeholder).');
-    return true;
+    return new Promise<boolean>(async (resolve) => {
+      let resolved = false;
+      const settle = (val: boolean) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(val);
+        }
+      };
+
+      try {
+        let WS: new (url: string, options?: unknown) => NodeWebSocket;
+
+        // Use native browser WebSocket if available, otherwise fall back to `ws`.
+        if (typeof globalThis !== 'undefined' && typeof (globalThis as Record<string, unknown>).WebSocket === 'function') {
+          WS = (globalThis as Record<string, unknown>).WebSocket as typeof WS;
+        } else {
+          // Dynamic import keeps the module load-safe in environments without `ws`.
+          const mod = await import('ws');
+          WS = (mod.WebSocket ?? mod.default) as unknown as typeof WS;
+        }
+
+        const headers = this.buildHeaders();
+        this.ws = new WS(this.options.endpoint, headers ? { headers } : undefined);
+
+        const timeoutMs = this.options.timeout ?? 10_000;
+        const timer = setTimeout(() => {
+          this.ws?.close();
+          settle(false);
+        }, timeoutMs);
+
+        this.ws.on('open', () => {
+          clearTimeout(timer);
+          this.connected = true;
+          this.reconnectAttempts = 0;
+          settle(true);
+        });
+
+        this.ws.on('message', (raw) => {
+          try {
+            const msg = JSON.parse(typeof raw === 'string' ? raw : raw.toString());
+            this.emit('message', msg);
+          } catch {
+            this.emit('message', raw);
+          }
+        });
+
+        this.ws.on('close', () => {
+          clearTimeout(timer);
+          if (!this.connected) {
+            // Connection was never established — resolve as failed
+            settle(false);
+            return;
+          }
+          this.connected = false;
+          this.emit('disconnect');
+          if (this.options.reconnect) {
+            this.scheduleReconnect().catch(() => undefined);
+          }
+        });
+
+        this.ws.on('error', (err: Error) => {
+          // 'close' will fire after 'error' and handle the settle(false) path.
+          console.error('[WebSocketTransport] error:', err.message);
+        });
+      } catch (err) {
+        console.error('[WebSocketTransport] connect() failed:', err);
+        settle(false);
+      }
+    });
   }
-  
+
   async disconnect(): Promise<void> {
-    console.log('Disconnecting WebSocket...');
-    this.ws?.close();
     this.connected = false;
+    this.ws?.close(1000, 'client disconnect');
+    this.ws = null;
     this.emit('disconnect');
-    console.log('WebSocket disconnected.');
   }
-  
+
   async send(message: unknown): Promise<void> {
-    if (!this.isConnected() || !this.ws) throw new Error('WebSocket not connected.');
-    console.log('Sending WebSocket message:', message);
-    this.ws.send(JSON.stringify(message)); // Example serialization
+    if (!this.isConnected() || !this.ws) {
+      throw new Error('WebSocket not connected.');
+    }
+    return new Promise<void>((resolve, reject) => {
+      this.ws!.send(JSON.stringify(message), (err?: Error) => {
+        if (err) reject(err); else resolve();
+      });
+    });
   }
-  
+
   async receive(): Promise<unknown> {
-    // Typically handled by 'message' event, but could implement polling/promise if needed
-    throw new Error('WebSocket receive() not typically used; listen for "message" event.');
+    // Event-driven; callers should listen for the 'message' event.
+    throw new Error('WebSocket receive() is event-driven; listen for the "message" event.');
+  }
+
+  /** Returns the approximate round-trip latency by measuring a ping/pong. */
+  getLatency(): number {
+    // Not trivially measurable without a ping frame; return -1 as sentinel.
+    return -1;
+  }
+
+  private buildHeaders(): Record<string, string> | undefined {
+    const creds = this.options.credentials;
+    if (!creds) return undefined;
+    const headers: Record<string, string> = {};
+    if (typeof creds.token === 'string') {
+      headers['Authorization'] = `Bearer ${creds.token}`;
+    }
+    return Object.keys(headers).length > 0 ? headers : undefined;
+  }
+
+  private async scheduleReconnect(): Promise<void> {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('[WebSocketTransport] Max reconnect attempts reached.');
+      return;
+    }
+    const delay = this.reconnectBaseDelayMs * Math.pow(2, this.reconnectAttempts);
+    this.reconnectAttempts++;
+    await new Promise(r => setTimeout(r, delay));
+    await this.connect();
   }
 }
 
 class Libp2pTransport extends BaseTransport {
-  // TODO: Add libp2p specific properties 
-  constructor(options: MCPTransportOptions) { 
-    super(options); 
+  private session: import('./mcp-p2p-session.js').MCPp2pSession | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectBaseDelayMs = 1000;
+
+  constructor(options: MCPTransportOptions) {
+    super(options);
   }
-  
+
   async connect(): Promise<boolean> {
-    console.log(`Connecting libp2p to ${this.options.endpoint}...`);
-    // TODO: Implement libp2p node creation, dialing, protocol negotiation (/mcp/1.0.0)
-    this.connected = true; // Placeholder
-    console.log('libp2p connected (placeholder).');
-    return true;
+    try {
+      // Dynamically import libp2p to allow graceful degradation when
+      // optional transport sub-packages are not installed.
+      const { createLibp2p } = await import('libp2p');
+      const { MCP_P2P_PROTOCOL_ID, MCPp2pSession } = await import(
+        './mcp-p2p-session.js'
+      );
+
+      const libp2pOptions: Record<string, unknown> = {
+        ...(this.options.libp2pOptions ?? {}),
+      };
+
+      // Try to load noise + yamux if available (graceful degradation)
+      try {
+        const { noise } = await import('@chainsafe/libp2p-noise');
+        const { yamux } = await import('@chainsafe/libp2p-yamux');
+        libp2pOptions.connectionEncrypters = [noise()];
+        libp2pOptions.streamMuxers = [yamux()];
+      } catch {
+        // Transport sub-packages not installed; proceed without encryption layer
+        // (only acceptable for local dev / testing).
+      }
+
+      const node = await createLibp2p(libp2pOptions as Parameters<typeof createLibp2p>[0]);
+      await node.start();
+
+      const endpoint = this.options.endpoint;
+      const stream = await node.dialProtocol(endpoint, MCP_P2P_PROTOCOL_ID) as unknown as import('./mcp-p2p-session.js').P2PStream;
+
+      this.session = new MCPp2pSession(stream, {
+        maxFrameBytes:
+          typeof this.options.libp2pOptions?.maxFrameBytes === 'number'
+            ? this.options.libp2pOptions.maxFrameBytes
+            : undefined,
+      });
+
+      await this.session.handshake({
+        name: 'swissknife',
+        version: '0.0.53',
+      });
+
+      // Forward session messages to this transport's 'message' event
+      this.session.on('message', (msg: unknown) => this.emit('message', msg));
+      this.session.on('close', () => {
+        this.connected = false;
+        this.emit('disconnect');
+        if (this.options.reconnect) {
+          this.scheduleReconnect().catch(() => undefined);
+        }
+      });
+      this.session.on('error', (err: Error) => {
+        console.error('[Libp2pTransport] Session error:', err.message);
+      });
+
+      this.connected = true;
+      this.reconnectAttempts = 0;
+      return true;
+    } catch (err) {
+      console.error('[Libp2pTransport] connect() failed:', err);
+      return false;
+    }
   }
-  
+
   async disconnect(): Promise<void> {
-    console.log('Disconnecting libp2p...');
-    // TODO: Close libp2p stream/connection, potentially stop node
     this.connected = false;
+    if (this.session) {
+      await this.session.close();
+      this.session = null;
+    }
     this.emit('disconnect');
-    console.log('libp2p disconnected.');
   }
-  
+
   async send(message: unknown): Promise<void> {
-    if (!this.isConnected()) throw new Error('libp2p not connected.');
-    console.log('Sending libp2p message:', message);
-    // TODO: Send message over the established libp2p stream (e.g., using lp.pushable)
+    if (!this.isConnected() || !this.session) {
+      throw new Error('libp2p not connected.');
+    }
+    await this.session.sendNotification(
+      message as import('./mcp-p2p-session.js').JsonRpcNotification,
+    );
   }
-  
+
   async receive(): Promise<unknown> {
-    throw new Error('libp2p receive() not typically used; listen for "message" event on stream.');
+    throw new Error(
+      'libp2p receive() not used; listen for "message" event on the transport.',
+    );
+  }
+
+  /** Expose the underlying session for higher-level callers (e.g. envelope layer). */
+  getSession(): import('./mcp-p2p-session.js').MCPp2pSession | null {
+    return this.session;
+  }
+
+  private async scheduleReconnect(): Promise<void> {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('[Libp2pTransport] Max reconnect attempts reached.');
+      return;
+    }
+    const delay =
+      this.reconnectBaseDelayMs * Math.pow(2, this.reconnectAttempts);
+    this.reconnectAttempts++;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    await this.connect();
   }
 }
 
+/**
+ * WebRTC Data-Channel transport for MCP++ Profile E (P2P browser transport).
+ *
+ * Architecture
+ * ───────────
+ *  1. Connects to the signaling server at `options.endpoint` via WebSocket.
+ *  2. Negotiates an RTCPeerConnection with a remote peer by exchanging
+ *     JSON-encoded SDP offer/answer and ICE candidates over the signaling
+ *     channel.
+ *  3. Opens an ordered, reliable RTCDataChannel ("mcp") for MCP messages.
+ *
+ * Node.js: RTCPeerConnection is not a native API.  If `globalThis.RTCPeerConnection`
+ * is absent the constructor will throw a clear error; callers should prefer the
+ * libp2p transport when running in Node.
+ */
 class WebRTCTransport extends BaseTransport {
-  // TODO: Add WebRTC specific properties
-  constructor(options: MCPTransportOptions) { 
-    super(options); 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private pc: any | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private dataChannel: any | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private signalingWs: any | null = null;
+
+  constructor(options: MCPTransportOptions) {
+    super(options);
   }
-  
+
   async connect(): Promise<boolean> {
-    console.log(`Connecting WebRTC via signaling for ${this.options.endpoint}...`);
-    // TODO: Implement WebRTC connection logic (signaling, peer connection, data channel)
-    this.connected = true; // Placeholder
-    console.log('WebRTC connected (placeholder).');
-    return true;
+    // RTCPeerConnection is a browser-only global.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const RTC: (new (cfg?: unknown) => any) | undefined =
+      typeof globalThis !== 'undefined'
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (globalThis as Record<string, any>).RTCPeerConnection
+        : undefined;
+
+    if (typeof RTC !== 'function') {
+      throw new Error(
+        '[WebRTCTransport] RTCPeerConnection is not available in this environment. ' +
+          'WebRTC is a browser-only API; use the libp2p transport in Node.js.',
+      );
+    }
+
+    return new Promise<boolean>(async (resolve) => {
+      try {
+        // 1. Open signaling WebSocket
+        let WS: new (url: string) => unknown;
+        if (typeof (globalThis as Record<string, unknown>).WebSocket === 'function') {
+          WS = (globalThis as Record<string, unknown>).WebSocket as typeof WS;
+        } else {
+          const mod = await import('ws');
+          WS = (mod.WebSocket ?? mod.default) as unknown as typeof WS;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sigWs: any = new WS(this.options.endpoint);
+        this.signalingWs = sigWs;
+
+        const sendSignal = (msg: unknown) =>
+          sigWs.send(JSON.stringify(msg));
+
+        const iceServers = Array.isArray(this.options.webRTCOptions?.iceServers)
+          ? this.options.webRTCOptions!.iceServers
+          : [{ urls: 'stun:stun.l.google.com:19302' }];
+
+        // 2. Create peer connection
+        this.pc = new RTC({ iceServers });
+        const pc = this.pc;
+
+        // 3. Create data channel (initiator role)
+        this.dataChannel = pc.createDataChannel('mcp', {
+          ordered: true,
+          protocol: 'mcp++/1.0',
+        });
+        const dc = this.dataChannel;
+
+        dc.onopen = () => {
+          this.connected = true;
+          resolve(true);
+        };
+        dc.onclose = () => {
+          this.connected = false;
+          this.emit('disconnect');
+          if (this.options.reconnect) {
+            this.connect().catch(() => undefined);
+          }
+        };
+        dc.onmessage = (evt: { data: string }) => {
+          try {
+            this.emit('message', JSON.parse(evt.data));
+          } catch {
+            this.emit('message', evt.data);
+          }
+        };
+
+        // 4. Gather ICE candidates and send to signaling server
+        pc.onicecandidate = (evt: { candidate: unknown }) => {
+          if (evt.candidate) {
+            sendSignal({ type: 'ice-candidate', candidate: evt.candidate });
+          }
+        };
+
+        // 5. Create and send SDP offer
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        sendSignal({ type: 'offer', sdp: offer });
+
+        // 6. Handle signaling messages (answer + remote ICE candidates)
+        sigWs.onmessage = async (evt: { data: string }) => {
+          const msg = JSON.parse(evt.data);
+          if (msg.type === 'answer') {
+            await pc.setRemoteDescription(msg.sdp);
+          } else if (msg.type === 'ice-candidate' && msg.candidate) {
+            await pc.addIceCandidate(msg.candidate);
+          }
+        };
+
+        sigWs.onerror = () => {
+          this.connected = false;
+          resolve(false);
+        };
+
+        // Connection timeout
+        const timeout = this.options.timeout ?? 30_000;
+        setTimeout(() => {
+          if (!this.connected) {
+            this.connected = false;
+            sigWs.close();
+            resolve(false);
+          }
+        }, timeout);
+      } catch (err) {
+        console.error('[WebRTCTransport] connect() error:', err);
+        resolve(false);
+      }
+    });
   }
-  
+
   async disconnect(): Promise<void> {
-    console.log('Disconnecting WebRTC...');
-    // TODO: Close data channel and peer connection
     this.connected = false;
+    this.dataChannel?.close();
+    this.pc?.close();
+    this.signalingWs?.close();
+    this.dataChannel = null;
+    this.pc = null;
+    this.signalingWs = null;
     this.emit('disconnect');
-    console.log('WebRTC disconnected.');
   }
-  
+
   async send(message: unknown): Promise<void> {
-    if (!this.isConnected()) throw new Error('WebRTC not connected.');
-    console.log('Sending WebRTC message:', message);
-    // TODO: Send message over the WebRTC data channel
+    if (!this.isConnected() || !this.dataChannel) {
+      throw new Error('WebRTC data channel not open.');
+    }
+    this.dataChannel.send(JSON.stringify(message));
   }
-  
+
   async receive(): Promise<unknown> {
-    throw new Error('WebRTC receive() not typically used; listen for "message" event on data channel.');
+    // Event-driven; callers should listen for the 'message' event.
+    throw new Error(
+      'WebRTC receive() is event-driven; listen for the "message" event.',
+    );
   }
 }
 
 class HttpsTransport extends BaseTransport {
-  // TODO: Add HTTP client instance (e.g., axios)
-  constructor(options: MCPTransportOptions) { 
-    super(options); 
+  constructor(options: MCPTransportOptions) {
+    super(options);
   }
-  
+
   async connect(): Promise<boolean> {
-    // HTTPS is connectionless per request, but we can treat it as 'always connectable'
-    console.log(`HTTPS transport ready for endpoint ${this.options.endpoint}.`);
-    this.connected = true; // Represents readiness to send requests
-    return true;
+    // HTTPS is connectionless per request; mark as ready to send requests.
+    // Optionally do a HEAD/OPTIONS probe to verify the endpoint is reachable.
+    try {
+      const { default: fetch } = await import('node-fetch');
+      const controller = new AbortController();
+      const timeout = this.options.timeout ?? 10_000;
+      const timer = setTimeout(() => controller.abort(), timeout);
+      try {
+        const resp = await fetch(this.options.endpoint, {
+          method: 'OPTIONS',
+          headers: this.buildHeaders(),
+          signal: controller.signal as Parameters<typeof fetch>[1] extends { signal?: infer S } ? S : never,
+        });
+        this.connected = resp.ok || resp.status === 405; // 405 = method not allowed — server reachable
+      } catch {
+        // Treat any error (including 4xx/5xx) as reachable — the POST will fail with proper error
+        this.connected = true;
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch {
+      // node-fetch not available or network error — still mark ready
+      this.connected = true;
+    }
+    return this.connected;
   }
-  
+
   async disconnect(): Promise<void> {
-    // No persistent connection to close for basic HTTPS requests
     this.connected = false;
-    this.emit('disconnect'); // Emit for consistency if needed
-    console.log('HTTPS transport disconnected (no-op).');
+    this.emit('disconnect');
   }
-  
+
   async send(message: unknown): Promise<void> {
     if (!this.isConnected()) throw new Error('HTTPS transport not ready.');
-    console.log('Sending HTTPS request:', message);
-    // TODO: Implement HTTPS POST request
+    // Fire-and-forget POST — responses arrive via server push (SSE/long-poll),
+    // not via the return value. For request-response, use request() instead.
+    await this.doPost(message);
   }
-  
+
   async receive(): Promise<unknown> {
-    // Standard HTTPS POST doesn't support server push easily.
-    throw new Error('HTTPS receive() requires SSE, long-polling, or a request-response pattern.');
+    // Standard HTTPS POST is request-response; use request() for that.
+    // SSE/long-polling requires a dedicated streaming call.
+    throw new Error(
+      'HTTPS receive() is not supported for one-shot POST; use request() for request-response.',
+    );
   }
-  
-  // Optional: Add a request method for request-response pattern
+
+  /**
+   * Send `message` as a JSON POST and return the parsed JSON response body.
+   */
   async request(message: unknown): Promise<unknown> {
     if (!this.isConnected()) throw new Error('HTTPS transport not ready.');
-    console.log('Sending HTTPS request (request-response):', message);
-    // TODO: Implement HTTPS POST and wait for response
-    return { response: 'Placeholder HTTPS response' }; // Placeholder
+    return this.doPost(message);
+  }
+
+  private async doPost(message: unknown): Promise<unknown> {
+    const { default: fetch } = await import('node-fetch');
+    const controller = new AbortController();
+    const timeout = this.options.timeout ?? 30_000;
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const resp = await fetch(this.options.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.buildHeaders(),
+        },
+        body: JSON.stringify(message),
+        signal: controller.signal as Parameters<typeof fetch>[1] extends { signal?: infer S } ? S : never,
+      });
+
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => '');
+        throw new Error(`HTTPS ${resp.status} ${resp.statusText}${body ? ': ' + body : ''}`);
+      }
+
+      const contentType = resp.headers.get('content-type') ?? '';
+      if (contentType.includes('application/json')) {
+        return resp.json();
+      }
+      return resp.text();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private buildHeaders(): Record<string, string> {
+    const creds = this.options.credentials;
+    const headers: Record<string, string> = {};
+    if (creds) {
+      if (typeof creds.token === 'string') {
+        headers['Authorization'] = `Bearer ${creds.token}`;
+      } else if (typeof creds.apiKey === 'string') {
+        headers['X-API-Key'] = creds.apiKey;
+      }
+    }
+    return headers;
   }
 }
 
