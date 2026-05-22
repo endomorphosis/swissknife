@@ -1,8 +1,18 @@
 const PROFILE = 'swissknife.mcp++/ui-profile';
 
-export function inspectDescriptor(descriptor) {
+export function inspectDescriptor(descriptor, options = {}) {
     const validation = validateDescriptor(descriptor);
     const template = selectTemplate(descriptor, validation);
+    const granted = new Set(options.granted_capabilities || []);
+    const policyDecisions = options.policy_decisions || {};
+    const operations = (descriptor.data_contracts?.operations || []).map(operation => ({
+        method: operation.method,
+        title: operation.title || humanize(operation.method),
+        input_fields: schemaFields(operation.input_schema),
+        output_fields: schemaFields(operation.output_schema),
+        stream_kind: operation.stream?.kind || 'none',
+        permissions: descriptor.permissions?.operations?.[operation.method] || [],
+    }));
     return {
         name: descriptor.name,
         app_id: descriptor.meta?.app_id,
@@ -12,25 +22,70 @@ export function inspectDescriptor(descriptor) {
         services: descriptor.services || [],
         template,
         template_mappings: descriptor.ui?.templates || [],
-        operations: (descriptor.data_contracts?.operations || []).map(operation => ({
-            method: operation.method,
-            title: operation.title || humanize(operation.method),
-            input_fields: schemaFields(operation.input_schema),
-            output_fields: schemaFields(operation.output_schema),
-            stream_kind: operation.stream?.kind || 'none',
-            permissions: descriptor.permissions?.operations?.[operation.method] || [],
-        })),
+        operations,
         permissions: descriptor.permissions || { operations: {} },
         state_model: descriptor.state_model || { keys: [], events: [] },
         workflow_graph: descriptor.workflow_graph,
+        policy_decisions: policyDecisions,
+        ui_mapping: inspectUIMapping(descriptor, operations, granted, policyDecisions),
         validation,
     };
 }
 
-export function renderDescriptorInspector(descriptorOrInspection) {
+export function inspectReplayLog(replayLog = [], options = {}) {
+    const first = replayLog[0] || {};
+    const appId = options.app_id || first.app_id || 'generated-mcp-app';
+    const appInstanceId = options.app_instance_id || first.app_instance_id || 'unknown-instance';
+    const sorted = [...replayLog].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+    const commands = new Set();
+    const workflows = new Set();
+    const artifacts = new Set();
+    let streamEvents = 0;
+    let staleStreamEvents = 0;
+    let auditEntries = 0;
+    for (const event of sorted) {
+        const payload = event.payload || {};
+        if (payload.correlation_id && (event.type === 'command.dispatched' || event.type === 'command.resolved')) {
+            commands.add(payload.correlation_id);
+            auditEntries += 1;
+        }
+        if (event.type === 'stream.event') {
+            streamEvents += 1;
+            auditEntries += 1;
+            collectArtifactCids(payload.event?.event, artifacts);
+        }
+        if (event.type === 'stream.stale_rejected') {
+            staleStreamEvents += 1;
+            auditEntries += 1;
+        }
+        if (event.type === 'workflow.step.completed') {
+            workflows.add(payload.workflow_id || 'default');
+            auditEntries += 1;
+            collectArtifactCids(payload.output, artifacts);
+        }
+        collectArtifactCids(payload.output, artifacts);
+    }
+    return {
+        app_id: appId,
+        app_instance_id: appInstanceId,
+        descriptor_name: options.descriptor_name || first.descriptor_name,
+        descriptor_version: options.descriptor_version || first.descriptor_version,
+        interface_cid: options.interface_cid || first.interface_cid,
+        replay_event_count: sorted.length,
+        command_count: commands.size,
+        stream_event_count: streamEvents,
+        stale_stream_event_count: staleStreamEvents,
+        audit_entry_count: auditEntries,
+        workflow_ids: Array.from(workflows).sort(),
+        artifact_cids: Array.from(artifacts).sort(),
+    };
+}
+
+export function renderDescriptorInspector(descriptorOrInspection, replaySummary) {
     const inspection = descriptorOrInspection.validation && descriptorOrInspection.operations
         ? descriptorOrInspection
         : inspectDescriptor(descriptorOrInspection);
+    const replay = replaySummary || inspection.replay;
     return `
         <section class="mcp-descriptor-inspector" data-app-id="${escapeHtml(inspection.app_id || '')}" data-conformant="${inspection.validation.conformant}">
             <header class="mcp-descriptor-inspector__header">
@@ -56,6 +111,7 @@ export function renderDescriptorInspector(descriptorOrInspection) {
                 <h3>Permissions</h3>
                 ${renderPermissions(inspection.permissions)}
             </section>
+            ${inspection.ui_mapping ? renderUIMapping(inspection.ui_mapping, inspection.policy_decisions || {}) : ''}
             <section class="mcp-descriptor-inspector__section" data-section="state">
                 <h3>State Events</h3>
                 ${renderList(inspection.state_model.keys || [], 'State keys')}
@@ -63,6 +119,7 @@ export function renderDescriptorInspector(descriptorOrInspection) {
                 ${renderList(inspection.state_model.projections || [], 'Projections')}
             </section>
             ${inspection.workflow_graph ? renderWorkflowGraph(inspection.workflow_graph) : ''}
+            ${replay ? renderReplaySummary(replay) : ''}
         </section>
     `;
 }
@@ -135,6 +192,32 @@ function renderPermissions(permissions) {
     `).join('');
 }
 
+function renderUIMapping(mapping, policyDecisions) {
+    return `
+        <section class="mcp-descriptor-inspector__section" data-section="ui-mapping">
+            <h3>Generated UI Mapping</h3>
+            ${mapping.commands.map(command => `
+                <div class="mcp-descriptor-inspector__command" data-operation="${escapeHtml(command.operation)}" data-hidden="${escapeHtml(command.hidden)}">
+                    <strong>${escapeHtml(command.command_id)}</strong>
+                    ${command.disabled_reason ? `<span>${escapeHtml(command.disabled_reason)}</span>` : ''}
+                    ${renderList(command.missing_capabilities || [], 'Missing capabilities')}
+                    ${policyDecisions[command.operation] ? `<code>${escapeHtml(policyDecisions[command.operation].outcome)}</code>` : ''}
+                </div>
+            `).join('')}
+            ${renderList(mapping.forms || [], 'Forms')}
+            ${renderList(mapping.renderers || [], 'Renderers')}
+            ${renderList(mapping.widgets || [], 'Widgets')}
+            ${mapping.failures?.length ? `
+                <ol class="mcp-descriptor-inspector__issues">
+                    ${mapping.failures.map(failure => `
+                        <li data-level="error"><strong>${escapeHtml(failure.path)}</strong><span>${escapeHtml(failure.message)}</span></li>
+                    `).join('')}
+                </ol>
+            ` : ''}
+        </section>
+    `;
+}
+
 function renderWorkflowGraph(graph) {
     return `
         <section class="mcp-descriptor-inspector__section" data-section="workflow">
@@ -149,6 +232,24 @@ function renderWorkflowGraph(graph) {
                     </li>
                 `).join('')}
             </ol>
+        </section>
+    `;
+}
+
+function renderReplaySummary(replay) {
+    return `
+        <section class="mcp-descriptor-inspector__section" data-section="replay">
+            <h3>Replay Log</h3>
+            <p>${escapeHtml(`${replay.app_id}:${replay.app_instance_id}`)}</p>
+            <div class="mcp-descriptor-inspector__replay-counts">
+                <span data-field="replay_events">${escapeHtml(replay.replay_event_count)}</span>
+                <span data-field="commands">${escapeHtml(replay.command_count)}</span>
+                <span data-field="stream_events">${escapeHtml(replay.stream_event_count)}</span>
+                <span data-field="stale_stream_events">${escapeHtml(replay.stale_stream_event_count)}</span>
+                <span data-field="audit_entries">${escapeHtml(replay.audit_entry_count)}</span>
+            </div>
+            ${renderList(replay.workflow_ids || [], 'Workflows')}
+            ${renderList(replay.artifact_cids || [], 'Artifacts')}
         </section>
     `;
 }
@@ -194,6 +295,43 @@ function selectTemplate(descriptor, validation) {
     return { kind: 'form-wizard', reason: 'schema-driven form operation', required_operations: names };
 }
 
+function inspectUIMapping(descriptor, operations, granted, policyDecisions) {
+    const commands = operations.map(operation => {
+        const decision = policyDecisions[operation.method];
+        const missing = operation.permissions.filter(capability => !granted.has(capability));
+        const denied = decision && decision.outcome !== 'permit';
+        return {
+            operation: operation.method,
+            command_id: `${operation.method}.command`,
+            hidden: decision?.visibility === 'hidden',
+            disabled_reason: denied && decision?.visibility !== 'hidden'
+                ? (decision.reasons || ['Operation is denied by policy.']).join('; ')
+                : (missing.length > 0 ? `Requires ${operation.permissions.join(', ')}` : undefined),
+            missing_capabilities: missing,
+        };
+    });
+    const regions = descriptor.ui?.sections || (descriptor.ui?.templates || []).flatMap(template => template.regions || []);
+    const operationNames = new Set(operations.map(operation => operation.method));
+    const failures = [];
+    for (const region of regions) {
+        if (region.operation && !operationNames.has(region.operation)) {
+            failures.push({ path: `ui.regions.${region.id}`, message: `Region references unknown operation: ${region.operation}.` });
+        }
+    }
+    return {
+        commands,
+        forms: operations.map(operation => `${operation.method}.form`),
+        renderers: operations.map(operation => `${operation.method}.result`),
+        regions: regions.map(region => region.id),
+        widgets: operations.flatMap(operation => [
+            `${operation.method}.command`,
+            ...operation.input_fields.map(field => `${operation.method}.input.${field}`),
+            ...operation.output_fields.map(field => `${operation.method}.result.${field}`),
+        ]),
+        failures,
+    };
+}
+
 function schemaFields(schema, prefix = '') {
     const properties = schema?.properties || {};
     return Object.entries(properties).flatMap(([name, child]) => {
@@ -213,6 +351,27 @@ function renderList(values, label) {
             <ul>${values.map(value => `<li>${escapeHtml(value)}</li>`).join('')}</ul>
         </div>
     `;
+}
+
+function collectArtifactCids(value, artifacts) {
+    if (typeof value === 'string') {
+        if (value.startsWith('bafy') || value.startsWith('sha256:')) {
+            artifacts.add(value);
+        }
+        return;
+    }
+    if (Array.isArray(value)) {
+        value.forEach(item => collectArtifactCids(item, artifacts));
+        return;
+    }
+    if (!value || typeof value !== 'object') return;
+    for (const [key, child] of Object.entries(value)) {
+        if (key.toLowerCase().includes('artifact')) {
+            collectArtifactCids(child, artifacts);
+        } else if (child && typeof child === 'object') {
+            collectArtifactCids(child, artifacts);
+        }
+    }
 }
 
 function humanize(value) {
@@ -235,6 +394,7 @@ function escapeHtml(value) {
 if (typeof window !== 'undefined') {
     window.MCPDescriptorInspector = {
         inspectDescriptor,
+        inspectReplayLog,
         renderDescriptorInspector,
     };
 }

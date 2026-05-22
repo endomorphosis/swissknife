@@ -10,6 +10,7 @@ tracked markdown queue and stores local claim/run history outside git.
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import re
 import shlex
@@ -221,25 +222,105 @@ def stable_backend_task_id(task_id: str) -> str:
     return f"swissknife:mcp-ui:{task_id}"
 
 
+def ensure_import_path(path: Path, searched_paths: list[str]) -> None:
+    if path.exists():
+        path_value = str(path)
+        searched_paths.append(path_value)
+        if path_value not in sys.path:
+            sys.path.insert(0, path_value)
+
+
+def probe_task_queue_provider() -> dict[str, Any]:
+    module_name = "ipfs_accelerate_py.mcplusplus_module.tools.taskqueue_tools"
+    required_symbols = ["submit_task", "get_task_status", "cancel_task", "list_tasks"]
+    try:
+        module = importlib.import_module(module_name)
+        missing_symbols = [symbol for symbol in required_symbols if not hasattr(module, symbol)]
+        result = {
+            "provider_module": module_name,
+            "provider_module_file": getattr(module, "__file__", None),
+            "provider_import_error": None,
+            "provider_required_symbols": required_symbols,
+            "provider_missing_symbols": missing_symbols,
+        }
+        if missing_symbols:
+            result["action"] = (
+                "Update ipfs_datasets_py.mcp_server.mcplusplus.task_queue to the current "
+                "ipfs_accelerate_py taskqueue tool names, or restore the legacy provider "
+                f"symbols: {', '.join(missing_symbols)}."
+            )
+        return result
+    except Exception as exc:
+        return {
+            "provider_module": module_name,
+            "provider_module_file": None,
+            "provider_import_error": f"{type(exc).__name__}: {exc}",
+            "provider_required_symbols": required_symbols,
+            "provider_missing_symbols": required_symbols,
+            "action": (
+                "Install or repair the ipfs_accelerate_py MCP++ task queue provider "
+                "dependencies, then rerun backend-status. The local markdown mirror "
+                "remains usable while the optional provider is unavailable."
+            ),
+        }
+
+
+def backend_unavailable_reason(details: dict[str, Any]) -> str:
+    provider_error = details.get("provider_import_error")
+    if provider_error:
+        return (
+            "backend wrapper detected but task queue provider import failed: "
+            f"{provider_error}"
+        )
+    missing_symbols = details.get("provider_missing_symbols")
+    if missing_symbols:
+        return (
+            "backend wrapper detected but task queue provider is missing required "
+            f"symbols: {', '.join(missing_symbols)}"
+        )
+    return (
+        "backend wrapper detected but task queue provider is unavailable; "
+        "inspect wrapper_have_task_queue and provider diagnostics"
+    )
+
+
 def detect_ipfs_datasets_backend(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     sibling = repo_root.parent / "ipfs_datasets_py"
-    if sibling.exists() and str(sibling) not in sys.path:
-        sys.path.insert(0, str(sibling))
+    searched_paths: list[str] = []
+    ensure_import_path(sibling, searched_paths)
+    ensure_import_path(sibling / "ipfs_accelerate_py", searched_paths)
+    ensure_import_path(repo_root.parent / "ipfs_accelerate_py", searched_paths)
 
     try:
-        from ipfs_datasets_py.mcp_server.mcplusplus.task_queue import create_task_queue
+        module = importlib.import_module("ipfs_datasets_py.mcp_server.mcplusplus.task_queue")
+        create_task_queue = getattr(module, "create_task_queue")
 
         queue = create_task_queue()
+        available = bool(getattr(queue, "available", False))
+        details = {
+            "searched_paths": searched_paths,
+            "wrapper_module_file": getattr(module, "__file__", None),
+            "wrapper_have_task_queue": getattr(module, "HAVE_TASK_QUEUE", None),
+            "queue_class": queue.__class__.__name__,
+        }
+        if not available:
+            details.update(probe_task_queue_provider())
         return {
-            "available": bool(getattr(queue, "available", False)),
+            "available": available,
             "mode": "ipfs_datasets_py.mcp_server.mcplusplus.task_queue",
-            "reason": "backend wrapper detected" if getattr(queue, "available", False) else "backend wrapper detected but task queue provider is unavailable",
+            "reason": "backend wrapper detected" if available else backend_unavailable_reason(details),
+            "details": details,
         }
     except Exception as exc:
         return {
             "available": False,
             "mode": "local-mirror",
             "reason": str(exc),
+            "details": {
+                "searched_paths": searched_paths,
+                "wrapper_import_error": f"{type(exc).__name__}: {exc}",
+                "action": "Use the local markdown mirror or install ipfs_datasets_py beside this repository.",
+            },
         }
 
 

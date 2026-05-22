@@ -48,10 +48,10 @@ jest.mock("chalk", () => ({
   red: (str) => str,
   green: (str) => str,
   blue: (str) => str,
-}));
+}), { virtual: true });
 jest.mock("nanoid", () => ({
   nanoid: () => "test-id",
-}));
+}), { virtual: true });
 
 // Set a default timeout for all tests to catch hanging tests
 jest.setTimeout(15000); // 15 seconds

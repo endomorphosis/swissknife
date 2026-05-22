@@ -268,8 +268,11 @@ export class MCPp2pSession extends EventEmitter {
     }
     const header = Buffer.allocUnsafe(4);
     header.writeUInt32BE(body.length, 0);
-    const frame = Buffer.concat([header, body]);
-    await this.stream.write(frame);
+    const frame = Buffer.concat([
+      header as unknown as Uint8Array,
+      body as unknown as Uint8Array,
+    ]);
+    await this.stream.write(frame as unknown as Uint8Array);
   }
 
   // -------------------------------------------------------------------------
@@ -279,7 +282,10 @@ export class MCPp2pSession extends EventEmitter {
   private async _readLoop(): Promise<void> {
     try {
       for await (const chunk of this.stream) {
-        this._readBuf = Buffer.concat([this._readBuf, chunk]);
+        this._readBuf = Buffer.concat([
+          this._readBuf as unknown as Uint8Array,
+          Buffer.from(chunk) as unknown as Uint8Array,
+        ]);
         // Drain all complete frames from the buffer
         while (this._readBuf.length >= 4) {
           const frameLen = this._readBuf.readUInt32BE(0);

@@ -127,6 +127,23 @@ class TodoDaemonTest(unittest.TestCase):
             ["swissknife:mcp-ui:MCPUI-A"],
         )
         self.assertIn("backend", state)
+        self.assertIn("details", state["backend"])
+
+    def test_backend_unavailable_reason_includes_provider_import_error(self):
+        reason = todo_daemon.backend_unavailable_reason(
+            {"provider_import_error": "ImportError: missing task queue provider"}
+        )
+
+        self.assertIn("provider import failed", reason)
+        self.assertIn("ImportError: missing task queue provider", reason)
+
+    def test_backend_unavailable_reason_includes_missing_provider_symbols(self):
+        reason = todo_daemon.backend_unavailable_reason(
+            {"provider_import_error": None, "provider_missing_symbols": ["submit_task"]}
+        )
+
+        self.assertIn("missing required symbols", reason)
+        self.assertIn("submit_task", reason)
 
     def test_claim_and_complete_keep_backend_mirror_consistent(self):
         backend_file = self.root / "backend.json"
@@ -153,6 +170,32 @@ class TodoDaemonTest(unittest.TestCase):
         )
         backend_after_complete = json.loads(backend_file.read_text())
         self.assertEqual(backend_after_complete["tasks"][claimed["id"]]["status"], "done")
+
+    def test_fail_keeps_backend_mirror_consistent(self):
+        backend_file = self.root / "backend.json"
+
+        claimed = todo_daemon.claim_task(
+            None,
+            "worker-1",
+            self.todo_file,
+            self.state_file,
+            backend_file,
+            self.root,
+        )
+        failed = todo_daemon.fail_task(
+            claimed["id"],
+            "worker-1",
+            "validation failed",
+            False,
+            self.todo_file,
+            self.state_file,
+            backend_file,
+            self.root,
+        )
+
+        self.assertEqual(failed["status"], "failed")
+        backend_after_fail = json.loads(backend_file.read_text())
+        self.assertEqual(backend_after_fail["tasks"][claimed["id"]]["status"], "failed")
 
 
 if __name__ == "__main__":

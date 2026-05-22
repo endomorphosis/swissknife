@@ -157,6 +157,16 @@ Priority order for implementation start:
 - Cross-runtime interoperability tests with Python reference behavior added.
 - Feature-flagged rollout path and rollback criteria documented.
 
+### Gate G6 — Descriptor-generated desktop apps (must pass)
+- MCP++ UI Profile descriptors validate before registry publish.
+- Registry launch resolution enforces compatibility, trust policy, and version fallback.
+- Generated UI quality gates cover schema-driven commands/forms/renderers, policy-aware controls, ORB invocation, streams, recovery, replay restoration, and provenance audit.
+- At least one descriptor-only app path ships with no bespoke virtual desktop shell code. Current evidence:
+  - `src/services/mcp-ipfs-ui-descriptors.ts`
+  - `src/services/mcp-generated-app-quality-gates.ts`
+  - `test/e2e/generated-app-quality-gate.e2e.test.ts`
+  - `test/mcp-plus-plus/integration-pipeline.test.ts`
+
 ---
 
 ## 6) Initial Remediation Backlog (Phase 1 Output)
@@ -167,6 +177,9 @@ Priority order for implementation start:
 - [ ] Add compliance and policy audit primitives (`compliance-checker`, `policy-audit-log`).
 - [ ] Add conformance status CLI output (`mcp-plus-plus conformance status`).
 - [ ] Add requirement-to-test mapping doc and keep this matrix updated per merged feature.
+- [x] Add descriptor-generated desktop quality gates for the IPFS dataset-to-inference workflow.
+- [x] Add descriptor authoring CLI starter packs and trust verification.
+- [x] Add replay/audit inspector summaries for generated app debugging.
 
 ---
 

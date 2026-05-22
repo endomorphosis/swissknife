@@ -87,4 +87,23 @@ describe('MCP++ descriptor trust boundaries', () => {
     expect(protectedLaunch?.descriptor.version).toBe('0.2.0');
     expect(protectedLaunch?.trust.status).toBe('trusted');
   });
+
+  it('rejects registry publish before storage when publish trust policy requires signatures', () => {
+    const keystore = new DIDKeystore();
+    const signer = keystore.generateKey();
+    const registry = new MCPInterfaceDiscoveryRegistry(
+      new LocalMCPInterfaceRegistryBackend(new InterfaceRepository()),
+      {
+        publish_trust_policy: {
+          require_signature: true,
+          allowed_publishers: ['endomorphosis'],
+          allowed_signers: [signer],
+        },
+      },
+    );
+    const signed = signMCPUIProfileDescriptor(descriptor(), signer, keystore);
+
+    expect(() => registry.publish(descriptor())).toThrow(/Descriptor publish rejected by trust policy/);
+    expect(registry.publish(signed)).toMatch(/^sha256:/);
+  });
 });

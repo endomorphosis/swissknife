@@ -20,6 +20,7 @@ export type InterfaceType =
   | 'generic';
 
 export type StreamKind = 'none' | 'events' | 'progress' | 'telemetry' | 'job-status';
+export type MCPUITransportKind = 'local' | 'websocket' | 'http' | 'mcp-server';
 
 export interface MCPUIProfileMeta {
   profile: typeof SWISSKNIFE_MCP_UI_PROFILE;
@@ -35,7 +36,7 @@ export interface MCPUIServiceDescriptor {
   id: string;
   interface_type: InterfaceType;
   interface_cid?: string;
-  transport?: 'local' | 'websocket' | 'http' | 'mcp-server';
+  transport?: MCPUITransportKind;
   endpoint?: string;
   operations: string[];
 }
@@ -139,6 +140,14 @@ export interface MCPUIWorkflowGraph {
   steps: MCPUIWorkflowStep[];
 }
 
+/**
+ * SwissKnife MCP++ UI Profile descriptor.
+ *
+ * MCP-IDL fields inherited from `InterfaceDescriptor` remain the normative
+ * source of truth for method names, schema aliases, compatibility metadata,
+ * and event stream declarations. The SwissKnife profile sections bind those
+ * MCP++ contracts to generated desktop UI, policy, service, and state models.
+ */
 export interface MCPUIProfileDescriptor extends InterfaceDescriptor {
   meta: MCPUIProfileMeta;
   services: MCPUIServiceDescriptor[];
@@ -151,6 +160,7 @@ export interface MCPUIProfileDescriptor extends InterfaceDescriptor {
 }
 
 export interface MCPUIConformanceIssue {
+  code: string;
   path: string;
   message: string;
 }
@@ -212,12 +222,29 @@ const TEMPLATE_KINDS = new Set<TemplateKind>([
   'graph-viewer',
 ]);
 
+const INTERFACE_TYPES = new Set<InterfaceType>([
+  'dataset',
+  'compute',
+  'workflow',
+  'graph',
+  'document',
+  'storage',
+  'generic',
+]);
+
 const STREAM_KINDS = new Set<StreamKind>([
   'none',
   'events',
   'progress',
   'telemetry',
   'job-status',
+]);
+
+const TRANSPORT_KINDS = new Set<MCPUITransportKind>([
+  'local',
+  'websocket',
+  'http',
+  'mcp-server',
 ]);
 
 export function validateMCPUIProfileDescriptor(
@@ -290,7 +317,7 @@ export function assertMCPUIProfileDescriptor(
 ): asserts descriptor is MCPUIProfileDescriptor {
   const result = validateMCPUIProfileDescriptor(descriptor);
   if (!result.conformant) {
-    const detail = result.errors.map(issue => `${issue.path}: ${issue.message}`).join('; ');
+    const detail = result.errors.map(issue => `${issue.code} ${issue.path}: ${issue.message}`).join('; ');
     throw new Error(`MCP++ UI Profile conformance failed: ${detail}`);
   }
 }
@@ -312,12 +339,26 @@ export function selectTemplateForDescriptor(
   const names = contracts.map(operation => operation.method.toLowerCase());
   const interfaceTypes = new Set(descriptor.services.map(service => service.interface_type));
   const stateSignals = getStateSignals(descriptor.state_model);
+  const workflowOperationNames = descriptor.workflow_graph?.steps
+    .map(step => step.operation.toLowerCase())
+    ?? [];
 
   if (streamKinds.some(kind => kind === 'progress' || kind === 'job-status')) {
     return {
       kind: 'job-console',
       reason: 'operation exposes progress or job-status stream',
       required_operations: operationMatches(names, TEMPLATE_CONTRACTS['job-console'].requires_one_of),
+    };
+  }
+
+  if (
+    workflowOperationNames.length > 0
+    || descriptor.workflow_graph !== undefined
+  ) {
+    return {
+      kind: 'graph-viewer',
+      reason: 'descriptor declares a workflow graph',
+      required_operations: operationMatches(workflowOperationNames.length ? workflowOperationNames : names, TEMPLATE_CONTRACTS['graph-viewer'].requires_one_of),
     };
   }
 
@@ -398,6 +439,11 @@ function validateServices(
     }
     if (!isNonEmptyString(service.interface_type)) {
       push(errors, `services[${index}].interface_type`, 'Service interface type is required.');
+    } else if (!INTERFACE_TYPES.has(service.interface_type as InterfaceType)) {
+      push(errors, `services[${index}].interface_type`, `Unsupported service interface type: ${String(service.interface_type)}.`);
+    }
+    if (service.transport !== undefined && !TRANSPORT_KINDS.has(service.transport as MCPUITransportKind)) {
+      push(errors, `services[${index}].transport`, `Unsupported service transport: ${String(service.transport)}.`);
     }
     if (!Array.isArray(service.operations) || service.operations.length === 0) {
       push(errors, `services[${index}].operations`, 'Service must list bound operations.');
@@ -900,7 +946,16 @@ function getStateSignals(stateModel: unknown): string[] {
 }
 
 function push(issues: MCPUIConformanceIssue[], path: string, message: string): void {
-  issues.push({ path, message });
+  issues.push({ code: issueCode(path), path, message });
+}
+
+function issueCode(path: string): string {
+  const normalized = path
+    .replace(/\[\d+\]/g, '.item')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+  return `MCPUI_${normalized || 'DESCRIPTOR'}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

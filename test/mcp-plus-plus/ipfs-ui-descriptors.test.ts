@@ -56,11 +56,14 @@ describe('IPFS MCP++ UI descriptor fixtures', () => {
       'select_dataset',
       'pin_dataset',
       'run_inference',
+      'collect_artifact',
       'publish_artifact',
     ]);
     expect(workflow?.steps[1].depends_on).toEqual(['select_dataset']);
     expect(workflow?.steps[2].depends_on).toEqual(['pin_dataset']);
     expect(workflow?.steps[3].depends_on).toEqual(['run_inference']);
+    expect(workflow?.steps[4].depends_on).toEqual(['collect_artifact']);
+    expect(workflow?.steps[3].write_state_keys).toEqual(['artifact_cid']);
     expect(workflow?.steps.some(step => step.rollback || step.compensation)).toBe(true);
     expect(generated.template).toBe('graph-viewer');
     expect(generated.workflow_graph?.id).toBe('dataset-inference-artifact-publish');

@@ -81,15 +81,19 @@ export function renderGeneratedApp(app, context = {}) {
         : descriptor.ui.templates.flatMap(template => template.regions || []);
     const appInstanceId = context.app_instance_id || app.app_instance_id || `${descriptor.meta.app_id}:default`;
     const replayLog = loadReplayLog(appInstanceId, context.replay_storage);
+    const projection = projectReplayLog(descriptor.meta.app_id, appInstanceId, replayLog);
     const trust = context.trust || app.trust || evaluateGeneratedAppTrust(descriptor, context.trust_policy);
+    const policyDecisions = context.policy_decisions || {};
+    const auditCorrelationCount = Object.keys(projection.audit?.by_correlation_id || {}).length;
+    const auditArtifacts = Object.keys(projection.audit?.artifact_lineage || {});
 
     return `
         <div class="generated-mcp-app" data-app-id="${escapeHtml(descriptor.meta.app_id)}" data-app-instance-id="${escapeHtml(appInstanceId)}" data-trust-status="${escapeHtml(trust.status)}">
             <div class="generated-mcp-toolbar">
-                ${operations.map(operation => renderCommand(descriptor, operation, capabilities, trust)).join('')}
+                ${operations.map(operation => renderCommand(descriptor, operation, capabilities, trust, policyDecisions[operation.method])).join('')}
             </div>
             <div class="generated-mcp-regions generated-mcp-template-${escapeHtml(app.template.kind)}">
-                ${regions.map(region => renderRegion(descriptor, region, capabilities, trust)).join('')}
+                ${regions.map(region => renderRegion(descriptor, region, capabilities, trust, policyDecisions)).join('')}
             </div>
             <div class="generated-mcp-audit" data-region="audit">
                 <div class="generated-mcp-audit-line" data-field="interface_cid">${escapeHtml(app.interface_cid)}</div>
@@ -97,6 +101,8 @@ export function renderGeneratedApp(app, context = {}) {
                 <div class="generated-mcp-audit-line" data-field="trust_status">${escapeHtml(trust.status)}</div>
                 <div class="generated-mcp-audit-line" data-field="trust_reason">${escapeHtml(trust.reasons.join('; '))}</div>
                 <div class="generated-mcp-audit-line" data-field="replay_events">${escapeHtml(replayLog.length)}</div>
+                <div class="generated-mcp-audit-line" data-field="audit_correlations">${escapeHtml(auditCorrelationCount)}</div>
+                <div class="generated-mcp-audit-line" data-field="audit_artifacts">${escapeHtml(auditArtifacts.join(', '))}</div>
             </div>
         </div>
     `;
@@ -107,6 +113,9 @@ export function createGeneratedAppState(app, options = {}) {
     const appId = options.app_id || descriptor.meta?.app_id || app.app_id || 'generated-mcp-app';
     const appInstanceId = options.app_instance_id || app.app_instance_id || `${appId}:${createReplayId()}`;
     const storage = options.replay_storage || browserReplayStorage();
+    const descriptorName = options.descriptor_name || descriptor.name;
+    const descriptorVersion = options.descriptor_version || descriptor.version;
+    const interfaceCid = options.interface_cid || app.interface_cid;
     const strictStreamGuards = options.strict_stream_guards !== false;
     let replayLog = loadReplayLog(appInstanceId, storage);
     let projection = projectReplayLog(appId, appInstanceId, replayLog);
@@ -116,6 +125,9 @@ export function createGeneratedAppState(app, options = {}) {
             id: `${appInstanceId}:${replayLog.length + 1}`,
             app_id: appId,
             app_instance_id: appInstanceId,
+            descriptor_name: descriptorName,
+            descriptor_version: descriptorVersion,
+            interface_cid: interfaceCid,
             sequence: replayLog.length + 1,
             type,
             at: new Date().toISOString(),
@@ -163,7 +175,8 @@ export function createGeneratedAppState(app, options = {}) {
             return append('stream.recovered', { ...stream });
         },
         recordStreamEvent(operation, correlationId, event) {
-            const reason = staleStreamReason(operation, correlationId, event, projection, strictStreamGuards);
+            const reason = staleStreamReason(operation, correlationId, event, projection, strictStreamGuards)
+                || duplicateStreamReason(operation, correlationId, event, projection);
             if (reason) {
                 append('stream.stale_rejected', {
                     operation,
@@ -182,6 +195,20 @@ export function createGeneratedAppState(app, options = {}) {
                 generation_key: event?.generation_key,
             });
             return { accepted: true };
+        },
+        recordWorkflowStep(step) {
+            return append('workflow.step.completed', {
+                workflow_id: step.workflow_id,
+                step_id: step.step_id,
+                operation: step.operation,
+                correlation_id: step.correlation_id,
+                status: step.status,
+                output: step.output,
+                receipt_cid: step.receipt?.receipt_cid,
+                receipt: step.receipt,
+                artifact_cids: step.artifact_cids,
+                shared_state_updates: step.shared_state_updates,
+            });
         },
         updateProjection(name, value) {
             return append('projection.updated', { name, value });
@@ -205,7 +232,13 @@ export function projectReplayLog(appId, appInstanceId, replayLog = []) {
         active_streams: {},
         stream_events: [],
         stale_stream_events: [],
+        workflows: {},
         projections: {},
+        audit: {
+            entries: [],
+            by_correlation_id: {},
+            artifact_lineage: {},
+        },
     };
 
     for (const event of [...replayLog].sort((a, b) => (a.sequence || 0) - (b.sequence || 0))) {
@@ -260,13 +293,11 @@ export function evaluateGeneratedAppTrust(descriptor, policy = {}) {
     };
 }
 
-function renderCommand(descriptor, operation, capabilities, trust) {
-    const required = descriptor.permissions.operations[operation.method] || [];
-    const missing = required.filter(capability => !capabilities.has(capability));
-    const reasons = [
-        ...(!trust.launch_allowed ? trust.reasons : []),
-        ...(descriptor.permissions.default_deny ? missing.map(capability => `Missing capability: ${capability}`) : []),
-    ];
+function renderCommand(descriptor, operation, capabilities, trust, policyDecision) {
+    if (policyDecision?.visibility === 'hidden') {
+        return '';
+    }
+    const reasons = operationDenialReasons(descriptor, operation, capabilities, trust, policyDecision);
     const disabled = reasons.length > 0;
     const reason = reasons.join('; ');
     return `
@@ -280,7 +311,7 @@ function renderCommand(descriptor, operation, capabilities, trust) {
     `;
 }
 
-function renderRegion(descriptor, region, capabilities, trust) {
+function renderRegion(descriptor, region, capabilities, trust, policyDecisions = {}) {
     const operation = descriptor.data_contracts.operations.find(candidate => candidate.method === region.operation);
     if (!operation) {
         return `
@@ -290,12 +321,11 @@ function renderRegion(descriptor, region, capabilities, trust) {
         `;
     }
 
-    const required = descriptor.permissions.operations[operation.method] || [];
-    const missing = required.filter(capability => !capabilities.has(capability));
-    const reasons = [
-        ...(!trust.launch_allowed ? trust.reasons : []),
-        ...(descriptor.permissions.default_deny ? missing.map(capability => `Missing capability: ${capability}`) : []),
-    ];
+    const policyDecision = policyDecisions[operation.method];
+    if (policyDecision?.visibility === 'hidden') {
+        return '';
+    }
+    const reasons = operationDenialReasons(descriptor, operation, capabilities, trust, policyDecision);
     return `
         <section class="generated-mcp-region generated-mcp-region-${escapeHtml(region.kind)}" data-region="${escapeHtml(region.id)}" data-operation="${escapeHtml(operation.method)}" data-trust-status="${escapeHtml(trust.status)}">
             <h3>${escapeHtml(region.title || humanize(region.id))}</h3>
@@ -306,12 +336,29 @@ function renderRegion(descriptor, region, capabilities, trust) {
     `;
 }
 
+function operationDenialReasons(descriptor, operation, capabilities, trust, policyDecision) {
+    const required = descriptor.permissions.operations[operation.method] || [];
+    const missing = required.filter(capability => !capabilities.has(capability));
+    const policyReasons = policyDecision && policyDecision.outcome !== 'permit'
+        ? sanitizeReasonList(policyDecision.reasons?.length ? policyDecision.reasons : ['Operation is denied by policy.'])
+        : [];
+    return [
+        ...(!trust.launch_allowed ? trust.reasons : []),
+        ...(descriptor.permissions.default_deny ? missing.map(capability => `Missing capability: ${capability}`) : []),
+        ...policyReasons,
+    ];
+}
+
 function renderPolicyDenial(reasons) {
     return `
         <div class="generated-mcp-policy-denial" role="status">
             ${escapeHtml(`Denied: ${reasons.join('; ')}`)}
         </div>
     `;
+}
+
+function sanitizeReasonList(reasons) {
+    return reasons.map(reason => String(reason));
 }
 
 function renderForm(operation) {
@@ -376,11 +423,17 @@ function applyReplayEvent(projection, event) {
             input: payload.input,
             updated_at: event.at,
         };
+        indexAuditEntry(projection, auditEntry(event, {
+            kind: 'command',
+            correlation_id: correlationId,
+            operation: payload.operation,
+        }));
         return;
     }
     if (event.type === 'command.resolved') {
         const correlationId = payload.correlation_id;
         if (!correlationId) return;
+        const receipt = payload.receipt || {};
         projection.commands[correlationId] = {
             ...(projection.commands[correlationId] || { correlation_id: correlationId, operation: 'unknown' }),
             status: 'resolved',
@@ -388,6 +441,16 @@ function applyReplayEvent(projection, event) {
             receipt_cid: payload.receipt_cid,
             updated_at: event.at,
         };
+        indexAuditEntry(projection, auditEntry(event, {
+            kind: 'receipt',
+            correlation_id: correlationId,
+            operation: receipt.operation || projection.commands[correlationId].operation,
+            receipt_cid: payload.receipt_cid,
+            interface_cid: receipt.interface_cid,
+            artifact_cids: artifactCidsFrom(payload.output),
+            provenance_refs: stringArray(receipt.provenance_refs),
+            output_refs: stringArray(receipt.output_refs),
+        }));
         return;
     }
     if (event.type === 'stream.started' || event.type === 'stream.recovered') {
@@ -404,6 +467,17 @@ function applyReplayEvent(projection, event) {
     }
     if (event.type === 'stream.event') {
         projection.stream_events.push(payload.event);
+        indexAuditEntry(projection, auditEntry(event, {
+            kind: 'stream',
+            correlation_id: payload.event?.correlation_id || payload.correlation_id,
+            operation: payload.event?.operation || payload.operation,
+            interface_cid: payload.event?.interface_cid,
+            event_cid: payload.event?.event_cid,
+            binding_handle: payload.event?.binding_handle,
+            binding_generation: payload.event?.binding_generation,
+            artifact_cids: artifactCidsFrom(payload.event?.event),
+            provenance_refs: provenanceRefsFrom(payload.event?.event),
+        }));
         return;
     }
     if (event.type === 'stream.stale_rejected') {
@@ -414,6 +488,55 @@ function applyReplayEvent(projection, event) {
             event: payload.event,
             rejected_at: event.at,
         });
+        indexAuditEntry(projection, auditEntry(event, {
+            kind: 'stale_stream',
+            correlation_id: payload.correlation_id,
+            operation: payload.operation,
+            status: 'rejected',
+            artifact_cids: artifactCidsFrom(payload.event),
+        }));
+        return;
+    }
+    if (event.type === 'workflow.step.completed') {
+        const receipt = payload.receipt || {};
+        const workflowId = payload.workflow_id || 'default';
+        const workflow = projection.workflows[workflowId] || {
+            workflow_id: workflowId,
+            step_order: [],
+            steps: {},
+            shared_state: {},
+        };
+        if (!workflow.steps[payload.step_id]) {
+            workflow.step_order.push(payload.step_id);
+        }
+        workflow.steps[payload.step_id] = {
+            step_id: payload.step_id,
+            operation: payload.operation,
+            status: payload.status || 'completed',
+            output: payload.output,
+            receipt_cid: payload.receipt_cid,
+            updated_at: event.at,
+        };
+        if (payload.shared_state_updates && typeof payload.shared_state_updates === 'object') {
+            workflow.shared_state = {
+                ...workflow.shared_state,
+                ...payload.shared_state_updates,
+            };
+        }
+        workflow.updated_at = event.at;
+        projection.workflows[workflowId] = workflow;
+        indexAuditEntry(projection, auditEntry(event, {
+            kind: 'workflow_step',
+            correlation_id: payload.correlation_id,
+            operation: payload.operation,
+            step_id: payload.step_id,
+            status: payload.status,
+            receipt_cid: payload.receipt_cid,
+            interface_cid: receipt.interface_cid,
+            artifact_cids: uniqueStrings([...stringArray(payload.artifact_cids), ...artifactCidsFrom(payload.output)]),
+            provenance_refs: stringArray(receipt.provenance_refs),
+            output_refs: stringArray(receipt.output_refs),
+        }));
         return;
     }
     if (event.type === 'projection.updated' && payload.name) {
@@ -436,6 +559,117 @@ function staleStreamReason(operation, correlationId, event, projection, strictSt
         return `Stale stream generation key ${event.generation_key}; expected ${guard.generation_key}.`;
     }
     return '';
+}
+
+function duplicateStreamReason(operation, correlationId, event, projection) {
+    const fingerprint = streamEventFingerprint(operation, correlationId, event);
+    return projection.stream_events.some(candidate => (
+        streamEventFingerprint(
+            candidate.operation,
+            candidate.correlation_id,
+            candidate,
+        ) === fingerprint
+    ))
+        ? `Duplicate stream event for ${operation}:${correlationId}.`
+        : '';
+}
+
+function streamEventFingerprint(operation, correlationId, event) {
+    if (event?.event_cid) {
+        return `event:${event.event_cid}`;
+    }
+    return stableStringify({
+        operation,
+        correlation_id: correlationId,
+        binding_handle: event?.binding_handle,
+        binding_generation: event?.binding_generation,
+        generation_key: event?.generation_key,
+        event: event?.event,
+    });
+}
+
+function auditEntry(event, entry) {
+    return {
+        ...entry,
+        artifact_cids: uniqueStrings(entry.artifact_cids || []),
+        provenance_refs: uniqueStrings(entry.provenance_refs || []),
+        output_refs: uniqueStrings(entry.output_refs || []),
+        at: event.at,
+        source_sequence: event.sequence,
+    };
+}
+
+function indexAuditEntry(projection, entry) {
+    if (!entry.correlation_id) return;
+    projection.audit.entries.push(entry);
+    if (!projection.audit.by_correlation_id[entry.correlation_id]) {
+        projection.audit.by_correlation_id[entry.correlation_id] = [];
+    }
+    projection.audit.by_correlation_id[entry.correlation_id].push(entry);
+    for (const artifactCid of entry.artifact_cids || []) {
+        if (!projection.audit.artifact_lineage[artifactCid]) {
+            projection.audit.artifact_lineage[artifactCid] = [];
+        }
+        projection.audit.artifact_lineage[artifactCid].push(entry.correlation_id);
+    }
+}
+
+function artifactCidsFrom(value) {
+    const cids = [];
+    collectArtifactCids(value, '', cids);
+    return uniqueStrings(cids);
+}
+
+function collectArtifactCids(value, key, cids) {
+    if (typeof value === 'string') {
+        if (key.toLowerCase().includes('artifact') && isCidLike(value)) {
+            cids.push(value);
+        }
+        return;
+    }
+    if (Array.isArray(value)) {
+        for (const item of value) {
+            collectArtifactCids(item, key, cids);
+        }
+        return;
+    }
+    if (!value || typeof value !== 'object') return;
+    for (const [childKey, childValue] of Object.entries(value)) {
+        collectArtifactCids(childValue, childKey, cids);
+    }
+}
+
+function provenanceRefsFrom(value) {
+    const provenance = value?.provenance;
+    return provenance && typeof provenance === 'object'
+        ? uniqueStrings(Object.values(provenance).filter(item => typeof item === 'string'))
+        : [];
+}
+
+function stringArray(value) {
+    return Array.isArray(value) ? value.filter(item => typeof item === 'string') : [];
+}
+
+function uniqueStrings(values) {
+    return Array.from(new Set(values)).sort();
+}
+
+function isCidLike(value) {
+    return value.startsWith('bafy') || value.startsWith('sha256:');
+}
+
+function stableStringify(value) {
+    if (value === null || typeof value !== 'object') {
+        return JSON.stringify(value);
+    }
+    if (Array.isArray(value)) {
+        return '[' + value.map(stableStringify).join(',') + ']';
+    }
+    return '{' + Object.keys(value)
+        .sort()
+        .filter(key => value[key] !== undefined)
+        .map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+        .join(',') + '}';
 }
 
 function loadReplayLog(appInstanceId, storage = browserReplayStorage()) {

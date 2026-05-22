@@ -10,7 +10,7 @@
  * References: docs/spec/event-dag-ordering.md in endomorphosis/Mcp-Plus-Plus
  */
 
-import { createHash } from 'crypto';
+import { createHash, type BinaryLike } from 'crypto';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,6 +41,16 @@ export interface EventNode {
   timestamp: string;
   /** Optional: CID of the envelope that triggered this event */
   envelope_cid?: string;
+  /** Optional: correlation identifier shared by commands, receipts, streams, and workflow steps */
+  correlation_id?: string;
+  /** Optional: operation or workflow step name for audit display */
+  operation?: string;
+  /** Optional: receipt CID emitted by an ORB invocation */
+  receipt_cid?: string;
+  /** Optional: artifact CIDs referenced by this event */
+  artifact_cids?: string[];
+  /** Optional: provenance references emitted by an ORB receipt or backend event */
+  provenance_refs?: string[];
 }
 
 /** A stored event node with its computed CID */
@@ -74,7 +84,7 @@ function canonicalJSON(value: unknown): string {
 
 function computeCID(data: string | Buffer): string {
   const input = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
-  return `sha256:${createHash('sha256').update(input).digest('hex')}`;
+  return `sha256:${createHash('sha256').update(input as unknown as BinaryLike).digest('hex')}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +96,10 @@ export class EventDAG {
   private byCid: Map<string, StoredEventNode> = new Map();
   /** Secondary index: output_cid → [event cid, ...] (one output may appear in multiple events) */
   private byOutput: Map<string, string[]> = new Map();
+  /** Secondary index: correlation_id → [event cid, ...] */
+  private byCorrelation: Map<string, string[]> = new Map();
+  /** Secondary index: artifact CID → [event cid, ...] */
+  private byArtifact: Map<string, string[]> = new Map();
   /** Most-recently appended event CIDs (tips of the DAG) */
   private tips: Set<string> = new Set();
 
@@ -116,6 +130,12 @@ export class EventDAG {
         this.byOutput.set(outputCid, []);
       }
       this.byOutput.get(outputCid)!.push(cid);
+    }
+    if (node.correlation_id) {
+      appendIndex(this.byCorrelation, node.correlation_id, cid);
+    }
+    for (const artifactCid of node.artifact_cids ?? []) {
+      appendIndex(this.byArtifact, artifactCid, cid);
     }
 
     // Update tips: this event is a new tip; its parents are no longer tips
@@ -205,6 +225,24 @@ export class EventDAG {
     return result;
   }
 
+  /**
+   * Return all causally linked nodes associated with a correlation_id.
+   */
+  getCorrelationLineage(correlationId: string): StoredEventNode[] {
+    return this.collectLineage(this.byCorrelation.get(correlationId) ?? []);
+  }
+
+  /**
+   * Return lineage for an artifact CID whether it was stored in outputs or artifact_cids.
+   */
+  getArtifactLineage(artifactCid: string): StoredEventNode[] {
+    const cids = [
+      ...(this.byOutput.get(artifactCid) ?? []),
+      ...(this.byArtifact.get(artifactCid) ?? []),
+    ];
+    return this.collectLineage(cids);
+  }
+
   // -------------------------------------------------------------------------
   // Lookup helpers
   // -------------------------------------------------------------------------
@@ -223,6 +261,20 @@ export class EventDAG {
     return this.byCid.size;
   }
 
+  private collectLineage(eventCids: string[]): StoredEventNode[] {
+    const seen = new Set<string>();
+    const result: StoredEventNode[] = [];
+    for (const eventCid of eventCids) {
+      for (const node of this.traverseDAG(eventCid)) {
+        if (!seen.has(node.cid)) {
+          seen.add(node.cid);
+          result.push(node);
+        }
+      }
+    }
+    return result;
+  }
+
   // -------------------------------------------------------------------------
   // Singleton
   // -------------------------------------------------------------------------
@@ -234,4 +286,11 @@ export class EventDAG {
     }
     return EventDAG._instance;
   }
+}
+
+function appendIndex(index: Map<string, string[]>, key: string, cid: string): void {
+  if (!index.has(key)) {
+    index.set(key, []);
+  }
+  index.get(key)!.push(cid);
 }

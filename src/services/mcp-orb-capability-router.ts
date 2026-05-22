@@ -157,7 +157,15 @@ export interface ORBStreamEvent {
   generation_key?: string;
   binding_handle?: string;
   binding_generation?: number;
+  recovery_lineage?: ORBStreamRecoveryLineage[];
   received_at: string;
+}
+
+export interface ORBStreamRecoveryLineage {
+  generation: number;
+  previous_generation: number;
+  reason: string;
+  recovered_at: string;
 }
 
 export interface ORBStreamRequest {
@@ -205,6 +213,7 @@ export interface ORBBoundOperation {
   transport: ORBTransportKind;
   transport_binding: ORBTransportBinding;
   binding_generation: number;
+  recovery_lineage: ORBStreamRecoveryLineage[];
   lifecycle: ORBLifecycleRecord[];
 }
 
@@ -525,6 +534,7 @@ export class MCPCapabilityRouter {
       transport: capability.transport,
       transport_binding: transportBinding,
       binding_generation: 0,
+      recovery_lineage: [],
       lifecycle: [
         ...capability.lifecycle,
         lifecycle('bind', 'ok'),
@@ -659,7 +669,14 @@ export class MCPCapabilityRouter {
       binding.transport_binding = result.new_binding;
     }
     if (result.recovered) {
+      const previousGeneration = binding.binding_generation;
       binding.binding_generation += 1;
+      binding.recovery_lineage.push({
+        generation: binding.binding_generation,
+        previous_generation: previousGeneration,
+        reason: result.reason,
+        recovered_at: new Date().toISOString(),
+      });
     }
     binding.lifecycle.push(lifecycle('recover', result.recovered ? 'ok' : 'error', result.reason));
     return result;
@@ -1096,6 +1113,7 @@ async function* guardStreamEvents(
       binding_handle: binding.handle,
       binding_generation: expectedGeneration,
       generation_key: event.generation_key ?? binding.operation.stream?.generation_key,
+      recovery_lineage: binding.recovery_lineage.filter(lineage => lineage.generation <= expectedGeneration),
     };
   }
 }

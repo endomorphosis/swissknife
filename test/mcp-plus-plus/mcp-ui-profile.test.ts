@@ -163,6 +163,41 @@ describe('SwissKnife MCP++ UI Profile conformance', () => {
     expect(result.errors.map(error => error.path)).toEqual(
       expect.arrayContaining(['meta', 'state_model']),
     );
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'MCPUI_META', path: 'meta' }),
+        expect.objectContaining({ code: 'MCPUI_STATE_MODEL', path: 'state_model' }),
+      ]),
+    );
+  });
+
+  it('rejects unsupported service interface types and transports with stable codes', () => {
+    const descriptor = datasetDescriptor({
+      services: [
+        {
+          id: 'datasets',
+          interface_type: 'unknown-service' as any,
+          transport: 'unsupported-transport' as any,
+          operations: ['browse', 'pin'],
+        },
+      ],
+    });
+
+    const result = validateMCPUIProfileDescriptor(descriptor);
+
+    expect(result.conformant).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'MCPUI_SERVICES_ITEM_INTERFACE_TYPE',
+          path: 'services[0].interface_type',
+        }),
+        expect.objectContaining({
+          code: 'MCPUI_SERVICES_ITEM_TRANSPORT',
+          path: 'services[0].transport',
+        }),
+      ]),
+    );
   });
 
   it('rejects streaming operations without an event schema or schema CID', () => {
@@ -257,6 +292,125 @@ describe('SwissKnife MCP++ UI Profile conformance', () => {
     expect(selection.reason).toContain('state model');
   });
 
+  it('uses explicit primary template mappings before heuristic selection', () => {
+    const selection = selectTemplateForDescriptor(datasetDescriptor());
+
+    expect(selection.kind).toBe('explorer');
+    expect(selection.reason).toBe('descriptor primary_template mapping');
+    expect(selection.required_operations).toEqual(['browse', 'pin']);
+  });
+
+  it('selects graph viewer when a descriptor declares a workflow graph', () => {
+    const descriptor = datasetDescriptor({
+      ui: {
+        primary_template: 'graph-viewer',
+        templates: [{ kind: 'dashboard', operations: ['browse', 'pin'] }],
+      },
+      state_model: {
+        keys: ['current_path', 'selected_cid', 'pin_jobs'],
+        events: ['dataset.selected', 'dataset.pin.progress'],
+        projections: ['workflow_projection'],
+        replay: true,
+      },
+      workflow_graph: {
+        id: 'dataset-pin',
+        shared_state_keys: ['selected_cid', 'pin_jobs'],
+        steps: [
+          { id: 'select', operation: 'browse', write_state_keys: ['selected_cid'] },
+          {
+            id: 'pin',
+            operation: 'pin',
+            depends_on: ['select'],
+            read_state_keys: ['selected_cid'],
+            write_state_keys: ['pin_jobs'],
+          },
+        ],
+      },
+      data_contracts: {
+        operations: [
+          {
+            method: 'browse',
+            input_schema: {
+              type: 'object',
+              properties: { path: { type: 'string' } },
+              required: ['path'],
+            },
+            output_schema: {
+              type: 'object',
+              properties: { entries: { type: 'array' } },
+              required: ['entries'],
+            },
+          },
+          {
+            method: 'pin',
+            input_schema: {
+              type: 'object',
+              properties: { cid: { type: 'string' } },
+              required: ['cid'],
+            },
+            output_schema: {
+              type: 'object',
+              properties: { job_id: { type: 'string' } },
+              required: ['job_id'],
+            },
+          },
+        ],
+      },
+    });
+
+    const selection = selectTemplateForDescriptor(descriptor);
+
+    expect(selection.kind).toBe('graph-viewer');
+    expect(selection.reason).toContain('workflow graph');
+  });
+
+  it('falls back to a form wizard for request response operation shapes', () => {
+    const descriptor = datasetDescriptor({
+      services: [
+        {
+          id: 'generic',
+          interface_type: 'generic',
+          operations: ['submit'],
+        },
+      ],
+      methods: [
+        {
+          name: 'submit',
+          input_schema: { type: 'object', properties: { value: { type: 'string' } } },
+          output_schema: { type: 'object', properties: { id: { type: 'string' } } },
+        },
+      ],
+      ui: {
+        primary_template: 'dashboard',
+        templates: [{ kind: 'explorer', operations: ['submit'] }],
+      },
+      data_contracts: {
+        operations: [
+          {
+            method: 'submit',
+            input_schema: { type: 'object', properties: { value: { type: 'string' } } },
+            output_schema: { type: 'object', properties: { id: { type: 'string' } } },
+          },
+        ],
+      },
+      permissions: {
+        default_deny: false,
+        operations: {
+          submit: [],
+        },
+      },
+      state_model: {
+        keys: ['draft'],
+        events: [],
+      },
+    });
+
+    const selection = selectTemplateForDescriptor(descriptor);
+
+    expect(selection.kind).toBe('form-wizard');
+    expect(selection.reason).toContain('request/response');
+  });
+
   it('rejects template mappings that do not satisfy template capability contracts', () => {
     const descriptor = datasetDescriptor({
       ui: {
@@ -345,6 +499,45 @@ describe('SwissKnife MCP++ UI Profile conformance', () => {
         'workflow_graph.steps[0].operation',
         'workflow_graph.steps[1].depends_on',
         'workflow_graph.steps[1].read_state_keys',
+      ]),
+    );
+  });
+
+  it('rejects workflow graphs with invalid rollback actions and dependency cycles', () => {
+    const descriptor = datasetDescriptor({
+      workflow_graph: {
+        id: 'cyclic-workflow',
+        shared_state_keys: ['selected_cid', 'pin_jobs'],
+        steps: [
+          {
+            id: 'select',
+            operation: 'browse',
+            depends_on: ['pin'],
+            write_state_keys: ['selected_cid'],
+            rollback: {
+              operation: 'missing_rollback',
+              state_keys: ['not_shared'],
+            },
+          },
+          {
+            id: 'pin',
+            operation: 'pin',
+            depends_on: ['select'],
+            read_state_keys: ['selected_cid'],
+            write_state_keys: ['pin_jobs'],
+          },
+        ],
+      },
+    });
+
+    const result = validateMCPUIProfileDescriptor(descriptor);
+
+    expect(result.conformant).toBe(false);
+    expect(result.errors.map(error => error.path)).toEqual(
+      expect.arrayContaining([
+        'workflow_graph.steps[0].rollback.operation',
+        'workflow_graph.steps[0].rollback.state_keys',
+        'workflow_graph.steps',
       ]),
     );
   });

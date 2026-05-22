@@ -945,7 +945,7 @@ export const ipfsDatasetInferenceWorkflowDescriptor: MCPUIProfileDescriptor = {
       {
         kind: 'graph-viewer',
         title: 'Workflow Graph',
-        operations: ['select_dataset', 'pin_dataset', 'run_inference_job', 'publish_artifact'],
+        operations: ['select_dataset', 'pin_dataset', 'run_inference_job', 'job_status', 'publish_artifact'],
         regions: [
           { id: 'workflow-graph', kind: 'graph', operation: 'publish_artifact' },
           { id: 'workflow-provenance', kind: 'provenance', operation: 'publish_artifact' },
@@ -1076,6 +1076,7 @@ export const ipfsDatasetInferenceWorkflowDescriptor: MCPUIProfileDescriptor = {
       'workflow.dataset.pinned',
       'workflow.inference.started',
       'workflow.inference.progress',
+      'workflow.artifact.ready',
       'workflow.artifact.published',
       'workflow.compensation.requested',
     ],
@@ -1133,11 +1134,20 @@ export const ipfsDatasetInferenceWorkflowDescriptor: MCPUIProfileDescriptor = {
         },
       },
       {
+        id: 'collect_artifact',
+        title: 'Collect Artifact',
+        operation: 'job_status',
+        service_id: 'accelerate',
+        depends_on: ['run_inference'],
+        read_state_keys: ['workflow_correlation_id', 'inference_job_id'],
+        write_state_keys: ['artifact_cid'],
+      },
+      {
         id: 'publish_artifact',
         title: 'Publish Artifact',
         operation: 'publish_artifact',
         service_id: 'datasets',
-        depends_on: ['run_inference'],
+        depends_on: ['collect_artifact'],
         read_state_keys: ['workflow_correlation_id', 'inference_job_id', 'artifact_cid'],
         write_state_keys: ['publication_id'],
         compensation: {
