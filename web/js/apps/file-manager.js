@@ -3,8 +3,106 @@
  * Advanced file management with IPFS integration, cloud storage, and collaborative features
  */
 
-// Import collaborative file system
-import { CollaborativeFileSystem } from '../../../ipfs_accelerate_js/src/p2p/collaborative-file-system.js';
+const COLLABORATIVE_FILE_SYSTEM_MODULE =
+  '../../../ipfs_accelerate_js/src/p2p/collaborative-file-system.js';
+
+class CollaborativeFileSystemFallback {
+  constructor(p2pManager) {
+    this.p2pManager = p2pManager;
+    this.sharedFolders = [];
+    this.sharedFiles = [];
+    this.clipboardHistory = [];
+    this.annotations = new Map();
+    this.listeners = new Map();
+  }
+
+  on(event, listener) {
+    const listeners = this.listeners.get(event) || [];
+    listeners.push(listener);
+    this.listeners.set(event, listeners);
+  }
+
+  emit(event, payload) {
+    (this.listeners.get(event) || []).forEach(listener => listener(payload));
+  }
+
+  getSharedFolders() {
+    return [...this.sharedFolders];
+  }
+
+  getSharedFiles() {
+    return [...this.sharedFiles];
+  }
+
+  getClipboardHistory() {
+    return [...this.clipboardHistory];
+  }
+
+  getFileAnnotations(fileId) {
+    return [...(this.annotations.get(fileId) || [])];
+  }
+
+  async createSharedFolder(name, participants = []) {
+    const now = new Date();
+    const localPeerId = this.p2pManager?.getLocalPeerId?.() || 'local';
+    const folder = {
+      id: `fallback-folder-${Date.now()}`,
+      name,
+      participants,
+      files: [],
+      created: now,
+      lastModified: now,
+      owner: localPeerId,
+      permissions: {
+        read: participants,
+        write: participants,
+        admin: [localPeerId],
+        public: false,
+      },
+      ipfsHash: { hash: 'local-fallback', size: 0, type: 'directory' },
+    };
+    this.sharedFolders.push(folder);
+    this.emit('folderCreated', folder);
+    return folder;
+  }
+
+  async addToSharedClipboard(content, type = 'text') {
+    const item = {
+      id: `fallback-clipboard-${Date.now()}`,
+      content,
+      type,
+      source: this.p2pManager?.getLocalPeerId?.() || 'local',
+      timestamp: new Date(),
+    };
+    this.clipboardHistory.push(item);
+    this.emit('clipboardUpdated', item);
+    return item;
+  }
+
+  async addFileAnnotation(fileId, annotation) {
+    const fullAnnotation = {
+      id: `fallback-annotation-${Date.now()}`,
+      timestamp: new Date(),
+      ...annotation,
+      fileId,
+    };
+    const annotations = this.annotations.get(fileId) || [];
+    annotations.push(fullAnnotation);
+    this.annotations.set(fileId, annotations);
+    this.emit('annotationAdded', fullAnnotation);
+    return fullAnnotation;
+  }
+}
+
+async function loadCollaborativeFileSystem() {
+  try {
+    const module = await import(COLLABORATIVE_FILE_SYSTEM_MODULE);
+    return module.CollaborativeFileSystem || CollaborativeFileSystemFallback;
+  } catch (error) {
+    console.warn('Collaborative file system module unavailable; using local fallback:', error);
+    return CollaborativeFileSystemFallback;
+  }
+}
 
 export class FileManagerApp {
   constructor(desktop) {
@@ -137,6 +235,7 @@ export class FileManagerApp {
     // Initialize collaborative file system if P2P is available
     if (this.desktop.p2pManager) {
       try {
+        const CollaborativeFileSystem = await loadCollaborativeFileSystem();
         this.collaborativeFS = new CollaborativeFileSystem(this.desktop.p2pManager);
         this.isCollaborativeMode = true;
         

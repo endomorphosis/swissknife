@@ -3,6 +3,29 @@
  * Manage model training processes with IPFS model versioning and P2P coordination
  */
 
+const LOCAL_IPFS_ACCELERATE_MODULE = '../../../ipfs_accelerate_js/src/index.js';
+
+async function loadLocalIPFSAccelerateClass() {
+  if (typeof window !== 'undefined' && window.IPFSAccelerate) {
+    return window.IPFSAccelerate;
+  }
+
+  if (
+    typeof window === 'undefined' ||
+    window.__SWISSKNIFE_ENABLE_LOCAL_IPFS_ACCELERATE_IMPORT__ !== true
+  ) {
+    return null;
+  }
+
+  try {
+    const module = await import(LOCAL_IPFS_ACCELERATE_MODULE);
+    return module.IPFSAccelerate || null;
+  } catch (error) {
+    console.warn('Local IPFS Accelerate module import failed:', error);
+    return null;
+  }
+}
+
 // Export class for ES6 module compatibility
 export class TrainingManagerApp {
   constructor() {
@@ -184,72 +207,76 @@ export class TrainingManagerApp {
     try {
       // Try to load local IPFS Accelerate module first
       try {
-        console.log('🚀 Loading local IPFS Accelerate module...');
-        const { IPFSAccelerate } = await import('../../../ipfs_accelerate_js/src/index.js');
-        
-        const localIPFSAccelerate = new IPFSAccelerate({
-          backend: 'webgl', // Use WebGL for browser acceleration
-          p2p: true,        // Enable P2P coordination
-          storage: 'ipfs'   // Use IPFS for model storage
-        });
-        
-        await localIPFSAccelerate.initialize();
-        console.log('✅ Local IPFS Accelerate initialized successfully');
-        
-        // Wrap local module with expected interface
-        ipfsAccelerate = {
-          async createTrainingJob(config) {
-            return await localIPFSAccelerate.training.create({
-              model_config: config.model,
-              dataset: config.dataset,
-              training_params: config.params,
-              distributed: true,
-              backend: config.backend || 'webgl'
-            });
-          },
+        console.log('🚀 Checking local IPFS Accelerate bridge...');
+        const IPFSAccelerate = await loadLocalIPFSAccelerateClass();
+
+        if (IPFSAccelerate) {
+          const localIPFSAccelerate = new IPFSAccelerate({
+            backend: 'webgl', // Use WebGL for browser acceleration
+            p2p: true,        // Enable P2P coordination
+            storage: 'ipfs'   // Use IPFS for model storage
+          });
           
-          async submitTrainingJob(jobConfig) {
-            return await localIPFSAccelerate.training.submit({
-              job_config: jobConfig,
-              priority: jobConfig.priority || 'normal',
-              nodes_required: jobConfig.nodes || 3
-            });
-          },
+          await localIPFSAccelerate.initialize();
+          console.log('✅ Local IPFS Accelerate initialized successfully');
           
-          async getJobStatus(jobId) {
-            return await localIPFSAccelerate.training.getStatus(jobId);
-          },
+          // Wrap local module with expected interface
+          ipfsAccelerate = {
+            async createTrainingJob(config) {
+              return await localIPFSAccelerate.training.create({
+                model_config: config.model,
+                dataset: config.dataset,
+                training_params: config.params,
+                distributed: true,
+                backend: config.backend || 'webgl'
+              });
+            },
+            
+            async submitTrainingJob(jobConfig) {
+              return await localIPFSAccelerate.training.submit({
+                job_config: jobConfig,
+                priority: jobConfig.priority || 'normal',
+                nodes_required: jobConfig.nodes || 3
+              });
+            },
+            
+            async getJobStatus(jobId) {
+              return await localIPFSAccelerate.training.getStatus(jobId);
+            },
+            
+            async pauseJob(jobId) {
+              return await localIPFSAccelerate.training.pause(jobId);
+            },
+            
+            async resumeJob(jobId) {
+              return await localIPFSAccelerate.training.resume(jobId);
+            },
+            
+            async cancelJob(jobId) {
+              return await localIPFSAccelerate.training.cancel(jobId);
+            },
+            
+            async getAvailableNodes() {
+              return await localIPFSAccelerate.p2p.listNodes({
+                status: 'available',
+                capabilities: ['training']
+              });
+            },
+            
+            async storeTrainedModel(modelData, metadata) {
+              return await localIPFSAccelerate.storage.store({
+                model_data: modelData,
+                metadata: metadata,
+                storage: 'ipfs',
+                versioning: true
+              });
+            }
+          };
           
-          async pauseJob(jobId) {
-            return await localIPFSAccelerate.training.pause(jobId);
-          },
-          
-          async resumeJob(jobId) {
-            return await localIPFSAccelerate.training.resume(jobId);
-          },
-          
-          async cancelJob(jobId) {
-            return await localIPFSAccelerate.training.cancel(jobId);
-          },
-          
-          async getAvailableNodes() {
-            return await localIPFSAccelerate.p2p.listNodes({
-              status: 'available',
-              capabilities: ['training']
-            });
-          },
-          
-          async storeTrainedModel(modelData, metadata) {
-            return await localIPFSAccelerate.storage.store({
-              model_data: modelData,
-              metadata: metadata,
-              storage: 'ipfs',
-              versioning: true
-            });
-          }
-        };
-        
-        console.log('✅ Local IPFS Accelerate wrapped for training operations');
+          console.log('✅ Local IPFS Accelerate wrapped for training operations');
+        } else {
+          throw new Error('Local IPFS Accelerate bridge not registered');
+        }
         
       } catch (importError) {
         console.log('⚠️ Local IPFS Accelerate module not available:', importError.message);

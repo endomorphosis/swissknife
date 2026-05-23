@@ -1,0 +1,730 @@
+[
+  {
+    "id": "unsafe-display-contract",
+    "title": "Unsafe display contract with invalid layout, actions, media, fallback, and required operations",
+    "description": "A self-contained descriptor that remains structurally close to the valid task-progress widget while exercising the stable display validation errors.",
+    "expected_error_codes": [
+      "MGW_DISPLAY_VIEWPORT_MISSING",
+      "MGW_RENDER_PATH_UNSUPPORTED",
+      "MGW_FOCUS_ORDER_MISSING",
+      "MGW_TEXT_UNBOUNDED",
+      "MGW_MEDIA_TYPE_UNSUPPORTED",
+      "MGW_ACTION_METHOD_UNBOUND",
+      "MGW_METHOD_NOT_PRESENT",
+      "MGW_UPDATE_RATE_UNSAFE",
+      "MGW_CLEAR_RESET_MISSING",
+      "MGW_FALLBACK_MISSING"
+    ],
+    "expected_codes": [
+      "MGW_DISPLAY_VIEWPORT_MISSING",
+      "MGW_RENDER_PATH_UNSUPPORTED",
+      "MGW_FOCUS_ORDER_MISSING",
+      "MGW_TEXT_UNBOUNDED",
+      "MGW_MEDIA_TYPE_UNSUPPORTED",
+      "MGW_ACTION_METHOD_UNBOUND",
+      "MGW_METHOD_NOT_PRESENT",
+      "MGW_UPDATE_RATE_UNSAFE",
+      "MGW_CLEAR_RESET_MISSING",
+      "MGW_FALLBACK_MISSING"
+    ],
+    "descriptor": {
+      "name": "handsfree-unsafe-task-progress-widget",
+      "namespace": "org.handsfree.meta_glasses",
+      "version": "1.0.0",
+      "methods": [
+        {
+          "name": "render_widget",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "update_widget",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "focus_next",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "focus_previous",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "activate",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "reset_session",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "status_summary",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "correlation_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "correlation_id"
+            ]
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      ],
+      "errors": [
+        {
+          "name": "DisplayUnavailable"
+        },
+        {
+          "name": "ActionDenied"
+        }
+      ],
+      "requires": [],
+      "compatibility": {
+        "compatible_with": [],
+        "supersedes": []
+      },
+      "semanticTags": [
+        "meta-glasses",
+        "display-widget",
+        "invalid-fixture"
+      ],
+      "observability": {
+        "trace": true,
+        "provenance": true
+      },
+      "interaction_patterns": {
+        "request_response": true,
+        "event_streams": true
+      },
+      "meta": {
+        "profile": "swissknife.mcp++/ui-profile",
+        "profile_version": "0.1.0",
+        "app_id": "handsfree-unsafe-task-progress-widget",
+        "title": "Unsafe Task Progress Widget",
+        "publisher": "handsfree"
+      },
+      "services": [
+        {
+          "id": "display-widget",
+          "interface_type": "generic",
+          "transport": "mcp-server",
+          "operations": [
+            "render_widget",
+            "update_widget",
+            "focus_next",
+            "focus_previous",
+            "activate",
+            "reset_session",
+            "status_summary"
+          ]
+        }
+      ],
+      "ui": {
+        "primary_template": "dashboard",
+        "templates": [
+          {
+            "kind": "dashboard",
+            "operations": [
+              "status_summary"
+            ],
+            "regions": [
+              {
+                "id": "summary",
+                "kind": "status",
+                "operation": "status_summary"
+              }
+            ]
+          }
+        ]
+      },
+      "data_contracts": {
+        "operations": [
+          {
+            "method": "render_widget",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "update_widget",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "focus_next",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "focus_previous",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "activate",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "reset_session",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "status_summary",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "correlation_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "correlation_id"
+              ]
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "stream": {
+              "kind": "telemetry",
+              "correlation_id_field": "correlation_id",
+              "event_schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "correlation_id": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "progress": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "correlation_id",
+                  "status"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "permissions": {
+        "default_deny": true,
+        "operations": {
+          "render_widget": [
+            "display/widget"
+          ],
+          "update_widget": [
+            "display/widget"
+          ],
+          "focus_next": [
+            "display/widget"
+          ],
+          "focus_previous": [
+            "display/widget"
+          ],
+          "activate": [
+            "display/widget"
+          ],
+          "reset_session": [
+            "display/widget"
+          ],
+          "status_summary": [
+            "display/widget"
+          ]
+        }
+      },
+      "state_model": {
+        "keys": [
+          "summary",
+          "progress",
+          "selected_action"
+        ],
+        "events": [
+          "display.task_progress.telemetry"
+        ],
+        "replay": true
+      },
+      "meta_glasses_display": {
+        "profile": "handsfree.meta-glasses/display-widget",
+        "profile_version": "0.1.0",
+        "target": {
+          "display_class": "meta-ray-ban-display",
+          "input": [
+            "dpad",
+            "voice"
+          ],
+          "render_path": "native-html"
+        },
+        "layout": {
+          "template": "task-progress",
+          "regions": [
+            {
+              "id": "summary",
+              "kind": "text",
+              "bounds": {
+                "x": 24,
+                "y": 24,
+                "width": 552,
+                "height": 180
+              },
+              "text": {
+                "source": "state.summary",
+                "max_lines": 4,
+                "overflow": "truncate"
+              }
+            },
+            {
+              "id": "preview",
+              "kind": "media",
+              "bounds": {
+                "x": 24,
+                "y": 220,
+                "width": 552,
+                "height": 220
+              },
+              "media": {
+                "type": "text/html",
+                "transport": "https",
+                "fallback_text": "Preview unavailable"
+              }
+            },
+            {
+              "id": "missing-action-control",
+              "kind": "action",
+              "bounds": {
+                "x": 24,
+                "y": 512,
+                "width": 552,
+                "height": 64
+              },
+              "action_id": "missing-action"
+            }
+          ]
+        },
+        "constraints": {
+          "max_text_blocks": 4,
+          "max_actions": 2,
+          "requires_high_contrast": true,
+          "requires_focus_order": true,
+          "max_update_hz": 60,
+          "ttl_ms": 30000
+        },
+        "fallback": {
+          "when": [
+            "session_not_ready"
+          ],
+          "render_path": "unsafe-overlay",
+          "message": ""
+        },
+        "actions": [
+          {
+            "id": "dismiss",
+            "method": "archive_widget",
+            "backend_action_id": "handsfree.widget.dismiss",
+            "label": "Dismiss"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "missing-display-profile",
+    "title": "Descriptor without the Meta glasses display extension",
+    "description": "A valid Swissknife UI profile descriptor that omits the required meta_glasses_display section.",
+    "expected_error_codes": [
+      "MGW_DISPLAY_PROFILE_MISSING"
+    ],
+    "expected_codes": [
+      "MGW_DISPLAY_PROFILE_MISSING"
+    ],
+    "descriptor": {
+      "name": "handsfree-missing-display-profile-widget",
+      "namespace": "org.handsfree.meta_glasses",
+      "version": "1.0.0",
+      "methods": [
+        {
+          "name": "render_widget",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "update_widget",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "clear_widget",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "focus_next",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "focus_previous",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "activate",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "reset_session",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        {
+          "name": "status_summary",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      ],
+      "errors": [
+        {
+          "name": "DisplayUnavailable"
+        }
+      ],
+      "requires": [],
+      "compatibility": {
+        "compatible_with": [],
+        "supersedes": []
+      },
+      "semanticTags": [
+        "meta-glasses",
+        "display-widget",
+        "invalid-fixture"
+      ],
+      "observability": {
+        "trace": true,
+        "provenance": true
+      },
+      "interaction_patterns": {
+        "request_response": true,
+        "event_streams": true
+      },
+      "meta": {
+        "profile": "swissknife.mcp++/ui-profile",
+        "profile_version": "0.1.0",
+        "app_id": "handsfree-missing-display-profile-widget",
+        "title": "Missing Display Profile Widget",
+        "publisher": "handsfree"
+      },
+      "services": [
+        {
+          "id": "display-widget",
+          "interface_type": "generic",
+          "transport": "mcp-server",
+          "operations": [
+            "render_widget",
+            "update_widget",
+            "clear_widget",
+            "focus_next",
+            "focus_previous",
+            "activate",
+            "reset_session",
+            "status_summary"
+          ]
+        }
+      ],
+      "ui": {
+        "primary_template": "dashboard",
+        "templates": [
+          {
+            "kind": "dashboard",
+            "operations": [
+              "status_summary"
+            ],
+            "regions": [
+              {
+                "id": "summary",
+                "kind": "status",
+                "operation": "status_summary"
+              }
+            ]
+          }
+        ]
+      },
+      "data_contracts": {
+        "operations": [
+          {
+            "method": "render_widget",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "update_widget",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "clear_widget",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "focus_next",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "focus_previous",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "activate",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "reset_session",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "method": "status_summary",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "output_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "stream": {
+              "kind": "telemetry",
+              "correlation_id_field": "correlation_id",
+              "event_schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        ]
+      },
+      "permissions": {
+        "default_deny": true,
+        "operations": {
+          "render_widget": [
+            "display/widget"
+          ],
+          "update_widget": [
+            "display/widget"
+          ],
+          "clear_widget": [
+            "display/widget"
+          ],
+          "focus_next": [
+            "display/widget"
+          ],
+          "focus_previous": [
+            "display/widget"
+          ],
+          "activate": [
+            "display/widget"
+          ],
+          "reset_session": [
+            "display/widget"
+          ],
+          "status_summary": [
+            "display/widget"
+          ]
+        }
+      },
+      "state_model": {
+        "keys": [
+          "summary",
+          "status"
+        ],
+        "events": [
+          "display.status.telemetry"
+        ],
+        "replay": true
+      }
+    }
+  }
+]

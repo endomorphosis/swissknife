@@ -3,6 +3,29 @@
  * Visual interface for designing and configuring neural networks with IPFS model versioning
  */
 
+const LOCAL_IPFS_ACCELERATE_MODULE = '../../../ipfs_accelerate_js/src/index.js';
+
+async function loadLocalIPFSAccelerateClass() {
+  if (typeof window !== 'undefined' && window.IPFSAccelerate) {
+    return window.IPFSAccelerate;
+  }
+
+  if (
+    typeof window === 'undefined' ||
+    window.__SWISSKNIFE_ENABLE_LOCAL_IPFS_ACCELERATE_IMPORT__ !== true
+  ) {
+    return null;
+  }
+
+  try {
+    const module = await import(LOCAL_IPFS_ACCELERATE_MODULE);
+    return module.IPFSAccelerate || null;
+  } catch (error) {
+    console.warn('Local IPFS Accelerate module import failed:', error);
+    return null;
+  }
+}
+
 export class NeuralNetworkDesignerApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -317,24 +340,28 @@ export class NeuralNetworkDesignerApp {
     try {
       // Try to load local IPFS Accelerate module first
       try {
-        console.log('🚀 Loading local IPFS Accelerate module...');
-        const { IPFSAccelerate } = await import('../../../ipfs_accelerate_js/src/index.js');
-        
-        this.ipfsAccelerate = new IPFSAccelerate({
-          backend: 'webgl', // Use WebGL for browser acceleration
-          p2p: true,        // Enable P2P coordination
-          storage: 'ipfs'   // Use IPFS for model storage
-        });
-        
-        await this.ipfsAccelerate.initialize();
-        console.log('✅ Local IPFS Accelerate initialized successfully');
-        this.backendType = 'ipfs-accelerate-local';
-        return true;
+        console.log('🚀 Checking local IPFS Accelerate bridge...');
+        const IPFSAccelerate = await loadLocalIPFSAccelerateClass();
+
+        if (IPFSAccelerate) {
+          this.ipfsAccelerate = new IPFSAccelerate({
+            backend: 'webgl', // Use WebGL for browser acceleration
+            p2p: true,        // Enable P2P coordination
+            storage: 'ipfs'   // Use IPFS for model storage
+          });
+          
+          await this.ipfsAccelerate.initialize();
+          console.log('✅ Local IPFS Accelerate initialized successfully');
+          this.backendType = 'ipfs-accelerate-local';
+          return true;
+        }
+
+        console.log('⚠️ Local IPFS Accelerate bridge not registered');
         
       } catch (importError) {
         console.log('⚠️ Local IPFS Accelerate module not available:', importError.message);
-        console.log('🔄 Trying MCP fallback...');
       }
+      console.log('🔄 Trying MCP fallback...');
       
       // Fallback to MCP if local module is not available
       if (window.mcpClient) {

@@ -1,5 +1,4 @@
-// Import the new Command type and the registry
-import type { Command } from './types/command.js';
+// Import the registry
 import { CommandRegistry } from './command-registry.js';
 
 // Import refactored command objects
@@ -16,6 +15,7 @@ import initCommand from './commands/init.js';
 import listenCommand from './commands/listen.js';
 import loginCommand from './commands/login.js';
 import logoutCommand from './commands/logout.js';
+import metaGlassesWidgetCommand from './commands/meta-glasses-widget.js';
 import mcpCommand from './commands/mcp.js';
 import { modelCommand } from './commands/model.js'; // Changed to named import
 import onboardingCommand from './commands/onboarding.js';
@@ -35,12 +35,24 @@ import gooseCommand from './commands/goose.js';
 
 // Import utilities
 import { getMCPCommands } from './services/mcpClient.js';
-import { memoize } from 'lodash-es';
 import { isAnthropicAuthEnabled } from './utils/auth.js';
+
+type PublicCommand = import('./types/command.js').Command;
+type RegistryInstance = ReturnType<typeof CommandRegistry.getInstance>;
+type RegisteredCommand = ReturnType<RegistryInstance['listCommands']>[number];
+
+function memoizeAsync<T>(fn: () => Promise<T>): () => Promise<T> {
+  let cachedPromise: Promise<T> | undefined;
+
+  return () => {
+    cachedPromise ??= fn();
+    return cachedPromise;
+  };
+}
 
 // Register all built-in commands
 // Note: login() was previously a function call, now it's just the command object
-const builtInCommands = [
+const builtInCommands: PublicCommand[] = [
   approvedToolsCommand,
   bugCommand,
   clearCommand,
@@ -52,6 +64,7 @@ const builtInCommands = [
   helpCommand,
   initCommand,
   listenCommand, // Was internal
+  metaGlassesWidgetCommand,
   mcpCommand,
   modelCommand,
   onboardingCommand,
@@ -71,19 +84,21 @@ const builtInCommands = [
   gooseCommand,
 ];
 
-CommandRegistry.getInstance().register(builtInCommands);
+CommandRegistry.getInstance().register(...(builtInCommands as unknown as RegisteredCommand[]));
 
 
 // --- Updated Functions ---
 
 // Keep memoization for potentially expensive MCP command fetching
-export const getCommands = memoize(async (): Promise<Command[]> => {
+export const getCommands = memoizeAsync(async (): Promise<PublicCommand[]> => {
   // Fetch MCP commands and combine with registered built-in commands
   const mcpCommands = await getMCPCommands();
-  CommandRegistry.getInstance().register(mcpCommands); // Register MCP commands too
+  CommandRegistry.getInstance().register(...(mcpCommands as unknown as RegisteredCommand[])); // Register MCP commands too
 
   // Return all enabled commands from the registry
-  return CommandRegistry.getInstance().listCommands().filter((cmd: Command) => cmd.isEnabled !== false); // Check explicitly for false
+  return CommandRegistry.getInstance()
+    .listCommands()
+    .filter((cmd: RegisteredCommand) => cmd.isEnabled !== false) as unknown as PublicCommand[]; // Check explicitly for false
 });
 
 export async function hasCommand(commandName: string): Promise<boolean> {
@@ -92,16 +107,18 @@ export async function hasCommand(commandName: string): Promise<boolean> {
   return !!CommandRegistry.getInstance().getCommand(commandName);
 }
 
-export async function getCommand(commandName: string): Promise<Command> {
+export async function getCommand(commandName: string): Promise<PublicCommand> {
   // Get from the registry after ensuring commands are loaded
   await getCommands(); // Ensure registry is populated
-  const command = CommandRegistry.getInstance().getCommand(commandName);
+  const command = CommandRegistry.getInstance().getCommand(commandName) as unknown as PublicCommand | undefined;
   if (!command) {
     // Generate error message based on currently available commands in registry
     const availableCommands = CommandRegistry.getInstance().listCommands()
-      .filter((cmd: Command) => cmd.isEnabled !== false && cmd.isHidden !== true) // Filter enabled and not hidden
-      .map((cmd: Command) => {
-        const name = cmd.userFacingName();
+      .filter((cmd: RegisteredCommand) => cmd.isEnabled !== false && cmd.isHidden !== true) // Filter enabled and not hidden
+      .map((cmd: RegisteredCommand) => {
+        const name = 'userFacingName' in cmd && typeof cmd.userFacingName === 'function'
+          ? cmd.userFacingName()
+          : cmd.name;
         return cmd.aliases ? `${name} (aliases: ${cmd.aliases.join(', ')})` : name;
       })
       .join(', ');
@@ -113,4 +130,4 @@ export async function getCommand(commandName: string): Promise<Command> {
 }
 
 // Re-export the Command type from the new location
-export type { Command };
+export type { Command } from './types/command.js';

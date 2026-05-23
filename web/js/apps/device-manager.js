@@ -1125,6 +1125,10 @@ export class DeviceManagerApp {
     this.showNotification(`Full benchmark completed! ${results.length} tests run.`, 'success');
   }
 
+  startHardwareMonitoring() {
+    this.startPerformanceMonitoring();
+  }
+
   startPerformanceMonitoring() {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);

@@ -87,7 +87,7 @@ export class FriendsListApp {
     this.friends.set('alice-did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK', {
       id: 'alice-did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
       name: 'Alice Cooper',
-      avatar: '/assets/avatars/alice.png',
+      avatar: null,
       status: 'online',
       lastSeen: new Date(),
       identities: {
@@ -103,7 +103,7 @@ export class FriendsListApp {
     this.friends.set('bob-did:key:z6MkfrQqJ9r8u2PyR5qDgJ9r8u2PyR5qDgJ9r8u2PyR5qDgJ9', {
       id: 'bob-did:key:z6MkfrQqJ9r8u2PyR5qDgJ9r8u2PyR5qDgJ9r8u2PyR5qDgJ9',
       name: 'Bob Wilson',
-      avatar: '/assets/avatars/bob.png',
+      avatar: null,
       status: 'away',
       lastSeen: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
       identities: {
@@ -119,7 +119,7 @@ export class FriendsListApp {
     this.friends.set('charlie-did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH', {
       id: 'charlie-did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
       name: 'Charlie Data',
-      avatar: '/assets/avatars/charlie.png',
+      avatar: null,
       status: 'offline',
       lastSeen: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
       identities: {
@@ -137,7 +137,7 @@ export class FriendsListApp {
       id: 'invite-1',
       from: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
       name: 'Eva Martinez',
-      avatar: '/assets/avatars/eva.png',
+      avatar: null,
       message: 'Hey! Found you through the SwissKnife P2P network. Want to connect?',
       platforms: ['github', 'huggingface'],
       timestamp: new Date(Date.now() - 10 * 60 * 1000),
