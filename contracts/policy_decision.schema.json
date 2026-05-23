@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hallucinate.app/contracts/policy_decision.schema.json",
+  "title": "policy_decision",
+  "description": "Formal runtime decision produced by evaluating an interaction_envelope against selected policy bundles and compiled control-surface logic.",
+  "type": "object",
+  "required": [
+    "decision_id",
+    "interaction_id",
+    "outcome",
+    "policy_bundle_ref",
+    "compiled_policy_cid",
+    "decided_at",
+    "matched_norms",
+    "effects",
+    "reasons",
+    "explanation"
+  ],
+  "properties": {
+    "decision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "interaction_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "interaction_envelope": {
+      "$ref": "https://hallucinate.app/contracts/interaction_envelope.schema.json"
+    },
+    "outcome": {
+      "$ref": "#/$defs/deonticOutcome"
+    },
+    "policy_bundle_ref": {
+      "$ref": "#/$defs/policyBundleRef"
+    },
+    "compiled_policy_cid": {
+      "$ref": "#/$defs/cid"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "matched_norms": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/matchedNorm"
+      }
+    },
+    "effects": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/invocationEffect"
+      }
+    },
+    "frame_facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/frameFact"
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "explanation": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "cid": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deonticOutcome": {
+      "type": "string",
+      "enum": ["allow", "deny", "require_confirmation", "defer", "rewrite", "fallback_surface", "rate_limit"]
+    },
+    "policyBundleRef": {
+      "type": "object",
+      "required": ["policy_id", "policy_cid"],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["descriptor", "operator_profile", "runtime_override", "remote_client", "system_default"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "matchedNorm": {
+      "type": "object",
+      "required": ["norm_id", "outcome", "policy_bundle_ref"],
+      "properties": {
+        "norm_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome": {
+          "$ref": "#/$defs/deonticOutcome"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "policy_bundle_ref": {
+          "$ref": "#/$defs/policyBundleRef"
+        },
+        "logic_clause_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "guard_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "explanation": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "invocationEffect": {
+      "type": "object",
+      "required": ["outcome", "method", "target_ref", "arguments", "confirmation_required"],
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/deonticOutcome"
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "rewrite_method": {
+          "type": "string"
+        },
+        "fallback_surface": {
+          "type": "string"
+        },
+        "confirmation_required": {
+          "type": "boolean"
+        },
+        "rate_limit_key": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "frameFact": {
+      "type": "object",
+      "required": ["fact_id", "kind", "subject", "predicate", "value", "attrs"],
+      "properties": {
+        "fact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["actor", "surface", "event", "method", "target", "context", "device"]
+        },
+        "subject": {
+          "type": "string"
+        },
+        "predicate": {
+          "type": "string"
+        },
+        "value": {},
+        "attrs": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
