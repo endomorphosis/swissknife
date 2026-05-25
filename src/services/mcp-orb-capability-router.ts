@@ -1,4 +1,9 @@
 import { randomUUID } from 'crypto';
+import {
+  control_surface_mediator,
+  type ControlSurfaceMediationReceipt,
+  type ControlSurfaceInteractionEnvelope,
+} from './control-surface-mediator.js';
 import type { InterfaceDescriptor, MethodSignature } from './mcp-idl.js';
 import { computeCID } from './mcp-idl.js';
 import type { MCPInterfaceDiscoveryRegistry } from './mcp-interface-registry.js';
@@ -59,6 +64,7 @@ export interface ORBInvocationContext {
   capabilities?: string[];
   policy_cid?: string;
   parent_receipt_cids?: string[];
+  control_surface?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }
 
@@ -68,6 +74,10 @@ export interface ORBPolicyDecision {
   required_capabilities: string[];
   granted_capabilities: string[];
   decision_cid: string;
+  control_surface_contract_ref?: string;
+  interaction_envelope?: ControlSurfaceInteractionEnvelope;
+  mediation_receipt?: ControlSurfaceMediationReceipt;
+  mediated_input?: unknown;
 }
 
 export interface ORBAuthorizationPolicy {
@@ -227,6 +237,9 @@ export interface ORBInvocationReceipt {
   operation: string;
   transport: ORBTransportKind;
   policy_decision: ORBPolicyDecision;
+  control_surface_contract_ref?: string;
+  interaction_envelope?: ControlSurfaceInteractionEnvelope;
+  mediation_receipt?: ControlSurfaceMediationReceipt;
   output_cid?: string;
   output_refs: string[];
   provenance_refs: string[];
@@ -551,19 +564,41 @@ export class MCPCapabilityRouter {
     context: ORBInvocationContext = {},
   ): Promise<ORBPolicyDecision> {
     const binding = this.requireBinding(handle);
-    const decision = await this.policyHook({ binding, input, context });
+    const mediation = control_surface_mediator({ binding, input, context });
+    const mediatedContext = {
+      ...context,
+      metadata: {
+        ...context.metadata,
+        mediation_receipt_id: mediation.mediation_receipt.receipt_id,
+        control_surface_contract_ref: mediation.control_surface_contract_ref,
+      },
+    };
+    const decision = mediation.can_invoke
+      ? await this.policyHook({
+        binding,
+        input: mediation.invocation_input,
+        context: mediatedContext,
+      })
+      : createPolicyDecision({
+        outcome: 'deny',
+        reasons: mediation.policy_decision.reasons,
+        required_capabilities: [],
+        granted_capabilities: context.capabilities ?? [],
+      });
+    const mediatedDecision = attachControlSurfaceMediation(decision, mediation);
     binding.lifecycle.push(lifecycle(
       'authorize',
-      decision.outcome === 'permit' ? 'ok' : 'denied',
-      decision.reasons.join('; ') || undefined,
+      mediatedDecision.outcome === 'permit' ? 'ok' : 'denied',
+      mediatedDecision.reasons.join('; ') || undefined,
     ));
-    return decision;
+    return mediatedDecision;
   }
 
   async invoke(request: ORBInvocationRequest): Promise<ORBInvocationResponse> {
     const binding = this.requireBinding(request.handle);
     const context = withCorrelationId(request.context);
     const policyDecision = await this.authorize(binding.handle, request.input, context);
+    const invocationInput = policyDecision.mediated_input ?? request.input;
 
     if (policyDecision.outcome === 'deny') {
       const output = {
@@ -575,7 +610,7 @@ export class MCPCapabilityRouter {
     }
 
     const adapter = this.getAdapter(binding.transport);
-    const cached = this.getCachedIdempotentResult(binding, request.input, context);
+    const cached = this.getCachedIdempotentResult(binding, invocationInput, context);
     if (cached) {
       binding.lifecycle.push(lifecycle('invoke', 'ok', 'idempotency cache hit'));
       const receipt = buildORBReceipt(
@@ -594,10 +629,10 @@ export class MCPCapabilityRouter {
     }
 
     try {
-      const result = await this.invokeWithPolicy(adapter, binding, request.input, context);
+      const result = await this.invokeWithPolicy(adapter, binding, invocationInput, context);
       binding.lifecycle.push(lifecycle('invoke', 'ok'));
       this.recordCircuitBreakerSuccess(binding);
-      this.storeIdempotentResult(binding, request.input, context, result);
+      this.storeIdempotentResult(binding, invocationInput, context, result);
       const outputRefs = result.output_refs ?? collectOutputRefs(result.output);
       const provenanceRefs = result.provenance_refs ?? collectProvenanceRefs(result.output);
       const receipt = buildORBReceipt(binding, result.output, policyDecision, context, outputRefs, provenanceRefs);
@@ -953,6 +988,9 @@ export function buildORBReceipt(
     operation: binding.operation.method,
     transport: binding.transport,
     policy_decision: policyDecision,
+    control_surface_contract_ref: policyDecision.control_surface_contract_ref,
+    interaction_envelope: policyDecision.interaction_envelope,
+    mediation_receipt: policyDecision.mediation_receipt,
     output_cid: outputCid,
     output_refs: uniqueStrings([outputCid, ...outputRefs]),
     provenance_refs: uniqueStrings(provenanceRefs),
@@ -996,6 +1034,24 @@ export function createPolicyDecision(
     ...decision,
     decision_cid: computeCID(stableStringify(decision)),
   };
+}
+
+function attachControlSurfaceMediation(
+  decision: ORBPolicyDecision,
+  mediation: ReturnType<typeof control_surface_mediator>,
+): ORBPolicyDecision {
+  const { decision_cid: _previousDecisionCid, ...decisionWithoutCid } = decision;
+  const reasons = decision.outcome === 'deny'
+    ? uniqueStrings([...mediation.policy_decision.reasons, ...decision.reasons])
+    : uniqueStrings([...decision.reasons, mediation.policy_decision.explanation]);
+  return createPolicyDecision({
+    ...decisionWithoutCid,
+    reasons,
+    control_surface_contract_ref: mediation.control_surface_contract_ref,
+    interaction_envelope: mediation.interaction_envelope,
+    mediation_receipt: mediation.mediation_receipt,
+    mediated_input: mediation.invocation_input,
+  });
 }
 
 function normalizeTransport(transport: MCPUIServiceDescriptor['transport']): ORBTransportKind {

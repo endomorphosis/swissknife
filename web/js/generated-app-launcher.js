@@ -304,11 +304,30 @@ function renderCommand(descriptor, operation, capabilities, trust, policyDecisio
         <button
             class="generated-mcp-command"
             data-operation="${escapeHtml(operation.method)}"
+            data-control-surface="mouse"
+            data-surface-event="click"
+            data-interaction-envelope="interaction_envelope"
             data-trust-status="${escapeHtml(trust.status)}"
             ${disabled ? 'disabled' : ''}
             ${reason ? `title="${escapeHtml(reason)}" data-denial-reason="${escapeHtml(reason)}"` : ''}
         >${escapeHtml(operation.title || humanize(operation.method))}</button>
     `;
+}
+
+export function buildGeneratedControlSurfaceContext(descriptor, operation, surface = 'mouse', surfaceEvent = 'click', rawEvent = {}) {
+    const binding = descriptor.control_surface_contract?.intent_bindings?.find?.((candidate) => candidate.method === operation);
+    return {
+        control_surface_contract: descriptor.control_surface_contract,
+        control_surface_mediator: 'swissknife.generated_app.control_surface_mediator',
+        interaction_envelope: {
+            surface,
+            surface_event: surfaceEvent,
+            intent: binding?.intent || `${descriptor.meta?.app_id || descriptor.name}.${operation}`,
+            method: operation,
+            target_ref: binding?.target_ref || `${descriptor.name}.${operation}`,
+            raw_payload: rawEvent
+        }
+    };
 }
 
 function renderRegion(descriptor, region, capabilities, trust, policyDecisions = {}) {
@@ -897,6 +916,7 @@ if (typeof window !== 'undefined') {
         discoverGeneratedApps,
         resolveGeneratedAppLaunch,
         renderGeneratedApp,
+        buildGeneratedControlSurfaceContext,
         createGeneratedAppState,
         restoreGeneratedAppState,
         projectReplayLog,

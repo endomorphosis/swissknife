@@ -118,6 +118,85 @@ describe('MCP ORB capability router contracts', () => {
     expect(response.receipt.lifecycle.map(record => record.phase)).toEqual(
       ['discover', 'bind', 'authorize', 'invoke'],
     );
+    expect(response.receipt.interaction_envelope?.surface).toBe('agent');
+    expect(response.receipt.mediation_receipt?.policy_decision.outcome).toBe('allow');
+  });
+
+  it('mediates voice, gesture, mouse, and agent surfaces through the same control_surface_contract path', async () => {
+    const local = new LocalORBTransportAdapter();
+    const surfaces: string[] = [];
+    local.registerHandler('browse', ({ context }) => {
+      surfaces.push(String(context.control_surface?.surface ?? 'unknown'));
+      return { entries: [], correlation_id: context.correlation_id };
+    });
+    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const binding = await router.bind({ descriptors: [source()], operation: 'browse' });
+
+    for (const [surface, surface_event] of [
+      ['voice', 'utterance'],
+      ['gesture', 'tap'],
+      ['mouse', 'click'],
+      ['agent', 'autonomous_invoke'],
+    ] as const) {
+      const response = await router.invoke({
+        handle: binding.handle,
+        input: { path: '/' },
+        context: {
+          correlation_id: `corr-${surface}`,
+          capabilities: ['dataset/read'],
+          control_surface: {
+            surface,
+            surface_event,
+            context: { platform: 'swissknife-test', state_frames: [] },
+          },
+        },
+      });
+      expect(response.denied).toBe(false);
+      expect(response.receipt.interaction_envelope?.surface).toBe(surface);
+      expect(response.receipt.mediation_receipt?.policy_decision.outcome).toBe('allow');
+      expect(response.receipt.policy_decision.mediation_receipt?.mediation_result.invoked).toBe(true);
+    }
+
+    expect(surfaces).toEqual(['voice', 'gesture', 'mouse', 'agent']);
+  });
+
+  it('denies disallowed control surfaces before local handlers are invoked', async () => {
+    let handlerCalls = 0;
+    const local = new LocalORBTransportAdapter();
+    local.registerHandler('browse', () => {
+      handlerCalls += 1;
+      return { entries: [] };
+    });
+    const descriptor = localDatasetDescriptor();
+    const contract = descriptor.control_surface_contract as { intent_bindings: Array<{ method: string; allowed_surfaces: string[] }> } | undefined;
+    const browseBinding = contract?.intent_bindings.find(binding => binding.method === 'browse');
+    if (browseBinding) {
+      browseBinding.allowed_surfaces = ['voice'];
+    }
+    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const binding = await router.bind({
+      descriptors: [{ cid: DATASET_INTERFACE_CID, descriptor }],
+      operation: 'browse',
+    });
+
+    const denied = await router.invoke({
+      handle: binding.handle,
+      input: { path: '/' },
+      context: {
+        correlation_id: 'corr-mouse-denied',
+        capabilities: ['dataset/read'],
+        control_surface: {
+          surface: 'mouse',
+          surface_event: 'click',
+        },
+      },
+    });
+
+    expect(denied.denied).toBe(true);
+    expect(handlerCalls).toBe(0);
+    expect(denied.receipt.policy_decision.outcome).toBe('deny');
+    expect(denied.receipt.policy_decision.reasons.join('\n')).toContain('Surface mouse is not allowed to invoke browse');
+    expect(denied.receipt.mediation_receipt?.interaction_envelope.surface).toBe('mouse');
   });
 
   it('models stream and recover lifecycle phases', async () => {

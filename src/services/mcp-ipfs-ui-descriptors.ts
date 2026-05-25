@@ -3,6 +3,7 @@ import {
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
   type MCPUIProfileDescriptor,
 } from './mcp-ui-profile.js';
+import { createDefaultControlSurfaceContract } from './control-surface-mediator.js';
 
 const CID_SCHEMA = {
   type: 'string',
@@ -1166,6 +1167,10 @@ export const IPFS_MCP_UI_PROFILE_DESCRIPTORS: MCPUIProfileDescriptor[] = [
   ipfsAccelerateUIProfileDescriptor,
   ipfsDatasetInferenceWorkflowDescriptor,
 ];
+
+for (const descriptor of IPFS_MCP_UI_PROFILE_DESCRIPTORS) {
+  descriptor.control_surface_contract = createDefaultControlSurfaceContract(descriptor);
+}
 
 export function getIPFSMCPUIProfileDescriptors(): MCPUIProfileDescriptor[] {
   return IPFS_MCP_UI_PROFILE_DESCRIPTORS.map(

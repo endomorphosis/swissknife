@@ -138,16 +138,84 @@ export class DescriptorAppRuntime {
         container.querySelectorAll('[data-action]').forEach((button) => {
             button.addEventListener('click', async () => {
                 const action = button.dataset.action;
-                const actionConfig = actionMap[action];
-                if (!actionConfig) return;
-
-                const serviceRef = descriptor.services.find((service) => service.name === actionConfig.service);
-                if (!serviceRef) return;
-
-                this.recordReplay(appId, 'invoke', { action }, correlationId);
-                await this.orbClient.invoke(serviceRef, actionConfig.operation, actionConfig.payload || {}, { correlationId });
+                await this.invokeControlSurfaceIntent(appId, descriptor, action, {
+                    surface: 'mouse',
+                    surface_event: 'click',
+                    raw_event: { action }
+                }, correlationId);
             });
         });
+    }
+
+    async invokeVoiceIntent(appId, action, utterance, correlationId = null) {
+        const descriptor = this.getDescriptor(appId);
+        if (!descriptor) throw new Error(`Descriptor not found for app: ${appId}`);
+        return this.invokeControlSurfaceIntent(appId, descriptor, action, {
+            surface: 'voice',
+            surface_event: 'utterance',
+            raw_event: { utterance }
+        }, correlationId || this.orbClient.createCorrelationId(appId));
+    }
+
+    async invokeGestureIntent(appId, action, gesture, correlationId = null) {
+        const descriptor = this.getDescriptor(appId);
+        if (!descriptor) throw new Error(`Descriptor not found for app: ${appId}`);
+        return this.invokeControlSurfaceIntent(appId, descriptor, action, {
+            surface: 'gesture',
+            surface_event: gesture?.event || gesture?.type || 'tap',
+            raw_event: gesture || {}
+        }, correlationId || this.orbClient.createCorrelationId(appId));
+    }
+
+    async invokeAgentIntent(appId, action, agentIntent = {}, correlationId = null) {
+        const descriptor = this.getDescriptor(appId);
+        if (!descriptor) throw new Error(`Descriptor not found for app: ${appId}`);
+        return this.invokeControlSurfaceIntent(appId, descriptor, action, {
+            surface: 'agent',
+            surface_event: agentIntent.surface_event || 'autonomous_invoke',
+            actor_type: 'agent',
+            actor_id: agentIntent.agent_id || 'swissknife-agent',
+            raw_event: agentIntent
+        }, correlationId || this.orbClient.createCorrelationId(appId));
+    }
+
+    async invokeControlSurfaceIntent(appId, descriptor, action, controlSurface, correlationId) {
+        const actionMap = descriptor.actions || {};
+        const actionConfig = actionMap[action];
+        if (!actionConfig) return null;
+
+        const serviceRef = descriptor.services.find((service) => service.name === actionConfig.service);
+        if (!serviceRef) return null;
+
+        const payload = actionConfig.payload || {};
+        const surfaceContext = {
+            ...controlSurface,
+            intent: action,
+            context: {
+                platform: 'swissknife_web',
+                device_mode: 'active',
+                state_frames: []
+            }
+        };
+        this.recordReplay(appId, 'invoke', {
+            action,
+            control_surface_contract: Boolean(descriptor.control_surface_contract),
+            interaction_envelope: {
+                surface: surfaceContext.surface,
+                surface_event: surfaceContext.surface_event,
+                intent: action
+            }
+        }, correlationId);
+        return this.orbClient.invoke(
+            { ...serviceRef, descriptor },
+            actionConfig.operation,
+            payload,
+            {
+                correlationId,
+                descriptor,
+                control_surface: surfaceContext
+            }
+        );
     }
 
     isStreamHandleInvalid(appId, generation, streamBucket) {

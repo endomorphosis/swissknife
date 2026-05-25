@@ -1573,6 +1573,28 @@ class SwissKnifeDesktop {
             desktop: this,
             capabilities
         });
+        contentElement.querySelectorAll('.generated-mcp-command[data-operation]').forEach(button => {
+            button.addEventListener('click', () => {
+                const operation = button.dataset.operation;
+                const controlSurfaceContext = launcher.buildGeneratedControlSurfaceContext?.(
+                    appConfig.generatedApp.descriptor,
+                    operation,
+                    'mouse',
+                    'click',
+                    { app_id: appConfig.generatedApp.app_id, operation }
+                );
+                contentElement.dispatchEvent(new CustomEvent('swissknife:generated-control-surface-intent', {
+                    bubbles: true,
+                    detail: {
+                        app: appConfig.generatedApp,
+                        operation,
+                        control_surface_contract: appConfig.generatedApp.descriptor.control_surface_contract,
+                        control_surface_mediator: controlSurfaceContext?.control_surface_mediator,
+                        interaction_envelope: controlSurfaceContext?.interaction_envelope
+                    }
+                }));
+            });
+        });
     }
     
     async loadScript(src) {

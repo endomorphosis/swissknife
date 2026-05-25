@@ -140,6 +140,34 @@ export interface MCPUIWorkflowGraph {
   steps: MCPUIWorkflowStep[];
 }
 
+export interface MCPUIControlSurfaceContract {
+  version: string;
+  control_surfaces: Array<{
+    id: string;
+    kind: string;
+    event_types: string[];
+    intent_resolver: string;
+    logic_bindings: Array<Record<string, unknown>>;
+  }>;
+  intent_bindings: Array<{
+    intent: string;
+    method: string;
+    allowed_surfaces: string[];
+    logic_bindings: Array<Record<string, unknown>>;
+  }>;
+  policy_hooks: {
+    compile_api: string;
+    evaluate_api: string;
+    decision_receipt: boolean;
+  };
+  context_schema: Record<string, unknown>;
+  conflict_resolution: {
+    default: string;
+  };
+  logic_bindings: Array<Record<string, unknown>>;
+  mediation_receipts: Record<string, unknown>;
+}
+
 /**
  * SwissKnife MCP++ UI Profile descriptor.
  *
@@ -155,6 +183,7 @@ export interface MCPUIProfileDescriptor extends InterfaceDescriptor {
   data_contracts: MCPUIDataContracts;
   permissions: MCPUIPermissions;
   state_model: MCPUIStateModel;
+  control_surface_contract?: unknown;
   workflow_graph?: MCPUIWorkflowGraph;
   trust?: MCPUIDescriptorTrustMetadata;
 }
@@ -304,6 +333,7 @@ export function validateMCPUIProfileDescriptor(
   validatePermissions(descriptor.permissions, methodNames, errors, warnings);
   validateStateModel(descriptor.state_model, descriptor.data_contracts, errors, warnings);
   validateWorkflowGraph(descriptor.workflow_graph, methodNames, descriptor.services, descriptor.state_model, errors);
+  validateControlSurfaceContract(descriptor.control_surface_contract, methodNames, errors, warnings);
 
   return {
     conformant: errors.length === 0,
@@ -685,6 +715,103 @@ function validateStateModel(
   );
   if (hasStreamingOperation && Array.isArray(stateModel.events) && stateModel.events.length === 0) {
     push(warnings, 'state_model.events', 'Streaming descriptors should declare replayable event names.');
+  }
+}
+
+function validateControlSurfaceContract(
+  contract: unknown,
+  methodNames: Set<string>,
+  errors: MCPUIConformanceIssue[],
+  warnings: MCPUIConformanceIssue[],
+): void {
+  if (contract === undefined) {
+    push(warnings, 'control_surface_contract', 'Descriptor has no control_surface_contract; ORB will bind a default pre-invocation control_surface_mediator.');
+    return;
+  }
+  if (!isRecord(contract)) {
+    push(errors, 'control_surface_contract', 'control_surface_contract must be an object.');
+    return;
+  }
+  if (!isNonEmptyString(contract.version)) {
+    push(errors, 'control_surface_contract.version', 'control_surface_contract version is required.');
+  }
+
+  const surfaceIds = new Set<string>();
+  if (!Array.isArray(contract.control_surfaces) || contract.control_surfaces.length === 0) {
+    push(errors, 'control_surface_contract.control_surfaces', 'At least one control surface is required.');
+  } else {
+    contract.control_surfaces.forEach((surface, index) => {
+      if (!isRecord(surface)) {
+        push(errors, `control_surface_contract.control_surfaces[${index}]`, 'Control surface must be an object.');
+        return;
+      }
+      if (!isNonEmptyString(surface.id)) {
+        push(errors, `control_surface_contract.control_surfaces[${index}].id`, 'Control surface id is required.');
+      } else {
+        surfaceIds.add(surface.id);
+      }
+      if (!Array.isArray(surface.event_types) || !surface.event_types.every(isNonEmptyString)) {
+        push(errors, `control_surface_contract.control_surfaces[${index}].event_types`, 'Control surface event_types must be strings.');
+      }
+      if (!Array.isArray(surface.logic_bindings) || surface.logic_bindings.length === 0) {
+        push(errors, `control_surface_contract.control_surfaces[${index}].logic_bindings`, 'Control surface logic_bindings are required.');
+      }
+    });
+  }
+
+  if (!Array.isArray(contract.intent_bindings) || contract.intent_bindings.length === 0) {
+    push(errors, 'control_surface_contract.intent_bindings', 'At least one intent binding is required.');
+  } else {
+    const mappedSurfaces = new Set<string>();
+    contract.intent_bindings.forEach((binding, index) => {
+      if (!isRecord(binding)) {
+        push(errors, `control_surface_contract.intent_bindings[${index}]`, 'Intent binding must be an object.');
+        return;
+      }
+      if (!isNonEmptyString(binding.method) || !methodNames.has(binding.method)) {
+        push(errors, `control_surface_contract.intent_bindings[${index}].method`, `Unknown control-surface method binding: ${String(binding.method)}.`);
+      }
+      if (!Array.isArray(binding.allowed_surfaces) || binding.allowed_surfaces.length === 0) {
+        push(errors, `control_surface_contract.intent_bindings[${index}].allowed_surfaces`, 'Intent binding allowed_surfaces are required.');
+      } else {
+        for (const surfaceId of binding.allowed_surfaces) {
+          if (!isNonEmptyString(surfaceId) || !surfaceIds.has(surfaceId)) {
+            push(errors, `control_surface_contract.intent_bindings[${index}].allowed_surfaces`, `Unknown allowed surface: ${String(surfaceId)}.`);
+          } else {
+            mappedSurfaces.add(surfaceId);
+          }
+        }
+      }
+      if (!Array.isArray(binding.logic_bindings) || binding.logic_bindings.length === 0) {
+        push(errors, `control_surface_contract.intent_bindings[${index}].logic_bindings`, 'Intent binding logic_bindings are required.');
+      }
+    });
+    for (const surfaceId of surfaceIds) {
+      if (!mappedSurfaces.has(surfaceId)) {
+        push(warnings, 'control_surface_contract.intent_bindings', `Surface ${surfaceId} is declared but not mapped to any method.`);
+      }
+    }
+  }
+
+  if (!isRecord(contract.policy_hooks)) {
+    push(errors, 'control_surface_contract.policy_hooks', 'policy_hooks are required.');
+  } else {
+    if (!isNonEmptyString(contract.policy_hooks.compile_api)) {
+      push(errors, 'control_surface_contract.policy_hooks.compile_api', 'compile_api hook is required.');
+    }
+    if (!isNonEmptyString(contract.policy_hooks.evaluate_api)) {
+      push(errors, 'control_surface_contract.policy_hooks.evaluate_api', 'evaluate_api hook is required.');
+    }
+    if (contract.policy_hooks.decision_receipt !== true) {
+      push(errors, 'control_surface_contract.policy_hooks.decision_receipt', 'decision_receipt must be enabled for mediated ORB invocation.');
+    }
+  }
+
+  if (!Array.isArray(contract.logic_bindings) || contract.logic_bindings.length === 0) {
+    push(errors, 'control_surface_contract.logic_bindings', 'Contract-level logic_bindings are required.');
+  }
+  if (!isRecord(contract.mediation_receipts)) {
+    push(errors, 'control_surface_contract.mediation_receipts', 'mediation_receipts configuration is required.');
   }
 }
 
