@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hallucinate.app/contracts/control_surface_contract.schema.json",
+  "title": "control_surface_contract",
+  "description": "Descriptor section that binds interface methods and multimodal control surfaces to formal policy bundles, compiled logic artifacts, and mediation receipts.",
+  "type": "object",
+  "required": ["control_surface_contract"],
+  "properties": {
+    "control_surface_contract": {
+      "$ref": "#/$defs/controlSurfaceContract"
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "cid": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Content-addressed identifier or stable artifact reference."
+    },
+    "policyBundleRef": {
+      "type": "object",
+      "required": ["policy_id", "policy_cid"],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "description": "Descriptor, profile, device, or session scope that selected this policy bundle."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["descriptor", "operator_profile", "runtime_override", "remote_client", "system_default"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "compiledArtifactRef": {
+      "type": "object",
+      "required": ["artifact_type", "cid"],
+      "properties": {
+        "artifact_type": {
+          "type": "string",
+          "enum": ["frame_logic", "event_calculus", "deontic_policy", "ucan", "explanation", "source_text"]
+        },
+        "cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "logicBinding": {
+      "type": "object",
+      "required": ["binding_id", "policy_bundle_ref", "compiled_policy_cid"],
+      "properties": {
+        "binding_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_bundle_ref": {
+          "$ref": "#/$defs/policyBundleRef"
+        },
+        "compiled_policy_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "ir_version": {
+          "type": "string",
+          "default": "0.1.0"
+        },
+        "frame_fact_kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["actor", "surface", "event", "method", "target", "context", "device"]
+          },
+          "uniqueItems": true
+        },
+        "surface_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "method_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "norm_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "compiled_artifact_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/compiledArtifactRef"
+          }
+        },
+        "interaction_envelope_schema_ref": {
+          "type": "string",
+          "const": "interaction_envelope"
+        },
+        "policy_decision_schema_ref": {
+          "type": "string",
+          "const": "policy_decision"
+        },
+        "mediation_receipt_schema_ref": {
+          "type": "string",
+          "const": "mediation_receipt"
+        },
+        "mediation_required": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "confidencePolicy": {
+      "type": "object",
+      "properties": {
+        "min_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "clarify_below": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "controlSurface": {
+      "type": "object",
+      "required": ["id", "kind", "event_types", "intent_resolver", "logic_bindings"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_types": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "intent_resolver": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence_policy": {
+          "$ref": "#/$defs/confidencePolicy"
+        },
+        "logic_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/logicBinding"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "intentBinding": {
+      "type": "object",
+      "required": ["intent", "method", "allowed_surfaces", "logic_bindings"],
+      "properties": {
+        "intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_ref": {
+          "type": "string"
+        },
+        "allowed_surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "required_context_facts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "logic_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/logicBinding"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "policyHooks": {
+      "type": "object",
+      "required": ["compile_api", "evaluate_api", "decision_receipt"],
+      "properties": {
+        "compile_api": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluate_api": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision_receipt": {
+          "type": "boolean"
+        },
+        "compiled_artifact_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["frame_logic", "event_calculus", "deontic_policy", "ucan", "explanation", "source_text"]
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "contextSchema": {
+      "type": "object",
+      "properties": {
+        "state_frames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "time_context": {
+          "type": "boolean"
+        },
+        "location_context": {
+          "type": "boolean"
+        },
+        "device_context": {
+          "type": "boolean"
+        },
+        "agent_identity": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "conflictResolution": {
+      "type": "object",
+      "required": ["default"],
+      "properties": {
+        "default": {
+          "type": "string",
+          "enum": ["deny_over_permit", "highest_priority", "require_confirmation", "most_specific_binding"]
+        },
+        "requires_explanation": {
+          "type": "boolean"
+        },
+        "requires_user_confirmation_for": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "mediationReceipts": {
+      "type": "object",
+      "required": ["decision_schema_ref", "receipt_schema_ref", "emit_for_outcomes"],
+      "properties": {
+        "decision_schema_ref": {
+          "type": "string",
+          "const": "policy_decision"
+        },
+        "receipt_schema_ref": {
+          "type": "string",
+          "const": "mediation_receipt"
+        },
+        "emit_for_outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["allow", "deny", "require_confirmation", "defer", "rewrite", "fallback_surface", "rate_limit"]
+          },
+          "uniqueItems": true
+        },
+        "store": {
+          "type": "string",
+          "enum": ["audit_log", "operator_profile", "session_memory", "disabled"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "controlSurfaceContract": {
+      "type": "object",
+      "required": [
+        "version",
+        "control_surfaces",
+        "intent_bindings",
+        "policy_hooks",
+        "context_schema",
+        "conflict_resolution",
+        "logic_bindings",
+        "mediation_receipts"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "control_surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/controlSurface"
+          }
+        },
+        "intent_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/intentBinding"
+          }
+        },
+        "policy_hooks": {
+          "$ref": "#/$defs/policyHooks"
+        },
+        "context_schema": {
+          "$ref": "#/$defs/contextSchema"
+        },
+        "conflict_resolution": {
+          "$ref": "#/$defs/conflictResolution"
+        },
+        "logic_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/logicBinding"
+          }
+        },
+        "mediation_receipts": {
+          "$ref": "#/$defs/mediationReceipts"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
