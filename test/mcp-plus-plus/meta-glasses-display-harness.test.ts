@@ -11,6 +11,7 @@ import {
   type MetaGlassesDisplayORBOperation,
   type MetaGlassesDisplayORBOperationOutput,
 } from '../../src/services/meta-glasses-display-orb-adapter';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
 import {
   compileMetaGlassesWidgetManifest,
 } from '../../src/services/meta-glasses-widget-compiler';
@@ -80,6 +81,14 @@ function outputOf(response: { output: unknown }): MetaGlassesDisplayORBOperation
   return response.output as MetaGlassesDisplayORBOperationOutput;
 }
 
+function allowControlSurfaceEvaluation(request: ControlSurfacePolicyEvaluationRequest) {
+  return {
+    outcome: 'allow',
+    reasons: ['Test runtime policy evaluator allowed display harness invocation.'],
+    explanation: `Test runtime policy evaluator allowed ${request.interaction_envelope.normalized_intent.method}.`,
+  };
+}
+
 describe('Meta glasses hardware-free descriptor-to-mobile-render harness', () => {
   it('publishes, compiles, discovers, binds, invokes every widget operation, and records receipts', async () => {
     const descriptor = displayDescriptor();
@@ -141,7 +150,10 @@ describe('Meta glasses hardware-free descriptor-to-mobile-render harness', () =>
         },
       };
     };
-    const adapter = new MetaGlassesDisplayORBAdapter({ bridge });
+    const adapter = new MetaGlassesDisplayORBAdapter({
+      bridge,
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
+    });
     const source = createMetaGlassesDisplayORBDescriptorSource(descriptor, { interface_cid: interfaceCid });
 
     const discoveredRegistryEntries = await registry.discover({ ui_only: true });
@@ -455,6 +467,7 @@ describe('Meta glasses hardware-free descriptor-to-mobile-render harness', () =>
   it('records policy denial receipts without calling the mobile bridge', async () => {
     const descriptor = displayDescriptor();
     const adapter = new MetaGlassesDisplayORBAdapter({
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       bridge: () => {
         throw new Error('bridge should not be called for denied operations');
       },
@@ -505,6 +518,7 @@ describe('Meta glasses hardware-free descriptor-to-mobile-render harness', () =>
   it('preserves native-display-unavailable fallback diagnostics in the render receipt output', async () => {
     const descriptor = displayDescriptor();
     const adapter = new MetaGlassesDisplayORBAdapter({
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       bridge: ({ mobile_action, session }) => ({
         ok: true,
         status: 'display_unavailable',
@@ -564,6 +578,7 @@ describe('Meta glasses hardware-free descriptor-to-mobile-render harness', () =>
   it('records lifecycle error metadata when bridge retries are exhausted', async () => {
     const descriptor = displayDescriptor();
     const adapter = new MetaGlassesDisplayORBAdapter({
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       bridge: () => {
         throw new Error('display lifecycle failed before content send');
       },
