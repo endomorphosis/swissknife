@@ -1,4 +1,5 @@
 import { computeCID, computeInterfaceCID } from './mcp-idl.js';
+import type { ControlSurfacePolicyEvaluator } from './control-surface-mediator.js';
 import type { MCPUIProfileDescriptor } from './mcp-ui-profile.js';
 import {
   LocalORBTransportAdapter,
@@ -64,7 +65,16 @@ export interface MetaGlassesMobileORBDatCapabilities {
   webAppDisplay?: boolean;
 }
 
-export interface MetaGlassesMobileORBRegisterRequest {
+export interface MetaGlassesMobileORBControlSurfaceArtifacts {
+  control_surface_contract_ref?: string;
+  interaction_envelope?: Record<string, unknown>;
+  normalized_intent?: Record<string, unknown>;
+  policy_decision?: Record<string, unknown>;
+  mediation_receipt?: Record<string, unknown>;
+}
+
+export interface MetaGlassesMobileORBRegisterRequest
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   edge_id: string;
   platform: MetaGlassesMobileORBPlatform;
   device_id?: string;
@@ -75,14 +85,16 @@ export interface MetaGlassesMobileORBRegisterRequest {
   descriptors?: Record<string, unknown>[];
 }
 
-export interface MetaGlassesMobileORBRegisterResponse {
+export interface MetaGlassesMobileORBRegisterResponse
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   edge_session_id: string;
   accepted_interface_cids: string[];
-  policy_cid: string;
+  policy_cid?: string | null;
   expires_at?: string | null;
 }
 
-export interface MetaGlassesMobileORBEventRequest {
+export interface MetaGlassesMobileORBEventRequest
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   edge_session_id: string;
   event_type: MetaGlassesMobileORBEventType;
   payload: Record<string, unknown>;
@@ -91,14 +103,16 @@ export interface MetaGlassesMobileORBEventRequest {
   observed_at?: string;
 }
 
-export interface MetaGlassesMobileORBEventResponse {
+export interface MetaGlassesMobileORBEventResponse
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   event_cid: string;
   accepted: boolean;
   routed_operations: string[];
   receipt_cid: string;
 }
 
-export interface MetaGlassesMobileORBBindServiceRequest {
+export interface MetaGlassesMobileORBBindServiceRequest
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   edge_session_id: string;
   service_interface_cid: string;
   service_descriptor?: Record<string, unknown>;
@@ -125,7 +139,8 @@ export interface MetaGlassesMobileORBOrbBinding {
   transport_binding: MetaGlassesMobileORBTransportBinding;
 }
 
-export interface MetaGlassesMobileORBBindServiceResponse {
+export interface MetaGlassesMobileORBBindServiceResponse
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   binding_handle: string;
   transport: ORBTransportKind;
   granted_capabilities: string[];
@@ -134,7 +149,8 @@ export interface MetaGlassesMobileORBBindServiceResponse {
   expires_at?: string | null;
 }
 
-export interface MetaGlassesMobileORBInvokeServiceRequest {
+export interface MetaGlassesMobileORBInvokeServiceRequest
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   binding_handle: string;
   operation: string;
   arguments: Record<string, unknown>;
@@ -144,7 +160,8 @@ export interface MetaGlassesMobileORBInvokeServiceRequest {
   parent_receipt_cids?: string[];
 }
 
-export interface MetaGlassesMobileORBInvokeServiceResponse {
+export interface MetaGlassesMobileORBInvokeServiceResponse
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   ok: boolean;
   service_result: Record<string, unknown>;
   output_refs: string[];
@@ -155,7 +172,8 @@ export interface MetaGlassesMobileORBInvokeServiceResponse {
   spoken_text?: string | null;
 }
 
-export interface MetaGlassesMobileORBSubscribeServiceUpdatesRequest {
+export interface MetaGlassesMobileORBSubscribeServiceUpdatesRequest
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   binding_handle: string;
   operation: string;
   arguments?: Record<string, unknown>;
@@ -163,14 +181,16 @@ export interface MetaGlassesMobileORBSubscribeServiceUpdatesRequest {
   correlation_id: string;
 }
 
-export interface MetaGlassesMobileORBSubscribeServiceUpdatesResponse {
+export interface MetaGlassesMobileORBSubscribeServiceUpdatesResponse
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   subscription_id: string;
   receipt_cid: string;
   generation_key: string;
   subscription?: Record<string, unknown> | null;
 }
 
-export interface MetaGlassesMobileORBDispatchResponseRequest {
+export interface MetaGlassesMobileORBDispatchResponseRequest
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   edge_session_id: string;
   result: Record<string, unknown>;
   render_targets: MetaGlassesMobileORBRenderTarget[];
@@ -179,20 +199,23 @@ export interface MetaGlassesMobileORBDispatchResponseRequest {
   parent_receipt_cids?: string[];
 }
 
-export interface MetaGlassesMobileORBDispatchResponseResponse {
+export interface MetaGlassesMobileORBDispatchResponseResponse
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   dispatched_actions: Record<string, unknown>[];
   display_widget_action?: Record<string, unknown> | null;
   spoken_text?: string | null;
   receipt_cid: string;
 }
 
-export interface MetaGlassesMobileORBRevokeBindingRequest {
+export interface MetaGlassesMobileORBRevokeBindingRequest
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   binding_handle: string;
   reason: string;
   correlation_id?: string;
 }
 
-export interface MetaGlassesMobileORBRevokeBindingResponse {
+export interface MetaGlassesMobileORBRevokeBindingResponse
+  extends MetaGlassesMobileORBControlSurfaceArtifacts {
   revoked: boolean;
   receipt_cid: string;
 }
@@ -296,6 +319,8 @@ export interface MetaGlassesMobileORBBindOptions {
 export interface MetaGlassesMobileORBBridgeAdapterOptions {
   backend?: MetaGlassesMobileORBBridgeBackend;
   operation_policies?: Record<string, ORBOperationPolicy>;
+  control_surface_policy_evaluator?: ControlSurfacePolicyEvaluator;
+  controlSurfacePolicyEvaluator?: ControlSurfacePolicyEvaluator;
   now?: () => Date;
 }
 
@@ -307,6 +332,21 @@ const MOBILE_ORB_SUBSCRIPTION_CAPABILITY = 'mobile/orb.subscription';
 const MOBILE_ORB_RESPONSE_DISPATCH_CAPABILITY = 'mobile/orb.response.dispatch';
 const MOBILE_ORB_BINDING_REVOKE_CAPABILITY = 'mobile/orb.binding.revoke';
 const OBJECT_SCHEMA = { type: 'object', additionalProperties: true } as const;
+const CONTROL_SURFACE_CONTRACT_REF = 'control_surface_contract:hallucinate-app:remote-client';
+const CONTROL_SURFACE_POLICY_BUNDLE_REF = {
+  policy_id: 'policy:hallucinate-app:remote-client-transport',
+  policy_cid: 'local:hallucinate-app:remote-client-transport',
+  version: '0.1.0',
+  scope: 'remote-client-transport',
+  source: 'system_default',
+};
+const CONTROL_SURFACE_COMPILED_POLICY_CID = 'local:hallucinate-app:remote-client-transport';
+const CONTROL_SURFACE_SCHEMA_REFS = [
+  'control_surface_contract',
+  'interaction_envelope',
+  'policy_decision',
+  'mediation_receipt',
+];
 
 const OPERATION_CAPABILITIES: Record<MetaGlassesMobileORBOperation, string[]> = {
   register_edge_capabilities: [MOBILE_ORB_EDGE_CAPABILITY],
@@ -509,6 +549,8 @@ export class MetaGlassesMobileORBBridgeAdapter {
     this.registerHandlers(this.localAdapter);
     this.router = new MCPCapabilityRouter({
       adapters: createDefaultORBAdapters(this.localAdapter),
+      control_surface_policy_evaluator: options.control_surface_policy_evaluator
+        ?? options.controlSurfacePolicyEvaluator,
       operation_policies: createMetaGlassesMobileORBOperationPolicies(
         options.operation_policies,
       ),
@@ -684,6 +726,296 @@ export class MetaGlassesMobileORBBridgeAdapter {
   }
 }
 
+function remoteSurface(
+  operation: MetaGlassesMobileORBOperation | string,
+  payload: Record<string, unknown>,
+): string {
+  if (payload.platform === 'simulator') {
+    return 'simulator';
+  }
+  if (
+    operation === 'publish_glasses_event'
+    || ['captouch', 'neural_input', 'display_action'].includes(String(payload.event_type ?? ''))
+  ) {
+    return 'meta_glasses';
+  }
+  return 'mobile';
+}
+
+function remoteActorId(payload: Record<string, unknown>): string {
+  return stringFromUnknown(payload.edge_session_id)
+    ?? stringFromUnknown(payload.edge_id)
+    ?? stringFromUnknown(payload.device_id)
+    ?? stringFromUnknown(payload.binding_handle)
+    ?? stringFromUnknown(payload.correlation_id)
+    ?? 'remote-client';
+}
+
+function canonicalOutcome(value: unknown): string {
+  if (value === 'permit') {
+    return 'allow';
+  }
+  return [
+    'allow',
+    'deny',
+    'require_confirmation',
+    'defer',
+    'rewrite',
+    'fallback_surface',
+    'rate_limit',
+  ].includes(String(value))
+    ? String(value)
+    : 'allow';
+}
+
+function normalizedIntent(
+  operation: MetaGlassesMobileORBOperation | string,
+  payload: Record<string, unknown>,
+  surface: string,
+): Record<string, unknown> {
+  const existingIntent = recordOrNull(payload.normalized_intent);
+  if (existingIntent && stringFromUnknown(existingIntent.method)) {
+    return {
+      intent: stringFromUnknown(existingIntent.intent) ?? `${surface}.${operation}`,
+      method: stringFromUnknown(existingIntent.method) ?? operation,
+      target_ref: stringFromUnknown(existingIntent.target_ref)
+        ?? `handsfree.meta_glasses.mobile.mobile_orb_bridge.${operation}`,
+      arguments: recordOrEmpty(existingIntent.arguments ?? payload),
+      confidence: numberFromUnknown(existingIntent.confidence) ?? 1,
+    };
+  }
+  const nestedPayload = recordOrEmpty(payload.payload);
+  const args = recordOrEmpty(payload.arguments);
+  return {
+    intent: stringFromUnknown(payload.user_intent)
+      ?? stringFromUnknown(payload.intent)
+      ?? stringFromUnknown(nestedPayload.intent)
+      ?? stringFromUnknown(nestedPayload.command)
+      ?? stringFromUnknown(args.intent)
+      ?? `${surface}.${operation}`,
+    method: operation,
+    target_ref: `handsfree.meta_glasses.mobile.mobile_orb_bridge.${operation}`,
+    arguments: payload,
+    confidence: 1,
+  };
+}
+
+function runtimeContext(
+  payload: Record<string, unknown>,
+  surface: string,
+  emittedAt: string,
+): Record<string, unknown> {
+  return {
+    local_time: emittedAt,
+    state_frames: Array.isArray(payload.state_frames) ? payload.state_frames : [],
+    device_mode: stringFromUnknown(payload.device_mode) ?? surface,
+    platform: stringFromUnknown(payload.platform) ?? surface,
+    location_context: recordOrEmpty(payload.location_context),
+    device_context: sortedDefinedRecord({
+      edge_id: payload.edge_id,
+      edge_session_id: payload.edge_session_id,
+      device_id: payload.device_id,
+      device_model: payload.device_model,
+      dat_capabilities: payload.dat_capabilities,
+      glasses_context: payload.glasses_context,
+      display_context: payload.display_context,
+    }),
+  };
+}
+
+function logicBinding(
+  operation: MetaGlassesMobileORBOperation | string,
+  surface: string,
+): Record<string, unknown> {
+  const bindingId = `hallucinate_app.remote_client.${surface}.${operation}`;
+  return {
+    binding_id: bindingId,
+    policy_bundle_ref: CONTROL_SURFACE_POLICY_BUNDLE_REF,
+    compiled_policy_cid: CONTROL_SURFACE_COMPILED_POLICY_CID,
+    surface_ref: surface,
+    method_ref: operation,
+    norm_refs: [`${bindingId}.transport_only`],
+  };
+}
+
+function buildMobileORBControlSurfaceArtifacts(
+  operation: MetaGlassesMobileORBOperation | string,
+  payload: Record<string, unknown>,
+  options: {
+    emitted_at?: string;
+    receipt_cid?: string;
+    outcome?: string;
+    reason?: string;
+  } = {},
+): Required<MetaGlassesMobileORBControlSurfaceArtifacts> {
+  const transportedReceipt = recordOrNull(payload.mediation_receipt);
+  const transportedEnvelope = recordOrNull(transportedReceipt?.interaction_envelope);
+  const transportedDecision = recordOrNull(transportedReceipt?.policy_decision);
+  if (transportedReceipt && transportedEnvelope && transportedDecision) {
+    return {
+      control_surface_contract_ref: stringFromUnknown(transportedReceipt.control_surface_contract_ref)
+        ?? stringFromUnknown(transportedEnvelope.control_surface_contract_ref)
+        ?? stringFromUnknown(payload.control_surface_contract_ref)
+        ?? CONTROL_SURFACE_CONTRACT_REF,
+      interaction_envelope: transportedEnvelope,
+      normalized_intent: recordOrEmpty(transportedEnvelope.normalized_intent),
+      policy_decision: transportedDecision,
+      mediation_receipt: transportedReceipt,
+    };
+  }
+
+  const emittedAt = options.emitted_at ?? new Date().toISOString();
+  const surface = remoteSurface(operation, payload);
+  const intent = normalizedIntent(operation, payload, surface);
+  const contractRef = stringFromUnknown(payload.control_surface_contract_ref)
+    ?? CONTROL_SURFACE_CONTRACT_REF;
+  const interactionEnvelope = {
+    interaction_id: stringFromUnknown(payload.interaction_id)
+      ?? stringFromUnknown(payload.correlation_id)
+      ?? stringFromUnknown(payload.edge_session_id)
+      ?? localCid('interaction', { operation, payload }),
+    surface,
+    surface_event: stringFromUnknown(payload.event_type) ?? String(operation),
+    raw_payload: payload,
+    normalized_intent: intent,
+    actor: {
+      type: 'remote_client',
+      id: remoteActorId(payload),
+      delegation_chain: [remoteActorId(payload)],
+    },
+    context: runtimeContext(payload, surface, emittedAt),
+    control_surface_contract_ref: contractRef,
+    policy_bundle_ref: CONTROL_SURFACE_POLICY_BUNDLE_REF,
+    compiled_policy_cid: CONTROL_SURFACE_COMPILED_POLICY_CID,
+    logic_bindings: [logicBinding(operation, surface)],
+  };
+  const outcome = canonicalOutcome(options.outcome);
+  const explanation = `${options.reason ?? 'Remote client artifact normalized to canonical control-surface envelope.'} Remote clients transport the Hallucinate App mediation receipt and do not define or authorize a separate policy contract.`;
+  const policyDecision = {
+    decision_id: localCid('control-surface-decision', {
+      interaction_id: interactionEnvelope.interaction_id,
+      operation,
+      outcome,
+      compiled_policy_cid: CONTROL_SURFACE_COMPILED_POLICY_CID,
+    }),
+    interaction_id: interactionEnvelope.interaction_id,
+    interaction_envelope: interactionEnvelope,
+    outcome,
+    policy_bundle_ref: CONTROL_SURFACE_POLICY_BUNDLE_REF,
+    compiled_policy_cid: CONTROL_SURFACE_COMPILED_POLICY_CID,
+    decided_at: emittedAt,
+    matched_norms: [{
+      norm_id: 'remote_client_transport_receipt',
+      outcome,
+      priority: 100,
+      policy_bundle_ref: CONTROL_SURFACE_POLICY_BUNDLE_REF,
+      logic_clause_refs: [String(logicBinding(operation, surface).binding_id)],
+      guard_refs: [],
+      explanation,
+    }],
+    effects: [{
+      outcome,
+      method: intent.method,
+      target_ref: intent.target_ref,
+      arguments: intent.arguments,
+      confirmation_required: outcome === 'require_confirmation',
+      reason: explanation,
+    }],
+    frame_facts: [
+      {
+        fact_id: localCid('fact', [interactionEnvelope.interaction_id, 'surface']),
+        kind: 'surface',
+        subject: surface,
+        predicate: 'surface.id',
+        value: surface,
+        attrs: {},
+      },
+      {
+        fact_id: localCid('fact', [interactionEnvelope.interaction_id, 'event']),
+        kind: 'event',
+        subject: surface,
+        predicate: 'surface_event',
+        value: interactionEnvelope.surface_event,
+        attrs: {},
+      },
+      {
+        fact_id: localCid('fact', [interactionEnvelope.interaction_id, 'method']),
+        kind: 'method',
+        subject: String(intent.target_ref),
+        predicate: 'intent.method',
+        value: intent.method,
+        attrs: {},
+      },
+    ],
+    reasons: [explanation],
+    explanation,
+    confidence: intent.confidence,
+    metadata: {
+      source: 'hallucinate_app.control_surface_mediator.remote_client_envelope',
+      authorization_scope: 'hallucinate_app_control_surface_contract',
+      remote_client_policy_contract: false,
+      transport_receipt: true,
+      schema_refs: CONTROL_SURFACE_SCHEMA_REFS,
+    },
+  };
+  const invoked = !['deny', 'require_confirmation', 'defer', 'rate_limit'].includes(outcome);
+  const mediationReceipt = {
+    receipt_id: options.receipt_cid ?? localCid('mediation_receipt', {
+      interaction_id: interactionEnvelope.interaction_id,
+      decision_id: policyDecision.decision_id,
+      outcome,
+    }),
+    emitted_at: emittedAt,
+    control_surface_contract_ref: contractRef,
+    interaction_envelope: interactionEnvelope,
+    policy_decision: policyDecision,
+    policy_refs: [{
+      policy_bundle_ref: CONTROL_SURFACE_POLICY_BUNDLE_REF,
+      compiled_policy_cid: CONTROL_SURFACE_COMPILED_POLICY_CID,
+      matched_norm_refs: ['remote_client_transport_receipt'],
+    }],
+    mediation_result: {
+      outcome,
+      invoked,
+      final_method: intent.method,
+      final_target_ref: intent.target_ref,
+      confirmation_required: outcome === 'require_confirmation',
+    },
+    explanation,
+    metadata: {
+      source: 'hallucinate_app.control_surface_mediator.remote_client_envelope',
+      remote_client_policy_contract: false,
+      schema_refs: CONTROL_SURFACE_SCHEMA_REFS,
+    },
+  };
+
+  return {
+    control_surface_contract_ref: contractRef,
+    interaction_envelope: interactionEnvelope,
+    normalized_intent: intent,
+    policy_decision: policyDecision,
+    mediation_receipt: mediationReceipt,
+  };
+}
+
+function controlSurfaceFields(
+  artifacts: MetaGlassesMobileORBControlSurfaceArtifacts,
+): MetaGlassesMobileORBControlSurfaceArtifacts {
+  return sortedDefinedRecord({
+    control_surface_contract_ref: artifacts.control_surface_contract_ref,
+    interaction_envelope: artifacts.interaction_envelope,
+    normalized_intent: artifacts.normalized_intent,
+    policy_decision: artifacts.policy_decision,
+    mediation_receipt: artifacts.mediation_receipt,
+  }) as MetaGlassesMobileORBControlSurfaceArtifacts;
+}
+
+function mediationInvoked(artifacts: MetaGlassesMobileORBControlSurfaceArtifacts): boolean {
+  const receipt = recordOrNull(artifacts.mediation_receipt);
+  const result = recordOrNull(receipt?.mediation_result);
+  return result?.invoked === true;
+}
+
 export function createDefaultMetaGlassesMobileORBBackend(
   now: () => Date = () => new Date(),
 ): MetaGlassesMobileORBBridgeBackend {
@@ -716,15 +1048,22 @@ export function createDefaultMetaGlassesMobileORBBackend(
         device_id: request.device_id,
         local_interface_cids: request.local_interface_cids ?? [],
       });
-      const policyCid = localCid('mobile-orb-policy', {
-        edge_session_id: edgeSessionId,
-        accepted_interface_cids: request.local_interface_cids ?? [],
-        transport_preferences: request.transport_preferences ?? [],
-      });
+      const artifacts = buildMobileORBControlSurfaceArtifacts(
+        'register_edge_capabilities',
+        {
+          ...request,
+          edge_session_id: edgeSessionId,
+        },
+        {
+          emitted_at: now().toISOString(),
+          reason: 'Mobile ORB edge registration normalized by Hallucinate App control-surface contract.',
+        },
+      );
       const response = {
         edge_session_id: edgeSessionId,
         accepted_interface_cids: request.local_interface_cids ?? [],
-        policy_cid: policyCid,
+        policy_cid: null,
+        ...controlSurfaceFields(artifacts),
         expires_at: null,
       };
       edgeSessions.set(edgeSessionId, {
@@ -747,15 +1086,28 @@ export function createDefaultMetaGlassesMobileORBBackend(
         event_cid: eventCid,
         correlation_id: request.correlation_id,
       });
+      const artifacts = buildMobileORBControlSurfaceArtifacts(
+        'publish_glasses_event',
+        {
+          ...request,
+          event_cid: eventCid,
+        },
+        {
+          emitted_at: request.observed_at ?? now().toISOString(),
+          receipt_cid: receiptCid,
+          reason: 'Meta-glasses event normalized by Hallucinate App control-surface contract.',
+        },
+      );
       const response = {
         event_cid: eventCid,
-        accepted: true,
+        accepted: mediationInvoked(artifacts),
         routed_operations: ['captouch', 'neural_input', 'display_action'].includes(
           request.event_type,
         )
           ? ['bind_service', 'invoke_service']
           : [],
         receipt_cid: receiptCid,
+        ...controlSurfaceFields(artifacts),
       };
       events.set(eventCid, {
         ...request,
@@ -774,11 +1126,22 @@ export function createDefaultMetaGlassesMobileORBBackend(
         transport: request.transport_preference ?? 'mcp-server',
       });
       const orbBinding = buildORBServiceBindingMetadata(request, bindingHandle);
+      const artifacts = buildMobileORBControlSurfaceArtifacts(
+        'bind_service',
+        {
+          ...request,
+          binding_handle: bindingHandle,
+        },
+        {
+          emitted_at: now().toISOString(),
+          reason: 'Service descriptor binding normalized by Hallucinate App control-surface contract.',
+        },
+      );
       const response = {
         binding_handle: bindingHandle,
         transport: request.transport_preference ?? 'mcp-server',
         granted_capabilities: [],
-        policy_decision: permitPolicy('Service descriptor binding accepted.'),
+        ...controlSurfaceFields(artifacts),
         orb_binding: orbBinding,
         expires_at: null,
       };
@@ -802,6 +1165,14 @@ export function createDefaultMetaGlassesMobileORBBackend(
         correlation_id: request.correlation_id,
         arguments: request.arguments,
       });
+      const artifacts = buildMobileORBControlSurfaceArtifacts(
+        'invoke_service',
+        request as unknown as Record<string, unknown>,
+        {
+          receipt_cid: receiptCid,
+          reason: 'Service invocation normalized by Hallucinate App control-surface contract.',
+        },
+      );
       return {
         ok: true,
         service_result: {
@@ -816,6 +1187,7 @@ export function createDefaultMetaGlassesMobileORBBackend(
           ...(request.parent_receipt_cids ?? []),
         ],
         receipt_cid: receiptCid,
+        ...controlSurfaceFields(artifacts),
         follow_up_actions: arrayOfRecords(request.arguments.follow_up_actions),
         display_widget_action: recordOrNull(request.arguments.display_widget_action),
         spoken_text: stringFromUnknown(request.arguments.spoken_text) ?? null,
@@ -827,6 +1199,18 @@ export function createDefaultMetaGlassesMobileORBBackend(
       const subscriptionId = localCid('mobile-orb-subscription', request);
       const receiptCid = localCid('mobile-orb-receipt', request);
       const generationKey = `${request.binding_handle}:${request.operation}:${request.stream ?? 'updates'}`;
+      const artifacts = buildMobileORBControlSurfaceArtifacts(
+        'subscribe_service_updates',
+        {
+          ...request,
+          subscription_id: subscriptionId,
+        },
+        {
+          emitted_at: now().toISOString(),
+          receipt_cid: receiptCid,
+          reason: 'Service update subscription normalized by Hallucinate App control-surface contract.',
+        },
+      );
       const subscription = {
         ...request,
         subscription_id: subscriptionId,
@@ -838,12 +1222,14 @@ export function createDefaultMetaGlassesMobileORBBackend(
         orb_binding: binding.orb_binding ?? null,
         status: 'active' as const,
         subscribed_at: now().toISOString(),
+        ...controlSurfaceFields(artifacts),
       };
       subscriptions.set(subscriptionId, subscription);
       return {
         subscription_id: subscriptionId,
         receipt_cid: receiptCid,
         generation_key: generationKey,
+        ...controlSurfaceFields(artifacts),
         subscription,
       };
     },
@@ -856,11 +1242,20 @@ export function createDefaultMetaGlassesMobileORBBackend(
         parent_receipt_cids: request.parent_receipt_cids ?? [],
         render_targets: request.render_targets,
       });
+      const artifacts = buildMobileORBControlSurfaceArtifacts(
+        'dispatch_glasses_response',
+        request as unknown as Record<string, unknown>,
+        {
+          receipt_cid: receiptCid,
+          reason: 'Glasses response dispatch normalized by Hallucinate App control-surface contract.',
+        },
+      );
       return {
         dispatched_actions: arrayOfRecords(request.result.follow_up_actions),
         display_widget_action: recordOrNull(request.result.display_widget_action),
         spoken_text: stringFromUnknown(request.result.spoken_text) ?? null,
         receipt_cid: receiptCid,
+        ...controlSurfaceFields(artifacts),
       };
     },
 
@@ -873,9 +1268,19 @@ export function createDefaultMetaGlassesMobileORBBackend(
           }
         }
       }
+      const receiptCid = localCid('mobile-orb-receipt', request);
+      const artifacts = buildMobileORBControlSurfaceArtifacts(
+        'revoke_binding',
+        request as unknown as Record<string, unknown>,
+        {
+          receipt_cid: receiptCid,
+          reason: 'Service binding revocation normalized by Hallucinate App control-surface contract.',
+        },
+      );
       return {
         revoked,
-        receipt_cid: localCid('mobile-orb-receipt', request),
+        receipt_cid: receiptCid,
+        ...controlSurfaceFields(artifacts),
       };
     },
   };
@@ -1091,14 +1496,6 @@ function collectStringFields(value: unknown, keys: Set<string>): string[] {
   return uniqueStrings(collected);
 }
 
-function permitPolicy(reason: string): Record<string, unknown> {
-  return {
-    outcome: 'permit',
-    reasons: [reason],
-    source: 'swissknife-mobile-orb',
-  };
-}
-
 function localCid(prefix: string, value: unknown): string {
   return `sha256:${prefix}:${computeCID(stableStringify(value)).slice('sha256:'.length)}`;
 }
@@ -1130,6 +1527,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function stringFromUnknown(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function numberFromUnknown(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
 }
 
 function isCidLike(value: string): boolean {

@@ -22,6 +22,11 @@ const ALL_CAPABILITIES = [
   'mobile/orb.binding.revoke',
 ];
 
+const allowControlSurfacePolicy = () => ({
+  outcome: 'allow' as const,
+  reasons: ['test runtime policy evaluator allowed mobile ORB interaction'],
+});
+
 function outputAs<T>(response: { output: unknown }): T {
   return response.output as T;
 }
@@ -53,6 +58,7 @@ describe('Meta glasses mobile ORB bridge adapter', () => {
   it('routes register/event/bind/invoke/dispatch/subscribe/revoke through the ORB', async () => {
     const adapter = new MetaGlassesMobileORBBridgeAdapter({
       now: () => new Date('2026-05-23T12:00:00Z'),
+      control_surface_policy_evaluator: allowControlSurfacePolicy,
     });
 
     const register = await adapter.invoke(
@@ -287,6 +293,7 @@ describe('Meta glasses mobile ORB bridge adapter', () => {
   it('denies service invocation before it reaches a bridge backend without capability', async () => {
     let backendCalls = 0;
     const adapter = new MetaGlassesMobileORBBridgeAdapter({
+      control_surface_policy_evaluator: allowControlSurfacePolicy,
       backend: {
         registerEdgeCapabilities: () => {
           throw new Error('not used');
