@@ -36,6 +36,7 @@ const DISPLAY_CAPABILITIES = [
   'display/widget.confirmed',
   'display/action.confirmed',
 ];
+const ORB_DISPLAY_HARNESS_EVIDENCE = 'ORB display harness';
 
 const OBJECT_SCHEMA = {
   type: 'object',
@@ -80,7 +81,7 @@ function outputOf(response: { output: unknown }): MetaGlassesDisplayORBOperation
   return response.output as MetaGlassesDisplayORBOperationOutput;
 }
 
-describe('Meta glasses hardware-free descriptor-to-mobile-render harness', () => {
+describe(`${ORB_DISPLAY_HARNESS_EVIDENCE}: Meta glasses hardware-free descriptor-to-mobile-render harness`, () => {
   it('publishes, compiles, discovers, binds, invokes every widget operation, and records receipts', async () => {
     const descriptor = displayDescriptor();
     const registry = new MCPInterfaceDiscoveryRegistry(new LocalMCPInterfaceRegistryBackend());
