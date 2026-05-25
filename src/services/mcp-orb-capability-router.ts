@@ -1,8 +1,10 @@
 import { randomUUID } from 'crypto';
 import {
   control_surface_mediator,
+  type ControlSurfaceMediationResult,
   type ControlSurfaceMediationReceipt,
   type ControlSurfaceInteractionEnvelope,
+  type ControlSurfacePolicyEvaluator,
 } from './control-surface-mediator.js';
 import type { InterfaceDescriptor, MethodSignature } from './mcp-idl.js';
 import { computeCID } from './mcp-idl.js';
@@ -270,6 +272,8 @@ export interface MCPCapabilityRouterOptions {
   registry?: MCPInterfaceDiscoveryRegistry;
   adapters?: ORBTransportAdapter[];
   policy_hook?: ORBPolicyHook;
+  control_surface_policy_evaluator?: ControlSurfacePolicyEvaluator;
+  controlSurfacePolicyEvaluator?: ControlSurfacePolicyEvaluator;
   operation_policies?: Record<string, ORBOperationPolicy>;
 }
 
@@ -422,6 +426,7 @@ export class MCPCapabilityRouter {
   private readonly bindings = new Map<string, ORBBoundOperation>();
   private readonly registry?: MCPInterfaceDiscoveryRegistry;
   private readonly policyHook: ORBPolicyHook;
+  private controlSurfacePolicyEvaluator?: ControlSurfacePolicyEvaluator;
   private readonly operationPolicies: Map<string, ORBOperationPolicy> = new Map();
   private readonly rateLimitState = new Map<string, { count: number; window_start: number }>();
   private readonly circuitBreakerState = new Map<string, { failures: number; open_until: number }>();
@@ -430,6 +435,7 @@ export class MCPCapabilityRouter {
   constructor(options: MCPCapabilityRouterOptions = {}) {
     this.registry = options.registry;
     this.policyHook = options.policy_hook ?? (request => this.evaluateOperationPolicy(request));
+    this.controlSurfacePolicyEvaluator = options.control_surface_policy_evaluator ?? options.controlSurfacePolicyEvaluator;
 
     for (const [operation, policy] of Object.entries(options.operation_policies ?? {})) {
       this.operationPolicies.set(operation, policy);
@@ -446,6 +452,10 @@ export class MCPCapabilityRouter {
 
   setOperationPolicy(operation: string, policy: ORBOperationPolicy): void {
     this.operationPolicies.set(operation, policy);
+  }
+
+  setControlSurfacePolicyEvaluator(policyEvaluator: ControlSurfacePolicyEvaluator | undefined): void {
+    this.controlSurfacePolicyEvaluator = policyEvaluator;
   }
 
   getOperationPolicy(operation: string): ORBOperationPolicy | undefined {
@@ -564,7 +574,10 @@ export class MCPCapabilityRouter {
     context: ORBInvocationContext = {},
   ): Promise<ORBPolicyDecision> {
     const binding = this.requireBinding(handle);
-    const mediation = control_surface_mediator({ binding, input, context });
+    const mediation = await control_surface_mediator(
+      { binding, input, context },
+      { policyEvaluator: this.controlSurfacePolicyEvaluator },
+    );
     const mediatedContext = {
       ...context,
       metadata: {
@@ -1038,7 +1051,7 @@ export function createPolicyDecision(
 
 function attachControlSurfaceMediation(
   decision: ORBPolicyDecision,
-  mediation: ReturnType<typeof control_surface_mediator>,
+  mediation: ControlSurfaceMediationResult,
 ): ORBPolicyDecision {
   const { decision_cid: _previousDecisionCid, ...decisionWithoutCid } = decision;
   const reasons = decision.outcome === 'deny'

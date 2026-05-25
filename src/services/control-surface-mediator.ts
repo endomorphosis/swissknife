@@ -4,6 +4,8 @@ export const CONTROL_SURFACE_CONTRACT_SCHEMA_REF = 'control_surface_contract';
 export const INTERACTION_ENVELOPE_SCHEMA_REF = 'interaction_envelope';
 export const POLICY_DECISION_SCHEMA_REF = 'policy_decision';
 export const MEDIATION_RECEIPT_SCHEMA_REF = 'mediation_receipt';
+export const HALLUCINATE_APP_POLICY_BUNDLE_EVALUATOR = 'hallucinate_app.control_surface_mediator.evaluate_control_surface_interaction';
+export const DEFAULT_FAIL_CLOSED_OUTCOME = 'require_confirmation';
 
 export const CONTROL_SURFACE_IDS = ['voice', 'gesture', 'mouse', 'agent'] as const;
 export type ControlSurfaceId = (typeof CONTROL_SURFACE_IDS)[number] | string;
@@ -16,6 +18,22 @@ export type ControlSurfaceOutcome =
   | 'rewrite'
   | 'fallback_surface'
   | 'rate_limit';
+
+const BLOCKING_CONTROL_SURFACE_OUTCOMES = new Set<ControlSurfaceOutcome>([
+  'deny',
+  'require_confirmation',
+  'defer',
+  'rate_limit',
+]);
+const CONTROL_SURFACE_OUTCOME_SET = new Set<string>([
+  'allow',
+  'deny',
+  'require_confirmation',
+  'defer',
+  'rewrite',
+  'fallback_surface',
+  'rate_limit',
+]);
 
 export interface ControlSurfacePolicyBundleRef {
   policy_id: string;
@@ -244,6 +262,29 @@ export interface ControlSurfaceMediationResult {
   invocation_input: unknown;
 }
 
+export interface ControlSurfacePolicyEvaluationRequest {
+  binding: ControlSurfaceORBLikeBinding;
+  input: unknown;
+  context: ControlSurfaceInvocationContext;
+  descriptor: ControlSurfaceEnvelopeDescriptor;
+  control_surface_contract: ControlSurfaceContract;
+  interaction_envelope: ControlSurfaceInteractionEnvelope;
+  policy_hooks: ControlSurfaceContract['policy_hooks'];
+  selected_logic_bindings: ControlSurfaceInteractionEnvelope['logic_bindings'];
+}
+
+export type ControlSurfacePolicyEvaluator =
+  (request: ControlSurfacePolicyEvaluationRequest) =>
+    Promise<Partial<ControlSurfacePolicyDecision> | { policy_decision?: Partial<ControlSurfacePolicyDecision> }>
+    | Partial<ControlSurfacePolicyDecision>
+    | { policy_decision?: Partial<ControlSurfacePolicyDecision> };
+
+export interface ControlSurfaceMediatorOptions {
+  policyEvaluator?: ControlSurfacePolicyEvaluator;
+  failClosedOutcome?: ControlSurfaceOutcome;
+  source?: string;
+}
+
 const DEFAULT_SURFACE_EVENTS: Record<string, string> = {
   voice: 'utterance',
   gesture: 'tap',
@@ -353,9 +394,10 @@ export function ensureControlSurfaceContract<T extends ControlSurfaceEnvelopeDes
   };
 }
 
-export function control_surface_mediator(
+export async function control_surface_mediator(
   request: ControlSurfaceMediationRequest,
-): ControlSurfaceMediationResult {
+  options: ControlSurfaceMediatorOptions = {},
+): Promise<ControlSurfaceMediationResult> {
   const descriptor = ensureControlSurfaceContract(request.binding.descriptor);
   const contract = descriptor.control_surface_contract as ControlSurfaceContract;
   const method = request.binding.operation.method;
@@ -369,7 +411,6 @@ export function control_surface_mediator(
   const args = objectPayload(request.input);
   const targetRef = intentBinding?.target_ref ?? `${descriptor.name}.${method}`;
   const reasons = controlSurfaceDenialReasons(contract, surface, intentBinding, surfaceContext.surface, surfaceContext.surface_event, method);
-  const outcome: ControlSurfaceOutcome = reasons.length > 0 ? 'deny' : 'allow';
   const now = new Date().toISOString();
   const interactionEnvelope: ControlSurfaceInteractionEnvelope = {
     interaction_id: surfaceContext.interaction_id
@@ -400,72 +441,250 @@ export function control_surface_mediator(
     })),
   };
 
-  const explanation = reasons.length > 0
-    ? reasons.join('; ')
-    : `control_surface_mediator allowed ${surfaceContext.surface}:${surfaceContext.surface_event} for ${method}.`;
-  const policyDecision: ControlSurfacePolicyDecision = {
-    decision_id: computeCID(stableStringify({
+  const decisionDefaults = {
+    method,
+    targetRef,
+    args,
+    policyBundleRef,
+    compiledPolicyCid,
+    now,
+    selectedLogicBindings,
+    contract,
+    source: options.source ?? 'swissknife.control_surface_mediator',
+  };
+  const policyDecision = reasons.length > 0
+    ? normalizeRuntimePolicyDecision({
+      outcome: 'deny',
+      reasons,
+      matched_norms: [{
+        norm_id: 'descriptor_control_surface_binding',
+        outcome: 'deny',
+        priority: 700,
+        policy_bundle_ref: policyBundleRef,
+        logic_clause_refs: selectedLogicBindings.map(binding => binding.binding_id),
+        guard_refs: [],
+        explanation: reasons.join('; '),
+      }],
+      metadata: {
+        descriptor_binding_denial: true,
+        fail_closed: false,
+      },
+    }, interactionEnvelope, decisionDefaults)
+    : await evaluateHallucinatePolicyBundle(
+      request,
+      descriptor,
+      contract,
+      interactionEnvelope,
+      decisionDefaults,
+      options,
+    );
+  const mediationReceipt = buildControlSurfaceMediationReceipt(
+    policyDecision,
+    request,
+    descriptor,
+    controlSurfaceContractRef,
+    targetRef,
+    now,
+    options.source ?? 'swissknife.control_surface_mediator',
+  );
+  const canInvoke = !BLOCKING_CONTROL_SURFACE_OUTCOMES.has(policyDecision.outcome);
+
+  return {
+    control_surface_contract_ref: controlSurfaceContractRef,
+    interaction_envelope: interactionEnvelope,
+    policy_decision: policyDecision,
+    mediation_receipt: mediationReceipt,
+    can_invoke: canInvoke,
+    invocation_input: canInvoke ? mediatedInvocationInput(request.input, policyDecision) : request.input,
+  };
+}
+
+interface RuntimeDecisionDefaults {
+  method: string;
+  targetRef: string;
+  args: Record<string, unknown>;
+  policyBundleRef: ControlSurfacePolicyBundleRef;
+  compiledPolicyCid: string;
+  now: string;
+  selectedLogicBindings: ControlSurfaceLogicBinding[];
+  contract: ControlSurfaceContract;
+  source: string;
+}
+
+async function evaluateHallucinatePolicyBundle(
+  request: ControlSurfaceMediationRequest,
+  descriptor: ControlSurfaceEnvelopeDescriptor,
+  contract: ControlSurfaceContract,
+  interactionEnvelope: ControlSurfaceInteractionEnvelope,
+  defaults: RuntimeDecisionDefaults,
+  options: ControlSurfaceMediatorOptions,
+): Promise<ControlSurfacePolicyDecision> {
+  if (!options.policyEvaluator) {
+    return failClosedRuntimePolicyDecision(interactionEnvelope, defaults, {
+      outcome: options.failClosedOutcome,
+      reason: `control_surface_mediator fail_closed: no runtime policy evaluator registered for ${HALLUCINATE_APP_POLICY_BUNDLE_EVALUATOR}; descriptor-built interaction envelopes require Hallucinate App policy bundle evaluation before transport invocation.`,
+      evaluator_status: 'missing',
+    });
+  }
+
+  try {
+    const rawDecision = await options.policyEvaluator({
+      binding: request.binding,
+      input: request.input,
+      context: request.context,
+      descriptor,
+      control_surface_contract: contract,
+      interaction_envelope: interactionEnvelope,
+      policy_hooks: contract.policy_hooks,
+      selected_logic_bindings: interactionEnvelope.logic_bindings,
+    });
+    if (!hasPolicyOutcome(rawDecision)) {
+      return failClosedRuntimePolicyDecision(interactionEnvelope, defaults, {
+        outcome: options.failClosedOutcome,
+        reason: `control_surface_mediator fail_closed: runtime policy evaluator ${HALLUCINATE_APP_POLICY_BUNDLE_EVALUATOR} returned no policy outcome before transport invocation.`,
+        evaluator_status: 'invalid',
+      });
+    }
+    return normalizeRuntimePolicyDecision(rawDecision, interactionEnvelope, defaults);
+  } catch (error) {
+    return failClosedRuntimePolicyDecision(interactionEnvelope, defaults, {
+      outcome: options.failClosedOutcome,
+      reason: `control_surface_mediator fail_closed: runtime policy evaluator ${HALLUCINATE_APP_POLICY_BUNDLE_EVALUATOR} failed before transport invocation: ${errorMessage(error)}.`,
+      evaluator_status: 'error',
+      error: errorMessage(error),
+    });
+  }
+}
+
+function normalizeRuntimePolicyDecision(
+  rawDecision: unknown,
+  interactionEnvelope: ControlSurfaceInteractionEnvelope,
+  defaults: RuntimeDecisionDefaults,
+): ControlSurfacePolicyDecision {
+  const raw = rawPolicyDecision(rawDecision);
+  const rawMetadata = objectPayload(raw.metadata);
+  const outcome = normalizeControlSurfaceOutcome(raw.outcome ?? raw.result ?? raw.effect ?? DEFAULT_FAIL_CLOSED_OUTCOME);
+  const reasons = arrayOfStrings(raw.reasons);
+  const explanation = stringFrom(raw.explanation)
+    ?? (reasons.length > 0 ? reasons.join('; ') : defaultDecisionReason(outcome));
+  const policyBundleRef = policyBundleRefFrom(raw.policy_bundle_ref, defaults.policyBundleRef);
+  const compiledPolicyCid = stringFrom(raw.compiled_policy_cid) ?? defaults.compiledPolicyCid;
+  const matchedNorms = normalizedMatchedNorms(raw.matched_norms, outcome, policyBundleRef, defaults, explanation);
+  const effects = normalizedEffects(raw.effects, outcome, defaults, explanation);
+  const frameFactPayloads = normalizedFrameFacts(raw.frame_facts, interactionEnvelope);
+  const decisionId = stringFrom(raw.decision_id)
+    ?? stringFrom(raw.decision_cid)
+    ?? computeCID(stableStringify({
       interaction_id: interactionEnvelope.interaction_id,
       outcome,
       reasons,
       compiled_policy_cid: compiledPolicyCid,
-    })),
+    }));
+
+  return {
+    decision_id: decisionId,
     interaction_id: interactionEnvelope.interaction_id,
     interaction_envelope: interactionEnvelope,
     outcome,
     policy_bundle_ref: policyBundleRef,
     compiled_policy_cid: compiledPolicyCid,
-    decided_at: now,
-    matched_norms: reasons.length > 0 ? [{
-      norm_id: 'descriptor_control_surface_binding',
-      outcome,
-      priority: 700,
-      policy_bundle_ref: policyBundleRef,
-      logic_clause_refs: selectedLogicBindings.map(binding => binding.binding_id),
-      guard_refs: [],
-      explanation,
-    }] : [],
-    effects: [{
-      outcome,
-      method,
-      target_ref: targetRef,
-      arguments: args,
-      confirmation_required: false,
-      reason: explanation,
-    }],
-    frame_facts: frameFacts(interactionEnvelope),
-    reasons: reasons.length > 0 ? reasons : ['Descriptor control_surface_contract binding allowed invocation.'],
+    decided_at: stringFrom(raw.decided_at) ?? defaults.now,
+    matched_norms: matchedNorms,
+    effects,
+    frame_facts: frameFactPayloads,
+    reasons: reasons.length > 0 ? reasons : [defaultDecisionReason(outcome)],
     explanation,
-    confidence: surfaceContext.confidence,
+    confidence: numberFrom(raw.confidence) ?? interactionEnvelope.normalized_intent.confidence,
     metadata: {
-      control_surface_mediator: 'swissknife.control_surface_mediator',
-      policy_hooks: contract.policy_hooks,
+      ...rawMetadata,
+      control_surface_mediator: defaults.source,
+      policy_hooks: defaults.contract.policy_hooks,
+      runtime_policy_evaluator: HALLUCINATE_APP_POLICY_BUNDLE_EVALUATOR,
+      fail_closed: rawMetadata.fail_closed === true || !hasPolicyOutcome(rawDecision),
+      selected_logic_bindings: defaults.selectedLogicBindings.map(binding => binding.binding_id),
     },
   };
-  const mediationReceipt: ControlSurfaceMediationReceipt = {
+}
+
+function failClosedRuntimePolicyDecision(
+  interactionEnvelope: ControlSurfaceInteractionEnvelope,
+  defaults: RuntimeDecisionDefaults,
+  options: {
+    outcome?: ControlSurfaceOutcome;
+    reason: string;
+    evaluator_status: string;
+    error?: string;
+  },
+): ControlSurfacePolicyDecision {
+  const outcome = blockingControlSurfaceOutcome(options.outcome ?? DEFAULT_FAIL_CLOSED_OUTCOME);
+  return normalizeRuntimePolicyDecision({
+    outcome,
+    reasons: [options.reason],
+    matched_norms: [{
+      norm_id: 'runtime_policy_evaluator_required',
+      outcome,
+      priority: 900,
+      policy_bundle_ref: defaults.policyBundleRef,
+      logic_clause_refs: defaults.selectedLogicBindings.map(binding => binding.binding_id),
+      guard_refs: [],
+      explanation: options.reason,
+    }],
+    effects: [{
+      outcome,
+      method: defaults.method,
+      target_ref: defaults.targetRef,
+      arguments: defaults.args,
+      confirmation_required: outcome === 'require_confirmation',
+      reason: options.reason,
+    }],
+    confidence: 0,
+    metadata: {
+      fail_closed: true,
+      evaluator_required: HALLUCINATE_APP_POLICY_BUNDLE_EVALUATOR,
+      evaluator_status: options.evaluator_status,
+      error: options.error,
+    },
+  }, interactionEnvelope, defaults);
+}
+
+function buildControlSurfaceMediationReceipt(
+  policyDecision: ControlSurfacePolicyDecision,
+  request: ControlSurfaceMediationRequest,
+  descriptor: ControlSurfaceEnvelopeDescriptor,
+  controlSurfaceContractRef: string,
+  targetRef: string,
+  emittedAt: string,
+  source: string,
+): ControlSurfaceMediationReceipt {
+  const effect = policyDecision.effects[0];
+  const invoked = !BLOCKING_CONTROL_SURFACE_OUTCOMES.has(policyDecision.outcome);
+  return {
     receipt_id: computeCID(stableStringify({
-      interaction_id: interactionEnvelope.interaction_id,
+      interaction_id: policyDecision.interaction_id,
       decision_id: policyDecision.decision_id,
       control_surface_contract_ref: controlSurfaceContractRef,
     })),
-    emitted_at: now,
+    emitted_at: emittedAt,
     control_surface_contract_ref: controlSurfaceContractRef,
-    interaction_envelope: interactionEnvelope,
+    interaction_envelope: policyDecision.interaction_envelope,
     policy_decision: policyDecision,
     policy_refs: [{
-      policy_bundle_ref: policyBundleRef,
-      compiled_policy_cid: compiledPolicyCid,
+      policy_bundle_ref: policyDecision.policy_bundle_ref,
+      compiled_policy_cid: policyDecision.compiled_policy_cid,
       matched_norm_refs: policyDecision.matched_norms.map(norm => norm.norm_id),
     }],
     mediation_result: {
-      outcome,
-      invoked: outcome === 'allow',
-      final_method: method,
-      final_target_ref: targetRef,
-      confirmation_required: false,
+      outcome: policyDecision.outcome,
+      invoked,
+      final_method: effect?.rewrite_method ?? effect?.method ?? request.binding.operation.method,
+      final_target_ref: effect?.target_ref ?? targetRef,
+      fallback_surface: effect?.fallback_surface,
+      confirmation_required: policyDecision.outcome === 'require_confirmation' || effect?.confirmation_required === true,
+      rate_limit_key: effect?.rate_limit_key,
     },
-    explanation,
+    explanation: policyDecision.explanation,
     metadata: {
+      source,
       service_id: request.binding.service.id,
       descriptor_name: descriptor.name,
       schema_refs: [
@@ -476,15 +695,14 @@ export function control_surface_mediator(
       ],
     },
   };
+}
 
-  return {
-    control_surface_contract_ref: controlSurfaceContractRef,
-    interaction_envelope: interactionEnvelope,
-    policy_decision: policyDecision,
-    mediation_receipt: mediationReceipt,
-    can_invoke: outcome === 'allow',
-    invocation_input: request.input,
-  };
+function mediatedInvocationInput(input: unknown, policyDecision: ControlSurfacePolicyDecision): unknown {
+  const effect = policyDecision.effects[0];
+  if (policyDecision.outcome === 'rewrite' && effect && isRecord(effect.arguments)) {
+    return effect.arguments;
+  }
+  return input;
 }
 
 function createLogicBinding(
@@ -579,6 +797,155 @@ function controlSurfaceDenialReasons(
     reasons.push('control_surface_contract disables mediation_receipt emission.');
   }
   return reasons;
+}
+
+function rawPolicyDecision(value: unknown): Record<string, unknown> {
+  const payload = objectPayload(value);
+  const nested = objectPayload(payload.policy_decision);
+  return Object.keys(nested).length > 0 ? nested : payload;
+}
+
+function hasPolicyOutcome(value: unknown): boolean {
+  const raw = rawPolicyDecision(value);
+  return Boolean(stringFrom(raw.outcome) ?? stringFrom(raw.result) ?? stringFrom(raw.effect));
+}
+
+function normalizeControlSurfaceOutcome(value: unknown): ControlSurfaceOutcome {
+  const rawOutcome = stringFrom(value)?.toLowerCase();
+  if (rawOutcome === 'permit' || rawOutcome === 'permitted') {
+    return 'allow';
+  }
+  if (rawOutcome === 'block' || rawOutcome === 'blocked') {
+    return 'deny';
+  }
+  return CONTROL_SURFACE_OUTCOME_SET.has(rawOutcome ?? '')
+    ? rawOutcome as ControlSurfaceOutcome
+    : DEFAULT_FAIL_CLOSED_OUTCOME;
+}
+
+function blockingControlSurfaceOutcome(value: unknown): ControlSurfaceOutcome {
+  const outcome = normalizeControlSurfaceOutcome(value);
+  return BLOCKING_CONTROL_SURFACE_OUTCOMES.has(outcome) ? outcome : DEFAULT_FAIL_CLOSED_OUTCOME;
+}
+
+function defaultDecisionReason(outcome: ControlSurfaceOutcome): string {
+  if (outcome === 'allow') {
+    return `Hallucinate App policy bundle evaluator ${HALLUCINATE_APP_POLICY_BUNDLE_EVALUATOR} allowed invocation.`;
+  }
+  return `control_surface_mediator fail_closed: ${HALLUCINATE_APP_POLICY_BUNDLE_EVALUATOR} must allow descriptor-built envelopes before transport invocation.`;
+}
+
+function policyBundleRefFrom(value: unknown, fallback: ControlSurfacePolicyBundleRef): ControlSurfacePolicyBundleRef {
+  const candidate = objectPayload(value);
+  return {
+    policy_id: stringFrom(candidate.policy_id) ?? fallback.policy_id,
+    policy_cid: stringFrom(candidate.policy_cid) ?? fallback.policy_cid,
+    version: stringFrom(candidate.version) ?? fallback.version,
+    scope: stringFrom(candidate.scope) ?? fallback.scope,
+    source: policySourceFrom(candidate.source) ?? fallback.source,
+  };
+}
+
+function policySourceFrom(value: unknown): ControlSurfacePolicyBundleRef['source'] | undefined {
+  return value === 'descriptor'
+    || value === 'operator_profile'
+    || value === 'runtime_override'
+    || value === 'remote_client'
+    || value === 'system_default'
+    ? value
+    : undefined;
+}
+
+function normalizedMatchedNorms(
+  value: unknown,
+  outcome: ControlSurfaceOutcome,
+  policyBundleRef: ControlSurfacePolicyBundleRef,
+  defaults: RuntimeDecisionDefaults,
+  explanation: string,
+): ControlSurfacePolicyDecision['matched_norms'] {
+  const rawNorms = Array.isArray(value) ? value.filter(isRecord) : [];
+  if (rawNorms.length === 0) {
+    return outcome === 'allow' ? [] : [{
+      norm_id: 'runtime_policy_decision',
+      outcome,
+      priority: 800,
+      policy_bundle_ref: policyBundleRef,
+      logic_clause_refs: defaults.selectedLogicBindings.map(binding => binding.binding_id),
+      guard_refs: [],
+      explanation,
+    }];
+  }
+  return rawNorms.map(norm => ({
+    norm_id: stringFrom(norm.norm_id) ?? 'runtime_policy_decision',
+    outcome: normalizeControlSurfaceOutcome(norm.outcome ?? outcome),
+    priority: numberValue(norm.priority),
+    policy_bundle_ref: policyBundleRefFrom(norm.policy_bundle_ref, policyBundleRef),
+    logic_clause_refs: arrayOfStrings(norm.logic_clause_refs),
+    guard_refs: arrayOfStrings(norm.guard_refs),
+    explanation: stringFrom(norm.explanation) ?? explanation,
+  }));
+}
+
+function normalizedEffects(
+  value: unknown,
+  outcome: ControlSurfaceOutcome,
+  defaults: RuntimeDecisionDefaults,
+  explanation: string,
+): ControlSurfacePolicyDecision['effects'] {
+  const rawEffects = Array.isArray(value) ? value.filter(isRecord) : [];
+  const sources = rawEffects.length > 0 ? rawEffects : [{
+    outcome,
+    method: defaults.method,
+    target_ref: defaults.targetRef,
+    arguments: defaults.args,
+    confirmation_required: outcome === 'require_confirmation',
+    reason: explanation,
+  }];
+  return sources.map(effect => {
+    const effectOutcome = normalizeControlSurfaceOutcome(effect.outcome ?? outcome);
+    const effectArguments = objectPayload(effect.arguments);
+    return {
+      outcome: effectOutcome,
+      method: stringFrom(effect.method) ?? defaults.method,
+      target_ref: stringFrom(effect.target_ref) ?? defaults.targetRef,
+      arguments: Object.keys(effectArguments).length > 0 ? effectArguments : defaults.args,
+      rewrite_method: stringFrom(effect.rewrite_method),
+      fallback_surface: stringFrom(effect.fallback_surface),
+      confirmation_required: effect.confirmation_required === true || effectOutcome === 'require_confirmation',
+      rate_limit_key: stringFrom(effect.rate_limit_key),
+      reason: stringFrom(effect.reason) ?? explanation,
+    };
+  });
+}
+
+function normalizedFrameFacts(
+  value: unknown,
+  interactionEnvelope: ControlSurfaceInteractionEnvelope,
+): ControlSurfacePolicyDecision['frame_facts'] {
+  const rawFacts = Array.isArray(value) ? value.filter(isRecord) : [];
+  if (rawFacts.length === 0) {
+    return frameFacts(interactionEnvelope);
+  }
+  return rawFacts.map(fact => ({
+    fact_id: stringFrom(fact.fact_id) ?? computeCID(stableStringify(fact)),
+    kind: frameFactKindFrom(fact.kind) ?? 'context',
+    subject: stringFrom(fact.subject) ?? interactionEnvelope.interaction_id,
+    predicate: stringFrom(fact.predicate) ?? 'runtime_policy_fact',
+    value: fact.value,
+    attrs: objectPayload(fact.attrs),
+  }));
+}
+
+function frameFactKindFrom(value: unknown): ControlSurfacePolicyDecision['frame_facts'][number]['kind'] | undefined {
+  return value === 'actor'
+    || value === 'surface'
+    || value === 'event'
+    || value === 'method'
+    || value === 'target'
+    || value === 'context'
+    || value === 'device'
+    ? value
+    : undefined;
 }
 
 function resolveSurfaceContext(
@@ -701,8 +1068,16 @@ function numberFrom(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : undefined;
 }
 
+function numberValue(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
 function stringFrom(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function isNonEmptyString(value: unknown): value is string {
