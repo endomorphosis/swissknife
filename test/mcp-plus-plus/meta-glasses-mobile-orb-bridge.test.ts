@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { computeInterfaceCID } from '../../src/services/mcp-idl';
 import {
   META_GLASSES_MOBILE_ORB_OPERATIONS,
@@ -12,6 +13,16 @@ import {
   type MetaGlassesMobileORBRegisterResponse,
   type MetaGlassesMobileORBSubscribeServiceUpdatesResponse,
 } from '../../src/services/meta-glasses-mobile-orb-bridge';
+
+vi.mock('crypto', async () => {
+  const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto');
+  return {
+    ...actual,
+    createHash: actual.createHash,
+    randomUUID: actual.randomUUID,
+    default: actual,
+  };
+});
 
 const ALL_CAPABILITIES = [
   'mobile/orb.edge',
