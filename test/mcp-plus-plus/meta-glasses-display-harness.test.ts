@@ -8,6 +8,7 @@ import {
   MetaGlassesDisplayORBAdapter,
   createMetaGlassesDisplayORBDescriptorSource,
   type MetaGlassesDisplayBridge,
+  type MetaGlassesDisplayORBAdapterOptions,
   type MetaGlassesDisplayORBOperation,
   type MetaGlassesDisplayORBOperationOutput,
 } from '../../src/services/meta-glasses-display-orb-adapter';
@@ -43,6 +44,20 @@ const OBJECT_SCHEMA = {
   additionalProperties: true,
 };
 
+const OPERATOR_DAEMON_TASK = {
+  id: 'VAI-024',
+  daemon_id: 'ipfs-datasets-todo-daemon',
+  title: 'Add desktop operator E2E coverage',
+  operator_route: 'Hallucinate App daemon manager -> SwissKnife virtual desktop',
+  desktop_surface: 'Hallucinate App operator console',
+  swissknife_surface: 'SwissKnife virtual desktop',
+};
+
+const allowDisplayControlSurfacePolicy = () => ({
+  outcome: 'allow' as const,
+  reasons: ['test runtime policy evaluator allowed display ORB interaction'],
+});
+
 function loadDescriptor(): MetaGlassesWidgetDescriptor {
   return JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')) as MetaGlassesWidgetDescriptor;
 }
@@ -63,6 +78,30 @@ function displayDescriptor(): MetaGlassesWidgetDescriptor {
   });
   descriptor.permissions.operations.play_video = ['display/widget'];
   return descriptor;
+}
+
+function operatorDisplayDescriptor(): MetaGlassesWidgetDescriptor {
+  const descriptor = displayDescriptor();
+  descriptor.state_model.keys = Array.from(new Set([
+    ...descriptor.state_model.keys,
+    'daemon_task_id',
+    'daemon_id',
+    'operator_route',
+    'desktop_surface',
+    'swissknife_surface',
+    'meta_glasses_paired',
+    'operator_decision',
+    'recovery_state',
+  ]));
+  return descriptor;
+}
+
+function createDisplayAdapter(
+  options: MetaGlassesDisplayORBAdapterOptions = {},
+): MetaGlassesDisplayORBAdapter {
+  const adapter = new MetaGlassesDisplayORBAdapter(options);
+  adapter.router.setControlSurfacePolicyEvaluator(allowDisplayControlSurfacePolicy);
+  return adapter;
 }
 
 function bridgeStatus(operation: MetaGlassesDisplayORBOperation): string {
@@ -142,7 +181,7 @@ describe(`${ORB_DISPLAY_HARNESS_EVIDENCE}: Meta glasses hardware-free descriptor
         },
       };
     };
-    const adapter = new MetaGlassesDisplayORBAdapter({ bridge });
+    const adapter = createDisplayAdapter({ bridge });
     const source = createMetaGlassesDisplayORBDescriptorSource(descriptor, { interface_cid: interfaceCid });
 
     const discoveredRegistryEntries = await registry.discover({ ui_only: true });
@@ -455,7 +494,7 @@ describe(`${ORB_DISPLAY_HARNESS_EVIDENCE}: Meta glasses hardware-free descriptor
 
   it('records policy denial receipts without calling the mobile bridge', async () => {
     const descriptor = displayDescriptor();
-    const adapter = new MetaGlassesDisplayORBAdapter({
+    const adapter = createDisplayAdapter({
       bridge: () => {
         throw new Error('bridge should not be called for denied operations');
       },
@@ -478,12 +517,12 @@ describe(`${ORB_DISPLAY_HARNESS_EVIDENCE}: Meta glasses hardware-free descriptor
         operation: 'render_widget',
         policy_decision: {
           outcome: 'deny',
-          reasons: ['Missing capability: display/widget'],
+          reasons: expect.arrayContaining(['Missing capability: display/widget']),
         },
       },
       output: {
         error: 'ORB_INVOCATION_DENIED',
-        reasons: ['Missing capability: display/widget'],
+        reasons: expect.arrayContaining(['Missing capability: display/widget']),
       },
     });
     expect(denied.receipt.receipt_cid).toMatch(/^sha256:/);
@@ -505,7 +544,7 @@ describe(`${ORB_DISPLAY_HARNESS_EVIDENCE}: Meta glasses hardware-free descriptor
 
   it('preserves native-display-unavailable fallback diagnostics in the render receipt output', async () => {
     const descriptor = displayDescriptor();
-    const adapter = new MetaGlassesDisplayORBAdapter({
+    const adapter = createDisplayAdapter({
       bridge: ({ mobile_action, session }) => ({
         ok: true,
         status: 'display_unavailable',
@@ -562,9 +601,245 @@ describe(`${ORB_DISPLAY_HARNESS_EVIDENCE}: Meta glasses hardware-free descriptor
     });
   });
 
+  it('routes a daemon task through Hallucinate desktop and SwissKnife operator recovery surfaces without paired Meta glasses hardware', async () => {
+    const descriptor = operatorDisplayDescriptor();
+    const widgetId = 'operator-daemon-task-vai-024';
+    const bridgeEvents: Array<{
+      operation: MetaGlassesDisplayORBOperation;
+      status: string;
+      widget_id: string;
+      daemon_task_id: string;
+      operator_route: string;
+      recovery_state?: string;
+    }> = [];
+    const adapter = createDisplayAdapter({
+      now: () => new Date('2026-05-26T12:00:00.000Z'),
+      bridge: ({ operation, mobile_action, session }) => {
+        const renderFallback = operation === 'render_widget';
+        const recoveryState = mobile_action.patch?.recovery_state
+          ?? mobile_action.state?.recovery_state;
+        const status = renderFallback ? 'display_unavailable' : bridgeStatus(operation);
+
+        bridgeEvents.push({
+          operation,
+          status,
+          widget_id: mobile_action.widget_id,
+          daemon_task_id: String(
+            mobile_action.patch?.daemon_task_id
+              ?? mobile_action.state?.daemon_task_id
+              ?? session.state.daemon_task_id
+              ?? OPERATOR_DAEMON_TASK.id,
+          ),
+          operator_route: OPERATOR_DAEMON_TASK.operator_route,
+          recovery_state: typeof recoveryState === 'string' ? recoveryState : undefined,
+        });
+
+        return {
+          ok: true,
+          status,
+          native_display_unavailable: renderFallback,
+          fallback_path: renderFallback ? 'desktop-operator-panel' : undefined,
+          metadata: {
+            inspected: true,
+            daemon_task_id: OPERATOR_DAEMON_TASK.id,
+            daemon_id: OPERATOR_DAEMON_TASK.daemon_id,
+            operator_route: OPERATOR_DAEMON_TASK.operator_route,
+            desktop_surface: OPERATOR_DAEMON_TASK.desktop_surface,
+            swissknife_surface: OPERATOR_DAEMON_TASK.swissknife_surface,
+            meta_glasses_paired: false,
+            hardware_required: false,
+            recovery_state: recoveryState ?? 'pending',
+          },
+        };
+      },
+    });
+    const renderBinding = await adapter.bind({
+      descriptor,
+      operation: 'render_widget',
+    });
+    const updateBinding = await adapter.bind({
+      descriptor,
+      operation: 'update_widget',
+    });
+    const resetBinding = await adapter.bind({
+      descriptor,
+      operation: 'reset_session',
+    });
+
+    const render = await adapter.invoke(
+      renderBinding.handle,
+      {
+        request_id: 'operator-render-1',
+        widget_id: widgetId,
+        state: {
+          ...STATE,
+          title: OPERATOR_DAEMON_TASK.title,
+          summary: 'Operator inspected the daemon task from the desktop console.',
+          progress: 0.24,
+          progress_label: '24% inspected',
+          daemon_task_id: OPERATOR_DAEMON_TASK.id,
+          daemon_id: OPERATOR_DAEMON_TASK.daemon_id,
+          operator_route: OPERATOR_DAEMON_TASK.operator_route,
+          desktop_surface: OPERATOR_DAEMON_TASK.desktop_surface,
+          swissknife_surface: OPERATOR_DAEMON_TASK.swissknife_surface,
+          meta_glasses_paired: false,
+        },
+      },
+      {
+        correlation_id: 'corr-operator-render',
+        capabilities: ['display/widget'],
+      },
+    );
+
+    const routed = await adapter.invoke(
+      updateBinding.handle,
+      {
+        request_id: 'operator-route-1',
+        widget_id: widgetId,
+        patch: {
+          status: 'recovering',
+          progress_label: 'Routed to desktop operator surface',
+          operator_decision: 'route_to_desktop',
+          daemon_task_id: OPERATOR_DAEMON_TASK.id,
+        },
+      },
+      {
+        correlation_id: 'corr-operator-route',
+        capabilities: ['display/widget'],
+      },
+    );
+
+    const reset = await adapter.invoke(
+      resetBinding.handle,
+      {
+        widget_id: widgetId,
+        reason: 'desktop operator recovery after hardware-free fallback',
+      },
+      {
+        correlation_id: 'corr-operator-reset',
+        capabilities: DISPLAY_CAPABILITIES,
+      },
+    );
+
+    const recovered = await adapter.invoke(
+      updateBinding.handle,
+      {
+        request_id: 'operator-recover-1',
+        widget_id: widgetId,
+        patch: {
+          status: 'running',
+          progress: 0.51,
+          progress_label: '51% recovered',
+          recovery_state: 'recovered',
+          selected_action: null,
+          daemon_task_id: OPERATOR_DAEMON_TASK.id,
+        },
+      },
+      {
+        correlation_id: 'corr-operator-recover',
+        capabilities: ['display/widget'],
+      },
+    );
+
+    const renderOutput = outputOf(render);
+    const routedOutput = outputOf(routed);
+    const resetOutput = outputOf(reset);
+    const recoveredOutput = outputOf(recovered);
+
+    expect(render.denied).toBe(false);
+    expect(renderOutput.mobile_action.state).toMatchObject({
+      daemon_task_id: OPERATOR_DAEMON_TASK.id,
+      daemon_id: OPERATOR_DAEMON_TASK.daemon_id,
+      operator_route: OPERATOR_DAEMON_TASK.operator_route,
+      desktop_surface: OPERATOR_DAEMON_TASK.desktop_surface,
+      swissknife_surface: OPERATOR_DAEMON_TASK.swissknife_surface,
+      meta_glasses_paired: false,
+    });
+    expect(renderOutput.bridge_result).toMatchObject({
+      status: 'display_unavailable',
+      native_display_unavailable: true,
+      fallback_path: 'desktop-operator-panel',
+      metadata: {
+        inspected: true,
+        daemon_task_id: OPERATOR_DAEMON_TASK.id,
+        desktop_surface: OPERATOR_DAEMON_TASK.desktop_surface,
+        swissknife_surface: OPERATOR_DAEMON_TASK.swissknife_surface,
+        meta_glasses_paired: false,
+        hardware_required: false,
+      },
+    });
+    expect(routedOutput.mobile_action.patch).toMatchObject({
+      operator_decision: 'route_to_desktop',
+      daemon_task_id: OPERATOR_DAEMON_TASK.id,
+    });
+    expect(resetOutput).toMatchObject({
+      operation: 'reset_session',
+      session_generation: 1,
+    });
+    expect(recoveredOutput.bridge_result.metadata).toMatchObject({
+      recovery_state: 'recovered',
+      operator_route: OPERATOR_DAEMON_TASK.operator_route,
+    });
+    expect(bridgeEvents).toEqual([
+      expect.objectContaining({
+        operation: 'render_widget',
+        status: 'display_unavailable',
+        daemon_task_id: OPERATOR_DAEMON_TASK.id,
+      }),
+      expect.objectContaining({
+        operation: 'update_widget',
+        status: 'updated',
+        daemon_task_id: OPERATOR_DAEMON_TASK.id,
+      }),
+      expect.objectContaining({
+        operation: 'reset_session',
+        status: 'reset',
+        daemon_task_id: OPERATOR_DAEMON_TASK.id,
+      }),
+      expect.objectContaining({
+        operation: 'update_widget',
+        status: 'updated',
+        daemon_task_id: OPERATOR_DAEMON_TASK.id,
+        recovery_state: 'recovered',
+      }),
+    ]);
+    expect(adapter.getTaskMetadata()).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        operation: 'render_widget',
+        correlation_id: 'corr-operator-render',
+        receipt_cid: render.receipt.receipt_cid,
+        denied: false,
+      }),
+      expect.objectContaining({
+        operation: 'update_widget',
+        correlation_id: 'corr-operator-recover',
+        receipt_cid: recovered.receipt.receipt_cid,
+        denied: false,
+      }),
+    ]));
+    expect(adapter.getSessionSnapshot(widgetId)).toMatchObject({
+      widget_id: widgetId,
+      session_generation: 1,
+      update_count: 2,
+      state: {
+        daemon_task_id: OPERATOR_DAEMON_TASK.id,
+        status: 'running',
+        recovery_state: 'recovered',
+      },
+      last_bridge_result: {
+        status: 'updated',
+        metadata: {
+          desktop_surface: OPERATOR_DAEMON_TASK.desktop_surface,
+          swissknife_surface: OPERATOR_DAEMON_TASK.swissknife_surface,
+          meta_glasses_paired: false,
+        },
+      },
+    });
+  });
+
   it('records lifecycle error metadata when bridge retries are exhausted', async () => {
     const descriptor = displayDescriptor();
-    const adapter = new MetaGlassesDisplayORBAdapter({
+    const adapter = createDisplayAdapter({
       bridge: () => {
         throw new Error('display lifecycle failed before content send');
       },
