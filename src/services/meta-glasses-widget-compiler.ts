@@ -203,22 +203,175 @@ export const META_GLASSES_WIDGET_MANIFEST_JSON_SCHEMA = {
         height: { const: META_GLASSES_DISPLAY_VIEWPORT.height },
       },
     },
-    regions: { type: 'array' },
+    regions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'kind', 'bounds'],
+        properties: {
+          id: { type: 'string', minLength: 1 },
+          kind: {
+            enum: ['text', 'status', 'progress', 'list', 'media', 'action', 'spacer'],
+          },
+          bounds: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['x', 'y', 'width', 'height'],
+            properties: {
+              x: { type: 'number', minimum: 0 },
+              y: { type: 'number', minimum: 0 },
+              width: { type: 'number', exclusiveMinimum: 0 },
+              height: { type: 'number', exclusiveMinimum: 0 },
+            },
+          },
+          text: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'value',
+              'max_lines',
+              'max_chars',
+              'overflow',
+              'estimated_capacity_chars',
+            ],
+            properties: {
+              source: { type: 'string', minLength: 1 },
+              value: { type: 'string' },
+              max_lines: { type: 'integer', minimum: 1 },
+              max_chars: { type: 'integer', minimum: 1 },
+              overflow: { enum: ['truncate', 'wrap', 'clip'] },
+              estimated_capacity_chars: { type: 'integer', minimum: 0 },
+            },
+          },
+          action_id: { type: 'string', minLength: 1 },
+          media_id: { type: 'string', minLength: 1 },
+          visible_if: { type: 'string', minLength: 1 },
+        },
+      },
+    },
     focus_order: { type: 'array', items: { type: 'string', minLength: 1 } },
-    actions: { type: 'array' },
-    media: { type: 'array' },
+    actions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'method', 'backend_action_id', 'focusable', 'state_keys'],
+        properties: {
+          id: { type: 'string', minLength: 1 },
+          method: { type: 'string', minLength: 1 },
+          backend_action_id: { type: 'string', minLength: 1 },
+          label: { type: 'string', minLength: 1 },
+          focusable: { type: 'boolean' },
+          focus_index: { type: 'integer', minimum: 0 },
+          service_id: { type: 'string', minLength: 1 },
+          state_keys: { type: 'array', items: { type: 'string', minLength: 1 } },
+          region_id: { type: 'string', minLength: 1 },
+        },
+      },
+    },
+    media: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'region_id', 'type', 'transport', 'size_bytes', 'fallback_text'],
+        properties: {
+          id: { type: 'string', minLength: 1 },
+          region_id: { type: 'string', minLength: 1 },
+          type: { enum: ['image/png', 'image/jpeg', 'video/mp4'] },
+          transport: { enum: ['cid', 'https', 'stream'] },
+          duration_ms: { type: 'integer', minimum: 1 },
+          size_bytes: { type: 'integer', minimum: 1 },
+          fallback_text: { type: 'string', minLength: 1 },
+        },
+      },
+    },
     state: {
       type: 'object',
       additionalProperties: false,
       required: ['keys', 'values'],
       properties: {
         keys: { type: 'array', items: { type: 'string', minLength: 1 } },
-        values: { type: 'object' },
+        values: {
+          type: 'object',
+          additionalProperties: {
+            type: ['null', 'boolean', 'number', 'string', 'array', 'object'],
+          },
+        },
       },
     },
     ttl_ms: { type: ['integer', 'null'], minimum: 1 },
-    fallback: { type: 'object' },
-    renderer_hints: { type: 'object' },
+    fallback: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['when', 'render_path', 'message'],
+      properties: {
+        when: {
+          type: 'array',
+          contains: { const: 'dat_native_display_unavailable' },
+          items: {
+            enum: [
+              'dat_native_display_unavailable',
+              'display_unsupported',
+              'session_not_ready',
+            ],
+          },
+        },
+        render_path: {
+          enum: ['display-webapp', 'simulator', 'mobile-card', 'notification', 'audio-summary'],
+        },
+        message: { type: 'string', minLength: 1 },
+      },
+    },
+    renderer_hints: {
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'primary_render_path',
+        'supported_inputs',
+        'high_contrast_required',
+        'max_update_hz',
+        'native_dat',
+        'display_webapp',
+      ],
+      properties: {
+        primary_render_path: { enum: ['dat-native', 'display-webapp', 'simulator'] },
+        supported_inputs: {
+          type: 'array',
+          items: { enum: ['dpad', 'gesture', 'voice', 'mobile_action'] },
+        },
+        high_contrast_required: { type: 'boolean' },
+        max_update_hz: { type: 'number', exclusiveMinimum: 0 },
+        native_dat: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['display_class', 'fixed_viewport', 'session_required'],
+          properties: {
+            display_class: { const: 'meta-ray-ban-display' },
+            fixed_viewport: { const: true },
+            session_required: { const: true },
+          },
+        },
+        display_webapp: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['viewport', 'fallback_allowed'],
+          properties: {
+            viewport: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['width', 'height'],
+              properties: {
+                width: { const: META_GLASSES_DISPLAY_VIEWPORT.width },
+                height: { const: META_GLASSES_DISPLAY_VIEWPORT.height },
+              },
+            },
+            fallback_allowed: { type: 'boolean' },
+          },
+        },
+      },
+    },
   },
 } as const;
 
