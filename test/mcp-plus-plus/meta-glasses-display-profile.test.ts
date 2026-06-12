@@ -3,6 +3,7 @@ import {
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
   validateMCPUIProfileDescriptor,
 } from '../../src/services/mcp-ui-profile';
+import { createDefaultControlSurfaceContract } from '../../src/services/control-surface-mediator';
 import {
   META_GLASSES_DISPLAY_ERROR_CODES,
   META_GLASSES_DISPLAY_PROFILE,
@@ -15,6 +16,7 @@ import {
   type MetaGlassesDisplayProfile,
   type MetaGlassesWidgetDescriptor,
 } from '../../src/services/meta-glasses-display-profile';
+import { META_GLASSES_DISPLAY_WIDGET_EXAMPLES } from '../fixtures/meta-glasses-display/valid-widget-examples';
 
 const OBJECT_SCHEMA = {
   type: 'object',
@@ -196,10 +198,15 @@ function displayWidgetDescriptor(
     [META_GLASSES_DISPLAY_PROFILE_PROPERTY]: baseDisplayProfile(displayOverrides),
   };
 
-  return {
+  const withOverrides = {
     ...descriptor,
     ...descriptorOverrides,
   };
+  if (withOverrides.control_surface_contract === undefined) {
+    withOverrides.control_surface_contract = createDefaultControlSurfaceContract(withOverrides);
+  }
+
+  return withOverrides;
 }
 
 describe('Meta glasses display profile conformance', () => {
@@ -215,22 +222,13 @@ describe('Meta glasses display profile conformance', () => {
     expect(() => assertMetaGlassesWidgetDescriptor(descriptor)).not.toThrow();
   });
 
-  it.each([
-    ['status', { template: 'status' as const }],
-    ['task-progress', { template: 'task-progress' as const }],
-    ['confirmation', { template: 'confirmation' as const }],
-    ['notification-summary', { template: 'notification-summary' as const }],
-    ['video-preview', { template: 'video-preview' as const }],
-  ])('accepts a %s widget descriptor example', (_name, layoutOverride) => {
-    const descriptor = displayWidgetDescriptor({
-      layout: {
-        ...baseDisplayProfile().layout,
-        ...layoutOverride,
-      },
-    });
-
-    expect(validateMetaGlassesWidgetDescriptor(descriptor).conformant).toBe(true);
-  });
+  it.each(Object.entries(META_GLASSES_DISPLAY_WIDGET_EXAMPLES))(
+    'accepts the %s widget descriptor example',
+    (_name, descriptor) => {
+      expect(validateMCPUIProfileDescriptor(descriptor).conformant).toBe(true);
+      expect(validateMetaGlassesWidgetDescriptor(descriptor).conformant).toBe(true);
+    },
+  );
 
   it('validates a display profile independently when MCP-IDL methods are provided', () => {
     const result = validateMetaGlassesDisplayProfile(
