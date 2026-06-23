@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import {
-  evaluate_control_surface_mediation,
+  control_surface_mediator,
+  type ControlSurfacePolicyEvaluator,
   type ControlSurfaceMediationResult,
   type ControlSurfaceMediationReceipt,
   type ControlSurfaceInteractionEnvelope,
@@ -573,13 +574,12 @@ export class MCPCapabilityRouter {
     context: ORBInvocationContext = {},
   ): Promise<ORBPolicyDecision> {
     const binding = this.requireBinding(handle);
-    const mediation = await evaluate_control_surface_mediation(
-      { binding, input, context },
-      {
-        policy_evaluator: this.controlSurfacePolicyEvaluator,
-        source: 'swissknife.mcp-orb-capability-router',
-      },
-    );
+    const mediation = await control_surface_mediator({
+      binding,
+      input,
+      context,
+      policy_evaluator: this.controlSurfacePolicyEvaluator,
+    });
     const mediatedContext = {
       ...context,
       metadata: {
