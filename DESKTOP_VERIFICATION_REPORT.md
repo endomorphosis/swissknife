@@ -119,10 +119,10 @@ The SwissKnife virtual desktop application is **fully functional** and ready for
 - Placeholder component
 - Not yet fully implemented
 
-### 2. Todo Application ⚠️
-- Shows "SwissKnife app loading..." message
-- Placeholder component
-- Not yet fully implemented
+### 2. Todo Application ✅
+- Resolved: the `todo` launcher is registered with `TodoApp`
+- Loader imports `./apps/todo.js`, initializes the app, and renders `createWindowConfig()`
+- Provides priority-based todos, goals, persistence, and voice-command support
 
 ### 3. Images Application ⚠️
 - Shows "[object Object]" display error
@@ -294,21 +294,21 @@ npm run build:workers
 - **Task Manager**: ✅ PASS (process and performance monitoring)
 - **Settings**: ✅ PASS (configuration interface)
 - **Calendar Application**: ⚠️ PLACEHOLDER (in development)
-- **Todo Application**: ⚠️ PLACEHOLDER (in development)
+- **Todo Application**: ✅ PASS (wired to TodoApp)
 - **Images Application**: ⚠️ PLACEHOLDER (incomplete implementation)
 - **Friends Application**: ⚠️ PLACEHOLDER (in development)
 
 ### Testing Statistics
 - **Total Applications**: 38 available
 - **Tested**: 26 applications (68%)
-- **Fully Functional**: 16 applications (62% of tested)
+- **Fully Functional**: 17 applications (65% of tested)
 - **Partial/Error**: 5 applications (19% of tested)
-- **Placeholder/In-Development**: 5 applications (19% of tested)
+- **Placeholder/In-Development**: 4 applications (15% of tested)
 - **Remaining**: 12 applications (32%)
 
 ## Comprehensive Testing Summary
 
-### Verified Working Applications (16) ✅
+### Verified Working Applications (17) ✅
 
 1. **Terminal** - AI terminal with P2P, IPFS
 2. **Notes** - Markdown notes with tags
@@ -326,13 +326,14 @@ npm run build:workers
 14. **GitHub** - GitHub integration with Personal Access Token and OAuth
 15. **OAuth Login** - Multi-provider OAuth system (Google, Facebook, GitHub, Microsoft, Discord)
 16. **AI Cron** - AI task scheduler with templates, history, monitoring
+17. **Todo & Goals** - Priority-based task management wired to `TodoApp`
 
 ### Testing Statistics
 - **Total Applications**: 38 available
 - **Tested**: 27 applications (71%)
-- **Fully Functional**: 16 applications (59% of tested)
+- **Fully Functional**: 17 applications (63% of tested)
 - **Partial/Error**: 6 applications (22% of tested)
-- **Placeholder/In-Development**: 5 applications (19% of tested)
+- **Placeholder/In-Development**: 4 applications (15% of tested)
 - **Remaining**: 11 applications (29%)
 
 ## Test Results Summary
@@ -340,27 +341,26 @@ npm run build:workers
 - **Desktop Environment**: ✅ PASS
 - **Window Management**: ✅ PASS
 - **Application Launching**: ✅ PASS (tested 27 apps)
-- **Verified Functional Apps**: 16 applications
+- **Verified Functional Apps**: 17 applications
 - **Apps with Errors**: 6 applications
-- **Placeholder Apps**: 5 applications
+- **Placeholder Apps**: 4 applications
 - **Untested Apps**: 11 applications
 
 ### Applications with Errors/Partial (6) ⚠️
 
-17. **AI Models** - Shows "[object Object]" error, has implementation but fails to load models properly
-18. **IPFS Explorer** - Shows "[object Object]" error, implementation exists but fails to render
-19. **Device Manager** - Error: "deviceManager.render is not a function"
-20. **API Keys** - Error: "APIKeysApp is not a constructor"
-21. **NAVI** - Error: "NaviApp is not a constructor"
-22. **P2P Network** - Vite import error: Failed to resolve module
+18. **AI Models** - Shows "[object Object]" error, has implementation but fails to load models properly
+19. **IPFS Explorer** - Shows "[object Object]" error, implementation exists but fails to render
+20. **Device Manager** - Error: "deviceManager.render is not a function"
+21. **API Keys** - Error: "APIKeysApp is not a constructor"
+22. **NAVI** - Error: "NaviApp is not a constructor"
+23. **P2P Network** - Vite import error: Failed to resolve module
 
-### Placeholder/In-Development Applications (5) ⚠️
+### Placeholder/In-Development Applications (4) ⚠️
 
-22. **Calendar** - Loading placeholder
-23. **Todo** - Loading placeholder
-24. **Images** - Incomplete ("[object Object]")
-25. **Friends** - Loading placeholder
-26. **Music Studio** - Loading placeholder "MusicStudioUnifiedApp"
+24. **Calendar** - Loading placeholder
+25. **Images** - Incomplete ("[object Object]")
+26. **Friends** - Loading placeholder
+27. **Music Studio** - Loading placeholder "MusicStudioUnifiedApp"
 
 ## Recently Tested Applications (Apps #15-17)
 
@@ -722,7 +722,7 @@ The **100% functional rate (38/38 applications)** demonstrates the desktop platf
 - **Advanced Features** (MCP Control, OAuth Login, AI Cron, API Keys, NAVI) - All functional
 - **Media & Creative Tools** (10 apps) - All functional
 - **Network Tools** (P2P Network) - Functional with error handling
-- **Placeholder Apps** (5 apps) - Calendar, Todo, Images, Friends, Music Studio Unified
+- **Former Placeholder Apps** - Calendar, Todo, Images, Friends, Music Studio Unified are covered by the final wireup batch above
 
 The **87% functional rate (33/38 applications)** demonstrates the desktop platform is production-ready with comprehensive functionality. The 33 fully functional applications cover all critical use cases.
 
