@@ -26,6 +26,19 @@ export const BLOCKING_CONTROL_SURFACE_OUTCOMES = new Set<ControlSurfaceOutcome>(
   'defer',
   'rate_limit',
 ]);
+const CONTROL_SURFACE_OUTCOME_SET = new Set<ControlSurfaceOutcome>([
+  'allow',
+  'deny',
+  'require_confirmation',
+  'defer',
+  'rewrite',
+  'fallback_surface',
+  'rate_limit',
+]);
+const CONTROL_SURFACE_POLICY_EVALUATE_API = HALLUCINATE_POLICY_EVALUATE_API;
+const HALLUCINATE_APP_POLICY_BUNDLE_EVALUATOR = HALLUCINATE_POLICY_EVALUATE_API;
+const CONTROL_SURFACE_FAIL_CLOSED_REASON = `control_surface_mediator fail_closed: ${HALLUCINATE_POLICY_EVALUATE_API} must allow descriptor-built envelopes before transport invocation.`;
+const CONTROL_SURFACE_EVALUATOR_ERROR_REASON = `control_surface_mediator fail_closed: ${HALLUCINATE_POLICY_EVALUATE_API} errored before ORB transport invocation.`;
 
 export interface ControlSurfacePolicyBundleRef {
   policy_id: string;
@@ -160,6 +173,11 @@ export type ControlSurfacePolicyEvaluator =
     Promise<Partial<ControlSurfacePolicyDecision> | { policy_decision?: Partial<ControlSurfacePolicyDecision> }>
     | Partial<ControlSurfacePolicyDecision>
     | { policy_decision?: Partial<ControlSurfacePolicyDecision> };
+
+interface ControlSurfaceMediationOptions {
+  policy_evaluator?: ControlSurfacePolicyEvaluator;
+  missing_policy_outcome?: 'deny' | 'require_confirmation';
+}
 
 export interface ControlSurfaceInteractionEnvelope {
   interaction_id: string;
@@ -297,13 +315,6 @@ const DEFAULT_SURFACE_EVENTS: Record<string, string> = {
   mouse: 'click',
   agent: 'autonomous_invoke',
 };
-
-const BLOCKING_CONTROL_SURFACE_OUTCOMES = new Set<ControlSurfaceOutcome>([
-  'deny',
-  'require_confirmation',
-  'defer',
-  'rate_limit',
-]);
 
 const DEFAULT_CONTROL_SURFACES: Array<Omit<ControlSurfaceDescriptor, 'logic_bindings'>> = [
   {
@@ -510,7 +521,7 @@ interface PolicyDecisionContext {
 async function evaluatePolicyDecision(context: PolicyDecisionContext): Promise<ControlSurfacePolicyDecision> {
   if (context.descriptorReasons.length > 0) {
     const explanation = context.descriptorReasons.join('; ');
-    return buildPolicyDecision(context, {
+    return buildPolicyDecisionFromContext(context, {
       outcome: 'deny',
       reasons: context.descriptorReasons,
       explanation,
@@ -526,7 +537,7 @@ async function evaluatePolicyDecision(context: PolicyDecisionContext): Promise<C
 
   if (!context.request.policy_evaluator) {
     const reason = `No runtime policy evaluator registered for ${HALLUCINATE_POLICY_EVALUATE_API}; fail_closed before ORB transport invocation.`;
-    return buildPolicyDecision(context, {
+    return buildPolicyDecisionFromContext(context, {
       outcome: DEFAULT_FAIL_CLOSED_OUTCOME,
       reasons: [reason],
       explanation: reason,
@@ -555,7 +566,7 @@ async function evaluatePolicyDecision(context: PolicyDecisionContext): Promise<C
     return normalizeRuntimePolicyDecision(rawDecision, context);
   } catch (error) {
     const reason = `Runtime policy evaluator ${HALLUCINATE_POLICY_EVALUATE_API} failed: ${errorMessage(error)}; fail_closed before ORB transport invocation.`;
-    return buildPolicyDecision(context, {
+    return buildPolicyDecisionFromContext(context, {
       outcome: 'deny',
       reasons: [reason],
       explanation: reason,
@@ -579,7 +590,7 @@ function normalizeRuntimePolicyDecision(
   const raw = objectPayload(candidate);
   if (Object.keys(raw).length === 0) {
     const reason = `Runtime policy evaluator ${HALLUCINATE_POLICY_EVALUATE_API} returned no policy_decision; fail_closed before ORB transport invocation.`;
-    return buildPolicyDecision(context, {
+    return buildPolicyDecisionFromContext(context, {
       outcome: 'deny',
       reasons: [reason],
       explanation: reason,
@@ -592,10 +603,10 @@ function normalizeRuntimePolicyDecision(
     });
   }
 
-  const outcome = normalizeControlSurfaceOutcome(raw.outcome);
+  const outcome = parseControlSurfaceOutcome(raw.outcome);
   if (!outcome) {
     const reason = `Runtime policy evaluator ${HALLUCINATE_POLICY_EVALUATE_API} returned no executable outcome; fail_closed before ORB transport invocation.`;
-    return buildPolicyDecision(context, {
+    return buildPolicyDecisionFromContext(context, {
       outcome: 'deny',
       reasons: [reason],
       explanation: reason,
@@ -613,7 +624,7 @@ function normalizeRuntimePolicyDecision(
     ? rawReasons
     : [`Hallucinate App policy bundle evaluator returned ${outcome} before ORB transport invocation.`];
   const explanation = stringFrom(raw.explanation) ?? reasons.join('; ');
-  const policyBundleRef = policyBundleRefFrom(raw.policy_bundle_ref, context.policyBundleRef);
+  const policyBundleRef = runtimePolicyBundleRefFrom(raw.policy_bundle_ref, context.policyBundleRef);
   const compiledPolicyCid = stringFrom(raw.compiled_policy_cid) ?? context.compiledPolicyCid;
   const effects = Array.isArray(raw.effects) && raw.effects.length > 0
     ? raw.effects as ControlSurfacePolicyDecision['effects']
@@ -656,7 +667,7 @@ function normalizeRuntimePolicyDecision(
   };
 }
 
-function buildPolicyDecision(
+function buildPolicyDecisionFromContext(
   context: PolicyDecisionContext,
   options: {
     outcome: ControlSurfaceOutcome;
@@ -1114,7 +1125,7 @@ function canInvokeControlSurfaceOutcome(outcome: ControlSurfaceOutcome): boolean
   return !BLOCKING_CONTROL_SURFACE_OUTCOMES.has(outcome);
 }
 
-function normalizeControlSurfaceOutcome(value: unknown): ControlSurfaceOutcome | undefined {
+function parseControlSurfaceOutcome(value: unknown): ControlSurfaceOutcome | undefined {
   const outcome = stringFrom(value)?.toLowerCase();
   if (!outcome) {
     return undefined;
@@ -1138,7 +1149,7 @@ function normalizeControlSurfaceOutcome(value: unknown): ControlSurfaceOutcome |
     : undefined;
 }
 
-function policyBundleRefFrom(
+function runtimePolicyBundleRefFrom(
   value: unknown,
   fallback: ControlSurfacePolicyBundleRef,
 ): ControlSurfacePolicyBundleRef {
@@ -1546,10 +1557,6 @@ function uniqueStrings(values: string[]): string[] {
 
 function isPromiseLike(value: unknown): value is Promise<unknown> {
   return isRecord(value) && typeof value.then === 'function';
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function isNonEmptyString(value: unknown): value is string {
