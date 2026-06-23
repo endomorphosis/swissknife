@@ -1,6 +1,5 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { vi } from 'vitest';
 import {
   LocalMCPInterfaceRegistryBackend,
   MCPInterfaceDiscoveryRegistry,
@@ -18,25 +17,6 @@ import {
   compileMetaGlassesWidgetManifest,
 } from '../../src/services/meta-glasses-widget-compiler';
 import type { MetaGlassesWidgetDescriptor } from '../../src/services/meta-glasses-display-profile';
-
-vi.mock('crypto', async () => {
-  const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto');
-  return {
-    ...actual,
-    createHash: actual.createHash,
-    randomUUID: actual.randomUUID,
-    default: actual,
-  };
-});
-
-vi.mock('fs', async () => {
-  const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
-  return {
-    ...actual,
-    readFileSync: actual.readFileSync,
-    default: actual,
-  };
-});
 
 const FIXTURE_PATH = join(
   __dirname,
