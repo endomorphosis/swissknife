@@ -314,8 +314,8 @@ def test_mcp_server_connection(server_path: str, work_dir: str) -> bool:
     # Cleanup
     try:
         os.unlink(test_client_path)
-    except:
-        pass
+    except OSError as e:
+        log("WARNING", f"Could not remove temporary test client: {test_client_path}", str(e))
     
     # Evaluate results
     success = code == 0
