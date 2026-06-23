@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hallucinate.app/contracts/swissknife_mcp_capability_registry.schema.json",
+  "title": "Swissknife MCP capability registry",
+  "description": "HAO-443 capability descriptor contract for app-visible MCP tools mediated by Hallucinate App receipts.",
+  "type": "object",
+  "required": ["registry_id", "version", "capabilities"],
+  "properties": {
+    "registry_id": { "type": "string", "const": "org.hallucinate_app.swissknife.mcp-capability-registry" },
+    "version": { "type": "string" },
+    "capabilities": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/capabilityDescriptor" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "capabilityDescriptor": {
+      "type": "object",
+      "required": ["server_package", "daemon_id", "descriptor_id", "app_id", "title", "interface_type", "transport", "endpoint", "capability_descriptor"],
+      "properties": {
+        "server_package": { "type": "string", "enum": ["ipfs_accelerate_py", "ipfs_datasets_py", "ipfs_kit_py"] },
+        "daemon_id": { "type": "string" },
+        "descriptor_id": { "type": "string" },
+        "app_id": { "type": "string" },
+        "title": { "type": "string" },
+        "interface_type": { "type": "string", "enum": ["dataset", "compute", "workflow", "graph", "document", "storage", "generic"] },
+        "transport": { "type": "string", "enum": ["mcp-server", "http", "stdio", "websocket"] },
+        "endpoint": { "type": "string" },
+        "capability_descriptor": {
+          "type": "object",
+          "required": ["source", "operations", "permissions", "ui_affordances", "command_intents", "mediation_receipt_aliases"],
+          "properties": {
+            "source": { "type": "string", "const": "HAO-443" },
+            "operations": { "type": "array", "items": { "type": "string" } },
+            "permissions": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "ui_affordances": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["template", "primary_region", "surfaces"],
+                "properties": {
+                  "template": { "type": "string" },
+                  "primary_region": { "type": "string" },
+                  "surfaces": { "type": "array", "items": { "type": "string" } },
+                  "stream": { "type": "string" }
+                },
+                "additionalProperties": false
+              }
+            },
+            "command_intents": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["intent", "normalized_method", "tool_name", "upstream_function", "payload_contracts"],
+                "properties": {
+                  "intent": { "type": "string" },
+                  "normalized_method": { "type": "string" },
+                  "tool_name": { "type": "string" },
+                  "tool_category": { "type": "string" },
+                  "upstream_function": { "type": "string" },
+                  "payload_contracts": { "type": "array", "items": { "type": "string" } }
+                },
+                "additionalProperties": false
+              }
+            },
+            "mediation_receipt_aliases": {
+              "type": "object",
+              "required": ["receipt_schema", "service_alias", "descriptor_alias", "daemon_id", "tool_aliases", "required_fields"],
+              "properties": {
+                "receipt_schema": { "type": "string", "const": "mcp_server_invocation_receipt_v1" },
+                "service_alias": { "type": "string" },
+                "descriptor_alias": { "type": "string" },
+                "daemon_id": { "type": "string" },
+                "tool_aliases": { "type": "object", "additionalProperties": { "type": "string" } },
+                "required_fields": { "type": "array", "items": { "type": "string" } }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
