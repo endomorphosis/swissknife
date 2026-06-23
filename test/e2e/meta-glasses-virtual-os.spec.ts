@@ -7,6 +7,20 @@ import {
   type SwissKnifeDesktopAppSnapshot,
 } from './helpers/meta-glasses-app-template';
 
+const LAUNCH_READINESS_GATE = {
+  schema: 'launch_readiness_receipt_v1',
+  gate: 'LaunchReadinessGate',
+  objective: 'VAIOS-G697',
+  validation: 'Playwright launch replay',
+  surface: 'meta-glasses-virtual-os',
+  requiredHops: [
+    'phone-hosted Swissknife virtual desktop',
+    'desktop peer offload',
+    'Hallucinate App mediation',
+    'Meta glasses terminal',
+  ],
+};
+
 test.setTimeout(240_000);
 test.describe.configure({ mode: 'serial' });
 
@@ -71,6 +85,15 @@ test('opens every SwissKnife desktop app and renders a reusable Meta glasses ORB
   const summarizedBrowserErrors = summarizeBrowserErrors(browserErrors);
   const report = {
     runId,
+    launch_readiness_receipt_v1: {
+      ...LAUNCH_READINESS_GATE,
+      status: openFailures.length === 0 && templateFailures.length === 0 ? 'passed' : 'failed',
+      evidence: {
+        discoveredAppCount: apps.length,
+        renderedMetaDisplayCount: templateResults.length,
+        command: 'npm --prefix swissknife run test:e2e:meta-glasses',
+      },
+    },
     discoveredApps: apps,
     snapshots,
     metaDisplayResults: templateResults.map(result => ({
