@@ -330,6 +330,33 @@ describe('Meta glasses widget compiler', () => {
         'fallback',
       ]),
     );
+    expect(META_GLASSES_WIDGET_MANIFEST_JSON_SCHEMA.properties.regions.items.required).toEqual([
+      'id',
+      'kind',
+      'bounds',
+    ]);
+    expect(META_GLASSES_WIDGET_MANIFEST_JSON_SCHEMA.properties.actions.items.required).toEqual([
+      'id',
+      'method',
+      'backend_action_id',
+      'focusable',
+      'state_keys',
+    ]);
+    expect(META_GLASSES_WIDGET_MANIFEST_JSON_SCHEMA.properties.media.items.required).toEqual([
+      'id',
+      'region_id',
+      'type',
+      'transport',
+      'size_bytes',
+      'fallback_text',
+    ]);
+    expect(
+      META_GLASSES_WIDGET_MANIFEST_JSON_SCHEMA.properties.fallback.properties.when.contains,
+    ).toEqual({ const: 'dat_native_display_unavailable' });
+    expect(
+      META_GLASSES_WIDGET_MANIFEST_JSON_SCHEMA.properties.renderer_hints.properties.native_dat
+        .properties.fixed_viewport,
+    ).toEqual({ const: true });
   });
 
   it('supports non-render widget operations when declared by the descriptor', () => {
