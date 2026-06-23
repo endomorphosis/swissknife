@@ -318,6 +318,7 @@ export interface MetaGlassesMobileORBBindOptions {
 
 export interface MetaGlassesMobileORBBridgeAdapterOptions {
   backend?: MetaGlassesMobileORBBridgeBackend;
+  control_surface_policy_evaluator?: ControlSurfacePolicyEvaluator;
   operation_policies?: Record<string, ORBOperationPolicy>;
   control_surface_policy_evaluator?: ControlSurfacePolicyEvaluator;
   controlSurfacePolicyEvaluator?: ControlSurfacePolicyEvaluator;
@@ -549,8 +550,7 @@ export class MetaGlassesMobileORBBridgeAdapter {
     this.registerHandlers(this.localAdapter);
     this.router = new MCPCapabilityRouter({
       adapters: createDefaultORBAdapters(this.localAdapter),
-      control_surface_policy_evaluator: options.control_surface_policy_evaluator
-        ?? options.controlSurfacePolicyEvaluator,
+      control_surface_policy_evaluator: options.control_surface_policy_evaluator,
       operation_policies: createMetaGlassesMobileORBOperationPolicies(
         options.operation_policies,
       ),

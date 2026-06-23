@@ -2,10 +2,16 @@ import {
   LocalORBTransportAdapter,
   MCPCapabilityRouter,
   createDefaultORBAdapters,
+  type MCPCapabilityRouterOptions,
   type ORBDescriptorSource,
   type ORBStreamEvent,
 } from '../../src/services/mcp-orb-capability-router';
+import type {
+  ControlSurfacePolicyDecision,
+  ControlSurfacePolicyEvaluationRequest,
+} from '../../src/services/control-surface-mediator';
 import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp-ipfs-ui-descriptors';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
 
 const DATASET_INTERFACE_CID = 'sha256:dataset-fixture';
@@ -24,6 +30,17 @@ function source(): ORBDescriptorSource {
   return {
     cid: DATASET_INTERFACE_CID,
     descriptor: localDatasetDescriptor(),
+  };
+}
+
+function allowControlSurfaceEvaluation(request: ControlSurfacePolicyEvaluationRequest) {
+  return {
+    outcome: 'allow',
+    reasons: ['Test runtime policy evaluator allowed ORB invocation.'],
+    explanation: `Test runtime policy evaluator allowed ${request.interaction_envelope.normalized_intent.method}.`,
+    metadata: {
+      test_policy_evaluator: 'hallucinate_app.control_surface_mediator.evaluate_control_surface_interaction',
+    },
   };
 }
 
@@ -53,7 +70,10 @@ describe('MCP ORB capability router contracts', () => {
   it('denies default-deny descriptor operations when capabilities are missing', async () => {
     const local = new LocalORBTransportAdapter();
     local.registerHandler('browse', () => ({ entries: [] }));
-    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const router = new MCPCapabilityRouter({
+      adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
+    });
     const binding = await router.bind({
       descriptors: [source()],
       operation: 'browse',
@@ -71,6 +91,32 @@ describe('MCP ORB capability router contracts', () => {
     expect(response.receipt.operation).toBe('browse');
     expect(response.receipt.policy_decision.outcome).toBe('deny');
     expect(response.receipt.policy_decision.reasons).toContain('Missing capability: dataset/read');
+  });
+
+  it('fails closed before transport when no runtime control_surface evaluator is registered', async () => {
+    let handlerCalls = 0;
+    const local = new LocalORBTransportAdapter();
+    local.registerHandler('browse', () => {
+      handlerCalls += 1;
+      return { entries: [] };
+    });
+    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const binding = await router.bind({
+      descriptors: [source()],
+      operation: 'browse',
+    });
+
+    const response = await router.invoke({
+      handle: binding.handle,
+      input: { path: '/' },
+      context: { correlation_id: 'corr-fail-closed', capabilities: ['dataset/read'] },
+    });
+
+    expect(response.denied).toBe(true);
+    expect(handlerCalls).toBe(0);
+    expect(response.receipt.mediation_receipt?.policy_decision.outcome).toBe('require_confirmation');
+    expect(response.receipt.mediation_receipt?.policy_decision.metadata.fail_closed).toBe(true);
+    expect(response.receipt.policy_decision.reasons.join('\n')).toContain('no runtime policy evaluator is registered');
   });
 
   it('invokes local operations and emits descriptor-aware receipts', async () => {
@@ -92,7 +138,10 @@ describe('MCP ORB capability router contracts', () => {
         },
       },
     }));
-    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const router = new MCPCapabilityRouter({
+      adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
+    });
     const binding = await router.bind({
       descriptors: [source()],
       operation: 'browse',
@@ -129,7 +178,10 @@ describe('MCP ORB capability router contracts', () => {
       surfaces.push(String(context.control_surface?.surface ?? 'unknown'));
       return { entries: [], correlation_id: context.correlation_id };
     });
-    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const router = new MCPCapabilityRouter({
+      adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
+    });
     const binding = await router.bind({ descriptors: [source()], operation: 'browse' });
 
     for (const [surface, surface_event] of [
@@ -173,7 +225,10 @@ describe('MCP ORB capability router contracts', () => {
     if (browseBinding) {
       browseBinding.allowed_surfaces = ['voice'];
     }
-    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const router = new MCPCapabilityRouter({
+      adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
+    });
     const binding = await router.bind({
       descriptors: [{ cid: DATASET_INTERFACE_CID, descriptor }],
       operation: 'browse',
@@ -213,7 +268,10 @@ describe('MCP ORB capability router contracts', () => {
       };
       yield event;
     });
-    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const router = new MCPCapabilityRouter({
+      adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
+    });
     const binding = await router.bind({
       descriptors: [source()],
       operation: 'sync_status',
@@ -255,7 +313,10 @@ describe('MCP ORB capability router contracts', () => {
         received_at: '2026-05-21T00:00:01.000Z',
       };
     });
-    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const router = new MCPCapabilityRouter({
+      adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
+    });
     const binding = await router.bind({
       descriptors: [source()],
       operation: 'sync_status',
@@ -289,7 +350,10 @@ describe('MCP ORB capability router contracts', () => {
         received_at: '2026-05-21T00:00:02.000Z',
       };
     });
-    const router = new MCPCapabilityRouter({ adapters: createDefaultORBAdapters(local) });
+    const router = new MCPCapabilityRouter({
+      adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
+    });
     const binding = await router.bind({
       descriptors: [source()],
       operation: 'sync_status',
@@ -330,6 +394,7 @@ describe('MCP ORB capability router contracts', () => {
     local.registerHandler('browse', () => ({ entries: [] }));
     const router = new MCPCapabilityRouter({
       adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       operation_policies: {
         browse: {
           rate_limit: { max_invocations: 1, window_ms: 60_000 },
@@ -366,6 +431,7 @@ describe('MCP ORB capability router contracts', () => {
     });
     const router = new MCPCapabilityRouter({
       adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       operation_policies: {
         pin: {
           retry: { max_attempts: 2, backoff_ms: 0 },
@@ -391,6 +457,7 @@ describe('MCP ORB capability router contracts', () => {
     });
     const router = new MCPCapabilityRouter({
       adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       operation_policies: {
         get: {
           circuit_breaker: { failure_threshold: 1, cooldown_ms: 60_000 },
@@ -424,6 +491,7 @@ describe('MCP ORB capability router contracts', () => {
     });
     const router = new MCPCapabilityRouter({
       adapters: createDefaultORBAdapters(local),
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       operation_policies: {
         publish: {
           idempotency: { required: true, key_field: 'request_id' },

@@ -8,6 +8,7 @@ import {
   type MetaGlassesDisplayORBOperation,
   type MetaGlassesDisplayORBOperationOutput,
 } from '../../src/services/meta-glasses-display-orb-adapter';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
 import type { MetaGlassesWidgetDescriptor } from '../../src/services/meta-glasses-display-profile';
 
 const FIXTURE_PATH = join(
@@ -70,6 +71,14 @@ function outputOf(response: { output: unknown }): MetaGlassesDisplayORBOperation
   return response.output as MetaGlassesDisplayORBOperationOutput;
 }
 
+function allowControlSurfaceEvaluation(request: ControlSurfacePolicyEvaluationRequest) {
+  return {
+    outcome: 'allow',
+    reasons: ['Test runtime policy evaluator allowed display ORB invocation.'],
+    explanation: `Test runtime policy evaluator allowed ${request.interaction_envelope.normalized_intent.method}.`,
+  };
+}
+
 describe('Meta glasses display ORB adapter', () => {
   it('handles render/update/focus/activate/clear/reset/video/subscribe operations with receipts and mobile actions', async () => {
     const actions: MetaGlassesDisplayMobileAction[] = [];
@@ -81,7 +90,10 @@ describe('Meta glasses display ORB adapter', () => {
         metadata: { operation },
       };
     };
-    const adapter = new MetaGlassesDisplayORBAdapter({ bridge });
+    const adapter = new MetaGlassesDisplayORBAdapter({
+      bridge,
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
+    });
     const descriptor = displayDescriptor();
 
     const renderBinding = await bind(adapter, 'render_widget', descriptor);
@@ -201,6 +213,7 @@ describe('Meta glasses display ORB adapter', () => {
   it('denies operations by policy before they reach the mobile bridge', async () => {
     let bridgeCalls = 0;
     const adapter = new MetaGlassesDisplayORBAdapter({
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       bridge: () => {
         bridgeCalls += 1;
         return { ok: true, status: 'queued' };
@@ -230,6 +243,7 @@ describe('Meta glasses display ORB adapter', () => {
   it('requires render idempotency keys and caches successful idempotent results', async () => {
     let bridgeCalls = 0;
     const adapter = new MetaGlassesDisplayORBAdapter({
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       bridge: () => {
         bridgeCalls += 1;
         return { ok: true, status: 'rendered' };
@@ -263,6 +277,7 @@ describe('Meta glasses display ORB adapter', () => {
 
   it('applies rate limits to widget updates', async () => {
     const adapter = new MetaGlassesDisplayORBAdapter({
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       operation_policies: {
         update_widget: {
           authorization: { required_capabilities: ['display/widget'] },
@@ -305,6 +320,7 @@ describe('Meta glasses display ORB adapter', () => {
   it('retries stale display bridge failures before returning a receipt', async () => {
     let bridgeCalls = 0;
     const adapter = new MetaGlassesDisplayORBAdapter({
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       bridge: () => {
         bridgeCalls += 1;
         if (bridgeCalls === 1) {
@@ -329,6 +345,7 @@ describe('Meta glasses display ORB adapter', () => {
   it('opens circuit breakers after repeated display bridge failures', async () => {
     let bridgeCalls = 0;
     const adapter = new MetaGlassesDisplayORBAdapter({
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       bridge: () => {
         bridgeCalls += 1;
         throw new Error('display bridge unavailable');
@@ -363,6 +380,7 @@ describe('Meta glasses display ORB adapter', () => {
 
   it('recovers widget streams and suppresses stale stream generations', async () => {
     const adapter = new MetaGlassesDisplayORBAdapter({
+      control_surface_policy_evaluator: allowControlSurfaceEvaluation,
       stream_source: async function* () {
         yield { status: 'running', progress: 0.5 };
         yield { status: 'complete', progress: 1 };

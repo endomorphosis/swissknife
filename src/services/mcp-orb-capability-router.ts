@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import {
   control_surface_mediator,
+  type ControlSurfacePolicyEvaluator,
   type ControlSurfaceMediationResult,
   type ControlSurfaceMediationReceipt,
   type ControlSurfaceInteractionEnvelope,
@@ -273,7 +274,6 @@ export interface MCPCapabilityRouterOptions {
   adapters?: ORBTransportAdapter[];
   policy_hook?: ORBPolicyHook;
   control_surface_policy_evaluator?: ControlSurfacePolicyEvaluator;
-  controlSurfacePolicyEvaluator?: ControlSurfacePolicyEvaluator;
   operation_policies?: Record<string, ORBOperationPolicy>;
 }
 
@@ -435,7 +435,7 @@ export class MCPCapabilityRouter {
   constructor(options: MCPCapabilityRouterOptions = {}) {
     this.registry = options.registry;
     this.policyHook = options.policy_hook ?? (request => this.evaluateOperationPolicy(request));
-    this.controlSurfacePolicyEvaluator = options.control_surface_policy_evaluator ?? options.controlSurfacePolicyEvaluator;
+    this.controlSurfacePolicyEvaluator = options.control_surface_policy_evaluator;
 
     for (const [operation, policy] of Object.entries(options.operation_policies ?? {})) {
       this.operationPolicies.set(operation, policy);
@@ -454,7 +454,7 @@ export class MCPCapabilityRouter {
     this.operationPolicies.set(operation, policy);
   }
 
-  setControlSurfacePolicyEvaluator(policyEvaluator: ControlSurfacePolicyEvaluator | undefined): void {
+  setControlSurfacePolicyEvaluator(policyEvaluator?: ControlSurfacePolicyEvaluator): void {
     this.controlSurfacePolicyEvaluator = policyEvaluator;
   }
 
@@ -574,10 +574,12 @@ export class MCPCapabilityRouter {
     context: ORBInvocationContext = {},
   ): Promise<ORBPolicyDecision> {
     const binding = this.requireBinding(handle);
-    const mediation = await control_surface_mediator(
-      { binding, input, context },
-      { policyEvaluator: this.controlSurfacePolicyEvaluator },
-    );
+    const mediation = await control_surface_mediator({
+      binding,
+      input,
+      context,
+      policy_evaluator: this.controlSurfacePolicyEvaluator,
+    });
     const mediatedContext = {
       ...context,
       metadata: {

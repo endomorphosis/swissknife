@@ -1,6 +1,10 @@
 import {
   InterfaceRepository,
 } from './mcp-idl.js';
+import type {
+  ControlSurfacePolicyEvaluationRequest,
+  ControlSurfacePolicyEvaluator,
+} from './control-surface-mediator.js';
 import {
   LocalMCPInterfaceRegistryBackend,
   MCPInterfaceDiscoveryRegistry,
@@ -31,6 +35,7 @@ export interface GeneratedAppQualityGateOptions {
   invoke_operation?: string;
   stream_operation?: string;
   capabilities?: string[];
+  control_surface_policy_evaluator?: ControlSurfacePolicyEvaluator;
 }
 
 export interface GeneratedAppQualityGateReport {
@@ -124,6 +129,8 @@ export async function runGeneratedAppQualityGate(
 
   const router = new MCPCapabilityRouter({
     adapters: createDefaultORBAdapters(local),
+    control_surface_policy_evaluator: options.control_surface_policy_evaluator
+      ?? generatedAppQualityGatePolicyEvaluator,
     operation_policies: zeroBackoffRetryPolicies(descriptor),
   });
   const descriptorSource = {
@@ -192,6 +199,17 @@ export async function runGeneratedAppQualityGate(
     denial,
     stream,
     workflow,
+  };
+}
+
+function generatedAppQualityGatePolicyEvaluator(request: ControlSurfacePolicyEvaluationRequest) {
+  return {
+    outcome: 'allow',
+    reasons: ['Generated app quality gate registered a runtime control_surface policy evaluator.'],
+    explanation: `Generated app quality gate allowed ${request.interaction_envelope.normalized_intent.method}.`,
+    metadata: {
+      quality_gate_policy_evaluator: 'hallucinate_app.control_surface_mediator.evaluate_control_surface_interaction',
+    },
   };
 }
 
