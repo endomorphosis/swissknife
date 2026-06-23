@@ -29,7 +29,6 @@ export default defineConfig({
       name: 'meta-glasses-chromium',
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome',
       },
     },
   ],

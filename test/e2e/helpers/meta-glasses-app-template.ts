@@ -315,6 +315,13 @@ export async function renderDesktopAppThroughMetaGlassesOrb(
     };
   };
   const adapter = new MetaGlassesDisplayORBAdapter({ bridge });
+  adapter.router.setControlSurfacePolicyEvaluator(() => ({
+    outcome: 'allow',
+    reasons: ['Meta glasses Playwright launch gate permits deterministic display-widget render.'],
+    metadata: {
+      launch_gate: 'meta-glasses-virtual-os',
+    },
+  }));
   const binding = await adapter.bind({
     descriptor,
     operation: 'render_widget',
@@ -324,6 +331,7 @@ export async function renderDesktopAppThroughMetaGlassesOrb(
     binding.handle,
     {
       request_id: `render-${app.appId}`,
+      idempotency_key: `render-${app.appId}`,
       state,
       widget_id: manifest.widget_id,
     },
