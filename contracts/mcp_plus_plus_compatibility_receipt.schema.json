@@ -1,0 +1,350 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hallucinate.app/contracts/mcp_plus_plus_compatibility_receipt.schema.json",
+  "title": "mcp_plus_plus_compatibility_receipt",
+  "description": "HAO-445 compatibility receipt for Mcp-Plus-Plus protocol negotiation, capability descriptors, mediated tool calls, errors, receipts, and lifecycle events.",
+  "type": "object",
+  "required": [
+    "receipt_schema",
+    "task_id",
+    "session_id",
+    "daemon_id",
+    "server_package",
+    "protocol_negotiation",
+    "capability_descriptor",
+    "transport",
+    "tool_call",
+    "policy_contract",
+    "receipt_lineage",
+    "lifecycle_events"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "mcp_plus_plus_compatibility_receipt_v1"
+    },
+    "task_id": {
+      "const": "HAO-445"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "correlation_id": {
+      "type": "string"
+    },
+    "daemon_id": {
+      "type": "string",
+      "enum": ["ipfs-datasets", "ipfs-accelerate", "ipfs-kit"]
+    },
+    "server_package": {
+      "type": "string",
+      "enum": ["ipfs_datasets_py", "ipfs_accelerate_py", "ipfs_kit_py"]
+    },
+    "swissknife_consumer": {
+      "type": "string",
+      "description": "Descriptor pack, generated app, ORB route, or Swissknife surface that requested the capability."
+    },
+    "protocol_negotiation": {
+      "$ref": "#/$defs/protocolNegotiation"
+    },
+    "capability_descriptor": {
+      "$ref": "#/$defs/capabilityDescriptor"
+    },
+    "transport": {
+      "$ref": "#/$defs/transport"
+    },
+    "tool_call": {
+      "$ref": "#/$defs/toolCall"
+    },
+    "policy_contract": {
+      "$ref": "#/$defs/policyContract"
+    },
+    "error_contract": {
+      "$ref": "#/$defs/errorContract"
+    },
+    "receipt_lineage": {
+      "$ref": "#/$defs/receiptLineage"
+    },
+    "lifecycle_events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/lifecycleEvent"
+      }
+    },
+    "validated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "cid": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocolNegotiation": {
+      "type": "object",
+      "required": ["method", "protocol_version", "client_profiles", "server_profiles", "initialized"],
+      "properties": {
+        "method": {
+          "const": "initialize"
+        },
+        "protocol_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "client_profiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^mcp\\+\\+/"
+          }
+        },
+        "server_profiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^mcp\\+\\+/"
+          }
+        },
+        "negotiated_profiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^mcp\\+\\+/"
+          }
+        },
+        "initialized": {
+          "type": "boolean"
+        },
+        "downgrade_reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "capabilityDescriptor": {
+      "type": "object",
+      "required": ["descriptor_id", "interface_cid", "name", "namespace", "version", "methods", "requires", "compatibility_checked"],
+      "properties": {
+        "descriptor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interface_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "schema_hash": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "methods": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "compatibility_checked": {
+          "type": "boolean"
+        },
+        "compatibility_verdict": {
+          "type": "string",
+          "enum": ["compatible", "downgraded", "incompatible"]
+        },
+        "event_streams": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "transport": {
+      "type": "object",
+      "required": ["kind", "protocol_path"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["stdio", "http", "websocket", "mcp-server", "local", "orb", "mcp-p2p"]
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "protocol_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "auth_present": {
+          "type": "boolean"
+        },
+        "redaction_profile": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "toolCall": {
+      "type": "object",
+      "required": ["tool_name", "arguments_hash", "dispatch_allowed"],
+      "properties": {
+        "tool_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_category": {
+          "type": "string"
+        },
+        "upstream_function": {
+          "type": "string"
+        },
+        "jsonrpc_method": {
+          "type": "string"
+        },
+        "arguments_hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dispatch_allowed": {
+          "type": "boolean"
+        },
+        "upstream_status": {
+          "type": "string",
+          "enum": ["not_dispatched", "ok", "error", "timeout", "unavailable"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "policyContract": {
+      "type": "object",
+      "required": ["interaction_envelope_id", "policy_decision_id", "policy_outcome", "mediation_receipt_id"],
+      "properties": {
+        "interaction_envelope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_decision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_outcome": {
+          "type": "string",
+          "enum": ["allow", "deny", "require_confirmation", "defer", "rewrite", "fallback_surface", "rate_limit"]
+        },
+        "policy_receipt_id": {
+          "type": "string"
+        },
+        "mediation_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control_surface_contract_ref": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "errorContract": {
+      "type": "object",
+      "properties": {
+        "jsonrpc_code": {
+          "type": "integer"
+        },
+        "error_name": {
+          "type": "string"
+        },
+        "message_hash": {
+          "type": "string"
+        },
+        "policy_failure": {
+          "type": "boolean"
+        },
+        "fallback_path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "receiptLineage": {
+      "type": "object",
+      "required": ["receipt_cid"],
+      "properties": {
+        "envelope_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "artifact_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "event_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "decision_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "receipt_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "parent_receipt_cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "tool_receipt_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "lifecycleEvent": {
+      "type": "object",
+      "required": ["event", "at"],
+      "properties": {
+        "event": {
+          "type": "string",
+          "enum": [
+            "daemon_start",
+            "daemon_health",
+            "initialize",
+            "initialized",
+            "descriptor_refresh",
+            "invocation_queued",
+            "policy_decision",
+            "dispatch",
+            "upstream_result",
+            "upstream_error",
+            "receipt_emitted",
+            "daemon_stop",
+            "daemon_recovery"
+          ]
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string"
+        },
+        "receipt_cid": {
+          "$ref": "#/$defs/cid"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+
