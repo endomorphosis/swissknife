@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
   SWISSKNIFE_MCP_UI_PROFILE,
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
@@ -17,6 +19,15 @@ import {
   type MetaGlassesWidgetDescriptor,
 } from '../../src/services/meta-glasses-display-profile';
 import { META_GLASSES_DISPLAY_WIDGET_EXAMPLES } from '../fixtures/meta-glasses-display/valid-widget-examples';
+
+const VALID_TASK_PROGRESS_FIXTURE_PATH = join(
+  __dirname,
+  '../fixtures/meta-glasses-display/valid-task-progress-widget.json',
+);
+const INVALID_WIDGET_CASES_FIXTURE_PATH = join(
+  __dirname,
+  '../fixtures/meta-glasses-display/invalid-widget-cases.json',
+);
 
 const OBJECT_SCHEMA = {
   type: 'object',
@@ -38,6 +49,25 @@ const METHOD_NAMES = [
   ...META_GLASSES_REQUIRED_METHODS,
   'status_summary',
 ] as const;
+
+interface InvalidWidgetFixtureCase {
+  id: string;
+  expected_error_codes?: string[];
+  expected_codes?: string[];
+  descriptor: Partial<MetaGlassesWidgetDescriptor>;
+}
+
+function loadValidTaskProgressFixture(): MetaGlassesWidgetDescriptor {
+  return JSON.parse(
+    readFileSync(VALID_TASK_PROGRESS_FIXTURE_PATH, 'utf8'),
+  ) as MetaGlassesWidgetDescriptor;
+}
+
+function loadInvalidWidgetCases(): InvalidWidgetFixtureCase[] {
+  return JSON.parse(
+    readFileSync(INVALID_WIDGET_CASES_FIXTURE_PATH, 'utf8'),
+  ) as InvalidWidgetFixtureCase[];
+}
 
 function method(name: string) {
   return {
@@ -227,6 +257,30 @@ describe('Meta glasses display profile conformance', () => {
     (_name, descriptor) => {
       expect(validateMCPUIProfileDescriptor(descriptor).conformant).toBe(true);
       expect(validateMetaGlassesWidgetDescriptor(descriptor).conformant).toBe(true);
+    },
+  );
+
+  it('accepts the task progress descriptor fixture', () => {
+    const descriptor = loadValidTaskProgressFixture();
+
+    expect(validateMCPUIProfileDescriptor(descriptor).conformant).toBe(true);
+
+    const displayResult = validateMetaGlassesWidgetDescriptor(descriptor);
+    expect(displayResult.conformant).toBe(true);
+    expect(displayResult.errors).toEqual([]);
+    expect(() => assertMetaGlassesWidgetDescriptor(descriptor)).not.toThrow();
+  });
+
+  it.each(loadInvalidWidgetCases())(
+    'rejects invalid widget fixture case $id',
+    (fixtureCase) => {
+      const result = validateMetaGlassesWidgetDescriptor(fixtureCase.descriptor);
+      const expectedCodes = fixtureCase.expected_error_codes ?? fixtureCase.expected_codes ?? [];
+
+      expect(result.conformant).toBe(false);
+      expect(result.errors.map(error => error.code)).toEqual(
+        expect.arrayContaining(expectedCodes),
+      );
     },
   );
 
