@@ -4,6 +4,7 @@ import {
   type ControlSurfaceMediationResult,
   type ControlSurfaceMediationReceipt,
   type ControlSurfaceInteractionEnvelope,
+  type ControlSurfaceMediationResult,
   type ControlSurfacePolicyEvaluator,
 } from './control-surface-mediator.js';
 import type { InterfaceDescriptor, MethodSignature } from './mcp-idl.js';
@@ -273,7 +274,6 @@ export interface MCPCapabilityRouterOptions {
   adapters?: ORBTransportAdapter[];
   policy_hook?: ORBPolicyHook;
   control_surface_policy_evaluator?: ControlSurfacePolicyEvaluator;
-  controlSurfacePolicyEvaluator?: ControlSurfacePolicyEvaluator;
   operation_policies?: Record<string, ORBOperationPolicy>;
 }
 
@@ -435,7 +435,7 @@ export class MCPCapabilityRouter {
   constructor(options: MCPCapabilityRouterOptions = {}) {
     this.registry = options.registry;
     this.policyHook = options.policy_hook ?? (request => this.evaluateOperationPolicy(request));
-    this.controlSurfacePolicyEvaluator = options.control_surface_policy_evaluator ?? options.controlSurfacePolicyEvaluator;
+    this.controlSurfacePolicyEvaluator = options.control_surface_policy_evaluator;
 
     for (const [operation, policy] of Object.entries(options.operation_policies ?? {})) {
       this.operationPolicies.set(operation, policy);
@@ -454,8 +454,14 @@ export class MCPCapabilityRouter {
     this.operationPolicies.set(operation, policy);
   }
 
-  setControlSurfacePolicyEvaluator(policyEvaluator: ControlSurfacePolicyEvaluator | undefined): void {
-    this.controlSurfacePolicyEvaluator = policyEvaluator;
+  setControlSurfacePolicyEvaluator(policyEvaluator?: ControlSurfacePolicyEvaluator): void {
+    this.controlSurfacePolicyEvaluator = typeof policyEvaluator === 'function'
+      ? policyEvaluator
+      : undefined;
+  }
+
+  hasControlSurfacePolicyEvaluator(): boolean {
+    return typeof this.controlSurfacePolicyEvaluator === 'function';
   }
 
   getOperationPolicy(operation: string): ORBOperationPolicy | undefined {
@@ -576,7 +582,7 @@ export class MCPCapabilityRouter {
     const binding = this.requireBinding(handle);
     const mediation = await control_surface_mediator(
       { binding, input, context },
-      { policyEvaluator: this.controlSurfacePolicyEvaluator },
+      { policy_evaluator: this.controlSurfacePolicyEvaluator },
     );
     const mediatedContext = {
       ...context,
