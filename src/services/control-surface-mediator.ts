@@ -156,16 +156,19 @@ export interface ControlSurfaceMediationRequest {
 }
 
 export interface ControlSurfacePolicyEvaluationRequest {
-  evaluate_api: typeof HALLUCINATE_POLICY_EVALUATE_API;
+  evaluate_api: string;
   control_surface_contract_ref: string;
   control_surface_contract: ControlSurfaceContract;
   interaction_envelope: ControlSurfaceInteractionEnvelope;
   policy_bundle_ref: ControlSurfacePolicyBundleRef;
   compiled_policy_cid: string;
+  active_policy_bundle_refs?: ControlSurfacePolicyBundleRef[];
+  compiled_policy_cids?: string[];
   binding: ControlSurfaceORBLikeBinding;
   input: unknown;
   context: ControlSurfaceInvocationContext;
   descriptor_reasons: string[];
+  source?: string;
 }
 
 export type ControlSurfacePolicyEvaluator =
@@ -307,6 +310,13 @@ interface ControlSurfaceMediationBase {
   compiledPolicyCid: string;
   controlSurfaceContractRef: string;
   interactionEnvelope: ControlSurfaceInteractionEnvelope;
+}
+
+interface RuntimeDecisionDefaults {
+  method: string;
+  targetRef: string;
+  args: Record<string, unknown>;
+  selectedLogicBindings: ControlSurfaceLogicBinding[];
 }
 
 const DEFAULT_SURFACE_EVENTS: Record<string, string> = {
@@ -869,6 +879,8 @@ function policyEvaluationRequest(base: ControlSurfaceMediationBase): ControlSurf
     control_surface_contract: base.contract,
     control_surface_contract_ref: base.controlSurfaceContractRef,
     interaction_envelope: base.interactionEnvelope,
+    policy_bundle_ref: base.policyBundleRef,
+    compiled_policy_cid: base.compiledPolicyCid,
     active_policy_bundle_refs: uniquePolicyRefs([
       base.policyBundleRef,
       ...base.selectedLogicBindings.map(binding => binding.policy_bundle_ref),
@@ -877,6 +889,9 @@ function policyEvaluationRequest(base: ControlSurfaceMediationBase): ControlSurf
       base.compiledPolicyCid,
       ...base.selectedLogicBindings.map(binding => binding.compiled_policy_cid),
     ]),
+    binding: base.request.binding,
+    input: base.request.input,
+    context: base.request.context,
     descriptor_reasons: [...base.reasons],
     source: base.source,
   };
@@ -1249,7 +1264,7 @@ function normalizeControlSurfaceOutcome(value: unknown): ControlSurfaceOutcome {
   if (rawOutcome === 'block' || rawOutcome === 'blocked') {
     return 'deny';
   }
-  return CONTROL_SURFACE_OUTCOME_SET.has(rawOutcome ?? '')
+  return rawOutcome && CONTROL_SURFACE_OUTCOME_SET.has(rawOutcome as ControlSurfaceOutcome)
     ? rawOutcome as ControlSurfaceOutcome
     : DEFAULT_FAIL_CLOSED_OUTCOME;
 }
@@ -1324,7 +1339,7 @@ function normalizedEffects(
   explanation: string,
 ): ControlSurfacePolicyDecision['effects'] {
   const rawEffects = Array.isArray(value) ? value.filter(isRecord) : [];
-  const sources = rawEffects.length > 0 ? rawEffects : [{
+  const sources: Array<Record<string, unknown>> = rawEffects.length > 0 ? rawEffects : [{
     outcome,
     method: defaults.method,
     target_ref: defaults.targetRef,

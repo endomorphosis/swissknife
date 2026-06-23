@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
   SWISSKNIFE_MCP_UI_PROFILE,
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
@@ -17,6 +19,15 @@ import {
   type MetaGlassesWidgetDescriptor,
 } from '../../src/services/meta-glasses-display-profile';
 import { META_GLASSES_DISPLAY_WIDGET_EXAMPLES } from '../fixtures/meta-glasses-display/valid-widget-examples';
+
+const VALID_TASK_PROGRESS_WIDGET_PATH = join(
+  __dirname,
+  '../fixtures/meta-glasses-display/valid-task-progress-widget.json',
+);
+const INVALID_WIDGET_CASES_PATH = join(
+  __dirname,
+  '../fixtures/meta-glasses-display/invalid-widget-cases.json',
+);
 
 const OBJECT_SCHEMA = {
   type: 'object',
@@ -68,6 +79,10 @@ function permissions() {
   return Object.fromEntries(
     METHOD_NAMES.map(name => [name, ['display/widget']]),
   );
+}
+
+function readJsonFixture<T>(fixturePath: string): T {
+  return JSON.parse(readFileSync(fixturePath, 'utf8')) as T;
 }
 
 function baseDisplayProfile(
@@ -229,6 +244,46 @@ describe('Meta glasses display profile conformance', () => {
       expect(validateMetaGlassesWidgetDescriptor(descriptor).conformant).toBe(true);
     },
   );
+
+  it('accepts the task-progress JSON fixture as a hardware-free display widget descriptor', () => {
+    const descriptor = readJsonFixture<MetaGlassesWidgetDescriptor>(
+      VALID_TASK_PROGRESS_WIDGET_PATH,
+    );
+
+    const result = validateMetaGlassesWidgetDescriptor(descriptor);
+
+    expect(validateMCPUIProfileDescriptor(descriptor).conformant).toBe(true);
+    expect(result.conformant).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(descriptor.meta_glasses_display.fallback.when).toEqual(
+      expect.arrayContaining([
+        'dat_native_display_unavailable',
+        'display_unsupported',
+        'session_not_ready',
+      ]),
+    );
+  });
+
+  it('keeps invalid JSON fixture cases tied to stable display validation codes', () => {
+    const cases = readJsonFixture<Array<{
+      id: string;
+      expected_error_codes: string[];
+      descriptor: Partial<MetaGlassesWidgetDescriptor>;
+    }>>(INVALID_WIDGET_CASES_PATH);
+
+    expect(cases.map(entry => entry.id)).toEqual([
+      'unsafe-display-contract',
+      'missing-display-profile',
+    ]);
+
+    for (const entry of cases) {
+      const result = validateMetaGlassesWidgetDescriptor(entry.descriptor);
+      const codes = result.errors.map(error => error.code);
+
+      expect(result.conformant).toBe(false);
+      expect(codes).toEqual(expect.arrayContaining(entry.expected_error_codes));
+    }
+  });
 
   it('validates a display profile independently when MCP-IDL methods are provided', () => {
     const result = validateMetaGlassesDisplayProfile(
