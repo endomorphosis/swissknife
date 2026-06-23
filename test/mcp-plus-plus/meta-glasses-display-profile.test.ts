@@ -17,6 +17,8 @@ import {
   type MetaGlassesWidgetDescriptor,
 } from '../../src/services/meta-glasses-display-profile';
 import { META_GLASSES_DISPLAY_WIDGET_EXAMPLES } from '../fixtures/meta-glasses-display/valid-widget-examples';
+import validTaskProgressWidget from '../fixtures/meta-glasses-display/valid-task-progress-widget.json';
+import invalidWidgetCases from '../fixtures/meta-glasses-display/invalid-widget-cases.json';
 
 const OBJECT_SCHEMA = {
   type: 'object',
@@ -227,6 +229,38 @@ describe('Meta glasses display profile conformance', () => {
     (_name, descriptor) => {
       expect(validateMCPUIProfileDescriptor(descriptor).conformant).toBe(true);
       expect(validateMetaGlassesWidgetDescriptor(descriptor).conformant).toBe(true);
+    },
+  );
+
+  it('accepts the hardware-free task progress widget fixture', () => {
+    const descriptor = validTaskProgressWidget as MetaGlassesWidgetDescriptor;
+    const profile = descriptor[META_GLASSES_DISPLAY_PROFILE_PROPERTY];
+
+    expect(validateMCPUIProfileDescriptor(descriptor).conformant).toBe(true);
+    expect(validateMetaGlassesWidgetDescriptor(descriptor).conformant).toBe(true);
+    expect(profile.target).toMatchObject({
+      display_class: 'meta-ray-ban-display',
+      viewport: { width: 600, height: 600 },
+      render_path: 'dat-native',
+    });
+    expect(profile.layout.template).toBe('task-progress');
+    expect(profile.fallback.when).toEqual([
+      'dat_native_display_unavailable',
+      'display_unsupported',
+      'session_not_ready',
+    ]);
+  });
+
+  it.each(invalidWidgetCases)(
+    'rejects invalid widget fixture case $id',
+    (fixture) => {
+      const result = validateMetaGlassesWidgetDescriptor(
+        fixture.descriptor as Partial<MetaGlassesWidgetDescriptor>,
+      );
+      const codes = result.errors.map(error => error.code);
+
+      expect(result.conformant).toBe(false);
+      expect(codes).toEqual(expect.arrayContaining(fixture.expected_error_codes));
     },
   );
 
