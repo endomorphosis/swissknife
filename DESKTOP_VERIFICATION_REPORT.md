@@ -171,7 +171,7 @@ The SwissKnife virtual desktop application is **fully functional** and ready for
 4. 🤖 AI Chat
 5. 📁 Files - File Manager
 6. ⚡ Tasks - Task Manager
-7. 📋 Todo - Todo & Goals
+7. 📋 To-do - To-do & Goals
 8. 🧠 AI Models - Model Browser
 9. 🤗 Hugging Face - HuggingFace Hub
 10. 🔄 OpenRouter - OpenRouter Hub
