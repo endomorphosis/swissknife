@@ -147,6 +147,7 @@ import json
 import os
 import subprocess
 import sys
+import traceback
 
 # Define MCP protocol constants
 REQUEST_MESSAGE = "request"
@@ -205,7 +206,9 @@ class MCPServer:
                 except json.JSONDecodeError as e:
                     print(f"Error parsing message: {e}", file=sys.stderr)
                 except Exception as e:
-                    print(f"Error handling message: {e}", file=sys.stderr)
+                    print(f"Fatal error handling message: {e}", file=sys.stderr)
+                    print(traceback.format_exc(), file=sys.stderr)
+                    raise
         except KeyboardInterrupt:
             pass
         
