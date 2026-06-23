@@ -18,25 +18,6 @@ import {
 } from '../../src/services/meta-glasses-widget-compiler';
 import type { MetaGlassesWidgetDescriptor } from '../../src/services/meta-glasses-display-profile';
 
-jest.mock('crypto', () => {
-  const actual = jest.requireActual<typeof import('node:crypto')>('node:crypto');
-  return {
-    ...actual,
-    createHash: actual.createHash,
-    randomUUID: actual.randomUUID,
-    default: actual,
-  };
-});
-
-jest.mock('fs', () => {
-  const actual = jest.requireActual<typeof import('node:fs')>('node:fs');
-  return {
-    ...actual,
-    readFileSync: actual.readFileSync,
-    default: actual,
-  };
-});
-
 const FIXTURE_PATH = join(
   __dirname,
   '../fixtures/meta-glasses-display/valid-task-progress-widget.json',
