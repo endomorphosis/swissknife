@@ -1,6 +1,5 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { vi } from 'vitest';
 import {
   LocalMCPInterfaceRegistryBackend,
   MCPInterfaceDiscoveryRegistry,
@@ -19,8 +18,8 @@ import {
 } from '../../src/services/meta-glasses-widget-compiler';
 import type { MetaGlassesWidgetDescriptor } from '../../src/services/meta-glasses-display-profile';
 
-vi.mock('crypto', async () => {
-  const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto');
+jest.mock('crypto', () => {
+  const actual = jest.requireActual<typeof import('node:crypto')>('node:crypto');
   return {
     ...actual,
     createHash: actual.createHash,
@@ -29,8 +28,8 @@ vi.mock('crypto', async () => {
   };
 });
 
-vi.mock('fs', async () => {
-  const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+jest.mock('fs', () => {
+  const actual = jest.requireActual<typeof import('node:fs')>('node:fs');
   return {
     ...actual,
     readFileSync: actual.readFileSync,
