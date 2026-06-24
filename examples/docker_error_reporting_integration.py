@@ -29,34 +29,44 @@ def initialize_docker_error_reporting():
         ERROR_REPORTING_MAX_ISSUES: Maximum issues per hour
         ERROR_REPORTING_DEDUPE_WINDOW: Deduplication window in milliseconds
     """
-    try:
-        # Load configuration from environment
-        config = {
-            'enableReporting': os.environ.get('ERROR_REPORTING_ENABLED', 'false').lower() == 'true',
-            'reporterConfig': {
-                'enabled': os.environ.get('ERROR_REPORTING_ENABLED', 'false').lower() == 'true',
-                'githubToken': os.environ.get('GITHUB_TOKEN'),
-                'owner': os.environ.get('GITHUB_REPO_OWNER', 'endomorphosis'),
-                'repo': os.environ.get('GITHUB_REPO_NAME', 'swissknife'),
-                'labels': os.environ.get('ERROR_REPORTING_LABELS', 'auto-generated,bug,docker').split(','),
-                'maxIssuesPerHour': int(os.environ.get('ERROR_REPORTING_MAX_ISSUES', '10')),
-                'deduplicateWindow': int(os.environ.get('ERROR_REPORTING_DEDUPE_WINDOW', '3600000')),
-            }
+    reporting_enabled = os.environ.get('ERROR_REPORTING_ENABLED', 'false').lower() == 'true'
+
+    # Load configuration from environment. Invalid values should fail startup
+    # visibly; treating them as "not initialized" hides Docker configuration bugs.
+    config = {
+        'enableReporting': reporting_enabled,
+        'reporterConfig': {
+            'enabled': reporting_enabled,
+            'githubToken': os.environ.get('GITHUB_TOKEN'),
+            'owner': os.environ.get('GITHUB_REPO_OWNER', 'endomorphosis'),
+            'repo': os.environ.get('GITHUB_REPO_NAME', 'swissknife'),
+            'labels': os.environ.get('ERROR_REPORTING_LABELS', 'auto-generated,bug,docker').split(','),
+            'maxIssuesPerHour': _env_int('ERROR_REPORTING_MAX_ISSUES', 10),
+            'deduplicateWindow': _env_int('ERROR_REPORTING_DEDUPE_WINDOW', 3600000),
         }
+    }
 
-        # Initialize error handler
-        error_handler = initialize_error_reporting(config)
+    # Initialize error handler
+    error_handler = initialize_error_reporting(config)
 
-        if config['enableReporting']:
-            print('[Docker Container] Error reporting enabled - errors will be automatically reported to GitHub')
-        else:
-            print('[Docker Container] Error reporting disabled - set ERROR_REPORTING_ENABLED=true to enable')
+    if config['enableReporting']:
+        print('[Docker Container] Error reporting enabled - errors will be automatically reported to GitHub')
+    else:
+        print('[Docker Container] Error reporting disabled - set ERROR_REPORTING_ENABLED=true to enable')
 
-        return error_handler
+    return error_handler
 
-    except Exception as e:
-        print(f'[Docker Container] Failed to initialize error reporting: {e}')
-        return None
+
+def _env_int(name, default):
+    """Read an integer environment variable with a targeted error message."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise ValueError(f'{name} must be an integer, got {value!r}') from exc
 
 
 def report_docker_error(error, context=None):
