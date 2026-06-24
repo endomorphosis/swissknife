@@ -81,6 +81,9 @@ export const META_GLASSES_MOCK_BOUNDARY_STATES = [
 export type MetaGlassesMockBoundaryState =
   (typeof META_GLASSES_MOCK_BOUNDARY_STATES)[number];
 
+export const META_GLASSES_PLAYWRIGHT_FIXTURE_ID =
+  'mgw-519-meta-glasses-control-plane-playwright-fixture';
+
 export interface MetaGlassesControlPlaneEventEnvelope {
   contract: typeof META_GLASSES_MULTIMODAL_IO_CONTRACT;
   profile: typeof MCP_PLUS_PLUS_ENVELOPE_PROFILE;
@@ -114,6 +117,29 @@ export interface MetaGlassesControlPlaneEventEnvelope {
   };
   policy: Record<string, unknown>;
   receipts: string[];
+}
+
+export interface MetaGlassesControlPlanePlaywrightFixture {
+  task_id: 'MGW-519';
+  fixture_id: string;
+  description: string;
+  contract: typeof META_GLASSES_MULTIMODAL_IO_CONTRACT;
+  mock_boundary: typeof META_GLASSES_MULTIMODAL_IO_MOCK_BOUNDARY;
+  profile: typeof MCP_PLUS_PLUS_ENVELOPE_PROFILE;
+  playwright_ready: true;
+  edge_session: {
+    edge_session_id: string;
+    app_binding_id: string;
+    hardware_required: false;
+    paired_meta_glasses_required: false;
+  };
+  events: MetaGlassesControlPlaneEventEnvelope[];
+  replay_receipts: Array<{
+    receipt_cid: string;
+    correlation_id: string;
+    physical_dat_replay_target: 'Meta Wearables DAT device session';
+    preserve_for_dat_replay: true;
+  }>;
 }
 
 export function buildMetaGlassesControlPlaneEvent(
@@ -164,5 +190,139 @@ export function buildMetaGlassesControlPlaneEvent(
     },
     policy: input.policy ?? { outcome: 'allow', source: 'mock' },
     receipts: input.receipts ?? [],
+  };
+}
+
+export function buildMetaGlassesPlaywrightFixture(
+  input: {
+    fixture_id?: string;
+    edge_session_id?: string;
+    app_binding_id?: string;
+  } = {},
+): MetaGlassesControlPlanePlaywrightFixture {
+  const fixtureId = input.fixture_id ?? META_GLASSES_PLAYWRIGHT_FIXTURE_ID;
+  const edgeSessionId = input.edge_session_id ?? 'edge-session-mgw-519-playwright';
+  const appBindingId = input.app_binding_id ?? 'swissknife-app-binding-mgw-519';
+  const baseHandoff = {
+    ipfs_cids: ['bafy-mgw519-fixture-root'],
+    libp2p_peer_id: '12D3KooWMgw519FixturePeer',
+    libp2p_session_id: 'libp2p-mgw-519-playwright',
+  };
+  const scenarios: Array<{
+    event_type: MetaGlassesControlPlaneEventType;
+    device: MetaGlassesControlPlaneDevice;
+    correlation_id: string;
+    payload: Record<string, unknown>;
+    receipt_cid: string;
+  }> = [
+    {
+      event_type: 'camera.photo_ref',
+      device: 'camera',
+      correlation_id: 'corr-mgw519-camera',
+      payload: {
+        mode: 'photo',
+        cid: 'bafy-mgw519-camera-photo',
+        mime_type: 'image/jpeg',
+        redaction: 'content-addressed-reference-only',
+      },
+      receipt_cid: 'bafy-mgw519-receipt-camera',
+    },
+    {
+      event_type: 'microphone.transcript_ref',
+      device: 'microphone',
+      correlation_id: 'corr-mgw519-microphone',
+      payload: {
+        route: 'bluetooth-hfp',
+        transcript_cid: 'bafy-mgw519-microphone-transcript',
+        raw_audio: 'not_in_fixture',
+      },
+      receipt_cid: 'bafy-mgw519-receipt-microphone',
+    },
+    {
+      event_type: 'headphones.playback_state',
+      device: 'headphones',
+      correlation_id: 'corr-mgw519-headphones',
+      payload: {
+        route: 'bluetooth-a2dp',
+        state: 'playing',
+        spoken_summary: 'Task status rendered on Meta glasses.',
+      },
+      receipt_cid: 'bafy-mgw519-receipt-headphones',
+    },
+    {
+      event_type: 'display.action',
+      device: 'display',
+      correlation_id: 'corr-mgw519-display',
+      payload: {
+        widget_id: 'swissknife-playwright-status-widget',
+        action: 'render_widget',
+        render_path: 'display-webapp',
+      },
+      receipt_cid: 'bafy-mgw519-receipt-display',
+    },
+    {
+      event_type: 'Neural Band.intent',
+      device: 'Neural Band',
+      correlation_id: 'corr-mgw519-neural-band',
+      payload: {
+        intent: 'activate',
+        key: 'Enter',
+        confidence: 0.94,
+      },
+      receipt_cid: 'bafy-mgw519-receipt-neural-band',
+    },
+  ];
+
+  const events = scenarios.map(scenario => buildMetaGlassesControlPlaneEvent({
+    event_type: scenario.event_type,
+    device: scenario.device,
+    edge_session_id: edgeSessionId,
+    app_binding_id: appBindingId,
+    correlation_id: scenario.correlation_id,
+    payload: scenario.payload,
+    handoff: {
+      ...baseHandoff,
+      ipfs_cids: [
+        ...baseHandoff.ipfs_cids,
+        ...Object.entries(scenario.payload)
+          .filter(([key]) => key === 'cid' || key.endsWith('_cid'))
+          .map(([, value]) => String(value)),
+      ],
+    },
+    fallback: {
+      dat_available: false,
+      state: 'dat_unavailable',
+      reason: 'MGW-519 Playwright control-plane fixture runs without paired Meta glasses hardware.',
+    },
+    policy: {
+      outcome: 'allow',
+      source: 'mgw-519-playwright-fixture',
+      capabilities: [`${scenario.device}/mock`, 'control-plane/replay'],
+    },
+    receipts: [scenario.receipt_cid],
+  }));
+
+  return {
+    task_id: 'MGW-519',
+    fixture_id: fixtureId,
+    description:
+      'Meta glasses hardware-free control-plane mocks for Playwright and Swissknife app validation.',
+    contract: META_GLASSES_MULTIMODAL_IO_CONTRACT,
+    mock_boundary: META_GLASSES_MULTIMODAL_IO_MOCK_BOUNDARY,
+    profile: MCP_PLUS_PLUS_ENVELOPE_PROFILE,
+    playwright_ready: true,
+    edge_session: {
+      edge_session_id: edgeSessionId,
+      app_binding_id: appBindingId,
+      hardware_required: false,
+      paired_meta_glasses_required: false,
+    },
+    events,
+    replay_receipts: scenarios.map(scenario => ({
+      receipt_cid: scenario.receipt_cid,
+      correlation_id: scenario.correlation_id,
+      physical_dat_replay_target: 'Meta Wearables DAT device session',
+      preserve_for_dat_replay: true,
+    })),
   };
 }
