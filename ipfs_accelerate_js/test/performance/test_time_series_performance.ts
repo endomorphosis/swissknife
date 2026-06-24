@@ -1,4 +1,4 @@
-// FIXME: Complex template literal
+// Generated Python-to-TypeScript conversion artifact; see conversion header below.
 /**;
  * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_time_series_performance.py;"
  * Conversion date: 2025-03-11 04:08:36;
