@@ -1,4 +1,3 @@
-// FIXME: Complex template literal
 /**;
  * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_automated_hardware_compatibility.py;"
  * Conversion date: 2025-03-11 04:08:33;
