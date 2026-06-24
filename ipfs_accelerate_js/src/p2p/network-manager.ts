@@ -571,9 +571,22 @@ export class SwissKnifeP2PNetworkManager {
       connectedPeers: connectedPeers.length,
       networkRegions: this.calculateNetworkRegions(connectedPeers),
       averageLatency: 50, // TODO: Calculate real latency
-      bandwidth: 100, // TODO: Calculate real bandwidth
+      bandwidth: this.calculateAverageBandwidth(connectedPeers),
       reliability: 0.95 // TODO: Calculate real reliability
     }
+  }
+
+  private calculateAverageBandwidth(peers: MLPeer[]): number {
+    if (peers.length === 0) {
+      return 0
+    }
+
+    const totalBandwidth = peers.reduce(
+      (sum, peer) => sum + peer.capabilities.resources.networkBandwidth,
+      0
+    )
+
+    return totalBandwidth / peers.length
   }
 
   // Event system
