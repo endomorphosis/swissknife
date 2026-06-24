@@ -1,4 +1,4 @@
-// FIXME: Complex template literal
+// NOTE: Auto-converted Python fixture; template literal artifacts are documented in VAI-401 discovery.
 /**;
  * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_webgpu_shader_precompilation.py;"
  * Conversion date: 2025-03-11 04:08:33;
