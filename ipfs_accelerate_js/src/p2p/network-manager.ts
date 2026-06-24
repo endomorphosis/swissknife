@@ -31,6 +31,7 @@ export class SwissKnifeP2PNetworkManager {
   private heartbeatInterval: NodeJS.Timeout | null = null
   private isStarted: boolean = false
   private capabilities: PeerCapabilities | null = null
+  private peerLatencyMs: Map<string, number> = new Map()
 
   constructor(config: P2PConfig) {
     this.config = config
@@ -438,13 +439,17 @@ export class SwissKnifeP2PNetworkManager {
       // Remove peers that have been disconnected for too long
       if (timeSinceLastSeen > timeout * 3) {
         this.peers.delete(peerId)
+        this.peerLatencyMs.delete(peerId)
       }
     }
   }
 
   // Event handling methods
   private handleCapabilityAnnouncement(message: P2PMessage): void {
-    const peer = this.peers.get(message.from.toString())
+    const peerId = this.getPeerKey(message.from)
+    this.recordPeerLatency(peerId, message.timestamp)
+
+    const peer = this.peers.get(peerId)
     if (peer) {
       peer.capabilities = message.data.capabilities
       peer.lastSeen = new Date()
@@ -457,7 +462,10 @@ export class SwissKnifeP2PNetworkManager {
   }
 
   private handleHeartbeat(message: P2PMessage): void {
-    const peer = this.peers.get(message.from.toString())
+    const peerId = this.getPeerKey(message.from)
+    this.recordPeerLatency(peerId, message.timestamp)
+
+    const peer = this.peers.get(peerId)
     if (peer) {
       peer.lastSeen = new Date()
       peer.status = 'connected'
@@ -498,7 +506,7 @@ export class SwissKnifeP2PNetworkManager {
     return Array.from(regionsByKey.entries()).map(([regionId, regionPeers]) => ({
       id: regionId,
       peers: regionPeers.map(peer => peer.id),
-      averageLatency: 0,
+      averageLatency: this.calculateAverageLatency(regionPeers),
       totalCapacity: this.aggregateRegionCapabilities(regionPeers)
     }))
   }
@@ -565,15 +573,94 @@ export class SwissKnifeP2PNetworkManager {
 
   get networkTopology(): NetworkTopology {
     const connectedPeers = this.connectedPeers
+    const networkRegions = this.calculateNetworkRegions(connectedPeers)
 
     return {
       totalPeers: this.peers.size,
       connectedPeers: connectedPeers.length,
-      networkRegions: this.calculateNetworkRegions(connectedPeers),
-      averageLatency: 50, // TODO: Calculate real latency
-      bandwidth: 100, // TODO: Calculate real bandwidth
-      reliability: 0.95 // TODO: Calculate real reliability
+      networkRegions,
+      averageLatency: this.calculateAverageLatency(connectedPeers),
+      bandwidth: this.calculateAverageBandwidth(connectedPeers),
+      reliability: this.calculateNetworkReliability(connectedPeers)
     }
+  }
+
+  private calculateAverageLatency(peers: MLPeer[]): number {
+    const latencies = peers
+      .map(peer => this.peerLatencyMs.get(this.getPeerKey(peer.id)))
+      .filter((latency): latency is number => typeof latency === 'number')
+
+    if (latencies.length === 0) {
+      return 0
+    }
+
+    return latencies.reduce((sum, latency) => sum + latency, 0) / latencies.length
+  }
+
+  private calculateAverageBandwidth(peers: MLPeer[]): number {
+    if (peers.length === 0) {
+      return 0
+    }
+
+    const totalBandwidth = peers.reduce(
+      (sum, peer) => sum + peer.capabilities.resources.networkBandwidth,
+      0
+    )
+
+    return totalBandwidth / peers.length
+  }
+
+  private calculateNetworkReliability(peers: MLPeer[]): number {
+    if (peers.length === 0 || this.peers.size === 0) {
+      return 0
+    }
+
+    const now = Date.now()
+    const timeout = this.config.network.connectionTimeout
+    const freshPeers = peers.filter(peer => now - peer.lastSeen.getTime() <= timeout).length
+    const connectionRatio = peers.length / this.peers.size
+    const freshnessRatio = freshPeers / peers.length
+
+    return Math.min((connectionRatio + freshnessRatio) / 2, 1)
+  }
+
+  private recordPeerLatency(peerId: string, timestamp: Date | string): void {
+    if (!peerId) {
+      return
+    }
+
+    const sentAt = timestamp instanceof Date
+      ? timestamp.getTime()
+      : new Date(timestamp).getTime()
+
+    if (!Number.isFinite(sentAt)) {
+      return
+    }
+
+    const sample = Math.max(Date.now() - sentAt, 0)
+    const previous = this.peerLatencyMs.get(peerId)
+    const smoothed = previous === undefined
+      ? sample
+      : previous * 0.8 + sample * 0.2
+
+    this.peerLatencyMs.set(peerId, smoothed)
+  }
+
+  private getPeerKey(peerId: PeerId | { id?: string } | string): string {
+    if (typeof peerId === 'string') {
+      return peerId
+    }
+
+    const peerIdString = peerId?.toString()
+    if (peerIdString && peerIdString !== '[object Object]') {
+      return peerIdString
+    }
+
+    if ('id' in peerId && peerId.id) {
+      return peerId.id
+    }
+
+    return ''
   }
 
   // Event system
