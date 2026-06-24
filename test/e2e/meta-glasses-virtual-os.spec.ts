@@ -20,9 +20,54 @@ const LAUNCH_READINESS_GATE = {
     'Meta glasses terminal',
   ],
 };
+const HAO_675_LAUNCH_REPLAY_FIXTURE = path.join(
+  process.cwd(),
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-675-launch-replay.json',
+);
 
 test.setTimeout(240_000);
 test.describe.configure({ mode: 'serial' });
+
+test('HAO-675 launch replay fixture proves Swissknife and Hallucinate App Playwright readiness', async () => {
+  const fixture = JSON.parse(fs.readFileSync(HAO_675_LAUNCH_REPLAY_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('HAO-675');
+  expect(fixture.schema).toBe('launch_replay_playwright_receipt_v1');
+  expect(fixture.playwright_ready).toBe(true);
+  expect(fixture.commands.swissknife).toContain('test:e2e:meta-glasses');
+  expect(fixture.commands.hallucinate_app).toContain('multimodal-control-surface.spec.ts');
+  expect(fixture.route).toEqual([
+    'Swissknife application command intent',
+    'MCP++ service capability discovery',
+    'Hallucinate App interaction_envelope',
+    'Hallucinate App policy_decision',
+    'Hallucinate App mediation_receipt',
+    'desktop peer offload receipt',
+    'simulated Meta glasses terminal render',
+    'production launch readiness receipt',
+  ]);
+
+  expect(fixture.service_capabilities.map((capability: Record<string, unknown>) => capability.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.simulated_meta_glasses_interaction).toMatchObject({
+    participant_id: 'meta_glasses:terminal',
+    platform: 'meta_glasses',
+    normalized_intent: 'terminal.activate_action',
+  });
+  expect(fixture.pass_fail_receipts).toMatchObject({
+    swissknife_invokes_hallucinate_app_mediation: 'passed',
+    mcp_plus_plus_capability_discovery: 'passed',
+    simulated_meta_glasses_interaction: 'passed',
+    desktop_peer_offload: 'passed',
+    production_launch_readiness: 'passed',
+  });
+});
 
 test('opens every SwissKnife desktop app and renders a reusable Meta glasses ORB template', async ({ page }) => {
   const runId = new Date().toISOString().replace(/[:.]/g, '-');

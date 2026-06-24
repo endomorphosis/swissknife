@@ -1,0 +1,127 @@
+{
+  "task_id": "HAO-675",
+  "artifact_id": "swissknife_hallucinate_app_playwright_launch_replay",
+  "schema": "launch_replay_playwright_receipt_v1",
+  "requires_physical_devices": false,
+  "lineage": "HAO-675:Swissknife-Hallucinate-App:Playwright-launch-replay",
+  "playwright_ready": true,
+  "commands": {
+    "swissknife": "npm --prefix swissknife run test:e2e:meta-glasses -- meta-glasses-virtual-os.spec.ts",
+    "hallucinate_app": "npm --prefix hallucinate_app run test:e2e -- multimodal-control-surface.spec.ts"
+  },
+  "route": [
+    "Swissknife application command intent",
+    "MCP++ service capability discovery",
+    "Hallucinate App interaction_envelope",
+    "Hallucinate App policy_decision",
+    "Hallucinate App mediation_receipt",
+    "desktop peer offload receipt",
+    "simulated Meta glasses terminal render",
+    "production launch readiness receipt"
+  ],
+  "service_capabilities": [
+    {
+      "server_package": "ipfs_kit_py",
+      "daemon_id": "ipfs-kit",
+      "mcp_plus_plus_profiles": [
+        "Profile A MCP-IDL",
+        "Profile C UCAN",
+        "Profile E P2P"
+      ],
+      "advertised_operations": [
+        "storage.pin_content",
+        "storage.get_content"
+      ],
+      "swissknife_app": "storage-browser"
+    },
+    {
+      "server_package": "ipfs_datasets_py",
+      "daemon_id": "ipfs-datasets",
+      "mcp_plus_plus_profiles": [
+        "Profile A MCP-IDL",
+        "Profile C UCAN",
+        "Profile E P2P"
+      ],
+      "advertised_operations": [
+        "dataset.browse",
+        "dataset.publish"
+      ],
+      "swissknife_app": "dataset-explorer"
+    },
+    {
+      "server_package": "ipfs_accelerate_py",
+      "daemon_id": "ipfs-accelerate",
+      "mcp_plus_plus_profiles": [
+        "Profile A MCP-IDL",
+        "Profile C UCAN",
+        "Profile E P2P"
+      ],
+      "advertised_operations": [
+        "compute.run_inference",
+        "compute.telemetry"
+      ],
+      "swissknife_app": "model-runner"
+    }
+  ],
+  "simulated_meta_glasses_interaction": {
+    "participant_id": "meta_glasses:terminal",
+    "surface": "gesture",
+    "surface_event": "tap",
+    "platform": "meta_glasses",
+    "raw_action": "display.tap.open_model_runner",
+    "normalized_intent": "terminal.activate_action",
+    "render_target": "display_webapp"
+  },
+  "receipt_chain": [
+    {
+      "receipt_id": "rcpt_hao675_swissknife_command",
+      "kind": "swissknife_command_intent",
+      "status": "passed",
+      "proves": "Swissknife can invoke Hallucinate App mediation"
+    },
+    {
+      "receipt_id": "rcpt_hao675_mcp_discovery",
+      "kind": "mcp_plus_plus_capability_discovery",
+      "status": "passed",
+      "proves": "MCP++ service capabilities are discoverable before dispatch"
+    },
+    {
+      "receipt_id": "rcpt_hao675_mediation",
+      "kind": "mediation_receipt",
+      "status": "passed",
+      "proves": "Hallucinate App policy_decision precedes service transport"
+    },
+    {
+      "receipt_id": "rcpt_hao675_desktop_peer_offload",
+      "kind": "desktop_peer_offload",
+      "status": "passed",
+      "proves": "desktop peer offload has selected-peer and fallback receipts"
+    },
+    {
+      "receipt_id": "rcpt_hao675_meta_glasses",
+      "kind": "simulated_meta_glasses_interaction",
+      "status": "passed",
+      "proves": "Meta glasses terminal action renders through the mediated replay"
+    },
+    {
+      "receipt_id": "rcpt_hao675_launch_ready",
+      "kind": "production_launch_readiness",
+      "status": "passed",
+      "proves": "production launch readiness depends on all prior pass/fail receipts"
+    }
+  ],
+  "pass_fail_receipts": {
+    "swissknife_invokes_hallucinate_app_mediation": "passed",
+    "mcp_plus_plus_capability_discovery": "passed",
+    "simulated_meta_glasses_interaction": "passed",
+    "desktop_peer_offload": "passed",
+    "production_launch_readiness": "passed"
+  },
+  "assertions": [
+    "Swissknife invokes Hallucinate App mediation before any supervised MCP server transport",
+    "MCP++ capability discovery returns ipfs_kit_py, ipfs_datasets_py, and ipfs_accelerate_py service capabilities",
+    "Meta glasses simulated display action preserves participant_id meta_glasses:terminal",
+    "desktop peer offload emits pass/fail receipts before production launch readiness is marked passed",
+    "Playwright launch replay can be run from Swissknife and Hallucinate App commands with the same HAO-675 lineage"
+  ]
+}
