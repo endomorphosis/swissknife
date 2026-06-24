@@ -1,244 +1,285 @@
-// FIXME: Complex template literal
-/**;
- * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_hf_bros.py;"
- * Conversion date: 2025-03-11 04:08:51;
- * This file was automatically converted from Python to TypeScript.;
- * Conversion fidelity might not be 100%, please manual review recommended.;
- */;
-";"
-import {HfModel} from "src/model/transformers/index/index/index/index/index";"
-import {BrosConfig} from "src/model/transformers/index/index/index/index/index";"
+type BrosTask = "token-classification" | "key-information-extraction";
+type BrosClassName =
+  | "BrosModel"
+  | "BrosForTokenClassification"
+  | "BrosSpadeEEForTokenClassification"
+  | "BrosSpadeELForTokenClassification";
+type BrosDependency = "transformers" | "torch" | "tokenizers";
+type BrosDevice = "cpu" | "cuda" | "mps";
 
-// WebGPU related imports;
-// Test implementation for ((the bros model () {bros);
-// Generated on 2025-03-01 18) {40) {02;
-
-import * as module; from "*";"
-import * as module; from "*";"
-import * as module; from "*";"
-import * as module; from "*";"
-// Configure logging;
-// Import hardware detection capabilities if ((($1) {
-try ${$1} catch(error) { any)) { any {HAS_HARDWARE_DETECTION: any: any: any = false;
-// We'll detect hardware manually as fallback;'
-  logging.basicConfig()level = logging.INFO, format: any: any: any = '%()asctime)s - %()levelname)s - %()message)s');'
-  logger: any: any: any = logging.getLogger()__name__;}
-// Add parent directory to path for ((imports;
+interface HardwareCapabilities {
+  cpu: boolean;
+  cuda: boolean;
+  mps: boolean;
 }
-  parent_dir) { any) { any: any = Path()os.path.dirname()os.path.abspath()__file__)).parent;
-  test_dir: any: any: any = os.path.dirname()os.path.abspath()__file__));
 
-  sys.path.insert()0, str()parent_dir));
-  sys.path.insert()0, str()test_dir));
-// Import the hf_bros module ()create mock if ((($1) {
-try ${$1} catch(error) { any)) { any {
-// Create mock implementation;
-  class $1 extends $2 {
-    $1($2) {
-      this.resources = resources || {}
-      this.metadata = metadata || {}
-    $1($2) {
-// CPU implementation placeholder;
-      return null, null: any, lambda x: {}"output": "Mock CPU output for ((" + str() {model_name), "
-      "implementation_type") {"MOCK"}, null) { any, 1;"
-      
-    }
-    $1($2) {
-// CUDA implementation placeholder;
-      return null, null: any, lambda x: {}"output": "Mock CUDA output for ((" + str() {model_name), "
-      "implementation_type") {"MOCK"}, null) { any, 1;"
-      
-    }
-    $1($2) {
-// OpenVINO implementation placeholder;
-      return null, null: any, lambda x: {}"output": "Mock OpenVINO output for ((" + str() {model_name), "
-      "implementation_type") {"MOCK"}, null) { any, 1;"
-  
-    }
-      HAS_IMPLEMENTATION: any: any: any = false;
-      console.log($1)`$1`);
-
-  }
-class $1 extends $2 {/** Test implementation for ((bros model.}
-  This test ensures that the model can be properly initialized && used;
-  across multiple hardware backends () {CPU, CUDA) { any, OpenVINO). */;
-  
+interface BrosModelInfo {
+  description: string;
+  className: BrosClassName;
+  task: BrosTask;
+  requiresBbox: boolean;
 }
-  $1($2) {/** Initialize the test with custom resources || metadata if ((needed. */;
-    this.module = hf_bros() {resources, metadata) { any);}
-// Test data appropriate for (this model;
-    this.prepare_test_inputs());
-  ) {
-  $1($2) {
-    /** Prepare test inputs appropriate for this model type. */;
-    this.test_inputs = {}
-// Basic text inputs for most models;
-    this.test_inputs[]"text"] = "The quick brown fox jumps over the lazy dog.",;"
-    this.test_inputs[]"batch_texts"] = [],;"
-    "The quick brown fox jumps over the lazy dog.",;"
-    "A journey of a thousand miles begins with a single step.";"
-    ];
-    
-}
-// Add image input if ((($1) {
-    test_image) {any = this._find_test_image());}
-    if (($1) {
-      this.test_inputs[]"image"] = test_image;"
-      ,;
-// Add audio input if ($1) {
-      test_audio) { any) { any) { any = this._find_test_audio());
-    if ((($1) {
-      this.test_inputs[]"audio"] = test_audio;"
-      ,;
-  $1($2) {
-    /** Find a test image file in the project. */;
-    test_paths) { any) { any: any = []"test.jpg", "../test.jpg", "test/test.jpg"],;"
-    for ((const $1 of $2) {
-      if ((($1) {return path}
-    return null;
-    }
-  $1($2) {
-    /** Find a test audio file in the project. */;
-    test_paths) { any) { any) { any = []"test.mp3", "../test.mp3", "test/test.mp3"],;"
-    for ((const $1 of $2) {
-      if ((($1) {return path}
-    return null;
-    }
-  $1($2) {
-    /** Test CPU implementation. */;
-    try {
-// Choose an appropriate model name based on model type;
-      model_name) {any = this._get_default_model_name());}
-// Initialize on CPU;
-      _, _) { any, pred_fn, _) { any, _) {any = this.module.init_cpu()model_name=model_name);}
-// Make a test prediction;
-      result: any: any: any = pred_fn()this.test_inputs[]"text"]);"
-      ,;
-    return {}
-    "cpu_status": "Success ()" + result.get()'implementation_type', 'UNKNOWN') + ")";'
-    } catch(error: any): any {
-    return {}"cpu_status": "Failed: " + str()e)}"
-  $1($2) {
-    /** Test CUDA implementation. */;
-    try {
-// Check if ((CUDA is available;
-      import * as module) from "*"; {"
-      if (($1) {
-        return {}"cuda_status") {"Skipped ()CUDA !available)"}"
-// Choose an appropriate model name based on model type;
-        model_name) { any: any: any = this._get_default_model_name());
-      
-    }
-// Initialize on CUDA;
-        _, _: any, pred_fn, _: any, _: any: any: any = this.module.init_cuda()model_name=model_name);
-      
-  }
-// Make a test prediction;
-        result: any: any: any = pred_fn()this.test_inputs[]"text"]);"
-        ,;
-      return {}
-      "cuda_status": "Success ()" + result.get()'implementation_type', 'UNKNOWN') + ")";'
-      } catch(error: any): any {
-      return {}"cuda_status": "Failed: " + str()e)}"
-  $1($2) {
-    /** Test OpenVINO implementation. */;
-    try {
-// Check if ((($1) {
-      try ${$1} catch(error) { any)) { any {has_openvino: any: any: any = false;}
-      if ((($1) {
-        return {}"openvino_status") {"Skipped ()OpenVINO !available)"}"
-// Choose an appropriate model name based on model type;
-      }
-        model_name) { any: any: any = this._get_default_model_name());
-      
-    }
-// Initialize on OpenVINO;
-        _, _: any, pred_fn, _: any, _: any: any: any = this.module.init_openvino()model_name=model_name);
-      
-  }
-// Make a test prediction;
-        result: any: any: any = pred_fn()this.test_inputs[]"text"]);"
-        ,;
-        return {}
-        "openvino_status": "Success ()" + result.get()'implementation_type', 'UNKNOWN') + ")";'
-        } catch(error: any): any {
-        return {}"openvino_status": "Failed: " + str()e)}"
-  $1($2) {
-    /** Test batch processing capability. */;
-    try {// Choose an appropriate model name based on model type;
-      model_name: any: any: any = this._get_default_model_name());}
-// Initialize on CPU for ((batch testing;
-      _, _) { any, pred_fn, _: any, _) {any = this.module.init_cpu()model_name=model_name);}
-// Make a batch prediction;
-      result: any: any: any = pred_fn()this.test_inputs[]"batch_texts"]);"
-      ,;
-    return {}
-    "batch_status": "Success ()" + result.get()'implementation_type', 'UNKNOWN') + ")";'
-    } catch(error: any): any {
-    return {}"batch_status": "Failed: " + str()e)}"
-  
-  $1($2) {/** Get an appropriate default model name for ((testing. */;
-// This would be replaced with a suitable small model for the type;
-    return "test-model"  # Replace with an appropriate default}"
-  $1($2) {
-    /** Run all tests && return results. */;
-// Run all test methods;
-    cpu_results) {any = this.test_cpu());
-    cuda_results) { any: any: any = this.test_cuda());
-    openvino_results: any: any: any = this.test_openvino());
-    batch_results: any: any: any = this.test_batch());}
-// Combine results;
-    results: any: any: any = {}
-    results.update()cpu_results);
-    results.update()cuda_results);
-    results.update()openvino_results);
-    results.update()batch_results);
-    
-    return results;
-  
-  $1($2) {/** Default test entry point. */;
-// Run tests && save results;
-    test_results: any: any: any = this.run_tests());}
-// Create directories if ((they don't exist;'
-    base_dir) { any) { any: any = os.path.dirname()os.path.abspath()__file__));
-    expected_dir: any: any: any = os.path.join()base_dir, 'expected_results');'
-    collected_dir: any: any: any = os.path.join()base_dir, 'collected_results');'
-// Create directories with appropriate permissions:;
-    for ((directory in []expected_dir, collected_dir]) {,;
-      if ((($1) {
-        os.makedirs()directory, mode) { any) {any = 0o755, exist_ok) { any: any: any = true);}
-// Save collected results;
-        results_file: any: any: any = os.path.join()collected_dir, 'hf_bros_test_results.json');'
-    try ${$1} catch(error: any): any {console.log($1)"Error saving results to " + results_file + ": " + str()e))}"
-// Compare with expected results if ((they exist;
-    expected_file) { any) { any = os.path.join()expected_dir, 'hf_bros_test_results.json'):;'
-    if ((($1) {
-      try {
-        with open()expected_file, 'r') as f) {expected_results) { any: any: any = json.load()f);}'
-// Compare results;
-          all_match: any: any: any = true;
-        for (((const $1 of $2) {
-          if ((($1) {
-            console.log($1)"Missing result) { " + key);"
-            all_match) {any = false;} else if ((($1) {}
-          console.log($1)"Mismatch for (" + key + ") { expected " + str()expected_results[]key]) + ", got " + str()test_results[]key])),;"
-          all_match) { any) {any = false;}
-        if (($1) { ${$1} else { ${$1} catch(error) { any) ${$1} else {
-// Create expected results file if (($1) {
-      try ${$1} catch(error) { any)) { any {
-        console.log($1)"Error creating expected results file) {" + str()e))}"
-          return test_results;
 
-      }
-$1($2) {/** Command-line entry point. */;
-  test_instance: any: any: any = test_hf_bros());
-  results: any: any: any = test_instance.run_tests());}
-// Print results;
-        }
-  for ((key) { any, value in Object.entries($1) {)) {}
-    console.log($1)key + ": " + str()value));"
-  
-  return 0;
-;
-if ($1) {;
-  sys.exit()main());
+interface BrosPipelineInput {
+  inputIds: number[];
+  bbox: Array<[number, number, number, number]>;
+  attentionMask: number[];
+  boxFirstTokenMask?: boolean[];
+}
+
+interface BrosPipelineResult {
+  model: string;
+  device: BrosDevice;
+  task: BrosTask;
+  className: BrosClassName;
+  pipelineSuccess: boolean;
+  pipelineErrorType: "none" | "missing_dependency" | "invalid_input";
+  pipelineMissingCore?: BrosDependency[];
+  pipelineMissingDeps?: BrosDependency[];
+  inputTokenCount?: number;
+}
+
+const DEFAULT_BROS_MODEL_ID = "jinho8345/bros-base-uncased";
+const DEFAULT_DOCUMENT_WORDS = ["Invoice", "total", "$42.00"];
+
+const BROS_MODELS_REGISTRY: Record<string, BrosModelInfo> = {
+  [DEFAULT_BROS_MODEL_ID]: {
+    description: "BROS base model for document key information extraction",
+    className: "BrosModel",
+    task: "key-information-extraction",
+    requiresBbox: true,
+  },
+  "jinho8345/bros-base-uncased-token-classification": {
+    description: "BROS base model with token classification head",
+    className: "BrosForTokenClassification",
+    task: "token-classification",
+    requiresBbox: true,
+  },
+};
+
+function selectPreferredDevice(capabilities: HardwareCapabilities): BrosDevice {
+  if (capabilities.cuda) {
+    return "cuda";
+  }
+
+  if (capabilities.mps) {
+    return "mps";
+  }
+
+  return "cpu";
+}
+
+function loadBrosModelInfo(modelId = DEFAULT_BROS_MODEL_ID): BrosModelInfo {
+  const modelInfo = BROS_MODELS_REGISTRY[modelId];
+
+  if (!modelInfo) {
+    throw new Error(`Unknown BROS model: ${modelId}`);
+  }
+
+  return modelInfo;
+}
+
+function normalizeBbox(
+  bbox: [number, number, number, number],
+  documentWidth: number,
+  documentHeight: number,
+): [number, number, number, number] {
+  const [x0, y0, x1, y1] = bbox;
+
+  return [x0 / documentWidth, y0 / documentHeight, x1 / documentWidth, y1 / documentHeight];
+}
+
+function createBoxFirstTokenMask(words: string[], maxSequenceLength: number): boolean[] {
+  const mask = Array.from({ length: maxSequenceLength }, () => false);
+  let cursor = 1;
+
+  for (const word of words) {
+    if (cursor >= maxSequenceLength - 1) {
+      break;
+    }
+
+    mask[cursor] = true;
+    cursor += tokenizeWord(word).length;
+  }
+
+  return mask;
+}
+
+function tokenizeWord(word: string): string[] {
+  return word.trim().split(/\s+/).filter(Boolean);
+}
+
+function createPipelineInput(words = DEFAULT_DOCUMENT_WORDS): BrosPipelineInput {
+  const contentTokenCount = words.flatMap(tokenizeWord).length;
+  const inputIds = Array.from({ length: contentTokenCount + 2 }, (_, index) => index + 101);
+  const bbox = words.map((_, index) =>
+    normalizeBbox([10, 20 + index * 30, 210, 45 + index * 30], 1000, 1000),
+  );
+
+  return {
+    inputIds,
+    bbox,
+    attentionMask: Array.from({ length: inputIds.length }, () => 1),
+    boxFirstTokenMask: createBoxFirstTokenMask(words, inputIds.length),
+  };
+}
+
+function createPipelineResult(
+  modelId: string,
+  capabilities: HardwareCapabilities,
+  dependencies: Partial<Record<"transformers" | "torch" | "tokenizers", boolean>>,
+  input: BrosPipelineInput,
+): BrosPipelineResult {
+  const modelInfo = loadBrosModelInfo(modelId);
+  const baseResult = {
+    model: modelId,
+    device: selectPreferredDevice(capabilities),
+    task: modelInfo.task,
+    className: modelInfo.className,
+  };
+
+  if (!dependencies.transformers || !dependencies.torch) {
+    return {
+      ...baseResult,
+      pipelineSuccess: false,
+      pipelineErrorType: "missing_dependency",
+      pipelineMissingCore: [
+        ...(!dependencies.transformers ? ["transformers" as const] : []),
+        ...(!dependencies.torch ? ["torch" as const] : []),
+      ],
+    };
+  }
+
+  if (!dependencies.tokenizers) {
+    return {
+      ...baseResult,
+      pipelineSuccess: false,
+      pipelineErrorType: "missing_dependency",
+      pipelineMissingDeps: ["tokenizers"],
+    };
+  }
+
+  if (modelInfo.requiresBbox && input.bbox.length === 0) {
+    return {
+      ...baseResult,
+      pipelineSuccess: false,
+      pipelineErrorType: "invalid_input",
+    };
+  }
+
+  return {
+    ...baseResult,
+    pipelineSuccess: true,
+    pipelineErrorType: "none",
+    inputTokenCount: input.inputIds.length,
+  };
+}
+
+describe("BROS model conversion fixture", () => {
+  it("keeps the BROS model registry from the Python source", () => {
+    expect(Object.keys(BROS_MODELS_REGISTRY)).toEqual([
+      "jinho8345/bros-base-uncased",
+      "jinho8345/bros-base-uncased-token-classification",
+    ]);
+    expect(loadBrosModelInfo()).toEqual({
+      description: "BROS base model for document key information extraction",
+      className: "BrosModel",
+      task: "key-information-extraction",
+      requiresBbox: true,
+    });
+    expect(loadBrosModelInfo("jinho8345/bros-base-uncased-token-classification").className).toBe(
+      "BrosForTokenClassification",
+    );
+  });
+
+  it("rejects unknown BROS model identifiers explicitly", () => {
+    expect(() => loadBrosModelInfo("jinho8345/bros-large-uncased")).toThrow(
+      "Unknown BROS model: jinho8345/bros-large-uncased",
+    );
+  });
+
+  it("selects CUDA before MPS and falls back to CPU", () => {
+    expect(selectPreferredDevice({ cpu: true, cuda: true, mps: true })).toBe("cuda");
+    expect(selectPreferredDevice({ cpu: true, cuda: false, mps: true })).toBe("mps");
+    expect(selectPreferredDevice({ cpu: true, cuda: false, mps: false })).toBe("cpu");
+  });
+
+  it("builds normalized BROS layout inputs with first-token masks", () => {
+    const input = createPipelineInput(["Invoice", "total"]);
+
+    expect(input.inputIds).toHaveLength(4);
+    expect(input.attentionMask).toEqual([1, 1, 1, 1]);
+    expect(input.bbox).toEqual([
+      [0.01, 0.02, 0.21, 0.045],
+      [0.01, 0.05, 0.21, 0.075],
+    ]);
+    expect(input.boxFirstTokenMask).toEqual([false, true, true, false]);
+  });
+
+  it("reports missing transformers and torch as core dependency failures", () => {
+    const result = createPipelineResult(
+      DEFAULT_BROS_MODEL_ID,
+      { cpu: true, cuda: false, mps: false },
+      { transformers: false, torch: false, tokenizers: true },
+      createPipelineInput(),
+    );
+
+    expect(result).toMatchObject({
+      pipelineSuccess: false,
+      pipelineErrorType: "missing_dependency",
+      pipelineMissingCore: ["transformers", "torch"],
+    });
+  });
+
+  it("reports missing tokenizers separately from core runtime dependencies", () => {
+    const result = createPipelineResult(
+      DEFAULT_BROS_MODEL_ID,
+      { cpu: true, cuda: false, mps: false },
+      { transformers: true, torch: true, tokenizers: false },
+      createPipelineInput(),
+    );
+
+    expect(result).toMatchObject({
+      pipelineSuccess: false,
+      pipelineErrorType: "missing_dependency",
+      pipelineMissingDeps: ["tokenizers"],
+    });
+  });
+
+  it("requires bounding boxes for BROS pipeline inputs", () => {
+    const result = createPipelineResult(
+      DEFAULT_BROS_MODEL_ID,
+      { cpu: true, cuda: false, mps: false },
+      { transformers: true, torch: true, tokenizers: true },
+      {
+        inputIds: [101, 102],
+        bbox: [],
+        attentionMask: [1, 1],
+      },
+    );
+
+    expect(result).toMatchObject({
+      pipelineSuccess: false,
+      pipelineErrorType: "invalid_input",
+    });
+  });
+
+  it("builds a successful pipeline result for valid BROS inputs", () => {
+    const result = createPipelineResult(
+      DEFAULT_BROS_MODEL_ID,
+      { cpu: true, cuda: false, mps: false },
+      { transformers: true, torch: true, tokenizers: true },
+      createPipelineInput(),
+    );
+
+    expect(result).toEqual({
+      model: DEFAULT_BROS_MODEL_ID,
+      device: "cpu",
+      task: "key-information-extraction",
+      className: "BrosModel",
+      pipelineSuccess: true,
+      pipelineErrorType: "none",
+      inputTokenCount: 5,
+    });
+  });
+});
