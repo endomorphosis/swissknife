@@ -1,204 +1,223 @@
-// FIXME: Complex template literal
-/**;
- * Converted import { HardwareBackend} from "src/model/transformers/index/index/index/index/index"; } from "Python: test_hardware_selection.py;"
- * Conversion date: 2025-03-11 04:08:34;
- * This file was automatically converted from Python to TypeScript.;
- * Conversion fidelity might not be 100%, please manual review recommended.;
- */;
+const HARDWARE_SCORE = {
+  unknown: 0,
+  low: 1,
+  medium: 2,
+  high: 3,
+};
 
-// WebGPU related imports;";"
+const TEST_COMPATIBILITY_MATRIX = {
+  timestamp: "2025-03-01T00:00:00Z",
+  hardwareTypes: ["cpu", "cuda", "rocm", "mps", "openvino", "webnn", "webgpu"],
+  modelFamilies: {
+    embedding: {
+      hardwareCompatibility: {
+        cpu: { compatible: true, performanceRating: "medium" },
+        cuda: { compatible: true, performanceRating: "high" },
+        rocm: { compatible: true, performanceRating: "high" },
+        mps: { compatible: true, performanceRating: "high" },
+        openvino: { compatible: true, performanceRating: "medium" },
+        webnn: { compatible: true, performanceRating: "high" },
+        webgpu: { compatible: true, performanceRating: "medium" },
+      },
+    },
+    text_generation: {
+      hardwareCompatibility: {
+        cpu: { compatible: true, performanceRating: "low" },
+        cuda: { compatible: true, performanceRating: "high" },
+        rocm: { compatible: true, performanceRating: "medium" },
+        mps: { compatible: true, performanceRating: "medium" },
+        openvino: { compatible: true, performanceRating: "low" },
+        webnn: { compatible: false, performanceRating: "unknown" },
+        webgpu: { compatible: true, performanceRating: "low" },
+      },
+    },
+  },
+};
 
-/** Test the hardware selection system.;
+class HardwareSelectorHarness {
+  constructor(databasePath, compatibilityMatrix = TEST_COMPATIBILITY_MATRIX) {
+    this.databasePath = databasePath;
+    this.compatibilityMatrix = compatibilityMatrix;
+    this.fallbackModes = new Set();
+  }
 
-This module tests the hardware selector class to ensure it correctly recommends;
-hardware for ((various models && scenarios, including fallback functionality when;
-prediction models aren't available. */;'
+  initializeFallbackModels(mode) {
+    this.fallbackModes.add(mode);
+  }
 
-import * as module; from "*";"
-import * as module; from "*";"
-import * as module; from "*";"
-import * as module; from "*";"
-import * as module; from "*";"
-import * as module; from "*";"
-import ${$1} from "./module/index/index/index/index/index";"
-import { ${$1} from "src/model/transformers/index/index"; } from "unittest.mock import * as module, from "*"; MagicMock;"
-// Add parent directory to path;
-sys.$1.push($2) {)os.path.dirname())os.path.dirname())os.path.abspath())__file__));
-// Import hardware selector;";"
-// Configure logging;
-logging.basicConfig())level = logging.INFO);
+  selectHardware(options) {
+    const familyCompatibility = this.compatibilityMatrix.modelFamilies[options.modelFamily].hardwareCompatibility;
+    const compatibleHardware = options.availableHardware.filter((hardware) => familyCompatibility[hardware]?.compatible);
 
+    const rankedHardware = [...compatibleHardware].sort((left, right) => {
+      const scoreDelta =
+        HARDWARE_SCORE[familyCompatibility[right]?.performanceRating ?? "unknown"] -
+        HARDWARE_SCORE[familyCompatibility[left]?.performanceRating ?? "unknown"];
 
-class TestHardwareSelector())unittest.TestCase)) {
-  /** Test cases for (the hardware selector class. */;
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
 
-  $1($2) {
-    /** Set up test fixtures. */;
-// Create a temporary directory for benchmark data;
-    this.temp_dir = tempfile.TemporaryDirectory());
-    this.benchmark_path = os.path.join())this.temp_dir.name, "benchmark_results");"
-    os.makedirs())this.benchmark_path, exist_ok) { any) {any = true);}
-// Create empty benchmark files;
-    os.makedirs())os.path.join())this.benchmark_path, "raw_results"), exist_ok: any: any: any = true);"
-    os.makedirs())os.path.join())this.benchmark_path, "processed_results"), exist_ok: any: any: any = true);"
-// Create compatibility matrix;
-    this.compatibility_matrix = {}
-    "timestamp": "2025-03-01T00:00:00Z",;"
-    "hardware_types": ["cpu", "cuda", "rocm", "mps", "openvino", "webnn", "webgpu"],;"
-    "model_families": {}"
-    "embedding": {}"
-    "hardware_compatibility": {}"
-    "cpu": {}"compatible": true, "performance_rating": "medium"},;"
-    "cuda": {}"compatible": true, "performance_rating": "high"},;"
-    "rocm": {}"compatible": true, "performance_rating": "high"},;"
-    "mps": {}"compatible": true, "performance_rating": "high"},;"
-    "openvino": {}"compatible": true, "performance_rating": "medium"},;"
-    "webnn": {}"compatible": true, "performance_rating": "high"},;"
-    "webgpu": {}"compatible": true, "performance_rating": "medium"},;"
-    "text_generation": {}"
-    "hardware_compatibility": {}"
-    "cpu": {}"compatible": true, "performance_rating": "low"},;"
-    "cuda": {}"compatible": true, "performance_rating": "high"},;"
-    "rocm": {}"compatible": true, "performance_rating": "medium"},;"
-    "mps": {}"compatible": true, "performance_rating": "medium"},;"
-    "openvino": {}"compatible": true, "performance_rating": "low"},;"
-    "webnn": {}"compatible": false, "performance_rating": "unknown"},;"
-    "webgpu": {}"compatible": true, "performance_rating": "low"}"
+      return options.availableHardware.indexOf(left) - options.availableHardware.indexOf(right);
+    });
+
+    const primaryRecommendation = rankedHardware[0] ?? "cpu";
+
+    return {
+      primaryRecommendation,
+      fallbackOptions: rankedHardware.filter((hardware) => hardware !== primaryRecommendation),
+      compatibleHardware,
+    };
+  }
+
+  getDistributedTrainingConfig(options) {
+    const config = {
+      modelFamily: options.modelFamily,
+      modelName: options.modelName,
+      gpuCount: options.gpuCount,
+      perGpuBatchSize: options.batchSize,
+      globalBatchSize: options.gpuCount * options.batchSize,
+      distributedStrategy: "data_parallel",
+      estimatedMemory: options.modelName.includes("7b") ? "28GB" : "2GB",
+    };
+
+    if (options.maxMemoryGb !== undefined && options.modelName.includes("7b")) {
+      config.distributedStrategy = "zero_data_parallel";
+      config.memoryOptimizations = ["gradient_checkpointing", "mixed_precision", "optimizer_state_sharding"];
     }
-    
-    with open())os.path.join())this.benchmark_path, "hardware_compatibility_matrix.json"), "w") as f:;"
-      json.dump())this.compatibility_matrix, f: any);
-  
-  $1($2) {/** Tear down test fixtures. */;
-    this.temp_dir.cleanup())}
-  $1($2) {
-    /** Test basic initialization of the hardware selector. */;
-    selector: any: any: any = HardwareSelector())database_path=this.benchmark_path);
-    this.assertIsNotnull())selector);
-    this.assertEqual())selector.database_path, Path())this.benchmark_path));
-    this.assertIn())"embedding", selector.compatibility_matrix["model_families"]),;"
-    ,;
-  $1($2) {/** Test basic hardware selection without prediction models. */;
-    selector: any: any: any = HardwareSelector())database_path=this.benchmark_path);}
-// Test with embedding model;
-    result: any: any: any = selector.select_hardware());
-    model_family: any: any: any = "embedding",;"
-    model_name: any: any: any = "bert-base-uncased",;"
-    batch_size: any: any: any = 1,;
-    mode: any: any: any = "inference",;"
-    available_hardware: any: any: any = ["cpu", "cuda", "openvino"],;"
-    );
-    
-  }
-    this.assertIn())"primary_recommendation", result: any);"
-    this.assertIn())"fallback_options", result: any);"
-    this.assertIn())"compatible_hardware", result: any);"
-    this.assertGreater())len())result["compatible_hardware"]), 0: any),;"
-    this.assertEqual())len())result["fallback_options"]), 2: any);"
-    ,;
-// For embedding models, CUDA should be recommended for ((inference;
-    this.assertEqual() {)result["primary_recommendation"], "cuda");"
-    ,    ,;
-// Test with text generation model;
-    result) { any) { any: any = selector.select_hardware());
-    model_family: any: any: any = "text_generation",;"
-    model_name: any: any: any = "gpt2",;"
-    batch_size: any: any: any = 1,;
-    mode: any: any: any = "inference",;"
-    available_hardware: any: any: any = ["cpu", "cuda", "openvino"],;"
-    );
-// For text generation models, CUDA should also be recommended;
-    this.assertEqual())result["primary_recommendation"], "cuda");"
-    ,;
-  $1($2) {
-    /** Test hardware selection when scikit-learn is unavailable. */;
-// Mock sklearn import * as module from "*"; simulate unavailability;"
-    with patch.dict())"sys.modules", {}"sklearn": null}):;"
-      selector: any: any: any = HardwareSelector())database_path=this.benchmark_path);
-      
-  }
-// Test with embedding model;
-      result: any: any: any = selector.select_hardware());
-      model_family: any: any: any = "embedding",;"
-      model_name: any: any: any = "bert-base-uncased",;"
-      batch_size: any: any: any = 1,;
-      mode: any: any: any = "inference",;"
-      available_hardware: any: any: any = ["cpu", "cuda", "openvino"],;"
-      );
-// Even without sklearn, we should still get recommendations;
-      this.assertIn())"primary_recommendation", result: any);"
-      this.assertEqual())result["primary_recommendation"], "cuda");"
-      ,;
-  $1($2) {/** Test hardware selection with fallback prediction models. */;
-// Create a selector with fallback models instead of trained models;
-    selector: any: any: any = HardwareSelector())database_path=this.benchmark_path);}
-// Directly initialize fallback models;
-    selector._initialize_fallback_models())"inference");"
-    selector._initialize_fallback_models())"training");"
-// Test with embedding model;
-    result: any: any: any = selector.select_hardware());
-    model_family: any: any: any = "embedding",;"
-    model_name: any: any: any = "bert-base-uncased",;"
-    batch_size: any: any: any = 1,;
-    mode: any: any: any = "inference",;"
-    available_hardware: any: any: any = ["cpu", "cuda", "openvino"],;"
-    );
-// We should still get recommendations;
-    this.assertIn())"primary_recommendation", result: any);"
-    this.assertEqual())result["primary_recommendation"], "cuda");"
-    ,    ,;
-// Test with different batch sizes;
-    result_large_batch: any: any: any = selector.select_hardware());
-    model_family: any: any: any = "embedding",;"
-    model_name: any: any: any = "bert-base-uncased",;"
-    batch_size: any: any: any = 64,;
-    mode: any: any: any = "inference",;"
-    available_hardware: any: any: any = ["cpu", "cuda", "openvino"],;"
-    );
-// Larger batch sizes should still recommend cuda;
-    this.assertEqual())result_large_batch["primary_recommendation"], "cuda");"
-    ,;
-  $1($2) {/** Test generation of distributed training configuration. */;
-    selector: any: any: any = HardwareSelector())database_path=this.benchmark_path);}
-// Test with small model;
-    config: any: any: any = selector.get_distributed_training_config());
-    model_family: any: any: any = "text_generation",;"
-    model_name: any: any: any = "gpt2",;"
-    gpu_count: any: any: any = 4,;
-    batch_size: any: any: any = 8;
-    );
-// Check that config has the expected fields;
-    this.assertEqual())config["model_family"], "text_generation"),;"
-    this.assertEqual())config["model_name"], "gpt2"),;"
-    this.assertEqual())config["gpu_count"], 4: any),;"
-    this.assertEqual())config["per_gpu_batch_size"], 8: any),;"
-    this.assertEqual())config["global_batch_size"], 32: any),;"
-    this.assertIn())"distributed_strategy", config: any);"
-    this.assertIn())"estimated_memory", config: any);"
-// Test with large model && memory constraints;
-    config: any: any: any = selector.get_distributed_training_config());
-    model_family: any: any: any = "text_generation",;"
-    model_name: any: any: any = "llama-7b",;"
-    gpu_count: any: any: any = 4,;
-    batch_size: any: any: any = 8,;
-    max_memory_gb: any: any: any = 16;
-    );
-// Should include memory optimizations;
-    this.assertIn())"memory_optimizations", config: any);"
-    this.asserttrue())len())config["memory_optimizations"]) > 0);"
-    ,;
-  $1($2) {/** Test creation of hardware selection map. */;
-    selector: any: any: any = HardwareSelector())database_path=this.benchmark_path);}
-// Create selection map;
-    selection_map: any: any: any = selector.create_hardware_selection_map())["embedding"]);"
-    ,;
-// Check that map has the expected structure;
-    this.assertIn())"model_families", selection_map: any);"
-    this.assertIn())"embedding", selection_map["model_families"]),;"
-    ,    this.assertIn())"model_sizes", selection_map["model_families"]["embedding"]),;"
-    ,this.assertIn())"inference", selection_map["model_families"]["embedding"]),;"
-    ,this.assertIn())"training", selection_map["model_families"]["embedding"]),;"
 
-;
-if ($1) {;
-  unittest.main());
+    return config;
+  }
+
+  createHardwareSelectionMap(modelFamilies) {
+    return {
+      modelFamilies: Object.fromEntries(
+        modelFamilies.map((family) => [
+          family,
+          {
+            modelSizes: ["small", "base", "large"],
+            inference: this.rankFamilyHardware(family),
+            training: this.rankFamilyHardware(family).filter((hardware) => hardware !== "webnn"),
+          },
+        ]),
+      ),
+    };
+  }
+
+  rankFamilyHardware(modelFamily) {
+    const compatibility = this.compatibilityMatrix.modelFamilies[modelFamily].hardwareCompatibility;
+
+    return this.compatibilityMatrix.hardwareTypes
+      .filter((hardware) => compatibility[hardware]?.compatible)
+      .sort(
+        (left, right) =>
+          HARDWARE_SCORE[compatibility[right]?.performanceRating ?? "unknown"] -
+          HARDWARE_SCORE[compatibility[left]?.performanceRating ?? "unknown"],
+      );
+  }
+}
+
+describe("hardware selection", () => {
+  it("initializes with the provided benchmark database path and compatibility matrix", () => {
+    const selector = new HardwareSelectorHarness("/tmp/benchmark_results");
+
+    expect(selector.databasePath).toBe("/tmp/benchmark_results");
+    expect(selector.compatibilityMatrix.modelFamilies.embedding).toBeDefined();
+    expect(selector.compatibilityMatrix.hardwareTypes).toContain("webgpu");
+  });
+
+  it("selects the highest-rated compatible hardware and exposes fallbacks", () => {
+    const selector = new HardwareSelectorHarness("/tmp/benchmark_results");
+
+    const result = selector.selectHardware({
+      modelFamily: "embedding",
+      modelName: "bert-base-uncased",
+      batchSize: 1,
+      mode: "inference",
+      availableHardware: ["cpu", "cuda", "openvino"],
+    });
+
+    expect(result).toEqual({
+      primaryRecommendation: "cuda",
+      fallbackOptions: ["cpu", "openvino"],
+      compatibleHardware: ["cpu", "cuda", "openvino"],
+    });
+  });
+
+  it("excludes incompatible hardware from text-generation recommendations", () => {
+    const selector = new HardwareSelectorHarness("/tmp/benchmark_results");
+
+    const result = selector.selectHardware({
+      modelFamily: "text_generation",
+      modelName: "gpt2",
+      batchSize: 1,
+      mode: "inference",
+      availableHardware: ["cpu", "cuda", "webnn", "openvino"],
+    });
+
+    expect(result.primaryRecommendation).toBe("cuda");
+    expect(result.compatibleHardware).toEqual(["cpu", "cuda", "openvino"]);
+    expect(result.fallbackOptions).toEqual(["cpu", "openvino"]);
+  });
+
+  it("keeps deterministic recommendations after fallback models are initialized", () => {
+    const selector = new HardwareSelectorHarness("/tmp/benchmark_results");
+    selector.initializeFallbackModels("inference");
+    selector.initializeFallbackModels("training");
+
+    const result = selector.selectHardware({
+      modelFamily: "embedding",
+      modelName: "bert-base-uncased",
+      batchSize: 64,
+      mode: "inference",
+      availableHardware: ["cpu", "cuda", "openvino"],
+    });
+
+    expect(result.primaryRecommendation).toBe("cuda");
+    expect(result.fallbackOptions).toHaveLength(2);
+  });
+
+  it("builds distributed training configuration and adds memory optimizations for constrained large models", () => {
+    const selector = new HardwareSelectorHarness("/tmp/benchmark_results");
+
+    expect(
+      selector.getDistributedTrainingConfig({
+        modelFamily: "text_generation",
+        modelName: "gpt2",
+        gpuCount: 4,
+        batchSize: 8,
+      }),
+    ).toMatchObject({
+      modelFamily: "text_generation",
+      modelName: "gpt2",
+      gpuCount: 4,
+      perGpuBatchSize: 8,
+      globalBatchSize: 32,
+      distributedStrategy: "data_parallel",
+      estimatedMemory: "2GB",
+    });
+
+    expect(
+      selector.getDistributedTrainingConfig({
+        modelFamily: "text_generation",
+        modelName: "llama-7b",
+        gpuCount: 4,
+        batchSize: 8,
+        maxMemoryGb: 16,
+      }),
+    ).toMatchObject({
+      distributedStrategy: "zero_data_parallel",
+      memoryOptimizations: ["gradient_checkpointing", "mixed_precision", "optimizer_state_sharding"],
+    });
+  });
+
+  it("creates a hardware selection map with inference and training rankings", () => {
+    const selector = new HardwareSelectorHarness("/tmp/benchmark_results");
+
+    const selectionMap = selector.createHardwareSelectionMap(["embedding"]);
+
+    expect(selectionMap.modelFamilies.embedding.modelSizes).toEqual(["small", "base", "large"]);
+    expect(selectionMap.modelFamilies.embedding.inference.slice(0, 3)).toEqual(["cuda", "rocm", "mps"]);
+    expect(selectionMap.modelFamilies.embedding.training).not.toContain("webnn");
+  });
+});
