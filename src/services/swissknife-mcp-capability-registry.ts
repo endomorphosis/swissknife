@@ -36,6 +36,34 @@ export interface SwissknifeMCPMediationReceiptAliases {
   required_fields: string[];
 }
 
+export interface SwissknifeMCPLaunchContract {
+  source: 'HAO-674';
+  launch_owner: 'hallucinate_app.mcp_daemon_manager';
+  supervision_model: 'Hallucinate App starts, health-checks, restarts, and stops the Python MCP server';
+  daemon: {
+    startup_order: number;
+    entrypoint: string;
+    cwd: string;
+    port: number;
+    endpoint: string;
+    rpc_path: string;
+    health_path: string;
+  };
+  supervisor_api: string[];
+  mcp_plus_plus_advertisement: {
+    compatibility: 'MCP++';
+    profiles: string[];
+    descriptor_ref: string;
+    capability_operations: string[];
+  };
+  control_surface_route: {
+    invocation_authority: 'hallucinate_app.control_surface';
+    before_invoke_hook: string;
+    mediation_mode_flag: 'CONTROL_SURFACE_DAEMON_MEDIATION';
+    route: string[];
+  };
+}
+
 export interface SwissknifeMCPCapabilityDescriptor {
   server_package: SwissknifeMCPServerPackage;
   daemon_id: string;
@@ -53,6 +81,7 @@ export interface SwissknifeMCPCapabilityDescriptor {
     command_intents: SwissknifeMCPCommandIntent[];
     mediation_receipt_aliases: SwissknifeMCPMediationReceiptAliases;
   };
+  launch_contract: SwissknifeMCPLaunchContract;
 }
 
 const RECEIPT_REQUIRED_FIELDS = [
@@ -78,6 +107,58 @@ const RECEIPT_REQUIRED_FIELDS = [
 
 function descriptorId(descriptor: MCPUIProfileDescriptor): string {
   return `${descriptor.namespace}.${descriptor.name}@${descriptor.version}`;
+}
+
+function launchContract(options: {
+  startup_order: number;
+  entrypoint: string;
+  cwd: string;
+  port: number;
+  rpc_path: string;
+  health_path: string;
+  descriptor_ref: string;
+  capability_operations: string[];
+}): SwissknifeMCPLaunchContract {
+  return {
+    source: 'HAO-674',
+    launch_owner: 'hallucinate_app.mcp_daemon_manager',
+    supervision_model: 'Hallucinate App starts, health-checks, restarts, and stops the Python MCP server',
+    daemon: {
+      startup_order: options.startup_order,
+      entrypoint: options.entrypoint,
+      cwd: options.cwd,
+      port: options.port,
+      endpoint: `http://127.0.0.1:${options.port}`,
+      rpc_path: options.rpc_path,
+      health_path: options.health_path,
+    },
+    supervisor_api: [
+      'window.electronAPI.daemon.getLaunchPlan',
+      'window.electronAPI.daemon.getLaunchReceipts',
+      'window.electronAPI.daemon.checkHealth',
+      'window.electronAPI.daemon.startAll',
+      'window.electronAPI.daemon.stopAll',
+    ],
+    mcp_plus_plus_advertisement: {
+      compatibility: 'MCP++',
+      profiles: ['Profile A MCP-IDL', 'Profile C capability vocabulary', 'Profile E transport/session receipts'],
+      descriptor_ref: options.descriptor_ref,
+      capability_operations: options.capability_operations,
+    },
+    control_surface_route: {
+      invocation_authority: 'hallucinate_app.control_surface',
+      before_invoke_hook: 'hallucinate_app.node.control_surface_invocation.ControlSurfaceInvocationGate.beforeInvoke',
+      mediation_mode_flag: 'CONTROL_SURFACE_DAEMON_MEDIATION',
+      route: [
+        'Swissknife command intent',
+        'MCP++ capability descriptor',
+        'Hallucinate App interaction_envelope',
+        'control_surface policy_decision',
+        'mediation_receipt',
+        'supervised MCP server transport',
+      ],
+    },
+  };
 }
 
 export const swissknifeMCPCapabilityRegistry: SwissknifeMCPCapabilityDescriptor[] = [
@@ -122,6 +203,16 @@ export const swissknifeMCPCapabilityRegistry: SwissknifeMCPCapabilityDescriptor[
         required_fields: RECEIPT_REQUIRED_FIELDS,
       },
     },
+    launch_contract: launchContract({
+      startup_order: 20,
+      entrypoint: 'python -m ipfs_datasets_py.mcp_server --http --port 3002',
+      cwd: 'hallucinate_app/ipfs_datasets_py',
+      port: 3002,
+      rpc_path: '/mcp',
+      health_path: '/health',
+      descriptor_ref: descriptorId(ipfsDatasetsUIProfileDescriptor),
+      capability_operations: ['browse', 'get', 'index', 'pin', 'publish', 'sync_status'],
+    }),
   },
   {
     server_package: 'ipfs_accelerate_py',
@@ -160,6 +251,16 @@ export const swissknifeMCPCapabilityRegistry: SwissknifeMCPCapabilityDescriptor[
         required_fields: RECEIPT_REQUIRED_FIELDS,
       },
     },
+    launch_contract: launchContract({
+      startup_order: 30,
+      entrypoint: 'python -m ipfs_accelerate_py.cli mcp start --port 3003',
+      cwd: 'hallucinate_app/ipfs_accelerate_py',
+      port: 3003,
+      rpc_path: '/mcp',
+      health_path: '/health',
+      descriptor_ref: descriptorId(ipfsAccelerateUIProfileDescriptor),
+      capability_operations: ['hardware_profile', 'run_inference_job', 'job_status', 'telemetry'],
+    }),
   },
   {
     server_package: 'ipfs_kit_py',
@@ -207,6 +308,16 @@ export const swissknifeMCPCapabilityRegistry: SwissknifeMCPCapabilityDescriptor[
         required_fields: RECEIPT_REQUIRED_FIELDS,
       },
     },
+    launch_contract: launchContract({
+      startup_order: 10,
+      entrypoint: 'python -m ipfs_kit_py.cli mcp start',
+      cwd: 'hallucinate_app/ipfs_kit_py',
+      port: 3001,
+      rpc_path: '/mcp/tools/call',
+      health_path: '/health',
+      descriptor_ref: 'org.endomorphosis.ipfs_kit_py.ipfs-kit-storage-console@0.1.0',
+      capability_operations: ['add_content', 'get_content', 'pin_content', 'list_pins', 'backend_health'],
+    }),
   },
 ];
 
@@ -228,4 +339,34 @@ export function getSwissknifeMCPCommandIntent(
   return getSwissknifeMCPCapabilityDescriptor(serverPackage)
     ?.capability_descriptor.command_intents
     .find(commandIntent => commandIntent.intent === intent);
+}
+
+export function buildSwissknifeMCPMediatedInvocationPlan(
+  serverPackage: SwissknifeMCPServerPackage,
+  intent: string,
+): {
+  server_package: SwissknifeMCPServerPackage;
+  daemon_id: string;
+  tool_name: string;
+  normalized_method: string;
+  mcp_plus_plus_descriptor_ref: string;
+  control_surface_route: SwissknifeMCPLaunchContract['control_surface_route'];
+  required_receipt_fields: string[];
+} | undefined {
+  const descriptor = getSwissknifeMCPCapabilityDescriptor(serverPackage);
+  const commandIntent = descriptor?.capability_descriptor.command_intents
+    .find(candidate => candidate.intent === intent);
+  if (!descriptor || !commandIntent) {
+    return undefined;
+  }
+
+  return {
+    server_package: descriptor.server_package,
+    daemon_id: descriptor.daemon_id,
+    tool_name: commandIntent.tool_name,
+    normalized_method: commandIntent.normalized_method,
+    mcp_plus_plus_descriptor_ref: descriptor.launch_contract.mcp_plus_plus_advertisement.descriptor_ref,
+    control_surface_route: descriptor.launch_contract.control_surface_route,
+    required_receipt_fields: descriptor.capability_descriptor.mediation_receipt_aliases.required_fields,
+  };
 }
