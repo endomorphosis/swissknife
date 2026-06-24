@@ -1,0 +1,287 @@
+{
+  "task_id": "MGW-519",
+  "fixture_id": "mgw-519-meta-glasses-control-plane-playwright-fixture",
+  "description": "Meta glasses hardware-free control-plane mocks for Playwright and Swissknife app validation.",
+  "contract": "handsfree.meta-glasses/multimodal-io-control-plane@0.1.0",
+  "mock_boundary": "handsfree.meta-glasses/mock-multimodal-io-boundary@0.1.0",
+  "profile": "swissknife.mcp++/event-envelope@0.1.0",
+  "playwright_ready": true,
+  "edge_session": {
+    "edge_session_id": "edge-session-mgw-519-playwright",
+    "app_binding_id": "swissknife-app-binding-mgw-519",
+    "hardware_required": false,
+    "paired_meta_glasses_required": false
+  },
+  "events": [
+    {
+      "contract": "handsfree.meta-glasses/multimodal-io-control-plane@0.1.0",
+      "profile": "swissknife.mcp++/event-envelope@0.1.0",
+      "event_type": "camera.photo_ref",
+      "device": "camera",
+      "source": "hardware-free-mock",
+      "edge_session_id": "edge-session-mgw-519-playwright",
+      "app_binding_id": "swissknife-app-binding-mgw-519",
+      "correlation_id": "corr-mgw519-camera",
+      "payload": {
+        "mode": "photo",
+        "cid": "bafy-mgw519-camera-photo",
+        "mime_type": "image/jpeg",
+        "redaction": "content-addressed-reference-only"
+      },
+      "transport": {
+        "bluetooth": "route-state",
+        "wifi": "app-level-handoff"
+      },
+      "handoff": {
+        "ipfs_cids": [
+          "bafy-mgw519-fixture-root",
+          "bafy-mgw519-camera-photo"
+        ],
+        "libp2p_peer_id": "12D3KooWMgw519FixturePeer",
+        "libp2p_session_id": "libp2p-mgw-519-playwright",
+        "mcp_plus_plus_profile": "swissknife.mcp++/event-envelope@0.1.0"
+      },
+      "fallback": {
+        "dat_available": false,
+        "state": "dat_unavailable",
+        "reason": "MGW-519 Playwright control-plane fixture runs without paired Meta glasses hardware."
+      },
+      "control_plane": {
+        "route": "swissknife.mobile_orb.publish_glasses_event",
+        "operation": "publish_glasses_event"
+      },
+      "policy": {
+        "outcome": "allow",
+        "source": "mgw-519-playwright-fixture",
+        "capabilities": [
+          "camera/mock",
+          "control-plane/replay"
+        ]
+      },
+      "receipts": [
+        "bafy-mgw519-receipt-camera"
+      ]
+    },
+    {
+      "contract": "handsfree.meta-glasses/multimodal-io-control-plane@0.1.0",
+      "profile": "swissknife.mcp++/event-envelope@0.1.0",
+      "event_type": "microphone.transcript_ref",
+      "device": "microphone",
+      "source": "hardware-free-mock",
+      "edge_session_id": "edge-session-mgw-519-playwright",
+      "app_binding_id": "swissknife-app-binding-mgw-519",
+      "correlation_id": "corr-mgw519-microphone",
+      "payload": {
+        "route": "bluetooth-hfp",
+        "transcript_cid": "bafy-mgw519-microphone-transcript",
+        "raw_audio": "not_in_fixture"
+      },
+      "transport": {
+        "bluetooth": "route-state",
+        "wifi": "app-level-handoff"
+      },
+      "handoff": {
+        "ipfs_cids": [
+          "bafy-mgw519-fixture-root",
+          "bafy-mgw519-microphone-transcript"
+        ],
+        "libp2p_peer_id": "12D3KooWMgw519FixturePeer",
+        "libp2p_session_id": "libp2p-mgw-519-playwright",
+        "mcp_plus_plus_profile": "swissknife.mcp++/event-envelope@0.1.0"
+      },
+      "fallback": {
+        "dat_available": false,
+        "state": "dat_unavailable",
+        "reason": "MGW-519 Playwright control-plane fixture runs without paired Meta glasses hardware."
+      },
+      "control_plane": {
+        "route": "swissknife.mobile_orb.publish_glasses_event",
+        "operation": "publish_glasses_event"
+      },
+      "policy": {
+        "outcome": "allow",
+        "source": "mgw-519-playwright-fixture",
+        "capabilities": [
+          "microphone/mock",
+          "control-plane/replay"
+        ]
+      },
+      "receipts": [
+        "bafy-mgw519-receipt-microphone"
+      ]
+    },
+    {
+      "contract": "handsfree.meta-glasses/multimodal-io-control-plane@0.1.0",
+      "profile": "swissknife.mcp++/event-envelope@0.1.0",
+      "event_type": "headphones.playback_state",
+      "device": "headphones",
+      "source": "hardware-free-mock",
+      "edge_session_id": "edge-session-mgw-519-playwright",
+      "app_binding_id": "swissknife-app-binding-mgw-519",
+      "correlation_id": "corr-mgw519-headphones",
+      "payload": {
+        "route": "bluetooth-a2dp",
+        "state": "playing",
+        "spoken_summary": "Task status rendered on Meta glasses."
+      },
+      "transport": {
+        "bluetooth": "route-state",
+        "wifi": "app-level-handoff"
+      },
+      "handoff": {
+        "ipfs_cids": [
+          "bafy-mgw519-fixture-root"
+        ],
+        "libp2p_peer_id": "12D3KooWMgw519FixturePeer",
+        "libp2p_session_id": "libp2p-mgw-519-playwright",
+        "mcp_plus_plus_profile": "swissknife.mcp++/event-envelope@0.1.0"
+      },
+      "fallback": {
+        "dat_available": false,
+        "state": "dat_unavailable",
+        "reason": "MGW-519 Playwright control-plane fixture runs without paired Meta glasses hardware."
+      },
+      "control_plane": {
+        "route": "swissknife.mobile_orb.publish_glasses_event",
+        "operation": "publish_glasses_event"
+      },
+      "policy": {
+        "outcome": "allow",
+        "source": "mgw-519-playwright-fixture",
+        "capabilities": [
+          "headphones/mock",
+          "control-plane/replay"
+        ]
+      },
+      "receipts": [
+        "bafy-mgw519-receipt-headphones"
+      ]
+    },
+    {
+      "contract": "handsfree.meta-glasses/multimodal-io-control-plane@0.1.0",
+      "profile": "swissknife.mcp++/event-envelope@0.1.0",
+      "event_type": "display.action",
+      "device": "display",
+      "source": "hardware-free-mock",
+      "edge_session_id": "edge-session-mgw-519-playwright",
+      "app_binding_id": "swissknife-app-binding-mgw-519",
+      "correlation_id": "corr-mgw519-display",
+      "payload": {
+        "widget_id": "swissknife-playwright-status-widget",
+        "action": "render_widget",
+        "render_path": "display-webapp"
+      },
+      "transport": {
+        "bluetooth": "route-state",
+        "wifi": "app-level-handoff"
+      },
+      "handoff": {
+        "ipfs_cids": [
+          "bafy-mgw519-fixture-root"
+        ],
+        "libp2p_peer_id": "12D3KooWMgw519FixturePeer",
+        "libp2p_session_id": "libp2p-mgw-519-playwright",
+        "mcp_plus_plus_profile": "swissknife.mcp++/event-envelope@0.1.0"
+      },
+      "fallback": {
+        "dat_available": false,
+        "state": "dat_unavailable",
+        "reason": "MGW-519 Playwright control-plane fixture runs without paired Meta glasses hardware."
+      },
+      "control_plane": {
+        "route": "swissknife.mobile_orb.publish_glasses_event",
+        "operation": "publish_glasses_event"
+      },
+      "policy": {
+        "outcome": "allow",
+        "source": "mgw-519-playwright-fixture",
+        "capabilities": [
+          "display/mock",
+          "control-plane/replay"
+        ]
+      },
+      "receipts": [
+        "bafy-mgw519-receipt-display"
+      ]
+    },
+    {
+      "contract": "handsfree.meta-glasses/multimodal-io-control-plane@0.1.0",
+      "profile": "swissknife.mcp++/event-envelope@0.1.0",
+      "event_type": "Neural Band.intent",
+      "device": "Neural Band",
+      "source": "hardware-free-mock",
+      "edge_session_id": "edge-session-mgw-519-playwright",
+      "app_binding_id": "swissknife-app-binding-mgw-519",
+      "correlation_id": "corr-mgw519-neural-band",
+      "payload": {
+        "intent": "activate",
+        "key": "Enter",
+        "confidence": 0.94
+      },
+      "transport": {
+        "bluetooth": "route-state",
+        "wifi": "app-level-handoff"
+      },
+      "handoff": {
+        "ipfs_cids": [
+          "bafy-mgw519-fixture-root"
+        ],
+        "libp2p_peer_id": "12D3KooWMgw519FixturePeer",
+        "libp2p_session_id": "libp2p-mgw-519-playwright",
+        "mcp_plus_plus_profile": "swissknife.mcp++/event-envelope@0.1.0"
+      },
+      "fallback": {
+        "dat_available": false,
+        "state": "dat_unavailable",
+        "reason": "MGW-519 Playwright control-plane fixture runs without paired Meta glasses hardware."
+      },
+      "control_plane": {
+        "route": "swissknife.mobile_orb.publish_glasses_event",
+        "operation": "publish_glasses_event"
+      },
+      "policy": {
+        "outcome": "allow",
+        "source": "mgw-519-playwright-fixture",
+        "capabilities": [
+          "Neural Band/mock",
+          "control-plane/replay"
+        ]
+      },
+      "receipts": [
+        "bafy-mgw519-receipt-neural-band"
+      ]
+    }
+  ],
+  "replay_receipts": [
+    {
+      "receipt_cid": "bafy-mgw519-receipt-camera",
+      "correlation_id": "corr-mgw519-camera",
+      "physical_dat_replay_target": "Meta Wearables DAT device session",
+      "preserve_for_dat_replay": true
+    },
+    {
+      "receipt_cid": "bafy-mgw519-receipt-microphone",
+      "correlation_id": "corr-mgw519-microphone",
+      "physical_dat_replay_target": "Meta Wearables DAT device session",
+      "preserve_for_dat_replay": true
+    },
+    {
+      "receipt_cid": "bafy-mgw519-receipt-headphones",
+      "correlation_id": "corr-mgw519-headphones",
+      "physical_dat_replay_target": "Meta Wearables DAT device session",
+      "preserve_for_dat_replay": true
+    },
+    {
+      "receipt_cid": "bafy-mgw519-receipt-display",
+      "correlation_id": "corr-mgw519-display",
+      "physical_dat_replay_target": "Meta Wearables DAT device session",
+      "preserve_for_dat_replay": true
+    },
+    {
+      "receipt_cid": "bafy-mgw519-receipt-neural-band",
+      "correlation_id": "corr-mgw519-neural-band",
+      "physical_dat_replay_target": "Meta Wearables DAT device session",
+      "preserve_for_dat_replay": true
+    }
+  ]
+}
