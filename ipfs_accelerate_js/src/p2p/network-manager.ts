@@ -19,6 +19,7 @@ import type {
   P2PMessage, 
   P2PEvents, 
   NetworkTopology,
+  NetworkRegion,
   PeerCapabilities 
 } from './types.js'
 
@@ -484,11 +485,91 @@ export class SwissKnifeP2PNetworkManager {
     return Array.from(this.peers.values()).filter(peer => peer.status === 'connected')
   }
 
+  private calculateNetworkRegions(peers: MLPeer[]): NetworkRegion[] {
+    const regionsByKey = new Map<string, MLPeer[]>()
+
+    peers.forEach(peer => {
+      const regionKey = this.determineRegionKey(peer)
+      const regionPeers = regionsByKey.get(regionKey) || []
+      regionPeers.push(peer)
+      regionsByKey.set(regionKey, regionPeers)
+    })
+
+    return Array.from(regionsByKey.entries()).map(([regionId, regionPeers]) => ({
+      id: regionId,
+      peers: regionPeers.map(peer => peer.id),
+      averageLatency: 0,
+      totalCapacity: this.aggregateRegionCapabilities(regionPeers)
+    }))
+  }
+
+  private determineRegionKey(peer: MLPeer): string {
+    const capabilities = peer.capabilities
+
+    if (capabilities.gpu.available && capabilities.gpu.memory >= 4096) {
+      return 'gpu-high-memory'
+    }
+
+    if (capabilities.gpu.available) {
+      return 'gpu-standard'
+    }
+
+    if (capabilities.resources.cpuCores >= 8) {
+      return 'cpu-high-core'
+    }
+
+    return 'cpu-standard'
+  }
+
+  private aggregateRegionCapabilities(peers: MLPeer[]): PeerCapabilities {
+    const gpuPeer = peers.find(peer => peer.capabilities.gpu.available)
+    const supportedFeatures = new Set<string>()
+
+    peers.forEach(peer => {
+      peer.capabilities.gpu.supportedFeatures.forEach(feature => {
+        supportedFeatures.add(feature)
+      })
+    })
+
+    return {
+      gpu: {
+        available: peers.some(peer => peer.capabilities.gpu.available),
+        type: gpuPeer?.capabilities.gpu.type || 'webgpu',
+        memory: peers.reduce((sum, peer) => sum + peer.capabilities.gpu.memory, 0),
+        computeUnits: peers.reduce((sum, peer) => sum + peer.capabilities.gpu.computeUnits, 0),
+        supportedFeatures: Array.from(supportedFeatures)
+      },
+      frameworks: {
+        webgpu: peers.some(peer => peer.capabilities.frameworks.webgpu),
+        webnn: peers.some(peer => peer.capabilities.frameworks.webnn),
+        onnx: peers.some(peer => peer.capabilities.frameworks.onnx),
+        tensorflow: peers.some(peer => peer.capabilities.frameworks.tensorflow),
+        pytorch: peers.some(peer => peer.capabilities.frameworks.pytorch)
+      },
+      resources: {
+        cpuCores: peers.reduce((sum, peer) => sum + peer.capabilities.resources.cpuCores, 0),
+        totalMemory: peers.reduce((sum, peer) => sum + peer.capabilities.resources.totalMemory, 0),
+        availableMemory: peers.reduce((sum, peer) => sum + peer.capabilities.resources.availableMemory, 0),
+        networkBandwidth: peers.reduce((sum, peer) => sum + peer.capabilities.resources.networkBandwidth, 0),
+        storageSpace: peers.reduce((sum, peer) => sum + peer.capabilities.resources.storageSpace, 0)
+      },
+      operations: {
+        inference: peers.some(peer => peer.capabilities.operations.inference),
+        training: peers.some(peer => peer.capabilities.operations.training),
+        modelSharding: peers.some(peer => peer.capabilities.operations.modelSharding),
+        dataProcessing: peers.some(peer => peer.capabilities.operations.dataProcessing),
+        distributedCompute: peers.some(peer => peer.capabilities.operations.distributedCompute)
+      }
+    }
+  }
+
   get networkTopology(): NetworkTopology {
+    const connectedPeers = this.connectedPeers
+
     return {
       totalPeers: this.peers.size,
-      connectedPeers: this.connectedPeers.length,
-      networkRegions: [], // TODO: Implement region detection
+      connectedPeers: connectedPeers.length,
+      networkRegions: this.calculateNetworkRegions(connectedPeers),
       averageLatency: 50, // TODO: Calculate real latency
       bandwidth: 100, // TODO: Calculate real bandwidth
       reliability: 0.95 // TODO: Calculate real reliability
