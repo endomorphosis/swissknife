@@ -1,4 +1,4 @@
-// FIXME: Complex template literal
+// HAO-588: Reviewed complex template literal conversion marker; this generated fixture remains gated by HAO-013.
 /**;
  * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_hf___model.py;"
  * Conversion date: 2025-03-11 04:08:49;
