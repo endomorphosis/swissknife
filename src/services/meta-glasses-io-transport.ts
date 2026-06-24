@@ -60,6 +60,50 @@ export type MetaGlassesIOPrivacyRedactionStrategy =
   | 'privacy_filtered'
   | 'drop_payload';
 
+const RAW_TRANSPORT_SET = new Set<MetaGlassesIORawTransport>(['bluetooth', 'wifi']);
+const BRIDGE_PROVIDER_SET = new Set<MetaGlassesIOBridgeProvider>([
+  'phone-app',
+  'display-webapp',
+  'simulator',
+]);
+const BRIDGE_ROUTE_SET = new Set<MetaGlassesIOBridgeRoute>([
+  'phone-app.bluetooth-audio',
+  'phone-app.wifi-direct-handoff',
+  'phone-app.local-network-handoff',
+  'display-webapp.browser-bridge',
+  'simulator.hardware-free',
+]);
+const CONTROL_PLANE_ROUTE_SET = new Set<MetaGlassesIOControlPlaneRoute>([
+  'swissknife.mobile_orb.publish_glasses_event',
+  'swissknife.mobile_orb.request_capture',
+  'swissknife.webapp_bridge.publish_display_event',
+]);
+const PERMISSION_STATE_SET = new Set<MetaGlassesIOTransportPermissionState>([
+  'granted',
+  'prompt_required',
+  'denied',
+  'revoked',
+  'not_requested',
+]);
+const BACKPRESSURE_SET = new Set<MetaGlassesIOBackpressureState>([
+  'none',
+  'soft_limit',
+  'hard_limit',
+  'blocked',
+]);
+const APP_LAYER_STATE_SET = new Set<MetaGlassesIOAppLayerState>([
+  'provided_by_bridge',
+  'not_provided',
+  'unknown',
+]);
+const PRIVACY_REDACTION_SET = new Set<MetaGlassesIOPrivacyRedactionStrategy>([
+  'none',
+  'metadata_only',
+  'content_reference_only',
+  'privacy_filtered',
+  'drop_payload',
+]);
+
 export interface MetaGlassesIOTransportValidationIssue {
   code: MetaGlassesIOTransportValidationCode;
   path: string;
@@ -264,6 +308,9 @@ export function createMetaGlassesIOBridgeEnvelope(
       libp2p_peer_id: libp2pProvided
         ? input.libp2p_peer_id ?? `12D3KooW${rawTransport}BridgePeer`
         : undefined,
+      libp2p_remote_peer_id: libp2pProvided
+        ? `12D3KooW${rawTransport}MetaGlassesPeer`
+        : undefined,
       libp2p_session_id: libp2pProvided
         ? input.libp2p_session_id ?? `libp2p-session-${rawTransport}-mgw-366`
         : undefined,
@@ -372,10 +419,21 @@ export function validateMetaGlassesIOBridgeEnvelope(
   ) {
     push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.IDENTITY, 'identity', 'Device, session, binding, and correlation identity are required.');
   }
-  if (!envelope.route?.bridge_route || !envelope.route.raw_transport || !envelope.route.bridge_provider) {
+  if (
+    !envelope.route?.bridge_route
+    || !RAW_TRANSPORT_SET.has(envelope.route.raw_transport)
+    || !BRIDGE_PROVIDER_SET.has(envelope.route.bridge_provider)
+    || !BRIDGE_ROUTE_SET.has(envelope.route.bridge_route)
+    || !isBridgeRouteCompatible(envelope.route.raw_transport, envelope.route.bridge_provider, envelope.route.bridge_route)
+  ) {
     push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.BRIDGE_ROUTE, 'route', 'Bridge route metadata is required.');
   }
-  if (!envelope.route?.route_decision_id || !envelope.route.control_plane_route || !envelope.route.capability) {
+  if (
+    !envelope.route?.route_decision_id
+    || !CONTROL_PLANE_ROUTE_SET.has(envelope.route.control_plane_route)
+    || !envelope.route.capability
+    || !envelope.route.readiness
+  ) {
     push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.ROUTE_DECISION, 'route.route_decision_id', 'Control-plane route decision is required.');
   }
   if (envelope.route?.raw_transport_is_ipfs_libp2p_or_mcp !== false) {
@@ -387,6 +445,7 @@ export function validateMetaGlassesIOBridgeEnvelope(
   }
   if (
     !envelope.permission
+    || !PERMISSION_STATE_SET.has(envelope.permission.state)
     || !Array.isArray(envelope.permission.required_scopes)
     || !Array.isArray(envelope.permission.granted_scopes)
     || !Array.isArray(envelope.permission.denied_scopes)
@@ -398,7 +457,7 @@ export function validateMetaGlassesIOBridgeEnvelope(
     || envelope.flow_control.latency_ms < 0
     || envelope.flow_control.queued_bytes < 0
     || envelope.flow_control.dropped_messages < 0
-    || !envelope.flow_control.backpressure
+    || !BACKPRESSURE_SET.has(envelope.flow_control.backpressure)
   ) {
     push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.FLOW_CONTROL, 'flow_control', 'Latency, backpressure, and queue counters must be valid.');
   }
@@ -407,6 +466,7 @@ export function validateMetaGlassesIOBridgeEnvelope(
     || envelope.payload_limits.max_payload_bytes <= 0
     || envelope.payload_limits.max_content_cid_count <= 0
     || envelope.payload_limits.chunking_required_above_bytes <= 0
+    || envelope.payload_limits.max_content_cid_count < (envelope.content?.length ?? 0)
   ) {
     push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.PAYLOAD_LIMITS, 'payload_limits', 'Payload size limits must be positive.');
   }
@@ -417,13 +477,25 @@ export function validateMetaGlassesIOBridgeEnvelope(
   ) {
     push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.CONTENT_CIDS, 'content', 'Content references must include valid CIDs.');
   }
+  if (
+    !envelope.app_layers
+    || !APP_LAYER_STATE_SET.has(envelope.app_layers.ipfs)
+    || !APP_LAYER_STATE_SET.has(envelope.app_layers.libp2p)
+    || !APP_LAYER_STATE_SET.has(envelope.app_layers.mcp_plus_plus)
+  ) {
+    push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.APP_LAYER_BOUNDARY, 'app_layers', 'Bridge app-layer availability must be declared.');
+  }
   if (envelope.app_layers?.libp2p === 'not_provided' && (
-    envelope.app_layers.libp2p_peer_id || envelope.app_layers.libp2p_session_id
+    envelope.app_layers.libp2p_peer_id
+    || envelope.app_layers.libp2p_remote_peer_id
+    || envelope.app_layers.libp2p_session_id
   )) {
     push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.APP_LAYER_BOUNDARY, 'app_layers.libp2p_peer_id', 'libp2p peer metadata requires bridge-provided libp2p.');
   }
   if (envelope.app_layers?.libp2p === 'provided_by_bridge' && (
-    !envelope.app_layers.libp2p_peer_id || !envelope.app_layers.libp2p_session_id
+    !envelope.app_layers.libp2p_peer_id
+    || !envelope.app_layers.libp2p_remote_peer_id
+    || !envelope.app_layers.libp2p_session_id
   )) {
     push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.APP_LAYER_BOUNDARY, 'app_layers.libp2p', 'Bridge-provided libp2p requires peer and session IDs.');
   }
@@ -441,7 +513,7 @@ export function validateMetaGlassesIOBridgeEnvelope(
   if (
     !envelope.privacy
     || !Array.isArray(envelope.privacy.redacted_fields)
-    || !envelope.privacy.strategy
+    || !PRIVACY_REDACTION_SET.has(envelope.privacy.strategy)
     || !envelope.privacy.reason
   ) {
     push(META_GLASSES_IO_TRANSPORT_ERROR_CODES.PRIVACY_REDACTION, 'privacy', 'Privacy redaction metadata is required.');
@@ -488,6 +560,27 @@ export function assertMetaGlassesIOBridgeEnvelope(
   if (!result.conformant) {
     throw new Error(result.errors.map(error => `${error.path}: ${error.message}`).join('; '));
   }
+}
+
+function isBridgeRouteCompatible(
+  rawTransport: MetaGlassesIORawTransport,
+  bridgeProvider: MetaGlassesIOBridgeProvider,
+  bridgeRoute: MetaGlassesIOBridgeRoute,
+): boolean {
+  if (bridgeProvider === 'simulator') {
+    return bridgeRoute === 'simulator.hardware-free';
+  }
+  if (bridgeProvider === 'display-webapp') {
+    return rawTransport === 'wifi' && bridgeRoute === 'display-webapp.browser-bridge';
+  }
+  if (bridgeRoute === 'phone-app.bluetooth-audio') {
+    return rawTransport === 'bluetooth';
+  }
+  return rawTransport === 'wifi'
+    && (
+      bridgeRoute === 'phone-app.wifi-direct-handoff'
+      || bridgeRoute === 'phone-app.local-network-handoff'
+    );
 }
 
 function defaultBridgeRoute(

@@ -64,8 +64,10 @@ describe('Meta glasses I/O bridge transport envelopes', () => {
 
     expect(bluetooth.app_layers.libp2p).toBe('not_provided');
     expect(bluetooth.app_layers.libp2p_peer_id).toBeUndefined();
+    expect(bluetooth.app_layers.libp2p_remote_peer_id).toBeUndefined();
     expect(wifi.app_layers.libp2p).toBe('provided_by_bridge');
     expect(wifi.app_layers.libp2p_peer_id).toMatch(/^12D3KooW/);
+    expect(wifi.app_layers.libp2p_remote_peer_id).toMatch(/^12D3KooW/);
     expect(wifi.app_layers.libp2p_session_id).toContain('libp2p-session');
   });
 
@@ -100,6 +102,7 @@ describe('Meta glasses I/O bridge transport envelopes', () => {
         ...envelope.app_layers,
         libp2p: 'not_provided',
         libp2p_peer_id: '12D3KooWInvalidRawBluetoothPeer',
+        libp2p_remote_peer_id: '12D3KooWInvalidRawBluetoothRemotePeer',
         libp2p_session_id: 'libp2p-session-raw-bluetooth',
       },
     };
@@ -112,6 +115,30 @@ describe('Meta glasses I/O bridge transport envelopes', () => {
         expect.objectContaining({
           code: META_GLASSES_IO_TRANSPORT_ERROR_CODES.APP_LAYER_BOUNDARY,
           path: 'app_layers.libp2p_peer_id',
+        }),
+      ]),
+    );
+  });
+
+  it('rejects bridge routes that do not match the declared raw transport', () => {
+    const envelope = createMetaGlassesIOBridgeEnvelope({ raw_transport: 'bluetooth' });
+    const broken: MetaGlassesIOBridgeEnvelope = {
+      ...envelope,
+      route: {
+        ...envelope.route,
+        bridge_provider: 'display-webapp',
+        bridge_route: 'display-webapp.browser-bridge',
+      },
+    };
+
+    const result = validateMetaGlassesIOBridgeEnvelope(broken);
+
+    expect(result.conformant).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: META_GLASSES_IO_TRANSPORT_ERROR_CODES.BRIDGE_ROUTE,
+          path: 'route',
         }),
       ]),
     );
