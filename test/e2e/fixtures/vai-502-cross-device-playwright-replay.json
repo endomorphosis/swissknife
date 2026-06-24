@@ -1,0 +1,46 @@
+{
+  "schema": "cross_device_virtual_desktop_playwright_replay_v1",
+  "task_id": "VAI-502",
+  "lineage_id": "VAIOS-G697:launch-readiness:phone-desktop-glasses",
+  "playwright_command": "npm --prefix swissknife run test:e2e:meta-glasses -- --grep @vai-502",
+  "requires_hardware": false,
+  "surface": "Swissknife virtual desktop",
+  "launch": {
+    "entry_url": "/",
+    "ready_selector": ".desktop",
+    "app_selector": ".desktop-icons .icon[data-app=\"mcp-control\"]",
+    "expected_window_title": "MCP Control",
+    "proof_artifact": "test-results/vai-502/swissknife-virtual-desktop.png"
+  },
+  "phone_hosted_execution": {
+    "host": "phone:operator-simulator",
+    "mode": "phone-hosted",
+    "control_plane_command": "desktop.request_handoff",
+    "command_receipt_id": "sha256:vai502-phone-command-receipt"
+  },
+  "desktop_peer_offload": {
+    "selected_peer": "desktop peer:simulated-workstation",
+    "first_attempt": {
+      "placement": "desktop_peer",
+      "status": "timeout",
+      "receipt_id": "sha256:vai502-desktop-peer-timeout"
+    },
+    "fallback": {
+      "placement": "phone_local",
+      "status": "completed",
+      "reason": "desktop peer offload fallback exercised without hardware",
+      "receipt_id": "sha256:vai502-phone-fallback-receipt"
+    }
+  },
+  "meta_glasses_status_output": {
+    "participant_id": "meta_glasses:terminal",
+    "status_text": "Meta glasses status: desktop peer timeout; phone-hosted fallback active.",
+    "render_receipt_id": "sha256:vai502-meta-glasses-render-receipt",
+    "proof_artifact": "test-results/vai-502/meta-glasses-status.json"
+  },
+  "proof_artifacts": [
+    "test-results/vai-502/swissknife-virtual-desktop.png",
+    "test-results/vai-502/control-plane-ledger.json",
+    "test-results/vai-502/meta-glasses-status.json"
+  ]
+}
