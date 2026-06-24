@@ -53,6 +53,38 @@ fallback routes. Outcomes are `allow`, `deny`, `require_confirmation`,
 `fallback`, or `degrade`, with required/granted scopes and an optional
 MCP++ policy receipt.
 
+## Privacy And Policy Gate
+
+Every capability route is blocked until the runtime can attach the privacy
+metadata defined by MGW-416. This gate applies before camera capture,
+microphone route/capture, speaker/headphone playback, display content render,
+phone GPS context, motion/orientation sampling, Meta Neural Band input, or
+captouch input emits real user data.
+
+Required pre-dispatch fields:
+
+- app binding ID for the requesting app, method, event, surface, and payload
+  purpose
+- consent state for each requested permission scope, including camera,
+  microphone, audio playback, display render, GPS, motion/orientation, Meta
+  Neural Band, captouch, and control routing scopes
+- policy decision with `allow`, `deny`, `require_confirmation`, `fallback`, or
+  `degrade` outcome
+- redaction metadata for each payload reference, including `metadata_only` or
+  `privacy_filtered` when the payload may contain private content
+- retention metadata for each payload reference: `ephemeral`, `session`,
+  `policy_controlled`, or `pinned`
+- replay-protection metadata, including interaction/correlation id, route
+  generation, peer/session ids, and receipt parentage
+- MCP++ receipt metadata for policy decision, capability readiness, and
+  control-plane route auditability
+
+Default behavior is deny. A route decision that lacks consent, a policy
+decision, redaction, retention, app binding ID, libp2p peer/session metadata, or
+MCP++ receipt metadata must return a denial or fallback receipt and must not
+carry raw camera frames, microphone audio, transcript text, display pixels, GPS
+coordinates, motion/orientation samples, or detailed Neural Band/captouch input.
+
 ## Routing And Receipts
 
 Each capability declares:
@@ -69,10 +101,27 @@ Payload refs are content addressed with `sha256:` CIDs and carry purpose,
 media type, size, retention, and privacy redaction metadata. Large media and
 sensor artifacts should cross the control plane by reference.
 
+IPFS persistence is policy-controlled. Sensitive payloads default to
+`ephemeral` or `session`; `pinned` requires explicit consent plus an allow
+policy decision that names the purpose and retention class. IPFS CIDs,
+descriptor CIDs, and parent receipt CIDs are still metadata subject to
+retention, redaction, and audit policy.
+
+libp2p peer ids, libp2p session ids, MCP session ids, device session ids, and
+route generations are personal/session metadata. They are required for
+auditability and replay protection, but exports should minimize or hash them
+unless the policy decision requires full local diagnostics.
+
 Receipt metadata supports `mcp++/execution`, `mcp++/policy-decision`,
 `mcp++/control-route`, and `mcp++/capability-readiness`. Route receipts carry a
 correlation id field plus optional receipt, envelope, decision, interface, and
 parent receipt CIDs.
+
+Replay protection is enforced at the receipt layer. Implementations must reject
+duplicate correlation ids, stale route generations, expired consent grants,
+parent receipt CID mismatches, and peer/session metadata that no longer matches
+the selected control-plane route. Denial paths must be auditable but exclude
+raw user data.
 
 ## Validation
 
