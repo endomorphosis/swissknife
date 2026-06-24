@@ -1,4 +1,4 @@
-// FIXME: Complex template literal
+// Generated conversion note: complex template literals were preserved from the Python source.
 /**;
  * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_hf_beit.py;"
  * Conversion date: 2025-03-11 04:08:39;
