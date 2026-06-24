@@ -36,6 +36,9 @@ Each entry carries:
   list and a `require_confirmation` policy decision.
 - Non-ready route states select the first matching fallback route when one is
   available.
+- Requests for `fallback.route` return a fallback policy decision and the first
+  available fallback route, because the synthetic fallback capability has no
+  primary hardware route.
 - Ready requests with all required scopes return the selected control-plane
   route decision.
 

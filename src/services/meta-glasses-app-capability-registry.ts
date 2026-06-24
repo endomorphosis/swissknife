@@ -254,6 +254,18 @@ export function requestMetaGlassesAppCapability(
     entry.control_plane_route_decisions.find(
       route => route.selected_surface === request.preferred_surface,
     ) ?? entry.control_plane_route_decisions[0];
+  if (!selectedRoute && entry.fallback_behavior.available) {
+    const defaultFallbackRoute = entry.fallback_behavior.routes[0];
+    return {
+      status: 'fallback',
+      granted: true,
+      entry: clone(entry),
+      missing_scopes: [],
+      fallback_route: clone(defaultFallbackRoute),
+      policy_decision: clone(defaultFallbackRoute.policy_decision),
+      reasons: defaultFallbackRoute.policy_decision.reasons,
+    };
+  }
 
   return {
     status: 'ready',

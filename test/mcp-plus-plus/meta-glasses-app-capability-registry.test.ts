@@ -141,6 +141,19 @@ describe('Meta glasses app capability registry', () => {
     );
   });
 
+  it('allows applications to request the synthetic fallback routing capability', () => {
+    const registry = createDefaultMetaGlassesAppCapabilityRegistry();
+    const fallback = requestMetaGlassesAppCapability(registry, {
+      capability_id: 'fallback.route',
+      granted_scopes: [...META_GLASSES_IO_PERMISSION_SCOPES],
+    });
+
+    expect(fallback.status).toBe('fallback');
+    expect(fallback.granted).toBe(true);
+    expect(fallback.entry.capability_id).toBe('fallback.route');
+    expect(fallback.fallback_route?.policy_decision.outcome).toBe('fallback');
+  });
+
   it('returns structured unsupported and app-binding denial decisions', () => {
     const registry = createDefaultMetaGlassesAppCapabilityRegistry({ app_id: 'com.example.bound' });
 
