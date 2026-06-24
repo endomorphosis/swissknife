@@ -1,4 +1,4 @@
-// FIXME: Complex template literal
+// Auto-converted fixture: preserves complex Python template literal output for converter coverage.
 /**;
  * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_hf_codegen.py;"
  * Conversion date: 2025-03-11 04:08:49;
