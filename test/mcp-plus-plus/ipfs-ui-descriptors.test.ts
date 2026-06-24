@@ -15,6 +15,10 @@ import {
   selectTemplateForDescriptor,
   validateMCPUIProfileDescriptor,
 } from '../../src/services/mcp-ui-profile';
+import {
+  buildSwissknifeMCPMediatedInvocationPlan,
+  getSwissknifeMCPCapabilityRegistry,
+} from '../../src/services/swissknife-mcp-capability-registry';
 
 describe('IPFS MCP++ UI descriptor fixtures', () => {
   it('validates all static IPFS descriptors without live services', () => {
@@ -90,5 +94,48 @@ describe('IPFS MCP++ UI descriptor fixtures', () => {
 
     expect(datasetResolution?.template.kind).toBe('explorer');
     expect(computeResolution?.template.kind).toBe('job-console');
+  });
+
+  it('advertises supervised Python MCP server launch contracts through Swissknife capabilities', () => {
+    const registry = getSwissknifeMCPCapabilityRegistry();
+
+    expect(registry.map(entry => entry.server_package).sort()).toEqual([
+      'ipfs_accelerate_py',
+      'ipfs_datasets_py',
+      'ipfs_kit_py',
+    ]);
+    expect(Object.fromEntries(
+      registry.map(entry => [entry.server_package, entry.launch_contract.daemon.startup_order]),
+    )).toEqual({
+      ipfs_accelerate_py: 30,
+      ipfs_datasets_py: 20,
+      ipfs_kit_py: 10,
+    });
+
+    for (const entry of registry) {
+      expect(entry.launch_contract.source).toBe('HAO-674');
+      expect(entry.launch_contract.launch_owner).toBe('hallucinate_app.mcp_daemon_manager');
+      expect(entry.launch_contract.mcp_plus_plus_advertisement.compatibility).toBe('MCP++');
+      expect(entry.launch_contract.control_surface_route.before_invoke_hook).toContain(
+        'ControlSurfaceInvocationGate.beforeInvoke',
+      );
+      expect(entry.launch_contract.control_surface_route.route).toEqual(
+        expect.arrayContaining([
+          'Hallucinate App interaction_envelope',
+          'control_surface policy_decision',
+          'mediation_receipt',
+          'supervised MCP server transport',
+        ]),
+      );
+    }
+
+    const datasetPlan = buildSwissknifeMCPMediatedInvocationPlan('ipfs_datasets_py', 'dataset.browse');
+    const kitPlan = buildSwissknifeMCPMediatedInvocationPlan('ipfs_kit_py', 'storage.pin_content');
+    const acceleratePlan = buildSwissknifeMCPMediatedInvocationPlan('ipfs_accelerate_py', 'compute.run_inference');
+
+    expect(datasetPlan?.tool_name).toBe('tools_dispatch');
+    expect(kitPlan?.tool_name).toBe('ipfs_pin_add');
+    expect(acceleratePlan?.tool_name).toBe('tools_dispatch');
+    expect(datasetPlan?.required_receipt_fields).toContain('mediation_receipt_id');
   });
 });
