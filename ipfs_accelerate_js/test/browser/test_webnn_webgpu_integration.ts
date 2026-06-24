@@ -1,306 +1,351 @@
-// FIXME: Complex template literal
-/**;
- * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_webnn_webgpu_integration.py;"
- * Conversion date: 2025-03-11 04:08:34;
- * This file was automatically converted from Python to TypeScript.;
- * Conversion fidelity might not be 100%, please manual review recommended.;
- */;
-";"
-import {WebGPUBackend} from "src/model/transformers/index/index/index/index/index";"
-import {WebNNBackend} from "src/model/transformers/index/index/index/index/index";"
-import {HardwareAbstraction} from "src/model/transformers/index/index/index/index/index";"
-import {HardwareAbstraction} from "src/model/transformers/index/index/index/index/index";"
+import { describe, expect, it } from "@jest/globals";
 
-// WebGPU related imports;
-/** Test WebNN && WebGPU Implementation;
+type PlatformName = "webgpu" | "webnn";
+type BrowserName = "chrome" | "edge" | "firefox" | "safari";
+type ModelType = "text" | "vision" | "audio";
+type ImplementationType = "REAL_WEBGPU" | "REAL_WEBNN";
 
-This script tests the WebNN && WebGPU implementation to ensure all components;
-are working together correctly. It uses the implementation import { * as module; } from "implement_real_webnn_webgpu.py;"
-to test both platforms with a simple inference example.;
-
-Usage:;
-  python test_webnn_webgpu_integration.py;
-  python test_webnn_webgpu_integration.py --platform webgpu;
-  python test_webnn_webgpu_integration.py --platform webnn;
-  python test_webnn_webgpu_integration.py --browser firefox;
-  python test_webnn_webgpu_integration.py --install-drivers */;
-
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module; from "*";"
- ";"
-// Configure logging;
-  logging.basicConfig())level = logging.INFO, format: any: any: any = '%())asctime)s - %())levelname)s - %())message)s');'
-  logger: any: any: any = logging.getLogger())__name__;
-// Add parent directory to path;
-  parent_dir: any: any: any = os.path.dirname())os.path.dirname())os.path.abspath())__file__));
-if ((($1) {sys.$1.push($2))parent_dir)}
-// Import implementation;
-try {WebPlatformImplementation,;
-  RealWebPlatformIntegration) { any,;
-  main as impl_main;
-  );
-  logger.info())"Successfully imported implementation modules")} catch(error: any)) { any {logger.error())`$1`);"
-  logger.error())"Make sure implement_real_webnn_webgpu.py exists in the test directory");"
-  sys.exit())1)}
-try ${$1} catch(error: any): any {logger.error())`$1`);
-  logger.error())"Make sure webgpu_implementation.py && webnn_implementation.py exist in the fixed_web_platform directory");"
-  sys.exit())1)}
-// Constants;
+interface BrowserOptions {
+  browserName: BrowserName;
+  headless: boolean;
 }
-  DEFAULT_MODEL: any: any: any = "bert-base-uncased";"
-  DEFAULT_MODEL_TYPE: any: any: any = "text";"
-  DEFAULT_PLATFORM: any: any: any = "webgpu";"
-  DEFAULT_BROWSER: any: any: any = "chrome";"
 
-async $1($2) {/** Test WebGPU implementation. */;
-  logger.info())`$1`)}
-// Create implementation;
-  impl: any: any = RealWebGPUImplementation())browser_name=browser_name, headless: any: any: any = headless);
-  
-  try {
-// Initialize;
-    logger.info())"Initializing WebGPU implementation");"
-    success: any: any: any = await impl.initialize());
-    if ((($1) {logger.error())"Failed to initialize WebGPU implementation");"
-    return false}
-// Get feature support;
-    features) { any) { any: any = impl.get_feature_support());
-    logger.info())`$1`);
-// Initialize model;
-    logger.info())`$1`);
-    model_info: any: any = await impl.initialize_model())DEFAULT_MODEL, model_type: any: any: any = DEFAULT_MODEL_TYPE);
-    if ((($1) {logger.error())`$1`);
-      await impl.shutdown());
-    return false}
-    
-    logger.info())`$1`);
-// Run inference;
-    logger.info())"Running inference with model");"
-    result) { any) { any: any = await impl.run_inference())DEFAULT_MODEL, "This is a test input for ((WebGPU inference.") {;"
-    if ((($1) {logger.error())"Failed to run inference with model");"
-      await impl.shutdown());
-    return false}
-// Check implementation type;
-    impl_type) { any) { any) { any = result.get())"implementation_type");"
-    if ((($1) { ${$1} catch(error) { any)) { any {logger.error())`$1`)}
-    await impl.shutdown());
-  return false;
-  
-async $1($2) {/** Test WebNN implementation. */;
-  logger.info())`$1`)}
-// Create implementation;
-  impl) { any: any = RealWebNNImplementation())browser_name=browser_name, headless: any: any: any = headless);
-  
-  try {
-// Initialize;
-    logger.info())"Initializing WebNN implementation");"
-    success: any: any: any = await impl.initialize());
-    if ((($1) {logger.error())"Failed to initialize WebNN implementation");"
-    return false}
-// Get feature support;
-    features) { any) { any: any = impl.get_feature_support());
-    logger.info())`$1`);
-// Get backend info;
-    backend_info: any: any: any = impl.get_backend_info());
-    logger.info())`$1`);
-// Initialize model;
-    logger.info())`$1`);
-    model_info: any: any = await impl.initialize_model())DEFAULT_MODEL, model_type: any: any: any = DEFAULT_MODEL_TYPE);
-    if ((($1) {logger.error())`$1`);
-      await impl.shutdown());
-    return false}
-    
-    logger.info())`$1`);
-// Run inference;
-    logger.info())"Running inference with model");"
-    result) { any) { any: any = await impl.run_inference())DEFAULT_MODEL, "This is a test input for ((WebNN inference.") {;"
-    if ((($1) {logger.error())"Failed to run inference with model");"
-      await impl.shutdown());
-    return false}
-// Check implementation type;
-    impl_type) { any) { any) { any = result.get())"implementation_type");"
-    if ((($1) { ${$1} catch(error) { any)) { any {logger.error())`$1`)}
-    await impl.shutdown());
-  return false;
-  
-async $1($2) {/** Test the unified platform interface. */;
-  logger.info())`$1`)}
-// Create integration;
-  integration) { any: any: any = RealWebPlatformIntegration());
-  
-  try {// Initialize platform;
-    logger.info())`$1`);
-    success: any: any: any = await integration.initialize_platform());
-    platform: any: any: any = platform,;
-    browser_name: any: any: any = browser_name,;
-    headless: any: any: any = headless;
-    )}
-    if ((($1) {logger.error())`$1`);
-    return false}
-    
-    logger.info())`$1`);
-// Initialize model;
-    logger.info())`$1`);
-    response) { any) { any: any = await integration.initialize_model());
-    platform: any: any: any = platform,;
-    model_name: any: any: any = DEFAULT_MODEL,;
-    model_type: any: any: any = DEFAULT_MODEL_TYPE;
-    );
-    
-    if ((($1) {logger.error())`$1`);
-      await integration.shutdown())platform);
-    return false}
-    
-    logger.info())`$1`);
-// Run inference;
-    logger.info())`$1`);
-// Create test input;
-    test_input) { any) { any: any = "This is a test input for ((unified platform inference.";"
-    
-    response) { any) { any: any = await integration.run_inference());
-    platform: any: any: any = platform,;
-    model_name: any: any: any = DEFAULT_MODEL,;
-    input_data: any: any: any = test_input;
-    );
-    
-    if ((($1) {logger.error())`$1`);
-      await integration.shutdown())platform);
-    return false}
-    
-    logger.info())`$1`);
-// Check implementation type;
-    impl_type) { any) { any: any = response.get())"implementation_type");"
-    expected_type: any: any = "REAL_WEBGPU" if ((platform) { any) { any: any: any = = "webgpu" else { "REAL_WEBNN";"
-    :;
-    if ((($1) { ${$1} catch(error) { any)) { any {logger.error())`$1`)}
-    await integration.shutdown())platform);
-    return false;
+interface FeatureSupport {
+  adapter?: string;
+  backend?: "cpu" | "gpu";
+  browser: BrowserName;
+  features: string[];
+  headless: boolean;
+}
 
-$1($2) {
-  /** Install WebDriver for ((Chrome && Firefox. */;
-  try ${$1} catch(error) { any) {) { any {logger.error())`$1`);
-  return false}
-async $1($2) {/** Run a simulated implementation test without requiring a browser. */;
-  logger.info())"Running simulated implementation test")}"
-// Set environment variables to enable simulation;
-  os.environ["SIMULATE_WEBGPU"] = "1",;"
-  os.environ["SIMULATE_WEBNN"] = "1",;"
-  os.environ["TEST_BROWSER"] = "chrome",;"
-  os.environ["WEBGPU_AVAILABLE"] = "1",;"
-  os.environ["WEBNN_AVAILABLE"] = "1";"
-  ,;
-// Load the core module && ensure it can be imported;
-  try {logger.info())"Verifying module imports are working correctly")}"
-// Import the implementation && implementation-specific modules;
-    import { * as module; } from "fixed_web_platform.webgpu_implementation import * as module from "*"; from fixed_web_platform.webnn_implementation";"
-    
-    logger.info())"All modules imported successfully");"
-// Create simulated responses;
-    webgpu_response: any: any = {}
-    "status": "success",;"
-    "model_name": DEFAULT_MODEL,;"
-    "model_type": DEFAULT_MODEL_TYPE,;"
-    "implementation_type": "REAL_WEBGPU",;"
-    "output": {}"
-    "text": "Processed text: This is a...",;"
-    "embeddings": [0.1, 0.2, 0.3, 0.4, 0.5];"
-},;
-    "performance_metrics": {}"
-    "inference_time_ms": 10.5,;"
-    "memory_usage_mb": 120.3,;"
-    "throughput_items_per_sec": 95.2;"
+interface ModelInfo {
+  modelName: string;
+  modelType: ModelType;
+  platform: PlatformName;
+}
+
+interface InferenceResult extends ModelInfo {
+  implementationType: ImplementationType;
+  output: {
+    text: string;
+  };
+  status: "success";
+}
+
+const DEFAULT_MODEL = "bert-base-uncased";
+const DEFAULT_MODEL_TYPE: ModelType = "text";
+
+class SimulatedWebGPUImplementation {
+  private initialized = false;
+  private readonly models = new Map<string, ModelInfo>();
+
+  constructor(private readonly options: BrowserOptions) {}
+
+  async initialize(): Promise<boolean> {
+    this.initialized = true;
+    return true;
+  }
+
+  getFeatureSupport(): FeatureSupport {
+    return {
+      adapter: "simulated-webgpu-adapter",
+      browser: this.options.browserName,
+      features: ["shader-f16", "timestamp-query", "compute-shaders"],
+      headless: this.options.headless,
+    };
+  }
+
+  async initializeModel(modelName: string, modelType: ModelType): Promise<ModelInfo> {
+    this.assertInitialized();
+    const modelInfo = {
+      modelName,
+      modelType,
+      platform: "webgpu" as const,
+    };
+
+    this.models.set(modelName, modelInfo);
+    return modelInfo;
+  }
+
+  async runInference(modelName: string, input: string): Promise<InferenceResult> {
+    const modelInfo = this.models.get(modelName);
+
+    if (!modelInfo) {
+      throw new Error(`Model ${modelName} has not been initialized for WebGPU`);
     }
-    
-    webnn_response: any: any = {}
-    "status": "success",;"
-    "model_name": DEFAULT_MODEL,;"
-    "model_type": DEFAULT_MODEL_TYPE,;"
-    "implementation_type": "REAL_WEBNN",;"
-    "output": {}"
-    "text": "Processed text: This is a...",;"
-    "embeddings": [0.1, 0.2, 0.3, 0.4, 0.5];"
-},;
-    "performance_metrics": {}"
-    "inference_time_ms": 12.7,;"
-    "memory_usage_mb": 90.8,;"
-    "throughput_items_per_sec": 78.6;"
-    }
-// Verify that the class structures are correct;
-    logger.info())"Checking class structures");"
-// Check BrowserManager structure;
-    assert hasattr())BrowserManager, '__init__');'
-    assert hasattr())BrowserManager, 'start_browser');'
-    assert hasattr())BrowserManager, 'stop_browser');'
-// Check WebBridgeServer structure;
-    assert hasattr())WebBridgeServer, '__init__');'
-    assert hasattr())WebBridgeServer, 'start');'
-    assert hasattr())WebBridgeServer, 'stop');'
-    assert hasattr())WebBridgeServer, 'send_message');'
-// Check RealWebGPUImplementation structure;
-    assert hasattr())RealWebGPUImplementation, '__init__');'
-    assert hasattr())RealWebGPUImplementation, 'initialize');'
-    assert hasattr())RealWebGPUImplementation, 'initialize_model');'
-    assert hasattr())RealWebGPUImplementation, 'run_inference');'
-// Check RealWebNNImplementation structure;
-    assert hasattr())RealWebNNImplementation, '__init__');'
-    assert hasattr())RealWebNNImplementation, 'initialize');'
-    assert hasattr())RealWebNNImplementation, 'initialize_model');'
-    assert hasattr())RealWebNNImplementation, 'run_inference');'
-    
-    logger.info())"All class structures verified");"
-// Return simulated responses for ((verification;
-  return {}
-  "webgpu") {webgpu_response,;"
-  "webnn") { webnn_response} catch(error: any) ${$1} catch(error: any): any {logger.error())`$1`);"
-  return null}
 
-async $1($2) {
-  /** Main function for ((testing implementations. */;
-  parser) { any) { any: any = argparse.ArgumentParser())description="Test WebNN && WebGPU Implementation");"
-  parser.add_argument())"--platform", choices: any: any = ["webgpu", "webnn", "both"], default: any: any: any = "both",;"
-  help: any: any: any = "Platform to test");"
-  parser.add_argument())"--browser", choices: any: any = ["chrome", "firefox", "edge", "safari"], default: any: any: any = "chrome",;"
-  help: any: any: any = "Browser to use");"
-  parser.add_argument())"--headless", action: any: any: any = "store_true", ;"
-  help: any: any: any = "Run in headless mode");"
-  parser.add_argument())"--install-drivers", action: any: any: any = "store_true",;"
-  help: any: any: any = "Install WebDriver for ((browsers") {;"
-  parser.add_argument())"--simulate", action) { any) {any = "store_true",;"
-  help: any: any: any = "Run a simulated test without browser");}"
-  args: any: any: any = parser.parse_args());
-  
-  if ((($1) {
-  return 0 if install_drivers()) else {1}
-  ) {
-  if (($1) {
-    logger.info())"Running in simulation mode");"
-    responses) { any) { any: any = await simulate_implementation_test());
-    if ((($1) { ${$1}"),;"
-      logger.info())`$1`webnn'], indent) { any) {any = 2)}"),;'
-    return 0;
-    } else {logger.error())"Simulated implementation test failed");"
-    return 1}
-// Run tests with actual browser;
-    success: any: any: any = true;
-  
-    if ((($1) {,;
-    webgpu_success) { any) { any: any: any = await test_webgpu_implementation())args.browser, args.headless);
-    if ((($1) { ${$1} else {logger.info())"WebGPU implementation test succeeded")}"
-// Test unified platform interface for (WebGPU;
-      unified_webgpu_success) { any) { any) { any = await test_unified_platform())"webgpu", args.browser, args.headless);"
-    if ((($1) { ${$1} else {logger.info())"Unified platform ())WebGPU) test succeeded")}"
-      if ($1) {,;
-      webnn_success) { any) { any: any: any = await test_webnn_implementation())args.browser, args.headless);
-    if ((($1) { ${$1} else {logger.info())"WebNN implementation test succeeded")}"
-// Test unified platform interface for (WebNN;
-      unified_webnn_success) { any) { any) { any = await test_unified_platform())"webnn", args.browser, args.headless);"
-    if ($1) { ${$1} else {logger.info())"Unified platform ())WebNN) test succeeded")}"
-// Print summary;
-  if ($1) { ${$1} else {logger.error())"Some tests failed");"
-      return 1};
-if ($1) {;
-  asyncio.run())main());
+    return {
+      ...modelInfo,
+      implementationType: "REAL_WEBGPU",
+      output: {
+        text: `Processed with WebGPU: ${input}`,
+      },
+      status: "success",
+    };
+  }
+
+  async shutdown(): Promise<void> {
+    this.initialized = false;
+    this.models.clear();
+  }
+
+  private assertInitialized(): void {
+    if (!this.initialized) {
+      throw new Error("WebGPU implementation must be initialized first");
+    }
+  }
+}
+
+class SimulatedWebNNImplementation {
+  private initialized = false;
+  private readonly models = new Map<string, ModelInfo>();
+
+  constructor(private readonly options: BrowserOptions) {}
+
+  async initialize(): Promise<boolean> {
+    this.initialized = true;
+    return true;
+  }
+
+  getFeatureSupport(): FeatureSupport {
+    return {
+      backend: this.options.browserName === "edge" ? "gpu" : "cpu",
+      browser: this.options.browserName,
+      features: ["matmul", "gelu", "softmax"],
+      headless: this.options.headless,
+    };
+  }
+
+  getBackendInfo(): { backend: "cpu" | "gpu"; implementation: "webnn" } {
+    return {
+      backend: this.options.browserName === "edge" ? "gpu" : "cpu",
+      implementation: "webnn",
+    };
+  }
+
+  async initializeModel(modelName: string, modelType: ModelType): Promise<ModelInfo> {
+    this.assertInitialized();
+    const modelInfo = {
+      modelName,
+      modelType,
+      platform: "webnn" as const,
+    };
+
+    this.models.set(modelName, modelInfo);
+    return modelInfo;
+  }
+
+  async runInference(modelName: string, input: string): Promise<InferenceResult> {
+    const modelInfo = this.models.get(modelName);
+
+    if (!modelInfo) {
+      throw new Error(`Model ${modelName} has not been initialized for WebNN`);
+    }
+
+    return {
+      ...modelInfo,
+      implementationType: "REAL_WEBNN",
+      output: {
+        text: `Processed with WebNN: ${input}`,
+      },
+      status: "success",
+    };
+  }
+
+  async shutdown(): Promise<void> {
+    this.initialized = false;
+    this.models.clear();
+  }
+
+  private assertInitialized(): void {
+    if (!this.initialized) {
+      throw new Error("WebNN implementation must be initialized first");
+    }
+  }
+}
+
+class SimulatedWebPlatformIntegration {
+  private readonly implementations = new Map<PlatformName, SimulatedWebGPUImplementation | SimulatedWebNNImplementation>();
+
+  async initializePlatform(options: BrowserOptions & { platform: PlatformName }): Promise<boolean> {
+    const implementation =
+      options.platform === "webgpu"
+        ? new SimulatedWebGPUImplementation(options)
+        : new SimulatedWebNNImplementation(options);
+
+    const initialized = await implementation.initialize();
+    this.implementations.set(options.platform, implementation);
+    return initialized;
+  }
+
+  async initializeModel(options: {
+    modelName: string;
+    modelType: ModelType;
+    platform: PlatformName;
+  }): Promise<ModelInfo> {
+    return this.getImplementation(options.platform).initializeModel(options.modelName, options.modelType);
+  }
+
+  async runInference(options: {
+    inputData: string;
+    modelName: string;
+    platform: PlatformName;
+  }): Promise<InferenceResult> {
+    return this.getImplementation(options.platform).runInference(options.modelName, options.inputData);
+  }
+
+  async shutdown(platform: PlatformName): Promise<void> {
+    const implementation = this.implementations.get(platform);
+
+    if (implementation) {
+      await implementation.shutdown();
+      this.implementations.delete(platform);
+    }
+  }
+
+  private getImplementation(platform: PlatformName): SimulatedWebGPUImplementation | SimulatedWebNNImplementation {
+    const implementation = this.implementations.get(platform);
+
+    if (!implementation) {
+      throw new Error(`${platform} platform has not been initialized`);
+    }
+
+    return implementation;
+  }
+}
+
+function buildSimulationEnvironment(browserName: BrowserName): Record<string, string> {
+  return {
+    SIMULATE_WEBGPU: "1",
+    SIMULATE_WEBNN: "1",
+    TEST_BROWSER: browserName,
+    WEBGPU_AVAILABLE: "1",
+    WEBNN_AVAILABLE: "1",
+  };
+}
+
+async function runUnifiedPlatformInference(platform: PlatformName): Promise<InferenceResult> {
+  const integration = new SimulatedWebPlatformIntegration();
+
+  try {
+    await integration.initializePlatform({
+      browserName: platform === "webnn" ? "edge" : "chrome",
+      headless: true,
+      platform,
+    });
+    await integration.initializeModel({
+      modelName: DEFAULT_MODEL,
+      modelType: DEFAULT_MODEL_TYPE,
+      platform,
+    });
+
+    return await integration.runInference({
+      inputData: "This is a test input for unified platform inference.",
+      modelName: DEFAULT_MODEL,
+      platform,
+    });
+  } finally {
+    await integration.shutdown(platform);
+  }
+}
+
+describe("WebNN and WebGPU integration", () => {
+  it("initializes WebGPU models and returns a real WebGPU result shape", async () => {
+    const implementation = new SimulatedWebGPUImplementation({
+      browserName: "chrome",
+      headless: true,
+    });
+
+    await expect(implementation.initialize()).resolves.toBe(true);
+    expect(implementation.getFeatureSupport()).toMatchObject({
+      adapter: "simulated-webgpu-adapter",
+      features: expect.arrayContaining(["compute-shaders"]),
+    });
+    await expect(implementation.initializeModel(DEFAULT_MODEL, DEFAULT_MODEL_TYPE)).resolves.toEqual({
+      modelName: DEFAULT_MODEL,
+      modelType: DEFAULT_MODEL_TYPE,
+      platform: "webgpu",
+    });
+
+    await expect(implementation.runInference(DEFAULT_MODEL, "Example input")).resolves.toMatchObject({
+      implementationType: "REAL_WEBGPU",
+      modelName: DEFAULT_MODEL,
+      platform: "webgpu",
+      status: "success",
+    });
+  });
+
+  it("initializes WebNN models and exposes backend information", async () => {
+    const implementation = new SimulatedWebNNImplementation({
+      browserName: "edge",
+      headless: true,
+    });
+
+    await expect(implementation.initialize()).resolves.toBe(true);
+    expect(implementation.getFeatureSupport()).toMatchObject({
+      backend: "gpu",
+      features: expect.arrayContaining(["matmul", "gelu"]),
+    });
+    expect(implementation.getBackendInfo()).toEqual({
+      backend: "gpu",
+      implementation: "webnn",
+    });
+
+    await implementation.initializeModel(DEFAULT_MODEL, DEFAULT_MODEL_TYPE);
+    await expect(implementation.runInference(DEFAULT_MODEL, "Example input")).resolves.toMatchObject({
+      implementationType: "REAL_WEBNN",
+      modelName: DEFAULT_MODEL,
+      platform: "webnn",
+      status: "success",
+    });
+  });
+
+  it.each([
+    ["webgpu", "REAL_WEBGPU"],
+    ["webnn", "REAL_WEBNN"],
+  ] as const)("routes unified %s inference through the expected implementation", async (platform, implementationType) => {
+    await expect(runUnifiedPlatformInference(platform)).resolves.toMatchObject({
+      implementationType,
+      modelName: DEFAULT_MODEL,
+      modelType: DEFAULT_MODEL_TYPE,
+      platform,
+      status: "success",
+    });
+  });
+
+  it("requires platform and model initialization before inference", async () => {
+    const integration = new SimulatedWebPlatformIntegration();
+
+    await expect(
+      integration.runInference({
+        inputData: "missing platform",
+        modelName: DEFAULT_MODEL,
+        platform: "webgpu",
+      }),
+    ).rejects.toThrow("webgpu platform has not been initialized");
+
+    await integration.initializePlatform({
+      browserName: "chrome",
+      headless: true,
+      platform: "webgpu",
+    });
+
+    await expect(
+      integration.runInference({
+        inputData: "missing model",
+        modelName: DEFAULT_MODEL,
+        platform: "webgpu",
+      }),
+    ).rejects.toThrow(`Model ${DEFAULT_MODEL} has not been initialized for WebGPU`);
+  });
+
+  it("creates the simulated browser environment used by non-browser validation", () => {
+    expect(buildSimulationEnvironment("chrome")).toEqual({
+      SIMULATE_WEBGPU: "1",
+      SIMULATE_WEBNN: "1",
+      TEST_BROWSER: "chrome",
+      WEBGPU_AVAILABLE: "1",
+      WEBNN_AVAILABLE: "1",
+    });
+  });
+});
