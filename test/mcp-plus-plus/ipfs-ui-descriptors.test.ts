@@ -111,6 +111,13 @@ describe('IPFS MCP++ UI descriptor fixtures', () => {
       ipfs_datasets_py: 20,
       ipfs_kit_py: 10,
     });
+    expect(Object.fromEntries(
+      registry.map(entry => [entry.server_package, entry.launch_contract.daemon.port]),
+    )).toEqual({
+      ipfs_accelerate_py: 3003,
+      ipfs_datasets_py: 3002,
+      ipfs_kit_py: 8004,
+    });
 
     for (const entry of registry) {
       expect(entry.launch_contract.source).toBe('HAO-674');
