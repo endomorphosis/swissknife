@@ -1,590 +1,282 @@
-// FIXME: Complex template literal
-/**;
- * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_hf_dino.py;"
- * Conversion date: 2025-03-11 04:08:45;
- * This file was automatically converted from Python to TypeScript.;
- * Conversion fidelity might not be 100%, please manual review recommended.;
- */;
-";"
-import {HfModel} from "src/model/transformers/index/index/index/index/index";"
-import {DinoConfig} from "src/model/transformers/index/index/index/index/index";"
+type DinoDevice = "cpu" | "cuda" | "mps";
+type DinoDependency = "transformers" | "pillow>=8.0.0" | "requests>=2.25.0";
 
-// WebGPU related imports;
-// Import hardware detection capabilities if ((($1) {) {
-try ${$1} catch(error) { any): any {
-  HAS_HARDWARE_DETECTION: any: any: any = false;
-// We'll detect hardware manually as fallback;'
-  /** Class-based test file for ((all DINO-family models.;
-This file provides a unified testing interface for) {}
-  - DinoForImageClassification */;
-
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module; from "*";"
-  import * as module from "*"; import { * as module, MagicMock) { any, Mock; } from "unittest.mock";"
-// Configure logging;
-  logging.basicConfig())level = logging.INFO, format: any: any: any = '%())asctime)s - %())levelname)s - %())message)s');'
-  logger: any: any: any = logging.getLogger())__name__;
-// Add parent directory to path for ((imports;
-  sys.path.insert() {)0, os.path.dirname())os.path.dirname())os.path.abspath())__file__));
-// Third-party imports;
-  import * as module from "*"; as np;"
-// Try to import * as module; from "*";"
-try ${$1} catch(error) { any)) { any {torch: any: any: any = MagicMock());
-  HAS_TORCH: any: any: any = false;
-  logger.warning())"torch !available, using mock")}"
-// Try to import * as module; from "*";"
-try ${$1} catch(error: any): any {transformers: any: any: any = MagicMock());
-  HAS_TRANSFORMERS: any: any: any = false;
-  logger.warning())"transformers !available, using mock")}"
-// Try to import * as module; from "*";"
-try {:;
-  import * as module; from "*";"
-  HAS_PIL: any: any: any = true;} catch(error: any): any {Image: any: any: any = MagicMock());
-  requests: any: any: any = MagicMock());
-  BytesIO: any: any: any = MagicMock());
-  HAS_PIL: any: any: any = false;
-  logger.warning())"PIL || requests !available, using mock")}"
-// Hardware detection;
-$1($2) {
-  /** Check available hardware && return capabilities. */;
-  capabilities: any: any = {}
-  "cpu": true,;"
-  "cuda": false,;"
-  "cuda_version": null,;"
-  "cuda_devices": 0,;"
-  "mps": false,;"
-  "openvino": false;"
-  }
-// Check CUDA;
-  if ((($1) {
-    capabilities["cuda"] = torch.cuda.is_available()),;"
-    if ($1) {,;
-    capabilities["cuda_devices"] = torch.cuda.device_count()),;"
-    capabilities["cuda_version"] = torch.version.cuda;"
-    ,;
-// Check MPS ())Apple Silicon)}
-  if ($1) {capabilities["mps"] = torch.mps.is_available());"
-    ,;
-// Check OpenVINO}
-  try ${$1} catch(error) { any)) { any {pass}
-    return capabilities;
-// Get hardware capabilities;
-    HW_CAPABILITIES: any: any: any = check_hardware());
-// Models registry { - Maps model IDs to their specific configurations;
-    DINO_MODELS_REGISTRY: any: any = {}
-    "facebook/dino-vitb16": {}"
-    "description": "DINO ViT-B/16 model",;"
-    "class": "DinoForImageClassification";"
-},;
-    "facebook/dino-vits16": {}"
-    "description": "DINO ViT-S/16 model",;"
-    "class": "DinoForImageClassification";"
+interface DinoModelInfo {
+  description: string;
+  className: "DinoForImageClassification";
+  task: "image-classification";
 }
 
-class $1 extends $2 {/** Base test class for ((all DINO-family models. */}
-  $1($2) {/** Initialize the test class for a specific model || default. */;
-    this.model_id = model_id || "facebook/dino-vitb16";}"
-// Verify model exists in registry {
-    if ((($1) { ${$1} else {this.model_info = DINO_MODELS_REGISTRY[this.model_id];
-      ,;
-// Define model parameters}
-      this.task = "image-classification";"
-      this.class_name = this.model_info["class"],;"
-      this.description = this.model_info["description"];"
-      ,;
-// Define test inputs;
-    }
-      this.test_image_url = "http) {//images.cocodataset.org/val2017/000000039769.jpg";"
-// Configure hardware preference;
-      if (($1) {,;
-      this.preferred_device = "cuda";} else if (($1) { ${$1} else {this.preferred_device = "cpu";}"
-      logger.info())`$1`);
-// Results storage;
-      this.results = {}
-      this.examples = [],;
-      this.performance_stats = {}
-  
-  $1($2) {
-    /** Test the model using transformers pipeline API. */;
-    if ($1) {
-      device) {any = this.preferred_device;}
-      results) { any) { any) { any = {}
-      "model") {this.model_id,;"
-      "device": device,;"
-      "task": this.task,;"
-      "class": this.class_name}"
-// Check for ((dependencies;
-    if ((($1) {results["pipeline_error_type"] = "missing_dependency",;"
-      results["pipeline_missing_core"] = ["transformers"],;"
-      results["pipeline_success"] = false,;"
-      return results}
-    if ($1) {results["pipeline_error_type"] = "missing_dependency",;"
-      results["pipeline_missing_deps"] = ["pillow>=8.0.0", "requests>=2.25.0"],;"
-      results["pipeline_success"] = false,;"
-      return results}
-    try {) {
-      logger.info())`$1`);
-// Create pipeline with appropriate parameters;
-      pipeline_kwargs) { any) { any = {}
-      "task") { this.task,;"
-      "model": this.model_id,;"
-      "device": device;"
-      }
-// Time the model loading;
-      load_start_time: any: any: any = time.time());
-      pipeline: any: any: any = transformers.pipeline())**pipeline_kwargs);
-      load_time: any: any: any = time.time()) - load_start_time;
-// Prepare test input;
-      if ((($1) { ${$1} else {
-        pipeline_input) {any = this.test_image_url;}
-// Run warmup inference if (($1) {
-      if ($1) {
-        try ${$1} catch(error) { any)) { any {pass}
-// Run multiple inference passes;
-      }
-          num_runs: any: any: any = 3;
-          times: any: any: any = [],;
-          outputs: any: any: any = [],;
-      
-      }
-      for ((_ in range() {)num_runs)) {
-        start_time) { any: any: any = time.time());
-        output: any: any: any = pipeline())pipeline_input);
-        end_time: any: any: any = time.time());
-        $1.push($2))end_time - start_time);
-        $1.push($2))output);
-// Calculate statistics;
-        avg_time: any: any: any = sum())times) / len())times);
-        min_time: any: any: any = min())times);
-        max_time: any: any: any = max())times);
-// Store results;
-        results["pipeline_success"] = true,;"
-        results["pipeline_avg_time"] = avg_time,;"
-        results["pipeline_min_time"] = min_time,;"
-        results["pipeline_max_time"] = max_time,;"
-        results["pipeline_load_time"] = load_time,;"
-        results["pipeline_error_type"] = "none";"
-        ,;
-// Add to examples;
-        this.$1.push($2)){}
-        "method": `$1`,;"
-        "input": str())this.test_image_url),;"
-        "output_preview": str())outputs[0])[:200] + "..." if ((len() {)str())outputs[0])) > 200 else {str())outputs[0])});"
-// Store in performance stats;
-        this.performance_stats[`$1`] = {}) {,;
-        "avg_time") { avg_time,;"
-        "min_time": min_time,;"
-        "max_time": max_time,;"
-        "load_time": load_time,;"
-        "num_runs": num_runs} catch(error: any): any {// Store error information;"
-      results["pipeline_success"] = false,;"
-      results["pipeline_error"] = str())e),;"
-      results["pipeline_traceback"] = traceback.format_exc()),;"
-      logger.error())`$1`)}
-// Classify error type;
-      error_str: any: any: any = str())e).lower());
-      traceback_str: any: any: any = traceback.format_exc()).lower());
-      
-      if ((($1) {results["pipeline_error_type"] = "cuda_error",} else if (($1) {"
-        results["pipeline_error_type"] = "out_of_memory",;"
-      else if (($1) { ${$1} else {results["pipeline_error_type"] = "other";"
-        ,;
-// Add to overall results}
-        this.results[`$1`] = results,;
-        return results;
-  
-      }
-  $1($2) {
-    /** Test the model using direct from_pretrained loading. */;
-    if ($1) {
-      device) {any = this.preferred_device;}
-      results) { any) { any = {}
-      "model") { this.model_id,;"
-      "device": device,;"
-      "task": this.task,;"
-      "class": this.class_name;"
-      }
-// Check for ((dependencies;
-      }
-    if ((($1) {results["from_pretrained_error_type"] = "missing_dependency",;"
-      results["from_pretrained_missing_core"] = ["transformers"],;"
-      results["from_pretrained_success"] = false,;"
-      return results}
-    if ($1) {results["from_pretrained_error_type"] = "missing_dependency",;"
-      results["from_pretrained_missing_deps"] = ["pillow>=8.0.0", "requests>=2.25.0"],;"
-      results["from_pretrained_success"] = false,;"
-      return results}
-    try {) {
-      logger.info())`$1`);
-// Common parameters for loading;
-      pretrained_kwargs) { any) { any = {}
-      "local_files_only") { false;"
-      }
-// Load processor;
-      processor_load_start: any: any: any = time.time());
-      processor: any: any: any = transformers.AutoFeatureExtractor.from_pretrained());
-      this.model_id,;
-      **pretrained_kwargs;
-      );
-      processor_load_time: any: any: any = time.time()) - processor_load_start;
-// Use appropriate model class model_class { any: any: any = null;
-      if ((($1) { ${$1} else {
-// Fallback to Auto class;
-        model_class) {any = transformers.AutoModel;}
-// Time model loading;
-        model_load_start) { any: any: any = time.time());
-        model: any: any: any = model_class.from_pretrained());
-        this.model_id,;
-        **pretrained_kwargs;
-        );
-        model_load_time: any: any: any = time.time()) - model_load_start;
-// Move model to device;
-      if ((($1) {
-        model) {any = model.to())device);}
-// Prepare test input;
-        test_input) { any: any: any = this.test_image_url;
-// Get image;
-      if ((($1) { ${$1} else {
-// Mock image;
-        image) {any = null;}
-      if (($1) { ${$1} else {
-// Create mock inputs;
-        inputs) { any) { any = {}"pixel_values": torch.randn())1, 3: any, 224, 224: any)}"
-// Move inputs to device;
-      if ((($1) {
-        inputs) {any = Object.fromEntries((Object.entries($1))).map((key) { any, val) => [}key,  val.to())device)]));
-// Run warmup inference if ((($1) {
-      if ($1) {
-        try ${$1} catch(error) { any)) { any {pass}
-// Run multiple inference passes;
-      }
-            num_runs: any: any: any = 3;
-            times: any: any: any = [],;
-            outputs: any: any: any = [],;
-      
-      }
-      for ((_ in range() {)num_runs)) {
-        start_time) { any: any: any = time.time());
-        with torch.no_grad()):;
-          output: any: any: any = model())**inputs);
-          end_time: any: any: any = time.time());
-          $1.push($2))end_time - start_time);
-          $1.push($2))output);
-// Calculate statistics;
-          avg_time: any: any: any = sum())times) / len())times);
-          min_time: any: any: any = min())times);
-          max_time: any: any: any = max())times);
-// Process classification output;
-          if ((($1) {,;
-          logits) { any) { any: any: any = outputs[0].logits,;
-          probs: any: any = torch.nn.functional.softmax())logits, dim: any: any: any = -1);
-          top_k: any: any = torch.topk())probs, 5: any, dim: any: any: any = -1);
-// Get class indices;
-          predictions { any: any: any = [],;
-          for ((i) { any, () {)prob, idx: any) in enumerate())zip())top_k.values[0], top_k.indices[0]))) {,;
-          $1.push($2)){}
-          "label": `$1`,;"
-          "score": prob.item());"
-          });
-      } else {
-        predictions: any: any = [{}"label": "Mock label", "score": 0.95}];"
-        ,;
-// Calculate model size;
-      }
-      param_count: any: any: any = sum())p.numel()) for ((p in model.parameters() {)) {;
-        model_size_mb) { any: any: any = ())param_count * 4) / ())1024 * 1024)  # Rough size in MB;
-// Store results;
-        results["from_pretrained_success"] = true,;"
-        results["from_pretrained_avg_time"] = avg_time,;"
-        results["from_pretrained_min_time"] = min_time,;"
-        results["from_pretrained_max_time"] = max_time,;"
-        results["processor_load_time"] = processor_load_time,;"
-        results["model_load_time"] = model_load_time,;"
-        results["model_size_mb"] = model_size_mb,;"
-        results["from_pretrained_error_type"] = "none",;"
-        results["predictions"] = predictions;"
-        ,;
-// Add to examples;
-        example_data: any: any = {}
-        "method": `$1`,;"
-        "input": str())test_input),;"
-        "predictions": predictions;"
-        }
-      
-        this.$1.push($2))example_data);
-// Store in performance stats;
-        this.performance_stats[`$1`] = {},;
-        "avg_time": avg_time,;"
-        "min_time": min_time,;"
-        "max_time": max_time,;"
-        "processor_load_time": processor_load_time,;"
-        "model_load_time": model_load_time,;"
-        "model_size_mb": model_size_mb,;"
-        "num_runs": num_runs;"
-        } catch(error: any): any {// Store error information;
-      results["from_pretrained_success"] = false,;"
-      results["from_pretrained_error"] = str())e),;"
-      results["from_pretrained_traceback"] = traceback.format_exc()),;"
-      logger.error())`$1`)}
-// Classify error type;
-      error_str: any: any: any = str())e).lower());
-      traceback_str: any: any: any = traceback.format_exc()).lower());
-      
-      if ((($1) {results["from_pretrained_error_type"] = "cuda_error",} else if (($1) {"
-        results["from_pretrained_error_type"] = "out_of_memory",;"
-      else if (($1) { ${$1} else {results["from_pretrained_error_type"] = "other";"
-        ,;
-// Add to overall results}
-        this.results[`$1`] = results,;
-        return results;
-  
-      }
-  $1($2) {
-    /** Test the model using OpenVINO integration. */;
-    results) { any) { any) { any = {}
-    "model") {this.model_id,;"
-    "task": this.task,;"
-    "class": this.class_name}"
-// Check for ((OpenVINO support;
-      }
-    if ((($1) {,;
-    results["openvino_error_type"] = "missing_dependency",;"
-    results["openvino_missing_core"] = ["openvino"],;"
-    results["openvino_success"] = false,;"
-        return results;
-// Check for transformers;
-    if ($1) {results["openvino_error_type"] = "missing_dependency",;"
-      results["openvino_missing_core"] = ["transformers"],;"
-      results["openvino_success"] = false,;"
-        return results}
-    try {) {
-      import { * as module; } from "optimum.intel";"
-      logger.info())`$1`);
-// Time processor loading;
-      processor_load_start) { any) { any) { any = time.time());
-      processor: any: any: any = transformers.AutoFeatureExtractor.from_pretrained())this.model_id);
-      processor_load_time: any: any: any = time.time()) - processor_load_start;
-// Time model loading;
-      model_load_start: any: any: any = time.time());
-      model: any: any: any = OVModelForImageClassification.from_pretrained());
-      this.model_id,;
-      export: any: any: any = true,;
-      provider: any: any: any = "CPU";"
-      );
-      model_load_time: any: any: any = time.time()) - model_load_start;
-// Prepare input;
-      test_input: any: any: any = this.test_image_url;
-// Process image;
-      if ((($1) { ${$1} else {
-// Mock inputs;
-        inputs) { any) { any = {}
-        "pixel_values": torch.zeros())1, 3: any, 224, 224: any);"
-        }
-// Run inference;
-        start_time: any: any: any = time.time());
-        outputs: any: any: any = model())**inputs);
-        inference_time: any: any: any = time.time()) - start_time;
-// Process classification output;
-      if ((($1) {
-        logits) { any) { any: any = outputs.logits;
-        probs: any: any = torch.nn.functional.softmax())logits, dim: any: any: any = -1);
-        top_indices: any: any = torch.topk())probs, 5: any, dim: any: any: any = -1).indices.tolist())[0];
-        ,;
-        predictions: any: any: any = [],;
-        for (((const $1 of $2) {
-          $1.push($2)){}
-          "label") {`$1`,;"
-          "score") { float())probs[0][idx])});"
-      } else {
-        predictions: any: any = [{}"label": "LABEL_0", "score": 0.95}];"
-        ,;
-// Store results;
-      }
-        results["openvino_success"] = true;"
+interface DinoHardwareCapabilities {
+  cpu: boolean;
+  cuda: boolean;
+  mps: boolean;
 }
-        results["openvino_load_time"] = model_load_time,;"
-        results["openvino_inference_time"] = inference_time,;"
-        results["openvino_processor_load_time"] = processor_load_time,;"
-        results["openvino_predictions"] = predictions,;"
-        results["openvino_error_type"] = "none";"
-        ,;
-// Add to examples;
-      }
-        example_data: any: any = {}
-        "method": "OpenVINO inference",;"
-        "input": str())test_input),;"
-        "predictions": predictions;"
-        }
-      
-        this.$1.push($2))example_data);
-// Store in performance stats;
-        this.performance_stats["openvino"] = {},;"
-        "inference_time": inference_time,;"
-        "load_time": model_load_time,;"
-        "processor_load_time": processor_load_time;"
-        } catch(error: any): any {// Store error information;
-      results["openvino_success"] = false,;"
-      results["openvino_error"] = str())e),;"
-      results["openvino_traceback"] = traceback.format_exc()),;"
-      logger.error())`$1`)}
-// Classify error;
-      error_str: any: any: any = str())e).lower());
-      if ((($1) { ${$1} else {results["openvino_error_type"] = "other";"
-        ,;
-// Add to overall results}
-        this.results["openvino"] = results,;"
-        return results;
-  
-  $1($2) {/** Run all tests for ((this model.}
-    Args) {
-      all_hardware) { If true, tests on all available hardware ())CPU, CUDA) { any, OpenVINO);
-    
-    Returns) {;
-      Dict containing test results */;
-// Always test on default device;
-      this.test_pipeline());
-      this.test_from_pretrained());
-// Test on all available hardware if ((($1) {) {
-    if (($1) {
-// Always test on CPU;
-      if ($1) {this.test_pipeline())device = "cpu");"
-        this.test_from_pretrained())device = "cpu");}"
-// Test on CUDA if ($1) {) {
-        if (($1) {,;
-        this.test_pipeline())device = "cuda");"
-        this.test_from_pretrained())device = "cuda");}"
-// Test on OpenVINO if ($1) {) {
-        if (($1) {,;
-        this.test_with_openvino());
-// Build final results;
-      return {}
-      "results") { this.results,;"
-      "examples") { this.examples,;"
-      "performance": this.performance_stats,;"
-      "hardware": HW_CAPABILITIES,;"
-      "metadata": {}"
-      "model": this.model_id,;"
-      "task": this.task,;"
-      "class": this.class_name,;"
-      "description": this.description,;"
-      "timestamp": datetime.datetime.now()).isoformat()),;"
-      "has_transformers": HAS_TRANSFORMERS,;"
-      "has_torch": HAS_TORCH,;"
-      "has_pil": HAS_PIL;"
-      }
 
-$1($2) ${$1}.json";"
-  output_path: any: any = os.path.join())output_dir, filename: any);
-// Save results;
-  with open())output_path, "w") as f:;"
-    json.dump())results, f: any, indent: any: any: any = 2);
-  
-    logger.info())`$1`);
-  return output_path;
+interface DinoImageInput {
+  width: number;
+  height: number;
+  channels: 3;
+  source: "url" | "buffer" | "fixture";
+}
 
-$1($2) {
-  /** Get a list of all available DINO models in the registry {. */;
-  return list())Object.keys($1))}
-$1($2) {
-  /** Test all registered DINO models. */;
-  models: any: any: any = get_available_models());
-  results: any: any: any = {}
-  for (((const $1 of $2) {
-    logger.info())`$1`);
-    tester) {any = TestDinoModels())model_id);
-    model_results) { any: any: any = tester.run_tests())all_hardware=all_hardware);}
-// Save individual results;
-    save_results())model_id, model_results: any, output_dir: any: any: any = output_dir);
-// Add to summary;
-    results[model_id] = {},;
-    "success": any())r.get())"pipeline_success", false: any) for ((r in model_results["results"].values() {)) {,;"
-    if ((r.get() {)"pipeline_success") is !false);"
-    ) {}
-// Save summary;
-  summary_path) { any) { any = os.path.join())output_dir, `$1`%Y%m%d_%H%M%S')}.json"):;'
-  with open())summary_path, "w") as f:;"
-    json.dump())results, f: any, indent: any: any: any = 2);
-  
-    logger.info())`$1`);
-    return results;
+interface DinoPipelineResult {
+  model: string;
+  device: DinoDevice;
+  task: "image-classification";
+  className: "DinoForImageClassification";
+  pipelineSuccess: boolean;
+  pipelineErrorType: "none" | "missing_dependency";
+  pipelineMissingCore?: DinoDependency[];
+  pipelineMissingDeps?: DinoDependency[];
+  inputSummary?: string;
+  outputPreview?: string;
+}
 
-$1($2) {
-  /** Command-line entry {point. */;
-  parser: any: any: any = argparse.ArgumentParser())description="Test DINO-family models");}"
-// Model selection;
-  model_group: any: any: any = parser.add_mutually_exclusive_group());
-  model_group.add_argument())"--model", type: any: any = str, help: any: any: any = "Specific model to test");"
-  model_group.add_argument())"--all-models", action: any: any = "store_true", help: any: any: any = "Test all registered models");"
-// Hardware options;
-  parser.add_argument())"--all-hardware", action: any: any = "store_true", help: any: any: any = "Test on all available hardware");"
-  parser.add_argument())"--cpu-only", action: any: any = "store_true", help: any: any: any = "Test only on CPU");"
-// Output options;
-  parser.add_argument())"--output-dir", type: any: any = str, default: any: any = "collected_results", help: any: any: any = "Directory for ((output files") {;"
-  parser.add_argument())"--save", action) { any) { any: any = "store_true", help: any: any: any = "Save results to file");"
-// List options;
-  parser.add_argument())"--list-models", action: any: any = "store_true", help: any: any: any = "List all available models");"
-  
-  args: any: any: any = parser.parse_args());
-// List models if ((($1) {) {
-  if (($1) {
-    models) { any) { any: any = get_available_models());
-    console.log($1))"\nAvailable DINO-family models:");"
-    for (((const $1 of $2) { ${$1})) { {}info["description"]}"),;"
-    return  ;
+const DEFAULT_DINO_MODEL_ID = "facebook/dino-vitb16";
+const DEFAULT_DINO_IMAGE: DinoImageInput = {
+  width: 224,
+  height: 224,
+  channels: 3,
+  source: "fixture",
+};
+
+const DINO_MODELS_REGISTRY: Record<string, DinoModelInfo> = {
+  [DEFAULT_DINO_MODEL_ID]: {
+    description: "DINO ViT-B/16 model",
+    className: "DinoForImageClassification",
+    task: "image-classification",
+  },
+  "facebook/dino-vits16": {
+    description: "DINO ViT-S/16 model",
+    className: "DinoForImageClassification",
+    task: "image-classification",
+  },
+};
+
+function selectDinoDevice(capabilities: DinoHardwareCapabilities): DinoDevice {
+  if (capabilities.cuda) {
+    return "cuda";
   }
-// Create output directory if ((($1) {
-  if ($1) {
-    os.makedirs())args.output_dir, exist_ok) { any) {any = true);}
-// Test all models if (($1) {) {}
-  if (($1) {
-    results) {any = test_all_models())output_dir=args.output_dir, all_hardware) { any: any: any = args.all_hardware);}
-// Print summary;
-    console.log($1))"\nDINO Models Testing Summary:");"
-    total: any: any: any = len())results);
-    successful: any: any: any = sum())1 for ((r in Object.values($1) {) if ((($1) {,;
-    console.log($1))`$1`);
-    return // Test single model ())default || specified);
-    model_id) { any) { any) { any = args.model || "facebook/dino-vitb16";"
-    logger.info())`$1`);
-// Override preferred device if ((($1) {
-  if ($1) {os.environ["CUDA_VISIBLE_DEVICES"] = "";"
-    ,;
-// Run test}
-    tester) { any) { any: any = TestDinoModels())model_id);
-    results) {any = tester.run_tests())all_hardware=args.all_hardware);}
-// Save results if ((($1) {) {
-  if (($1) {
-    save_results())model_id, results) { any, output_dir) {any = args.output_dir);}
-// Print summary;
-    success: any: any = any())r.get())"pipeline_success", false: any) for ((r in results["results"].values() {)) {,;"
-    if ((r.get() {)"pipeline_success") is !false);"
-  ) {
-    console.log($1))"\nTEST RESULTS SUMMARY) {");"
-  if (($1) {console.log($1))`$1`)}
-// Print performance highlights;
-    for ((device) { any, stats in results["performance"].items() {)) {,;"
-      if (($1) { ${$1}s average inference time");"
-        ,;
-// Print example outputs if ($1) {) {
-        if (($1) {,;
-        console.log($1))"\nExample output) {");"
-        example) { any) { any: any = results["examples"][0],;"
-      if (($1) { ${$1}"),;"
-        console.log($1))`$1`predictions']}"),;'
-      elif ($1) { ${$1}"),;"
-        console.log($1))`$1`output_preview']}");'
-} else {console.log($1))`$1`)}
-// Print error information;
-    for test_name, result in results["results"].items())) {,;"
-      if ($1) { ${$1}");"
-        console.log($1))`$1`pipeline_error', 'Unknown error')}");'
-  
-        console.log($1))"\nFor detailed results, use --save flag && check the JSON output file.");"
-;
-if ($1) {;
-  main());
+
+  if (capabilities.mps) {
+    return "mps";
+  }
+
+  return "cpu";
+}
+
+function loadDinoModelInfo(modelId = DEFAULT_DINO_MODEL_ID): DinoModelInfo {
+  const modelInfo = DINO_MODELS_REGISTRY[modelId];
+
+  if (!modelInfo) {
+    throw new Error(`Unknown DINO model: ${modelId}`);
+  }
+
+  return modelInfo;
+}
+
+function normalizeDinoImage(input: Partial<DinoImageInput> = {}): DinoImageInput {
+  const width = input.width ?? DEFAULT_DINO_IMAGE.width;
+  const height = input.height ?? DEFAULT_DINO_IMAGE.height;
+
+  if (width <= 0 || height <= 0) {
+    throw new Error("DINO image dimensions must be positive");
+  }
+
+  return {
+    width,
+    height,
+    channels: 3,
+    source: input.source ?? DEFAULT_DINO_IMAGE.source,
+  };
+}
+
+function summarizeDinoImage(input: DinoImageInput): string {
+  return `${input.width}x${input.height} RGB image (${input.source})`;
+}
+
+function previewDinoOutput(output: unknown, maxLength = 200): string {
+  const serialized = typeof output === "string" ? output : JSON.stringify(output);
+
+  if (serialized.length <= maxLength) {
+    return serialized;
+  }
+
+  return `${serialized.slice(0, maxLength)}...`;
+}
+
+function createDinoPipelineResult(
+  modelId: string,
+  capabilities: DinoHardwareCapabilities,
+  dependencies: Partial<Record<"transformers" | "pillow" | "requests", boolean>>,
+  input: Partial<DinoImageInput>,
+  output: unknown,
+): DinoPipelineResult {
+  const modelInfo = loadDinoModelInfo(modelId);
+  const baseResult = {
+    model: modelId,
+    device: selectDinoDevice(capabilities),
+    task: modelInfo.task,
+    className: modelInfo.className,
+  };
+
+  if (!dependencies.transformers) {
+    return {
+      ...baseResult,
+      pipelineSuccess: false,
+      pipelineErrorType: "missing_dependency",
+      pipelineMissingCore: ["transformers"],
+    };
+  }
+
+  const missingImageDeps: DinoDependency[] = [];
+
+  if (!dependencies.pillow) {
+    missingImageDeps.push("pillow>=8.0.0");
+  }
+
+  if (!dependencies.requests) {
+    missingImageDeps.push("requests>=2.25.0");
+  }
+
+  if (missingImageDeps.length > 0) {
+    return {
+      ...baseResult,
+      pipelineSuccess: false,
+      pipelineErrorType: "missing_dependency",
+      pipelineMissingDeps: missingImageDeps,
+    };
+  }
+
+  const normalizedInput = normalizeDinoImage(input);
+
+  return {
+    ...baseResult,
+    pipelineSuccess: true,
+    pipelineErrorType: "none",
+    inputSummary: summarizeDinoImage(normalizedInput),
+    outputPreview: previewDinoOutput(output),
+  };
+}
+
+class DinoMockHandler {
+  readonly implementationType = "MOCK";
+
+  classify(input: Partial<DinoImageInput> = {}): {
+    logits: number[];
+    implementationType: "MOCK";
+    inputSummary: string;
+  } {
+    const normalizedInput = normalizeDinoImage(input);
+    const areaRatio = (normalizedInput.width * normalizedInput.height) / (224 * 224);
+
+    return {
+      logits: [Number(areaRatio.toFixed(3)), 0.31, 0.08],
+      implementationType: this.implementationType,
+      inputSummary: summarizeDinoImage(normalizedInput),
+    };
+  }
+}
+
+describe("DINO model conversion fixture", () => {
+  it("keeps the DINO model registry from the Python source", () => {
+    expect(Object.keys(DINO_MODELS_REGISTRY)).toEqual([
+      "facebook/dino-vitb16",
+      "facebook/dino-vits16",
+    ]);
+    expect(loadDinoModelInfo()).toEqual({
+      description: "DINO ViT-B/16 model",
+      className: "DinoForImageClassification",
+      task: "image-classification",
+    });
+  });
+
+  it("rejects unknown DINO model identifiers explicitly", () => {
+    expect(() => loadDinoModelInfo("facebook/dino-vitl16")).toThrow(
+      "Unknown DINO model: facebook/dino-vitl16",
+    );
+  });
+
+  it("selects CUDA before MPS and falls back to CPU", () => {
+    expect(selectDinoDevice({ cpu: true, cuda: true, mps: true })).toBe("cuda");
+    expect(selectDinoDevice({ cpu: true, cuda: false, mps: true })).toBe("mps");
+    expect(selectDinoDevice({ cpu: true, cuda: false, mps: false })).toBe("cpu");
+  });
+
+  it("normalizes image input and rejects invalid dimensions", () => {
+    expect(normalizeDinoImage()).toEqual(DEFAULT_DINO_IMAGE);
+    expect(normalizeDinoImage({ width: 384, source: "url" })).toEqual({
+      width: 384,
+      height: 224,
+      channels: 3,
+      source: "url",
+    });
+    expect(() => normalizeDinoImage({ height: 0 })).toThrow("DINO image dimensions must be positive");
+  });
+
+  it("reports missing transformers as a core dependency failure", () => {
+    const result = createDinoPipelineResult(
+      DEFAULT_DINO_MODEL_ID,
+      { cpu: true, cuda: false, mps: false },
+      { transformers: false, pillow: true, requests: true },
+      DEFAULT_DINO_IMAGE,
+      [],
+    );
+
+    expect(result).toMatchObject({
+      pipelineSuccess: false,
+      pipelineErrorType: "missing_dependency",
+      pipelineMissingCore: ["transformers"],
+    });
+  });
+
+  it("reports missing image loading dependencies separately from core transformers", () => {
+    const result = createDinoPipelineResult(
+      DEFAULT_DINO_MODEL_ID,
+      { cpu: true, cuda: false, mps: false },
+      { transformers: true, pillow: false, requests: false },
+      DEFAULT_DINO_IMAGE,
+      [],
+    );
+
+    expect(result).toMatchObject({
+      pipelineSuccess: false,
+      pipelineErrorType: "missing_dependency",
+      pipelineMissingDeps: ["pillow>=8.0.0", "requests>=2.25.0"],
+    });
+  });
+
+  it("builds a successful image-classification result", () => {
+    const result = createDinoPipelineResult(
+      "facebook/dino-vits16",
+      { cpu: true, cuda: false, mps: false },
+      { transformers: true, pillow: true, requests: true },
+      { width: 384, height: 384, source: "url" },
+      [{ label: "tabby cat", score: 0.98 }],
+    );
+
+    expect(result).toMatchObject({
+      model: "facebook/dino-vits16",
+      device: "cpu",
+      task: "image-classification",
+      className: "DinoForImageClassification",
+      pipelineSuccess: true,
+      pipelineErrorType: "none",
+      inputSummary: "384x384 RGB image (url)",
+    });
+    expect(result.outputPreview).toBe('[{"label":"tabby cat","score":0.98}]');
+  });
+
+  it("provides a deterministic mock image-classification handler", () => {
+    const handler = new DinoMockHandler();
+
+    expect(handler.classify({ width: 112, height: 112 })).toEqual({
+      logits: [0.25, 0.31, 0.08],
+      implementationType: "MOCK",
+      inputSummary: "112x112 RGB image (fixture)",
+    });
+  });
+});
+
+export {};
