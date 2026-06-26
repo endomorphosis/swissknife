@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, '..');
 const validator = String.raw`
 import fs from 'fs';
 import path from 'path';
+import MCPDaemonManager from '../hallucinate_app/hallucinate_app/node/mcp_daemon_manager.js';
 import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,
@@ -22,6 +23,10 @@ const catalogPath = path.resolve(
   'vai-512-mcp-dashboard-catalog.json',
 );
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
+assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
+assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
+assert(catalog.dashboard_only_mocks === false, 'Catalog must reject dashboard-only mocks');
 const plans = buildSwissknifeMCPDashboardConsumerPlans(catalog);
 const packages = plans.map(plan => plan.server_package).sort();
 const expectedPackages = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
