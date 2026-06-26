@@ -77,7 +77,7 @@
     "test:ci-safe": "jest --config=config/jest/jest.hybrid.config.cjs --ci --coverage --maxWorkers=1",
     "test:unit": "jest test/unit --config=config/jest/jest.config.cjs",
     "test:e2e": "jest test/e2e --config=config/jest/jest.config.cjs",
-    "test:e2e:mcp": "node scripts/test-mcp-dashboard-consumer.cjs",
+    "test:e2e:mcp": "node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.mcp-dashboard.config.ts && node scripts/test-mcp-dashboard-consumer.cjs",
     "test:benchmark": "jest test/benchmark --config=config/jest/jest.config.cjs --passWithNoTests",
     "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit --config=config/jest/jest.config.cjs",
     "test:verify-build": "node ./test/verify-build.js",
