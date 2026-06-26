@@ -98,6 +98,7 @@ export interface HallucinateDashboardToolProtocol {
 }
 
 export interface HallucinateDashboardCapabilityServer {
+  launch_objective_ids?: string[];
   daemon_id: string;
   server_package: SwissknifeMCPServerPackage;
   endpoint: string;
@@ -121,6 +122,17 @@ export interface HallucinateDashboardCapabilityCatalog {
   task_id: string;
   validation_task_id?: string;
   goal_id: string;
+  launch_objective_ids?: string[];
+  launch_validation_gate?: {
+    task_id: string;
+    goal_id: string;
+    goal_packet?: string;
+    packet_goal_ids?: string[];
+    evidence_term: string;
+    playwright_specs?: string[];
+    validation_command?: string;
+    supervisor_gap_receipt?: string;
+  };
   generated_by: string;
   dashboard_only_mocks?: boolean;
   control_surface_route: string[];

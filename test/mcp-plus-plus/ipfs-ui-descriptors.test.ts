@@ -179,6 +179,12 @@ describe('IPFS MCP++ UI descriptor fixtures', () => {
     expect(new Set(plans.map(plan => plan.catalog_schema))).toEqual(new Set([
       'hallucinate_app.mcp_dashboard_capability_catalog.v1',
     ]));
+    expect(catalog.launch_objective_ids).toEqual(['VAIOS-G723', 'VAIOS-G724', 'VAIOS-G728']);
+    expect(catalog.launch_validation_gate).toMatchObject({
+      task_id: 'MGW-533',
+      goal_id: 'VAIOS-G724',
+      evidence_term: 'launch Playwright validation gate',
+    });
 
     for (const plan of plans) {
       expect(plan.catalog_generated_by).toBe('hallucinate_app.node.mcp_daemon_manager.getDashboardCapabilityCatalog');
