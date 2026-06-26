@@ -5,6 +5,12 @@ Meta glasses I/O. The gate lives in
 `test/e2e/meta-glasses-io-apps.spec.ts` and runs with the root
 `playwright.config.ts`.
 
+MGW-422 extends that browser coverage with
+`test/e2e/meta-glasses-expanded-io.spec.ts`. The expanded spec opens one
+Swissknife app harness that exercises camera, microphone route,
+speaker/headphone route, display, Meta Neural Band, captouch, motion/orientation,
+phone GPS, bridge-route metadata, and control-plane receipts together.
+
 ## What It Covers
 
 The spec opens representative Swissknife app surfaces against deterministic mock
@@ -43,13 +49,28 @@ The tests verify:
 - receipt display for capability samples, control-plane replay, and recovery
   envelopes
 
+The expanded MGW-422 spec additionally verifies:
+
+- ArrowRight Neural Band input and Enter captouch input are bound to visible app
+  actions
+- permission denial does not emit a control-plane handoff
+- content-addressed references are shown for allowed camera, video, audio,
+  display, motion, and GPS samples
+- raw audio and raw display pixels are absent from the browser-visible payload
+  references
+- MCP++ receipts are rendered for camera, microphone, headphones, display,
+  Neural Band, captouch, and display lifecycle events
+- an unauthorized control-plane handoff attempt is blocked and produces only a
+  blocked-handoff receipt
+
 ## Running
 
 ```bash
 cd swissknife
 npx playwright test test/e2e/meta-glasses-io-apps.spec.ts --config=playwright.config.ts
+npx playwright test test/e2e/meta-glasses-expanded-io.spec.ts --config=playwright.config.ts
 ```
 
-The config is intentionally scoped to `meta-glasses-io-apps.spec.ts` and does not
-start Vite. The spec builds its own in-page harness from checked-in fixtures so
-CI can validate Meta glasses I/O routes without hardware.
+The config is intentionally scoped to the Meta glasses I/O Playwright specs and
+does not start Vite. The specs build their own in-page harnesses from checked-in
+fixtures so CI can validate Meta glasses I/O routes without hardware.
