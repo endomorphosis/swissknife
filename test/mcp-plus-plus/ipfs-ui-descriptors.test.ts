@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { InterfaceRepository } from '../../src/services/mcp-idl';
 import {
   LocalMCPInterfaceRegistryBackend,
@@ -16,9 +18,28 @@ import {
   validateMCPUIProfileDescriptor,
 } from '../../src/services/mcp-ui-profile';
 import {
+  buildSwissknifeMCPDashboardConsumerPlans,
+  buildSwissknifeMCPDashboardInvocationPlan,
   buildSwissknifeMCPMediatedInvocationPlan,
   getSwissknifeMCPCapabilityRegistry,
+  type HallucinateDashboardCapabilityCatalog,
 } from '../../src/services/swissknife-mcp-capability-registry';
+
+const HALLUCINATE_DASHBOARD_CATALOG_FIXTURE = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-512-mcp-dashboard-catalog.json',
+);
+
+function loadHallucinateDashboardCatalog(): HallucinateDashboardCapabilityCatalog {
+  return JSON.parse(fs.readFileSync(HALLUCINATE_DASHBOARD_CATALOG_FIXTURE, 'utf8'));
+}
 
 describe('IPFS MCP++ UI descriptor fixtures', () => {
   it('validates all static IPFS descriptors without live services', () => {
@@ -144,5 +165,48 @@ describe('IPFS MCP++ UI descriptor fixtures', () => {
     expect(kitPlan?.tool_name).toBe('ipfs_pin_add');
     expect(acceleratePlan?.tool_name).toBe('tools_dispatch');
     expect(datasetPlan?.required_receipt_fields).toContain('mediation_receipt_id');
+  });
+
+  it('consumes the Hallucinate MCP dashboard catalog without duplicate dashboard schemas or mocks', () => {
+    const catalog = loadHallucinateDashboardCatalog();
+    const plans = buildSwissknifeMCPDashboardConsumerPlans(catalog);
+
+    expect(plans.map(plan => plan.server_package).sort()).toEqual([
+      'ipfs_accelerate_py',
+      'ipfs_datasets_py',
+      'ipfs_kit_py',
+    ]);
+    expect(new Set(plans.map(plan => plan.catalog_schema))).toEqual(new Set([
+      'hallucinate_app.mcp_dashboard_capability_catalog.v1',
+    ]));
+
+    for (const plan of plans) {
+      expect(plan.catalog_generated_by).toBe('hallucinate_app.node.mcp_daemon_manager.getDashboardCapabilityCatalog');
+      expect(plan.dashboard_only_mock).toBe(false);
+      expect(plan.receipt_schema).toBe('mcp_server_invocation_receipt_v1');
+      expect(plan.control_surface_route).toEqual(expect.arrayContaining([
+        'interaction_envelope',
+        'policy_decision',
+        'mediation_receipt',
+        'supervised MCP server transport',
+      ]));
+      expect(plan.required_receipt_fields).toEqual(expect.arrayContaining([
+        'interaction_envelope',
+        'policy_decision',
+        'mediation_receipt',
+        'mediation_receipt_id',
+        'receipt_cid',
+      ]));
+      expect(plan.tools_list.operation).toBe('tools/list');
+      expect(plan.tools_call.operation).toBe('tools/call');
+      expect(plan.tools_call.safeProbe?.mutation).toBe(false);
+    }
+
+    expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_kit_py', 'tools/list').url)
+      .toBe('http://127.0.0.1:8004/mcp/tools/list');
+    expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_datasets_py', 'tools/call').safe_probe?.tool_name)
+      .toBe('datasets_list');
+    expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_accelerate_py', 'tools/call').safe_probe?.tool_name)
+      .toBe('hardware_profile');
   });
 });
