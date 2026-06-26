@@ -1,0 +1,322 @@
+{
+  "id": "mgw-365-hardware-free-expanded-meta-glasses-io",
+  "profile": "handsfree.meta-glasses/io-capability",
+  "profile_version": "0.1.0",
+  "hardware_free": true,
+  "credentials_required": false,
+  "dat_package_access_required": false,
+  "paired_glasses_required": false,
+  "physical_hardware_required": false,
+  "mock_device": {
+    "device_id": "mock-meta-glasses-io-001",
+    "device_name": "Meta Glasses Expanded I/O Mock",
+    "source": "fixture",
+    "session_id": "mock-session-expanded-io",
+    "libp2p_peer_id": "12D3KooWMockMetaGlassesIoPeer"
+  },
+  "capabilities": [
+    {
+      "kind": "camera.photo_capture",
+      "readiness": "ready",
+      "surface": "dat-native",
+      "mock_operation": "capturePhoto",
+      "route": "dat-camera-photo",
+      "permission_scope": "meta_glasses.camera.photo",
+      "sample": {
+        "asset_uri": "ipfs://bafybeimockphoto",
+        "mime_type": "image/jpeg",
+        "receipt_cid": "sha256:photo-capture-receipt"
+      }
+    },
+    {
+      "kind": "camera.video_capture",
+      "readiness": "ready",
+      "surface": "dat-native",
+      "mock_operation": "startVideoStream",
+      "route": "dat-camera-video-stream",
+      "permission_scope": "meta_glasses.camera.video",
+      "sample": {
+        "stream_state": "ready",
+        "media_type": "video/h264",
+        "receipt_cid": "sha256:video-stream-receipt"
+      }
+    },
+    {
+      "kind": "microphone.input",
+      "readiness": "ready",
+      "surface": "bluetooth-audio",
+      "mock_operation": "openMicrophoneRoute",
+      "route": "bluetooth-hfp-input",
+      "permission_scope": "meta_glasses.microphone.capture",
+      "sample": {
+        "transcript": "hardware-free microphone route ready",
+        "receipt_cid": "sha256:microphone-route-receipt"
+      }
+    },
+    {
+      "kind": "speaker.output",
+      "readiness": "ready",
+      "surface": "bluetooth-audio",
+      "mock_operation": "openSpeakerRoute",
+      "route": "bluetooth-a2dp-output",
+      "permission_scope": "meta_glasses.audio.playback",
+      "sample": {
+        "audio_cid": "sha256:speaker-audio-sample",
+        "receipt_cid": "sha256:speaker-route-receipt"
+      }
+    },
+    {
+      "kind": "headphone.output",
+      "readiness": "ready",
+      "surface": "bluetooth-audio",
+      "mock_operation": "openHeadphoneRoute",
+      "route": "bluetooth-a2dp-output",
+      "permission_scope": "meta_glasses.audio.playback",
+      "sample": {
+        "audio_cid": "sha256:headphone-audio-sample",
+        "receipt_cid": "sha256:headphone-route-receipt"
+      }
+    },
+    {
+      "kind": "display.output",
+      "readiness": "ready",
+      "surface": "dat-native",
+      "mock_operation": "renderDisplayWidget",
+      "route": "dat-native-display",
+      "permission_scope": "meta_glasses.display.render",
+      "lifecycle": [
+        "target_selected",
+        "session_started",
+        "display_surface_ready",
+        "widget_rendered",
+        "widget_updated",
+        "widget_cleared",
+        "session_stopped"
+      ],
+      "sample": {
+        "widget_id": "handsfree.task-progress-widget",
+        "widget_cid": "sha256:mock-display-widget",
+        "receipt_cid": "sha256:display-lifecycle-receipt"
+      }
+    },
+    {
+      "kind": "neural_band.input",
+      "readiness": "ready",
+      "surface": "display-webapp",
+      "mock_operation": "emitNeuralBandGesture",
+      "route": "display-webapp-gesture",
+      "permission_scope": "meta_glasses.neural_band.input",
+      "gestures": [
+        "pinch",
+        "double_pinch",
+        "wrist_rotate",
+        "hold"
+      ],
+      "sample": {
+        "gesture": "pinch",
+        "confidence": 0.98,
+        "receipt_cid": "sha256:neural-band-receipt"
+      }
+    },
+    {
+      "kind": "captouch.input",
+      "readiness": "ready",
+      "surface": "display-webapp",
+      "mock_operation": "emitCaptouchEvent",
+      "route": "display-webapp-captouch",
+      "permission_scope": "meta_glasses.captouch.input",
+      "touch_events": [
+        "tap",
+        "double_tap",
+        "swipe_forward",
+        "swipe_back"
+      ],
+      "sample": {
+        "touch": "swipe_forward",
+        "receipt_cid": "sha256:captouch-receipt"
+      }
+    },
+    {
+      "kind": "motion.orientation",
+      "readiness": "ready",
+      "surface": "display-webapp",
+      "mock_operation": "emitOrientationSample",
+      "route": "display-webapp-motion",
+      "permission_scope": "meta_glasses.motion.orientation",
+      "sample": {
+        "yaw": 12.5,
+        "pitch": -2.25,
+        "roll": 0.75,
+        "quaternion": [0.99, 0.02, -0.04, 0.1],
+        "receipt_cid": "sha256:motion-orientation-receipt"
+      }
+    },
+    {
+      "kind": "phone_gps.context",
+      "readiness": "ready",
+      "surface": "phone-os",
+      "mock_operation": "emitPhoneGpsContext",
+      "route": "phone-os-location-context",
+      "permission_scope": "meta_glasses.phone_gps.context",
+      "sample": {
+        "source": "phone-os-mock",
+        "latitude": 37.789,
+        "longitude": -122.401,
+        "accuracy_m": 8,
+        "receipt_cid": "sha256:phone-gps-context-receipt"
+      }
+    }
+  ],
+  "swissknife_app_bindings": [
+    {
+      "binding_id": "camera.photo_capture.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "camera_photo_capture",
+      "interaction": "capture"
+    },
+    {
+      "binding_id": "camera.video_capture.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "camera_video_capture",
+      "interaction": "stream"
+    },
+    {
+      "binding_id": "microphone.input.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "microphone_input",
+      "interaction": "capture"
+    },
+    {
+      "binding_id": "speaker.output.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "speaker_output",
+      "interaction": "playback"
+    },
+    {
+      "binding_id": "headphone.output.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "headphone_output",
+      "interaction": "playback"
+    },
+    {
+      "binding_id": "display.output.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "display_output",
+      "interaction": "render"
+    },
+    {
+      "binding_id": "neural_band.input.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "neural_band_input",
+      "interaction": "gesture"
+    },
+    {
+      "binding_id": "captouch.input.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "captouch_input",
+      "interaction": "gesture"
+    },
+    {
+      "binding_id": "motion.orientation.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "motion_orientation",
+      "interaction": "sensor"
+    },
+    {
+      "binding_id": "phone_gps.context.binding",
+      "app_id": "swissknife.meta-glasses",
+      "method": "phone_gps_context",
+      "interaction": "context"
+    }
+  ],
+  "control_plane_envelopes": [
+    {
+      "event_type": "capability.ready",
+      "capability": "camera.photo_capture",
+      "correlation_id": "corr-photo-ready",
+      "route": "dat-camera-photo",
+      "receipt": {
+        "receipt_kind": "mcp++/capability-readiness",
+        "receipt_cid": "sha256:photo-ready-envelope",
+        "correlation_id_field": "correlation_id"
+      }
+    },
+    {
+      "event_type": "capability.ready",
+      "capability": "camera.video_capture",
+      "correlation_id": "corr-video-ready",
+      "route": "dat-camera-video-stream",
+      "receipt": {
+        "receipt_kind": "mcp++/capability-readiness",
+        "receipt_cid": "sha256:video-ready-envelope",
+        "correlation_id_field": "correlation_id"
+      }
+    },
+    {
+      "event_type": "display.lifecycle",
+      "capability": "display.output",
+      "correlation_id": "corr-display-lifecycle",
+      "route": "dat-native-display",
+      "receipt": {
+        "receipt_kind": "mcp++/execution",
+        "receipt_cid": "sha256:display-lifecycle-envelope",
+        "correlation_id_field": "correlation_id"
+      }
+    },
+    {
+      "event_type": "route.recovered",
+      "capability": "microphone.input",
+      "correlation_id": "corr-route-recovered",
+      "route": "bluetooth-hfp-input",
+      "receipt": {
+        "receipt_kind": "mcp++/control-route",
+        "receipt_cid": "sha256:route-recovered-envelope",
+        "correlation_id_field": "correlation_id"
+      }
+    }
+  ],
+  "failure_modes": [
+    {
+      "id": "permission_denial",
+      "capability": "camera.photo_capture",
+      "readiness": "permission_denied",
+      "recovery": "request_permission_again"
+    },
+    {
+      "id": "disconnect",
+      "capability": "display.output",
+      "readiness": "disconnected",
+      "recovery": "reconnect_selected_device"
+    },
+    {
+      "id": "unsupported_capability",
+      "capability": "neural_band.input",
+      "readiness": "unsupported",
+      "recovery": "fallback_to_mobile"
+    },
+    {
+      "id": "degraded_capability",
+      "capability": "motion.orientation",
+      "readiness": "degraded",
+      "recovery": "lower_sample_rate"
+    },
+    {
+      "id": "stale_session",
+      "capability": "display.output",
+      "readiness": "stale_session",
+      "recovery": "reset_display_session"
+    },
+    {
+      "id": "route_loss",
+      "capability": "microphone.input",
+      "readiness": "route_lost",
+      "recovery": "reroute_bluetooth_profile"
+    },
+    {
+      "id": "recovery",
+      "capability": "microphone.input",
+      "readiness": "ready",
+      "recovery": "route_recovered"
+    }
+  ]
+}

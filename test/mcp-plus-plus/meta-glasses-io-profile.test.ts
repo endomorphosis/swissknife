@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import { computeInterfaceCID } from '../../src/services/mcp-idl';
 import {
   META_GLASSES_IO_ERROR_CODES,
@@ -132,6 +133,39 @@ describe('Meta glasses I/O profile contract', () => {
     expect(cid).toMatch(/^sha256:/);
     expect(ioDescriptor.requires).toEqual(
       expect.arrayContaining(['mcp++/receipts', 'mcp++/policy', 'libp2p/session']),
+    );
+  });
+
+  it('ships a hardware-free expanded I/O fixture aligned with the profile capabilities', () => {
+    const fixture = JSON.parse(
+      readFileSync('test/fixtures/meta-glasses-io/hardware-free-expanded-io.json', 'utf8'),
+    );
+    const capabilityKinds = fixture.capabilities.map((capability: { kind: string }) => capability.kind);
+    const bindingIds = fixture.swissknife_app_bindings.map(
+      (binding: { binding_id: string }) => binding.binding_id,
+    );
+
+    expect(fixture.hardware_free).toBe(true);
+    expect(fixture.credentials_required).toBe(false);
+    expect(fixture.dat_package_access_required).toBe(false);
+    expect(fixture.paired_glasses_required).toBe(false);
+    expect(fixture.physical_hardware_required).toBe(false);
+    expect(capabilityKinds).toEqual(expect.arrayContaining([...META_GLASSES_IO_REQUIRED_CAPABILITIES]));
+    expect(bindingIds).toEqual(
+      expect.arrayContaining(
+        META_GLASSES_IO_REQUIRED_CAPABILITIES.map(capability => `${capability}.binding`),
+      ),
+    );
+    expect(fixture.failure_modes.map((mode: { id: string }) => mode.id)).toEqual(
+      expect.arrayContaining([
+        'permission_denial',
+        'disconnect',
+        'unsupported_capability',
+        'degraded_capability',
+        'stale_session',
+        'route_loss',
+        'recovery',
+      ]),
     );
   });
 
