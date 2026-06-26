@@ -215,6 +215,7 @@ test('opens every SwissKnife desktop app and renders a reusable Meta glasses ORB
       browserErrors: summarizedBrowserErrors,
     },
   };
+  fs.mkdirSync(resultsDir, { recursive: true });
   fs.writeFileSync(
     path.join(resultsDir, 'apps-meta-display-report.json'),
     JSON.stringify(report, null, 2),
