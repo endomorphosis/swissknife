@@ -435,4 +435,158 @@ describe('Meta glasses IPFS/libp2p/MCP++ I/O conformance', () => {
     expect(denied.fallback).toBeUndefined();
     expect(denied.receipt.receipt_cid).toMatch(CID_PATTERN);
   });
+
+  it('proves replay protection, backpressure, payload limits, and fallback bridge states', () => {
+    const router = createMetaGlassesControlPlaneRouter(APP_ID);
+    const display = binding(router, 'display.output');
+    const payload: MetaGlassesIOPayloadRef = {
+      cid: 'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+      purpose: 'display_asset',
+      media_type: 'application/vnd.meta-glasses.widget+json',
+      retention_policy: 'policy_controlled',
+      redaction: 'metadata_only',
+    };
+
+    const first = router.route({
+      app_id: APP_ID,
+      binding_id: display.binding_id,
+      correlation_id: 'corr-replay-proof',
+      sequence: 11,
+      event_id: 'display-replay-proof',
+      payload_refs: [payload],
+      bridge: networkEnvelope('display.output', display.binding_id, 'corr-replay-proof', [payload.cid]),
+    });
+    const replayed = router.route({
+      app_id: APP_ID,
+      binding_id: display.binding_id,
+      correlation_id: 'corr-replay-proof',
+      sequence: 11,
+      event_id: 'display-replay-proof',
+      payload_refs: [payload],
+      bridge: networkEnvelope('display.output', display.binding_id, 'corr-replay-proof', [payload.cid]),
+    });
+
+    expect(first.status).toBe('accepted');
+    expect(replayed.status).toBe('replayed');
+    expect(replayed.receipt.receipt_kind).toBe('mcp++/policy-decision');
+    expect(replayed.receipt.replay_key).toBe(`${APP_ID}:${display.binding_id}:display-replay-proof:11`);
+
+    const backpressureBridge: MetaGlassesIOBridgeEnvelope = {
+      ...networkEnvelope('display.output', display.binding_id, 'corr-backpressure-proof'),
+      flow_control: {
+        latency_ms: 125,
+        jitter_ms: 28,
+        backpressure: 'hard_limit',
+        queued_bytes: 512_000,
+        dropped_messages: 3,
+      },
+    };
+    const backpressure = router.route({
+      app_id: APP_ID,
+      binding_id: display.binding_id,
+      correlation_id: 'corr-backpressure-proof',
+      sequence: 12,
+      event_id: 'display-backpressure-proof',
+      payload_refs: [payload],
+      bridge: backpressureBridge,
+    });
+    expect(backpressure.status).toBe('backpressure');
+    expect(backpressure.backpressure.state).toBe('hard_limit');
+    expect(backpressure.session.status).toBe('fallback');
+    expect(backpressure.fallback?.tool).toBe(display.fallback_tool);
+
+    const fallbackBridge: MetaGlassesIOBridgeEnvelope = {
+      ...networkEnvelope('display.output', display.binding_id, 'corr-fallback-proof'),
+      route: {
+        ...networkEnvelope('display.output', display.binding_id, 'corr-fallback-proof').route,
+        readiness: 'unsupported',
+      },
+    };
+    const fallback = router.route({
+      app_id: APP_ID,
+      binding_id: display.binding_id,
+      correlation_id: 'corr-fallback-proof',
+      sequence: 13,
+      event_id: 'display-fallback-proof',
+      payload_refs: [payload],
+      bridge: fallbackBridge,
+    });
+    expect(fallback.status).toBe('unsupported');
+    expect(fallback.fallback?.reason).toContain('unsupported');
+    expect(fallback.receipt.receipt_cid).toMatch(CID_PATTERN);
+
+    const tooManyContentRefs: MetaGlassesIOBridgeEnvelope = {
+      ...networkEnvelope('display.output', display.binding_id, 'corr-payload-limit-proof', [payload.cid]),
+      payload_limits: {
+        max_payload_bytes: 1024,
+        max_content_cid_count: 0,
+        chunking_required_above_bytes: 1024,
+        inline_payload_allowed: false,
+      },
+    };
+    const validation = validateMetaGlassesIOBridgeEnvelope(tooManyContentRefs);
+    expect(validation.conformant).toBe(false);
+    expect(validation.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: META_GLASSES_IO_TRANSPORT_ERROR_CODES.PAYLOAD_LIMITS,
+        path: 'payload_limits',
+      }),
+    ]));
+  });
+
+  it('fails missing policy decisions, unauthorized relays, raw transport claims, and missing receipts deterministically', () => {
+    const base = networkEnvelope('display.output', 'display.output.render.binding', 'corr-negative-proof');
+    const missingPolicy: MetaGlassesIOBridgeEnvelope = {
+      ...base,
+      policy: undefined as never,
+    };
+    const unauthorizedRelay: MetaGlassesIOBridgeEnvelope = {
+      ...base,
+      app_layers: {
+        ...base.app_layers,
+        libp2p: 'provided_by_bridge',
+        libp2p_session_id: undefined,
+      },
+    };
+    const rawTransportClaim: MetaGlassesIOBridgeEnvelope = {
+      ...base,
+      route: {
+        ...base.route,
+        raw_transport_is_ipfs_libp2p_or_mcp: true as false,
+      },
+    };
+    const missingReceipts: MetaGlassesIOBridgeEnvelope = {
+      ...base,
+      receipts: {
+        ...base.receipts,
+        mcp_tool_receipt_id: '',
+        policy_receipt_id: '',
+      },
+    };
+
+    expect(validateMetaGlassesIOBridgeEnvelope(missingPolicy).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: META_GLASSES_IO_TRANSPORT_ERROR_CODES.POLICY_DECISION,
+        path: 'policy',
+      }),
+    ]));
+    expect(validateMetaGlassesIOBridgeEnvelope(unauthorizedRelay).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: META_GLASSES_IO_TRANSPORT_ERROR_CODES.APP_LAYER_BOUNDARY,
+        path: 'app_layers.libp2p',
+      }),
+    ]));
+    expect(validateMetaGlassesIOBridgeEnvelope(rawTransportClaim).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: META_GLASSES_IO_TRANSPORT_ERROR_CODES.APP_LAYER_BOUNDARY,
+        path: 'route.raw_transport_is_ipfs_libp2p_or_mcp',
+      }),
+    ]));
+    expect(validateMetaGlassesIOBridgeEnvelope(missingReceipts).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: META_GLASSES_IO_TRANSPORT_ERROR_CODES.RECEIPTS,
+        path: 'receipts',
+      }),
+    ]));
+  });
 });
