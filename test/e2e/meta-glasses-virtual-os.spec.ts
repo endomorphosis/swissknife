@@ -27,6 +27,13 @@ const HAO_675_LAUNCH_REPLAY_FIXTURE = path.join(
   'fixtures',
   'hao-675-launch-replay.json',
 );
+const HAO_705_CROSS_DEVICE_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-705-cross-device-launch-gate.json',
+);
 
 test.setTimeout(240_000);
 test.describe.configure({ mode: 'serial' });
@@ -66,6 +73,56 @@ test('HAO-675 launch replay fixture proves Swissknife and Hallucinate App Playwr
     simulated_meta_glasses_interaction: 'passed',
     desktop_peer_offload: 'passed',
     production_launch_readiness: 'passed',
+  });
+});
+
+test('HAO-705 cross-device launch gate fixture proves phone-hosted desktop peer offload replay', async () => {
+  const fixture = JSON.parse(fs.readFileSync(HAO_705_CROSS_DEVICE_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('HAO-705');
+  expect(fixture.goal_id).toBe('VAIOS-G726');
+  expect(fixture.schema).toBe('hao_cross_device_launch_playwright_gate_v1');
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.playwright_commands.swissknife).toBe('npm --prefix swissknife run test:e2e:meta-glasses');
+  expect(fixture.playwright_commands.hallucinate_app).toBe(
+    'npm --prefix hallucinate_app run test:e2e -- multimodal-control-surface.spec.ts',
+  );
+  expect(fixture.route).toEqual([
+    'phone-hosted Swissknife virtual desktop',
+    'mobile phone',
+    'desktop peer discovery',
+    'desktop peer offload',
+    'IPFS',
+    'libp2p',
+    'MCP++',
+    'Hallucinate App mediation',
+    'Meta glasses terminal',
+    'launch readiness receipt',
+  ]);
+  expect(fixture.mission_terms).toEqual(expect.arrayContaining([
+    'cross-device e2e validation',
+    'Playwright launch replay',
+    'launch Playwright validation gate',
+  ]));
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.replay_assertions).toMatchObject({
+    phone_hosted_mode: 'phone-hosted',
+    control_plane_command: 'desktop.request_handoff',
+    selected_runtime: 'desktop_peer',
+    fallback_runtime: 'phone_local',
+    launch_readiness_lineage: 'VAIOS-G697:launch-readiness:phone-desktop-glasses',
+  });
+  expect(fixture.pass_fail_receipts).toMatchObject({
+    phone_hosted_swissknife_virtual_desktop: 'passed',
+    desktop_peer_offload: 'passed',
+    hallucinate_app_mediation: 'passed',
+    ipfs_libp2p_mcpplusplus_route: 'passed',
+    launch_readiness_receipt: 'passed',
+    playwright_launch_replay: 'passed',
   });
 });
 

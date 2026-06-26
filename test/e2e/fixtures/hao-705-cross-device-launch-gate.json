@@ -1,0 +1,69 @@
+{
+  "schema": "hao_cross_device_launch_playwright_gate_v1",
+  "task_id": "HAO-705",
+  "goal_id": "VAIOS-G726",
+  "evidence_term": "launch Playwright validation gate",
+  "lineage_id": "VAIOS-G726:cross-device-virtual-desktop-offload-launch-replay",
+  "source_gap_receipt": "data/hallucinate_multimodal_control/discovery/2026-06-26-hao-705-objective-gap-4ca32c914d33.md",
+  "launch_gate_receipt": "data/hallucinate_multimodal_control/discovery/2026-06-26-hao-705-launch-playwright-validation-gate.md",
+  "source_replay_fixture": "swissknife/test/e2e/fixtures/vai-502-cross-device-playwright-replay.json",
+  "playwright_commands": {
+    "python": "PYTHONPATH=external/ipfs_accelerate:external/ipfs_datasets pytest tests/test_virtual_ai_os_launch_readiness_gate.py -q",
+    "swissknife": "npm --prefix swissknife run test:e2e:meta-glasses",
+    "hallucinate_app": "npm --prefix hallucinate_app run test:e2e -- multimodal-control-surface.spec.ts"
+  },
+  "route": [
+    "phone-hosted Swissknife virtual desktop",
+    "mobile phone",
+    "desktop peer discovery",
+    "desktop peer offload",
+    "IPFS",
+    "libp2p",
+    "MCP++",
+    "Hallucinate App mediation",
+    "Meta glasses terminal",
+    "launch readiness receipt"
+  ],
+  "mission_terms": [
+    "phone-hosted Swissknife virtual desktop",
+    "desktop peer offload",
+    "mobile phone",
+    "Hallucinate App mediation",
+    "IPFS",
+    "libp2p",
+    "MCP++",
+    "launch readiness receipt",
+    "cross-device e2e validation",
+    "Playwright launch replay",
+    "launch Playwright validation gate"
+  ],
+  "required_backends": [
+    "ipfs_kit_py",
+    "ipfs_datasets_py",
+    "ipfs_accelerate_py"
+  ],
+  "replay_assertions": {
+    "phone_hosted_mode": "phone-hosted",
+    "control_plane_command": "desktop.request_handoff",
+    "selected_runtime": "desktop_peer",
+    "fallback_runtime": "phone_local",
+    "desktop_peer_receipt": "sha256:vai502-desktop-peer-timeout",
+    "phone_fallback_receipt": "sha256:vai502-phone-fallback-receipt",
+    "meta_glasses_render_receipt": "sha256:vai502-meta-glasses-render-receipt",
+    "launch_readiness_lineage": "VAIOS-G697:launch-readiness:phone-desktop-glasses"
+  },
+  "pass_fail_receipts": {
+    "phone_hosted_swissknife_virtual_desktop": "passed",
+    "desktop_peer_offload": "passed",
+    "hallucinate_app_mediation": "passed",
+    "ipfs_libp2p_mcpplusplus_route": "passed",
+    "launch_readiness_receipt": "passed",
+    "playwright_launch_replay": "passed"
+  },
+  "supervisor_alignment": {
+    "objective_heap_goal": "VAIOS-G726",
+    "backlog_task": "HAO-705",
+    "bundle": "objective/launch/cross-device-virtual-desktop-offload-replay",
+    "keeps_supervisor_fed_backlog_aligned": true
+  }
+}
