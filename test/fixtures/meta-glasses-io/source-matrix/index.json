@@ -2,6 +2,8 @@
   "id": "mgw-415-public-dat-webapps-source-matrix",
   "profile": "handsfree.meta-glasses/io-source-matrix",
   "profile_version": "0.1.0",
+  "task": "MGW-415",
+  "source_refresh": "MGW-413",
   "hardware_free": true,
   "credentials_required": false,
   "dat_package_access_required": false,
@@ -12,118 +14,300 @@
       "id": "android-dat-displayaccess-v0.7",
       "surface": "dat-native",
       "platform": "android",
-      "readiness": "mocked"
+      "readiness": "mocked",
+      "sample_family": "DisplayAccess",
+      "evidence": [
+        "DeviceSession.addDisplay(config)",
+        "DisplayState/DisplayError readiness",
+        "Display.sendContent replaces the active view",
+        "DAM metadata and release-channel/package gates"
+      ]
     },
     {
       "id": "ios-dat-displayaccess-v0.7",
       "surface": "dat-native",
       "platform": "ios",
-      "readiness": "mocked"
+      "readiness": "mocked",
+      "sample_family": "DisplayAccess",
+      "evidence": [
+        "DeviceSession.addDisplay",
+        "display.send submits FlexBox or VideoPlayer content",
+        "Developer Mode, registration, firmware, and glasses-app gates",
+        "typed display/video state and error surfaces"
+      ]
     },
     {
       "id": "dat-cameraaccess-v0.7",
       "surface": "dat-native",
       "platform": "android-ios",
-      "readiness": "mocked"
+      "readiness": "mocked",
+      "sample_family": "CameraAccess",
+      "evidence": [
+        "camera permission simulation",
+        "camera session start/stop",
+        "camera stream ready/start/stop",
+        "photo capture output references"
+      ]
     },
     {
       "id": "meta-display-webapps-inputs",
       "surface": "display-webapp",
       "platform": "web",
-      "readiness": "mocked"
+      "readiness": "mocked",
+      "sample_family": "Web Apps starter",
+      "evidence": [
+        "Arrow keys and Enter model D-pad activation",
+        "Meta Neural Band and captouch normalize to intent events",
+        "motion/orientation and phone GPS can be browser tested",
+        "local storage is browser-local and quota limited"
+      ]
     },
     {
       "id": "bluetooth-audio-route-readiness",
       "surface": "bluetooth-audio",
       "platform": "phone",
-      "readiness": "mocked"
+      "readiness": "mocked",
+      "sample_family": "platform audio route",
+      "evidence": [
+        "microphone input readiness is a phone Bluetooth profile route",
+        "speaker/headphone output readiness is a phone Bluetooth profile route",
+        "route loss and recovery are diagnostics, not DAT audio packets"
+      ]
     }
+  ],
+  "fixture_principles": [
+    "fixtures mirror public lifecycle shapes without importing DAT SDK packages",
+    "native DAT owns camera photo/video and display lifecycle mocks",
+    "Bluetooth audio is modeled as phone route readiness",
+    "Web Apps own Arrow/Enter, Neural Band, captouch, motion/orientation, phone GPS, and local storage mocks",
+    "IPFS/libp2p/MCP++ metadata appears only in app-level bridge envelopes"
   ],
   "display_access_lifecycle_v0_7": [
     "sdk_package_checked",
     "release_channel_checked",
     "credentials_checked",
     "developer_mode_checked",
+    "app_model_metadata_checked",
+    "dam_enabled_checked",
     "display_target_selected",
     "device_session_starting",
     "device_session_started",
     "display_attaching",
     "display_attached",
+    "display_state_starting",
     "display_ready",
     "display_content_sent",
     "display_video_player_ready",
     "display_content_replaced",
-    "display_session_stopped"
+    "display_session_stopped",
+    "display_removed"
+  ],
+  "display_session_states_v0_7": [
+    {
+      "state": "unavailable",
+      "readiness": "package_or_release_channel_unavailable",
+      "fixture_event": "display.package_unavailable",
+      "fallback": "display-webapp"
+    },
+    {
+      "state": "awaiting_update",
+      "readiness": "firmware_update_required",
+      "fixture_event": "display.firmware_update_required",
+      "fallback": "mobile-fallback"
+    },
+    {
+      "state": "starting",
+      "readiness": "permission_required",
+      "fixture_event": "display.session_starting",
+      "fallback": null
+    },
+    {
+      "state": "started",
+      "readiness": "ready",
+      "fixture_event": "display.session_started",
+      "fallback": null
+    },
+    {
+      "state": "content_sent",
+      "readiness": "ready",
+      "fixture_event": "display.content_sent",
+      "content_shape": "single_root_flexbox_or_video_player"
+    },
+    {
+      "state": "stopped",
+      "readiness": "disconnected",
+      "fixture_event": "display.session_stopped",
+      "fallback": "display-webapp"
+    }
+  ],
+  "display_content_samples": [
+    {
+      "id": "display-flexbox-widget",
+      "surface": "dat-native",
+      "content_kind": "FlexBox",
+      "children": ["Text", "Image", "Button"],
+      "replacement_semantics": "send_replaces_previous_content",
+      "viewport": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "id": "display-video-player",
+      "surface": "dat-native",
+      "content_kind": "VideoPlayer",
+      "media_type": "video/mp4",
+      "replacement_semantics": "send_replaces_previous_content"
+    }
   ],
   "camera_access_lifecycle_v0_7": [
     "camera_permission_required",
     "camera_permission_granted",
+    "camera_session_starting",
     "camera_session_started",
     "camera_stream_ready",
     "camera_stream_started",
     "camera_photo_requested",
     "camera_photo_captured",
+    "camera_stream_backpressure",
     "camera_stream_stopped",
     "camera_session_stopped"
+  ],
+  "camera_states": [
+    {
+      "id": "camera-stream-ready",
+      "capability": "camera.video_capture",
+      "state": "ready",
+      "readiness": "ready",
+      "operation": "startVideoStream",
+      "output_ref": {
+        "cid": "sha256:mgw415-camera-stream-ready",
+        "purpose": "video",
+        "media_type": "video/mp4",
+        "retention_policy": "ephemeral"
+      }
+    },
+    {
+      "id": "camera-photo-captured",
+      "capability": "camera.photo_capture",
+      "state": "captured",
+      "readiness": "ready",
+      "operation": "capturePhoto",
+      "output_ref": {
+        "cid": "sha256:mgw415-camera-photo-captured",
+        "purpose": "photo",
+        "media_type": "image/jpeg",
+        "retention_policy": "session"
+      }
+    },
+    {
+      "id": "camera-permission-denied",
+      "capability": "camera.photo_capture",
+      "state": "permission_denied",
+      "readiness": "permission_denied",
+      "operation": "capturePhoto"
+    },
+    {
+      "id": "camera-stream-backpressure",
+      "capability": "camera.video_capture",
+      "state": "backpressure",
+      "readiness": "degraded",
+      "operation": "startVideoStream",
+      "recovery": "drop_ephemeral_frames_and_resume"
+    }
   ],
   "audio_route_states": [
     {
       "capability": "microphone.input",
       "route": "bluetooth-hfp-input",
-      "readiness": "ready"
+      "readiness": "ready",
+      "profile": "phone-os-bluetooth",
+      "fixture_event": "io.microphone.route.ready"
     },
     {
       "capability": "speaker.output",
       "route": "bluetooth-a2dp-output",
-      "readiness": "ready"
+      "readiness": "ready",
+      "profile": "phone-os-bluetooth",
+      "fixture_event": "io.speaker.route.ready"
     },
     {
       "capability": "headphone.output",
       "route": "bluetooth-a2dp-output",
-      "readiness": "ready"
+      "readiness": "ready",
+      "profile": "phone-os-bluetooth",
+      "fixture_event": "io.headphone.route.ready"
+    },
+    {
+      "capability": "microphone.input",
+      "route": "bluetooth-hfp-input",
+      "readiness": "route_lost",
+      "profile": "phone-os-bluetooth",
+      "fixture_event": "io.microphone.route.lost",
+      "recovery": "reroute_bluetooth_profile"
     }
   ],
   "web_app_inputs": [
     {
+      "id": "webapp-arrow-left",
       "key": "ArrowLeft",
       "intent": "navigate_previous",
-      "capability": "captouch.input"
+      "capability": "captouch.input",
+      "source": "browser_keyboard_or_display_dpad",
+      "normalized_event": "io.captouch.intent"
     },
     {
+      "id": "webapp-arrow-right",
       "key": "ArrowRight",
       "intent": "navigate_next",
-      "capability": "captouch.input"
+      "capability": "captouch.input",
+      "source": "browser_keyboard_or_display_dpad",
+      "normalized_event": "io.captouch.intent"
     },
     {
+      "id": "webapp-enter",
       "key": "Enter",
       "intent": "activate_selected",
-      "capability": "captouch.input"
+      "capability": "captouch.input",
+      "source": "browser_keyboard_or_display_dpad",
+      "normalized_event": "io.captouch.intent"
     },
     {
+      "id": "webapp-neural-band-pinch",
       "gesture": "pinch",
+      "key": "Enter",
       "intent": "activate_selected",
-      "capability": "neural_band.input"
+      "capability": "neural_band.input",
+      "source": "neural_band_or_browser_enter",
+      "normalized_event": "io.neural_band.intent"
     },
     {
+      "id": "webapp-captouch-swipe-forward",
       "touch": "swipe_forward",
+      "key": "ArrowRight",
       "intent": "navigate_next",
-      "capability": "captouch.input"
+      "capability": "captouch.input",
+      "source": "captouch_or_browser_arrow",
+      "normalized_event": "io.captouch.intent"
     }
   ],
   "sensor_contexts": [
     {
       "id": "motion-orientation",
       "capability": "motion.orientation",
+      "surface": "display-webapp",
       "sample": {
         "yaw": 12.5,
         "pitch": -2.25,
         "roll": 0.75,
-        "quaternion": [0.99, 0.02, -0.04, 0.1]
+        "quaternion": [0.99, 0.02, -0.04, 0.1],
+        "source": "browser-devtools-orientation-mock"
       }
     },
     {
       "id": "phone-gps",
       "capability": "phone_gps.context",
+      "surface": "display-webapp",
       "sample": {
         "source": "phone-os-mock",
         "latitude": 37.789,
@@ -132,62 +316,118 @@
       }
     }
   ],
+  "storage_limits": [
+    {
+      "id": "webapp-local-storage-quota",
+      "surface": "display-webapp",
+      "capability": "display.output",
+      "limit": "browser_local_storage_quota",
+      "durability": "browser_local_not_control_plane",
+      "readiness": "degraded",
+      "recovery": "drop_ephemeral_frames_and_resume"
+    }
+  ],
   "failure_modes": [
     {
       "id": "permission_denial",
       "capability": "camera.photo_capture",
-      "readiness": "permission_denied"
+      "readiness": "permission_denied",
+      "source_family": "dat-cameraaccess-v0.7",
+      "recovery": "request_permission_again"
     },
     {
       "id": "unsupported_display",
       "capability": "display.output",
-      "readiness": "unsupported"
+      "readiness": "unsupported",
+      "source_family": "android-dat-displayaccess-v0.7",
+      "recovery": "fallback_to_display_webapp_or_mobile"
     },
     {
       "id": "release_channel_missing",
       "capability": "display.output",
-      "readiness": "package_or_release_channel_unavailable"
+      "readiness": "package_or_release_channel_unavailable",
+      "source_family": "android-dat-displayaccess-v0.7",
+      "recovery": "fallback_to_display_webapp_or_mobile"
     },
     {
       "id": "firmware_update_required",
       "capability": "display.output",
-      "readiness": "firmware_update_required"
+      "readiness": "firmware_update_required",
+      "source_family": "ios-dat-displayaccess-v0.7",
+      "recovery": "show_update_required_receipt"
     },
     {
       "id": "dat_app_update_required",
       "capability": "display.output",
-      "readiness": "dat_app_update_required"
+      "readiness": "dat_app_update_required",
+      "source_family": "ios-dat-displayaccess-v0.7",
+      "recovery": "show_update_required_receipt"
     },
     {
       "id": "route_loss",
       "capability": "microphone.input",
       "readiness": "route_lost",
+      "source_family": "bluetooth-audio-route-readiness",
       "recovery": "reroute_bluetooth_profile"
     },
     {
       "id": "backpressure",
       "capability": "camera.video_capture",
       "readiness": "degraded",
+      "source_family": "dat-cameraaccess-v0.7",
       "recovery": "drop_ephemeral_frames_and_resume"
     },
     {
       "id": "local_storage_limit",
       "capability": "display.output",
       "readiness": "degraded",
+      "source_family": "meta-display-webapps-inputs",
       "recovery": "drop_ephemeral_frames_and_resume"
     },
     {
       "id": "recovery",
       "capability": "microphone.input",
-      "readiness": "ready"
+      "readiness": "ready",
+      "source_family": "bluetooth-audio-route-readiness",
+      "recovery": "route_recovered"
     }
   ],
-  "storage_limits": [
+  "bridge_envelopes": [
     {
-      "id": "webapp-local-storage-quota",
-      "surface": "display-webapp",
-      "limit": "ephemeral",
-      "recovery": "drop_ephemeral_frames_and_resume"
+      "id": "camera-photo-captured-envelope",
+      "event_type": "capability.ready",
+      "capability": "camera.photo_capture",
+      "surface": "dat-native",
+      "correlation_id": "mgw415-photo-ready",
+      "payload_refs": ["sha256:mgw415-camera-photo-captured"],
+      "receipt": {
+        "receipt_kind": "mcp++/capability-readiness",
+        "receipt_cid": "sha256:mgw415-photo-ready-receipt"
+      }
+    },
+    {
+      "id": "display-lifecycle-envelope",
+      "event_type": "display.lifecycle",
+      "capability": "display.output",
+      "surface": "dat-native",
+      "correlation_id": "mgw415-display-lifecycle",
+      "payload_refs": ["sha256:mgw415-display-content"],
+      "receipt": {
+        "receipt_kind": "mcp++/control-route",
+        "receipt_cid": "sha256:mgw415-display-lifecycle-receipt"
+      }
+    },
+    {
+      "id": "route-recovered-envelope",
+      "event_type": "route.recovered",
+      "capability": "microphone.input",
+      "surface": "bluetooth-audio",
+      "correlation_id": "mgw415-route-recovered",
+      "payload_refs": ["sha256:mgw415-route-recovered"],
+      "receipt": {
+        "receipt_kind": "mcp++/capability-readiness",
+        "receipt_cid": "sha256:mgw415-route-recovered-receipt"
+      }
     }
   ]
 }
