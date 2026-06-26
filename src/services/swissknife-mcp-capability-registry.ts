@@ -119,8 +119,10 @@ export interface HallucinateDashboardCapabilityServer {
 export interface HallucinateDashboardCapabilityCatalog {
   schema: string;
   task_id: string;
+  validation_task_id?: string;
   goal_id: string;
   generated_by: string;
+  dashboard_only_mocks?: boolean;
   control_surface_route: string[];
   servers: HallucinateDashboardCapabilityServer[];
 }
@@ -435,14 +437,18 @@ export function buildSwissknifeMCPDashboardConsumerPlans(
 ): SwissknifeMCPDashboardConsumerPlan[] {
   assertHallucinateDashboardCatalog(catalog);
   const registry = getSwissknifeMCPCapabilityRegistry();
+  const catalogSchemas = new Set([catalog.schema]);
 
-  return registry.map((descriptor) => {
+  const plans = registry.map((descriptor) => {
     const server = catalog.servers.find(candidate =>
       candidate.server_package === descriptor.server_package &&
       candidate.daemon_id === descriptor.daemon_id
     );
     if (!server) {
       throw new Error(`Hallucinate dashboard catalog is missing ${descriptor.server_package}/${descriptor.daemon_id}`);
+    }
+    if ((server as { schema?: string }).schema && (server as { schema?: string }).schema !== `${catalog.schema}.server`) {
+      catalogSchemas.add((server as { schema: string }).schema);
     }
 
     return {
@@ -468,6 +474,11 @@ export function buildSwissknifeMCPDashboardConsumerPlans(
       dashboard_only_mock: false,
     };
   });
+
+  if (catalogSchemas.size > 1) {
+    throw new Error(`Hallucinate dashboard catalog exposed duplicate schemas: ${[...catalogSchemas].join(', ')}`);
+  }
+  return plans;
 }
 
 export function buildSwissknifeMCPDashboardInvocationPlan(
@@ -499,6 +510,12 @@ export function buildSwissknifeMCPDashboardInvocationPlan(
 function assertHallucinateDashboardCatalog(catalog: HallucinateDashboardCapabilityCatalog): void {
   if (catalog?.schema !== 'hallucinate_app.mcp_dashboard_capability_catalog.v1') {
     throw new Error(`Unsupported Hallucinate dashboard catalog schema: ${catalog?.schema || 'missing'}`);
+  }
+  if (catalog.dashboard_only_mocks !== false) {
+    throw new Error('Hallucinate dashboard catalog must not be backed by dashboard-only mocks');
+  }
+  if (catalog.generated_by !== 'hallucinate_app.node.mcp_daemon_manager.getDashboardCapabilityCatalog') {
+    throw new Error(`Unexpected Hallucinate dashboard catalog source: ${catalog.generated_by || 'missing'}`);
   }
   if (!Array.isArray(catalog.servers)) {
     throw new Error('Hallucinate dashboard catalog must include a servers array');
