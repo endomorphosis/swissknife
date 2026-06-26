@@ -84,6 +84,65 @@ export interface SwissknifeMCPCapabilityDescriptor {
   launch_contract: SwissknifeMCPLaunchContract;
 }
 
+export interface HallucinateDashboardToolProtocol {
+  operation: 'tools/list' | 'tools/call';
+  method: string;
+  url: string;
+  path?: string;
+  safeProbe?: {
+    tool_name: string;
+    arguments: Record<string, unknown>;
+    mutation: boolean;
+    expected_receipt: string;
+  };
+}
+
+export interface HallucinateDashboardCapabilityServer {
+  daemon_id: string;
+  server_package: SwissknifeMCPServerPackage;
+  endpoint: string;
+  transport: SwissknifeMCPTransport;
+  rpc_path: string;
+  health_path: string;
+  menu_dashboard_url: string;
+  native_dashboard_url: string | null;
+  native_dashboard_catalog_url: string | null;
+  tool_protocols: {
+    tools_list: HallucinateDashboardToolProtocol;
+    tools_call: HallucinateDashboardToolProtocol;
+  };
+  control_surface_mediation_contract: string;
+  control_surface_receipt_requirements: string[];
+  swissknife_consumer: string;
+}
+
+export interface HallucinateDashboardCapabilityCatalog {
+  schema: string;
+  task_id: string;
+  goal_id: string;
+  generated_by: string;
+  control_surface_route: string[];
+  servers: HallucinateDashboardCapabilityServer[];
+}
+
+export interface SwissknifeMCPDashboardConsumerPlan {
+  catalog_schema: string;
+  catalog_generated_by: string;
+  server_package: SwissknifeMCPServerPackage;
+  daemon_id: string;
+  descriptor_id: string;
+  app_id: string;
+  dashboard_url: string;
+  native_dashboard_url: string | null;
+  tools_list: HallucinateDashboardToolProtocol;
+  tools_call: HallucinateDashboardToolProtocol;
+  control_surface_mediation_contract: string;
+  control_surface_route: string[];
+  receipt_schema: 'mcp_server_invocation_receipt_v1';
+  required_receipt_fields: string[];
+  dashboard_only_mock: false;
+}
+
 const RECEIPT_REQUIRED_FIELDS = [
   'server_package',
   'daemon_id',
@@ -369,4 +428,84 @@ export function buildSwissknifeMCPMediatedInvocationPlan(
     control_surface_route: descriptor.launch_contract.control_surface_route,
     required_receipt_fields: descriptor.capability_descriptor.mediation_receipt_aliases.required_fields,
   };
+}
+
+export function buildSwissknifeMCPDashboardConsumerPlans(
+  catalog: HallucinateDashboardCapabilityCatalog,
+): SwissknifeMCPDashboardConsumerPlan[] {
+  assertHallucinateDashboardCatalog(catalog);
+  const registry = getSwissknifeMCPCapabilityRegistry();
+
+  return registry.map((descriptor) => {
+    const server = catalog.servers.find(candidate =>
+      candidate.server_package === descriptor.server_package &&
+      candidate.daemon_id === descriptor.daemon_id
+    );
+    if (!server) {
+      throw new Error(`Hallucinate dashboard catalog is missing ${descriptor.server_package}/${descriptor.daemon_id}`);
+    }
+
+    return {
+      catalog_schema: catalog.schema,
+      catalog_generated_by: catalog.generated_by,
+      server_package: descriptor.server_package,
+      daemon_id: descriptor.daemon_id,
+      descriptor_id: descriptor.descriptor_id,
+      app_id: descriptor.app_id,
+      dashboard_url: server.menu_dashboard_url,
+      native_dashboard_url: server.native_dashboard_url,
+      tools_list: server.tool_protocols.tools_list,
+      tools_call: server.tool_protocols.tools_call,
+      control_surface_mediation_contract: server.control_surface_mediation_contract,
+      control_surface_route: [...catalog.control_surface_route],
+      receipt_schema: descriptor.capability_descriptor.mediation_receipt_aliases.receipt_schema,
+      required_receipt_fields: [
+        ...new Set([
+          ...descriptor.capability_descriptor.mediation_receipt_aliases.required_fields,
+          ...server.control_surface_receipt_requirements,
+        ]),
+      ],
+      dashboard_only_mock: false,
+    };
+  });
+}
+
+export function buildSwissknifeMCPDashboardInvocationPlan(
+  catalog: HallucinateDashboardCapabilityCatalog,
+  serverPackage: SwissknifeMCPServerPackage,
+  operation: 'tools/list' | 'tools/call',
+): SwissknifeMCPDashboardConsumerPlan & {
+  operation: 'tools/list' | 'tools/call';
+  method: string;
+  url: string;
+  safe_probe?: HallucinateDashboardToolProtocol['safeProbe'];
+} {
+  const plan = buildSwissknifeMCPDashboardConsumerPlans(catalog)
+    .find(candidate => candidate.server_package === serverPackage);
+  if (!plan) {
+    throw new Error(`No Swissknife dashboard consumer plan for ${serverPackage}`);
+  }
+
+  const protocol = operation === 'tools/list' ? plan.tools_list : plan.tools_call;
+  return {
+    ...plan,
+    operation,
+    method: protocol.method,
+    url: protocol.url,
+    safe_probe: protocol.safeProbe,
+  };
+}
+
+function assertHallucinateDashboardCatalog(catalog: HallucinateDashboardCapabilityCatalog): void {
+  if (catalog?.schema !== 'hallucinate_app.mcp_dashboard_capability_catalog.v1') {
+    throw new Error(`Unsupported Hallucinate dashboard catalog schema: ${catalog?.schema || 'missing'}`);
+  }
+  if (!Array.isArray(catalog.servers)) {
+    throw new Error('Hallucinate dashboard catalog must include a servers array');
+  }
+  for (const server of catalog.servers) {
+    if (!server.tool_protocols?.tools_list || !server.tool_protocols?.tools_call) {
+      throw new Error(`Hallucinate dashboard catalog server ${server.daemon_id} is missing tool protocols`);
+    }
+  }
 }
