@@ -36,6 +36,13 @@ export type MetaGlassesAudioRouteState =
 
 export type MetaGlassesAudioInteraction = 'capture' | 'playback';
 export type MetaGlassesBluetoothProfile = 'hfp' | 'a2dp' | 'ble-audio' | 'mock';
+export type MetaGlassesAudioReceiptStage =
+  | 'route_selection'
+  | 'capture_start'
+  | 'playback_start'
+  | 'fallback'
+  | 'denial'
+  | 'error';
 
 export interface MetaGlassesAudioAppRequirement {
   app_id: string;
@@ -72,6 +79,13 @@ export interface MetaGlassesAudioEvent {
   envelope: MetaGlassesIOBridgeEnvelope;
 }
 
+export interface MetaGlassesAudioReceipt extends MetaGlassesIOMCPReceiptMetadata {
+  audio_stage: MetaGlassesAudioReceiptStage;
+  route_state: MetaGlassesAudioRouteState;
+  action: string;
+  bluetooth_profile: MetaGlassesBluetoothProfile;
+}
+
 export interface MetaGlassesAudioRouteResult {
   status: MetaGlassesAudioRouteState;
   granted: boolean;
@@ -81,7 +95,7 @@ export interface MetaGlassesAudioRouteResult {
   policy_decision: MetaGlassesIOPolicyDecision;
   payload_refs: MetaGlassesIOPayloadRef[];
   normalized_event: MetaGlassesAudioEvent;
-  receipts: MetaGlassesIOMCPReceiptMetadata[];
+  receipts: MetaGlassesAudioReceipt[];
   fallback_reason?: string;
   error?: string;
   raw_audio?: never;
@@ -211,7 +225,11 @@ export function requestMetaGlassesAudioRoute(
   }
 
   if (readiness !== 'ready' || request.mock === true) {
-    const state: MetaGlassesAudioRouteState = request.mock === true ? 'mock' : 'fallback';
+    const state: MetaGlassesAudioRouteState = request.mock === true
+      ? 'mock'
+      : readiness === 'degraded'
+        ? 'degraded'
+        : 'fallback';
     const policyDecision = policy('fallback', requirement.required_scopes, request.granted_scopes ?? [], 'Audio route selected fallback handling.');
     return routeResult(state, true, request, requirement, [], readiness, policyDecision, payloadRefs, envelope, `${readiness} route`);
   }
@@ -309,10 +327,15 @@ function receiptsFor(
   payloadRefs: MetaGlassesIOPayloadRef[],
   policyDecision: MetaGlassesIOPolicyDecision,
   envelope: MetaGlassesIOBridgeEnvelope,
-): MetaGlassesIOMCPReceiptMetadata[] {
+): MetaGlassesAudioReceipt[] {
   const base = `${request.app_id}:${request.capability}:${request.correlation_id ?? request.action}:${status}`;
+  const terminalStage = receiptStageFor(status, requirement.interaction);
   return [
     {
+      audio_stage: 'route_selection',
+      route_state: status,
+      action: request.action,
+      bluetooth_profile: requirement.bluetooth_profile,
       receipt_kind: 'mcp++/control-route',
       receipt_cid: computeCID(`route:${base}`),
       envelope_cid: envelope.envelope_id,
@@ -321,14 +344,34 @@ function receiptsFor(
       output_refs: payloadRefs,
     },
     {
+      audio_stage: terminalStage,
+      route_state: status,
+      action: request.action,
+      bluetooth_profile: requirement.bluetooth_profile,
       receipt_kind: 'mcp++/execution',
-      receipt_cid: computeCID(`execution:${base}:${requirement.binding_id}`),
+      receipt_cid: computeCID(`execution:${base}:${requirement.binding_id}:${terminalStage}`),
       envelope_cid: envelope.envelope_id,
       decision_cid: policyDecision.decision_cid,
       correlation_id_field: 'correlation_id',
       output_refs: payloadRefs,
     },
   ];
+}
+
+function receiptStageFor(
+  status: MetaGlassesAudioRouteState,
+  interaction: MetaGlassesAudioInteraction,
+): MetaGlassesAudioReceiptStage {
+  if (status === 'permission_required' || status === 'denied' || status === 'unsupported') {
+    return 'denial';
+  }
+  if (status === 'fallback' || status === 'degraded') {
+    return 'fallback';
+  }
+  if (status === 'error') {
+    return 'error';
+  }
+  return interaction === 'capture' ? 'capture_start' : 'playback_start';
 }
 
 function policy(

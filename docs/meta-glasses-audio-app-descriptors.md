@@ -29,7 +29,9 @@ requests:
 - missing scopes return `permission_required` with a `require_confirmation`
   policy decision;
 - `ready` routes emit capture/playback events and control-plane receipts;
-- `route_lost`, `degraded`, or other non-ready states return `fallback`;
+- `degraded` routes stay visible as `degraded` while emitting fallback-stage
+  receipts;
+- `route_lost` or other non-ready states return `fallback`;
 - `mock: true` returns a simulator-backed mock route;
 - unsupported capabilities return `unsupported` or `error` with denial
   receipts.
@@ -47,7 +49,9 @@ Each result includes:
 - a normalized audio event for the control plane;
 - a bridge envelope with Bluetooth route metadata;
 - a policy decision with required and granted scopes;
-- MCP++ `control-route` and `execution` receipts;
+- MCP++ `control-route` and `execution` receipts annotated with
+  `route_selection`, `capture_start`, `playback_start`, `fallback`, `denial`,
+  or `error` audio stages;
 - content-addressed payload refs suitable for IPFS-backed storage when policy
   allows it.
 

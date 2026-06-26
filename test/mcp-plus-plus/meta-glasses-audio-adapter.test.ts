@@ -54,9 +54,7 @@ describe('Meta glasses audio adapter', () => {
     expect(result.granted).toBe(false);
     expect(result.missing_scopes).toContain('meta_glasses.microphone.capture');
     expect(result.policy_decision.outcome).toBe('require_confirmation');
-    expect(result.receipts.map(receipt => receipt.receipt_kind)).toEqual(
-      expect.arrayContaining(['mcp++/control-route', 'mcp++/execution']),
-    );
+    expect(result.receipts.map(receipt => receipt.audio_stage)).toEqual(['route_selection', 'denial']);
   });
 
   it('redacts raw audio by default and emits normalized control-plane events', () => {
@@ -79,6 +77,7 @@ describe('Meta glasses audio adapter', () => {
       'swissknife.mobile_orb.publish_glasses_event',
     );
     expect(result.normalized_event.envelope.route.bridge_route).toBe('phone-app.bluetooth-audio');
+    expect(result.receipts.map(receipt => receipt.audio_stage)).toEqual(['route_selection', 'capture_start']);
   });
 
   it('maps explicitly stored audio artifacts to content-addressed references', () => {
@@ -100,15 +99,23 @@ describe('Meta glasses audio adapter', () => {
       }),
     ]);
     expect(result.policy_decision.reasons.join('\n')).toContain('Raw audio is redacted');
+    expect(result.receipts.map(receipt => receipt.audio_stage)).toEqual(['route_selection', 'playback_start']);
   });
 
-  it('returns fallback, mock, unsupported, and error route states with receipts', () => {
+  it('returns fallback, degraded, mock, unsupported, and error route states with receipts', () => {
     const fallback = requestMetaGlassesAudioRoute({
       app_id: 'com.example.audio',
       capability: 'headphone.output',
       action: 'play_private_summary',
       granted_scopes: [...META_GLASSES_IO_PERMISSION_SCOPES],
       readiness: 'route_lost',
+    });
+    const degraded = requestMetaGlassesAudioRoute({
+      app_id: 'com.example.audio',
+      capability: 'speaker.output',
+      action: 'play_low_bitrate',
+      granted_scopes: [...META_GLASSES_IO_PERMISSION_SCOPES],
+      readiness: 'degraded',
     });
     const mock = requestMetaGlassesAudioRoute({
       app_id: 'com.example.audio',
@@ -132,12 +139,19 @@ describe('Meta glasses audio adapter', () => {
 
     expect(fallback.status).toBe('fallback');
     expect(fallback.fallback_reason).toContain('route_lost');
+    expect(fallback.receipts.map(receipt => receipt.audio_stage)).toEqual(['route_selection', 'fallback']);
+    expect(degraded.status).toBe('degraded');
+    expect(degraded.readiness).toBe('degraded');
+    expect(degraded.receipts.map(receipt => receipt.audio_stage)).toEqual(['route_selection', 'fallback']);
     expect(mock.status).toBe('mock');
+    expect(mock.receipts.map(receipt => receipt.audio_stage)).toEqual(['route_selection', 'playback_start']);
     expect(mock.normalized_event.envelope.route.bridge_provider).toBe('simulator');
     expect(unsupported.status).toBe('unsupported');
     expect(unsupported.policy_decision.outcome).toBe('deny');
+    expect(unsupported.receipts.map(receipt => receipt.audio_stage)).toEqual(['route_selection', 'denial']);
     expect(error.status).toBe('error');
     expect(error.error).toContain('Unsupported audio capability');
-    expect([fallback, mock, unsupported, error].every(result => result.receipts.length >= 2)).toBe(true);
+    expect(error.receipts.map(receipt => receipt.audio_stage)).toEqual(['route_selection', 'error']);
+    expect([fallback, degraded, mock, unsupported, error].every(result => result.receipts.length >= 2)).toBe(true);
   });
 });
