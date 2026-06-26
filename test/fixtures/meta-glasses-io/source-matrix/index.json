@@ -1,0 +1,193 @@
+{
+  "id": "mgw-415-public-dat-webapps-source-matrix",
+  "profile": "handsfree.meta-glasses/io-source-matrix",
+  "profile_version": "0.1.0",
+  "hardware_free": true,
+  "credentials_required": false,
+  "dat_package_access_required": false,
+  "paired_glasses_required": false,
+  "physical_hardware_required": false,
+  "source_families": [
+    {
+      "id": "android-dat-displayaccess-v0.7",
+      "surface": "dat-native",
+      "platform": "android",
+      "readiness": "mocked"
+    },
+    {
+      "id": "ios-dat-displayaccess-v0.7",
+      "surface": "dat-native",
+      "platform": "ios",
+      "readiness": "mocked"
+    },
+    {
+      "id": "dat-cameraaccess-v0.7",
+      "surface": "dat-native",
+      "platform": "android-ios",
+      "readiness": "mocked"
+    },
+    {
+      "id": "meta-display-webapps-inputs",
+      "surface": "display-webapp",
+      "platform": "web",
+      "readiness": "mocked"
+    },
+    {
+      "id": "bluetooth-audio-route-readiness",
+      "surface": "bluetooth-audio",
+      "platform": "phone",
+      "readiness": "mocked"
+    }
+  ],
+  "display_access_lifecycle_v0_7": [
+    "sdk_package_checked",
+    "release_channel_checked",
+    "credentials_checked",
+    "developer_mode_checked",
+    "display_target_selected",
+    "device_session_starting",
+    "device_session_started",
+    "display_attaching",
+    "display_attached",
+    "display_ready",
+    "display_content_sent",
+    "display_video_player_ready",
+    "display_content_replaced",
+    "display_session_stopped"
+  ],
+  "camera_access_lifecycle_v0_7": [
+    "camera_permission_required",
+    "camera_permission_granted",
+    "camera_session_started",
+    "camera_stream_ready",
+    "camera_stream_started",
+    "camera_photo_requested",
+    "camera_photo_captured",
+    "camera_stream_stopped",
+    "camera_session_stopped"
+  ],
+  "audio_route_states": [
+    {
+      "capability": "microphone.input",
+      "route": "bluetooth-hfp-input",
+      "readiness": "ready"
+    },
+    {
+      "capability": "speaker.output",
+      "route": "bluetooth-a2dp-output",
+      "readiness": "ready"
+    },
+    {
+      "capability": "headphone.output",
+      "route": "bluetooth-a2dp-output",
+      "readiness": "ready"
+    }
+  ],
+  "web_app_inputs": [
+    {
+      "key": "ArrowLeft",
+      "intent": "navigate_previous",
+      "capability": "captouch.input"
+    },
+    {
+      "key": "ArrowRight",
+      "intent": "navigate_next",
+      "capability": "captouch.input"
+    },
+    {
+      "key": "Enter",
+      "intent": "activate_selected",
+      "capability": "captouch.input"
+    },
+    {
+      "gesture": "pinch",
+      "intent": "activate_selected",
+      "capability": "neural_band.input"
+    },
+    {
+      "touch": "swipe_forward",
+      "intent": "navigate_next",
+      "capability": "captouch.input"
+    }
+  ],
+  "sensor_contexts": [
+    {
+      "id": "motion-orientation",
+      "capability": "motion.orientation",
+      "sample": {
+        "yaw": 12.5,
+        "pitch": -2.25,
+        "roll": 0.75,
+        "quaternion": [0.99, 0.02, -0.04, 0.1]
+      }
+    },
+    {
+      "id": "phone-gps",
+      "capability": "phone_gps.context",
+      "sample": {
+        "source": "phone-os-mock",
+        "latitude": 37.789,
+        "longitude": -122.401,
+        "accuracy_m": 8
+      }
+    }
+  ],
+  "failure_modes": [
+    {
+      "id": "permission_denial",
+      "capability": "camera.photo_capture",
+      "readiness": "permission_denied"
+    },
+    {
+      "id": "unsupported_display",
+      "capability": "display.output",
+      "readiness": "unsupported"
+    },
+    {
+      "id": "release_channel_missing",
+      "capability": "display.output",
+      "readiness": "package_or_release_channel_unavailable"
+    },
+    {
+      "id": "firmware_update_required",
+      "capability": "display.output",
+      "readiness": "firmware_update_required"
+    },
+    {
+      "id": "dat_app_update_required",
+      "capability": "display.output",
+      "readiness": "dat_app_update_required"
+    },
+    {
+      "id": "route_loss",
+      "capability": "microphone.input",
+      "readiness": "route_lost",
+      "recovery": "reroute_bluetooth_profile"
+    },
+    {
+      "id": "backpressure",
+      "capability": "camera.video_capture",
+      "readiness": "degraded",
+      "recovery": "drop_ephemeral_frames_and_resume"
+    },
+    {
+      "id": "local_storage_limit",
+      "capability": "display.output",
+      "readiness": "degraded",
+      "recovery": "drop_ephemeral_frames_and_resume"
+    },
+    {
+      "id": "recovery",
+      "capability": "microphone.input",
+      "readiness": "ready"
+    }
+  ],
+  "storage_limits": [
+    {
+      "id": "webapp-local-storage-quota",
+      "surface": "display-webapp",
+      "limit": "ephemeral",
+      "recovery": "drop_ephemeral_frames_and_resume"
+    }
+  ]
+}
