@@ -5,6 +5,17 @@ import { fileURLToPath } from 'url';
 const configDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(configDir, '../..');
 const webRoot = resolve(repoRoot, 'web');
+const metaGlassesPort = resolveMetaGlassesPort();
+const baseURL = `http://127.0.0.1:${metaGlassesPort}`;
+
+function resolveMetaGlassesPort(): number {
+  const rawPort = process.env.SWISSKNIFE_META_GLASSES_E2E_PORT || process.env.SWISSKNIFE_E2E_PORT || '3001';
+  const port = Number(rawPort);
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    throw new Error(`Invalid SWISSKNIFE_META_GLASSES_E2E_PORT: ${rawPort}`);
+  }
+  return port;
+}
 
 export default defineConfig({
   testDir: resolve(repoRoot, 'test/e2e'),
@@ -19,7 +30,7 @@ export default defineConfig({
     ['json', { outputFile: resolve(repoRoot, 'test-results/meta-glasses-virtual-os/results.json') }],
   ],
   use: {
-    baseURL: 'http://127.0.0.1:3001',
+    baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -33,9 +44,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `python3 -m http.server 3001 --bind 127.0.0.1 --directory "${webRoot}"`,
-    url: 'http://127.0.0.1:3001/index.html',
-    reuseExistingServer: true,
+    command: `python3 -m http.server ${metaGlassesPort} --bind 127.0.0.1 --directory "${webRoot}"`,
+    url: `${baseURL}/index.html`,
+    reuseExistingServer: false,
     timeout: 30 * 1000,
   },
 });

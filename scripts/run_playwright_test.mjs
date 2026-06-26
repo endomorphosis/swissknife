@@ -55,8 +55,43 @@ function hasE2EDependencies() {
 }
 
 function runPlaywright(playwrightArgs) {
-  const status = run(process.execPath, [playwrightCli, ...playwrightArgs]);
+  const status = run(process.execPath, [playwrightCli, ...playwrightArgs], playwrightEnv(playwrightArgs));
   process.exit(status);
+}
+
+function playwrightEnv(playwrightArgs) {
+  if (!usesMetaGlassesConfig(playwrightArgs)) {
+    return {};
+  }
+
+  const port = process.env.SWISSKNIFE_META_GLASSES_E2E_PORT
+    || process.env.SWISSKNIFE_E2E_PORT
+    || String(stablePortForPath(projectRoot));
+
+  return {
+    SWISSKNIFE_META_GLASSES_E2E_PORT: port,
+    SWISSKNIFE_E2E_PORT: process.env.SWISSKNIFE_E2E_PORT || port,
+  };
+}
+
+function usesMetaGlassesConfig(playwrightArgs) {
+  return playwrightArgs.some((arg, index) => {
+    if (arg.includes('playwright.meta-glasses.config.ts')) {
+      return true;
+    }
+    if ((arg === '-c' || arg === '--config') && playwrightArgs[index + 1]) {
+      return playwrightArgs[index + 1].includes('playwright.meta-glasses.config.ts');
+    }
+    return false;
+  });
+}
+
+function stablePortForPath(seedPath) {
+  let hash = 0;
+  for (const char of seedPath) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 2000;
+  }
+  return 3100 + hash;
 }
 
 function run(command, runArgs, extraEnv = {}) {
