@@ -250,6 +250,54 @@
       "receipts": [
         "bafy-mgw519-receipt-neural-band"
       ]
+    },
+    {
+      "contract": "handsfree.meta-glasses/multimodal-io-control-plane@0.1.0",
+      "profile": "swissknife.mcp++/event-envelope@0.1.0",
+      "event_type": "captouch.intent",
+      "device": "captouch",
+      "source": "hardware-free-mock",
+      "edge_session_id": "edge-session-mgw-519-playwright",
+      "app_binding_id": "swissknife-app-binding-mgw-519",
+      "correlation_id": "corr-mgw519-captouch",
+      "payload": {
+        "intent": "select",
+        "gesture": "single_tap",
+        "surface": "right_temple",
+        "confidence": 0.97
+      },
+      "transport": {
+        "bluetooth": "route-state",
+        "wifi": "app-level-handoff"
+      },
+      "handoff": {
+        "ipfs_cids": [
+          "bafy-mgw519-fixture-root"
+        ],
+        "libp2p_peer_id": "12D3KooWMgw519FixturePeer",
+        "libp2p_session_id": "libp2p-mgw-519-playwright",
+        "mcp_plus_plus_profile": "swissknife.mcp++/event-envelope@0.1.0"
+      },
+      "fallback": {
+        "dat_available": false,
+        "state": "dat_unavailable",
+        "reason": "MGW-519 Playwright control-plane fixture runs without paired Meta glasses hardware."
+      },
+      "control_plane": {
+        "route": "swissknife.mobile_orb.publish_glasses_event",
+        "operation": "publish_glasses_event"
+      },
+      "policy": {
+        "outcome": "allow",
+        "source": "mgw-519-playwright-fixture",
+        "capabilities": [
+          "captouch/mock",
+          "control-plane/replay"
+        ]
+      },
+      "receipts": [
+        "bafy-mgw519-receipt-captouch"
+      ]
     }
   ],
   "replay_receipts": [
@@ -280,6 +328,12 @@
     {
       "receipt_cid": "bafy-mgw519-receipt-neural-band",
       "correlation_id": "corr-mgw519-neural-band",
+      "physical_dat_replay_target": "Meta Wearables DAT device session",
+      "preserve_for_dat_replay": true
+    },
+    {
+      "receipt_cid": "bafy-mgw519-receipt-captouch",
+      "correlation_id": "corr-mgw519-captouch",
       "physical_dat_replay_target": "Meta Wearables DAT device session",
       "preserve_for_dat_replay": true
     }

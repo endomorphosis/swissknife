@@ -261,6 +261,18 @@ export function buildMetaGlassesPlaywrightFixture(
       receipt_cid: 'bafy-mgw519-receipt-display',
     },
     {
+      event_type: 'captouch.intent',
+      device: 'captouch',
+      correlation_id: 'corr-mgw519-captouch',
+      payload: {
+        intent: 'select',
+        gesture: 'single_tap',
+        surface: 'right_temple',
+        confidence: 0.97,
+      },
+      receipt_cid: 'bafy-mgw519-receipt-captouch',
+    },
+    {
       event_type: 'Neural Band.intent',
       device: 'Neural Band',
       correlation_id: 'corr-mgw519-neural-band',

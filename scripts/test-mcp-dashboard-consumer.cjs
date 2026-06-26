@@ -27,6 +27,13 @@ const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
 assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
 assert(catalog.dashboard_only_mocks === false, 'Catalog must reject dashboard-only mocks');
+assert(
+  JSON.stringify(catalog.launch_objective_ids) === JSON.stringify(['VAIOS-G723', 'VAIOS-G724', 'VAIOS-G728']),
+  'Catalog launch objective lineage must include VAIOS-G724 and VAIOS-G728',
+);
+assert(catalog.launch_validation_gate?.task_id === 'MGW-533', 'Catalog launch validation gate must name MGW-533');
+assert(catalog.launch_validation_gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gate must name VAIOS-G724');
+assert(catalog.launch_validation_gate?.evidence_term === 'launch Playwright validation gate', 'Catalog launch validation gate evidence term mismatch');
 const plans = buildSwissknifeMCPDashboardConsumerPlans(catalog);
 const packages = plans.map(plan => plan.server_package).sort();
 const expectedPackages = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
@@ -69,6 +76,8 @@ assert(
 console.log(JSON.stringify({
   status: 'ok',
   task_id: 'VAI-512',
+  launch_task_id: catalog.launch_validation_gate.task_id,
+  launch_goal_ids: catalog.launch_objective_ids,
   catalog_schema: catalog.schema,
   packages,
   operations: plans.flatMap(plan => [
