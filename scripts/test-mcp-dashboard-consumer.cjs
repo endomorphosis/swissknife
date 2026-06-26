@@ -22,7 +22,9 @@ const catalogPath = path.resolve(
   'fixtures',
   'vai-512-mcp-dashboard-catalog.json',
 );
+const launchReceiptPath = path.resolve('test', 'e2e', 'fixtures', 'hao-704-mcp-dashboard-launch-gate.json');
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
 const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
 assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
@@ -34,6 +36,17 @@ assert(
 assert(catalog.launch_validation_gate?.task_id === 'MGW-533', 'Catalog launch validation gate must name MGW-533');
 assert(catalog.launch_validation_gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gate must name VAIOS-G724');
 assert(catalog.launch_validation_gate?.evidence_term === 'launch Playwright validation gate', 'Catalog launch validation gate evidence term mismatch');
+assert(launchReceipt.task_id === 'HAO-704', 'Swissknife MCP dashboard launch receipt must name HAO-704');
+assert(launchReceipt.goal_id === 'VAIOS-G725', 'Swissknife MCP dashboard launch receipt must name VAIOS-G725');
+assert(launchReceipt.evidence_term === 'launch Playwright validation gate', 'Swissknife launch receipt evidence term mismatch');
+assert(
+  launchReceipt.supervisor_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-26-hao-704-objective-gap-1d0c6a56cf6c.md',
+  'Swissknife launch receipt must point at the HAO-704 objective gap',
+);
+assert(
+  launchReceipt.validation_commands.includes('npm --prefix swissknife run test:e2e:mcp'),
+  'Swissknife launch receipt must include the MCP Playwright gate command',
+);
 const plans = buildSwissknifeMCPDashboardConsumerPlans(catalog);
 const packages = plans.map(plan => plan.server_package).sort();
 const expectedPackages = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
@@ -75,9 +88,12 @@ assert(
 
 console.log(JSON.stringify({
   status: 'ok',
-  task_id: 'VAI-512',
+  task_id: 'HAO-704',
+  catalog_task_id: 'VAI-512',
   launch_task_id: catalog.launch_validation_gate.task_id,
+  swissknife_launch_task_id: launchReceipt.task_id,
   launch_goal_ids: catalog.launch_objective_ids,
+  swissknife_launch_goal_id: launchReceipt.goal_id,
   catalog_schema: catalog.schema,
   packages,
   operations: plans.flatMap(plan => [

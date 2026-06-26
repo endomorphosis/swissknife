@@ -16,12 +16,12 @@ const DASHBOARD_CATALOG_FIXTURE = path.resolve(
   'fixtures',
   'vai-512-mcp-dashboard-catalog.json',
 );
-const MGW_537_LAUNCH_GATE_FIXTURE = path.resolve(
+const HAO_704_LAUNCH_GATE_FIXTURE = path.resolve(
   process.cwd(),
   'test',
   'e2e',
   'fixtures',
-  'mgw-537-mcp-dashboard-launch-gate.json',
+  'hao-704-mcp-dashboard-launch-gate.json',
 );
 
 const EXPECTED_PACKAGES = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
@@ -44,7 +44,7 @@ function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
 }
 
-test.describe('MGW-537 Swissknife MCP++ dashboard launch gate', () => {
+test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
   test('consumes the Hallucinate App dashboard catalog without schema drift', () => {
     const catalog = readJson<any>(DASHBOARD_CATALOG_FIXTURE);
     const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
@@ -107,17 +107,17 @@ test.describe('MGW-537 Swissknife MCP++ dashboard launch gate', () => {
   });
 
   test('binds VAIOS-G725 to a Playwright launch validation gate receipt', () => {
-    const receipt = readJson<any>(MGW_537_LAUNCH_GATE_FIXTURE);
+    const receipt = readJson<any>(HAO_704_LAUNCH_GATE_FIXTURE);
     const catalog = readJson<any>(DASHBOARD_CATALOG_FIXTURE);
 
     expect(receipt).toMatchObject({
       schema: 'launch_readiness_receipt_v1',
-      task_id: 'MGW-537',
+      task_id: 'HAO-704',
       goal_id: 'VAIOS-G725',
       evidence_term: 'launch Playwright validation gate',
       catalog_schema: catalog.schema,
       catalog_fixture: 'hallucinate_app/test/e2e/fixtures/vai-512-mcp-dashboard-catalog.json',
-      supervisor_gap_receipt: 'data/meta_glasses_display_widgets/discovery/2026-06-26-mgw-537-objective-gap-1d0c6a56cf6c.md',
+      supervisor_gap_receipt: 'data/hallucinate_multimodal_control/discovery/2026-06-26-hao-704-objective-gap-1d0c6a56cf6c.md',
     });
     expect(receipt.playwright_specs).toContain('swissknife/test/e2e/mcp-dashboard.spec.ts');
     expect(receipt.validation_commands).toContain('npm --prefix swissknife run test:e2e:mcp');

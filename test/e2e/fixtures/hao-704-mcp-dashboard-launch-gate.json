@@ -1,0 +1,65 @@
+{
+  "schema": "launch_readiness_receipt_v1",
+  "task_id": "HAO-704",
+  "goal_id": "VAIOS-G725",
+  "lineage_id": "VAIOS-G725:swissknife-mcp-plus-plus-server-dashboard-interop",
+  "evidence_term": "launch Playwright validation gate",
+  "gate_state": "gate_open_until_playwright_passes",
+  "playwright_specs": [
+    "swissknife/test/e2e/mcp-dashboard.spec.ts"
+  ],
+  "validation_commands": [
+    "npm --prefix swissknife run test:e2e:mcp",
+    "test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses",
+    "test ! -f hallucinate_app/package.json || npm --prefix hallucinate_app run test:e2e -- multimodal-control-surface.spec.ts"
+  ],
+  "required_backends": [
+    "ipfs_kit_py",
+    "ipfs_datasets_py",
+    "ipfs_accelerate_py"
+  ],
+  "required_evidence": [
+    "Swissknife applications",
+    "Mcp-Plus-Plus",
+    "MCP++ compatibility",
+    "MCP server dashboard",
+    "dashboard capability catalog",
+    "ipfs_accelerate_py",
+    "ipfs_datasets_py",
+    "ipfs_kit_py",
+    "tools/list",
+    "tools/call",
+    "control plane",
+    "launch Playwright validation gate"
+  ],
+  "catalog_schema": "hallucinate_app.mcp_dashboard_capability_catalog.v1",
+  "catalog_fixture": "hallucinate_app/test/e2e/fixtures/vai-512-mcp-dashboard-catalog.json",
+  "supervisor_gap_receipt": "data/hallucinate_multimodal_control/discovery/2026-06-26-hao-704-objective-gap-1d0c6a56cf6c.md",
+  "receipt_route": [
+    "Swissknife application command intent",
+    "MCP++ capability descriptor",
+    "Hallucinate App dashboard capability catalog",
+    "interaction_envelope",
+    "policy_decision",
+    "mediation_receipt",
+    "supervised MCP server transport"
+  ],
+  "dashboard_servers": [
+    {
+      "daemon_id": "ipfs-kit",
+      "server_package": "ipfs_kit_py",
+      "safe_probe_receipt": "ipfs_kit_status_probe"
+    },
+    {
+      "daemon_id": "ipfs-datasets",
+      "server_package": "ipfs_datasets_py",
+      "safe_probe_receipt": "ipfs_datasets_list_probe"
+    },
+    {
+      "daemon_id": "ipfs-accelerate",
+      "server_package": "ipfs_accelerate_py",
+      "safe_probe_receipt": "ipfs_accelerate_hardware_profile_probe"
+    }
+  ],
+  "failure_rule": "Any missing Swissknife catalog consumer, MCP++ descriptor/profile evidence, tools/list, tools/call, control-plane receipt field, or Playwright proof remains supervisor-fed launch work for VAIOS-G725."
+}
