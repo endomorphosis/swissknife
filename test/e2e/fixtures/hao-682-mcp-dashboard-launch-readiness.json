@@ -6,7 +6,7 @@
   "lineage_id": "VAIOS-G723:mcp-dashboard-interoperability",
   "session_id": "vaios-g723-hallucinate-mcp-dashboard-session",
   "daemon_lineage_id": "vaios-g723-daemon-lineage-ipfs-kit-datasets-accelerate",
-  "evidence_term": "dashboard interoperability launch-readiness receipt",
+  "evidence_term": "launch Playwright validation gate",
   "gate_state": "gate_open_until_playwright_passes",
   "source_fixture": "hallucinate_app/test/e2e/fixtures/hao-682-mcp-dashboard-launch-readiness.json",
   "swissknife_consumer_fixture": "swissknife/test/e2e/fixtures/hao-681-mcp-dashboard-catalog-consumer.json",
