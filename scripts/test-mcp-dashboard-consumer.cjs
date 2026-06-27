@@ -22,6 +22,7 @@ const catalogPath = path.resolve(
   'fixtures',
   'vai-512-mcp-dashboard-catalog.json',
 );
+const consumerReceiptPath = path.resolve('test', 'e2e', 'fixtures', 'hao-681-mcp-dashboard-catalog-consumer.json');
 const launchReceiptPath = path.resolve('test', 'e2e', 'fixtures', 'hao-704-mcp-dashboard-launch-gate.json');
 const vai512ConsumptionReceiptPath = path.resolve(
   '..',
@@ -32,6 +33,7 @@ const vai512ConsumptionReceiptPath = path.resolve(
   'vai-512-hallucinate-swissknife-mcp-dashboard-consumption.json',
 );
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+const consumerReceipt = JSON.parse(fs.readFileSync(consumerReceiptPath, 'utf8'));
 const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
 const vai512ConsumptionReceipt = JSON.parse(fs.readFileSync(vai512ConsumptionReceiptPath, 'utf8'));
 const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
@@ -45,6 +47,23 @@ assert(
 assert(catalog.launch_validation_gate?.task_id === 'MGW-533', 'Catalog launch validation gate must name MGW-533');
 assert(catalog.launch_validation_gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gate must name VAIOS-G724');
 assert(catalog.launch_validation_gate?.evidence_term === 'launch Playwright validation gate', 'Catalog launch validation gate evidence term mismatch');
+assert(catalog.swissknife_catalog_consumer_proof?.task_id === 'HAO-681', 'Catalog must expose the HAO-681 Swissknife consumer proof');
+assert(
+  JSON.stringify(catalog.swissknife_catalog_consumer_proof?.depends_on) === JSON.stringify(['HAO-677', 'HAO-680']),
+  'HAO-681 proof must depend on HAO-677 and HAO-680',
+);
+assert(
+  catalog.swissknife_catalog_consumer_proof?.evidence_term === 'Hallucinate App MCP dashboard catalog consumed by Swissknife applications',
+  'HAO-681 proof evidence term mismatch',
+);
+assert(consumerReceipt.task_id === 'HAO-681', 'Swissknife dashboard catalog consumer receipt must name HAO-681');
+assert(consumerReceipt.catalog_schema === catalog.schema, 'HAO-681 consumer receipt must use the Hallucinate dashboard catalog schema');
+assert(consumerReceipt.catalog_generated_by === catalog.generated_by, 'HAO-681 consumer receipt must use the Hallucinate catalog source');
+assert(consumerReceipt.receipt_schema === 'mcp_server_invocation_receipt_v1', 'HAO-681 consumer receipt must use the shared receipt schema');
+assert(
+  consumerReceipt.validation_commands.includes('npm --prefix swissknife run test:e2e:mcp'),
+  'HAO-681 consumer receipt must include the Swissknife MCP gate command',
+);
 assert(launchReceipt.task_id === 'HAO-704', 'Swissknife MCP dashboard launch receipt must name HAO-704');
 assert(launchReceipt.goal_id === 'VAIOS-G725', 'Swissknife MCP dashboard launch receipt must name VAIOS-G725');
 assert(launchReceipt.evidence_term === 'launch Playwright validation gate', 'Swissknife launch receipt evidence term mismatch');
@@ -106,6 +125,16 @@ for (const plan of plans) {
   );
 }
 
+for (const app of consumerReceipt.applications) {
+  const plan = plans.find(candidate => candidate.server_package === app.server_package);
+  assert(plan, 'Missing HAO-681 consumer plan for ' + app.server_package);
+  assert(plan.app_id === app.app_id, 'HAO-681 app id mismatch for ' + app.server_package);
+  assert(plan.daemon_id === app.daemon_id, 'HAO-681 daemon id mismatch for ' + app.server_package);
+  assert(plan.tools_list.url === app.tools_list_url, 'HAO-681 tools/list URL mismatch for ' + app.server_package);
+  assert(plan.tools_call.safeProbe?.tool_name === app.safe_tools_call_probe, 'HAO-681 safe probe tool mismatch for ' + app.server_package);
+  assert(plan.tools_call.safeProbe?.expected_receipt === app.safe_probe_receipt, 'HAO-681 safe probe receipt mismatch for ' + app.server_package);
+}
+
 assert(
   buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_kit_py', 'tools/list').url === 'http://127.0.0.1:8004/mcp/tools/list',
   'ipfs_kit_py tools/list URL mismatch',
@@ -121,11 +150,12 @@ assert(
 
 console.log(JSON.stringify({
   status: 'ok',
-  task_id: 'HAO-704',
+  task_id: 'HAO-681',
   catalog_task_id: 'VAI-512',
   consumption_receipt_task_id: vai512ConsumptionReceipt.task_id,
   consumption_evidence_term: vai512ConsumptionReceipt.evidence_term,
   launch_task_id: catalog.launch_validation_gate.task_id,
+  consumer_receipt_task_id: consumerReceipt.task_id,
   swissknife_launch_task_id: launchReceipt.task_id,
   launch_goal_ids: catalog.launch_objective_ids,
   swissknife_launch_goal_id: launchReceipt.goal_id,

@@ -1,0 +1,69 @@
+{
+  "schema": "swissknife_mcp_dashboard_catalog_consumer_receipt_v1",
+  "task_id": "HAO-681",
+  "depends_on": [
+    "HAO-677",
+    "HAO-680"
+  ],
+  "goal_id": "VAIOS-G723",
+  "track": "integration",
+  "evidence_term": "Hallucinate App MCP dashboard catalog consumed by Swissknife applications",
+  "catalog_schema": "hallucinate_app.mcp_dashboard_capability_catalog.v1",
+  "catalog_fixture": "hallucinate_app/test/e2e/fixtures/vai-512-mcp-dashboard-catalog.json",
+  "catalog_generated_by": "hallucinate_app.node.mcp_daemon_manager.getDashboardCapabilityCatalog",
+  "consumer_registry": "hallucinate_app.swissknife.mcp_capability_registry",
+  "playwright_spec": "swissknife/test/e2e/mcp-dashboard.spec.ts",
+  "validation_commands": [
+    "npm --prefix swissknife run test:e2e:mcp",
+    "npm --prefix hallucinate_app run test:e2e -- mcp-dashboard-interoperability.spec.ts",
+    "rg -n \"Hallucinate App MCP dashboard catalog|ipfs_kit_py|ipfs_datasets_py|ipfs_accelerate_py|Swissknife applications\" swissknife hallucinate_app data/hallucinate_multimodal_control/discovery"
+  ],
+  "receipt_schema": "mcp_server_invocation_receipt_v1",
+  "required_receipt_fields": [
+    "interaction_envelope",
+    "policy_decision",
+    "mediation_receipt",
+    "mediation_receipt_id",
+    "receipt_cid",
+    "mcpplusplus_descriptor_evidence"
+  ],
+  "receipt_route": [
+    "Swissknife application command intent",
+    "Hallucinate App MCP dashboard catalog",
+    "MCP++ capability descriptor",
+    "interaction_envelope",
+    "policy_decision",
+    "mediation_receipt",
+    "supervised MCP server transport"
+  ],
+  "applications": [
+    {
+      "app_id": "ipfs-kit-storage-console",
+      "role": "storage",
+      "server_package": "ipfs_kit_py",
+      "daemon_id": "ipfs-kit",
+      "tools_list_url": "http://127.0.0.1:8004/mcp/tools/list",
+      "safe_tools_call_probe": "ipfs_status",
+      "safe_probe_receipt": "ipfs_kit_status_probe"
+    },
+    {
+      "app_id": "ipfs-datasets-workbench",
+      "role": "dataset",
+      "server_package": "ipfs_datasets_py",
+      "daemon_id": "ipfs-datasets",
+      "tools_list_url": "http://127.0.0.1:3002/datasets/list",
+      "safe_tools_call_probe": "datasets_list",
+      "safe_probe_receipt": "ipfs_datasets_list_probe"
+    },
+    {
+      "app_id": "ipfs-accelerate-console",
+      "role": "compute",
+      "server_package": "ipfs_accelerate_py",
+      "daemon_id": "ipfs-accelerate",
+      "tools_list_url": "http://127.0.0.1:3003/models/list",
+      "safe_tools_call_probe": "hardware_profile",
+      "safe_probe_receipt": "ipfs_accelerate_hardware_profile_probe"
+    }
+  ],
+  "acceptance": "Swissknife storage, dataset, and compute applications consume the catalog entries and receipt schema that Hallucinate dashboards expose, proving the same backend feature can be invoked under MCP++ and control_surface mediation."
+}

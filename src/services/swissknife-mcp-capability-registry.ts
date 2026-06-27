@@ -133,6 +133,22 @@ export interface HallucinateDashboardCapabilityCatalog {
     validation_command?: string;
     supervisor_gap_receipt?: string;
   };
+  swissknife_catalog_consumer_proof?: {
+    task_id: 'HAO-681';
+    depends_on: string[];
+    evidence_term: string;
+    consumer_registry: string;
+    playwright_spec: string;
+    validation_command: string;
+    discovery_receipt: string;
+    receipt_fixture: string;
+    applications: Array<{
+      app_id: string;
+      role: 'storage' | 'dataset' | 'compute';
+      server_package: SwissknifeMCPServerPackage;
+      daemon_id: string;
+    }>;
+  };
   generated_by: string;
   dashboard_only_mocks?: boolean;
   control_surface_route: string[];
