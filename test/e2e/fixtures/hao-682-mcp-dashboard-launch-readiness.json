@@ -7,6 +7,7 @@
   "session_id": "vaios-g723-hallucinate-mcp-dashboard-session",
   "daemon_lineage_id": "vaios-g723-daemon-lineage-ipfs-kit-datasets-accelerate",
   "evidence_term": "dashboard interoperability launch-readiness receipt",
+  "launch_gate_evidence_term": "launch Playwright validation gate",
   "gate_state": "gate_open_until_playwright_passes",
   "source_fixture": "hallucinate_app/test/e2e/fixtures/hao-682-mcp-dashboard-launch-readiness.json",
   "swissknife_consumer_fixture": "swissknife/test/e2e/fixtures/hao-681-mcp-dashboard-catalog-consumer.json",
@@ -31,6 +32,14 @@
     "Playwright pass/fail receipts",
     "same session_id",
     "same daemon_lineage_id"
+  ],
+  "launch_gate_required_evidence": [
+    "catalog normalization",
+    "dashboard UI wiring",
+    "mediated tool-call receipts",
+    "Swissknife consumers",
+    "Playwright coverage",
+    "supervisor-generated follow-up subtasks"
   ],
   "session_trace": {
     "session_id": "vaios-g723-hallucinate-mcp-dashboard-session",
@@ -66,5 +75,6 @@
     "hao-682-hallucinate-playwright-pass-fail",
     "hao-682-swissknife-playwright-pass-fail"
   ],
-  "failure_rule": "Swissknife consumption does not satisfy VAIOS-G723 unless it references the same HAO-682 session_id, daemon_lineage_id, dashboard tools/list and tools/call receipts, MCP++ telemetry, and Playwright pass/fail receipts as Hallucinate App."
+  "failure_rule": "Swissknife consumption does not satisfy VAIOS-G723 unless it references the same HAO-682 session_id, daemon_lineage_id, dashboard tools/list and tools/call receipts, MCP++ telemetry, and Playwright pass/fail receipts as Hallucinate App.",
+  "follow_up_failure_rule": "Any dashboard or backend validation failure remains supervisor-generated follow-up work for VAIOS-G723."
 }
