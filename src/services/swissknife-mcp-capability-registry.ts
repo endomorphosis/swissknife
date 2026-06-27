@@ -133,6 +133,10 @@ export interface HallucinateDashboardCapabilityCatalog {
     validation_command?: string;
     supervisor_gap_receipt?: string;
   };
+  launch_validation_gates?: Array<NonNullable<HallucinateDashboardCapabilityCatalog['launch_validation_gate']> & {
+    launch_gate_receipt?: string;
+    receipt_fixture?: string;
+  }>;
   swissknife_catalog_consumer_proof?: {
     task_id: 'HAO-681';
     depends_on: string[];
