@@ -23,8 +23,17 @@ const catalogPath = path.resolve(
   'vai-512-mcp-dashboard-catalog.json',
 );
 const launchReceiptPath = path.resolve('test', 'e2e', 'fixtures', 'hao-704-mcp-dashboard-launch-gate.json');
+const vai512ConsumptionReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-512-hallucinate-swissknife-mcp-dashboard-consumption.json',
+);
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
+const vai512ConsumptionReceipt = JSON.parse(fs.readFileSync(vai512ConsumptionReceiptPath, 'utf8'));
 const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
 assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
@@ -47,6 +56,21 @@ assert(
   launchReceipt.validation_commands.includes('npm --prefix swissknife run test:e2e:mcp'),
   'Swissknife launch receipt must include the MCP Playwright gate command',
 );
+assert(vai512ConsumptionReceipt.schema === 'launch_readiness_receipt_v1', 'VAI-512 consumption receipt schema mismatch');
+assert(vai512ConsumptionReceipt.task_id === 'VAI-512', 'VAI-512 consumption receipt must name VAI-512');
+assert(vai512ConsumptionReceipt.goal_id === 'VAIOS-G723', 'VAI-512 consumption receipt must name VAIOS-G723');
+assert(
+  vai512ConsumptionReceipt.evidence_term === 'Hallucinate dashboard to Swissknife MCP consumer launch receipt',
+  'VAI-512 consumption receipt evidence term mismatch',
+);
+assert(vai512ConsumptionReceipt.catalog_schema === catalog.schema, 'VAI-512 receipt catalog schema must match the shared catalog');
+assert(vai512ConsumptionReceipt.catalog_generated_by === catalog.generated_by, 'VAI-512 receipt catalog source must match Hallucinate App');
+assert(vai512ConsumptionReceipt.dashboard_only_mocks === false, 'VAI-512 receipt must reject dashboard-only mocks');
+assert(vai512ConsumptionReceipt.shared_receipt_schema === 'mcp_server_invocation_receipt_v1', 'VAI-512 shared receipt schema mismatch');
+assert(
+  vai512ConsumptionReceipt.validation_commands.includes('npm --prefix swissknife run test:e2e:mcp'),
+  'VAI-512 receipt must include the Swissknife MCP validation command',
+);
 const plans = buildSwissknifeMCPDashboardConsumerPlans(catalog);
 const packages = plans.map(plan => plan.server_package).sort();
 const expectedPackages = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
@@ -59,6 +83,10 @@ function assert(condition, message) {
 
 assert(JSON.stringify(packages) === JSON.stringify(expectedPackages), 'Swissknife did not consume all dashboard MCP packages');
 assert(new Set(plans.map(plan => plan.catalog_schema)).size === 1, 'Swissknife introduced duplicate dashboard catalog schemas');
+assert(
+  JSON.stringify([...vai512ConsumptionReceipt.required_backends].sort()) === JSON.stringify(expectedPackages),
+  'VAI-512 receipt must require all dashboard MCP packages',
+);
 
 for (const plan of plans) {
   assert(plan.catalog_schema === 'hallucinate_app.mcp_dashboard_capability_catalog.v1', 'Unexpected dashboard catalog schema');
@@ -71,6 +99,11 @@ for (const plan of plans) {
   for (const field of ['interaction_envelope', 'policy_decision', 'mediation_receipt', 'mediation_receipt_id', 'receipt_cid']) {
     assert(plan.required_receipt_fields.includes(field), 'Missing receipt field ' + field);
   }
+  assert(
+    vai512ConsumptionReceipt.required_operations.includes(plan.server_package + ':tools/list') &&
+      vai512ConsumptionReceipt.required_operations.includes(plan.server_package + ':tools/call'),
+    'VAI-512 receipt must include tools/list and tools/call for ' + plan.server_package,
+  );
 }
 
 assert(
@@ -90,6 +123,8 @@ console.log(JSON.stringify({
   status: 'ok',
   task_id: 'HAO-704',
   catalog_task_id: 'VAI-512',
+  consumption_receipt_task_id: vai512ConsumptionReceipt.task_id,
+  consumption_evidence_term: vai512ConsumptionReceipt.evidence_term,
   launch_task_id: catalog.launch_validation_gate.task_id,
   swissknife_launch_task_id: launchReceipt.task_id,
   launch_goal_ids: catalog.launch_objective_ids,

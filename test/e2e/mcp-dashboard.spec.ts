@@ -23,6 +23,15 @@ const HAO_704_LAUNCH_GATE_FIXTURE = path.resolve(
   'fixtures',
   'hao-704-mcp-dashboard-launch-gate.json',
 );
+const VAI_512_CONSUMPTION_RECEIPT = path.resolve(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-512-hallucinate-swissknife-mcp-dashboard-consumption.json',
+);
 
 const EXPECTED_PACKAGES = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
 const REQUIRED_EVIDENCE = [
@@ -47,6 +56,7 @@ function readJson<T>(filePath: string): T {
 test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
   test('consumes the Hallucinate App dashboard catalog without schema drift', () => {
     const catalog = readJson<any>(DASHBOARD_CATALOG_FIXTURE);
+    const receipt = readJson<any>(VAI_512_CONSUMPTION_RECEIPT);
     const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 
     expect(catalog).toEqual(liveCatalog);
@@ -65,6 +75,31 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
     const plans = buildSwissknifeMCPDashboardConsumerPlans(catalog);
     expect(plans.map(plan => plan.server_package).sort()).toEqual(EXPECTED_PACKAGES);
     expect(new Set(plans.map(plan => plan.catalog_schema)).size).toBe(1);
+    expect(receipt).toMatchObject({
+      schema: 'launch_readiness_receipt_v1',
+      task_id: 'VAI-512',
+      goal_id: 'VAIOS-G723',
+      evidence_term: 'Hallucinate dashboard to Swissknife MCP consumer launch receipt',
+      catalog_schema: catalog.schema,
+      catalog_generated_by: catalog.generated_by,
+      dashboard_only_mocks: false,
+      shared_receipt_schema: 'mcp_server_invocation_receipt_v1',
+    });
+    expect(receipt.required_backends.sort()).toEqual(EXPECTED_PACKAGES);
+    expect(receipt.validation_commands).toEqual(expect.arrayContaining([
+      'npm --prefix hallucinate_app run test:e2e -- mcp-feature-exposure.spec.ts mcp-dashboard-interoperability.spec.ts',
+      'npm --prefix swissknife run test:e2e:mcp',
+      'npm --prefix hallucinate_app run test:e2e -- multimodal-control-surface.spec.ts',
+    ]));
+    expect(receipt.receipt_route).toEqual([
+      'Hallucinate App MCP dashboard',
+      'dashboard capability catalog',
+      'Swissknife MCP dashboard capability registry',
+      'interaction_envelope',
+      'policy_decision',
+      'mediation_receipt',
+      'supervised MCP server transport',
+    ]);
 
     for (const plan of plans) {
       expect(plan.catalog_schema).toBe(catalog.schema);
@@ -82,6 +117,10 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
         'mediation_receipt_id',
         'mcpplusplus_descriptor_evidence',
         'receipt_cid',
+      ]));
+      expect(receipt.required_operations).toEqual(expect.arrayContaining([
+        `${plan.server_package}:tools/list`,
+        `${plan.server_package}:tools/call`,
       ]));
     }
   });
