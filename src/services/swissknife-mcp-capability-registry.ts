@@ -124,14 +124,21 @@ export interface HallucinateDashboardCapabilityCatalog {
   goal_id: string;
   launch_objective_ids?: string[];
   launch_validation_gate?: {
+    schema?: string;
     task_id: string;
     goal_id: string;
     goal_packet?: string;
     packet_goal_ids?: string[];
+    lineage_id?: string;
     evidence_term: string;
+    gate_state?: string;
     playwright_specs?: string[];
     validation_command?: string;
+    validation_commands?: string[];
+    source_gap_receipt?: string;
     supervisor_gap_receipt?: string;
+    required_backends?: SwissknifeMCPServerPackage[];
+    required_evidence?: string[];
   };
   launch_validation_gates?: Array<NonNullable<HallucinateDashboardCapabilityCatalog['launch_validation_gate']> & {
     launch_gate_receipt?: string;
@@ -141,6 +148,7 @@ export interface HallucinateDashboardCapabilityCatalog {
     attempt_receipts?: string[];
     child_goals?: string[];
     follow_up_subtasks?: string[];
+    supervisor_follow_up_subtasks?: string[];
     failure_rule?: string;
   }>;
   swissknife_catalog_consumer_proof?: {
