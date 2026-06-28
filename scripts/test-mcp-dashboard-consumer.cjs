@@ -85,6 +85,16 @@ assert(
   hao720Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-720-mcp-dashboard-launch-gate.md',
   'HAO-720 launch gate must point at the current launch gate receipt',
 );
+const hao724Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'HAO-724');
+assert(hao724Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include HAO-724 for VAIOS-G724');
+assert(
+  hao724Gate?.supervisor_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-objective-gap-3e00ad2a0074.md',
+  'HAO-724 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  hao724Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-mcp-dashboard-launch-gate.md',
+  'HAO-724 launch gate must point at the current launch gate receipt',
+);
 const vai535Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-535');
 assert(vai535Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-535 for VAIOS-G724');
 assert(
