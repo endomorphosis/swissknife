@@ -62,6 +62,9 @@ async function initializeDesktop(swissknife: SwissKnifeBrowserCore) {
   // Initialize window manager
   initializeWindowManager();
   
+  // Initialize Meta Glasses control plane
+  initializeGlassesControlPlane(swissknife);
+  
   // Hide loading overlay
   hideLoadingOverlay();
 }
@@ -117,6 +120,127 @@ function initializeWindowManager() {
   
   // Handle window dragging, resizing, etc.
   setupWindowDragging();
+}
+
+/**
+ * Meta Glasses Control Plane Integration
+ * 
+ * Manages the glasses display lifecycle for all desktop apps. Handles:
+ * - App launching/switching via voice ("Hey Meta, open terminal")
+ * - Focus traversal (dpad/gesture)
+ * - Action activation
+ * - App stack navigation (back gesture)
+ * - Keyboard shortcuts for simulator mode
+ */
+function initializeGlassesControlPlane(swissknife: SwissKnifeBrowserCore) {
+  // Glasses control plane state (in-browser simulation)
+  const glassesState = {
+    connected: false,
+    activeAppId: null as string | null,
+    focusIndex: 0,
+    appStack: [] as string[],
+    renderPath: 'simulator' as 'dat-native' | 'display-webapp' | 'simulator',
+  };
+
+  // App display registry (mirrors glasses-app-control-plane.ts)
+  const GLASSES_APPS: Record<string, { name: string; icon: string; actions: string[] }> = {
+    'terminal': { name: 'Terminal', icon: '💻', actions: ['voice-command', 'clear-screen'] },
+    'ai-chat': { name: 'AI Chat', icon: '🤖', actions: ['voice-message', 'read-aloud', 'clear-chat'] },
+    'file-manager': { name: 'File Manager', icon: '📁', actions: ['open-file', 'go-up', 'pin-to-ipfs'] },
+    'settings': { name: 'Settings', icon: '⚙️', actions: ['toggle-setting', 'save-settings'] },
+    'code-editor': { name: 'Code Editor', icon: '📝', actions: ['save-file', 'run-code', 'ai-assist'] },
+    'task-manager': { name: 'Task Manager', icon: '📊', actions: ['kill-task', 'refresh-tasks'] },
+    'model-browser': { name: 'Model Browser', icon: '🧠', actions: ['load-model', 'search-models', 'model-info'] },
+    'ipfs-explorer': { name: 'IPFS Explorer', icon: '🌐', actions: ['add-content', 'browse-pins', 'resolve-name'] },
+    'datasets-browser': { name: 'Datasets', icon: '📊', actions: ['voice-search', 'voice-generate', 'embed-content'] },
+    'accelerate-panel': { name: 'Accelerate', icon: '⚡', actions: ['run-inference', 'view-metrics'] },
+    'idl-explorer': { name: 'IDL Explorer', icon: '🔗', actions: ['discover-interfaces', 'invoke-method'] },
+    'glasses-preview': { name: 'Glasses Config', icon: '👓', actions: ['calibrate', 'toggle-display'] },
+  };
+
+  // Expose control plane to global scope for external access (DAT SDK, mobile bridge)
+  (window as any).glassesControlPlane = {
+    state: glassesState,
+    apps: GLASSES_APPS,
+
+    openApp(appId: string) {
+      if (!GLASSES_APPS[appId]) return null;
+      if (glassesState.activeAppId) glassesState.appStack.push(glassesState.activeAppId);
+      glassesState.activeAppId = appId;
+      glassesState.focusIndex = 0;
+      this._notifyUpdate();
+      return GLASSES_APPS[appId];
+    },
+
+    goBack() {
+      const prev = glassesState.appStack.pop();
+      if (prev) {
+        glassesState.activeAppId = prev;
+        glassesState.focusIndex = 0;
+        this._notifyUpdate();
+      }
+      return prev ? GLASSES_APPS[prev] : null;
+    },
+
+    focusNext() {
+      if (!glassesState.activeAppId) return null;
+      const actions = GLASSES_APPS[glassesState.activeAppId].actions;
+      glassesState.focusIndex = (glassesState.focusIndex + 1) % actions.length;
+      this._notifyUpdate();
+      return { action: actions[glassesState.focusIndex], index: glassesState.focusIndex };
+    },
+
+    focusPrevious() {
+      if (!glassesState.activeAppId) return null;
+      const actions = GLASSES_APPS[glassesState.activeAppId].actions;
+      glassesState.focusIndex = (glassesState.focusIndex - 1 + actions.length) % actions.length;
+      this._notifyUpdate();
+      return { action: actions[glassesState.focusIndex], index: glassesState.focusIndex };
+    },
+
+    activate() {
+      if (!glassesState.activeAppId) return null;
+      const actions = GLASSES_APPS[glassesState.activeAppId].actions;
+      return { appId: glassesState.activeAppId, action: actions[glassesState.focusIndex] };
+    },
+
+    listApps() {
+      return Object.entries(GLASSES_APPS).map(([id, app]) => ({ id, ...app }));
+    },
+
+    getDisplay() {
+      if (!glassesState.activeAppId) return null;
+      const app = GLASSES_APPS[glassesState.activeAppId];
+      return { appId: glassesState.activeAppId, ...app, focusIndex: glassesState.focusIndex };
+    },
+
+    _notifyUpdate() {
+      // Dispatch custom event for glasses display components to listen to
+      window.dispatchEvent(new CustomEvent('glasses-control-plane-update', {
+        detail: { state: glassesState, app: glassesState.activeAppId ? GLASSES_APPS[glassesState.activeAppId] : null },
+      }));
+    },
+  };
+
+  // Keyboard shortcuts for glasses simulator (Ctrl+G prefix)
+  let glassesMode = false;
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'g') {
+      glassesMode = !glassesMode;
+      console.log(`[Glasses Simulator] ${glassesMode ? 'ACTIVE' : 'INACTIVE'} - Use arrows + Enter`);
+      e.preventDefault();
+      return;
+    }
+    if (!glassesMode) return;
+
+    const cp = (window as any).glassesControlPlane;
+    if (e.key === 'ArrowDown') { cp.focusNext(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { cp.focusPrevious(); e.preventDefault(); }
+    else if (e.key === 'Enter') { const action = cp.activate(); if (action) console.log('[Glasses] Activate:', action); e.preventDefault(); }
+    else if (e.key === 'Escape') { cp.goBack(); e.preventDefault(); }
+  });
+
+  console.log('[Glasses Control Plane] Initialized - 12 apps registered. Ctrl+G to toggle simulator mode.');
 }
 
 function setupWindowDragging() {
@@ -923,6 +1047,14 @@ function updateStatusIndicators(swissknife: SwissKnifeBrowserCore) {
     fetch('http://localhost:8080/v1/ipfs/status', { signal: AbortSignal.timeout(3000) })
       .then(r => { ipfsStatus.className = `status-indicator ${r.ok ? 'online' : 'offline'}`; })
       .catch(() => { ipfsStatus.className = 'status-indicator offline'; });
+  }
+
+  // Update glasses indicator
+  const glassesStatus = document.getElementById('glasses-status');
+  if (glassesStatus) {
+    const cp = (window as any).glassesControlPlane;
+    glassesStatus.className = `status-indicator ${cp?.state?.activeAppId ? 'online' : 'offline'}`;
+    glassesStatus.title = cp?.state?.activeAppId ? `Glasses: ${cp.state.activeAppId}` : 'Glasses: Disconnected';
   }
 }
 
