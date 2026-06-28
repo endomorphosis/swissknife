@@ -135,7 +135,10 @@ export interface HallucinateDashboardCapabilityCatalog {
   };
   launch_validation_gates?: Array<NonNullable<HallucinateDashboardCapabilityCatalog['launch_validation_gate']> & {
     launch_gate_receipt?: string;
+    hallucinate_backlog_receipt?: string;
     receipt_fixture?: string;
+    child_goals?: string[];
+    follow_up_subtasks?: string[];
   }>;
   swissknife_catalog_consumer_proof?: {
     task_id: 'HAO-681';
