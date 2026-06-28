@@ -1,4 +1,4 @@
-// NOTE: Auto-converted Python fixture; template literal artifacts are documented in HAO-540 discovery.
+// NOTE: Auto-converted Python test fixture; preserved template literal artifacts are tracked by conversion metadata below.
 /**;
  * Converted import { {expect, describe: any, it, beforeEach: any, afterEach} from "jest"; } from "Python: test_webgpu_parallel_model_loading.py;"
  * Conversion date: 2025-03-11 04:08:34;
