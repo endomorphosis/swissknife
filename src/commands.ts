@@ -32,6 +32,7 @@ import { mcpVersionCommands } from './commands/mcp-version-commands.js';
 import gotCommand from './commands/got.js';
 import schedulerCommand from './commands/scheduler.js';
 import gooseCommand from './commands/goose.js';
+import ipfsBackendCommands from './commands/ipfs-backend-commands.js';
 
 // Import utilities
 import { getMCPCommands } from './services/mcpClient.js';
@@ -82,6 +83,9 @@ const builtInCommands: PublicCommand[] = [
   gotCommand,
   schedulerCommand,
   gooseCommand,
+
+  // IPFS backend integration commands
+  ...ipfsBackendCommands,
 ];
 
 CommandRegistry.getInstance().register(...(builtInCommands as unknown as RegisteredCommand[]));
