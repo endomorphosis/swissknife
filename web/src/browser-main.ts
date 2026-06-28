@@ -1967,6 +1967,10 @@ async function openMCPPlusPlusExplorer(swissknife: SwissKnifeBrowserCore) {
     switch (tab) {
       case 'interfaces':
         contentArea.innerHTML = `
+          <div style="display:flex;gap:8px;margin-bottom:12px;padding:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;">
+            <button id="mcppp-connect-btn" style="padding:6px 12px;background:#3b82f6;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;">🔌 Connect to MCP++ Servers</button>
+            <span id="mcppp-conn-status" style="font-size:10px;align-self:center;color:#6b7280;">Not connected</span>
+          </div>
           <h3 style="margin:0 0 12px;font-size:14px;">📋 Registered MCP++ Interface Descriptors</h3>
           ${interfaces.map(i => `
             <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px;">
@@ -1983,7 +1987,24 @@ async function openMCPPlusPlusExplorer(swissknife: SwissKnifeBrowserCore) {
           <div style="margin-top:12px;padding:8px;background:#f9fafb;border-radius:6px;font-size:10px;color:#6b7280;">
             Profiles required: mcp++/cid-envelope, mcp++/ucan | Total methods: ${interfaces.reduce((s, i) => s + i.methods, 0)}
           </div>
+          <div style="margin-top:8px;padding:8px;background:#f9fafb;border-radius:6px;font-size:10px;color:#6b7280;">
+            <strong>Live Servers:</strong><br>
+            • ipfs_datasets_py (port 3002): MCP-IDL, CID-Envelope, UCAN, Deontic Policy, Event DAG, P2P<br>
+            • ipfs_accelerate_py (port 3003): Trio-native MCP++, P2P taskqueue, workflows
+          </div>
         `;
+        content.querySelector('#mcppp-connect-btn')?.addEventListener('click', async () => {
+          const statusEl = content.querySelector('#mcppp-conn-status') as HTMLElement;
+          statusEl.textContent = 'Connecting...';
+          const servers = [
+            { name: 'ipfs_datasets_py', url: 'http://localhost:3002/health/ready' },
+            { name: 'ipfs_accelerate_py', url: 'http://localhost:3003/api/mcp/status' },
+          ];
+          const results = await Promise.allSettled(servers.map(s => fetch(s.url, { signal: AbortSignal.timeout(3000) })));
+          const connected = results.filter(r => r.status === 'fulfilled' && (r.value as Response).ok).length;
+          statusEl.textContent = `${connected}/${servers.length} servers online`;
+          statusEl.style.color = connected > 0 ? '#16a34a' : '#dc2626';
+        });
         break;
 
       case 'execute':

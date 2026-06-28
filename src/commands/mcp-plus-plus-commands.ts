@@ -8,19 +8,31 @@
  * - mcp++ delegate    - Create UCAN delegation
  * - mcp++ policy      - Manage deontic policies
  * - mcp++ p2p         - P2P transport operations
+ * - mcp++ connect     - Connect to real MCP++ servers
+ * - mcp++ status      - Show connection status
  */
 
 import type { Command as PublicCommand } from '../types/command.js';
 import { createMCPPlusPlusClient, IPFS_KIT_INTERFACE, IPFS_ACCELERATE_INTERFACE, IPFS_DATASETS_INTERFACE } from '../services/mcp-plus-plus.js';
+import { createMultiServerConnector, IPFS_DATASETS_SERVER, IPFS_ACCELERATE_SERVER } from '../services/mcp-plus-plus-connector.js';
+import type { MCPPPMultiServerConnector } from '../services/mcp-plus-plus-connector.js';
 
 // Singleton client initialized with placeholder DID (replaced at runtime)
 let mcpppClient: ReturnType<typeof createMCPPlusPlusClient> | null = null;
+let mcpppConnector: MCPPPMultiServerConnector | null = null;
 
 function getClient(): ReturnType<typeof createMCPPlusPlusClient> {
   if (!mcpppClient) {
     mcpppClient = createMCPPlusPlusClient('did:key:z6MkswissknifeCLI');
   }
   return mcpppClient;
+}
+
+function getConnector(): MCPPPMultiServerConnector {
+  if (!mcpppConnector) {
+    mcpppConnector = createMultiServerConnector('did:key:z6MkswissknifeCLI');
+  }
+  return mcpppConnector;
 }
 
 export const mcpppCommand: PublicCommand = {
@@ -86,6 +98,25 @@ export const mcpppCommand: PublicCommand = {
       options: [
         { name: 'peer', type: 'string', description: 'Remote peer ID' },
         { name: 'addrs', type: 'string', description: 'Multiaddrs (comma-separated)' },
+      ],
+    },
+    {
+      name: 'connect',
+      description: 'Connect to real MCP++ servers (ipfs_datasets_py, ipfs_accelerate_py)',
+      options: [],
+    },
+    {
+      name: 'status',
+      description: 'Show MCP++ server connection status',
+      options: [],
+    },
+    {
+      name: 'call',
+      description: 'Call a tool on a connected MCP++ server with CID envelope',
+      options: [
+        { name: 'server', type: 'string', description: 'Server name (ipfs-datasets-mcp++ or ipfs-accelerate-mcp++)' },
+        { name: 'tool', type: 'string', description: 'Tool name to call' },
+        { name: 'args', type: 'string', description: 'JSON arguments' },
       ],
     },
   ],
@@ -253,8 +284,62 @@ export const mcpppCommand: PublicCommand = {
         };
       }
 
+      case 'connect': {
+        const connector = getConnector();
+        const results = await connector.connectAll();
+        const lines: string[] = ['MCP++ Server Connection Results:'];
+        for (const [name, result] of results) {
+          lines.push(`  ${result.success ? '✅' : '❌'} ${name}`);
+          if (result.success) {
+            lines.push(`     Profiles: ${result.profiles.join(', ')}`);
+            lines.push(`     Tools: ${result.tools.length} available`);
+          }
+        }
+        return { output: lines.join('\n') };
+      }
+
+      case 'status': {
+        const connector = getConnector();
+        const connected = connector.connectedServers;
+        return {
+          output: [
+            'MCP++ Connection Status:',
+            `  Connected servers: ${connected.length > 0 ? connected.join(', ') : 'None (run: mcp++ connect)'}`,
+            `  ipfs_datasets_py: ${IPFS_DATASETS_SERVER.baseUrl} (port 3002)`,
+            `  ipfs_accelerate_py: ${IPFS_ACCELERATE_SERVER.baseUrl} (port 3003)`,
+            '',
+            'Server capabilities:',
+            '  ipfs_datasets_py: MCP-IDL, CID-Envelope, UCAN, Deontic Policy, Event DAG, P2P',
+            '  ipfs_accelerate_py: Trio-native MCP++, P2P taskqueue, workflow tools',
+          ].join('\n'),
+        };
+      }
+
+      case 'call': {
+        if (!options.tool) {
+          return { error: 'Usage: mcp++ call --server <name> --tool <tool> --args <json>' };
+        }
+        const connector = getConnector();
+        const serverName = options.server || 'ipfs-datasets-mcp++';
+        const toolArgs = options.args ? JSON.parse(options.args) : {};
+        
+        try {
+          const { result, envelope } = await connector.callToolWithEnvelope(serverName, options.tool, toolArgs);
+          return {
+            output: [
+              `Tool call: ${options.tool} on ${serverName}`,
+              envelope.envelope_cid ? `Envelope CID: ${envelope.envelope_cid}` : '',
+              envelope.event_cid ? `Event CID: ${envelope.event_cid}` : '',
+              `Result: ${JSON.stringify(result).slice(0, 500)}`,
+            ].filter(Boolean).join('\n'),
+          };
+        } catch (e: any) {
+          return { error: `Call failed: ${e.message}` };
+        }
+      }
+
       default:
-        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p` };
+        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p, connect, status, call` };
     }
   },
 };
