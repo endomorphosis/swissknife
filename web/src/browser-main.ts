@@ -53,7 +53,86 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// UCAN Identity Initialization
+// ---------------------------------------------------------------------------
+
+/**
+ * Initialize a UCAN DID:key identity for this session.
+ * In Electron mode, retrieves from the main process via IPC.
+ * In standalone browser mode, generates an ephemeral identity using Web Crypto.
+ */
+async function initializeUCANIdentity(): Promise<void> {
+  try {
+    // Try Electron IPC first (if running inside hallucinate_app)
+    if ((window as any).electronAPI?.ucan) {
+      const identity = await (window as any).electronAPI.ucan.getIdentity();
+      if (identity) {
+        (window as any).ucanIdentity = identity;
+        console.log(`[UCAN] Identity loaded from Electron: ${identity.did}`);
+        updateUCANStatusIndicator(identity.did);
+        return;
+      }
+    }
+
+    // Fallback: generate ephemeral Web Crypto identity for standalone browser mode
+    const keyPair = await crypto.subtle.generateKey(
+      { name: 'Ed25519' } as any,
+      true,
+      ['sign', 'verify']
+    ).catch(() => {
+      // Ed25519 may not be available; fall back to ECDSA P-256
+      return crypto.subtle.generateKey(
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        true,
+        ['sign', 'verify']
+      );
+    });
+
+    const publicKeyRaw = await crypto.subtle.exportKey('raw', keyPair.publicKey);
+    const keyBytes = new Uint8Array(publicKeyRaw);
+    
+    // Generate DID:key from public key (simplified - uses hex encoding for browser)
+    const hexKey = Array.from(keyBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const did = `did:key:z${hexKey.slice(0, 48)}`;
+    
+    const identity = {
+      did,
+      createdAt: new Date().toISOString(),
+      capabilities: ['mcp-plus-plus/invoke', 'ipfs/pin', 'ipfs/add'],
+      ephemeral: true,
+    };
+
+    (window as any).ucanIdentity = identity;
+    (window as any).ucanKeyPair = keyPair;
+    
+    console.log(`[UCAN] Ephemeral identity created: ${did}`);
+    updateUCANStatusIndicator(did);
+  } catch (err) {
+    console.warn('[UCAN] Failed to initialize identity:', err);
+    // Non-fatal — app works without UCAN, just without auth capabilities
+  }
+}
+
+function updateUCANStatusIndicator(did: string): void {
+  const indicator = document.getElementById('ucan-status');
+  if (indicator) {
+    indicator.className = 'status-indicator online';
+    indicator.title = `UCAN: ${did}`;
+  }
+  
+  // Update taskbar identity display
+  const taskbarIdentity = document.getElementById('taskbar-identity');
+  if (taskbarIdentity) {
+    taskbarIdentity.textContent = `🔑 ${did.slice(0, 20)}...`;
+    taskbarIdentity.title = did;
+  }
+}
+
 async function initializeDesktop(swissknife: SwissKnifeBrowserCore) {
+  // Initialize UCAN identity for this session
+  await initializeUCANIdentity();
+  
   // Initialize desktop icons
   initializeDesktopIcons(swissknife);
   
