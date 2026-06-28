@@ -6,6 +6,7 @@ import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,
 } from '../../src/services/swissknife-mcp-capability-registry';
+import hallucinateBackendBridge from '../../web/js/hallucinate-backend-bridge.mjs';
 
 const DASHBOARD_CATALOG_FIXTURE = path.resolve(
   process.cwd(),
@@ -41,6 +42,10 @@ const HAO_681_CATALOG_CONSUMER_FIXTURE = path.resolve(
 );
 
 const EXPECTED_PACKAGES = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
+const {
+  HallucinateBackendBridge,
+  mapCatalogServerToMCPControlServer,
+} = hallucinateBackendBridge;
 const REQUIRED_EVIDENCE = [
   'Swissknife applications',
   'Mcp-Plus-Plus',
@@ -233,5 +238,66 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
       'supervised MCP server transport',
     ]);
     expect(receipt.dashboard_servers.map((server: any) => server.server_package).sort()).toEqual(EXPECTED_PACKAGES);
+  });
+
+  test('maps the Hallucinate daemon catalog into the SwissKnife MCP Control backend bridge', async () => {
+    const catalog = readJson<any>(DASHBOARD_CATALOG_FIXTURE);
+    const manager = new MCPDaemonManager();
+    const launchPlan = manager.getLaunchPlan();
+    const allStatus = Object.fromEntries(
+      launchPlan.map((entry: any) => [entry.daemon_id, {
+        status: 'running',
+        pid: 1000 + entry.startup_order,
+        uptime: 2500,
+        lastHealth: { healthy: true, endpoint: entry.endpoint },
+      }]),
+    );
+    const fakeApi = {
+      getDashboardCapabilityCatalog: async () => catalog,
+      getLaunchPlan: async () => launchPlan,
+      getAll: async () => allStatus,
+      getDaemonLaunchValidationGate: async () => manager.getDaemonLaunchValidationGate(),
+      checkHealth: async (daemonId: string) => allStatus[daemonId].lastHealth,
+      start: async (daemonId: string) => ({ daemonId, status: 'starting' }),
+      stop: async (daemonId: string) => ({ daemonId, status: 'stopping' }),
+      restart: async (daemonId: string) => ({ daemonId, status: 'restarting' }),
+    };
+
+    const bridge = new HallucinateBackendBridge(fakeApi as any);
+    const snapshot = await bridge.getSnapshot();
+    const serversByPackage = new Map(snapshot.servers.map((server: any) => [server.serverPackage, server]));
+    const mappedKit = mapCatalogServerToMCPControlServer(catalog.servers[0], launchPlan[0], allStatus['ipfs-kit']);
+
+    expect(snapshot.available).toBe(true);
+    expect(snapshot.ready).toBe(true);
+    expect(snapshot.requiredBackends.sort()).toEqual(EXPECTED_PACKAGES);
+    expect(snapshot.evidence).toEqual(expect.arrayContaining([
+      'Hallucinate App daemon health',
+      'dashboard capability catalog',
+      'Swissknife applications',
+      'launch Playwright validation gate',
+    ]));
+
+    for (const packageName of EXPECTED_PACKAGES) {
+      const server = serversByPackage.get(packageName) as any;
+      expect(server.managedBy).toBe('hallucinate_app.electron.daemon');
+      expect(server.status).toBe('running');
+      expect(server.capabilities).toEqual(expect.arrayContaining([
+        packageName,
+        'tools/list',
+        'tools/call',
+        'dashboard capability catalog',
+      ]));
+      expect(server.mediationContractRef).toMatch(/^control_surface_contract:mcp-daemon:/);
+      expect(server.safeProbeReceipt).toBeTruthy();
+    }
+
+    expect(mappedKit).toMatchObject({
+      name: 'ipfs-kit',
+      serverPackage: 'ipfs_kit_py',
+      toolsListUrl: 'http://127.0.0.1:8004/mcp/tools/list',
+      safeProbeTool: 'ipfs_status',
+      safeProbeReceipt: 'ipfs_kit_status_probe',
+    });
   });
 });

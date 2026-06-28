@@ -1,3 +1,5 @@
+import { getHallucinateBackendBridge } from '../hallucinate-backend-bridge.js';
+
 // Enhanced MCP Server Control App with Real-Time Monitoring and External Connections
 class MCPControlApp {
     constructor() {
@@ -12,6 +14,8 @@ class MCPControlApp {
         this.performanceMetrics = new Map();
         this.autoDiscovery = true;
         this.remoteServers = new Map(); // Remote MCP servers
+        this.hallucinateBridge = getHallucinateBackendBridge();
+        this.hallucinateSnapshot = null;
         
         // Initialize common server templates
         this.initializeServerTemplates();
@@ -21,6 +25,11 @@ class MCPControlApp {
         
         // Load saved servers and connections
         this.loadSavedData();
+
+        // Reconcile Electron-supervised Hallucinate/IPFS daemons when hosted in the app.
+        this.syncHallucinateDaemons().catch(error => {
+            console.warn('Failed to sync Hallucinate daemon catalog:', error);
+        });
     }
 
     initializeServerTemplates() {
@@ -821,6 +830,18 @@ class MCPControlApp {
     }
 
     renderLocalActions(name, server) {
+        if (server.managedBy === 'hallucinate_app.electron.daemon') {
+            return `
+                ${server.status === 'running' ? 
+                    `<button onclick="mcpControlApp.stopServer('${name}')" class="btn-danger">Stop</button>` :
+                    `<button onclick="mcpControlApp.startServer('${name}')" class="btn-primary">Start</button>`
+                }
+                <button onclick="mcpControlApp.restartServer('${name}')" class="btn-secondary">Restart</button>
+                <button onclick="mcpControlApp.testConnection('${name}')" class="btn-secondary">Health</button>
+                ${server.dashboardUrl ? `<button onclick="window.open('${server.dashboardUrl}', '_blank', 'noopener,noreferrer')" class="btn-secondary">Dashboard</button>` : ''}
+            `;
+        }
+
         return `
             ${server.status === 'running' ? 
                 `<button onclick="mcpControlApp.stopServer('${name}')" class="btn-danger">⏹️ Stop</button>` :
@@ -1326,6 +1347,8 @@ class MCPControlApp {
     }
 
     async checkServerStatuses() {
+        await this.syncHallucinateDaemons();
+
         // Check local servers (existing implementation)
         // Check for real server processes via SwissKnife API
         // If API is available, get actual server status
@@ -1587,6 +1610,16 @@ class MCPControlApp {
         if (!server) return;
 
         try {
+            if (server.managedBy === 'hallucinate_app.electron.daemon') {
+                server.status = 'starting';
+                this.refreshUI();
+                await this.hallucinateBridge.start(server.daemonId || name);
+                await this.syncHallucinateDaemons();
+                this.addConnectionEvent(`Hallucinate daemon "${name}" started`, 'server_started');
+                this.showNotification(`Daemon "${name}" start requested`, 'success');
+                return;
+            }
+
             // In a real implementation, this would start the actual process
             // For now, simulate starting
             server.status = 'starting';
@@ -1616,6 +1649,16 @@ class MCPControlApp {
         if (!server) return;
 
         try {
+            if (server.managedBy === 'hallucinate_app.electron.daemon') {
+                server.status = 'stopping';
+                this.refreshUI();
+                await this.hallucinateBridge.stop(server.daemonId || name);
+                await this.syncHallucinateDaemons();
+                this.addConnectionEvent(`Hallucinate daemon "${name}" stopped`, 'server_stopped');
+                this.showNotification(`Daemon "${name}" stop requested`, 'info');
+                return;
+            }
+
             server.status = 'stopping';
             this.refreshUI();
             
@@ -1651,6 +1694,82 @@ class MCPControlApp {
     async refreshServers() {
         await this.checkServerStatuses();
         this.refreshUI();
+    }
+
+    async restartServer(name) {
+        const server = this.servers.get(name);
+        if (!server) return;
+
+        if (server.managedBy === 'hallucinate_app.electron.daemon') {
+            try {
+                server.status = 'starting';
+                this.refreshUI();
+                await this.hallucinateBridge.restart(server.daemonId || name);
+                await this.syncHallucinateDaemons();
+                this.addConnectionEvent(`Hallucinate daemon "${name}" restarted`, 'server_started');
+                this.showNotification(`Daemon "${name}" restart requested`, 'success');
+            } catch (error) {
+                server.status = 'error';
+                server.lastError = error.message;
+                this.refreshUI();
+                this.showNotification(`Failed to restart daemon "${name}": ${error.message}`, 'error');
+            }
+            return;
+        }
+
+        await this.stopServer(name);
+        await this.startServer(name);
+    }
+
+    async testConnection(name) {
+        const server = this.servers.get(name);
+        if (!server) return;
+
+        if (server.managedBy === 'hallucinate_app.electron.daemon') {
+            try {
+                const health = await this.hallucinateBridge.checkHealth(server.daemonId || name);
+                server.lastHealth = health;
+                server.status = health?.healthy ? 'running' : 'degraded';
+                server.lastCheck = Date.now();
+                this.refreshUI();
+                this.showNotification(`Daemon "${name}" health: ${server.status}`, health?.healthy ? 'success' : 'warning');
+            } catch (error) {
+                server.status = 'error';
+                server.lastError = error.message;
+                this.refreshUI();
+                this.showNotification(`Health check failed for "${name}": ${error.message}`, 'error');
+            }
+            return;
+        }
+
+        this.showNotification(`No managed health bridge for "${name}"`, 'info');
+    }
+
+    async syncHallucinateDaemons() {
+        if (!this.hallucinateBridge?.isAvailable()) {
+            return null;
+        }
+
+        const snapshot = await this.hallucinateBridge.getSnapshot();
+        this.hallucinateSnapshot = snapshot;
+
+        for (const server of snapshot.servers || []) {
+            this.servers.set(server.name, {
+                ...(this.servers.get(server.name) || {}),
+                ...server,
+            });
+        }
+
+        if (snapshot.ready && !this._hallucinateReadyEventRecorded) {
+            this.addConnectionEvent(
+                'Hallucinate App MCP dashboard catalog connected to SwissKnife',
+                'connection_established'
+            );
+            this._hallucinateReadyEventRecorded = true;
+        }
+
+        this.refreshUI();
+        return snapshot;
     }
 
     showNotification(message, type = 'info') {
