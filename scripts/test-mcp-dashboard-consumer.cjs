@@ -53,6 +53,12 @@ assert(
   mgw550Gate?.supervisor_gap_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-27-mgw-550-objective-gap-3e00ad2a0074.md',
   'MGW-550 launch gate must point at the current supervisor gap receipt',
 );
+const vai529Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-529');
+assert(vai529Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-529 for VAIOS-G724');
+assert(
+  vai529Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-06-27-vai-529-objective-gap-3e00ad2a0074.md',
+  'VAI-529 launch gate must point at the current supervisor gap receipt',
+);
 assert(catalog.swissknife_catalog_consumer_proof?.task_id === 'HAO-681', 'Catalog must expose the HAO-681 Swissknife consumer proof');
 assert(
   JSON.stringify(catalog.swissknife_catalog_consumer_proof?.depends_on) === JSON.stringify(['HAO-677', 'HAO-680']),
