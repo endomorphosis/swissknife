@@ -238,9 +238,112 @@ function initializeGlassesControlPlane(swissknife: SwissKnifeBrowserCore) {
     else if (e.key === 'ArrowUp') { cp.focusPrevious(); e.preventDefault(); }
     else if (e.key === 'Enter') { const action = cp.activate(); if (action) console.log('[Glasses] Activate:', action); e.preventDefault(); }
     else if (e.key === 'Escape') { cp.goBack(); e.preventDefault(); }
+    else if (e.key === 'v') { 
+      // Voice simulator: prompt for transcript
+      const transcript = prompt('[Glasses Voice] Say something:');
+      if (transcript) {
+        cp.handleVoice(transcript).then((result: any) => {
+          if (result) console.log('[Glasses Voice]', result.intent, result.result);
+          else console.log('[Glasses Voice] Unrecognized:', transcript);
+        });
+      }
+      e.preventDefault();
+    }
   });
 
-  console.log('[Glasses Control Plane] Initialized - 12 apps registered. Ctrl+G to toggle simulator mode.');
+  // Expose enhanced control plane API
+  (window as any).glassesControlPlane.handleVoice = async (transcript: string) => {
+    const cp = (window as any).glassesControlPlane;
+    // Voice intent recognition
+    const VOICE_PATTERNS = [
+      { pattern: /^(open|launch|start|show)\s+(.+)$/i, intent: 'app.open', slot: 'appName' },
+      { pattern: /^(go\s+)?back$/i, intent: 'app.back' },
+      { pattern: /^next$/i, intent: 'focus.next' },
+      { pattern: /^(previous|prev)$/i, intent: 'focus.previous' },
+      { pattern: /^(select|confirm|activate|ok|go)$/i, intent: 'action.activate' },
+      { pattern: /^search\s+(.+)$/i, intent: 'search.semantic', slot: 'query' },
+      { pattern: /^generate\s+(.+)$/i, intent: 'generate.text', slot: 'prompt' },
+      { pattern: /^(run|start)\s+inference$/i, intent: 'accelerate.inference' },
+      { pattern: /^home$/i, intent: 'app.home' },
+    ];
+
+    const APP_ALIASES: Record<string, string> = {
+      'terminal': 'terminal', 'console': 'terminal', 'shell': 'terminal',
+      'chat': 'ai-chat', 'ai': 'ai-chat', 'assistant': 'ai-chat',
+      'files': 'file-manager', 'file manager': 'file-manager',
+      'settings': 'settings', 'config': 'settings',
+      'editor': 'code-editor', 'code': 'code-editor',
+      'tasks': 'task-manager', 'processes': 'task-manager',
+      'models': 'model-browser',
+      'ipfs': 'ipfs-explorer', 'storage': 'ipfs-explorer',
+      'datasets': 'datasets-browser', 'data': 'datasets-browser',
+      'accelerate': 'accelerate-panel', 'gpu': 'accelerate-panel',
+      'interfaces': 'idl-explorer', 'idl': 'idl-explorer',
+      'glasses': 'glasses-preview', 'display': 'glasses-preview',
+    };
+
+    const clean = transcript.trim().toLowerCase();
+    for (const { pattern, intent, slot } of VOICE_PATTERNS) {
+      const match = clean.match(pattern);
+      if (match) {
+        if (intent === 'app.open') {
+          const name = match[2]?.toLowerCase();
+          const appId = APP_ALIASES[name];
+          if (appId) { cp.openApp(appId); return { intent, result: { appId } }; }
+        } else if (intent === 'app.back') { cp.goBack(); return { intent, result: {} }; }
+        else if (intent === 'focus.next') { return { intent, result: cp.focusNext() }; }
+        else if (intent === 'focus.previous') { return { intent, result: cp.focusPrevious() }; }
+        else if (intent === 'action.activate') { return { intent, result: cp.activate() }; }
+        else if (intent === 'search.semantic') {
+          const query = match[1];
+          try {
+            const r = await fetch(`http://localhost:8080/v1/ipfs/search/semantic`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, top_k: 5 }) });
+            return { intent, result: await r.json() };
+          } catch (e: any) { return { intent, result: { error: e.message } }; }
+        }
+        else if (intent === 'generate.text') {
+          const prompt = match[1];
+          try {
+            const r = await fetch(`http://localhost:8080/v1/ipfs/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+            return { intent, result: await r.json() };
+          } catch (e: any) { return { intent, result: { error: e.message } }; }
+        }
+        return { intent, result: null };
+      }
+    }
+    return null;
+  };
+
+  // Gesture simulation API
+  (window as any).glassesControlPlane.handleGesture = (gestureType: string) => {
+    const cp = (window as any).glassesControlPlane;
+    const gestureMap: Record<string, () => any> = {
+      'swipe_left': () => cp.goBack(),
+      'swipe_right': () => cp.focusNext(),
+      'tap': () => cp.activate(),
+      'double_tap': () => { /* app switcher */ },
+      'flick_right': () => cp.focusNext(),
+      'flick_left': () => cp.focusPrevious(),
+      'head_nod': () => cp.activate(),
+      'head_shake': () => { /* dismiss notification */ },
+    };
+    const handler = gestureMap[gestureType];
+    if (handler) return handler();
+    return null;
+  };
+
+  // Notification API
+  const notificationQueue: Array<{ id: string; title: string; priority: string; ttlMs: number }> = [];
+  (window as any).glassesControlPlane.notify = (title: string, priority = 'normal', ttlMs = 5000) => {
+    const id = `notif_${Date.now()}`;
+    notificationQueue.push({ id, title, priority, ttlMs });
+    console.log(`[Glasses Notification] ${priority}: ${title}`);
+    setTimeout(() => { const idx = notificationQueue.findIndex(n => n.id === id); if (idx >= 0) notificationQueue.splice(idx, 1); }, ttlMs);
+    return id;
+  };
+  (window as any).glassesControlPlane.getNotifications = () => [...notificationQueue];
+
+  console.log('[Glasses Control Plane] Enhanced - 12 apps, voice/gesture/notifications. Ctrl+G to toggle, V for voice.');
 }
 
 function setupWindowDragging() {
