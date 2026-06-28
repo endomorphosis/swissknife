@@ -170,6 +170,8 @@ async function openApplication(appName: string, swissknife: SwissKnifeBrowserCor
     'ipfs-explorer': () => openIPFSExplorer(swissknife),
     'datasets-browser': () => openDatasetsBrowser(swissknife),
     'accelerate-panel': () => openAcceleratePanel(swissknife),
+    'idl-explorer': () => openIDLExplorer(swissknife),
+    'glasses-preview': () => openGlassesPreview(swissknife),
   };
   
   const openApp = applications[appName as keyof typeof applications];
@@ -875,6 +877,8 @@ function showStartMenu(swissknife: SwissKnifeBrowserCore) {
     <div class="context-menu-item" data-app="datasets-browser">📊 Datasets Browser</div>
     <div class="context-menu-item" data-app="accelerate-panel">⚡ Accelerate Panel</div>
     <div class="context-menu-item" data-app="model-browser">🧠 Model Browser</div>
+    <div class="context-menu-item" data-app="idl-explorer">🔗 IDL Interface Explorer</div>
+    <div class="context-menu-item" data-app="glasses-preview">👓 Meta Glasses Preview</div>
     <div class="context-menu-item" data-app="code-editor">📝 Code Editor</div>
     <div class="context-menu-item" data-app="settings">⚙️ Settings</div>
   `;
@@ -955,6 +959,167 @@ function showError(message: string) {
       toast.parentNode.removeChild(toast);
     }
   }, 5000);
+}
+
+// ---------------------------------------------------------------------------
+// IDL Interface Explorer - auto-generates UI from registered descriptors
+// ---------------------------------------------------------------------------
+
+async function openIDLExplorer(swissknife: SwissKnifeBrowserCore) {
+  const window = createWindow('idl-explorer', 'IDL Interface Explorer', 750, 600);
+  const content = window.querySelector('.window-content') as HTMLElement;
+
+  const PROFILES = [
+    { name: 'IPFS Kit', id: 'ipfs-kit', template: 'explorer', methods: ['add', 'cat', 'pin', 'unpin', 'list_pins', 'stat', 'dag_get', 'dag_put', 'name_publish', 'name_resolve'], tags: ['storage', 'p2p', 'content-addressed'] },
+    { name: 'IPFS Datasets', id: 'ipfs-datasets', template: 'dashboard', methods: ['embed', 'generate', 'list_datasets', 'search_datasets', 'vector_index', 'vector_search', 'semantic_search', 'similarity_search', 'faceted_search'], tags: ['datasets', 'embeddings', 'vector-search'] },
+    { name: 'IPFS Accelerate', id: 'ipfs-accelerate', template: 'job-console', methods: ['capabilities', 'hardware_profile', 'list_models', 'inference', 'metrics', 'endpoints', 'scrape_url', 'scrape_batch', 'workflow_execute'], tags: ['gpu', 'inference', 'hardware'] },
+  ];
+
+  content.innerHTML = `
+    <div style="padding:16px;font-family:system-ui;height:100%;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <h2 style="margin:0;font-size:1.1rem;">🔗 MCP-IDL Interface Registry</h2>
+        <span style="background:#4a6cf7;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;">ORB Discovery</span>
+      </div>
+      <p style="color:#6b7280;font-size:12px;margin-bottom:16px;">
+        Registered interfaces are discoverable through the ORB capability router.
+        Select an interface to see its methods, schemas, and auto-generated UI template.
+      </p>
+      <div id="idl-profiles" style="display:grid;gap:12px;">
+        ${PROFILES.map(p => `
+          <div class="idl-profile-card" data-profile="${p.id}" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;cursor:pointer;transition:all 0.2s;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong style="font-size:13px;">${p.name}</strong>
+                <span style="margin-left:8px;font-size:10px;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;">${p.template}</span>
+              </div>
+              <span style="font-size:11px;color:#6b7280;">${p.methods.length} methods</span>
+            </div>
+            <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;">
+              ${p.tags.map(t => `<span style="font-size:10px;background:#f3f4f6;padding:1px 6px;border-radius:3px;color:#4b5563;">${t}</span>`).join('')}
+            </div>
+            <div style="margin-top:8px;font-family:monospace;font-size:10px;color:#9ca3af;">
+              CID: sha256:${p.id.replace(/-/g, '')}...
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div id="idl-detail" style="margin-top:16px;"></div>
+    </div>
+  `;
+
+  content.querySelectorAll('.idl-profile-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const profileId = (card as HTMLElement).dataset.profile;
+      const profile = PROFILES.find(p => p.id === profileId);
+      if (!profile) return;
+      const detail = content.querySelector('#idl-detail') as HTMLElement;
+      detail.innerHTML = `
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;">
+          <h3 style="margin:0 0 8px;font-size:0.95rem;">${profile.name} - Method Signatures</h3>
+          <div style="display:grid;gap:6px;max-height:250px;overflow-y:auto;">
+            ${profile.methods.map(m => `
+              <div style="background:#f9fafb;padding:6px 10px;border-radius:4px;font-family:monospace;font-size:11px;display:flex;justify-content:space-between;">
+                <span style="color:#1e40af;font-weight:600;">${m}()</span>
+                <span style="color:#6b7280;">→ POST /v1/ipfs/${m.replace(/_/g, '/')}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;">
+            <strong style="font-size:11px;">UI Template:</strong> <code style="font-size:11px;">${profile.template}</code>
+            <span style="margin-left:12px;font-size:11px;">| <strong>ORB Transport:</strong> <code>http</code></span>
+            <span style="margin-left:12px;font-size:11px;">| <strong>Meta Glasses:</strong> ✓ DAT-native</span>
+          </div>
+        </div>
+      `;
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Meta Glasses Preview - simulates AR display widget rendering
+// ---------------------------------------------------------------------------
+
+async function openGlassesPreview(swissknife: SwissKnifeBrowserCore) {
+  const window = createWindow('glasses-preview', 'Meta Glasses Widget Preview', 650, 650);
+  const content = window.querySelector('.window-content') as HTMLElement;
+
+  content.innerHTML = `
+    <div style="padding:16px;font-family:system-ui;height:100%;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <h2 style="margin:0;font-size:1.1rem;">👓 Meta Glasses Widget Preview</h2>
+        <span style="background:#10b981;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;">DAT-native</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="glasses-tab active" data-widget="kit" style="padding:4px 12px;border:1px solid #d1d5db;border-radius:4px;background:#4a6cf7;color:#fff;cursor:pointer;font-size:11px;">IPFS Kit</button>
+        <button class="glasses-tab" data-widget="datasets" style="padding:4px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer;font-size:11px;">Datasets</button>
+        <button class="glasses-tab" data-widget="accelerate" style="padding:4px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer;font-size:11px;">Accelerate</button>
+      </div>
+      <div style="flex:1;display:flex;justify-content:center;align-items:center;">
+        <div id="glasses-viewport" style="width:300px;height:300px;border-radius:50%;background:#111;position:relative;overflow:hidden;border:3px solid #333;">
+          <div id="glasses-display" style="position:absolute;inset:25px;background:#1a1a2e;border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:#6b7280;margin-top:8px;">
+        Simulated 600x600 viewport (scaled to fit) • Meta Ray-Ban Display Class
+      </div>
+    </div>
+  `;
+
+  const widgets: Record<string, { title: string; regions: Array<{ label: string; value: string; kind: string }> }> = {
+    kit: {
+      title: 'IPFS Storage',
+      regions: [
+        { label: 'Pins', value: '12 pinned', kind: 'status' },
+        { label: 'Size', value: '48.2 MB', kind: 'status' },
+        { label: 'Latest', value: 'bafy2bz...kd4f', kind: 'text' },
+        { label: '', value: '[ Add ] [ Browse ]', kind: 'action' },
+      ],
+    },
+    datasets: {
+      title: 'Datasets & Search',
+      regions: [
+        { label: 'Collections', value: '3 indexed', kind: 'status' },
+        { label: 'Results', value: 'Say "search" to query', kind: 'text' },
+        { label: '', value: '[ Search ] [ Generate ] [ Embed ]', kind: 'action' },
+      ],
+    },
+    accelerate: {
+      title: 'Accelerate',
+      regions: [
+        { label: 'GPU', value: '45% util', kind: 'status' },
+        { label: 'Latency', value: '23ms p50', kind: 'status' },
+        { label: 'Model', value: 'llama-3.1-8b', kind: 'text' },
+        { label: 'Queue', value: 'Idle', kind: 'progress' },
+        { label: '', value: '[ Infer ] [ Metrics ]', kind: 'action' },
+      ],
+    },
+  };
+
+  function renderWidget(name: string) {
+    const display = content.querySelector('#glasses-display') as HTMLElement;
+    const w = widgets[name];
+    display.innerHTML = `
+      <div style="color:#4ade80;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${w.title}</div>
+      ${w.regions.map(r => {
+        if (r.kind === 'status') return `<div style="display:flex;justify-content:space-between;color:#e5e7eb;font-size:9px;"><span style="color:#9ca3af;">${r.label}</span><span style="color:#60a5fa;font-family:monospace;">${r.value}</span></div>`;
+        if (r.kind === 'action') return `<div style="color:#a78bfa;font-size:9px;text-align:center;margin-top:auto;border-top:1px solid #333;padding-top:6px;">${r.value}</div>`;
+        if (r.kind === 'progress') return `<div style="color:#fbbf24;font-size:9px;"><span style="color:#9ca3af;">${r.label}:</span> ${r.value}</div>`;
+        return `<div style="color:#e5e7eb;font-size:9px;font-family:monospace;">${r.label ? r.label + ': ' : ''}${r.value}</div>`;
+      }).join('')}
+    `;
+  }
+
+  content.querySelectorAll('.glasses-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      content.querySelectorAll('.glasses-tab').forEach(t => { (t as HTMLElement).style.background = '#fff'; (t as HTMLElement).style.color = '#333'; });
+      (tab as HTMLElement).style.background = '#4a6cf7';
+      (tab as HTMLElement).style.color = '#fff';
+      renderWidget((tab as HTMLElement).dataset.widget || 'kit');
+    });
+  });
+
+  renderWidget('kit');
 }
 
 // Track start time
