@@ -105,6 +105,20 @@ assert(
   vai537Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-06-28-vai-537-mcp-dashboard-launch-gate.md',
   'VAI-537 launch gate must point at the current launch gate receipt',
 );
+const vai542Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-542');
+assert(vai542Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-542 for VAIOS-G723');
+assert(
+  vai542Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-06-28-vai-542-objective-gap-7ea369464239.md',
+  'VAI-542 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai542Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-06-28-vai-542-mcp-dashboard-launch-gate.md',
+  'VAI-542 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai542Gate?.hallucinate_backlog_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-mcp-dashboard-launch-gate.md',
+  'VAI-542 launch gate must point at the HAO-724 Hallucinate receipt',
+);
 const vai543Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-543');
 assert(vai543Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-543 for VAIOS-G723');
 assert(
