@@ -140,6 +140,12 @@ export class HandsfreeBackendBridge implements IntegrationBridge {
       'ipfs_pin': { method: 'POST', path: '/v1/ipfs/pin' },
       'ipfs_unpin': { method: 'POST', path: '/v1/ipfs/unpin' },
       'ipfs_resolve': { method: 'POST', path: '/v1/ipfs/resolve' },
+      'ipfs_list_pins': { method: 'GET', path: '/v1/ipfs/list_pins' },
+      'ipfs_stat': { method: 'POST', path: '/v1/ipfs/stat' },
+      'ipfs_dag_get': { method: 'POST', path: '/v1/ipfs/dag/get' },
+      'ipfs_dag_put': { method: 'POST', path: '/v1/ipfs/dag/put' },
+      'ipfs_name_publish': { method: 'POST', path: '/v1/ipfs/name/publish' },
+      'ipfs_name_resolve': { method: 'POST', path: '/v1/ipfs/name/resolve' },
       // IPFS Datasets
       'embed': { method: 'POST', path: '/v1/ipfs/embed' },
       'embed_texts': { method: 'POST', path: '/v1/ipfs/embed' },
@@ -152,6 +158,9 @@ export class HandsfreeBackendBridge implements IntegrationBridge {
       'inference': { method: 'POST', path: '/v1/ipfs/inference' },
       'run_inference': { method: 'POST', path: '/v1/ipfs/inference' },
       'capabilities': { method: 'GET', path: '/v1/ipfs/capabilities' },
+      'search_models': { method: 'POST', path: '/v1/ipfs/search_models' },
+      'metrics': { method: 'GET', path: '/v1/ipfs/metrics' },
+      'endpoints': { method: 'GET', path: '/v1/ipfs/endpoints' },
       // Unified
       'status': { method: 'GET', path: '/v1/ipfs/status' },
     };

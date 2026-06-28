@@ -62,6 +62,10 @@ export class IPFSCommand implements Command {
         return this.listPins(args.slice(1));
       case 'resolve':
         return this.resolve(args.slice(1));
+      case 'dag':
+        return this.dag(args.slice(1));
+      case 'name':
+        return this.name(args.slice(1));
       case 'help':
         return this.showHelp();
       default:
@@ -441,6 +445,91 @@ export class IPFSCommand implements Command {
   }
 
   /**
+   * DAG subcommand (get/put)
+   * @private
+   */
+  private async dag(args: string[]): Promise<void> {
+    if (args.length === 0) {
+      console.log(chalk.cyan('Usage:') + ' swissknife ipfs dag <get|put> <cid|data>');
+      return;
+    }
+    const sub = args[0];
+    const backendUrl = this.config.get<string>('handsfree.backendUrl') || 'http://127.0.0.1:8080';
+
+    if (sub === 'get') {
+      const cid = args[1];
+      if (!cid) { console.log(chalk.red('CID required')); return; }
+      const spinner = ora(`DAG get ${cid}...`).start();
+      try {
+        const resp = await fetch(`${backendUrl}/v1/ipfs/dag/get`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cid }),
+        });
+        const data = await resp.json();
+        spinner.succeed('DAG node retrieved');
+        console.log(JSON.stringify(data, null, 2));
+      } catch (err) { spinner.fail(`DAG get failed: ${err instanceof Error ? err.message : err}`); }
+    } else if (sub === 'put') {
+      const jsonStr = args.slice(1).join(' ');
+      if (!jsonStr) { console.log(chalk.red('JSON data required')); return; }
+      const spinner = ora('DAG put...').start();
+      try {
+        const dagData = JSON.parse(jsonStr);
+        const resp = await fetch(`${backendUrl}/v1/ipfs/dag/put`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: dagData }),
+        });
+        const result = await resp.json();
+        spinner.succeed('DAG node stored');
+        console.log(JSON.stringify(result, null, 2));
+      } catch (err) { spinner.fail(`DAG put failed: ${err instanceof Error ? err.message : err}`); }
+    } else {
+      console.log(chalk.red(`Unknown dag subcommand: ${sub}. Use 'get' or 'put'.`));
+    }
+  }
+
+  /**
+   * Name (IPNS) subcommand (publish/resolve)
+   * @private
+   */
+  private async name(args: string[]): Promise<void> {
+    if (args.length === 0) {
+      console.log(chalk.cyan('Usage:') + ' swissknife ipfs name <publish|resolve> <value>');
+      return;
+    }
+    const sub = args[0];
+    const value = args[1];
+    if (!value) { console.log(chalk.red('Value required')); return; }
+    const backendUrl = this.config.get<string>('handsfree.backendUrl') || 'http://127.0.0.1:8080';
+
+    if (sub === 'publish') {
+      const spinner = ora(`Publishing ${value} to IPNS...`).start();
+      try {
+        const resp = await fetch(`${backendUrl}/v1/ipfs/name/publish`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value }),
+        });
+        const result = await resp.json();
+        spinner.succeed('Published to IPNS');
+        console.log(JSON.stringify(result, null, 2));
+      } catch (err) { spinner.fail(`Name publish failed: ${err instanceof Error ? err.message : err}`); }
+    } else if (sub === 'resolve') {
+      const spinner = ora(`Resolving IPNS name ${value}...`).start();
+      try {
+        const resp = await fetch(`${backendUrl}/v1/ipfs/name/resolve`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value }),
+        });
+        const result = await resp.json();
+        spinner.succeed('IPNS name resolved');
+        console.log(JSON.stringify(result, null, 2));
+      } catch (err) { spinner.fail(`Name resolve failed: ${err instanceof Error ? err.message : err}`); }
+    } else {
+      console.log(chalk.red(`Unknown name subcommand: ${sub}. Use 'publish' or 'resolve'.`));
+    }
+  }
+
+  /**
    * Show help for the IPFS command
    * @private
    */
@@ -462,6 +551,8 @@ ${chalk.cyan('Subcommands:')}
   ${chalk.green('unpin')} <cid>               Unpin content from IPFS
   ${chalk.green('pins')} [type]               List pinned content
   ${chalk.green('resolve')} <cid>             Resolve CID metadata
+  ${chalk.green('dag')} get|put <cid|json>    DAG operations
+  ${chalk.green('name')} publish|resolve <v>  IPNS name operations
 
 ${chalk.cyan('Related Commands:')}
   ${chalk.green('datasets')}                  Dataset search, embeddings (ipfs_datasets_py)
@@ -474,6 +565,8 @@ ${chalk.cyan('Examples:')}
   swissknife ipfs cat QmXYZ
   swissknife ipfs pin QmXYZ
   swissknife ipfs resolve QmXYZ
+  swissknife ipfs dag get QmXYZ
+  swissknife ipfs name publish QmXYZ
     `);
   }
 }
