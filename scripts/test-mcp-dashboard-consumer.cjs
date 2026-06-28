@@ -47,6 +47,12 @@ assert(
 assert(catalog.launch_validation_gate?.task_id === 'MGW-533', 'Catalog launch validation gate must name MGW-533');
 assert(catalog.launch_validation_gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gate must name VAIOS-G724');
 assert(catalog.launch_validation_gate?.evidence_term === 'launch Playwright validation gate', 'Catalog launch validation gate evidence term mismatch');
+const mgw547Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-547');
+assert(mgw547Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include MGW-547 for VAIOS-G723');
+assert(
+  mgw547Gate?.supervisor_gap_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-27-mgw-547-objective-gap-7ea369464239.md',
+  'MGW-547 launch gate must point at the current supervisor gap receipt',
+);
 const mgw550Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-550');
 assert(mgw550Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include MGW-550 for VAIOS-G724');
 assert(
