@@ -123,6 +123,16 @@ assert(
   vai537Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-06-28-vai-537-mcp-dashboard-launch-gate.md',
   'VAI-537 launch gate must point at the current launch gate receipt',
 );
+const vai539Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-539');
+assert(vai539Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-539 for VAIOS-G724');
+assert(
+  vai539Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-06-28-vai-539-objective-gap-3e00ad2a0074.md',
+  'VAI-539 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai539Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-06-28-vai-539-mcp-dashboard-launch-gate.md',
+  'VAI-539 launch gate must point at the current launch gate receipt',
+);
 const vai542Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-542');
 assert(vai542Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-542 for VAIOS-G723');
 assert(
