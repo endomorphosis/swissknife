@@ -195,6 +195,39 @@ assert(
   JSON.stringify(vai543Gate?.follow_up_subtasks || []) === JSON.stringify(['HAO-678', 'HAO-679', 'HAO-680', 'HAO-681', 'HAO-682', 'HAO-683']),
   'VAI-543 launch gate must preserve supervisor-generated follow-up subtasks',
 );
+const hao727Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'HAO-727');
+assert(hao727Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include HAO-727 for VAIOS-G723');
+assert(
+  hao727Gate?.source_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-727-objective-gap-7ea369464239.md',
+  'HAO-727 launch gate must point at the current Hallucinate supervisor gap receipt',
+);
+assert(
+  hao727Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-727-mcp-dashboard-launch-gate.md',
+  'HAO-727 launch gate must point at the current Hallucinate launch gate receipt',
+);
+assert(
+  hao727Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/hao-727-mcp-dashboard-launch-gate.json',
+  'HAO-727 launch gate must point at the shared Hallucinate App fixture',
+);
+assert(
+  JSON.stringify(hao727Gate?.required_backends || []) === JSON.stringify(['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py']),
+  'HAO-727 launch gate must require all dashboard MCP packages in catalog order',
+);
+assert(
+  JSON.stringify(hao727Gate?.child_goals || []) === JSON.stringify([
+    'VAIOS-G723-C1 Catalog normalization',
+    'VAIOS-G723-C2 Dashboard UI wiring',
+    'VAIOS-G723-C3 Mediated tool-call receipts',
+    'VAIOS-G723-C4 Swissknife consumers',
+    'VAIOS-G723-C5 Playwright coverage',
+    'VAIOS-G723-C6 Supervisor-generated follow-up subtasks',
+  ]),
+  'HAO-727 launch gate must expose VAIOS-G723 dashboard child goals',
+);
+assert(
+  JSON.stringify(hao727Gate?.supervisor_follow_up_subtasks || []) === JSON.stringify(['HAO-678', 'HAO-679', 'HAO-680', 'HAO-681', 'HAO-682', 'HAO-683']),
+  'HAO-727 launch gate must preserve supervisor-generated follow-up subtasks',
+);
 const mgw555Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-555');
 assert(mgw555Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include MGW-555 for VAIOS-G724');
 assert(
