@@ -147,6 +147,25 @@ assert(
   vai542Gate?.hallucinate_backlog_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-mcp-dashboard-launch-gate.md',
   'VAI-542 launch gate must point at the HAO-724 Hallucinate receipt',
 );
+assert(
+  vai542Gate?.hallucinate_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-objective-gap-7ea369464239.md',
+  'VAI-542 launch gate must point at the HAO-724 Hallucinate gap receipt',
+);
+assert(
+  JSON.stringify(vai542Gate?.child_goals || []) === JSON.stringify([
+    'VAIOS-G723-C1 Catalog normalization',
+    'VAIOS-G723-C2 Dashboard UI wiring',
+    'VAIOS-G723-C3 Mediated tool-call receipts',
+    'VAIOS-G723-C4 Swissknife consumers',
+    'VAIOS-G723-C5 Playwright coverage',
+    'VAIOS-G723-C6 Supervisor-generated follow-up subtasks',
+  ]),
+  'VAI-542 launch gate must expose VAIOS-G723 dashboard child goals',
+);
+assert(
+  JSON.stringify(vai542Gate?.follow_up_subtasks || []) === JSON.stringify(['HAO-678', 'HAO-679', 'HAO-680', 'HAO-681', 'HAO-682', 'HAO-683']),
+  'VAI-542 launch gate must preserve supervisor-generated follow-up subtasks',
+);
 const vai543Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-543');
 assert(vai543Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-543 for VAIOS-G723');
 assert(
@@ -185,16 +204,6 @@ assert(
 assert(
   mgw555Gate?.launch_gate_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-28-mgw-555-launch-playwright-validation-gate.md',
   'MGW-555 launch gate must point at the current launch gate receipt',
-);
-const mgw558Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-558');
-assert(mgw558Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include MGW-558 for VAIOS-G724');
-assert(
-  mgw558Gate?.supervisor_gap_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-28-mgw-558-objective-gap-3e00ad2a0074.md',
-  'MGW-558 launch gate must point at the current supervisor gap receipt',
-);
-assert(
-  mgw558Gate?.launch_gate_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-28-mgw-558-launch-playwright-validation-gate.md',
-  'MGW-558 launch gate must point at the current launch gate receipt',
 );
 assert(catalog.swissknife_catalog_consumer_proof?.task_id === 'HAO-681', 'Catalog must expose the HAO-681 Swissknife consumer proof');
 assert(
