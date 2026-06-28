@@ -164,6 +164,69 @@ export const ipfsORBProfiles: MCPUIProfileDescriptor[] = [
   ipfsKitProfile,
   ipfsDatasetsProfile,
   ipfsAccelerateProfile,
+  ipfsExtendedToolsProfile,
 ];
+
+/**
+ * Extended tools profile (vector store, search, scraping, workflow)
+ */
+export const ipfsExtendedToolsProfile: MCPUIProfileDescriptor = {
+  meta: {
+    app_id: 'ipfs-extended-tools',
+    name: 'IPFS Extended Tools',
+    version: '1.0.0',
+    description: 'Vector store, search, web scraping, and workflow execution',
+  },
+  services: [
+    {
+      name: 'vector-store',
+      interface_type: 'search',
+      transport: { kind: 'http', endpoint: `${HANDSFREE_BASE}/v1/ipfs` },
+      operations: ['vector_index', 'vector_search', 'vector_metadata'],
+    },
+    {
+      name: 'semantic-search',
+      interface_type: 'search',
+      transport: { kind: 'http', endpoint: `${HANDSFREE_BASE}/v1/ipfs` },
+      operations: ['semantic_search', 'similarity_search', 'faceted_search'],
+    },
+    {
+      name: 'web-scraping',
+      interface_type: 'ingestion',
+      transport: { kind: 'http', endpoint: `${HANDSFREE_BASE}/v1/ipfs` },
+      operations: ['scrape_url', 'scrape_batch'],
+    },
+    {
+      name: 'workflow-engine',
+      interface_type: 'orchestration',
+      transport: { kind: 'http', endpoint: `${HANDSFREE_BASE}/v1/ipfs` },
+      operations: ['workflow_execute'],
+    },
+  ],
+  methods: [
+    { name: 'vector_index', input: { content: 'string', metadata: 'object', collection: 'string' }, output: { id: 'string', indexed: 'boolean' } },
+    { name: 'vector_search', input: { query: 'string', collection: 'string', top_k: 'number' }, output: { results: 'array' } },
+    { name: 'vector_metadata', input: { collection: 'string' }, output: { count: 'number', dimensions: 'number' } },
+    { name: 'semantic_search', input: { query: 'string', top_k: 'number', filters: 'object' }, output: { results: 'array' } },
+    { name: 'similarity_search', input: { query: 'string', threshold: 'number', max_results: 'number' }, output: { results: 'array' } },
+    { name: 'faceted_search', input: { query: 'string', facets: 'array', filters: 'object' }, output: { results: 'array', facet_counts: 'object' } },
+    { name: 'scrape_url', input: { url: 'string', options: 'object' }, output: { content: 'string', metadata: 'object' } },
+    { name: 'scrape_batch', input: { urls: 'array', options: 'object' }, output: { results: 'array' } },
+    { name: 'workflow_execute', input: { workflow_id: 'string', step: 'string', params: 'object' }, output: { result: 'object', status: 'string' } },
+  ],
+  data_contracts: {
+    operations: [
+      { method: 'vector_index', path: '/vector/index', http_method: 'POST' },
+      { method: 'vector_search', path: '/vector/search', http_method: 'POST' },
+      { method: 'vector_metadata', path: '/vector/metadata', http_method: 'POST' },
+      { method: 'semantic_search', path: '/search/semantic', http_method: 'POST' },
+      { method: 'similarity_search', path: '/search/similarity', http_method: 'POST' },
+      { method: 'faceted_search', path: '/search/faceted', http_method: 'POST' },
+      { method: 'scrape_url', path: '/scrape/url', http_method: 'POST' },
+      { method: 'scrape_batch', path: '/scrape/batch', http_method: 'POST' },
+      { method: 'workflow_execute', path: '/workflow/execute', http_method: 'POST' },
+    ],
+  },
+};
 
 export default ipfsORBProfiles;
