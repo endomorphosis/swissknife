@@ -137,6 +137,8 @@ export interface HallucinateDashboardCapabilityCatalog {
     launch_gate_receipt?: string;
     hallucinate_backlog_receipt?: string;
     receipt_fixture?: string;
+    attempt?: number;
+    attempt_receipts?: string[];
     child_goals?: string[];
     follow_up_subtasks?: string[];
     failure_rule?: string;

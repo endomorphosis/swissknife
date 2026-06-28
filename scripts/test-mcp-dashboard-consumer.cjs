@@ -53,6 +53,14 @@ assert(
   mgw547Gate?.supervisor_gap_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-27-mgw-547-objective-gap-7ea369464239.md',
   'MGW-547 launch gate must point at the current supervisor gap receipt',
 );
+assert(mgw547Gate?.attempt === 11, 'MGW-547 launch gate must expose the active attempt receipt');
+assert(
+  JSON.stringify(mgw547Gate?.attempt_receipts) === JSON.stringify([
+    'data/meta_glasses_display_widgets/discovery/2026-06-28-mgw-547-attempt-11-launch-playwright-validation-gate.md',
+    'data/hallucinate_multimodal_control/discovery/2026-06-28-mgw-547-attempt-11-launch-playwright-validation-gate.md',
+  ]),
+  'MGW-547 launch gate must point at the current attempt-11 launch receipts',
+);
 const mgw550Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-550');
 assert(mgw550Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include MGW-550 for VAIOS-G724');
 assert(
