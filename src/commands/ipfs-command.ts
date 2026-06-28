@@ -60,6 +60,8 @@ export class IPFSCommand implements Command {
         return this.unpin(args.slice(1));
       case 'pins':
         return this.listPins(args.slice(1));
+      case 'resolve':
+        return this.resolve(args.slice(1));
       case 'help':
         return this.showHelp();
       default:
@@ -412,6 +414,33 @@ export class IPFSCommand implements Command {
   }
 
   /**
+   * Resolve a CID to its metadata
+   * @private
+   */
+  private async resolve(args: string[]): Promise<void> {
+    if (args.length === 0) {
+      console.log(chalk.red('Error: CID argument required'));
+      console.log(chalk.cyan('Usage: swissknife ipfs resolve <cid>'));
+      return;
+    }
+
+    const cid = args[0];
+    const spinner = ora(`Resolving ${cid}...`).start();
+
+    try {
+      if (!this.client) {
+        throw new Error('IPFS client not initialized');
+      }
+
+      const result = await this.client.resolve(cid);
+      spinner.succeed(`Resolved: ${cid}`);
+      console.log(JSON.stringify(result, null, 2));
+    } catch (error) {
+      spinner.fail(`Failed to resolve: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
    * Show help for the IPFS command
    * @private
    */
@@ -432,6 +461,11 @@ ${chalk.cyan('Subcommands:')}
   ${chalk.green('pin')} <cid>                 Pin content in IPFS
   ${chalk.green('unpin')} <cid>               Unpin content from IPFS
   ${chalk.green('pins')} [type]               List pinned content
+  ${chalk.green('resolve')} <cid>             Resolve CID metadata
+
+${chalk.cyan('Related Commands:')}
+  ${chalk.green('datasets')}                  Dataset search, embeddings (ipfs_datasets_py)
+  ${chalk.green('accelerate')}                Hardware profile, inference (ipfs_accelerate_py)
 
 ${chalk.cyan('Examples:')}
   swissknife ipfs status
@@ -439,6 +473,7 @@ ${chalk.cyan('Examples:')}
   swissknife ipfs get QmXYZ ./downloaded-file.txt
   swissknife ipfs cat QmXYZ
   swissknife ipfs pin QmXYZ
+  swissknife ipfs resolve QmXYZ
     `);
   }
 }
