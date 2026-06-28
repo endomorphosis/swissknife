@@ -493,6 +493,7 @@ async function openApplication(appName: string, swissknife: SwissKnifeBrowserCor
 async function openTerminal(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('terminal', 'SwissKnife Terminal', 600, 400);
   const content = window.querySelector('.window-content') as HTMLElement;
+  const BACKEND = 'http://localhost:8080';
   
   content.innerHTML = `
     <div id="terminal-container" style="
@@ -503,7 +504,7 @@ async function openTerminal(swissknife: SwissKnifeBrowserCore) {
       height: 100%;
       overflow-y: auto;
     ">
-      <div id="terminal-output"></div>
+      <div id="terminal-output"><div style="color:#6b7280;">SwissKnife Terminal v0.1 — Type 'help' for IPFS commands</div></div>
       <div style="display: flex; align-items: center;">
         <span style="color: #00ff00;">swissknife:$ </span>
         <input type="text" id="terminal-input" style="
@@ -520,6 +521,39 @@ async function openTerminal(swissknife: SwissKnifeBrowserCore) {
   
   const input = content.querySelector('#terminal-input') as HTMLInputElement;
   const output = content.querySelector('#terminal-output') as HTMLElement;
+
+  // Built-in IPFS CLI commands that route to MCP backend
+  const ipfsCommands: Record<string, (args: string) => Promise<string>> = {
+    'ipfs status': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/status`); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs add': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/add`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: args }) }); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs cat': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/cat?cid=${encodeURIComponent(args)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid: args }) }); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs pin': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/pin`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid: args }) }); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs pins': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/list_pins`); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs stat': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/stat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid: args }) }); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs models': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/list_models`); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs capabilities': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/capabilities`); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs hardware': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/hardware_profile`); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs metrics': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/metrics`); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs datasets': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/list_datasets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs search': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/search/semantic`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: args, top_k: 5 }) }); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs generate': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: args }) }); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs inference': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/inference`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'default', input: args }) }); return JSON.stringify(await r.json(), null, 2); },
+    'help': async () => `Available IPFS commands:
+  ipfs status       - Check backend status
+  ipfs add <text>   - Add content to IPFS (ipfs_kit_py)
+  ipfs cat <cid>    - Fetch content by CID (ipfs_kit_py)
+  ipfs pin <cid>    - Pin content (ipfs_kit_py)
+  ipfs pins         - List pinned content (ipfs_kit_py)
+  ipfs stat <cid>   - Get object stats (ipfs_kit_py)
+  ipfs models       - List available models (ipfs_accelerate_py)
+  ipfs capabilities - Show hardware capabilities (ipfs_accelerate_py)
+  ipfs hardware     - Hardware profile (ipfs_accelerate_py)
+  ipfs metrics      - GPU/inference metrics (ipfs_accelerate_py)
+  ipfs datasets     - List datasets (ipfs_datasets_py)
+  ipfs search <q>   - Semantic search (ipfs_datasets_py)
+  ipfs generate <p> - Generate text (ipfs_datasets_py)
+  ipfs inference <t> - Run inference (ipfs_accelerate_py)`,
+  };
   
   input.addEventListener('keydown', async (event) => {
     if (event.key === 'Enter') {
@@ -528,19 +562,25 @@ async function openTerminal(swissknife: SwissKnifeBrowserCore) {
         output.innerHTML += `<div style="margin: 5px 0;"><span style="color: #00ff00;">swissknife:$ </span>${command}</div>`;
         
         try {
-          const result = await swissknife.executeCommand(command);
-          if (result.output) {
-            output.innerHTML += `<div style="margin: 5px 0; white-space: pre-wrap;">${result.output}</div>`;
+          // Try IPFS command first
+          const cmdKey = Object.keys(ipfsCommands).find(k => command.startsWith(k));
+          if (cmdKey) {
+            const args = command.slice(cmdKey.length).trim();
+            const result = await ipfsCommands[cmdKey](args);
+            output.innerHTML += `<div style="margin: 5px 0; white-space: pre-wrap; color: #a5f3fc;">${result}</div>`;
+          } else {
+            // Fallback to SwissKnife core
+            const result = await swissknife.executeCommand(command);
+            if (result.output) output.innerHTML += `<div style="margin: 5px 0; white-space: pre-wrap;">${result.output}</div>`;
+            if (result.error) output.innerHTML += `<div style="margin: 5px 0; color: #ff6b6b;">${result.error}</div>`;
           }
-          if (result.error) {
-            output.innerHTML += `<div style="margin: 5px 0; color: #ff6b6b;">${result.error}</div>`;
-          }
-        } catch (error) {
+        } catch (error: any) {
           output.innerHTML += `<div style="margin: 5px 0; color: #ff6b6b;">Error: ${error.message}</div>`;
         }
         
         input.value = '';
-        output.scrollTop = output.scrollHeight;
+        const container = content.querySelector('#terminal-container') as HTMLElement;
+        container.scrollTop = container.scrollHeight;
       }
     }
   });
@@ -551,9 +591,18 @@ async function openTerminal(swissknife: SwissKnifeBrowserCore) {
 async function openAIChat(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('ai-chat', 'AI Chat Assistant', 500, 600);
   const content = window.querySelector('.window-content') as HTMLElement;
+  const BACKEND = 'http://localhost:8080';
   
   content.innerHTML = `
     <div style="display: flex; flex-direction: column; height: 100%;">
+      <div style="display:flex;gap:6px;padding:6px 8px;border-bottom:1px solid #e5e7eb;background:#f8fafc;">
+        <select id="chat-backend" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;">
+          <option value="generate">ipfs_datasets (generate)</option>
+          <option value="inference">ipfs_accelerate (inference)</option>
+          <option value="semantic_search">Semantic Search</option>
+        </select>
+        <span id="chat-status" style="margin-left:auto;font-size:10px;padding:3px 6px;border-radius:8px;background:#fef3c7;color:#92400e;">Checking...</span>
+      </div>
       <div id="chat-messages" style="
         flex: 1;
         overflow-y: auto;
@@ -585,98 +634,132 @@ async function openAIChat(swissknife: SwissKnifeBrowserCore) {
   const messages = content.querySelector('#chat-messages') as HTMLElement;
   const input = content.querySelector('#chat-input') as HTMLInputElement;
   const sendButton = content.querySelector('#send-button') as HTMLElement;
+  const backendSelect = content.querySelector('#chat-backend') as HTMLSelectElement;
+  const statusEl = content.querySelector('#chat-status') as HTMLElement;
+
+  // Check backend status
+  fetch(`${BACKEND}/v1/ipfs/status`, { signal: AbortSignal.timeout(3000) })
+    .then(r => { statusEl.textContent = r.ok ? 'MCP Online' : 'Offline'; statusEl.style.background = r.ok ? '#dcfce7' : '#fee2e2'; statusEl.style.color = r.ok ? '#166534' : '#991b1b'; })
+    .catch(() => { statusEl.textContent = 'Offline'; statusEl.style.background = '#fee2e2'; statusEl.style.color = '#991b1b'; });
   
   const sendMessage = async () => {
     const message = input.value.trim();
     if (!message) return;
     
-    // Add user message
     messages.innerHTML += `
       <div style="margin: 10px 0; text-align: right;">
-        <div style="
-          display: inline-block;
-          background: #667eea;
-          color: white;
-          padding: 8px 12px;
-          border-radius: 12px;
-          max-width: 70%;
-        ">${message}</div>
+        <div style="display: inline-block; background: #667eea; color: white; padding: 8px 12px; border-radius: 12px; max-width: 70%;">${message}</div>
       </div>
     `;
-    
     input.value = '';
     messages.scrollTop = messages.scrollHeight;
     
     try {
-      const response = await swissknife.generateAIResponse(message);
-      
-      // Add AI response
+      const backend = backendSelect.value;
+      let responseText = '';
+
+      if (backend === 'generate') {
+        const r = await fetch(`${BACKEND}/v1/ipfs/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: message, max_tokens: 500 }) });
+        const data = await r.json();
+        responseText = data.generated_text || data.text || JSON.stringify(data);
+      } else if (backend === 'inference') {
+        const r = await fetch(`${BACKEND}/v1/ipfs/inference`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'default', input: message }) });
+        const data = await r.json();
+        responseText = data.output || data.result || JSON.stringify(data);
+      } else if (backend === 'semantic_search') {
+        const r = await fetch(`${BACKEND}/v1/ipfs/search/semantic`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: message, top_k: 5 }) });
+        const data = await r.json();
+        responseText = (data.results || []).map((r: any) => `• ${r.title || r.text || JSON.stringify(r)}`).join('\n') || 'No results found';
+      }
+
       messages.innerHTML += `
         <div style="margin: 10px 0;">
-          <div style="
-            display: inline-block;
-            background: white;
-            color: #333;
-            padding: 8px 12px;
-            border-radius: 12px;
-            max-width: 70%;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-          ">${response.content}</div>
+          <div style="display: inline-block; background: white; color: #333; padding: 8px 12px; border-radius: 12px; max-width: 70%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: pre-wrap;">${responseText}</div>
         </div>
       `;
-    } catch (error) {
-      messages.innerHTML += `
-        <div style="margin: 10px 0;">
-          <div style="
-            display: inline-block;
-            background: #ff6b6b;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 12px;
-            max-width: 70%;
-          ">Error: ${error.message}</div>
-        </div>
-      `;
+    } catch (error: any) {
+      // Fallback to local SwissKnife if backend unavailable
+      try {
+        const response = await swissknife.generateAIResponse(message);
+        messages.innerHTML += `<div style="margin: 10px 0;"><div style="display: inline-block; background: white; color: #333; padding: 8px 12px; border-radius: 12px; max-width: 70%; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">${response.content}</div></div>`;
+      } catch (e: any) {
+        messages.innerHTML += `<div style="margin: 10px 0;"><div style="display: inline-block; background: #fee2e2; color: #991b1b; padding: 8px 12px; border-radius: 12px; max-width: 70%;">Error: ${error.message}</div></div>`;
+      }
     }
-    
     messages.scrollTop = messages.scrollHeight;
   };
   
   sendButton.addEventListener('click', sendMessage);
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      sendMessage();
-    }
-  });
-  
+  input.addEventListener('keydown', (event) => { if (event.key === 'Enter') sendMessage(); });
   input.focus();
 }
 
 async function openFileManager(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('file-manager', 'File Manager', 700, 500);
   const content = window.querySelector('.window-content') as HTMLElement;
+  const BACKEND = 'http://localhost:8080';
   
   content.innerHTML = `
-    <div style="display: flex; flex-direction: column; height: 100%;">
-      <div style="margin-bottom: 10px;">
-        <input type="text" id="current-path" value="/" readonly style="
-          width: 100%;
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          background: #f9f9f9;
-        ">
+    <div style="display: flex; flex-direction: column; height: 100%; font-family: system-ui;">
+      <div style="display:flex;gap:6px;padding:8px;border-bottom:1px solid #e5e7eb;background:#f8fafc;">
+        <input type="text" id="current-path" value="/" readonly style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;font-size:12px;">
+        <button id="fm-pin-btn" style="padding:6px 12px;background:#10b981;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;" title="Pin current file to IPFS">📌 Pin to IPFS</button>
+        <button id="fm-upload-btn" style="padding:6px 12px;background:#3b82f6;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;">⬆️ Upload to IPFS</button>
       </div>
-      <div id="file-list" style="
-        flex: 1;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        overflow-y: auto;
-        background: white;
-      "></div>
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <div id="file-list" style="flex:1;overflow-y:auto;background:white;"></div>
+        <div id="ipfs-panel" style="width:250px;border-left:1px solid #e5e7eb;padding:8px;overflow-y:auto;background:#f9fafb;">
+          <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:8px;">📦 IPFS Pinned Content</div>
+          <div id="ipfs-pins" style="font-size:10px;color:#6b7280;">Loading pins...</div>
+        </div>
+      </div>
+      <div style="padding:4px 8px;border-top:1px solid #e5e7eb;font-size:10px;color:#6b7280;background:#f8fafc;">
+        IPFS Kit: <span id="fm-ipfs-status">checking...</span>
+      </div>
     </div>
   `;
-  
+
+  const fileList = content.querySelector('#file-list') as HTMLElement;
+  const pinsPanel = content.querySelector('#ipfs-pins') as HTMLElement;
+  const ipfsStatus = content.querySelector('#fm-ipfs-status') as HTMLElement;
+
+  // Check IPFS backend
+  fetch(`${BACKEND}/v1/ipfs/status`, { signal: AbortSignal.timeout(3000) })
+    .then(r => { ipfsStatus.textContent = r.ok ? '✅ online' : '❌ offline'; })
+    .catch(() => { ipfsStatus.textContent = '❌ offline'; });
+
+  // Load pinned content from IPFS Kit
+  try {
+    const r = await fetch(`${BACKEND}/v1/ipfs/list_pins`, { signal: AbortSignal.timeout(5000) });
+    const data = await r.json();
+    const pins = data.pins || data || [];
+    pinsPanel.innerHTML = Array.isArray(pins) && pins.length > 0
+      ? pins.slice(0, 20).map((p: any) => `<div style="padding:3px 0;font-family:monospace;border-bottom:1px solid #f3f4f6;cursor:pointer;" title="Click to fetch" data-cid="${typeof p === 'string' ? p : p.cid}">${(typeof p === 'string' ? p : p.cid || '').slice(0, 18)}...</div>`).join('')
+      : '<div style="color:#9ca3af;">No pins found</div>';
+  } catch { pinsPanel.innerHTML = '<div style="color:#9ca3af;">Backend unavailable</div>'; }
+
+  // Pin to IPFS
+  content.querySelector('#fm-pin-btn')?.addEventListener('click', async () => {
+    const cid = prompt('Enter CID to pin:');
+    if (!cid) return;
+    try {
+      await fetch(`${BACKEND}/v1/ipfs/pin`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid }) });
+      alert(`Pinned: ${cid}`);
+    } catch (e: any) { alert(`Pin failed: ${e.message}`); }
+  });
+
+  // Upload to IPFS
+  content.querySelector('#fm-upload-btn')?.addEventListener('click', async () => {
+    const text = prompt('Enter content to upload to IPFS:');
+    if (!text) return;
+    try {
+      const r = await fetch(`${BACKEND}/v1/ipfs/add`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: text }) });
+      const data = await r.json();
+      alert(`Uploaded! CID: ${data.cid || data.Hash || JSON.stringify(data)}`);
+    } catch (e: any) { alert(`Upload failed: ${e.message}`); }
+  });
+
+  // Load local file listing
   await refreshFileList(swissknife, content);
 }
 
@@ -707,32 +790,51 @@ async function refreshFileList(swissknife: SwissKnifeBrowserCore, container: HTM
 async function openSettings(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('settings', 'Settings', 600, 500);
   const content = window.querySelector('.window-content') as HTMLElement;
+  const BACKEND = 'http://localhost:8080';
+  
+  // Check backend status
+  let backendOnline = false;
+  try { const r = await fetch(`${BACKEND}/v1/ipfs/status`, { signal: AbortSignal.timeout(3000) }); backendOnline = r.ok; } catch {}
+
+  const ucanDid = (window as any).ucanIdentity?.did || 'Not initialized';
   
   content.innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 20px;">
-      <h3>SwissKnife Settings</h3>
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 12px; font-family: system-ui; font-size: 13px;">
+      <h3 style="margin:0;">SwissKnife Settings</h3>
       
-      <div>
-        <h4>Storage Settings</h4>
-        <p>Storage Type: IndexedDB</p>
-        <p>Available Models: ${swissknife.getAvailableModels().join(', ') || 'None configured'}</p>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">
+        <h4 style="margin:0 0 8px;font-size:12px;">🔑 UCAN Identity</h4>
+        <div style="font-family:monospace;font-size:11px;word-break:break-all;color:#4b5563;background:#fff;padding:6px;border-radius:4px;">${ucanDid}</div>
       </div>
       
-      <div>
-        <h4>AI Settings</h4>
-        <label style="display: block; margin: 10px 0;">
-          <input type="checkbox" id="enable-local-models"> Enable Local Models
-        </label>
-        <label style="display: block; margin: 10px 0;">
-          <input type="checkbox" id="enable-web-workers" checked> Use Web Workers
-        </label>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">
+        <h4 style="margin:0 0 8px;font-size:12px;">🔌 MCP Backend</h4>
+        <div style="display:grid;gap:4px;font-size:11px;">
+          <div>Backend URL: <code>${BACKEND}</code> <span style="color:${backendOnline ? '#16a34a' : '#dc2626'};">${backendOnline ? '● Online' : '○ Offline'}</span></div>
+          <div>IPFS Kit MCP: <code>:8004</code></div>
+          <div>IPFS Datasets MCP: <code>:3002</code></div>
+          <div>IPFS Accelerate MCP: <code>:3003</code></div>
+          <div>SwissKnife Web: <code>:8765</code></div>
+        </div>
       </div>
       
-      <div>
-        <h4>About</h4>
-        <p>SwissKnife Browser Edition</p>
-        <p>Version: 0.0.53</p>
-        <p>Build: Webpack + TypeScript</p>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">
+        <h4 style="margin:0 0 8px;font-size:12px;">⚙️ Application</h4>
+        <div style="display:grid;gap:4px;font-size:11px;">
+          <div>Storage: IndexedDB</div>
+          <div>AI Models: ${swissknife.getAvailableModels().join(', ') || 'None (using MCP backends)'}</div>
+          <div>Desktop Apps: 13</div>
+          <div>Meta Glasses: ${(window as any).glassesControlPlane ? 'Ready' : 'Not initialized'}</div>
+        </div>
+      </div>
+
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">
+        <h4 style="margin:0 0 8px;font-size:12px;">ℹ️ About</h4>
+        <div style="font-size:11px;">
+          <div>SwissKnife Virtual Desktop v0.0.53</div>
+          <div>Build: TypeScript + Webpack</div>
+          <div>ORB/IDL: Auto-UI generation enabled</div>
+        </div>
       </div>
     </div>
   `;
@@ -741,73 +843,256 @@ async function openSettings(swissknife: SwissKnifeBrowserCore) {
 async function openCodeEditor(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('code-editor', 'VibeCode Editor', 800, 600);
   const content = window.querySelector('.window-content') as HTMLElement;
+  const BACKEND = 'http://localhost:8080';
   
   content.innerHTML = `
-    <div style="display: flex; flex-direction: column; height: 100%;">
-      <div style="border-bottom: 1px solid #ddd; padding: 10px;">
-        <input type="text" placeholder="Enter filename..." style="padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
-        <button style="padding: 5px 10px; margin-left: 10px; background: #667eea; color: white; border: none; border-radius: 3px;">Open</button>
-        <button style="padding: 5px 10px; margin-left: 5px; background: #28a745; color: white; border: none; border-radius: 3px;">Save</button>
+    <div style="display: flex; flex-direction: column; height: 100%; font-family: system-ui;">
+      <div style="display:flex;gap:6px;padding:8px;border-bottom:1px solid #e5e7eb;background:#f8fafc;align-items:center;">
+        <input type="text" id="ce-filename" placeholder="filename.ts" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;width:180px;">
+        <button id="ce-save-ipfs" style="padding:5px 10px;background:#10b981;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;" title="Save to IPFS">💾 Save to IPFS</button>
+        <button id="ce-ai-assist" style="padding:5px 10px;background:#8b5cf6;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;" title="AI Code Assist">🤖 AI Assist</button>
+        <button id="ce-load-cid" style="padding:5px 10px;background:#3b82f6;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;" title="Load from IPFS CID">📥 Load CID</button>
+        <span id="ce-status" style="margin-left:auto;font-size:10px;color:#6b7280;"></span>
       </div>
-      <textarea style="
+      <textarea id="ce-editor" style="
         flex: 1;
         border: none;
-        padding: 10px;
+        padding: 12px;
         font-family: 'Courier New', monospace;
-        font-size: 14px;
+        font-size: 13px;
         resize: none;
         outline: none;
-      " placeholder="// Start coding..."></textarea>
+        background: #1e1e1e;
+        color: #d4d4d4;
+        line-height: 1.5;
+      " placeholder="// Start coding... Use AI Assist (Ctrl+Space) for suggestions"></textarea>
+      <div id="ce-ai-output" style="max-height:120px;overflow-y:auto;border-top:1px solid #e5e7eb;padding:8px;font-size:11px;background:#fefce8;display:none;"></div>
     </div>
   `;
+
+  const editor = content.querySelector('#ce-editor') as HTMLTextAreaElement;
+  const statusEl = content.querySelector('#ce-status') as HTMLElement;
+  const aiOutput = content.querySelector('#ce-ai-output') as HTMLElement;
+
+  // Save to IPFS
+  content.querySelector('#ce-save-ipfs')?.addEventListener('click', async () => {
+    const code = editor.value;
+    if (!code.trim()) { statusEl.textContent = 'Nothing to save'; return; }
+    statusEl.textContent = 'Saving to IPFS...';
+    try {
+      const r = await fetch(`${BACKEND}/v1/ipfs/add`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: code }) });
+      const data = await r.json();
+      const cid = data.cid || data.Hash || '';
+      statusEl.textContent = `Saved! CID: ${cid.slice(0, 20)}...`;
+    } catch (e: any) { statusEl.textContent = `Save failed: ${e.message}`; }
+  });
+
+  // Load from CID
+  content.querySelector('#ce-load-cid')?.addEventListener('click', async () => {
+    const cid = prompt('Enter CID to load:');
+    if (!cid) return;
+    statusEl.textContent = 'Loading from IPFS...';
+    try {
+      const r = await fetch(`${BACKEND}/v1/ipfs/cat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid }) });
+      const data = await r.json();
+      editor.value = data.content || data.data || JSON.stringify(data);
+      statusEl.textContent = `Loaded from ${cid.slice(0, 12)}...`;
+    } catch (e: any) { statusEl.textContent = `Load failed: ${e.message}`; }
+  });
+
+  // AI Assist (uses ipfs_datasets_py generate endpoint)
+  content.querySelector('#ce-ai-assist')?.addEventListener('click', async () => {
+    const code = editor.value;
+    const prompt_text = code.trim() ? `Complete or improve this code:\n\n${code.slice(-500)}` : 'Write a hello world TypeScript function';
+    statusEl.textContent = 'AI generating...';
+    aiOutput.style.display = 'block';
+    aiOutput.innerHTML = '<em>Generating...</em>';
+    try {
+      const r = await fetch(`${BACKEND}/v1/ipfs/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt_text }) });
+      const data = await r.json();
+      const generated = data.text || data.generated_text || data.result || '';
+      aiOutput.innerHTML = `<strong>AI Suggestion:</strong><pre style="margin:4px 0;font-size:11px;white-space:pre-wrap;">${generated}</pre><button id="ce-apply-ai" style="font-size:10px;padding:2px 8px;background:#8b5cf6;color:white;border:none;border-radius:3px;cursor:pointer;">Apply</button>`;
+      content.querySelector('#ce-apply-ai')?.addEventListener('click', () => { editor.value += '\n' + generated; aiOutput.style.display = 'none'; });
+      statusEl.textContent = 'AI suggestion ready';
+    } catch (e: any) { aiOutput.innerHTML = `<span style="color:red;">Error: ${e.message}</span>`; statusEl.textContent = 'AI failed'; }
+  });
+
+  // Keyboard shortcut
+  editor.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.code === 'Space') { e.preventDefault(); (content.querySelector('#ce-ai-assist') as HTMLElement)?.click(); }
+  });
 }
 
 async function openTaskManager(swissknife: SwissKnifeBrowserCore) {
-  const window = createWindow('task-manager', 'Task Manager', 600, 400);
+  const window = createWindow('task-manager', 'Task Manager', 600, 450);
   const content = window.querySelector('.window-content') as HTMLElement;
+  const BACKEND = 'http://localhost:8080';
   
   content.innerHTML = `
-    <div>
-      <h3>Active Tasks</h3>
-      <p>No active tasks</p>
+    <div style="font-family:system-ui;padding:12px;height:100%;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0;font-size:14px;">System & MCP Metrics</h3>
+        <button id="tm-refresh" style="padding:4px 10px;background:#3b82f6;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;">Refresh</button>
+      </div>
       
-      <h3 style="margin-top: 20px;">System Status</h3>
-      <div style="font-family: monospace; background: #f5f5f5; padding: 10px; border-radius: 4px;">
-        Memory Usage: ~${Math.round((performance as any).memory?.usedJSHeapSize / 1024 / 1024 || 0)}MB<br>
-        Storage: IndexedDB<br>
-        AI Status: ${swissknife.getAvailableModels().length > 0 ? 'Ready' : 'No models configured'}<br>
-        Uptime: ${Math.floor((Date.now() - (window as any).startTime || Date.now()) / 1000)}s
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px;">
+          <div style="font-size:10px;color:#166534;font-weight:600;">Memory</div>
+          <div style="font-size:16px;font-weight:700;color:#15803d;" id="tm-memory">--</div>
+        </div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;">
+          <div style="font-size:10px;color:#1e40af;font-weight:600;">GPU Utilization</div>
+          <div style="font-size:16px;font-weight:700;color:#1d4ed8;" id="tm-gpu">--</div>
+        </div>
+        <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:10px;">
+          <div style="font-size:10px;color:#92400e;font-weight:600;">Throughput</div>
+          <div style="font-size:16px;font-weight:700;color:#b45309;" id="tm-throughput">--</div>
+        </div>
+        <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:10px;">
+          <div style="font-size:10px;color:#5b21b6;font-weight:600;">Endpoints</div>
+          <div style="font-size:16px;font-weight:700;color:#6d28d9;" id="tm-endpoints">--</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom:12px;">
+        <h4 style="font-size:12px;margin:0 0 8px;">MCP Daemon Status</h4>
+        <div id="tm-daemons" style="font-size:11px;color:#6b7280;">Checking MCP daemons...</div>
+      </div>
+      
+      <div>
+        <h4 style="font-size:12px;margin:0 0 8px;">Active Endpoints</h4>
+        <div id="tm-endpoint-list" style="font-size:10px;font-family:monospace;color:#4b5563;">Loading...</div>
       </div>
     </div>
   `;
+
+  async function refreshMetrics() {
+    // Local metrics
+    const mem = (performance as any).memory;
+    (content.querySelector('#tm-memory') as HTMLElement).textContent = mem ? `${Math.round(mem.usedJSHeapSize / 1024 / 1024)}MB` : 'N/A';
+
+    // Backend metrics from ipfs_accelerate_py
+    try {
+      const [metricsResp, endpointsResp] = await Promise.allSettled([
+        fetch(`${BACKEND}/v1/ipfs/metrics`, { signal: AbortSignal.timeout(3000) }),
+        fetch(`${BACKEND}/v1/ipfs/endpoints`, { signal: AbortSignal.timeout(3000) }),
+      ]);
+
+      if (metricsResp.status === 'fulfilled' && metricsResp.value.ok) {
+        const m = await metricsResp.value.json();
+        (content.querySelector('#tm-gpu') as HTMLElement).textContent = `${m.utilization || 0}%`;
+        (content.querySelector('#tm-throughput') as HTMLElement).textContent = `${m.throughput || 0} req/s`;
+      }
+
+      if (endpointsResp.status === 'fulfilled' && endpointsResp.value.ok) {
+        const e = await endpointsResp.value.json();
+        const endpoints = e.endpoints || e || [];
+        (content.querySelector('#tm-endpoints') as HTMLElement).textContent = `${endpoints.length} active`;
+        (content.querySelector('#tm-endpoint-list') as HTMLElement).innerHTML = endpoints.slice(0, 10).map((ep: any) => 
+          `<div style="padding:2px 0;border-bottom:1px solid #f3f4f6;">${typeof ep === 'string' ? ep : ep.url || ep.name || JSON.stringify(ep)}</div>`
+        ).join('') || 'No endpoints';
+      }
+    } catch {}
+
+    // MCP daemon status
+    const daemons = [
+      { name: 'ipfs_kit_py', port: 8004 },
+      { name: 'ipfs_datasets_py', port: 3002 },
+      { name: 'ipfs_accelerate_py', port: 3003 },
+    ];
+    const daemonStatuses = await Promise.allSettled(
+      daemons.map(d => fetch(`http://localhost:${d.port}/`, { signal: AbortSignal.timeout(2000) }))
+    );
+    (content.querySelector('#tm-daemons') as HTMLElement).innerHTML = daemons.map((d, i) => {
+      const ok = daemonStatuses[i].status === 'fulfilled';
+      return `<div style="padding:3px 0;"><span style="color:${ok ? '#16a34a' : '#dc2626'};">${ok ? '●' : '○'}</span> ${d.name} (:${d.port})</div>`;
+    }).join('');
+  }
+
+  content.querySelector('#tm-refresh')?.addEventListener('click', refreshMetrics);
+  await refreshMetrics();
 }
 
 async function openModelBrowser(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('model-browser', 'Model Browser', 700, 500);
   const content = window.querySelector('.window-content') as HTMLElement;
-  
-  const models = swissknife.getAvailableModels();
+  const BACKEND = 'http://localhost:8080';
   
   content.innerHTML = `
-    <div>
-      <h3>Available AI Models</h3>
-      ${models.length > 0 ? 
-        models.map(model => `
-          <div style="
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            background: white;
-          ">
-            <h4>${model}</h4>
-            <p>Status: Ready</p>
-            <button style="
-              background: #667eea;
-              color: white;
-              border: none;
-              padding: 5px 15px;
-              border-radius: 4px;
+    <div style="display:flex;flex-direction:column;height:100%;font-family:system-ui;">
+      <div style="display:flex;gap:8px;padding:10px;border-bottom:1px solid #e5e7eb;background:#f8fafc;">
+        <input type="text" id="model-search" placeholder="Search models..." style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;">
+        <button id="model-refresh" style="padding:6px 12px;background:#3b82f6;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;">🔄 Refresh</button>
+        <span id="model-status" style="font-size:10px;padding:4px 8px;border-radius:8px;background:#fef3c7;color:#92400e;align-self:center;">...</span>
+      </div>
+      <div style="display:flex;gap:8px;padding:6px 10px;border-bottom:1px solid #e5e7eb;">
+        <span id="model-hw-info" style="font-size:10px;color:#6b7280;">Hardware: detecting...</span>
+      </div>
+      <div id="model-list" style="flex:1;overflow-y:auto;padding:10px;">
+        <div style="text-align:center;padding:40px;color:#9ca3af;">Loading models from ipfs_accelerate_py...</div>
+      </div>
+    </div>
+  `;
+
+  const modelList = content.querySelector('#model-list') as HTMLElement;
+  const statusEl = content.querySelector('#model-status') as HTMLElement;
+  const hwInfo = content.querySelector('#model-hw-info') as HTMLElement;
+
+  async function loadModels() {
+    try {
+      const [modelsResp, hwResp, capsResp] = await Promise.allSettled([
+        fetch(`${BACKEND}/v1/ipfs/list_models`, { signal: AbortSignal.timeout(5000) }),
+        fetch(`${BACKEND}/v1/ipfs/hardware_profile`, { signal: AbortSignal.timeout(5000) }),
+        fetch(`${BACKEND}/v1/ipfs/capabilities`, { signal: AbortSignal.timeout(5000) }),
+      ]);
+
+      // Hardware info
+      if (hwResp.status === 'fulfilled' && hwResp.value.ok) {
+        const hw = await hwResp.value.json();
+        hwInfo.textContent = `GPU: ${(hw.gpus || []).length} | Memory: ${hw.memory_gb || '?'}GB | CPU: ${hw.cpu_cores || '?'} cores`;
+      }
+
+      // Models list
+      if (modelsResp.status === 'fulfilled' && modelsResp.value.ok) {
+        const data = await modelsResp.value.json();
+        const models = data.models || data || [];
+        statusEl.textContent = `${models.length} models`;
+        statusEl.style.background = '#dcfce7'; statusEl.style.color = '#166534';
+        
+        modelList.innerHTML = models.length > 0
+          ? models.map((m: any) => `
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong style="font-size:13px;">${typeof m === 'string' ? m : m.name || m.id || 'Unknown'}</strong>
+                <span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:3px;">${m.backend || m.type || 'model'}</span>
+              </div>
+              ${m.size ? `<div style="font-size:10px;color:#6b7280;margin-top:4px;">Size: ${m.size}</div>` : ''}
+            </div>
+          `).join('')
+          : '<div style="text-align:center;padding:20px;color:#6b7280;">No models available. Start ipfs_accelerate_py MCP server.</div>';
+      } else {
+        statusEl.textContent = 'Offline'; statusEl.style.background = '#fee2e2'; statusEl.style.color = '#991b1b';
+        modelList.innerHTML = '<div style="text-align:center;padding:20px;color:#ef4444;">Backend unavailable. Ensure MCP daemons are running.</div>';
+      }
+    } catch (e: any) {
+      statusEl.textContent = 'Error'; modelList.innerHTML = `<div style="padding:20px;color:#ef4444;">${e.message}</div>`;
+    }
+  }
+
+  content.querySelector('#model-refresh')?.addEventListener('click', loadModels);
+  content.querySelector('#model-search')?.addEventListener('input', async (e) => {
+    const query = (e.target as HTMLInputElement).value.trim();
+    if (query.length < 2) return;
+    try {
+      const r = await fetch(`${BACKEND}/v1/ipfs/search_models`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
+      const data = await r.json();
+      const results = data.results || data.models || [];
+      modelList.innerHTML = results.map((m: any) => `<div style="padding:8px;border-bottom:1px solid #f3f4f6;font-size:12px;">${typeof m === 'string' ? m : m.name || JSON.stringify(m)}</div>`).join('') || '<div style="padding:20px;color:#6b7280;">No results</div>';
+    } catch {}
+  });
+
+  await loadModels();
+}
               cursor: pointer;
             ">Test Model</button>
           </div>
