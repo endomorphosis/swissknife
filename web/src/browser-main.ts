@@ -168,6 +168,8 @@ async function openApplication(appName: string, swissknife: SwissKnifeBrowserCor
     'task-manager': () => openTaskManager(swissknife),
     'model-browser': () => openModelBrowser(swissknife),
     'ipfs-explorer': () => openIPFSExplorer(swissknife),
+    'datasets-browser': () => openDatasetsBrowser(swissknife),
+    'accelerate-panel': () => openAcceleratePanel(swissknife),
   };
   
   const openApp = applications[appName as keyof typeof applications];
@@ -507,40 +509,300 @@ async function openModelBrowser(swissknife: SwissKnifeBrowserCore) {
 }
 
 async function openIPFSExplorer(swissknife: SwissKnifeBrowserCore) {
-  const window = createWindow('ipfs-explorer', 'IPFS Explorer', 700, 500);
+  const window = createWindow('ipfs-explorer', 'IPFS Explorer', 750, 550);
   const content = window.querySelector('.window-content') as HTMLElement;
   
+  const BACKEND = 'http://localhost:8080';
+  
   content.innerHTML = `
-    <div>
-      <h3>IPFS Explorer</h3>
-      <div style="margin: 20px 0;">
-        <input type="text" placeholder="Enter IPFS CID..." style="
-          width: 70%;
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
+    <div style="display: flex; flex-direction: column; height: 100%; font-family: system-ui, sans-serif;">
+      <div style="display: flex; gap: 8px; padding: 10px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+        <input type="text" id="ipfs-cid-input" placeholder="Enter CID (e.g., QmXYZ...)" style="
+          flex: 1; padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13px;
         ">
-        <button style="
-          padding: 8px 15px;
-          margin-left: 10px;
-          background: #667eea;
-          color: white;
-          border: none;
-          border-radius: 4px;
-        ">Fetch</button>
+        <button id="ipfs-fetch-btn" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Fetch</button>
+        <button id="ipfs-stat-btn" style="padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Stat</button>
+        <button id="ipfs-pin-btn" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Pin</button>
       </div>
-      <div style="
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        height: 300px;
-        padding: 15px;
-        background: #f9f9f9;
-        overflow-y: auto;
-      ">
-        <p>IPFS functionality coming soon...</p>
+      
+      <div style="display: flex; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; background: #f1f5f9;">
+        <button class="ipfs-tab active" data-tab="content" style="padding: 6px 12px; border: 1px solid #cbd5e0; border-radius: 4px; background: #fff; cursor: pointer; font-size: 12px;">Content</button>
+        <button class="ipfs-tab" data-tab="pins" style="padding: 6px 12px; border: 1px solid #cbd5e0; border-radius: 4px; background: transparent; cursor: pointer; font-size: 12px;">Pinned</button>
+        <button class="ipfs-tab" data-tab="dag" style="padding: 6px 12px; border: 1px solid #cbd5e0; border-radius: 4px; background: transparent; cursor: pointer; font-size: 12px;">DAG</button>
+        <button class="ipfs-tab" data-tab="names" style="padding: 6px 12px; border: 1px solid #cbd5e0; border-radius: 4px; background: transparent; cursor: pointer; font-size: 12px;">IPNS</button>
+        <span id="ipfs-status-badge" style="margin-left: auto; font-size: 11px; padding: 4px 8px; border-radius: 10px; background: #fef3c7; color: #92400e;">Checking...</span>
+      </div>
+      
+      <div id="ipfs-content-area" style="flex: 1; padding: 12px; overflow-y: auto; background: #fff;">
+        <div style="text-align: center; padding: 40px; color: #94a3b8;">
+          Enter a CID above and click Fetch, or browse pinned content.
+        </div>
+      </div>
+      
+      <div id="ipfs-status-bar" style="padding: 6px 12px; border-top: 1px solid #e2e8f0; background: #f8fafc; font-size: 11px; color: #64748b;">
+        Backend: localhost:8080 | Kit: :8004 | Ready
       </div>
     </div>
   `;
+  
+  const cidInput = content.querySelector('#ipfs-cid-input') as HTMLInputElement;
+  const contentArea = content.querySelector('#ipfs-content-area') as HTMLElement;
+  const statusBadge = content.querySelector('#ipfs-status-badge') as HTMLElement;
+  const statusBar = content.querySelector('#ipfs-status-bar') as HTMLElement;
+  
+  async function backendFetch(path: string, opts: any = {}) {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 8000);
+    const resp = await fetch(`${BACKEND}${path}`, { ...opts, signal: ctrl.signal });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return resp.json();
+  }
+  
+  // Check backend status
+  try {
+    await backendFetch('/v1/ipfs/status');
+    statusBadge.textContent = 'Online';
+    statusBadge.style.background = '#dcfce7';
+    statusBadge.style.color = '#166534';
+  } catch {
+    statusBadge.textContent = 'Offline';
+    statusBadge.style.background = '#fee2e2';
+    statusBadge.style.color = '#991b1b';
+  }
+  
+  // Fetch content
+  content.querySelector('#ipfs-fetch-btn')?.addEventListener('click', async () => {
+    const cid = cidInput.value.trim();
+    if (!cid) return;
+    contentArea.innerHTML = '<div style="padding: 20px; color: #64748b;">Fetching...</div>';
+    try {
+      const data = await backendFetch(`/v1/ipfs/cat?cid=${encodeURIComponent(cid)}`);
+      contentArea.innerHTML = `<pre style="padding: 12px; background: #1e293b; color: #e2e8f0; border-radius: 6px; font-size: 12px; overflow: auto; white-space: pre-wrap;">${JSON.stringify(data, null, 2)}</pre>`;
+      statusBar.textContent = `Fetched CID: ${cid.slice(0, 20)}...`;
+    } catch (e: any) {
+      contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
+    }
+  });
+  
+  // Stat
+  content.querySelector('#ipfs-stat-btn')?.addEventListener('click', async () => {
+    const cid = cidInput.value.trim();
+    if (!cid) return;
+    try {
+      const data = await backendFetch(`/v1/ipfs/stat?cid=${encodeURIComponent(cid)}`);
+      contentArea.innerHTML = `<pre style="padding: 12px; background: #f0fdf4; color: #166534; border-radius: 6px; font-size: 12px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
+    } catch (e: any) {
+      contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
+    }
+  });
+  
+  // Pin
+  content.querySelector('#ipfs-pin-btn')?.addEventListener('click', async () => {
+    const cid = cidInput.value.trim();
+    if (!cid) return;
+    try {
+      await backendFetch('/v1/ipfs/pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid }) });
+      statusBar.textContent = `Pinned: ${cid.slice(0, 20)}...`;
+    } catch (e: any) {
+      contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">Pin failed: ${e.message}</div>`;
+    }
+  });
+  
+  // Tab switching
+  content.querySelectorAll('.ipfs-tab').forEach(tab => {
+    tab.addEventListener('click', async () => {
+      content.querySelectorAll('.ipfs-tab').forEach(t => { (t as HTMLElement).style.background = 'transparent'; t.classList.remove('active'); });
+      (tab as HTMLElement).style.background = '#fff';
+      tab.classList.add('active');
+      const tabName = (tab as HTMLElement).dataset.tab;
+      
+      if (tabName === 'pins') {
+        contentArea.innerHTML = '<div style="padding: 20px; color: #64748b;">Loading pins...</div>';
+        try {
+          const data = await backendFetch('/v1/ipfs/list_pins');
+          const pins = data.pins || data || [];
+          contentArea.innerHTML = Array.isArray(pins) && pins.length > 0
+            ? pins.map((p: any) => `<div style="padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-family: monospace; font-size: 12px;">${typeof p === 'string' ? p : p.cid || JSON.stringify(p)}</div>`).join('')
+            : `<pre style="padding: 12px; font-size: 12px;">${JSON.stringify(data, null, 2)}</pre>`;
+        } catch (e: any) {
+          contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
+        }
+      } else if (tabName === 'dag') {
+        contentArea.innerHTML = `<div style="padding: 20px; color: #64748b;">Enter a CID and click Fetch to explore its DAG structure.</div>`;
+        const cid = cidInput.value.trim();
+        if (cid) {
+          try {
+            const data = await backendFetch(`/v1/ipfs/dag/get?cid=${encodeURIComponent(cid)}`);
+            contentArea.innerHTML = `<pre style="padding: 12px; background: #fffbeb; color: #78350f; border-radius: 6px; font-size: 12px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
+          } catch (e: any) {
+            contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">DAG error: ${e.message}</div>`;
+          }
+        }
+      } else if (tabName === 'names') {
+        contentArea.innerHTML = '<div style="padding: 20px; color: #64748b;">IPNS name operations. Enter a name to resolve or a CID to publish.</div>';
+      } else {
+        contentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">Enter a CID above and click Fetch.</div>';
+      }
+    });
+  });
+}
+
+async function openDatasetsBrowser(swissknife: SwissKnifeBrowserCore) {
+  const window = createWindow('datasets-browser', 'IPFS Datasets Browser', 700, 500);
+  const content = window.querySelector('.window-content') as HTMLElement;
+  const BACKEND = 'http://localhost:8080';
+  
+  content.innerHTML = `
+    <div style="display: flex; flex-direction: column; height: 100%; font-family: system-ui, sans-serif;">
+      <div style="padding: 12px; border-bottom: 1px solid #e2e8f0; background: #f0fdf4;">
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="ds-search" placeholder="Search datasets..." style="flex: 1; padding: 8px 12px; border: 1px solid #86efac; border-radius: 6px; font-size: 13px;">
+          <button id="ds-search-btn" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer;">Search</button>
+          <button id="ds-list-btn" style="padding: 8px 16px; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer;">List All</button>
+        </div>
+      </div>
+      
+      <div style="padding: 10px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+        <strong style="font-size: 12px; color: #475569;">Quick Actions:</strong>
+        <button class="ds-action" data-action="embed" style="margin-left: 8px; padding: 4px 10px; border: 1px solid #cbd5e0; border-radius: 4px; background: white; cursor: pointer; font-size: 12px;">Generate Embeddings</button>
+        <button class="ds-action" data-action="generate" style="margin-left: 4px; padding: 4px 10px; border: 1px solid #cbd5e0; border-radius: 4px; background: white; cursor: pointer; font-size: 12px;">Generate Text</button>
+      </div>
+      
+      <div id="ds-results" style="flex: 1; padding: 12px; overflow-y: auto;">
+        <div style="text-align: center; padding: 40px; color: #94a3b8;">Search or list datasets to get started.</div>
+      </div>
+    </div>
+  `;
+  
+  const results = content.querySelector('#ds-results') as HTMLElement;
+  
+  async function backendFetch(path: string, opts: any = {}) {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 8000);
+    const resp = await fetch(`${BACKEND}${path}`, { ...opts, signal: ctrl.signal });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return resp.json();
+  }
+  
+  content.querySelector('#ds-list-btn')?.addEventListener('click', async () => {
+    results.innerHTML = '<div style="padding: 20px; color: #64748b;">Loading datasets...</div>';
+    try {
+      const data = await backendFetch('/v1/ipfs/list_datasets');
+      results.innerHTML = `<pre style="padding: 12px; background: #f0fdf4; border-radius: 6px; font-size: 12px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
+    } catch (e: any) {
+      results.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
+    }
+  });
+  
+  content.querySelector('#ds-search-btn')?.addEventListener('click', async () => {
+    const query = (content.querySelector('#ds-search') as HTMLInputElement).value.trim();
+    if (!query) return;
+    results.innerHTML = '<div style="padding: 20px; color: #64748b;">Searching...</div>';
+    try {
+      const data = await backendFetch(`/v1/ipfs/search_datasets?query=${encodeURIComponent(query)}`);
+      results.innerHTML = `<pre style="padding: 12px; background: #f0fdf4; border-radius: 6px; font-size: 12px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
+    } catch (e: any) {
+      results.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
+    }
+  });
+  
+  content.querySelectorAll('.ds-action').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = (btn as HTMLElement).dataset.action;
+      if (action === 'embed') {
+        const text = prompt('Enter text to embed:');
+        if (!text) return;
+        results.innerHTML = '<div style="padding: 20px; color: #64748b;">Generating embeddings...</div>';
+        try {
+          const data = await backendFetch('/v1/ipfs/embed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texts: [text] }) });
+          results.innerHTML = `<pre style="padding: 12px; background: #eff6ff; border-radius: 6px; font-size: 12px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
+        } catch (e: any) {
+          results.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
+        }
+      } else if (action === 'generate') {
+        const promptText = prompt('Enter generation prompt:');
+        if (!promptText) return;
+        results.innerHTML = '<div style="padding: 20px; color: #64748b;">Generating...</div>';
+        try {
+          const data = await backendFetch('/v1/ipfs/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: promptText }) });
+          results.innerHTML = `<pre style="padding: 12px; background: #faf5ff; border-radius: 6px; font-size: 12px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
+        } catch (e: any) {
+          results.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
+        }
+      }
+    });
+  });
+}
+
+async function openAcceleratePanel(swissknife: SwissKnifeBrowserCore) {
+  const window = createWindow('accelerate-panel', 'IPFS Accelerate', 700, 550);
+  const content = window.querySelector('.window-content') as HTMLElement;
+  const BACKEND = 'http://localhost:8080';
+  
+  content.innerHTML = `
+    <div style="display: flex; flex-direction: column; height: 100%; font-family: system-ui, sans-serif;">
+      <div style="display: flex; gap: 8px; padding: 10px; border-bottom: 1px solid #e2e8f0; background: #fffbeb;">
+        <button id="acc-hw" style="padding: 8px 14px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Hardware Profile</button>
+        <button id="acc-models" style="padding: 8px 14px; background: #d97706; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">List Models</button>
+        <button id="acc-metrics" style="padding: 8px 14px; background: #b45309; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Metrics</button>
+        <button id="acc-endpoints" style="padding: 8px 14px; background: #92400e; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Endpoints</button>
+      </div>
+      
+      <div style="padding: 10px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" id="acc-model-search" placeholder="Search models..." style="flex: 1; padding: 8px 12px; border: 1px solid #fcd34d; border-radius: 6px; font-size: 13px;">
+          <button id="acc-search-btn" style="padding: 8px 14px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Search</button>
+        </div>
+      </div>
+      
+      <div id="acc-results" style="flex: 1; padding: 12px; overflow-y: auto;">
+        <div style="text-align: center; padding: 40px; color: #94a3b8;">
+          Click a button above to query the IPFS Accelerate backend.
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const results = content.querySelector('#acc-results') as HTMLElement;
+  
+  async function backendFetch(path: string) {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 8000);
+    const resp = await fetch(`${BACKEND}${path}`, { signal: ctrl.signal });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return resp.json();
+  }
+  
+  const actions = {
+    'acc-hw': '/v1/ipfs/hardware_profile',
+    'acc-models': '/v1/ipfs/list_models',
+    'acc-metrics': '/v1/ipfs/metrics',
+    'acc-endpoints': '/v1/ipfs/endpoints',
+  };
+  
+  Object.entries(actions).forEach(([id, path]) => {
+    content.querySelector(`#${id}`)?.addEventListener('click', async () => {
+      results.innerHTML = '<div style="padding: 20px; color: #64748b;">Loading...</div>';
+      try {
+        const data = await backendFetch(path);
+        results.innerHTML = `<pre style="padding: 12px; background: #fffbeb; color: #78350f; border-radius: 6px; font-size: 12px; overflow: auto; white-space: pre-wrap;">${JSON.stringify(data, null, 2)}</pre>`;
+      } catch (e: any) {
+        results.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
+      }
+    });
+  });
+  
+  content.querySelector('#acc-search-btn')?.addEventListener('click', async () => {
+    const query = (content.querySelector('#acc-model-search') as HTMLInputElement).value.trim();
+    if (!query) return;
+    results.innerHTML = '<div style="padding: 20px; color: #64748b;">Searching models...</div>';
+    try {
+      const data = await backendFetch(`/v1/ipfs/search_models?query=${encodeURIComponent(query)}`);
+      results.innerHTML = `<pre style="padding: 12px; background: #fffbeb; color: #78350f; border-radius: 6px; font-size: 12px; overflow: auto; white-space: pre-wrap;">${JSON.stringify(data, null, 2)}</pre>`;
+    } catch (e: any) {
+      results.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
+    }
+  });
 }
 
 function createWindow(id: string, title: string, width: number, height: number): HTMLElement {
@@ -606,11 +868,27 @@ function showStartMenu(swissknife: SwissKnifeBrowserCore) {
   `;
   
   menu.innerHTML = `
-    <div class="context-menu-item">📁 File Manager</div>
-    <div class="context-menu-item">💻 Terminal</div>
-    <div class="context-menu-item">🤖 AI Chat</div>
-    <div class="context-menu-item">⚙️ Settings</div>
+    <div class="context-menu-item" data-app="file-manager">📁 File Manager</div>
+    <div class="context-menu-item" data-app="terminal">💻 Terminal</div>
+    <div class="context-menu-item" data-app="ai-chat">🤖 AI Chat</div>
+    <div class="context-menu-item" data-app="ipfs-explorer">🌐 IPFS Explorer</div>
+    <div class="context-menu-item" data-app="datasets-browser">📊 Datasets Browser</div>
+    <div class="context-menu-item" data-app="accelerate-panel">⚡ Accelerate Panel</div>
+    <div class="context-menu-item" data-app="model-browser">🧠 Model Browser</div>
+    <div class="context-menu-item" data-app="code-editor">📝 Code Editor</div>
+    <div class="context-menu-item" data-app="settings">⚙️ Settings</div>
   `;
+  
+  // Wire up menu item clicks
+  menu.querySelectorAll('.context-menu-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const appName = (item as HTMLElement).dataset.app;
+      if (appName) {
+        menu.remove();
+        try { await openApplication(appName, swissknife); } catch (e: any) { showError(e.message); }
+      }
+    });
+  });
   
   document.body.appendChild(menu);
   
@@ -622,6 +900,7 @@ function updateStatusIndicators(swissknife: SwissKnifeBrowserCore) {
   const aiStatus = document.getElementById('ai-status');
   const storageStatus = document.getElementById('storage-status');
   const networkStatus = document.getElementById('network-status');
+  const ipfsStatus = document.getElementById('ipfs-status');
   
   if (aiStatus) {
     aiStatus.className = `status-indicator ${swissknife.getAvailableModels().length > 0 ? 'online' : 'offline'}`;
@@ -633,6 +912,13 @@ function updateStatusIndicators(swissknife: SwissKnifeBrowserCore) {
   
   if (networkStatus) {
     networkStatus.className = `status-indicator ${navigator.onLine ? 'online' : 'offline'}`;
+  }
+  
+  // Check IPFS backend connectivity
+  if (ipfsStatus) {
+    fetch('http://localhost:8080/v1/ipfs/status', { signal: AbortSignal.timeout(3000) })
+      .then(r => { ipfsStatus.className = `status-indicator ${r.ok ? 'online' : 'offline'}`; })
+      .catch(() => { ipfsStatus.className = 'status-indicator offline'; });
   }
 }
 

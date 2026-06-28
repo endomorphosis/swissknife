@@ -31,24 +31,57 @@ export class IPFSStorage implements StorageProvider {
   }
 
   async list(options?: ListOptions): Promise<CID[]> {
-    logger.debug('IPFSStorage: Calling MCPClient.list (placeholder)');
-    // TODO: Implement list functionality in MCPClient if the MCP server supports it
-    logger.warn('IPFSStorage: list() method not fully implemented.');
-    return []; // Placeholder
+    logger.debug('IPFSStorage: Fetching pin list from handsfree backend');
+    try {
+      const resp = await fetch('http://localhost:8080/v1/ipfs/list_pins', {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      const pins = data.pins || data.Keys || data || [];
+      if (Array.isArray(pins)) return pins.map((p: any) => typeof p === 'string' ? p : p.cid || p.Hash || '');
+      if (typeof pins === 'object') return Object.keys(pins);
+      return [];
+    } catch (e) {
+      logger.warn('IPFSStorage: list() fallback - backend unavailable');
+      return [];
+    }
   }
 
   async delete(cid: CID): Promise<boolean> {
-    logger.debug(`IPFSStorage: Calling MCPClient.delete for CID: ${cid} (placeholder)`);
-    // TODO: Implement delete functionality in MCPClient if the MCP server supports it
-    logger.warn(`IPFSStorage: delete() method not fully implemented for CID: ${cid}.`);
-    return false; // Placeholder
+    logger.debug(`IPFSStorage: Unpinning CID: ${cid} via handsfree backend`);
+    try {
+      const resp = await fetch('http://localhost:8080/v1/ipfs/unpin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cid }),
+        signal: AbortSignal.timeout(8000),
+      });
+      return resp.ok;
+    } catch (e) {
+      logger.warn(`IPFSStorage: delete() failed for CID: ${cid}`);
+      return false;
+    }
   }
 
   async stat(cid: CID): Promise<StorageItemMetadata | null> {
-    logger.debug(`IPFSStorage: Calling MCPClient.stat for CID: ${cid} (placeholder)`);
-    // TODO: Implement stat functionality in MCPClient if the MCP server supports it
-    logger.warn(`IPFSStorage: stat() method not fully implemented for CID: ${cid}.`);
-    return null; // Placeholder
+    logger.debug(`IPFSStorage: Stat CID: ${cid} via handsfree backend`);
+    try {
+      const resp = await fetch(`http://localhost:8080/v1/ipfs/stat?cid=${encodeURIComponent(cid)}`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      return {
+        cid,
+        size: data.CumulativeSize || data.size || 0,
+        type: data.Type || 'unknown',
+        ...data,
+      } as StorageItemMetadata;
+    } catch (e) {
+      logger.warn(`IPFSStorage: stat() failed for CID: ${cid}`);
+      return null;
+    }
   }
 
   // --- Task Methods ---
