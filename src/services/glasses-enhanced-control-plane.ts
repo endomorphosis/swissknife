@@ -15,6 +15,7 @@
 import type { MetaGlassesDisplayProfile, MetaGlassesActionBinding } from './meta-glasses-display-profile.js';
 import type { GlassesAppEntry } from './glasses-app-control-plane.js';
 import { GLASSES_APP_REGISTRY, GlassesAppControlPlane } from './glasses-app-control-plane.js';
+import { autoRegisterIDLServices, IPFS_IDL_DESCRIPTORS, IPFS_AUTO_COMPILE_OPTIONS } from './idl-to-glasses-compiler.js';
 
 // ---------------------------------------------------------------------------
 // State Synchronization Engine
@@ -83,6 +84,13 @@ export class GlassesStateSyncEngine {
   /** Get current state for an app */
   getState(appId: string): Record<string, unknown> {
     return this.appStates.get(appId)?.values ?? {};
+  }
+
+  /** Emit an event to all listeners for an app (used by gestures/control plane) */
+  emit(appId: string, event: string, payload: Record<string, unknown>): void {
+    for (const listener of this.listeners) {
+      listener(appId, `__event:${event}`, JSON.stringify(payload));
+    }
   }
 
   private _scheduleFlush(appId: string): void {
@@ -565,6 +573,7 @@ export class EnhancedGlassesControlPlane {
 
     this.gesture.setCooldown(this.config.gestureGooldownMs);
     this._wireSubsystems();
+    this._autoRegisterIDLApps();
   }
 
   /** Process a voice transcript and execute the intent */
@@ -633,6 +642,30 @@ export class EnhancedGlassesControlPlane {
       case 'goBack': this.controlPlane.goBack(); break;
       case 'focusNext': this.controlPlane.focusNext(); break;
       case 'focusPrevious': this.controlPlane.focusPrevious(); break;
+      case 'scrollUp':
+        this.stateSync.emit(this.controlPlane.getState().activeAppId || '', 'scroll', { direction: 'up' });
+        break;
+      case 'scrollDown':
+        this.stateSync.emit(this.controlPlane.getState().activeAppId || '', 'scroll', { direction: 'down' });
+        break;
+      case 'expandDetail':
+        this.stateSync.emit(this.controlPlane.getState().activeAppId || '', 'zoom', { level: 'expand' });
+        break;
+      case 'collapseDetail':
+        this.stateSync.emit(this.controlPlane.getState().activeAppId || '', 'zoom', { level: 'collapse' });
+        break;
+      case 'openAppSwitcher':
+        this.notifications.notify({
+          priority: 'normal',
+          title: 'App Switcher',
+          body: this.controlPlane.listApps().map(a => `${a.icon} ${a.name}`).join(', '),
+          displayMode: 'banner',
+          ttlMs: 5000,
+        });
+        break;
+      case 'showContextMenu':
+        this.stateSync.emit(this.controlPlane.getState().activeAppId || '', 'context_menu', { visible: true });
+        break;
       case 'activate': {
         const activated = this.controlPlane.activate();
         if (activated) {
@@ -700,6 +733,21 @@ export class EnhancedGlassesControlPlane {
       // This would dispatch to the DAT native renderer
       console.log(`[Glasses] State update: ${appId}/${regionId} = ${value}`);
     });
+  }
+
+  /** Auto-register IPFS backend services from IDL descriptors */
+  private _autoRegisterIDLApps(): void {
+    const result = autoRegisterIDLServices(
+      IPFS_IDL_DESCRIPTORS,
+      (entry) => this.controlPlane.registerApp(entry),
+      IPFS_AUTO_COMPILE_OPTIONS,
+    );
+    if (result.registered.length > 0) {
+      console.log(`[Glasses] Auto-registered ${result.registered.length} IDL apps: ${result.registered.join(', ')}`);
+    }
+    if (result.errors.length > 0) {
+      console.warn(`[Glasses] Failed to register ${result.errors.length} apps:`, result.errors);
+    }
   }
 }
 
