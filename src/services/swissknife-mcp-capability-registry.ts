@@ -139,6 +139,7 @@ export interface HallucinateDashboardCapabilityCatalog {
     receipt_fixture?: string;
     child_goals?: string[];
     follow_up_subtasks?: string[];
+    failure_rule?: string;
   }>;
   swissknife_catalog_consumer_proof?: {
     task_id: 'HAO-681';

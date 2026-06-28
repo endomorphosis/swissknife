@@ -143,6 +143,21 @@ assert(
   vai543Gate?.hallucinate_backlog_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-vai-543-mcp-dashboard-launch-gate.md',
   'VAI-543 launch gate must point at the Hallucinate supervisor mirror',
 );
+assert(
+  JSON.stringify(vai543Gate?.child_goals || []) === JSON.stringify([
+    'VAIOS-G723-C1 Catalog normalization',
+    'VAIOS-G723-C2 Dashboard UI wiring',
+    'VAIOS-G723-C3 Mediated tool-call receipts',
+    'VAIOS-G723-C4 Swissknife consumers',
+    'VAIOS-G723-C5 Playwright coverage',
+    'VAIOS-G723-C6 Supervisor-generated follow-up subtasks',
+  ]),
+  'VAI-543 launch gate must expose VAIOS-G723 dashboard child goals',
+);
+assert(
+  JSON.stringify(vai543Gate?.follow_up_subtasks || []) === JSON.stringify(['HAO-678', 'HAO-679', 'HAO-680', 'HAO-681', 'HAO-682', 'HAO-683']),
+  'VAI-543 launch gate must preserve supervisor-generated follow-up subtasks',
+);
 const mgw555Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-555');
 assert(mgw555Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include MGW-555 for VAIOS-G724');
 assert(
