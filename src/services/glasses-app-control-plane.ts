@@ -207,6 +207,21 @@ export const glassesPreviewGlassesDisplay = makeDisplayProfile('status', [
   { id: 'toggle-display', method: 'toggle_display', backend_action_id: 'glasses_toggle', label: 'Toggle', focusable: true },
 ]);
 
+/** ORB Auto-UI Launcher - service discovery and auto-generation */
+export const orbAutoUIGlassesDisplay = makeDisplayProfile('list', [
+  textRegion('title', { x: 20, y: 20, width: 560, height: 40 }, 'ORB Auto-UI'),
+  statusRegion('services', { x: 20, y: 70, width: 270, height: 50 }, 'state.service_count', 'Services: 3'),
+  statusRegion('methods', { x: 310, y: 70, width: 270, height: 50 }, 'state.total_methods', 'Methods: 24'),
+  { id: 'service-list', kind: 'list', bounds: { x: 20, y: 130, width: 560, height: 260 }, text: { source: 'state.services', value: '📦 IPFS Kit | 📊 Datasets | ⚡ Accelerate', max_lines: 6, max_chars: 180, overflow: 'truncate' } },
+  actionRegion('action-discover', { x: 20, y: 410, width: 180, height: 70 }, 'discover-services'),
+  actionRegion('action-launch', { x: 210, y: 410, width: 180, height: 70 }, 'launch-auto-ui'),
+  actionRegion('action-refresh', { x: 400, y: 410, width: 180, height: 70 }, 'refresh-registry'),
+], [
+  { id: 'discover-services', method: 'discover', backend_action_id: 'orb_discover', label: 'Discover', focusable: true },
+  { id: 'launch-auto-ui', method: 'launch', backend_action_id: 'orb_launch', label: 'Launch', focusable: true },
+  { id: 'refresh-registry', method: 'refresh', backend_action_id: 'orb_refresh', label: 'Refresh', focusable: true },
+]);
+
 // ---------------------------------------------------------------------------
 // App Registry - maps desktop app IDs to glasses displays
 // ---------------------------------------------------------------------------
@@ -228,8 +243,9 @@ export const GLASSES_APP_REGISTRY: GlassesAppEntry[] = [
   { id: 'model-browser', name: 'Model Browser', icon: '🧠', display: modelBrowserGlassesDisplay },
   { id: 'idl-explorer', name: 'IDL Explorer', icon: '🔗', display: idlExplorerGlassesDisplay },
   { id: 'glasses-preview', name: 'Glasses Config', icon: '👓', display: glassesPreviewGlassesDisplay },
-  // IPFS apps are covered by ipfs-glasses-widgets.ts
-  // ipfs-explorer, datasets-browser, accelerate-panel
+  { id: 'orb-auto-ui', name: 'ORB Auto-UI', icon: '🪄', display: orbAutoUIGlassesDisplay },
+  // IPFS apps (ipfs-explorer, datasets-browser, accelerate-panel) are
+  // auto-registered from IDL descriptors via idl-to-glasses-compiler.ts
 ];
 
 // ---------------------------------------------------------------------------

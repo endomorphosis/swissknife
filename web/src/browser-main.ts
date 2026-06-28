@@ -6,6 +6,7 @@
  */
 
 import { SwissKnifeBrowserCore } from './swissknife-browser-core';
+import { ORBDynamicAppRenderer, openORBGeneratedApp } from './orb-dynamic-app-renderer';
 
 // Global error handling
 window.addEventListener('error', (event) => {
@@ -399,6 +400,7 @@ async function openApplication(appName: string, swissknife: SwissKnifeBrowserCor
     'accelerate-panel': () => openAcceleratePanel(swissknife),
     'idl-explorer': () => openIDLExplorer(swissknife),
     'glasses-preview': () => openGlassesPreview(swissknife),
+    'orb-auto-ui': () => openORBAutoUILauncher(swissknife),
   };
   
   const openApp = applications[appName as keyof typeof applications];
@@ -1104,6 +1106,7 @@ function showStartMenu(swissknife: SwissKnifeBrowserCore) {
     <div class="context-menu-item" data-app="datasets-browser">📊 Datasets Browser</div>
     <div class="context-menu-item" data-app="accelerate-panel">⚡ Accelerate Panel</div>
     <div class="context-menu-item" data-app="model-browser">🧠 Model Browser</div>
+    <div class="context-menu-item" data-app="orb-auto-ui">🪄 ORB Auto-UI Launcher</div>
     <div class="context-menu-item" data-app="idl-explorer">🔗 IDL Interface Explorer</div>
     <div class="context-menu-item" data-app="glasses-preview">👓 Meta Glasses Preview</div>
     <div class="context-menu-item" data-app="code-editor">📝 Code Editor</div>
@@ -1355,6 +1358,123 @@ async function openGlassesPreview(swissknife: SwissKnifeBrowserCore) {
   });
 
   renderWidget('kit');
+}
+
+// ---------------------------------------------------------------------------
+// ORB Auto-UI Launcher - dynamically opens apps from IDL descriptors
+// ---------------------------------------------------------------------------
+
+const ORB_REGISTERED_DESCRIPTORS = [
+  {
+    name: 'ipfs-kit',
+    namespace: 'dev.hallucinate.ipfs.kit',
+    version: '1.0.0',
+    methods: [
+      { name: 'add', inputSchema: { type: 'object', properties: { content: { type: 'string' }, filename: { type: 'string' }, pin: { type: 'boolean' } }, required: ['content'] }, outputSchema: { type: 'object', properties: { cid: { type: 'string' }, size: { type: 'number' } } } },
+      { name: 'cat', inputSchema: { type: 'object', properties: { cid: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { content: { type: 'string' } } } },
+      { name: 'pin', inputSchema: { type: 'object', properties: { cid: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { pinned: { type: 'boolean' } } } },
+      { name: 'unpin', inputSchema: { type: 'object', properties: { cid: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { unpinned: { type: 'boolean' } } } },
+      { name: 'list_pins', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { pins: { type: 'array' } } } },
+      { name: 'stat', inputSchema: { type: 'object', properties: { cid: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { cid: { type: 'string' }, size: { type: 'number' }, blocks: { type: 'number' } } } },
+      { name: 'dag_get', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, path: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { data: { type: 'object' } } } },
+      { name: 'dag_put', inputSchema: { type: 'object', properties: { data: { type: 'object' }, pin: { type: 'boolean' } }, required: ['data'] }, outputSchema: { type: 'object', properties: { cid: { type: 'string' } } } },
+      { name: 'name_publish', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, key: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { name: { type: 'string' }, value: { type: 'string' } } } },
+      { name: 'name_resolve', inputSchema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] }, outputSchema: { type: 'object', properties: { path: { type: 'string' } } } },
+    ],
+    ui: { primary_template: 'explorer', icon: '📦', display_name: 'IPFS Kit', category: 'storage' },
+  },
+  {
+    name: 'ipfs-datasets',
+    namespace: 'dev.hallucinate.ipfs.datasets',
+    version: '1.0.0',
+    methods: [
+      { name: 'list_datasets', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { datasets: { type: 'array' } } } },
+      { name: 'semantic_search', inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'] }, outputSchema: { type: 'object', properties: { results: { type: 'array' } } } },
+      { name: 'embed', inputSchema: { type: 'object', properties: { text: { type: 'string' }, model: { type: 'string' } }, required: ['text'] }, outputSchema: { type: 'object', properties: { embedding: { type: 'array' }, dimensions: { type: 'number' } } } },
+      { name: 'generate', inputSchema: { type: 'object', properties: { prompt: { type: 'string' }, max_tokens: { type: 'number' } }, required: ['prompt'] }, outputSchema: { type: 'object', properties: { text: { type: 'string' }, tokens_used: { type: 'number' } } } },
+      { name: 'vector_search', inputSchema: { type: 'object', properties: { vector: { type: 'array' }, collection: { type: 'string' }, limit: { type: 'number' } }, required: ['vector'] }, outputSchema: { type: 'object', properties: { results: { type: 'array' } } } },
+      { name: 'vector_index', inputSchema: { type: 'object', properties: { collection: { type: 'string' }, documents: { type: 'array' } }, required: ['collection'] }, outputSchema: { type: 'object', properties: { indexed: { type: 'number' } } } },
+    ],
+    ui: { primary_template: 'dashboard', icon: '📊', display_name: 'IPFS Datasets', category: 'datasets' },
+  },
+  {
+    name: 'ipfs-accelerate',
+    namespace: 'dev.hallucinate.ipfs.accelerate',
+    version: '1.0.0',
+    methods: [
+      { name: 'capabilities', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { backends: { type: 'array' }, models: { type: 'array' }, memory_gb: { type: 'number' } } } },
+      { name: 'hardware_profile', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { gpus: { type: 'array' }, cpu_cores: { type: 'number' }, memory_gb: { type: 'number' } } } },
+      { name: 'inference', inputSchema: { type: 'object', properties: { model: { type: 'string' }, input: { type: 'string' }, max_tokens: { type: 'number' } }, required: ['model', 'input'] }, outputSchema: { type: 'object', properties: { output: { type: 'string' }, latency_ms: { type: 'number' } } } },
+      { name: 'list_models', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { models: { type: 'array' } } } },
+      { name: 'metrics', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { throughput: { type: 'number' }, utilization: { type: 'number' }, requests_total: { type: 'number' } } } },
+      { name: 'endpoints', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { endpoints: { type: 'array' } } } },
+      { name: 'scrape_url', inputSchema: { type: 'object', properties: { url: { type: 'string' }, format: { type: 'string' } }, required: ['url'] }, outputSchema: { type: 'object', properties: { content: { type: 'string' }, title: { type: 'string' } } } },
+      { name: 'workflow_execute', inputSchema: { type: 'object', properties: { workflow_id: { type: 'string' }, params: { type: 'object' } }, required: ['workflow_id'] }, outputSchema: { type: 'object', properties: { result: { type: 'object' }, duration_ms: { type: 'number' } } } },
+    ],
+    ui: { primary_template: 'job-console', icon: '⚡', display_name: 'GPU Accelerate', category: 'inference' },
+  },
+];
+
+async function openORBAutoUILauncher(swissknife: SwissKnifeBrowserCore) {
+  const window = createWindow('orb-auto-ui', '🪄 ORB Auto-UI Launcher', 500, 450);
+  const content = window.querySelector('.window-content') as HTMLElement;
+
+  content.innerHTML = `
+    <div style="padding:16px;font-family:system-ui;height:100%;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <h2 style="margin:0;font-size:1rem;">🪄 ORB Auto-UI Generator</h2>
+        <span style="font-size:9px;background:#f3e8ff;color:#7c3aed;padding:2px 6px;border-radius:3px;">IDL → UI</span>
+      </div>
+      <p style="color:#6b7280;font-size:11px;margin-bottom:16px;">
+        Launch dynamically generated application interfaces from registered MCP service descriptors.
+        Each app is built at runtime from the service's IDL schema — no manual UI code required.
+      </p>
+      <div style="display:grid;gap:10px;">
+        ${ORB_REGISTERED_DESCRIPTORS.map(d => `
+          <div class="orb-launch-card" data-descriptor="${d.name}" style="
+            display:flex;align-items:center;gap:12px;padding:12px;background:#f9fafb;
+            border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:all 0.15s;">
+            <span style="font-size:22px;">${d.ui?.icon || '🔧'}</span>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;">${d.ui?.display_name || d.name}</div>
+              <div style="font-size:10px;color:#6b7280;">${d.methods.length} methods | ${d.namespace}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+              <span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:3px;">${d.ui?.primary_template}</span>
+              <span style="font-size:9px;color:#9ca3af;">v${d.version}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:16px;padding:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;">
+        <div style="font-size:10px;color:#92400e;font-weight:600;">How it works</div>
+        <div style="font-size:10px;color:#78350f;margin-top:4px;">
+          1. IDL descriptor defines methods + schemas<br>
+          2. ORB resolves transport + endpoints<br>
+          3. Auto-UI generates forms + result panels<br>
+          4. Same descriptor → Glasses widget + Electron dashboard
+        </div>
+      </div>
+    </div>
+  `;
+
+  content.querySelectorAll('.orb-launch-card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      (card as HTMLElement).style.borderColor = '#3b82f6';
+      (card as HTMLElement).style.background = '#eff6ff';
+    });
+    card.addEventListener('mouseleave', () => {
+      (card as HTMLElement).style.borderColor = '#e5e7eb';
+      (card as HTMLElement).style.background = '#f9fafb';
+    });
+    card.addEventListener('click', () => {
+      const name = (card as HTMLElement).dataset.descriptor;
+      const descriptor = ORB_REGISTERED_DESCRIPTORS.find(d => d.name === name);
+      if (descriptor) {
+        openORBGeneratedApp(descriptor as any, createWindow);
+      }
+    });
+  });
 }
 
 // Track start time
