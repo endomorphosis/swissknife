@@ -68,3 +68,23 @@ export function validateIPFSKitDescriptorPack(): { valid: boolean; errors: strin
 }
 
 export const IPFS_KIT_REQUIRED_CATEGORIES = ipfsKitDescriptorPack.required_categories;
+
+/** MCP++ profiles the ipfs_kit_py server conforms to (A: IDL, B: receipts, E: DAG). */
+export const IPFS_KIT_MCPPP_PROFILES = {
+  A_interface_descriptors: true,
+  B_cid_envelopes: true,
+  E_dag_events: true,
+} as const;
+
+/** Profile A: derive canonical interface descriptors from the manifest. */
+export function getIPFSKitInterfaceDescriptors() {
+  return m.tools.map(t => ({
+    namespace: `ipfs_kit/${t.category}`,
+    name: t.name,
+    input_schema: t.inputSchema,
+    output_schema: { type: 'object' },
+    errors: ['IPFSError', 'ToolNotFound'],
+    semantic_tags: t.tags ?? [],
+    compatibility: { mcp: true, 'mcp++': true },
+  }));
+}

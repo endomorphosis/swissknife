@@ -1,6 +1,8 @@
 import {
   IPFS_KIT_REQUIRED_CATEGORIES,
+  IPFS_KIT_MCPPP_PROFILES,
   getIPFSKitDescriptorPack,
+  getIPFSKitInterfaceDescriptors,
   ipfsKitDescriptorPack,
   validateIPFSKitDescriptorPack,
 } from '../../src/services/mcp-ipfs-kit-descriptor-pack';
@@ -27,5 +29,20 @@ describe('ipfs_kit_py descriptor pack', () => {
 
   it('mirrors python tool count (21)', () => {
     expect(getIPFSKitDescriptorPack().backend_bindings.length).toBe(21);
+  });
+
+  it('declares MCP++ profiles A/B/E', () => {
+    expect(IPFS_KIT_MCPPP_PROFILES.A_interface_descriptors).toBe(true);
+    expect(IPFS_KIT_MCPPP_PROFILES.B_cid_envelopes).toBe(true);
+    expect(IPFS_KIT_MCPPP_PROFILES.E_dag_events).toBe(true);
+  });
+
+  it('Profile A: interface descriptors mirror every tool with mcp++ compatibility', () => {
+    const ifaces = getIPFSKitInterfaceDescriptors();
+    expect(ifaces.length).toBe(21);
+    for (const d of ifaces) {
+      expect(d.namespace.startsWith('ipfs_kit/')).toBe(true);
+      expect(d.compatibility['mcp++']).toBe(true);
+    }
   });
 });
