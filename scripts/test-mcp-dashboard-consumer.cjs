@@ -157,7 +157,7 @@ assert(
   'VAI-542 launch gate must point at the HAO-724 Hallucinate receipt',
 );
 assert(
-  vai542Gate?.hallucinate_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-objective-gap-7ea369464239.md',
+  vai542Gate?.hallucinate_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-objective-gap-3e00ad2a0074.md',
   'VAI-542 launch gate must point at the HAO-724 Hallucinate gap receipt',
 );
 assert(
