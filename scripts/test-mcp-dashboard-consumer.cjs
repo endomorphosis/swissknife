@@ -240,6 +240,22 @@ assert(
   mgw555Gate?.launch_gate_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-28-mgw-555-launch-playwright-validation-gate.md',
   'MGW-555 launch gate must point at the current launch gate receipt',
 );
+assert(
+  mgw555Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'MGW-555 launch gate must be closed by the Hallucinate App Playwright validation gate',
+);
+assert(
+  JSON.stringify(mgw555Gate?.validation_commands || []) === JSON.stringify([
+    'npm --prefix hallucinate_app run test:e2e -- mcp-feature-exposure.spec.ts mcp-dashboard-interoperability.spec.ts',
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+    'test ! -f hallucinate_app/package.json || npm --prefix hallucinate_app run test:e2e -- multimodal-control-surface.spec.ts',
+  ]),
+  'MGW-555 launch gate must preserve the shared packet validation commands',
+);
+assert(
+  mgw555Gate?.packet_sibling_goal_id === 'VAIOS-G728',
+  'MGW-555 launch gate must stay aligned with the VAIOS-G728 packet sibling',
+);
 assert(catalog.swissknife_catalog_consumer_proof?.task_id === 'HAO-681', 'Catalog must expose the HAO-681 Swissknife consumer proof');
 assert(
   JSON.stringify(catalog.swissknife_catalog_consumer_proof?.depends_on) === JSON.stringify(['HAO-677', 'HAO-680']),
