@@ -167,6 +167,13 @@ export interface P2PMessage {
   peer_id: string;
   payload: any;
   signature?: string;
+  // Canonical spec wire fields (interop with ipfs_accelerate_py / ipfs_datasets_py)
+  method?: string;
+  params?: Record<string, any>;
+  result?: any;
+  error?: string;
+  sender?: string;
+  timestamp?: number | string;
 }
 
 // --- MCP++ Client Implementation ---
