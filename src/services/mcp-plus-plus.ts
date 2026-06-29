@@ -102,6 +102,7 @@ export interface UCANDelegation {
   proof_cid: string;
   not_before: number;
   expiration: number;
+  expiry?: number;     // alias of expiration; canonical spec field name
   nonce: string;
   signature: string;
 }
