@@ -32,6 +32,14 @@ const vai512ConsumptionReceiptPath = path.resolve(
   'fixtures',
   'vai-512-hallucinate-swissknife-mcp-dashboard-consumption.json',
 );
+const hao724LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-724-mcp-dashboard-launch-gate.json',
+);
 const hao727LaunchGateReceiptPath = path.resolve(
   '..',
   'hallucinate_app',
@@ -60,6 +68,7 @@ const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 const consumerReceipt = JSON.parse(fs.readFileSync(consumerReceiptPath, 'utf8'));
 const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
 const vai512ConsumptionReceipt = JSON.parse(fs.readFileSync(vai512ConsumptionReceiptPath, 'utf8'));
+const hao724LaunchGateReceipt = JSON.parse(fs.readFileSync(hao724LaunchGateReceiptPath, 'utf8'));
 const hao727LaunchGateReceipt = JSON.parse(fs.readFileSync(hao727LaunchGateReceiptPath, 'utf8'));
 const mgw558LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw558LaunchGateReceiptPath, 'utf8'));
 const mgw559LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw559LaunchGateReceiptPath, 'utf8'));
@@ -129,6 +138,30 @@ assert(
 assert(
   hao724Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-mcp-dashboard-launch-gate.md',
   'HAO-724 launch gate must point at the current launch gate receipt',
+);
+assert(
+  hao724Gate?.source_gap_receipt === hao724LaunchGateReceipt.source_gap_receipt,
+  'HAO-724 launch gate must preserve the source objective gap receipt',
+);
+assert(
+  hao724Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/hao-724-mcp-dashboard-launch-gate.json',
+  'HAO-724 launch gate must point at the Playwright fixture',
+);
+assert(
+  hao724Gate?.daemon_launch_health_gate === 'VAIOS-G728',
+  'HAO-724 launch gate must stay aligned with the VAIOS-G728 packet sibling',
+);
+assert(
+  JSON.stringify(hao724Gate?.required_backends || []) === JSON.stringify(hao724LaunchGateReceipt.required_backends),
+  'HAO-724 launch gate must preserve required backend packages for Swissknife consumers',
+);
+assert(
+  JSON.stringify(hao724Gate?.required_evidence || []) === JSON.stringify(hao724LaunchGateReceipt.required_evidence),
+  'HAO-724 launch gate must preserve required evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(hao724Gate?.dashboard_servers || []) === JSON.stringify(hao724LaunchGateReceipt.dashboard_servers),
+  'HAO-724 launch gate must preserve dashboard server tool evidence for Swissknife consumers',
 );
 const vai535Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-535');
 assert(vai535Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-535 for VAIOS-G724');
