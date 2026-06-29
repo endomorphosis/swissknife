@@ -32,10 +32,19 @@ const vai512ConsumptionReceiptPath = path.resolve(
   'fixtures',
   'vai-512-hallucinate-swissknife-mcp-dashboard-consumption.json',
 );
+const hao727LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-727-mcp-dashboard-launch-gate.json',
+);
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 const consumerReceipt = JSON.parse(fs.readFileSync(consumerReceiptPath, 'utf8'));
 const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
 const vai512ConsumptionReceipt = JSON.parse(fs.readFileSync(vai512ConsumptionReceiptPath, 'utf8'));
+const hao727LaunchGateReceipt = JSON.parse(fs.readFileSync(hao727LaunchGateReceiptPath, 'utf8'));
 const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
 assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
@@ -194,6 +203,32 @@ assert(
 assert(
   JSON.stringify(vai543Gate?.follow_up_subtasks || []) === JSON.stringify(['HAO-678', 'HAO-679', 'HAO-680', 'HAO-681', 'HAO-682', 'HAO-683']),
   'VAI-543 launch gate must preserve supervisor-generated follow-up subtasks',
+);
+const hao727Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'HAO-727');
+assert(hao727Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include HAO-727 for VAIOS-G723');
+assert(
+  hao727Gate?.supervisor_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-727-objective-gap-7ea369464239.md',
+  'HAO-727 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  hao727Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-727-mcp-dashboard-launch-gate.md',
+  'HAO-727 launch gate must point at the current launch gate receipt',
+);
+assert(
+  hao727Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/hao-727-mcp-dashboard-launch-gate.json',
+  'HAO-727 launch gate must point at the Playwright fixture',
+);
+assert(
+  JSON.stringify(hao727Gate?.child_goals || []) === JSON.stringify(hao727LaunchGateReceipt.child_goals),
+  'HAO-727 launch gate must expose VAIOS-G723 dashboard child goals',
+);
+assert(
+  JSON.stringify(hao727Gate?.follow_up_subtasks || []) === JSON.stringify(hao727LaunchGateReceipt.follow_up_subtasks),
+  'HAO-727 launch gate must preserve supervisor-generated follow-up subtasks',
+);
+assert(
+  JSON.stringify(hao727Gate?.required_evidence || []) === JSON.stringify(hao727LaunchGateReceipt.required_evidence),
+  'HAO-727 launch gate must preserve dashboard launch evidence terms for Swissknife consumers',
 );
 const mgw555Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-555');
 assert(mgw555Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include MGW-555 for VAIOS-G724');
