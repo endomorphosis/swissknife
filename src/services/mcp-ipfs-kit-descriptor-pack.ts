@@ -73,7 +73,18 @@ export const IPFS_KIT_REQUIRED_CATEGORIES = ipfsKitDescriptorPack.required_categ
 export const IPFS_KIT_MCPPP_PROFILES = {
   A_interface_descriptors: true,
   B_cid_envelopes: true,
+  C_ucan_unsigned: true,
+  D_policy: true,
   E_dag_events: true,
+} as const;
+
+/** JSON-RPC methods the dashboard can drive against the kit server. */
+export const IPFS_KIT_MCPPP_METHODS = {
+  interfaces: 'mcp++/interfaces',
+  ucanValidate: 'mcp++/ucan/validate',
+  ucanDelegate: 'mcp++/ucan/delegate',
+  policyEvaluate: 'mcp++/policy/evaluate',
+  dagFrontier: 'mcp++/dag/frontier',
 } as const;
 
 /** Profile A: derive canonical interface descriptors from the manifest. */

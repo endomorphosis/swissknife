@@ -1,6 +1,7 @@
 import {
   IPFS_KIT_REQUIRED_CATEGORIES,
   IPFS_KIT_MCPPP_PROFILES,
+  IPFS_KIT_MCPPP_METHODS,
   getIPFSKitDescriptorPack,
   getIPFSKitInterfaceDescriptors,
   ipfsKitDescriptorPack,
@@ -35,6 +36,13 @@ describe('ipfs_kit_py descriptor pack', () => {
     expect(IPFS_KIT_MCPPP_PROFILES.A_interface_descriptors).toBe(true);
     expect(IPFS_KIT_MCPPP_PROFILES.B_cid_envelopes).toBe(true);
     expect(IPFS_KIT_MCPPP_PROFILES.E_dag_events).toBe(true);
+  });
+
+  it('declares MCP++ profiles C/D and exposes their methods', () => {
+    expect(IPFS_KIT_MCPPP_PROFILES.C_ucan_unsigned).toBe(true);
+    expect(IPFS_KIT_MCPPP_PROFILES.D_policy).toBe(true);
+    expect(IPFS_KIT_MCPPP_METHODS.ucanValidate).toBe('mcp++/ucan/validate');
+    expect(IPFS_KIT_MCPPP_METHODS.policyEvaluate).toBe('mcp++/policy/evaluate');
   });
 
   it('Profile A: interface descriptors mirror every tool with mcp++ compatibility', () => {
