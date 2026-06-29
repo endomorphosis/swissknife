@@ -61,6 +61,23 @@ const MGW_559_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   'fixtures',
   'mgw-559-daemon-launch-health-gate.json',
 );
+const HAO_724_MCP_DASHBOARD_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-724-mcp-dashboard-launch-gate.json',
+);
+const HAO_724_MCP_DASHBOARD_LAUNCH_GATE_RECEIPT = path.join(
+  process.cwd(),
+  '..',
+  'data',
+  'hallucinate_multimodal_control',
+  'discovery',
+  '2026-06-28-hao-724-mcp-dashboard-launch-gate.md',
+);
 
 test.setTimeout(240_000);
 test.describe.configure({ mode: 'serial' });
@@ -219,6 +236,59 @@ test('HAO-725 daemon launch gate fixture preserves Swissknife backend handoff re
     expect(handoff.swissknife_consumer).toContain('Swissknife');
     expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
   }
+});
+
+test('HAO-724 dashboard catalog gate remains consumable by Swissknife launch flows', async () => {
+  const fixture = JSON.parse(fs.readFileSync(HAO_724_MCP_DASHBOARD_LAUNCH_GATE_FIXTURE, 'utf8'));
+  const receipt = fs.readFileSync(HAO_724_MCP_DASHBOARD_LAUNCH_GATE_RECEIPT, 'utf8');
+
+  expect(fixture.task_id).toBe('HAO-724');
+  expect(fixture.goal_id).toBe('VAIOS-G724');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goal_ids).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.source_gap_receipt).toBe(
+    'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-objective-gap-3e00ad2a0074.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-mcp-dashboard-launch-gate.md',
+  );
+  expect(fixture.catalog_schema).toBe('hallucinate_app.mcp_dashboard_capability_catalog.v1');
+  expect(fixture.catalog_generated_by).toBe(
+    'hallucinate_app.node.mcp_daemon_manager.getDashboardCapabilityCatalog',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.required_evidence).toEqual(expect.arrayContaining([
+    'dashboard capability catalog',
+    'daemon health',
+    'tools/list',
+    'tools/call',
+    'Swissknife applications',
+    'Playwright MCP dashboard interoperability',
+    'launch Playwright validation gate',
+  ]));
+  expect(fixture.dashboard_servers.map((server: Record<string, unknown>) => server.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const server of fixture.dashboard_servers) {
+    expect(server.swissknife_consumer).toContain('Swissknife');
+  }
+  expect(receipt).toContain('Task: HAO-724');
+  expect(receipt).toContain('Goal id: VAIOS-G724');
+  expect(receipt).toContain('Packet goals: VAIOS-G724, VAIOS-G728');
+  expect(receipt).toContain('Hallucinate App MCP dashboard');
+  expect(receipt).toContain('tools/list');
+  expect(receipt).toContain('tools/call');
+  expect(receipt).toContain('Swissknife applications');
 });
 
 test('MGW-559 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
