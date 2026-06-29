@@ -40,11 +40,20 @@ const hao727LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'hao-727-mcp-dashboard-launch-gate.json',
 );
+const mgw558LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'mgw-558-mcp-dashboard-launch-gate.json',
+);
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 const consumerReceipt = JSON.parse(fs.readFileSync(consumerReceiptPath, 'utf8'));
 const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
 const vai512ConsumptionReceipt = JSON.parse(fs.readFileSync(vai512ConsumptionReceiptPath, 'utf8'));
 const hao727LaunchGateReceipt = JSON.parse(fs.readFileSync(hao727LaunchGateReceiptPath, 'utf8'));
+const mgw558LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw558LaunchGateReceiptPath, 'utf8'));
 const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
 assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
@@ -239,6 +248,36 @@ assert(
 assert(
   mgw555Gate?.launch_gate_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-28-mgw-555-launch-playwright-validation-gate.md',
   'MGW-555 launch gate must point at the current launch gate receipt',
+);
+const mgw558Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-558');
+assert(mgw558Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include MGW-558 for VAIOS-G723');
+assert(
+  mgw558Gate?.supervisor_gap_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-29-mgw-558-objective-gap-7ea369464239.md',
+  'MGW-558 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  mgw558Gate?.launch_gate_receipt === 'data/meta_glasses_display_widgets/discovery/2026-06-29-mgw-558-launch-playwright-validation-gate.md',
+  'MGW-558 launch gate must point at the current launch gate receipt',
+);
+assert(
+  mgw558Gate?.hallucinate_backlog_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-29-mgw-558-mcp-dashboard-launch-gate.md',
+  'MGW-558 launch gate must point at the Hallucinate supervisor mirror',
+);
+assert(
+  mgw558Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/mgw-558-mcp-dashboard-launch-gate.json',
+  'MGW-558 launch gate must point at the Playwright fixture',
+);
+assert(
+  JSON.stringify(mgw558Gate?.child_goals || []) === JSON.stringify(mgw558LaunchGateReceipt.child_goals),
+  'MGW-558 launch gate must expose VAIOS-G723 dashboard child goals',
+);
+assert(
+  JSON.stringify(mgw558Gate?.follow_up_subtasks || []) === JSON.stringify(mgw558LaunchGateReceipt.follow_up_subtasks),
+  'MGW-558 launch gate must preserve supervisor-generated follow-up subtasks',
+);
+assert(
+  JSON.stringify(mgw558Gate?.required_evidence || []) === JSON.stringify(mgw558LaunchGateReceipt.required_evidence),
+  'MGW-558 launch gate must preserve dashboard launch evidence terms for Swissknife consumers',
 );
 assert(catalog.swissknife_catalog_consumer_proof?.task_id === 'HAO-681', 'Catalog must expose the HAO-681 Swissknife consumer proof');
 assert(
