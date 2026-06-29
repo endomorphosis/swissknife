@@ -64,7 +64,7 @@ const hao727LaunchGateReceipt = JSON.parse(fs.readFileSync(hao727LaunchGateRecei
 const mgw558LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw558LaunchGateReceiptPath, 'utf8'));
 const mgw559LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw559LaunchGateReceiptPath, 'utf8'));
 const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
-assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
+assert(stableStringify(catalog) === stableStringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
 assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
 assert(catalog.dashboard_only_mocks === false, 'Catalog must reject dashboard-only mocks');
 assert(
@@ -292,6 +292,14 @@ assert(
   mgw559Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/mgw-559-mcp-dashboard-launch-gate.json',
   'MGW-559 launch gate must point at the Playwright fixture',
 );
+assert(mgw559Gate?.attempt === 8, 'MGW-559 launch gate must expose the current attempt-8 receipt');
+assert(
+  JSON.stringify(mgw559Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/meta_glasses_display_widgets/discovery/2026-06-29-mgw-559-attempt-8-launch-playwright-validation-gate.md',
+    'data/hallucinate_multimodal_control/discovery/2026-06-29-mgw-559-attempt-8-mcp-dashboard-launch-gate.md',
+  ]),
+  'MGW-559 launch gate must point at the current attempt-8 launch receipts',
+);
 assert(
   JSON.stringify(mgw559Gate?.child_goals || []) === JSON.stringify(mgw559LaunchGateReceipt.child_goals),
   'MGW-559 launch gate must expose VAIOS-G723 dashboard child goals',
@@ -355,6 +363,24 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function stableStringify(value) {
+  return JSON.stringify(sortForComparison(value));
+}
+
+function sortForComparison(value) {
+  if (Array.isArray(value)) {
+    return value.map(sortForComparison);
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, sortForComparison(entry)])
+    );
+  }
+  return value;
 }
 
 assert(JSON.stringify(packages) === JSON.stringify(expectedPackages), 'Swissknife did not consume all dashboard MCP packages');
