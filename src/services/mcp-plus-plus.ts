@@ -139,11 +139,13 @@ export interface DeonticRule {
 
 export interface EventNode {
   event_cid: string;
+  event_type?: string;
   parents: string[];
+  payload?: Record<string, any>;
   intent_cid: string;
   decision_cid: string;
   receipt_cid?: string;
-  timestamp: string;
+  timestamp: string | number;
   agent_did: string;
   interface_cid: string;
   method: string;
