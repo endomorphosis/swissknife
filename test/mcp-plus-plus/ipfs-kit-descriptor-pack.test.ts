@@ -16,7 +16,7 @@ describe('ipfs_kit_py descriptor pack', () => {
   });
 
   it('exposes the canonical ipfs_kit tool categories', () => {
-    for (const cat of ['ipfs_tools', 'pin_tools', 'dag_tools', 'mfs_tools', 'swarm_tools', 'name_tools', 'car_tools', 'cluster_tools']) {
+    for (const cat of ['ipfs_tools', 'pin_tools', 'dag_tools', 'mfs_tools', 'swarm_tools', 'name_tools', 'car_tools', 'cluster_tools', 'block_tools', 'bitswap_tools', 'stats_tools']) {
       expect(IPFS_KIT_REQUIRED_CATEGORIES).toContain(cat);
     }
   });
@@ -28,8 +28,8 @@ describe('ipfs_kit_py descriptor pack', () => {
     }
   });
 
-  it('mirrors python tool count (21)', () => {
-    expect(getIPFSKitDescriptorPack().backend_bindings.length).toBe(21);
+  it('mirrors python tool count (28)', () => {
+    expect(getIPFSKitDescriptorPack().backend_bindings.length).toBe(28);
   });
 
   it('declares MCP++ profiles A/B/E', () => {
@@ -47,7 +47,7 @@ describe('ipfs_kit_py descriptor pack', () => {
 
   it('Profile A: interface descriptors mirror every tool with mcp++ compatibility', () => {
     const ifaces = getIPFSKitInterfaceDescriptors();
-    expect(ifaces.length).toBe(21);
+    expect(ifaces.length).toBe(28);
     for (const d of ifaces) {
       expect(d.namespace.startsWith('ipfs_kit/')).toBe(true);
       expect(d.compatibility['mcp++']).toBe(true);
