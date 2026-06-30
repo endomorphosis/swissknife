@@ -72,6 +72,14 @@ const mgw562LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'mgw-562-mcp-dashboard-launch-gate.json',
 );
+const mgw555LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'mgw-555-mcp-dashboard-launch-gate.json',
+);
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 const consumerReceipt = JSON.parse(fs.readFileSync(consumerReceiptPath, 'utf8'));
 const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
@@ -81,6 +89,7 @@ const mgw558LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw558LaunchGateRecei
 const mgw559LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw559LaunchGateReceiptPath, 'utf8'));
 const mgw561LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw561LaunchGateReceiptPath, 'utf8'));
 const mgw562LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw562LaunchGateReceiptPath, 'utf8'));
+const mgw555LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw555LaunchGateReceiptPath, 'utf8'));
 const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
 assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
@@ -301,6 +310,31 @@ assert(
 assert(
   mgw555Gate?.packet_sibling_goal_id === 'VAIOS-G728',
   'MGW-555 launch gate must stay aligned with the VAIOS-G728 packet sibling',
+);
+assert(
+  mgw555LaunchGateReceipt.gate_state === 'gate_closed_by_playwright_validation',
+  'MGW-555 launch receipt fixture must be closed by Playwright validation',
+);
+assert(
+  JSON.stringify(mgw555Gate?.attempt_receipts || []) === JSON.stringify(mgw555LaunchGateReceipt.attempt_receipts),
+  'MGW-555 launch gate must expose the attempt-4 validation receipt',
+);
+assert(
+  JSON.stringify(mgw555LaunchGateReceipt.required_evidence || []) === JSON.stringify([
+    'hallucinate_app menus',
+    'Hallucinate App MCP dashboard',
+    'dashboard capability catalog',
+    'daemon health',
+    'tools/list',
+    'tools/call',
+    'ipfs_accelerate_py MCP server',
+    'ipfs_datasets_py MCP server',
+    'ipfs_kit_py MCP server',
+    'Swissknife applications',
+    'Playwright MCP dashboard interoperability',
+    'launch Playwright validation gate',
+  ]),
+  'MGW-555 launch receipt fixture must preserve dashboard launch evidence terms for Swissknife consumers',
 );
 const mgw559Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-559');
 assert(mgw559Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include MGW-559 for VAIOS-G723');
