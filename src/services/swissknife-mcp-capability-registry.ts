@@ -142,6 +142,7 @@ export interface HallucinateDashboardCapabilityCatalog {
   };
   launch_validation_gates?: Array<NonNullable<HallucinateDashboardCapabilityCatalog['launch_validation_gate']> & {
     launch_gate_receipt?: string;
+    hallucinate_launch_gate_receipt?: string;
     hallucinate_backlog_receipt?: string;
     receipt_fixture?: string;
     attempt?: number;
@@ -149,6 +150,21 @@ export interface HallucinateDashboardCapabilityCatalog {
     child_goals?: string[];
     follow_up_subtasks?: string[];
     supervisor_follow_up_subtasks?: string[];
+    catalog_source?: string;
+    catalog_schema?: string;
+    catalog_generated_by?: string;
+    catalog_fixture?: string;
+    catalog_launch_objective_ids?: string[];
+    receipt_route?: string[];
+    dashboard_servers?: Array<{
+      daemon_id: string;
+      server_package: SwissknifeMCPServerPackage;
+      health_path: string;
+      tools_list: 'tools/list';
+      tools_call: 'tools/call';
+      safe_probe_receipt: string;
+      swissknife_consumer: string;
+    }>;
     failure_rule?: string;
   }>;
   swissknife_catalog_consumer_proof?: {
