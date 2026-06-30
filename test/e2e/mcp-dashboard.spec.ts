@@ -65,13 +65,37 @@ function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
 }
 
+// The published catalog fixture snapshots the DEFAULT daemon ports; normalize an
+// overridden live catalog (e.g. MCP_KIT_PORT set locally) back to defaults so the
+// parity check validates schema/content rather than the environment's port choice.
+const PORT_NORMALIZATION: Array<[number, number]> = [
+  [Number(process.env.MCP_KIT_PORT) || 8004, 8004],
+  [Number(process.env.MCP_DATASETS_PORT) || 3002, 3002],
+  [Number(process.env.MCP_ACCELERATE_PORT) || 3003, 3003],
+  [Number(process.env.MCP_SWISSKNIFE_PORT) || 3004, 3004],
+  [Number(process.env.MCP_DATASETS_DASHBOARD_PORT) || 8899, 8899],
+];
+
+function normalizeCatalogPorts<T>(value: T): T {
+  let json = JSON.stringify(value);
+  for (const [actual, canonical] of PORT_NORMALIZATION) {
+    if (actual === canonical) {
+      continue;
+    }
+    json = json.split(`:${actual}/`).join(`:${canonical}/`);
+    json = json.split(`:${actual}"`).join(`:${canonical}"`);
+    json = json.split(`"port":${actual}`).join(`"port":${canonical}`);
+  }
+  return JSON.parse(json);
+}
+
 test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
   test('consumes the Hallucinate App dashboard catalog without schema drift', () => {
     const catalog = readJson<any>(DASHBOARD_CATALOG_FIXTURE);
     const receipt = readJson<any>(VAI_512_CONSUMPTION_RECEIPT);
     const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 
-    expect(catalog).toEqual(liveCatalog);
+    expect(catalog).toEqual(normalizeCatalogPorts(liveCatalog));
     expect(catalog.schema).toBe('hallucinate_app.mcp_dashboard_capability_catalog.v1');
     expect(catalog.dashboard_only_mocks).toBe(false);
     expect(catalog.generated_by).toBe('hallucinate_app.node.mcp_daemon_manager.getDashboardCapabilityCatalog');
