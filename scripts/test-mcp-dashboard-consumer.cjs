@@ -257,6 +257,16 @@ assert(
   JSON.stringify(hao727Gate?.required_evidence || []) === JSON.stringify(hao727LaunchGateReceipt.required_evidence),
   'HAO-727 launch gate must preserve dashboard launch evidence terms for Swissknife consumers',
 );
+assert(
+  hao727Gate?.attempt === 5,
+  'HAO-727 launch gate must expose the attempt-5 validation receipt for Swissknife consumers',
+);
+assert(
+  JSON.stringify(hao727Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/hallucinate_multimodal_control/discovery/2026-06-30-hao-727-attempt-5-validation.md',
+  ]),
+  'HAO-727 launch gate must point at the attempt-5 validation receipt',
+);
 const mgw555Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-555');
 assert(mgw555Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include MGW-555 for VAIOS-G724');
 assert(
