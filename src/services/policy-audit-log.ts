@@ -116,10 +116,25 @@ export class PolicyAuditLog {
     extra?: Record<string, unknown>;
     /** Override timestamp (Unix ms, defaults to `Date.now()`). */
     timestamp?: number;
+    /**
+     * T-40: prover that produced the policy decision.
+     * Stored in `entry.extra.prover_id` when provided.
+     */
+    prover_id?: string;
+    /**
+     * T-40: time taken by the local WASM prover to decide (milliseconds).
+     * Stored in `entry.extra.proof_time_ms` when provided.
+     */
+    proof_time_ms?: number;
   }): AuditEntry | null {
     if (!this.enabled) return null;
 
     const ts = opts.timestamp ?? Date.now();
+    // Build extra, merging in prover_id / proof_time_ms when present (T-40)
+    const extra: Record<string, unknown> = { ...(opts.extra ?? {}) };
+    if (opts.prover_id !== undefined) extra.prover_id = opts.prover_id;
+    if (opts.proof_time_ms !== undefined) extra.proof_time_ms = opts.proof_time_ms;
+
     const entry: AuditEntry = {
       seq: ++this.seq,
       timestamp: ts,
@@ -132,7 +147,7 @@ export class PolicyAuditLog {
       justification: opts.justification ?? '',
       obligations: opts.obligations ?? [],
       entry_cid: '',
-      extra: opts.extra ?? {},
+      extra,
     };
     entry.entry_cid = computeEntryCID(entry);
 

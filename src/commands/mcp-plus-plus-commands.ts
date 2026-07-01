@@ -16,6 +16,7 @@ import type { Command as PublicCommand } from '../types/command.js';
 import { createMCPPlusPlusClient, IPFS_KIT_INTERFACE, IPFS_ACCELERATE_INTERFACE, IPFS_DATASETS_INTERFACE } from '../services/mcp-plus-plus.js';
 import { createMultiServerConnector, IPFS_KIT_SERVER, IPFS_DATASETS_SERVER, IPFS_ACCELERATE_SERVER, mcpppToolTotal } from '../services/mcp-plus-plus-connector.js';
 import type { MCPPPMultiServerConnector, MultiServerConnectorOptions } from '../services/mcp-plus-plus-connector.js';
+import { WasmProverHub } from '../services/mcp-wasm-prover-hub.js';
 
 // Singleton client initialized with placeholder DID (replaced at runtime)
 let mcpppClient: ReturnType<typeof createMCPPlusPlusClient> | null = null;
@@ -362,6 +363,25 @@ export const mcpppCommand: PublicCommand = {
       case 'status': {
         const connector = getConnector();
         const connected = connector.connectedServers;
+        // WASM prover health (T-42)
+        let proverLines: string[] = [];
+        try {
+          const hub = await WasmProverHub.getInstance();
+          const ps = hub.proverStatus();
+          const cs = hub.cacheStats();
+          proverLines = [
+            '',
+            'Local WASM provers:',
+            `  z3-wasm:    ${ps.z3_wasm    ? '\u2705 loaded' : '\u274c not loaded (z3-solver npm required)'}`,
+            `  cvc5-wasm:  ${ps.cvc5_wasm  ? '\u2705 loaded (Z3 SMT-LIB2 shim)' : '\u274c not loaded'}`,
+            `  coq-jscoq:  ${ps.coq_jscoq  ? '\u2705 loaded' : '\u274c not loaded (coqc required)'}`,
+            `  lean4-wasm: ${ps.lean4_wasm ? '\u2705 loaded' : '\u274c not loaded (lean/lake required)'}`,
+            `  lurk-wasm:  ${ps.lurk_wasm  ? '\u2705 loaded' : '\u274c not loaded (Phase 6 — pending)'}`,
+            `  Proof cache: ${cs.size} entries, ${cs.hits} hits, ${cs.misses} misses (${cs.time_saved_ms}ms saved)`,
+          ];
+        } catch {
+          proverLines = ['', 'Local WASM provers: unavailable (hub not initialized)'];
+        }
         return {
           output: [
             'MCP++ Connection Status:',
@@ -377,6 +397,7 @@ export const mcpppCommand: PublicCommand = {
             '  ipfs_accelerate_py: Trio-native MCP++, P2P taskqueue, workflow tools',
             '',
             'Connect over libp2p: mcp++ connect --transport libp2p --multiaddr <addr>',
+            ...proverLines,
           ].join('\n'),
         };
       }
@@ -395,6 +416,31 @@ export const mcpppCommand: PublicCommand = {
         const pass  = profiles.filter(p => p.status === 'PASS').length;
         const partial = profiles.filter(p => p.status === 'PARTIAL').length;
         const gap   = profiles.filter(p => p.status === 'GAP').length;
+
+        // WASM prover capabilities (T-30)
+        let proverStatusLine = 'unavailable';
+        let proverDetail: string[] = [];
+        try {
+          const hub = await WasmProverHub.getInstance();
+          const ps = hub.proverStatus();
+          const loaded = Object.entries(ps)
+            .filter(([, v]) => v === true)
+            .map(([k]) => k);
+          proverStatusLine = loaded.length > 0
+            ? `${loaded.length} loaded (${loaded.join(', ')})`
+            : 'none loaded';
+          proverDetail = [
+            '  Local WASM provers (formal-logic pre-check before Python TDFOL):',
+            `    z3-wasm:    ${ps.z3_wasm    ? '✅' : '❌'}  (npm: z3-solver)`,
+            `    cvc5-wasm:  ${ps.cvc5_wasm  ? '✅' : '❌'}  (Z3 SMT-LIB2 shim / native when available)`,
+            `    coq-jscoq:  ${ps.coq_jscoq  ? '✅' : '❌'}  (coqc subprocess)`,
+            `    lean4-wasm: ${ps.lean4_wasm ? '✅' : '❌'}  (lean/lake subprocess)`,
+            `    lurk-wasm:  ${ps.lurk_wasm  ? '✅' : '❌'}  (Phase 6 — pending)`,
+          ];
+        } catch {
+          proverDetail = ['  Local WASM provers: unavailable'];
+        }
+
         const lines = [
           '=== MCP++ Conformance Status ===',
           '',
@@ -414,6 +460,9 @@ export const mcpppCommand: PublicCommand = {
           '  Profile E: mcp-p2p-session.ts + mcp-pubsub-bus.ts',
           '             (framing, state machine, error codes, backoff,',
           '              capability negotiation, PubSubBus)',
+          '',
+          `Provers: ${proverStatusLine}`,
+          ...proverDetail,
           '',
           'Full details: docs/mcp-plus-plus/CONFORMANCE_MATRIX.md',
         ];
