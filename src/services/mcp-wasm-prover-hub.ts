@@ -27,6 +27,8 @@ import type { WasmProofResult, ProverStrategy } from './provers/prover-types.js'
 import { ProofCache } from './provers/mcp-proof-cache.js';
 import { Z3WasmBridge } from './provers/z3-wasm-bridge.js';
 import { Cvc5WasmBridge } from './provers/cvc5-wasm-bridge.js';
+import { CoqJsCoqBridge } from './provers/coq-jscoq-bridge.js';
+import { Lean4WasmBridge } from './provers/lean4-wasm-bridge.js';
 
 // ---------------------------------------------------------------------------
 // FormulaClassifier — complexity heuristic
@@ -96,8 +98,10 @@ export class WasmProverHub {
   private readonly cache: ProofCache;
   private z3?: Z3WasmBridge;
   private cvc5?: Cvc5WasmBridge;
+  private coq?: CoqJsCoqBridge;
+  private lean4?: Lean4WasmBridge;
 
-  private constructor(opts: WasmProverHubOptions, z3?: Z3WasmBridge, cvc5?: Cvc5WasmBridge) {
+  private constructor(opts: WasmProverHubOptions, z3?: Z3WasmBridge, cvc5?: Cvc5WasmBridge, coq?: CoqJsCoqBridge, lean4?: Lean4WasmBridge) {
     this.strategy = opts.strategy ?? 'FASTEST';
     this.timeoutMs = opts.timeoutMs ?? 5_000;
     this.cache = new ProofCache({
@@ -107,6 +111,8 @@ export class WasmProverHub {
     });
     this.z3 = z3;
     this.cvc5 = cvc5;
+    this.coq = coq;
+    this.lean4 = lean4;
   }
 
   /**
@@ -118,17 +124,13 @@ export class WasmProverHub {
   static async create(opts: WasmProverHubOptions = {}): Promise<WasmProverHub> {
     let z3: Z3WasmBridge | undefined;
     let cvc5: Cvc5WasmBridge | undefined;
-    try {
-      z3 = await Z3WasmBridge.create();
-    } catch {
-      // Z3 WASM not available
-    }
-    try {
-      cvc5 = await Cvc5WasmBridge.create();
-    } catch {
-      // CVC5 bridge not available
-    }
-    return new WasmProverHub(opts, z3, cvc5);
+    let coq: CoqJsCoqBridge | undefined;
+    let lean4: Lean4WasmBridge | undefined;
+    try { z3 = await Z3WasmBridge.create(); } catch { /* Z3 WASM not available */ }
+    try { cvc5 = await Cvc5WasmBridge.create(); } catch { /* CVC5 bridge not available */ }
+    try { coq = await CoqJsCoqBridge.create(); } catch { /* Coq not available */ }
+    try { lean4 = await Lean4WasmBridge.create(); } catch { /* Lean 4 not available */ }
+    return new WasmProverHub(opts, z3, cvc5, coq, lean4);
   }
 
   // ---------------------------------------------------------------------------
@@ -165,8 +167,19 @@ export class WasmProverHub {
     // propositional / fol → try Z3 WASM
     const result = await this._tryZ3(policy);
 
+    // For higher_order (static fast-path from Coq/Lean4), try interactive provers
+    // only when Z3/CVC5 couldn't decide
+    if ((result.reason === 'unknown' || result.reason === 'error') &&
+        (formulaClass === 'fol' || formulaClass === 'propositional')) {
+      const coqResult = await this._tryCoqOrLean4(policy);
+      if (isLocallyDecided(coqResult)) {
+        if (isLocallyDecided(coqResult)) this.cache.put(cacheKey, coqResult);
+        return coqResult;
+      }
+    }
+
     // Cache if decided
-    if (result.reason !== 'unknown' && result.reason !== 'error' && result.reason !== 'timeout') {
+    if (isLocallyDecided(result)) {
       this.cache.put(cacheKey, result);
     }
     return result;
@@ -200,9 +213,9 @@ export class WasmProverHub {
   proverStatus(): HubProverStatus {
     return {
       z3_wasm: Z3WasmBridge.available,
-      cvc5_wasm: this.cvc5 !== undefined,  // Phase 3 — wired
-      coq_jscoq: false,                     // Phase 4
-      lean4_wasm: false,                    // Phase 5
+      cvc5_wasm: this.cvc5 !== undefined,
+      coq_jscoq: this.coq !== undefined,  // Phase 4 — wired
+      lean4_wasm: this.lean4 !== undefined, // Phase 5 — wired
       lurk_wasm: false,                     // Phase 6
     };
   }
@@ -235,6 +248,22 @@ export class WasmProverHub {
     return this.cvc5.checkPolicyConsistency(policy, this.timeoutMs);
   }
 
+  private async _tryCoqOrLean4(policy: Policy): Promise<WasmProofResult> {
+    // Try Coq first (fast static analysis path when no coqc)
+    if (this.coq) {
+      const coqResult = await this.coq.checkPolicyConsistency(policy, this.timeoutMs);
+      if (isLocallyDecided(coqResult)) return coqResult;
+    }
+    // Fall back to Lean 4 (fast static analysis path when no lean binary)
+    if (this.lean4) {
+      return this.lean4.checkPolicyConsistency(policy, this.timeoutMs);
+    }
+    return {
+      proved: false, sat: false, unsat: false,
+      reason: 'unknown', prover_id: 'coq-jscoq', proof_time_ms: 0,
+    };
+  }
+
   // ---------------------------------------------------------------------------
   // Singleton
   // ---------------------------------------------------------------------------
@@ -256,6 +285,11 @@ export class WasmProverHub {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** True when the prover gave a conclusive answer (not unknown/timeout/error). */
+function isLocallyDecided(r: WasmProofResult): boolean {
+  return r.reason !== 'unknown' && r.reason !== 'timeout' && r.reason !== 'error';
+}
 
 /** Canonical string representation of a Policy for cache keying. */
 function canonicalPolicyKey(policy: Policy): string {

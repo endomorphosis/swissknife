@@ -272,12 +272,12 @@ describe('WasmProverHub — routing and caching', () => {
   it('proverStatus() reports prover availability correctly', async () => {
     const hub = await WasmProverHub.create();
     const status = hub.proverStatus();
-    // In unit test environment, z3-solver and cvc5 (via Z3 shim) may or may not load
+    // In unit test environment prover availability depends on installed binaries
     expect(typeof status.z3_wasm).toBe('boolean');
     expect(typeof status.cvc5_wasm).toBe('boolean');
-    expect(status.coq_jscoq).toBe(false);
-    expect(status.lean4_wasm).toBe(false);
-    expect(status.lurk_wasm).toBe(false);
+    expect(typeof status.coq_jscoq).toBe('boolean');
+    expect(typeof status.lean4_wasm).toBe('boolean');
+    expect(status.lurk_wasm).toBe(false); // Phase 6 not yet implemented
   });
 
   it('cacheStats() starts at zero', async () => {
