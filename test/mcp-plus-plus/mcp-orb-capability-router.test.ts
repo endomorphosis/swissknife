@@ -11,7 +11,6 @@ import type {
   ControlSurfacePolicyEvaluationRequest,
 } from '../../src/services/control-surface-mediator';
 import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp-ipfs-ui-descriptors';
-import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
 
 const DATASET_INTERFACE_CID = 'sha256:dataset-fixture';
@@ -116,7 +115,7 @@ describe('MCP ORB capability router contracts', () => {
     expect(handlerCalls).toBe(0);
     expect(response.receipt.mediation_receipt?.policy_decision.outcome).toBe('require_confirmation');
     expect(response.receipt.mediation_receipt?.policy_decision.metadata.fail_closed).toBe(true);
-    expect(response.receipt.policy_decision.reasons.join('\n')).toContain('no runtime policy evaluator is registered');
+    expect(response.receipt.policy_decision.reasons.join('\n')).toContain('No runtime policy evaluator registered');
   });
 
   it('invokes local operations and emits descriptor-aware receipts', async () => {

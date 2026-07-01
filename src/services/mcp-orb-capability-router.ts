@@ -70,6 +70,19 @@ export interface ORBInvocationContext {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * A deontic obligation spawned by a Profile-D policy at authorize time. Carried
+ * on the {@link ORBPolicyDecision} so receipts and callers can track and
+ * discharge it. Structurally matches the Deontic Interface Broker's obligation
+ * shape (kept local so the ORB stays decoupled from that module).
+ */
+export interface ORBObligation {
+  description: string;
+  deadline?: number;
+  requiredCap?: string;
+  rsc?: string;
+}
+
 export interface ORBPolicyDecision {
   outcome: 'permit' | 'deny';
   reasons: string[];
@@ -80,6 +93,32 @@ export interface ORBPolicyDecision {
   interaction_envelope?: ControlSurfaceInteractionEnvelope;
   mediation_receipt?: ControlSurfaceMediationReceipt;
   mediated_input?: unknown;
+  /** Obligations spawned by a deontic (Profile-D) policy for this invocation. */
+  obligations?: ORBObligation[];
+}
+
+/** Result of a deontic policy evaluation, as consumed by the ORB. */
+export interface ORBDeonticEvaluation {
+  outcome: 'PERMIT' | 'DENY' | 'OBLIGATION_SPAWNED';
+  reasons: string[];
+  obligations: ORBObligation[];
+  decision_cid: string;
+}
+
+/**
+ * Structural interface for a formal-logic (deontic) policy evaluator. The
+ * `PolicyEngine`-backed evaluator produced by
+ * `createDeonticORBEvaluator()` in mcp-deontic-interface-broker.ts satisfies
+ * this shape; the ORB depends only on the interface so it stays decoupled and
+ * easily stubbed in tests.
+ */
+export interface ORBDeonticEvaluator {
+  evaluate(input: {
+    policy_cid: string;
+    capability: string;
+    resource: string;
+    timestamp?: string;
+  }): ORBDeonticEvaluation;
 }
 
 export interface ORBAuthorizationPolicy {
@@ -274,6 +313,15 @@ export interface MCPCapabilityRouterOptions {
   policy_hook?: ORBPolicyHook;
   control_surface_policy_evaluator?: ControlSurfacePolicyEvaluator;
   operation_policies?: Record<string, ORBOperationPolicy>;
+  /**
+   * Optional formal-logic (deontic Profile-D) evaluator. When provided, a
+   * permitted authorization additionally consults this evaluator using
+   * `context.policy_cid`; a deontic DENY flips the decision to deny and spawned
+   * obligations are attached to the decision. Opt-in and backward-compatible.
+   */
+  deontic_evaluator?: ORBDeonticEvaluator;
+  /** Maps a method name to the capability evaluated deontically. Default `mcp++/invoke:<method>`. */
+  deontic_invoke_capability?: (method: string) => string;
 }
 
 export interface LocalORBHandlerRequest {
@@ -426,6 +474,8 @@ export class MCPCapabilityRouter {
   private readonly registry?: MCPInterfaceDiscoveryRegistry;
   private readonly policyHook: ORBPolicyHook;
   private controlSurfacePolicyEvaluator?: ControlSurfacePolicyEvaluator;
+  private readonly deonticEvaluator?: ORBDeonticEvaluator;
+  private readonly deonticInvokeCapability: (method: string) => string;
   private readonly operationPolicies: Map<string, ORBOperationPolicy> = new Map();
   private readonly rateLimitState = new Map<string, { count: number; window_start: number }>();
   private readonly circuitBreakerState = new Map<string, { failures: number; open_until: number }>();
@@ -435,6 +485,9 @@ export class MCPCapabilityRouter {
     this.registry = options.registry;
     this.policyHook = options.policy_hook ?? (request => this.evaluateOperationPolicy(request));
     this.controlSurfacePolicyEvaluator = options.control_surface_policy_evaluator;
+    this.deonticEvaluator = options.deontic_evaluator;
+    this.deonticInvokeCapability =
+      options.deontic_invoke_capability ?? (method => `mcp++/invoke:${method}`);
 
     for (const [operation, policy] of Object.entries(options.operation_policies ?? {})) {
       this.operationPolicies.set(operation, policy);
@@ -600,12 +653,57 @@ export class MCPCapabilityRouter {
         granted_capabilities: context.capabilities ?? [],
       });
     const mediatedDecision = attachControlSurfaceMediation(decision, mediation);
+    const finalDecision = this.applyDeonticPolicy(mediatedDecision, binding, mediatedContext);
     binding.lifecycle.push(lifecycle(
       'authorize',
-      mediatedDecision.outcome === 'permit' ? 'ok' : 'denied',
-      mediatedDecision.reasons.join('; ') || undefined,
+      finalDecision.outcome === 'permit' ? 'ok' : 'denied',
+      finalDecision.reasons.join('; ') || undefined,
     ));
-    return mediatedDecision;
+    return finalDecision;
+  }
+
+  /**
+   * Layer a formal-logic (deontic Profile-D) evaluation on top of an already
+   * control-surface-mediated + capability-checked decision.
+   *
+   * No-op unless a `deontic_evaluator` was configured and the context carries a
+   * `policy_cid`. A deontic DENY flips the outcome to deny (reasons merged);
+   * a PERMIT / OBLIGATION_SPAWNED attaches any spawned obligations so the
+   * receipt and caller can track them. Never overrides an existing deny.
+   */
+  private applyDeonticPolicy(
+    decision: ORBPolicyDecision,
+    binding: ORBBoundOperation,
+    context: ORBInvocationContext,
+  ): ORBPolicyDecision {
+    if (!this.deonticEvaluator || !context.policy_cid || decision.outcome === 'deny') {
+      return decision;
+    }
+    const timestamp = typeof context.metadata?.timestamp === 'string'
+      ? context.metadata.timestamp
+      : undefined;
+    const evaluation = this.deonticEvaluator.evaluate({
+      policy_cid: context.policy_cid,
+      capability: this.deonticInvokeCapability(binding.operation.method),
+      resource: binding.interface_cid,
+      timestamp,
+    });
+
+    const { decision_cid: _cid, ...rest } = decision;
+    if (evaluation.outcome === 'DENY') {
+      return createPolicyDecision({
+        ...rest,
+        outcome: 'deny',
+        reasons: uniqueStrings([...decision.reasons, ...evaluation.reasons]),
+      });
+    }
+    return createPolicyDecision({
+      ...rest,
+      reasons: evaluation.obligations.length > 0
+        ? uniqueStrings([...decision.reasons, ...evaluation.obligations.map(o => `Obligation: ${o.description}`)])
+        : decision.reasons,
+      obligations: evaluation.obligations.length > 0 ? evaluation.obligations : rest.obligations,
+    });
   }
 
   async invoke(request: ORBInvocationRequest): Promise<ORBInvocationResponse> {
