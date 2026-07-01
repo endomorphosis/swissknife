@@ -381,6 +381,45 @@ export const mcpppCommand: PublicCommand = {
         };
       }
 
+      case 'conformance': {
+        // Show the MCP++ Profile A-E conformance status inline.
+        // All statuses reflect the swissknife implementation state as of the
+        // last conformance-matrix update.
+        const profiles = [
+          { profile: 'A', area: 'MCP-IDL interface contracts',            status: 'PASS' },
+          { profile: 'B', area: 'CID-native envelopes & receipts',        status: 'PASS' },
+          { profile: 'C', area: 'UCAN capability delegation',             status: 'PASS' },
+          { profile: 'D', area: 'Temporal deontic policy',                status: 'PASS' },
+          { profile: 'E', area: 'P2P transport/session',                  status: 'PASS' },
+        ];
+        const pass  = profiles.filter(p => p.status === 'PASS').length;
+        const partial = profiles.filter(p => p.status === 'PARTIAL').length;
+        const gap   = profiles.filter(p => p.status === 'GAP').length;
+        const lines = [
+          '=== MCP++ Conformance Status ===',
+          '',
+          ...profiles.map(p => {
+            const icon = p.status === 'PASS' ? '\u2705' : p.status === 'PARTIAL' ? '\u26a0\ufe0f' : '\u274c';
+            return `  ${icon}  Profile ${p.profile} — ${p.area}  [${p.status}]`;
+          }),
+          '',
+          `Summary: ${pass}/5 PASS, ${partial} PARTIAL, ${gap} GAP`,
+          '',
+          'Key implementations:',
+          '  Profile A: mcp-idl.ts (InterfaceRepository, CID canonicalisation)',
+          '  Profile B: mcp-envelope.ts (ExecutionEnvelope, ExecutionReceipt)',
+          '  Profile C: ucan-auth.ts + delegation-manager.ts (UCAN lifecycle)',
+          '  Profile D: mcp-policy.ts + mcp-deontic-interface-broker.ts +',
+          '             policy-audit-log.ts + compliance-checker.ts',
+          '  Profile E: mcp-p2p-session.ts + mcp-pubsub-bus.ts',
+          '             (framing, state machine, error codes, backoff,',
+          '              capability negotiation, PubSubBus)',
+          '',
+          'Full details: docs/mcp-plus-plus/CONFORMANCE_MATRIX.md',
+        ];
+        return { output: lines.join('\n') };
+      }
+
       case 'call': {
         if (!options.tool) {
           return { error: 'Usage: mcp++ call --server <name> --tool <tool> --args <json>' };
@@ -405,7 +444,7 @@ export const mcpppCommand: PublicCommand = {
       }
 
       default:
-        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p, connect, categories, status, call` };
+        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p, connect, categories, status, call, conformance` };
     }
   },
 };
