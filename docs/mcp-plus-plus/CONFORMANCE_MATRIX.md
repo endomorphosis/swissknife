@@ -1,6 +1,6 @@
 # MCP++ Conformance Matrix (Phase 1 Baseline)
 
-**Status:** Updated — Rounds 50-52 deontic UI pipeline and remote TDFOL engine  
+**Status:** Updated — Rounds 50-52 deontic UI pipeline, remote TDFOL engine, Profile C DelegationManager  
 **Last updated:** 2026-07-01  
 **Scope:** SwissKnife MCP++ Profiles A-E with parity tracking against:
 - `endomorphosis/mcp_plus_plus` (spec intent)
@@ -15,7 +15,7 @@
 |---|---|---|---|
 | A | MCP-IDL interface contracts | PASS | Deterministic canonicalization + CID repository + compat/select APIs implemented and tested. |
 | B | CID-native envelopes & receipts | PASS | Envelope/receipt content addressing and signing path implemented and tested. |
-| C | UCAN capability delegation | PARTIAL | Core token issue/validate/can + revocation present; missing DelegationManager lifecycle and persistent/IPFS-backed delegation graph management. |
+| C | UCAN capability delegation | PASS | Core token issue/validate/can + revocation + DelegationManager lifecycle (add/merge/query/persist/IPFS-reload) implemented and tested. |
 | D | Temporal deontic policy | PASS | Policy engine + obligation tracking + deontic-to-UI projection + per-device conformance + remote TDFOL proof delegation + ORB runtime enforcement + JSON-serialisable UI manifest bridge all implemented and tested. |
 | E | P2P transport/session | PARTIAL | Session framing, handshake, correlation, and rate limits implemented; missing PubSubBus abstraction and transport hardening parity features from references. |
 
@@ -51,8 +51,8 @@
 | Capability checks with wildcard resource support | PASS | `src/auth/ucan-auth.ts` (`can`) |
 | Proof-chain validation (delegation linkage) | PASS | `src/auth/ucan-auth.ts` (`validateToken`) + `test/mcp-plus-plus/ucan-auth.test.ts` |
 | Revocation registry integration | PASS | `src/auth/ucan-auth.ts` (`UCANRevocationRegistry`, revocation checks) + `test/mcp-plus-plus/transport-and-revocation.test.ts` |
-| Delegation lifecycle manager (merge/reload/query/persistence) parity with references | GAP | Not present (`DelegationManager` pattern from `ipfs_datasets_py` not implemented yet) |
-| Persistent/IPFS-backed delegation state | GAP | Not present |
+| Delegation lifecycle manager (merge/reload/query/persistence) parity with references | PASS | `src/auth/delegation-manager.ts` (`DelegationManager.add/merge/activeByActor/activeByResource/canInvoke/save/loadFrom`) + `test/mcp-plus-plus/delegation-manager.test.ts` |
+| Persistent/IPFS-backed delegation state | PASS | `src/auth/delegation-manager.ts` (`save`, `loadFrom`, `reloadFromIPFS`) |
 | Natural language policy-to-UCAN compilation | GAP | Not present |
 
 ### Profile D — Temporal deontic policy
@@ -119,8 +119,8 @@
 
 Priority order for implementation start:
 
-1. **C1 — Delegation lifecycle management**  
-   Implement `DelegationManager` with persistent store and revocation-aware merge/reload semantics.
+1. **C1 — Delegation lifecycle management** *(resolved)*  
+   `DelegationManager` implemented with JSON + IPFS-backed persistence, merge, chain-walk evaluation, active-token queries, and revocation integration.
 
 2. **E1 — P2P pub/sub operational abstraction**  
    Introduce `PubSubBus` with deterministic lifecycle control and metrics.
@@ -177,7 +177,7 @@ Priority order for implementation start:
 
 ## 6) Initial Remediation Backlog (Phase 1 Output)
 
-- [ ] Implement `src/auth/delegation-manager.ts` with persistence + merge/reload operations.
+- [x] Implement `src/auth/delegation-manager.ts` with persistence + merge/reload operations.
 - [ ] Implement `src/services/mcp-pubsub-bus.ts` and adapt `mcp-discovery.ts` integration points.
 - [ ] Introduce transport session state machine + deterministic error taxonomy in `mcp-p2p-session.ts`.
 - [x] Deontic interface broker: formal-logic policy → constrained UI + per-device conformance (`mcp-deontic-interface-broker.ts`, Round 50).
