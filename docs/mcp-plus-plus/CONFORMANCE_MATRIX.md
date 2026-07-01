@@ -185,7 +185,7 @@ Priority order for implementation start:
 - [x] Remote TDFOL proof delegation: delegate temporal/hard proofs to Python formal-logic engine (`mcp-remote-deontic-engine.ts`, Round 51).
 - [x] JSON-serialisable UI manifest bridge + invoke guard (`mcp-deontic-ui-manifest.ts`, Round 52).
 - [x] Add compliance and policy audit primitives (`compliance-checker`, `policy-audit-log`).
-- [ ] Add conformance status CLI output (`mcp-plus-plus conformance status`).
+- [x] Add conformance status CLI output (`mcp-plus-plus conformance status`).
 - [ ] Add requirement-to-test mapping doc and keep this matrix updated per merged feature.
 - [x] Add descriptor-generated desktop quality gates for the IPFS dataset-to-inference workflow.
 - [x] Add descriptor authoring CLI starter packs and trust verification.
