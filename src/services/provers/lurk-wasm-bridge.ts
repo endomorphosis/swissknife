@@ -11,11 +11,26 @@
  *   3. Provides `LurkWasmBridge` — a stub that compiles and returns
  *      `{ reason: 'unknown', prover_id: 'lurk-wasm' }` until a real Lurk
  *      WASM module is injected (T-35 acceptance criterion).
+ *   4. Provides `loadLurkFromFile(wasmPath)` — load a locally-built lurk-beta
+ *      WASM binary (Sprint 6a, T-46).
+ *
+ * Sprint 6a build instructions (T-46):
+ *   # Install Rust WASM target
+ *   rustup target add wasm32-unknown-unknown
+ *   # Clone lurk-beta
+ *   git clone https://github.com/argumentcomputer/lurk-beta && cd lurk-beta
+ *   # Build WASM (produces target/wasm32-unknown-unknown/release/lurk.wasm)
+ *   cargo build --target wasm32-unknown-unknown --release
+ *   # Generate JS bindings via wasm-bindgen
+ *   wasm-bindgen target/wasm32-unknown-unknown/release/lurk.wasm \
+ *     --out-dir lurk-wasm-pkg --target nodejs
+ *   # The resulting lurk-wasm-pkg/ can be pointed to via loadLurkFromFile()
  *
  * References:
  *   - https://github.com/argumentcomputer/lurk-beta (preliminary WASM support)
+ *   - https://github.com/argumentcomputer/ix (ZK PCC for Lean 4 via Sphinx)
  *   - ipfs_datasets_py/logic/zkp/ (Circom/Plonky3 circuit definitions)
- *   - implementation_plan/docs/36-swissknife-wasm-theorem-provers-2026-07-01.md §6 Phase 6
+ *   - implementation_plan/docs/36-swissknife-wasm-theorem-provers-2026-07-01.md §3.5, Phase 6
  */
 
 import type { WasmProofResult } from './prover-types.js';
@@ -206,4 +221,68 @@ export class LurkWasmBridge {
 
 function lurkAtom(s: string): string {
   return s.replace(/[^a-zA-Z0-9_\-]/g, '-').toLowerCase().slice(0, 40) || 'any';
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 6a helpers — loading locally-built lurk-beta WASM (T-46, T-47)
+// ---------------------------------------------------------------------------
+
+/**
+ * Load a locally-built lurk-beta WASM module from a file path.
+ *
+ * Use this when you have followed the Sprint 6a build instructions and have
+ * a `lurk-wasm-pkg/` directory produced by `wasm-bindgen --target nodejs`.
+ *
+ * ```ts
+ * const module = await loadLurkFromFile('./lurk-wasm-pkg/lurk.js');
+ * const bridge = await LurkWasmBridge.create(module);
+ * ```
+ *
+ * @param lurkJsBindingPath  Absolute or relative path to the `lurk.js` glue file
+ *                           produced by wasm-bindgen.
+ * @returns A `LurkWasmModule` ready for `LurkWasmBridge.create()`.
+ */
+export async function loadLurkFromFile(lurkJsBindingPath: string): Promise<LurkWasmModule> {
+  // Dynamic import of a local path (Node.js only).
+  // The generated wasm-bindgen module must export `evaluate` and `verify`.
+  const mod = await import(/* webpackIgnore: true */ lurkJsBindingPath) as LurkWasmModule;
+  if (typeof mod.evaluate !== 'function') {
+    throw new Error(
+      `loadLurkFromFile: '${lurkJsBindingPath}' does not export an 'evaluate' function. ` +
+      'Ensure it was built with `wasm-bindgen --target nodejs` and exports the Lurk REPL API.',
+    );
+  }
+  return mod;
+}
+
+/**
+ * Return the console instructions for building lurk-beta WASM locally (T-46).
+ * Useful for displaying in `mcp++ provers` or error messages.
+ */
+export function lurkBetaBuildInstructions(): string {
+  return [
+    '# Sprint 6a — Build lurk-beta WASM locally:',
+    '',
+    '# 1. Install Rust WASM target',
+    'rustup target add wasm32-unknown-unknown',
+    '',
+    '# 2. Install wasm-bindgen',
+    'cargo install wasm-bindgen-cli',
+    '',
+    '# 3. Clone lurk-beta',
+    'git clone https://github.com/argumentcomputer/lurk-beta',
+    'cd lurk-beta',
+    '',
+    '# 4. Build WASM release',
+    'cargo build --target wasm32-unknown-unknown --release',
+    '',
+    '# 5. Generate Node.js bindings',
+    'wasm-bindgen target/wasm32-unknown-unknown/release/lurk.wasm \\',
+    '  --out-dir lurk-wasm-pkg --target nodejs',
+    '',
+    '# 6. Use in swissknife:',
+    "import { loadLurkFromFile, LurkWasmBridge } from '@swissknife/mcp-wasm-prover';",
+    "const module = await loadLurkFromFile('./lurk-wasm-pkg/lurk.js');",
+    'const bridge = await LurkWasmBridge.create(module);',
+  ].join('\n');
 }

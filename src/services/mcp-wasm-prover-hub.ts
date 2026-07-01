@@ -29,6 +29,8 @@ import { Z3WasmBridge } from './provers/z3-wasm-bridge.js';
 import { Cvc5WasmBridge } from './provers/cvc5-wasm-bridge.js';
 import { CoqJsCoqBridge } from './provers/coq-jscoq-bridge.js';
 import { Lean4WasmBridge } from './provers/lean4-wasm-bridge.js';
+import { NeuralProverBridge } from './provers/neural-prover-bridge.js';
+import type { NeuralProverConnector } from './provers/neural-prover-bridge.js';
 
 // ---------------------------------------------------------------------------
 // FormulaClassifier — complexity heuristic
@@ -81,6 +83,8 @@ export interface WasmProverHubOptions {
   cacheTtlMs?: number;
   /** Optional JSONL path for proof-cache logging. */
   cacheLogPath?: string;
+  /** Optional MCP++ connector for the NeuralProverBridge. */
+  neuralConnector?: NeuralProverConnector;
 }
 
 /** Summary of which provers are currently available. */
@@ -90,6 +94,7 @@ export interface HubProverStatus {
   coq_jscoq: boolean;
   lean4_wasm: boolean;
   lurk_wasm: boolean;
+  neural: boolean;
 }
 
 export class WasmProverHub {
@@ -100,8 +105,9 @@ export class WasmProverHub {
   private cvc5?: Cvc5WasmBridge;
   private coq?: CoqJsCoqBridge;
   private lean4?: Lean4WasmBridge;
+  private neural?: NeuralProverBridge;
 
-  private constructor(opts: WasmProverHubOptions, z3?: Z3WasmBridge, cvc5?: Cvc5WasmBridge, coq?: CoqJsCoqBridge, lean4?: Lean4WasmBridge) {
+  private constructor(opts: WasmProverHubOptions, z3?: Z3WasmBridge, cvc5?: Cvc5WasmBridge, coq?: CoqJsCoqBridge, lean4?: Lean4WasmBridge, neural?: NeuralProverBridge) {
     this.strategy = opts.strategy ?? 'FASTEST';
     this.timeoutMs = opts.timeoutMs ?? 5_000;
     this.cache = new ProofCache({
@@ -113,6 +119,7 @@ export class WasmProverHub {
     this.cvc5 = cvc5;
     this.coq = coq;
     this.lean4 = lean4;
+    this.neural = neural;
   }
 
   /**
@@ -126,11 +133,15 @@ export class WasmProverHub {
     let cvc5: Cvc5WasmBridge | undefined;
     let coq: CoqJsCoqBridge | undefined;
     let lean4: Lean4WasmBridge | undefined;
+    let neural: NeuralProverBridge | undefined;
     try { z3 = await Z3WasmBridge.create(); } catch { /* Z3 WASM not available */ }
     try { cvc5 = await Cvc5WasmBridge.create(); } catch { /* CVC5 bridge not available */ }
     try { coq = await CoqJsCoqBridge.create(); } catch { /* Coq not available */ }
     try { lean4 = await Lean4WasmBridge.create(); } catch { /* Lean 4 not available */ }
-    return new WasmProverHub(opts, z3, cvc5, coq, lean4);
+    if (opts.neuralConnector) {
+      neural = new NeuralProverBridge({ connector: opts.neuralConnector });
+    }
+    return new WasmProverHub(opts, z3, cvc5, coq, lean4, neural);
   }
 
   // ---------------------------------------------------------------------------
@@ -214,9 +225,10 @@ export class WasmProverHub {
     return {
       z3_wasm: Z3WasmBridge.available,
       cvc5_wasm: this.cvc5 !== undefined,
-      coq_jscoq: this.coq !== undefined,  // Phase 4 — wired
-      lean4_wasm: this.lean4 !== undefined, // Phase 5 — wired
-      lurk_wasm: false,                     // Phase 6
+      coq_jscoq: this.coq !== undefined,
+      lean4_wasm: this.lean4 !== undefined,
+      lurk_wasm: false,                     // Phase 6 — pending lurk-wasm package
+      neural: this.neural !== undefined,
     };
   }
 
@@ -256,7 +268,12 @@ export class WasmProverHub {
     }
     // Fall back to Lean 4 (fast static analysis path when no lean binary)
     if (this.lean4) {
-      return this.lean4.checkPolicyConsistency(policy, this.timeoutMs);
+      const lean4Result = await this.lean4.checkPolicyConsistency(policy, this.timeoutMs);
+      if (isLocallyDecided(lean4Result)) return lean4Result;
+    }
+    // Last-resort: neural prover (LLM sketch + local verification)
+    if (this.neural) {
+      return this.neural.checkPolicyConsistency(policy);
     }
     return {
       proved: false, sat: false, unsat: false,
