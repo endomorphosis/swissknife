@@ -1,6 +1,6 @@
 # MCP++ Conformance Matrix (Phase 1 Baseline)
 
-**Status:** Updated — Rounds 50-52 deontic UI, Profile C DelegationManager, Profile D audit/compliance  
+**Status:** Updated — Rounds 50-52, Profile C DelegationManager, Profile D audit/compliance, Profile E PubSubBus  
 **Last updated:** 2026-07-01  
 **Scope:** SwissKnife MCP++ Profiles A-E with parity tracking against:
 - `endomorphosis/mcp_plus_plus` (spec intent)
@@ -17,7 +17,7 @@
 | B | CID-native envelopes & receipts | PASS | Envelope/receipt content addressing and signing path implemented and tested. |
 | C | UCAN capability delegation | PASS | Core token issue/validate/can + revocation + DelegationManager lifecycle (add/merge/query/persist/IPFS-reload) implemented and tested. |
 | D | Temporal deontic policy | PASS | Policy engine + obligation tracking + deontic-to-UI projection + per-device conformance + remote TDFOL proof delegation + ORB runtime enforcement + JSON-serialisable UI manifest bridge all implemented and tested. |
-| E | P2P transport/session | PARTIAL | Session framing, handshake, correlation, and rate limits implemented; missing PubSubBus abstraction and transport hardening parity features from references. |
+| E | P2P transport/session | PARTIAL | Session framing, handshake, correlation, rate limits, and PubSubBus implemented; missing transport hardening state machine and explicit capability negotiation parity. |
 
 ---
 
@@ -80,7 +80,7 @@
 | Request/response correlation for concurrent in-flight messages | PASS | `src/services/mcp-p2p-session.ts` + `test/mcp-plus-plus/mcp-p2p-session.test.ts` |
 | Rate-limiting of inbound messages | PASS | `src/services/mcp-p2p-session.ts` (`FixedWindowRateLimiter`) |
 | Transport abstraction + factory | PASS | `src/services/mcp-transport.ts` (`MCPTransportFactory`) |
-| Structured PubSubBus lifecycle parity (subscribe/topic mapping/resubscribe metrics) | GAP | Existing `MCPPubSub` exists in `mcp-discovery.ts` but no dedicated `PubSubBus` abstraction matching reference pattern |
+| Structured PubSubBus lifecycle parity (subscribe/topic mapping/resubscribe metrics) | PASS | `src/services/mcp-pubsub-bus.ts` (`MCPPubSubBus`, `InProcessBusTransport`, `MCP_WELL_KNOWN_TOPICS`) + `test/mcp-plus-plus/mcp-pubsub-bus.test.ts` |
 | Hardened recovery semantics (oversize/malformed frame codes, churn backoff policy, explicit state machine) | PARTIAL | Some guardrails and reconnect exist; full hardening/state machine parity is not complete |
 | Capability negotiation/downgrade and stricter handshake gating | PARTIAL | Handshake exists; explicit compatibility negotiation framework not fully formalized |
 
@@ -122,8 +122,8 @@ Priority order for implementation start:
 1. **C1 — Delegation lifecycle management** *(resolved)*  
    `DelegationManager` implemented with JSON + IPFS-backed persistence, merge, chain-walk evaluation, active-token queries, and revocation integration.
 
-2. **E1 — P2P pub/sub operational abstraction**  
-   Introduce `PubSubBus` with deterministic lifecycle control and metrics.
+2. **E1 — P2P pub/sub operational abstraction** *(resolved)*  
+   `MCPPubSubBus` implemented with deterministic lifecycle (idle/starting/running/stopping/stopped), topic-to-handler registry, pre-start subscription replay, resubscribe metrics, pluggable transport backend (`InProcessBusTransport` works without libp2p).
 
 3. **E2 — Transport hardening**  
    Add explicit state machine, deterministic failure codes, and standardized backoff policy.
@@ -178,7 +178,7 @@ Priority order for implementation start:
 ## 6) Initial Remediation Backlog (Phase 1 Output)
 
 - [x] Implement `src/auth/delegation-manager.ts` with persistence + merge/reload operations.
-- [ ] Implement `src/services/mcp-pubsub-bus.ts` and adapt `mcp-discovery.ts` integration points.
+- [x] Implement `src/services/mcp-pubsub-bus.ts` and adapt `mcp-discovery.ts` integration points.
 - [ ] Introduce transport session state machine + deterministic error taxonomy in `mcp-p2p-session.ts`.
 - [x] Deontic interface broker: formal-logic policy → constrained UI + per-device conformance (`mcp-deontic-interface-broker.ts`, Round 50).
 - [x] ORB runtime deontic enforcement: `applyDeonticPolicy` in authorize() path (`mcp-orb-capability-router.ts`, Round 50).
