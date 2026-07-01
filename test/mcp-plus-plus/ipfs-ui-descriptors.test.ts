@@ -137,7 +137,7 @@ describe('IPFS MCP++ UI descriptor fixtures', () => {
     )).toEqual({
       ipfs_accelerate_py: 3003,
       ipfs_datasets_py: 3002,
-      ipfs_kit_py: 8004,
+      ipfs_kit_py: 8014,
     });
 
     for (const entry of registry) {
@@ -209,7 +209,7 @@ describe('IPFS MCP++ UI descriptor fixtures', () => {
     }
 
     expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_kit_py', 'tools/list').url)
-      .toBe('http://127.0.0.1:8004/mcp/tools/list');
+      .toBe('http://127.0.0.1:8014/mcp/tools/list');
     expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_datasets_py', 'tools/call').safe_probe?.tool_name)
       .toBe('datasets_list');
     expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_accelerate_py', 'tools/call').safe_probe?.tool_name)

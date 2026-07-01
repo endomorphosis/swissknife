@@ -481,7 +481,7 @@ for (const app of consumerReceipt.applications) {
 }
 
 assert(
-  buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_kit_py', 'tools/list').url === 'http://127.0.0.1:8004/mcp/tools/list',
+  buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_kit_py', 'tools/list').url === 'http://127.0.0.1:8014/mcp/tools/list',
   'ipfs_kit_py tools/list URL mismatch',
 );
 assert(

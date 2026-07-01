@@ -419,7 +419,7 @@ export const swissknifeMCPCapabilityRegistry: SwissknifeMCPCapabilityDescriptor[
       startup_order: 10,
       entrypoint: 'python -m ipfs_kit_py.cli mcp start',
       cwd: 'hallucinate_app/ipfs_kit_py',
-      port: 8004,
+      port: 8014,
       rpc_path: '/mcp/tools/call',
       health_path: '/api/mcp/status',
       descriptor_ref: 'org.endomorphosis.ipfs_kit_py.ipfs-kit-storage-console@0.1.0',

@@ -65,13 +65,37 @@ function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
 }
 
+// The published catalog fixture snapshots the DEFAULT daemon ports; normalize an
+// overridden live catalog (e.g. MCP_KIT_PORT set locally) back to defaults so the
+// parity check validates schema/content rather than the environment's port choice.
+const PORT_NORMALIZATION: Array<[number, number]> = [
+  [Number(process.env.MCP_KIT_PORT) || 8014, 8014],
+  [Number(process.env.MCP_DATASETS_PORT) || 3002, 3002],
+  [Number(process.env.MCP_ACCELERATE_PORT) || 3003, 3003],
+  [Number(process.env.MCP_SWISSKNIFE_PORT) || 3004, 3004],
+  [Number(process.env.MCP_DATASETS_DASHBOARD_PORT) || 8899, 8899],
+];
+
+function normalizeCatalogPorts<T>(value: T): T {
+  let json = JSON.stringify(value);
+  for (const [actual, canonical] of PORT_NORMALIZATION) {
+    if (actual === canonical) {
+      continue;
+    }
+    json = json.split(`:${actual}/`).join(`:${canonical}/`);
+    json = json.split(`:${actual}"`).join(`:${canonical}"`);
+    json = json.split(`"port":${actual}`).join(`"port":${canonical}`);
+  }
+  return JSON.parse(json);
+}
+
 test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
   test('consumes the Hallucinate App dashboard catalog without schema drift', () => {
     const catalog = readJson<any>(DASHBOARD_CATALOG_FIXTURE);
     const receipt = readJson<any>(VAI_512_CONSUMPTION_RECEIPT);
     const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 
-    expect(catalog).toEqual(liveCatalog);
+    expect(catalog).toEqual(normalizeCatalogPorts(liveCatalog));
     expect(catalog.schema).toBe('hallucinate_app.mcp_dashboard_capability_catalog.v1');
     expect(catalog.dashboard_only_mocks).toBe(false);
     expect(catalog.generated_by).toBe('hallucinate_app.node.mcp_daemon_manager.getDashboardCapabilityCatalog');
@@ -143,7 +167,7 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
     expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_kit_py', 'tools/list')).toMatchObject({
       operation: 'tools/list',
       method: 'GET',
-      url: 'http://127.0.0.1:8004/mcp/tools/list',
+      url: 'http://127.0.0.1:8014/mcp/tools/list',
     });
     expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_datasets_py', 'tools/call').safe_probe).toMatchObject({
       tool_name: 'datasets_list',
@@ -295,7 +319,7 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
     expect(mappedKit).toMatchObject({
       name: 'ipfs-kit',
       serverPackage: 'ipfs_kit_py',
-      toolsListUrl: 'http://127.0.0.1:8004/mcp/tools/list',
+      toolsListUrl: 'http://127.0.0.1:8014/mcp/tools/list',
       safeProbeTool: 'ipfs_status',
       safeProbeReceipt: 'ipfs_kit_status_probe',
     });
