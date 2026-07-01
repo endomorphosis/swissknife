@@ -269,12 +269,12 @@ describe('WasmProverHub — routing and caching', () => {
     expect(result.reason).toBe('unknown');
   });
 
-  it('proverStatus() reports Z3 availability correctly (no real Z3 in unit tests)', async () => {
+  it('proverStatus() reports prover availability correctly', async () => {
     const hub = await WasmProverHub.create();
     const status = hub.proverStatus();
-    // In unit test environment, z3-solver may or may not load
+    // In unit test environment, z3-solver and cvc5 (via Z3 shim) may or may not load
     expect(typeof status.z3_wasm).toBe('boolean');
-    expect(status.cvc5_wasm).toBe(false);
+    expect(typeof status.cvc5_wasm).toBe('boolean');
     expect(status.coq_jscoq).toBe(false);
     expect(status.lean4_wasm).toBe(false);
     expect(status.lurk_wasm).toBe(false);

@@ -26,6 +26,7 @@ import type { Policy } from '../mcp-policy.js';
 import type { WasmProofResult, ProverStrategy } from './provers/prover-types.js';
 import { ProofCache } from './provers/mcp-proof-cache.js';
 import { Z3WasmBridge } from './provers/z3-wasm-bridge.js';
+import { Cvc5WasmBridge } from './provers/cvc5-wasm-bridge.js';
 
 // ---------------------------------------------------------------------------
 // FormulaClassifier — complexity heuristic
@@ -94,8 +95,9 @@ export class WasmProverHub {
   private readonly timeoutMs: number;
   private readonly cache: ProofCache;
   private z3?: Z3WasmBridge;
+  private cvc5?: Cvc5WasmBridge;
 
-  private constructor(opts: WasmProverHubOptions, z3?: Z3WasmBridge) {
+  private constructor(opts: WasmProverHubOptions, z3?: Z3WasmBridge, cvc5?: Cvc5WasmBridge) {
     this.strategy = opts.strategy ?? 'FASTEST';
     this.timeoutMs = opts.timeoutMs ?? 5_000;
     this.cache = new ProofCache({
@@ -104,6 +106,7 @@ export class WasmProverHub {
       logPath: opts.cacheLogPath,
     });
     this.z3 = z3;
+    this.cvc5 = cvc5;
   }
 
   /**
@@ -114,12 +117,18 @@ export class WasmProverHub {
    */
   static async create(opts: WasmProverHubOptions = {}): Promise<WasmProverHub> {
     let z3: Z3WasmBridge | undefined;
+    let cvc5: Cvc5WasmBridge | undefined;
     try {
       z3 = await Z3WasmBridge.create();
     } catch {
-      // Z3 WASM not available (missing dep or WASM load failure)
+      // Z3 WASM not available
     }
-    return new WasmProverHub(opts, z3);
+    try {
+      cvc5 = await Cvc5WasmBridge.create();
+    } catch {
+      // CVC5 bridge not available
+    }
+    return new WasmProverHub(opts, z3, cvc5);
   }
 
   // ---------------------------------------------------------------------------
@@ -191,10 +200,10 @@ export class WasmProverHub {
   proverStatus(): HubProverStatus {
     return {
       z3_wasm: Z3WasmBridge.available,
-      cvc5_wasm: false,  // Phase 3
-      coq_jscoq: false,  // Phase 4
-      lean4_wasm: false, // Phase 5
-      lurk_wasm: false,  // Phase 6
+      cvc5_wasm: this.cvc5 !== undefined,  // Phase 3 — wired
+      coq_jscoq: false,                     // Phase 4
+      lean4_wasm: false,                    // Phase 5
+      lurk_wasm: false,                     // Phase 6
     };
   }
 
@@ -209,13 +218,21 @@ export class WasmProverHub {
 
   private async _tryZ3(policy: Policy): Promise<WasmProofResult> {
     if (!this.z3) {
+      // Try CVC5 as fallback when Z3 is unavailable
+      return this._tryCvc5(policy);
+    }
+    return this.z3.checkPolicyConsistency(policy, this.timeoutMs);
+  }
+
+  private async _tryCvc5(policy: Policy): Promise<WasmProofResult> {
+    if (!this.cvc5) {
       return {
         proved: false, sat: false, unsat: false,
         reason: 'unknown', prover_id: 'z3-wasm', proof_time_ms: 0,
-        meta: { unavailable: 'z3-solver not loaded' },
+        meta: { unavailable: 'no CVC5 WASM and no Z3 WASM' },
       };
     }
-    return this.z3.checkPolicyConsistency(policy, this.timeoutMs);
+    return this.cvc5.checkPolicyConsistency(policy, this.timeoutMs);
   }
 
   // ---------------------------------------------------------------------------
