@@ -9,6 +9,11 @@ import {
   P2PStream,
   DEFAULT_MAX_FRAME_BYTES,
   MIN_MAX_FRAME_BYTES,
+  SessionErrorCode,
+  SessionError,
+  computeBackoffDelay,
+  negotiateCapabilities,
+  MCP_PLUS_PLUS_PROFILES,
 } from '../../src/services/mcp-p2p-session';
 
 // ---------------------------------------------------------------------------
@@ -242,3 +247,188 @@ describe('Session close', () => {
     await expect(pending).rejects.toThrow(/closed/i);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session error codes (MCP++ Profile E §9.1 — deterministic error taxonomy)
+// ---------------------------------------------------------------------------
+
+describe('SessionError and SessionErrorCode (MCP++ §9.1)', () => {
+  it('SessionError carries a typed code', () => {
+    const err = new SessionError(SessionErrorCode.FRAME_OVERSIZE, 'too big', { frameLen: 99 });
+    expect(err.code).toBe(1001);
+    expect(err.name).toBe('SessionError');
+    expect(err.message).toBe('too big');
+    expect((err.data as Record<string, unknown>)?.frameLen).toBe(99);
+  });
+
+  it('oversize outbound frame throws SessionError with FRAME_OUTBOUND_OVERSIZE', async () => {
+    const session = new MCPp2pSession(makeSink(), { maxFrameBytes: 1024 * 1024 });
+    // Build a message that will be larger than 1 MiB after serialisation
+    const huge = 'x'.repeat(1024 * 1024 + 1);
+    await expect(
+      session.sendNotification({ jsonrpc: '2.0', method: 'test', params: { huge } }),
+    ).rejects.toMatchObject({ code: SessionErrorCode.FRAME_OUTBOUND_OVERSIZE });
+    await session.close();
+  });
+
+  it('SessionErrorCode FRAME_OVERSIZE is 1001', () => {
+    expect(SessionErrorCode.FRAME_OVERSIZE).toBe(1001);
+    expect(SessionErrorCode.FRAME_OUTBOUND_OVERSIZE).toBe(1002);
+    expect(SessionErrorCode.FRAME_MALFORMED_JSON).toBe(1003);
+    expect(SessionErrorCode.RATE_LIMIT_EXCEEDED).toBe(3001);
+    expect(SessionErrorCode.SESSION_CLOSED).toBe(4001);
+    expect(SessionErrorCode.SESSION_TIMEOUT).toBe(4003);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session state machine (MCP++ Profile E §9.5)
+// ---------------------------------------------------------------------------
+
+describe('Session state machine (MCP++ §9.5)', () => {
+  it('starts in idle state', () => {
+    const session = new MCPp2pSession(makeSink());
+    expect(session.sessionState).toBe('idle');
+  });
+
+  it('transitions through closing → closed on close()', async () => {
+    const states: string[] = [];
+    const session = new MCPp2pSession(makeSink());
+    session.on('state', s => states.push(s));
+    await session.close();
+    expect(states).toContain('closing');
+    expect(states).toContain('closed');
+    expect(session.sessionState).toBe('closed');
+  });
+
+  it('emits state=handshaking then state=open during a successful handshake', async () => {
+    const states: string[] = [];
+    const { session } = makeHandshakingPair();
+    session.on('state', s => states.push(s));
+    await expect(
+      session.handshake({ name: 'test', version: '0' }),
+    ).resolves.toBeDefined();
+    expect(states).toContain('handshaking');
+    expect(states).toContain('open');
+    await session.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Backoff reconnection policy (MCP++ Profile E §9.6)
+// ---------------------------------------------------------------------------
+
+describe('computeBackoffDelay (MCP++ §9.6)', () => {
+  it('first attempt returns roughly initialDelayMs', () => {
+    const d = computeBackoffDelay({ initialDelayMs: 500, jitter: 0 }, 0);
+    expect(d).toBe(500);
+  });
+
+  it('doubles with backoffFactor=2', () => {
+    const d1 = computeBackoffDelay({ initialDelayMs: 100, backoffFactor: 2, jitter: 0 }, 0);
+    const d2 = computeBackoffDelay({ initialDelayMs: 100, backoffFactor: 2, jitter: 0 }, 1);
+    const d3 = computeBackoffDelay({ initialDelayMs: 100, backoffFactor: 2, jitter: 0 }, 2);
+    expect(d1).toBe(100);
+    expect(d2).toBe(200);
+    expect(d3).toBe(400);
+  });
+
+  it('caps at maxDelayMs', () => {
+    const d = computeBackoffDelay({ initialDelayMs: 1000, backoffFactor: 10, maxDelayMs: 5000, jitter: 0 }, 5);
+    expect(d).toBe(5000);
+  });
+
+  it('applies jitter so each call can differ slightly', () => {
+    const results = new Set(
+      Array.from({ length: 20 }, () =>
+        computeBackoffDelay({ initialDelayMs: 1000, jitter: 0.5 }, 0),
+      ),
+    );
+    // With 50% jitter over 20 draws, it's essentially impossible to get all identical
+    expect(results.size).toBeGreaterThan(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Capability negotiation (MCP++ Profile E §3.2)
+// ---------------------------------------------------------------------------
+
+describe('negotiateCapabilities (MCP++ §3.2)', () => {
+  it('returns full set when server supports everything', () => {
+    const { negotiated, downgraded, unsupported } = negotiateCapabilities(
+      ['a', 'b', 'c'],
+      ['a', 'b', 'c', 'd'],
+    );
+    expect(negotiated).toEqual(['a', 'b', 'c']);
+    expect(downgraded).toBe(false);
+    expect(unsupported).toHaveLength(0);
+  });
+
+  it('downgrades and reports unsupported profiles', () => {
+    const { negotiated, downgraded, unsupported } = negotiateCapabilities(
+      ['a', 'b', 'c'],
+      ['a'],
+    );
+    expect(negotiated).toEqual(['a']);
+    expect(downgraded).toBe(true);
+    expect(unsupported).toEqual(['b', 'c']);
+  });
+
+  it('MCP_PLUS_PLUS_PROFILES includes all current profiles', () => {
+    expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/cid-envelope');
+    expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/policy-d');
+    expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/pubsub-bus');
+    expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/p2p-transport');
+    expect(MCP_PLUS_PLUS_PROFILES.length).toBeGreaterThanOrEqual(7);
+  });
+
+  it('handshake emits capability-downgrade when server lacks profiles', async () => {
+    const downgradeEvents: unknown[] = [];
+    const { session } = makeHandshakingPairWithProfiles(['mcp++/cid-envelope']);
+    session.on('capability-downgrade', e => downgradeEvents.push(e));
+    await session.handshake({ name: 'client', version: '1' });
+    expect(downgradeEvents).toHaveLength(1);
+    const ev = downgradeEvents[0] as { unsupported: string[] };
+    expect(ev.unsupported.length).toBeGreaterThan(0);
+    await session.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Helper: sink-only stream for state-machine tests
+// ---------------------------------------------------------------------------
+
+function makeSink(): P2PStream {
+  return {
+    async write() {},
+    async *[Symbol.asyncIterator]() { /* never yields */ },
+    async close() {},
+  };
+}
+
+// Helper: build a handshake response frame for a given request id + server profiles
+function buildHandshakeResponse(id: number, serverProfiles: readonly string[]): Buffer {
+  return buildLengthPrefixedFrame({
+    jsonrpc: '2.0', id,
+    result: {
+      protocolVersion: '2024-11-05',
+      serverInfo: { name: 'mock', version: '1' },
+      capabilities: { tools: true, mcpPlusPlusProfiles: serverProfiles },
+    },
+  });
+}
+
+// The session assigns nextId=1 on construction, so the first sendRequest id is 1.
+function makeHandshakingPair() {
+  const responseFrame = buildHandshakeResponse(1, MCP_PLUS_PLUS_PROFILES);
+  const stream = makeMockStream({ inbound: [responseFrame] });
+  const session = new MCPp2pSession(stream);
+  return { session };
+}
+
+function makeHandshakingPairWithProfiles(serverProfiles: string[]) {
+  const responseFrame = buildHandshakeResponse(1, serverProfiles);
+  const stream = makeMockStream({ inbound: [responseFrame] });
+  const session = new MCPp2pSession(stream);
+  return { session };
+}

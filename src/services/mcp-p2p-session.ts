@@ -2,11 +2,14 @@
  * MCPp2pSession — encapsulates a single MCP+p2p session stream.
  *
  * Implements:
- *   - MCP++ Profile E §3.2  : session lifecycle (init handshake)
+ *   - MCP++ Profile E §3.2  : session lifecycle (init handshake, capability negotiation)
  *   - MCP++ Profile E §5.1  : u32 big-endian length-prefix framing
+ *   - MCP++ Profile E §9.1  : deterministic frame-error taxonomy + error codes
  *   - MCP++ Profile E §9.2  : JSON-RPC id correlation + concurrent in-flight requests
- *   - MCP++ Profile E §9.3  : per-peer rate-limiting (leaky-bucket)
+ *   - MCP++ Profile E §9.3  : per-peer rate-limiting (fixed window)
  *   - MCP++ Profile E §9.4  : peer identity ≠ execution authority
+ *   - MCP++ Profile E §9.5  : explicit session state machine
+ *   - MCP++ Profile E §9.6  : exponential backoff reconnection policy
  *
  * Transport substrate: libp2p streams (passed in as a Node.js Duplex-compatible
  * pair of {source, sink}).  The session does NOT create the underlying libp2p
@@ -29,6 +32,157 @@ export const MIN_MAX_FRAME_BYTES = 1024 * 1024;
 export const RATE_LIMIT_MAX_MSGS = 200;
 /** Fixed-window rate limiter: window duration (ms) */
 export const RATE_LIMIT_WINDOW_MS = 1000;
+
+// ---------------------------------------------------------------------------
+// Session error codes (MCP++ Profile E §9.1 — deterministic error taxonomy)
+// ---------------------------------------------------------------------------
+
+/**
+ * Deterministic error codes for transport-layer failures.
+ *
+ * Code ranges:
+ *   1xxx: Framing errors
+ *   2xxx: Protocol errors
+ *   3xxx: Rate / policy violations
+ *   4xxx: Session lifecycle errors
+ */
+export const SessionErrorCode = {
+  /** Inbound frame length exceeds negotiated maxFrameBytes. */
+  FRAME_OVERSIZE: 1001,
+  /** Outbound frame length exceeds negotiated maxFrameBytes. */
+  FRAME_OUTBOUND_OVERSIZE: 1002,
+  /** Frame body is not valid UTF-8 JSON. */
+  FRAME_MALFORMED_JSON: 1003,
+  /** Frame header is malformed (truncated length prefix). */
+  FRAME_TRUNCATED_HEADER: 1004,
+
+  /** Peer sent an unrecognized protocol version during handshake. */
+  PROTOCOL_VERSION_MISMATCH: 2001,
+  /** Handshake response was missing required fields. */
+  PROTOCOL_HANDSHAKE_INVALID: 2002,
+  /** Server advertised no compatible MCP++ profiles. */
+  PROTOCOL_NO_COMMON_PROFILE: 2003,
+
+  /** Inbound message rate exceeded the per-peer limit. */
+  RATE_LIMIT_EXCEEDED: 3001,
+
+  /** Attempt to send on a closed session. */
+  SESSION_CLOSED: 4001,
+  /** In-flight request rejected because the read side ended. */
+  SESSION_READ_ENDED: 4002,
+  /** Request timed out waiting for a response. */
+  SESSION_TIMEOUT: 4003,
+} as const;
+
+export type SessionErrorCode = typeof SessionErrorCode[keyof typeof SessionErrorCode];
+
+/** A typed transport error carrying a deterministic error code. */
+export class SessionError extends Error {
+  constructor(
+    public readonly code: SessionErrorCode,
+    message: string,
+    public readonly data?: unknown,
+  ) {
+    super(message);
+    this.name = 'SessionError';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Session state machine (MCP++ Profile E §9.5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Explicit lifecycle states for an {@link MCPp2pSession}.
+ *
+ * Transitions:
+ *   idle  → handshaking  (handshake() called)
+ *   handshaking → open   (initialize exchange complete)
+ *   handshaking → error  (handshake failed)
+ *   open  → closing      (close() called)
+ *   open  → error        (unrecoverable frame/protocol error)
+ *   closing → closed     (stream fully drained)
+ *   error → closed       (after emitting 'error')
+ */
+export type SessionState =
+  | 'idle'
+  | 'handshaking'
+  | 'open'
+  | 'closing'
+  | 'closed'
+  | 'error';
+
+// ---------------------------------------------------------------------------
+// Reconnect backoff policy (MCP++ Profile E §9.6)
+// ---------------------------------------------------------------------------
+
+export interface ReconnectPolicy {
+  /** Initial delay before the first reconnect attempt (ms). Default 500. */
+  initialDelayMs: number;
+  /** Multiplier applied to the delay after each failed attempt. Default 2. */
+  backoffFactor: number;
+  /** Maximum delay cap (ms). Default 30_000. */
+  maxDelayMs: number;
+  /** Maximum number of attempts (0 = unlimited). Default 0. */
+  maxAttempts: number;
+  /** Optional jitter fraction (0–1) added to each delay. Default 0.1. */
+  jitter: number;
+}
+
+const DEFAULT_RECONNECT_POLICY: ReconnectPolicy = {
+  initialDelayMs: 500,
+  backoffFactor: 2,
+  maxDelayMs: 30_000,
+  maxAttempts: 0,
+  jitter: 0.1,
+};
+
+/**
+ * Compute the next backoff delay for attempt `n` (0-based).
+ * Exported for deterministic unit testing.
+ */
+export function computeBackoffDelay(policy: Partial<ReconnectPolicy>, attempt: number): number {
+  const p = { ...DEFAULT_RECONNECT_POLICY, ...policy };
+  const raw = Math.min(p.initialDelayMs * Math.pow(p.backoffFactor, attempt), p.maxDelayMs);
+  const jitter = raw * p.jitter * Math.random();
+  return Math.round(raw + jitter);
+}
+
+// ---------------------------------------------------------------------------
+// Capability negotiation helpers (MCP++ Profile E §3.2)
+// ---------------------------------------------------------------------------
+
+/** Profiles advertised by this client. */
+export const MCP_PLUS_PLUS_PROFILES = [
+  'mcp++/cid-envelope',
+  'mcp++/ucan',
+  'mcp++/idl',
+  'mcp++/event-dag',
+  'mcp++/policy-d',
+  'mcp++/pubsub-bus',
+  'mcp++/p2p-transport',
+] as const;
+
+export type MCPPlusPlusProfile = typeof MCP_PLUS_PLUS_PROFILES[number];
+
+/**
+ * Negotiate capabilities: intersect client profiles with server-advertised ones.
+ * Returns the subset of profiles both sides support, plus a
+ * `downgraded` flag if any client profile is not supported by the server.
+ */
+export function negotiateCapabilities(
+  clientProfiles: readonly string[],
+  serverProfiles: readonly string[],
+): { negotiated: string[]; downgraded: boolean; unsupported: string[] } {
+  const serverSet = new Set(serverProfiles);
+  const negotiated = clientProfiles.filter(p => serverSet.has(p));
+  const unsupported = clientProfiles.filter(p => !serverSet.has(p));
+  return {
+    negotiated,
+    downgraded: unsupported.length > 0,
+    unsupported,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -127,6 +281,8 @@ export class MCPp2pSession extends EventEmitter {
   private _readBuf = Buffer.alloc(0);
   /** True once the inbound iterator has ended (half-close). */
   private _readEnded = false;
+  /** Explicit session state (MCP++ Profile E §9.5). */
+  private _state: SessionState = 'idle';
 
   constructor(
     stream: P2PStream,
@@ -161,6 +317,7 @@ export class MCPp2pSession extends EventEmitter {
    * Must be called once, immediately after the stream is opened.
    */
   async handshake(clientInfo: { name: string; version: string }): Promise<MCPHandshakeResult> {
+    this._setState('handshaking');
     const initRequest: JsonRpcRequest = {
       jsonrpc: '2.0',
       id: this.nextId++,
@@ -169,39 +326,71 @@ export class MCPp2pSession extends EventEmitter {
         protocolVersion: '2024-11-05',
         capabilities: {
           tools: {},
-          mcpPlusPlusProfiles: [
-            'mcp++/cid-envelope',
-            'mcp++/ucan',
-            'mcp++/idl',
-            'mcp++/event-dag',
-          ],
+          mcpPlusPlusProfiles: [...MCP_PLUS_PLUS_PROFILES],
         },
         clientInfo,
       },
     };
 
-    const response = await this.sendRequest(initRequest);
+    let response: JsonRpcResponse;
+    try {
+      response = await this.sendRequest(initRequest);
+    } catch (err) {
+      this._setState('error');
+      throw err;
+    }
+
     if (!response.result) {
-      throw new Error(`Handshake failed: ${JSON.stringify(response.error)}`);
+      this._setState('error');
+      throw new SessionError(
+        SessionErrorCode.PROTOCOL_HANDSHAKE_INVALID,
+        `Handshake failed: ${JSON.stringify(response.error)}`,
+      );
     }
     const r = response.result as {
       protocolVersion: string;
       serverInfo: { name: string; version: string };
       capabilities: MCPCapabilities;
     };
+
+    // Capability negotiation — downgrade to the profiles both sides support.
+    const serverProfiles = r.capabilities?.mcpPlusPlusProfiles ?? [];
+    const { negotiated, downgraded, unsupported } = negotiateCapabilities(
+      MCP_PLUS_PLUS_PROFILES,
+      serverProfiles,
+    );
+    const negotiatedCapabilities: MCPCapabilities = {
+      ...r.capabilities,
+      mcpPlusPlusProfiles: negotiated,
+    };
+    if (downgraded) {
+      this.emit('capability-downgrade', { unsupported, negotiated });
+    }
+
     this._handshakeResult = {
       protocolVersion: r.protocolVersion,
       serverInfo: r.serverInfo,
-      capabilities: r.capabilities,
+      capabilities: negotiatedCapabilities,
     };
 
     // Send the 'initialized' notification
     await this.sendNotification({ jsonrpc: '2.0', method: 'notifications/initialized' });
+    this._setState('open');
     return this._handshakeResult;
   }
 
   get handshakeResult(): MCPHandshakeResult | null {
     return this._handshakeResult;
+  }
+
+  /** Current session state (MCP++ Profile E §9.5). */
+  get sessionState(): SessionState {
+    return this._state;
+  }
+
+  private _setState(state: SessionState): void {
+    this._state = state;
+    this.emit('state', state);
   }
 
   // -------------------------------------------------------------------------
@@ -217,7 +406,11 @@ export class MCPp2pSession extends EventEmitter {
     return new Promise<JsonRpcResponse>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.inFlight.delete(req.id);
-        reject(new Error(`Request timed out: ${req.method} (id=${req.id})`));
+        reject(new SessionError(
+          SessionErrorCode.SESSION_TIMEOUT,
+          `Request timed out: ${req.method} (id=${req.id})`,
+          { method: req.method, id: req.id },
+        ));
       }, timeoutMs);
       this.inFlight.set(req.id, { resolve, reject, timer });
       this.writeFrame(req).catch(err => {
@@ -237,10 +430,11 @@ export class MCPp2pSession extends EventEmitter {
   /** Close the session gracefully. */
   async close(): Promise<void> {
     if (this._closed) return;
+    this._setState('closing');
     this._closed = true;
     for (const { reject, timer } of this.inFlight.values()) {
       clearTimeout(timer);
-      reject(new Error('Session closed'));
+      reject(new SessionError(SessionErrorCode.SESSION_CLOSED, 'Session closed'));
     }
     this.inFlight.clear();
     try {
@@ -250,6 +444,7 @@ export class MCPp2pSession extends EventEmitter {
     } catch {
       // best effort
     }
+    this._setState('closed');
     this.emit('close');
   }
 
@@ -262,8 +457,10 @@ export class MCPp2pSession extends EventEmitter {
     const json = JSON.stringify(msg);
     const body = Buffer.from(json, 'utf8');
     if (body.length > this.maxFrameBytes) {
-      throw new Error(
+      throw new SessionError(
+        SessionErrorCode.FRAME_OUTBOUND_OVERSIZE,
         `Outgoing frame too large: ${body.length} > ${this.maxFrameBytes}`,
+        { frameLen: body.length, maxFrameBytes: this.maxFrameBytes },
       );
     }
     const header = Buffer.allocUnsafe(4);
@@ -291,9 +488,12 @@ export class MCPp2pSession extends EventEmitter {
           const frameLen = this._readBuf.readUInt32BE(0);
           if (frameLen > this.maxFrameBytes) {
             // Frame size violation — abort stream per §9.1
-            const err = new Error(
+            const err = new SessionError(
+              SessionErrorCode.FRAME_OVERSIZE,
               `Incoming frame too large: ${frameLen} > ${this.maxFrameBytes}`,
+              { frameLen, maxFrameBytes: this.maxFrameBytes },
             );
+            this._setState('error');
             this.emit('error', err);
             await this.close();
             return;
@@ -305,7 +505,10 @@ export class MCPp2pSession extends EventEmitter {
 
           // Rate limit check (§9.3)
           if (!this.rateLimiter.allow()) {
-            this.emit('error', new Error('Rate limit exceeded; dropping message'));
+            this.emit('error', new SessionError(
+              SessionErrorCode.RATE_LIMIT_EXCEEDED,
+              'Rate limit exceeded; dropping message',
+            ));
             continue;
           }
 
@@ -313,7 +516,10 @@ export class MCPp2pSession extends EventEmitter {
           try {
             msg = JSON.parse(body.toString('utf8')) as JsonRpcMessage;
           } catch {
-            this.emit('error', new Error('Failed to parse JSON-RPC frame'));
+            this.emit('error', new SessionError(
+              SessionErrorCode.FRAME_MALFORMED_JSON,
+              'Failed to parse JSON-RPC frame',
+            ));
             continue;
           }
           this._dispatch(msg);
@@ -329,10 +535,14 @@ export class MCPp2pSession extends EventEmitter {
         if (!this._closed) {
           for (const { reject, timer } of this.inFlight.values()) {
             clearTimeout(timer);
-            reject(new Error('Session read side ended without response'));
+            reject(new SessionError(
+              SessionErrorCode.SESSION_READ_ENDED,
+              'Session read side ended without response',
+            ));
           }
           this.inFlight.clear();
           this._closed = true;
+          this._setState('closed');
           this.emit('close');
         }
       });
@@ -356,6 +566,6 @@ export class MCPp2pSession extends EventEmitter {
   }
 
   private assertOpen(): void {
-    if (this._closed) throw new Error('Session is closed');
+    if (this._closed) throw new SessionError(SessionErrorCode.SESSION_CLOSED, 'Session is closed');
   }
 }
