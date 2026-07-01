@@ -17,6 +17,7 @@ export type ProofReason =
   | 'proved'      // formula is valid (unsat when negated)
   | 'refuted'     // formula is unsatisfiable / counter-example found
   | 'sat'         // formula is satisfiable (model available)
+  | 'unsat'       // formula is unsatisfiable (Python bridges emit reason="unsat")
   | 'unknown'     // prover could not decide (resource limit, unsupported theory)
   | 'timeout'     // proof attempt exceeded the allotted time budget
   | 'error';      // prover raised an internal error
