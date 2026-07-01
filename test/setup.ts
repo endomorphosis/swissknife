@@ -30,35 +30,39 @@ vi.mock('crypto', async () => {
   return actual
 })
 
-// Setup global objects that might be needed
-Object.defineProperty(window, 'navigator', {
-  value: {
-    userAgent: 'test-agent',
-    gpu: {
-      requestAdapter: vi.fn(() => Promise.resolve(null))
-    }
-  },
-  writable: true
-})
+// Setup global objects that might be needed. Guarded so this shared setup file
+// also works for test files that opt into the node environment
+// (`// @vitest-environment node`), where `window` is undefined.
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'navigator', {
+    value: {
+      userAgent: 'test-agent',
+      gpu: {
+        requestAdapter: vi.fn(() => Promise.resolve(null))
+      }
+    },
+    writable: true
+  })
 
-// Mock WebGPU for AI inference testing
-Object.defineProperty(window, 'GPU', {
-  value: class MockGPU {
-    requestAdapter = vi.fn(() => Promise.resolve({
-      requestDevice: vi.fn(() => Promise.resolve({
-        createShaderModule: vi.fn(),
-        createBuffer: vi.fn(),
-        createComputePipeline: vi.fn(),
-        createCommandEncoder: vi.fn(),
-        queue: {
-          submit: vi.fn(),
-          writeBuffer: vi.fn()
-        }
+  // Mock WebGPU for AI inference testing
+  Object.defineProperty(window, 'GPU', {
+    value: class MockGPU {
+      requestAdapter = vi.fn(() => Promise.resolve({
+        requestDevice: vi.fn(() => Promise.resolve({
+          createShaderModule: vi.fn(),
+          createBuffer: vi.fn(),
+          createComputePipeline: vi.fn(),
+          createCommandEncoder: vi.fn(),
+          queue: {
+            submit: vi.fn(),
+            writeBuffer: vi.fn()
+          }
+        }))
       }))
-    }))
-  },
-  writable: true
-})
+    },
+    writable: true
+  })
+}
 
 // Setup console for better test output
 console.info = vi.fn()

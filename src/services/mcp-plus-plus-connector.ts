@@ -74,7 +74,11 @@ export const IPFS_ACCELERATE_SERVER: MCPPPServerConfig = {
   name: 'ipfs-accelerate-mcp++',
   baseUrl: 'http://localhost:3003',
   mcpPath: '/mcp',
-  toolsPath: '/api/mcp/tools',
+  // ipfs_accelerate_py has no `/api/mcp/tools` route — a GET there falls through
+  // to the generic `/api/mcp/*` status handler and returns a `{status, server,
+  // port, components}` dict, not a tool list. The real tool catalogue is served
+  // (GET + POST) at `/mcp/tools/list`, matching kit's REST surface.
+  toolsPath: '/mcp/tools/list',
   healthPath: '/api/mcp/status',
   dagPath: '/mcp/dag',
   interfacesPath: '/mcp/interfaces',
@@ -118,6 +122,33 @@ export function domainToolNames(names: readonly string[] | null | undefined): st
   return (names ?? []).filter(
     (n): n is string => typeof n === 'string' && !MCPPP_META_TOOL_NAMES.has(n),
   );
+}
+
+/**
+ * Extract tool names from a REST or JSON-RPC `tools/list` payload. The three
+ * IPFS servers wrap the tool array in *different* envelopes:
+ *   - ipfs_datasets_py `/tools/list`       → `{tools:[...], count, categories}` (top-level)
+ *   - ipfs_kit_py `/mcp/tools/list`        → `{jsonrpc, result:{tools:[...]}, id}` (JSON-RPC wrapped)
+ *   - ipfs_accelerate_py `/mcp/tools/list` → `{jsonrpc, result:{tools:[...]}}`     (JSON-RPC wrapped)
+ *   - a bare `[...]` array (some SDK shapes)
+ * Entries may be plain strings or `{name, ...}` descriptors.
+ *
+ * Returns `[]` when the payload is NOT a recognizable tool list — e.g. a
+ * health/status dict like `{status, server, port, components}` or a JSON-RPC
+ * envelope with no `result.tools`. That lets callers fall back to the JSON-RPC
+ * `tools/list` method instead of manufacturing bogus tool names from the
+ * payload's object keys (which previously made kit report `['jsonrpc','result',
+ * 'id']` and accelerate report `['status','server','port','components']`).
+ */
+export function extractRestToolNames(data: any): string[] {
+  const arr: unknown =
+    (data && Array.isArray(data.tools) && data.tools) ||
+    (data && data.result && Array.isArray(data.result.tools) && data.result.tools) ||
+    (Array.isArray(data) ? data : null);
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((t: any) => (typeof t === 'string' ? t : t?.name))
+    .filter((n: any): n is string => typeof n === 'string' && n.length > 0);
 }
 
 /**
@@ -316,10 +347,7 @@ export class MCPPPServerConnector {
     const fromRpc = async (): Promise<string[]> => {
       try {
         const res = await this.jsonRpc('tools/list', {});
-        const list = res?.tools || res || [];
-        return (Array.isArray(list) ? list : [])
-          .map((t: any) => (typeof t === 'string' ? t : t?.name))
-          .filter(Boolean);
+        return extractRestToolNames(res);
       } catch {
         return [];
       }
@@ -330,15 +358,16 @@ export class MCPPPServerConnector {
 
     try {
       const toolsResp = await this.fetch(this.config.toolsPath);
-      const toolsData = await toolsResp.json();
-      const list = toolsData.tools || (Array.isArray(toolsData) ? toolsData : Object.keys(toolsData));
-      const names = (Array.isArray(list) ? list : [])
-        .map((t: any) => (typeof t === 'string' ? t : t?.name))
-        .filter(Boolean);
-      if (names.length > 0) return names;
+      if (toolsResp.ok) {
+        const toolsData = await toolsResp.json();
+        const names = extractRestToolNames(toolsData);
+        if (names.length > 0) return names;
+      }
     } catch {}
 
-    // REST tools endpoint missing/empty — fall back to JSON-RPC tools/list.
+    // REST tools endpoint missing/empty/unrecognized (e.g. a status dict or a
+    // JSON-RPC envelope the parser didn't recognize) — fall back to the
+    // JSON-RPC `tools/list` method, which every MCP/MCP++ server exposes.
     return fromRpc();
   }
 
