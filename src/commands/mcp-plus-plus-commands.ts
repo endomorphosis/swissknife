@@ -14,12 +14,13 @@
 
 import type { Command as PublicCommand } from '../types/command.js';
 import { createMCPPlusPlusClient, IPFS_KIT_INTERFACE, IPFS_ACCELERATE_INTERFACE, IPFS_DATASETS_INTERFACE } from '../services/mcp-plus-plus.js';
-import { createMultiServerConnector, IPFS_DATASETS_SERVER, IPFS_ACCELERATE_SERVER } from '../services/mcp-plus-plus-connector.js';
-import type { MCPPPMultiServerConnector } from '../services/mcp-plus-plus-connector.js';
+import { createMultiServerConnector, IPFS_KIT_SERVER, IPFS_DATASETS_SERVER, IPFS_ACCELERATE_SERVER } from '../services/mcp-plus-plus-connector.js';
+import type { MCPPPMultiServerConnector, MultiServerConnectorOptions } from '../services/mcp-plus-plus-connector.js';
 
 // Singleton client initialized with placeholder DID (replaced at runtime)
 let mcpppClient: ReturnType<typeof createMCPPlusPlusClient> | null = null;
 let mcpppConnector: MCPPPMultiServerConnector | null = null;
+let mcpppConnectorTransport: 'http' | 'libp2p' = 'http';
 
 function getClient(): ReturnType<typeof createMCPPlusPlusClient> {
   if (!mcpppClient) {
@@ -28,10 +29,18 @@ function getClient(): ReturnType<typeof createMCPPlusPlusClient> {
   return mcpppClient;
 }
 
-function getConnector(): MCPPPMultiServerConnector {
+function getConnector(opts?: MultiServerConnectorOptions): MCPPPMultiServerConnector {
   if (!mcpppConnector) {
-    mcpppConnector = createMultiServerConnector('did:key:z6MkswissknifeCLI');
+    mcpppConnector = createMultiServerConnector('did:key:z6MkswissknifeCLI', opts);
+    mcpppConnectorTransport = opts?.libp2p ? 'libp2p' : 'http';
   }
+  return mcpppConnector;
+}
+
+/** Force a fresh connector (used when switching transports at runtime). */
+function resetConnector(opts?: MultiServerConnectorOptions): MCPPPMultiServerConnector {
+  mcpppConnector = createMultiServerConnector('did:key:z6MkswissknifeCLI', opts);
+  mcpppConnectorTransport = opts?.libp2p ? 'libp2p' : 'http';
   return mcpppConnector;
 }
 
@@ -102,8 +111,22 @@ export const mcpppCommand: PublicCommand = {
     },
     {
       name: 'connect',
-      description: 'Connect to real MCP++ servers (ipfs_datasets_py, ipfs_accelerate_py)',
-      options: [],
+      description: 'Connect to real MCP++ servers (ipfs_kit_py, ipfs_datasets_py, ipfs_accelerate_py)',
+      options: [
+        { name: 'transport', type: 'string', description: "Transport: 'http' (default) or 'libp2p'" },
+        { name: 'multiaddr', type: 'string', description: 'libp2p multiaddr applied to all servers (transport=libp2p)' },
+        { name: 'kit-addr', type: 'string', description: 'libp2p multiaddr for ipfs-kit-mcp++' },
+        { name: 'datasets-addr', type: 'string', description: 'libp2p multiaddr for ipfs-datasets-mcp++' },
+        { name: 'accelerate-addr', type: 'string', description: 'libp2p multiaddr for ipfs-accelerate-mcp++' },
+      ],
+    },
+    {
+      name: 'categories',
+      description: 'List hierarchical tool categories on a connected MCP++ server',
+      options: [
+        { name: 'server', type: 'string', description: 'Server name (default: ipfs-kit-mcp++)' },
+        { name: 'category', type: 'string', description: 'Optional: list tools within this category' },
+      ],
     },
     {
       name: 'status',
@@ -285,17 +308,52 @@ export const mcpppCommand: PublicCommand = {
       }
 
       case 'connect': {
-        const connector = getConnector();
+        let connectorOpts: MultiServerConnectorOptions | undefined;
+        if (options.transport === 'libp2p') {
+          const libp2p: Record<string, string> = {};
+          if (options['kit-addr']) libp2p[IPFS_KIT_SERVER.name] = options['kit-addr'];
+          if (options['datasets-addr']) libp2p[IPFS_DATASETS_SERVER.name] = options['datasets-addr'];
+          if (options['accelerate-addr']) libp2p[IPFS_ACCELERATE_SERVER.name] = options['accelerate-addr'];
+          if (options.multiaddr) {
+            connectorOpts = { libp2p: options.multiaddr };
+          } else if (Object.keys(libp2p).length > 0) {
+            connectorOpts = { libp2p };
+          } else {
+            return { error: 'transport=libp2p requires --multiaddr or a per-server --<name>-addr multiaddr' };
+          }
+        }
+        const connector = connectorOpts ? resetConnector(connectorOpts) : getConnector();
         const results = await connector.connectAll();
-        const lines: string[] = ['MCP++ Server Connection Results:'];
+        const lines: string[] = [`MCP++ Server Connection Results (transport: ${mcpppConnectorTransport}):`];
         for (const [name, result] of results) {
           lines.push(`  ${result.success ? '✅' : '❌'} ${name}`);
           if (result.success) {
+            const c = connector.getConnector(name);
+            lines.push(`     Transport: ${c?.transportKind ?? mcpppConnectorTransport} (${c?.endpoint ?? ''})`);
             lines.push(`     Profiles: ${result.profiles.join(', ')}`);
             lines.push(`     Tools: ${result.tools.length} available`);
           }
         }
         return { output: lines.join('\n') };
+      }
+
+      case 'categories': {
+        const connector = getConnector();
+        const serverName = options.server || IPFS_KIT_SERVER.name;
+        const c = connector.getConnector(serverName);
+        if (!c || !c.isConnected) {
+          return { error: `Server not connected: ${serverName}. Run: mcp++ connect` };
+        }
+        try {
+          if (options.category) {
+            const tools = await c.listToolsInCategory(options.category);
+            return { output: `Tools in '${options.category}' on ${serverName}:\n${JSON.stringify(tools, null, 2)}` };
+          }
+          const cats = await c.listCategories(true);
+          return { output: `Tool categories on ${serverName}:\n${JSON.stringify(cats, null, 2)}` };
+        } catch (e: any) {
+          return { error: `categories failed: ${e.message}` };
+        }
       }
 
       case 'status': {
@@ -304,13 +362,18 @@ export const mcpppCommand: PublicCommand = {
         return {
           output: [
             'MCP++ Connection Status:',
+            `  Transport: ${mcpppConnectorTransport}`,
             `  Connected servers: ${connected.length > 0 ? connected.join(', ') : 'None (run: mcp++ connect)'}`,
-            `  ipfs_datasets_py: ${IPFS_DATASETS_SERVER.baseUrl} (port 3002)`,
-            `  ipfs_accelerate_py: ${IPFS_ACCELERATE_SERVER.baseUrl} (port 3003)`,
+            `  ipfs_kit_py: ${IPFS_KIT_SERVER.baseUrl} (port 8014) | p2p ${IPFS_KIT_SERVER.p2pProtocolId}`,
+            `  ipfs_datasets_py: ${IPFS_DATASETS_SERVER.baseUrl} (port 3002) | p2p ${IPFS_DATASETS_SERVER.p2pProtocolId}`,
+            `  ipfs_accelerate_py: ${IPFS_ACCELERATE_SERVER.baseUrl} (port 3003) | p2p ${IPFS_ACCELERATE_SERVER.p2pProtocolId}`,
             '',
             'Server capabilities:',
+            '  ipfs_kit_py: hierarchical tools, MCP+p2p (/mcp+p2p/1.0.0)',
             '  ipfs_datasets_py: MCP-IDL, CID-Envelope, UCAN, Deontic Policy, Event DAG, P2P',
             '  ipfs_accelerate_py: Trio-native MCP++, P2P taskqueue, workflow tools',
+            '',
+            'Connect over libp2p: mcp++ connect --transport libp2p --multiaddr <addr>',
           ].join('\n'),
         };
       }
@@ -339,7 +402,7 @@ export const mcpppCommand: PublicCommand = {
       }
 
       default:
-        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p, connect, status, call` };
+        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p, connect, categories, status, call` };
     }
   },
 };

@@ -236,7 +236,7 @@ class WebSocketTransport extends BaseTransport {
   }
 }
 
-class Libp2pTransport extends BaseTransport {
+export class Libp2pTransport extends BaseTransport {
   private session: import('./mcp-p2p-session.js').MCPp2pSession | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -353,6 +353,35 @@ class Libp2pTransport extends BaseTransport {
     await new Promise(resolve => setTimeout(resolve, delay));
     await this.connect();
   }
+}
+
+/**
+ * Establish a libp2p MCP+p2p session to a remote peer and return the connected
+ * {@link MCPp2pSession} (already handshaken). This is the entry point higher-level
+ * clients (e.g. the MCP++ server connector) use to speak MCP/MCP++ JSON-RPC over
+ * the `/mcp+p2p/1.0.0` protocol instead of HTTP.
+ *
+ * The caller owns the returned transport and must call `transport.disconnect()`
+ * to tear down the underlying libp2p node when finished.
+ */
+export async function connectLibp2pMcpSession(
+  endpoint: string,
+  options: Omit<MCPTransportOptions, 'type' | 'endpoint'> = {},
+): Promise<{
+  transport: Libp2pTransport;
+  session: import('./mcp-p2p-session.js').MCPp2pSession;
+}> {
+  const transport = new Libp2pTransport({ ...options, type: 'libp2p', endpoint });
+  const ok = await transport.connect();
+  if (!ok) {
+    throw new Error(`Failed to establish libp2p MCP+p2p session to ${endpoint}`);
+  }
+  const session = transport.getSession();
+  if (!session) {
+    await transport.disconnect();
+    throw new Error(`libp2p transport connected but no session was created for ${endpoint}`);
+  }
+  return { transport, session };
 }
 
 /**

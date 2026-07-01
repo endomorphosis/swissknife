@@ -24,6 +24,8 @@ import {
   P2PSessionConfig,
   createMCPPlusPlusClient,
 } from './mcp-plus-plus.js';
+import type { MCPp2pSession } from './mcp-p2p-session.js';
+import type { Libp2pTransport } from './mcp-transport.js';
 
 // --- Server Connection Config ---
 
@@ -37,7 +39,24 @@ export interface MCPPPServerConfig {
   interfacesPath?: string; // Interface descriptor registry
   delegationPath?: string; // UCAN delegation endpoint
   p2pProtocolId?: string;  // libp2p protocol ID
+  /**
+   * Transport used to reach this server. `http` (default) speaks JSON-RPC over
+   * HTTP; `libp2p` dials the MCP++ Profile E `/mcp+p2p/1.0.0` protocol and speaks
+   * JSON-RPC over the length-prefixed libp2p stream framing.
+   */
+  transport?: 'http' | 'libp2p';
+  /** libp2p multiaddr of the remote peer (required when transport === 'libp2p'). */
+  multiaddr?: string;
 }
+
+export const IPFS_KIT_SERVER: MCPPPServerConfig = {
+  name: 'ipfs-kit-mcp++',
+  baseUrl: 'http://localhost:8014',
+  mcpPath: '/mcp',
+  toolsPath: '/mcp/tools/list',
+  healthPath: '/mcp/tools/list',
+  p2pProtocolId: '/mcp+p2p/1.0.0',
+};
 
 export const IPFS_DATASETS_SERVER: MCPPPServerConfig = {
   name: 'ipfs-datasets-mcp++',
@@ -87,6 +106,10 @@ export class MCPPPServerConnector {
   private connected: boolean = false;
   private negotiatedProfiles: string[] = [];
   private serverInterfaces: MCPPPInterfaceDescriptor[] = [];
+  /** libp2p session, set when transport === 'libp2p'. JSON-RPC is routed here. */
+  private session: MCPp2pSession | null = null;
+  /** Underlying libp2p transport, owned for teardown on disconnect(). */
+  private libp2pTransport: Libp2pTransport | null = null;
 
   constructor(config: MCPPPServerConfig) {
     this.config = config;
@@ -95,6 +118,51 @@ export class MCPPPServerConnector {
   // --- Connection Lifecycle ---
 
   async connect(): Promise<{ success: boolean; profiles: string[]; tools: string[] }> {
+    if (this.config.transport === 'libp2p') {
+      return this.connectLibp2p();
+    }
+    return this.connectHttp();
+  }
+
+  /**
+   * Connect over the MCP++ Profile E libp2p transport (`/mcp+p2p/1.0.0`).
+   * Reuses SwissKnife's Libp2pTransport + MCPp2pSession (length-prefixed
+   * JSON-RPC framing) so the same server tools are reachable without HTTP.
+   */
+  private async connectLibp2p(): Promise<{ success: boolean; profiles: string[]; tools: string[] }> {
+    const multiaddr = this.config.multiaddr;
+    if (!multiaddr) {
+      return { success: false, profiles: [], tools: [] };
+    }
+    try {
+      const { connectLibp2pMcpSession } = await import('./mcp-transport.js');
+      const { transport, session } = await connectLibp2pMcpSession(multiaddr, {
+        libp2pOptions: this.config.p2pProtocolId
+          ? { protocolId: this.config.p2pProtocolId }
+          : undefined,
+      });
+      this.libp2pTransport = transport;
+      this.session = session;
+      this.connected = true;
+
+      // The Libp2pTransport already performed the MCP initialize handshake.
+      const hs = session.handshakeResult;
+      this.negotiatedProfiles =
+        hs?.capabilities?.mcpPlusPlusProfiles && hs.capabilities.mcpPlusPlusProfiles.length > 0
+          ? hs.capabilities.mcpPlusPlusProfiles
+          : ['mcp++/p2p-transport'];
+
+      const tools = await this.discoverTools();
+      return { success: true, profiles: this.negotiatedProfiles, tools };
+    } catch {
+      this.connected = false;
+      this.session = null;
+      this.libp2pTransport = null;
+      return { success: false, profiles: [], tools: [] };
+    }
+  }
+
+  private async connectHttp(): Promise<{ success: boolean; profiles: string[]; tools: string[] }> {
     // 1. Health check
     try {
       const healthResp = await this.fetch(this.config.healthPath, { signal: AbortSignal.timeout(5000) });
@@ -129,12 +197,7 @@ export class MCPPPServerConnector {
     }
 
     // 3. Discover tools
-    let tools: string[] = [];
-    try {
-      const toolsResp = await this.fetch(this.config.toolsPath);
-      const toolsData = await toolsResp.json();
-      tools = toolsData.tools || Object.keys(toolsData) || [];
-    } catch {}
+    const tools = await this.discoverTools();
 
     // 4. Discover interface descriptors (Profile A)
     if (this.config.interfacesPath) {
@@ -148,11 +211,70 @@ export class MCPPPServerConnector {
     return { success: this.connected, profiles: this.negotiatedProfiles, tools };
   }
 
+  /**
+   * Discover the server's tool names. Over libp2p (or when the REST tools
+   * endpoint is unavailable) this falls back to the JSON-RPC `tools/list`
+   * method, which every MCP/MCP++ server exposes.
+   */
+  private async discoverTools(): Promise<string[]> {
+    const fromRpc = async (): Promise<string[]> => {
+      try {
+        const res = await this.jsonRpc('tools/list', {});
+        const list = res?.tools || res || [];
+        return (Array.isArray(list) ? list : [])
+          .map((t: any) => (typeof t === 'string' ? t : t?.name))
+          .filter(Boolean);
+      } catch {
+        return [];
+      }
+    };
+
+    // libp2p has no REST endpoints — go straight to JSON-RPC.
+    if (this.session) return fromRpc();
+
+    try {
+      const toolsResp = await this.fetch(this.config.toolsPath);
+      const toolsData = await toolsResp.json();
+      const list = toolsData.tools || (Array.isArray(toolsData) ? toolsData : Object.keys(toolsData));
+      const names = (Array.isArray(list) ? list : [])
+        .map((t: any) => (typeof t === 'string' ? t : t?.name))
+        .filter(Boolean);
+      if (names.length > 0) return names;
+    } catch {}
+
+    // REST tools endpoint missing/empty — fall back to JSON-RPC tools/list.
+    return fromRpc();
+  }
+
   async disconnect(): Promise<void> {
     if (this.connected) {
       try { await this.jsonRpc('shutdown', {}); } catch {}
       this.connected = false;
     }
+    if (this.libp2pTransport) {
+      try { await this.libp2pTransport.disconnect(); } catch {}
+      this.libp2pTransport = null;
+    }
+    this.session = null;
+  }
+
+  /**
+   * Bind this connector to an already-open MCP+p2p session (Profile E).
+   * Lets SwissKnife reuse a libp2p session it has already dialed/handshaked
+   * (e.g. via Libp2pTransport / connectLibp2pMcpSession) to call this server's
+   * tools over JSON-RPC without opening a second connection. The caller retains
+   * ownership of the session lifecycle.
+   */
+  async useSession(session: MCPp2pSession): Promise<{ success: boolean; profiles: string[]; tools: string[] }> {
+    this.session = session;
+    this.connected = true;
+    const hs = session.handshakeResult;
+    this.negotiatedProfiles =
+      hs?.capabilities?.mcpPlusPlusProfiles && hs.capabilities.mcpPlusPlusProfiles.length > 0
+        ? hs.capabilities.mcpPlusPlusProfiles
+        : ['mcp++/p2p-transport'];
+    const tools = await this.discoverTools();
+    return { success: true, profiles: this.negotiatedProfiles, tools };
   }
 
   // --- Profile A: Interface Discovery ---
@@ -183,6 +305,54 @@ export class MCPPPServerConnector {
       name: toolName,
       arguments: args,
     });
+    return result;
+  }
+
+  // --- Hierarchical tool facade (matches the package JS SDKs) ---
+  // Servers expose meta-tools tools_list_categories / tools_list_tools /
+  // tools_get_schema / tools_dispatch plus flat `<category>.<tool>` descriptors.
+  // These helpers unwrap the CallToolResult envelope so callers get plain data.
+
+  /** List tool categories (optionally with per-category tool counts). */
+  async listCategories(includeCount: boolean = true): Promise<any> {
+    return this.unwrapToolResult(
+      await this.callTool('tools_list_categories', { include_count: includeCount }),
+    );
+  }
+
+  /** List the tools within a single category. */
+  async listToolsInCategory(category: string): Promise<any> {
+    return this.unwrapToolResult(
+      await this.callTool('tools_list_tools', { category }),
+    );
+  }
+
+  /** Fetch the JSON schema for a tool by bare/dotted name (or param object). */
+  async getToolSchema(nameOrParams: string | Record<string, any>): Promise<any> {
+    const params = typeof nameOrParams === 'string' ? { name: nameOrParams } : nameOrParams;
+    return this.unwrapToolResult(
+      await this.callTool('tools_get_schema', params),
+    );
+  }
+
+  /** Dispatch a tool inside a category via the `tools_dispatch` meta-tool. */
+  async dispatch(category: string, tool: string, params: Record<string, any> = {}): Promise<any> {
+    return this.unwrapToolResult(
+      await this.callTool('tools_dispatch', { category, tool, params }),
+    );
+  }
+
+  /** Unwrap an MCP CallToolResult ({content:[{type:'text',text}]}) to plain data. */
+  private unwrapToolResult(result: any): any {
+    if (result && Array.isArray(result.content)) {
+      const text = result.content
+        .filter((c: any) => c?.type === 'text' && typeof c.text === 'string')
+        .map((c: any) => c.text)
+        .join('');
+      if (text) {
+        try { return JSON.parse(text); } catch { return text; }
+      }
+    }
     return result;
   }
 
@@ -316,6 +486,15 @@ export class MCPPPServerConnector {
       params,
     };
 
+    // Route over the libp2p MCP+p2p session when connected via Profile E.
+    if (this.session) {
+      const response = await this.session.sendRequest(request as any);
+      if (response.error) {
+        throw new Error(`JSON-RPC Error ${response.error.code}: ${response.error.message}`);
+      }
+      return response.result;
+    }
+
     const resp = await this.fetch(this.config.mcpPath, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -352,6 +531,9 @@ export class MCPPPServerConnector {
   get isConnected(): boolean { return this.connected; }
   get serverName(): string { return this.config.name; }
   get profiles(): string[] { return this.negotiatedProfiles; }
+  /** 'libp2p' when connected over MCP+p2p, otherwise 'http'. */
+  get transportKind(): 'http' | 'libp2p' { return this.session ? 'libp2p' : (this.config.transport ?? 'http'); }
+  get endpoint(): string { return this.config.transport === 'libp2p' ? (this.config.multiaddr ?? '') : this.config.baseUrl; }
 }
 
 // --- Unified Multi-Server Connector ---
@@ -449,9 +631,33 @@ export class MCPPPMultiServerConnector {
 
 // --- Factory ---
 
-export function createMultiServerConnector(agentDID: string): MCPPPMultiServerConnector {
+export interface MultiServerConnectorOptions {
+  /** Include the ipfs_kit_py MCP++ server (default: true). */
+  includeKit?: boolean;
+  /**
+   * Force all servers onto the libp2p MCP+p2p transport. Provide a map of
+   * server name → multiaddr, or a single multiaddr applied to every server.
+   * When omitted, servers use their default HTTP transport.
+   */
+  libp2p?: string | Record<string, string>;
+}
+
+export function createMultiServerConnector(
+  agentDID: string,
+  options: MultiServerConnectorOptions = {},
+): MCPPPMultiServerConnector {
+  const { includeKit = true, libp2p } = options;
   const connector = new MCPPPMultiServerConnector(agentDID);
-  connector.addServer(IPFS_DATASETS_SERVER);
-  connector.addServer(IPFS_ACCELERATE_SERVER);
+
+  const withTransport = (base: MCPPPServerConfig): MCPPPServerConfig => {
+    if (!libp2p) return base;
+    const multiaddr = typeof libp2p === 'string' ? libp2p : libp2p[base.name];
+    if (!multiaddr) return base;
+    return { ...base, transport: 'libp2p', multiaddr };
+  };
+
+  if (includeKit) connector.addServer(withTransport(IPFS_KIT_SERVER));
+  connector.addServer(withTransport(IPFS_DATASETS_SERVER));
+  connector.addServer(withTransport(IPFS_ACCELERATE_SERVER));
   return connector;
 }
