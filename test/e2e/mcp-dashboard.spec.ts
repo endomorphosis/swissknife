@@ -69,7 +69,7 @@ function readJson<T>(filePath: string): T {
 // overridden live catalog (e.g. MCP_KIT_PORT set locally) back to defaults so the
 // parity check validates schema/content rather than the environment's port choice.
 const PORT_NORMALIZATION: Array<[number, number]> = [
-  [Number(process.env.MCP_KIT_PORT) || 8004, 8004],
+  [Number(process.env.MCP_KIT_PORT) || 8014, 8014],
   [Number(process.env.MCP_DATASETS_PORT) || 3002, 3002],
   [Number(process.env.MCP_ACCELERATE_PORT) || 3003, 3003],
   [Number(process.env.MCP_SWISSKNIFE_PORT) || 3004, 3004],
@@ -167,7 +167,7 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
     expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_kit_py', 'tools/list')).toMatchObject({
       operation: 'tools/list',
       method: 'GET',
-      url: 'http://127.0.0.1:8004/mcp/tools/list',
+      url: 'http://127.0.0.1:8014/mcp/tools/list',
     });
     expect(buildSwissknifeMCPDashboardInvocationPlan(catalog, 'ipfs_datasets_py', 'tools/call').safe_probe).toMatchObject({
       tool_name: 'datasets_list',
@@ -319,7 +319,7 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
     expect(mappedKit).toMatchObject({
       name: 'ipfs-kit',
       serverPackage: 'ipfs_kit_py',
-      toolsListUrl: 'http://127.0.0.1:8004/mcp/tools/list',
+      toolsListUrl: 'http://127.0.0.1:8014/mcp/tools/list',
       safeProbeTool: 'ipfs_status',
       safeProbeReceipt: 'ipfs_kit_status_probe',
     });

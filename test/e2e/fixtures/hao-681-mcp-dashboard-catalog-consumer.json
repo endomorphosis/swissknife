@@ -42,7 +42,7 @@
       "role": "storage",
       "server_package": "ipfs_kit_py",
       "daemon_id": "ipfs-kit",
-      "tools_list_url": "http://127.0.0.1:8004/mcp/tools/list",
+      "tools_list_url": "http://127.0.0.1:8014/mcp/tools/list",
       "safe_tools_call_probe": "ipfs_status",
       "safe_probe_receipt": "ipfs_kit_status_probe"
     },
