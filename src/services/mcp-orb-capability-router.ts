@@ -118,7 +118,7 @@ export interface ORBDeonticEvaluator {
     capability: string;
     resource: string;
     timestamp?: string;
-  }): ORBDeonticEvaluation;
+  }): ORBDeonticEvaluation | Promise<ORBDeonticEvaluation>;
 }
 
 export interface ORBAuthorizationPolicy {
@@ -653,7 +653,7 @@ export class MCPCapabilityRouter {
         granted_capabilities: context.capabilities ?? [],
       });
     const mediatedDecision = attachControlSurfaceMediation(decision, mediation);
-    const finalDecision = this.applyDeonticPolicy(mediatedDecision, binding, mediatedContext);
+    const finalDecision = await this.applyDeonticPolicy(mediatedDecision, binding, mediatedContext);
     binding.lifecycle.push(lifecycle(
       'authorize',
       finalDecision.outcome === 'permit' ? 'ok' : 'denied',
@@ -671,18 +671,18 @@ export class MCPCapabilityRouter {
    * a PERMIT / OBLIGATION_SPAWNED attaches any spawned obligations so the
    * receipt and caller can track them. Never overrides an existing deny.
    */
-  private applyDeonticPolicy(
+  private async applyDeonticPolicy(
     decision: ORBPolicyDecision,
     binding: ORBBoundOperation,
     context: ORBInvocationContext,
-  ): ORBPolicyDecision {
+  ): Promise<ORBPolicyDecision> {
     if (!this.deonticEvaluator || !context.policy_cid || decision.outcome === 'deny') {
       return decision;
     }
     const timestamp = typeof context.metadata?.timestamp === 'string'
       ? context.metadata.timestamp
       : undefined;
-    const evaluation = this.deonticEvaluator.evaluate({
+    const evaluation = await this.deonticEvaluator.evaluate({
       policy_cid: context.policy_cid,
       capability: this.deonticInvokeCapability(binding.operation.method),
       resource: binding.interface_cid,

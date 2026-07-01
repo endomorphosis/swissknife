@@ -527,7 +527,7 @@ export interface ORBDeonticEvaluator {
     capability: string;
     resource: string;
     timestamp?: string;
-  }): ORBDeonticEvaluation;
+  }): ORBDeonticEvaluation | Promise<ORBDeonticEvaluation>;
 }
 
 /**
