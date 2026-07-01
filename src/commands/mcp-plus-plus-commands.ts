@@ -14,7 +14,7 @@
 
 import type { Command as PublicCommand } from '../types/command.js';
 import { createMCPPlusPlusClient, IPFS_KIT_INTERFACE, IPFS_ACCELERATE_INTERFACE, IPFS_DATASETS_INTERFACE } from '../services/mcp-plus-plus.js';
-import { createMultiServerConnector, IPFS_KIT_SERVER, IPFS_DATASETS_SERVER, IPFS_ACCELERATE_SERVER } from '../services/mcp-plus-plus-connector.js';
+import { createMultiServerConnector, IPFS_KIT_SERVER, IPFS_DATASETS_SERVER, IPFS_ACCELERATE_SERVER, mcpppToolTotal } from '../services/mcp-plus-plus-connector.js';
 import type { MCPPPMultiServerConnector, MultiServerConnectorOptions } from '../services/mcp-plus-plus-connector.js';
 
 // Singleton client initialized with placeholder DID (replaced at runtime)
@@ -331,7 +331,10 @@ export const mcpppCommand: PublicCommand = {
             const c = connector.getConnector(name);
             lines.push(`     Transport: ${c?.transportKind ?? mcpppConnectorTransport} (${c?.endpoint ?? ''})`);
             lines.push(`     Profiles: ${result.profiles.join(', ')}`);
-            lines.push(`     Tools: ${result.tools.length} available`);
+            // result.tools is the raw tools/list surface (includes the 4
+            // hierarchical facade meta-tools); report the true callable count.
+            const toolTotal = await mcpppToolTotal(result.tools, c);
+            lines.push(`     Tools: ${toolTotal} available`);
           }
         }
         return { output: lines.join('\n') };

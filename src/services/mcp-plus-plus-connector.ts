@@ -98,6 +98,83 @@ interface MCPJsonRpcResponse {
   error?: { code: number; message: string; data?: any };
 }
 
+// --- Hierarchical tool counting ---
+
+/**
+ * The four hierarchical facade meta-tools every MCP++ server advertises in
+ * `tools/list` alongside its flat `<category>.<tool>` surface. They are
+ * plumbing (list categories / list tools / get schema / dispatch), not callable
+ * domain tools, so they must be excluded from any reported tool COUNT.
+ */
+export const MCPPP_META_TOOL_NAMES: ReadonlySet<string> = new Set([
+  'tools_list_categories',
+  'tools_list_tools',
+  'tools_get_schema',
+  'tools_dispatch',
+]);
+
+/** Filter a discovered `tools/list` name array down to real domain tools. */
+export function domainToolNames(names: readonly string[] | null | undefined): string[] {
+  return (names ?? []).filter(
+    (n): n is string => typeof n === 'string' && !MCPPP_META_TOOL_NAMES.has(n),
+  );
+}
+
+/**
+ * Sum per-category tool counts from a `tools_list_categories` payload
+ * (`{categories:[{name,count}]}` or a bare `[{name,count}]`). Returns null when
+ * the payload carries no usable numeric counts.
+ */
+function sumCategoryCounts(categoriesPayload: any): number | null {
+  const list = Array.isArray(categoriesPayload?.categories)
+    ? categoriesPayload.categories
+    : Array.isArray(categoriesPayload)
+      ? categoriesPayload
+      : null;
+  if (!list) return null;
+  let sum = 0;
+  let sawCount = false;
+  for (const cat of list) {
+    if (cat && typeof cat === 'object') {
+      const c = cat.count ?? cat.tool_count ?? cat.total;
+      if (typeof c === 'number' && Number.isFinite(c)) {
+        sum += c;
+        sawCount = true;
+      }
+    }
+  }
+  return sawCount ? sum : null;
+}
+
+/**
+ * The true number of callable domain tools a server exposes, given the raw
+ * names discovered from `tools/list`. Excludes the four hierarchical facade
+ * meta-tools. When the server advertises ONLY meta-tools (a reduced
+ * hierarchical facade), the real tools live behind `tools_list_categories`, so
+ * the per-category counts are summed via the supplied connector. Falls back to
+ * the raw name count when nothing better is available. Never throws.
+ */
+export async function mcpppToolTotal(
+  names: readonly string[] | null | undefined,
+  connector?: { listCategories(includeCount?: boolean): Promise<any> } | null,
+): Promise<number> {
+  const all = (names ?? []).filter((n): n is string => typeof n === 'string');
+  const domain = domainToolNames(all);
+  if (domain.length > 0) return domain.length;
+  // Reduced facade (meta-only): derive the true total from category counts.
+  const hasMeta = all.some((n) => MCPPP_META_TOOL_NAMES.has(n));
+  if (hasMeta && connector) {
+    try {
+      const cats = await connector.listCategories(true);
+      const total = sumCategoryCounts(cats);
+      if (total != null) return total;
+    } catch {
+      /* fall through to raw count */
+    }
+  }
+  return all.length;
+}
+
 // --- Server Connector ---
 
 export class MCPPPServerConnector {
