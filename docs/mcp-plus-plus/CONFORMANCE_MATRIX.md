@@ -1,7 +1,7 @@
 # MCP++ Conformance Matrix (Phase 1 Baseline)
 
-**Status:** Draft baseline for implementation kickoff  
-**Last updated:** 2026-05-21  
+**Status:** Updated — Rounds 50-52 deontic UI pipeline and remote TDFOL engine  
+**Last updated:** 2026-07-01  
 **Scope:** SwissKnife MCP++ Profiles A-E with parity tracking against:
 - `endomorphosis/mcp_plus_plus` (spec intent)
 - `endomorphosis/ipfs_accelerate_py` (conformance discipline and rollout gates)
@@ -16,7 +16,7 @@
 | A | MCP-IDL interface contracts | PASS | Deterministic canonicalization + CID repository + compat/select APIs implemented and tested. |
 | B | CID-native envelopes & receipts | PASS | Envelope/receipt content addressing and signing path implemented and tested. |
 | C | UCAN capability delegation | PARTIAL | Core token issue/validate/can + revocation present; missing DelegationManager lifecycle and persistent/IPFS-backed delegation graph management. |
-| D | Temporal deontic policy | PASS | Policy registration/evaluation/obligation tracking and decision CID implemented and tested. |
+| D | Temporal deontic policy | PASS | Policy engine + obligation tracking + deontic-to-UI projection + per-device conformance + remote TDFOL proof delegation + ORB runtime enforcement + JSON-serialisable UI manifest bridge all implemented and tested. |
 | E | P2P transport/session | PARTIAL | Session framing, handshake, correlation, and rate limits implemented; missing PubSubBus abstraction and transport hardening parity features from references. |
 
 ---
@@ -63,7 +63,13 @@
 | Decision engine with deny precedence and temporal checks | PASS | `src/services/mcp-policy.ts` (`evaluatePolicy`) |
 | Obligation tracking and overdue detection | PASS | `src/services/mcp-policy.ts` + `test/mcp-plus-plus/policy-and-scheduler.test.ts` |
 | Deterministic policy decision CID | PASS | `src/services/mcp-policy.ts` (`decision_cid`) |
-| Compliance/audit policy integration (reference parity) | PARTIAL | Core policy engine exists, but `ComplianceChecker`/`PolicyAuditLog` equivalents are missing |
+| Deontic interface projection (policy → per-method states) | PASS | `src/services/mcp-deontic-interface-broker.ts` (`projectDeonticInterface`, `checkPolicyConsistency`) + `test/mcp-plus-plus/mcp-deontic-interface-broker.test.ts` |
+| Per-device deontic conformance (obligated-first, budget cap, modality binding) | PASS | `src/services/mcp-deontic-interface-broker.ts` (`conformProjectionToDevice`) |
+| End-to-end constrained interface model builder | PASS | `src/services/mcp-deontic-interface-broker.ts` (`buildConstrainedInterfaceModel`) |
+| ORB runtime deontic enforcement (authorize → deny/obligation on policy_cid) | PASS | `src/services/mcp-orb-capability-router.ts` (`applyDeonticPolicy`, `ORBDeonticEvaluator`) |
+| Remote TDFOL proof delegation (temporal/hard proofs to ipfs_datasets_py) | PASS | `src/services/mcp-remote-deontic-engine.ts` (`RemoteDeonticEngine`, `createRemoteDeonticORBEvaluator`) + `test/mcp-plus-plus/mcp-remote-deontic-engine.test.ts` |
+| JSON-serialisable deontic UI manifest bridge + invoke guard | PASS | `src/services/mcp-deontic-ui-manifest.ts` (`buildDeonticUIManifest`, `invokeControl`) + `test/mcp-plus-plus/mcp-deontic-ui-manifest.test.ts` |
+| Compliance/audit policy integration (ComplianceChecker/PolicyAuditLog) | PARTIAL | Core policy engine + deontic-to-UI pipeline exist; dedicated `ComplianceChecker`/`PolicyAuditLog` audit-replay primitives still missing |
 
 ### Profile E — P2P transport/session
 
@@ -122,8 +128,8 @@ Priority order for implementation start:
 3. **E2 — Transport hardening**  
    Add explicit state machine, deterministic failure codes, and standardized backoff policy.
 
-4. **D1/C2 — Compliance + audit integration**  
-   Add policy/compliance audit logs and operational traceability primitives.
+4. **D1/C2 — Compliance + audit integration** *(partial)*  
+   Deontic-to-UI projection, per-device conformance, ORB enforcement, and remote TDFOL proof delegation are all implemented (Rounds 50-52). Remaining: dedicated `ComplianceChecker` and `PolicyAuditLog` audit-replay primitives.
 
 ---
 
@@ -174,6 +180,10 @@ Priority order for implementation start:
 - [ ] Implement `src/auth/delegation-manager.ts` with persistence + merge/reload operations.
 - [ ] Implement `src/services/mcp-pubsub-bus.ts` and adapt `mcp-discovery.ts` integration points.
 - [ ] Introduce transport session state machine + deterministic error taxonomy in `mcp-p2p-session.ts`.
+- [x] Deontic interface broker: formal-logic policy → constrained UI + per-device conformance (`mcp-deontic-interface-broker.ts`, Round 50).
+- [x] ORB runtime deontic enforcement: `applyDeonticPolicy` in authorize() path (`mcp-orb-capability-router.ts`, Round 50).
+- [x] Remote TDFOL proof delegation: delegate temporal/hard proofs to Python formal-logic engine (`mcp-remote-deontic-engine.ts`, Round 51).
+- [x] JSON-serialisable UI manifest bridge + invoke guard (`mcp-deontic-ui-manifest.ts`, Round 52).
 - [ ] Add compliance and policy audit primitives (`compliance-checker`, `policy-audit-log`).
 - [ ] Add conformance status CLI output (`mcp-plus-plus conformance status`).
 - [ ] Add requirement-to-test mapping doc and keep this matrix updated per merged feature.
