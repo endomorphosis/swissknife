@@ -17,7 +17,7 @@
 | B | CID-native envelopes & receipts | PASS | Envelope/receipt content addressing and signing path implemented and tested. |
 | C | UCAN capability delegation | PASS | Core token issue/validate/can + revocation + DelegationManager lifecycle (add/merge/query/persist/IPFS-reload) implemented and tested. |
 | D | Temporal deontic policy | PASS | Policy engine + obligation tracking + deontic-to-UI projection + per-device conformance + remote TDFOL proof delegation + ORB runtime enforcement + JSON-serialisable UI manifest bridge all implemented and tested. |
-| E | P2P transport/session | PARTIAL | Session framing, handshake, correlation, rate limits, and PubSubBus implemented; missing transport hardening state machine and explicit capability negotiation parity. |
+| E | P2P transport/session | PASS | Session framing, handshake, correlation, rate limits, PubSubBus, deterministic error codes, explicit state machine, backoff reconnection policy, and capability negotiation all implemented and tested. |
 
 ---
 
@@ -81,8 +81,8 @@
 | Rate-limiting of inbound messages | PASS | `src/services/mcp-p2p-session.ts` (`FixedWindowRateLimiter`) |
 | Transport abstraction + factory | PASS | `src/services/mcp-transport.ts` (`MCPTransportFactory`) |
 | Structured PubSubBus lifecycle parity (subscribe/topic mapping/resubscribe metrics) | PASS | `src/services/mcp-pubsub-bus.ts` (`MCPPubSubBus`, `InProcessBusTransport`, `MCP_WELL_KNOWN_TOPICS`) + `test/mcp-plus-plus/mcp-pubsub-bus.test.ts` |
-| Hardened recovery semantics (oversize/malformed frame codes, churn backoff policy, explicit state machine) | PARTIAL | Some guardrails and reconnect exist; full hardening/state machine parity is not complete |
-| Capability negotiation/downgrade and stricter handshake gating | PARTIAL | Handshake exists; explicit compatibility negotiation framework not fully formalized |
+| Hardened recovery semantics (oversize/malformed frame codes, churn backoff policy, explicit state machine) | PASS | `src/services/mcp-p2p-session.ts` — `SessionErrorCode` (1xxx/2xxx/3xxx/4xxx), `SessionError`, `SessionState` machine, `computeBackoffDelay`, `ReconnectPolicy` |
+| Capability negotiation/downgrade and stricter handshake gating | PASS | `src/services/mcp-p2p-session.ts` — `negotiateCapabilities`, `MCP_PLUS_PLUS_PROFILES`, `handshake()` emits `capability-downgrade` event |
 
 ---
 
@@ -125,8 +125,8 @@ Priority order for implementation start:
 2. **E1 — P2P pub/sub operational abstraction** *(resolved)*  
    `MCPPubSubBus` implemented with deterministic lifecycle (idle/starting/running/stopping/stopped), topic-to-handler registry, pre-start subscription replay, resubscribe metrics, pluggable transport backend (`InProcessBusTransport` works without libp2p).
 
-3. **E2 — Transport hardening**  
-   Add explicit state machine, deterministic failure codes, and standardized backoff policy.
+3. **E2 — Transport hardening** *(resolved)*  
+   `SessionErrorCode` taxonomy (1xxx framing, 2xxx protocol, 3xxx rate, 4xxx lifecycle), `SessionError`, explicit `SessionState` machine, `computeBackoffDelay` with exponential + jitter, `negotiateCapabilities` + capability-downgrade event.
 
 4. **D1/C2 — Compliance + audit integration** *(resolved)*  
    PolicyAuditLog (ring-buffer, JSONL sink, replay, stats, deterministic entry CIDs) + ComplianceChecker (rule lifecycle, merge/diff, checkAndAudit, built-in MCP++ base rules) implemented.
@@ -179,7 +179,7 @@ Priority order for implementation start:
 
 - [x] Implement `src/auth/delegation-manager.ts` with persistence + merge/reload operations.
 - [x] Implement `src/services/mcp-pubsub-bus.ts` and adapt `mcp-discovery.ts` integration points.
-- [ ] Introduce transport session state machine + deterministic error taxonomy in `mcp-p2p-session.ts`.
+- [x] Introduce transport session state machine + deterministic error taxonomy in `mcp-p2p-session.ts`.
 - [x] Deontic interface broker: formal-logic policy → constrained UI + per-device conformance (`mcp-deontic-interface-broker.ts`, Round 50).
 - [x] ORB runtime deontic enforcement: `applyDeonticPolicy` in authorize() path (`mcp-orb-capability-router.ts`, Round 50).
 - [x] Remote TDFOL proof delegation: delegate temporal/hard proofs to Python formal-logic engine (`mcp-remote-deontic-engine.ts`, Round 51).
