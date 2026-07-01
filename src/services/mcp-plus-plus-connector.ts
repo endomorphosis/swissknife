@@ -175,6 +175,25 @@ export async function mcpppToolTotal(
   return all.length;
 }
 
+/**
+ * Split a flat `<category>.<tool>` tool name into the `{category, tool}` pair the
+ * hierarchical `tools_get_schema` / `tools_dispatch` meta-tools require. The
+ * servers split on the FIRST dot (via `str.partition(".")`), so
+ * `data.load.csv` -> `{category:'data', tool:'load.csv'}`. A name with no
+ * interior dot cannot be resolved to a category, so it is returned as `{ name }`
+ * for servers that accept a bare name (and to preserve pre-hierarchical
+ * behaviour).
+ */
+export function splitDottedToolName(
+  name: string,
+): { category: string; tool: string } | { name: string } {
+  const i = name.indexOf('.');
+  if (i > 0 && i < name.length - 1) {
+    return { category: name.slice(0, i), tool: name.slice(i + 1) };
+  }
+  return { name };
+}
+
 // --- Server Connector ---
 
 export class MCPPPServerConnector {
@@ -404,9 +423,13 @@ export class MCPPPServerConnector {
     );
   }
 
-  /** Fetch the JSON schema for a tool by bare/dotted name (or param object). */
+  /**
+   * Fetch the JSON schema for a tool. Accepts a flat `<category>.<tool>` name
+   * (split into the `{category, tool}` pair the server's `tools_get_schema`
+   * meta-tool requires) or an explicit `{category, tool}` param object.
+   */
   async getToolSchema(nameOrParams: string | Record<string, any>): Promise<any> {
-    const params = typeof nameOrParams === 'string' ? { name: nameOrParams } : nameOrParams;
+    const params = typeof nameOrParams === 'string' ? splitDottedToolName(nameOrParams) : nameOrParams;
     return this.unwrapToolResult(
       await this.callTool('tools_get_schema', params),
     );
