@@ -419,6 +419,11 @@ assert(
   mgw563Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/mgw-563-mcp-dashboard-launch-gate.json',
   'MGW-563 launch gate must point at the Playwright fixture',
 );
+assert(mgw563Gate?.attempt === 2, 'MGW-563 launch gate must expose the attempt-2 validation receipt');
+assert(
+  JSON.stringify(mgw563Gate?.attempt_receipts || []) === JSON.stringify(mgw563LaunchGateReceipt.attempt_receipts),
+  'MGW-563 launch gate must preserve attempt-2 validation receipt paths',
+);
 assert(
   JSON.stringify(mgw563Gate?.child_goals || []) === JSON.stringify(mgw563LaunchGateReceipt.child_goals),
   'MGW-563 launch gate must expose VAIOS-G723 dashboard child goals',
