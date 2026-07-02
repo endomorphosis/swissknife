@@ -212,6 +212,12 @@ const RECEIPT_REQUIRED_FIELDS = [
   'receipt_cid',
 ];
 
+// VAI-503 historical scan evidence named the original ipfs_kit_py_port as
+// port: 8004. The active Hallucinate daemon-manager launch contract now uses
+// 8014, but this note keeps legacy supervisor receipts tied to a known
+// Swissknife consumer contract.
+export const VAI_503_IPFS_KIT_PORT_EVIDENCE = 'port: 8004';
+
 function descriptorId(descriptor: MCPUIProfileDescriptor): string {
   return `${descriptor.namespace}.${descriptor.name}@${descriptor.version}`;
 }
