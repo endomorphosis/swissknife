@@ -95,5 +95,6 @@ export type ProverStrategy = 'FASTEST' | 'PARALLEL' | 'SEQUENTIAL' | 'REMOTE';
 export type FormulaClass =
   | 'propositional'   // boolean combination of atoms — any SMT prover handles this
   | 'fol'             // first-order (∀/∃ quantifiers) — Z3/CVC5 handle this
+  | 'modal_deontic'   // deontic modal operators (O/P/F) — DcecProverBridge handles this
   | 'temporal'        // temporal operators (◊/□/until) — TDFOL tableaux required
   | 'higher_order';   // dependent types, inductive constructions — Lean/Coq needed

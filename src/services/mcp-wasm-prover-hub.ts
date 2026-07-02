@@ -31,6 +31,7 @@ import { CoqJsCoqBridge } from './provers/coq-jscoq-bridge.js';
 import { Lean4WasmBridge } from './provers/lean4-wasm-bridge.js';
 import { NeuralProverBridge } from './provers/neural-prover-bridge.js';
 import type { NeuralProverConnector } from './provers/neural-prover-bridge.js';
+import { DcecProverBridge } from './provers/dcec-prover-bridge.js';
 
 // ---------------------------------------------------------------------------
 // FormulaClassifier — complexity heuristic
@@ -52,13 +53,19 @@ function classifyPolicy(policy: Policy): FormulaClass {
     if ('deadline' in obl && obl.deadline !== undefined) return 'temporal';
   }
 
-  // Higher-order: obligations that reference complex capability chains
-  // (heuristic: more than 5 obligations suggests complex reasoning)
+  // Higher-order: complex policies with many rules exceed SMT/DCEC budget
+  // (heuristic: more than 20 total rules → remote TDFOL required)
   const totalRules =
     (policy.permissions?.length ?? 0) +
     (policy.prohibitions?.length ?? 0) +
     (policy.obligations?.length ?? 0);
   if (totalRules > 20) return 'higher_order';
+
+  // Modal deontic: has obligations or prohibitions — route to DCEC for
+  // deontic conflict detection (O/P/F inference rules)
+  const hasObligations = (policy.obligations?.length ?? 0) > 0;
+  const hasProhibitions = (policy.prohibitions?.length ?? 0) > 0;
+  if (hasObligations || hasProhibitions) return 'modal_deontic';
 
   // First-order: has wildcard permissions/prohibitions with ∀-style semantics
   const hasWildcard = (policy.permissions ?? []).some(p => p.cap === '*' || p.rsc === '*') ||
@@ -95,6 +102,7 @@ export interface HubProverStatus {
   lean4_wasm: boolean;
   lurk_wasm: boolean;
   neural: boolean;
+  dcec_native: boolean;
 }
 
 export class WasmProverHub {
@@ -106,6 +114,7 @@ export class WasmProverHub {
   private coq?: CoqJsCoqBridge;
   private lean4?: Lean4WasmBridge;
   private neural?: NeuralProverBridge;
+  private dcec: DcecProverBridge;
 
   private constructor(opts: WasmProverHubOptions, z3?: Z3WasmBridge, cvc5?: Cvc5WasmBridge, coq?: CoqJsCoqBridge, lean4?: Lean4WasmBridge, neural?: NeuralProverBridge) {
     this.strategy = opts.strategy ?? 'FASTEST';
@@ -120,6 +129,7 @@ export class WasmProverHub {
     this.coq = coq;
     this.lean4 = lean4;
     this.neural = neural;
+    this.dcec = new DcecProverBridge();
   }
 
   /**
@@ -177,6 +187,16 @@ export class WasmProverHub {
       };
     }
 
+    // modal_deontic: DCEC prover handles O/P/F conflict detection
+    if (formulaClass === 'modal_deontic') {
+      const dcecResult = await this.dcec.checkPolicyConsistency(policy);
+      if (isLocallyDecided(dcecResult)) {
+        this.cache.put(cacheKey, dcecResult);
+        return dcecResult;
+      }
+      // Fall through to Z3 if DCEC couldn't decide (shouldn't happen in practice)
+    }
+
     // propositional / fol → try Z3 WASM
     const result = await this._tryZ3(policy);
 
@@ -231,6 +251,7 @@ export class WasmProverHub {
       lean4_wasm: this.lean4 !== undefined,
       lurk_wasm: false,                     // Phase 6 — pending lurk-wasm package
       neural: this.neural !== undefined,
+      dcec_native: true,                    // Sprint 9 — always available (pure TS)
     };
   }
 

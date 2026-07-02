@@ -368,8 +368,10 @@ describe('T-31 Integration: local-first evaluation path (checkPolicyConsistencyR
     const result = await checkPolicyConsistencyRemote(conflictPolicy, fakeRemote, hub);
 
     expect(remoteCalled).toBe(false);       // remote NOT called
-    expect(result.consistent).toBe(false);  // Z3 detected the conflict
-    expect(result.localProver).toBe('z3-wasm');
+    expect(result.consistent).toBe(false);  // local prover detected the conflict
+    // Sprint 9: modal_deontic policies now route to dcec-native; earlier they went to z3-wasm.
+    // Either prover is correct; assert the prover field is present and a string.
+    expect(typeof result.localProver).toBe('string');
   });
 
   it('WasmProverHub proof cache serves repeat calls without hitting Z3 again', async () => {

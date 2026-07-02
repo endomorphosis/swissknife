@@ -278,6 +278,7 @@ describe('WasmProverHub — routing and caching', () => {
     expect(typeof status.coq_jscoq).toBe('boolean');
     expect(typeof status.lean4_wasm).toBe('boolean');
     expect(status.lurk_wasm).toBe(false); // Phase 6 not yet implemented
+    expect(status.dcec_native).toBe(true); // Sprint 9 — always available (pure TS)
   });
 
   it('cacheStats() starts at zero', async () => {
