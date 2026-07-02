@@ -43,13 +43,19 @@ async function loadZ3(): Promise<Awaited<ReturnType<typeof import('z3-solver')['
 }
 
 export class Z3WasmBridge {
-  private readonly z3: Awaited<ReturnType<typeof import('z3-solver')['init']>>;
+  private z3: Awaited<ReturnType<typeof import('z3-solver')['init']>> | null;
+  /** When true the bridge defers WASM load until the first proof request. */
+  private readonly deferred: boolean;
   /** Whether Z3 WASM has been successfully initialised. */
   static available = false;
 
-  private constructor(z3: Awaited<ReturnType<typeof import('z3-solver')['init']>>) {
+  private constructor(
+    z3: Awaited<ReturnType<typeof import('z3-solver')['init']>> | null,
+    deferred = false,
+  ) {
     this.z3 = z3;
-    Z3WasmBridge.available = true;
+    this.deferred = deferred;
+    if (z3) Z3WasmBridge.available = true;
   }
 
   /**
@@ -64,6 +70,30 @@ export class Z3WasmBridge {
   }
 
   /**
+   * Create a `Z3WasmBridge` that defers the ~34 MB WASM load until the first
+   * proof request (T-43 lazy-load strategy).
+   *
+   * Construction is synchronous and near-instant.  The first call to
+   * `checkPolicyConsistency()` or `proveSMT2()` triggers the load.
+   *
+   * Prefer this over `create()` when Z3 proofs are infrequent or optional.
+   */
+  static createDeferred(): Z3WasmBridge {
+    return new Z3WasmBridge(null, true);
+  }
+
+  /** Ensure Z3 is loaded; loads on demand when in deferred mode. */
+  private async ensureZ3(): Promise<Awaited<ReturnType<typeof import('z3-solver')['init']>>> {
+    if (this.z3) return this.z3;
+    if (!this.deferred) {
+      throw new Error('Z3WasmBridge: z3 not loaded and not in deferred mode');
+    }
+    this.z3 = await loadZ3();
+    Z3WasmBridge.available = true;
+    return this.z3;
+  }
+
+  /**
    * Check whether a deontic `Policy` is internally consistent using Z3.
    *
    * Encodes the policy as a set of Boolean assertions and checks satisfiability.
@@ -75,7 +105,8 @@ export class Z3WasmBridge {
    */
   async checkPolicyConsistency(policy: Policy, timeoutMs = 5_000): Promise<WasmProofResult> {
     const start = Date.now();
-    const { Z3 } = this.z3;
+    const z3module = await this.ensureZ3();
+    const { Z3 } = z3module;
 
     try {
       const ctx = new Z3.Context('main');
@@ -190,7 +221,8 @@ export class Z3WasmBridge {
    */
   async proveSMT2(smt2Formula: string, timeoutMs = 5_000): Promise<WasmProofResult> {
     const start = Date.now();
-    const { Z3 } = this.z3;
+    const z3module = await this.ensureZ3();
+    const { Z3 } = z3module;
 
     try {
       const ctx = new Z3.Context('main');

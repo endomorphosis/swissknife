@@ -134,7 +134,9 @@ export class WasmProverHub {
     let coq: CoqJsCoqBridge | undefined;
     let lean4: Lean4WasmBridge | undefined;
     let neural: NeuralProverBridge | undefined;
-    try { z3 = await Z3WasmBridge.create(); } catch { /* Z3 WASM not available */ }
+    // T-43 lazy-load: create a deferred Z3 bridge so the ~34 MB WASM binary
+    // loads only on the first actual proof request, not at hub construction time.
+    try { z3 = Z3WasmBridge.createDeferred(); } catch { /* z3-solver not available */ }
     try { cvc5 = await Cvc5WasmBridge.create(); } catch { /* CVC5 bridge not available */ }
     try { coq = await CoqJsCoqBridge.create(); } catch { /* Coq not available */ }
     try { lean4 = await Lean4WasmBridge.create(); } catch { /* Lean 4 not available */ }
