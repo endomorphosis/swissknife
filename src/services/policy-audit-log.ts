@@ -126,14 +126,22 @@ export class PolicyAuditLog {
      * Stored in `entry.extra.proof_time_ms` when provided.
      */
     proof_time_ms?: number;
+    /**
+     * T-53: content-addressed CID of a ZK proof artifact from the ix / Lurk
+     * backend (`sha256:<64hex>`).  Stored in `entry.extra.zk_proof_cid` when
+     * provided — allows third parties to verify the decision without trusting
+     * the policy evaluator.
+     */
+    zk_proof_cid?: string;
   }): AuditEntry | null {
     if (!this.enabled) return null;
 
     const ts = opts.timestamp ?? Date.now();
-    // Build extra, merging in prover_id / proof_time_ms when present (T-40)
+    // Build extra, merging in prover_id / proof_time_ms / zk_proof_cid when present (T-40, T-53)
     const extra: Record<string, unknown> = { ...(opts.extra ?? {}) };
     if (opts.prover_id !== undefined) extra.prover_id = opts.prover_id;
     if (opts.proof_time_ms !== undefined) extra.proof_time_ms = opts.proof_time_ms;
+    if (opts.zk_proof_cid !== undefined) extra.zk_proof_cid = opts.zk_proof_cid;
 
     const entry: AuditEntry = {
       seq: ++this.seq,

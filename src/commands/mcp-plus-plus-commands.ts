@@ -494,8 +494,67 @@ export const mcpppCommand: PublicCommand = {
         }
       }
 
+      case 'provers': {
+        // Detailed WASM prover management and diagnostics
+        const action = args[1] ?? 'status';
+        if (action === 'build-lurk') {
+          const { lurkBetaBuildInstructions } = await import('../services/provers/lurk-wasm-bridge.js');
+          return { output: lurkBetaBuildInstructions() };
+        }
+        if (action === 'build-ix') {
+          const { ixBuildInstructions } = await import('../services/provers/lean4-wasm-bridge.js');
+          return { output: ixBuildInstructions() };
+        }
+
+        // Default: show full prover status and installation guide
+        let hubInfo: string[] = [];
+        try {
+          const hub = await WasmProverHub.getInstance();
+          const ps = hub.proverStatus();
+          const cs = hub.cacheStats();
+          hubInfo = [
+            '=== WASM Prover Stack ===',
+            '',
+            'Local prover backends (checked before Python TDFOL remote engine):',
+            '',
+            `  z3-wasm    ${ps.z3_wasm    ? '\u2705 loaded (lazy, ~34 MB on first proof)' : '\u274c not loaded'}`,
+            `             Install: npm install z3-solver (in swissknife)`,
+            '',
+            `  cvc5-wasm  ${ps.cvc5_wasm  ? '\u2705 loaded (Z3 SMT-LIB2 shim)' : '\u274c not loaded'}`,
+            `             Status: Uses Z3 as SMT-LIB2 compatibility shim`,
+            '',
+            `  coq-jscoq  ${ps.coq_jscoq  ? '\u2705 loaded' : '\u274c not loaded'}`,
+            `             Install: opam install coq (then coqc must be in PATH)`,
+            '',
+            `  lean4-wasm ${ps.lean4_wasm ? '\u2705 loaded' : '\u274c not loaded'}`,
+            `             Install: https://leanprover.github.io/lean4/doc/setup.html`,
+            '',
+            `  lurk-wasm  ${ps.lurk_wasm  ? '\u2705 loaded' : '\u274c not loaded (Phase 6 \u2014 build from source)'}`,
+            `             Build:   mcp++ provers build-lurk`,
+            '',
+            `  neural     ${(ps as Record<string, unknown>).neural ? '\u2705 loaded' : '\u274c not loaded (provide neuralConnector)'}`,
+            `             Enable:  WasmProverHub.create({ neuralConnector: connector })`,
+            '',
+            `  ix-backed  \u274c not loaded (Phase 7b \u2014 requires ix + SP1/Zisk)`,
+            `             Build:   mcp++ provers build-ix`,
+            '',
+            'Proof cache:',
+            `  Size: ${cs.size} entries | Hits: ${cs.hits} | Misses: ${cs.misses}`,
+            `  Time saved: ${cs.time_saved_ms}ms | Evictions: ${cs.evictions}`,
+            '',
+            'Subcommands:',
+            '  mcp++ provers           — this overview',
+            '  mcp++ provers build-lurk — lurk-beta WASM build instructions',
+            '  mcp++ provers build-ix   — ix CLI + SP1 build instructions',
+          ];
+        } catch {
+          hubInfo = ['WASM prover hub unavailable'];
+        }
+        return { output: hubInfo.join('\n') };
+      }
+
       default:
-        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p, connect, categories, status, call, conformance` };
+        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p, connect, categories, status, call, conformance, provers` };
     }
   },
 };
