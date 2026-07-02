@@ -262,6 +262,17 @@ export function formatAsTptp(formula: string): string {
  * ```
  */
 export class FolTextConverter {
+  /** Sprint 15 T-86: use MLConfidenceScorer for improved confidence scores. */
+  private readonly _scorer: import('./ml-confidence-scorer.js').MLConfidenceScorer | null = null;
+
+  constructor() {
+    // Lazy-load MLConfidenceScorer to avoid circular deps
+    void import('./ml-confidence-scorer.js').then(({ MLConfidenceScorer }) => {
+      // @ts-ignore — assign to readonly field after lazy load
+      (this as { _scorer: unknown })._scorer = new MLConfidenceScorer();
+    }).catch(() => { /* scorer unavailable — fallback stays */ });
+  }
+
   /**
    * Convert natural language text to a FOL formula.
    *
@@ -273,7 +284,9 @@ export class FolTextConverter {
     const quantifiers = parseQuantifiers(text);
     const operators   = parseLogicalOperators(text);
     const formula     = buildFolFormula(quantifiers, predicates, operators, predicates.relations);
-    const confidence  = this._calculateConfidence(text, formula, predicates, quantifiers);
+    const confidence  = this._scorer
+      ? this._scorer.predictConfidence(text, formula, predicates, quantifiers, operators)
+      : this._calculateConfidence(text, formula, predicates, quantifiers);
 
     return {
       formula,
@@ -297,6 +310,7 @@ export class FolTextConverter {
   // Internal
   // ---------------------------------------------------------------------------
 
+  /** Fallback confidence when MLConfidenceScorer is unavailable. */
   private _calculateConfidence(
     text: string,
     formula: string,
