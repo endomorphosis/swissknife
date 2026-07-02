@@ -342,6 +342,32 @@ assert(
   mgw555Gate?.packet_sibling_goal_id === 'VAIOS-G728',
   'MGW-555 launch gate must stay aligned with the VAIOS-G728 packet sibling',
 );
+const mgw564Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-564');
+assert(mgw564Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include MGW-564 for VAIOS-G724');
+assert(
+  mgw564Gate?.supervisor_gap_receipt === 'data/meta_glasses_display_widgets/discovery/2026-07-02-mgw-564-objective-gap-3e00ad2a0074.md',
+  'MGW-564 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  mgw564Gate?.launch_gate_receipt === 'data/meta_glasses_display_widgets/discovery/2026-07-02-mgw-564-launch-playwright-validation-gate.md',
+  'MGW-564 launch gate must point at the current launch gate receipt',
+);
+assert(
+  mgw564Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'MGW-564 launch gate must be closed by the Hallucinate App Playwright validation gate',
+);
+assert(
+  JSON.stringify(mgw564Gate?.validation_commands || []) === JSON.stringify([
+    'npm --prefix hallucinate_app run test:e2e -- mcp-feature-exposure.spec.ts mcp-dashboard-interoperability.spec.ts',
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+    'test ! -f hallucinate_app/package.json || npm --prefix hallucinate_app run test:e2e -- multimodal-control-surface.spec.ts',
+  ]),
+  'MGW-564 launch gate must preserve the shared packet validation commands',
+);
+assert(
+  mgw564Gate?.packet_sibling_goal_id === 'VAIOS-G728',
+  'MGW-564 launch gate must stay aligned with the VAIOS-G728 packet sibling',
+);
 const mgw559Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-559');
 assert(mgw559Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include MGW-559 for VAIOS-G723');
 assert(
