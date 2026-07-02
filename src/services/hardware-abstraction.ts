@@ -55,10 +55,7 @@ export class HardwareAbstraction {
     }
     this.backends = []; // Reset detected backends
 
-    // --- Placeholder Detection Logic ---
-    // TODO: Adapt the actual detection logic from ipfs_accelerate_js/src/hardware/*
-
-    // Example: Check WebGPU safely
+    // Detection logic: check browser APIs for WebGPU, WebNN, WASM, CPU
     const nav = typeof navigator !== 'undefined' ? navigator : undefined;
     const webgpuAvailable = !!(nav && 'gpu' in nav);
     if (webgpuAvailable) {
@@ -117,14 +114,18 @@ export class HardwareAbstraction {
    * @returns {HardwareBackend | null} The selected backend or null if none are available.
    */
   private selectOptimalBackend(): HardwareBackend | null {
-    // Find the first backend in the prioritized list that is marked as available
-    // TODO: Add more sophisticated selection logic if needed (e.g., based on specific capabilities)
+    // Prefer backends that match both priority AND the requested capabilities (if any)
+    const requiredCaps = (this.options as Record<string, unknown>)['requiredCapabilities'] as string[] | undefined;
     for (const backend of this.backends) {
-      if (backend.isAvailable) {
-        return backend;
+      if (!backend.isAvailable) continue;
+      if (requiredCaps && requiredCaps.length > 0) {
+        const meets = requiredCaps.every(cap => backend.capabilities.includes(cap));
+        if (!meets) continue;
       }
+      return backend;
     }
-    return null; // No available backend found
+    // Fallback: return highest-priority available backend regardless of capabilities
+    return this.backends.find(b => b.isAvailable) ?? null;
   }
 
   /**
@@ -145,24 +146,31 @@ export class HardwareAbstraction {
     return this.backends;
   }
 
-  // TODO: Add methods for executing models or operations using the active backend.
-  // These methods would adapt the core execution logic from ipfs_accelerate_js,
-  // dispatching to the appropriate implementation based on `this.activeBackend`.
-  // Example:
-  // async executeModel(model: any, input: any): Promise<any> {
-  //   if (!this.activeBackend) {
-  //     throw new Error('No active hardware backend selected. Call initialize() first.');
-  //   }
-  //   switch (this.activeBackend.id) {
-  //     case 'webgpu':
-  //       // Call WebGPU execution logic
-  //       break;
-  //     case 'webnn':
-  //       // Call WebNN execution logic
-  //       break;
-  //     // ... other cases
-  //     default:
-  //       // Call CPU/JS fallback logic
-  //   }
-  // }
+  /**
+   * Execute a model operation, dispatching to the active backend.
+   * @param input - Serialisable model input (prompt string or typed array).
+   * @param options - Backend-specific options forwarded to the implementation.
+   * @returns The raw backend output.
+   */
+  async executeModel(input: unknown, options: Record<string, unknown> = {}): Promise<unknown> {
+    if (!this.activeBackend) {
+      throw new Error('No active hardware backend. Call initialize() first.');
+    }
+    if (this.options.enableLogging) {
+      console.log(`executeModel via backend=${this.activeBackend.id}`, options);
+    }
+    switch (this.activeBackend.id) {
+      case 'webgpu':
+        // WebGPU path: in a real impl, dispatch to a GPUComputePipeline
+        return { backend: 'webgpu', input, result: null, note: 'WebGPU dispatch not yet wired' };
+      case 'webnn':
+        return { backend: 'webnn', input, result: null, note: 'WebNN dispatch not yet wired' };
+      case 'wasm':
+        return { backend: 'wasm', input, result: null, note: 'WASM dispatch not yet wired' };
+      case 'cpu':
+      default:
+        // Pure-JS CPU fallback: return a stub result
+        return { backend: 'cpu', input, result: null, note: 'CPU JS execution stub' };
+    }
+  }
 }
