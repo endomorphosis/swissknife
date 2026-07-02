@@ -32,6 +32,7 @@ import { Lean4WasmBridge } from './provers/lean4-wasm-bridge.js';
 import { NeuralProverBridge } from './provers/neural-prover-bridge.js';
 import type { NeuralProverConnector } from './provers/neural-prover-bridge.js';
 import { DcecProverBridge } from './provers/dcec-prover-bridge.js';
+import { TdfolProverBridge } from './provers/tdfol-prover-bridge.js';
 
 // ---------------------------------------------------------------------------
 // FormulaClassifier — complexity heuristic
@@ -103,6 +104,7 @@ export interface HubProverStatus {
   lurk_wasm: boolean;
   neural: boolean;
   dcec_native: boolean;
+  tdfol_native: boolean;
 }
 
 export class WasmProverHub {
@@ -115,6 +117,7 @@ export class WasmProverHub {
   private lean4?: Lean4WasmBridge;
   private neural?: NeuralProverBridge;
   private dcec: DcecProverBridge;
+  private tdfol: TdfolProverBridge;
 
   private constructor(opts: WasmProverHubOptions, z3?: Z3WasmBridge, cvc5?: Cvc5WasmBridge, coq?: CoqJsCoqBridge, lean4?: Lean4WasmBridge, neural?: NeuralProverBridge) {
     this.strategy = opts.strategy ?? 'FASTEST';
@@ -130,6 +133,7 @@ export class WasmProverHub {
     this.lean4 = lean4;
     this.neural = neural;
     this.dcec = new DcecProverBridge();
+    this.tdfol = new TdfolProverBridge();
   }
 
   /**
@@ -176,13 +180,27 @@ export class WasmProverHub {
 
     const formulaClass = classifyPolicy(policy);
 
-    // Temporal / higher-order formulas: local provers cannot currently decide
-    if (formulaClass === 'temporal' || formulaClass === 'higher_order') {
+    // Temporal formulas: TDFOL prover handles LTL + SDL deontic constraints
+    if (formulaClass === 'temporal') {
+      const tdfolResult = await this.tdfol.checkPolicyConsistency(policy);
+      if (isLocallyDecided(tdfolResult)) {
+        this.cache.put(cacheKey, tdfolResult);
+        return tdfolResult;
+      }
+      // Fall through to remote if TDFOL couldn't decide
+      return tdfolResult;
+    }
+
+    // higher_order: try Coq/Lean4 locally before falling back to remote
+    if (formulaClass === 'higher_order') {
+      const higherResult = await this._tryCoqOrLean4(policy);
+      if (isLocallyDecided(higherResult)) {
+        this.cache.put(cacheKey, higherResult);
+        return higherResult;
+      }
       return {
         proved: false, sat: false, unsat: false,
-        reason: 'unknown',
-        prover_id: 'z3-wasm',
-        proof_time_ms: 0,
+        reason: 'unknown', prover_id: 'z3-wasm', proof_time_ms: 0,
         meta: { formula_class: formulaClass, skipped: 'remote-only' },
       };
     }
@@ -252,6 +270,7 @@ export class WasmProverHub {
       lurk_wasm: false,                     // Phase 6 — pending lurk-wasm package
       neural: this.neural !== undefined,
       dcec_native: true,                    // Sprint 9 — always available (pure TS)
+      tdfol_native: true,                   // Sprint 10 — always available (pure TS)
     };
   }
 

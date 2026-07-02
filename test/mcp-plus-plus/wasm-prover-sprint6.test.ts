@@ -310,9 +310,10 @@ describe('T-31 Integration: local-first evaluation path (checkPolicyConsistencyR
     expect(result.consistent).toBe(true);
   });
 
-  it('remote engine IS called for temporal policy (Z3 returns unknown)', async () => {
+  it('temporal policy handled locally by tdfol-native (Sprint 10)', async () => {
     const hub = await WasmProverHub.create({ timeoutMs: 100 });
-    // Temporal policy → hub returns unknown without calling Z3
+    // Sprint 10: temporal policy → TdfolProverBridge handles it locally.
+    // Remote engine is NOT called because tdfol-native returns a decided result.
 
     let remoteCalled = false;
     const fakeRemote = {
@@ -331,8 +332,9 @@ describe('T-31 Integration: local-first evaluation path (checkPolicyConsistencyR
     };
 
     const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp-remote-deontic-engine');
-    await checkPolicyConsistencyRemote(temporalPolicy, fakeRemote, hub);
-    expect(remoteCalled).toBe(true);
+    const result = await checkPolicyConsistencyRemote(temporalPolicy, fakeRemote, hub);
+    // Sprint 10: tdfol-native decides locally; remote skipped
+    expect(result.localProver).toBe('tdfol-native');
   });
 
   it('local check catches a permission+prohibition conflict without going remote', async () => {

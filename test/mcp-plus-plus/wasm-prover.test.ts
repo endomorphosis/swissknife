@@ -249,14 +249,15 @@ describe('WasmProverHub — routing and caching', () => {
     expect(r2.prover_id).toBe('cache-hit');     // second call: cache
   });
 
-  it('returns unknown (remote-only) for temporal policies', async () => {
+  it('routes temporal policies to tdfol-native (Sprint 10)', async () => {
     const hub = await makeHubWithMock(makeProvedResult());
     const result = await hub.checkPolicyConsistency(temporalPolicy());
-    expect(result.reason).toBe('unknown');
-    expect(result.meta?.skipped).toBe('remote-only');
+    // Sprint 10: tdfol-native now handles temporal policies locally
+    expect(result.prover_id).toBe('tdfol-native');
+    expect(result.meta?.skipped).toBeUndefined();
   });
 
-  it('returns unknown (remote-only) for higher_order policies', async () => {
+  it('routes higher_order policies to Coq/Lean4 locally (Sprint 10)', async () => {
     const hub = await makeHubWithMock(makeProvedResult());
     // Create a policy with > 20 rules to trigger higher_order classification
     const bigPolicy: Policy = {
@@ -266,7 +267,9 @@ describe('WasmProverHub — routing and caching', () => {
       obligations: [],
     };
     const result = await hub.checkPolicyConsistency(bigPolicy);
-    expect(result.reason).toBe('unknown');
+    // Sprint 10: higher_order falls through to _tryCoqOrLean4() before remote-only
+    // The result may be 'proved', 'unknown', or another local reason — but not 'remote-only' skipped
+    expect(result.meta?.skipped).toBeUndefined();
   });
 
   it('proverStatus() reports prover availability correctly', async () => {

@@ -276,17 +276,15 @@ describe('checkPolicyConsistencyRemote — localHub pre-check (T-07)', () => {
     expect(result.localProver).toBe('z3-wasm');
   });
 
-  it('falls through to remote when Z3 returns unknown (temporal policy)', async () => {
+  it('temporal policy is handled locally by tdfol-native (Sprint 10)', async () => {
     const hub = await WasmProverHub.create({ timeoutMs: 100 });
-    // Temporal policy → hub returns unknown (remote-only)
+    // Sprint 10: temporal policies are now routed to TdfolProverBridge locally.
+    // The remote engine may or may not be called depending on tdfol result,
+    // but the local prover ID should be tdfol-native.
 
-    let remoteCalled = false;
     const fakeEngine = {
       isAvailable: async () => true,
-      checkTheoryConsistency: async () => {
-        remoteCalled = true;
-        return { consistent: true, proof: { proved: true } };
-      },
+      checkTheoryConsistency: async () => ({ consistent: true, proof: { proved: true } }),
     } as unknown as import('../../src/services/mcp-remote-deontic-engine').RemoteDeonticEngine;
 
     const temporalPolicy: Policy = {
@@ -296,8 +294,9 @@ describe('checkPolicyConsistencyRemote — localHub pre-check (T-07)', () => {
     };
 
     const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp-remote-deontic-engine');
-    await checkPolicyConsistencyRemote(temporalPolicy, fakeEngine, hub);
+    const result = await checkPolicyConsistencyRemote(temporalPolicy, fakeEngine, hub);
 
-    expect(remoteCalled).toBe(true); // remote IS called for temporal
+    // Sprint 10: tdfol-native decides locally; remote may be skipped
+    expect(result.localProver).toBe('tdfol-native');
   });
 });
