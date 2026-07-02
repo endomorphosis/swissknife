@@ -154,3 +154,39 @@ export function packPublicInputsForEvm(inputs: Record<string, string>): string[]
 export function packManyPublicInputsForEvm(inputSets: Record<string, string>[]): string[][] {
   return inputSets.map(s => packPublicInputsForEvm(s));
 }
+
+// ---------------------------------------------------------------------------
+// T-318 — EVM Harness helpers (evm_harness.py)
+// ---------------------------------------------------------------------------
+
+function hexToInt(value: string): bigint {
+  const s = value.trim().toLowerCase().replace(/^0x/, '');
+  return s ? BigInt('0x' + s) : BigInt(0);
+}
+
+export function packPublicInputsUint256(params: {
+  theoremHashHex:       string;
+  axiomsCommitmentHex:  string;
+  circuitVersion:       number;
+  rulesetId:            string;
+}): bigint[] {
+  // Convert each param to a 0x-hex field element first
+  const versionHex = intTo0x32(BigInt(params.circuitVersion));
+  const rulesetHex = hashTextToFieldSha256(params.rulesetId);
+  const scalarsHex = packPublicInputsForEvm({
+    theorem_hash_hex:      params.theoremHashHex.startsWith('0x') ? params.theoremHashHex : '0x' + params.theoremHashHex,
+    axioms_commitment_hex: params.axiomsCommitmentHex.startsWith('0x') ? params.axiomsCommitmentHex : '0x' + params.axiomsCommitmentHex,
+    circuit_version:       versionHex,
+    ruleset_id:            rulesetHex,
+  });
+  return scalarsHex.map(x => hexToInt(x));
+}
+
+export function validateUint256Array(values: bigint[], expectedLen: number): void {
+  if (values.length !== expectedLen) throw new Error(`expected array of length ${expectedLen}, got ${values.length}`);
+  const max = BigInt(1) << BigInt(256);
+  for (let i = 0; i < values.length; i++) {
+    const v = values[i]!;
+    if (v < BigInt(0) || v >= max) throw new Error(`values[${i}] must fit uint256`);
+  }
+}

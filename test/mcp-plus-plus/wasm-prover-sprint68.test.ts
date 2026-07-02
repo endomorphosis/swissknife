@@ -18,6 +18,7 @@ import {
   buildRegisterVkPayload, buildRegisterVkCalldata,
   loadContractArtifact, loadContractAbi, normalizeHexPrefixed,
   hashTextToFieldSha256, packPublicInputsForEvm, packManyPublicInputsForEvm,
+  packPublicInputsUint256, validateUint256Array,
 } from '../../src/services/sprint68-eth-bridge';
 
 import {
@@ -253,6 +254,37 @@ describe('packPublicInputsForEvm', () => {
     const packed = packPublicInputsForEvm({ a: '0x1234', b: 'abcd' });
     expect(packed.length).toBe(2);
     expect(packed[0]!.startsWith('0x')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// EVM Harness (evm_harness.py) - T-318
+// ---------------------------------------------------------------------------
+describe('packPublicInputsUint256', () => {
+  it('returns an array of bigints', () => {
+    const result = packPublicInputsUint256({
+      theoremHashHex:      'deadbeef',
+      axiomsCommitmentHex: 'cafebabe',
+      circuitVersion:      1,
+      rulesetId:           'default',
+    });
+    expect(Array.isArray(result)).toBe(true);
+    for (const v of result) expect(typeof v).toBe('bigint');
+  });
+});
+
+describe('validateUint256Array', () => {
+  it('passes for valid uint256 values', () => {
+    expect(() => validateUint256Array([BigInt(0), BigInt(42)], 2)).not.toThrow();
+  });
+
+  it('throws for wrong length', () => {
+    expect(() => validateUint256Array([BigInt(1)], 3)).toThrow();
+  });
+
+  it('throws for value exceeding uint256', () => {
+    const tooBig = (BigInt(1) << BigInt(256)) + BigInt(1);
+    expect(() => validateUint256Array([tooBig], 1)).toThrow();
   });
 });
 
