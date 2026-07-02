@@ -553,8 +553,36 @@ export const mcpppCommand: PublicCommand = {
         return { output: hubInfo.join('\n') };
       }
 
+      case 'deontic': {
+        // mcp++ deontic [analyze <text>|stats]
+        const { DeonticTextAnalyzer } = await import('../services/deontic/deontic-text-analyzer.js');
+        const analyzer = new DeonticTextAnalyzer();
+        const sub = args[1] as string | undefined;
+        const text = args.slice(2).join(' ') || (sub !== 'stats' ? sub : '');
+
+        if (!text) {
+          return { output: [
+            'Usage: mcp++ deontic analyze <text>',
+            '       mcp++ deontic stats <text>',
+            '',
+            'Extracts deontic statements (obligations/permissions/prohibitions) from',
+            'natural language text and detects normative conflicts.',
+            '',
+            'Example:',
+            '  mcp++ deontic analyze "Users must log all access. Users may not delete records."',
+          ].join('\n') };
+        }
+
+        const statements = analyzer.extractStatements(text);
+        const conflicts  = analyzer.detectConflicts(statements);
+        const stats      = analyzer.calculateStatistics(statements, conflicts);
+        return {
+          output: JSON.stringify({ statements, conflicts, statistics: stats }, null, 2),
+        };
+      }
+
       default:
-        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p, connect, categories, status, call, conformance, provers` };
+        return { error: `Unknown subcommand: ${subcommand}. Available: interfaces, execute, dag, delegate, policy, profiles, p2p, connect, categories, status, call, conformance, provers, deontic` };
     }
   },
 };
