@@ -554,15 +554,36 @@ export const mcpppCommand: PublicCommand = {
       }
 
       case 'deontic': {
-        // mcp++ deontic [analyze <text>|stats]
+        // mcp++ deontic [analyze <text>|fol <text>|stats]
         const { DeonticTextAnalyzer } = await import('../services/deontic/deontic-text-analyzer.js');
         const analyzer = new DeonticTextAnalyzer();
         const sub = args[1] as string | undefined;
-        const text = args.slice(2).join(' ') || (sub !== 'stats' ? sub : '');
+        const text = args.slice(2).join(' ') || (sub !== 'stats' && sub !== 'fol' ? sub : '');
+
+        if (sub === 'fol') {
+          const folText = args.slice(2).join(' ');
+          if (!folText) {
+            return { output: 'Usage: mcp++ deontic fol <text>\n\nConverts natural language to a FOL formula.\n\nExample:\n  mcp++ deontic fol "All users are accountable."' };
+          }
+          const { FolTextConverter } = await import('../services/fol/fol-text-converter.js');
+          const converter = new FolTextConverter();
+          const result = converter.convert(folText);
+          return {
+            output: JSON.stringify({
+              formula: result.formula,
+              prolog: result.prolog,
+              tptp: result.tptp,
+              confidence: result.confidence,
+              quantifiers: result.quantifiers,
+              predicates: { nouns: result.predicates.nouns, adjectives: result.predicates.adjectives },
+            }, null, 2),
+          };
+        }
 
         if (!text) {
           return { output: [
             'Usage: mcp++ deontic analyze <text>',
+            '       mcp++ deontic fol <text>',
             '       mcp++ deontic stats <text>',
             '',
             'Extracts deontic statements (obligations/permissions/prohibitions) from',
@@ -570,6 +591,7 @@ export const mcpppCommand: PublicCommand = {
             '',
             'Example:',
             '  mcp++ deontic analyze "Users must log all access. Users may not delete records."',
+            '  mcp++ deontic fol "All users are mortal."',
           ].join('\n') };
         }
 
