@@ -20,7 +20,7 @@
 // ---------------------------------------------------------------------------
 
 export type DeonticModality = 'obligation' | 'permission' | 'prohibition';
-export type ConflictType = 'direct' | 'conditional' | 'jurisdictional' | 'temporal';
+export type ConflictType = 'direct' | 'conditional' | 'jurisdictional' | 'temporal' | 'hierarchical'; // PORT-111: hierarchical added
 export type ConflictSeverity = 'high' | 'medium' | 'low';
 
 /** A single deontic statement extracted from NL text. */

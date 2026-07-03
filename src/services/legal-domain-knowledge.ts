@@ -35,6 +35,16 @@ export enum LegalDomainKind {
   ADMINISTRATIVE = 'administrative',
   CIVIL          = 'civil',
   REGULATORY     = 'regulatory',
+  // PORT-130: 9 additional domains matching Python legal_domain_knowledge.py
+  TORT           = 'tort',
+  CORPORATE      = 'corporate',
+  EMPLOYMENT     = 'employment',
+  INTELLECTUAL_PROPERTY = 'intellectual_property',
+  REAL_ESTATE    = 'real_estate',
+  FAMILY         = 'family',
+  TAX            = 'tax',
+  IMMIGRATION    = 'immigration',
+  ENVIRONMENTAL  = 'environmental',
 }
 
 export type DeonticOperatorKind = 'O' | 'P' | 'F';

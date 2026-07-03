@@ -21,6 +21,8 @@ export enum CognitiveOperator {
   BELIEVES = 'B',   // B(agent, phi)  agent believes phi
   DESIRES  = 'D',   // D(agent, phi)  agent desires phi
   INTENDS  = 'I',   // I(agent, phi)  agent intends phi
+  GOAL     = 'G',   // PORT-095: G(agent, phi)  agent has goal phi (matches dcec-core-types.ts)
+  // Note: Python has PERCEPTION='P' but that collides with DeonticOperator.PERMISSION='P' — intentionally omitted (PORT-097)
 }
 
 export enum LogicalConnective {

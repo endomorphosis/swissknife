@@ -178,7 +178,7 @@ export interface LogicConflict {
   formula1: DeonticFormula;
   formula2: DeonticFormula;
   explanation: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: 'critical' | 'high' | 'warning' | 'medium' | 'low' | 'info';  // PORT-162: aligned with Python (critical/warning/info) + TS (high/medium/low)
 }
 
 // ---------------------------------------------------------------------------
@@ -320,4 +320,13 @@ export class DeonticQueryEngine {
 
 export function createQueryEngine(ruleSet?: DeonticRuleSet): DeonticQueryEngine {
   return new DeonticQueryEngine(ruleSet);
+}
+
+// PORT-141: Convert action→proposition for Python⇄TS interchange
+// Python DeonticFormula uses .proposition; TS uses .action
+export function toPropositionField<T extends { action: string }>(formula: T): T & { proposition: string } {
+  return { ...formula, proposition: formula.action };
+}
+export function fromPropositionField<T extends { proposition: string }>(formula: T): T & { action: string } {
+  return { ...formula, action: formula.proposition };
 }

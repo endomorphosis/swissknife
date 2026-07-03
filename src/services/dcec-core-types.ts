@@ -82,6 +82,18 @@ export interface Sort {
   parent?: string;
 }
 
+/** PORT-092: Check if this sort is a subsort of (or equal to) another sort. */
+export function isSubtypeOf(child: Sort, ancestor: Sort, allSorts?: Sort[]): boolean {
+  if (child.name === ancestor.name) return true;
+  if (!child.parent) return false;
+  if (child.parent === ancestor.name) return true;
+  if (allSorts) {
+    const parentSort = allSorts.find(s => s.name === child.parent);
+    if (parentSort) return isSubtypeOf(parentSort, ancestor, allSorts);
+  }
+  return false;
+}
+
 export function makeSort(name: string, parent?: string): Sort {
   return { name, isSubsort: parent !== undefined, parent };
 }
@@ -164,3 +176,45 @@ export type DCECFormulaStr = string;
 export function applyOperator(op: DeonticOperator | CognitiveOperator | DCECTemporalOperator, args: string[]): DCECFormulaStr {
   return `${op}(${args.join(', ')})`;
 }
+
+// ---------------------------------------------------------------------------
+// PORT-091: Agent bracket-notation formatter  O[alice](φ) matching Python
+// ---------------------------------------------------------------------------
+
+/** Format a DCEC formula using Python-compatible bracket notation: O[alice](φ). */
+export function formatDCECBracket(op: string, agent: string, formula: string): string {
+  return `${op}[${agent}](${formula})`;
+}
+
+/** Parse bracket notation "O[alice](φ)" → { op, agent, formula }. */
+export function parseDCECBracket(expr: string): { op: string; agent: string; formula: string } | null {
+  const m = expr.match(/^([A-Z])\[([^\]]+)\]\((.+)\)$/s);
+  if (!m) return null;
+  return { op: m[1]!, agent: m[2]!, formula: m[3]! };
+}
+
+// ---------------------------------------------------------------------------
+// PORT-093: Structural equality for DCEC formula strings
+// ---------------------------------------------------------------------------
+
+/** Structural equality: normalize whitespace and compare. */
+export function dcecFormulaEquals(a: string, b: string): boolean {
+  const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+  return norm(a) === norm(b);
+}
+
+/** Structural hash (djb2) for DCEC formula deduplication. */
+export function dcecFormulaHash(s: string): number {
+  const norm = s.replace(/\s+/g, ' ').trim();
+  let h = 5381;
+  for (let i = 0; i < norm.length; i++) h = (h * 33 ^ norm.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+// ---------------------------------------------------------------------------
+// PORT-097: Note on Python CognitiveOperator.PERCEPTION name-collision bug
+// ---------------------------------------------------------------------------
+// In Python dcec_types.py, CognitiveOperator.PERCEPTION = 'P' collides with
+// DeonticOperator.PERMISSION = 'P'. This is a Python-side bug. TS correctly
+// avoids it by using CognitiveOperator.PERCEIVES (or similar) or omitting it.
+// Do NOT replicate Python's PERCEPTION='P' — it would break deontic disambiguation.

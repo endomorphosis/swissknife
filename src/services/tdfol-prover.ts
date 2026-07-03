@@ -33,10 +33,13 @@ import { ModalTableaux, ModalLogicType } from './modal-tableaux.js';
 // ---------------------------------------------------------------------------
 
 export enum ProofStatus {
-  PROVED  = 'proved',
-  FAILED  = 'failed',
-  TIMEOUT = 'timeout',
-  ERROR   = 'error',
+  PROVED    = 'proved',
+  DISPROVED = 'disproved',  // PORT-014: formula is provably false
+  UNKNOWN   = 'unknown',    // PORT-014: could not decide
+  UNPROVABLE = 'unprovable', // PORT-014: no proof exists in this theory
+  FAILED    = 'failed',
+  TIMEOUT   = 'timeout',
+  ERROR     = 'error',
 }
 
 export interface ProofStep {

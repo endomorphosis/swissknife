@@ -15,7 +15,8 @@
 /** Outcome of a local WASM proof attempt. */
 export type ProofReason =
   | 'proved'      // formula is valid (unsat when negated)
-  | 'refuted'     // formula is unsatisfiable / counter-example found
+  | 'refuted'     // formula is logically unsatisfiable / counter-example found
+  | 'failed'      // PORT-010: prover failure (binary crash) — distinct from logical refutation
   | 'sat'         // formula is satisfiable (model available)
   | 'unsat'       // formula is unsatisfiable (Python bridges emit reason="unsat")
   | 'unknown'     // prover could not decide (resource limit, unsupported theory)
@@ -81,7 +82,8 @@ export function isProved(r: WasmProofResult): boolean {
  * - `SEQUENTIAL`: Try in order Z3 → CVC5 → Coq → Lean → remote fallback.
  * - `REMOTE`:     Skip local provers, delegate directly to the remote Python engine.
  */
-export type ProverStrategy = 'FASTEST' | 'PARALLEL' | 'SEQUENTIAL' | 'REMOTE';
+// PORT-011: AUTO + MOST_CAPABLE added to match Python ProverStrategy enum
+export type ProverStrategy = 'AUTO' | 'FASTEST' | 'MOST_CAPABLE' | 'PARALLEL' | 'SEQUENTIAL' | 'REMOTE';
 
 // ---------------------------------------------------------------------------
 // FormulaClass — formula complexity for routing
@@ -95,6 +97,8 @@ export type ProverStrategy = 'FASTEST' | 'PARALLEL' | 'SEQUENTIAL' | 'REMOTE';
 export type FormulaClass =
   | 'propositional'   // boolean combination of atoms — any SMT prover handles this
   | 'fol'             // first-order (∀/∃ quantifiers) — Z3/CVC5 handle this
+  | 'modal'           // PORT-012: non-deontic modal (K/T/S4/S5)
+  | 'arithmetic'      // PORT-012: arithmetic (integers/reals) — CVC5
   | 'modal_deontic'   // deontic modal operators (O/P/F) — DcecProverBridge handles this
   | 'temporal'        // temporal operators (◊/□/until) — TDFOL tableaux required
   | 'higher_order';   // dependent types, inductive constructions — Lean/Coq needed

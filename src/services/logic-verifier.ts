@@ -281,3 +281,23 @@ export class LogicVerifier {
     };
   }
 }
+
+// PORT-151: Python-compatible wire format aliases
+// Python uses is_valid/conclusion/method_used/time_taken; TS uses proved/formula/method/timeMs
+export function toProofResultWire(result: { proved: boolean; formula: string; method: string; timeMs: number }) {
+  return {
+    ...result,
+    is_valid:    result.proved,
+    conclusion:  result.formula,
+    method_used: result.method,
+    time_taken:  result.timeMs / 1000,  // ms → seconds
+  };
+}
+export function fromProofResultWire(wire: { is_valid?: boolean; proved?: boolean; conclusion?: string; formula?: string; method_used?: string; method?: string; time_taken?: number; timeMs?: number }) {
+  return {
+    proved:  wire.proved  ?? wire.is_valid   ?? false,
+    formula: wire.formula ?? wire.conclusion ?? '',
+    method:  wire.method  ?? wire.method_used ?? 'unknown',
+    timeMs:  wire.timeMs  ?? (wire.time_taken != null ? Math.round(wire.time_taken * 1000) : 0),
+  };
+}
