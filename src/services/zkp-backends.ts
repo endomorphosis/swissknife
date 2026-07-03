@@ -15,6 +15,25 @@
 
 import { createHash } from 'crypto';
 
+export interface ZKPProcessResult {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr?: string;
+}
+
+export type ZKPProcessRunner = (
+  command: string,
+  args: string[],
+  input: string,
+  timeoutMs: number,
+) => ZKPProcessResult;
+
+function defaultProcessRunner(command: string, args: string[], input: string, timeoutMs: number): ZKPProcessResult {
+  const { spawnSync } = require('child_process') as typeof import('child_process');
+  const result = spawnSync(command, args, { input, timeout: timeoutMs, encoding: 'utf8' });
+  return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
+}
+
 // ---------------------------------------------------------------------------
 // ZKPBackendProtocol
 // ---------------------------------------------------------------------------
@@ -39,8 +58,12 @@ export class Groth16Proof {
   ) {}
 
   toDict(): Record<string, unknown> {
+    const proofHex = Buffer.from(this.proofData).toString('hex');
+    const proofHash = createHash('sha256').update(this.proofData).digest('hex');
     return {
-      proofData:    Buffer.from(this.proofData).toString('hex'),
+      proofData:    proofHex,
+      proof_hash:   proofHash,
+      is_proved:    this.proofData.length > 0,
       publicInputs: this.publicInputs,
       metadata:     this.metadata,
       timestamp:    this.timestamp,
@@ -93,13 +116,14 @@ export class Groth16Backend implements ZKPBackendProtocol {
   constructor(
     private readonly binaryPath: string | null = null,
     private readonly timeoutMs = 30_000,
+    private readonly runner: ZKPProcessRunner = defaultProcessRunner,
   ) {}
 
   isAvailable(): boolean {
     // In pure-TS runtime, the native binary is not available
     if (!this.binaryPath) return false;
     try {
-      const { existsSync } = require('fs') as { existsSync: (p: string) => boolean };
+      const { existsSync } = require('node:fs') as { existsSync: (p: string) => boolean };
       return existsSync(this.binaryPath);
     } catch { return false; }
   }
@@ -109,12 +133,30 @@ export class Groth16Backend implements ZKPBackendProtocol {
     this.stats.proofsGenerated++;
 
     if (!this.isAvailable()) {
-      // Fall through to simulated proof
+      // Fall through to simulated proof when binary is absent
       return new Groth16BackendFallback().generateProof(witnessJson, seed);
     }
 
-    // Real implementation would call: spawn(this.binaryPath, ['prove', witnessJson])
-    // In TypeScript runtime we always fall back
+    // PORT-192: spawn the real Groth16 binary when available
+    try {
+      const result = this.runner(
+        this.binaryPath!,
+        ['prove', '--witness', '-'],
+        witnessJson,
+        this.timeoutMs,
+      );
+      if (result.status === 0 && result.stdout) {
+        const parsed = JSON.parse(result.stdout) as Record<string, unknown>;
+        this.stats.totalProofTimeMs += performance.now() - t0;
+        return new Groth16Proof(
+          Buffer.from(String(parsed['pi_a'] ?? ''), 'hex'),
+          parsed['public_inputs'] as Record<string, string>,
+          { backend: 'groth16-native', binary: this.binaryPath },
+          Date.now(),
+          result.stdout.length,
+        );
+      }
+    } catch { /* fall through */ }
     this.stats.failures++;
     this.stats.totalProofTimeMs += performance.now() - t0;
     return new Groth16BackendFallback().generateProof(witnessJson, seed);
@@ -123,7 +165,16 @@ export class Groth16Backend implements ZKPBackendProtocol {
   async verifyProof(proofJson: string): Promise<boolean> {
     this.stats.proofsVerified++;
     if (!this.isAvailable()) return new Groth16BackendFallback().verifyProof(proofJson);
-    return false;
+    // PORT-192: invoke native verifier
+    try {
+      const result = this.runner(
+        this.binaryPath!,
+        ['verify', '--proof', '-'],
+        proofJson,
+        this.timeoutMs,
+      );
+      return result.status === 0;
+    } catch { return false; }
   }
 
   getStats(): Readonly<Groth16BackendStats> { return { ...this.stats }; }
@@ -179,7 +230,11 @@ export class ProveKitFFIError extends Error {
 export class ProveKitFFI implements ZKPBackendProtocol {
   private readonly libPath: string | null;
 
-  constructor(libPath: string | null = null) {
+  constructor(
+    libPath: string | null = null,
+    private readonly cliPath = 'provekit',
+    private readonly runner: ZKPProcessRunner = defaultProcessRunner,
+  ) {
     this.libPath = libPath;
   }
 
@@ -189,7 +244,7 @@ export class ProveKitFFI implements ZKPBackendProtocol {
       './libprovekit.so', './libprovekit.dylib', './provekit.dll',
     ];
     try {
-      const { existsSync } = require('fs') as { existsSync: (p: string) => boolean };
+      const { existsSync } = require('node:fs') as { existsSync: (p: string) => boolean };
       for (const p of candidates) { if (existsSync(p)) return new ProveKitFFI(p); }
     } catch { /* ignore */ }
     return new ProveKitFFI(null);
@@ -201,14 +256,44 @@ export class ProveKitFFI implements ZKPBackendProtocol {
     if (!this.isAvailable()) {
       throw new ProveKitFFIError('ProveKit native library not available');
     }
-    // Real implementation would call FFI function via napi
-    throw new ProveKitFFIError('ProveKit FFI not yet bound in TypeScript runtime');
+    // PORT-193: invoke ProveKit CLI when native library is present
+    try {
+      const result = this.runner(
+        this.cliPath,
+        ['prove', '--lib', this.libPath!, '--witness', '-'],
+        witnessJson,
+        60_000,
+      );
+      if (result.status === 0 && result.stdout) {
+        const parsed = JSON.parse(result.stdout) as Record<string, unknown>;
+        const hash = createHash('sha256').update(witnessJson + (seed ?? 0)).digest();
+        return new Groth16Proof(
+          Buffer.from(String(parsed['proof'] ?? ''), 'hex'),
+          parsed['public_inputs'] as Record<string, string>,
+          { backend: 'provekit', lib: this.libPath },
+          Date.now(),
+          result.stdout.length,
+        );
+      }
+    } catch { /* fall through to error */ }
+    throw new ProveKitFFIError('ProveKit CLI invocation failed');
   }
 
   async verifyProof(proofJson: string): Promise<boolean> {
     if (!this.isAvailable()) {
       throw new ProveKitFFIError('ProveKit native library not available');
     }
-    throw new ProveKitFFIError('ProveKit FFI not yet bound in TypeScript runtime');
+    // PORT-193: invoke ProveKit verifier via CLI
+    try {
+      const result = this.runner(
+        this.cliPath,
+        ['verify', '--lib', this.libPath!, '--proof', '-'],
+        proofJson,
+        60_000,
+      );
+      return result.status === 0;
+    } catch {
+      throw new ProveKitFFIError('ProveKit verify CLI failed');
+    }
   }
 }
