@@ -211,3 +211,22 @@ export class CountermodelVisualizer {
 export function createVisualizer(kripke: KripkeStructure): CountermodelVisualizer {
   return new CountermodelVisualizer(kripke);
 }
+
+// PORT-081: ASCII countermodel visualizer (port of countermodel_visualizer.py)
+export function visualizeKripkeAscii(worlds: Array<{ id: number; props: string[] }>, accessibility: Map<number, Set<number>>): string {
+  const lines: string[] = ['Kripke Structure:', ''];
+  for (const w of worlds) {
+    lines.push(`  World w${w.id}: {${w.props.join(', ')}}`);
+    const succs = [...(accessibility.get(w.id) ?? [])];
+    if (succs.length > 0) lines.push(`    → [${succs.map(s => `w${s}`).join(', ')}]`);
+  }
+  return lines.join('\n');
+}
+
+export function visualizeKripkeHtml(worlds: Array<{ id: number; props: string[] }>, accessibility: Map<number, Set<number>>): string {
+  const nodes = worlds.map(w => `<div class="world" id="w${w.id}">{${w.props.join(', ')}}</div>`).join('');
+  const edges = [...accessibility.entries()].flatMap(([from, tos]) =>
+    [...tos].map(to => `<div class="edge">w${from} → w${to}</div>`)
+  ).join('');
+  return `<div class="kripke">${nodes}${edges}</div>`;
+}

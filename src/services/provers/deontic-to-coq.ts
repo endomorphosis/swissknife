@@ -209,3 +209,16 @@ function coqSymbol(s: string): string {
   if (s === '*') return 'STAR';
   return s.replace(/[^a-zA-Z0-9]/g, '_').replace(/^[0-9]+/, '').slice(0, 20) || 'any';
 }
+
+// PORT-033: Configurable tactic sequences for Coq
+export const COQ_TACTIC_SEQUENCES = {
+  basic:      ['auto', 'tauto', 'intuition'],
+  firstorder: ['auto', 'firstorder', 'tauto'],
+  deontic:    ['auto', 'tauto', 'firstorder', 'decide'],
+};
+
+export const LEAN4_TACTIC_SEQUENCES = {
+  basic:   ['trivial', 'simp', 'tauto'],
+  deontic: ['trivial', 'simp', 'decide', 'tauto'],
+};
+// PORT-034: Add 'Require Import Coq.Logic.Classical_Prop.' to Coq proofs for classical logic

@@ -238,3 +238,17 @@ export class FormulaDependencyGraph {
     };
   }
 }
+
+// PORT-084: GraphViz DOT export
+export function formulaDependencyGraphToDot(nodes: string[], edges: Array<[string, string]>): string {
+  const nodeLines = nodes.map((n, i) => `  node${i} [label="${n.slice(0, 40)}"];`).join('\n');
+  const edgeLines = edges.map(([a, b]) => {
+    const ai = nodes.indexOf(a);
+    const bi = nodes.indexOf(b);
+    return ai >= 0 && bi >= 0 ? `  node${ai} -> node${bi};` : null;
+  }).filter(Boolean).join('\n');
+  return `digraph FormulaDependency {
+${nodeLines}
+${edgeLines}
+}`;
+}

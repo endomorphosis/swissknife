@@ -218,3 +218,16 @@ export function dcecFormulaHash(s: string): number {
 // DeonticOperator.PERMISSION = 'P'. This is a Python-side bug. TS correctly
 // avoids it by using CognitiveOperator.PERCEIVES (or similar) or omitting it.
 // Do NOT replicate Python's PERCEPTION='P' — it would break deontic disambiguation.
+
+// PORT-094: N-ary AND/OR connectives (Python allows AND(P,Q,R); TS is binary-only)
+export function naryAnd(formulas: string[]): string {
+  if (formulas.length === 0) return '⊤';
+  if (formulas.length === 1) return formulas[0]!;
+  return formulas.reduce((acc, f) => `(${acc} ∧ ${f})`);
+}
+
+export function naryOr(formulas: string[]): string {
+  if (formulas.length === 0) return '⊥';
+  if (formulas.length === 1) return formulas[0]!;
+  return formulas.reduce((acc, f) => `(${acc} ∨ ${f})`);
+}

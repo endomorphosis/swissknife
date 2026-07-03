@@ -105,6 +105,7 @@ export interface TemporalFormulaTDFOL extends TDFOLNode {
   readonly operator:  TDFOLTemporalOp;
   readonly formula:   Formula;
   readonly until?:    Formula;  // for UNTIL / RELEASE
+  readonly timeBound?: number; // PORT-051: bounded ops □[n]φ — bound in steps
 }
 
 export type Formula =
@@ -259,4 +260,47 @@ export class TDFOLKnowledgeBase {
       definitions: Object.fromEntries([...this._definitions.entries()].map(([k, v]) => [k, v.toDict()])),
     };
   }
+}
+
+// PORT-003: Term substitution and free variable collection (partial port)
+// Python tdfol_core.py:111, dcec_core.py:700-709,1380-1394
+
+export function getFreeVariables(formula: Formula): Set<string> {
+  const vars = new Set<string>();
+  function walk(f: Formula): void {
+    const ff = f as Record<string, unknown>;
+    if (ff['kind'] === 'predicate') {
+      const args = ff['args'] as unknown[];
+      for (const arg of args ?? []) {
+        if (typeof arg === 'string' && /^[a-z]/.test(arg)) vars.add(arg);
+      }
+    } else if (ff['quantifier'] && ff['variable']) {
+      const inner = ff['body'] as Formula;
+      const inner_vars = getFreeVariables(inner);
+      inner_vars.delete(ff['variable'] as string);
+      inner_vars.forEach(v => vars.add(v));
+    } else {
+      for (const key of ['left','right','formula','operand','body'] as const) {
+        if (ff[key]) walk(ff[key] as Formula);
+      }
+    }
+  }
+  walk(formula);
+  return vars;
+}
+
+/** Substitute a variable name with a constant string in a formula.
+ *  Full α-renaming requires a complete type-aware system (PORT-001).
+ *  This is a string-based structural substitution for the common case. */
+export function substitute(formula: Formula, varName: string, replacement: string): Formula {
+  const ff = formula as Record<string, unknown>;
+  if (ff['kind'] === 'predicate') {
+    const args = (ff['args'] as unknown[]).map(a => a === varName ? replacement : a);
+    return { ...formula, args } as unknown as Formula;
+  }
+  const result: Record<string, unknown> = { ...ff };
+  for (const key of ['left','right','formula','operand','body']) {
+    if (ff[key]) result[key] = substitute(ff[key] as Formula, varName, replacement);
+  }
+  return result as unknown as Formula;
 }

@@ -262,3 +262,16 @@ export class TemporalDeonticRAGStore {
     });
   }
 }
+
+// PORT-150: Embedding backend decision (neurosymbolic / semantic retrieval)
+// The Python reference uses real 768-dim embeddings (sentence-transformers).
+// TS options: (a) WASM model via @xenova/transformers, (b) remote API, (c) keyword overlap (current).
+// Until a WASM embedding model is bundled, keyword-overlap similarity is the fallback.
+// Use TheoremMetadata.embedding to store pre-computed embeddings when available.
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) return 0;
+  const dot = a.reduce((s, v, i) => s + v * (b[i] ?? 0), 0);
+  const na  = Math.sqrt(a.reduce((s, v) => s + v * v, 0));
+  const nb  = Math.sqrt(b.reduce((s, v) => s + v * v, 0));
+  return (na > 0 && nb > 0) ? dot / (na * nb) : 0;
+}

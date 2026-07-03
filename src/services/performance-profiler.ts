@@ -239,3 +239,18 @@ export class ProfileBlock {
     return this.stopped ? this.elapsedMs : performance.now() - this.startMs;
   }
 }
+
+// PORT-083: @profile_this decorator equivalent (TypeScript method decorator)
+export function profileThis(label?: string) {
+  return function(target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
+    const original = descriptor.value as (...args: unknown[]) => unknown;
+    descriptor.value = function(...args: unknown[]) {
+      const start = performance.now();
+      const result = original.apply(this, args);
+      const elapsed = performance.now() - start;
+      console.debug(`[ProfileThis] ${label ?? propertyKey}: ${elapsed.toFixed(2)}ms`);
+      return result;
+    };
+    return descriptor;
+  };
+}

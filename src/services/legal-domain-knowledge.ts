@@ -26,6 +26,12 @@ export enum LegalConceptType {
   AGENT            = 'agent',
   PENALTY          = 'penalty',
   EXEMPTION        = 'exemption',
+  // PORT-132: Python-aligned values (RIGHT/DUTY/LIABILITY/EXCEPTION/DEFINITION)
+  DUTY        = 'duty',          // equivalent to OBLIGATION
+  RIGHT       = 'right',
+  LIABILITY   = 'liability',
+  EXCEPTION   = 'exception',
+  DEFINITION  = 'definition',
 }
 
 export enum LegalDomainKind {
