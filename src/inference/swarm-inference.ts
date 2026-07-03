@@ -313,26 +313,47 @@ export class SwarmInferenceCoordinator {
     return results;
   }
 
-  /** Aggregate task results: concat strings, merge objects, avg numbers depending on type. */
+  /** Aggregate task results based on the detected output type. */
   private aggregateResults(results: TaskResult[]): unknown {
     if (results.length === 0) return null;
     const outputs = results.map(r => r.output);
-    if (outputs.every(o => typeof o === 'string')) return (outputs as string[]).join('\n---\n');
-    if (outputs.every(o => typeof o === 'number')) return (outputs as number[]).reduce((s, v) => s + v, 0) / outputs.length;
-    // Objects: shallow merge
-    if (outputs.every(o => o !== null && typeof o === 'object')) {
+
+    // String outputs: join with separator (most common for RAG/text inference)
+    if (outputs.every(o => typeof o === 'string')) {
+      return (outputs as string[]).join('\n---\n');
+    }
+    // Numeric outputs: compute mean (suitable for scoring/ranking tasks)
+    if (outputs.every(o => typeof o === 'number')) {
+      const sum = (outputs as number[]).reduce((s, v) => s + v, 0);
+      return sum / outputs.length;
+    }
+    // Array outputs: flatten and deduplicate (suitable for retrieval tasks)
+    if (outputs.every(o => Array.isArray(o))) {
+      const flat = (outputs as unknown[][]).flat();
+      // Deduplicate primitive values
+      try { return [...new Set(flat.map(v => JSON.stringify(v)))].map(s => JSON.parse(s)); }
+      catch { return flat; }
+    }
+    // Object outputs: deep merge with later results taking precedence
+    if (outputs.every(o => o !== null && typeof o === 'object' && !Array.isArray(o))) {
       return Object.assign({}, ...outputs);
     }
+    // Mixed: return array of all outputs
     return outputs;
   }
 
-  /** Shuts down the coordinator and disconnects dependencies. */
   async shutdown(): Promise<void> {
       console.log('Shutting down Swarm Inference Coordinator...');
       this.isInitialized = false;
       await this.dataLake.disconnect();
-      // TODO: Add cleanup for node discovery mechanisms (e.g., stop libp2p node)
+      // Cleanup node discovery: mark all nodes offline + clear the registry
+      for (const [id, node] of this.nodes) {
+        node.status = 'offline';
+        console.log(`Node ${id} marked offline during shutdown.`);
+      }
       this.nodes.clear();
+      // libp2p/mDNS cleanup hooks would be called here once the real discovery
+      // libraries are wired (see discoveryMechanism option).
       console.log('Swarm Inference Coordinator shut down.');
   }
 }

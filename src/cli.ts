@@ -58,10 +58,15 @@ export class CLI {
         model: this.defaultModel, 
         storage: this.storage, 
         config: this.configManager,
-        // TODO: Pass tools dynamically or from config later
-        // tools: [new EchoTool()], 
-        // TODO: Make useGraphOfThought configurable
-        // useGraphOfThought: this.configManager.get('ai.useGoT') 
+        // Pass tools from config: ai.tools is a list of enabled tool names.
+        // When empty/absent, the agent uses its default built-in tool set.
+        tools: (() => {
+          const enabledTools = this.configManager.get<string[]>('ai.tools', []);
+          if (enabledTools.length === 0) return undefined; // default set
+          return enabledTools; // caller resolves to Tool instances
+        })(),
+        // useGraphOfThought is now read from config (ai.useGoT, default false)
+        useGraphOfThought: this.configManager.get<boolean>('ai.useGoT', false),
     }); 
 
     this.registerCommands();
@@ -205,7 +210,16 @@ export class CLI {
            if (command.help) {
               helpText += `\n${command.help}\n`;
            }
-           // TODO: Add details based on command.argumentParserOptions
+           // Add argument details from argumentParserOptions if available
+           const argOpts = (command as Record<string, unknown>)['argumentParserOptions'];
+           if (argOpts && typeof argOpts === 'object') {
+             helpText += `\nOptions:\n`;
+             for (const [flag, opts] of Object.entries(argOpts as Record<string, Record<string, unknown>>)) {
+               const desc = opts['description'] ?? opts['help'] ?? '';
+               const def  = opts['default'] !== undefined ? ` (default: ${opts['default']})` : '';
+               helpText += `  ${flag}  ${desc}${def}\n`;
+             }
+           }
            console.log(helpText);
            return;
         } else {

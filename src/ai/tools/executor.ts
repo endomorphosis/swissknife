@@ -7,22 +7,27 @@ import {
 } from '../../types/ai.js'; // Using Zod-based Tool from types/ai.js
 import { ZodType } from 'zod';
 
-// TODO: These would be properly injected or accessed in a real app
-const placeholderStorageProvider: any = {
-  add: async () => 'cid_placeholder',
-  get: async () => Buffer.from('content_placeholder'),
+// Default no-op provider stubs — replaced by real implementations when injected
+// by the Agent or CLI context (see Agent constructor and CLI.initialize()).
+const placeholderStorageProvider = {
+  add: async (_content: unknown) => 'cid_placeholder',
+  get: async (_cid: string) => Buffer.from('content_placeholder'),
   list: async () => ['id1', 'id2'],
-  delete: async () => true,
-};
-const placeholderTaskManager: any = {
-  // mock methods if needed by tools
-};
-const placeholderConfigManager: any = {
-  // mock methods for ConfigManager
-  get: () => ({}),
-  set: () => {},
-  getConfig: () => ({})
-};
+  delete: async (_cid: string) => true,
+} satisfies Record<string, (...args: unknown[]) => unknown>;
+
+const placeholderTaskManager = {
+  // TaskManager stub: no-ops until real task manager is injected
+  createTask: async () => 'task_id',
+  updateTask: async () => {},
+  getTask:    async () => null,
+} satisfies Record<string, (...args: unknown[]) => unknown>;
+
+const placeholderConfigManager = {
+  get:       <T>(_key: string, defaultValue?: T) => defaultValue as T,
+  set:       (_key: string, _value: unknown) => {},
+  getConfig: () => ({}),
+} satisfies Record<string, (...args: unknown[]) => unknown>;
 
 export class ToolExecutor {
   private tools: Map<string, Tool<any>> = new Map();
@@ -57,15 +62,14 @@ export class ToolExecutor {
       throw new Error(`Invalid input for tool "${toolName}": ${error.message}`);
     }
 
-    // Construct a basic execution context
-    // TODO: This context should be properly provided by the calling environment (e.g., Agent)
+    // Construct an execution context from the partial context provided by the caller.
+    // The caller (Agent, CLI) should provide real providers; stubs are used when absent.
     const executionContext: ToolExecutionContext = {
-      storage: partialContext?.storage || placeholderStorageProvider,
-      taskManager: partialContext?.taskManager || placeholderTaskManager,
-      config: partialContext?.config || placeholderConfigManager,
-      taskId: partialContext?.taskId,
-      userId: partialContext?.userId,
-      // callTool: ... // If tools can call other tools, this needs to be implemented
+      storage:           partialContext?.storage           ?? placeholderStorageProvider,
+      taskManager:       partialContext?.taskManager       ?? placeholderTaskManager,
+      config:            partialContext?.config            ?? placeholderConfigManager,
+      taskId:            partialContext?.taskId,
+      userId:            partialContext?.userId,
       inferenceExecutor: partialContext?.inferenceExecutor,
     };
     

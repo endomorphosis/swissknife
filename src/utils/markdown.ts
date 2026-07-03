@@ -97,7 +97,16 @@ function format(
         return token.text
       }
   }
-  // TODO: tables
+  // Tables: render header | separator | rows as aligned text
+  if (token.type === 'table') {
+    const header = (token as Record<string, unknown[]>)['header'] as Array<{ text: string }> | undefined;
+    const rows   = (token as Record<string, unknown[][]>)['rows']    as Array<Array<{ text: string }>> | undefined;
+    if (!header) return '';
+    const cols = header.map(h => h.text ?? String(h));
+    const sep  = cols.map(() => '---');
+    const body = (rows ?? []).map(row => row.map(c => c.text ?? String(c)).join(' | '));
+    return [cols.join(' | '), sep.join(' | '), ...body].map(l => l + EOL).join('');
+  }
   return ''
 }
 
@@ -202,12 +211,30 @@ function getListNumber(listDepth: number, orderedListNumber: number): string {
   switch (listDepth) {
     case 0:
     case 1:
-      return orderedListNumber.toString()
-    case 2:
-      return DEPTH_1_LIST_NUMBERS[orderedListNumber - 1]! // TODO: don't hard code the list
-    case 3:
-      return DEPTH_2_LIST_NUMBERS[orderedListNumber - 1]! // TODO: don't hard code the list
+      return orderedListNumber.toString();
+    case 2: {
+      // Generate lowercase letters dynamically: 1→a, 2→b, ..., 26→z, 27→aa, ...
+      let n = orderedListNumber;
+      let result = '';
+      while (n > 0) {
+        n -= 1;
+        result = String.fromCharCode(97 + (n % 26)) + result;
+        n = Math.floor(n / 26);
+      }
+      return result;
+    }
+    case 3: {
+      // Generate lowercase Roman numerals dynamically
+      const vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
+      const syms = ['m','cm','d','cd','c','xc','l','xl','x','ix','v','iv','i'];
+      let n = orderedListNumber;
+      let roman = '';
+      for (let i = 0; i < vals.length; i++) {
+        while (n >= vals[i]!) { roman += syms[i]; n -= vals[i]!; }
+      }
+      return roman;
+    }
     default:
-      return orderedListNumber.toString()
+      return orderedListNumber.toString();
   }
 }

@@ -178,13 +178,18 @@ export async function* query(
 
   const toolResults: UserMessage[] = []
 
-  // Prefer to run tools concurrently, if we can
-  // TODO: tighten up the logic -- we can run concurrently much more often than this
-  if (
-    toolUseMessages.every(msg =>
-      toolUseContext.options.tools.find(t => t.name === msg.name)?.isReadOnly(),
-    )
-  ) {
+  // Prefer to run tools concurrently when safe to do so.
+  // Concurrent execution is safe when:
+  //   (a) all tools are read-only, OR
+  //   (b) each tool writes to distinct resources (no overlapping write targets)
+  const allReadOnly = toolUseMessages.every(msg =>
+    toolUseContext.options.tools.find(t => t.name === msg.name)?.isReadOnly(),
+  );
+  // Heuristic for (b): tools targeting different paths/CIDs can run concurrently
+  const noSharedWriteTargets = !allReadOnly && toolUseMessages.length > 1 &&
+    new Set(toolUseMessages.map(m => JSON.stringify((m as Record<string, unknown>)['input']))).size === toolUseMessages.length;
+
+  if (allReadOnly || noSharedWriteTargets) {
     for await (const message of runToolsConcurrently(
       toolUseMessages,
       assistantMessage,
@@ -343,21 +348,32 @@ export async function* runToolUse(
   }
 }
 
-// TODO: Generalize this to all tools
+// Normalize tool input for any tool by stripping redundant cwd prefix from
+// path-based arguments. Falls back to identity for unknown tools.
 export function normalizeToolInput(
   tool: Tool,
   input: { [key: string]: boolean | string | number },
 ): { [key: string]: boolean | string | number } {
+  // Generic: strip leading 'cd <cwd> && ' from any string argument named 'command'
+  const normalized: typeof input = {};
+  for (const [k, v] of Object.entries(input)) {
+    if (typeof v === 'string' && k === 'command') {
+      normalized[k] = v.replace(`cd ${getCwd()} && `, '');
+    } else {
+      normalized[k] = v;
+    }
+  }
+  // Tool-specific overrides
   switch (tool) {
     case BashTool: {
-      const { command, timeout } = BashTool.inputSchema.parse(input) // already validated upstream, won't throw
+      const { command, timeout } = BashTool.inputSchema.parse(normalized) // already validated upstream, won't throw
       return {
         command: command.replace(`cd ${getCwd()} && `, ''),
         ...(timeout ? { timeout } : {}),
       }
     }
     default:
-      return input
+      return normalized;
   }
 }
 

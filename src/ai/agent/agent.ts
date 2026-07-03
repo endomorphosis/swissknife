@@ -93,13 +93,16 @@ export class Agent {
     for (const toolRequest of toolsToExecute) {
       try {
         // ToolExecutor needs context. AgentContext might be suitable.
-        // This part needs a proper ToolExecutionContext.
-        // For now, ToolExecutor in Phase 2 plan didn't take context.
-        // Assuming ToolExecutor.execute is updated or context is optional.
+        // Pass ToolExecutionContext with agent-level storage, config, and identity.
+        // The executor falls back to stubs for any field not provided here.
         const result = await this.toolExecutor.execute(
-          toolRequest.name, 
-          toolRequest.args
-          // TODO: Provide ToolExecutionContext here
+          toolRequest.name,
+          toolRequest.args,
+          {
+            storage:     (this as Record<string, unknown>)['storage'] as Record<string, unknown> | undefined,
+            config:      (this as Record<string, unknown>)['configManager'] as Record<string, unknown> | undefined,
+            taskId:      this.currentConversationId,
+          }
         );
         toolExecutionResults.push({
           toolName: toolRequest.name,
@@ -153,7 +156,13 @@ export class Agent {
       timestamp: new Date().toISOString(),
       toolResults: toolExecutionResults.length > 0 ? toolExecutionResults : undefined,
       usage: usage,
-      // thinking: { ... } // TODO: Populate thinking result from ThinkingManager if available
+      // thinking: populated from ThinkingManager when available
+      thinking: (() => {
+        if (typeof (this.thinkingManager as Record<string, unknown>)?.['getLastThinking'] === 'function') {
+          return (this.thinkingManager as Record<string, (() => unknown)>)['getLastThinking']();
+        }
+        return undefined;
+      })(),
     };
     this.memory.push(assistantMessage);
     return assistantMessage;
