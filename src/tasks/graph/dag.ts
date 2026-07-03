@@ -374,5 +374,53 @@ export class DirectedAcyclicGraph<T extends NodeWithId> {
   }
   // private detectCycle(fromId: string, toId: string): boolean { ... }
 
-  // TODO: Implement graph traversal methods (DFS, BFS, topological sort)
+  /** Depth-First Search starting from nodeId. Returns visited node IDs in DFS order. */
+  dfs(startId: string): string[] {
+    const visited = new Set<string>();
+    const result: string[] = [];
+    const stack = [startId];
+    while (stack.length > 0) {
+      const id = stack.pop()!;
+      if (visited.has(id)) continue;
+      visited.add(id);
+      result.push(id);
+      const neighbors = this.getEdges(id).map(e => e.to).reverse();
+      stack.push(...neighbors);
+    }
+    return result;
+  }
+
+  /** Breadth-First Search starting from nodeId. Returns visited node IDs in BFS order. */
+  bfs(startId: string): string[] {
+    const visited = new Set<string>([startId]);
+    const queue = [startId];
+    const result: string[] = [];
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      result.push(id);
+      for (const edge of this.getEdges(id)) {
+        if (!visited.has(edge.to)) { visited.add(edge.to); queue.push(edge.to); }
+      }
+    }
+    return result;
+  }
+
+  /** Topological sort (Kahn's algorithm). Returns node IDs in dependency order, or null if cycle detected. */
+  topologicalSort(): string[] | null {
+    const inDegree = new Map<string, number>();
+    for (const id of this.getNodeIds()) inDegree.set(id, 0);
+    for (const edge of this.getAllEdges()) inDegree.set(edge.to, (inDegree.get(edge.to) ?? 0) + 1);
+    const queue = [...inDegree.entries()].filter(([, d]) => d === 0).map(([id]) => id);
+    const result: string[] = [];
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      result.push(id);
+      for (const edge of this.getEdges(id)) {
+        const newDeg = (inDegree.get(edge.to) ?? 0) - 1;
+        inDegree.set(edge.to, newDeg);
+        if (newDeg === 0) queue.push(edge.to);
+      }
+    }
+    return result.length === this.getNodeIds().length ? result : null; // null = cycle
+  }
 }

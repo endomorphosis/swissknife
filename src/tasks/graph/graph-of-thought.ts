@@ -211,7 +211,7 @@ export class GraphOfThoughtEngine {
      }
      
      node.metadata.completedAt = Date.now();
-     // TODO: Calculate executionTimeMs
+     node.metadata.executionTimeMs = node.metadata.completedAt - (node.metadata.startedAt ?? node.metadata.completedAt);
      
      return newNodes; 
   }

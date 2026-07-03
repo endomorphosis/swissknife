@@ -44,7 +44,8 @@ export class TaskManager {
   private model: BaseModel; // Default model for thinking processes
   private graphProcessor: PlaceholderGraphProcessor; // To be replaced with full GraphProcessor
 
-  // TODO: Executor loop should be started/stopped
+  // Executor loop lifecycle managed by startExecutionLoop()/stopExecutionLoop().
+  // Call startExecutionLoop() after construction, stopExecutionLoop() on dispose.
   private executionInterval: NodeJS.Timeout | null = null;
 
 

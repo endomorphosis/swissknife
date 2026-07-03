@@ -99,8 +99,8 @@ export function REPL({
   mcpClients = [],
   isDefaultModel = true,
 }: Props): React.ReactNode {
-  // TODO: probably shouldn't re-read config from file synchronously on every keystroke
-  const verbose = verboseFromCLI ?? getGlobalConfig().verbose
+  // Cache verbose config once at mount instead of re-reading on every keystroke
+  const [verbose] = useState(() => verboseFromCLI ?? getGlobalConfig().verbose)
 
   // Used to force the logo to re-render and conversation log to use a new file
   const [forkNumber, setForkNumber] = useState(
