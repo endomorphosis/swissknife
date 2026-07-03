@@ -261,7 +261,9 @@ export class ModalTableaux {
       'operator' in f ||
       'quantifier' in f ||
       'deonticOp' in f ||
-      'temporalOp' in f
+      'temporalOp' in f ||
+      // PORT-001: TemporalFormulaTDFOL uses 'operator' not 'temporalOp'
+      (('kind' in f) && (f as Record<string, unknown>)['kind'] === 'temporal')
     );
   }
 
@@ -337,6 +339,12 @@ export class ModalTableaux {
     }
     if ('temporalOp' in f) {
       const top = (f as TemporalFormulaTDFOL).temporalOp;
+      const isBox = top === '□';
+      return this.expandBoxDiamond(branch, worldId, getBody(formula)!, negated !== isBox, steps);
+    }
+    // PORT-001 compat: TemporalFormulaTDFOL uses 'operator' (tdfol-core.ts) not 'temporalOp'
+    if (('kind' in f) && (f as Record<string, unknown>)['kind'] === 'temporal') {
+      const top = (f as unknown as { operator: string }).operator;
       const isBox = top === '□';
       return this.expandBoxDiamond(branch, worldId, getBody(formula)!, negated !== isBox, steps);
     }
