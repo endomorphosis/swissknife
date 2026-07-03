@@ -4,11 +4,73 @@
  */
 
 import { explainProof, suggestProofStrategy } from '../../src/services/provers/neural-prover-bridge';
-import { applyAlphaRule, applyBetaRule, isAlphaFormula, isBetaFormula, propositionalTableauxExpand } from '../../src/services/cec-modal-tableaux';
+import { applyAlphaRule, applyBetaRule, isAlphaFormula, isBetaFormula, propositionalTableauxExpand, toProofStepWire } from '../../src/services/cec-modal-tableaux';
 import { synthesisHintsFromAutoencoderIntrospection } from '../../src/services/modal-synthesis';
 import { residualSignatureForHint } from '../../src/services/modal-synthesis';
 import { augmentLegalIrProjectionTriples, LEGAL_CITATION_STRUCTURE, LEGAL_DOCUMENT_SCOPE } from '../../src/services/modal-kg-bridge';
 import { withFLogicOptimizer } from '../../src/services/modal-logic-codec';
+import { getFreeVariables, mkConstant, mkDeontic, mkFuncApp, mkPredicate, mkQuantified, mkTemporal, mkVariable, substitute } from '../../src/services/tdfol-core';
+import { naryAnd, naryOr } from '../../src/services/dcec-core-types';
+import { DcecProverBridge } from '../../src/services/provers/dcec-prover-bridge';
+import { Atom, Conjunction, Implies, Negation, Obligation, Permission, Prohibition } from '../../src/services/provers/dcec-types';
+
+// ---------------------------------------------------------------------------
+// PORT-003 / PORT-051 / PORT-052 / PORT-053 / PORT-094 — Type-system closure
+// ---------------------------------------------------------------------------
+describe('PORT-003 TDFOL free variables + substitution', () => {
+  it('collects free variables through predicate and function terms', () => {
+    const x = mkVariable('x', 'Agent');
+    const y = mkVariable('y', 'Object');
+    const formula = mkPredicate('Owns', [x, mkFuncApp('resourceOf', [y])]);
+    expect([...getFreeVariables(formula)].sort()).toEqual(['x', 'y']);
+  });
+
+  it('substitutes variables structurally inside function terms', () => {
+    const x = mkVariable('x', 'Agent');
+    const formula = mkPredicate('Owns', [mkFuncApp('managerOf', [x])]);
+    const result = substitute(formula, 'x', mkConstant('alice', 'alice', 'Agent'));
+    expect(result.toStr()).toBe('Owns(managerOf(alice))');
+  });
+
+  it('does not substitute a variable bound by a quantifier', () => {
+    const x = mkVariable('x', 'Agent');
+    const body = mkPredicate('Acts', [x]);
+    const quantified = mkQuantified('∀', x, body);
+    const result = substitute(quantified, 'x', mkConstant('alice', 'alice', 'Agent'));
+    expect(result.toStr()).toBe('∀x:Agent.(Acts(x:Agent))');
+    expect([...getFreeVariables(result)]).toEqual([]);
+  });
+});
+
+describe('PORT-051/052/053 TDFOL typed temporal/deontic/quantified fields', () => {
+  it('serializes bounded temporal operators', () => {
+    const bounded = mkTemporal('□', mkPredicate('Safe'), undefined, 3);
+    expect(bounded.toStr()).toBe('□[3](Safe)');
+    expect(bounded.toDict().timeBound).toBe(3);
+  });
+
+  it('keeps structured deontic agents and context aliases', () => {
+    const agent = mkFuncApp('managerOf', [mkVariable('x', 'Agent')], 'Agent');
+    const obligation = mkDeontic('O', mkPredicate('Approve'), agent, 'deadline');
+    expect(obligation.toStr()).toBe('O[managerOf(x:Agent)](Approve)@deadline');
+    expect(obligation.toDict().context).toBe('deadline');
+    expect([...getFreeVariables(obligation)]).toEqual(['x']);
+  });
+
+  it('stores quantified variables as typed Variable nodes', () => {
+    const quantified = mkQuantified('∃', mkVariable('x', 'Agent'), mkPredicate('Human', [mkVariable('x', 'Agent')]));
+    expect(quantified.variable).toBe('x');
+    expect(quantified.variableTerm?.sort).toBe('Agent');
+    expect((quantified.toDict().variableTerm as Record<string, unknown>).sort).toBe('Agent');
+  });
+});
+
+describe('PORT-094 n-ary DCEC connectives', () => {
+  it('builds n-ary conjunction and disjunction strings', () => {
+    expect(naryAnd(['P', 'Q', 'R'])).toBe('((P ∧ Q) ∧ R)');
+    expect(naryOr(['P', 'Q', 'R'])).toBe('((P ∨ Q) ∨ R)');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // PORT-040 — Neural confidence + explain + suggest
@@ -89,6 +151,72 @@ describe('PORT-100 Propositional α/β tableaux', () => {
     const result = propositionalTableauxExpand(['P', 'Q']);
     expect(result.closed).toBe(false);
   });
+
+  it('propositionalTableauxExpand derives alpha components', () => {
+    const result = propositionalTableauxExpand(['(P ∧ Q)']);
+    expect(result.closed).toBe(false);
+    expect(result.open[0]).toEqual(expect.arrayContaining(['P', 'Q']));
+  });
+
+  it('propositionalTableauxExpand closes both beta branches when alternatives contradict', () => {
+    const result = propositionalTableauxExpand(['(P ∨ Q)', '¬P', '¬Q']);
+    expect(result.closed).toBe(true);
+    expect(result.open).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PORT-101 — Python-compatible proof-step schema
+// ---------------------------------------------------------------------------
+describe('PORT-101 ProofStep wire schema', () => {
+  it('exports Python-compatible rule/premises/conclusion fields', () => {
+    const wire = toProofStepWire({ rule: 'ModusPonens', premises: ['P', 'P → Q'], conclusion: 'Q' });
+    expect(wire.ruleName).toBe('ModusPonens');
+    expect(wire.rule).toBe('ModusPonens');
+    expect(wire.premises).toEqual(['P', 'P → Q']);
+    expect(wire.conclusion).toBe('Q');
+    expect(wire.formula).toBe('Q');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PORT-102 — DcecProverBridge mirrors Python core rule set
+// ---------------------------------------------------------------------------
+describe('PORT-102 DcecProverBridge Python-rule conformance', () => {
+  let bridge: DcecProverBridge;
+  beforeEach(() => { bridge = new DcecProverBridge(); });
+
+  it('matches ModusPonens: P, P→Q ⊢ Q', async () => {
+    const p = Atom('p');
+    const q = Atom('q');
+    const result = await bridge.prove([p, Implies(p, q)], q);
+    expect(result.proved).toBe(true);
+  });
+
+  it('matches Simplification: P∧Q ⊢ P and Q', async () => {
+    const p = Atom('p');
+    const q = Atom('q');
+    await expect(bridge.prove([Conjunction(p, q)], p)).resolves.toMatchObject({ proved: true });
+    await expect(bridge.prove([Conjunction(p, q)], q)).resolves.toMatchObject({ proved: true });
+  });
+
+  it('matches DeonticProhibition equivalence: F(φ) ⊢ O(¬φ)', async () => {
+    const phi = Atom('share_data');
+    const result = await bridge.prove([Prohibition(phi)], Obligation(Negation(phi)));
+    expect(result.proved).toBe(true);
+  });
+
+  it('matches DeonticPermission/obligation transfer: O(φ) ⊢ P(φ)', async () => {
+    const phi = Atom('submit_report');
+    const result = await bridge.prove([Obligation(phi)], Permission(phi));
+    expect(result.proved).toBe(true);
+  });
+
+  it('matches ForbiddenToNotOblig: F(φ) ⊢ ¬O(φ)', async () => {
+    const phi = Atom('delete_record');
+    const result = await bridge.prove([Prohibition(phi)], Negation(Obligation(phi)));
+    expect(result.proved).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -135,9 +263,11 @@ describe('PORT-122 synthesisHintsFromAutoencoderIntrospection', () => {
       predictedFamily: 'standard',
       targetFamily:    'deontic',
     };
-    const hints = synthesisHintsFromAutoencoderIntrospection(intro);
+    const hints = synthesisHintsFromAutoencoderIntrospection(intro, 'legal');
     expect(Array.isArray(hints)).toBe(true);
     expect(hints.length).toBeGreaterThan(0);
+    expect(hints[0].domain).toBe('legal');
+    expect(hints[0].evidence.frame_features).toEqual(['obligation']);
   });
 
   it('returns no hints when families match', () => {

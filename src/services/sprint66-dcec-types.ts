@@ -158,9 +158,13 @@ export class DCECToUCANBridge {
   }
 }
 
-// PORT-002: Three competing DCEC type files — canonical is dcec-core-types.ts.
-// This file duplicates DeonticOperator/CognitiveOperator from dcec-core-types.ts.
-// TODO: future refactor will consolidate to a single canonical DCEC type module.
-// For now, re-export canonical types for cross-file interop:
-export type { DeonticOperator as CanonicalDeonticOperator } from './dcec-core-types.js';
-export type { CognitiveOperator as CanonicalCognitiveOperator } from './dcec-core-types.js';
+// PORT-002: This legacy sprint module is now a compatibility facade.
+// Canonical DCEC operator/type metadata lives in dcec-core-types.ts.
+export {
+  canonicalDcecTypeManifest,
+  normalizeDeonticOperator,
+  DeonticOperator as CanonicalDeonticOperator,
+  CognitiveOperator as CanonicalCognitiveOperator,
+  LogicalConnective as CanonicalLogicalConnective,
+  DCECTemporalOperator as CanonicalTemporalOperator,
+} from './dcec-core-types.js';

@@ -11,6 +11,8 @@
  * provers namespace).  The bridge is the external-prover-facing API.
  */
 
+import type { Formula, SortKind, Term } from './tdfol-core.js';
+
 // ---------------------------------------------------------------------------
 // Z3ProofResult
 // ---------------------------------------------------------------------------
@@ -37,7 +39,7 @@ export interface Z3ProofResult {
 export function z3Proved(result: Z3ProofResult): boolean { return result.isValid; }
 
 // ---------------------------------------------------------------------------
-// TDFOLToZ3Converter (string-based stub)
+// TDFOLToZ3Converter
 // ---------------------------------------------------------------------------
 
 /**
@@ -47,9 +49,8 @@ export function z3Proved(result: Z3ProofResult): boolean { return result.isValid
  * Full conversion requires z3-solver; this stub produces SMT-LIB2 text.
  */
 export class TDFOLToZ3Converter {
-  private readonly varCache = new Map<string, string>();
-
-  convert(formula: string): string {
+  convert(formula: string | Formula): string {
+    if (isFormulaAst(formula)) return this.convertFormula(formula);
     return formula
       .replace(/∀\s*(\w+)\s*\./g, '(forall (($1 Bool))')
       .replace(/∃\s*(\w+)\s*\./g, '(exists (($1 Bool))')
@@ -64,16 +65,184 @@ export class TDFOLToZ3Converter {
       .trim();
   }
 
-  /** PORT-020: Accept a TDFOL Formula AST object and convert to SMT-LIB2 string.
-   *  Requires Formula objects to implement toString() — see tdfol-core.ts. */
-  convertFormula(formula: { toString(): string } | string): string {
-    return this.convert(typeof formula === 'string' ? formula : formula.toString());
+  /** PORT-020: Accept a TDFOL Formula AST object and convert to a SMT-LIB2 term. */
+  convertFormula(formula: Formula | string): string {
+    if (typeof formula === 'string') return this.convert(formula);
+    const ctx = createSmtContext();
+    return formulaToSmt(formula, ctx);
   }
 
   /** Return an SMT-LIB2 assertion string for the negation of `formula`. */
-  toSmtAssertion(formula: string): string {
+  toSmtAssertion(formula: string | Formula): string {
     const converted = this.convert(formula);
     return `(assert (not ${converted}))`;
+  }
+
+  /** Build a complete validity-check query: axioms ∧ ¬formula is unsatisfiable. */
+  toSmtLib(formula: string | Formula, axioms: Array<string | Formula> = []): string {
+    if (typeof formula === 'string' && axioms.every(a => typeof a === 'string')) {
+      return [
+        '(set-logic ALL)',
+        ...axioms.map(a => `(assert ${this.convert(a as string)})`),
+        this.toSmtAssertion(formula),
+        '(check-sat)',
+        '(get-model)',
+      ].join('\n');
+    }
+
+    const ctx = createSmtContext();
+    const axiomTerms = axioms.map(a => typeof a === 'string' ? this.convert(a) : formulaToSmt(a, ctx));
+    const formulaTerm = typeof formula === 'string' ? this.convert(formula) : formulaToSmt(formula, ctx);
+    return [
+      '(set-logic ALL)',
+      ...Array.from(ctx.sorts).sort().map(s => `(declare-sort ${s} 0)`),
+      ...Array.from(ctx.declarations).sort(),
+      ...axiomTerms.map(a => `(assert ${a})`),
+      `(assert (not ${formulaTerm}))`,
+      '(check-sat)',
+      '(get-model)',
+    ].join('\n');
+  }
+}
+
+interface SmtContext {
+  declarations: Set<string>;
+  sorts: Set<string>;
+  boundVariables: Set<string>;
+}
+
+function createSmtContext(): SmtContext {
+  return { declarations: new Set(), sorts: new Set(), boundVariables: new Set() };
+}
+
+function isFormulaAst(value: unknown): value is Formula {
+  return Boolean(value && typeof value === 'object' && 'kind' in value && typeof (value as { toStr?: unknown }).toStr === 'function');
+}
+
+function smtSort(sort?: SortKind): string {
+  if (!sort || sort === 'Proposition') return 'Bool';
+  return smtIdentifier(sort);
+}
+
+function ensureSort(ctx: SmtContext, sort?: SortKind): string {
+  const mapped = smtSort(sort);
+  if (mapped !== 'Bool') ctx.sorts.add(mapped);
+  return mapped;
+}
+
+function smtIdentifier(raw: string): string {
+  const text = String(raw || 'unnamed');
+  if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(text)) return text;
+  return `|${text.replace(/[|\\]/g, '_')}|`;
+}
+
+function termSort(term: Term): string {
+  switch (term.kind) {
+    case 'variable': return smtSort(term.sort);
+    case 'constant': return smtSort(term.sort);
+    case 'function_app': return smtSort(term.returnSort);
+  }
+}
+
+function termToSmt(term: Term, ctx: SmtContext): string {
+  switch (term.kind) {
+    case 'variable':
+      return smtIdentifier(term.name);
+    case 'constant': {
+      const name = smtIdentifier(term.name);
+      if (!ctx.boundVariables.has(term.name)) {
+        ctx.declarations.add(`(declare-const ${name} ${ensureSort(ctx, term.sort)})`);
+      }
+      return name;
+    }
+    case 'function_app': {
+      const name = smtIdentifier(term.funcName);
+      const argSorts = term.args.map(termSort);
+      for (const arg of term.args) ensureTermSorts(arg, ctx);
+      const returnSort = ensureSort(ctx, term.returnSort);
+      ctx.declarations.add(`(declare-fun ${name} (${argSorts.join(' ')}) ${returnSort})`);
+      return `(${name}${term.args.length ? ` ${term.args.map(a => termToSmt(a, ctx)).join(' ')}` : ''})`;
+    }
+  }
+}
+
+function ensureTermSorts(term: Term, ctx: SmtContext): void {
+  switch (term.kind) {
+    case 'variable':
+    case 'constant':
+      ensureSort(ctx, term.sort);
+      return;
+    case 'function_app':
+      ensureSort(ctx, term.returnSort);
+      for (const arg of term.args) ensureTermSorts(arg, ctx);
+      return;
+  }
+}
+
+function formulaToSmt(formula: Formula, ctx: SmtContext): string {
+  switch (formula.kind) {
+    case 'predicate': {
+      const name = smtIdentifier(formula.name);
+      if (formula.args.length === 0) {
+        ctx.declarations.add(`(declare-const ${name} Bool)`);
+        return formula.negated ? `(not ${name})` : name;
+      }
+      const argSorts = formula.args.map(termSort);
+      for (const arg of formula.args) ensureTermSorts(arg, ctx);
+      ctx.declarations.add(`(declare-fun ${name} (${argSorts.join(' ')}) Bool)`);
+      const term = `(${name} ${formula.args.map(a => termToSmt(a, ctx)).join(' ')})`;
+      return formula.negated ? `(not ${term})` : term;
+    }
+    case 'unary':
+      return `(not ${formulaToSmt(formula.operand, ctx)})`;
+    case 'binary': {
+      const left = formulaToSmt(formula.left, ctx);
+      const right = formulaToSmt(formula.right, ctx);
+      const op = formula.operator === '∧' ? 'and'
+        : formula.operator === '∨' ? 'or'
+        : formula.operator === '→' ? '=>'
+        : formula.operator === '↔' ? '='
+        : formula.operator === '⊕' ? 'xor'
+        : formula.operator;
+      return `(${op} ${left} ${right})`;
+    }
+    case 'quantified': {
+      const variableName = smtIdentifier(formula.variable);
+      const sort = ensureSort(ctx, formula.variableTerm?.sort ?? formula.sort);
+      ctx.boundVariables.add(formula.variable);
+      const body = formulaToSmt(formula.body, ctx);
+      ctx.boundVariables.delete(formula.variable);
+      return `(${formula.quantifier === '∀' ? 'forall' : 'exists'} ((${variableName} ${sort})) ${body})`;
+    }
+    case 'deontic': {
+      const inner = formulaToSmt(formula.formula, ctx);
+      const op = smtIdentifier(formula.operator);
+      if (formula.agentTerm) {
+        ensureTermSorts(formula.agentTerm, ctx);
+        ctx.declarations.add(`(declare-fun ${op}_agent (${termSort(formula.agentTerm)} Bool) Bool)`);
+        return `(${op}_agent ${termToSmt(formula.agentTerm, ctx)} ${inner})`;
+      }
+      ctx.declarations.add(`(declare-fun ${op} (Bool) Bool)`);
+      return `(${op} ${inner})`;
+    }
+    case 'temporal': {
+      const names: Record<string, string> = {
+        '□': 'Always',
+        '◊': 'Eventually',
+        X: 'Next',
+        U: 'Until',
+        S: 'Since',
+        W: 'WeakUntil',
+        R: 'Release',
+      };
+      const op = names[formula.operator] ?? smtIdentifier(formula.operator);
+      if (formula.until) {
+        ctx.declarations.add(`(declare-fun ${op} (Bool Bool) Bool)`);
+        return `(${op} ${formulaToSmt(formula.formula, ctx)} ${formulaToSmt(formula.until, ctx)})`;
+      }
+      ctx.declarations.add(`(declare-fun ${op} (Bool) Bool)`);
+      return `(${op} ${formulaToSmt(formula.formula, ctx)})`;
+    }
   }
 }
 
@@ -111,14 +280,16 @@ export class Z3ProverBridge {
   }
 
   /** Attempt to prove `formula` given optional `axioms`. */
-  async prove(formula: string, axioms: string[] = [], timeout?: number): Promise<Z3ProofResult> {
+  async prove(formula: string | Formula, axioms: Array<string | Formula> = [], timeout?: number): Promise<Z3ProofResult> {
     const t0 = performance.now();
-    const cacheKey = `${formula}|${axioms.join(',')}`;
+    const formulaText = typeof formula === 'string' ? formula : this.converter.toSmtLib(formula, axioms);
+    const axiomText = axioms.map(a => typeof a === 'string' ? a : this.converter.convertFormula(a));
+    const cacheKey = `${formulaText}|${axiomText.join(',')}`;
     const cached = this.cache?.get(cacheKey);
     if (cached) { this.stats.cacheHits++; return cached; }
 
     this.stats.queriesTotal++;
-    const result = await this._queryZ3(formula, axioms, timeout ?? this.timeout);
+    const result = await this._queryZ3(formulaText, axiomText, timeout ?? this.timeout);
     const elapsed = performance.now() - t0;
     this.stats.totalTimeMs += elapsed;
 
@@ -179,8 +350,8 @@ export class Z3ProverBridge {
 
 /** Module-level convenience matching `prove_with_z3()`. */
 export async function proveWithZ3(
-  formula: string,
-  axioms?: string[],
+  formula: string | Formula,
+  axioms?: Array<string | Formula>,
   timeout = 5.0,
 ): Promise<Z3ProofResult> {
   return new Z3ProverBridge(timeout).prove(formula, axioms ?? []);

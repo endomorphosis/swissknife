@@ -156,9 +156,10 @@ export class DeonticToLean4Translator {
       return atom;
     };
 
-    for (const f of formulaSet.obligation_formulas ?? []) addAtom(f, 'obl');
-    for (const f of formulaSet.permission_formulas ?? []) addAtom(f, 'perm');
-    for (const f of formulaSet.prohibition_formulas ?? []) addAtom(f, 'prohib');
+    const formulas = policyFormulaSetLists(formulaSet);
+    for (const f of formulas.obligations) addAtom(f, 'obl');
+    for (const f of formulas.permissions) addAtom(f, 'perm');
+    for (const f of formulas.prohibitions) addAtom(f, 'prohib');
 
     lines.push('');
     lines.push('theorem formula_set_valid : True := trivial');
@@ -185,3 +186,19 @@ function lean4Symbol(s: string): string {
   if (s === '*') return 'STAR';
   return s.replace(/[^a-zA-Z0-9]/g, '_').replace(/^[0-9]+/, '').slice(0, 20) || 'any';
 }
+
+function policyFormulaSetLists(formulaSet: PolicyFormulaSet): Pick<PolicyFormulaSet, 'permissions' | 'prohibitions' | 'obligations'> {
+  const legacy = formulaSet as PolicyFormulaSet & {
+    permission_formulas?: string[];
+    prohibition_formulas?: string[];
+    obligation_formulas?: string[];
+  };
+  return {
+    permissions: formulaSet.permissions ?? legacy.permission_formulas ?? [],
+    prohibitions: formulaSet.prohibitions ?? legacy.prohibition_formulas ?? [],
+    obligations: formulaSet.obligations ?? legacy.obligation_formulas ?? [],
+  };
+}
+
+// PORT-032: expose the full TDFOL AST converter from the Lean translator path.
+export { TDFOLToLean4Converter } from './deontic-to-coq.js';

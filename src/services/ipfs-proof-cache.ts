@@ -12,6 +12,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { ProofCacheBase } from './proof-cache-base.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -95,7 +96,8 @@ export interface IPFSProofCacheStats {
 // IPFSProofCache
 // ---------------------------------------------------------------------------
 
-export class IPFSProofCache {
+export class IPFSProofCache extends ProofCacheBase<IPFSCachedProof> {
+  readonly cacheKind = 'ipfs-proof';
   private cache: Map<string, IPFSCachedProof> = new Map();
   private pinSet: Set<string> = new Set();
   private stats = { ipfsUploads: 0, hits: 0, misses: 0 };

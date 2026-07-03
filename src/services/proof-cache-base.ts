@@ -73,10 +73,148 @@ export interface ProofCacheStats {
 }
 
 // ---------------------------------------------------------------------------
+// PORT-205 — Unified cache base
+// ---------------------------------------------------------------------------
+
+export interface UnifiedProofCacheStats {
+  kind: string;
+  size: number;
+  hits: number;
+  misses: number;
+  hitRate: number;
+}
+
+export interface BoundedCacheStats {
+  size: number;
+  maxSize: number;
+  hits: number;
+  misses: number;
+  evictions: number;
+  hitRate: number;
+}
+
+export class BoundedCache<T> {
+  private readonly store = new Map<string, { value: T; expiresAt: number | null }>();
+  private hits = 0;
+  private misses = 0;
+  private evictions = 0;
+
+  constructor(private readonly opts: { maxSize?: number; ttlMs?: number | null } = {}) {}
+
+  set(key: string, value: T): void {
+    if (this.store.size >= this.maxSize && !this.store.has(key)) {
+      const oldest = this.store.keys().next().value;
+      if (oldest !== undefined) {
+        this.store.delete(oldest);
+        this.evictions++;
+      }
+    }
+    this.store.set(key, {
+      value,
+      expiresAt: this.ttlMs === null ? null : Date.now() + this.ttlMs,
+    });
+  }
+
+  get(key: string): T | undefined {
+    const entry = this.store.get(key);
+    if (!entry) {
+      this.misses++;
+      return undefined;
+    }
+    if (entry.expiresAt !== null && Date.now() > entry.expiresAt) {
+      this.store.delete(key);
+      this.misses++;
+      return undefined;
+    }
+    this.hits++;
+    this.store.delete(key);
+    this.store.set(key, entry);
+    return entry.value;
+  }
+
+  has(key: string): boolean {
+    return this.get(key) !== undefined;
+  }
+
+  delete(key: string): boolean {
+    return this.store.delete(key);
+  }
+
+  clear(): void {
+    this.store.clear();
+    this.hits = 0;
+    this.misses = 0;
+    this.evictions = 0;
+  }
+
+  get size(): number {
+    return this.store.size;
+  }
+
+  stats(): BoundedCacheStats {
+    const total = this.hits + this.misses;
+    return {
+      size: this.store.size,
+      maxSize: this.maxSize,
+      hits: this.hits,
+      misses: this.misses,
+      evictions: this.evictions,
+      hitRate: total > 0 ? this.hits / total : 0,
+    };
+  }
+
+  private get maxSize(): number {
+    return this.opts.maxSize ?? 1000;
+  }
+
+  private get ttlMs(): number | null {
+    return this.opts.ttlMs ?? null;
+  }
+}
+
+export abstract class ProofCacheBase<TEntry = unknown> {
+  abstract readonly cacheKind: string;
+  abstract get size(): number;
+  abstract clear(): void;
+  abstract getStats(): unknown;
+
+  toUnifiedStats(): UnifiedProofCacheStats {
+    const stats = this.getStats() as Record<string, unknown>;
+    const hits = numberStat(stats, 'hits', 'cacheHits');
+    const misses = numberStat(stats, 'misses', 'cacheMisses');
+    const size = numberStat(stats, 'size', 'totalEntries');
+    return {
+      kind: this.cacheKind,
+      size,
+      hits,
+      misses,
+      hitRate: numberStat(stats, 'hitRate', 'hit_rate') || (hits + misses > 0 ? hits / (hits + misses) : 0),
+    };
+  }
+
+  protected isCacheEntry(value: unknown): value is TEntry {
+    return value !== null && value !== undefined;
+  }
+}
+
+export function getUnifiedCacheStats(caches: ProofCacheBase[]): UnifiedProofCacheStats[] {
+  return caches.map(cache => cache.toUnifiedStats());
+}
+
+function numberStat(stats: Record<string, unknown>, ...keys: string[]): number {
+  for (const key of keys) {
+    const value = stats[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
 // ProofCache
 // ---------------------------------------------------------------------------
 
-export class ProofCache {
+export class ProofCache extends ProofCacheBase<CachedProof> {
+  readonly cacheKind = 'memory-proof';
   private cache: Map<string, CachedProof> = new Map();
   private maxSize: number;
   private defaultTtl: number;
@@ -84,6 +222,7 @@ export class ProofCache {
   private misses = 0;
 
   constructor(maxSize = 1000, ttl = 3600) {
+    super();
     this.maxSize = maxSize;
     this.defaultTtl = ttl;
   }
@@ -141,6 +280,10 @@ export class ProofCache {
     this.cache.clear();
     this.hits = 0;
     this.misses = 0;
+  }
+
+  clear(): void {
+    this.flush();
   }
 
   get size(): number { return this.cache.size; }

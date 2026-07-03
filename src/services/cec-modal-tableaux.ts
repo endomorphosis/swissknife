@@ -302,34 +302,129 @@ export function createResolutionProver(): ResolutionProver {
 // β-rules (branching): φ∨ψ, ¬(φ∧ψ), φ→ψ, ¬(φ↔ψ)
 
 export type AlphaComponents = [string, string] | [string];  // 1 or 2 formulas
-export type BetaComponents  = [[string], [string]];           // two branches
+export type BetaComponents  = [string[], string[]];           // two branches
+
+function stripOuterParens(formula: string): string {
+  let text = formula.trim();
+  while (text.startsWith('(') && text.endsWith(')')) {
+    let depth = 0;
+    let wraps = true;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '(') depth++;
+      if (ch === ')') depth--;
+      if (depth === 0 && i < text.length - 1) {
+        wraps = false;
+        break;
+      }
+      if (depth < 0) {
+        wraps = false;
+        break;
+      }
+    }
+    if (!wraps) break;
+    text = text.slice(1, -1).trim();
+  }
+  return text;
+}
+
+function splitTopLevelBinary(formula: string, operators: string[]): { left: string; op: string; right: string } | null {
+  const text = stripOuterParens(formula);
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') {
+      depth++;
+      continue;
+    }
+    if (ch === ')') {
+      depth--;
+      continue;
+    }
+    if (depth === 0 && operators.includes(ch)) {
+      return {
+        left: text.slice(0, i).trim(),
+        op: ch,
+        right: text.slice(i + 1).trim(),
+      };
+    }
+  }
+  return null;
+}
+
+function neg(formula: string): string {
+  const text = stripOuterParens(formula);
+  return text.startsWith('¬') ? text.slice(1).trim() : `¬${text}`;
+}
+
+function normalizedFormula(formula: string): string {
+  return stripOuterParens(formula).replace(/\s+/g, ' ').trim();
+}
+
+function hasContradiction(formulas: Iterable<string>): boolean {
+  const normalized = new Set(Array.from(formulas, normalizedFormula));
+  for (const formula of normalized) {
+    if (formula.startsWith('¬')) {
+      if (normalized.has(formula.slice(1).trim())) return true;
+    } else if (normalized.has(`¬${formula}`)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export function applyAlphaRule(formula: string): AlphaComponents | null {
+  const text = stripOuterParens(formula);
+
   // ¬¬φ → φ
-  const nn = formula.match(/^¬¬(.+)$/);
-  if (nn) return [nn[1]!];
+  if (text.startsWith('¬¬')) return [normalizedFormula(text.slice(2))];
+
   // φ ∧ ψ → φ, ψ
-  const and = formula.match(/^\((.+?)\s*∧\s*(.+)\)$/);
-  if (and) return [and[1]!, and[2]!];
+  const and = splitTopLevelBinary(text, ['∧']);
+  if (and) return [normalizedFormula(and.left), normalizedFormula(and.right)];
+
   // ¬(φ ∨ ψ) → ¬φ, ¬ψ
-  const nor = formula.match(/^¬\((.+?)\s*∨\s*(.+)\)$/);
-  if (nor) return [`¬${nor[1]!}`, `¬${nor[2]!}`];
+  if (text.startsWith('¬')) {
+    const innerOr = splitTopLevelBinary(text.slice(1), ['∨']);
+    if (innerOr) return [neg(innerOr.left), neg(innerOr.right)];
+  }
+
   // ¬(φ → ψ) → φ, ¬ψ
-  const nimp = formula.match(/^¬\((.+?)\s*→\s*(.+)\)$/);
-  if (nimp) return [nimp[1]!, `¬${nimp[2]!}`];
+  if (text.startsWith('¬')) {
+    const innerImp = splitTopLevelBinary(text.slice(1), ['→']);
+    if (innerImp) return [normalizedFormula(innerImp.left), neg(innerImp.right)];
+  }
+
   return null;
 }
 
 export function applyBetaRule(formula: string): BetaComponents | null {
+  const text = stripOuterParens(formula);
+
   // φ ∨ ψ → {φ} | {ψ}
-  const or = formula.match(/^\((.+?)\s*∨\s*(.+)\)$/);
-  if (or) return [[or[1]!], [or[2]!]];
+  const or = splitTopLevelBinary(text, ['∨']);
+  if (or) return [[normalizedFormula(or.left)], [normalizedFormula(or.right)]];
+
   // ¬(φ ∧ ψ) → {¬φ} | {¬ψ}
-  const nand = formula.match(/^¬\((.+?)\s*∧\s*(.+)\)$/);
-  if (nand) return [[`¬${nand[1]!}`], [`¬${nand[2]!}`]];
+  if (text.startsWith('¬')) {
+    const innerAnd = splitTopLevelBinary(text.slice(1), ['∧']);
+    if (innerAnd) return [[neg(innerAnd.left)], [neg(innerAnd.right)]];
+  }
+
   // φ → ψ → {¬φ} | {ψ}
-  const imp = formula.match(/^\((.+?)\s*→\s*(.+)\)$/);
-  if (imp) return [[`¬${imp[1]!}`], [imp[2]!]];
+  const imp = splitTopLevelBinary(text, ['→']);
+  if (imp) return [[neg(imp.left)], [normalizedFormula(imp.right)]];
+
+  // φ ↔ ψ → {φ,ψ} | {¬φ,¬ψ}
+  const iff = splitTopLevelBinary(text, ['↔']);
+  if (iff) return [[normalizedFormula(iff.left), normalizedFormula(iff.right)], [neg(iff.left), neg(iff.right)]];
+
+  // ¬(φ ↔ ψ) → {φ,¬ψ} | {¬φ,ψ}
+  if (text.startsWith('¬')) {
+    const innerIff = splitTopLevelBinary(text.slice(1), ['↔']);
+    if (innerIff) return [[normalizedFormula(innerIff.left), neg(innerIff.right)], [neg(innerIff.left), normalizedFormula(innerIff.right)]];
+  }
+
   return null;
 }
 
@@ -341,19 +436,59 @@ export function isBetaFormula(f: string): boolean  { return applyBetaRule(f)  !=
 /** Expand a signed formula until no more α/β rules apply.
  *  Returns { open: string[][], closed: boolean } for one initial branch. */
 export function propositionalTableauxExpand(formulas: string[]): { open: string[][]; closed: boolean } {
-  const queue   = [...formulas];
-  const branch  = new Set<string>();
-  const negBranch = new Set<string>();
-  const derived: string[] = [];
+  type BranchState = { formulas: Set<string>; expanded: Set<string> };
+  const pending: BranchState[] = [{
+    formulas: new Set(formulas.map(normalizedFormula).filter(Boolean)),
+    expanded: new Set(),
+  }];
+  const open: string[][] = [];
 
-  for (const f of queue) {
-    if (f.startsWith('¬')) negBranch.add(f.slice(1));
-    else branch.add(f);
+  while (pending.length > 0) {
+    const branch = pending.pop()!;
+    let branched = false;
+
+    while (true) {
+      if (hasContradiction(branch.formulas)) {
+        branched = true;
+        break;
+      }
+
+      const alphaTarget = Array.from(branch.formulas).find(f => !branch.expanded.has(f) && isAlphaFormula(f));
+      if (alphaTarget) {
+        branch.expanded.add(alphaTarget);
+        for (const component of applyAlphaRule(alphaTarget) ?? []) {
+          branch.formulas.add(normalizedFormula(component));
+        }
+        continue;
+      }
+
+      const betaTarget = Array.from(branch.formulas).find(f => !branch.expanded.has(f) && isBetaFormula(f));
+      if (betaTarget) {
+        const beta = applyBetaRule(betaTarget);
+        branch.expanded.add(betaTarget);
+        if (beta) {
+          for (const branchComponents of beta) {
+            const nextFormulas = new Set(branch.formulas);
+            const nextExpanded = new Set(branch.expanded);
+            for (const component of branchComponents) {
+              nextFormulas.add(normalizedFormula(component));
+            }
+            pending.push({ formulas: nextFormulas, expanded: nextExpanded });
+          }
+          branched = true;
+          break;
+        }
+      }
+
+      break;
+    }
+
+    if (!branched && !hasContradiction(branch.formulas)) {
+      open.push(Array.from(branch.formulas).sort());
+    }
   }
 
-  // Check for immediate contradiction
-  const closed = [...branch].some(f => negBranch.has(f));
-  return { open: closed ? [] : [[...branch, ...[...negBranch].map(f => `¬${f}`)]], closed };
+  return { open, closed: open.length === 0 };
 }
 
 // PORT-101: Python-compatible ProofStep schema (shadow_prover.py ProofStep)

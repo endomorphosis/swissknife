@@ -7,6 +7,9 @@
  * WasmProverHub when available; returns UNKNOWN otherwise.
  */
 
+import type { Formula } from './tdfol-core.js';
+import { TDFOLToZ3Converter } from './z3-prover-bridge.js';
+
 // ---------------------------------------------------------------------------
 // CVC5ProofResult
 // ---------------------------------------------------------------------------
@@ -31,18 +34,8 @@ export function cvc5Proved(result: CVC5ProofResult): boolean { return result.isV
 /**
  * Best-effort TDFOL → CVC5 SMT-LIB2 string converter.
  */
-export class TDFOLToCVC5Converter {
-  convert(formula: string): string {
-    return formula
-      .replace(/∀\s*(\w+)\s*\./g, '(forall (($1 Bool))')
-      .replace(/∃\s*(\w+)\s*\./g, '(exists (($1 Bool))')
-      .replace(/∧/g, ' and ')
-      .replace(/∨/g, ' or ')
-      .replace(/¬/g, 'not ')
-      .replace(/→/g, '=> ')
-      .replace(/↔/g, '= ')
-      .trim();
-  }
+export class TDFOLToCVC5Converter extends TDFOLToZ3Converter {
+  /** CVC5 and Z3 both consume SMT-LIB2, so the AST serializer is shared. */
 }
 
 // ---------------------------------------------------------------------------
@@ -75,14 +68,16 @@ export class CVC5ProverBridge {
     this.cache = enableCache ? new Map() : null;
   }
 
-  async prove(formula: string, axioms: string[] = [], timeout?: number): Promise<CVC5ProofResult> {
+  async prove(formula: string | Formula, axioms: Array<string | Formula> = [], timeout?: number): Promise<CVC5ProofResult> {
     const t0 = performance.now();
-    const cacheKey = `${formula}|${axioms.join(',')}`;
+    const formulaText = typeof formula === 'string' ? formula : this.converter.toSmtLib(formula, axioms);
+    const axiomText = axioms.map(a => typeof a === 'string' ? a : this.converter.convertFormula(a));
+    const cacheKey = `${formulaText}|${axiomText.join(',')}`;
     const cached = this.cache?.get(cacheKey);
     if (cached) { this.stats.cacheHits++; return cached; }
 
     this.stats.queriesTotal++;
-    const result = await this._query(formula, axioms, timeout ?? this.timeout);
+    const result = await this._query(formulaText, axiomText, timeout ?? this.timeout);
     this.stats.totalTimeMs += performance.now() - t0;
     if (result.isValid) this.stats.valid++;
     else if (result.reason === 'error') this.stats.errors++;

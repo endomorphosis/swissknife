@@ -89,6 +89,7 @@ export interface QuantifiedFormula extends TDFOLNode {
   readonly kind:       'quantified';
   readonly quantifier: QuantifierKind;
   readonly variable:   string;
+  readonly variableTerm?: Variable;
   readonly sort?:      SortKind;
   readonly body:       Formula;
 }
@@ -100,6 +101,7 @@ export interface DeonticFormulaTDFOL extends TDFOLNode {
   readonly agent?:    string;
   readonly agentTerm?: Term;   // PORT-052: structured agent term e.g. f(x,y); prefer this for FOL agents
   readonly time?:     string;
+  readonly context?:  string;  // PORT-052: Python-compatible context alias for temporal/legal scope
 }
 
 export interface TemporalFormulaTDFOL extends TDFOLNode {
@@ -123,88 +125,176 @@ export type Formula =
 // ---------------------------------------------------------------------------
 
 export function mkVariable(name: string, sort?: SortKind): Variable {
-  return {
+  const node = {
     kind: 'variable', name, sort,
     toStr() { return sort ? `${name}:${sort}` : name; },
     toDict() { return { kind: 'variable', name, sort: sort ?? null }; },
+    getFreeVariables() { return new Set([name]); },
+    substitute(varName: string, replacement: Term) { return name === varName ? replacement : node; },
   };
+  return node as Variable;
 }
 
 export function mkConstant(name: string, value?: unknown, sort?: SortKind): Constant {
-  return {
+  const node = {
     kind: 'constant', name, value: value ?? name, sort,
     toStr() { return name; },
     toDict() { return { kind: 'constant', name, value: value ?? name, sort: sort ?? null }; },
+    getFreeVariables() { return new Set<string>(); },
+    substitute() { return node; },
   };
+  return node as Constant;
 }
 
 export function mkFuncApp(funcName: string, args: Term[], returnSort?: SortKind): FunctionApplication {
-  return {
+  const node = {
     kind: 'function_app', funcName, args, returnSort,
     toStr(pretty) { return `${funcName}(${args.map(a => a.toStr(pretty)).join(', ')})`; },
     toDict() { return { kind: 'function_app', funcName, args: args.map(a => a.toDict()), returnSort: returnSort ?? null }; },
+    getFreeVariables() { return unionSets(args.map(getFreeVariablesOfTerm)); },
+    substitute(varName: string, replacement: Term) {
+      return mkFuncApp(funcName, args.map(a => substituteTerm(a, varName, replacement)), returnSort);
+    },
   };
+  return node as FunctionApplication;
 }
 
 export function mkPredicate(name: string, args: Term[] = [], negated = false): Predicate {
-  return {
+  const node = {
     kind: 'predicate', name, args, negated,
     toStr(pretty) {
       const argsStr = args.length ? `(${args.map(a => a.toStr(pretty)).join(', ')})` : '';
       return negated ? `¬${name}${argsStr}` : `${name}${argsStr}`;
     },
     toDict() { return { kind: 'predicate', name, args: args.map(a => a.toDict()), negated }; },
-    getFreeVariables() { return new Set(args.flatMap(a => a.kind === 'variable' ? [a.name] : [])); },
-  } as Predicate & { getFreeVariables(): Set<string> };
+    getFreeVariables() { return unionSets(args.map(getFreeVariablesOfTerm)); },
+    substitute(varName: string, replacement: Term) {
+      return mkPredicate(name, args.map(a => substituteTerm(a, varName, replacement)), negated);
+    },
+  };
+  return node as Predicate;
 }
 
 export function mkBinary(operator: LogicOperator, left: Formula, right: Formula): BinaryFormula {
-  return {
+  const node = {
     kind: 'binary', operator, left, right,
     toStr(p) { return p ? `(${left.toStr(p)} ${operator} ${right.toStr(p)})` : `${left.toStr()} ${operator} ${right.toStr()}`; },
     toDict() { return { kind: 'binary', operator, left: left.toDict(), right: right.toDict() }; },
+    getFreeVariables() { return unionSets([getFreeVariables(left), getFreeVariables(right)]); },
+    substitute(varName: string, replacement: Term) {
+      return mkBinary(operator, substitute(left, varName, replacement), substitute(right, varName, replacement));
+    },
   };
+  return node as BinaryFormula;
 }
 
 export function mkUnary(operand: Formula): UnaryFormula {
-  return {
+  const node = {
     kind: 'unary', operator: '¬', operand,
     toStr(p) { return `¬${operand.toStr(p)}`; },
     toDict() { return { kind: 'unary', operator: '¬', operand: operand.toDict() }; },
+    getFreeVariables() { return getFreeVariables(operand); },
+    substitute(varName: string, replacement: Term) {
+      return mkUnary(substitute(operand, varName, replacement));
+    },
   };
+  return node as UnaryFormula;
 }
 
-export function mkQuantified(quantifier: QuantifierKind, variable: string, body: Formula, sort?: SortKind): QuantifiedFormula {
-  return {
-    kind: 'quantified', quantifier, variable, sort, body,
-    toStr(p) { const v = sort ? `${variable}:${sort}` : variable; return `${quantifier}${v}.(${body.toStr(p)})`; },
-    toDict() { return { kind: 'quantified', quantifier, variable, sort: sort ?? null, body: body.toDict() }; },
+export function mkQuantified(quantifier: QuantifierKind, variable: string | Variable, body: Formula, sort?: SortKind): QuantifiedFormula {
+  const variableTerm = typeof variable === 'string' ? mkVariable(variable, sort) : variable;
+  const variableName = variableTerm.name;
+  const variableSort = variableTerm.sort ?? sort;
+  const node = {
+    kind: 'quantified', quantifier, variable: variableName, variableTerm, sort: variableSort, body,
+    toStr(p) {
+      const v = variableSort ? `${variableName}:${variableSort}` : variableName;
+      return `${quantifier}${v}.(${body.toStr(p)})`;
+    },
+    toDict() {
+      return { kind: 'quantified', quantifier, variable: variableName, variableTerm: variableTerm.toDict(), sort: variableSort ?? null, body: body.toDict() };
+    },
+    getFreeVariables() {
+      const free = getFreeVariables(body);
+      free.delete(variableName);
+      return free;
+    },
+    substitute(varName: string, replacement: Term) {
+      if (varName === variableName) return node;
+      return mkQuantified(quantifier, variableTerm, substitute(body, varName, replacement), variableSort);
+    },
   };
+  return node as QuantifiedFormula;
 }
 
-export function mkDeontic(operator: TDFOLDeonticOp, formula: Formula, agent?: string, time?: string): DeonticFormulaTDFOL {
-  return {
-    kind: 'deontic', operator, formula, agent, time,
+export function mkDeontic(operator: TDFOLDeonticOp, formula: Formula, agent?: string | Term, context?: string): DeonticFormulaTDFOL {
+  const agentTerm = typeof agent === 'object' ? agent : undefined;
+  const agentName = typeof agent === 'string' ? agent : agentTerm?.toStr();
+  const node = {
+    kind: 'deontic', operator, formula, agent: agentName, agentTerm, time: context, context,
     toStr(p) {
       const inner = formula.toStr(p);
-      const a = agent ? `[${agent}]` : '';
-      const t = time  ? `@${time}` : '';
+      const a = agentName ? `[${agentName}]` : '';
+      const t = context  ? `@${context}` : '';
       return `${operator}${a}(${inner})${t}`;
     },
-    toDict() { return { kind: 'deontic', operator, formula: formula.toDict(), agent: agent ?? null, time: time ?? null }; },
+    toDict() {
+      return {
+        kind: 'deontic',
+        operator,
+        formula: formula.toDict(),
+        agent: agentName ?? null,
+        agentTerm: agentTerm?.toDict() ?? null,
+        time: context ?? null,
+        context: context ?? null,
+      };
+    },
+    getFreeVariables() {
+      return unionSets([
+        getFreeVariables(formula),
+        agentTerm ? getFreeVariablesOfTerm(agentTerm) : new Set<string>(),
+      ]);
+    },
+    substitute(varName: string, replacement: Term) {
+      return mkDeontic(
+        operator,
+        substitute(formula, varName, replacement),
+        agentTerm ? substituteTerm(agentTerm, varName, replacement) : agentName,
+        context,
+      );
+    },
   };
+  return node as DeonticFormulaTDFOL;
 }
 
-export function mkTemporal(operator: TDFOLTemporalOp, formula: Formula, until?: Formula): TemporalFormulaTDFOL {
-  return {
-    kind: 'temporal', operator, formula, until,
+export function mkTemporal(operator: TDFOLTemporalOp, formula: Formula, until?: Formula, timeBound?: number): TemporalFormulaTDFOL {
+  const node = {
+    kind: 'temporal', operator, formula, until, timeBound,
     toStr(p) {
       const inner = formula.toStr(p);
       if (until) return `${inner} ${operator} ${until.toStr(p)}`;
-      return `${operator}(${inner})`;
+      const bound = timeBound !== undefined ? `[${timeBound}]` : '';
+      return `${operator}${bound}(${inner})`;
     },
-    toDict() { return { kind: 'temporal', operator, formula: formula.toDict(), until: until?.toDict() ?? null }; },
+    toDict() {
+      return { kind: 'temporal', operator, formula: formula.toDict(), until: until?.toDict() ?? null, timeBound: timeBound ?? null };
+    },
+    getFreeVariables() {
+      return unionSets([
+        getFreeVariables(formula),
+        until ? getFreeVariables(until) : new Set<string>(),
+      ]);
+    },
+    substitute(varName: string, replacement: Term) {
+      return mkTemporal(
+        operator,
+        substitute(formula, varName, replacement),
+        until ? substitute(until, varName, replacement) : undefined,
+        timeBound,
+      );
+    },
   };
+  return node as TemporalFormulaTDFOL;
 }
 
 // ---------------------------------------------------------------------------
@@ -258,51 +348,98 @@ export class TDFOLKnowledgeBase {
 
   toDict(): Record<string, unknown> {
     return {
-      entries: this._entries.map(e => ({ ...e.toDict?.() ?? {}, formula: e.formula.toDict(), name: e.name ?? null, role: e.role })),
+      entries: this._entries.map(e => ({ formula: e.formula.toDict(), name: e.name ?? null, role: e.role })),
       definitions: Object.fromEntries([...this._definitions.entries()].map(([k, v]) => [k, v.toDict()])),
     };
   }
 }
 
-// PORT-003: Term substitution and free variable collection (partial port)
+// PORT-003: Term substitution and free variable collection.
 // Python tdfol_core.py:111, dcec_core.py:700-709,1380-1394
 
-export function getFreeVariables(formula: Formula): Set<string> {
-  const vars = new Set<string>();
-  function walk(f: Formula): void {
-    const ff = f as Record<string, unknown>;
-    if (ff['kind'] === 'predicate') {
-      const args = ff['args'] as unknown[];
-      for (const arg of args ?? []) {
-        if (typeof arg === 'string' && /^[a-z]/.test(arg)) vars.add(arg);
-      }
-    } else if (ff['quantifier'] && ff['variable']) {
-      const inner = ff['body'] as Formula;
-      const inner_vars = getFreeVariables(inner);
-      inner_vars.delete(ff['variable'] as string);
-      inner_vars.forEach(v => vars.add(v));
-    } else {
-      for (const key of ['left','right','formula','operand','body'] as const) {
-        if (ff[key]) walk(ff[key] as Formula);
-      }
-    }
+function unionSets(sets: Iterable<Set<string>>): Set<string> {
+  const out = new Set<string>();
+  for (const set of sets) {
+    for (const value of set) out.add(value);
   }
-  walk(formula);
-  return vars;
+  return out;
 }
 
-/** Substitute a variable name with a constant string in a formula.
- *  Full α-renaming requires a complete type-aware system (PORT-001).
- *  This is a string-based structural substitution for the common case. */
-export function substitute(formula: Formula, varName: string, replacement: string): Formula {
-  const ff = formula as Record<string, unknown>;
-  if (ff['kind'] === 'predicate') {
-    const args = (ff['args'] as unknown[]).map(a => a === varName ? replacement : a);
-    return { ...formula, args } as unknown as Formula;
+export function getFreeVariablesOfTerm(term: Term): Set<string> {
+  switch (term.kind) {
+    case 'variable':
+      return new Set([term.name]);
+    case 'constant':
+      return new Set();
+    case 'function_app':
+      return unionSets(term.args.map(getFreeVariablesOfTerm));
   }
-  const result: Record<string, unknown> = { ...ff };
-  for (const key of ['left','right','formula','operand','body']) {
-    if (ff[key]) result[key] = substitute(ff[key] as Formula, varName, replacement);
+}
+
+export function substituteTerm(term: Term, varName: string, replacement: Term | string): Term {
+  const replacementTerm = typeof replacement === 'string' ? mkConstant(replacement) : replacement;
+  switch (term.kind) {
+    case 'variable':
+      return term.name === varName ? replacementTerm : term;
+    case 'constant':
+      return term;
+    case 'function_app':
+      return mkFuncApp(term.funcName, term.args.map(a => substituteTerm(a, varName, replacementTerm)), term.returnSort);
   }
-  return result as unknown as Formula;
+}
+
+export function getFreeVariables(formula: Formula): Set<string> {
+  switch (formula.kind) {
+    case 'predicate':
+      return unionSets(formula.args.map(getFreeVariablesOfTerm));
+    case 'binary':
+      return unionSets([getFreeVariables(formula.left), getFreeVariables(formula.right)]);
+    case 'unary':
+      return getFreeVariables(formula.operand);
+    case 'quantified': {
+      const free = getFreeVariables(formula.body);
+      free.delete(formula.variable);
+      return free;
+    }
+    case 'deontic':
+      return unionSets([
+        getFreeVariables(formula.formula),
+        formula.agentTerm ? getFreeVariablesOfTerm(formula.agentTerm) : new Set<string>(),
+      ]);
+    case 'temporal':
+      return unionSets([
+        getFreeVariables(formula.formula),
+        formula.until ? getFreeVariables(formula.until) : new Set<string>(),
+      ]);
+  }
+}
+
+/** Substitute a free variable with a term. Bound quantifier variables shadow replacements. */
+export function substitute(formula: Formula, varName: string, replacement: Term | string): Formula {
+  const replacementTerm = typeof replacement === 'string' ? mkConstant(replacement) : replacement;
+  switch (formula.kind) {
+    case 'predicate':
+      return mkPredicate(formula.name, formula.args.map(a => substituteTerm(a, varName, replacementTerm)), Boolean(formula.negated));
+    case 'binary':
+      return mkBinary(formula.operator, substitute(formula.left, varName, replacementTerm), substitute(formula.right, varName, replacementTerm));
+    case 'unary':
+      return mkUnary(substitute(formula.operand, varName, replacementTerm));
+    case 'quantified':
+      if (formula.variable === varName) return formula;
+      return mkQuantified(formula.quantifier, formula.variableTerm ?? mkVariable(formula.variable, formula.sort), substitute(formula.body, varName, replacementTerm), formula.sort);
+    case 'deontic':
+      return mkDeontic(
+        formula.operator,
+        substitute(formula.formula, varName, replacementTerm),
+        formula.agentTerm ? substituteTerm(formula.agentTerm, varName, replacementTerm) : formula.agent,
+        formula.context ?? formula.time,
+      );
+    case 'temporal':
+      return mkTemporal(
+        formula.operator,
+        substitute(formula.formula, varName, replacementTerm),
+        formula.until ? substitute(formula.until, varName, replacementTerm) : undefined,
+        formula.timeBound,
+      );
+  }
 }

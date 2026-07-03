@@ -344,3 +344,185 @@ export class FOLConverter {
     return { output: `P(${text.trim()})`, confidence: 0.30 };
   }
 }
+
+// ---------------------------------------------------------------------------
+// PORT-206 — Common formula conversion helpers
+// ---------------------------------------------------------------------------
+
+export type FormulaFormat = 'unicode' | 'ascii' | 'latex' | 'tptp' | 'prolog' | 'dcec' | 'tdfol' | 'fol';
+
+export interface FormulaFormatOptions {
+  name?: string;
+  role?: 'axiom' | 'hypothesis' | 'conjecture';
+}
+
+export function normalizeSyntax(formula: string): string {
+  return formula
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\\forall\b/g, '∀')
+    .replace(/\\exists\b/g, '∃')
+    .replace(/\\land\b/g, '∧')
+    .replace(/\\lor\b/g, '∨')
+    .replace(/\\neg\b/g, '¬')
+    .replace(/\\rightarrow\b/g, '→')
+    .replace(/\\leftrightarrow\b/g, '↔')
+    .replace(/\bforall\s+([A-Za-z]\w*)\s*[:.]/gi, '∀$1.')
+    .replace(/\bexists\s+([A-Za-z]\w*)\s*[:.]/gi, '∃$1.')
+    .replace(/∀\s+([A-Za-z]\w*)\s*[:.]/g, '∀$1.')
+    .replace(/∃\s+([A-Za-z]\w*)\s*[:.]/g, '∃$1.')
+    .replace(/\bAND\b/g, '∧')
+    .replace(/\bOR\b/g, '∨')
+    .replace(/\bNOT\b/g, '¬')
+    .replace(/<->|<=>/g, '↔')
+    .replace(/->|=>/g, '→')
+    .replace(/\s*&\s*/g, ' ∧ ')
+    .replace(/\s*\|\s*/g, ' ∨ ')
+    .replace(/\s*([∧∨→↔])\s*/g, ' $1 ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function detectFormulaFormat(formula: string): FormulaFormat {
+  const trimmed = formula.trim();
+  if (/^fof\(|^cnf\(/i.test(trimmed)) return 'tptp';
+  if (/\\(?:forall|exists|land|lor|neg|rightarrow)/.test(trimmed)) return 'latex';
+  if (/\b(?:obligatory|permitted|forbidden)\s*\(/i.test(trimmed)) return 'prolog';
+  if (/\b(?:forall|exists)\b|->|=>|<=>|[&|]/i.test(trimmed)) return 'ascii';
+  if (/[∀∃∧∨¬→↔]/.test(trimmed)) return 'unicode';
+  return 'fol';
+}
+
+export function formatFormula(formula: string, target: FormulaFormat, opts: FormulaFormatOptions = {}): string {
+  const normalized = normalizeSyntax(unwrapTptp(formula));
+  switch (target) {
+    case 'unicode':
+    case 'tdfol':
+    case 'fol':
+      return normalized;
+    case 'ascii':
+      return toAsciiFormula(normalized);
+    case 'latex':
+      return toLatexFormula(normalized);
+    case 'tptp':
+      return toTptpFormula(normalized, opts);
+    case 'prolog':
+      return toPrologFormula(normalized);
+    case 'dcec':
+      return tdfolToDcec(normalized);
+    default:
+      return normalized;
+  }
+}
+
+export function convertFormula(formula: string, target: FormulaFormat, opts: FormulaFormatOptions = {}): string {
+  return formatFormula(formula, target, opts);
+}
+
+export function convertFormulaDetailed(formula: string, target: FormulaFormat, opts: FormulaFormatOptions = {}): ConversionResult {
+  try {
+    const output = convertFormula(formula, target, opts);
+    return {
+      output,
+      confidence: output ? 0.9 : 0,
+      errors: [],
+      metadata: { source_format: detectFormulaFormat(formula), target_format: target },
+    };
+  } catch (err) {
+    return {
+      output: '',
+      confidence: 0,
+      errors: [err instanceof Error ? err.message : String(err)],
+      metadata: { target_format: target },
+    };
+  }
+}
+
+export function convertFormulaBatch(formulas: string[], target: FormulaFormat, opts: FormulaFormatOptions = {}): string[] {
+  return formulas.map(formula => convertFormula(formula, target, opts));
+}
+
+export const normalize_syntax = normalizeSyntax;
+export const format_formula = formatFormula;
+export const convert_formula = convertFormula;
+
+function toAsciiFormula(formula: string): string {
+  return formula
+    .replace(/∀([A-Za-z]\w*)\./g, 'forall $1.')
+    .replace(/∃([A-Za-z]\w*)\./g, 'exists $1.')
+    .replace(/∧/g, '&')
+    .replace(/∨/g, '|')
+    .replace(/¬/g, '~')
+    .replace(/→/g, '=>')
+    .replace(/↔/g, '<=>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function toLatexFormula(formula: string): string {
+  return formula
+    .replace(/∀([A-Za-z]\w*)\./g, '\\forall $1. ')
+    .replace(/∃([A-Za-z]\w*)\./g, '\\exists $1. ')
+    .replace(/∧/g, '\\land')
+    .replace(/∨/g, '\\lor')
+    .replace(/¬/g, '\\neg ')
+    .replace(/→/g, '\\rightarrow')
+    .replace(/↔/g, '\\leftrightarrow')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function toTptpFormula(formula: string, opts: FormulaFormatOptions): string {
+  if (/^fof\(|^cnf\(/i.test(formula.trim())) return formula.trim();
+  const body = formula
+    .replace(/∀([A-Za-z]\w*)\./g, '! [$1] : ')
+    .replace(/∃([A-Za-z]\w*)\./g, '? [$1] : ')
+    .replace(/∧/g, ' & ')
+    .replace(/∨/g, ' | ')
+    .replace(/¬/g, '~')
+    .replace(/→/g, ' => ')
+    .replace(/↔/g, ' <=> ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return `fof(${sanitizeTptpName(opts.name ?? 'formula')}, ${opts.role ?? 'conjecture'}, (${body})).`;
+}
+
+function toPrologFormula(formula: string): string {
+  const deontic = formula
+    .replace(/\bO\s*\(/g, 'obligatory(')
+    .replace(/\bP\s*\(/g, 'permitted(')
+    .replace(/\bF\s*\(/g, 'forbidden(');
+  const implication = splitTopLevel(deontic, '→');
+  if (implication) return `${toPrologFormula(implication[1])} :- ${toPrologFormula(implication[0])}`;
+  return deontic
+    .replace(/∀([A-Za-z]\w*)\./g, '')
+    .replace(/∃([A-Za-z]\w*)\./g, '')
+    .replace(/∧/g, ',')
+    .replace(/∨/g, ';')
+    .replace(/¬\s*/g, 'not ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function unwrapTptp(formula: string): string {
+  const trimmed = formula.trim();
+  const match = trimmed.match(/^(?:fof|cnf)\([^,]+,\s*[^,]+,\s*\((.*)\)\)\.?$/i);
+  return match ? match[1]!.trim() : trimmed;
+}
+
+function sanitizeTptpName(name: string): string {
+  return name.replace(/[^A-Za-z0-9_]/g, '_').replace(/^[^A-Za-z_]+/, 'formula_');
+}
+
+function splitTopLevel(formula: string, separator: string): [string, string] | null {
+  let depth = 0;
+  for (let i = 0; i < formula.length; i++) {
+    const ch = formula[i];
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    else if (depth === 0 && formula.slice(i, i + separator.length) === separator) {
+      return [formula.slice(0, i).trim(), formula.slice(i + separator.length).trim()];
+    }
+  }
+  return null;
+}

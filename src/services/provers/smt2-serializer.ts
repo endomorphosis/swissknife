@@ -116,10 +116,11 @@ export class SMT2Serializer {
    * is checked by looking for explicit P+F clashes.
    */
   formulaSetToSMT2(formulaSet: PolicyFormulaSet): string {
+    const formulas = policyFormulaSetLists(formulaSet);
     const allFormulas = [
-      ...(formulaSet.obligation_formulas ?? []),
-      ...(formulaSet.permission_formulas ?? []),
-      ...(formulaSet.prohibition_formulas ?? []),
+      ...formulas.obligations,
+      ...formulas.permissions,
+      ...formulas.prohibitions,
     ];
 
     const decls: string[] = [];
@@ -134,8 +135,8 @@ export class SMT2Serializer {
     }
 
     // Heuristic: if both P(x) and F(x) appear, add contradiction
-    const permFormulas = new Set(formulaSet.permission_formulas ?? []);
-    for (const prohib of formulaSet.prohibition_formulas ?? []) {
+    const permFormulas = new Set(formulas.permissions);
+    for (const prohib of formulas.prohibitions) {
       const corresponding = prohib.replace(/^F\(/, 'P(');
       if (permFormulas.has(corresponding)) {
         const pSym = `formula__${smtAtom(corresponding)}`.slice(0, 80);
@@ -209,4 +210,17 @@ export function alignSmtSymbolName(tsName: string): string {
 export function toPythonSmtName(variableName: string, sortName = 'Bool'): string {
   // Python: (declare-const name Bool) style
   return `(declare-const ${variableName} ${sortName})`;
+}
+
+function policyFormulaSetLists(formulaSet: PolicyFormulaSet): Pick<PolicyFormulaSet, 'permissions' | 'prohibitions' | 'obligations'> {
+  const legacy = formulaSet as PolicyFormulaSet & {
+    permission_formulas?: string[];
+    prohibition_formulas?: string[];
+    obligation_formulas?: string[];
+  };
+  return {
+    permissions: formulaSet.permissions ?? legacy.permission_formulas ?? [],
+    prohibitions: formulaSet.prohibitions ?? legacy.prohibition_formulas ?? [],
+    obligations: formulaSet.obligations ?? legacy.obligation_formulas ?? [],
+  };
 }

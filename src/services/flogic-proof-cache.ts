@@ -4,6 +4,7 @@
  */
 
 import { createHash } from 'crypto';
+import { ProofCacheBase } from './proof-cache-base.js';
 
 export interface FLogicCachedQueryResult {
   query:     string;
@@ -43,9 +44,10 @@ class LRUStore {
   get size(): number { return this.store.size; }
 }
 
-export class FLogicProofCache {
+export class FLogicProofCache extends ProofCacheBase<FLogicCachedQueryResult> {
+  readonly cacheKind = 'flogic-proof';
   private readonly store: LRUStore;
-  constructor(maxSize = 500) { this.store = new LRUStore(maxSize); }
+  constructor(maxSize = 500) { super(); this.store = new LRUStore(maxSize); }
 
   private _key(query: string, context?: Record<string, unknown>): string {
     const raw = JSON.stringify({ query, context: context ?? {} });

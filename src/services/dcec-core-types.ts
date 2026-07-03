@@ -22,6 +22,7 @@ export enum DeonticOperator {
   LIBERTY        = 'L',    // L(φ) — φ is a liberty/privilege
   POWER          = 'POW',  // POW(φ) — power to bring about φ
   IMMUNITY       = 'IMM',  // IMM(φ) — immunity from φ
+  WAIVER         = 'W',    // W(φ) — waiver of a right (PORT-002: reconciles sprint66 extra)
   // Backward-compat aliases
   OBLIGATORY     = 'O',
   PERMITTED      = 'P',
@@ -39,6 +40,10 @@ export enum CognitiveOperator {
   INTENTION = 'I',   // I(agent, φ) — agent intends φ
   DESIRE    = 'D',   // D(agent, φ) — agent desires φ
   GOAL      = 'G',   // G(agent, φ) — agent has goal φ
+  KNOWS     = 'K',   // PORT-002 alias for sprint66 naming
+  BELIEVES  = 'B',
+  INTENDS   = 'I',
+  DESIRES   = 'D',
   PERCEIVES = 'Perceives',
   SAYS      = 'Says',
 }
@@ -54,6 +59,7 @@ export enum LogicalConnective {
   NOT     = '¬',
   IMPLIES = '→',
   IFF     = '↔',
+  BICONDITIONAL = '↔',
   XOR     = '⊕',
 }
 
@@ -175,6 +181,55 @@ export type DCECFormulaStr = string;
 
 export function applyOperator(op: DeonticOperator | CognitiveOperator | DCECTemporalOperator, args: string[]): DCECFormulaStr {
   return `${op}(${args.join(', ')})`;
+}
+
+// ---------------------------------------------------------------------------
+// PORT-002: Canonical DCEC type module manifest + normalization helpers
+// ---------------------------------------------------------------------------
+
+export interface CanonicalDcecTypeManifest {
+  canonicalModule: 'dcec-core-types';
+  deonticOperators: string[];
+  cognitiveOperators: string[];
+  logicalConnectives: string[];
+  temporalOperators: string[];
+}
+
+export function canonicalDcecTypeManifest(): CanonicalDcecTypeManifest {
+  return {
+    canonicalModule: 'dcec-core-types',
+    deonticOperators: uniqueEnumValues(DeonticOperator),
+    cognitiveOperators: uniqueEnumValues(CognitiveOperator),
+    logicalConnectives: uniqueEnumValues(LogicalConnective),
+    temporalOperators: uniqueEnumValues(DCECTemporalOperator),
+  };
+}
+
+export function normalizeDeonticOperator(value: string): DeonticOperator | null {
+  const normalized = value.toUpperCase();
+  const aliases: Record<string, DeonticOperator> = {
+    O: DeonticOperator.OBLIGATION,
+    OBLIGATION: DeonticOperator.OBLIGATION,
+    OBLIGATORY: DeonticOperator.OBLIGATION,
+    P: DeonticOperator.PERMISSION,
+    PERMISSION: DeonticOperator.PERMISSION,
+    PERMITTED: DeonticOperator.PERMISSION,
+    F: DeonticOperator.PROHIBITION,
+    PROHIBITION: DeonticOperator.PROHIBITION,
+    FORBIDDEN: DeonticOperator.PROHIBITION,
+    S: DeonticOperator.SUPEREROGATION,
+    R: DeonticOperator.RIGHT,
+    L: DeonticOperator.LIBERTY,
+    POW: DeonticOperator.POWER,
+    IMM: DeonticOperator.IMMUNITY,
+    W: DeonticOperator.WAIVER,
+    WAIVER: DeonticOperator.WAIVER,
+  };
+  return aliases[normalized] ?? null;
+}
+
+function uniqueEnumValues(e: Record<string, string>): string[] {
+  return Array.from(new Set(Object.values(e))).sort();
 }
 
 // ---------------------------------------------------------------------------

@@ -24,7 +24,10 @@ import { normalizePredicate } from './deontic-parser-utils.js';
 // Types
 // ---------------------------------------------------------------------------
 
-export type ProverTarget = 'z3-smt2' | 'dcec' | 'tdfol' | 'lean4' | 'prolog';
+export type ProverTarget = 'z3-smt2' | 'smt-lib2' | 'dcec' | 'tdfol' | 'lean4' | 'coq' | 'tptp' | 'prolog' | 'json-ir';
+
+export const DEFAULT_PROVER_TARGETS: ProverTarget[] = ['z3-smt2', 'dcec', 'tdfol', 'lean4', 'prolog'];
+export const ALL_PROVER_TARGETS: ProverTarget[] = ['z3-smt2', 'smt-lib2', 'dcec', 'tdfol', 'lean4', 'coq', 'tptp', 'prolog', 'json-ir'];
 
 /**
  * Syntax validation result for one prover target.
@@ -61,6 +64,24 @@ export interface ProverSyntaxReport {
   readonly all_valid:  boolean;
 }
 
+export interface ProverSyntaxValidationIssue {
+  readonly target_id: ProverTarget;
+  readonly severity: 'warning' | 'error';
+  readonly code: string;
+  readonly message: string;
+}
+
+export interface ProverSyntaxValidationReport {
+  readonly norm_id: string;
+  readonly expectedTargets: ProverTarget[];
+  readonly presentTargets: ProverTarget[];
+  readonly missingTargets: ProverTarget[];
+  readonly proofReadyTargets: ProverTarget[];
+  readonly coverageRate: number;
+  readonly allValid: boolean;
+  readonly issues: ProverSyntaxValidationIssue[];
+}
+
 // ---------------------------------------------------------------------------
 // Syntax generators per target
 // ---------------------------------------------------------------------------
@@ -92,6 +113,15 @@ function _z3Syntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
     syntax_type: 'smt-lib2',
     valid:       warnings.length === 0,
     warnings,
+  };
+}
+
+/** SMT-LIB2 alias for callers that use the target syntax name directly. */
+function _smtLib2Syntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
+  const record = _z3Syntax(norm);
+  return {
+    ...record,
+    target_id: 'smt-lib2',
   };
 }
 
@@ -159,6 +189,60 @@ function _lean4Syntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   };
 }
 
+/** Coq proposition skeleton. */
+function _coqSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
+  const actor = normalizePredicate(norm.actor);
+  const action = normalizePredicate(norm.action);
+  const op = norm.modality.toUpperCase();
+  const predicate = op === 'O' ? 'Obligation' : op === 'P' ? 'Permission' : 'Prohibition';
+  const theoremName = `${actor}_${action}_${predicate}`.toLowerCase();
+  const formula = [
+    `Theorem ${theoremName} : ${predicate} ${actor}Prop ${action}Prop.`,
+    'Proof.',
+    '  exact I.',
+    'Qed.',
+  ].join('\n');
+  const warnings = slotWarnings(norm);
+
+  return {
+    target_id: 'coq',
+    formula,
+    syntax_type: 'coq-theorem',
+    valid: warnings.length === 0,
+    warnings,
+  };
+}
+
+/** TPTP FOF syntax. */
+function _tptpSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
+  const actor = normalizePredicate(norm.actor).toLowerCase();
+  const action = normalizePredicate(norm.action).toLowerCase();
+  const op = norm.modality.toUpperCase();
+  const name = normalizePredicate(norm.source_id || `${actor}_${action}`).toLowerCase();
+
+  let body: string;
+  if (op === 'O') {
+    body = `! [X] : (${actor}(X) => obligatory(${action}(X)))`;
+  } else if (op === 'P') {
+    body = `? [X] : (${actor}(X) & permitted(${action}(X)))`;
+  } else if (op === 'F') {
+    body = `! [X] : (${actor}(X) => ~${action}(X))`;
+  } else {
+    body = `${actor}_${action}`;
+  }
+
+  const warnings = slotWarnings(norm);
+  if (!['O', 'P', 'F'].includes(op)) warnings.push(`unsupported modality ${op}`);
+
+  return {
+    target_id: 'tptp',
+    formula: `fof(${name}_${op.toLowerCase()}, axiom, ${body}).`,
+    syntax_type: 'tptp-fof',
+    valid: warnings.length === 0,
+    warnings,
+  };
+}
+
 /** Prolog clause form. */
 function _prologSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   const actor  = normalizePredicate(norm.actor).toLowerCase();
@@ -183,6 +267,34 @@ function _prologSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   };
 }
 
+/** JSON representation for audit/conformance tooling. */
+function _jsonIrSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
+  const warnings = slotWarnings(norm);
+  return {
+    target_id: 'json-ir',
+    formula: JSON.stringify({
+      source_id: norm.source_id,
+      modality: norm.modality,
+      norm_type: norm.norm_type,
+      actor: norm.actor,
+      action: norm.action,
+      conditions: norm.conditions,
+      exceptions: norm.exceptions,
+      temporal_constraints: norm.temporal_constraints,
+    }),
+    syntax_type: 'json-ir',
+    valid: warnings.length === 0,
+    warnings,
+  };
+}
+
+function slotWarnings(norm: LegalNormIR): string[] {
+  const warnings: string[] = [];
+  if (!norm.actor) warnings.push('actor slot is empty');
+  if (!norm.action) warnings.push('action slot is empty');
+  return warnings;
+}
+
 // ---------------------------------------------------------------------------
 // ProverSyntaxBuilder
 // ---------------------------------------------------------------------------
@@ -205,14 +317,18 @@ export class ProverSyntaxBuilder {
    */
   static buildSyntaxReport(
     norm: LegalNormIR,
-    targets: ProverTarget[] = ['z3-smt2', 'dcec', 'tdfol', 'lean4', 'prolog'],
+    targets: ProverTarget[] = DEFAULT_PROVER_TARGETS,
   ): ProverSyntaxReport {
     const generators: Record<ProverTarget, (n: LegalNormIR) => ProverTargetSyntaxRecord> = {
       'z3-smt2': _z3Syntax,
+      'smt-lib2': _smtLib2Syntax,
       'dcec':    _dcecSyntax,
       'tdfol':   _tdfolSyntax,
       'lean4':   _lean4Syntax,
+      'coq':     _coqSyntax,
+      'tptp':    _tptpSyntax,
       'prolog':  _prologSyntax,
+      'json-ir': _jsonIrSyntax,
     };
 
     const records: ProverTargetSyntaxRecord[] = targets.map(t => generators[t](norm));
@@ -233,4 +349,122 @@ export class ProverSyntaxBuilder {
   static buildBatch(norms: LegalNormIR[], targets?: ProverTarget[]): ProverSyntaxReport[] {
     return norms.map(n => ProverSyntaxBuilder.buildSyntaxReport(n, targets));
   }
+
+  static getSupportedTargets(): ProverTarget[] {
+    return [...ALL_PROVER_TARGETS];
+  }
+
+  static buildTargetSyntaxMap(
+    norm: LegalNormIR,
+    targets: ProverTarget[] = ALL_PROVER_TARGETS,
+  ): Record<ProverTarget, string> {
+    const records = ProverSyntaxBuilder.buildSyntaxReport(norm, targets).records;
+    return Object.fromEntries(records.map(record => [record.target_id, record.formula])) as Record<ProverTarget, string>;
+  }
+}
+
+export class ProverSyntaxValidator {
+  constructor(readonly expectedTargets: ProverTarget[] = ALL_PROVER_TARGETS) {}
+
+  validateRecord(record: ProverTargetSyntaxRecord): ProverSyntaxValidationIssue[] {
+    const issues: ProverSyntaxValidationIssue[] = [];
+    if (!record.formula.trim()) {
+      issues.push(makeIssue(record.target_id, 'error', 'empty_formula', 'formula is empty'));
+    }
+    if (!record.valid) {
+      issues.push(makeIssue(record.target_id, 'error', 'record_invalid', 'syntax record is marked invalid'));
+    }
+    for (const warning of record.warnings) {
+      issues.push(makeIssue(record.target_id, 'warning', 'record_warning', warning));
+    }
+    issues.push(...targetSpecificIssues(record));
+    return issues;
+  }
+
+  validateReport(report: ProverSyntaxReport): ProverSyntaxValidationReport {
+    const presentTargets = report.records.map(record => record.target_id);
+    const missingTargets = this.expectedTargets.filter(target => !presentTargets.includes(target));
+    const issues = report.records.flatMap(record => this.validateRecord(record));
+    for (const target of missingTargets) {
+      issues.push(makeIssue(target, 'error', 'missing_target', `missing syntax for target ${target}`));
+    }
+
+    const proofReadyTargets = report.records
+      .filter(record => record.valid && this.validateRecord(record).every(issue => issue.severity !== 'error'))
+      .map(record => record.target_id);
+
+    return {
+      norm_id: report.norm_id,
+      expectedTargets: [...this.expectedTargets],
+      presentTargets,
+      missingTargets,
+      proofReadyTargets,
+      coverageRate: roundRatio(this.expectedTargets.length - missingTargets.length, this.expectedTargets.length),
+      allValid: issues.every(issue => issue.severity !== 'error'),
+      issues,
+    };
+  }
+
+  validateNorm(
+    norm: LegalNormIR,
+    targets: ProverTarget[] = this.expectedTargets,
+  ): ProverSyntaxValidationReport {
+    return new ProverSyntaxValidator(targets).validateReport(ProverSyntaxBuilder.buildSyntaxReport(norm, targets));
+  }
+
+  static validateRecord(record: ProverTargetSyntaxRecord): ProverSyntaxValidationIssue[] {
+    return new ProverSyntaxValidator([record.target_id]).validateRecord(record);
+  }
+
+  static validateReport(
+    report: ProverSyntaxReport,
+    expectedTargets: ProverTarget[] = ALL_PROVER_TARGETS,
+  ): ProverSyntaxValidationReport {
+    return new ProverSyntaxValidator(expectedTargets).validateReport(report);
+  }
+}
+
+function targetSpecificIssues(record: ProverTargetSyntaxRecord): ProverSyntaxValidationIssue[] {
+  const issues: ProverSyntaxValidationIssue[] = [];
+  if (['z3-smt2', 'smt-lib2', 'dcec', 'tdfol'].includes(record.target_id) && !balancedParens(record.formula)) {
+    issues.push(makeIssue(record.target_id, 'error', 'unbalanced_parentheses', 'formula parentheses are unbalanced'));
+  }
+  if (record.target_id === 'tptp' && !/^fof\([^,]+,\s*axiom,\s*.+\)\.$/s.test(record.formula.trim())) {
+    issues.push(makeIssue(record.target_id, 'error', 'invalid_tptp_fof', 'formula is not a TPTP FOF axiom'));
+  }
+  if (record.target_id === 'prolog' && !record.formula.trim().endsWith('.')) {
+    issues.push(makeIssue(record.target_id, 'error', 'invalid_prolog_clause', 'Prolog clause must end with a period'));
+  }
+  if (record.target_id === 'json-ir') {
+    try {
+      JSON.parse(record.formula);
+    } catch {
+      issues.push(makeIssue(record.target_id, 'error', 'invalid_json_ir', 'JSON IR formula is not parseable JSON'));
+    }
+  }
+  return issues;
+}
+
+function makeIssue(
+  target_id: ProverTarget,
+  severity: 'warning' | 'error',
+  code: string,
+  message: string,
+): ProverSyntaxValidationIssue {
+  return { target_id, severity, code, message };
+}
+
+function balancedParens(text: string): boolean {
+  let depth = 0;
+  for (const ch of text) {
+    if (ch === '(') depth++;
+    if (ch === ')') depth--;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+}
+
+function roundRatio(numerator: number, denominator: number): number {
+  if (denominator <= 0) return 1;
+  return Math.round((numerator / denominator) * 1_000_000) / 1_000_000;
 }
