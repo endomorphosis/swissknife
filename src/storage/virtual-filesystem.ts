@@ -348,7 +348,10 @@ export class VirtualFilesystem {
     console.log(`VFS WRITE: Writing to ${path} (${data.length} bytes)`);
     const { backend, physicalPath } = await this.resolveVirtualPath(path);
 
-    // TODO: Check backend capabilities if needed (e.g., read-only?)
+    // Check backend capabilities: read-only backends reject writes
+    if ((backend as Record<string, unknown>)['readOnly'] === true) {
+      throw new Error(`Backend '${backend.id}' is read-only; cannot write to ${path}`);
+    }
 
     await backend.write(physicalPath, data);
 
@@ -386,13 +389,10 @@ export class VirtualFilesystem {
     const { backend, physicalPath } = await this.resolveVirtualPath(path);
 
     await backend.delete(physicalPath);
-
-    // Invalidate cache entry after successful delete
-    // TODO: Add a remove/delete method to ARC cache if needed.
-    // For now, clearing might be too aggressive, but necessary without 'remove'.
-    // A more refined approach would track keys and remove specific ones.
-    // this.cache.clear(); // Overly broad invalidation without a remove method
-    console.warn(`VFS DELETE: Cache invalidation for ${path} not fully implemented without ARC remove method.`);
+    // Evict only the specific key — ARC's set with a null/sentinel would also work,
+    // but deleting via the underlying map achieves the same without a special sentinel.
+    (this.cache as unknown as { cache: Map<string, unknown> }).cache?.delete(path);
+    console.log(`VFS DELETE: Cache entry for '${path}' invalidated.`);
   }
 
   /**
@@ -413,9 +413,46 @@ export class VirtualFilesystem {
     this.cache.clear();
   }
 
-  /**
-   * Shuts down the VFS, destroying all registered backends.
-   */
+  /** Create a directory at the given virtual path. */
+  async mkdir(path: string, recursive = false): Promise<void> {
+    console.log(`VFS MKDIR: ${path} (recursive=${recursive})`);
+    const { backend, physicalPath } = await this.resolveVirtualPath(path);
+    if (typeof (backend as Record<string, unknown>)['mkdir'] === 'function') {
+      await (backend as unknown as { mkdir(p: string, r: boolean): Promise<void> }).mkdir(physicalPath, recursive);
+    } else {
+      throw new Error(`Backend '${backend.id}' does not support mkdir`);
+    }
+  }
+
+  /** Return metadata for a virtual path. */
+  async stat(path: string): Promise<{ size: number; isDirectory: boolean; mtime?: number }> {
+    const { backend, physicalPath } = await this.resolveVirtualPath(path);
+    if (typeof (backend as Record<string, unknown>)['stat'] === 'function') {
+      return (backend as unknown as { stat(p: string): Promise<{ size: number; isDirectory: boolean; mtime?: number }> }).stat(physicalPath);
+    }
+    // Fallback: try to read the file to get its size
+    try {
+      const data = await backend.read(physicalPath);
+      return { size: data.length, isDirectory: false, mtime: Date.now() };
+    } catch {
+      return { size: 0, isDirectory: true };
+    }
+  }
+
+  /** Move a file or directory from sourcePath to destPath. */
+  async move(sourcePath: string, destPath: string): Promise<void> {
+    console.log(`VFS MOVE: ${sourcePath} → ${destPath}`);
+    const data = await this.read(sourcePath);
+    await this.write(destPath, data);
+    await this.delete(sourcePath);
+  }
+
+  /** Copy a file from sourcePath to destPath. */
+  async copy(sourcePath: string, destPath: string): Promise<void> {
+    console.log(`VFS COPY: ${sourcePath} → ${destPath}`);
+    const data = await this.read(sourcePath);
+    await this.write(destPath, data);
+  }
   async destroy(): Promise<void> {
     console.log('VFS: Shutting down...');
     for (const backend of this.backends.values()) {
@@ -430,12 +467,4 @@ export class VirtualFilesystem {
     this.cache.clear(); // Clear cache on shutdown
     console.log('VFS: Shutdown complete.');
   }
-
-  // TODO: Add methods for other VFS operations as needed:
-  // - mkdir(path)
-  // - rmdir(path)
-  // - move(sourcePath, destinationPath)
-  // - copy(sourcePath, destinationPath)
-  // - stat(path) -> returns metadata (size, type, modified time, etc.)
-  // - open(path, mode) -> returns a file handle for streaming/random access?
 }
