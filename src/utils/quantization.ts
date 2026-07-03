@@ -78,23 +78,64 @@ export class ModelQuantizer {
   }
 
 
-  // TODO: Add actual quantization/dequantization functions here.
-  // These would likely involve complex numerical operations and depend on the
-  // specific model format and hardware backend.
-  // Example (conceptual):
-  // static quantizeTensor(tensor: Float32Array, config: QuantizationConfig): QuantizedTensor {
-  //   // Implementation logic based on config.precision, config.scheme, etc.
-  // }
-  //
-  // static dequantizeTensor(quantizedTensor: QuantizedTensor): Float32Array {
-  //   // Implementation logic
-  // }
+  /**
+   * Quantize a Float32Array to int8 (symmetric) or uint8 (asymmetric).
+   * Returns a QuantizedTensor with scale (and optional zeroPoint).
+   */
+  static quantizeTensor(data: Float32Array, config: QuantizationConfig): QuantizedTensor {
+    const bits = ModelQuantizer._bitsForPrecision(config.precision);
+
+    if (config.scheme === 'asymmetric') {
+      // Asymmetric: uint8 quantization
+      const qMax  = (1 << bits) - 1;
+      const dMin  = Math.min(...data);
+      const dMax  = Math.max(...data);
+      const scale = (dMax - dMin) / qMax || 1;
+      const zp    = Math.round(-dMin / scale);
+      const out   = new Uint8Array(data.length);
+      for (let i = 0; i < data.length; i++) {
+        out[i] = Math.min(qMax, Math.max(0, Math.round(data[i]! / scale + zp)));
+      }
+      return { data: out, scale, zeroPoint: zp, precision: config.precision, originalShape: [data.length] };
+    }
+
+    // Symmetric: int8 quantization
+    const qMax  = (1 << (bits - 1)) - 1;
+    const absMax = Math.max(...data.map(Math.abs)) || 1;
+    const scale  = absMax / qMax;
+    const out    = new Int8Array(data.length);
+    for (let i = 0; i < data.length; i++) {
+      out[i] = Math.min(qMax, Math.max(-qMax - 1, Math.round(data[i]! / scale)));
+    }
+    return { data: out, scale, precision: config.precision, originalShape: [data.length] };
+  }
+
+  /** Restore a Float32Array from a QuantizedTensor (inverse of quantizeTensor). */
+  static dequantizeTensor(qt: QuantizedTensor): Float32Array {
+    const raw  = qt.data instanceof Int8Array   ? qt.data as Int8Array
+               : qt.data instanceof Uint8Array  ? qt.data as Uint8Array
+               : new Int8Array(qt.data as ArrayBuffer);
+    const out  = new Float32Array(raw.length);
+    const scale  = typeof qt.scale === 'number' ? qt.scale : 1;
+    const zp     = typeof qt.zeroPoint === 'number' ? qt.zeroPoint : 0;
+    for (let i = 0; i < raw.length; i++) {
+      out[i] = (raw[i]! - zp) * scale;
+    }
+    return out;
+  }
+
+  private static _bitsForPrecision(p: QuantizationPrecision): number {
+    switch (p) {
+      case QuantizationPrecision.TwoBit:      return 2;
+      case QuantizationPrecision.ThreeBit:    return 3;
+      case QuantizationPrecision.FourBit:     return 4;
+      case QuantizationPrecision.EightBit:    return 8;
+      case QuantizationPrecision.SixteenBit:  return 16;
+      default:                                return 32;
+    }
+  }
 }
 
-/**
- * Represents a tensor that has been quantized.
- * The exact structure will depend on the quantization method.
- */
 export interface QuantizedTensor {
   data: Int8Array | Uint8Array | ArrayBuffer; // Or other appropriate type for quantized data
   scale: number | number[]; // Scale factor(s) for dequantization
@@ -103,7 +144,3 @@ export interface QuantizedTensor {
   originalShape: number[];
   // Add other metadata as needed (e.g., quantization scheme used)
 }
-
-// TODO: Consider adding specific quantization implementations (e.g., for WebGPU shaders)
-// in separate files or within the relevant backend services if appropriate.
-// For example, a WebGPUOptimizer class might handle quantization specific to shaders.

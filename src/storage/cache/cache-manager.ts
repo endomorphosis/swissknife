@@ -17,6 +17,7 @@ export class CacheManager {
   private options: Required<CacheManagerOptions>;
   private hits = 0;
   private misses = 0;
+  private accessCounter = 0;  // monotonically increasing — no timestamp ties
 
   constructor(options: CacheManagerOptions = {}) {
     this.options = {
@@ -44,7 +45,7 @@ export class CacheManager {
       logger.debug(`[Cache] Expired: ${key}`);
       return undefined;
     }
-    entry.lastAccessed = Date.now();
+    entry.lastAccessed = ++this.accessCounter;
     this.hits++;
     logger.debug(`[Cache] Hit: ${key}`);
     return entry.value as T;
@@ -57,7 +58,7 @@ export class CacheManager {
     }
     const effectiveTtl = ttl ?? this.options.defaultTtl;
     const expiresAt = effectiveTtl > 0 ? Date.now() + effectiveTtl : undefined;
-    this.cache.set(key, { value, expiresAt, lastAccessed: Date.now() });
+    this.cache.set(key, { value, expiresAt, lastAccessed: ++this.accessCounter });
     logger.debug(`[Cache] Set: ${key}` + (expiresAt ? ` (TTL ${effectiveTtl}ms)` : ''));
   }
 

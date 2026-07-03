@@ -1,37 +1,63 @@
-// Basic logger utility
-// TODO: Enhance with log levels, different transports (console, file), formatting options
+// Structured logger utility with configurable log levels and transports
 
-enum LogLevel {
-  DEBUG = 'debug',
-  INFO = 'info',
-  WARN = 'warn',
-  ERROR = 'error',
+export enum LogLevel {
+  DEBUG = 0,
+  INFO  = 1,
+  WARN  = 2,
+  ERROR = 3,
+  NONE  = 4,   // suppress all output
 }
 
-// Simple console logger for now
+const LEVEL_NAMES: Record<LogLevel, string> = {
+  [LogLevel.DEBUG]: 'DEBUG',
+  [LogLevel.INFO]:  'INFO',
+  [LogLevel.WARN]:  'WARN',
+  [LogLevel.ERROR]: 'ERROR',
+  [LogLevel.NONE]:  'NONE',
+};
+
+export type LogTransport = (level: LogLevel, timestamp: string, message: string, params: unknown[]) => void;
+
+const consoleTransport: LogTransport = (level, timestamp, message, params) => {
+  const line = `[${timestamp}] [${LEVEL_NAMES[level]}] ${message}`;
+  switch (level) {
+    case LogLevel.DEBUG: console.debug(line, ...params); break;
+    case LogLevel.WARN:  console.warn(line, ...params);  break;
+    case LogLevel.ERROR: console.error(line, ...params); break;
+    default:             console.log(line, ...params);
+  }
+};
+
 class Logger {
-  private log(level: LogLevel, message: string, ...optionalParams: any[]): void {
-    const timestamp = new Date().toISOString();
-    console[level](`[${timestamp}] [${level.toUpperCase()}] ${message}`, ...optionalParams);
+  private minLevel: LogLevel;
+  private transports: LogTransport[];
+
+  constructor(minLevel: LogLevel = LogLevel.INFO, transports: LogTransport[] = [consoleTransport]) {
+    this.minLevel   = minLevel;
+    this.transports = transports;
   }
 
-  debug(message: string, ...optionalParams: any[]): void {
-    // TODO: Check configured log level before logging
-    this.log(LogLevel.DEBUG, message, ...optionalParams);
+  setLevel(level: LogLevel): void   { this.minLevel = level; }
+  getLevel(): LogLevel              { return this.minLevel; }
+  addTransport(t: LogTransport): void { this.transports.push(t); }
+
+  private emit(level: LogLevel, message: string, params: unknown[]): void {
+    if (level < this.minLevel) return;
+    const ts = new Date().toISOString();
+    for (const t of this.transports) t(level, ts, message, params);
   }
 
-  info(message: string, ...optionalParams: any[]): void {
-    this.log(LogLevel.INFO, message, ...optionalParams);
-  }
-
-  warn(message: string, ...optionalParams: any[]): void {
-    this.log(LogLevel.WARN, message, ...optionalParams);
-  }
-
-  error(message: string, ...optionalParams: any[]): void {
-    this.log(LogLevel.ERROR, message, ...optionalParams);
-  }
+  debug(message: string, ...optionalParams: unknown[]): void { this.emit(LogLevel.DEBUG, message, optionalParams); }
+  info (message: string, ...optionalParams: unknown[]): void { this.emit(LogLevel.INFO,  message, optionalParams); }
+  warn (message: string, ...optionalParams: unknown[]): void { this.emit(LogLevel.WARN,  message, optionalParams); }
+  error(message: string, ...optionalParams: unknown[]): void { this.emit(LogLevel.ERROR, message, optionalParams); }
 }
 
-// Export a singleton instance
-export const logger = new Logger();
+// Respect LOG_LEVEL env var at startup
+const _envLevel = typeof process !== 'undefined'
+  ? ({ debug: LogLevel.DEBUG, info: LogLevel.INFO, warn: LogLevel.WARN, error: LogLevel.ERROR, none: LogLevel.NONE } as Record<string, LogLevel>)
+    [(process.env['LOG_LEVEL'] ?? 'info').toLowerCase()]
+  : LogLevel.INFO;
+
+export const logger = new Logger(_envLevel ?? LogLevel.INFO);
+export { Logger };
