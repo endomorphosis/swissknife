@@ -222,3 +222,40 @@ export const LEAN4_TACTIC_SEQUENCES = {
   deontic: ['trivial', 'simp', 'decide', 'tauto'],
 };
 // PORT-034: Add 'Require Import Coq.Logic.Classical_Prop.' to Coq proofs for classical logic
+
+// PORT-032: TDFOLToCoqConverter — accepts TDFOL Formula AST or string
+export class TDFOLToCoqConverter {
+  convertFormula(formula: { toString(): string } | string, theoremName = 'theorem'): string {
+    const formulaStr = typeof formula === 'string' ? formula : formula.toString();
+    // Best-effort conversion: map TDFOL operators to Coq syntax
+    const coqExpr = formulaStr
+      .replace(/∀\s*(\w+)\s*\./g, 'forall ($1 : Prop),')
+      .replace(/∃\s*(\w+)\s*\./g, 'exists ($1 : Prop),')
+      .replace(/∧/g, '/\\')
+      .replace(/∨/g, '\\/') 
+      .replace(/¬/g, '~')
+      .replace(/→/g, '->')
+      .replace(/↔/g, '<->')
+      .replace(/O\(([^)]+)\)/g, '(obligation $1)')
+      .replace(/P\(([^)]+)\)/g, '(permission $1)')
+      .replace(/F\(([^)]+)\)/g, '(forbidden $1)');
+    return `Theorem ${theoremName} : ${coqExpr}.\nProof.\n  auto.\nQed.`;
+  }
+}
+
+// PORT-032: TDFOLToLean4Converter — accepts TDFOL Formula AST or string
+export class TDFOLToLean4Converter {
+  convertFormula(formula: { toString(): string } | string, theoremName = 'theorem'): string {
+    const formulaStr = typeof formula === 'string' ? formula : formula.toString();
+    const lean4Expr = formulaStr
+      .replace(/∀\s*(\w+)\s*\./g, '∀ ($1 : Prop),')
+      .replace(/∃\s*(\w+)\s*\./g, '∃ ($1 : Prop),')
+      .replace(/¬/g, '¬')
+      .replace(/→/g, '→')
+      .replace(/↔/g, '↔')
+      .replace(/O\(([^)]+)\)/g, 'obligation $1')
+      .replace(/P\(([^)]+)\)/g, 'permission $1')
+      .replace(/F\(([^)]+)\)/g, 'forbidden $1');
+    return `theorem ${theoremName} : ${lean4Expr} := by\n  trivial`;
+  }
+}

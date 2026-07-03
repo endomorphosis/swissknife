@@ -37,7 +37,11 @@ export const LogicOperator = {
 export type LogicOp = typeof LogicOperator[keyof typeof LogicOperator];
 
 export type Formula =
-  | { kind: 'atom';   value: string }
+  | { kind: 'atom';
+
+
+
+   value: string }
   | { kind: 'unary';  op: LogicOp;     formula: Formula }
   | { kind: 'binary'; op: LogicOp;     left: Formula; right: Formula }
   | { kind: 'temporal-unary';  op: TemporalOp;  formula: Formula }
@@ -436,3 +440,7 @@ export const ALL_TEMPORAL_RULES: TemporalInferenceRule[] = [
 export function findApplicableRules(...formulas: Formula[]): TemporalInferenceRule[] {
   return ALL_TEMPORAL_RULES.filter(r => r.canApply(...formulas));
 }
+// PORT-001 partial: This Formula type diverges from tdfol-core.ts Formula.
+// TODO: future refactor will unify to tdfol-core.Formula as the canonical type.
+// Compatibility re-export for callers that import from this module:
+export type { Formula as TDFOLCoreFormula } from './tdfol-core.js';

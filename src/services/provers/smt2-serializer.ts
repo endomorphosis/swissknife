@@ -194,3 +194,19 @@ export function declareFunctionSmt2(name: string, argSorts: string[], returnSort
   const argStr = argSorts.length > 0 ? argSorts.join(' ') : '';
   return `(declare-fun ${name} (${argStr}) ${returnSort})`;
 }
+
+// PORT-022: SMT symbol naming alignment — Python uses DeclareSort+node names,
+// TS uses P__cap__rsc style. Align by replacing TS mangling with Python convention.
+export function alignSmtSymbolName(tsName: string): string {
+  // Convert TS-style mangled names to Python-style sort declarations
+  return tsName
+    .replace(/__cap__/g, '.')   // P__cap__rsc → P.rsc
+    .replace(/__dot__/g, '.')
+    .replace(/__slash__/g, '/')
+    .replace(/([A-Z])/g, (m) => m.toLowerCase()); // normalize case
+}
+
+export function toPythonSmtName(variableName: string, sortName = 'Bool'): string {
+  // Python: (declare-const name Bool) style
+  return `(declare-const ${variableName} ${sortName})`;
+}

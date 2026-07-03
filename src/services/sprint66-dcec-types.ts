@@ -157,3 +157,10 @@ export class DCECToUCANBridge {
     return { resource, ability: `ucan/prohibition/${action}`, reason };
   }
 }
+
+// PORT-002: Three competing DCEC type files — canonical is dcec-core-types.ts.
+// This file duplicates DeonticOperator/CognitiveOperator from dcec-core-types.ts.
+// TODO: future refactor will consolidate to a single canonical DCEC type module.
+// For now, re-export canonical types for cross-file interop:
+export type { DeonticOperator as CanonicalDeonticOperator } from './dcec-core-types.js';
+export type { CognitiveOperator as CanonicalCognitiveOperator } from './dcec-core-types.js';

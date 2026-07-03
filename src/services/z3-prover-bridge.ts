@@ -64,6 +64,12 @@ export class TDFOLToZ3Converter {
       .trim();
   }
 
+  /** PORT-020: Accept a TDFOL Formula AST object and convert to SMT-LIB2 string.
+   *  Requires Formula objects to implement toString() — see tdfol-core.ts. */
+  convertFormula(formula: { toString(): string } | string): string {
+    return this.convert(typeof formula === 'string' ? formula : formula.toString());
+  }
+
   /** Return an SMT-LIB2 assertion string for the negation of `formula`. */
   toSmtAssertion(formula: string): string {
     const converted = this.convert(formula);

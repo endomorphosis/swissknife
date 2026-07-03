@@ -23,6 +23,8 @@ export interface ModalResidualRepairRoute {
   targetComponent: string;
   rationale: string;
   priority: number;
+  domain?: string;
+  frameFeatures?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -126,6 +128,7 @@ export interface ModalProgramSynthesisHintInit {
   targetComponent: string;
   rationale: string;
   priority: number;
+  domain?: string;
   evidence?: Record<string, unknown>;
   status?: string;
 }
@@ -136,6 +139,7 @@ export class ModalProgramSynthesisHint {
   readonly targetComponent: string;
   readonly rationale: string;
   readonly priority: number;
+  readonly domain?: string;
   readonly evidence: Record<string, unknown>;
   readonly status: string;
 
@@ -145,6 +149,7 @@ export class ModalProgramSynthesisHint {
     this.targetComponent = init.targetComponent;
     this.rationale = init.rationale;
     this.priority = init.priority;
+    this.domain = init.domain;
     this.evidence = init.evidence ?? {};
     this.status = init.status ?? 'proposed';
   }
@@ -153,6 +158,7 @@ export class ModalProgramSynthesisHint {
     return {
       action: this.action,
       evidence: this.evidence,
+      domain: this.domain ?? null,
       hint_id: this.hintId,
       priority: this.priority,
       rationale: this.rationale,
@@ -219,6 +225,7 @@ export function synthesisHintFromRoute(
     targetComponent: route.targetComponent,
     rationale: route.rationale,
     priority: route.priority,
+    domain: route.domain,
     evidence: { loss_name: lossName, ...evidence },
   });
 }
@@ -239,19 +246,46 @@ export function synthesisHintsFromAutoencoderIntrospection(
   const hints: ModalProgramSynthesisHint[] = [];
   // Primary hint from predicted→target family gap
   if (introspection.predictedFamily !== introspection.targetFamily) {
+    const lossName = 'family_gap';
+    const route: ModalResidualRepairRoute = {
+      action: 'REALIGN_FAMILY',
+      targetComponent: introspection.targetFamily ?? 'unknown',
+      rationale: 'Predicted modal family differs from the target family in autoencoder introspection.',
+      priority: 0.8,
+      domain: domain ?? 'general',
+      frameFeatures: introspection.frameFeatures,
+    };
     hints.push(synthesisHintFromRoute(
-      { action: 'REALIGN_FAMILY', domain: domain ?? 'general', targetComponent: introspection.targetFamily ?? 'unknown',
-        frameFeatures: introspection.frameFeatures, priority: 0.8 } as unknown as import('./modal-synthesis.js').ModalResidualRepairRoute,
-      introspection.lossBreakdown['primary_loss'] ?? 'family_gap',
+      lossName,
+      route,
+      {
+        domain: domain ?? 'general',
+        predicted_family: introspection.predictedFamily,
+        target_family: introspection.targetFamily,
+        frame_features: introspection.frameFeatures,
+        primary_loss: introspection.lossBreakdown['primary_loss'] ?? null,
+      },
     ));
   }
   // Additional hints per loss component
   for (const [key, val] of Object.entries(introspection.lossBreakdown)) {
     if (val > 0.1) {
+      const route: ModalResidualRepairRoute = {
+        action: 'REDUCE_LOSS',
+        targetComponent: key,
+        rationale: `Autoencoder loss component ${key} remains above threshold.`,
+        priority: Math.min(val, 1),
+        domain: domain ?? 'general',
+        frameFeatures: introspection.frameFeatures,
+      };
       hints.push(synthesisHintFromRoute(
-        { action: 'REDUCE_LOSS', domain: domain ?? 'general', targetComponent: key,
-          frameFeatures: introspection.frameFeatures, priority: Math.min(val, 1) } as unknown as import('./modal-synthesis.js').ModalResidualRepairRoute,
         key,
+        route,
+        {
+          domain: domain ?? 'general',
+          frame_features: introspection.frameFeatures,
+          primary_loss: key,
+        },
       ));
     }
   }
