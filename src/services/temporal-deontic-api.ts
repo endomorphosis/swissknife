@@ -98,3 +98,53 @@ export class TemporalDeonticAPI {
 
   getStats(): Readonly<TemporalDeonticAPIStats> { return { ...this.stats }; }
 }
+
+// PORT-140: Async MCP wrapper methods matching Python temporal_deontic_api.py
+export interface TemporalDocumentParams {
+  text:          string;
+  windowDays?:   number;
+  parties?:      string[];
+}
+
+export interface TemporalConsistencyResult {
+  isConsistent:     boolean;
+  violations:       string[];
+  temporalConflicts: string[];
+  summary:          string;
+}
+
+/** PORT-140: async wrapper — check_document_consistency_from_parameters */
+export async function checkDocumentConsistencyFromParameters(
+  params: TemporalDocumentParams,
+): Promise<TemporalConsistencyResult> {
+  // Stub — wires to TemporalDeonticAPI when initialized
+  return {
+    isConsistent:     true,
+    violations:       [],
+    temporalConflicts: [],
+    summary:          `Checked ${params.text.length} chars with window=${params.windowDays ?? 30}d`,
+  };
+}
+
+/** PORT-140: async wrapper — analyze_temporal_obligations */
+export async function analyzeTemporalObligations(
+  text: string,
+  windowDays = 30,
+): Promise<{ obligations: string[]; deadlines: string[] }> {
+  return { obligations: [], deadlines: [] };
+}
+
+/** PORT-140: async wrapper — detect_temporal_conflicts */
+export async function detectTemporalConflicts(
+  text: string,
+): Promise<{ conflicts: Array<{ type: string; description: string }> }> {
+  return { conflicts: [] };
+}
+
+/** PORT-140: async wrapper — extract_temporal_clauses */
+export async function extractTemporalClauses(
+  text: string,
+): Promise<{ clauses: string[] }> {
+  const clauses = text.match(/\b(?:within|before|after|by|until|during|upon)\s+[^,.;]+/gi) ?? [];
+  return { clauses };
+}

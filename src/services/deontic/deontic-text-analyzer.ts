@@ -423,3 +423,47 @@ export class DeonticTextAnalyzer {
     };
   }
 }
+
+// PORT-112: Per-entity breakdown + recommendations
+export interface EntityConflictReport {
+  entity:           string;
+  statementCount:   number;
+  conflictCount:    number;
+  dominantModality: DeonticModality | null;
+  recommendations:  string[];
+}
+
+export function generateEntityReports(
+  statements: DeonticStatement[],
+  conflicts:  DeonticConflict[],
+): EntityConflictReport[] {
+  const byEntity = new Map<string, DeonticStatement[]>();
+  for (const s of statements) {
+    const arr = byEntity.get(s.entity) ?? [];
+    arr.push(s);
+    byEntity.set(s.entity, arr);
+  }
+
+  const reports: EntityConflictReport[] = [];
+  for (const [entity, stmts] of byEntity) {
+    const entityConflicts = conflicts.filter(c => c.entity === entity);
+    const modCounts: Record<string, number> = {};
+    for (const s of stmts) modCounts[s.modality] = (modCounts[s.modality] ?? 0) + 1;
+    const dominant = Object.entries(modCounts).sort(([,a],[,b]) => b-a)[0]?.[0] as DeonticModality | undefined;
+
+    const recs: string[] = [];
+    if (entityConflicts.some(c => c.type === 'direct'))
+      recs.push(`Resolve direct obligation/prohibition conflict for ${entity}`);
+    if (entityConflicts.some(c => c.type === 'conditional'))
+      recs.push(`Clarify conditional conflict conditions for ${entity}`);
+
+    reports.push({
+      entity,
+      statementCount:   stmts.length,
+      conflictCount:    entityConflicts.length,
+      dominantModality: dominant ?? null,
+      recommendations:  recs,
+    });
+  }
+  return reports;
+}

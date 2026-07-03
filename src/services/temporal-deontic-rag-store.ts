@@ -41,6 +41,8 @@ export class TheoremMetadata {
   readonly sourceCase: string | null;
   readonly precedentStrength: number;
   readonly createdAt: Date;
+  /** PORT-142: dense embedding vector (768-dim) for cosine-similarity retrieval */
+  embedding?: number[];
 
   constructor(opts: {
     theoremId: string;
@@ -94,6 +96,8 @@ export class TheoremMetadata {
 export class ConsistencyResult {
   readonly isConsistent: boolean;
   readonly conflicts: Array<Record<string, unknown>>;
+  /** PORT-143: temporal conflicts (e.g. overlapping obligation windows) */
+  readonly temporalConflicts: string[];
   readonly relevantTheorems: TheoremMetadata[];
   readonly confidenceScore: number;
   readonly reasoning: string;
@@ -101,15 +105,17 @@ export class ConsistencyResult {
   constructor(opts: {
     isConsistent: boolean;
     conflicts?: Array<Record<string, unknown>>;
+    temporalConflicts?: string[];
     relevantTheorems?: TheoremMetadata[];
     confidenceScore?: number;
     reasoning?: string;
   }) {
-    this.isConsistent = opts.isConsistent;
-    this.conflicts = opts.conflicts ?? [];
-    this.relevantTheorems = opts.relevantTheorems ?? [];
-    this.confidenceScore = opts.confidenceScore ?? 0;
-    this.reasoning = opts.reasoning ?? '';
+    this.isConsistent       = opts.isConsistent;
+    this.conflicts          = opts.conflicts ?? [];
+    this.temporalConflicts  = opts.temporalConflicts ?? [];
+    this.relevantTheorems   = opts.relevantTheorems ?? [];
+    this.confidenceScore    = opts.confidenceScore ?? 0;
+    this.reasoning          = opts.reasoning ?? '';
   }
 
   toDict(): Record<string, unknown> {

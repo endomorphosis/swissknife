@@ -447,3 +447,47 @@ export class ExtendedTdfolProverBridge extends TdfolProverBridge {
     return this.extRules.map(r => r.name);
   }
 }
+
+// PORT-070/071: Pluggable strategy framework (partial port of strategies/strategy_selector.py)
+export interface TDFOLProofStrategy {
+  name:       string;
+  canHandle(formula: string): boolean;
+  getPriority(formula: string): number;
+  estimateCost(formulaLength: number): number;
+}
+
+export class ModalTableauxStrategy implements TDFOLProofStrategy {
+  name = 'modal-tableaux';
+  canHandle(formula: string): boolean {
+    return /[□◊]/.test(formula) || /\b(?:O|P|F)\(/.test(formula);
+  }
+  getPriority(formula: string): number { return this.canHandle(formula) ? 10 : 5; }
+  estimateCost(len: number): number { return len * 2; }
+}
+
+export class ForwardChainingStrategySelector implements TDFOLProofStrategy {
+  name = 'forward-chaining';
+  canHandle(_formula: string): boolean { return true; } // universal fallback
+  getPriority(_formula: string): number { return 1; }
+  estimateCost(len: number): number { return len * 3; }
+}
+
+// PORT-071: Modal system auto-selection heuristic
+export function selectModalLogicType(formula: string): string {
+  if (/O\[|O\(/.test(formula)) return 'D';     // deontic modal
+  if (/\u25a1.*\u25a1/.test(formula)) return 'S4'; // nested box → S4
+  if (/\u25a1.*\u25ca.*\u25a1/.test(formula)) return 'S5'; // 5-axiom pattern
+  return 'K';  // default
+}
+
+export const DEFAULT_STRATEGIES: TDFOLProofStrategy[] = [
+  new ModalTableauxStrategy(),
+  new ForwardChainingStrategySelector(),
+];
+
+export function selectStrategy(formula: string): TDFOLProofStrategy {
+  const ranked = DEFAULT_STRATEGIES
+    .filter(s => s.canHandle(formula))
+    .sort((a, b) => b.getPriority(formula) - a.getPriority(formula));
+  return ranked[0] ?? DEFAULT_STRATEGIES[DEFAULT_STRATEGIES.length - 1]!;
+}

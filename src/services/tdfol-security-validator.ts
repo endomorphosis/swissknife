@@ -256,3 +256,23 @@ export function createValidator(level: SecurityLevel = 'medium'): SecurityValida
 export function validateFormula(formula: string, level: SecurityLevel = 'medium'): SecurityValidationResult {
   return createValidator(level).validateFormula(formula);
 }
+
+// PORT-080: Additional security methods
+export function sanitizeFormula(formula: string): string {
+  // Remove potential injection strings while preserving logic symbols
+  return formula
+    .replace(/[<>"'`\x00-\x1f]/g, '')
+    .replace(/javascript:/gi, '')
+    .slice(0, 10_000);
+}
+
+export interface ZkpProofValidationResult { valid: boolean; reason: string }
+
+export function validateZkpProof(proofJson: string): ZkpProofValidationResult {
+  try {
+    const proof = JSON.parse(proofJson) as Record<string, unknown>;
+    if (!proof['type']) return { valid: false, reason: 'missing type field' };
+    if (typeof proof['verified'] !== 'boolean') return { valid: false, reason: 'missing verified field' };
+    return { valid: proof['verified'] === true, reason: proof['verified'] ? 'ok' : 'unverified' };
+  } catch { return { valid: false, reason: 'invalid JSON' }; }
+}

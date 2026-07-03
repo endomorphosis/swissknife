@@ -295,3 +295,30 @@ export class DeonticKnowledgeBase {
     return `${s.modality}|${s.actor.entityId}|${s.action.actionId}`;
   }
 }
+
+// PORT-114: Allen's interval algebra for temporal reasoning
+export type AllenRelation =
+  | 'BEFORE' | 'AFTER' | 'MEETS' | 'MET_BY'
+  | 'OVERLAPS' | 'OVERLAPPED_BY'
+  | 'STARTS' | 'STARTED_BY'
+  | 'DURING' | 'CONTAINS'
+  | 'FINISHES' | 'FINISHED_BY'
+  | 'EQUALS';
+
+export interface TimeInterval { start: number; end: number }
+
+export function allenRelation(a: TimeInterval, b: TimeInterval): AllenRelation {
+  if (a.end < b.start)  return 'BEFORE';
+  if (a.start > b.end)  return 'AFTER';
+  if (a.end === b.start) return 'MEETS';
+  if (a.start === b.end) return 'MET_BY';
+  if (a.start < b.start && a.end < b.end && a.end > b.start) return 'OVERLAPS';
+  if (a.start > b.start && a.end > b.end && a.start < b.end) return 'OVERLAPPED_BY';
+  if (a.start === b.start && a.end < b.end) return 'STARTS';
+  if (a.start === b.start && a.end > b.end) return 'STARTED_BY';
+  if (a.start > b.start && a.end < b.end) return 'DURING';
+  if (a.start < b.start && a.end > b.end) return 'CONTAINS';
+  if (a.start < b.start && a.end === b.end) return 'FINISHES';
+  if (a.start > b.start && a.end === b.end) return 'FINISHED_BY';
+  return 'EQUALS';
+}

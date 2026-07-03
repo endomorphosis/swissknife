@@ -224,3 +224,27 @@ export class DeonticLogicConverter {
     return new ConversionResult({ deonticFormulas: formulas, ruleSet });
   }
 }
+
+// PORT-113: Knowledge-graph → deontic formula conversion
+export interface KGNode { id: string; type: string; label?: string; properties?: Record<string, unknown> }
+export interface KGEdge { source: string; target: string; relation: string }
+
+export function convertKnowledgeGraphToLogic(
+  nodes: KGNode[],
+  edges: KGEdge[],
+): string[] {
+  const formulas: string[] = [];
+  for (const edge of edges) {
+    const src = nodes.find(n => n.id === edge.source);
+    const tgt = nodes.find(n => n.id === edge.target);
+    if (!src || !tgt) continue;
+    // Map edge relations to deontic operators
+    if (/obli|must|shall|required/i.test(edge.relation))
+      formulas.push(`O(${src.label ?? src.id}, ${tgt.label ?? tgt.id})`);
+    else if (/permit|allow|may|can/i.test(edge.relation))
+      formulas.push(`P(${src.label ?? src.id}, ${tgt.label ?? tgt.id})`);
+    else if (/prohibit|forbid|must.?not/i.test(edge.relation))
+      formulas.push(`F(${src.label ?? src.id}, ${tgt.label ?? tgt.id})`);
+  }
+  return formulas;
+}

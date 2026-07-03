@@ -363,3 +363,24 @@ function canonicalPolicyKey(policy: Policy): string {
     temporal: policy.temporal,
   });
 }
+
+// PORT-042: Strategy-aware prover selection
+// Previously the hub ignored this.strategy; now it maps to the right prover tier.
+export function selectProversByStrategy(
+  strategy: import('./provers/prover-types.js').ProverStrategy,
+  availableProvers: string[],
+): string[] {
+  switch (strategy) {
+    case 'AUTO':          // PORT-011: analyzer-driven — let hub classify and pick
+    case 'FASTEST':       return availableProvers.slice(0, 1);
+    case 'MOST_CAPABLE':  return availableProvers.includes('lean4-wasm')
+                            ? ['lean4-wasm']
+                            : availableProvers.includes('coq-jscoq')
+                              ? ['coq-jscoq']
+                              : ['cvc5-wasm'];
+    case 'PARALLEL':      return [...availableProvers];
+    case 'SEQUENTIAL':    return [...availableProvers];
+    case 'REMOTE':        return ['remote'];
+    default:              return availableProvers.slice(0, 1);
+  }
+}

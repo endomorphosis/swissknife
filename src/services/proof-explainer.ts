@@ -17,6 +17,7 @@ export enum ProofType {
   BACKWARD_CHAINING = 'backward_chaining',
   MODAL_TABLEAUX    = 'modal_tableaux',
   ZKP               = 'zkp',
+  HYBRID            = 'hybrid',  // PORT-082: LLM-guided sketch + locally verified
 }
 
 /** Level of detail in the generated explanation. */
