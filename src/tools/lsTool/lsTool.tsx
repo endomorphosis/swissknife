@@ -254,13 +254,23 @@ function printTree(tree: TreeNode[], level = 0, prefix = ''): string {
   return result
 }
 
-// TODO: Add windows support
-function skip(path: string): boolean {
-  if (path !== '.' && basename(path).startsWith('.')) {
+// Windows: hidden files don't use dot-prefix; we skip common system paths instead.
+function skip(filePath: string): boolean {
+  const base = basename(filePath)
+  // Unix hidden files (dot-prefix)
+  if (filePath !== '.' && base.startsWith('.')) {
     return true
   }
-  if (path.includes(`__pycache__${sep}`)) {
+  // Python cache directories (cross-platform)
+  if (filePath.includes(`__pycache__${sep}`) || filePath.includes('__pycache__/')) {
     return true
+  }
+  // Windows: skip common system files
+  if (process.platform === 'win32') {
+    const lc = base.toLowerCase()
+    if (lc === 'thumbs.db' || lc === 'desktop.ini' || lc === 'ntuser.dat') {
+      return true
+    }
   }
   return false
 }

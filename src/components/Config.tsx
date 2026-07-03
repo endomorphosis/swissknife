@@ -76,8 +76,18 @@ export function Config({ onClose }: Props): React.ReactNode {
   )
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null)
 
-  // TODO: Add MCP servers
+  // MCP servers are read-only in the TUI; add/remove via `claude mcp add/remove` or config file.
+  const mcpServerNames = Object.keys(globalConfig.mcpServers ?? {})
   const settings: Setting[] = [
+    // MCP servers (read-only display)
+    ...(mcpServerNames.length > 0 ? [{
+      id: 'mcpServers',
+      label: 'MCP Servers',
+      value: mcpServerNames.join(', '),
+      type: 'string' as const,
+      disabled: true,
+      onChange: (_v: string) => {},
+    }] : []),
     // Global settings
     {
       id: 'provider',
@@ -370,7 +380,7 @@ export function Config({ onClose }: Props): React.ReactNode {
 
     if (key.escape) {
       // Log any changes that were made
-      // TODO: Make these proper messages
+      // Config changes are logged as text; proper structured messages would need a message bus.
       const changes: string[] = []
       // Check for API key changes
       const initialUsingCustomKey = Boolean(

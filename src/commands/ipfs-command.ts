@@ -179,8 +179,42 @@ export class IPFSCommand implements Command {
       const filename = path.basename(filePath);
 
       if (stats.isDirectory()) {
-        spinner.info(`${filePath} is a directory. Directory support is limited.`);
-        // TODO: Add proper directory support
+        // Directory support: recursively collect all files, add each, then
+        // store a manifest JSON that maps relative paths to CIDs.
+        spinner.text = `Scanning directory ${filePath}...`;
+        const walk = async (dir: string): Promise<string[]> => {
+          const entries = await fs.readdir(dir, { withFileTypes: true });
+          const files: string[] = [];
+          for (const entry of entries) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) files.push(...await walk(full));
+            else files.push(full);
+          }
+          return files;
+        };
+        const allFiles = await walk(filePath);
+        const manifest: Record<string, string> = {};
+        for (const absPath of allFiles) {
+          const relPath = path.relative(filePath, absPath);
+          const fileStream = createReadStream(absPath);
+          const fileResult = await this.client.addContent(fileStream, {
+            filename: relPath,
+            pin,
+            cidVersion,
+          });
+          manifest[relPath] = fileResult.cid;
+          spinner.text = `Added ${relPath} → ${fileResult.cid}`;
+        }
+        const manifestJson = JSON.stringify({ root: filename, files: manifest }, null, 2);
+        const result = await this.client.addContent(manifestJson, {
+          filename: `${filename}.manifest.json`,
+          pin,
+          cidVersion,
+        });
+        spinner.succeed(`Added directory ${filePath} to IPFS (${allFiles.length} files)`);
+        console.log(chalk.bold('\nDirectory Manifest CID:'));
+        console.log(`${chalk.cyan('CID:')} ${result.cid}`);
+        return;
       }
 
       // Create a read stream for the file
