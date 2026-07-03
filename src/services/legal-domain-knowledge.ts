@@ -26,6 +26,12 @@ export enum LegalConceptType {
   AGENT            = 'agent',
   PENALTY          = 'penalty',
   EXEMPTION        = 'exemption',
+  // PORT-132: concept types from the Python reference (legal_domain_knowledge.py:36-49).
+  RIGHT            = 'right',
+  DUTY             = 'duty',
+  LIABILITY        = 'liability',
+  EXCEPTION        = 'exception',
+  DEFINITION       = 'definition',
 }
 
 export enum LegalDomainKind {
@@ -35,6 +41,16 @@ export enum LegalDomainKind {
   ADMINISTRATIVE = 'administrative',
   CIVIL          = 'civil',
   REGULATORY     = 'regulatory',
+  // PORT-130: domains from the Python reference (legal_domain_knowledge.py:21-33).
+  TORT                  = 'tort',
+  CORPORATE             = 'corporate',
+  EMPLOYMENT            = 'employment',
+  INTELLECTUAL_PROPERTY = 'intellectual_property',
+  REAL_ESTATE           = 'real_estate',
+  FAMILY                = 'family',
+  TAX                   = 'tax',
+  IMMIGRATION           = 'immigration',
+  ENVIRONMENTAL         = 'environmental',
 }
 
 export type DeonticOperatorKind = 'O' | 'P' | 'F';
@@ -117,6 +133,13 @@ export class LegalDomainKnowledge {
       makeLegalPattern(
         '\\b(?:is required|required to|needs to|has to)\\b',
         LegalConceptType.OBLIGATION, 'O', { confidence: 0.85, description: 'Requirement language' }),
+      // PORT-131: responsibility- and noun-based obligations (legal_domain_knowledge.py:114-129).
+      makeLegalPattern(
+        '\\b(?:responsible for|liable for|accountable for|in charge of)\\b',
+        LegalConceptType.OBLIGATION, 'O', { confidence: 0.80, description: 'Responsibility-based obligations', examples: ['Company responsible for damages', 'Tenant liable for repairs'] }),
+      makeLegalPattern(
+        '\\b(?:duty|obligation|responsibility|requirement)\\s+(?:to|of)\\b',
+        LegalConceptType.OBLIGATION, 'O', { confidence: 0.90, description: 'Noun-based obligation expressions', examples: ['duty to disclose', 'obligation of care'] }),
     ];
 
     this.permissionPatterns = [
@@ -126,15 +149,35 @@ export class LegalDomainKnowledge {
       makeLegalPattern(
         '\\b(?:can|could|is able to|is free to|at its discretion)\\b',
         LegalConceptType.PERMISSION, 'P', { confidence: 0.75, description: 'Capability/discretion language' }),
+      // PORT-131: entitlement-, rights- and option-based permissions (legal_domain_knowledge.py:143-166).
+      makeLegalPattern(
+        '\\b(?:entitled to|eligible for|qualified for|empowered to)\\b',
+        LegalConceptType.PERMISSION, 'P', { confidence: 0.90, description: 'Entitlement-based permissions', examples: ['Employee entitled to benefits', 'Shareholder eligible for dividends'] }),
+      makeLegalPattern(
+        '\\b(?:right|privilege|liberty|freedom|discretion)\\s+(?:to|of)\\b',
+        LegalConceptType.PERMISSION, 'P', { confidence: 0.85, description: 'Rights-based permissions', examples: ['right to privacy', 'freedom of speech'] }),
+      makeLegalPattern(
+        '\\b(?:option|choice|alternative)\\s+(?:to|of)\\b',
+        LegalConceptType.PERMISSION, 'P', { confidence: 0.75, description: 'Optional permissions', examples: ['option to renew', 'choice of law'] }),
     ];
 
     this.prohibitionPatterns = [
       makeLegalPattern(
-        '\\b(?:shall not|must not|is prohibited from|is forbidden to|cannot|may not)\\b',
+        '\\b(?:shall not|must not|is prohibited from|is forbidden to|cannot|may not|is barred from)\\b',
         LegalConceptType.PROHIBITION, 'F', { confidence: 0.95, description: 'Strong prohibition indicators' }),
       makeLegalPattern(
         '\\b(?:is not permitted|is not allowed|is not authorized|has no right to)\\b',
         LegalConceptType.PROHIBITION, 'F', { confidence: 0.90, description: 'Negated permission' }),
+      // PORT-131: adjective/verb, invalidity and violation-based prohibitions (legal_domain_knowledge.py:180-203).
+      makeLegalPattern(
+        '\\b(?:prohibited|forbidden|banned|barred|restricted|prevented)\\b',
+        LegalConceptType.PROHIBITION, 'F', { confidence: 0.90, description: 'Prohibition adjectives/verbs', examples: ['prohibited from entering', 'restricted from access'] }),
+      makeLegalPattern(
+        '\\b(?:unlawful|illegal|invalid|void|null and void|unenforceable)\\b',
+        LegalConceptType.PROHIBITION, 'F', { confidence: 0.85, description: 'Legal invalidity indicators', examples: ['unlawful to discriminate', 'void if violated'] }),
+      makeLegalPattern(
+        '\\b(?:violation|breach|infringement|non-compliance)\\s+(?:of|with)\\b',
+        LegalConceptType.PROHIBITION, 'F', { confidence: 0.80, description: 'Violation-based prohibitions', examples: ['breach of contract', 'infringement of rights'] }),
     ];
 
     this.agentPatterns = [
@@ -144,6 +187,13 @@ export class LegalDomainKnowledge {
       makeAgentPattern('\\b(?:the party|all parties|each party)\\b', 'person', 'Generic party'),
       makeAgentPattern('\\b(?:the court|the tribunal|the judge)\\b', 'government', 'Judicial authority'),
       makeAgentPattern('\\b(?:the officer|the official|the agent)\\b', 'role', 'Official role'),
+      // PORT-131: transactional/role agents from the Python reference (legal_domain_knowledge.py:215-267).
+      makeAgentPattern('\\b(?:buyer|purchaser|vendee|acquirer)\\b', 'person', 'Purchasing party in transactions', ['the buyer shall pay']),
+      makeAgentPattern('\\b(?:seller|vendor|grantor|transferor)\\b', 'person', 'Selling party in transactions', ['the seller warrants']),
+      makeAgentPattern('\\b(?:landlord|lessor|owner)\\b', 'person', 'Property owner/lessor', ['landlord shall maintain']),
+      makeAgentPattern('\\b(?:tenant|lessee|renter|occupant)\\b', 'person', 'Property tenant/lessee', ['tenant must pay']),
+      makeAgentPattern('\\b(?:employer|company|corporation|business|enterprise)\\b', 'organization', 'Business entities', ['employer shall provide']),
+      makeAgentPattern('\\b(?:employee|worker|staff|personnel)\\b', 'person', 'Workers/employees', ['employee must comply']),
     ];
 
     this.conditionPatterns = [
