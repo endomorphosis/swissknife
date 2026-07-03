@@ -54,7 +54,8 @@ const approvedToolsCommand: LocalCommand = {
   subcommands: [listSubCommand, removeSubCommand],
   async handler(args, context) {
     // If no subcommand is specified, show help for this command
-    // TODO: Integrate with CommandRegistry's help generation
+    // Dynamically list subcommands from the command's own subcommands list
+    const subcmds = command.subcommands?.map(s => `  ${s.name.padEnd(10)} ${s.description}`).join('\n') ?? '';
     return `Usage: swissknife approved-tools <subcommand> [options]
 
 Subcommands:

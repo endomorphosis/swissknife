@@ -25,12 +25,13 @@ export class TaskListCommand implements Command {
     logger.info(`Executing ${this.name} command` + (filterStatus ? ` with status filter: ${filterStatus}` : ''));
     
     try {
-      // TODO: Implement filtering logic in TaskManager.listTasks
-      // const tasks = await taskManager.listTasks({ status: filterStatus }); 
-      
-      // Placeholder: Get all tasks from internal map for now
-      const tasks = Array.from((taskManager as any).tasks.values()); 
-      logger.warn('TaskListCommand currently lists from memory, filtering not implemented.');
+      // Apply status filter to the in-memory task map
+      let tasks = Array.from((taskManager as Record<string, unknown>)['tasks']
+        ? ((taskManager as Record<string, unknown>)['tasks'] as Map<string, unknown>).values()
+        : []);
+      if (filterStatus) {
+        tasks = tasks.filter((t: unknown) => (t as Record<string, string>)['status'] === filterStatus);
+      }
 
       if (tasks.length === 0) {
         return { message: 'No tasks found.' + (filterStatus ? ` matching status "${filterStatus}"` : '') };

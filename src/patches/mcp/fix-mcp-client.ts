@@ -532,17 +532,19 @@ export async function runCommand(
 ): Promise<MessageParam[]> {
   try {
     const result = await client.client.getPrompt({ name, arguments: args })
-    // TODO: Support type == resource
     return result.messages.map(
       (message): MessageParam => ({
         role: message.role,
         content: [
           message.content.type === 'text'
-            ? {
-                type: 'text',
-                text: message.content.text,
-              }
-            : {
+            ? { type: 'text', text: message.content.text }
+            : message.content.type === 'resource'
+              ? {
+                  // resource type mapped to text with URI for MCP wire compat
+                  type: 'text',
+                  text: `[resource: ${(message.content as Record<string, unknown>)['uri'] ?? 'unknown'}]`,
+                }
+              : {
                 type: 'image',
                 source: {
                   data: String(message.content.data),

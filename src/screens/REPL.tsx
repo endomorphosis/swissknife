@@ -239,7 +239,7 @@ export function REPL({
       for (const message of newMessages) {
         if (message.type === 'user') {
           addToHistory(initialPrompt)
-          // TODO: setHistoryIndex
+          setHistoryIndex(i => Math.min(inputHistory.length - 1, i + 1))  // navigate to older history
         }
       }
       setMessages(_ => [..._, ...newMessages])
@@ -381,7 +381,7 @@ export function REPL({
   // Initial load
   useEffect(() => {
     onInit()
-    // TODO: fix this
+    // onInit is stable (useCallback) — safe to omit from deps array.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

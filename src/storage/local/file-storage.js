@@ -129,8 +129,11 @@ export class FileStorage {
                 // This is a naive check and depends on naming convention.
                 return !path.extname(file) && file !== '.metadata';
             });
-            // TODO: Implement filtering and sorting based on options by reading metadata
-            return { cids };
+            // Apply options: sortBy, limit, offset (mirrors file-storage.ts)
+            if (options && options.sortBy === 'name') cids.sort();
+            const offset = options && options.offset ? Number(options.offset) : 0;
+            const limit  = options && options.limit  ? Number(options.limit)  : cids.length;
+            return { cids: cids.slice(offset, offset + limit) };
         }
         catch (error) {
             console.error("FileStorage: Error listing files:", error);
