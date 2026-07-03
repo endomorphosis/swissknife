@@ -132,13 +132,28 @@ export class CoqJsCoqBridge {
       tmpFile = join(tmpDir, 'policy.v');
       writeFileSync(tmpFile, source, 'utf8');
 
-      execFileSync(this.coqcPath!, [tmpFile], {
-        timeout: timeoutMs,
-        encoding: 'utf8',
-        stdio: 'pipe',
-      });
+      let coqOutput = '';
+      try {
+        coqOutput = execFileSync(this.coqcPath!, [tmpFile], {
+          timeout: timeoutMs, encoding: 'utf8', stdio: 'pipe',
+        }) as unknown as string;
+      } catch (execErr: unknown) {
+        // coqc exited non-zero — treat as refuted; capture message below
+        coqOutput = execErr instanceof Error ? execErr.message : String(execErr);
+        throw execErr; // re-throw so the outer catch handles it
+      }
 
-      // coqc exits 0 on success
+      // PORT-031: coqc sometimes exits 0 but emits "Error" or "Anomaly" in output
+      if (/\bError\b/i.test(coqOutput) || /\bAnomaly\b/i.test(coqOutput)) {
+        return {
+          proved: false, sat: false, unsat: false,
+          reason: 'refuted', prover_id: 'coq-jscoq',
+          proof_time_ms: Date.now() - start,
+          meta: { error: 'Coq output contains Error/Anomaly', output: coqOutput.slice(0, 500) },
+        };
+      }
+
+      // coqc exits 0 and no error/anomaly in output — proof accepted
       return {
         proved: true, sat: true, unsat: false,
         reason: 'proved', prover_id: 'coq-jscoq',

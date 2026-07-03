@@ -460,6 +460,10 @@ export class ModalTableaux {
       if (branch.worlds.size >= this.maxWorlds) return [branch];
       const newWorld = branch.createFreshWorld();
       branch.addAccessibility(worldId, newWorld.id);
+      // PORT-120 (S5 symmetry): wRv → vRw
+      if (this.logicType === ModalLogicType.S5) {
+        branch.addAccessibility(newWorld.id, worldId);
+      }
       newWorld.addFormula(body, false);
 
       // For D logic: ensure seriality (at least one accessible world — already done)

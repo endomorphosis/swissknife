@@ -41,7 +41,7 @@ const isConj  = (f: string) => f.includes('∧');
 const isDisj  = (f: string) => f.includes('∨');
 const isNeg   = (f: string) => f.startsWith('¬');
 const isBox   = (f: string) => f.startsWith('□');
-const isDia   = (f: string) => f.startsWith('◇');
+const isDia   = (f: string) => f.startsWith('◊');
 const isObl   = (f: string) => /^O\(/.test(f);
 const isPerm  = (f: string) => /^P\(/.test(f);
 const isForbid = (f: string) => /^F\(/.test(f);
@@ -91,7 +91,7 @@ function topBicond(f: string): [string, string] | null {
 }
 
 function inner(f: string): string {
-  if (f.startsWith('¬') || f.startsWith('□') || f.startsWith('◇')) return f.slice(1).trim();
+  if (f.startsWith('¬') || f.startsWith('□') || f.startsWith('◊')) return f.slice(1).trim();
   const m = f.match(/^[A-Z]+\w*\((.+)\)$/);
   return m ? m[1].trim() : f;
 }

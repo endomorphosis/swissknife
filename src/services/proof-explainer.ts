@@ -108,7 +108,7 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
   HypotheticalSyllogism:   'Given {p} → {q} and {q} → {r}, we conclude {p} → {r}',
   DisjunctiveSyllogism:    'Given {p} ∨ {q} and ¬{p}, we conclude {q}',
   AlwaysDistribution:      '□(P ∧ Q) distributes to □P ∧ □Q',
-  EventuallyAggregation:   '◇P ∨ ◇Q implies ◇(P ∨ Q)',
+  EventuallyAggregation:   '◊P ∨ ◊Q implies ◊(P ∨ Q)',
   TemporalInduction:       'Given □(P → XP) and P, we prove □P by induction',
   ObligationWeakening:     'O(P ∧ Q) implies O(P) — obligations weaken',
   DeonticDetachment:       'Given O(P → Q) and P, we conclude O(Q)',

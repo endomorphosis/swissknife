@@ -18,8 +18,8 @@ export enum ModalLogic {
   K   = 'K',    // Basic modal logic (no additional axioms)
   T   = 'T',    // Reflexive (□φ → φ)
   S4  = 'S4',   // Reflexive + Transitive (□φ → □□φ)
-  S5  = 'S5',   // Reflexive + Transitive + Symmetric (◇φ → □◇φ)
-  D   = 'D',    // Serial (□φ → ◇φ)
+  S5  = 'S5',   // Reflexive + Transitive + Symmetric (◊φ → □◊φ)
+  D   = 'D',    // Serial (□φ → ◊φ)
   LP  = 'LP',   // Linear logic (propositional)
   LP1 = 'LP1',  // Linear logic level 1
   LP2 = 'LP2',  // Linear logic level 2
@@ -37,7 +37,7 @@ export enum ProofStatus {
 /** Modal operators. */
 export enum ModalOperator {
   NECESSARY = '□',   // Box — necessarily
-  POSSIBLE  = '◇',   // Diamond — possibly
+  POSSIBLE  = '◊',   // Diamond — possibly
   BELIEF    = 'B',   // Belief
   KNOWLEDGE = 'K',   // Knowledge
   SAYS      = 'says',
@@ -166,10 +166,10 @@ function axiomsFor(logic: ModalLogic): string[] {
     axioms.push('□φ → □□φ');         // 4 axiom (transitivity)
   }
   if (logic === ModalLogic.S5) {
-    axioms.push('◇φ → □◇φ');         // 5 axiom (Euclidean)
+    axioms.push('◊φ → □◊φ');         // 5 axiom (Euclidean)
   }
   if (logic === ModalLogic.D) {
-    axioms.push('□φ → ◇φ');          // D axiom (seriality)
+    axioms.push('□φ → ◊φ');          // D axiom (seriality)
   }
   return axioms;
 }

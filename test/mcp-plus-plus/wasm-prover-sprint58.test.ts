@@ -54,7 +54,7 @@ describe('LogicalConnective enum', () => {
 
 describe('DCECTemporalOperator enum', () => {
   test('ALWAYS = □',     () => { expect(DCECTemporalOperator.ALWAYS).toBe('□'); });
-  test('EVENTUALLY = ◇', () => { expect(DCECTemporalOperator.EVENTUALLY).toBe('◇'); });
+  test('EVENTUALLY = ◊ (PORT-096: Python codepoint)', () => { expect(DCECTemporalOperator.EVENTUALLY).toBe('◊'); });
   test('NEXT = X',       () => { expect(DCECTemporalOperator.NEXT).toBe('X'); });
   test('UNTIL = U',      () => { expect(DCECTemporalOperator.UNTIL).toBe('U'); });
 });
