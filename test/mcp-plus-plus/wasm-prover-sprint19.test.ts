@@ -146,8 +146,11 @@ describe('T-101 LogicSubmoduleRegistry', () => {
   it('getSubmoduleNames filtered by status', () => {
     const implemented = getSubmoduleNames({ status: 'implemented' });
     const stubs = getSubmoduleNames({ status: 'stub' });
+    const partial = getSubmoduleNames({ status: 'partial' });
     expect(implemented.length).toBeGreaterThan(0);
-    expect(stubs).toContain('lurk-wasm');
+    expect(stubs).not.toContain('lurk-wasm');
+    expect(partial).toContain('lurk-wasm');
+    expect(partial).toContain('multi-stark');
   });
 
   it('getIntegrationManifest has required top-level fields', () => {

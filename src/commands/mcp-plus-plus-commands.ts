@@ -376,7 +376,7 @@ export const mcpppCommand: PublicCommand = {
             `  cvc5-wasm:  ${ps.cvc5_wasm  ? '\u2705 loaded (Z3 SMT-LIB2 shim)' : '\u274c not loaded'}`,
             `  coq-jscoq:  ${ps.coq_jscoq  ? '\u2705 loaded' : '\u274c not loaded (coqc required)'}`,
             `  lean4-wasm: ${ps.lean4_wasm ? '\u2705 loaded' : '\u274c not loaded (lean/lake required)'}`,
-            `  lurk-wasm:  ${ps.lurk_wasm  ? '\u2705 loaded' : '\u274c not loaded (Phase 6 \u2014 build lurk-beta WASM)'}`,
+            `  lurk-wasm:  ${ps.lurk_wasm  ? '\u2705 loaded' : '\u274c not loaded (install/build lurk-wasm package)'}`,
             `  neural:     ${(ps as Record<string, unknown>).neural ? '\u2705 loaded' : '\u274c not loaded (provide neuralConnector option)'}`,
             `  Proof cache: ${cs.size} entries, ${cs.hits} hits, ${cs.misses} misses (${cs.time_saved_ms}ms saved)`,
           ];
@@ -436,7 +436,7 @@ export const mcpppCommand: PublicCommand = {
             `    cvc5-wasm:  ${ps.cvc5_wasm  ? '✅' : '❌'}  (Z3 SMT-LIB2 shim / native when available)`,
             `    coq-jscoq:  ${ps.coq_jscoq  ? '✅' : '❌'}  (coqc subprocess)`,
             `    lean4-wasm: ${ps.lean4_wasm ? '✅' : '❌'}  (lean/lake subprocess)`,
-            `    lurk-wasm:  ${ps.lurk_wasm  ? '✅' : '❌'}  (Phase 6 — build lurk-beta WASM first)`,
+            `    lurk-wasm:  ${ps.lurk_wasm  ? '✅' : '❌'}  (install/build lurk-wasm package first)`,
             `    neural:     ${(ps as Record<string, unknown>).neural     ? '✅' : '❌'}  (LLM sketch + Lean4/Coq local verify)`,
           ];
         } catch {
@@ -529,7 +529,7 @@ export const mcpppCommand: PublicCommand = {
             `  lean4-wasm ${ps.lean4_wasm ? '\u2705 loaded' : '\u274c not loaded'}`,
             `             Install: https://leanprover.github.io/lean4/doc/setup.html`,
             '',
-            `  lurk-wasm  ${ps.lurk_wasm  ? '\u2705 loaded' : '\u274c not loaded (Phase 6 \u2014 build from source)'}`,
+            `  lurk-wasm  ${ps.lurk_wasm  ? '\u2705 loaded' : '\u274c not loaded (install/build lurk-wasm package)'}`,
             `             Build:   mcp++ provers build-lurk`,
             '',
             `  neural     ${(ps as Record<string, unknown>).neural ? '\u2705 loaded' : '\u274c not loaded (provide neuralConnector)'}`,

@@ -33,49 +33,7 @@ import { NeuralProverBridge } from './provers/neural-prover-bridge.js';
 import type { NeuralProverConnector } from './provers/neural-prover-bridge.js';
 import { DcecProverBridge } from './provers/dcec-prover-bridge.js';
 import { TdfolProverBridge } from './provers/tdfol-prover-bridge.js';
-
-// ---------------------------------------------------------------------------
-// FormulaClassifier — complexity heuristic
-// ---------------------------------------------------------------------------
-
-import type { FormulaClass } from './provers/prover-types.js';
-
-/**
- * Classify a policy's logical complexity to route to the appropriate prover tier.
- *
- * Mirrors ipfs_datasets_py/logic/external_provers/formula_analyzer.py.
- */
-function classifyPolicy(policy: Policy): FormulaClass {
-  // Temporal policy: has a top-level temporal window
-  if (policy.temporal) return 'temporal';
-
-  // Check for temporal operators in obligation deadlines
-  for (const obl of policy.obligations ?? []) {
-    if ('deadline' in obl && obl.deadline !== undefined) return 'temporal';
-  }
-
-  // Higher-order: complex policies with many rules exceed SMT/DCEC budget
-  // (heuristic: more than 20 total rules → remote TDFOL required)
-  const totalRules =
-    (policy.permissions?.length ?? 0) +
-    (policy.prohibitions?.length ?? 0) +
-    (policy.obligations?.length ?? 0);
-  if (totalRules > 20) return 'higher_order';
-
-  // Modal deontic: has obligations or prohibitions — route to DCEC for
-  // deontic conflict detection (O/P/F inference rules)
-  const hasObligations = (policy.obligations?.length ?? 0) > 0;
-  const hasProhibitions = (policy.prohibitions?.length ?? 0) > 0;
-  if (hasObligations || hasProhibitions) return 'modal_deontic';
-
-  // First-order: has wildcard permissions/prohibitions with ∀-style semantics
-  const hasWildcard = (policy.permissions ?? []).some(p => p.cap === '*' || p.rsc === '*') ||
-                      (policy.prohibitions ?? []).some(p => p.cap === '*' || p.rsc === '*');
-  if (hasWildcard) return 'fol';
-
-  // Default: propositional
-  return 'propositional';
-}
+import { classifyPolicy } from './provers/formula-classifier.js';
 
 // ---------------------------------------------------------------------------
 // WasmProverHub
@@ -267,7 +225,7 @@ export class WasmProverHub {
       cvc5_wasm: this.cvc5 !== undefined,
       coq_jscoq: this.coq !== undefined,
       lean4_wasm: this.lean4 !== undefined,
-      lurk_wasm: false,                     // Phase 6 — pending lurk-wasm package
+      lurk_wasm: false,                     // Phase 6 — adapter exists; hub has no owned lurk-wasm instance by default
       neural: this.neural !== undefined,
       dcec_native: true,                    // Sprint 9 — always available (pure TS)
       tdfol_native: true,                   // Sprint 10 — always available (pure TS)
