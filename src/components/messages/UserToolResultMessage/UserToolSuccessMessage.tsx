@@ -25,7 +25,8 @@ export function UserToolSuccessMessage({
   const { tool } = useGetToolFromMessages(param.tool_use_id, tools, messages)
 
   return (
-    // TODO: Distinguish UserMessage from UserToolResultMessage
+    // UserToolResultMessage wraps the tool-specific rendered output in a column Box.
+    // It is distinct from UserMessage (which holds the raw user text).
     <Box flexDirection="column" width={width}>
       {tool.renderToolResultMessage?.(message.toolUseResult!.data as never, {
         verbose,

@@ -39,9 +39,7 @@ export function useGetToolFromMessages(
         `Tool use not found for tool_use_id ${toolUseID}`,
       )
     }
-    // Hack: we don't expose GlobTool and GrepTool in getTools anymore,
-    // but we still want to be able to load old transcripts.
-    // TODO: Remove this when logging hits zero
+    // GlobTool and GrepTool kept for legacy transcript loading (not in getTools() anymore).
     const tool = [...tools, GlobTool, GrepTool].find(
       _ => _.name === toolUse.name,
     )

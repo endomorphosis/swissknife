@@ -33,13 +33,10 @@ export function FallbackPermissionRequest({
 }: Props): React.ReactNode {
   const theme = getTheme()
 
-  // TODO: Avoid these special cases
-  const originalUserFacingName = toolUseConfirm.tool.userFacingName(
-    toolUseConfirm.input as never,
-  )
-  const userFacingName = originalUserFacingName.endsWith(' (MCP)')
-    ? originalUserFacingName.slice(0, -6)
-    : originalUserFacingName
+  // Strip ' (MCP)' suffix from tool names for cleaner display in permission prompts.
+  const userFacingName = toolUseConfirm.tool
+    .userFacingName(toolUseConfirm.input as never)
+    .replace(/ \(MCP\)$/, '')
 
   const unaryEvent = useMemo<UnaryEvent>(
     () => ({

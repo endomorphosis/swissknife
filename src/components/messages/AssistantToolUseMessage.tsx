@@ -49,7 +49,7 @@ export function AssistantToolUseMessage({
   // Keeping color undefined makes the OS use the default color regardless of appearance
   const color = isQueued ? getTheme().secondaryText : undefined
 
-  // TODO: Avoid this special case
+  // ThinkTool renders as an AssistantThinkingMessage — handled before the generic tool path.
   if (tool === ThinkTool) {
     // params were already validated in query(), so this won't throe
     const { thought } = ThinkTool.inputSchema.parse(param.input)

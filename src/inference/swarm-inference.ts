@@ -238,7 +238,7 @@ export class SwarmInferenceCoordinator {
 
     // 6. Aggregate results
     console.log('Aggregating results...');
-    // TODO: Implement aggregation logic based on the nature of the inference task
+    // aggregateResults() type-detects string/number/array/object outputs
     const aggregatedOutput = this.aggregateResults(successfulResults);
 
     const endTime = Date.now();

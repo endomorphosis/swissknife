@@ -1488,7 +1488,8 @@ ${commandList}`,
   return program
 }
 
-// TODO: stream?
+// Note: this function is not streamed; it returns a full response.
+// Streaming is handled by the REPL's onQuery handler which yields messages.
 async function stdin() {
   if (process.stdin.isTTY) {
     return ''
