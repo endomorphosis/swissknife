@@ -140,15 +140,15 @@ function extractDeonticPropositions(sentences: string[]): DeonticProposition[] {
   return props;
 }
 
-function extractTemporalConditions(text: string): TemporalCondition[] {
+function extractTemporalConditionsInternal(text: string): TemporalCondition[] {
   const conditions: TemporalCondition[] = [];
   let m: RegExpExecArray | null;
   const re = new RegExp(TEMPORAL_PATTERNS.source, 'gi');
   while ((m = re.exec(text)) !== null) {
     const expression = m[0];
-    const conditionType = /\d+ days?/.test(expression) ? 'deadline'
-      : /annually|monthly/.test(expression) ? 'periodicity'
-      : /after|before/.test(expression) ? 'sequence'
+    const conditionType = /\d+ days?|\d+ hours?|\d+ weeks?|no later than|within/.test(expression) ? 'deadline'
+      : /annually|monthly|weekly|quarterly|periodically/.test(expression) ? 'periodicity'
+      : /after|before|upon|prior to|sequence/.test(expression) ? 'sequence'
       : 'unknown';
     conditions.push({ expression, conditionType, confidence: 0.8 });
   }
@@ -184,7 +184,7 @@ export class LegalSymbolicAnalyzer {
     const sentences = text.split(/[.;!?]/).map(s => s.trim()).filter(s => s.length > 5);
     const entities = extractEntities(text);
     const deonticStatements = extractDeonticPropositions(sentences);
-    const temporalConditions = extractTemporalConditions(text);
+    const temporalConditions = extractTemporalConditionsInternal(text);
     const concepts = extractConcepts(text);
     const domain = detectDomain(text);
 
@@ -209,6 +209,14 @@ export class LegalSymbolicAnalyzer {
   /** Extract legal entities. */
   extractEntities(text: string): LegalEntity[] {
     return extractEntities(text);
+  }
+
+  /**
+   * PORT-133: Public temporal condition extraction.
+   * Classifies temporal expressions as deadline / periodicity / sequence / unknown.
+   */
+  extractTemporalConditions(text: string): TemporalCondition[] {
+    return extractTemporalConditionsInternal(text);
   }
 }
 

@@ -133,6 +133,10 @@ export class LegalDomainKnowledge {
       makeLegalPattern(
         '\\b(?:is required|required to|needs to|has to)\\b',
         LegalConceptType.OBLIGATION, 'O', { confidence: 0.85, description: 'Requirement language' }),
+      // PORT-131: responsibility/duty language
+      makeLegalPattern(
+        '\\b(?:is responsible for|responsible for|has a duty|have a duty|bears responsibility)\\b',
+        LegalConceptType.OBLIGATION, 'O', { confidence: 0.85, description: 'Responsibility language' }),
     ];
 
     this.permissionPatterns = [
@@ -142,6 +146,10 @@ export class LegalDomainKnowledge {
       makeLegalPattern(
         '\\b(?:can|could|is able to|is free to|at its discretion)\\b',
         LegalConceptType.PERMISSION, 'P', { confidence: 0.75, description: 'Capability/discretion language' }),
+      // PORT-131: entitlement/right/option language
+      makeLegalPattern(
+        '\\b(?:has a right to|have a right to|has an option to|have an option to|is entitled|are entitled)\\b',
+        LegalConceptType.PERMISSION, 'P', { confidence: 0.90, description: 'Entitlement/right/option language' }),
     ];
 
     this.prohibitionPatterns = [
@@ -151,6 +159,10 @@ export class LegalDomainKnowledge {
       makeLegalPattern(
         '\\b(?:is not permitted|is not allowed|is not authorized|has no right to)\\b',
         LegalConceptType.PROHIBITION, 'F', { confidence: 0.90, description: 'Negated permission' }),
+      // PORT-131: barred/unlawful/void prohibition patterns
+      makeLegalPattern(
+        '\\b(?:is barred from|are barred from|barred from|are prohibited from|prohibited from|it is unlawful|unlawful to|voids the|void the)\\b',
+        LegalConceptType.PROHIBITION, 'F', { confidence: 0.90, description: 'Barred/unlawful/void language' }),
     ];
 
     this.agentPatterns = [
@@ -160,6 +172,15 @@ export class LegalDomainKnowledge {
       makeAgentPattern('\\b(?:the party|all parties|each party)\\b', 'person', 'Generic party'),
       makeAgentPattern('\\b(?:the court|the tribunal|the judge)\\b', 'government', 'Judicial authority'),
       makeAgentPattern('\\b(?:the officer|the official|the agent)\\b', 'role', 'Official role'),
+      // PORT-131: transactional/role agents
+      makeAgentPattern('\\b(?:the buyer|buyer)\\b', 'person', 'Buyer in transaction'),
+      makeAgentPattern('\\b(?:the seller|seller)\\b', 'person', 'Seller in transaction'),
+      makeAgentPattern('\\b(?:the landlord|landlord)\\b', 'person', 'Landlord role'),
+      makeAgentPattern('\\b(?:the tenant|tenant)\\b', 'person', 'Tenant role'),
+      makeAgentPattern('\\b(?:the employer|employer)\\b', 'organization', 'Employer organization'),
+      makeAgentPattern('\\b(?:the employee|employee|every employee|each employee)\\b', 'person', 'Employee role'),
+      makeAgentPattern('\\b(?:the lessee|lessee)\\b', 'person', 'Lessee in lease'),
+      makeAgentPattern('\\b(?:the lessor|lessor)\\b', 'person', 'Lessor in lease'),
     ];
 
     this.conditionPatterns = [
