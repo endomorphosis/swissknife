@@ -161,3 +161,24 @@ export function parseNaturalLanguage(
 
 /** Backward-compatible alias (matches Python's snake_case API). */
 export { parseNaturalLanguage as parse_natural_language };
+
+// PORT-085: spaCy-compatible token type for NL pattern matching
+export interface SpacyLikeToken {
+  text:   string;
+  pos:    'NOUN' | 'VERB' | 'ADJ' | 'ADV' | 'ADP' | 'DET' | 'PRON' | 'PROPN' | 'PUNCT' | 'NUM' | 'CCONJ' | 'SCONJ' | 'OTHER';
+  lemma:  string;
+  dep:    string;   // dependency relation (nsubj, dobj, etc.)
+  isStop: boolean;
+  ner?:   string;   // named entity label
+}
+
+export function tokenizeSimple(text: string): SpacyLikeToken[] {
+  return text.split(/\s+/).filter(Boolean).map(w => ({
+    text:   w,
+    pos:    /^[A-Z]/.test(w) ? 'PROPN' : /\b(must|shall|may|can|should)\b/.test(w.toLowerCase()) ? 'VERB' : 'NOUN',
+    lemma:  w.toLowerCase().replace(/s$/, ''),
+    dep:    'dep',
+    isStop: ['the','a','an','is','are','of','in','to','and','or','for'].includes(w.toLowerCase()),
+    ner:    undefined,
+  } as SpacyLikeToken));
+}

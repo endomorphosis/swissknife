@@ -296,3 +296,36 @@ function extractText(value: unknown): string | null {
   }
   return null;
 }
+
+// PORT-040: confidence + explain + suggest_proof_strategy API
+export interface NeuralProofExplanation {
+  confidence:  number;   // 0.0–1.0
+  reasoning:   string;   // human-readable explanation
+  strategy:    string;   // suggested prover strategy
+  steps:       string[]; // proof sketch steps
+}
+
+export function explainProof(
+  formula:   string,
+  proofResult: { proved: boolean; reason: string; meta?: Record<string, unknown> },
+): NeuralProofExplanation {
+  const conf  = proofResult.proved ? 0.9 : proofResult.reason === 'unknown' ? 0.3 : 0.1;
+  const strat = formula.match(/[OPF]\(/) ? 'dcec-tableaux'
+              : formula.match(/[□◊]/)     ? 'modal-tableaux'
+              : formula.match(/[∀∃]/)     ? 'cvc5-fo'
+              :                             'z3-prop';
+  return {
+    confidence: conf,
+    reasoning:  `Formula classified as ${strat}. Result: ${proofResult.reason}.`,
+    strategy:   strat,
+    steps:      proofResult.meta?.['proof_steps'] as string[] ?? [],
+  };
+}
+
+export function suggestProofStrategy(formula: string): string {
+  if (/[OPF]\(/.test(formula))         return 'dcec-native';
+  if (/[□◊]/.test(formula))             return 'modal-tableaux';
+  if (/[∀∃]/.test(formula))             return 'cvc5-wasm';
+  if (formula.length < 50)              return 'z3-wasm';
+  return 'sequential-all';
+}

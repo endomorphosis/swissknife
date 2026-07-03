@@ -211,3 +211,15 @@ export class DeterministicModalLogicCodec {
     return texts.map(t => this.encode(t));
   }
 }
+
+// PORT-125: FLogicOptimizer integration hook (stub — real optimizer in flogic-semantic-optimizer.ts)
+export function withFLogicOptimizer<T extends { confidence: number; score?: number }>(
+  result: T,
+  optimizerScore?: number,
+): T & { flogicOptimized: boolean; flogicScore: number } {
+  return {
+    ...result,
+    flogicOptimized: optimizerScore !== undefined,
+    flogicScore:     optimizerScore ?? result.score ?? result.confidence,
+  };
+}

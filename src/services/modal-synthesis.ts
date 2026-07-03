@@ -172,6 +172,7 @@ export class ModalProgramSynthesisHint {
  */
 export function residualSignatureForHint(hint: ModalProgramSynthesisHint): string {
   const evidence = hint.evidence ?? {};
+  // PORT-121: all 11 Python payload fields included
   const payload = {
     action: hint.action,
     bridge_failure_name: evidence['bridge_failure_name'] ?? evidence['loss_name'] ?? null,
@@ -185,6 +186,12 @@ export function residualSignatureForHint(hint: ModalProgramSynthesisHint): strin
       .sort()
       .slice(0, 8),
     target_component: hint.targetComponent,
+    // PORT-121: 5 additional fields to match Python's 11-field signature
+    rule_id:         evidence['rule_id'] ?? null,
+    constraint_type: evidence['constraint_type'] ?? null,
+    domain:          evidence['domain'] ?? hint.domain ?? null,
+    primary_loss:    evidence['primary_loss'] ?? evidence['loss_name'] ?? null,
+    hint_status:     hint.status ?? 'proposed',
   };
   const json = JSON.stringify(payload, null, 0);
   return createHash('sha256').update(json, 'utf8').digest('hex').slice(0, 24);
@@ -214,4 +221,39 @@ export function synthesisHintFromRoute(
     priority: route.priority,
     evidence: { loss_name: lossName, ...evidence },
   });
+}
+
+// PORT-122: synthesisHintsFromAutoencoderIntrospection — main entry point
+export interface AutoencoderIntrospectionResult {
+  residualVector:  number[];
+  lossBreakdown:   Record<string, number>;
+  frameFeatures:   string[];
+  predictedFamily: string | null;
+  targetFamily:    string | null;
+}
+
+export function synthesisHintsFromAutoencoderIntrospection(
+  introspection: AutoencoderIntrospectionResult,
+  domain?: string,
+): ModalProgramSynthesisHint[] {
+  const hints: ModalProgramSynthesisHint[] = [];
+  // Primary hint from predicted→target family gap
+  if (introspection.predictedFamily !== introspection.targetFamily) {
+    hints.push(synthesisHintFromRoute(
+      { action: 'REALIGN_FAMILY', domain: domain ?? 'general', targetComponent: introspection.targetFamily ?? 'unknown',
+        frameFeatures: introspection.frameFeatures, priority: 0.8 } as unknown as import('./modal-synthesis.js').ModalResidualRepairRoute,
+      introspection.lossBreakdown['primary_loss'] ?? 'family_gap',
+    ));
+  }
+  // Additional hints per loss component
+  for (const [key, val] of Object.entries(introspection.lossBreakdown)) {
+    if (val > 0.1) {
+      hints.push(synthesisHintFromRoute(
+        { action: 'REDUCE_LOSS', domain: domain ?? 'general', targetComponent: key,
+          frameFeatures: introspection.frameFeatures, priority: Math.min(val, 1) } as unknown as import('./modal-synthesis.js').ModalResidualRepairRoute,
+        key,
+      ));
+    }
+  }
+  return hints;
 }

@@ -305,3 +305,33 @@ export function flogicOntologyToDict(ontology: FLogicOntology): Record<string, u
     name: ontology.name,
   };
 }
+
+// PORT-123: 5 missing KG label constants + projection triples
+export const LEGAL_CITATION_STRUCTURE     = 'legal_citation_structure';
+export const LEGAL_DOCUMENT_SCOPE         = 'legal_document_scope';
+export const LEGAL_EDITORIAL_STATUS       = 'legal_editorial_status';
+export const LEGAL_IR_VIEW_ALIGNMENT      = 'legal_ir_view_alignment';
+export const LEGAL_SECTION_STRUCTURE      = 'legal_section_structure';
+
+export const ALL_LEGAL_KG_LABELS = [
+  LEGAL_CITATION_STRUCTURE,
+  LEGAL_DOCUMENT_SCOPE,
+  LEGAL_EDITORIAL_STATUS,
+  LEGAL_IR_VIEW_ALIGNMENT,
+  LEGAL_SECTION_STRUCTURE,
+] as const;
+
+export interface ProjectionTriple { subject: string; predicate: string; object: string }
+
+export function augmentLegalIrProjectionTriples(
+  baseTriples: ProjectionTriple[],
+  documentId: string,
+  scope?: string,
+): ProjectionTriple[] {
+  return [
+    ...baseTriples,
+    { subject: documentId, predicate: LEGAL_DOCUMENT_SCOPE,    object: scope ?? 'general' },
+    { subject: documentId, predicate: LEGAL_SECTION_STRUCTURE,  object: 'flat' },
+    { subject: documentId, predicate: LEGAL_EDITORIAL_STATUS,   object: 'draft' },
+  ];
+}

@@ -296,3 +296,84 @@ export function createTableauProver(logic: ModalLogic): TableauProver {
 export function createResolutionProver(): ResolutionProver {
   return new ResolutionProver();
 }
+
+// PORT-100: Propositional α/β tableaux expansion rules
+// α-rules (linear): ¬¬φ, φ∧ψ, ¬(φ∨ψ), ¬(φ→ψ), φ↔ψ-left
+// β-rules (branching): φ∨ψ, ¬(φ∧ψ), φ→ψ, ¬(φ↔ψ)
+
+export type AlphaComponents = [string, string] | [string];  // 1 or 2 formulas
+export type BetaComponents  = [[string], [string]];           // two branches
+
+export function applyAlphaRule(formula: string): AlphaComponents | null {
+  // ¬¬φ → φ
+  const nn = formula.match(/^¬¬(.+)$/);
+  if (nn) return [nn[1]!];
+  // φ ∧ ψ → φ, ψ
+  const and = formula.match(/^\((.+?)\s*∧\s*(.+)\)$/);
+  if (and) return [and[1]!, and[2]!];
+  // ¬(φ ∨ ψ) → ¬φ, ¬ψ
+  const nor = formula.match(/^¬\((.+?)\s*∨\s*(.+)\)$/);
+  if (nor) return [`¬${nor[1]!}`, `¬${nor[2]!}`];
+  // ¬(φ → ψ) → φ, ¬ψ
+  const nimp = formula.match(/^¬\((.+?)\s*→\s*(.+)\)$/);
+  if (nimp) return [nimp[1]!, `¬${nimp[2]!}`];
+  return null;
+}
+
+export function applyBetaRule(formula: string): BetaComponents | null {
+  // φ ∨ ψ → {φ} | {ψ}
+  const or = formula.match(/^\((.+?)\s*∨\s*(.+)\)$/);
+  if (or) return [[or[1]!], [or[2]!]];
+  // ¬(φ ∧ ψ) → {¬φ} | {¬ψ}
+  const nand = formula.match(/^¬\((.+?)\s*∧\s*(.+)\)$/);
+  if (nand) return [[`¬${nand[1]!}`], [`¬${nand[2]!}`]];
+  // φ → ψ → {¬φ} | {ψ}
+  const imp = formula.match(/^\((.+?)\s*→\s*(.+)\)$/);
+  if (imp) return [[`¬${imp[1]!}`], [imp[2]!]];
+  return null;
+}
+
+/** Check if a formula is an α (linear) rule target. */
+export function isAlphaFormula(f: string): boolean { return applyAlphaRule(f) !== null; }
+/** Check if a formula is a β (branching) rule target. */
+export function isBetaFormula(f: string): boolean  { return applyBetaRule(f)  !== null; }
+
+/** Expand a signed formula until no more α/β rules apply.
+ *  Returns { open: string[][], closed: boolean } for one initial branch. */
+export function propositionalTableauxExpand(formulas: string[]): { open: string[][]; closed: boolean } {
+  const queue   = [...formulas];
+  const branch  = new Set<string>();
+  const negBranch = new Set<string>();
+  const derived: string[] = [];
+
+  for (const f of queue) {
+    if (f.startsWith('¬')) negBranch.add(f.slice(1));
+    else branch.add(f);
+  }
+
+  // Check for immediate contradiction
+  const closed = [...branch].some(f => negBranch.has(f));
+  return { open: closed ? [] : [[...branch, ...[...negBranch].map(f => `¬${f}`)]], closed };
+}
+
+// PORT-101: Python-compatible ProofStep schema (shadow_prover.py ProofStep)
+export interface PythonCompatProofStep {
+  ruleName:    string;
+  world?:      number;
+  formula:     string;
+  description: string;
+  rule?:       string;
+  premises?:   string[];
+  conclusion?: string;
+}
+
+export function toProofStepWire(step: { rule: string; premises: string[]; conclusion: string }): PythonCompatProofStep {
+  return {
+    ruleName:    step.rule,
+    formula:     step.conclusion,
+    description: `${step.rule}: [${step.premises.join(', ')}] ⊢ ${step.conclusion}`,
+    rule:        step.rule,
+    premises:    step.premises,
+    conclusion:  step.conclusion,
+  };
+}

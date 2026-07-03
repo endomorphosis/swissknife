@@ -258,3 +258,18 @@ export class DeterministicModalCompiler {
 
   getStats(): Readonly<CompilerStats> { return { ...this.stats }; }
 }
+
+// PORT-124: Extended ModalIRDocument fields (matching Python ModalIRDocument)
+export interface ModalIRDocumentFull {
+  /** Core fields (already in ModalIRDocument) */
+  documentId:    string;
+  text:          string;
+  formulas:      string[];
+  /** PORT-124: Additional Python-aligned fields */
+  rankingScore?: number;      // BM25/TF-IDF relevance score
+  family:        string;      // modal logic family classification
+  evidenceKeys:  string[];    // evidence keys from frame extraction
+  editorialStatus: string;    // 'draft' | 'approved' | 'published'
+  jurisdiction?: string;
+  legalDomain?:  string;
+}

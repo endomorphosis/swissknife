@@ -68,6 +68,7 @@ export interface Predicate extends TDFOLNode {
   readonly kind:      'predicate';
   readonly name:      string;
   readonly args:      Term[];
+  /** @deprecated PORT-054: use UnaryFormula(NOT, pred) instead of negated flag */
   readonly negated:   boolean;
 }
 
@@ -97,6 +98,7 @@ export interface DeonticFormulaTDFOL extends TDFOLNode {
   readonly operator:  TDFOLDeonticOp;
   readonly formula:   Formula;
   readonly agent?:    string;
+  readonly agentTerm?: Term;   // PORT-052: structured agent term e.g. f(x,y); prefer this for FOL agents
   readonly time?:     string;
 }
 
