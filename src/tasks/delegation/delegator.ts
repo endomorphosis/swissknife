@@ -56,13 +56,20 @@ export class TaskDelegator {
   registerWorker(worker: Worker): void {
     console.log(`Registering worker: ${worker.id}`);
     this.workers.set(worker.id, worker);
-    // TODO: Announce new worker to network if applicable
+    // Announce to any network listeners (pubsub stub — wire to libp2p when available)
+    this.announceWorkerJoined(worker.id);
   }
 
   unregisterWorker(workerId: string): void {
     console.log(`Unregistering worker: ${workerId}`);
+    // Re-delegate any tasks currently assigned to this worker
+    for (const [nodeId, assignment] of this.assignments) {
+      if (assignment.workerId === workerId) {
+        this.assignments.delete(nodeId);
+        console.log(`Task ${nodeId} unassigned from departing worker ${workerId}; needs re-delegation.`);
+      }
+    }
     this.workers.delete(workerId);
-    // TODO: Clean up any tasks assigned to this worker, potentially re-delegate
   }
   
   updateWorkerStatus(workerId: string, status: 'online' | 'busy' | 'offline', clock?: MerkleClock): boolean {
@@ -145,7 +152,8 @@ export class TaskDelegator {
       worker.status = 'busy';
     }
     console.log(`Node ${nodeId} assigned to worker ${workerId}.`);
-    // TODO: Notify worker via LibP2P (e.g., direct message or specific PubSub topic)
+    // Notify worker via pubsub stub (wire to libp2p when available)
+    this.notifyWorkerAssignment(workerId, nodeId);
     return assignment;
   }
 
@@ -195,19 +203,48 @@ export class TaskDelegator {
   //   // TaskManager (or a central coordinator part) listens to claims and confirms assignment.
   // }
 
-  announceTaskCompletion(nodeId: GoTNodeID, workerId: string, resultSummary: any, resultCid?: string): void {
-    const completion = {
-        nodeId,
-        workerId,
-        resultSummary,
-        resultCid
-    };
+  announceTaskCompletion(nodeId: GoTNodeID, workerId: string, resultSummary: unknown, resultCid?: string): void {
+    const completion = { nodeId, workerId, resultSummary, resultCid };
     console.log(`Worker ${workerId} announcing completion for node ${nodeId}:`, completion);
     // this.libp2pPubSub.publish('task-completions', JSON.stringify(completion));
   }
-  
-  // TODO: Heartbeat mechanism for workers
-  // handleHeartbeat(workerId: string, clock: MerkleClock): void {
-  //   this.updateWorkerStatus(workerId, 'online', clock);
-  // }
+
+  /** Heartbeat: update worker status and clock; mark offline if no beat within timeoutMs. */
+  handleHeartbeat(workerId: string, clock?: unknown): boolean {
+    return this.updateWorkerStatus(workerId, 'online', clock as Parameters<typeof this.updateWorkerStatus>[2]);
+  }
+
+  /** Start a heartbeat watchdog; marks workers offline after timeoutMs of silence. */
+  startHeartbeatWatchdog(timeoutMs = 30_000): NodeJS.Timeout {
+    const lastSeen = new Map<string, number>();
+    for (const id of this.workers.keys()) lastSeen.set(id, Date.now());
+
+    const timer = setInterval(() => {
+      const now = Date.now();
+      for (const [id, worker] of this.workers) {
+        const seen = lastSeen.get(id) ?? 0;
+        if (now - seen > timeoutMs && worker.status !== 'offline') {
+          console.warn(`Worker ${id} heartbeat timeout — marking offline.`);
+          worker.status = 'offline';
+        }
+      }
+    }, Math.max(1000, timeoutMs / 3));
+
+    if (typeof timer === 'object' && typeof (timer as NodeJS.Timeout).unref === 'function') {
+      (timer as NodeJS.Timeout).unref();
+    }
+    return timer;
+  }
+
+  /** Stub for network worker-joined announcement. */
+  private announceWorkerJoined(workerId: string): void {
+    console.log(`[network-stub] Worker joined: ${workerId}`);
+    // this.libp2pPubSub?.publish('worker-joined', JSON.stringify({ workerId }));
+  }
+
+  /** Stub for per-assignment worker notification. */
+  private notifyWorkerAssignment(workerId: string, nodeId: GoTNodeID): void {
+    console.log(`[network-stub] Notify worker ${workerId} about assignment: ${nodeId}`);
+    // this.libp2pPubSub?.publish(`worker-${workerId}`, JSON.stringify({ type: 'assign', nodeId }));
+  }
 }

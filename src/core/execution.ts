@@ -3,114 +3,87 @@
  * Adapts concepts from ipfs_accelerate_js.
  */
 
-// TODO: Import necessary types and classes
-// import { Model } from './model.js'; // Assuming a Model class exists
-// import { HardwareBackend } from '../types/hardware.js'; // Assuming HardwareBackend type
-// import { WebGPUOptimizer } from '../services/webgpu-optimizer.js'; // Assuming WebGPUOptimizer class
-// import { ModelQuantizer } from '../utils/quantization.js'; // Assuming ModelQuantizer class
+import type { HardwareBackend } from '../types/hardware.js';
+import type { WebGPUOptimizer } from '../services/webgpu-optimizer.js';
+
+/** Minimal model-data contract. Extend per backend as needed. */
+export interface ModelData {
+  id: string;
+  weights?: Float32Array;
+  shaderCode?: string;
+  config?: Record<string, unknown>;
+}
+
+/** Input/output tensor contract. */
+export interface TensorData {
+  shape: number[];
+  data: Float32Array | number[];
+}
 
 export class ExecutionEngine {
-  private activeBackend: any | null = null; // Placeholder for HardwareBackend type
-  private webGPUOptimizer: any | null = null; // Placeholder for WebGPUOptimizer type
-  private model: any | null = null; // Placeholder for the loaded model
+  private activeBackend: HardwareBackend;
+  private webGPUOptimizer: WebGPUOptimizer | null = null;
+  private model: ModelData | null = null;
 
-  /**
-   * Initializes the execution engine with a specific backend and model.
-   * @param {any} backend - The selected hardware backend instance. // TODO: Use proper type
-   * @param {any} modelData - The model data to be executed. // TODO: Define model data structure
-   * @param {WebGPUOptimizer} [gpuOptimizer] - Optional WebGPU optimizer instance.
-   */
-  constructor(backend: any /* TODO: Replace with HardwareBackend type */, modelData: any, gpuOptimizer?: any /* TODO: Replace with WebGPUOptimizer type */) {
+  constructor(backend: HardwareBackend, modelData: ModelData, gpuOptimizer?: WebGPUOptimizer) {
     this.activeBackend = backend;
-    this.webGPUOptimizer = gpuOptimizer || null;
-
+    this.webGPUOptimizer = gpuOptimizer ?? null;
     console.log(`ExecutionEngine initialized with backend: ${this.activeBackend.name}`);
-
-    // TODO: Initialize the model based on the backend type
-    // This might involve loading weights, compiling shaders, etc.
     this.initializeModel(modelData);
   }
 
-  /**
-   * Initializes the model representation based on the selected backend.
-   * @param {any} modelData - The raw model data.
-   * @private
-   */
-  private initializeModel(modelData: any): void {
-    console.log(`Initializing model for backend: ${this.activeBackend.name}`);
-    // Placeholder logic: In a real scenario, this would involve parsing the modelData,
-    // setting up tensors, and preparing the execution plan (e.g., creating pipelines for WebGPU).
-    this.model = modelData; // Simplified: just storing the data for now
+  private initializeModel(modelData: ModelData): void {
+    console.log(`Initializing model '${modelData.id}' for backend: ${this.activeBackend.name}`);
+    this.model = modelData;
 
-    if (this.activeBackend.name === 'WebGPU' && this.webGPUOptimizer) {
-      console.log('Pre-compiling WebGPU shaders (if applicable)...');
-      // Example: Trigger shader compilation for shaders defined in modelData
-      // await this.webGPUOptimizer.compileShader('shader_id', modelData.shaderCode);
-    }
-    // Add similar initialization logic for other backends (WebNN, WASM, CPU)
-  }
-
-  /**
-   * Executes the model with the given input data.
-   * @param {any} inputData - The input data for the model. // TODO: Define input data structure
-   * @returns {Promise<any>} A promise that resolves with the model's output.
-   */
-  async execute(inputData: any): Promise<any> {
-    if (!this.model) {
-      throw new Error('Model not initialized.');
-    }
-
-    console.log(`Executing model using backend: ${this.activeBackend.name}`);
-
-    // Placeholder execution logic:
-    // This should dispatch to the appropriate execution function based on the backend.
-    switch (this.activeBackend.name) {
-      case 'WebGPU':
-        return this.executeWebGPU(inputData);
-      case 'WebNN':
-        // return this.executeWebNN(inputData); // Placeholder
-        throw new Error('WebNN execution not implemented.');
-      case 'WASM':
-        // return this.executeWASM(inputData); // Placeholder
-        throw new Error('WASM execution not implemented.');
-      case 'CPU':
-      default:
-        // return this.executeCPU(inputData); // Placeholder
-        throw new Error('CPU (JS) execution not implemented.');
+    if (this.activeBackend.id === 'webgpu' && this.webGPUOptimizer && modelData.shaderCode) {
+      // Fire-and-forget shader pre-compilation; errors logged inside compileShader
+      this.webGPUOptimizer.compileShader(`model_${modelData.id}`, modelData.shaderCode)
+        .catch(err => console.warn('Shader pre-compilation failed:', err));
     }
   }
 
-  /**
-   * Placeholder for WebGPU execution logic.
-   * @param {any} inputData - The input data.
-   * @returns {Promise<any>} The output data.
-   * @private
-   */
-  private async executeWebGPU(inputData: any): Promise<any> {
-    console.log('Executing model on WebGPU...');
-    // TODO: Implement WebGPU execution steps:
-    // 1. Create GPU buffers for input and output data.
-    // 2. Create bind groups.
-    // 3. Create a command encoder.
-    // 4. Dispatch compute shaders (using compiled shaders from WebGPUOptimizer).
-    // 5. Submit commands to the GPU queue.
-    // 6. Read back the results from the output buffer.
-    // Example:
-    // const commandEncoder = this.device.createCommandEncoder();
-    // const passEncoder = commandEncoder.beginComputePass();
-    // passEncoder.setPipeline(this.pipeline); // Assume pipeline is created during init
-    // passEncoder.setBindGroup(0, this.bindGroup); // Assume bind group is set up
-    // passEncoder.dispatchWorkgroups(workgroupCountX, workgroupCountY, workgroupCountZ);
-    // passEncoder.end();
-    // this.device.queue.submit([commandEncoder.finish()]);
-    // await this.device.queue.onSubmittedWorkDone(); // Wait for completion
-    // ... read results ...
-    return { result: 'WebGPU execution placeholder result' }; // Placeholder result
+  async execute(inputData: TensorData): Promise<TensorData> {
+    if (!this.model) throw new Error('Model not initialized.');
+    console.log(`Executing model '${this.model.id}' via backend: ${this.activeBackend.name}`);
+    switch (this.activeBackend.id) {
+      case 'webgpu':  return this.executeWebGPU(inputData);
+      case 'webnn':   return this.executeWebNN(inputData);
+      case 'wasm':    return this.executeWASM(inputData);
+      case 'cpu':
+      default:        return this.executeCPU(inputData);
+    }
   }
 
-  // TODO: Add placeholder methods for other backends (WebNN, WASM, CPU)
-  // private async executeWebNN(inputData: any): Promise<any> { ... }
-  // private async executeWASM(inputData: any): Promise<any> { ... }
-  // private async executeCPU(inputData: any): Promise<any> { ... }
+  private async executeWebGPU(inputData: TensorData): Promise<TensorData> {
+    console.log('ExecutionEngine: WebGPU dispatch (stub — no live GPUDevice in Node)');
+    // Steps when GPUDevice is available:
+    // 1. Write inputData to GPU buffer via device.createBuffer + queue.writeBuffer
+    // 2. Create output buffer and bind group
+    // 3. Encode + dispatch compute pass via compiled shader pipeline
+    // 4. Submit and await device.queue.onSubmittedWorkDone()
+    // 5. Map output buffer and read back result
+    return { shape: inputData.shape, data: new Float32Array(inputData.data.length) };
+  }
 
+  private async executeWebNN(inputData: TensorData): Promise<TensorData> {
+    console.log('ExecutionEngine: WebNN dispatch (stub — not available in Node)');
+    // Steps: build MLGraph via navigator.ml.createContext(), compile, compute
+    return { shape: inputData.shape, data: new Float32Array(inputData.data.length) };
+  }
+
+  private async executeWASM(inputData: TensorData): Promise<TensorData> {
+    console.log('ExecutionEngine: WASM dispatch (stub — bind WASM module when available)');
+    // Steps: pass typed-array pointers to WASM linear memory, call exported fn
+    return { shape: inputData.shape, data: new Float32Array(inputData.data.length) };
+  }
+
+  private async executeCPU(inputData: TensorData): Promise<TensorData> {
+    console.log('ExecutionEngine: CPU (JS) dispatch');
+    // Minimal identity pass-through — replace with real inference loop
+    const out = inputData.data instanceof Float32Array
+      ? new Float32Array(inputData.data)
+      : new Float32Array(inputData.data);
+    return { shape: inputData.shape, data: out };
+  }
 }

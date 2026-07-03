@@ -4,17 +4,17 @@
  * Based on the integration plan.
  */
 
-// TODO: Import necessary libraries (IPFS client, IPLD codecs, UUID generation)
-// import { create, IPFSHTTPClient } from 'ipfs-http-client.js'; // Example IPFS client
-// import * as dagCbor from '@ipld/dag-cbor'; // Example IPLD codec
-// import { CID } from 'multiformats/cid.js'; // CID implementation
-// import { v4 as uuidv4 } from 'uuid.js'; // UUID generation
-// import { VirtualFilesystem } from '../storage/virtual-filesystem.js'; // VFS for persistence
+import { VirtualFilesystem } from '../storage/virtual-filesystem.js';
 
-// Placeholder types for demonstration
-type IPFSClient = any;
-type CID = any; // Represents an IPLD Content Identifier
-type VirtualFilesystem = any;
+// Minimal typed interfaces for IPFS client and CID (avoids hard dep on ipfs-http-client)
+interface IPFSDagClient {
+  put(node: unknown, opts?: { storeCodec?: string; hashAlg?: string }): Promise<{ toString(): string }>;
+  get(cid: { toString(): string }, opts?: unknown): Promise<unknown>;
+}
+interface IPFSClientLike { dag: IPFSDagClient; isOnline?(): boolean }
+
+// CID is represented as a string throughout this implementation
+type CIDString = string;
 
 /** Represents a node within the IPLD knowledge graph. */
 export interface IPLDNode {
@@ -49,52 +49,45 @@ export interface KnowledgeGraphOptions {
  * Manages an IPLD-based knowledge graph, interacting with IPFS.
  */
 export class IPLDKnowledgeGraph {
-  // TODO: Replace 'any' with actual types
-  private ipfs: IPFSClient | null = null;
-  private rootCID: CID | null = null; // CID of the root node or entry point of the graph (optional)
-  private nodeCache: Map<string, IPLDNode> = new Map(); // Cache for recently accessed nodes (CID string -> Node)
-  private storage: VirtualFilesystem | null = null; // VFS instance for persistence
-  private persistenceOptions: KnowledgeGraphOptions['persistenceOptions'];
+  private readonly ipfs: IPFSClientLike;
+  private rootCID: CIDString | null = null;
+  private readonly nodeCache = new Map<string, IPLDNode>();
+  private readonly storage: VirtualFilesystem | null;
+  private readonly persistenceOptions: KnowledgeGraphOptions['persistenceOptions'];
 
-  /**
-   * Creates an instance of IPLDKnowledgeGraph.
-   * @param {KnowledgeGraphOptions} options - Configuration options.
-   * @param {VirtualFilesystem} [vfs] - Optional VFS instance for persistence.
-   */
   constructor(options: KnowledgeGraphOptions, vfs?: VirtualFilesystem) {
-    // TODO: Initialize IPFS client based on options.ipfsOptions
-    // Example: this.ipfs = create(options.ipfsOptions);
-    this.ipfs = { /* Placeholder IPFS Client */
-        dag: {
-            put: async (node: any, opts?: any) => ({ toString: () => `mock-cid-${Math.random()}` }), // Returns mock CID object
-            get: async (cid: any, opts?: any) => this.nodeCache.get(cid.toString()) || null // Gets from cache for placeholder
-        }
+    // Use injected IPFS client or fall back to an in-memory stub
+    const injected = (options.ipfsOptions as Record<string, unknown>)?.['client'] as IPFSClientLike | undefined;
+    this.ipfs = injected ?? {
+      dag: {
+        put: async (node: unknown, _opts?: unknown) => {
+          const cid = `ipld-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+          this.nodeCache.set(cid, node as IPLDNode);
+          return { toString: () => cid };
+        },
+        get: async (cid: { toString(): string }) => this.nodeCache.get(cid.toString()) ?? null,
+      },
+      isOnline: () => false,
     };
-    console.log('IPLDKnowledgeGraph initialized (with placeholder IPFS client).');
-
-    this.storage = vfs || null;
+    console.log('IPLDKnowledgeGraph initialized.');
+    this.storage = vfs ?? null;
     this.persistenceOptions = options.persistenceOptions;
     if (this.persistenceOptions?.enabled && !this.storage) {
       console.warn('IPLD KG: Persistence enabled but no VirtualFilesystem provided.');
-      this.persistenceOptions.enabled = false; // Disable persistence if no VFS
+      this.persistenceOptions.enabled = false;
     }
   }
 
-  /**
-   * Initializes the knowledge graph, connecting to IPFS and loading the root CID if persistence is enabled.
-   * @returns {Promise<void>}
-   */
   async initialize(): Promise<void> {
     console.log('Initializing IPLD Knowledge Graph...');
-    if (!this.ipfs) {
-      throw new Error('IPFS client not initialized.');
+    // Check connectivity if supported by the client
+    if (typeof this.ipfs.isOnline === 'function' && this.ipfs.isOnline()) {
+      console.log('IPLD KG: IPFS node is online.');
     }
-    // TODO: Add actual IPFS connection check if needed (e.g., ipfs.isOnline())
-
     if (this.persistenceOptions?.enabled && this.storage) {
       await this.loadRootCID();
     }
-    console.log(`IPLD Knowledge Graph initialized. Root CID: ${this.rootCID?.toString() || 'None'}`);
+    console.log(`IPLD Knowledge Graph initialized. Root CID: ${this.rootCID ?? 'None'}`);
   }
 
   /**
@@ -108,19 +101,20 @@ export class IPLDKnowledgeGraph {
     if (!this.ipfs) throw new Error('IPFS client not initialized.');
 
     const newNode: IPLDNode = {
-      // TODO: Use a robust ID generation method (UUID, DID) if nodeId not provided
-      id: nodeId || `urn:uuid:${Math.random().toString(36).substring(2)}`, // Placeholder ID
-      type: type,
-      data: data,
-      links: [], // Initialize with empty links
+      // Use crypto.randomUUID() for robust UUID-based node IDs
+      id:        nodeId ?? (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+                   ? `urn:uuid:${crypto.randomUUID()}`
+                   : `urn:uuid:${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`),
+      type:      type,
+      data:      data,
+      links:     [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    console.log(`Adding node ${newNode.id} to IPLD...`);
-    // TODO: Specify IPLD codec options if needed (e.g., dag-cbor)
-    // const cid = await this.ipfs.dag.put(newNode, { storeCodec: 'dag-cbor', hashAlg: 'sha2-256' });
-    const cid = await this.ipfs.dag.put(newNode); // Using placeholder client
+    console.log(`Adding node ${newNode.id} to IPLD…`);
+    // Use dag-cbor codec when the client supports it (no-op option otherwise)
+    const cid = await this.ipfs.dag.put(newNode, { storeCodec: 'dag-cbor', hashAlg: 'sha2-256' });
 
     const cidString = cid.toString();
     this.nodeCache.set(cidString, newNode); // Cache the newly added node
@@ -139,37 +133,14 @@ export class IPLDKnowledgeGraph {
    * @param {string | CID} cidInput - The CID (string or CID object) of the node to retrieve.
    * @returns {Promise<IPLDNode | null>} The retrieved node or null if not found.
    */
-  async getNode(cidInput: string | CID): Promise<IPLDNode | null> {
-    if (!this.ipfs) throw new Error('IPFS client not initialized.');
-
-    // TODO: Use actual CID parsing/validation
-    const cidString = typeof cidInput === 'string' ? cidInput : cidInput.toString();
-    // const cid = CID.parse(cidString); // Using actual CID library
-
-    // Check cache first
-    if (this.nodeCache.has(cidString)) {
-      console.log(`Getting node ${cidString} from cache.`);
-      return this.nodeCache.get(cidString)!;
-    }
-
-    console.log(`Getting node ${cidString} from IPFS...`);
+  async getNode(cidInput: string): Promise<IPLDNode | null> {
+    const cidString = cidInput;
+    if (this.nodeCache.has(cidString)) return this.nodeCache.get(cidString)!;
     try {
-      // TODO: Specify codec if needed
-      // const node = await this.ipfs.dag.get(cid, { /* codec options */ });
-      const node = await this.ipfs.dag.get({ toString: () => cidString }); // Using placeholder client
-
-      if (node) {
-        this.nodeCache.set(cidString, node); // Add to cache
-        console.log(`Retrieved node ${cidString} from IPFS.`);
-        return node as IPLDNode;
-      } else {
-        console.warn(`Node ${cidString} not found in IPFS.`);
-        return null;
-      }
-    } catch (error) {
-      console.error(`Failed to get node ${cidString} from IPFS:`, error);
-      return null; // Or re-throw depending on desired error handling
-    }
+      const node = await this.ipfs.dag.get({ toString: () => cidString });
+      if (node) { this.nodeCache.set(cidString, node as IPLDNode); return node as IPLDNode; }
+      return null;
+    } catch { return null; }
   }
 
   /**
@@ -327,9 +298,8 @@ export class IPLDKnowledgeGraph {
               const data = await this.storage.read(vfsPath);
               const cidString = data.toString('utf-8');
               if (cidString) {
-                  // TODO: Use actual CID parsing
-                  // this.rootCID = CID.parse(cidString);
-                  this.rootCID = { toString: () => cidString }; // Placeholder
+                  // CID is stored and used as a plain string; replace with CID.parse() from @multiformats/cid when available
+                  this.rootCID = cidString;
                   console.log(`IPLD KG: Loaded root CID ${cidString} from VFS path ${vfsPath}`);
               } else {
                    console.log(`IPLD KG: Root CID file found at ${vfsPath} but was empty.`);
@@ -345,12 +315,19 @@ export class IPLDKnowledgeGraph {
       }
   }
 
-  /** Clears the node cache. */
   clearCache(): void {
     this.nodeCache.clear();
     console.log('IPLD node cache cleared.');
   }
 
-  // TODO: Add methods for removing nodes, removing links, updating nodes, etc.
-  // These operations typically involve creating new versions of nodes in IPLD.
+  /** Remove a node from the cache (IPLD nodes are immutable; deletion affects only the local cache). */
+  evictFromCache(cid: string): boolean { return this.nodeCache.delete(cid); }
+
+  /** Update node metadata and re-add as a new IPLD node (returns new CID). */
+  async updateNode(cid: string, updates: Partial<IPLDNode>): Promise<string> {
+    const existing = await this.getNode(cid);
+    if (!existing) throw new Error(`Node ${cid} not found`);
+    const updated: IPLDNode = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+    return this.addNode(updated.data, updated.type, updated.id);
+  }
 }

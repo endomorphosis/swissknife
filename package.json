@@ -160,7 +160,8 @@
     "@img/sharp-linux-arm": "^0.33.5",
     "@img/sharp-linux-arm64": "^0.33.5",
     "@img/sharp-linux-x64": "^0.33.5",
-    "@img/sharp-win32-x64": "^0.33.5"
+    "@img/sharp-win32-x64": "^0.33.5",
+    "pyodide": "^0.21.3"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.12.4",
@@ -224,6 +225,7 @@
     "util": "^0.12.5",
     "uuid": "^11.1.0",
     "wrap-ansi": "^9.0.0",
+    "z3-solver": "^4.16.0",
     "zod": "^3.24.2",
     "zod-to-json-schema": "^3.24.3"
   },

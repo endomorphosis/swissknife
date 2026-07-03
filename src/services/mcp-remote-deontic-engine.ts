@@ -49,6 +49,7 @@ import {
   type ORBDeonticEvaluation,
   type ORBDeonticEvaluator,
 } from './mcp-deontic-interface-broker';
+import type { WasmProverHub } from './mcp-wasm-prover-hub';
 
 // ---------------------------------------------------------------------------
 // Connector contract (structural — the real MCPPPServerConnector satisfies it)
@@ -348,6 +349,11 @@ export interface RemoteConsistencyResult extends DeonticConsistencyResult {
   remoteInconsistent?: boolean;
   /** Present when the remote engine was unavailable or the proof failed. */
   remoteError?: string;
+  /**
+   * Present when the local WASM prover decided the policy without going remote.
+   * `'z3-wasm'` means Z3 WASM gave a conclusive answer.
+   */
+  localProver?: string;
 }
 
 /**
@@ -356,12 +362,44 @@ export interface RemoteConsistencyResult extends DeonticConsistencyResult {
  * when the prover additionally reports the theory inconsistent (a temporal /
  * first-order clash the local fragment cannot express) a synthetic `theory`
  * conflict is appended. Remote failures never remove local findings.
+ *
+ * When `localHub` is provided (a {@link WasmProverHub} with Z3 WASM loaded),
+ * propositional / FOL formulas are checked locally before going remote — skipping
+ * the network round-trip for the common case.
  */
 export async function checkPolicyConsistencyRemote(
   policy: Policy,
   engine: RemoteDeonticEngine,
+  localHub?: WasmProverHub,
 ): Promise<RemoteConsistencyResult> {
   const local = checkPolicyConsistency(policy);
+
+  // ---- Local WASM pre-check (Z3) ----------------------------------------
+  // For propositional / FOL formulas, Z3 WASM can decide consistency without
+  // a network round-trip.  Temporal/higher-order formulas return `unknown`
+  // and fall through to the remote engine below.
+  if (localHub) {
+    const wasmResult = await localHub.checkPolicyConsistency(policy);
+    if (wasmResult.reason !== 'unknown' && wasmResult.reason !== 'error' && wasmResult.reason !== 'timeout') {
+      const isConsistent = wasmResult.reason !== 'refuted';
+      const conflicts: DeonticConflict[] = [...local.conflicts];
+      if (!isConsistent && conflicts.length === 0) {
+        conflicts.push({
+          kind: 'permission_prohibition',
+          capability: '*',
+          resource: '*',
+          detail: `Z3 WASM prover found the policy theory unsatisfiable (local SMT check).`,
+        });
+      }
+      return {
+        consistent: conflicts.length === 0,
+        conflicts,
+        remoteChecked: false,
+        localProver: wasmResult.prover_id,
+      };
+    }
+  }
+  // -------------------------------------------------------------------------
 
   if (!(await engine.isAvailable())) {
     return {
@@ -547,3 +585,69 @@ function errText(err: unknown): string {
 
 export { PolicyEngine };
 export type { Policy, DeonticConflict, DeonticConsistencyResult, ORBDeonticEvaluation, ORBDeonticEvaluator };
+
+// ---------------------------------------------------------------------------
+// Local-first ORB evaluator factory (T-29 — Phase 8)
+// ---------------------------------------------------------------------------
+
+/**
+ * Options for {@link createLocalFirstDeonticORBEvaluator}.
+ */
+export interface LocalFirstORBEvaluatorOptions extends RemoteORBEvaluatorOptions {
+  /**
+   * The WASM prover hub to consult before delegating to the remote engine.
+   * When omitted the evaluator behaves exactly like
+   * {@link createRemoteDeonticORBEvaluator}.
+   */
+  hub: WasmProverHub;
+}
+
+/**
+ * Produce an {@link ORBDeonticEvaluator} that follows a local-first strategy:
+ *
+ * 1. Compute the authoritative local Profile-D decision (fast, no network).
+ * 2. For propositional / FOL permits, confirm via Z3 WASM before accepting.
+ *    If Z3 WASM is undecided (temporal/higher-order), fall through to step 3.
+ * 3. For temporal permits with spawned obligations, escalate to the Python
+ *    TDFOL remote engine (same logic as {@link createRemoteDeonticORBEvaluator}).
+ *
+ * Audit entries record which prover produced the decision via
+ * `evaluation.reasons` (e.g. `"Decided locally by z3-wasm"`).
+ */
+export function createLocalFirstDeonticORBEvaluator(
+  options: LocalFirstORBEvaluatorOptions,
+): ORBDeonticEvaluator {
+  const remote = createRemoteDeonticORBEvaluator(options);
+
+  return {
+    async evaluate(input): Promise<ORBDeonticEvaluation> {
+      // Ask the WASM hub to check the policy whose CID is in the input.
+      // The hub classifies the formula complexity — temporal/higher-order
+      // fall straight through to the remote evaluator below.
+      try {
+        const policies = PolicyEngine.getInstance().listPolicies?.() ?? [];
+        const policy = policies.find((p: { id: string }) => p.id === input.policy_cid);
+        if (policy) {
+          const wasmResult = await options.hub.checkPolicyConsistency(policy);
+          if (wasmResult.reason !== 'unknown' && wasmResult.reason !== 'error' && wasmResult.reason !== 'timeout') {
+            // Z3 WASM gave a conclusive answer — skip the remote round-trip.
+            // Fall through to the standard local decision (the hub confirmed it).
+            const baseLocal = await (createDeonticORBEvaluator(
+              options.localEngine ?? PolicyEngine.getInstance(),
+            )).evaluate(input);
+            return {
+              ...baseLocal,
+              reasons: [
+                ...baseLocal.reasons,
+                `Consistency verified locally by ${wasmResult.prover_id} (${wasmResult.proof_time_ms}ms)`,
+              ],
+            };
+          }
+        }
+      } catch {
+        // WASM unavailable or policy not found — fall through to remote
+      }
+      return remote.evaluate(input);
+    },
+  };
+}

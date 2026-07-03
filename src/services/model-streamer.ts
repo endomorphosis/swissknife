@@ -3,8 +3,11 @@
  * Supports adaptive batching, KV-cache optimization hints, and performance metrics.
  */
 
-// TODO: Import necessary types, e.g., the actual accelerator/execution engine type
-// import { ExecutionEngine } from '../core/execution.js'; // Example
+/** Contract that any execution engine must satisfy to work with ModelStreamer. */
+export interface ExecutionEngine {
+  /** Generate tokens from a prompt. Yields token strings until done. */
+  generateStream(prompt: string, options?: Record<string, unknown>): AsyncGenerator<string>;
+}
 
 /**
  * Configuration options for model streaming.
@@ -28,17 +31,11 @@ export interface StreamingMetrics {
 }
 
 export class ModelStreamer {
-  // TODO: Replace 'any' with the actual type of the execution engine or accelerator
-  private executionEngine: any;
+  private executionEngine: ExecutionEngine;
   private config: StreamingConfig;
   private metrics: StreamingMetrics | null = null;
 
-  /**
-   * Creates an instance of ModelStreamer.
-   * @param {any} executionEngine - The underlying execution engine instance. // TODO: Use proper type
-   * @param {StreamingConfig} [config={}] - Configuration options for streaming.
-   */
-  constructor(executionEngine: any /* TODO: Replace with proper type */, config: StreamingConfig = {}) {
+  constructor(executionEngine: ExecutionEngine, config: StreamingConfig = {}) {
     this.executionEngine = executionEngine;
     // Default configuration + user overrides
     this.config = {
@@ -66,27 +63,28 @@ export class ModelStreamer {
     let tokenCount = 0;
 
     try {
-      // --- Placeholder Streaming Logic ---
-      // TODO: Replace this with actual interaction with the executionEngine.
-      // This would involve:
-      // 1. Sending the prompt to the engine.
-      // 2. Receiving tokens (or batches of tokens) from the engine.
-      // 3. Yielding tokens as they arrive.
-      // 4. Handling potential end-of-stream signals.
-      // 5. Incorporating config options (adaptive batching, KV cache hints).
+      // Dispatch to execution engine, honouring config hints
+      let batchSize = this.config.maxTokensPerStep ?? 4;
+      let pendingBatch: string[] = [];
 
-      // Example simulation:
-      await new Promise(resolve => setTimeout(resolve, 50)); // Simulate initial processing delay
-      const simulatedTokens = [' Simulated', ' token', ' stream', '.', ' This', ' is', ' a', ' test', '!'];
-      for (const token of simulatedTokens) {
-        await new Promise(resolve => setTimeout(resolve, 20)); // Simulate delay between tokens
-        if (tokenCount === 0) {
-          firstTokenTime = Date.now() - startTime;
-        }
-        yield token;
+      for await (const token of this.executionEngine.generateStream(prompt, { ...options })) {
+        if (tokenCount === 0) firstTokenTime = Date.now() - startTime;
+        pendingBatch.push(token);
         tokenCount++;
+
+        // Adaptive batching: yield when batch is full or KV-cache hint says to flush
+        if (pendingBatch.length >= batchSize || !this.config.adaptiveBatchSize) {
+          for (const t of pendingBatch) yield t;
+          pendingBatch = [];
+          // Optionally adjust batch size based on latency target
+          if (this.config.adaptiveBatchSize && this.config.latencyOptimized) {
+            const elapsed = Date.now() - startTime;
+            batchSize = elapsed > 200 ? Math.max(1, batchSize - 1) : Math.min(16, batchSize + 1);
+          }
+        }
       }
-      // --- End Placeholder ---
+      // Flush remaining
+      for (const t of pendingBatch) yield t;
 
     } catch (error) {
       console.error('Error during token stream generation:', error);

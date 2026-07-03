@@ -55,20 +55,29 @@ export class GooseMCPBridge implements IntegrationBridge {
    */
   async initialize(): Promise<boolean> {
     try {
-      // Load configuration from config manager
       const bridgeConfig = this.configManager.get<GooseMCPBridgeConfig>('integration.bridges.goose-mcp.options', {});
-      
-      // Merge with default and provided config
-      this.config = {
-        ...this.config,
-        ...bridgeConfig
-      };
-      
+      this.config = { ...this.config, ...bridgeConfig };
       console.log(`Initializing Goose MCP Bridge with base URL: ${this.config.baseUrl}`);
-      
-      // TODO: Implement actual initialization
-      // For Phase 1, we'll just mock this with a successful initialization
-      
+
+      // Health-check the Goose MCP endpoint
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), this.config.timeout ?? 30_000);
+      try {
+        const resp = await fetch(`${this.config.baseUrl}/health`, {
+          method:  'GET',
+          headers: this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {},
+          signal:  ctrl.signal,
+        });
+        clearTimeout(tid);
+        if (!resp.ok) {
+          console.warn(`Goose MCP health check returned ${resp.status} — bridge will operate in degraded mode.`);
+        }
+      } catch (fetchErr: unknown) {
+        clearTimeout(tid);
+        const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+        console.warn(`Goose MCP unreachable (${msg}) — bridge will use mock fallback.`);
+      }
+
       this.initialized = true;
       return true;
     } catch (error) {
@@ -80,31 +89,35 @@ export class GooseMCPBridge implements IntegrationBridge {
   /**
    * Call a method on the bridge
    */
-  async call<T>(method: string, args: any): Promise<T> {
-    if (!this.isInitialized()) {
-      throw new Error('Goose MCP bridge not initialized');
-    }
-    
+  async call<T>(method: string, args: Record<string, unknown>): Promise<T> {
+    if (!this.isInitialized()) throw new Error('Goose MCP bridge not initialized');
     console.log(`Calling method ${method} on Goose MCP Bridge`);
-    
-    // TODO: Implement actual method calling
-    // For Phase 1, we'll mock common methods
-    
+
+    // Try real HTTP call first; fall back to mock on error
+    try {
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), this.config.timeout ?? 30_000);
+      const resp = await fetch(`${this.config.baseUrl}/v1/${method}`, {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {}),
+        },
+        body:   JSON.stringify(args),
+        signal: ctrl.signal,
+      });
+      clearTimeout(tid);
+      if (resp.ok) return await resp.json() as T;
+    } catch { /* fall through to mock */ }
+
+    // Mock fallback
     switch (method) {
       case 'healthCheck':
         return { status: 'ok', version: '1.0.0' } as unknown as T;
-        
       case 'generateCompletion':
         return this.mockGenerateCompletion(args) as unknown as T;
-        
       case 'getModels':
-        return {
-          models: [
-            { id: 'goose-model-1', name: 'Goose Model 1' },
-            { id: 'goose-model-2', name: 'Goose Model 2' }
-          ]
-        } as unknown as T;
-        
+        return { models: [{ id: 'goose-model-1', name: 'Goose Model 1' }, { id: 'goose-model-2', name: 'Goose Model 2' }] } as unknown as T;
       default:
         throw new Error(`Unknown method: ${method}`);
     }

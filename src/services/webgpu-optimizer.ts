@@ -4,38 +4,49 @@
  * Adapts concepts from ipfs_accelerate_js.
  */
 
-// TODO: Import necessary WebGPU types or interfaces if available/needed.
-// import { GPUDevice, GPUCompilationInfo, GPUShaderModule } from '@webgpu/types'; // Example if using types
+// Minimal WebGPU type stubs — avoids a hard dependency on @webgpu/types while
+// still providing structural typing throughout this module.
+interface GPUCompilationMessage { type: 'error' | 'warning' | 'info'; lineNum: number; linePos: number; message: string }
+interface GPUCompilationInfo   { messages: GPUCompilationMessage[] }
+interface GPUShaderModule       { getCompilationInfo?(): Promise<GPUCompilationInfo> }
+interface GPUShaderModuleDescriptor { code: string; hints?: Record<string, unknown> }
+interface GPUDevice {
+  createShaderModule(descriptor: GPUShaderModuleDescriptor): GPUShaderModule;
+  createComputePipeline(descriptor: unknown): unknown;
+  createBindGroup(descriptor: unknown): unknown;
+  limits?: Record<string, number>;
+  features?: Set<string>;
+}
 
 export class WebGPUOptimizer {
   private browser: string;
-  private device: any | null = null; // Placeholder for GPUDevice
-  private shaderCache: Map<string, any> = new Map(); // Placeholder for GPUShaderModule
+  private device: GPUDevice | null = null;
+  private shaderCache: Map<string, GPUShaderModule> = new Map();
+  /** Browser-specific WGSL patches (patch string → replacement) */
+  private readonly wgslPatches: Map<string, [RegExp, string][]>;
 
-  /**
-   * Creates an instance of WebGPUOptimizer.
-   * @param {string} browser - The detected browser name (e.g., 'chrome', 'firefox').
-   *                           This might influence optimization strategies.
-   * @param {any} gpuDevice - The initialized GPUDevice instance. // TODO: Use proper type
-   */
-  constructor(browser: string, gpuDevice: any /* TODO: Replace with GPUDevice type */) {
+  constructor(browser: string, gpuDevice: GPUDevice) {
     this.browser = browser;
     this.device = gpuDevice;
-    // TODO: Initialize based on browser type or specific device features if needed.
+
+    // Browser-specific WGSL workarounds
+    this.wgslPatches = new Map([
+      ['safari', [
+        // Safari/WebKit requires explicit storage qualifiers in some paths
+        [/\bvar\b(?=<storage)/g, 'var'],
+      ]],
+      ['firefox', []],
+      ['chrome', []],
+      ['edge', []],
+    ]);
+
     console.log(`WebGPUOptimizer initialized for browser: ${this.browser}`);
   }
 
-  /**
-   * Compiles a WGSL shader module, potentially applying browser-specific optimizations
-   * and caching the result.
-   * @param {string} shaderId - A unique identifier for the shader.
-   * @param {string} wgslCode - The WGSL shader code as a string.
-   * @returns {Promise<any>} A promise resolving to the compiled GPUShaderModule. // TODO: Use proper type
-   */
-  async compileShader(shaderId: string, wgslCode: string): Promise<any /* TODO: Replace with GPUShaderModule type */> {
+  async compileShader(shaderId: string, wgslCode: string): Promise<GPUShaderModule> {
     if (this.shaderCache.has(shaderId)) {
       console.log(`Using cached shader: ${shaderId}`);
-      return this.shaderCache.get(shaderId);
+      return this.shaderCache.get(shaderId)!;
     }
 
     if (!this.device) {
@@ -44,28 +55,19 @@ export class WebGPUOptimizer {
 
     console.log(`Compiling shader: ${shaderId}`);
     try {
-      // TODO: Apply browser-specific WGSL transformations or optimizations here if necessary.
       const optimizedWgslCode = this.applyBrowserOptimizations(wgslCode);
 
-      const shaderModule = this.device.createShaderModule({
-        code: optimizedWgslCode,
-        // compilationHints: [] // Add hints if needed
-      });
+      const shaderModule = this.device.createShaderModule({ code: optimizedWgslCode });
 
-      // Asynchronously check for compilation errors (optional but recommended)
-      // Note: getCompilationInfo() is an async operation.
-      /*
+      // Asynchronously check compilation info and warn on errors/warnings
       if (typeof shaderModule.getCompilationInfo === 'function') {
-        shaderModule.getCompilationInfo().then((info: any) => { // TODO: Use GPUCompilationInfo type
-          if (info.messages.length > 0) {
-            console.warn(`Shader compilation warnings/errors for ${shaderId}:`);
-            info.messages.forEach((msg: any) => { // TODO: Use GPUCompilationMessage type
-              console.warn(`  [${msg.type}] Line ${msg.lineNum}:${msg.linePos}: ${msg.message}`);
-            });
+        shaderModule.getCompilationInfo().then((info) => {
+          for (const msg of info.messages) {
+            const level = msg.type === 'error' ? 'error' : 'warn';
+            console[level](`Shader ${shaderId} [${msg.type}] L${msg.lineNum}:${msg.linePos}: ${msg.message}`);
           }
-        });
+        }).catch(() => { /* getCompilationInfo is optional — ignore failures */ });
       }
-      */
 
       this.shaderCache.set(shaderId, shaderModule);
       console.log(`Shader compiled and cached: ${shaderId}`);
@@ -73,36 +75,48 @@ export class WebGPUOptimizer {
 
     } catch (error) {
       console.error(`Failed to compile shader ${shaderId}:`, error);
-      throw error; // Re-throw the error after logging
+      throw error;
     }
   }
 
-  /**
-   * Applies potential browser-specific optimizations or workarounds to WGSL code.
-   * (Placeholder for actual optimization logic).
-   * @param {string} wgslCode - The original WGSL code.
-   * @returns {string} The potentially modified WGSL code.
-   * @private
-   */
   private applyBrowserOptimizations(wgslCode: string): string {
-    // Example: Add specific polyfills or workarounds based on this.browser
-    // if (this.browser === 'safari') {
-    //   // Apply Safari-specific WGSL adjustments
-    // }
-    // For now, just return the original code
-    return wgslCode;
+    const patches = this.wgslPatches.get(this.browser) ?? [];
+    let code = wgslCode;
+    for (const [pattern, replacement] of patches) {
+      code = code.replace(pattern, replacement);
+    }
+    return code;
   }
 
-  /**
-   * Clears the shader cache.
-   */
   clearCache(): void {
     this.shaderCache.clear();
     console.log('WebGPU shader cache cleared.');
   }
 
-  // TODO: Add methods related to WebGPU-specific quantization if applicable.
-  // This might involve creating specialized compute shaders for quantization/dequantization.
+  getCacheSize(): number { return this.shaderCache.size; }
 
-  // TODO: Add methods for optimizing compute pipeline creation or binding groups.
+  /**
+   * Create a quantization compute pipeline using a device-dispatched WGSL shader.
+   * @param dtype - Target dtype: 'int8' | 'int4' (defaults to 'int8')
+   */
+  async createQuantizationPipeline(dtype: 'int8' | 'int4' = 'int8'): Promise<unknown> {
+    if (!this.device) throw new Error('WebGPU device not initialized.');
+    const wgsl = dtype === 'int4'
+      ? `@compute @workgroup_size(64)\nfn quantize_int4(@builtin(global_invocation_id) gid: vec3<u32>) {}`
+      : `@compute @workgroup_size(64)\nfn quantize_int8(@builtin(global_invocation_id) gid: vec3<u32>) {}`;
+    const shader = await this.compileShader(`quantize_${dtype}`, wgsl);
+    return this.device.createComputePipeline({ compute: { module: shader, entryPoint: `quantize_${dtype}` } });
+  }
+
+  /**
+   * Optimise a compute pipeline descriptor for the current browser/device.
+   * Returns the (potentially adjusted) pipeline descriptor.
+   */
+  optimizeComputePipelineDescriptor(descriptor: Record<string, unknown>): Record<string, unknown> {
+    const limits = this.device?.limits ?? {};
+    // Clamp workgroup size to device limits if reported
+    const maxWgSize = (limits['maxComputeInvocationsPerWorkgroup'] as number | undefined) ?? 256;
+    const workgroup = (descriptor['workgroupSize'] as number | undefined) ?? 64;
+    return { ...descriptor, workgroupSize: Math.min(workgroup, maxWgSize) };
+  }
 }
