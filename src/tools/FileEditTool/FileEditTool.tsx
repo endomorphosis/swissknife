@@ -103,12 +103,13 @@ export const FileEditTool = {
         </Box>
       )
     } catch (e) {
-      // Handle the case where while we were showing the diff, the user manually made the change.
-      // TODO: Find a way to show the diff in this case
+      // The diff could not be displayed, typically because the file was manually
+      // modified while the tool was running. We log the error and surface a
+      // note rather than crashing — full diff display requires stable file state.
       logError(e)
       return (
         <Box flexDirection="column">
-          <Text>{'  '}⎿ (No changes)</Text>
+          <Text>{'  '}⎿ (File modified externally — diff unavailable)</Text>
         </Box>
       )
     }

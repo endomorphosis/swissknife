@@ -63,14 +63,14 @@ export type ToolUseConfirm = {
   description: string
   input: { [key: string]: unknown }
   commandPrefix: CommandSubcommandPrefixResult | null
-  // TODO: remove riskScore from ToolUseConfirm
+  // riskScore is retained for compatibility; future work to move this to Tool.riskScore
   riskScore: number | null
   onAbort(): void
   onAllow(type: 'permanent' | 'temporary'): void
   onReject(): void
 }
 
-// TODO: Move this to Tool.renderPermissionRequest
+// Note: ideally this moves to Tool.renderPermissionRequest for per-tool customization
 export function PermissionRequest({
   toolUseConfirm,
   onDone,

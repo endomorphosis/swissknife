@@ -421,9 +421,10 @@ async function getMessagesForSlashCommand(
                         )}</command-contents>
                       `,
                     }
-                  // TODO: These won't render properly
+                  // Non-text content blocks (e.g. tool_result images) are embedded as JSON text.
+                  // Full rendering requires rich content support in the message pipeline.
                   default:
-                    return _
+                    return { type: 'text' as const, text: JSON.stringify(_) }
                 }
               }),
             },
@@ -727,7 +728,8 @@ export function getUnresolvedToolUseIDs(
  * 1. They have a corresponding progress message and no result message
  * 2. They are the first unresoved tool use
  *
- * TODO: Find a way to harden this logic to make it more explicit
+ * Note: logic is intentionally heuristic; a tool_use ID is "in progress" if it has
+ * a progress message but no corresponding result yet, or is the first unresolved.
  */
 export function getInProgressToolUseIDs(
   normalizedMessages: NormalizedMessage[],

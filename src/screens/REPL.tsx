@@ -288,7 +288,7 @@ export function REPL({
       }
     } else {
       addToHistory(initialPrompt)
-      // TODO: setHistoryIndex
+      setHistoryIndex(-1)  // reset to newest after submitting
     }
 
     setHaveShownCostDialog(

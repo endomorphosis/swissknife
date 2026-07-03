@@ -1,9 +1,9 @@
 import * as React from 'react.js.js.js.js.js';
-import type { Command, LocalJSXCommand } from '../types/command.js.js.js.js.js.js.js.js.js.js.js'; // Updated import path
+import type { LocalJSXCommand } from '../types/command.js.js.js.js.js.js.js.js.js.js.js'; // Updated import path
 import { ResumeConversation } from '../screens/ResumeConversation.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-// import { render } from 'ink.js.js.js.js.js'; // Rendering should happen outside the handler
 import { CACHE_PATHS, loadLogList } from '../utils/log.js.js.js.js.js.js.js.js.js.js.js'; // Assuming .js extension
-import type { Tool } from '../Tool.js.js.js.js.js.js.js.js.js.js.js'; // Import Tool type
+import { getCommands } from '../commands.js.js.js.js.js.js.js.js.js.js.js';
+import { getTools } from '../tools.js.js.js.js.js.js.js.js.js.js.js';
 
 const resumeCommand: LocalJSXCommand = {
   type: 'local-jsx',
@@ -16,11 +16,12 @@ const resumeCommand: LocalJSXCommand = {
     return 'resume';
   },
   async handler(args, onDone, context) { // Renamed call to handler, args is unused
-    const logs = await loadLogList(CACHE_PATHS.messages());
-    // TODO: Fetch commands, tools, and verbose flag from appropriate context/config
-    const commands: Command[] = []; // Placeholder
-    const tools: Tool[] = []; // Placeholder
-    const verbose: boolean = false; // Placeholder
+    const [logs, commands, tools] = await Promise.all([
+      loadLogList(CACHE_PATHS.messages()),
+      getCommands(),
+      getTools(false),
+    ]);
+    const verbose: boolean = false; // verbose mode not yet surfaced in command context
 
     // Return the element to be rendered by the main loop
     return (
