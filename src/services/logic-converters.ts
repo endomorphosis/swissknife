@@ -65,7 +65,7 @@ export class TDFOLToDCECConverter {
       .replace(/\bP\(/g, '(permitted ')
       .replace(/\bF\(/g, '(forbidden ')
       .replace(/□/g, '(always ')
-      .replace(/◇/g, '(eventually ')
+      .replace(/◊/g, '(eventually ')
       .replace(/∀/g, '(forall ')
       .replace(/∃/g, '(exists ')
       .replace(/∧/g, ' and ')
@@ -92,7 +92,7 @@ export class DCECToTDFOLConverter {
       .replace(/\(permitted\s+/gi, 'P(')
       .replace(/\(forbidden\s+/gi, 'F(')
       .replace(/\(always\s+/gi, '□(')
-      .replace(/\(eventually\s+/gi, '◇(')
+      .replace(/\(eventually\s+/gi, '◊(')
       .replace(/\(forall\s+/gi, '∀(')
       .replace(/\(exists\s+/gi, '∃(')
       .replace(/\band\b/gi, '∧')
@@ -118,8 +118,8 @@ export class TDFOLToFOLConverter {
     return formula
       .replace(/□\(([^)]+)\)/g, '$1')    // □(φ) → φ
       .replace(/□([^\s(]+)/g, '$1')      // □φ (no paren) → φ
-      .replace(/◇\(([^)]+)\)/g, '$1')   // ◇(φ) → φ
-      .replace(/◇([^\s(]+)/g, '$1')     // ◇φ → φ
+      .replace(/◊\(([^)]+)\)/g, '$1')   // ◊(φ) → φ
+      .replace(/◊([^\s(]+)/g, '$1')     // ◊φ → φ
       .replace(/\bO\(([^)]+)\)/g, '$1')  // O(φ) → φ
       .replace(/\bP\(([^)]+)\)/g, '$1')  // P(φ) → φ
       .replace(/\bF\(([^)]+)\)/g, '¬($1)') // F(φ) → ¬φ
@@ -147,7 +147,7 @@ export class TDFOLToTPTPConverter {
       .replace(/→/g, ' => ')
       .replace(/↔/g, ' <=> ')
       .replace(/□/g, 'box')
-      .replace(/◇/g, 'dia')
+      .replace(/◊/g, 'dia')
       .trim();
     return `fof(${name}, conjecture, (${tptp})).`;
   }

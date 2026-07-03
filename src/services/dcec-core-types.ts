@@ -64,7 +64,7 @@ export enum LogicalConnective {
 /** LTL/CTL temporal operators. */
 export enum DCECTemporalOperator {
   ALWAYS      = '□',   // G in LTL
-  EVENTUALLY  = '◇',   // F in LTL
+  EVENTUALLY  = '◊',   // F in LTL
   NEXT        = 'X',
   UNTIL       = 'U',
   RELEASE     = 'R',

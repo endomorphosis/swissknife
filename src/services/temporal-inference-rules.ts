@@ -20,7 +20,7 @@
 
 export const TemporalOperator = {
   ALWAYS:     'ALWAYS',     // □ / G
-  EVENTUALLY: 'EVENTUALLY', // ◇ / F
+  EVENTUALLY: 'EVENTUALLY', // ◊ / F
   NEXT:       'NEXT',       // X
   UNTIL:      'UNTIL',      // U
   RELEASE:    'RELEASE',    // R
@@ -147,11 +147,11 @@ export class TemporalS4AxiomRule implements TemporalInferenceRule {
 }
 
 /**
- * S5 Axiom: ◇φ ⊢ □◇φ   (Euclidean)
+ * S5 Axiom: ◊φ ⊢ □◊φ   (Euclidean)
  */
 export class TemporalS5AxiomRule implements TemporalInferenceRule {
   readonly name = 'TemporalS5Axiom';
-  readonly description = 'Euclidean axiom: from ◇φ, infer □◇φ';
+  readonly description = 'Euclidean axiom: from ◊φ, infer □◊φ';
 
   canApply(...formulas: Formula[]): boolean {
     return formulas.length === 1 &&
@@ -165,11 +165,11 @@ export class TemporalS5AxiomRule implements TemporalInferenceRule {
 }
 
 /**
- * Eventually Introduction: φ ⊢ ◇φ
+ * Eventually Introduction: φ ⊢ ◊φ
  */
 export class EventuallyIntroductionRule implements TemporalInferenceRule {
   readonly name = 'EventuallyIntroduction';
-  readonly description = 'From φ, infer ◇φ';
+  readonly description = 'From φ, infer ◊φ';
 
   canApply(...formulas: Formula[]): boolean { return formulas.length === 1; }
 
@@ -244,11 +244,11 @@ export class UntilInductionRule implements TemporalInferenceRule {
 }
 
 /**
- * Eventually Expansion: ◇φ ⊢ φ ∨ X◇φ
+ * Eventually Expansion: ◊φ ⊢ φ ∨ X◊φ
  */
 export class EventuallyExpansionRule implements TemporalInferenceRule {
   readonly name = 'EventuallyExpansion';
-  readonly description = 'Expand eventually: ◇φ ⊢ φ ∨ X◇φ';
+  readonly description = 'Expand eventually: ◊φ ⊢ φ ∨ X◊φ';
 
   canApply(...formulas: Formula[]): boolean {
     return formulas.length === 1 &&
@@ -292,11 +292,11 @@ export class AlwaysDistributionRule implements TemporalInferenceRule {
 }
 
 /**
- * Always-Eventually Expansion: □◇φ ⊢ ◇φ
+ * Always-Eventually Expansion: □◊φ ⊢ ◊φ
  */
 export class AlwaysEventuallyExpansionRule implements TemporalInferenceRule {
   readonly name = 'AlwaysEventuallyExpansion';
-  readonly description = 'From □◇φ, infer ◇φ';
+  readonly description = 'From □◊φ, infer ◊φ';
 
   canApply(...formulas: Formula[]): boolean {
     if (formulas.length < 1) return false;
@@ -309,17 +309,17 @@ export class AlwaysEventuallyExpansionRule implements TemporalInferenceRule {
 
   apply(...formulas: Formula[]): Formula {
     const f = formulas[0];
-    if (f.kind === 'temporal-unary') return f.formula; // ◇φ
+    if (f.kind === 'temporal-unary') return f.formula; // ◊φ
     throw new Error('AlwaysEventuallyExpansionRule: invalid shape');
   }
 }
 
 /**
- * Eventually-Always Contraction: ◇□φ, φ ⊢ □φ
+ * Eventually-Always Contraction: ◊□φ, φ ⊢ □φ
  */
 export class EventuallyAlwaysContractionRule implements TemporalInferenceRule {
   readonly name = 'EventuallyAlwaysContraction';
-  readonly description = 'From ◇□φ and φ, infer □φ';
+  readonly description = 'From ◊□φ and φ, infer □φ';
 
   canApply(...formulas: Formula[]): boolean {
     if (formulas.length !== 2) return false;

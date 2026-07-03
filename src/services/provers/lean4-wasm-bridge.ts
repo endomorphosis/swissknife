@@ -136,19 +136,27 @@ export class Lean4WasmBridge {
       writeFileSync(tmpFile, source, 'utf8');
 
       // Try `lean --run` for simple scripts first
+      let output = '';
       try {
-        execFileSync(this.leanPath!, ['--run', tmpFile], {
-          timeout: timeoutMs,
-          encoding: 'utf8',
-          stdio: 'pipe',
-        });
+        output = execFileSync(this.leanPath!, ['--run', tmpFile], {
+          timeout: timeoutMs, encoding: 'utf8', stdio: 'pipe',
+        }) as unknown as string;
       } catch {
         // Try plain `lean` (older invocation style)
-        execFileSync(this.leanPath!, [tmpFile], {
-          timeout: timeoutMs,
-          encoding: 'utf8',
-          stdio: 'pipe',
-        });
+        output = execFileSync(this.leanPath!, [tmpFile], {
+          timeout: timeoutMs, encoding: 'utf8', stdio: 'pipe',
+        }) as unknown as string;
+      }
+
+      // PORT-030: Lean can exit 0 even when `sorry` is used (unsound proof)
+      // or when `error:` appears in output. Treat these as failures.
+      if (/\bsorry\b/i.test(output) || /error:/i.test(output)) {
+        return {
+          proved: false, sat: false, unsat: false,
+          reason: 'refuted', prover_id: 'lean4-wasm',
+          proof_time_ms: Date.now() - start,
+          meta: { error: 'Lean output contains `sorry` or `error:` — proof is incomplete', output: output.slice(0, 500) },
+        };
       }
 
       return {

@@ -83,7 +83,7 @@ function buildFormulaString(match: PatternMatch): string | null {
       const op   = match.entities['temporal_op']?.toLowerCase() ?? '';
       const prop = match.entities['clause'] ?? match.text;
       if (op.includes('always') || op === 'g') return `□${camelCase(prop)}`;
-      if (op.includes('eventually') || op === 'f') return `◇${camelCase(prop)}`;
+      if (op.includes('eventually') || op === 'f') return `◊${camelCase(prop)}`;
       return `□${camelCase(prop)}`;
     }
     case PatternType.CONDITIONAL: {

@@ -171,10 +171,42 @@ export class ProofCache {
 
   /**
    * Compute the canonical cache key for a formula string.
-   * Uses sha256 to produce a compact, collision-resistant identifier.
+   * PORT-161: Include axioms + prover identity to match Python's cache key:
+   *   sha256{formula, axioms, prover_name, prover_config}
+   * This prevents cross-prover or cross-axiom-set cache collisions.
    */
-  static formulaHash(formula: string): string {
-    return createHash('sha256').update(formula, 'utf8').digest('hex');
+  static formulaHash(
+    formula: string,
+    options?: { axioms?: string[]; proverName?: string; proverConfig?: Record<string, unknown> },
+  ): string {
+    const parts: string[] = [formula];
+    if (options?.axioms?.length) parts.push(JSON.stringify([...options.axioms].sort()));
+    if (options?.proverName)     parts.push(options.proverName);
+    if (options?.proverConfig)   parts.push(JSON.stringify(options.proverConfig));
+    return createHash('sha256').update(parts.join('\x00'), 'utf8').digest('hex');
+  }
+
+  /**
+   * PORT-160: Convert TS proof_time_ms (ms) → wire-format proof_time (seconds)
+   * for Python interoperability. Use when serializing to a shared IPFS proof cache.
+   */
+  static toWireFormat(result: unknown): unknown {
+    if (typeof result !== 'object' || result === null) return result;
+    const r = result as Record<string, unknown>;
+    if (typeof r['proof_time_ms'] === 'number') {
+      return { ...r, proof_time: r['proof_time_ms'] / 1000 };
+    }
+    return r;
+  }
+
+  /** Inverse of toWireFormat — convert Python seconds → TS ms. */
+  static fromWireFormat(result: unknown): unknown {
+    if (typeof result !== 'object' || result === null) return result;
+    const r = result as Record<string, unknown>;
+    if (typeof r['proof_time'] === 'number' && typeof r['proof_time_ms'] !== 'number') {
+      return { ...r, proof_time_ms: Math.round((r['proof_time'] as number) * 1000) };
+    }
+    return r;
   }
 
   private isExpired(entry: CacheEntry): boolean {

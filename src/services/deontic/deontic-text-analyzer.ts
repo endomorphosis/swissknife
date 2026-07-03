@@ -287,8 +287,9 @@ export class DeonticTextAnalyzer {
    * @param threshold Minimum Jaccard score (default 0.7).
    */
   actionsAreSimilar(action1: string, action2: string, threshold = 0.7): boolean {
-    const w1 = new Set(action1.toLowerCase().split(/\s+/).filter(Boolean));
-    const w2 = new Set(action2.toLowerCase().split(/\s+/).filter(Boolean));
+    // PORT-110: match Python's Jaccard word-overlap with words>3 chars filter
+    const w1 = new Set(action1.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3));
+    const w2 = new Set(action2.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3));
     if (w1.size === 0 || w2.size === 0) return false;
     const intersection = new Set([...w1].filter(w => w2.has(w)));
     const union = new Set([...w1, ...w2]);

@@ -50,7 +50,7 @@ export interface FormulaAnalysis {
   operatorCount: number;
   /** Whether the formula contains arithmetic sub-expressions. */
   hasArithmetic: boolean;
-  /** Whether the formula contains modal (□/◇) operators. */
+  /** Whether the formula contains modal (□/◊) operators. */
   hasModal: boolean;
   /** Whether the formula contains temporal operators (G/F/U/…). */
   hasTemporal: boolean;
@@ -74,7 +74,7 @@ export interface FormulaAnalysis {
  * variable names like x, y, z, p, q, r, s.
  * Multi-letter keywords are matched case-insensitively.
  */
-const MODAL_KEYWORDS_MULTI = new Set(['box', '□', 'diamond', '◇', 'necessarily', 'possibly', 'knows', 'believes']);
+const MODAL_KEYWORDS_MULTI = new Set(['box', '□', 'diamond', '◊', 'necessarily', 'possibly', 'knows', 'believes']);
 const MODAL_KEYWORDS_UPPER = new Set(['K', 'B']);
 
 const TEMPORAL_KEYWORDS_MULTI = new Set(['always', 'eventually', 'until', 'next', 'release', 'globally', 'future', 'since']);

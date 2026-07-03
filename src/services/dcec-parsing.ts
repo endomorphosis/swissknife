@@ -122,7 +122,7 @@ const SYNONYM_MAP: Record<string, string> = {
   'forall':     '∀',
   'exists':     '∃',
   'always':     '□',
-  'eventually': '◇',
+  'eventually': '◊',
   'obligated':  'O',
   'permitted':  'P',
   'forbidden':  'F',

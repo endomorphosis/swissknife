@@ -20,7 +20,7 @@ TDFOL operators:
 - ∀x (forall x)          — universal quantification
 - ∃x (exists x)          — existential quantification
 - □φ (always φ)           — temporal necessity (G in LTL)
-- ◇φ (eventually φ)       — temporal possibility (F in LTL)
+- ◊φ (eventually φ)       — temporal possibility (F in LTL)
 - O(φ)   — obligation: it is obligatory that φ
 - P(φ)   — permission: it is permitted that φ
 - F(φ)   — prohibition: it is forbidden that φ
@@ -47,7 +47,7 @@ const OPERATOR_PROMPTS: Record<string, string> = {
   permission:          '- Permission: P(access(user, resource)) — it is permitted to access',
   forbidden:           '- Prohibition: F(disclose(party, data)) — it is forbidden to disclose',
   temporal_always:     '- Always: □P — P holds at all future times',
-  temporal_eventually: '- Eventually: ◇P — P will hold at some future time',
+  temporal_eventually: '- Eventually: ◊P — P will hold at some future time',
 };
 
 const FEW_SHOT_EXAMPLES: Record<string, Array<{ input: string; output: string }>> = {
@@ -64,7 +64,7 @@ const FEW_SHOT_EXAMPLES: Record<string, Array<{ input: string; output: string }>
   ],
   advanced: [
     { input: 'Eventually, all outstanding payments must be settled.',
-      output: '◇(∀x.Outstanding(x) → O(settle(x)))' },
+      output: '◊(∀x.Outstanding(x) → O(settle(x)))' },
     { input: 'If knowledge of breach occurs, the party must immediately notify.',
       output: '∀x.(Party(x) ∧ knows(x, breach)) → O(notify(x, immediately))' },
   ],
