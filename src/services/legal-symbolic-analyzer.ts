@@ -210,6 +210,17 @@ export class LegalSymbolicAnalyzer {
   extractEntities(text: string): LegalEntity[] {
     return extractEntities(text);
   }
+
+  /**
+   * Extract temporal conditions (deadlines, periodicity, sequence) from text.
+   * PORT-133: expose the Python `extract_temporal_conditions`
+   * (integration/domain/legal_symbolic_analyzer.py) as a public method. The Python
+   * reference optionally delegates to SymbolicAI; the TS port stays regex-based by
+   * design (no ML runtime dependency) — mirrors analyze()'s 'heuristic_pattern_analysis'.
+   */
+  extractTemporalConditions(text: string): TemporalCondition[] {
+    return extractTemporalConditions(text);
+  }
 }
 
 // ---------------------------------------------------------------------------
