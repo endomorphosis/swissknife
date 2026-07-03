@@ -1,7 +1,11 @@
 /**
  * Implements a Graph-based Retrieval-Augmented Generation (GraphRAG) database system.
  * Based on the integration plan.
+ * Entity extraction uses spaCy-WASM (via sedbytes/spacy-wasm + Pyodide) when available,
+ * with a lightweight regex fallback for offline/test environments.
  */
+
+import { SpacyWasmNlp, regexFallbackExtract, SpacyPredicates } from '../services/spacy-wasm-nlp.js';
 
 /** Minimal graph node and edge contracts. */
 export interface GraphNode { id: string; type: string; label?: string; metadata?: Record<string, unknown> }
@@ -99,17 +103,8 @@ class InMemoryGraphStore implements GraphStore {
   }
 }
 
-// Simple regex-based entity extractor (no external NER dependency)
-function extractSimpleEntities(text: string): Array<{ id: string; type: string; name: string }> {
-  const entities: Array<{ id: string; type: string; name: string }> = [];
-  // Capitalized proper nouns heuristic
-  const properNouns = text.match(/\b[A-Z][a-z]{2,}\b/g) ?? [];
-  const seen = new Set<string>();
-  for (const noun of properNouns) {
-    if (!seen.has(noun)) { seen.add(noun); entities.push({ id: `ent-${noun}`, type: 'Entity', name: noun }); }
-  }
-  return entities.slice(0, 10); // cap at 10 entities per doc
-}
+// Simple regex-based entity extractor kept as a named re-export for backwards compat
+export { regexFallbackExtract };
 
 /**
  * Manages the GraphRAG database, combining graph, vector, and document storage.
@@ -120,11 +115,14 @@ export class GraphRAGDatabase {
   private readonly documentStore: DocumentStore;
   private readonly embeddingModel: EmbeddingModel;
 
+  private readonly spacyNlp: SpacyWasmNlp;
+
   constructor(
     graph?: GraphStore,
     vectorStore?: VectorStore,
     documentStore?: DocumentStore,
     embeddingModel?: EmbeddingModel,
+    spacyNlp?: SpacyWasmNlp,
   ) {
     this.graph         = graph         ?? new InMemoryGraphStore();
     this.vectorStore   = vectorStore   ?? new InMemoryVectorStore();
@@ -137,6 +135,7 @@ export class GraphRAGDatabase {
       const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
       return vec.map(v => v / norm);
     }};
+    this.spacyNlp = spacyNlp ?? new SpacyWasmNlp();
     console.log('GraphRAGDatabase initialized.');
   }
 
@@ -160,15 +159,17 @@ export class GraphRAGDatabase {
     const embedding = await this.generateEmbedding(document.content);
     await this.vectorStore.add(docId, embedding);
 
-    // Extract entities and build graph edges
+    // Extract entities and build graph edges using spaCy WASM (or regex fallback)
     await this.graph.addNode({ id: docId, type: 'Document', label: document.id, metadata: document.metadata });
-    const entities = extractSimpleEntities(document.content);
-    for (const ent of entities) {
+    const predicates: SpacyPredicates = await this.spacyNlp.extract(document.content);
+    const namedEntities = predicates.entities.length > 0
+      ? predicates.entities.map(e => ({ id: `ent-${e.text.replace(/\s+/g,'_')}`, type: e.label || 'Entity', name: e.text }))
+      : regexFallbackExtract(document.content).entities.map(e => ({ id: `ent-${e.text.replace(/\s+/g,'_')}`, type: e.label, name: e.text }));
+    for (const ent of namedEntities.slice(0, 20)) {
       await this.graph.addNode({ id: ent.id, type: ent.type, label: ent.name });
       await this.graph.addEdge({ source: docId, target: ent.id, type: 'mentions' });
     }
-
-    console.log(`Document '${docId}' added with ${entities.length} entity edges.`);
+    console.log(`Document '${docId}' added with ${namedEntities.length} entity edges (spaCy=${this.spacyNlp.isAvailable()}).`);
     return docId;
   }
 
