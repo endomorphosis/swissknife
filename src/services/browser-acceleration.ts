@@ -12,8 +12,6 @@ export class BrowserAccelerator {
   private browserCapabilities: BrowserCapabilities | null = null;
 
   constructor() {
-    // TODO: Ensure HardwareAbstraction is implemented and available.
-    // For now, we proceed assuming it will be.
     this.hardwareAbstraction = new HardwareAbstraction({
       preferredBackends: ['webgpu', 'webnn', 'wasm', 'cpu']
     });
@@ -24,13 +22,13 @@ export class BrowserAccelerator {
    * @returns {Promise<boolean>} True if initialization is successful, false otherwise.
    */
   async initialize(): Promise<boolean> {
-    // Initialize hardware detection (depends on HardwareAbstraction)
-    // await this.hardwareAbstraction.initialize(); // Uncomment when HardwareAbstraction is ready
-
+    // Initialize hardware detection
+    const hwReady = await this.hardwareAbstraction.initialize();
+    if (!hwReady && this.hardwareAbstraction.getAvailableBackends().length === 0) {
+      console.warn('BrowserAccelerator: hardware abstraction found no backends.');
+    }
     // Detect browser capabilities
     this.browserCapabilities = await this.detectCapabilities();
-
-    // TODO: Add check for successful hardwareAbstraction initialization when ready
     return !!this.browserCapabilities;
   }
 
@@ -90,7 +88,30 @@ export class BrowserAccelerator {
     return this.browserCapabilities;
   }
 
-  // TODO: Add more methods based on ipfs_accelerate_js functionality as needed
-  // e.g., methods to select optimal backend based on capabilities,
-  // methods to trigger specific optimizations, etc.
+  /**
+   * Select the best backend for the current browser based on detected capabilities.
+   * @returns Backend id string ('webgpu', 'webnn', 'wasm', 'cpu') or 'none'.
+   */
+  selectOptimalBackend(): string {
+    const caps = this.browserCapabilities;
+    if (!caps) return 'none';
+    if (caps.webgpuSupported && caps.browser !== 'firefox') return 'webgpu';
+    if (caps.webnnSupported) return 'webnn';
+    if (caps.wasmSupported) return 'wasm';
+    return 'cpu';
+  }
+
+  /**
+   * Returns optimisation hints for the active backend based on device capabilities.
+   */
+  getOptimizationHints(): Record<string, unknown> {
+    const caps = this.browserCapabilities;
+    if (!caps) return {};
+    return {
+      preferFp16: caps.webgpuSupported,
+      parallelism: Math.min(caps.hardwareConcurrency, 8),
+      memoryBudgetMB: Math.floor(caps.deviceMemoryGB * 1024 * 0.4), // use ~40% of device RAM
+      backend: this.selectOptimalBackend(),
+    };
+  }
 }

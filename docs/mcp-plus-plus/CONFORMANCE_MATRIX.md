@@ -186,7 +186,16 @@ Priority order for implementation start:
 - [x] JSON-serialisable UI manifest bridge + invoke guard (`mcp-deontic-ui-manifest.ts`, Round 52).
 - [x] Add compliance and policy audit primitives (`compliance-checker`, `policy-audit-log`).
 - [x] Add conformance status CLI output (`mcp-plus-plus conformance status`).
-- [ ] Add requirement-to-test mapping doc and keep this matrix updated per merged feature.
+- [x] Add requirement-to-test mapping doc and keep this matrix updated per merged feature.
+- [x] WASM theorem prover layer — Z3/CVC5/Coq/Lean4 local-first proof evaluation
+      (`mcp-wasm-prover-hub.ts`, `provers/z3-wasm-bridge.ts`, `provers/cvc5-wasm-bridge.ts`,
+       `provers/coq-jscoq-bridge.ts`, `provers/lean4-wasm-bridge.ts`,
+       `provers/smt2-serializer.ts`, `provers/mcp-proof-cache.ts`).
+- [x] Remote engine local-first pre-check: `checkPolicyConsistencyRemote(policy, engine, hub?)` —
+      Z3/CVC5 WASM decides propositional/FOL before going to Python TDFOL.
+- [x] Lurk/ZK stub (`provers/lurk-wasm-bridge.ts`) — `ZKProofArtifact` type + Phase 6 placeholder.
+- [x] AuditEntry `extra.prover_id` + `extra.proof_time_ms` — logged by `PolicyAuditLog.record()`.
+- [x] `mcp++ conformance` / `mcp++ status` show loaded WASM provers.
 - [x] Add descriptor-generated desktop quality gates for the IPFS dataset-to-inference workflow.
 - [x] Add descriptor authoring CLI starter packs and trust verification.
 - [x] Add replay/audit inspector summaries for generated app debugging.

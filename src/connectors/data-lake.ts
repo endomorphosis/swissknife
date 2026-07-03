@@ -4,11 +4,14 @@
  * Based on the integration plan.
  */
 
-// TODO: Import necessary types (GraphRAGDatabase, etc.)
-// import { GraphRAGDatabase } from '../inference/graph-rag-database.js'; // Assuming GraphRAGDatabase exists
-
-// Placeholder types
-type GraphRAGDatabase = any;
+/** Minimal contract that a GraphRAG database implementation must satisfy. */
+export interface GraphRAGDatabaseContract {
+  initialize(): Promise<void>;
+  generateEmbedding(text: string): Promise<number[]>;
+  findRelevantNodes(embedding: number[]): Promise<Array<{ id: string; locationHint?: string; metadata?: Record<string, unknown> }>>;
+  getNodeData?(nodeId: string): Promise<unknown>;
+  disconnect?(): Promise<void>;
+}
 
 /** Represents a partition of data within the data lake relevant to a query. */
 export interface DataPartition {
@@ -48,49 +51,46 @@ export interface DataLakeConnector {
  * Implementation of a DataLakeConnector specifically for a GraphRAG database.
  */
 export class GraphRAGDataLakeConnector implements DataLakeConnector {
-  // TODO: Replace 'any' with actual GraphRAGDatabase type
-  private graphDatabase: GraphRAGDatabase | null = null;
-  private connectionConfig: any; // Configuration for connecting to the GraphRAG DB
+  private graphDatabase: GraphRAGDatabaseContract;
+  private connectionConfig: Record<string, unknown>;
+  private connected = false;
 
-  /**
-   * Creates an instance of GraphRAGDataLakeConnector.
-   * @param {any} config - Configuration options for connecting to the GraphRAG DB.
-   * @param {GraphRAGDatabase} [graphDB] - Optional pre-initialized GraphRAGDatabase instance.
-   */
-  constructor(config: any, graphDB?: GraphRAGDatabase) {
+  constructor(config: Record<string, unknown>, graphDB?: GraphRAGDatabaseContract) {
     this.connectionConfig = config;
-    // TODO: Initialize GraphRAGDatabase properly if not provided
-    this.graphDatabase = graphDB || { /* Placeholder GraphRAGDatabase */
-        initialize: async () => {},
-        generateEmbedding: async (text: string) => [0.1],
-        // Placeholder for finding relevant nodes/partitions based on embedding
-        findRelevantNodes: async (embedding: number[]) => [{ id: 'part1', locationHint: 'nodeA' }, { id: 'part2', locationHint: 'nodeB' }]
+    // Use provided DB or create a minimal in-memory stub
+    this.graphDatabase = graphDB ?? {
+      initialize:          async () => {},
+      generateEmbedding:   async (_text: string) => [0.1, 0.2, 0.3],
+      findRelevantNodes:   async (_emb: number[]) => [
+        { id: 'part1', locationHint: 'nodeA', metadata: {} },
+        { id: 'part2', locationHint: 'nodeB', metadata: {} },
+      ],
+      getNodeData:         async (id: string) => ({ content: `Data for partition ${id}` }),
     };
-    console.log('GraphRAGDataLakeConnector initialized (with placeholders).');
+    console.log('GraphRAGDataLakeConnector initialized.');
   }
 
-  /** Connects to the GraphRAG database (delegates to its initialize method). */
   async connect(): Promise<boolean> {
-    console.log('Connecting GraphRAGDataLakeConnector...');
-    if (!this.graphDatabase) {
-        console.error('GraphRAGDatabase not initialized.');
-        return false;
-    }
+    if (this.connected) return true;
+    console.log('GraphRAGDataLakeConnector: connecting...');
     try {
-        await this.graphDatabase.initialize(); // Assuming GraphRAGDatabase has an initialize method
-        console.log('GraphRAGDataLakeConnector connected successfully.');
-        return true;
+      await this.graphDatabase.initialize();
+      this.connected = true;
+      console.log('GraphRAGDataLakeConnector: connected.');
+      return true;
     } catch (error) {
-        console.error('Failed to connect GraphRAGDataLakeConnector:', error);
-        return false;
+      console.error('GraphRAGDataLakeConnector: connection failed:', error);
+      return false;
     }
   }
 
-  /** Disconnects (placeholder, depends on GraphRAGDatabase implementation). */
   async disconnect(): Promise<void> {
-    console.log('Disconnecting GraphRAGDataLakeConnector (placeholder)...');
-    // TODO: Implement disconnection logic if needed (e.g., closing DB connections)
-    // await this.graphDatabase?.disconnect(); // If disconnect method exists
+    if (!this.connected) return;
+    if (typeof this.graphDatabase.disconnect === 'function') {
+      await this.graphDatabase.disconnect();
+    }
+    this.connected = false;
+    console.log('GraphRAGDataLakeConnector: disconnected.');
   }
 
   /**
@@ -99,35 +99,22 @@ export class GraphRAGDataLakeConnector implements DataLakeConnector {
    * @returns {Promise<DataPartition[]>} A list of data partitions.
    */
   async partitionForQuery(query: string): Promise<DataPartition[]> {
-    if (!this.graphDatabase) {
-      throw new Error('GraphRAGDatabase not initialized.');
-    }
-    console.log(`Partitioning data lake for query: "${query}"`);
-
-    // 1. Generate embedding for the query
-    // TODO: Ensure generateEmbedding exists and returns appropriate type
+    if (!this.connected) await this.connect();
+    console.log(`GraphRAGDataLakeConnector.partitionForQuery: "${query}"`);
     const embedding = await this.graphDatabase.generateEmbedding(query);
-
-    // 2. Use GraphRAG DB to find relevant nodes/partitions based on embedding/graph structure
-    // TODO: Ensure findRelevantNodes exists and returns appropriate type/structure
-    // This method should encapsulate the logic of finding relevant data chunks.
-    const relevantNodes = await this.graphDatabase.findRelevantNodes(embedding);
-
-    // 3. Convert relevant nodes/info into DataPartition objects
-    const partitions: DataPartition[] = relevantNodes.map((node: any) => ({
-      id: node.id, // Assuming node has an ID representing the partition
-      locationHint: node.locationHint, // Optional hint for data locality
-      metadata: node.metadata || {}, // Include any relevant metadata
+    const nodes     = await this.graphDatabase.findRelevantNodes(embedding);
+    return nodes.map(node => ({
+      id:           node.id,
+      locationHint: node.locationHint,
+      metadata:     node.metadata ?? {},
     }));
-
-    console.log(`Found ${partitions.length} relevant partitions for query.`);
-    return partitions;
   }
 
-  // Optional: Implement getPartitionData if needed
-  // async getPartitionData(partitionId: string): Promise<any> {
-  //   console.log(`Retrieving data for partition ${partitionId}...`);
-  //   // TODO: Implement logic to fetch data based on partition ID, possibly using GraphRAGDatabase or another store
-  //   return { content: `Data for partition ${partitionId}` }; // Placeholder
-  // }
+  async getPartitionData(partitionId: string): Promise<unknown> {
+    if (!this.connected) await this.connect();
+    if (typeof this.graphDatabase.getNodeData === 'function') {
+      return this.graphDatabase.getNodeData(partitionId);
+    }
+    return { content: `Data for partition ${partitionId}`, source: this.connectionConfig };
+  }
 }

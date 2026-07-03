@@ -1,194 +1,211 @@
 /**
  * Implements a Graph-based Retrieval-Augmented Generation (GraphRAG) database system.
  * Based on the integration plan.
+ * Entity extraction uses spaCy-WASM (via sedbytes/spacy-wasm + Pyodide) when available,
+ * with a lightweight regex fallback for offline/test environments.
  */
 
-// TODO: Import necessary types and libraries (Graph library, VectorStore implementation, DocumentStore implementation)
-// import { Graph } from 'some-graph-library.js'; // Example
-// import { VectorStore } from '../vector/vector-store.js'; // Assuming a VectorStore interface/class
-// import { DocumentStore } from '../storage/document-store.js'; // Assuming a DocumentStore interface/class
-// import { EmbeddingModel } from '../models/embedding-model.js'; // Assuming an embedding model interface/class
+import { SpacyWasmNlp, regexFallbackExtract, SpacyPredicates } from '../services/spacy-wasm-nlp.js';
 
-// Placeholder types for demonstration
-type Graph = any;
-type VectorStore = any;
-type DocumentStore = any;
-type EmbeddingModel = any; // Placeholder for the model used to generate embeddings
+/** Minimal graph node and edge contracts. */
+export interface GraphNode { id: string; type: string; label?: string; metadata?: Record<string, unknown> }
+export interface GraphEdge { source: string; target: string; type: string }
+export interface GraphStore {
+  addNode(node: GraphNode): Promise<void>;
+  addEdge(edge: GraphEdge): Promise<void>;
+  getNeighbors(nodeId: string, maxDepth: number): Promise<string[]>;
+}
+
+/** Minimal vector/document store contracts. */
+export interface VectorStore {
+  initialize(): Promise<void>;
+  add(id: string, embedding: number[]): Promise<void>;
+  search(embedding: number[], k: number): Promise<Array<{ id: string; score: number }>>;
+}
+
+export interface DocumentStore {
+  initialize(): Promise<void>;
+  add(doc: Document): Promise<string>;
+  get(id: string): Promise<Document | null>;
+}
+
+export interface EmbeddingModel {
+  generate(text: string): Promise<number[]>;
+}
 
 /** Represents a document to be stored and indexed. */
 export interface Document {
-  id: string; // Unique document identifier
-  content: string; // Text content
-  metadata?: Record<string, any>; // Optional metadata
-  // Add other fields like source, timestamp, etc.
+  id: string;
+  content: string;
+  metadata?: Record<string, unknown>;
 }
 
 /** Options for querying the GraphRAG database. */
 export interface QueryOptions {
-  maxResults?: number; // Max number of documents to retrieve
-  maxDepth?: number; // Max depth for graph traversal
-  similarityThreshold?: number; // Minimum similarity score for vector search
-  // Add other query options (e.g., filters based on metadata)
+  maxResults?: number;
+  maxDepth?: number;
+  similarityThreshold?: number;
 }
 
 /** Result of a query against the GraphRAG database. */
 export interface QueryResult {
-  documents: Document[]; // Retrieved and ranked documents
-  query: string; // The original query
-  // Add other result info (e.g., scores, provenance)
+  documents: Document[];
+  query: string;
 }
+
+// ---------------------------------------------------------------------------
+// Default in-memory implementations for each store (used when none injected)
+// ---------------------------------------------------------------------------
+
+class InMemoryDocumentStore implements DocumentStore {
+  private docs = new Map<string, Document>();
+  async initialize(): Promise<void> {}
+  async add(doc: Document): Promise<string> { this.docs.set(doc.id, doc); return doc.id; }
+  async get(id: string): Promise<Document | null> { return this.docs.get(id) ?? null; }
+}
+
+class InMemoryVectorStore implements VectorStore {
+  private vecs = new Map<string, number[]>();
+  async initialize(): Promise<void> {}
+  async add(id: string, embedding: number[]): Promise<void> { this.vecs.set(id, embedding); }
+  async search(query: number[], k: number): Promise<Array<{ id: string; score: number }>> {
+    const scores: Array<{ id: string; score: number }> = [];
+    for (const [id, vec] of this.vecs) {
+      const dot = query.reduce((s, v, i) => s + v * (vec[i] ?? 0), 0);
+      const qn  = Math.sqrt(query.reduce((s, v) => s + v * v, 0));
+      const vn  = Math.sqrt(vec.reduce((s, v) => s + v * v, 0));
+      scores.push({ id, score: (qn > 0 && vn > 0) ? dot / (qn * vn) : 0 });
+    }
+    return scores.sort((a, b) => b.score - a.score).slice(0, k);
+  }
+}
+
+class InMemoryGraphStore implements GraphStore {
+  private nodes = new Map<string, GraphNode>();
+  private edges: GraphEdge[] = [];
+  async addNode(node: GraphNode): Promise<void> { this.nodes.set(node.id, node); }
+  async addEdge(edge: GraphEdge): Promise<void> { this.edges.push(edge); }
+  async getNeighbors(nodeId: string, maxDepth: number): Promise<string[]> {
+    const visited = new Set<string>([nodeId]);
+    let frontier = [nodeId];
+    for (let depth = 0; depth < maxDepth; depth++) {
+      const next: string[] = [];
+      for (const id of frontier) {
+        for (const e of this.edges) {
+          const nbr = e.source === id ? e.target : e.target === id ? e.source : null;
+          if (nbr && !visited.has(nbr)) { visited.add(nbr); next.push(nbr); }
+        }
+      }
+      frontier = next;
+    }
+    visited.delete(nodeId);
+    return [...visited];
+  }
+}
+
+// Simple regex-based entity extractor kept as a named re-export for backwards compat
+export { regexFallbackExtract };
 
 /**
  * Manages the GraphRAG database, combining graph, vector, and document storage.
  */
 export class GraphRAGDatabase {
-  // TODO: Replace 'any' with actual types once defined/imported
-  private graph: Graph | null = null;
-  private vectorStore: VectorStore | null = null;
-  private documentStore: DocumentStore | null = null;
-  private embeddingModel: EmbeddingModel | null = null; // Model for generating embeddings
+  private readonly graph: GraphStore;
+  private readonly vectorStore: VectorStore;
+  private readonly documentStore: DocumentStore;
+  private readonly embeddingModel: EmbeddingModel;
 
-  /**
-   * Creates an instance of GraphRAGDatabase.
-   * Dependencies like stores and models should be injected or configured.
-   */
-  constructor(graph?: Graph, vectorStore?: VectorStore, documentStore?: DocumentStore, embeddingModel?: EmbeddingModel) {
-    // TODO: Initialize graph, vectorStore, documentStore, and embeddingModel properly.
-    // These might be passed in, or created based on configuration.
-    this.graph = graph || { /* Placeholder Graph */ };
-    this.vectorStore = vectorStore || { /* Placeholder VectorStore */ initialize: async () => {}, add: async () => {}, search: async () => [] };
-    this.documentStore = documentStore || { /* Placeholder DocumentStore */ initialize: async () => {}, add: async () => 'doc-placeholder-id', get: async () => ({ id: 'doc-placeholder-id', content: 'Placeholder content' }) };
-    this.embeddingModel = embeddingModel || { /* Placeholder EmbeddingModel */ generate: async (text: string) => [0.1, 0.2, 0.3] }; // Example embedding
+  private readonly spacyNlp: SpacyWasmNlp;
 
-    console.log('GraphRAGDatabase initialized (with placeholders).');
+  constructor(
+    graph?: GraphStore,
+    vectorStore?: VectorStore,
+    documentStore?: DocumentStore,
+    embeddingModel?: EmbeddingModel,
+    spacyNlp?: SpacyWasmNlp,
+  ) {
+    this.graph         = graph         ?? new InMemoryGraphStore();
+    this.vectorStore   = vectorStore   ?? new InMemoryVectorStore();
+    this.documentStore = documentStore ?? new InMemoryDocumentStore();
+    this.embeddingModel = embeddingModel ?? { generate: async (text: string) => {
+      // Deterministic bag-of-words embedding (64-dim)
+      const dim = 64;
+      const vec = new Array<number>(dim).fill(0);
+      for (const ch of text) { vec[ch.charCodeAt(0) % dim] += 1; }
+      const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
+      return vec.map(v => v / norm);
+    }};
+    this.spacyNlp = spacyNlp ?? new SpacyWasmNlp();
+    console.log('GraphRAGDatabase initialized.');
   }
 
-  /**
-   * Initializes the underlying stores (document, vector) and potentially the graph.
-   * @returns {Promise<void>}
-   */
   async initialize(): Promise<void> {
-    console.log('Initializing GraphRAGDatabase components...');
-    try {
-      await this.documentStore?.initialize();
-      await this.vectorStore?.initialize();
-      // Initialize graph if needed
-      console.log('GraphRAGDatabase components initialized.');
-    } catch (error) {
-      console.error('Failed to initialize GraphRAGDatabase components:', error);
-      throw error;
-    }
+    await this.documentStore.initialize();
+    await this.vectorStore.initialize();
+    console.log('GraphRAGDatabase components initialized.');
   }
 
-  /**
-   * Generates an embedding for the given text using the configured model.
-   * @param {string} text - The text to embed.
-   * @returns {Promise<number[]>} The embedding vector.
-   * @private
-   */
-  private async generateEmbedding(text: string): Promise<number[]> {
-    if (!this.embeddingModel) {
-      throw new Error('Embedding model not configured for GraphRAGDatabase.');
-    }
-    // TODO: Implement actual embedding generation call
+  async generateEmbedding(text: string): Promise<number[]> {
     return this.embeddingModel.generate(text);
   }
 
-  /**
-   * Adds a document to the database: stores it, generates/stores its embedding,
-   * and updates the knowledge graph.
-   * @param {Document} document - The document to add.
-   * @returns {Promise<string>} The ID of the added document.
-   */
+  async findRelevantNodes(embedding: number[], k = 10): Promise<Array<{ id: string; locationHint?: string }>> {
+    const results = await this.vectorStore.search(embedding, k);
+    return results.map(r => ({ id: r.id }));
+  }
+
   async addDocument(document: Document): Promise<string> {
-    if (!this.documentStore || !this.vectorStore || !this.graph) {
-        throw new Error('GraphRAGDatabase components not fully initialized.');
-    }
-    console.log(`Adding document ${document.id}...`);
-
-    // 1. Store the document content
-    const docId = await this.documentStore.add(document); // Assuming add returns the ID used
-
-    // 2. Generate and store the embedding
+    const docId = await this.documentStore.add(document);
     const embedding = await this.generateEmbedding(document.content);
-    await this.vectorStore.add(docId, embedding); // Use the same ID for linking
+    await this.vectorStore.add(docId, embedding);
 
-    // 3. Update the knowledge graph
-    // TODO: Implement logic to extract entities/relationships from the document
-    // and update the graph structure. This is complex and domain-specific.
-    await this.updateGraph(document, docId);
-
-    console.log(`Document ${docId} added successfully.`);
+    // Extract entities and build graph edges using spaCy WASM (or regex fallback)
+    await this.graph.addNode({ id: docId, type: 'Document', label: document.id, metadata: document.metadata });
+    const predicates: SpacyPredicates = await this.spacyNlp.extract(document.content);
+    const namedEntities = predicates.entities.length > 0
+      ? predicates.entities.map(e => ({ id: `ent-${e.text.replace(/\s+/g,'_')}`, type: e.label || 'Entity', name: e.text }))
+      : regexFallbackExtract(document.content).entities.map(e => ({ id: `ent-${e.text.replace(/\s+/g,'_')}`, type: e.label, name: e.text }));
+    for (const ent of namedEntities.slice(0, 20)) {
+      await this.graph.addNode({ id: ent.id, type: ent.type, label: ent.name });
+      await this.graph.addEdge({ source: docId, target: ent.id, type: 'mentions' });
+    }
+    console.log(`Document '${docId}' added with ${namedEntities.length} entity edges (spaCy=${this.spacyNlp.isAvailable()}).`);
     return docId;
   }
 
-  /**
-   * Placeholder for updating the knowledge graph based on a new document.
-   * @param {Document} document - The document added.
-   * @param {string} docId - The ID of the stored document.
-   * @private
-   */
-  private async updateGraph(document: Document, docId: string): Promise<void> {
-    console.log(`Updating graph based on document ${docId} (placeholder)...`);
-    // TODO: Implement entity extraction (NER), relationship extraction,
-    // and graph update logic (adding nodes/edges).
-    // Example:
-    // const entities = extractEntities(document.content);
-    // const relationships = extractRelationships(document.content, entities);
-    // await this.graph.addNode({ id: docId, type: 'Document', ...document.metadata });
-    // for (const entity of entities) {
-    //   await this.graph.addNode({ id: entity.id, type: entity.type, label: entity.name });
-    //   await this.graph.addEdge({ source: docId, target: entity.id, type: 'mentions' });
-    // }
-    // ... add relationship edges ...
-  }
-
-  /**
-   * Queries the database using a combination of vector search and graph traversal.
-   * @param {string} query - The natural language query.
-   * @param {QueryOptions} options - Options controlling the query process.
-   * @returns {Promise<QueryResult>} The query results including relevant documents.
-   */
   async query(query: string, options: QueryOptions = {}): Promise<QueryResult> {
-     if (!this.documentStore || !this.vectorStore || !this.graph) {
-        throw new Error('GraphRAGDatabase components not fully initialized.');
-    }
-    console.log(`Querying GraphRAG: "${query}"`);
-    const { maxResults = 10, maxDepth = 2, similarityThreshold = 0.7 } = options;
+    const { maxResults = 10, maxDepth = 2 } = options;
 
-    // 1. Generate embedding for the query
     const queryEmbedding = await this.generateEmbedding(query);
+    const similar = await this.vectorStore.search(queryEmbedding, maxResults);
+    const similarIds = similar.map(r => r.id);
 
-    // 2. Find similar documents using vector search
-    console.log(`Performing vector search (k=${maxResults}, threshold=${similarityThreshold})...`);
-    // TODO: Implement actual vector search call, potentially with threshold
-    const similarDocResults = await this.vectorStore.search(queryEmbedding, maxResults /*, similarityThreshold */);
-    const similarDocIds = similarDocResults.map((res: any) => res.id); // Assuming search returns { id: string, score: number }
-    console.log(`Found ${similarDocIds.length} initial similar documents via vector search.`);
+    // Graph traversal — expand context via BFS
+    const graphRelated: string[] = [];
+    for (const id of similarIds) {
+      const nbrs = await this.graph.getNeighbors(id, maxDepth);
+      graphRelated.push(...nbrs.filter(n => !similarIds.includes(n)));
+    }
 
-    // 3. Use graph traversal to find related documents (expand context)
-    console.log(`Performing graph traversal (depth=${maxDepth})...`);
-    // TODO: Implement actual graph traversal logic
-    // const relatedDocIds = await this.graph.findRelated(similarDocIds, maxDepth);
-    const relatedDocIds: string[] = []; // Placeholder
-    console.log(`Found ${relatedDocIds.length} related documents via graph traversal.`);
+    const allIds = [...new Set([...similarIds, ...graphRelated])].slice(0, maxResults);
+    const docs = (await Promise.all(allIds.map(id => this.documentStore.get(id))))
+      .filter((d): d is Document => d !== null);
 
-    // 4. Combine and deduplicate document IDs
-    const allRelevantIds = [...new Set([...similarDocIds, ...relatedDocIds])];
-    console.log(`Total unique relevant documents: ${allRelevantIds.length}`);
-
-    // 5. Retrieve and potentially rank documents
-    // TODO: Implement ranking based on similarity scores, graph distance, etc.
-    const documents = await Promise.all(
-      allRelevantIds.slice(0, maxResults).map(id => this.documentStore.get(id)) // Limit results
-    );
-
-    console.log(`Retrieved ${documents.length} documents for query.`);
-    return {
-      documents: documents.filter(doc => doc !== null) as Document[], // Filter out potential nulls if get can fail
-      query: query
-    };
+    console.log(`GraphRAG query: ${docs.length} docs returned.`);
+    return { documents: docs, query };
   }
 
-  // TODO: Add methods for graph management, re-indexing, etc.
+  /** Re-index all documents (rebuild vector and graph stores). */
+  async reindex(documents: Document[]): Promise<void> {
+    await this.initialize();
+    for (const doc of documents) await this.addDocument(doc);
+    console.log(`GraphRAGDatabase reindexed ${documents.length} documents.`);
+  }
+
+  /** Return the number of indexed documents. */
+  async documentCount(): Promise<number> {
+    const testEmb = await this.generateEmbedding('probe');
+    const results = await this.vectorStore.search(testEmb, 9999);
+    return results.length;
+  }
 }

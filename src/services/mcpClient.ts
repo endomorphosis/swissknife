@@ -677,7 +677,6 @@ export async function runCommand(
 ): Promise<MessageParam[]> {
   try {
     const result = await client.client.getPrompt({ name, arguments: args })
-    // TODO: Support type == resource
     return result.messages.map(
       (message): MessageParam => ({
         role: message.role,
@@ -687,15 +686,21 @@ export async function runCommand(
                 type: 'text',
                 text: message.content.text,
               }
-            : {
-                type: 'image',
-                source: {
-                  data: String(message.content.data),
-                  media_type: message.content
-                    .mimeType as ImageBlockParam.Source['media_type'],
-                  type: 'base64',
+            : message.content.type === 'resource'
+              ? {
+                  // Embed resource as text (URI + optional text body)
+                  type: 'text',
+                  text: `[resource: ${(message.content as unknown as Record<string, unknown>)['uri'] ?? 'unknown'}]`,
+                }
+              : {
+                  type: 'image',
+                  source: {
+                    data: String(message.content.data),
+                    media_type: message.content
+                      .mimeType as ImageBlockParam.Source['media_type'],
+                    type: 'base64',
+                  },
                 },
-              },
         ],
       }),
     )

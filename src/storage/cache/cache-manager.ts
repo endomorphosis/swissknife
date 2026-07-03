@@ -1,106 +1,105 @@
 import { logger } from '../../utils/logger.js';
 
-// TODO: Add options for TTL, max size, eviction policies
 interface CacheManagerOptions {
-  maxSize?: number; // Max number of items
-  defaultTtl?: number; // Default time-to-live in milliseconds
+  maxSize?: number;      // Max number of items (LRU eviction when exceeded)
+  defaultTtl?: number;  // Default time-to-live in milliseconds
+  cleanupIntervalMs?: number; // How often to sweep for expired entries (default: 60 s)
 }
 
 interface CacheEntry<T> {
   value: T;
   expiresAt?: number; // Timestamp in ms
+  lastAccessed: number; // For LRU ordering
 }
 
-/**
- * Manages in-memory caching for frequently accessed data.
- * Currently a basic implementation using a Map.
- */
 export class CacheManager {
-  private cache = new Map<string, CacheEntry<any>>();
-  private options: CacheManagerOptions;
+  private cache = new Map<string, CacheEntry<unknown>>();
+  private options: Required<CacheManagerOptions>;
+  private hits = 0;
+  private misses = 0;
+  private accessCounter = 0;  // monotonically increasing — no timestamp ties
 
   constructor(options: CacheManagerOptions = {}) {
-    this.options = options;
+    this.options = {
+      maxSize:           options.maxSize           ?? Infinity,
+      defaultTtl:        options.defaultTtl        ?? 0,
+      cleanupIntervalMs: options.cleanupIntervalMs ?? 60_000,
+    };
     logger.info('CacheManager initialized.');
-    // TODO: Implement eviction logic if maxSize is set
-    // TODO: Implement periodic cleanup for expired TTL entries
+
+    // Periodic TTL cleanup — unref so the timer doesn't block process exit
+    if (isFinite(this.options.cleanupIntervalMs) && this.options.cleanupIntervalMs > 0) {
+      const timer = setInterval(() => this.sweepExpired(), this.options.cleanupIntervalMs);
+      if (typeof timer === 'object' && timer !== null && typeof (timer as NodeJS.Timeout).unref === 'function') {
+        (timer as NodeJS.Timeout).unref();
+      }
+    }
   }
 
-  /**
-   * Retrieves an item from the cache.
-   * Returns undefined if the item is not found or has expired.
-   * @param key The cache key.
-   * @returns The cached value or undefined.
-   */
   get<T>(key: string): T | undefined {
     const entry = this.cache.get(key);
-    if (!entry) {
-      logger.debug(`[Cache] Miss for key: ${key}`);
-      return undefined;
-    }
-
-    // Check TTL
+    if (!entry) { this.misses++; logger.debug(`[Cache] Miss: ${key}`); return undefined; }
     if (entry.expiresAt && Date.now() > entry.expiresAt) {
-      logger.debug(`[Cache] Expired entry found for key: ${key}. Deleting.`);
-      this.delete(key); // Remove expired entry
+      this.cache.delete(key);
+      this.misses++;
+      logger.debug(`[Cache] Expired: ${key}`);
       return undefined;
     }
-
-    logger.debug(`[Cache] Hit for key: ${key}`);
+    entry.lastAccessed = ++this.accessCounter;
+    this.hits++;
+    logger.debug(`[Cache] Hit: ${key}`);
     return entry.value as T;
   }
 
-  /**
-   * Adds or updates an item in the cache.
-   * @param key The cache key.
-   * @param value The value to cache.
-   * @param ttl Optional time-to-live in milliseconds for this specific entry.
-   */
   set<T>(key: string, value: T, ttl?: number): void {
-    // TODO: Check maxSize before adding
-    // if (this.options.maxSize && this.cache.size >= this.options.maxSize) {
-    //   this.evict(); // Implement eviction strategy (e.g., LRU)
-    // }
-
+    // LRU eviction when at capacity
+    if (isFinite(this.options.maxSize) && this.cache.size >= this.options.maxSize && !this.cache.has(key)) {
+      this.evictLRU();
+    }
     const effectiveTtl = ttl ?? this.options.defaultTtl;
-    const expiresAt = effectiveTtl ? Date.now() + effectiveTtl : undefined;
-
-    const entry: CacheEntry<T> = { value, expiresAt };
-    this.cache.set(key, entry);
-    logger.debug(`[Cache] Set value for key: ${key}` + (expiresAt ? ` (expires at ${new Date(expiresAt).toISOString()})` : ''));
+    const expiresAt = effectiveTtl > 0 ? Date.now() + effectiveTtl : undefined;
+    this.cache.set(key, { value, expiresAt, lastAccessed: ++this.accessCounter });
+    logger.debug(`[Cache] Set: ${key}` + (expiresAt ? ` (TTL ${effectiveTtl}ms)` : ''));
   }
 
-  /**
-   * Deletes an item from the cache.
-   * @param key The cache key to delete.
-   * @returns True if an item was deleted, false otherwise.
-   */
   delete(key: string): boolean {
     const deleted = this.cache.delete(key);
-    if (deleted) {
-      logger.debug(`[Cache] Deleted key: ${key}`);
-    }
+    if (deleted) logger.debug(`[Cache] Deleted: ${key}`);
     return deleted;
   }
 
-  /**
-   * Clears the entire cache.
-   */
   clear(): void {
     this.cache.clear();
     logger.info('[Cache] Cache cleared.');
   }
 
-  /**
-   * Returns the current number of items in the cache.
-   */
-  getSize(): number {
-    return this.cache.size;
+  getSize(): number { return this.cache.size; }
+
+  getStats(): { size: number; hits: number; misses: number; hitRate: number } {
+    const total = this.hits + this.misses;
+    return { size: this.cache.size, hits: this.hits, misses: this.misses, hitRate: total > 0 ? this.hits / total : 0 };
   }
 
-  // TODO: Implement eviction logic (e.g., Least Recently Used)
-  // private evict(): void { ... }
+  /** Remove the least-recently-used entry. */
+  private evictLRU(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+    for (const [k, v] of this.cache) {
+      if (v.lastAccessed < oldestTime) { oldestTime = v.lastAccessed; oldestKey = k; }
+    }
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+      logger.debug(`[Cache] LRU evicted: ${oldestKey}`);
+    }
+  }
 
-  // TODO: Implement periodic cleanup for TTL
-  // private startTtlCleanup(): void { ... }
+  /** Remove all entries whose TTL has expired. */
+  private sweepExpired(): void {
+    const now = Date.now();
+    let swept = 0;
+    for (const [k, v] of this.cache) {
+      if (v.expiresAt && now > v.expiresAt) { this.cache.delete(k); swept++; }
+    }
+    if (swept > 0) logger.debug(`[Cache] TTL sweep removed ${swept} expired entries.`);
+  }
 }

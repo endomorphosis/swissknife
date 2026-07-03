@@ -4,13 +4,24 @@
  * Based on the integration plan.
  */
 
-// TODO: Import necessary types (DataLakeConnector, DataPartition, potentially networking/peer discovery libs)
 import { DataLakeConnector, DataPartition } from '../connectors/data-lake.js';
 
-// Placeholder types
-type SwarmPeer = any; // Represents a node participating in the swarm
-type InferenceTask = any; // Represents a sub-task assigned to a peer
-type TaskResult = any; // Represents the result from a peer for a sub-task
+/** Strongly-typed task and result contracts. */
+export interface InferenceTask {
+  taskId:       string;
+  partitionId:  string;
+  query:        string;
+  params:       Record<string, unknown>;
+  locationHint?: string;
+}
+
+export interface TaskResult {
+  taskId:  string;
+  nodeId:  string;
+  output:  unknown;
+  status:  'success' | 'failure';
+  error?:  string;
+}
 
 /** Information about a node participating in the inference swarm. */
 export interface SwarmNodeInfo {
@@ -136,13 +147,13 @@ export class SwarmInferenceCoordinator {
             console.log('Using manually provided node list.');
             return manualNodes;
         case 'libp2p':
-            // TODO: Implement libp2p peer discovery (e.g., using Rendezvous, DHT, PubSub)
-            console.warn('libp2p discovery not implemented (placeholder).');
-            return [];
-        case 'mdns':
-            // TODO: Implement mDNS/DNS-SD discovery on local network
-            console.warn('mDNS discovery not implemented (placeholder).');
-            return [];
+        // libp2p peer discovery stub — wire to @libp2p/kad-dht or rendezvous when available
+        console.warn('libp2p discovery: stub — returning empty node list. Wire to libp2p when available.');
+        return [];
+      case 'mdns':
+        // mDNS/DNS-SD discovery stub — wire to @libp2p/mdns or native mdns package when available
+        console.warn('mDNS discovery: stub — returning empty node list. Wire to mDNS when available.');
+        return [];
         default:
             console.warn(`Unknown discovery mechanism: ${this.options.discoveryMechanism}. Returning empty list.`);
             return [];
@@ -179,8 +190,7 @@ export class SwarmInferenceCoordinator {
     const tasks = this.createInferenceTasks(query, dataPartitions, inferenceParams);
     console.log(`Created ${tasks.length} inference tasks.`);
 
-    // 3. Assign tasks to available nodes
-    // TODO: Implement sophisticated assignment based on capabilities, load, locality, optimization goal
+    // 3. Assign tasks to available nodes (capability-aware, load-balanced)
     const taskAssignments = this.assignTasksToNodes(tasks);
     const nodesUtilized = Object.keys(taskAssignments).length;
     console.log(`Assigned tasks to ${nodesUtilized} nodes.`);
@@ -211,7 +221,20 @@ export class SwarmInferenceCoordinator {
     const numFailedTasks = tasks.length - numSuccessfulTasks; // Approximation, depends on task granularity
     console.log(`Task execution complete. Successful: ${numSuccessfulTasks}, Failed: ${numFailedTasks}`);
 
-    // TODO: Implement fault tolerance: retry failed tasks on different nodes if options.faultTolerance is true
+    // 5. Fault tolerance: retry failed tasks on available nodes
+    if (this.options.faultTolerance && failedTaskDetails.length > 0) {
+      const failedTasks = failedTaskDetails.flatMap(f => f.tasks as InferenceTask[]);
+      const retryAssignments = this.assignTasksToNodes(failedTasks);
+      const retryPromises    = Object.entries(retryAssignments).map(
+        ([nodeId, tasks]) => this.executeNodeTasks(nodeId, tasks)
+      );
+      const retryResults = await Promise.allSettled(retryPromises);
+      retryResults.forEach((r, i) => {
+        const nodeId = Object.keys(retryAssignments)[i]!;
+        if (r.status === 'fulfilled') successfulResults.push(...r.value);
+        else console.warn(`Retry also failed on node ${nodeId}:`, r.reason);
+      });
+    }
 
     // 6. Aggregate results
     console.log('Aggregating results...');
@@ -219,16 +242,22 @@ export class SwarmInferenceCoordinator {
     const aggregatedOutput = this.aggregateResults(successfulResults);
 
     const endTime = Date.now();
+    // Build provenance: one record per successful task
+    const provenance = successfulResults.map((r: TaskResult) => ({
+      nodeId:      r.nodeId,
+      partitionId: r.taskId.replace('task-', ''),
+    }));
+
     return {
       query,
       aggregatedOutput,
       metrics: {
-        totalTimeMs: endTime - startTime,
-        numNodesUtilized: nodesUtilized,
+        totalTimeMs:        endTime - startTime,
+        numNodesUtilized:   nodesUtilized,
         numSuccessfulTasks: numSuccessfulTasks,
-        numFailedTasks: numFailedTasks,
+        numFailedTasks:     numFailedTasks,
       },
-      // TODO: Populate provenance if needed
+      provenance,
     };
   }
 
@@ -244,52 +273,57 @@ export class SwarmInferenceCoordinator {
     }));
   }
 
-  /** Placeholder for assigning tasks to nodes. */
+  /** Assign tasks to nodes: capability-aware with locality hint + load balancing. */
   private assignTasksToNodes(tasks: InferenceTask[]): Record<string, InferenceTask[]> {
     const assignments: Record<string, InferenceTask[]> = {};
-    const nodeIds = Array.from(this.nodes.keys());
-    if (nodeIds.length === 0) return {};
+    const nodes = Array.from(this.nodes.values());
+    if (nodes.length === 0) return {};
 
-    // Simple round-robin assignment for placeholder
-    tasks.forEach((task, index) => {
-        const nodeId = nodeIds[index % nodeIds.length];
-        if (!assignments[nodeId]) {
-            assignments[nodeId] = [];
-        }
-        assignments[nodeId].push(task);
-    });
+    for (const task of tasks) {
+      // Prefer node matching location hint; else pick least-loaded node
+      const preferred = task.locationHint
+        ? nodes.find(n => n.id === task.locationHint || n.address === task.locationHint)
+        : null;
+
+      const target = preferred ?? nodes.reduce((best, n) =>
+        (n.currentLoad ?? 0) < (best.currentLoad ?? 0) ? n : best
+      , nodes[0]!);
+
+      if (!assignments[target.id]) assignments[target.id] = [];
+      assignments[target.id]!.push(task);
+      // Increment virtual load for subsequent assignments in this batch
+      target.currentLoad = (target.currentLoad ?? 0) + (1 / (target.capabilities.maxBatchSize ?? 4));
+    }
     return assignments;
   }
 
-  /** Placeholder for executing tasks assigned to a single node. */
   private async executeNodeTasks(nodeId: string, tasks: InferenceTask[]): Promise<TaskResult[]> {
-     const nodeInfo = this.nodes.get(nodeId);
-     if (!nodeInfo) throw new Error(`Node ${nodeId} not found during task execution.`);
-
-     console.log(`Executing ${tasks.length} tasks on node ${nodeId}...`);
-     // TODO: Implement communication with the swarm node to execute tasks.
-     // This would involve sending task details and receiving results, potentially using MCPTransport or similar.
-     // Handle timeouts per task based on this.options.taskTimeout.
-
-     // Placeholder: Simulate execution and return mock results
-     await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200)); // Simulate work
-     const results = tasks.map(task => ({
-         taskId: task.taskId,
-         nodeId: nodeId,
-         output: `Result for ${task.taskId} from ${nodeId}`,
-         status: 'success',
-     }));
-     console.log(`Finished tasks on node ${nodeId}.`);
-     return results;
+    const nodeInfo = this.nodes.get(nodeId);
+    if (!nodeInfo) throw new Error(`Node ${nodeId} not found during task execution.`);
+    console.log(`Executing ${tasks.length} tasks on node ${nodeId}…`);
+    // Network communication stub — wire to MCPTransport or libp2p direct-message when available
+    const timeoutMs = this.options.taskTimeout ?? 60_000;
+    const results = await Promise.race([
+      Promise.all(tasks.map(async (task): Promise<TaskResult> => {
+        await new Promise(r => setTimeout(r, 10 + Math.random() * 50));
+        return { taskId: task.taskId, nodeId, output: `Result:${task.partitionId}`, status: 'success' };
+      })),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Node ${nodeId} timed out after ${timeoutMs}ms`)), timeoutMs)),
+    ]);
+    return results;
   }
 
-  /** Placeholder for aggregating results from multiple tasks/nodes. */
-  private aggregateResults(results: TaskResult[]): any {
-    // TODO: Implement aggregation logic specific to the inference task
-    // (e.g., combining text, averaging numbers, merging objects)
-    console.log(`Aggregating ${results.length} results...`);
-    // Simple aggregation: concatenate outputs
-    return results.map(r => r.output).join('\n---\n'); // Placeholder aggregation
+  /** Aggregate task results: concat strings, merge objects, avg numbers depending on type. */
+  private aggregateResults(results: TaskResult[]): unknown {
+    if (results.length === 0) return null;
+    const outputs = results.map(r => r.output);
+    if (outputs.every(o => typeof o === 'string')) return (outputs as string[]).join('\n---\n');
+    if (outputs.every(o => typeof o === 'number')) return (outputs as number[]).reduce((s, v) => s + v, 0) / outputs.length;
+    // Objects: shallow merge
+    if (outputs.every(o => o !== null && typeof o === 'object')) {
+      return Object.assign({}, ...outputs);
+    }
+    return outputs;
   }
 
   /** Shuts down the coordinator and disconnects dependencies. */
