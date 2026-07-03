@@ -548,15 +548,15 @@ assert(
   'MGW-566 launch gate must preserve dashboard launch evidence terms for Swissknife consumers',
 );
 assert(
-  mgw566Gate?.attempt === 2,
-  'MGW-566 launch gate must expose the attempt-2 validation receipts for Swissknife consumers',
+  mgw566Gate?.attempt === 3,
+  'MGW-566 launch gate must expose the attempt-3 validation receipts for Swissknife consumers',
 );
 assert(
   JSON.stringify(mgw566Gate?.attempt_receipts || []) === JSON.stringify([
-    'data/meta_glasses_display_widgets/discovery/2026-07-02-mgw-566-attempt-2-launch-playwright-validation-gate.md',
-    'data/hallucinate_multimodal_control/discovery/2026-07-02-mgw-566-attempt-2-validation.md',
+    'data/meta_glasses_display_widgets/discovery/2026-07-03-mgw-566-attempt-3-launch-playwright-validation-gate.md',
+    'data/hallucinate_multimodal_control/discovery/2026-07-03-mgw-566-attempt-3-validation.md',
   ]),
-  'MGW-566 launch gate must point at the attempt-2 validation receipts',
+  'MGW-566 launch gate must point at the attempt-3 validation receipts',
 );
 assert(catalog.swissknife_catalog_consumer_proof?.task_id === 'HAO-681', 'Catalog must expose the HAO-681 Swissknife consumer proof');
 assert(
