@@ -148,8 +148,13 @@ export class FileStorage implements StorageProvider {
             // This is a naive check and depends on naming convention.
             return !path.extname(file) && file !== '.metadata';
         });
-        // TODO: Implement filtering and sorting based on options by reading metadata
-        return { cids };
+        // Apply options: limit, offset, sort by name
+        const opts = options as Record<string, unknown> | undefined;
+        let result = [...cids];
+        if (opts?.['sortBy'] === 'name') result.sort();
+        const offset = Number(opts?.['offset'] ?? 0);
+        const limit  = opts?.['limit'] !== undefined ? Number(opts['limit']) : result.length;
+        return { cids: result.slice(offset, offset + limit) };
     } catch (error) {
         console.error("FileStorage: Error listing files:", error);
         return { cids: [] };

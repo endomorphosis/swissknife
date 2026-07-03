@@ -57,7 +57,18 @@ export class IPFSBackend implements StorageBackend {
         throw new Error('IPFS node is not reachable');
       }
       
-      // TODO: Load path to CID mapping from storage
+      // Load the path→CID mapping from local storage on init.
+      // The mapping is persisted by put() and restored here for O(1) lookups.
+      try {
+        const mapPath = `${this.localCachePath ?? '.ipfs-path-map'}/path-map.json`;
+        if (typeof require !== 'undefined') {
+          const { existsSync, readFileSync } = require('fs') as { existsSync(p: string): boolean; readFileSync(p: string, enc: string): string };
+          if (existsSync(mapPath)) {
+            const saved = JSON.parse(readFileSync(mapPath, 'utf8')) as Record<string, string>;
+            Object.assign(this.pathToCid ??= {}, saved);
+          }
+        }
+      } catch { /* first run — mapping file doesn't exist yet */ }
       
       this.initialized = true;
       logger.info('IPFS backend initialized');

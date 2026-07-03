@@ -95,7 +95,11 @@ export async function startMCPServer(cwd: string): Promise<void> {
         throw new Error(`Tool ${name} not found`)
       }
 
-      // TODO: validate input types with zod
+      // Validate input types with zod if the tool provides an inputSchema
+      if (tool.inputSchema && typeof tool.inputSchema?.['parse'] === 'function') {
+        try { tool.inputSchema.parse(args ?? {}); }
+        catch (zodErr: unknown) { throw new Error(`Input validation failed for ${name}: ${zodErr instanceof Error ? zodErr.message : String(zodErr)}`); }
+      }
       try {
         // Use proper type checking for tool methods
         if (!(await tool.isEnabled?.())) {

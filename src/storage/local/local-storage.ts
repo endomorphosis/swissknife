@@ -192,8 +192,16 @@ export class LocalStorage implements StorageProvider {
             .map(f => this.getTask(path.basename(f, '.json'))); // Extract ID from filename
         
         const tasks = (await Promise.all(taskPromises)).filter(t => t !== null) as Task[];
-        // TODO: Apply filter if provided
-        return tasks;
+        // Apply filter if provided (supports status, createdBefore, createdAfter)
+        const f = (filter as Record<string, unknown> | undefined);
+        if (!f) return tasks;
+        return tasks.filter((task: unknown) => {
+          const t = task as Record<string, unknown>;
+          if (f['status']        && t['status']    !== f['status'])        return false;
+          if (f['createdAfter']  && Number(t['createdAt']) < Number(f['createdAfter']))  return false;
+          if (f['createdBefore'] && Number(t['createdAt']) > Number(f['createdBefore'])) return false;
+          return true;
+        });
      } catch (error: any) {
         logger.error('LocalStorage: Error listing task directory:', error);
         return [];

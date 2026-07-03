@@ -547,7 +547,7 @@ class StorageSearchTool implements Tool {
               
               matches.push({
                 path: entryPath,
-                matchCount: 1, // TODO: Count actual number of matches
+                matchCount: (textContent.match(new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length,
                 content: includeContent ? textContent : undefined
               });
             }

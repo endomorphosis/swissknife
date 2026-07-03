@@ -3,7 +3,7 @@
  * and an Adaptive Replacement Cache (ARC). Based on the integration plan.
  */
 
-// TODO: Import necessary libraries if needed (e.g., for UUID generation, specific backend clients)
+// VirtualFilesystem uses crypto.randomUUID() (built-in) for IDs; backend clients are injected via registerBackend().
 // import { v4 as uuidv4 } from 'uuid.js'; // Example for UUIDs
 
 /**

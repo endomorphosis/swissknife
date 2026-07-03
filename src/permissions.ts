@@ -184,7 +184,9 @@ export const hasPermissionsToUseTool: CanUseToolFn = async (
     return { result: true }
   }
 
-  // TODO: Move this into tool definitions (done for read tools!)
+  // Permission checks for write/execute tools. Read tools have their checks
+  // inline in their definitions (see FileReadTool etc.). Write tools are
+  // checked here until they are migrated to the same pattern.
   switch (tool) {
     // For bash tool, check each sub-command's permissions separately
     case BashTool: {

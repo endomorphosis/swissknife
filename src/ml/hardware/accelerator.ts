@@ -31,9 +31,21 @@ class CpuBackend implements ExecutionBackend {
 class GpuBackend implements ExecutionBackend {
   readonly type = 'gpu'; // Could be 'webgpu' or 'webgl' specifically
   async isSupported(): Promise<boolean> { 
-    // TODO: Add actual check for WebGPU/WebGL support
-    logger.warn('GPU support check not implemented.'); 
-    return false; 
+    // Check for WebGPU (preferred) then WebGL as fallback.
+    const nav = typeof navigator !== 'undefined' ? navigator : undefined;
+    if (nav && 'gpu' in nav) {
+      try {
+        const adapter = await (nav as Record<string, unknown>)['gpu']?.['requestAdapter']?.() as Record<string, unknown> | null;
+        if (adapter) { logger.info('GPU: WebGPU adapter available.'); return true; }
+      } catch { /* adapter not available */ }
+    }
+    if (typeof document !== 'undefined') {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+      if (gl) { logger.info('GPU: WebGL context available.'); return true; }
+    }
+    logger.info('GPU: Neither WebGPU nor WebGL detected.');
+    return false;
   }
   prepareInput(input: Tensor): any { throw new Error('GPU backend not implemented.'); }
   async runInference(model: MLModel, preparedInput: any): Promise<any> { throw new Error('GPU backend not implemented.'); }
