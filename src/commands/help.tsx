@@ -17,13 +17,9 @@ const helpCommand: LocalJSXCommand = {
   isEnabled: true, // Assuming default behavior
   isHidden: false, // Assuming default behavior
   async handler(args, onDone, context) {
-    // TODO: Refine context type if needed.
-    // TODO: Fetch commands from commandRegistry instead of context.options.commands
     const commandNameArg = args.commandName as string | undefined;
-    // The Help component might need updating to accept a specific command name later.
-    // For now, pass an empty array or handle fetching commands differently.
-    // Let's assume Help component can handle an empty array for now.
-    const commandsToShow: Command[] = []; // Placeholder - Fetch from registry later
+    // Fetch commands from context.options.commands (populated by the registry at startup)
+    const commandsToShow: Command[] = (context?.options?.commands as Command[] | undefined) ?? [];
     return <Help commands={commandsToShow} onClose={onDone} />;
   },
   userFacingName() {

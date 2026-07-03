@@ -39,7 +39,8 @@ export async function glob(
   { limit, offset }: { limit: number; offset: number },
   abortSignal: AbortSignal,
 ): Promise<{ files: string[]; truncated: boolean }> {
-  // TODO: Use worker threads
+  // glob runs asynchronously and respects abortSignal; worker threads
+  // would only help for CPU-bound tasks. glob is I/O-bound so this is fine.
   const paths = await globLib([filePattern], {
     cwd,
     nocase: true,
@@ -122,7 +123,7 @@ export function readTextContent(
       : lines.slice(offset)
 
   return {
-    content: toReturn.join('\n'), // TODO: This probably won't work for Windows
+    content: toReturn.join(process.platform === 'win32' ? '\r\n' : '\n'),
     lineCount: toReturn.length,
     totalLines: lines.length,
   }
@@ -383,7 +384,7 @@ export function addLineNumbers({
       const n = numStr.padStart(6, ' ')
       return `${n}\t${line}`
     })
-    .join('\n') // TODO: This probably won't work for Windows
+    .join(process.platform === 'win32' ? '\r\n' : '\n')
 }
 
 /**

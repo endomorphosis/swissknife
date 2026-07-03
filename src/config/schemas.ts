@@ -3,13 +3,48 @@ import { z, ZodTypeAny } from 'zod.js'; // Import Zod
 import { ConfigurationManager } from './manager.js';
 
 /**
- * Core configuration schema
- * Validates the main structure of the configuration
- * TODO: Convert the original JSONSchema7 structure (commented out below) 
- * to a detailed Zod schema for proper validation.
- * For now, using z.any() as a placeholder to allow registration and basic functionality.
+ * Core configuration schema — converted from JSONSchema7 to Zod (PORT-config).
+ * Validates the main SwissKnife configuration structure.
  */
-export const coreConfigSchema: ZodTypeAny = z.any();
+export const coreConfigSchema = z.object({
+  ai: z.object({
+    defaultModel:      z.string().optional(),
+    modelHistory:      z.array(z.string()).optional(),
+    useGoT:            z.boolean().optional().default(false),
+    tools:             z.array(z.string()).optional().default([]),
+    models: z.object({
+      providers: z.record(z.object({
+        apiKey:  z.string(),
+        baseUrl: z.string().optional(),
+      })).optional(),
+    }).optional(),
+  }).optional(),
+  storage: z.object({
+    provider:  z.enum(['local', 'ipfs', 's3', 'azure']).optional(),
+    localPath: z.string().optional(),
+    ipfs: z.object({ gateway: z.string().optional(), apiKey: z.string().optional() }).optional(),
+    s3: z.object({
+      bucket:          z.string(),
+      region:          z.string(),
+      accessKeyId:     z.string().optional(),
+      secretAccessKey: z.string().optional(),
+    }).optional(),
+  }).optional(),
+  integration: z.object({
+    bridges: z.record(z.object({
+      enabled: z.boolean().optional(),
+      source:  z.string().optional(),
+      target:  z.string().optional(),
+    })).optional(),
+  }).optional(),
+  goose:  z.object({ path: z.string().optional(), enableLocalModels: z.boolean().optional() }).optional(),
+  ipfs:   z.object({ accelerate: z.object({ path: z.string().optional(), apiKey: z.string().optional(), endpoint: z.string().optional() }).optional() }).optional(),
+  native: z.object({ modulesDir: z.string().optional(), modules: z.record(z.object({ path: z.string() })).optional() }).optional(),
+}).passthrough();  // allow extra keys for forward compat
+
+// Granular sub-schemas for direct registration
+export const aiSchema      = coreConfigSchema.shape.ai;
+export const storageSchema = coreConfigSchema.shape.storage;
 
 /*
 // Original JSONSchema7 structure for reference during Zod conversion:
@@ -86,9 +121,8 @@ export function registerConfigurationSchemas(): void {
   const configManager = ConfigurationManager.getInstance();
   // Registering the main schema under a general key like 'app_config' or a specific prefix.
   // If 'core' is meant to validate the entire config object, then this is fine.
-  configManager.registerSchema('core', coreConfigSchema); 
-  // TODO: Add registrations for more granular schemas if needed, e.g.,
-  // configManager.registerSchema('ai', aiSchema);
-  // configManager.registerSchema('storage', storageSchema);
-  console.log("Core configuration schema registered (placeholder).");
+  configManager.registerSchema('core',    coreConfigSchema);
+  configManager.registerSchema('ai',      aiSchema);
+  configManager.registerSchema('storage', storageSchema);
+  console.log("Configuration schemas registered: core, ai, storage.");
 }

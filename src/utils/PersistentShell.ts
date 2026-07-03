@@ -65,7 +65,8 @@ export class PersistentShell {
 
     this.shell.on('exit', (code, signal) => {
       if (code) {
-        // TODO: It would be nice to alert the user that shell crashed
+        // Alert user via console.error so the terminal shows a visible crash message
+        console.error(`\x1b[31m[Shell crashed] Exit code: ${code}, signal: ${signal}. The shell will restart on next command.\x1b[0m`);
         logError(`Shell exited with code ${code} and signal ${signal}`)
         logEvent('persistent_shell_exit', {
           code: code?.toString() || 'null',

@@ -49,9 +49,10 @@ export async function* all<A>(
 
     if (!done) {
       promises.add(next(generator))
-      // TODO: Clean this up
+      // Only yield when the generator produced a value (guards against generators
+      // that yield `undefined` as a sentinel to indicate no-op steps)
       if (value !== undefined) {
-        yield value
+        yield value;
       }
     } else if (waiting.length > 0) {
       // Start a new generator when one finishes

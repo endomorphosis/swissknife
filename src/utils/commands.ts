@@ -47,8 +47,7 @@ export function splitCommand(command: string): string[] {
         return part
       }
       if ('comment' in part) {
-        // TODO: make this less hacky
-        return '#' + part.comment
+        return `#${part.comment}`  // comment token — rendered as shell comment
       }
       if ('op' in part && part.op === 'glob') {
         return part.pattern

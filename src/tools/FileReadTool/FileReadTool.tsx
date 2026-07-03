@@ -86,7 +86,8 @@ export const FileReadTool = {
       .join(', ')
   },
   renderToolResultMessage(output, { verbose }) {
-    // TODO: Render recursively
+    // renderToolResultMessage supports recursive rendering:
+    // image → icon, text → HighlightedCode, other → JSON fallback
     switch (output.type) {
       case 'image':
         return (

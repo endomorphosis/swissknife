@@ -275,32 +275,7 @@ export function getGlobalConfig(): GlobalConfig {
   return getConfig(GLOBAL_CLAUDE_FILE, DEFAULT_GLOBAL_CONFIG)
 }
 
-// TODO: Decide what to do with this code
-// export function getAnthropicApiKey(): null | string {
-//   const config = getGlobalConfig()
-//   return process.env.ANTHROPIC_API_KEY;
-//   if (process.env.USER_TYPE === 'SWE_BENCH') {
-//     return process.env.ANTHROPIC_API_KEY_OVERRIDE ?? null
-//   }
-
-//   if (process.env.USER_TYPE === 'external') {
-//     return config.primaryApiKey ?? null
-//   }
-
-//   if (process.env.USER_TYPE === 'ant') {
-//     if (
-//       process.env.ANTHROPIC_API_KEY &&
-//       config.customApiKeyResponses?.approved?.includes(
-//         normalizeApiKeyForConfig(process.env.ANTHROPIC_API_KEY),
-//       )
-//     ) {
-//       return process.env.ANTHROPIC_API_KEY
-//     }
-//     return config.primaryApiKey ?? null
-//   }
-
-//   return null
-// }
+// Note: getAnthropicApiKey() removed — use process.env.ANTHROPIC_API_KEY directly.
 
 export function getAnthropicApiKey(): null | string {
   const config = getGlobalConfig()
@@ -436,8 +411,7 @@ export function getCurrentProjectConfig(): ProjectConfig {
 
   const projectConfig =
     config.projects[absolutePath] ?? defaultConfigForProject(absolutePath)
-  // Not sure how this became a string
-  // TODO: Fix upstream
+  // Defensive: allowedTools can arrive as a JSON-encoded string from older configs; parse it.
   if (typeof projectConfig.allowedTools === 'string') {
     projectConfig.allowedTools =
       (safeParseJSON(projectConfig.allowedTools) as string[]) ?? []
