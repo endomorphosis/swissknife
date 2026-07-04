@@ -400,6 +400,14 @@ const vai629LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'vai-629-mcp-dashboard-launch-gate.json',
 );
+const vai632LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-632-mcp-dashboard-launch-gate.json',
+);
 const vai631LaunchGateReceiptPath = path.resolve(
   '..',
   'hallucinate_app',
@@ -514,6 +522,7 @@ const vai620LaunchGateReceipt = JSON.parse(fs.readFileSync(vai620LaunchGateRecei
 const vai623LaunchGateReceipt = JSON.parse(fs.readFileSync(vai623LaunchGateReceiptPath, 'utf8'));
 const vai626LaunchGateReceipt = JSON.parse(fs.readFileSync(vai626LaunchGateReceiptPath, 'utf8'));
 const vai629LaunchGateReceipt = JSON.parse(fs.readFileSync(vai629LaunchGateReceiptPath, 'utf8'));
+const vai632LaunchGateReceipt = JSON.parse(fs.readFileSync(vai632LaunchGateReceiptPath, 'utf8'));
 const vai631LaunchGateReceipt = JSON.parse(fs.readFileSync(vai631LaunchGateReceiptPath, 'utf8'));
 const vai573LaunchGateReceipt = JSON.parse(fs.readFileSync(vai573LaunchGateReceiptPath, 'utf8'));
 const vai576LaunchGateReceipt = JSON.parse(fs.readFileSync(vai576LaunchGateReceiptPath, 'utf8'));
@@ -2596,6 +2605,48 @@ assert(
   ]),
   'VAI-629 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
 );
+const vai632Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-632');
+assert(vai632Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-632 for VAIOS-G724');
+assert(
+  vai632Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-632-objective-gap-3e00ad2a0074.md',
+  'VAI-632 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai632Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-632-mcp-dashboard-launch-gate.md',
+  'VAI-632 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai632Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-632-mcp-dashboard-launch-gate.json',
+  'VAI-632 launch gate must point at the Playwright fixture',
+);
+assert(
+  vai632Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-632 launch gate must be closed by the launch Playwright validation gate',
+);
+assert(
+  vai632Gate?.packet_sibling_goal_id === 'VAIOS-G728',
+  'VAI-632 launch gate must preserve the VAIOS-G728 packet sibling',
+);
+assert(
+  vai632Gate?.packet_sibling_task_id === 'VAI-633',
+  'VAI-632 launch gate must preserve the VAI-633 packet sibling task',
+);
+assert(
+  vai632Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-633-daemon-launch-health-gate.md',
+  'VAI-632 launch gate must point at the packet sibling daemon launch gate receipt',
+);
+assert(
+  JSON.stringify(vai632Gate?.required_evidence || []) === JSON.stringify(vai632LaunchGateReceipt.required_evidence),
+  'VAI-632 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai632Gate?.external_backend_surfaces || []) === JSON.stringify([
+    'external/ipfs_accelerate',
+    'external/ipfs_datasets',
+    'external/ipfs_kit',
+  ]),
+  'VAI-632 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
+);
 const vai631Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-631');
 assert(vai631Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-631 for VAIOS-G723');
 assert(
@@ -2795,6 +2846,7 @@ console.log(JSON.stringify({
     vai623LaunchGateReceipt.task_id,
     vai626LaunchGateReceipt.task_id,
     vai629LaunchGateReceipt.task_id,
+    vai632LaunchGateReceipt.task_id,
     vai631LaunchGateReceipt.task_id,
   ],
   launch_goal_ids: catalog.launch_objective_ids,
