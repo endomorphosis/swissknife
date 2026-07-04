@@ -297,6 +297,157 @@ export function mkTemporal(operator: TDFOLTemporalOp, formula: Formula, until?: 
   return node as TemporalFormulaTDFOL;
 }
 
+export class BinaryTemporalFormula implements TemporalFormulaTDFOL {
+  readonly kind = 'temporal' as const;
+  readonly timeBound?: number;
+
+  constructor(
+    readonly operator: Extract<TDFOLTemporalOp, 'U' | 'S' | 'W' | 'R'>,
+    readonly left: Formula,
+    readonly right: Formula,
+  ) {
+    if (!['U', 'S', 'W', 'R'].includes(operator)) {
+      throw new Error('BinaryTemporalFormula only supports binary temporal operators');
+    }
+  }
+
+  get formula(): Formula { return this.left; }
+  get until(): Formula { return this.right; }
+
+  toStr(pretty?: boolean): string {
+    return `(${this.left.toStr(pretty)} ${this.operator} ${this.right.toStr(pretty)})`;
+  }
+
+  toDict(): Record<string, unknown> {
+    return {
+      kind: this.kind,
+      operator: this.operator,
+      formula: this.left.toDict(),
+      until: this.right.toDict(),
+      left: this.left.toDict(),
+      right: this.right.toDict(),
+      timeBound: null,
+      binaryTemporal: true,
+    };
+  }
+}
+
+export class ExpansionContext {
+  constructor(
+    readonly formula: Formula,
+    readonly negated = false,
+    readonly worldId = 0,
+    readonly assumptions: Formula[] = [],
+    readonly options: Record<string, unknown> = {},
+  ) {}
+
+  toDict(): Record<string, unknown> {
+    return {
+      formula: this.formula.toDict(),
+      negated: this.negated,
+      world_id: this.worldId,
+      assumptions: this.assumptions.map(formula => formula.toDict()),
+      options: { ...this.options },
+    };
+  }
+}
+
+export class ExpansionResult {
+  readonly branches: Array<Array<[Formula, boolean]>>;
+  readonly isBranching: boolean;
+
+  constructor(branches: Array<Array<[Formula, boolean]>> = []) {
+    this.branches = branches.map(branch => branch.map(([formula, negated]) => [formula, negated]));
+    this.isBranching = this.branches.length > 1;
+  }
+
+  static linear(...formulasWithPolarity: Array<[Formula, boolean]>): ExpansionResult {
+    return new ExpansionResult([formulasWithPolarity]);
+  }
+
+  static branching(...branches: Array<Array<[Formula, boolean]>>): ExpansionResult {
+    return new ExpansionResult(branches);
+  }
+
+  toDict(): Record<string, unknown> {
+    return {
+      branches: this.branches.map(branch => branch.map(([formula, negated]) => ({
+        formula: formula.toDict(),
+        negated,
+      }))),
+      is_branching: this.isBranching,
+    };
+  }
+}
+
+export function create_implication(antecedent: Formula, consequent: Formula): BinaryFormula {
+  return mkBinary('→', antecedent, consequent);
+}
+
+export function create_conjunction(...formulas: Formula[]): Formula {
+  if (formulas.length === 0) throw new Error('Cannot create conjunction of zero formulas');
+  return formulas.slice(1).reduce((result, formula) => mkBinary('∧', result, formula), formulas[0]);
+}
+
+export function create_disjunction(...formulas: Formula[]): Formula {
+  if (formulas.length === 0) throw new Error('Cannot create disjunction of zero formulas');
+  return formulas.slice(1).reduce((result, formula) => mkBinary('∨', result, formula), formulas[0]);
+}
+
+export function create_negation(formula: Formula): UnaryFormula {
+  return mkUnary(formula);
+}
+
+export function create_universal(variable: Variable | string, formula: Formula, sort?: SortKind): QuantifiedFormula {
+  return mkQuantified('∀', variable, formula, sort);
+}
+
+export function create_existential(variable: Variable | string, formula: Formula, sort?: SortKind): QuantifiedFormula {
+  return mkQuantified('∃', variable, formula, sort);
+}
+
+export function create_obligation(formula: Formula, agent?: Term | string): DeonticFormulaTDFOL {
+  return mkDeontic('O', formula, agent);
+}
+
+export function create_permission(formula: Formula, agent?: Term | string): DeonticFormulaTDFOL {
+  return mkDeontic('P', formula, agent);
+}
+
+export function create_prohibition(formula: Formula, agent?: Term | string): DeonticFormulaTDFOL {
+  return mkDeontic('F', formula, agent);
+}
+
+export function create_always(formula: Formula): TemporalFormulaTDFOL {
+  return mkTemporal('□', formula);
+}
+
+export function create_eventually(formula: Formula): TemporalFormulaTDFOL {
+  return mkTemporal('◊', formula);
+}
+
+export function create_next(formula: Formula): TemporalFormulaTDFOL {
+  return mkTemporal('X', formula);
+}
+
+export function create_until(left: Formula, right: Formula): BinaryTemporalFormula {
+  return new BinaryTemporalFormula('U', left, right);
+}
+
+export const createImplication = create_implication;
+export const createConjunction = create_conjunction;
+export const createDisjunction = create_disjunction;
+export const createNegation = create_negation;
+export const createUniversal = create_universal;
+export const createExistential = create_existential;
+export const createObligation = create_obligation;
+export const createPermission = create_permission;
+export const createProhibition = create_prohibition;
+export const createAlways = create_always;
+export const createEventually = create_eventually;
+export const createNext = create_next;
+export const createUntil = create_until;
+
 // ---------------------------------------------------------------------------
 // TDFOLKnowledgeBase
 // ---------------------------------------------------------------------------

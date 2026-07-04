@@ -13,6 +13,22 @@
 import {
   mkVariable, mkConstant, mkPredicate, mkBinary, mkUnary, mkQuantified,
   mkDeontic, mkTemporal, TDFOLKnowledgeBase,
+  BinaryTemporalFormula,
+  ExpansionContext,
+  ExpansionResult,
+  create_always,
+  create_conjunction,
+  create_disjunction,
+  create_eventually,
+  create_existential,
+  create_implication,
+  create_negation,
+  create_next,
+  create_obligation,
+  create_permission,
+  create_prohibition,
+  create_universal,
+  create_until,
 } from '../../src/services/tdfol-core.js';
 import {
   ProofTreeNode, ProofTree, ProofTreeBuilder, ProofTreeVisualizer,
@@ -105,6 +121,58 @@ describe('T-116 TDFOL Core Types', () => {
     kb.addDefinition('IsAgent', f);
     expect(kb.getDefinition('IsAgent')).toBe(f);
     expect(kb.size).toBe(1);
+  });
+
+  it('Python-compatible formula constructors build native TDFOL AST nodes', () => {
+    const x = mkVariable('x', 'Agent');
+    const p = mkPredicate('P', [x]);
+    const q = mkPredicate('Q', [x]);
+
+    expect(create_implication(p, q).toStr(true)).toBe('(P(x:Agent) → Q(x:Agent))');
+    expect(create_conjunction(p, q).toStr()).toBe('P(x:Agent) ∧ Q(x:Agent)');
+    expect(create_disjunction(p, q).toStr()).toBe('P(x:Agent) ∨ Q(x:Agent)');
+    expect(create_negation(p).toStr()).toBe('¬P(x:Agent)');
+    expect(create_universal(x, p).toStr()).toContain('∀x:Agent');
+    expect(create_existential('y', q).toStr()).toContain('∃y');
+    expect(create_obligation(p, x).operator).toBe('O');
+    expect(create_permission(p, 'agent1').toStr()).toBe('P[agent1](P(x:Agent))');
+    expect(create_prohibition(p).toStr()).toBe('F(P(x:Agent))');
+    expect(create_always(p).toStr()).toBe('□(P(x:Agent))');
+    expect(create_eventually(p).toStr()).toBe('◊(P(x:Agent))');
+    expect(create_next(p).toStr()).toBe('X(P(x:Agent))');
+  });
+
+  it('BinaryTemporalFormula and create_until preserve binary temporal structure', () => {
+    const p = mkPredicate('P');
+    const q = mkPredicate('Q');
+    const until = create_until(p, q);
+    expect(until).toBeInstanceOf(BinaryTemporalFormula);
+    expect(until.kind).toBe('temporal');
+    expect(until.operator).toBe('U');
+    expect(until.formula).toBe(p);
+    expect(until.until).toBe(q);
+    expect(until.toStr()).toBe('(P U Q)');
+    expect(until.toDict()['binaryTemporal']).toBe(true);
+  });
+
+  it('ExpansionContext and ExpansionResult expose tableaux expansion payloads', () => {
+    const p = mkPredicate('P');
+    const q = mkPredicate('Q');
+    const context = new ExpansionContext(p, true, 2, [q], { source: 'test' });
+    expect(context.toDict()['world_id']).toBe(2);
+
+    const linear = ExpansionResult.linear([p, false], [q, true]);
+    expect(linear.isBranching).toBe(false);
+    expect(linear.branches).toHaveLength(1);
+
+    const branching = ExpansionResult.branching([[p, false]], [[q, false]]);
+    expect(branching.isBranching).toBe(true);
+    expect(branching.toDict()['is_branching']).toBe(true);
+  });
+
+  it('variadic conjunction/disjunction reject empty inputs', () => {
+    expect(() => create_conjunction()).toThrow('Cannot create conjunction');
+    expect(() => create_disjunction()).toThrow('Cannot create disjunction');
   });
 });
 
