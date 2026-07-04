@@ -9,9 +9,12 @@
 
 import {
   ModalKAxiom, ModalTAxiom, ModalS4Axiom, ModalNecessitation,
+  ModalNecassitation,
   TemporalInduction, FrameAxiom,
   DeonticDRule, DeonticPermissionObligation, DeonticDistribution, KnowledgeObligation,
+  TemporalObligation,
   ALL_ADVANCED_RULES, findApplicableAdvancedRules,
+  get_all_advanced_rules, get_combined_rules, get_deontic_rules, get_modal_rules, get_temporal_rules,
 } from '../../src/services/cec-advanced-inference';
 
 import {
@@ -41,10 +44,17 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('ALL_ADVANCED_RULES registry', () => {
-  test('contains exactly 10 rules', () => { expect(ALL_ADVANCED_RULES).toHaveLength(10); });
+  test('contains the Python advanced_inference rule set', () => { expect(ALL_ADVANCED_RULES).toHaveLength(11); });
   test('rule names are unique', () => {
     const names = ALL_ADVANCED_RULES.map(r => r.name);
-    expect(new Set(names).size).toBe(10);
+    expect(new Set(names).size).toBe(11);
+  });
+  test('Python-compatible helper registries partition the rule set', () => {
+    expect(get_modal_rules()).toHaveLength(4);
+    expect(get_temporal_rules()).toHaveLength(2);
+    expect(get_deontic_rules()).toHaveLength(3);
+    expect(get_combined_rules()).toHaveLength(2);
+    expect(get_all_advanced_rules().map(rule => rule.name)).toEqual(ALL_ADVANCED_RULES.map(rule => rule.name));
   });
 });
 
@@ -84,6 +94,13 @@ describe('ModalNecessitation', () => {
   });
 });
 
+describe('ModalNecassitation', () => {
+  const rule = new ModalNecassitation();
+  test('wraps non-modal theorem in system knowledge', () => {
+    expect(rule.apply(['P'])).toEqual(['K(system, P)']);
+  });
+});
+
 describe('DeonticDRule', () => {
   const rule = new DeonticDRule();
   test('applies to O(φ)', () => { expect(rule.canApply(['O(P)'])).toBe(true); });
@@ -119,6 +136,16 @@ describe('KnowledgeObligation', () => {
   test('produces O(pay)', () => {
     const out = rule.apply(['K(alice, O(pay))']);
     expect(out[0]).toBe('O(pay)');
+  });
+});
+
+describe('TemporalObligation', () => {
+  const rule = new TemporalObligation();
+  test('turns an eventual obligation into eventual obligation content', () => {
+    expect(rule.apply(['O(◇pay)'])).toEqual(['◇O(pay)']);
+  });
+  test('persists ordinary obligations conservatively', () => {
+    expect(rule.apply(['O(pay)'])).toEqual(['O(pay)']);
   });
 });
 

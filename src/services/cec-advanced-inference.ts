@@ -147,6 +147,18 @@ export class ModalNecessitation implements AdvancedInferenceRule {
   }
 }
 
+/** Python-compatible misspelling retained by advanced_inference.py. */
+export class ModalNecassitation implements AdvancedInferenceRule {
+  readonly name = 'Necessitation';
+  readonly description = 'If A is a theorem, derive K(system, A)';
+
+  canApply(formulas: string[]): boolean { return formulas.length >= 1; }
+
+  apply(formulas: string[]): string[] {
+    return formulas.slice(0, 5).filter(f => !isBox(f)).map(f => `K(system, ${f})`);
+  }
+}
+
 /** Temporal Induction: □(A → XA), A ⊢ □A */
 export class TemporalInduction implements AdvancedInferenceRule {
   readonly name = 'Temporal Induction';
@@ -267,11 +279,83 @@ export class KnowledgeObligation implements AdvancedInferenceRule {
   }
 }
 
+/** Temporal-deontic interaction: O(◇A) ⊢ ◇O(A), with persistence fallback for O(A). */
+export class TemporalObligation implements AdvancedInferenceRule {
+  readonly name = 'Temporal-Deontic Interaction';
+  readonly description = 'From O(◇A), derive ◇O(A); obligations persist until fulfilled';
+
+  canApply(formulas: string[]): boolean {
+    return formulas.some(isObligation);
+  }
+
+  apply(formulas: string[]): string[] {
+    const out: string[] = [];
+    for (const formula of formulas.filter(isObligation)) {
+      const content = oblInner(formula);
+      if (content.startsWith('◇')) {
+        const eventual = content.slice(1).trim().replace(/^\((.*)\)$/, '$1');
+        out.push(`◇O(${eventual})`);
+      } else {
+        out.push(formula);
+      }
+    }
+    return out.slice(0, 3);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
-export const ALL_ADVANCED_RULES: AdvancedInferenceRule[] = [
+export function get_modal_rules(): AdvancedInferenceRule[] {
+  return [
+    new ModalKAxiom(),
+    new ModalTAxiom(),
+    new ModalS4Axiom(),
+    new ModalNecassitation(),
+  ];
+}
+
+export function get_temporal_rules(): AdvancedInferenceRule[] {
+  return [
+    new TemporalInduction(),
+    new FrameAxiom(),
+  ];
+}
+
+export function get_deontic_rules(): AdvancedInferenceRule[] {
+  return [
+    new DeonticDRule(),
+    new DeonticPermissionObligation(),
+    new DeonticDistribution(),
+  ];
+}
+
+export function get_combined_rules(): AdvancedInferenceRule[] {
+  return [
+    new KnowledgeObligation(),
+    new TemporalObligation(),
+  ];
+}
+
+export function get_all_advanced_rules(): AdvancedInferenceRule[] {
+  return [
+    ...get_modal_rules(),
+    ...get_temporal_rules(),
+    ...get_deontic_rules(),
+    ...get_combined_rules(),
+  ];
+}
+
+export const ALL_ADVANCED_RULES: AdvancedInferenceRule[] = get_all_advanced_rules();
+
+export const getModalRules = get_modal_rules;
+export const getTemporalRules = get_temporal_rules;
+export const getDeonticRules = get_deontic_rules;
+export const getCombinedRules = get_combined_rules;
+export const getAllAdvancedRules = get_all_advanced_rules;
+
+export const LEGACY_ALL_ADVANCED_RULES: AdvancedInferenceRule[] = [
   new ModalKAxiom(),
   new ModalTAxiom(),
   new ModalS4Axiom(),
