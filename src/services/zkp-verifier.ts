@@ -42,6 +42,21 @@ export interface VerifierStats {
   avgMs: number;
 }
 
+export interface ZKPVerifierBackend {
+  verifyProof(
+    proofJson: string,
+    publicInputs: Record<string, string>,
+    vk: VerificationKey | null,
+  ): boolean;
+}
+
+export interface ZKPVerifierOptions {
+  groth16Backend?: ZKPVerifierBackend;
+  proveKitBackend?: ZKPVerifierBackend;
+  /** Explicit opt-in for structural verification of non-simulated algorithms. */
+  allowSimulatedVerification?: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // ZKPVerifier
 // ---------------------------------------------------------------------------
@@ -64,6 +79,8 @@ export class ZKPVerifier {
     errors: 0,
     avgMs: 0,
   };
+
+  constructor(private readonly options: ZKPVerifierOptions = {}) {}
 
   loadVerificationKey(vk: VerificationKey): void {
     this.vk = vk;
@@ -94,11 +111,30 @@ export class ZKPVerifier {
     const proofHash  = String(parsedProof['proof_hash'] ?? parsedProof['pi_a'] ?? '');
     const proofId    = String(parsedProof['proof_id'] ?? proofHash.slice(0, 8));
 
-    // Simulate verification: accept proofs whose hash is consistent
-    const inputsHash = createHash('sha256')
-      .update(JSON.stringify(publicInputs))
-      .digest('hex');
-    const verified = proofHash.length > 0 && inputsHash.length > 0;
+    let verified: boolean;
+    let error: string | null = null;
+    const backend = algorithm === 'groth16'
+      ? this.options.groth16Backend
+      : algorithm === 'provekit'
+        ? this.options.proveKitBackend
+        : undefined;
+
+    if (backend) {
+      try {
+        verified = backend.verifyProof(proofJson, publicInputs, this.vk);
+      } catch (e) {
+        verified = false;
+        error = String(e);
+      }
+    } else if (algorithm === 'simulated' || this.options.allowSimulatedVerification === true) {
+      const inputsHash = createHash('sha256')
+        .update(JSON.stringify(publicInputs))
+        .digest('hex');
+      verified = proofHash.length > 0 && inputsHash.length > 0;
+    } else {
+      verified = false;
+      error = `native ${algorithm} verifier not configured`;
+    }
 
     const timeMs = performance.now() - t0;
     this.stats.avgMs += (timeMs - this.stats.avgMs) / this.stats.totalVerifications;
@@ -106,7 +142,7 @@ export class ZKPVerifier {
     if (verified) this.stats.verified++;
     else          this.stats.rejected++;
 
-    return { verified, algorithm, proofId, publicInputs, timeMs, error: null };
+    return { verified, algorithm, proofId, publicInputs, timeMs, error };
   }
 
   /**
@@ -118,7 +154,12 @@ export class ZKPVerifier {
     return proofs.map(({ proofJson, publicInputs }) => this.verify(proofJson, publicInputs));
   }
 
-  isReady(): boolean { return true; } // simulated backend always ready
+  isReady(): boolean {
+    if (this.vk?.algorithm === 'simulated') return true;
+    if (this.vk?.algorithm === 'groth16') return Boolean(this.options.groth16Backend);
+    if (this.vk?.algorithm === 'provekit') return Boolean(this.options.proveKitBackend);
+    return this.options.allowSimulatedVerification === true;
+  }
   getVK(): VerificationKey | null { return this.vk; }
   getStats(): Readonly<VerifierStats> { return { ...this.stats }; }
 }

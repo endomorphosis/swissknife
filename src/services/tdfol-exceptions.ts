@@ -10,19 +10,19 @@
  * Reference: ipfs_datasets_py/logic/TDFOL/exceptions.py
  */
 
+import { LogicError } from './logic-errors.js';
+
 // ---------------------------------------------------------------------------
 // TDFOLError — base
 // ---------------------------------------------------------------------------
 
-export class TDFOLError extends Error {
+export class TDFOLError extends LogicError {
   readonly suggestion?: string;
-  readonly context:     Record<string, unknown>;
 
   constructor(message: string, suggestion?: string, context: Record<string, unknown> = {}) {
-    super(suggestion ? `${message}\nSuggestion: ${suggestion}` : message);
+    super(suggestion ? `${message}\nSuggestion: ${suggestion}` : message, context);
     this.name       = 'TDFOLError';
     this.suggestion = suggestion;
-    this.context    = context;
   }
 
   toDict(): Record<string, unknown> {

@@ -7,6 +7,8 @@
  * that should return stable error envelopes instead of throwing raw errors.
  */
 
+import { LogicError } from './logic-errors.js';
+
 export enum DCECErrorCode {
   PARSE_ERROR = 'parse_error',
   VALIDATION_ERROR = 'validation_error',
@@ -35,14 +37,14 @@ export interface DCECSuccessEnvelope<T> {
 
 export type DCECResult<T> = DCECSuccessEnvelope<T> | DCECErrorEnvelope;
 
-export class DCECHandledError extends Error {
+export class DCECHandledError extends LogicError {
   constructor(
     message: string,
     readonly code: DCECErrorCode = DCECErrorCode.UNKNOWN,
     readonly input?: unknown,
     readonly recoverable = true,
   ) {
-    super(message);
+    super(message, { code, input, recoverable });
     this.name = 'DCECHandledError';
   }
 }

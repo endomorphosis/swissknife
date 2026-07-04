@@ -150,10 +150,16 @@ class UntilUnfoldingRule implements TdfolRule {
       // ψ ∨ (φ ∧ ◯(φ U ψ))
       const nextUntil = Next(Until(phi, psi));
       const phiAndNext: TdfolFormula = {
-        kind: 'connective', connective: 'AND', formulas: [phi, nextUntil],
+        kind: 'connective', connective: 'AND', formulas: [
+          phi as DCECFormula,
+          nextUntil as unknown as DCECFormula,
+        ],
       };
       const derived: TdfolFormula = {
-        kind: 'connective', connective: 'OR', formulas: [psi, phiAndNext],
+        kind: 'connective', connective: 'OR', formulas: [
+          psi as DCECFormula,
+          phiAndNext as DCECFormula,
+        ],
       };
       const s = serializeTdfol(derived);
       if (!seen.has(s)) results.push(derived);

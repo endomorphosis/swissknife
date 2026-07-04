@@ -30,6 +30,8 @@ export type WasmProverId =
   | 'coq-jscoq'
   | 'lean4-wasm'
   | 'lurk-wasm'
+  | 'dcec-native'
+  | 'tdfol-native'
   | 'neural'
   | 'cache-hit'; // result served from ProofCache
 

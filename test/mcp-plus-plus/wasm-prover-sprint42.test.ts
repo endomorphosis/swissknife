@@ -67,7 +67,7 @@ describe('ProverStatus', () => {
 });
 
 describe('VampireProver', () => {
-  const vampire = new VampireProver();
+  const vampire = new VampireProver({ allowSimulatedFallback: true });
 
   test('isAvailable returns false (no binary)', () => {
     expect(vampire.isAvailable()).toBe(false);
@@ -92,7 +92,7 @@ describe('VampireProver', () => {
 });
 
 describe('EProver', () => {
-  const ep = new EProver();
+  const ep = new EProver({ allowSimulatedFallback: true });
 
   test('isAvailable returns false', () => {
     expect(ep.isAvailable()).toBe(false);

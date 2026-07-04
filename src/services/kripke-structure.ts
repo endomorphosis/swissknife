@@ -12,6 +12,8 @@
  *   createVisualizer()     — convenience factory
  */
 
+import { writeFileSync } from 'node:fs';
+
 import { ModalLogicType } from './modal-tableaux.js';
 
 // ---------------------------------------------------------------------------
@@ -90,15 +92,137 @@ export class KripkeStructure {
 // CounterModel (extracted from an open TableauxBranch)
 // ---------------------------------------------------------------------------
 
-export interface CounterModel {
-  formula: string;
-  kripke: KripkeStructure;
-  falseInWorld: number;
+export class CounterModel {
+  readonly formula: string;
+  readonly kripke: KripkeStructure;
+  readonly explanation: string[];
+  readonly falseInWorld: number;
+
+  constructor(input: {
+    formula: string;
+    kripke: KripkeStructure;
+    explanation?: string[];
+    falseInWorld?: number;
+  }) {
+    this.formula = input.formula;
+    this.kripke = input.kripke;
+    this.explanation = [...(input.explanation ?? [])];
+    this.falseInWorld = input.falseInWorld ?? this.kripke.initialWorld;
+  }
+
+  toString(): string {
+    const lines = [
+      `Countermodel for: ${this.formula}`,
+      `Logic: ${this.kripke.logicType}`,
+      `Worlds: ${JSON.stringify([...this.kripke.worlds].sort((a, b) => a - b))}`,
+      `Initial: w${this.kripke.initialWorld}`,
+      '',
+      'Valuation (true atoms):',
+    ];
+    for (const worldId of [...this.kripke.worlds].sort((a, b) => a - b)) {
+      const atoms = [...(this.kripke.valuation.get(worldId) ?? [])].sort();
+      lines.push(`  w${worldId}: ${atoms.length ? atoms.join(', ') : '(none)'}`);
+    }
+    lines.push('', 'Accessibility:');
+    for (const worldId of [...this.kripke.worlds].sort((a, b) => a - b)) {
+      const accessible = [...(this.kripke.accessibility.get(worldId) ?? [])].sort((a, b) => a - b);
+      if (accessible.length) lines.push(`  w${worldId} → ${accessible.map(w => `w${w}`).join(', ')}`);
+    }
+    if (this.explanation.length) {
+      lines.push('', 'Explanation:');
+      for (const line of this.explanation) lines.push(`  ${line}`);
+    }
+    return lines.join('\n');
+  }
+
+  toAsciiArt(): string {
+    const lines = [`Countermodel for: ${this.formula}`, ''];
+    for (const worldId of [...this.kripke.worlds].sort((a, b) => a - b)) {
+      const atoms = [...(this.kripke.valuation.get(worldId) ?? [])].sort();
+      const prefix = worldId === this.kripke.initialWorld ? '→ ' : '  ';
+      lines.push(`${prefix}w${worldId}: {${atoms.length ? atoms.join(', ') : '∅'}}`);
+      for (const target of [...(this.kripke.accessibility.get(worldId) ?? [])].sort((a, b) => a - b)) {
+        lines.push(`  ├─→ w${target}`);
+      }
+    }
+    return lines.join('\n');
+  }
+
+  toDot(): string {
+    const lines = [
+      'digraph Countermodel {',
+      `  label="Countermodel for ${this.formula}";`,
+      '  labelloc="t";',
+      '  node [shape=circle];',
+      '',
+    ];
+    for (const worldId of [...this.kripke.worlds].sort((a, b) => a - b)) {
+      const atoms = [...(this.kripke.valuation.get(worldId) ?? [])].sort();
+      const atomStr = atoms.length ? atoms.join('\\n') : '∅';
+      if (worldId === this.kripke.initialWorld) {
+        lines.push(`  w${worldId} [label="w${worldId}\\n${atomStr}", style=filled, fillcolor=lightblue];`);
+      } else {
+        lines.push(`  w${worldId} [label="w${worldId}\\n${atomStr}"];`);
+      }
+    }
+    lines.push('');
+    for (const worldId of [...this.kripke.worlds].sort((a, b) => a - b)) {
+      for (const target of [...(this.kripke.accessibility.get(worldId) ?? [])].sort((a, b) => a - b)) {
+        lines.push(`  w${worldId} -> w${target};`);
+      }
+    }
+    lines.push('}');
+    return lines.join('\n');
+  }
+
+  toJson(indent = 2): string {
+    return JSON.stringify({
+      formula: this.formula,
+      kripke_structure: this.kripke.toDict(),
+      explanation: this.explanation,
+    }, null, indent);
+  }
+
+  to_ascii_art = this.toAsciiArt.bind(this);
+  to_dot = this.toDot.bind(this);
+  to_json = this.toJson.bind(this);
 }
 
 // ---------------------------------------------------------------------------
 // Box-drawing constants
 // ---------------------------------------------------------------------------
+
+export class BoxChars {
+  static readonly HORIZONTAL = '─';
+  static readonly VERTICAL = '│';
+  static readonly TOP_LEFT = '┌';
+  static readonly TOP_RIGHT = '┐';
+  static readonly BOTTOM_LEFT = '└';
+  static readonly BOTTOM_RIGHT = '┘';
+  static readonly T_RIGHT = '├';
+  static readonly T_LEFT = '┤';
+  static readonly T_DOWN = '┬';
+  static readonly T_UP = '┴';
+  static readonly CROSS = '┼';
+  static readonly ARROW_RIGHT = '→';
+  static readonly ARROW_DOWN = '↓';
+  static readonly DOUBLE_ARROW_RIGHT = '⇒';
+  static readonly BULLET = '•';
+  static readonly CHECK = '✓';
+  static readonly CROSS_MARK = '✗';
+}
+
+export class GraphLayout {
+  readonly positions: Record<number, [number, number]>;
+  readonly width: number;
+  readonly height: number;
+
+  constructor(positions: Record<number, [number, number]> = {}, width = 800, height = 600) {
+    this.positions = { ...positions };
+    this.width = width;
+    this.height = height;
+  }
+}
 
 const BOX = {
   H: '─', V: '│',
@@ -207,6 +331,84 @@ export class CountermodelVisualizer {
 // Convenience factory
 // ---------------------------------------------------------------------------
 
+export class CounterModelExtractor {
+  readonly logicType: ModalLogicType;
+
+  constructor(logicType: ModalLogicType = ModalLogicType.K) {
+    this.logicType = logicType;
+  }
+
+  extract(formula: unknown, branch: Record<string, unknown>): CounterModel {
+    if (Boolean(branch.is_closed ?? branch.isClosed)) {
+      throw new Error('Cannot extract countermodel from closed branch');
+    }
+    const kripke = new KripkeStructure(this.logicType);
+    const worlds = mappingEntries(branch.worlds);
+    const accessibility = mappingEntries(branch.accessibility);
+
+    for (const [worldId] of worlds) kripke.addWorld(worldId);
+    if (kripke.worlds.size === 0) kripke.addWorld(0);
+    for (const [from, targets] of accessibility) {
+      for (const target of iterableNumbers(targets)) kripke.addAccessibility(from, target);
+    }
+    for (const [worldId, world] of worlds) {
+      const formulas = Array.isArray((world as Record<string, unknown>)?.formulas)
+        ? (world as Record<string, unknown>).formulas as unknown[]
+        : [];
+      for (const value of formulas) {
+        const atom = extractAtomName(value);
+        if (atom) kripke.setAtomTrue(worldId, atom);
+      }
+    }
+
+    return new CounterModel({
+      formula: formulaToString(formula),
+      kripke,
+      explanation: this.generateExplanation(formulaToString(formula), kripke),
+    });
+  }
+
+  private generateExplanation(formula: string, kripke: KripkeStructure): string[] {
+    const explanation = [
+      `Formula '${formula}' is not ${this.logicType}-valid`,
+      `Countermodel has ${kripke.worlds.size} world(s)`,
+    ];
+    const initAtoms = [...(kripke.valuation.get(kripke.initialWorld) ?? [])].sort();
+    explanation.push(initAtoms.length
+      ? `At initial world w${kripke.initialWorld}: ${initAtoms.join(', ')} are true`
+      : `At initial world w${kripke.initialWorld}: no atoms are true`);
+    explanation.push(`Total accessibility relations: ${kripke.totalRelations()}`);
+    return explanation;
+  }
+}
+
+export function extractCountermodel(
+  formula: unknown,
+  branch: Record<string, unknown>,
+  logicType: ModalLogicType = ModalLogicType.K,
+): CounterModel {
+  return new CounterModelExtractor(logicType).extract(formula, branch);
+}
+
+export function visualizeCountermodel(countermodel: CounterModel, format = 'ascii'): string {
+  if (format === 'ascii') return countermodel.toAsciiArt();
+  if (format === 'dot') return countermodel.toDot();
+  if (format === 'json') return countermodel.toJson();
+  throw new Error(`Unsupported format: ${format}. Use 'ascii', 'dot', or 'json'`);
+}
+
+export function printCountermodelAscii(countermodel: CounterModel): void {
+  console.log(countermodel.toAsciiArt());
+}
+
+export function saveCountermodelDot(countermodel: CounterModel, filename: string): void {
+  writeFileSync(filename, countermodel.toDot(), 'utf8');
+}
+
+export function saveCountermodelJson(countermodel: CounterModel, filename: string): void {
+  writeFileSync(filename, countermodel.toJson(), 'utf8');
+}
+
 /** Create a CountermodelVisualizer from an existing KripkeStructure. */
 export function createVisualizer(kripke: KripkeStructure): CountermodelVisualizer {
   return new CountermodelVisualizer(kripke);
@@ -229,4 +431,42 @@ export function visualizeKripkeHtml(worlds: Array<{ id: number; props: string[] 
     [...tos].map(to => `<div class="edge">w${from} → w${to}</div>`)
   ).join('');
   return `<div class="kripke">${nodes}${edges}</div>`;
+}
+
+export const extract_countermodel = extractCountermodel;
+export const visualize_countermodel = visualizeCountermodel;
+export const print_countermodel_ascii = printCountermodelAscii;
+export const save_countermodel_dot = saveCountermodelDot;
+export const save_countermodel_json = saveCountermodelJson;
+
+function mappingEntries(value: unknown): Array<[number, unknown]> {
+  if (value instanceof Map) return [...value.entries()].map(([key, nested]) => [Number(key), nested]);
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).map(([key, nested]) => [Number(key), nested]);
+  }
+  return [];
+}
+
+function iterableNumbers(value: unknown): number[] {
+  if (value instanceof Set) return [...value].map(Number);
+  if (Array.isArray(value)) return value.map(Number);
+  return [];
+}
+
+function extractAtomName(value: unknown): string | null {
+  if (typeof value === 'string') return value.match(/^[A-Z][A-Za-z0-9_]*/)?.[0] ?? null;
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (typeof record.name === 'string') return record.name;
+    if (typeof record.toStr === 'function') return extractAtomName(record.toStr());
+  }
+  return null;
+}
+
+function formulaToString(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && typeof (value as { toStr?: unknown }).toStr === 'function') {
+    return String((value as { toStr: () => string }).toStr());
+  }
+  return String(value);
 }

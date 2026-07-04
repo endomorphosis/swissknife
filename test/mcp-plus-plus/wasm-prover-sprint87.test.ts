@@ -68,8 +68,8 @@ describe('external prover unavailable mode', () => {
     expect(result.error).toContain('binary not found');
   });
 
-  it('preserves legacy simulated fallback by default', () => {
-    const eprover = new EProver({ availabilityCheck: () => false });
+  it('preserves simulated fallback only when explicitly requested', () => {
+    const eprover = new EProver({ availabilityCheck: () => false, allowSimulatedFallback: true });
     expect(eprover.prove('forall x. P(x)').status).toBe(ProverStatus.THEOREM);
   });
 });

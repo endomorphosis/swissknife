@@ -223,3 +223,54 @@ export function withFLogicOptimizer<T extends { confidence: number; score?: numb
     flogicScore:     optimizerScore ?? result.score ?? result.confidence,
   };
 }
+
+export interface ModalIRPredicate {
+  name: string;
+  arguments?: string[];
+}
+
+export interface ModalIROperator {
+  symbol: string;
+  family: string;
+  system: string;
+}
+
+export interface ModalIRFormula {
+  operator: ModalIROperator;
+  predicate: ModalIRPredicate;
+}
+
+export interface ModalIRDocument {
+  formulas: ModalIRFormula[];
+}
+
+export function decodeModalIrText(modalIr: ModalIRDocument): string {
+  return modalIr.formulas.map(modalFormulaToText).join('; ');
+}
+
+export function modalFormulaToText(formula: ModalIRFormula): string {
+  const args = formula.predicate.arguments ?? [];
+  const predicate = args.length
+    ? `${formula.predicate.name}(${args.join(', ')})`
+    : formula.predicate.name;
+  return `${formula.operator.symbol}[${formula.operator.family}:${formula.operator.system}](${predicate})`;
+}
+
+export function targetFamilyForModalIr(modalIr: ModalIRDocument): string {
+  return modalIr.formulas.length ? modalIr.formulas[0].operator.family : 'hybrid';
+}
+
+export function targetFamilyDistributionForModalIr(modalIr: ModalIRDocument): Record<string, number> {
+  if (!modalIr.formulas.length) return { hybrid: 1.0 };
+  const counts = new Map<string, number>();
+  for (const formula of modalIr.formulas) {
+    counts.set(formula.operator.family, (counts.get(formula.operator.family) ?? 0) + 1);
+  }
+  const total = modalIr.formulas.length;
+  return Object.fromEntries([...counts.entries()].sort().map(([family, count]) => [family, count / total]));
+}
+
+export const decode_modal_ir_text = decodeModalIrText;
+export const modal_formula_to_text = modalFormulaToText;
+export const target_family_for_modal_ir = targetFamilyForModalIr;
+export const target_family_distribution_for_modal_ir = targetFamilyDistributionForModalIr;

@@ -28,6 +28,12 @@ export type ZKPProcessRunner = (
   timeoutMs: number,
 ) => ZKPProcessResult;
 
+export interface Groth16BackendOptions {
+  /** Explicit opt-in for deterministic non-cryptographic fallback proofs. */
+  allowSimulatedFallback?: boolean;
+  fallbackBackend?: ZKPBackendProtocol;
+}
+
 function defaultProcessRunner(command: string, args: string[], input: string, timeoutMs: number): ZKPProcessResult {
   const { spawnSync } = require('child_process') as typeof import('child_process');
   const result = spawnSync(command, args, { input, timeout: timeoutMs, encoding: 'utf8' });
@@ -117,6 +123,7 @@ export class Groth16Backend implements ZKPBackendProtocol {
     private readonly binaryPath: string | null = null,
     private readonly timeoutMs = 30_000,
     private readonly runner: ZKPProcessRunner = defaultProcessRunner,
+    private readonly options: Groth16BackendOptions = {},
   ) {}
 
   isAvailable(): boolean {
@@ -133,8 +140,9 @@ export class Groth16Backend implements ZKPBackendProtocol {
     this.stats.proofsGenerated++;
 
     if (!this.isAvailable()) {
-      // Fall through to simulated proof when binary is absent
-      return new Groth16BackendFallback().generateProof(witnessJson, seed);
+      this.stats.failures++;
+      this.stats.totalProofTimeMs += performance.now() - t0;
+      return this.fallbackOrThrow(witnessJson, seed, 'Groth16 native binary not available');
     }
 
     // PORT-192: spawn the real Groth16 binary when available
@@ -159,12 +167,16 @@ export class Groth16Backend implements ZKPBackendProtocol {
     } catch { /* fall through */ }
     this.stats.failures++;
     this.stats.totalProofTimeMs += performance.now() - t0;
-    return new Groth16BackendFallback().generateProof(witnessJson, seed);
+    return this.fallbackOrThrow(witnessJson, seed, 'Groth16 native prover invocation failed');
   }
 
   async verifyProof(proofJson: string): Promise<boolean> {
     this.stats.proofsVerified++;
-    if (!this.isAvailable()) return new Groth16BackendFallback().verifyProof(proofJson);
+    if (!this.isAvailable()) {
+      return this.options.allowSimulatedFallback === true
+        ? (this.options.fallbackBackend ?? new Groth16BackendFallback()).verifyProof(proofJson)
+        : false;
+    }
     // PORT-192: invoke native verifier
     try {
       const result = this.runner(
@@ -178,6 +190,13 @@ export class Groth16Backend implements ZKPBackendProtocol {
   }
 
   getStats(): Readonly<Groth16BackendStats> { return { ...this.stats }; }
+
+  private fallbackOrThrow(witnessJson: string, seed: number | undefined, reason: string): Promise<Groth16Proof> {
+    if (this.options.allowSimulatedFallback === true) {
+      return (this.options.fallbackBackend ?? new Groth16BackendFallback()).generateProof(witnessJson, seed);
+    }
+    return Promise.reject(new Error(`${reason}; pass allowSimulatedFallback:true to use Groth16BackendFallback`));
+  }
 }
 
 // ---------------------------------------------------------------------------

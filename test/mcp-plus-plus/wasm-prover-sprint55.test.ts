@@ -206,10 +206,16 @@ describe('Groth16Backend', () => {
     expect(b.isAvailable()).toBe(false);
   });
 
-  test('falls back to simulated proof when binary unavailable', async () => {
-    const b = new Groth16Backend(null);
+  test('falls back to simulated proof only when explicitly enabled', async () => {
+    const b = new Groth16Backend(null, 30_000, undefined, { allowSimulatedFallback: true });
     const proof = await b.generateProof('{}');
     expect(proof).toBeInstanceOf(Groth16Proof);
+  });
+
+  test('fails closed when binary unavailable and simulation is not enabled', async () => {
+    const b = new Groth16Backend(null);
+    await expect(b.generateProof('{}')).rejects.toThrow(/allowSimulatedFallback:true/);
+    await expect(b.verifyProof('{}')).resolves.toBe(false);
   });
 
   test('getStats() initial values', () => {

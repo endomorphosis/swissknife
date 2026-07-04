@@ -85,7 +85,7 @@ export class VampireProver implements ExternalProver {
   constructor(private readonly opts: ExternalProverOptions = {}) {
     this.binary = opts.binary ?? 'vampire';
     this.runner = opts.runner ?? defaultRunner;
-    this.allowSimulatedFallback = opts.allowSimulatedFallback ?? true;
+    this.allowSimulatedFallback = opts.allowSimulatedFallback ?? false;
   }
 
   isAvailable(): boolean {
@@ -135,7 +135,7 @@ export class EProver implements ExternalProver {
   constructor(private readonly opts: ExternalProverOptions = {}) {
     this.binary = opts.binary ?? 'eprover';
     this.runner = opts.runner ?? defaultRunner;
-    this.allowSimulatedFallback = opts.allowSimulatedFallback ?? true;
+    this.allowSimulatedFallback = opts.allowSimulatedFallback ?? false;
   }
 
   isAvailable(): boolean {

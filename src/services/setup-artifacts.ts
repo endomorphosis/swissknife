@@ -35,6 +35,17 @@ export interface SetupArtifact {
   readonly version:      string;
 }
 
+export type TrustedSetupRunner = (params: {
+  circuitId: string;
+  algorithm: 'groth16' | 'provekit';
+  version: string;
+}) => SetupArtifact;
+
+export interface TrustedSetupOptions {
+  runner?: TrustedSetupRunner;
+  allowSimulated?: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // SetupArtifactStore
 // ---------------------------------------------------------------------------
@@ -82,16 +93,24 @@ export class SetupArtifactStore {
 // ---------------------------------------------------------------------------
 
 /**
- * Simulated trusted setup for a given circuit.
+ * Trusted setup for a given circuit.
  *
- * In production this spawns a real Groth16/PLONK setup ceremony.
- * Here we derive deterministic keys from the circuit ID.
+ * Native Groth16/ProveKit setup requires an injected runner. Deterministic
+ * simulated setup is retained only when the caller explicitly requests
+ * `algorithm: 'simulated'` or passes `allowSimulated:true`.
  */
 export function runTrustedSetup(
   circuitId: string,
-  algorithm: 'groth16' | 'provekit' | 'simulated' = 'simulated',
+  algorithm: 'groth16' | 'provekit' | 'simulated' = 'groth16',
   version = '1.0.0',
+  options: TrustedSetupOptions = {},
 ): SetupArtifact {
+  if (algorithm !== 'simulated' && options.runner) {
+    return options.runner({ circuitId, algorithm, version });
+  }
+  if (algorithm !== 'simulated' && options.allowSimulated !== true) {
+    throw new Error(`Native ${algorithm} trusted setup runner not configured; pass algorithm:'simulated' for deterministic test artifacts`);
+  }
   const seed = createHash('sha256').update(`${circuitId}:${algorithm}:${version}`).digest('hex');
   const now  = Date.now();
 
@@ -119,9 +138,13 @@ export function runTrustedSetup(
 
 const _store = new SetupArtifactStore();
 
-export function getOrCreateArtifact(circuitId: string, algorithm?: 'groth16' | 'provekit' | 'simulated'): SetupArtifact {
+export function getOrCreateArtifact(
+  circuitId: string,
+  algorithm: 'groth16' | 'provekit' | 'simulated' = 'simulated',
+  options: TrustedSetupOptions = {},
+): SetupArtifact {
   if (!_store.has(circuitId)) {
-    _store.put(runTrustedSetup(circuitId, algorithm ?? 'simulated'));
+    _store.put(runTrustedSetup(circuitId, algorithm, '1.0.0', algorithm === 'simulated' ? { allowSimulated: true, ...options } : options));
   }
   return _store.get(circuitId)!;
 }
