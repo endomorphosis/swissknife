@@ -317,8 +317,23 @@ export function legalNormIRBlockers(norm: LegalNormIR): string[] {
   return [...norm.quality.parser_warnings];
 }
 
+export function parserWarningsRequireDecoderValidation(warnings: readonly string[]): boolean {
+  const warningSet = new Set(warnings.map(warning => warning.trim()).filter(Boolean));
+  if (
+    warningSet.has('cross_reference_requires_resolution') &&
+    warningSet.has('exception_requires_scope_review')
+  ) {
+    return true;
+  }
+
+  return warnings.some(warning => {
+    const normalized = warning.trim();
+    return normalized.length > 0 && !decoderWarningNonBlockers.has(normalized);
+  });
+}
+
 export function legalNormIRDecoderRequiresValidation(norm: LegalNormIR): boolean {
-  return norm.quality.parser_warnings.some(warning => !decoderWarningNonBlockers.has(warning.trim().toLowerCase()));
+  return parserWarningsRequireDecoderValidation(norm.quality.parser_warnings);
 }
 
 export function legalNormIRCanonicalModality(norm: LegalNormIR): string {
@@ -403,9 +418,15 @@ export function legalNormIRSlotProvenance(
 }
 
 const decoderWarningNonBlockers = new Set([
+  'cross_reference_requires_resolution',
+  'enumerated_clause_requires_item_level_review',
+  'exception_requires_scope_review',
+  'overlong_action_span',
   'definition connector inserted',
   'fixed grammar connector inserted',
 ]);
+
+export const parser_warnings_require_decoder_validation = parserWarningsRequireDecoderValidation;
 
 function slotValue(norm: LegalNormIR, slot: string): unknown {
   if (slot === 'cross_references') {

@@ -7,6 +7,7 @@
 import {
   QueryType, DeonticOp, makeDeonticFormula, makeRuleSet,
   QueryResult, ComplianceResult, DeonticQueryEngine, createQueryEngine,
+  queryLegalRules,
 } from '../../src/services/deontic-query-engine.js';
 import {
   LegalConceptType, LegalDomainKind,
@@ -106,6 +107,13 @@ describe('DeonticQueryEngine', () => {
     engine.loadRuleSet(smallSet);
     const result = engine.query(QueryType.OBLIGATIONS);
     expect(result.totalMatches).toBe(1);
+  });
+
+  test('queryLegalRules runs natural-language queries against a rule set', () => {
+    const result = queryLegalRules(buildSampleRuleSet(), 'What obligations apply for contractor?');
+    expect(result.queryType).toBe(QueryType.OBLIGATIONS);
+    expect(result.totalMatches).toBeGreaterThan(0);
+    expect(result.queryMetadata.natural_language_query).toContain('obligations');
   });
 });
 

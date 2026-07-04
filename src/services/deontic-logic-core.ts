@@ -217,3 +217,132 @@ export class DeonticRuleSetExt {
     };
   }
 }
+
+function coerceLegalAgent(agent: LegalAgent | string | undefined): LegalAgent | undefined {
+  if (!agent) return undefined;
+  if (typeof agent !== 'string') return agent;
+  const id = agent.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'agent';
+  return makeLegalAgent(id, agent, 'unknown');
+}
+
+function dateIsInvalid(value: string): boolean {
+  return Number.isNaN(Date.parse(value));
+}
+
+export class DeonticLogicValidator {
+  static validateFormula(formula: ExtendedDeonticFormula): string[] {
+    const errors: string[] = [];
+    if (!formula.content.trim()) errors.push('Formula must have a proposition');
+    if (!Object.values(DeonticOperatorExt).includes(formula.operator)) {
+      errors.push('Formula must have a valid deontic operator');
+    }
+    if (formula.confidence < 0 || formula.confidence > 1) {
+      errors.push('Confidence must be between 0.0 and 1.0');
+    }
+    const temporalScope = formula.context?.temporalScope;
+    if (temporalScope?.start && dateIsInvalid(temporalScope.start)) {
+      errors.push('Invalid datetime format in temporal conditions');
+    }
+    if (temporalScope?.end && dateIsInvalid(temporalScope.end)) {
+      errors.push('Invalid datetime format in temporal conditions');
+    }
+    if (temporalScope?.start && temporalScope?.end && Date.parse(temporalScope.start) >= Date.parse(temporalScope.end)) {
+      errors.push('Start time must be before end time in temporal conditions');
+    }
+    return errors;
+  }
+
+  static validateRuleSet(ruleSet: DeonticRuleSetExt): string[] {
+    const errors: string[] = [];
+    if (!ruleSet.name.trim()) errors.push('Rule set must have a name');
+    if (ruleSet.formulas.length === 0) errors.push('Rule set must contain at least one formula');
+    ruleSet.formulas.forEach((formula, index) => {
+      for (const error of DeonticLogicValidator.validateFormula(formula)) {
+        errors.push(`Formula ${index}: ${error}`);
+      }
+    });
+    for (let i = 0; i < ruleSet.formulas.length; i++) {
+      for (let j = i + 1; j < ruleSet.formulas.length; j++) {
+        const left = ruleSet.formulas[i];
+        const right = ruleSet.formulas[j];
+        if (left.content === right.content && left.agent?.identifier === right.agent?.identifier) {
+          const ops = new Set([left.operator, right.operator]);
+          if (ops.has(DeonticOperatorExt.OBLIGATION) && ops.has(DeonticOperatorExt.PROHIBITION)) {
+            errors.push(`Consistency conflict: Direct conflict: obligation vs prohibition between formulas ${left.formulaId} and ${right.formulaId}`);
+          }
+          if (ops.has(DeonticOperatorExt.PERMISSION) && ops.has(DeonticOperatorExt.PROHIBITION)) {
+            errors.push(`Consistency conflict: Conflict: permission vs prohibition between formulas ${left.formulaId} and ${right.formulaId}`);
+          }
+        }
+      }
+    }
+    return errors;
+  }
+
+  static validate_formula(formula: ExtendedDeonticFormula): string[] {
+    return DeonticLogicValidator.validateFormula(formula);
+  }
+
+  static validate_rule_set(ruleSet: DeonticRuleSetExt): string[] {
+    return DeonticLogicValidator.validateRuleSet(ruleSet);
+  }
+}
+
+export function createObligation(
+  proposition: string,
+  agent?: LegalAgent | string,
+  conditions: string[] = [],
+  opts: Omit<Parameters<typeof makeExtFormula>[2], 'agent' | 'conditions'> = {},
+): ExtendedDeonticFormula {
+  return makeExtFormula(DeonticOperatorExt.OBLIGATION, proposition, {
+    ...opts,
+    agent: coerceLegalAgent(agent),
+    conditions,
+  });
+}
+
+export function createPermission(
+  proposition: string,
+  agent?: LegalAgent | string,
+  conditions: string[] = [],
+  opts: Omit<Parameters<typeof makeExtFormula>[2], 'agent' | 'conditions'> = {},
+): ExtendedDeonticFormula {
+  return makeExtFormula(DeonticOperatorExt.PERMISSION, proposition, {
+    ...opts,
+    agent: coerceLegalAgent(agent),
+    conditions,
+  });
+}
+
+export function createProhibition(
+  proposition: string,
+  agent?: LegalAgent | string,
+  conditions: string[] = [],
+  opts: Omit<Parameters<typeof makeExtFormula>[2], 'agent' | 'conditions'> = {},
+): ExtendedDeonticFormula {
+  return makeExtFormula(DeonticOperatorExt.PROHIBITION, proposition, {
+    ...opts,
+    agent: coerceLegalAgent(agent),
+    conditions,
+  });
+}
+
+export function demonstrateDeonticLogic(): DeonticRuleSetExt {
+  const contractor = makeLegalAgent('contractor_001', 'ABC Construction LLC', 'organization');
+  const client = makeLegalAgent('client_001', 'City of Springfield', 'government');
+  const context = makeContext({
+    jurisdiction: 'State of Illinois',
+    legalDomain: 'contract',
+    agents: [contractor, client],
+  });
+  return new DeonticRuleSetExt('Springfield Construction Contract', [
+    createObligation('complete_construction_work_by_deadline', contractor, ['contract_is_valid', 'no_force_majeure_events'], { context }),
+    createPermission('inspect_construction_work', client, ['provide_24_hour_notice'], { context }),
+    createProhibition('use_substandard_materials', contractor, [], { context }),
+  ]);
+}
+
+export const create_obligation = createObligation;
+export const create_permission = createPermission;
+export const create_prohibition = createProhibition;
+export const demonstrate_deontic_logic = demonstrateDeonticLogic;

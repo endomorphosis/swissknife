@@ -15,6 +15,9 @@ import { DeonticTextAnalyzer } from '../../src/services/deontic/deontic-text-ana
 import type { DeonticStatement } from '../../src/services/deontic/deontic-text-analyzer.js';
 import {
   DeonticKnowledgeBase,
+  KnowledgeDeonticModality,
+  KnowledgeLogicalOperator,
+  KnowledgeTemporalOperator,
   Pred, And, Or, Not, Implies,
   intervalContains,
 } from '../../src/services/deontic/deontic-knowledge-base.js';
@@ -198,6 +201,17 @@ describe('T-73 DeonticKnowledgeBase', () => {
     const { compliant, reason } = kb.checkCompliance(alice, readFile, new Date());
     expect(compliant).toBe(true);
     expect(reason).toContain('No active contrary');
+  });
+
+  it('exports Python-compatible knowledge enum values directly', () => {
+    expect(KnowledgeDeonticModality.OBLIGATORY).toBe('O');
+    expect(KnowledgeDeonticModality.PERMITTED).toBe('P');
+    expect(KnowledgeDeonticModality.PROHIBITED).toBe('F');
+    expect(KnowledgeDeonticModality.OPTIONAL).toBe('OPT');
+    expect(KnowledgeTemporalOperator.BEFORE).toBe('before');
+    expect(KnowledgeTemporalOperator.EQUALS).toBe('equals');
+    expect(KnowledgeLogicalOperator.FORALL).toBe('forall');
+    expect(KnowledgeLogicalOperator.EXISTS).toBe('exists');
   });
 
   it('checkCompliance returns non-compliant for prohibition', () => {

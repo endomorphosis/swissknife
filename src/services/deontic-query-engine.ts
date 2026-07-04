@@ -248,6 +248,27 @@ export class DeonticQueryEngine {
     return new QueryResult(queryType, formulas, `Found ${formulas.length} matching formula(s)`);
   }
 
+  queryByNaturalLanguage(query: string): QueryResult {
+    const normalized = query.toLowerCase();
+    const agentMatch = normalized.match(/\b(?:for|by|of|agent)\s+([a-z][a-z0-9 _-]+)/i);
+    const agentFilter = agentMatch?.[1]?.trim();
+    let queryType = QueryType.COMPLIANCE_CHECK;
+    if (/\boblig|dut(y|ies)|must|shall|required\b/.test(normalized)) queryType = QueryType.OBLIGATIONS;
+    else if (/\bpermit|permission|may|allowed|authorized\b/.test(normalized)) queryType = QueryType.PERMISSIONS;
+    else if (/\bprohibit|forbid|forbidden|must not|shall not\b/.test(normalized)) queryType = QueryType.PROHIBITIONS;
+    else if (/\bconflict|inconsisten/.test(normalized)) queryType = QueryType.CONFLICTS;
+    else if (/\btemporal|deadline|before|after|within|until\b/.test(normalized)) queryType = QueryType.TEMPORAL_CONSTRAINTS;
+    else if (agentFilter) queryType = QueryType.AGENT_DUTIES;
+
+    const result = this.query(queryType, agentFilter);
+    result.queryMetadata = {
+      ...result.queryMetadata,
+      natural_language_query: query,
+      extracted_keywords: normalized.split(/[^a-z0-9]+/).filter(word => word.length > 2),
+    };
+    return result;
+  }
+
   /** Check whether an action by an agent complies with the rule set. */
   checkCompliance(action: string, agentName?: string): ComplianceResult {
     if (!this.ruleSet) {
@@ -321,6 +342,12 @@ export class DeonticQueryEngine {
 export function createQueryEngine(ruleSet?: DeonticRuleSet): DeonticQueryEngine {
   return new DeonticQueryEngine(ruleSet);
 }
+
+export function queryLegalRules(ruleSet: DeonticRuleSet, naturalLanguageQuery: string): QueryResult {
+  return new DeonticQueryEngine(ruleSet).queryByNaturalLanguage(naturalLanguageQuery);
+}
+
+export const query_legal_rules = queryLegalRules;
 
 // PORT-141: Convert action→proposition for Python⇄TS interchange
 // Python DeonticFormula uses .proposition; TS uses .action

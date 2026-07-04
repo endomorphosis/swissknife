@@ -7,6 +7,11 @@
 import {
   DeonticOperatorExt, LogicConnective, TemporalOperatorExt,
   makeLegalAgent, makeContext, makeExtFormula, DeonticRuleSetExt,
+  DeonticLogicValidator,
+  createObligation,
+  createPermission,
+  createProhibition,
+  demonstrateDeonticLogic,
 } from '../../src/services/deontic-logic-core.js';
 import {
   makeProvenanceChain, LogicIPLDNode, LogicIPLDStorage,
@@ -112,6 +117,31 @@ describe('DeonticRuleSetExt', () => {
 
   test('toDict is JSON-safe', () => {
     expect(() => JSON.stringify(makeRuleSet().toDict())).not.toThrow();
+  });
+});
+
+describe('DeonticLogicValidator and Python-compatible constructors', () => {
+  test('createObligation/createPermission/createProhibition build native extended formulas', () => {
+    const agent = makeLegalAgent('contractor', 'Contractor', 'organization');
+    expect(createObligation('deliver goods', agent).operator).toBe(DeonticOperatorExt.OBLIGATION);
+    expect(createPermission('inspect goods', agent).operator).toBe(DeonticOperatorExt.PERMISSION);
+    expect(createProhibition('disclose secrets', agent).operator).toBe(DeonticOperatorExt.PROHIBITION);
+  });
+
+  test('validator accepts valid formula and reports inconsistent rule sets', () => {
+    const agent = makeLegalAgent('agent', 'Agent');
+    const rules = new DeonticRuleSetExt('conflict', [
+      createObligation('report incident', agent),
+      createProhibition('report incident', agent),
+    ]);
+    expect(DeonticLogicValidator.validateFormula(rules.formulas[0])).toEqual([]);
+    expect(DeonticLogicValidator.validateRuleSet(rules).some(error => error.includes('Consistency conflict'))).toBe(true);
+  });
+
+  test('demonstrateDeonticLogic returns a populated rule set', () => {
+    const rules = demonstrateDeonticLogic();
+    expect(rules.formulas.length).toBe(3);
+    expect(DeonticLogicValidator.validateRuleSet(rules)).toEqual([]);
   });
 });
 

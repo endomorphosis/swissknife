@@ -20,7 +20,41 @@ import {
   ProverSyntaxValidator,
 } from '../../src/services/deontic/prover-syntax-builder';
 import { decodeLegalNormIR } from '../../src/services/deontic/legal-norm-decoder';
-import { buildLegalNormIR, emptyQuality } from '../../src/services/deontic/legal-norm-ir';
+import {
+  buildLegalNormIR,
+  emptyQuality,
+  parserWarningsRequireDecoderValidation,
+  parser_warnings_require_decoder_validation,
+} from '../../src/services/deontic/legal-norm-ir';
+import {
+  activeRepairDetailsFromParserElements,
+  buildDecoderRecordFromIR,
+  buildDecoderRecordsFromIRs,
+  buildDecoderSlotGroundingAuditRecord,
+  buildDecoderSlotGroundingAuditRecordFromIR,
+  buildDecoderSlotGroundingAuditRecordsFromIRs,
+  buildIrSlotProvenanceAuditRecord,
+  buildIrSlotProvenanceAuditRecords,
+  buildProverSyntaxSummaryRecordFromIR,
+  buildProverSyntaxTargetCoverageRecord,
+  buildProverSyntaxTargetCoverageRecordsFromIRs,
+  buildReconstructionSlotLossRecord,
+  buildReconstructionSlotLossRecords,
+  normalizeRepairRequiredEvaluation,
+  parserElementHasActiveRepair,
+  parserElementsForMetrics,
+  parserElementsToIrAlignedExportTables,
+  parserElementsWithIrExportReadiness,
+  summarizeActiveRepairFromParserElements,
+  summarizeDecoderReconstructionRecords,
+  summarizeDecoderSlotGroundingAuditRecords,
+  summarizeProverSyntaxTargetCorpusCoverage,
+  summarizeProverTargetQualityGates,
+  summarizeProverTargetRoleMatrix,
+  summarizeProverTargetSemanticFamilies,
+  summarizeReconstructionSlotLoss,
+  validateExportTables,
+} from '../../src/services/deontic-exports';
 
 describe('PORT-198 decoder provenance audit trail', () => {
   it('builds phrase-level source grounding and slot support maps', () => {
@@ -182,5 +216,142 @@ describe('PORT-200 prover syntax target coverage and validator', () => {
       'record_warning',
       'missing_target',
     ]));
+  });
+});
+
+describe('PORT-214 direct deontic export records', () => {
+  const norm = buildLegalNormIR({
+    source_id: 'export-1',
+    canonical_citation: 'Demo Rule 1',
+    modality: 'O',
+    norm_type: 'obligation',
+    actor: 'Users',
+    action: 'log access',
+    source_text: 'Users must log access upon request.',
+    support_text: 'Users must log access upon request.',
+    source_span: { start: 0, end: 35 },
+    support_span: { start: 0, end: 35 },
+    conditions: [{ text: 'upon request' }],
+    quality: {
+      ...emptyQuality(),
+      schema_valid: true,
+      scaffold_quality: 1,
+      quality_label: 'high',
+      promotable_to_theorem: true,
+      export_readiness: {
+        formula_proof_ready: true,
+        formula_requires_validation: false,
+        formula_repair_required: false,
+        deterministic_resolution: { type: 'source_grounded_formula' },
+      },
+    },
+  });
+
+  it('builds decoder, IR provenance, slot grounding, and reconstruction-loss rows', () => {
+    const decoder = buildDecoderRecordFromIR(norm);
+    expect(decoder.source_id).toBe('export-1');
+    expect(decoder.decoded_text).toContain('Users must log access');
+    expect(decoder.grounded_decoded_phrase_rate).toBe(1);
+    expect(buildDecoderRecordsFromIRs([norm])).toHaveLength(1);
+
+    const irAudit = buildIrSlotProvenanceAuditRecord(norm, ['actor', 'action', 'conditions']);
+    expect(irAudit.all_checked_slots_grounded).toBe(true);
+    expect(buildIrSlotProvenanceAuditRecords([norm], ['actor'])).toHaveLength(1);
+
+    const slotAudit = buildDecoderSlotGroundingAuditRecord(decoder, ['actor', 'action']);
+    expect(slotAudit.slot_grounding_complete).toBe(true);
+    expect(buildDecoderSlotGroundingAuditRecordFromIR(norm).source_id).toBe('export-1');
+    expect(buildDecoderSlotGroundingAuditRecordsFromIRs([norm])).toHaveLength(1);
+
+    const slotSummary = summarizeDecoderSlotGroundingAuditRecords([slotAudit]);
+    expect(slotSummary.slot_grounding_complete_count).toBe(1);
+
+    const lossSummary = summarizeReconstructionSlotLoss([decoder], ['actor', 'action']);
+    expect(lossSummary.slot_reconstruction_complete).toBe(true);
+    const lossRow = buildReconstructionSlotLossRecord('export-1', [decoder], ['actor', 'action']);
+    expect(lossRow.requires_validation).toBe(false);
+    expect(buildReconstructionSlotLossRecords([decoder], ['actor', 'action'])).toHaveLength(1);
+
+    const decoderSummary = summarizeDecoderReconstructionRecords([decoder]);
+    expect(decoderSummary.record_count).toBe(1);
+  });
+
+  it('builds prover syntax summaries and corpus-level target reports', () => {
+    const summary = buildProverSyntaxSummaryRecordFromIR(norm, ['frame_logic', 'deontic_cec', 'fol']);
+    expect(summary.required_targets_passed).toBe(true);
+    expect(summary.targets).toEqual(['frame_logic', 'deontic_cec', 'fol']);
+
+    const syntaxRecord = (summary.prover_syntax_records as Array<Record<string, unknown>>)[0];
+    const coverageRow = buildProverSyntaxTargetCoverageRecord(syntaxRecord, ['frame_logic', 'deontic_cec', 'fol']);
+    expect(coverageRow.status).toBe('covered');
+
+    const coverage = buildProverSyntaxTargetCoverageRecordsFromIRs([norm], ['frame_logic', 'deontic_cec', 'fol']);
+    expect(coverage).toHaveLength(3);
+    expect(summarizeProverSyntaxTargetCorpusCoverage(coverage, ['frame_logic', 'deontic_cec', 'fol']).covered_source_count).toBe(1);
+    expect(summarizeProverTargetQualityGates(coverage).all_quality_gates_passed).toBe(true);
+    expect(summarizeProverTargetRoleMatrix(coverage).target_roles).toHaveProperty('frame_logic');
+    expect(summarizeProverTargetSemanticFamilies(coverage).semantic_family_distribution).toHaveProperty('frame');
+  });
+
+  it('normalizes active repair details and validates IR-aligned export tables', () => {
+    const blockedElement = {
+      source_id: 'repair-1',
+      canonical_citation: 'Demo Rule 2',
+      modality: 'O',
+      norm_type: 'obligation',
+      actor: '',
+      action: 'notify agency',
+      source_text: 'The agency must be notified.',
+      text: 'The agency must be notified.',
+      parser_warnings: ['missing actor'],
+      repair_required: true,
+      llm_repair: { required: true, reasons: ['missing actor'] },
+    };
+
+    expect(parserElementHasActiveRepair(blockedElement)).toBe(true);
+    expect(parserElementsForMetrics([blockedElement])[0].active_repair_required).toBe(true);
+    expect(activeRepairDetailsFromParserElements([blockedElement])).toHaveLength(1);
+    expect(summarizeActiveRepairFromParserElements([blockedElement]).repair_required_count).toBe(1);
+
+    const normalized = normalizeRepairRequiredEvaluation([blockedElement], {
+      repair_required_details: [{ source_id: 'repair-1', note: 'raw' }],
+      metrics: { coverage_gaps: ['repair_required_count:1', 'other_gap'] },
+    });
+    expect(normalized.repair_required_count).toBe(1);
+    expect((normalized.metrics as Record<string, unknown>).coverage_gaps).toEqual(['other_gap']);
+
+    const readyRows = parserElementsWithIrExportReadiness([{
+      source_id: 'export-1',
+      modality: 'O',
+      norm_type: 'obligation',
+      actor: 'Users',
+      action: 'log access',
+      source_text: 'Users must log access.',
+    }]);
+    expect(readyRows[0].ir_export_readiness).toBeDefined();
+
+    const tables = parserElementsToIrAlignedExportTables([{
+      source_id: 'export-1',
+      canonical_citation: 'Demo Rule 1',
+      modality: 'O',
+      norm_type: 'obligation',
+      actor: 'Users',
+      action: 'log access',
+      source_text: 'Users must log access.',
+      support_text: 'Users must log access.',
+      quality: { ...emptyQuality(), promotable_to_theorem: true, schema_valid: true },
+    }]);
+    expect(tables.decoder_reconstructions).toHaveLength(1);
+    expect(validateExportTables(tables).valid).toBe(true);
+  });
+
+  it('classifies decoder-blocking parser warnings like the Python IR helper', () => {
+    expect(parserWarningsRequireDecoderValidation(['cross_reference_requires_resolution'])).toBe(false);
+    expect(parserWarningsRequireDecoderValidation(['exception_requires_scope_review'])).toBe(false);
+    expect(parserWarningsRequireDecoderValidation([
+      'cross_reference_requires_resolution',
+      'exception_requires_scope_review',
+    ])).toBe(true);
+    expect(parser_warnings_require_decoder_validation(['missing actor'])).toBe(true);
   });
 });

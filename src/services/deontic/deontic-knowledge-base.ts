@@ -19,6 +19,34 @@
 
 export type KBDeonticModality = 'O' | 'P' | 'F' | 'OPT';
 
+export enum KnowledgeDeonticModality {
+  OBLIGATORY = 'O',
+  PERMITTED = 'P',
+  PROHIBITED = 'F',
+  OPTIONAL = 'OPT',
+}
+
+export enum KnowledgeTemporalOperator {
+  BEFORE = 'before',
+  AFTER = 'after',
+  COINCIDENT = 'coincident',
+  DURING = 'during',
+  OVERLAPS = 'overlaps',
+  STARTS = 'starts',
+  FINISHES = 'finishes',
+  EQUALS = 'equals',
+}
+
+export enum KnowledgeLogicalOperator {
+  AND = 'and',
+  OR = 'or',
+  NOT = 'not',
+  IMPLIES = 'implies',
+  IFF = 'iff',
+  FORALL = 'forall',
+  EXISTS = 'exists',
+}
+
 /**
  * A closed time interval.  Either `end` or `durationDays` may be used to
  * express the end point; `durationDays` is resolved against `start` when

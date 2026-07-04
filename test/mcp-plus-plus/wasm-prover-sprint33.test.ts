@@ -6,6 +6,7 @@
 
 import {
   makeConversionContext, DeonticLogicConverter, ConversionResult,
+  demonstrateDeonticConversion,
 } from '../../src/services/deontic-logic-converter.js';
 import { DeonticOp } from '../../src/services/deontic-query-engine.js';
 import {
@@ -104,6 +105,13 @@ describe('DeonticLogicConverter', () => {
     expect(result.deonticFormulas).toHaveLength(2);
     expect(result.deonticFormulas[0].operator).toBe(DeonticOp.OBLIGATION);
     expect(result.deonticFormulas[1].operator).toBe(DeonticOp.PROHIBITION);
+  });
+
+  test('demonstrateDeonticConversion returns a populated conversion result', () => {
+    const result = demonstrateDeonticConversion();
+    expect(result).toBeInstanceOf(ConversionResult);
+    expect(result.deonticFormulas.length).toBeGreaterThanOrEqual(3);
+    expect(result.errors).toEqual([]);
   });
 });
 

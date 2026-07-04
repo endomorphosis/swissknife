@@ -248,3 +248,19 @@ export function convertKnowledgeGraphToLogic(
   }
   return formulas;
 }
+
+export function demonstrateDeonticConversion(): ConversionResult {
+  const converter = new DeonticLogicConverter();
+  const context = makeConversionContext('springfield-contract.txt', {
+    documentTitle: 'Springfield Construction Contract',
+    jurisdiction: 'State of Illinois',
+    legalDomain: LegalDomain.CONTRACT,
+  });
+  return converter.convert([
+    'The Contractor shall complete all work by December 31, 2024.',
+    'The Client may inspect the work at any time with 24 hours notice.',
+    'The Contractor shall not use materials that do not meet specifications.',
+  ].join(' '), context);
+}
+
+export const demonstrate_deontic_conversion = demonstrateDeonticConversion;

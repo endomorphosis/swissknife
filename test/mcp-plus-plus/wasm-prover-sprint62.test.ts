@@ -5,7 +5,20 @@
  */
 
 import { EnhancedGrammarParser, ParseTree, Category } from '../../src/services/enhanced-grammar-parser';
-import { TemporalDeonticAPI } from '../../src/services/temporal-deontic-api';
+import {
+  TemporalDeonticAPI,
+  addTheoremFromParameters,
+  bulkProcessCaselawFromParameters,
+  createSampleTheoremCorpus,
+  demoBatchProcessing,
+  demoDocumentConsistencyChecking,
+  demoRagRetrieval,
+  printDebugReport,
+  queryTheoremsFromParameters,
+} from '../../src/services/temporal-deontic-api';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/nlp-predicate-extractor';
 import {
   FormulaProfiler, BottleneckAnalyzer, ProfilingReporter,
@@ -104,6 +117,52 @@ describe('TemporalDeonticAPI', () => {
     const a2 = new TemporalDeonticAPI();
     a2.extract('P must Q.');
     expect(a2.getStats().extracted).toBe(1);
+  });
+
+  test('queryTheoremsFromParameters returns deterministic theorem results', async () => {
+    const result = await queryTheoremsFromParameters({
+      query: 'provide advance notice before termination',
+      operator_filter: 'OBLIGATION',
+      jurisdiction: 'Federal',
+      limit: 3,
+    });
+    expect(result.success).toBe(true);
+    expect(result.total_results).toBeGreaterThan(0);
+  });
+
+  test('addTheoremFromParameters validates and returns theorem metadata', async () => {
+    const missing = await addTheoremFromParameters({ operator: 'OBLIGATION' });
+    expect(missing.success).toBe(false);
+
+    const added = await addTheoremFromParameters({
+      operator: 'OBLIGATION',
+      proposition: 'provide notice',
+      agent_name: 'Contract Party',
+    });
+    expect(added.success).toBe(true);
+    expect(String(added.theorem_id)).toContain('thm:');
+  });
+
+  test('bulkProcessCaselawFromParameters validates directories', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'td-api-'));
+    try {
+      const result = await bulkProcessCaselawFromParameters({
+        caselaw_directories: [dir],
+        async_processing: false,
+      });
+      expect(result.success).toBe(true);
+      expect((result.results as Record<string, unknown>).documents_processed).toBe(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('demo helpers expose sample corpus, debug report, batch, and RAG retrieval data', () => {
+    expect(createSampleTheoremCorpus().size).toBeGreaterThan(0);
+    expect(printDebugReport({ document_id: 'doc', summary: 'ok' })).toContain('DEBUG REPORT');
+    expect(demoDocumentConsistencyChecking().formulas_extracted).toBeGreaterThan(0);
+    expect(demoBatchProcessing().documents_analyzed).toBe(3);
+    expect(demoRagRetrieval().query_count).toBe(3);
   });
 });
 
