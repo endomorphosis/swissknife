@@ -104,6 +104,14 @@ const mgw564LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'mgw-564-mcp-dashboard-launch-gate.json',
 );
+const vai564LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-564-mcp-dashboard-launch-gate.json',
+);
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 const consumerReceipt = JSON.parse(fs.readFileSync(consumerReceiptPath, 'utf8'));
 const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
@@ -117,6 +125,7 @@ const mgw563LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw563LaunchGateRecei
 const mgw566LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw566LaunchGateReceiptPath, 'utf8'));
 const vai548LaunchGateReceipt = JSON.parse(fs.readFileSync(vai548LaunchGateReceiptPath, 'utf8'));
 const mgw564LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw564LaunchGateReceiptPath, 'utf8'));
+const vai564LaunchGateReceipt = JSON.parse(fs.readFileSync(vai564LaunchGateReceiptPath, 'utf8'));
 const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
 assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
@@ -516,6 +525,36 @@ assert(
 assert(
   JSON.stringify(mgw564Gate?.validation_commands || []) === JSON.stringify(mgw564LaunchGateReceipt.validation_commands),
   'MGW-564 launch gate must preserve the shared packet validation commands',
+);
+const vai564Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-564');
+assert(vai564Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-564 for VAIOS-G724');
+assert(
+  vai564Gate?.source_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-03-vai-564-objective-gap-3e00ad2a0074.md',
+  'VAI-564 launch gate must point at the current source gap receipt',
+);
+assert(
+  vai564Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-03-vai-564-mcp-dashboard-launch-gate.md',
+  'VAI-564 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai564Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-564-mcp-dashboard-launch-gate.json',
+  'VAI-564 launch gate must point at the Playwright fixture',
+);
+assert(
+  vai564Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-564 launch gate must be closed by the Hallucinate App Playwright validation gate',
+);
+assert(
+  JSON.stringify(vai564Gate?.packet_goal_ids || []) === JSON.stringify(['VAIOS-G724', 'VAIOS-G728']),
+  'VAI-564 launch gate must preserve VAIOS-G724/VAIOS-G728 packet goals',
+);
+assert(
+  JSON.stringify(vai564Gate?.validation_commands || []) === JSON.stringify(vai564LaunchGateReceipt.validation_commands),
+  'VAI-564 launch gate must preserve the shared packet validation commands',
+);
+assert(
+  JSON.stringify(vai564Gate?.dashboard_servers || []) === JSON.stringify(vai564LaunchGateReceipt.dashboard_servers),
+  'VAI-564 launch gate must preserve all dashboard server handoff records',
 );
 const mgw566Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-566');
 assert(mgw566Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include MGW-566 for VAIOS-G723');
