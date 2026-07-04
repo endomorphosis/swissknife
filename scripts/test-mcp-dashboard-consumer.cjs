@@ -112,6 +112,14 @@ const vai564LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'vai-564-mcp-dashboard-launch-gate.json',
 );
+const vai566LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-566-mcp-dashboard-launch-gate.json',
+);
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 const consumerReceipt = JSON.parse(fs.readFileSync(consumerReceiptPath, 'utf8'));
 const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
@@ -126,6 +134,7 @@ const mgw566LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw566LaunchGateRecei
 const vai548LaunchGateReceipt = JSON.parse(fs.readFileSync(vai548LaunchGateReceiptPath, 'utf8'));
 const mgw564LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw564LaunchGateReceiptPath, 'utf8'));
 const vai564LaunchGateReceipt = JSON.parse(fs.readFileSync(vai564LaunchGateReceiptPath, 'utf8'));
+const vai566LaunchGateReceipt = JSON.parse(fs.readFileSync(vai566LaunchGateReceiptPath, 'utf8'));
 const liveCatalog = new MCPDaemonManager().getDashboardCapabilityCatalog();
 assert(JSON.stringify(catalog) === JSON.stringify(liveCatalog), 'Swissknife fixture does not match the Hallucinate App dashboard catalog');
 assert(catalog.validation_task_id === 'VAI-512', 'Catalog validation task id must be VAI-512');
@@ -597,6 +606,47 @@ assert(
   ]),
   'MGW-566 launch gate must point at the attempt-2 validation receipts',
 );
+const vai566Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-566');
+assert(vai566Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-566 for VAIOS-G723');
+assert(
+  vai566Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-03-vai-566-objective-gap-7ea369464239.md',
+  'VAI-566 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai566Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-03-vai-566-mcp-dashboard-launch-gate.md',
+  'VAI-566 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai566Gate?.hallucinate_backlog_receipt === 'data/hallucinate_multimodal_control/discovery/2026-07-03-vai-566-mcp-dashboard-launch-gate.md',
+  'VAI-566 launch gate must point at the Hallucinate supervisor mirror',
+);
+assert(
+  vai566Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-566-mcp-dashboard-launch-gate.json',
+  'VAI-566 launch gate must point at the Playwright fixture',
+);
+assert(
+  JSON.stringify(vai566Gate?.child_goals || []) === JSON.stringify(vai566LaunchGateReceipt.child_goals),
+  'VAI-566 launch gate must expose VAIOS-G723 dashboard child goals',
+);
+assert(
+  JSON.stringify(vai566Gate?.follow_up_subtasks || []) === JSON.stringify(vai566LaunchGateReceipt.follow_up_subtasks),
+  'VAI-566 launch gate must preserve supervisor-generated follow-up subtasks',
+);
+assert(
+  JSON.stringify(vai566Gate?.required_evidence || []) === JSON.stringify(vai566LaunchGateReceipt.required_evidence),
+  'VAI-566 launch gate must preserve dashboard launch evidence terms for Swissknife consumers',
+);
+assert(
+  vai566Gate?.attempt === 2,
+  'VAI-566 launch gate must expose the attempt-2 validation receipts for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai566Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-03-vai-566-attempt-2-launch-playwright-validation-gate.md',
+    'data/hallucinate_multimodal_control/discovery/2026-07-03-vai-566-attempt-2-validation.md',
+  ]),
+  'VAI-566 launch gate must point at the attempt-2 validation receipts',
+);
 assert(catalog.swissknife_catalog_consumer_proof?.task_id === 'HAO-681', 'Catalog must expose the HAO-681 Swissknife consumer proof');
 assert(
   JSON.stringify(catalog.swissknife_catalog_consumer_proof?.depends_on) === JSON.stringify(['HAO-677', 'HAO-680']),
@@ -715,6 +765,9 @@ console.log(JSON.stringify({
     mgw563LaunchGateReceipt.task_id,
     mgw564LaunchGateReceipt.task_id,
     mgw566LaunchGateReceipt.task_id,
+  ],
+  virtual_ai_launch_task_ids: [
+    vai566LaunchGateReceipt.task_id,
   ],
   launch_goal_ids: catalog.launch_objective_ids,
   swissknife_launch_goal_id: launchReceipt.goal_id,
