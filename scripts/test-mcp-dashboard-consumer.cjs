@@ -296,6 +296,14 @@ const vai625LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'vai-625-mcp-dashboard-launch-gate.json',
 );
+const vai628LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-628-mcp-dashboard-launch-gate.json',
+);
 const vai595LaunchGateReceiptPath = path.resolve(
   '..',
   'hallucinate_app',
@@ -477,6 +485,7 @@ const vai616LaunchGateReceipt = JSON.parse(fs.readFileSync(vai616LaunchGateRecei
 const vai619LaunchGateReceipt = JSON.parse(fs.readFileSync(vai619LaunchGateReceiptPath, 'utf8'));
 const vai622LaunchGateReceipt = JSON.parse(fs.readFileSync(vai622LaunchGateReceiptPath, 'utf8'));
 const vai625LaunchGateReceipt = JSON.parse(fs.readFileSync(vai625LaunchGateReceiptPath, 'utf8'));
+const vai628LaunchGateReceipt = JSON.parse(fs.readFileSync(vai628LaunchGateReceiptPath, 'utf8'));
 const vai595LaunchGateReceipt = JSON.parse(fs.readFileSync(vai595LaunchGateReceiptPath, 'utf8'));
 const vai598LaunchGateReceipt = JSON.parse(fs.readFileSync(vai598LaunchGateReceiptPath, 'utf8'));
 const vai601LaunchGateReceipt = JSON.parse(fs.readFileSync(vai601LaunchGateReceiptPath, 'utf8'));
@@ -1898,6 +1907,47 @@ assert(
   ]),
   'VAI-625 launch gate must point at the attempt-1 validation receipts',
 );
+const vai628Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-628');
+assert(vai628Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-628 for VAIOS-G723');
+assert(
+  vai628Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-628-objective-gap-7ea369464239.md',
+  'VAI-628 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai628Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-628-mcp-dashboard-launch-gate.md',
+  'VAI-628 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai628Gate?.hallucinate_backlog_receipt === 'data/hallucinate_multimodal_control/discovery/2026-07-04-vai-628-mcp-dashboard-launch-gate.md',
+  'VAI-628 launch gate must point at the Hallucinate supervisor mirror',
+);
+assert(
+  vai628Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-628-mcp-dashboard-launch-gate.json',
+  'VAI-628 launch gate must point at the Playwright fixture',
+);
+assert(
+  JSON.stringify(vai628Gate?.child_goals || []) === JSON.stringify(vai628LaunchGateReceipt.child_goals),
+  'VAI-628 launch gate must expose VAIOS-G723 dashboard child goals',
+);
+assert(
+  JSON.stringify(vai628Gate?.follow_up_subtasks || []) === JSON.stringify(vai628LaunchGateReceipt.follow_up_subtasks),
+  'VAI-628 launch gate must preserve supervisor-generated follow-up subtasks',
+);
+assert(
+  JSON.stringify(vai628Gate?.required_evidence || []) === JSON.stringify(vai628LaunchGateReceipt.required_evidence),
+  'VAI-628 launch gate must preserve dashboard launch evidence terms for Swissknife consumers',
+);
+assert(
+  vai628Gate?.attempt === 1,
+  'VAI-628 launch gate must expose the attempt-1 validation receipts for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai628Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-04-vai-628-attempt-1-launch-playwright-validation-gate.md',
+    'data/hallucinate_multimodal_control/discovery/2026-07-04-vai-628-attempt-1-validation.md',
+  ]),
+  'VAI-628 launch gate must point at the attempt-1 validation receipts',
+);
 const vai573Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-573');
 assert(vai573Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-573 for VAIOS-G724');
 assert(
@@ -2639,6 +2689,7 @@ console.log(JSON.stringify({
     vai619LaunchGateReceipt.task_id,
     vai622LaunchGateReceipt.task_id,
     vai625LaunchGateReceipt.task_id,
+    vai628LaunchGateReceipt.task_id,
     vai595LaunchGateReceipt.task_id,
     vai598LaunchGateReceipt.task_id,
     vai601LaunchGateReceipt.task_id,
@@ -2662,10 +2713,11 @@ console.log(JSON.stringify({
 }, null, 2));
 `;
 
-const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', validator], {
+const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module'], {
   cwd: root,
   encoding: 'utf8',
-  stdio: ['ignore', 'pipe', 'pipe'],
+  input: validator,
+  stdio: ['pipe', 'pipe', 'pipe'],
 });
 
 if (result.stdout) {
