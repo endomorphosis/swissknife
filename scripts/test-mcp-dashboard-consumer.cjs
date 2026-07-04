@@ -2572,8 +2572,8 @@ assert(
   'VAI-629 launch gate must preserve the VAI-630 packet sibling task',
 );
 assert(
-  vai629Gate?.packet_sibling_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-630-objective-gap-b023c8de5b69.md',
-  'VAI-629 launch gate must point at the packet sibling daemon objective gap receipt',
+  vai629Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-630-daemon-launch-health-gate.md',
+  'VAI-629 launch gate must point at the packet sibling daemon launch gate receipt',
 );
 assert(
   JSON.stringify(vai629Gate?.required_evidence || []) === JSON.stringify(vai629LaunchGateReceipt.required_evidence),
