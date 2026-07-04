@@ -18,6 +18,26 @@ function formulaProposition(formula: DeonticFormula): string {
   return formula.proposition ?? formula.action;
 }
 
+function hasBoundedTemporalScope(scope: TemporalScope): boolean {
+  return Boolean(scope.start && scope.end);
+}
+
+function temporalScopesOverlap(a: TemporalScope, b: TemporalScope): boolean {
+  if (!hasBoundedTemporalScope(a) || !hasBoundedTemporalScope(b)) return false;
+  const aStart = a.start!.getTime();
+  const aEnd = a.end!.getTime();
+  const bStart = b.start!.getTime();
+  const bEnd = b.end!.getTime();
+  return Math.max(aStart, bStart) <= Math.min(aEnd, bEnd);
+}
+
+function scopeLabel(scope: TemporalScope): string {
+  if (scope.start && scope.end) return `${scope.start.toISOString()}..${scope.end.toISOString()}`;
+  if (scope.start) return `${scope.start.toISOString()}..open`;
+  if (scope.end) return `open..${scope.end.toISOString()}`;
+  return 'unbounded';
+}
+
 // ---------------------------------------------------------------------------
 // TemporalScope
 // ---------------------------------------------------------------------------
@@ -128,6 +148,8 @@ export class ConsistencyResult {
     return {
       is_consistent: this.isConsistent,
       conflict_count: this.conflicts.length,
+      temporal_conflicts: this.temporalConflicts,
+      temporal_conflict_count: this.temporalConflicts.length,
       relevant_theorem_count: this.relevantTheorems.length,
       confidence_score: this.confidenceScore,
       reasoning: this.reasoning,
@@ -170,7 +192,7 @@ export class TemporalDeonticRAGStore {
    */
   findRelevant(
     formula: DeonticFormula,
-    opts: { maxResults?: number; jurisdictionFilter?: string } = {},
+    opts: { maxResults?: number; jurisdictionFilter?: string; queryEmbedding?: number[] } = {},
   ): TheoremMetadata[] {
     const maxResults = opts.maxResults ?? 10;
     const queryText = formulaProposition(formula).toLowerCase();
@@ -188,6 +210,13 @@ export class TemporalDeonticRAGStore {
       for (const w of propositionWords) {
         if (theWords.has(w) && w.length > 3) score++;
       }
+
+      if (opts.queryEmbedding && theorem.embedding && opts.queryEmbedding.length === theorem.embedding.length) {
+        const similarity = Math.max(0, cosineSimilarity(opts.queryEmbedding, theorem.embedding));
+        // Keep embeddings additive so lexical/operator relevance remains explainable.
+        score += similarity * 5;
+      }
+
       if (score > 0) scored.push([theorem, score * theorem.precedentStrength]);
     }
 
@@ -238,15 +267,39 @@ export class TemporalDeonticRAGStore {
     }
 
     const uniqueRelevant = [...new Map(relevantTheorems.map(t => [t.theoremId, t])).values()];
+    const temporalConflicts: string[] = [];
+
+    for (let i = 0; i < uniqueRelevant.length; i++) {
+      for (let j = i + 1; j < uniqueRelevant.length; j++) {
+        const lhs = uniqueRelevant[i];
+        const rhs = uniqueRelevant[j];
+        const sameProposition =
+          formulaProposition(lhs.formula).toLowerCase().slice(0, 20) ===
+          formulaProposition(rhs.formula).toLowerCase().slice(0, 20);
+        if (!sameProposition) continue;
+
+        const oppositeOF =
+          (lhs.formula.operator === DeonticOp.OBLIGATION && rhs.formula.operator === DeonticOp.PROHIBITION) ||
+          (lhs.formula.operator === DeonticOp.PROHIBITION && rhs.formula.operator === DeonticOp.OBLIGATION);
+        if (!oppositeOF) continue;
+
+        if (temporalScopesOverlap(lhs.temporalScope, rhs.temporalScope)) {
+          temporalConflicts.push(
+            `Overlapping temporal windows for conflicting precedents ${lhs.theoremId} (${scopeLabel(lhs.temporalScope)}) and ${rhs.theoremId} (${scopeLabel(rhs.temporalScope)})`,
+          );
+        }
+      }
+    }
 
     return new ConsistencyResult({
-      isConsistent: conflicts.length === 0,
+      isConsistent: conflicts.length === 0 && temporalConflicts.length === 0,
       conflicts,
+      temporalConflicts: [...new Set(temporalConflicts)],
       relevantTheorems: uniqueRelevant,
       confidenceScore: uniqueRelevant.length > 0 ? 0.85 : 0.4,
-      reasoning: conflicts.length === 0
+      reasoning: (conflicts.length === 0 && temporalConflicts.length === 0)
         ? `No conflicts found with ${uniqueRelevant.length} relevant theorem(s)`
-        : `Found ${conflicts.length} conflict(s) with stored precedents`,
+        : `Found ${conflicts.length} logical conflict(s) and ${temporalConflicts.length} temporal conflict(s) with stored precedents`,
     });
   }
 

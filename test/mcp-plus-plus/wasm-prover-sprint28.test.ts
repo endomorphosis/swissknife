@@ -244,6 +244,16 @@ describe('evaluateLegalIRMultiview', () => {
     expect(d).toHaveProperty('acceptance_rate');
     expect(d).toHaveProperty('bridge_names');
   });
+
+  test('deontic norms view exports proposition/action aliases', () => {
+    const bridge = new DeonticNormsBridgeAdapter();
+    const { doc } = bridge.encode('The agency must publish annual reports.');
+    const payload = doc.views['deontic_ir']?.payload as Record<string, unknown>;
+    const norms = (payload?.['norms'] as Array<Record<string, unknown>>) ?? [];
+
+    expect(norms.length).toBeGreaterThan(0);
+    expect(norms[0].proposition).toBe(norms[0].action);
+  });
 });
 
 // ---------------------------------------------------------------------------

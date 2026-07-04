@@ -194,6 +194,34 @@ describe('TemporalDeonticRAGStore', () => {
     expect(results.length).toBeGreaterThanOrEqual(1);
   });
 
+  test('findRelevant uses embedding similarity when provided', () => {
+    const store = new TemporalDeonticRAGStore();
+    const theoremA = TemporalDeonticRAGStore.makeTheoremFromFormula(
+      DeonticOp.OBLIGATION,
+      'Agent',
+      'alpha obligation',
+      { precedentStrength: 1 },
+    );
+    theoremA.embedding = [1, 0, 0, 0];
+
+    const theoremB = TemporalDeonticRAGStore.makeTheoremFromFormula(
+      DeonticOp.OBLIGATION,
+      'Agent',
+      'beta obligation',
+      { precedentStrength: 1 },
+    );
+    theoremB.embedding = [0, 1, 0, 0];
+
+    store.addTheorem(theoremA);
+    store.addTheorem(theoremB);
+
+    const query = makeDeonticFormula(DeonticOp.OBLIGATION, 'Agent', 'obligation');
+    const ranked = store.findRelevant(query, { queryEmbedding: [1, 0, 0, 0], maxResults: 2 });
+
+    expect(ranked.length).toBe(2);
+    expect(ranked[0].theoremId).toBe(theoremA.theoremId);
+  });
+
   test('checkConsistency detects conflict', () => {
     const store = makeStore();
     // Add a conflicting theorem
@@ -219,6 +247,34 @@ describe('TemporalDeonticRAGStore', () => {
     const formula = makeDeonticFormula(DeonticOp.OBLIGATION, 'Agent', 'act');
     const result = store.checkConsistency([formula]);
     expect(() => JSON.stringify(result.toDict())).not.toThrow();
+  });
+
+  test('checkConsistency reports overlapping temporal conflicts', () => {
+    const store = new TemporalDeonticRAGStore();
+    const startA = new Date('2026-01-01T00:00:00.000Z');
+    const endA = new Date('2026-03-01T00:00:00.000Z');
+    const startB = new Date('2026-02-01T00:00:00.000Z');
+    const endB = new Date('2026-04-01T00:00:00.000Z');
+
+    store.addTheorem(new TheoremMetadata({
+      theoremId: 'thm:o1',
+      formula: makeDeonticFormula(DeonticOp.OBLIGATION, 'Contractor', 'deliver goods'),
+      temporalScope: { start: startA, end: endA },
+    }));
+    store.addTheorem(new TheoremMetadata({
+      theoremId: 'thm:f1',
+      formula: makeDeonticFormula(DeonticOp.PROHIBITION, 'Contractor', 'deliver goods'),
+      temporalScope: { start: startB, end: endB },
+    }));
+
+    const result = store.checkConsistency([
+      makeDeonticFormula(DeonticOp.OBLIGATION, 'Contractor', 'deliver goods'),
+    ]);
+
+    expect(result.temporalConflicts.length).toBeGreaterThan(0);
+    expect(result.isConsistent).toBe(false);
+    const payload = result.toDict() as Record<string, unknown>;
+    expect(payload.temporal_conflict_count).toBeGreaterThan(0);
   });
 
   test('TheoremMetadata.toDict is JSON-safe', () => {

@@ -186,6 +186,8 @@ describe('PORT-200 prover syntax target coverage and validator', () => {
 
     const full = ProverSyntaxBuilder.buildSyntaxReport(norm, ALL_PROVER_TARGETS);
     expect(full.records.map(record => record.target_id)).toEqual(ALL_PROVER_TARGETS);
+    expect(full.proposition).toBe('LogAccess');
+    expect(full.action).toBe('LogAccess');
     expect(full.records.find(record => record.target_id === 'coq')?.formula).toContain('Theorem');
     expect(full.records.find(record => record.target_id === 'tptp')?.formula).toContain('fof(');
     expect(JSON.parse(full.records.find(record => record.target_id === 'json-ir')!.formula).source_id).toBe('syntax-1');
@@ -309,7 +311,9 @@ describe('PORT-214 direct deontic export records', () => {
     };
 
     expect(parserElementHasActiveRepair(blockedElement)).toBe(true);
-    expect(parserElementsForMetrics([blockedElement])[0].active_repair_required).toBe(true);
+    const metricRow = parserElementsForMetrics([blockedElement])[0];
+    expect(metricRow.active_repair_required).toBe(true);
+    expect(metricRow.proposition).toBe('notify agency');
     expect(activeRepairDetailsFromParserElements([blockedElement])).toHaveLength(1);
     expect(summarizeActiveRepairFromParserElements([blockedElement]).repair_required_count).toBe(1);
 

@@ -59,15 +59,20 @@ export interface DeonticNormRecord {
   norm_id: string;
   operator: DeonticOperator;
   subject: string;
+  proposition: string;
   action: string;
   conditions: string[];
   source_text: string;
   prover_syntax: string;
 }
 
+function normProposition(norm: DeonticNormRecord): string {
+  return norm.proposition ?? norm.action;
+}
+
 function normToProverSyntax(norm: DeonticNormRecord): string {
   const op = norm.operator;
-  const body = `${norm.action}(${norm.subject})`;
+  const body = `${normProposition(norm)}(${norm.subject})`;
   return `${op}(${body})`;
 }
 
@@ -84,6 +89,7 @@ function deonticFrameTriples(
     triples.push({ subject: docId, predicate: 'hasNorm', object: norm.norm_id });
     triples.push({ subject: norm.norm_id, predicate: 'hasOperator', object: norm.operator });
     triples.push({ subject: norm.norm_id, predicate: 'hasSubject', object: norm.subject });
+    triples.push({ subject: norm.norm_id, predicate: 'hasProposition', object: normProposition(norm) });
     triples.push({ subject: norm.norm_id, predicate: 'hasAction', object: norm.action });
   }
   return triples;
@@ -103,7 +109,12 @@ function deonticGraphData(
     ...norms.map(n => ({
       id: n.norm_id,
       label: opLabel[n.operator],
-      properties: { subject: n.subject, action: n.action.slice(0, 60), operator: n.operator },
+      properties: {
+        subject: n.subject,
+        proposition: normProposition(n).slice(0, 60),
+        action: n.action.slice(0, 60),
+        operator: n.operator,
+      },
     })),
   ];
   const relationships = norms.map(n => ({
@@ -158,6 +169,7 @@ export class DeonticNormsBridgeAdapter {
           norm_id: `${resolvedDocId}:n${i}`,
           operator,
           subject,
+          proposition: action,
           action,
           conditions: [],
           source_text: s,
@@ -186,7 +198,7 @@ export class DeonticNormsBridgeAdapter {
         payload: {
           norms: norms.map(n => ({
             norm_id: n.norm_id, operator: n.operator,
-            subject: n.subject, action: n.action,
+            subject: n.subject, proposition: normProposition(n), action: n.action,
             conditions: n.conditions, source_text: n.source_text,
           })),
         },

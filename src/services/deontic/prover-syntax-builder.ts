@@ -57,6 +57,7 @@ export interface ProverSyntaxReport {
   readonly norm_id:    string;
   readonly modality:   string;
   readonly actor:      string;
+  readonly proposition: string;
   readonly action:     string;
   /** One record per prover target. */
   readonly records:    ProverTargetSyntaxRecord[];
@@ -337,6 +338,7 @@ export class ProverSyntaxBuilder {
       norm_id:   norm.source_id,
       modality:  norm.modality,
       actor:     norm.actor,
+      proposition: norm.action,
       action:    norm.action,
       records,
       all_valid: records.every(r => r.valid),
