@@ -23,6 +23,8 @@ export interface DeonticStatement {
   statementId: string;
   operator: StatementOperator;
   agent: string;
+  proposition: string;
+  /** Backward-compatible alias for proposition. */
   action: string;
   conditions: string[];
   confidence: number;
@@ -36,7 +38,7 @@ let _counter = 0;
 function makeStatement(
   operator: StatementOperator,
   agent: string,
-  action: string,
+  proposition: string,
   sourceText: string,
   documentId: string,
   conditions: string[] = [],
@@ -45,11 +47,25 @@ function makeStatement(
   const id = `stmt:${documentId}:${++_counter}`;
   return {
     statementId: id,
-    operator, agent, action, conditions, confidence, sourceText, documentId,
+    operator, agent, proposition, action: proposition, conditions, confidence, sourceText, documentId,
     toDict() {
-      return { statement_id: id, operator, agent, action, conditions, confidence, source_text: sourceText, document_id: documentId };
+      return {
+        statement_id: id,
+        operator,
+        agent,
+        proposition,
+        action: proposition,
+        conditions,
+        confidence,
+        source_text: sourceText,
+        document_id: documentId,
+      };
     },
   };
+}
+
+function statementProposition(statement: DeonticStatement): string {
+  return statement.proposition ?? statement.action;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,13 +114,13 @@ export class DeonticExtractor {
       const agentMatch = sent.match(AGENT_RE);
       const agent = agentMatch ? agentMatch[1].trim() : 'Agent';
 
-      const actionMatch = sent.match(ACTION_RE);
-      const action = actionMatch ? actionMatch[1].trim().slice(0, 50) : sent.slice(0, 35).trim();
+      const propositionMatch = sent.match(ACTION_RE);
+      const proposition = propositionMatch ? propositionMatch[1].trim().slice(0, 50) : sent.slice(0, 35).trim();
 
       const condMatch = sent.match(CONDITION_RE);
       const conditions = condMatch ? [condMatch[0].slice(0, 50).trim()] : [];
 
-      statements.push(makeStatement(op, agent, action, sent, documentId, conditions));
+      statements.push(makeStatement(op, agent, proposition, sent, documentId, conditions));
     }
     return statements;
   }
@@ -156,12 +172,12 @@ export class DeontologicalReasoningEngine {
   reason(statements: DeonticStatement[], query: string): ReasoningResult {
     const queryLower = query.toLowerCase();
     const relevant = statements.filter(s =>
-      s.action.toLowerCase().includes(queryLower.slice(0, 20)) ||
+      statementProposition(s).toLowerCase().includes(queryLower.slice(0, 20)) ||
       s.agent.toLowerCase().includes(queryLower.slice(0, 15))
     );
 
     const answer = relevant.length > 0
-      ? `Found ${relevant.length} relevant deontic statement(s): ${relevant.map(s => `${s.operator}(${s.action.slice(0, 30)})`).join(', ')}`
+      ? `Found ${relevant.length} relevant deontic statement(s): ${relevant.map(s => `${s.operator}(${statementProposition(s).slice(0, 30)})`).join(', ')}`
       : `No directly relevant deontic statements found for: "${query}"`;
 
     return {
@@ -170,7 +186,7 @@ export class DeontologicalReasoningEngine {
       supportingStatements: relevant,
       confidence: relevant.length > 0 ? 0.75 : 0.2,
       explanation: relevant.length > 0
-        ? `Matched on action keywords in ${relevant.length} statement(s)`
+        ? `Matched on proposition keywords in ${relevant.length} statement(s)`
         : 'No keyword match in extracted statements',
     };
   }
@@ -183,8 +199,9 @@ export class DeontologicalReasoningEngine {
     for (let i = 0; i < statements.length; i++) {
       for (let j = i + 1; j < statements.length; j++) {
         const s1 = statements[i], s2 = statements[j];
-        const sameAction = s1.action.toLowerCase().slice(0, 20) === s2.action.toLowerCase().slice(0, 20);
-        if (!sameAction) continue;
+        const sameProposition =
+          statementProposition(s1).toLowerCase().slice(0, 20) === statementProposition(s2).toLowerCase().slice(0, 20);
+        if (!sameProposition) continue;
 
         let conflictType: ConflictReport['conflictType'] = 'unknown';
         let severity: ConflictReport['severity'] = 'low';
@@ -206,7 +223,7 @@ export class DeontologicalReasoningEngine {
         if (conflictType !== 'unknown') {
           conflicts.push({
             statement1: s1, statement2: s2, conflictType, severity,
-            explanation: `${s1.operator}(${s1.action.slice(0, 30)}) conflicts with ${s2.operator}(${s2.action.slice(0, 30)})`,
+            explanation: `${s1.operator}(${statementProposition(s1).slice(0, 30)}) conflicts with ${s2.operator}(${statementProposition(s2).slice(0, 30)})`,
             suggestedResolution: `Clarify scope or add temporal/conditional qualifications to distinguish the two statements`,
           });
         }
@@ -232,7 +249,7 @@ export class DeontologicalReasoningEngine {
       O: 'Obligation', P: 'Permission', F: 'Prohibition', R: 'Right', L: 'Liberty',
     };
     for (const [op, stmts] of Object.entries(groups)) {
-      parts.push(`  ${opNames[op] ?? op} (${stmts.length}): ${stmts.map(s => s.action.slice(0, 25)).join('; ')}`);
+      parts.push(`  ${opNames[op] ?? op} (${stmts.length}): ${stmts.map(s => statementProposition(s).slice(0, 25)).join('; ')}`);
     }
     return parts.join('\n');
   }
