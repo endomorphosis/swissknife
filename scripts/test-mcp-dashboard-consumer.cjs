@@ -818,7 +818,7 @@ assert(
   'VAI-573 launch gate must preserve the VAIOS-G728 packet sibling',
 );
 assert(
-  vai573Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-568-daemon-launch-health-gate.md',
+  vai573Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-574-daemon-launch-health-gate.md',
   'VAI-573 launch gate must point at the packet sibling daemon gate receipt',
 );
 assert(
