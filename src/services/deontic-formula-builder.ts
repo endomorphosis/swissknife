@@ -246,6 +246,8 @@ export function buildDeonticFormulaRecordFromIR(norm: LegalNormIR): Record<strin
     formula,
     modality: normModality(norm),
     norm_type: norm.norm_type,
+    proposition: norm.action,
+    action: norm.action,
     support_span: spanToList(norm.support_span),
     field_spans: norm.field_spans ?? {},
     proof_ready: proofReady,
@@ -275,6 +277,8 @@ export function buildProverSyntaxRecordsFromIR(
     formula_id: formulaRecord.formula_id,
     target_logic: target,
     formula: formulaRecord.formula,
+    proposition: formulaRecord.proposition,
+    action: formulaRecord.action,
     syntax_valid: Boolean(formulaRecord.proof_ready),
     status: formulaRecord.proof_ready ? 'passed' : 'requires_validation',
     target_quality_gate: {
@@ -320,7 +324,7 @@ function omittedFormulaSlots(norm: LegalNormIR): string[] {
 function parserElementToNorm(element: Record<string, unknown>): LegalNormIR {
   const sourceText = String(element.text ?? element.source_text ?? '');
   const supportText = String(element.support_text ?? sourceText);
-  const action = firstValue(element.action) || 'Act';
+  const action = firstValue(element.proposition) || firstValue(element.action) || 'Act';
   const actor = firstValue(element.subject) || 'Agent';
   return {
     schema_version: String(element.schema_version ?? 'deterministic_deontic_v12'),

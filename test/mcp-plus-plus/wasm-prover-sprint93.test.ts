@@ -190,7 +190,10 @@ describe('PORT-200 prover syntax target coverage and validator', () => {
     expect(full.action).toBe('LogAccess');
     expect(full.records.find(record => record.target_id === 'coq')?.formula).toContain('Theorem');
     expect(full.records.find(record => record.target_id === 'tptp')?.formula).toContain('fof(');
-    expect(JSON.parse(full.records.find(record => record.target_id === 'json-ir')!.formula).source_id).toBe('syntax-1');
+    const jsonIr = JSON.parse(full.records.find(record => record.target_id === 'json-ir')!.formula);
+    expect(jsonIr.source_id).toBe('syntax-1');
+    expect(jsonIr.proposition).toBe('LogAccess');
+    expect(jsonIr.action).toBe('LogAccess');
   });
 
   it('builds target syntax maps and validates complete reports', () => {

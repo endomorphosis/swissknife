@@ -170,6 +170,8 @@ describe('deontic formula record builders', () => {
       formula: 'O(Person, Register)',
       modality: 'O',
       norm_type: 'obligation',
+      proposition: 'Register',
+      action: 'Register',
     });
     expect(String(record.formula_id)).toMatch(/^formula:/);
     expect(record.included_formula_slots).toEqual(expect.arrayContaining(['actor', 'modality', 'action']));
@@ -192,10 +194,28 @@ describe('deontic formula record builders', () => {
 
     expect(proverRecords.map(record => record.target_logic)).toEqual(['fol', 'deontic_fol']);
     expect(proverRecords[0]).toMatchObject({ source_id: 'n2', status: expect.any(String) });
+    expect(proverRecords[0].proposition).toBe('Inspect records');
+    expect(proverRecords[0].action).toBe('Inspect records');
     expect(parserRecord).toMatchObject({
       source_id: 'p1',
       canonical_citation: '§ 2',
       formula: 'F(Operator, DiscloseRecords)',
+    });
+
+    const parserRecordFromProposition = parserElementToFormulaRecord({
+      source_id: 'p2',
+      canonical_citation: '§ 3',
+      deontic_operator: 'O',
+      norm_type: 'obligation',
+      subject: ['agency'],
+      proposition: ['publish reports'],
+      text: 'The agency must publish reports.',
+      support_span: [0, 35],
+    });
+    expect(parserRecordFromProposition).toMatchObject({
+      source_id: 'p2',
+      proposition: 'publish reports',
+      action: 'publish reports',
     });
   });
 });

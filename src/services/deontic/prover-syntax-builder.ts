@@ -278,6 +278,7 @@ function _jsonIrSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
       modality: norm.modality,
       norm_type: norm.norm_type,
       actor: norm.actor,
+      proposition: norm.action,
       action: norm.action,
       conditions: norm.conditions,
       exceptions: norm.exceptions,

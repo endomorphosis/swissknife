@@ -176,6 +176,22 @@ describe('T-89 DeonticGraphBuilder.fromStatements()', () => {
     expect(graph.nodes.size).toBe(0);
     expect(graph.rules.size).toBe(0);
   });
+
+  it('prefers proposition alias when present on statements', () => {
+    const analyzer = new DeonticTextAnalyzer();
+    const stmt = analyzer.extractStatements('Users must log access.')[0];
+    if (!stmt) return;
+    const withProposition = {
+      ...stmt,
+      proposition: 'record audit trail',
+    };
+
+    const graph = DeonticGraphBuilder.fromStatements([withProposition]);
+    const actionNodes = [...graph.nodes.values()].filter(node => node.node_type === 'action');
+
+    expect(actionNodes.length).toBe(1);
+    expect(actionNodes[0].label).toBe('record audit trail');
+  });
 });
 
 // ---------------------------------------------------------------------------

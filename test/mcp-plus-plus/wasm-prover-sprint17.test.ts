@@ -198,4 +198,18 @@ describe('T-94 LegalNormBuilder', () => {
     expect(decoded.text).toBeTruthy();
     expect(decoded.text.toLowerCase()).toContain('must');
   });
+
+  it('fromStatement prefers proposition alias when present', () => {
+    const analyzer = new DeonticTextAnalyzer();
+    const stmt = analyzer.extractStatements('Users must notify agency.')[0];
+    if (!stmt) return;
+
+    const norm = LegalNormBuilder.fromStatement({
+      ...stmt,
+      proposition: 'file incident report',
+    } as typeof stmt & { proposition: string });
+
+    expect(norm.action).toBe('file incident report');
+    expect(norm.support_text).toBe('file incident report');
+  });
 });
