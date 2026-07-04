@@ -114,6 +114,7 @@ export interface HallucinateDashboardCapabilityServer {
   };
   control_surface_mediation_contract: string;
   control_surface_receipt_requirements: string[];
+  dashboard_receipt_consumer_refs?: string[];
   swissknife_consumer: string;
 }
 
@@ -186,6 +187,7 @@ export interface SwissknifeMCPDashboardConsumerPlan {
   tools_call: HallucinateDashboardToolProtocol;
   control_surface_mediation_contract: string;
   control_surface_route: string[];
+  dashboard_receipt_consumer_refs: string[];
   receipt_schema: 'mcp_server_invocation_receipt_v1';
   required_receipt_fields: string[];
   dashboard_only_mock: false;
@@ -516,6 +518,7 @@ export function buildSwissknifeMCPDashboardConsumerPlans(
       tools_call: server.tool_protocols.tools_call,
       control_surface_mediation_contract: server.control_surface_mediation_contract,
       control_surface_route: [...catalog.control_surface_route],
+      dashboard_receipt_consumer_refs: [...(server.dashboard_receipt_consumer_refs || [])],
       receipt_schema: descriptor.capability_descriptor.mediation_receipt_aliases.receipt_schema,
       required_receipt_fields: [
         ...new Set([
