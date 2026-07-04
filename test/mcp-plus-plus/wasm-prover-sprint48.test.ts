@@ -7,6 +7,10 @@
  *         T-216 (structured-logging.ts).
  */
 
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import {
   DCECEnglishGrammar,
   createDcecGrammar,
@@ -35,9 +39,15 @@ import {
   logContext,
   getLogger,
   structuredLog,
+  JSONLogFormatter,
+  LogPerformance,
   getCurrentContext,
   setContext,
   clearContext,
+  filter_logs,
+  log_mcp_tool,
+  log_performance,
+  parse_json_log_file,
 } from '../../src/services/structured-logging';
 
 // ---------------------------------------------------------------------------
@@ -387,6 +397,66 @@ describe('structuredLog', () => {
     expect(entry[LogField.EVENT_TYPE]).toBe(EventType.PROOF_COMPLETED);
     expect(entry['formula']).toBe('P∧Q');
     expect(typeof entry[LogField.TIMESTAMP]).toBe('string');
+  });
+});
+
+describe('Python-compatible structured logging helpers', () => {
+  afterEach(() => clearContext());
+
+  test('JSONLogFormatter emits schema, context, and error fields', () => {
+    setContext({ request_id: 'req-1' });
+    const payload = JSON.parse(new JSONLogFormatter().format({
+      levelname: 'ERROR',
+      name: 'component',
+      msg: 'failed',
+      error: new Error('boom'),
+    }));
+    expect(payload[LogField.SCHEMA_VERSION]).toBe('1.0.0');
+    expect(payload[LogField.REQUEST_ID]).toBe('req-1');
+    expect(payload[LogField.ERROR_MESSAGE]).toBe('boom');
+  });
+
+  test('log_mcp_tool and log_performance emit structured entries through a logger', () => {
+    const captured: unknown[] = [];
+    const logger = getLogger(`structured-helper-${Date.now()}`, 'debug', entry => captured.push(entry));
+
+    log_mcp_tool('prove', 'completed', 12.5, logger, { receipt_cid: 'bafy' });
+    log_performance('batch', 8, logger, { item_count: 2 });
+
+    expect((captured[0] as any)[LogField.EVENT_TYPE]).toBe(EventType.TOOL_COMPLETED);
+    expect((captured[0] as any)[LogField.TOOL_NAME]).toBe('prove');
+    expect((captured[1] as any)[LogField.EVENT_TYPE]).toBe('performance.measured');
+    expect((captured[1] as any)[LogField.DURATION_MS]).toBe(8);
+  });
+
+  test('LogPerformance records success and failure statuses', async () => {
+    const captured: unknown[] = [];
+    const logger = getLogger(`perf-helper-${Date.now()}`, 'debug', entry => captured.push(entry));
+
+    await new LogPerformance('ok', logger).run(() => 42);
+    await expect(new LogPerformance('bad', logger).run(() => { throw new Error('bad'); })).rejects.toThrow('bad');
+
+    expect((captured[0] as any)['status']).toBe('success');
+    expect((captured[1] as any)['status']).toBe('failed');
+  });
+
+  test('parse_json_log_file skips malformed lines and filter_logs narrows records', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'structured-logs-'));
+    const file = join(dir, 'events.jsonl');
+    writeFileSync(file, [
+      JSON.stringify({ level: 'INFO', event_type: 'a', component: 'x', request_id: 'r1' }),
+      'not json',
+      JSON.stringify({ level: 'ERROR', event_type: 'b', component: 'y', request_id: 'r2' }),
+    ].join('\n'));
+
+    try {
+      const records = parse_json_log_file(file);
+      expect(records).toHaveLength(2);
+      expect(filter_logs(records, { level: 'ERROR', component: 'y' })).toHaveLength(1);
+      expect(filter_logs(records, { request_id: 'r1' })[0]['event_type']).toBe('a');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
