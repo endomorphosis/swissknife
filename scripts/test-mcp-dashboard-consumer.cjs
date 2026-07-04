@@ -232,6 +232,14 @@ const vai603LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'vai-603-mcp-dashboard-launch-gate.json',
 );
+const vai606LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-606-mcp-dashboard-launch-gate.json',
+);
 const vai595LaunchGateReceiptPath = path.resolve(
   '..',
   'hallucinate_app',
@@ -349,6 +357,7 @@ const vai594LaunchGateReceipt = JSON.parse(fs.readFileSync(vai594LaunchGateRecei
 const vai597LaunchGateReceipt = JSON.parse(fs.readFileSync(vai597LaunchGateReceiptPath, 'utf8'));
 const vai600LaunchGateReceipt = JSON.parse(fs.readFileSync(vai600LaunchGateReceiptPath, 'utf8'));
 const vai603LaunchGateReceipt = JSON.parse(fs.readFileSync(vai603LaunchGateReceiptPath, 'utf8'));
+const vai606LaunchGateReceipt = JSON.parse(fs.readFileSync(vai606LaunchGateReceiptPath, 'utf8'));
 const vai595LaunchGateReceipt = JSON.parse(fs.readFileSync(vai595LaunchGateReceiptPath, 'utf8'));
 const vai598LaunchGateReceipt = JSON.parse(fs.readFileSync(vai598LaunchGateReceiptPath, 'utf8'));
 const vai601LaunchGateReceipt = JSON.parse(fs.readFileSync(vai601LaunchGateReceiptPath, 'utf8'));
@@ -1435,6 +1444,47 @@ assert(
   ]),
   'VAI-603 launch gate must point at the attempt-1 validation receipts',
 );
+const vai606Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-606');
+assert(vai606Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-606 for VAIOS-G723');
+assert(
+  vai606Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-606-objective-gap-7ea369464239.md',
+  'VAI-606 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai606Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-606-mcp-dashboard-launch-gate.md',
+  'VAI-606 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai606Gate?.hallucinate_backlog_receipt === 'data/hallucinate_multimodal_control/discovery/2026-07-04-vai-606-mcp-dashboard-launch-gate.md',
+  'VAI-606 launch gate must point at the Hallucinate supervisor mirror',
+);
+assert(
+  vai606Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-606-mcp-dashboard-launch-gate.json',
+  'VAI-606 launch gate must point at the Playwright fixture',
+);
+assert(
+  JSON.stringify(vai606Gate?.child_goals || []) === JSON.stringify(vai606LaunchGateReceipt.child_goals),
+  'VAI-606 launch gate must expose VAIOS-G723 dashboard child goals',
+);
+assert(
+  JSON.stringify(vai606Gate?.follow_up_subtasks || []) === JSON.stringify(vai606LaunchGateReceipt.follow_up_subtasks),
+  'VAI-606 launch gate must preserve supervisor-generated follow-up subtasks',
+);
+assert(
+  JSON.stringify(vai606Gate?.required_evidence || []) === JSON.stringify(vai606LaunchGateReceipt.required_evidence),
+  'VAI-606 launch gate must preserve dashboard launch evidence terms for Swissknife consumers',
+);
+assert(
+  vai606Gate?.attempt === 1,
+  'VAI-606 launch gate must expose the attempt-1 validation receipts for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai606Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-04-vai-606-attempt-1-launch-playwright-validation-gate.md',
+    'data/hallucinate_multimodal_control/discovery/2026-07-04-vai-606-attempt-1-validation.md',
+  ]),
+  'VAI-606 launch gate must point at the attempt-1 validation receipts',
+);
 const vai573Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-573');
 assert(vai573Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-573 for VAIOS-G724');
 assert(
@@ -1910,6 +1960,7 @@ console.log(JSON.stringify({
     vai597LaunchGateReceipt.task_id,
     vai600LaunchGateReceipt.task_id,
     vai603LaunchGateReceipt.task_id,
+    vai606LaunchGateReceipt.task_id,
     vai595LaunchGateReceipt.task_id,
     vai598LaunchGateReceipt.task_id,
     vai601LaunchGateReceipt.task_id,
