@@ -61,6 +61,204 @@ const MGW_559_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   'fixtures',
   'mgw-559-daemon-launch-health-gate.json',
 );
+const VAI_568_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-568-daemon-launch-health-gate.json',
+);
+const VAI_574_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-574-daemon-launch-health-gate.json',
+);
+const VAI_577_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-577-daemon-launch-health-gate.json',
+);
+const VAI_580_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-580-daemon-launch-health-gate.json',
+);
+const VAI_583_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-583-daemon-launch-health-gate.json',
+);
+const VAI_586_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-586-daemon-launch-health-gate.json',
+);
+const VAI_589_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-589-daemon-launch-health-gate.json',
+);
+const VAI_593_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-593-daemon-launch-health-gate.json',
+);
+const VAI_596_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-596-daemon-launch-health-gate.json',
+);
+const VAI_599_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-599-daemon-launch-health-gate.json',
+);
+const VAI_602_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-602-daemon-launch-health-gate.json',
+);
+const VAI_605_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-605-daemon-launch-health-gate.json',
+);
+const VAI_608_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-608-daemon-launch-health-gate.json',
+);
+const VAI_612_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-612-daemon-launch-health-gate.json',
+);
+const VAI_615_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-615-daemon-launch-health-gate.json',
+);
+const VAI_618_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-618-daemon-launch-health-gate.json',
+);
+const VAI_621_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-621-daemon-launch-health-gate.json',
+);
+const VAI_624_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-624-daemon-launch-health-gate.json',
+);
+const VAI_627_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-627-daemon-launch-health-gate.json',
+);
+const VAI_633_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-633-daemon-launch-health-gate.json',
+);
+const VAI_636_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-636-daemon-launch-health-gate.json',
+);
+const VAI_639_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-639-daemon-launch-health-gate.json',
+);
 
 test.setTimeout(240_000);
 test.describe.configure({ mode: 'serial' });
@@ -248,6 +446,777 @@ test('MGW-559 daemon launch gate fixture preserves Swissknife backend handoff re
     'ipfs_kit_py',
     'ipfs_datasets_py',
     'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-568 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_568_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-568');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-568-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-568-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-574 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_574_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-574');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-574-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-574-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-577 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_577_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-577');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-577-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-577-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-580 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_580_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-580');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-580-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-580-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-583 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_583_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-583');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-583-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-583-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-586 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_586_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-586');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-586-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-586-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-589 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_589_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-589');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-589-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-589-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-593 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_593_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-593');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-593-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-593-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-596 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_596_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-596');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-596-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-596-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-599 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_599_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-599');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-599-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-599-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-602 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_602_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-602');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-602-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-602-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-605 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_605_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-605');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-605-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-605-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-608 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_608_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-608');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-608-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-608-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-612 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_612_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-612');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-612-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-612-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-615 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_615_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-615');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-615-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-615-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-618 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_618_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-618');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-618-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-618-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-621 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_621_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-621');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-621-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-621-daemon-launch-health-gate.md',
+  );
+  expect(fixture.required_backends.sort()).toEqual([
+    'ipfs_accelerate_py',
+    'ipfs_datasets_py',
+    'ipfs_kit_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-624 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_624_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-624');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-624-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-624-daemon-launch-health-gate.md',
+  );
+  expect(fixture.required_backends.sort()).toEqual([
+    'ipfs_accelerate_py',
+    'ipfs_datasets_py',
+    'ipfs_kit_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-627 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_627_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-627');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-627-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-627-daemon-launch-health-gate.md',
+  );
+  expect(fixture.required_backends.sort()).toEqual([
+    'ipfs_accelerate_py',
+    'ipfs_datasets_py',
+    'ipfs_kit_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-633 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_633_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-633');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-633-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-633-daemon-launch-health-gate.md',
+  );
+  expect(fixture.required_backends.sort()).toEqual([
+    'ipfs_accelerate_py',
+    'ipfs_datasets_py',
+    'ipfs_kit_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-636 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_636_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-636');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-636-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-636-daemon-launch-health-gate.md',
+  );
+  expect(fixture.required_backends.sort()).toEqual([
+    'ipfs_accelerate_py',
+    'ipfs_datasets_py',
+    'ipfs_kit_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('VAI-639 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(VAI_639_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('VAI-639');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-639-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/virtual_ai_os/discovery/2026-07-04-vai-639-daemon-launch-health-gate.md',
+  );
+  expect(fixture.required_backends.sort()).toEqual([
+    'ipfs_accelerate_py',
+    'ipfs_datasets_py',
+    'ipfs_kit_py',
   ]);
   for (const handoff of fixture.swissknife_handoff) {
     expect(handoff.swissknife_consumer).toContain('Swissknife');

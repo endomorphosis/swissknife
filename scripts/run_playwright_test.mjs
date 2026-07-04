@@ -11,6 +11,14 @@ const projectRoot = path.resolve(__dirname, '..');
 const playwrightCli = path.join(projectRoot, 'node_modules', '@playwright', 'test', 'cli.js');
 const commandArgs = process.argv.slice(2);
 const args = commandArgs.length > 0 ? commandArgs : ['test'];
+const CHROMIUM_UNSAFE_PORTS = new Set([
+  1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79,
+  87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137,
+  139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532,
+  540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723,
+  2049, 3659, 4045, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6697,
+  10080,
+]);
 
 ensureE2EDependencies();
 runPlaywright(args);
@@ -91,7 +99,15 @@ function stablePortForPath(seedPath) {
   for (const char of seedPath) {
     hash = (hash * 31 + char.charCodeAt(0)) % 2000;
   }
-  return 3100 + hash;
+  return browserSafePort(3100 + hash);
+}
+
+function browserSafePort(port) {
+  let candidate = port;
+  while (CHROMIUM_UNSAFE_PORTS.has(candidate)) {
+    candidate += 1;
+  }
+  return candidate;
 }
 
 function run(command, runArgs, extraEnv = {}) {
