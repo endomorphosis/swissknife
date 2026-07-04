@@ -21,6 +21,13 @@ import {
   SUPPORTED_LOGIC_SYSTEMS, MAX_FORMULA_LENGTH,
 } from '../../src/services/logic-validators.js';
 import { parseNaturalLanguage } from '../../src/services/tdfol-nl-api.js';
+import {
+  create_cache_cid,
+  load_spacy_model,
+  parse_cid,
+  require_spacy,
+  validate_cid,
+} from '../../src/services/tdfol-nl-utils.js';
 
 // ---------------------------------------------------------------------------
 // T-108: Logic Types
@@ -262,5 +269,31 @@ describe('T-110 parseNaturalLanguage', () => {
     const { parse_natural_language } = await import('../../src/services/tdfol-nl-api.js');
     const result = parse_natural_language('Users must log.');
     expect(result.fol.formula).toBeTruthy();
+  });
+});
+
+describe('TDFOL NL utilities', () => {
+  it('create_cache_cid is deterministic over canonical JSON order', () => {
+    const a = create_cache_cid({ text: 'hello', provider: 'openai', prompt_hash: 'abc123' });
+    const b = create_cache_cid({ prompt_hash: 'abc123', provider: 'openai', text: 'hello' });
+    expect(a).toBe(b);
+    expect(a).toMatch(/^bafk[a-z2-7]+$/);
+    expect(validate_cid(a)).toBe(true);
+  });
+
+  it('parse_cid extracts CIDv1 raw sha2-256 metadata', () => {
+    const cid = create_cache_cid({ text: 'metadata' });
+    expect(parse_cid(cid)).toMatchObject({
+      version: 1,
+      codec: 'raw',
+      hashfun: { name: 'sha2-256' },
+    });
+    expect(parse_cid(cid).hashfun.digest).toMatch(/^[0-9a-f]{64}$/);
+    expect(validate_cid('not-a-cid')).toBe(false);
+  });
+
+  it('spaCy helpers fail closed when no host spaCy bridge is configured', () => {
+    expect(() => require_spacy()).toThrow('spaCy is required');
+    expect(() => load_spacy_model()).toThrow('spaCy is required');
   });
 });
