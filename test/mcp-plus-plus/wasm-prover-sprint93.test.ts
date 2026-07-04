@@ -305,7 +305,7 @@ describe('PORT-214 direct deontic export records', () => {
       modality: 'O',
       norm_type: 'obligation',
       actor: '',
-      action: 'notify agency',
+      proposition: 'notify agency',
       source_text: 'The agency must be notified.',
       text: 'The agency must be notified.',
       parser_warnings: ['missing actor'],
@@ -317,7 +317,9 @@ describe('PORT-214 direct deontic export records', () => {
     const metricRow = parserElementsForMetrics([blockedElement])[0];
     expect(metricRow.active_repair_required).toBe(true);
     expect(metricRow.proposition).toBe('notify agency');
-    expect(activeRepairDetailsFromParserElements([blockedElement])).toHaveLength(1);
+    const details = activeRepairDetailsFromParserElements([blockedElement]);
+    expect(details).toHaveLength(1);
+    expect((details[0].action as string[])[0]).toBe('notify agency');
     expect(summarizeActiveRepairFromParserElements([blockedElement]).repair_required_count).toBe(1);
 
     const normalized = normalizeRepairRequiredEvaluation([blockedElement], {

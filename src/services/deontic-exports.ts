@@ -1159,7 +1159,7 @@ export function activeRepairDetailsFromParserElements(elements: Iterable<Dict>):
         modality: element['deontic_operator'] ?? element['modality'] ?? '',
         subject: stringArray(element['subject'] ?? element['actor']),
         proposition: stringArray(element['proposition'] ?? element['action']),
-        action: stringArray(element['action']),
+        action: stringArray(element['action'] ?? element['proposition']),
         object: element['object'] ?? element['action_object'] ?? '',
         parser_warnings: stringArray(element['parser_warnings']),
         active_repair_warnings: warnings,

@@ -15,6 +15,7 @@ import {
   buildLegalNormIR,
   emptySpan,
   emptyQuality,
+  parserElementToIR,
 } from '../../src/services/deontic/legal-norm-ir.js';
 import type { LegalNormIR } from '../../src/services/deontic/legal-norm-ir.js';
 import {
@@ -73,6 +74,17 @@ describe('T-92 LegalNormIR — buildLegalNormIR()', () => {
     });
     expect(norm.quality.schema_valid).toBe(true);
     expect(norm.quality.quality_label).toBe('high');
+  });
+
+  it('parserElementToIR prefers proposition alias when action is missing', () => {
+    const norm = parserElementToIR({
+      source_id: 'n-prop',
+      modality: 'O',
+      actor: 'Agency',
+      proposition: 'publish incident report',
+    });
+
+    expect(norm.action).toBe('publish incident report');
   });
 });
 

@@ -269,7 +269,7 @@ export function parserElementToIR(element: Record<string, unknown>): LegalNormIR
     norm_type: textValue(element['norm_type']) || textValue(element['type']) || 'obligation',
     actor: textValue(element['actor']) || textValue(element['subject']) || textValue(element['entity']),
     actor_type: textValue(element['actor_type']) || textValue(element['entity_type']),
-    action: textValue(element['action']) || textValue(element['predicate']) || textValue(element['description']),
+    action: textValue(element['proposition']) || textValue(element['action']) || textValue(element['predicate']) || textValue(element['description']),
     mental_state: textValue(element['mental_state']),
     action_verb: textValue(element['action_verb']),
     action_object: textValue(element['action_object']),
