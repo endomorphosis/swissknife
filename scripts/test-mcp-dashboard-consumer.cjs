@@ -2755,6 +2755,13 @@ assert(
   vai638Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-04-vai-639-daemon-launch-health-gate.md',
   'VAI-638 launch gate must point at the packet sibling daemon launch gate receipt',
 );
+assert(vai638Gate?.attempt === 1, 'VAI-638 launch gate must preserve the attempt-1 validation receipt number');
+assert(
+  JSON.stringify(vai638Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-04-vai-638-attempt-1-launch-playwright-validation-gate.md',
+  ]),
+  'VAI-638 launch gate must expose the attempt-1 launch Playwright validation receipt',
+);
 assert(
   JSON.stringify(vai638Gate?.required_evidence || []) === JSON.stringify(vai638LaunchGateReceipt.required_evidence),
   'VAI-638 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
