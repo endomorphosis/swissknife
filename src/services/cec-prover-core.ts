@@ -49,6 +49,8 @@ const isKnow  = (f: string) => /^K\(/.test(f);
 const isBelief = (f: string) => /^B\(/.test(f);
 const isCK    = (f: string) => /^CK\(/.test(f);  // Common Knowledge
 const isCB    = (f: string) => /^CB\(/.test(f);  // Common Belief
+const isIntention = (f: string) => /^I\(/.test(f);
+const isMutualKnowledge = (f: string) => /^MK\(/.test(f) || /^MB\(/.test(f);
 
 function topArrow(f: string): [string, string] | null {
   let d = 0;
@@ -94,6 +96,88 @@ function inner(f: string): string {
   if (f.startsWith('¬') || f.startsWith('□') || f.startsWith('◊')) return f.slice(1).trim();
   const m = f.match(/^[A-Z]+\w*\((.+)\)$/);
   return m ? m[1].trim() : f;
+}
+
+function stripOuter(f: string): string {
+  let out = f.trim();
+  while (out.startsWith('(') && out.endsWith(')')) {
+    const candidate = out.slice(1, -1);
+    let depth = 0;
+    let balanced = true;
+    for (const char of candidate) {
+      if (char === '(') depth++;
+      else if (char === ')') {
+        depth--;
+        if (depth < 0) {
+          balanced = false;
+          break;
+        }
+      }
+    }
+    if (!balanced || depth !== 0) break;
+    out = candidate.trim();
+  }
+  return out;
+}
+
+function topComma(f: string): [string, string] | null {
+  let depth = 0;
+  let braceDepth = 0;
+  for (let i = 0; i < f.length; i++) {
+    if (f[i] === '(') depth++;
+    else if (f[i] === ')') depth--;
+    else if (f[i] === '{') braceDepth++;
+    else if (f[i] === '}') braceDepth--;
+    else if (depth === 0 && braceDepth === 0 && f[i] === ',') {
+      return [f.slice(0, i).trim(), f.slice(i + 1).trim()];
+    }
+  }
+  return null;
+}
+
+function callArgs(f: string, name: string): string[] | null {
+  const trimmed = f.trim();
+  const prefix = `${name}(`;
+  if (!trimmed.startsWith(prefix) || !trimmed.endsWith(')')) return null;
+  const raw = trimmed.slice(prefix.length, -1).trim();
+  const comma = topComma(raw);
+  return comma ? [comma[0], comma[1]] : [raw];
+}
+
+function unaryCallArg(f: string, name: string): string | null {
+  const args = callArgs(f, name);
+  return args?.length === 1 ? stripOuter(args[0]) : null;
+}
+
+function binaryCallArgs(f: string, name: string): [string, string] | null {
+  const args = callArgs(f, name);
+  return args?.length === 2 ? [stripOuter(args[0]), stripOuter(args[1])] : null;
+}
+
+function modalPayload(f: string, names: string[]): { op: string; agent?: string; formula: string } | null {
+  for (const name of names) {
+    const args = callArgs(f, name);
+    if (!args) continue;
+    if (args.length === 1) return { op: name, formula: stripOuter(args[0]) };
+    return { op: name, agent: stripOuter(args[0]), formula: stripOuter(args[1]) };
+  }
+  return null;
+}
+
+function commonKnowledgeFormula(f: string): { prefix: string; formula: string } | null {
+  const ck = binaryCallArgs(f, 'CK');
+  if (ck) return { prefix: `CK(${ck[0]},`, formula: ck[1] };
+  const c = unaryCallArg(f, 'C');
+  if (c) return { prefix: 'C(', formula: c };
+  return null;
+}
+
+function formatCommonKnowledge(prefix: string, formula: string): string {
+  return prefix.startsWith('CK(') ? `${prefix}${formula})` : `C(${formula})`;
+}
+
+function negateFormula(f: string): string {
+  return f.startsWith('¬') ? f.slice(1).trim() : `¬${f}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -516,12 +600,77 @@ export class MutualBelief implements CECInferenceRule {
   }
 }
 
+export class IntentionSideEffect implements CECInferenceRule {
+  readonly name = 'IntentionSideEffect';
+  readonly description = 'I(a,P), B(a,P→Q), B(a,¬Q) ⊢ ¬I(a,P)';
+
+  canApply(fs: string[]): boolean {
+    return this.apply(fs).length > 0 || fs.some(isIntention);
+  }
+
+  apply(fs: string[]): string[] {
+    const out: string[] = [];
+    for (const intention of fs.filter(isIntention)) {
+      const parts = binaryCallArgs(intention, 'I');
+      if (!parts) continue;
+      const [agent, goal] = parts;
+      for (const belief of fs.filter(isBelief)) {
+        const believed = binaryCallArgs(belief, 'B');
+        if (!believed || believed[0] !== agent) continue;
+        const implication = topArrow(believed[1]);
+        if (!implication || implication[0] !== goal) continue;
+        if (fs.includes(`B(${agent}, ¬${implication[1]})`) || fs.includes(`B(${agent}, ¬${stripOuter(implication[1])})`)) {
+          const negated = `¬I(${agent}, ${goal})`;
+          if (!fs.includes(negated)) out.push(negated);
+        }
+      }
+    }
+    return out;
+  }
+}
+
 export class UnitResolution implements CECInferenceRule {
   readonly name = 'UnitResolution';
   readonly description = 'P∨Q, ¬P ⊢ Q';
 
   canApply(fs: string[]): boolean { return new DisjunctiveSyllogism().canApply(fs); }
   apply(fs: string[]): string[] { return new DisjunctiveSyllogism().apply(fs); }
+}
+
+export class BinaryResolution implements CECInferenceRule {
+  readonly name = 'BinaryResolution';
+  readonly description = 'P∨Q, ¬P∨R ⊢ Q∨R';
+
+  canApply(fs: string[]): boolean {
+    return this.apply(fs).length > 0;
+  }
+
+  apply(fs: string[]): string[] {
+    const out: string[] = [];
+    const clauses = fs.filter(isDisj);
+    for (const left of clauses) {
+      const l = topDisj(stripOuter(left));
+      if (!l) continue;
+      for (const right of clauses) {
+        if (left === right) continue;
+        const r = topDisj(stripOuter(right));
+        if (!r) continue;
+        const pairs: Array<[string, string, string, string]> = [
+          [l[0], l[1], r[0], r[1]],
+          [l[0], l[1], r[1], r[0]],
+          [l[1], l[0], r[0], r[1]],
+          [l[1], l[0], r[1], r[0]],
+        ];
+        for (const [litA, restA, litB, restB] of pairs) {
+          if (litA === negateFormula(litB) || litB === negateFormula(litA)) {
+            const resolvent = `${restA} ∨ ${restB}`;
+            if (!fs.includes(resolvent) && !out.includes(resolvent)) out.push(resolvent);
+          }
+        }
+      }
+    }
+    return out;
+  }
 }
 
 export class NegationIntroduction implements CECInferenceRule {
@@ -561,6 +710,30 @@ export class CommonKnowledgeIntroduction implements CECInferenceRule {
   }
 }
 
+export class CommonKnowledgeDistribution implements CECInferenceRule {
+  readonly name = 'CommonKnowledgeDistribution';
+  readonly description = 'C(P∧Q) ⊢ C(P), C(Q)';
+
+  canApply(fs: string[]): boolean {
+    return fs.some(f => {
+      const common = commonKnowledgeFormula(f);
+      return !!common && !!topConj(common.formula);
+    });
+  }
+
+  apply(fs: string[]): string[] {
+    const out: string[] = [];
+    for (const formula of fs) {
+      const common = commonKnowledgeFormula(formula);
+      const parts = common ? topConj(common.formula) : null;
+      if (!common || !parts) continue;
+      out.push(formatCommonKnowledge(common.prefix, parts[0]));
+      out.push(formatCommonKnowledge(common.prefix, parts[1]));
+    }
+    return out.filter(f => !fs.includes(f));
+  }
+}
+
 export class CommonKnowledgeImpliesKnowledge implements CECInferenceRule {
   readonly name = 'CommonKnowledgeImpliesKnowledge';
   readonly description = 'CK(G,P) ⊢ K(a,P) for any a in G';
@@ -580,6 +753,119 @@ export class CommonKnowledgeImpliesKnowledge implements CECInferenceRule {
       }
     }
     return out;
+  }
+}
+
+export class CommonKnowledgeNegation implements CECInferenceRule {
+  readonly name = 'CommonKnowledgeNegation';
+  readonly description = 'C(¬P) ⊢ ¬C(P)';
+
+  canApply(fs: string[]): boolean {
+    return fs.some(f => {
+      const common = commonKnowledgeFormula(f);
+      return !!common?.formula.startsWith('¬');
+    });
+  }
+
+  apply(fs: string[]): string[] {
+    const out: string[] = [];
+    for (const formula of fs) {
+      const common = commonKnowledgeFormula(formula);
+      if (!common?.formula.startsWith('¬')) continue;
+      const positive = common.formula.slice(1).trim();
+      const negated = `¬${formatCommonKnowledge(common.prefix, positive)}`;
+      if (!fs.includes(negated)) out.push(negated);
+    }
+    return out;
+  }
+}
+
+export class CommonBeliefIntroduction implements CECInferenceRule {
+  readonly name = 'CommonBeliefIntroduction';
+  readonly description = 'B(a,P), B(b,P) ⊢ CB({a,b},P)';
+
+  canApply(fs: string[]): boolean {
+    return this.apply(fs).length > 0;
+  }
+
+  apply(fs: string[]): string[] {
+    const beliefs = fs.filter(isBelief).map(f => binaryCallArgs(f, 'B')).filter(Boolean) as [string, string][];
+    for (let i = 0; i < beliefs.length; i++) {
+      for (let j = i + 1; j < beliefs.length; j++) {
+        if (beliefs[i][0] !== beliefs[j][0] && beliefs[i][1] === beliefs[j][1]) {
+          return [`CB({${beliefs[i][0]},${beliefs[j][0]}},${beliefs[i][1]})`];
+        }
+      }
+    }
+    return [];
+  }
+}
+
+export class FixedPointInduction implements CECInferenceRule {
+  readonly name = 'FixedPointInduction';
+  readonly description = 'P, P→K(everyone,P) ⊢ C(P)';
+
+  canApply(fs: string[]): boolean {
+    return this.apply(fs).length > 0;
+  }
+
+  apply(fs: string[]): string[] {
+    const out: string[] = [];
+    for (const formula of fs) {
+      for (const implicationFormula of fs.filter(isImpl)) {
+        const implication = topArrow(implicationFormula);
+        if (!implication || implication[0] !== formula) continue;
+        const knowledge = modalPayload(implication[1], ['K']);
+        if (knowledge?.formula === formula) {
+          const common = `C(${formula})`;
+          if (!fs.includes(common)) out.push(common);
+        }
+      }
+    }
+    return out;
+  }
+}
+
+export class TemporallyInducedCommonKnowledge implements CECInferenceRule {
+  readonly name = 'TemporallyInducedCommonKnowledge';
+  readonly description = '□K(all,P) ⊢ C(P)';
+
+  canApply(fs: string[]): boolean {
+    return fs.some(f => {
+      const payload = modalPayload(stripOuter(inner(f)), ['K']);
+      return f.trim().startsWith('□') && !!payload;
+    });
+  }
+
+  apply(fs: string[]): string[] {
+    const out: string[] = [];
+    for (const formula of fs) {
+      if (!formula.trim().startsWith('□')) continue;
+      const payload = modalPayload(stripOuter(inner(formula)), ['K']);
+      if (!payload) continue;
+      const common = `C(${payload.formula})`;
+      if (!fs.includes(common)) out.push(common);
+    }
+    return out;
+  }
+}
+
+export class ModalNecessionIntroduction implements CECInferenceRule {
+  readonly name = 'ModalNecessionIntroduction';
+  readonly description = 'P∨¬P ⊢ □(P∨¬P)';
+
+  canApply(fs: string[]): boolean {
+    return fs.some(f => {
+      const disj = topDisj(stripOuter(f));
+      return !!disj && disj[1] === `¬${disj[0]}`;
+    });
+  }
+
+  apply(fs: string[]): string[] {
+    return fs.filter(f => {
+      const disj = topDisj(stripOuter(f));
+      return !!disj && disj[1] === `¬${disj[0]}`;
+    }).map(f => `□(${stripOuter(f)})`).filter(f => !fs.includes(f));
   }
 }
 
@@ -680,6 +966,53 @@ export class CommonKnowledgeConjunction implements CECInferenceRule {
   }
 }
 
+export class MutualKnowledgeTransitivity implements CECInferenceRule {
+  readonly name = 'MutualKnowledgeTransitivity';
+  readonly description = 'MB(P), MB(MB(P)→Q) ⊢ MB(Q)';
+
+  canApply(fs: string[]): boolean {
+    return fs.some(isMutualKnowledge);
+  }
+
+  apply(fs: string[]): string[] {
+    const out: string[] = [];
+    const mutual = fs.filter(isMutualKnowledge);
+    for (const base of mutual) {
+      const basePayload = modalPayload(base, ['MB', 'MK']);
+      if (!basePayload) continue;
+      for (const implicationFormula of mutual) {
+        const implicationPayload = modalPayload(implicationFormula, ['MB', 'MK']);
+        const implication = implicationPayload ? topArrow(implicationPayload.formula) : null;
+        if (implication && implication[0] === base) {
+          const derived = `${basePayload.op}(${implication[1]})`;
+          if (!fs.includes(derived)) out.push(derived);
+        }
+      }
+    }
+    return out;
+  }
+}
+
+export class PublicAnnouncementReduction implements CECInferenceRule {
+  readonly name = 'PublicAnnouncementReduction';
+  readonly description = '[!P]Q ⊣⊢ P→Q';
+
+  canApply(fs: string[]): boolean {
+    return fs.some(f => /^\[![^\]]+\]/.test(f.trim()));
+  }
+
+  apply(fs: string[]): string[] {
+    const out: string[] = [];
+    for (const formula of fs) {
+      const match = formula.trim().match(/^\[!([^\]]+)\](.+)$/);
+      if (!match) continue;
+      const reduced = `${stripOuter(match[1])} → ${stripOuter(match[2])}`;
+      if (!fs.includes(reduced)) out.push(reduced);
+    }
+    return out;
+  }
+}
+
 export class GroupKnowledgeAggregation implements CECInferenceRule {
   readonly name = 'GroupKnowledgeAggregation';
   readonly description = 'All K(a_i, P) for a_i ∈ G ⊢ CK(G,P)';
@@ -719,15 +1052,25 @@ export const ALL_CEC_RULES: CECInferenceRule[] = [
   new ConjunctionElimination(),
   new ForbiddenToNotObligatory(),
   new MutualBelief(),
+  new IntentionSideEffect(),
   new UnitResolution(),
+  new BinaryResolution(),
   new NegationIntroduction(),
   new CommonKnowledgeIntroduction(),
+  new CommonKnowledgeDistribution(),
   new CommonKnowledgeImpliesKnowledge(),
+  new CommonKnowledgeNegation(),
+  new CommonBeliefIntroduction(),
+  new FixedPointInduction(),
+  new TemporallyInducedCommonKnowledge(),
+  new ModalNecessionIntroduction(),
   new CommonKnowledgeMonotonicity(),
   new ModalNecessitationIntroduction(),
   new DisjunctionCommutes(),
   new CommonKnowledgeTransitivity(),
   new CommonKnowledgeConjunction(),
+  new MutualKnowledgeTransitivity(),
+  new PublicAnnouncementReduction(),
   new GroupKnowledgeAggregation(),
 ];
 

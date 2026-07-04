@@ -15,6 +15,10 @@ import {
   Idempotence, TautologyIntroduction, ContradictionElimination,
   ForbiddenToNotObligatory, CommonKnowledgeIntroduction,
   CommonKnowledgeImpliesKnowledge, DisjunctionCommutes,
+  BinaryResolution, CommonBeliefIntroduction, CommonKnowledgeDistribution,
+  CommonKnowledgeNegation, FixedPointInduction, IntentionSideEffect,
+  ModalNecessionIntroduction, MutualKnowledgeTransitivity,
+  PublicAnnouncementReduction, TemporallyInducedCommonKnowledge,
   ALL_CEC_RULES, findApplicableCECRules,
 } from '../../src/services/cec-prover-core';
 
@@ -34,7 +38,7 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('ALL_CEC_RULES', () => {
-  test('contains 34+ rules', () => { expect(ALL_CEC_RULES.length).toBeGreaterThanOrEqual(34); });
+  test('contains 44+ rules', () => { expect(ALL_CEC_RULES.length).toBeGreaterThanOrEqual(44); });
   test('rule names are unique', () => {
     const names = ALL_CEC_RULES.map(r => r.name);
     expect(new Set(names).size).toBe(names.length);
@@ -166,6 +170,46 @@ describe('CommonKnowledgeImpliesKnowledge', () => {
     const out = rule.apply(['CK({alice,bob}, P)']);
     expect(out).toContain('K(alice, P)');
     expect(out).toContain('K(bob, P)');
+  });
+});
+
+describe('CEC extended backward-compatibility rules', () => {
+  test('BinaryResolution derives a resolvent from complementary clauses', () => {
+    const out = new BinaryResolution().apply(['P∨Q', '¬P∨R']);
+    expect(out).toContain('Q ∨ R');
+  });
+
+  test('CommonBeliefIntroduction combines matching beliefs', () => {
+    const out = new CommonBeliefIntroduction().apply(['B(alice, P)', 'B(bob, P)']);
+    expect(out).toEqual(['CB({alice,bob},P)']);
+  });
+
+  test('CommonKnowledgeDistribution and negation expand C formulas', () => {
+    expect(new CommonKnowledgeDistribution().apply(['C(P∧Q)'])).toEqual(['C(P)', 'C(Q)']);
+    expect(new CommonKnowledgeNegation().apply(['C(¬P)'])).toEqual(['¬C(P)']);
+  });
+
+  test('FixedPointInduction and temporal common-knowledge rules derive C(P)', () => {
+    expect(new FixedPointInduction().apply(['P', 'P → K(everyone, P)'])).toContain('C(P)');
+    expect(new TemporallyInducedCommonKnowledge().apply(['□K(all, P)'])).toContain('C(P)');
+  });
+
+  test('IntentionSideEffect derives negated intentions from believed side effects', () => {
+    const out = new IntentionSideEffect().apply([
+      'I(alice, P)',
+      'B(alice, P → Q)',
+      'B(alice, ¬Q)',
+    ]);
+    expect(out).toContain('¬I(alice, P)');
+  });
+
+  test('ModalNecessionIntroduction preserves the Python misspelled class name', () => {
+    expect(new ModalNecessionIntroduction().apply(['P∨¬P'])).toEqual(['□(P∨¬P)']);
+  });
+
+  test('MutualKnowledgeTransitivity and public-announcement reduction are concrete rules', () => {
+    expect(new MutualKnowledgeTransitivity().apply(['MB(P)', 'MB(MB(P) → Q)'])).toContain('MB(Q)');
+    expect(new PublicAnnouncementReduction().apply(['[!P]Q'])).toEqual(['P → Q']);
   });
 });
 
