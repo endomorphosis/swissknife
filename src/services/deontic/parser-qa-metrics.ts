@@ -243,7 +243,9 @@ function slotFilled(norm: LegalNormIR, slot: string): boolean {
   };
   const value = slot === 'action'
     ? (hasValue(record['action']) ? record['action'] : record['proposition'])
-    : record[slot];
+    : slot === 'proposition'
+      ? (hasValue(record['proposition']) ? record['proposition'] : record['action'])
+      : record[slot];
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === 'string') return value.trim().length > 0;
   if (typeof value === 'number') return Number.isFinite(value);

@@ -429,6 +429,12 @@ const decoderWarningNonBlockers = new Set([
 export const parser_warnings_require_decoder_validation = parserWarningsRequireDecoderValidation;
 
 function slotValue(norm: LegalNormIR, slot: string): unknown {
+  if (slot === 'proposition') {
+    return norm.action;
+  }
+  if (slot === 'action') {
+    return norm.action;
+  }
   if (slot === 'cross_references') {
     return [...norm.cross_references, ...norm.resolved_cross_references];
   }

@@ -196,6 +196,21 @@ describe('PORT-199 Phase-8 parser QA metrics', () => {
     expect(record.missingSlots).toEqual([]);
     expect(record.slotCoverage).toBe(1);
   });
+
+  it('counts action alias as filling required proposition slots in metrics', () => {
+    const record = buildPhase8ParserMetricRecord(buildLegalNormIR({
+      source_id: 'metric-proposition-slot',
+      modality: 'O',
+      actor: 'Users',
+      action: 'log access',
+      quality: { ...emptyQuality(), schema_valid: true },
+    }), {
+      requiredSlots: ['actor', 'proposition'],
+    });
+    expect(record.filledSlots).toEqual(['actor', 'proposition']);
+    expect(record.missingSlots).toEqual([]);
+    expect(record.slotCoverage).toBe(1);
+  });
 });
 
 describe('PORT-200 prover syntax target coverage and validator', () => {
@@ -283,6 +298,11 @@ describe('PORT-214 direct deontic export records', () => {
     const irAudit = buildIrSlotProvenanceAuditRecord(norm, ['actor', 'action', 'conditions']);
     expect(irAudit.all_checked_slots_grounded).toBe(true);
     expect(buildIrSlotProvenanceAuditRecords([norm], ['actor'])).toHaveLength(1);
+
+    const propositionAudit = buildIrSlotProvenanceAuditRecord(norm, ['actor', 'proposition']);
+    expect(propositionAudit.checked_slots).toEqual(['actor', 'proposition']);
+    expect(propositionAudit.grounded_slots).toEqual(expect.arrayContaining(['proposition']));
+    expect(propositionAudit.missing_slots).not.toContain('proposition');
 
     const slotAudit = buildDecoderSlotGroundingAuditRecord(decoder, ['actor', 'action']);
     expect(slotAudit.slot_grounding_complete).toBe(true);

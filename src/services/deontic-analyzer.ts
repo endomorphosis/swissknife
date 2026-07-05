@@ -19,6 +19,7 @@ export interface DeonticStatement {
   id: string;
   entity: string;
   modality: DeonticModality;
+  proposition?: string;
   action: string;
   source: string;
   date: string;
@@ -135,6 +136,7 @@ export class DeonticAnalyzer {
               id: `stmt_${idCounter++}`,
               entity,
               modality,
+              proposition: action,
               action,
               source,
               date,
@@ -165,14 +167,15 @@ export class DeonticAnalyzer {
       // Permission ↔ Prohibition conflict
       for (const perm of permissions) {
         for (const prohib of prohibitions) {
-          if (this._actionOverlaps(perm.action, prohib.action)) {
+          if (this._actionOverlaps(this.statementProposition(perm), this.statementProposition(prohib))) {
+            const proposition = this.statementProposition(perm);
             conflicts.push({
               conflictType: 'permission_prohibition_conflict',
               statement1: perm,
               statement2: prohib,
               entity,
-              action: perm.action,
-              description: `Entity '${entity}' is both permitted and prohibited from '${perm.action}'`,
+              action: proposition,
+              description: `Entity '${entity}' is both permitted and prohibited from '${proposition}'`,
             });
           }
         }
@@ -181,14 +184,15 @@ export class DeonticAnalyzer {
       // Duplicate obligation conflict
       for (let i = 0; i < obligations.length; i++) {
         for (let j = i + 1; j < obligations.length; j++) {
-          if (this._actionOverlaps(obligations[i].action, obligations[j].action)) {
+          if (this._actionOverlaps(this.statementProposition(obligations[i]), this.statementProposition(obligations[j]))) {
+            const proposition = this.statementProposition(obligations[i]);
             conflicts.push({
               conflictType: 'duplicate_obligation',
               statement1: obligations[i],
               statement2: obligations[j],
               entity,
-              action: obligations[i].action,
-              description: `Entity '${entity}' has duplicate obligation to '${obligations[i].action}'`,
+              action: proposition,
+              description: `Entity '${entity}' has duplicate obligation to '${proposition}'`,
             });
           }
         }
@@ -223,7 +227,7 @@ export class DeonticAnalyzer {
       byModality[s.modality]++;
       byEntity[s.entity] = (byEntity[s.entity] ?? 0) + 1;
       bySource[s.source] = (bySource[s.source] ?? 0) + 1;
-      uniqueActions.add(s.action.toLowerCase().slice(0, 40));
+      uniqueActions.add(this.statementProposition(s).toLowerCase().slice(0, 40));
     }
 
     return {
@@ -253,5 +257,9 @@ export class DeonticAnalyzer {
     const wordsA = a.toLowerCase().split(/\s+/).slice(0, 3).join(' ');
     const wordsB = b.toLowerCase().split(/\s+/).slice(0, 3).join(' ');
     return wordsA === wordsB || a.toLowerCase().includes(b.toLowerCase().split(' ')[0]);
+  }
+
+  private statementProposition(statement: DeonticStatement): string {
+    return statement.proposition ?? statement.action;
   }
 }
