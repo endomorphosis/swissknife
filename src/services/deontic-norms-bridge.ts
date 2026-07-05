@@ -463,7 +463,7 @@ export function deonticGuidanceFrameCandidates(
     'compiler_guidance_selected_frame',
     'frame_after',
     'frame',
-  ].map(key => ({ source: key, value: guidance[key] }));
+  ].map(key => ({ source: key, value: key in guidance ? guidance[key] : null }));
 
   const evidenceRows = deonticGuidanceEvidenceRows(guidance);
   const matchedRows = evidenceRows.filter(item =>
