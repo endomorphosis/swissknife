@@ -39,8 +39,8 @@ export function cosineSimilarity(a: EmbeddingVector, b: EmbeddingVector): number
 // Simulated embedding (hashing-based, no ML deps)
 // ---------------------------------------------------------------------------
 
-/** Deterministically produce a short float vector from a string. */
-function textToVector(text: string, dim = 32): Float32Array {
+/** Deterministically produce a dense fallback embedding vector from text. */
+export function buildDeterministicEmbedding(text: string, dim = 768): Float32Array {
   const v = new Float32Array(dim);
   const chars = [...text.toLowerCase()];
   for (let i = 0; i < chars.length; i++) {
@@ -86,7 +86,7 @@ export class EmbeddingEnhancedProver {
 
   private _embed(text: string): Float32Array {
     if (!this.vectorCache.has(text)) {
-      this.vectorCache.set(text, textToVector(text));
+      this.vectorCache.set(text, buildDeterministicEmbedding(text, 768));
     }
     return this.vectorCache.get(text)!;
   }

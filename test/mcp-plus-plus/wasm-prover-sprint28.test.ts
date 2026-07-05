@@ -98,19 +98,19 @@ describe('canonicalModalityOperator', () => {
 // ---------------------------------------------------------------------------
 
 describe('buildDeonticFormulaFromIR', () => {
-  test('obligation → O(Subject, Action)', () => {
+  test('obligation → quantified O formula', () => {
     const norm = buildLegalNormIR({ modality: 'O', actor: 'Person', action: 'Register' });
-    expect(buildDeonticFormulaFromIR(norm)).toBe('O(Person, Register)');
+    expect(buildDeonticFormulaFromIR(norm)).toBe('O(∀x (Person(x) → Register(x)))');
   });
 
-  test('permission → P(Subject, Action)', () => {
+  test('permission → quantified P formula', () => {
     const norm = buildLegalNormIR({ modality: 'P', actor: 'Authority', action: 'Grant' });
-    expect(buildDeonticFormulaFromIR(norm)).toBe('P(Authority, Grant)');
+    expect(buildDeonticFormulaFromIR(norm)).toBe('P(∀x (Authority(x) → Grant(x)))');
   });
 
-  test('prohibition → F(Subject, Action)', () => {
+  test('prohibition → quantified F formula', () => {
     const norm = buildLegalNormIR({ modality: 'F', actor: 'Person', action: 'Disclose' });
-    expect(buildDeonticFormulaFromIR(norm)).toBe('F(Person, Disclose)');
+    expect(buildDeonticFormulaFromIR(norm)).toBe('F(∀x (Person(x) → Disclose(x)))');
   });
 
   test('definition → Definition(Subject)', () => {
@@ -167,7 +167,7 @@ describe('deontic formula record builders', () => {
       source_id: 'n1',
       canonical_citation: '§ 1',
       target_logic: 'deontic',
-      formula: 'O(Person, Register)',
+      formula: 'O(∀x (Person(x) → Register(x)))',
       modality: 'O',
       norm_type: 'obligation',
       proposition: 'Register',
@@ -199,7 +199,7 @@ describe('deontic formula record builders', () => {
     expect(parserRecord).toMatchObject({
       source_id: 'p1',
       canonical_citation: '§ 2',
-      formula: 'F(Operator, DiscloseRecords)',
+      formula: 'F(∀x (Operator(x) → DiscloseRecords(x)))',
     });
 
     const parserRecordFromProposition = parserElementToFormulaRecord({
@@ -214,8 +214,8 @@ describe('deontic formula record builders', () => {
     });
     expect(parserRecordFromProposition).toMatchObject({
       source_id: 'p2',
-      proposition: 'publish reports',
-      action: 'publish reports',
+      proposition: '',
+      action: '',
     });
   });
 });

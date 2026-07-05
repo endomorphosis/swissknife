@@ -5,7 +5,7 @@
  * TypeScript port of key public API from:
  *   ipfs_datasets_py/logic/modal/decompiler.py
  *
- * Provides (simulated, no ML deps):
+ * Provides (deterministic, no ML deps):
  *   DecodedModalPhrase        — one phrase from a modal IR slot
  *   DecodedModalText          — full decompiled text + provenance
  *   decodeModalIRDocument()   — ModalIRDocument → DecodedModalText
@@ -133,21 +133,41 @@ export function decodedModalPhraseSlotTextMap(
 }
 
 // ---------------------------------------------------------------------------
-// ModalIRDocument stub (minimal interface for decoding)
+// ModalIRDocument minimal interface for decoding
 // ---------------------------------------------------------------------------
 
 export interface ModalIRFormula {
   formulaType: string;
-  operator?: string;
+  formulaId?: string;
+  operator?: string | {
+    family?: string;
+    system?: string;
+    symbol?: string;
+    label?: string;
+  };
+  predicate?: {
+    name?: string;
+    arguments?: string[];
+    role?: string | null;
+  };
   actor?: string;
   action?: string;
   conditions?: string[];
+  exceptions?: string[];
+  provenance?: {
+    sourceId?: string;
+    startChar?: number;
+    endChar?: number;
+    citation?: string | null;
+  };
+  metadata?: Record<string, unknown>;
   sourceText?: string;
 }
 
 export interface ModalIRDocument {
   documentId: string;
   sourceText?: string;
+  normalizedText?: string;
   formulas?: ModalIRFormula[];
   metadata?: Record<string, unknown>;
 }
@@ -217,6 +237,20 @@ const OPERATOR_DESCRIPTIONS: Record<string, string> = {
   'G': 'it is always the case that',
 };
 
+const OPERATOR_PHRASES: Record<string, string> = {
+  O: 'obligatory',
+  P: 'permitted',
+  F: 'forbidden',
+  G: 'always',
+  X: 'next',
+  K: 'known',
+  'O|': 'conditionally obligatory',
+  '[a]': 'after action',
+  Frame: 'framed as',
+  '□': 'necessary',
+  '◇': 'possible',
+};
+
 /**
  * Convert a modal formula string to natural language.
  */
@@ -251,51 +285,223 @@ export function modalFormulaToText(formula: string): string {
   return f;
 }
 
+/**
+ * Python parity for `modal/decompiler.py::modal_formula_to_text`.
+ *
+ * This renders a structured ModalIRFormula, not the legacy string pretty-printer
+ * above that remains for older Sprint 44 tests.
+ */
+export function modalIrFormulaToText(formula: ModalIRFormula): string {
+  const operator = typeof formula.operator === 'object' && formula.operator !== null
+    ? formula.operator
+    : {};
+  const predicate = formula.predicate ?? {};
+  const symbol = String(operator.symbol ?? formula.operator ?? '');
+  const family = String(operator.family ?? '');
+  const system = String(operator.system ?? '');
+  const name = String(predicate.name ?? '');
+  const args = Array.isArray(predicate.arguments) ? predicate.arguments : [];
+  const predicateText = args.length ? `${name}(${args.join(', ')})` : name;
+  return `${symbol}[${family}:${system}](${predicateText})`;
+}
+
 // ---------------------------------------------------------------------------
 // decodeModalIRDocument
 // ---------------------------------------------------------------------------
 
 /**
  * Decode a ModalIRDocument into a DecodedModalText.
- * Simulated — no ML inference required.
+ * Deterministic compact port — no ML inference required.
  */
 export function decodeModalIRDocument(doc: ModalIRDocument): DecodedModalText {
   const sourceId = doc.documentId;
-  const sourceText = doc.sourceText ?? '';
+  const sourceText = doc.normalizedText ?? doc.sourceText ?? '';
   const formulas = (doc.formulas ?? []);
+  const sortedFormulas = [...formulas].sort((left, right) =>
+    String(left.formulaId ?? '').localeCompare(String(right.formulaId ?? ''))
+  );
 
-  // Convert formulas to phrases
-  const phrases: DecodedModalPhrase[] = formulas.map((f, i) => {
-    const text = modalFormulaToText(f.sourceText ?? `${f.formulaType}(${f.actor ?? 'Agent'},${f.action ?? 'Act'})`);
-    return new DecodedModalPhrase({
-      text,
-      slot: f.formulaType ?? 'unknown',
-      spans: [[i * 20, i * 20 + text.length]],
-    });
-  });
+  const phrases: DecodedModalPhrase[] = [];
+  if (sourceText) {
+    if (sortedFormulas.length > 0) {
+      const spans = sortedFormulas
+        .map(formula => formulaSpan(formula))
+        .filter((span): span is [number, number] => Boolean(span));
+      const merged = mergeSpans(spans, sourceText.length);
+      let cursor = 0;
+      for (const [start, end] of merged) {
+        if (start > cursor) {
+          phrases.push(new DecodedModalPhrase({
+            text: sourceText.slice(cursor, start),
+            slot: 'source_context_span',
+            spans: [[cursor, start]],
+          }));
+        }
+        phrases.push(new DecodedModalPhrase({
+          text: sourceText.slice(start, end),
+          slot: 'modal_source_span',
+          spans: [[start, end]],
+        }));
+        cursor = end;
+      }
+      if (cursor < sourceText.length) {
+        phrases.push(new DecodedModalPhrase({
+          text: sourceText.slice(cursor),
+          slot: 'source_context_span',
+          spans: [[cursor, sourceText.length]],
+        }));
+      }
+    } else {
+      phrases.push(new DecodedModalPhrase({
+        text: sourceText,
+        slot: 'source_context_span',
+        spans: [[0, sourceText.length]],
+      }));
+    }
+  }
+
+  const formulaTexts: string[] = [];
+  for (const [index, f] of sortedFormulas.entries()) {
+    if (index > 0) {
+      phrases.push(new DecodedModalPhrase({ text: ';', slot: 'formula_separator', fixed: true }));
+    }
+
+    const span = formulaSpan(f);
+    const spans = span ? [span] : [[index * 20, index * 20 + modalIrFormulaToText(f).length]];
+    const text = f.predicate && typeof f.operator === 'object'
+      ? modalIrFormulaToText(f)
+      : modalFormulaToText(f.sourceText ?? `${f.formulaType}(${f.actor ?? 'Agent'},${f.action ?? 'Act'})`);
+    formulaTexts.push(text);
+    phrases.push(new DecodedModalPhrase({ text, slot: 'formula', spans, provenanceOnly: true }));
+
+    if (typeof f.operator === 'object' && f.operator !== null) {
+      const cueSpans = cueSpan(f) ? [cueSpan(f) as [number, number]] : spans;
+      const operatorPhrase = modalOperatorPhrase(f);
+      const symbol = cleanText(String(f.operator.symbol ?? ''));
+      const family = cleanText(String(f.operator.family ?? ''));
+      const system = cleanText(String(f.operator.system ?? ''));
+      if (operatorPhrase) phrases.push(new DecodedModalPhrase({ text: operatorPhrase, slot: 'operator', spans: cueSpans, provenanceOnly: true }));
+      if (symbol) phrases.push(new DecodedModalPhrase({ text: symbol, slot: 'modal_operator', spans: cueSpans, provenanceOnly: true }));
+      if (family) phrases.push(new DecodedModalPhrase({ text: family, slot: 'modal_family', spans: cueSpans, provenanceOnly: true }));
+      if (system) phrases.push(new DecodedModalPhrase({ text: system, slot: 'modal_system', spans: cueSpans, provenanceOnly: true }));
+    }
+
+    if (f.predicate) {
+      const predicateText = predicatePhrase(f);
+      if (predicateText) phrases.push(new DecodedModalPhrase({ text: predicateText, slot: 'predicate', spans, provenanceOnly: true }));
+      const args = Array.isArray(f.predicate.arguments) ? f.predicate.arguments.filter(Boolean) : [];
+      if (args.length > 0) phrases.push(new DecodedModalPhrase({ text: args.join(', '), slot: 'arguments', spans, provenanceOnly: true }));
+    }
+    for (const condition of f.conditions ?? []) {
+      const text = cleanText(String(condition));
+      if (text) phrases.push(new DecodedModalPhrase({ text, slot: 'condition', spans, provenanceOnly: true }));
+    }
+    for (const exception of f.exceptions ?? []) {
+      const text = cleanText(String(exception));
+      if (text) phrases.push(new DecodedModalPhrase({ text, slot: 'exception', spans, provenanceOnly: true }));
+    }
+  }
 
   // Reconstruct text from phrases
-  const reconstructed = phrases.length > 0
+  const reconstructed = sourceText || (phrases.length > 0
+    ? phrases.filter(phrase => !phrase.provenanceOnly && !phrase.fixed).map(p => p.text).join('. ') + '.'
+    : sourceText);
+
+  const fallbackReconstructed = !sourceText && phrases.length > 0
     ? phrases.map(p => p.text).join('. ') + '.'
     : sourceText;
 
   // Compute simple token similarity
   const similarity = sourceText ? modalTextTokenSimilarity(sourceText, reconstructed) : 0;
 
-  const coverage = formulas.length > 0
-    ? Math.min(1.0, phrases.length / Math.max(1, formulas.length))
-    : 0;
+  const coverage = sourceText && sortedFormulas.length > 0
+    ? modalSpanCoverage(sortedFormulas, sourceText.length)
+    : formulas.length > 0
+      ? Math.min(1.0, phrases.length / Math.max(1, formulas.length))
+      : 0;
+
+  const parserWarnings = Array.isArray(doc.metadata?.parser_warnings)
+    ? doc.metadata.parser_warnings.map(String)
+    : formulas.length === 0 ? ['No formulas in document'] : [];
+
+  const missingSlots: string[] = [];
+  if (formulas.length === 0) missingSlots.push('formulas');
+  if (!sourceText) missingSlots.push('source_text');
 
   return new DecodedModalText({
     sourceId,
-    text: reconstructed,
+    text: sourceText ? reconstructed : fallbackReconstructed,
     phrases,
-    supportSpan: [0, reconstructed.length],
+    supportSpan: supportSpan(sortedFormulas),
     reconstructionSimilarity: similarity,
     modalSpanCoverage: coverage,
-    formulas: formulas.map(f => f.sourceText ?? '').filter(Boolean),
-    parserWarnings: formulas.length === 0 ? ['No formulas in document'] : [],
+    formulas: formulaTexts,
+    parserWarnings,
+    missingSlots,
   });
+}
+
+function formulaSpan(formula: ModalIRFormula): [number, number] | null {
+  const start = Number(formula.provenance?.startChar);
+  const end = Number(formula.provenance?.endChar);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+  return [Math.max(0, start), Math.max(0, end)];
+}
+
+function cueSpan(formula: ModalIRFormula): [number, number] | null {
+  const start = Number(formula.metadata?.cue_start_char);
+  const end = Number(formula.metadata?.cue_end_char);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+  return [Math.max(0, start), Math.max(0, end)];
+}
+
+function mergeSpans(spans: Array<[number, number]>, textLength: number): Array<[number, number]> {
+  const sorted = spans
+    .map(([start, end]) => [Math.max(0, Math.min(textLength, start)), Math.max(0, Math.min(textLength, end))] as [number, number])
+    .filter(([start, end]) => end > start)
+    .sort(([leftStart, leftEnd], [rightStart, rightEnd]) => leftStart - rightStart || leftEnd - rightEnd);
+  const merged: Array<[number, number]> = [];
+  for (const span of sorted) {
+    const last = merged[merged.length - 1];
+    if (!last || span[0] > last[1]) {
+      merged.push([...span]);
+    } else {
+      last[1] = Math.max(last[1], span[1]);
+    }
+  }
+  return merged;
+}
+
+function supportSpan(formulas: ModalIRFormula[]): number[] {
+  const spans = formulas.map(formulaSpan).filter((span): span is [number, number] => Boolean(span));
+  if (spans.length === 0) return [0, 0];
+  return [Math.min(...spans.map(([start]) => start)), Math.max(...spans.map(([, end]) => end))];
+}
+
+function modalSpanCoverage(formulas: ModalIRFormula[], textLength: number): number {
+  if (textLength <= 0) return 0;
+  const covered = mergeSpans(
+    formulas.map(formulaSpan).filter((span): span is [number, number] => Boolean(span)),
+    textLength,
+  ).reduce((sum, [start, end]) => sum + Math.max(0, end - start), 0);
+  return Math.round(Math.min(1, Math.max(0, covered / textLength)) * 1_000_000) / 1_000_000;
+}
+
+function predicatePhrase(formula: ModalIRFormula): string {
+  const predicate = formula.predicate ?? {};
+  const name = cleanText(String(predicate.name ?? '').replace(/_/g, ' '));
+  const args = Array.isArray(predicate.arguments) ? predicate.arguments.map(String).filter(Boolean) : [];
+  if (!name) return args.join(', ');
+  return name;
+}
+
+function modalOperatorPhrase(formula: ModalIRFormula): string {
+  if (typeof formula.operator !== 'object' || formula.operator === null) {
+    return cleanText(String(formula.operator ?? ''));
+  }
+  const symbol = cleanText(String(formula.operator.symbol ?? ''));
+  const label = cleanText(String(formula.operator.label ?? symbol));
+  return OPERATOR_PHRASES[symbol] ?? label;
 }
 
 // ---------------------------------------------------------------------------

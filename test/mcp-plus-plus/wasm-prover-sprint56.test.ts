@@ -69,7 +69,7 @@ describe('DeterministicModalCompiler — compile()', () => {
 
   test('compiles obligation text', () => {
     const r = compiler.compile('Contractors must pay taxes by the end of the month.');
-    expect(r.parserName).toBe('regex');
+    expect(r.parserName).toBe('legal_modal_parser_v1');
     expect(r.normalizedText.length).toBeGreaterThan(0);
     expect(r.modalIr).toBeDefined();
     expect(r.modalIr.text).toContain('Contractors');
@@ -100,7 +100,7 @@ describe('DeterministicModalCompiler — compile()', () => {
     const r = compiler.compile('Parties must act in good faith.');
     const d = compilationResultToDict(r);
     expect(() => JSON.stringify(d)).not.toThrow();
-    expect(d.parserName).toBe('regex');
+    expect(d.parserName).toBe('legal_modal_parser_v1');
   });
 
   test('metadata includes documentId when provided', () => {
@@ -115,7 +115,7 @@ describe('DeterministicModalCompiler — compile()', () => {
       'Eve must not disclose.',
     ]);
     expect(results).toHaveLength(3);
-    results.forEach(r => expect(r.parserName).toBe('regex'));
+    results.forEach(r => expect(r.parserName).toBe('legal_modal_parser_v1'));
   });
 
   test('stats.totalCompiled increments', () => {
@@ -127,6 +127,8 @@ describe('DeterministicModalCompiler — compile()', () => {
 });
 
 describe('DeterministicModalCompiler — ambiguity detection', () => {
+  const compiler = new DeterministicModalCompiler();
+
   test('detects ambiguity when two frames are within margin', () => {
     // Text with both deontic and temporal keywords
     const r = new DeterministicModalCompiler({ frameScoreMargin: 0.99 })
@@ -134,6 +136,22 @@ describe('DeterministicModalCompiler — ambiguity detection', () => {
     // With a very high margin, two families likely within it
     // Result may or may not have ambiguities depending on score spread
     expect(Array.isArray(r.ambiguities)).toBe(true);
+  });
+
+  test('emits Python-ordered formula families for conditional and temporal deontic text', () => {
+    const r = compiler.compile('If the filing is late, the agency must notify the applicant within 30 days.');
+    expect(r.modalIr.formulaFamilies).toEqual(['conditional_normative', 'deontic', 'temporal']);
+    expect(r.modalIr.formulaCount).toBe(3);
+    expect((r.metadata as Record<string, unknown>)['modal_family_counts']).toEqual({
+      conditional_normative: 1,
+      deontic: 1,
+      temporal: 1,
+    });
+  });
+
+  test('marks non-empty text without formulas as missing_modal_formula', () => {
+    const r = compiler.compile('This sentence has no modal policy.');
+    expect(r.ambiguities.map(ambiguity => ambiguity.ambiguityType)).toContain('missing_modal_formula');
   });
 });
 

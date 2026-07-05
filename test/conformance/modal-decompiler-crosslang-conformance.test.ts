@@ -6,8 +6,11 @@ import { spawnSync } from 'node:child_process';
 import {
   DecodedModalPhrase,
   DecodedModalText,
+  decodeModalIRDocument,
   decodedModalPhraseSlotTextMap,
+  modalIrFormulaToText,
   modalTextTokenSimilarity,
+  type ModalIRDocument,
 } from '../../src/services/modal-ir-decompiler';
 
 interface SimilarityCase {
@@ -44,6 +47,31 @@ interface DecompilerCorpus {
   schemaVersion: string;
   similarityCases: SimilarityCase[];
   slotMapCases: SlotCase[];
+  formulaRenderCases: Array<{
+    id: string;
+    formula: {
+      formulaId: string;
+      operator: {
+        family: string;
+        system: string;
+        symbol: string;
+        label: string;
+      };
+      predicate: {
+        name: string;
+        arguments: string[];
+        role?: string;
+      };
+      provenance: Record<string, unknown>;
+    };
+    expected: string;
+  }>;
+  decodedDocumentCases: Array<{
+    id: string;
+    document: ModalIRDocument & { source?: string };
+    slotSubsetKeys: string[];
+    expected: DecodedDocumentSummary;
+  }>;
 }
 
 interface PySimilarityRow {
@@ -60,6 +88,21 @@ interface PyResultFile {
   schemaVersion: string;
   similarityResults: PySimilarityRow[];
   slotMapResults: PySlotMapRow[];
+  formulaRenderResults: Array<{ id: string; text: string }>;
+  decodedDocumentResults: Array<{ id: string; summary: DecodedDocumentSummary }>;
+}
+
+interface DecodedDocumentSummary {
+  source_id: string;
+  text: string;
+  support_span: number[];
+  reconstruction_similarity: number;
+  modal_span_coverage: number;
+  reconstruction_strategy: string;
+  parser_warnings: string[];
+  missing_slots: string[];
+  formulas: string[];
+  slot_subset: Record<string, string[]>;
 }
 
 function loadCorpus(): DecompilerCorpus {
@@ -82,16 +125,39 @@ function runPythonReference(corpusPath: string): PyResultFile {
   }
 }
 
-describe('PORT-247 modal decompiler helper parity (cross-language)', () => {
+function decodedDocumentSummary(document: ModalIRDocument, slotSubsetKeys: string[]): DecodedDocumentSummary {
+  const decoded = decodeModalIRDocument(document);
+  const slotMap = decodedModalPhraseSlotTextMap(decoded);
+  return {
+    source_id: decoded.sourceId,
+    text: decoded.text,
+    support_span: decoded.supportSpan,
+    reconstruction_similarity: decoded.reconstructionSimilarity,
+    modal_span_coverage: decoded.modalSpanCoverage,
+    reconstruction_strategy: decoded.reconstructionStrategy,
+    parser_warnings: decoded.parserWarnings,
+    missing_slots: decoded.missingSlots,
+    formulas: decoded.formulas,
+    slot_subset: Object.fromEntries(
+      slotSubsetKeys
+        .filter(key => key in slotMap)
+        .map(key => [key, slotMap[key]])
+    ),
+  };
+}
+
+describe('PORT-247 modal decompiler decoded-document parity (cross-language)', () => {
   const corpusPath = resolve(process.cwd(), '../implementation_plan/conformance/modal-decompiler-vectors.json');
   const corpus = loadCorpus();
 
-  it('matches expected and Python outputs for similarity + slot map helpers', () => {
+  it('matches expected and Python outputs for helper and decoded-document summaries', () => {
     expect(corpus.schemaVersion).toBe('2026-07-05');
 
     const pyResults = runPythonReference(corpusPath);
     const pySimilarityById = new Map(pyResults.similarityResults.map(row => [row.id, row.similarity]));
     const pySlotMapById = new Map(pyResults.slotMapResults.map(row => [row.id, row.slotMap]));
+    const pyFormulaRenderById = new Map(pyResults.formulaRenderResults.map(row => [row.id, row.text]));
+    const pyDecodedDocumentById = new Map(pyResults.decodedDocumentResults.map(row => [row.id, row.summary]));
 
     for (const testCase of corpus.similarityCases) {
       const tsSimilarity = modalTextTokenSimilarity(testCase.left, testCase.right);
@@ -119,6 +185,29 @@ describe('PORT-247 modal decompiler helper parity (cross-language)', () => {
       });
       expect(tsMap).toEqual(testCase.expected);
       expect(tsMap).toEqual(pySlotMapById.get(testCase.id));
+    }
+
+    for (const testCase of corpus.formulaRenderCases) {
+      const tsText = modalIrFormulaToText({
+        formulaType: 'modal',
+        formulaId: testCase.formula.formulaId,
+        operator: testCase.formula.operator,
+        predicate: testCase.formula.predicate,
+        provenance: {
+          sourceId: String(testCase.formula.provenance.sourceId ?? ''),
+          startChar: Number(testCase.formula.provenance.startChar ?? 0),
+          endChar: Number(testCase.formula.provenance.endChar ?? 0),
+          citation: testCase.formula.provenance.citation as string | null | undefined,
+        },
+      });
+      expect(tsText).toBe(testCase.expected);
+      expect(tsText).toBe(pyFormulaRenderById.get(testCase.id));
+    }
+
+    for (const testCase of corpus.decodedDocumentCases) {
+      const tsSummary = decodedDocumentSummary(testCase.document, testCase.slotSubsetKeys);
+      expect(tsSummary).toEqual(testCase.expected);
+      expect(tsSummary).toEqual(pyDecodedDocumentById.get(testCase.id));
     }
   });
 });

@@ -13,6 +13,7 @@
 
 import { createHash } from 'node:crypto';
 import { DeonticFormula, DeonticOp, makeDeonticFormula } from './deontic-query-engine.js';
+import { buildDeterministicEmbedding } from './embedding-prover.js';
 
 function formulaProposition(formula: DeonticFormula): string {
   return formula.proposition ?? formula.action;
@@ -77,6 +78,7 @@ export class TheoremMetadata {
     confidence?: number;
     sourceCase?: string | null;
     precedentStrength?: number;
+    embedding?: number[];
   }) {
     this.theoremId = opts.theoremId;
     this.formula = opts.formula;
@@ -87,6 +89,7 @@ export class TheoremMetadata {
     this.sourceCase = opts.sourceCase ?? null;
     this.precedentStrength = opts.precedentStrength ?? 1.0;
     this.createdAt = new Date();
+    this.embedding = opts.embedding ?? Array.from(buildDeterministicEmbedding(formulaProposition(this.formula), 768));
   }
 
   /** Stable hash for deduplication. */
@@ -197,6 +200,7 @@ export class TemporalDeonticRAGStore {
     const maxResults = opts.maxResults ?? 10;
     const queryText = formulaProposition(formula).toLowerCase();
     const propositionWords = new Set(queryText.split(/\s+/));
+    const effectiveQueryEmbedding = opts.queryEmbedding ?? Array.from(buildDeterministicEmbedding(formulaProposition(formula), 768));
 
     const scored: Array<[TheoremMetadata, number]> = [];
     for (const theorem of this.theorems.values()) {
@@ -211,8 +215,8 @@ export class TemporalDeonticRAGStore {
         if (theWords.has(w) && w.length > 3) score++;
       }
 
-      if (opts.queryEmbedding && theorem.embedding && opts.queryEmbedding.length === theorem.embedding.length) {
-        const similarity = Math.max(0, cosineSimilarity(opts.queryEmbedding, theorem.embedding));
+      if (theorem.embedding && effectiveQueryEmbedding.length === theorem.embedding.length) {
+        const similarity = Math.max(0, cosineSimilarity(effectiveQueryEmbedding, theorem.embedding));
         // Keep embeddings additive so lexical/operator relevance remains explainable.
         score += similarity * 5;
       }
@@ -326,10 +330,9 @@ export class TemporalDeonticRAGStore {
 }
 
 // PORT-150: Embedding backend decision (neurosymbolic / semantic retrieval)
-// The Python reference uses real 768-dim embeddings (sentence-transformers).
-// TS options: (a) WASM model via @xenova/transformers, (b) remote API, (c) keyword overlap (current).
-// Until a WASM embedding model is bundled, keyword-overlap similarity is the fallback.
-// Use TheoremMetadata.embedding to store pre-computed embeddings when available.
+// The TS store now includes a bundled deterministic 768-d embedding fallback and
+// still accepts caller-supplied embeddings for host-native/remote backends.
+// Use TheoremMetadata.embedding for external vectors when available.
 export function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length || a.length === 0) return 0;
   const dot = a.reduce((s, v, i) => s + v * (b[i] ?? 0), 0);

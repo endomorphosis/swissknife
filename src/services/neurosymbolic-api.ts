@@ -1,3 +1,5 @@
+import { buildDeterministicEmbedding, cosineSimilarity } from './embedding-prover.js';
+
 /**
  * neurosymbolic-api.ts
  *
@@ -55,6 +57,7 @@ export interface NeurosymbolicProofResult {
 interface KnowledgeEntry {
   text: string;
   formula: string;
+  embedding: number[];
   addedAt: number;
 }
 
@@ -101,7 +104,12 @@ export class NeurosymbolicReasoner {
    */
   addKnowledge(text: string): string {
     const formula = textToFormula(text);
-    this.kb.push({ text, formula, addedAt: Date.now() });
+    this.kb.push({
+      text,
+      formula,
+      embedding: Array.from(buildDeterministicEmbedding(formula, 768)),
+      addedAt: Date.now(),
+    });
     return formula;
   }
 
@@ -153,6 +161,34 @@ export class NeurosymbolicReasoner {
             };
           }
         }
+      }
+    }
+
+    // 3. Semantic similarity fallback (deterministic bundled embedding backend).
+    if (this.kb.length > 0) {
+      const goalEmbedding = buildDeterministicEmbedding(formulaTrim, 768);
+      let best: KnowledgeEntry | null = null;
+      let bestSimilarity = 0;
+      for (const entry of this.kb) {
+        const similarity = cosineSimilarity(goalEmbedding, entry.embedding);
+        if (similarity > bestSimilarity) {
+          bestSimilarity = similarity;
+          best = entry;
+        }
+      }
+      if (best && bestSimilarity >= 0.82) {
+        this.stats.proved++;
+        return {
+          formula: formulaTrim,
+          proved: true,
+          method: 'semantic_similarity',
+          confidence: bestSimilarity,
+          steps: [
+            `Semantic match: ${best.formula}`,
+            `Cosine similarity: ${bestSimilarity.toFixed(4)}`,
+          ],
+          timeMs: performance.now() - t0,
+        };
       }
     }
 

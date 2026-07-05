@@ -78,6 +78,7 @@ const OVERRIDE_PATTERNS: Array<[string, RegExp]> = [
   ['without_regard_to', /\bwithout regard to\s+(.+?)(?:,|[.]$|$)/gi],
 ];
 const TEMPORAL_PATTERNS: Array<[string, string, RegExp]> = [
+  ['deadline', 'by_period_end', /\bby\s+the\s+end\s+of\s+the\s+(month|week|year|quarter)\b/gi],
   ['deadline', 'by_date', /\bby\s+((?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?)/gi],
   ['deadline', 'by_numeric_date', /\bby\s+(\d{1,2}\/\d{1,2}\/\d{2,4})/gi],
   ['deadline', 'by_numeric_date', /\bby\s+(\d{1,2}-\d{1,2}-\d{2,4})/gi],

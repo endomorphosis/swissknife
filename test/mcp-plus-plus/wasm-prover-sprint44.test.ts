@@ -198,8 +198,9 @@ describe('decodeModalIRDocument', () => {
     expect(decodeModalIRDocument(doc).sourceId).toBe('doc-001');
   });
 
-  test('phrases match formula count', () => {
-    expect(decodeModalIRDocument(doc).phrases).toHaveLength(2);
+  test('formula phrases match formula count', () => {
+    const formulaPhrases = decodeModalIRDocument(doc).phrases.filter(phrase => phrase.slot === 'formula');
+    expect(formulaPhrases).toHaveLength(2);
   });
 
   test('reconstructionSimilarity in [0,1]', () => {

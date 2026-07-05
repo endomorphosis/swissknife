@@ -13,6 +13,8 @@
 
 import { PatternMatcher, PatternType } from './tdfol-nl-patterns';
 import { FormulaAnalyzer, FormulaType } from './formula-analyzer';
+import { extractNormativeElements, segmentLegalText } from './deontic-legal-text-engine';
+import { parserElementToFormula } from './deontic-formula-builder';
 
 // ---------------------------------------------------------------------------
 // ModalCompilerConfig
@@ -132,6 +134,85 @@ export function ambiguityToPythonDict(a: ModalCompilationAmbiguity): Record<stri
   };
 }
 
+export interface ModalCompilerFormulaLike {
+  formulaId?: string;
+  formula_id?: string;
+  operator?: {
+    family?: string;
+    system?: string;
+    symbol?: string;
+  };
+  provenance?: {
+    startChar?: number;
+    start_char?: number;
+    endChar?: number;
+    end_char?: number;
+  };
+}
+
+export function modalCompilerRankingShare(candidate: Record<string, unknown>): number {
+  const rawShare = Object.prototype.hasOwnProperty.call(candidate, 'share_raw')
+    ? candidate.share_raw
+    : Object.prototype.hasOwnProperty.call(candidate, 'share')
+      ? candidate.share
+      : 0;
+  const resolved = typeof rawShare === 'number' ? rawShare : Number(rawShare);
+  return Number.isNaN(resolved) ? 0 : resolved;
+}
+
+function formulaStringValue(value: unknown): string {
+  return String(value ?? '');
+}
+
+function formulaSpanValue(value: unknown): number {
+  const resolved = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(resolved) ? resolved : 0;
+}
+
+export function modalCompilerFormulaAmbiguities(
+  formulasOrDocument: ModalCompilerFormulaLike[] | { formulas?: ModalCompilerFormulaLike[] },
+): ModalCompilationAmbiguity[] {
+  const formulas = Array.isArray(formulasOrDocument)
+    ? formulasOrDocument
+    : formulasOrDocument.formulas ?? [];
+  const bySpan = new Map<string, { span: [number, number]; candidates: string[] }>();
+
+  for (const formula of formulas) {
+    const provenance = formula.provenance ?? {};
+    const startChar = formulaSpanValue(provenance.start_char ?? provenance.startChar);
+    const endChar = formulaSpanValue(provenance.end_char ?? provenance.endChar);
+    const span: [number, number] = [startChar, endChar];
+    const key = `${startChar}:${endChar}`;
+    const operator = formula.operator ?? {};
+    const candidate = [
+      formulaStringValue(formula.formula_id ?? formula.formulaId),
+      formulaStringValue(operator.family),
+      formulaStringValue(operator.system),
+      formulaStringValue(operator.symbol),
+    ].join(':');
+    const bucket = bySpan.get(key) ?? { span, candidates: [] };
+    bucket.candidates.push(candidate);
+    bySpan.set(key, bucket);
+  }
+
+  const ambiguities: ModalCompilationAmbiguity[] = [];
+  const orderedBuckets = [...bySpan.values()].sort((a, b) => a.span[0] - b.span[0] || a.span[1] - b.span[1]);
+  for (const { span, candidates } of orderedBuckets) {
+    const families = new Set(candidates.map(candidate => candidate.split(':')[1] ?? ''));
+    if (candidates.length > 1 && families.size > 1) {
+      ambiguities.push(makeAmbiguity(
+        'multi_family_same_span',
+        'Multiple modal families were compiled from the same text span.',
+        {
+          candidateIds: [...candidates].sort(),
+          metadata: { span },
+        },
+      ));
+    }
+  }
+  return ambiguities;
+}
+
 // ---------------------------------------------------------------------------
 // ModalIR (lightweight representation)
 // ---------------------------------------------------------------------------
@@ -145,6 +226,10 @@ export interface SimpleModalIR {
   confidence: number;
   operators: string[];
   slots: Record<string, string>;
+  formulas: string[];
+  formulaFamilies: string[];
+  formulaCount: number;
+  metadata: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
@@ -192,7 +277,88 @@ const CANONICAL_MODAL_FAMILIES = new Set([
   'alethic',
   'epistemic',
   'conditional',
+  'conditional_normative',
   'dynamic',
+  'frame',
+  'doxastic',
+]);
+
+const COMPILER_PRIORITY_SIGNAL_FREE_TARGETS: Record<string, string[]> = {
+  deontic: ['conditional_normative', 'epistemic', 'frame', 'temporal', 'dynamic', 'doxastic', 'deontic'],
+  temporal: ['conditional_normative', 'deontic', 'alethic', 'epistemic', 'frame', 'dynamic', 'temporal', 'doxastic'],
+  alethic: ['deontic', 'conditional_normative', 'epistemic', 'temporal', 'frame'],
+  epistemic: ['deontic', 'conditional_normative', 'frame', 'temporal'],
+  dynamic: ['temporal', 'dynamic'],
+  frame: ['conditional_normative', 'deontic', 'epistemic', 'temporal', 'doxastic', 'frame', 'alethic'],
+  doxastic: ['epistemic', 'doxastic', 'conditional_normative'],
+};
+
+const COMPILER_REQUIRED_ADAPTIVE_TARGETS: Record<string, string[]> = {
+  deontic: ['conditional_normative', 'dynamic', 'epistemic', 'deontic', 'temporal', 'frame', 'doxastic', 'alethic'],
+  temporal: ['deontic', 'alethic', 'epistemic', 'doxastic', 'conditional_normative', 'frame', 'dynamic', 'temporal'],
+  alethic: ['deontic', 'conditional_normative', 'epistemic', 'temporal', 'frame'],
+  epistemic: ['deontic', 'conditional_normative', 'epistemic', 'temporal', 'frame'],
+  dynamic: ['dynamic', 'temporal'],
+  frame: ['conditional_normative', 'deontic', 'alethic', 'epistemic', 'temporal', 'frame', 'doxastic', 'dynamic'],
+  doxastic: ['epistemic', 'doxastic', 'conditional_normative'],
+};
+
+const COMPILER_SIGNAL_FREE_TARGETS: Record<string, string[]> = {
+  deontic: ['alethic', 'deontic', 'conditional_normative', 'frame', 'temporal', 'epistemic', 'dynamic', 'doxastic'],
+  temporal: ['conditional_normative', 'deontic', 'alethic', 'epistemic', 'doxastic', 'frame', 'dynamic', 'temporal'],
+  alethic: ['epistemic', 'dynamic', 'deontic', 'conditional_normative', 'frame', 'temporal'],
+  epistemic: ['deontic', 'conditional_normative', 'epistemic', 'frame', 'temporal'],
+  dynamic: ['temporal', 'dynamic'],
+  frame: ['conditional_normative', 'deontic', 'frame', 'alethic', 'epistemic', 'dynamic', 'temporal', 'doxastic'],
+  doxastic: ['epistemic', 'doxastic', 'conditional_normative'],
+};
+
+const COMPILER_AMBIGUITY_POLICY_TARGETS: Record<string, string[]> = {
+  deontic: ['conditional_normative', 'dynamic', 'epistemic', 'alethic', 'deontic', 'temporal', 'frame', 'doxastic'],
+  temporal: ['deontic', 'alethic', 'epistemic', 'conditional_normative', 'frame', 'dynamic', 'temporal', 'doxastic'],
+  alethic: ['deontic', 'conditional_normative', 'epistemic', 'frame'],
+  epistemic: ['conditional_normative', 'deontic', 'temporal', 'frame'],
+  dynamic: ['temporal', 'dynamic'],
+  frame: ['conditional_normative', 'deontic', 'frame', 'alethic', 'epistemic', 'dynamic', 'temporal', 'doxastic'],
+  doxastic: ['epistemic', 'doxastic', 'conditional_normative'],
+};
+
+const COMPILER_REFINED_MARGIN_BY_PAIR: Record<string, number> = {
+  'deontic->deontic': 0.086,
+  'deontic->temporal': 0.006,
+  'deontic->alethic': 0.0015,
+  'deontic->epistemic': 0.0015,
+  'deontic->dynamic': 0.0015,
+  'deontic->frame': 0.0015,
+  'deontic->doxastic': 0.006,
+  'temporal->deontic': 0.0015,
+  'temporal->temporal': 0.0015,
+  'temporal->alethic': 0.0015,
+  'temporal->epistemic': 0.0015,
+  'temporal->dynamic': 0.0015,
+  'temporal->frame': 0.0015,
+  'temporal->doxastic': 0.0015,
+  'alethic->deontic': 0.0015,
+  'epistemic->deontic': 0.0015,
+  'dynamic->dynamic': 0.02,
+  'frame->deontic': 0.006,
+  'frame->temporal': 0.006,
+  'frame->alethic': 0.0015,
+  'frame->epistemic': 0.02,
+  'frame->dynamic': 0.0015,
+  'frame->frame': 0.135,
+  'frame->doxastic': 0.0015,
+};
+
+const COMPILER_WEAK_TYPED_SELF_MARGIN_BY_PAIR: Record<string, number> = {
+  'deontic->deontic': 0.155,
+  'temporal->temporal': 0.155,
+  'dynamic->dynamic': 0.195,
+  'frame->frame': 0.19,
+};
+
+const COMPILER_ZERO_MARGIN_CONTESTED_PAIRS = new Set([
+  'epistemic->epistemic',
 ]);
 
 /**
@@ -247,6 +413,113 @@ export function canonicalModalFamilyToken(value: unknown): string {
   return leafPipe.toLowerCase().replace(/[- ]/g, '_');
 }
 
+function resolveCompilerModalFamilyName(value: unknown, preferTargetSide = false): string {
+  let resolved = String(value ?? '').trim();
+  if (!resolved) return '';
+  if (resolved.includes('->')) {
+    const [sourceFamily, targetFamily] = resolved.split('->', 2);
+    const directionalSide = (preferTargetSide ? targetFamily : sourceFamily)?.trim();
+    if (directionalSide) resolved = directionalSide;
+  }
+
+  const remember = (token: string, seen: Set<string>, out: string[]): void => {
+    const normalized = String(token ?? '').trim();
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    out.push(normalized);
+  };
+
+  const leafDot = resolved.includes('.') ? resolved.split('.').at(-1) ?? resolved : resolved;
+  const leafColon = leafDot.includes(':') ? leafDot.split(':').at(-1) ?? leafDot : leafDot;
+  const leafSlash = leafColon.includes('/') ? leafColon.split('/').at(-1) ?? leafColon : leafColon;
+  const leafPipe = leafSlash.includes('|') ? leafSlash.split('|').at(-1) ?? leafSlash : leafSlash;
+  const splitTokens: string[] = [];
+  for (const delimiter of ['->', '.', ':', '/', '|']) {
+    if (!resolved.includes(delimiter)) continue;
+    for (const part of resolved.split(delimiter)) {
+      const cleaned = part.trim();
+      if (cleaned) splitTokens.push(cleaned);
+    }
+  }
+
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  for (const token of [resolved, leafDot, leafColon, leafSlash, leafPipe, ...splitTokens]) {
+    remember(token, seen, candidates);
+    const lowered = token.toLowerCase();
+    remember(lowered, seen, candidates);
+    remember(lowered.replace(/[- ]/g, '_'), seen, candidates);
+  }
+  for (const candidate of candidates) {
+    if (CANONICAL_MODAL_FAMILIES.has(candidate)) return candidate;
+  }
+  return resolved.toLowerCase();
+}
+
+function compilerPairKey(predictedFamily: string, targetFamily: string): string {
+  return `${resolveCompilerModalFamilyName(predictedFamily)}->${resolveCompilerModalFamilyName(targetFamily, true)}`;
+}
+
+export function prioritySignalFreeAdaptiveAmbiguityTargets(family: string): string[] {
+  return [...(COMPILER_PRIORITY_SIGNAL_FREE_TARGETS[resolveCompilerModalFamilyName(family)] ?? [])];
+}
+
+export function compilerRequiredAdaptiveAmbiguityTargets(family: string): string[] {
+  return [...(COMPILER_REQUIRED_ADAPTIVE_TARGETS[resolveCompilerModalFamilyName(family)] ?? [])];
+}
+
+export function signalFreeAdaptiveAmbiguityTargets(family: string): string[] {
+  return [...(COMPILER_SIGNAL_FREE_TARGETS[resolveCompilerModalFamilyName(family)] ?? [])];
+}
+
+export function compilerAmbiguityPolicyTargets(family: string): string[] {
+  return [...(COMPILER_AMBIGUITY_POLICY_TARGETS[resolveCompilerModalFamilyName(family)] ?? [])];
+}
+
+export function compilerRefinedModalFamilyCueMarginBuffer(predictedFamily: string, targetFamily: string): number {
+  return Math.max(0, COMPILER_REFINED_MARGIN_BY_PAIR[compilerPairKey(predictedFamily, targetFamily)] ?? 0);
+}
+
+export function compilerWeakTypedSelfFamilyCueMarginBuffer(predictedFamily: string, targetFamily: string): number {
+  return Math.max(0, COMPILER_WEAK_TYPED_SELF_MARGIN_BY_PAIR[compilerPairKey(predictedFamily, targetFamily)] ?? 0);
+}
+
+export function isPrioritySignalFreeAdaptiveAmbiguityPair(predictedFamily: string, targetFamily: string): boolean {
+  return prioritySignalFreeAdaptiveAmbiguityTargets(predictedFamily)
+    .includes(canonicalModalFamilyToken(targetFamily));
+}
+
+export function isCompilerRequiredAdaptiveAmbiguityPair(predictedFamily: string, targetFamily: string): boolean {
+  return compilerRequiredAdaptiveAmbiguityTargets(predictedFamily)
+    .includes(canonicalModalFamilyToken(targetFamily));
+}
+
+export function isCompilerAmbiguityPolicyPair(predictedFamily: string, targetFamily: string): boolean {
+  const key = compilerPairKey(predictedFamily, targetFamily);
+  const [source, target] = key.split('->', 2);
+  return compilerAmbiguityPolicyTargets(source).includes(target);
+}
+
+export function isSignalFreeAdaptiveAmbiguityPair(predictedFamily: string, targetFamily: string): boolean {
+  const key = compilerPairKey(predictedFamily, targetFamily);
+  const [source, target] = key.split('->', 2);
+  return signalFreeAdaptiveAmbiguityTargets(source).includes(target);
+}
+
+export function prefersContestedZeroMarginAdaptiveAmbiguityPair(predictedFamily: string, targetFamily: string): boolean {
+  return COMPILER_ZERO_MARGIN_CONTESTED_PAIRS.has(compilerPairKey(predictedFamily, targetFamily));
+}
+
+export function supportsSignalFreeAdaptiveAmbiguityPair(predictedFamily: string, targetFamily: string): boolean {
+  const resolvedTargetFamily = canonicalModalFamilyToken(targetFamily);
+  return (
+    isPrioritySignalFreeAdaptiveAmbiguityPair(predictedFamily, resolvedTargetFamily) ||
+    isCompilerRequiredAdaptiveAmbiguityPair(predictedFamily, resolvedTargetFamily) ||
+    signalFreeAdaptiveAmbiguityTargets(predictedFamily).includes(resolvedTargetFamily) ||
+    isSignalFreeAdaptiveAmbiguityPair(predictedFamily, resolvedTargetFamily)
+  );
+}
+
 function detectModalFamily(text: string): { family: string; score: number }[] {
   const lower = text.toLowerCase();
   const scores: { family: string; score: number }[] = [];
@@ -260,6 +533,67 @@ function detectModalFamily(text: string): { family: string; score: number }[] {
 
 function normalizeText(text: string): string {
   return text.replace(/\s+/g, ' ').replace(/[""'']/g, '"').trim();
+}
+
+function isLegalParserBackend(parserBackend: string): boolean {
+  return ['regex', 'legal', 'legal_modal_parser', 'deontic', 'deontic:d']
+    .includes(String(parserBackend ?? '').trim().toLowerCase());
+}
+
+function nonEmptyStrings(values: unknown): string[] {
+  return Array.isArray(values)
+    ? values.map(value => String(value ?? '').trim()).filter(Boolean)
+    : [];
+}
+
+function modalFamilyCounts(families: Iterable<string>): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const family of families) {
+    const key = String(family ?? '').trim();
+    if (!key) continue;
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}
+
+function compiledFormulaFamiliesFromElement(element: Record<string, unknown>): string[] {
+  const families: string[] = [];
+  const conditions = nonEmptyStrings(element.conditions);
+  const temporalConstraints = [
+    ...nonEmptyStrings(element.temporal_constraints),
+    ...nonEmptyStrings(
+      Array.isArray(element.temporal_constraint_details)
+        ? element.temporal_constraint_details.map(detail => (
+          detail && typeof detail === 'object' && 'normalized_text' in detail
+            ? (detail as Record<string, unknown>).normalized_text
+            : ''
+        ))
+        : []
+    ),
+  ].filter(Boolean);
+  const exceptions = nonEmptyStrings(element.exceptions);
+  const normType = String(element.norm_type ?? '').trim().toLowerCase();
+  const operator = String(element.deontic_operator ?? '').trim().toUpperCase();
+
+  if (conditions.length > 0) families.push('conditional_normative');
+
+  const baseFamily = (
+    operator === 'O' ||
+    operator === 'P' ||
+    operator === 'F' ||
+    ['obligation', 'permission', 'prohibition', 'applicability', 'exemption', 'instrument_lifecycle', 'purpose']
+      .includes(normType)
+  )
+    ? 'deontic'
+    : normType === 'definition'
+      ? 'frame'
+      : 'deontic';
+  families.push(baseFamily);
+
+  if (temporalConstraints.length > 0) families.push('temporal');
+  if (exceptions.length > 0 && !families.includes('conditional_normative')) families.push('conditional_normative');
+
+  return families;
 }
 
 // ---------------------------------------------------------------------------
@@ -300,6 +634,7 @@ export class DeterministicModalCompiler {
     this.stats.totalCompiled++;
     const normalized = normalizeText(text);
     const ambiguities: ModalCompilationAmbiguity[] = [];
+    const legalParserBackend = isLegalParserBackend(this.config.parserBackend);
 
     // Detect modal family via keyword scoring
     const familyScores = detectModalFamily(normalized);
@@ -330,39 +665,70 @@ export class DeterministicModalCompiler {
       if (m.entities['action']) slots['action'] = m.entities['action'];
     }
 
+    const parserElements = legalParserBackend ? extractNormativeElements(text) : [];
+    const formulas = parserElements.map(element => parserElementToFormula(element));
+    const formulaFamilies = parserElements.flatMap(element => compiledFormulaFamiliesFromElement(element));
+    if (parserElements[0]?.subject && !slots['agent']) slots['agent'] = String(parserElements[0].subject);
+    if (parserElements[0]?.action && !slots['action']) slots['action'] = String(parserElements[0].action);
+
     // Confidence: average of top frame score + pattern match density
     const patternDensity = Math.min(1, matches.length / 5);
     const confidence = familyScores.length > 0
       ? (familyScores[0].score + patternDensity) / 2
       : patternDensity * 0.5;
 
+    if (normalized && formulaFamilies.length === 0) {
+      ambiguities.push(makeAmbiguity(
+        'missing_modal_formula',
+        'No deterministic modal formula was produced for non-empty text.',
+        { severity: 'requires_rule' },
+      ));
+    }
+
     if (ambiguities.length > 0) this.stats.withAmbiguities++;
     this.stats.avgConfidence =
       ((this.stats.totalCompiled - 1) * this.stats.avgConfidence + confidence) / this.stats.totalCompiled;
+
+    const parserName = legalParserBackend ? 'legal_modal_parser_v1' : 'spacy_modal_codec_v1';
+    const modalFamilyCountMap = modalFamilyCounts(formulaFamilies);
+    const segmentCount = segmentLegalText(text).length;
+    const metadata: Record<string, unknown> = {
+      documentId: opts.documentId,
+      citation: opts.citation,
+      source: opts.source ?? 'legal_text',
+      matchCount: matches.length,
+      ambiguity_count: ambiguities.length,
+      deterministic_compiler: 'modal_compiler_v1',
+      deterministic_parser: parserName,
+      frame_selector: 'keyword_v1',
+      llm_call_count: 0,
+      modal_family_counts: modalFamilyCountMap,
+      parser_backend: this.config.parserBackend,
+      segment_count: segmentCount,
+    };
 
     const modalIr: SimpleModalIR = {
       documentId:    opts.documentId ?? `doc-${Date.now()}`,
       text:          text,
       normalizedText: normalized,
-      modalFamily:   selectedFrame ?? 'unknown',
+      modalFamily:   formulaFamilies[0] ?? selectedFrame ?? 'unknown',
       confidence,
       operators,
       slots,
+      formulas,
+      formulaFamilies,
+      formulaCount: formulaFamilies.length,
+      metadata,
     };
 
     return {
       modalIr,
-      parserName:    this.config.parserBackend,
+      parserName,
       normalizedText: normalized,
       frameCandidates: topFrames,
       selectedFrame,
       ambiguities,
-      metadata: {
-        documentId: opts.documentId,
-        citation:   opts.citation,
-        source:     opts.source ?? 'legal_text',
-        matchCount: matches.length,
-      },
+      metadata,
     };
   }
 

@@ -12,6 +12,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { buildDeterministicEmbedding, cosineSimilarity } from './embedding-prover.js';
 
 // ---------------------------------------------------------------------------
 // RAGEntry — stored knowledge graph entry
@@ -22,6 +23,7 @@ export interface RAGEntry {
   text: string;
   formula: string;
   operator: string;
+  embedding: number[];
   confidence: number;
   addedAt: number;
 }
@@ -126,7 +128,15 @@ export class NeurosymbolicGraphRAG {
       const { formula, operator } = textToFormula(sent);
       if (operator) {
         formulas.push(formula);
-        this.entries.push({ docId: id, text: sent, formula, operator, confidence: 0.8, addedAt: Date.now() });
+        this.entries.push({
+          docId: id,
+          text: sent,
+          formula,
+          operator,
+          embedding: Array.from(buildDeterministicEmbedding(formula, 768)),
+          confidence: 0.8,
+          addedAt: Date.now(),
+        });
         if (['O', 'P', 'F'].includes(operator)) {
           provenTheorems.push({ formula, method: 'kb_assert' });
         }
@@ -154,10 +164,21 @@ export class NeurosymbolicGraphRAG {
   query(q: string): QueryResult {
     this.stats.queries++;
     const qLower = q.toLowerCase();
-    const relevant = this.entries.filter(e =>
-      e.text.toLowerCase().includes(qLower.slice(0, 20)) ||
-      e.formula.toLowerCase().includes(qLower.slice(0, 15))
-    );
+    const queryEmbedding = buildDeterministicEmbedding(q, 768);
+    const scored = this.entries.map(entry => {
+      const lexical =
+        (entry.text.toLowerCase().includes(qLower.slice(0, 20)) ? 1 : 0) +
+        (entry.formula.toLowerCase().includes(qLower.slice(0, 15)) ? 1 : 0);
+      const semantic = Math.max(0, cosineSimilarity(queryEmbedding, entry.embedding));
+      const score = lexical * 1.0 + semantic * 1.5;
+      return { entry, score };
+    });
+
+    const relevant = scored
+      .filter(item => item.score > 0.25)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.entry)
+      .slice(0, 10);
 
     const answer = relevant.length > 0
       ? `Found ${relevant.length} relevant formula(s): ${relevant.map(e => e.formula.slice(0, 30)).join(', ')}`

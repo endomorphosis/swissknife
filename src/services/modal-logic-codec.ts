@@ -5,11 +5,13 @@
  * TypeScript port of key public API from:
  *   ipfs_datasets_py/logic/modal/codec.py
  *
- * Provides (simulated, no ML deps):
+ * Provides (deterministic, no ML deps):
  *   ModalLogicCodecConfig     — configuration
  *   ModalLogicCodecResult     — one encode/decode pass result
  *   DeterministicModalLogicCodec — encode(text) → ModalLogicCodecResult
  */
+
+import { createHash } from 'node:crypto';
 
 // ---------------------------------------------------------------------------
 // ModalLogicCodecConfig
@@ -118,7 +120,7 @@ export class ModalLogicCodecResult {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers (simulated, no ML deps)
+// Helpers (deterministic, no ML deps)
 // ---------------------------------------------------------------------------
 
 const DEONTIC_INDICATORS  = /\b(shall|must|may|obligat|permit|prohibit|forbidden|duty)\b/i;
@@ -133,11 +135,114 @@ function detectModalFamily(text: string): ModalFamily {
   return 'unknown';
 }
 
-function buildSimulatedEmbedding(text: string, dims: number): number[] {
-  const v: number[] = new Array(dims).fill(0);
-  for (let i = 0; i < text.length; i++) v[i % dims] = (v[i % dims] + text.charCodeAt(i) / 256) % 1.0;
-  const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
-  return v.map(x => x / norm);
+const MT19937_N = 624;
+const MT19937_M = 397;
+const MT19937_MATRIX_A = 0x9908b0df;
+const MT19937_UPPER_MASK = 0x80000000;
+const MT19937_LOWER_MASK = 0x7fffffff;
+
+class PythonRandom {
+  private mt = new Uint32Array(MT19937_N);
+  private index = MT19937_N + 1;
+
+  constructor(seed: bigint) {
+    this.initByArray(seedToUint32Words(seed));
+  }
+
+  random(): number {
+    const a = this.genrandUint32() >>> 5;
+    const b = this.genrandUint32() >>> 6;
+    return (a * 67108864 + b) / 9007199254740992;
+  }
+
+  uniform(min: number, max: number): number {
+    return min + (max - min) * this.random();
+  }
+
+  private initGenrand(seed: number): void {
+    this.mt[0] = seed >>> 0;
+    for (let i = 1; i < MT19937_N; i++) {
+      const prev = this.mt[i - 1] ^ (this.mt[i - 1] >>> 30);
+      this.mt[i] = (Math.imul(1812433253, prev) + i) >>> 0;
+    }
+    this.index = MT19937_N;
+  }
+
+  private initByArray(initKey: number[]): void {
+    const key = initKey.length > 0 ? initKey : [0];
+    this.initGenrand(19650218);
+    let i = 1;
+    let j = 0;
+    let k = Math.max(MT19937_N, key.length);
+    for (; k > 0; k--) {
+      const prev = this.mt[i - 1] ^ (this.mt[i - 1] >>> 30);
+      this.mt[i] = ((this.mt[i] ^ Math.imul(prev, 1664525)) + key[j] + j) >>> 0;
+      i++;
+      j++;
+      if (i >= MT19937_N) {
+        this.mt[0] = this.mt[MT19937_N - 1];
+        i = 1;
+      }
+      if (j >= key.length) j = 0;
+    }
+    for (k = MT19937_N - 1; k > 0; k--) {
+      const prev = this.mt[i - 1] ^ (this.mt[i - 1] >>> 30);
+      this.mt[i] = ((this.mt[i] ^ Math.imul(prev, 1566083941)) - i) >>> 0;
+      i++;
+      if (i >= MT19937_N) {
+        this.mt[0] = this.mt[MT19937_N - 1];
+        i = 1;
+      }
+    }
+    this.mt[0] = MT19937_UPPER_MASK;
+  }
+
+  private genrandUint32(): number {
+    const mag01 = [0, MT19937_MATRIX_A];
+    if (this.index >= MT19937_N) {
+      let kk = 0;
+      for (; kk < MT19937_N - MT19937_M; kk++) {
+        const y = (this.mt[kk] & MT19937_UPPER_MASK) | (this.mt[kk + 1] & MT19937_LOWER_MASK);
+        this.mt[kk] = (this.mt[kk + MT19937_M] ^ (y >>> 1) ^ mag01[y & 1]) >>> 0;
+      }
+      for (; kk < MT19937_N - 1; kk++) {
+        const y = (this.mt[kk] & MT19937_UPPER_MASK) | (this.mt[kk + 1] & MT19937_LOWER_MASK);
+        this.mt[kk] = (this.mt[kk + (MT19937_M - MT19937_N)] ^ (y >>> 1) ^ mag01[y & 1]) >>> 0;
+      }
+      const y = (this.mt[MT19937_N - 1] & MT19937_UPPER_MASK) | (this.mt[0] & MT19937_LOWER_MASK);
+      this.mt[MT19937_N - 1] = (this.mt[MT19937_M - 1] ^ (y >>> 1) ^ mag01[y & 1]) >>> 0;
+      this.index = 0;
+    }
+
+    let y = this.mt[this.index++];
+    y ^= y >>> 11;
+    y ^= (y << 7) & 0x9d2c5680;
+    y ^= (y << 15) & 0xefc60000;
+    y ^= y >>> 18;
+    return y >>> 0;
+  }
+}
+
+function seedToUint32Words(seed: bigint): number[] {
+  let value = seed < 0n ? -seed : seed;
+  if (value === 0n) return [0];
+  const words: number[] = [];
+  const mask = 0xffffffffn;
+  while (value > 0n) {
+    words.push(Number(value & mask));
+    value >>= 32n;
+  }
+  return words;
+}
+
+function round6(value: number): number {
+  return Number(value.toFixed(6));
+}
+
+export function stableMockEmbedding(text: string, dimensions = 8): number[] {
+  const digest = createHash('sha256').update(String(text ?? ''), 'utf8').digest('hex').slice(0, 16);
+  const rng = new PythonRandom(BigInt(`0x${digest}`));
+  return Array.from({ length: dimensions }, () => round6(rng.uniform(-1.0, 1.0)));
 }
 
 function buildFamilyProbs(family: ModalFamily): Record<ModalFamily, number> {
@@ -1101,17 +1206,17 @@ export class DeterministicModalLogicCodec {
 
   /**
    * Encode legal text into a modal IR result.
-   * This is a simplified simulation without ML dependencies.
+   * This is a deterministic compact port without ML dependencies.
    */
   encode(text: string): ModalLogicCodecResult {
     const normalizedText = text.replace(/\s+/g, ' ').trim();
     const family = detectModalFamily(normalizedText);
-    const srcEmb = buildSimulatedEmbedding(normalizedText, this.config.embeddingDimensions);
-    const decEmb = buildSimulatedEmbedding(normalizedText + '_decoded', this.config.embeddingDimensions);
+    const srcEmb = stableMockEmbedding(normalizedText, this.config.embeddingDimensions);
+    const decEmb = stableMockEmbedding(`${normalizedText}_decoded`, this.config.embeddingDimensions);
     const familyProbs = buildFamilyProbs(family);
     const kgTriples = buildKGTriples(normalizedText, family);
 
-    // Simulated losses
+    // Deterministic proxy losses for the compact no-ML encode path.
     const cosSim = srcEmb.reduce((s, x, i) => s + x * decEmb[i], 0);
     const cosLoss = Math.max(0, 1 - cosSim);
 
@@ -1135,8 +1240,8 @@ export class DeterministicModalLogicCodec {
       },
       metadata: {
         embedding_dimensions: this.config.embeddingDimensions,
+        embedding_model: 'stable_mock_embedding',
         ontology_name: this.config.ontologyName,
-        simulated: true,
       },
     });
   }
@@ -1147,7 +1252,7 @@ export class DeterministicModalLogicCodec {
   }
 }
 
-// PORT-125: FLogicOptimizer integration hook (stub — real optimizer in flogic-semantic-optimizer.ts)
+// PORT-125: FLogicOptimizer integration hook; full optimizer lives in flogic-semantic-optimizer.ts.
 export function withFLogicOptimizer<T extends { confidence: number; score?: number }>(
   result: T,
   optimizerScore?: number,
