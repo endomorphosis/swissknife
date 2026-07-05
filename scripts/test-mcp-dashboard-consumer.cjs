@@ -3230,6 +3230,13 @@ assert(
   'VAI-657 launch gate must point at the Playwright fixture',
 );
 assert(
+  JSON.stringify(vai657Gate?.todo_source || {}) === JSON.stringify({
+    file: 'implementation_plan/docs/19-virtual-ai-os-submodule-integration.todo.md',
+    source_line: 8696,
+  }),
+  'VAI-657 launch gate must preserve the supervisor todo source line for Swissknife consumers',
+);
+assert(
   vai657Gate?.gate_state === 'gate_closed_by_playwright_validation',
   'VAI-657 launch gate must be closed by the launch Playwright validation gate',
 );
