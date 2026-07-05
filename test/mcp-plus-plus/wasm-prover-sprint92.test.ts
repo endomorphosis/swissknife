@@ -11,6 +11,7 @@ import {
   proveWithZkp,
   verifyFLogicZkpProof,
 } from '../../src/services/flogic-zkp-integration';
+import { Groth16BackendFallback } from '../../src/services/zkp-backends';
 import {
   FLogicSemanticNormalizer,
   normalizeFLogic,
@@ -36,16 +37,21 @@ describe('PORT-190 FLogic ZKP integration', () => {
     expect(String(circuit.publicInputs.facts_commitment)).toHaveLength(64);
   });
 
-  it('generates and verifies a ZKP result with the default fallback backend', async () => {
-    const result = await proveWithZkp('Alice[role->Admin].', 'alice[role->admin]');
+  it('fails closed by default when no native Groth16 backend is configured', async () => {
+    await expect(proveWithZkp('Alice[role->Admin].', 'alice[role->admin]')).rejects.toThrow(/allowSimulatedFallback:true/);
+  });
+
+  it('generates and verifies a ZKP result with explicit simulated backend injection', async () => {
+    const backend = new Groth16BackendFallback();
+    const result = await proveWithZkp('Alice[role->Admin].', 'alice[role->admin]', backend);
     expect(result.proved).toBe(true);
     expect(result.proofHash).toHaveLength(64);
     expect(result.publicInputs.proof_hash).toBe(result.proofHash);
-    await expect(verifyFLogicZkpProof(result)).resolves.toBe(true);
+    await expect(verifyFLogicZkpProof(result, backend)).resolves.toBe(true);
   });
 
-  it('tracks proof and verification stats on the integration instance', async () => {
-    const integration = new FLogicZKPIntegration();
+  it('tracks proof and verification stats on the integration instance with explicit fallback backend', async () => {
+    const integration = new FLogicZKPIntegration(new Groth16BackendFallback());
     const result = await integration.proveWithZkp('Alice[role->Admin].', 'alice[role->admin]');
     await integration.verifyProof(result);
     expect(integration.getStats()).toMatchObject({ proofsGenerated: 1, proofsVerified: 1, failures: 0 });

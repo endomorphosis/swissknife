@@ -3,6 +3,9 @@
  * Ports of flogic/ergoai_wrapper.py (381L) and flogic/flogic_zkp_integration.py (372L)
  */
 
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+
 // ---------------------------------------------------------------------------
 // T-290 — ErgoAI Wrapper
 // ---------------------------------------------------------------------------
@@ -20,6 +23,7 @@ export function defaultErgoAIConfig(): ErgoAIConfig {
 export interface ErgoAIQueryResult {
   query:    string;
   result:   string | null;
+  bindings: Array<Record<string, string>>;
   success:  boolean;
   error?:   string;
   elapsedMs: number;
@@ -27,17 +31,55 @@ export interface ErgoAIQueryResult {
 
 export interface ErgoAIStats { totalQueries: number; succeeded: number; failed: number; avgElapsedMs: number }
 
+export interface ErgoAIProcessResult {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr?: string;
+}
+
+export type ErgoAIProcessRunner = (
+  command: string,
+  args: string[],
+  input: string,
+  timeoutMs: number,
+) => ErgoAIProcessResult;
+
+export function parseErgoOutputBindings(output: string): Array<Record<string, string>> {
+  const bindings: Array<Record<string, string>> = [];
+  for (const rawLine of output.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('%')) continue;
+
+    const binding: Record<string, string> = {};
+    for (const rawPart of line.split(',')) {
+      const part = rawPart.trim();
+      const eqIdx = part.indexOf('=');
+      if (eqIdx < 0) continue;
+      const variable = part.slice(0, eqIdx).trim();
+      const value = part.slice(eqIdx + 1).trim();
+      if (variable.startsWith('?')) binding[variable] = value;
+    }
+    if (Object.keys(binding).length > 0) bindings.push(binding);
+  }
+  return bindings;
+}
+
+function defaultErgoAIRunner(command: string, args: string[], input: string, timeoutMs: number): ErgoAIProcessResult {
+  const result = spawnSync(command, args, { input, timeout: timeoutMs, encoding: 'utf8' });
+  return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
+}
+
 export class ErgoAIWrapper {
   private readonly stats: ErgoAIStats = { totalQueries: 0, succeeded: 0, failed: 0, avgElapsedMs: 0 };
 
-  constructor(private readonly config: ErgoAIConfig = defaultErgoAIConfig()) {}
+  constructor(
+    private readonly config: ErgoAIConfig = defaultErgoAIConfig(),
+    private readonly runner: ErgoAIProcessRunner = defaultErgoAIRunner,
+  ) {}
 
   isAvailable(): boolean {
     if (!this.config.binaryPath) return false;
-    try {
-      const { existsSync } = require('fs') as { existsSync(p: string): boolean };
-      return existsSync(this.config.binaryPath);
-    } catch { return false; }
+    try { return existsSync(this.config.binaryPath); } catch { return false; }
   }
 
   async query(formula: string): Promise<ErgoAIQueryResult> {
@@ -47,13 +89,85 @@ export class ErgoAIWrapper {
       this.stats.failed++;
       const elapsed = performance.now() - t0;
       this._updateAvg(elapsed);
-      return { query: formula, result: null, success: false, error: 'ErgoAI binary not available', elapsedMs: elapsed };
+      return { query: formula, result: null, bindings: [], success: false, error: 'ErgoAI binary not available', elapsedMs: elapsed };
     }
-    // Real implementation: spawn(this.config.binaryPath, [formula])
+
+    const binaryPath = this.config.binaryPath;
+    if (!binaryPath) {
+      this.stats.failed++;
+      const elapsed = performance.now() - t0;
+      this._updateAvg(elapsed);
+      return { query: formula, result: null, bindings: [], success: false, error: 'ErgoAI binary path missing', elapsedMs: elapsed };
+    }
+
+    const attempts = Math.max(1, this.config.maxRetries);
+    let lastError = 'ErgoAI process failed';
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      try {
+        // The adapter sends the formula via stdin to keep transport stable across Ergo CLI layouts.
+        const result = this.runner(binaryPath, ['--query', '-'], formula, this.config.timeoutMs);
+        if (result.status === 0) {
+          const stdoutTrimmed = result.stdout.trim();
+          const stderrTrimmed = (result.stderr ?? '').trim();
+          const combinedOutput = [stdoutTrimmed, stderrTrimmed].filter(Boolean).join('\n');
+
+          if (combinedOutput.includes('++Error')) {
+            this.stats.failed++;
+            const elapsed = performance.now() - t0;
+            this._updateAvg(elapsed);
+            return {
+              query: formula,
+              result: null,
+              bindings: [],
+              success: false,
+              error: `ErgoAI query failed: ${combinedOutput}`,
+              elapsedMs: elapsed,
+            };
+          }
+
+          if (stdoutTrimmed === 'No' || stdoutTrimmed.includes('\nNo\n')) {
+            this.stats.failed++;
+            const elapsed = performance.now() - t0;
+            this._updateAvg(elapsed);
+            return {
+              query: formula,
+              result: null,
+              bindings: [],
+              success: false,
+              error: 'ErgoAI query returned no solution (No)',
+              elapsedMs: elapsed,
+            };
+          }
+
+          const bindings = parseErgoOutputBindings(stdoutTrimmed);
+          this.stats.succeeded++;
+          const elapsed = performance.now() - t0;
+          this._updateAvg(elapsed);
+          return {
+            query: formula,
+            result: stdoutTrimmed || null,
+            bindings,
+            success: true,
+            elapsedMs: elapsed,
+          };
+        }
+        lastError = (result.stderr ?? '').trim() || `ErgoAI exited with status ${String(result.status)}`;
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
+    }
+
     this.stats.failed++;
     const elapsed = performance.now() - t0;
     this._updateAvg(elapsed);
-    return { query: formula, result: null, success: false, error: 'ErgoAI FFI not bound', elapsedMs: elapsed };
+    return {
+      query: formula,
+      result: null,
+      bindings: [],
+      success: false,
+      error: `ErgoAI process failed: ${lastError}`,
+      elapsedMs: elapsed,
+    };
   }
 
   async queryBatch(formulas: string[]): Promise<ErgoAIQueryResult[]> {
@@ -71,7 +185,6 @@ export class ErgoAIWrapper {
 export function findErgoBinary(): string | null {
   const candidates = ['/usr/local/bin/ergo', '/opt/ergoai/bin/ergo', './ergoai/ergo'];
   try {
-    const { existsSync } = require('fs') as { existsSync(p: string): boolean };
     for (const p of candidates) { if (existsSync(p)) return p; }
   } catch { /* ignore */ }
   return null;
@@ -86,7 +199,7 @@ export function lazyInstallErgo(_reason: string): string | null {
 // T-291 — FLogic ZKP Integration
 // ---------------------------------------------------------------------------
 
-import { Groth16BackendFallback } from './zkp-backends';
+import { Groth16Backend, type ZKPBackendProtocol } from './zkp-backends';
 
 export enum FLogicProvingMethod { STANDARD='standard', ZKP='zkp', HYBRID='hybrid' }
 
@@ -102,9 +215,13 @@ export interface ZKPFLogicResult {
 export interface ZKPFLogicStats { standardProofs: number; zkpProofs: number; cacheHits: number; failures: number }
 
 export class ZKPFLogicProver {
-  private readonly zkpBackend = new Groth16BackendFallback();
+  private readonly zkpBackend: ZKPBackendProtocol;
   private readonly cache = new Map<string, ZKPFLogicResult>();
   private readonly stats: ZKPFLogicStats = { standardProofs: 0, zkpProofs: 0, cacheHits: 0, failures: 0 };
+
+  constructor(zkpBackend: ZKPBackendProtocol = new Groth16Backend(null)) {
+    this.zkpBackend = zkpBackend;
+  }
 
   async prove(formula: string, axioms: string[] = [], method: FLogicProvingMethod = FLogicProvingMethod.STANDARD): Promise<ZKPFLogicResult> {
     const key = `${formula}|${axioms.join(',')}|${method}`;

@@ -11,25 +11,21 @@
 import { Groth16Backend, Groth16BackendFallback, ProveKitFFI, ProveKitFFIError } from '../../src/services/zkp-backends';
 
 describe('PORT-192 Groth16Backend real spawn path', () => {
-  it('falls back to simulated when binary is absent', async () => {
+  it('fails closed when binary is absent unless simulation is explicitly enabled', async () => {
     const backend = new Groth16Backend(null, 5_000);
     expect(backend.isAvailable()).toBe(false);
-    const proof = await backend.generateProof('{"a":1}');
-    expect(proof).toBeDefined();
-    // Groth16Proof.toDict() exports proofData/publicInputs/metadata/timestamp/sizeBytes
-    const dict = proof.toDict();
-    expect(dict).toHaveProperty('proofData');
-    expect(dict).toHaveProperty('metadata');
+    await expect(backend.generateProof('{"a":1}')).rejects.toThrow(/allowSimulatedFallback:true/);
+    await expect(backend.verifyProof('{"proof":true}')).resolves.toBe(false);
   });
 
-  it('falls back to simulated when no binary path is provided', async () => {
-    const backend = new Groth16Backend(null, 5_000);
-    // null binary always unavailable
-    expect(backend.isAvailable()).toBe(false);
-    const proof = await backend.generateProof('{"b":2}');
-    // simulated proof is still valid
+  it('supports deterministic simulation only via explicit opt-in', async () => {
+    const backend = new Groth16Backend(null, 5_000, undefined, {
+      allowSimulatedFallback: true,
+      fallbackBackend: new Groth16BackendFallback(),
+    });
+    const proof = await backend.generateProof('{"b":2}', 11);
     expect(proof.toDict()).toHaveProperty('proofData');
-    expect(proof.sizeBytes).toBeGreaterThan(0);
+    await expect(backend.verifyProof(JSON.stringify(proof.toDict()))).resolves.toBe(true);
   });
 });
 
@@ -202,7 +198,7 @@ describe('PORT-195 SetupArtifacts', () => {
 
   it('stores and retrieves artifacts', () => {
     const store = new SetupArtifactStore();
-    const artifact = runTrustedSetup('circuit-2');
+    const artifact = runTrustedSetup('circuit-2', 'simulated');
     store.put(artifact);
     expect(store.get('circuit-2')).toBe(artifact);
     expect(store.getProvingKey('circuit-2')?.circuitId).toBe('circuit-2');

@@ -5,8 +5,12 @@
 
 import {
   ErgoAIWrapper, defaultErgoAIConfig, findErgoBinary, lazyInstallErgo,
-  ZKPFLogicProver, FLogicProvingMethod,
+  ZKPFLogicProver, FLogicProvingMethod, parseErgoOutputBindings,
 } from '../../src/services/flogic-ergoai-wrapper';
+import { Groth16BackendFallback } from '../../src/services/zkp-backends';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 import {
   PrometheusMetricsCollector, getPrometheusCollector, CircuitBreakerState,
@@ -21,6 +25,22 @@ import {
 // ErgoAI Wrapper
 // ---------------------------------------------------------------------------
 describe('ErgoAIWrapper', () => {
+  const tempDirs: string[] = [];
+
+  afterAll(() => {
+    for (const dir of tempDirs) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function makeFakeBinaryPath(): string {
+    const dir = mkdtempSync(join(tmpdir(), 'ergoai-wrapper-'));
+    tempDirs.push(dir);
+    const binPath = join(dir, 'ergo');
+    writeFileSync(binPath, '#!/bin/sh\nexit 0\n', 'utf8');
+    return binPath;
+  }
+
   test('isAvailable() returns false when no binary', () => {
     const w = new ErgoAIWrapper(defaultErgoAIConfig());
     expect(w.isAvailable()).toBe(false);
@@ -37,6 +57,86 @@ describe('ErgoAIWrapper', () => {
     const w = new ErgoAIWrapper(defaultErgoAIConfig());
     const results = await w.queryBatch(['P(x)', 'Q(y)']);
     expect(results).toHaveLength(2);
+  });
+
+  test('query() returns success when runner succeeds', async () => {
+    const binaryPath = makeFakeBinaryPath();
+    const runner = () => ({ status: 0, stdout: 'proved(P)', stderr: '' });
+    const w = new ErgoAIWrapper({ binaryPath, timeoutMs: 1000, maxRetries: 1 }, runner);
+    const r = await w.query('P');
+    expect(r.success).toBe(true);
+    expect(r.result).toBe('proved(P)');
+    expect(r.bindings).toEqual([]);
+  });
+
+  test('query() retries and succeeds on later attempt', async () => {
+    const binaryPath = makeFakeBinaryPath();
+    let calls = 0;
+    const runner = () => {
+      calls += 1;
+      if (calls === 1) return { status: 1, stdout: '', stderr: 'temporary failure' };
+      return { status: 0, stdout: 'proved(Q)', stderr: '' };
+    };
+    const w = new ErgoAIWrapper({ binaryPath, timeoutMs: 1000, maxRetries: 2 }, runner);
+    const r = await w.query('Q');
+    expect(r.success).toBe(true);
+    expect(r.result).toBe('proved(Q)');
+    expect(calls).toBe(2);
+  });
+
+  test('query() returns process failure when all retries fail', async () => {
+    const binaryPath = makeFakeBinaryPath();
+    const w = new ErgoAIWrapper(
+      { binaryPath, timeoutMs: 1000, maxRetries: 2 },
+      () => ({ status: 1, stdout: '', stderr: 'hard failure' }),
+    );
+    const r = await w.query('R');
+    expect(r.success).toBe(false);
+    expect(r.error).toContain('ErgoAI process failed');
+    expect(r.error).toContain('hard failure');
+  });
+
+  test('query() treats ++Error output as failure even with status 0', async () => {
+    const binaryPath = makeFakeBinaryPath();
+    const runner = () => ({ status: 0, stdout: '++Error: malformed query', stderr: '' });
+    const w = new ErgoAIWrapper({ binaryPath, timeoutMs: 1000, maxRetries: 2 }, runner);
+    const r = await w.query('bad_formula');
+    expect(r.success).toBe(false);
+    expect(r.error).toContain('++Error');
+  });
+
+  test('query() treats No output as unsuccessful derivation', async () => {
+    const binaryPath = makeFakeBinaryPath();
+    const runner = () => ({ status: 0, stdout: 'No', stderr: '' });
+    const w = new ErgoAIWrapper({ binaryPath, timeoutMs: 1000, maxRetries: 2 }, runner);
+    const r = await w.query('unprovable_formula');
+    expect(r.success).toBe(false);
+    expect(r.error).toContain('no solution');
+    expect(r.bindings).toEqual([]);
+  });
+
+  test('query() parses variable bindings from successful Ergo output', async () => {
+    const binaryPath = makeFakeBinaryPath();
+    const runner = () => ({
+      status: 0,
+      stdout: '% comment\n?X = rex, ?Y = Dog\n?X = fido, ?Y = Dog',
+      stderr: '',
+    });
+    const w = new ErgoAIWrapper({ binaryPath, timeoutMs: 1000, maxRetries: 2 }, runner);
+    const r = await w.query('?X : Dog');
+    expect(r.success).toBe(true);
+    expect(r.bindings).toEqual([
+      { '?X': 'rex', '?Y': 'Dog' },
+      { '?X': 'fido', '?Y': 'Dog' },
+    ]);
+  });
+
+  test('parseErgoOutputBindings() skips comments and non-binding lines', () => {
+    const bindings = parseErgoOutputBindings('% header\nNo\n?X = rex, answer\n?Y = Dog');
+    expect(bindings).toEqual([
+      { '?X': 'rex' },
+      { '?Y': 'Dog' },
+    ]);
   });
 
   test('getStats() returns expected fields', () => {
@@ -75,7 +175,7 @@ describe('ZKPFLogicProver', () => {
   });
 
   test('prove ZKP method produces proof', async () => {
-    const prover = new ZKPFLogicProver();
+    const prover = new ZKPFLogicProver(new Groth16BackendFallback());
     const r = await prover.prove('P', ['P'], FLogicProvingMethod.ZKP);
     expect(r.method).toBe(FLogicProvingMethod.ZKP);
     expect(r.proof).not.toBeNull();

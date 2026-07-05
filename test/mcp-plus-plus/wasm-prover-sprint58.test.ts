@@ -17,6 +17,7 @@ import {
   ProvingMethod, ZKPCECProver, UnifiedCECProofResult,
   createHybridProver,
 } from '../../src/services/cec-zkp-integration';
+import { Groth16BackendFallback } from '../../src/services/zkp-backends';
 
 import {
   LegalModalAutoencoderLoop,
@@ -141,8 +142,17 @@ describe('ZKPCECProver — standard mode', () => {
 });
 
 describe('ZKPCECProver — ZKP mode', () => {
-  test('produces private proof', async () => {
+  test('fails closed in ZKP mode when no native backend is configured', async () => {
     const prover = new ZKPCECProver({ enableZkp: true, method: ProvingMethod.ZKP });
+    await expect(prover.prove('P', ['P'])).rejects.toThrow(/allowSimulatedFallback:true/);
+  });
+
+  test('produces private proof with explicit simulated backend injection', async () => {
+    const prover = new ZKPCECProver({
+      enableZkp: true,
+      method: ProvingMethod.ZKP,
+      zkpBackend: new Groth16BackendFallback(),
+    });
     const r = await prover.prove('P', ['P']);
     expect(r.isProved).toBe(true);
     expect(r.method).toBe(ProvingMethod.ZKP);
@@ -151,7 +161,11 @@ describe('ZKPCECProver — ZKP mode', () => {
   });
 
   test('verifyZkp returns true for valid proof', async () => {
-    const prover = new ZKPCECProver({ enableZkp: true, method: ProvingMethod.ZKP });
+    const prover = new ZKPCECProver({
+      enableZkp: true,
+      method: ProvingMethod.ZKP,
+      zkpBackend: new Groth16BackendFallback(),
+    });
     const r = await prover.prove('P', ['P']);
     const ok = await prover.verifyZkp(r.zkpProof!, 'P');
     expect(ok).toBe(true);

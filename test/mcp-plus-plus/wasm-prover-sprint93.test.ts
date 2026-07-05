@@ -246,6 +246,24 @@ describe('PORT-200 prover syntax target coverage and validator', () => {
     expect(validation.proofReadyTargets).toEqual(ALL_PROVER_TARGETS);
   });
 
+  it('uses proposition alias when action is empty in syntax report and json-ir target', () => {
+    const propositionOnly = {
+      ...buildLegalNormIR({ source_id: 'syntax-proposition-only', modality: 'O', actor: 'Users', action: '' }),
+      proposition: 'LogAccess',
+    } as unknown as ReturnType<typeof buildLegalNormIR>;
+
+    const report = ProverSyntaxBuilder.buildSyntaxReport(propositionOnly, ALL_PROVER_TARGETS);
+    expect(report.proposition).toBe('LogAccess');
+    expect(report.action).toBe('LogAccess');
+
+    const jsonIr = JSON.parse(report.records.find(record => record.target_id === 'json-ir')!.formula);
+    expect(jsonIr.proposition).toBe('LogAccess');
+    expect(jsonIr.action).toBe('LogAccess');
+
+    const z3 = report.records.find(record => record.target_id === 'z3-smt2');
+    expect(z3?.warnings).not.toContain('action slot is empty');
+  });
+
   it('surfaces missing targets and invalid records', () => {
     const norm = buildLegalNormIR({ source_id: 'syntax-bad', modality: 'O', actor: '', action: 'LogAccess' });
     const report = ProverSyntaxBuilder.buildSyntaxReport(norm, ['z3-smt2']);

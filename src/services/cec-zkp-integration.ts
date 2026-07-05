@@ -7,7 +7,7 @@
  * proofs (ZKP) for privacy-preserving reasoning.
  */
 
-import { Groth16BackendFallback } from './zkp-backends';
+import { Groth16Backend, type ZKPBackendProtocol } from './zkp-backends';
 
 // ---------------------------------------------------------------------------
 // ProvingMethod
@@ -40,18 +40,17 @@ export interface UnifiedCECProofResult {
 // Simulated ZKP backend for CEC
 // ---------------------------------------------------------------------------
 
-class CECSimulatedZKPBackend {
-  private readonly fallback = new Groth16BackendFallback();
+class CECZKPBackend {
+  constructor(private readonly backend: ZKPBackendProtocol) {}
 
   async provePrivate(formula: string, axioms: string[]): Promise<{ proof: Record<string, unknown>; isProved: boolean }> {
     const witness = JSON.stringify({ formula, axioms: axioms.map((_, i) => `axiom_${i}`) });
-    const proof = await this.fallback.generateProof(witness);
+    const proof = await this.backend.generateProof(witness);
     return { proof: proof.toDict(), isProved: true };
   }
 
   async verify(proof: Record<string, unknown>, formula: string): Promise<boolean> {
-    // Simulated verification
-    return typeof proof['proofData'] === 'string' && proof['proofData'].length > 0;
+    return this.backend.verifyProof(JSON.stringify(proof));
   }
 }
 
@@ -83,7 +82,7 @@ export interface ZKPCECProverStats {
 export class ZKPCECProver {
   private readonly enableZkp: boolean;
   private readonly method: ProvingMethod;
-  private readonly zkpBackend: CECSimulatedZKPBackend | null;
+  private readonly zkpBackend: CECZKPBackend | null;
   private readonly cache: Map<string, UnifiedCECProofResult> | null;
   private readonly stats: ZKPCECProverStats = {
     standardProofs: 0, zkpProofs: 0, hybridProofs: 0, failures: 0, cacheHits: 0, totalTimeMs: 0,
@@ -93,10 +92,13 @@ export class ZKPCECProver {
     enableZkp?: boolean;
     method?: ProvingMethod;
     enableCache?: boolean;
+    zkpBackend?: ZKPBackendProtocol;
   } = {}) {
     this.enableZkp = opts.enableZkp ?? false;
     this.method    = opts.method    ?? ProvingMethod.STANDARD;
-    this.zkpBackend = this.enableZkp ? new CECSimulatedZKPBackend() : null;
+    this.zkpBackend = this.enableZkp
+      ? new CECZKPBackend(opts.zkpBackend ?? new Groth16Backend(null))
+      : null;
     this.cache = (opts.enableCache ?? true) ? new Map() : null;
   }
 
