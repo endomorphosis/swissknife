@@ -141,16 +141,26 @@ describe('DeonticNormsBridgeAdapter', () => {
     const norms = ((doc.views['deontic_ir']?.payload as { norms?: Array<Record<string, unknown>> })?.norms) ?? [];
     const triples = ((doc.views['frame_logic']?.payload as { triples?: Array<Record<string, string>> })?.triples) ?? [];
     const graphNodes = ((doc.views['neo4j_graph_data']?.payload as { nodes?: Array<Record<string, unknown>> })?.nodes) ?? [];
+    const graphRelationships = ((doc.views['neo4j_graph_data']?.payload as { relationships?: Array<Record<string, unknown>> })?.relationships) ?? [];
 
     expect(norms.length).toBeGreaterThan(0);
     expect(norms[0]?.['proposition']).toBe(norms[0]?.['action']);
 
-    const actionTriple = triples.find(triple => triple.predicate === 'hasAction');
-    const propositionTriple = triples.find(triple => triple.predicate === 'hasProposition');
-    expect(actionTriple?.object).toBe(propositionTriple?.object);
+    const normId = String(norms[0]?.['norm_id'] ?? '');
+    const action = String(norms[0]?.['action'] ?? '');
+    const containsNormTriple = triples.find(triple => triple.predicate === 'contains_norm' && triple.object === normId);
+    const actionTriple = triples.find(triple => triple.subject === normId && triple.predicate === 'action');
+    expect(containsNormTriple?.subject).toBe(doc.documentId);
+    expect(actionTriple?.object).toBe(action);
 
-    const normNode = graphNodes.find(node => String(node.id).includes(':n0')) as { properties?: Record<string, unknown> } | undefined;
-    expect(normNode?.properties?.['action']).toBe(normNode?.properties?.['proposition']);
+    const normNode = graphNodes.find(node => ((node.properties as Record<string, unknown> | undefined)?.flogic_id) === normId) as { labels?: string[]; properties?: Record<string, unknown> } | undefined;
+    expect(normNode?.labels).toContain('Legal_deontic_norm');
+
+    const actionRelationship = graphRelationships.find(rel => {
+      const properties = rel.properties as Record<string, unknown> | undefined;
+      return properties?.flogic_subject === normId && properties?.flogic_predicate === 'action';
+    }) as { properties?: Record<string, unknown> } | undefined;
+    expect(actionRelationship?.properties?.flogic_object).toBe(action);
   });
 
   test('evaluate returns BridgeEvaluationReport', () => {
