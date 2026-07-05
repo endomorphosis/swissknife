@@ -5,8 +5,9 @@
  * configurable routing strategies (FASTEST, PARALLEL, SEQUENTIAL) and an
  * in-memory proof cache.
  *
- * When local provers cannot decide a formula (unknown/timeout), the hub signals
- * the caller to fall back to the remote Python TDFOL engine.
+ * When local provers cannot decide a formula (unknown/timeout), the hub returns
+ * an explicit unknown result for caller-side routing. The browser path does not
+ * import or call Python.
  *
  * References:
  *   - ipfs_datasets_py/logic/external_provers/prover_router.py (ProverRouter)
@@ -17,14 +18,14 @@
  * const hub = await WasmProverHub.create();
  * const result = await hub.checkPolicyConsistency(policy);
  * if (result.reason === 'unknown') {
- *   // fall back to remote Python engine
+ *   // route to an explicit external verifier, if one is configured
  * }
  * ```
  */
 
 import type { Policy } from './mcp-policy.js';
 import type { WasmProofResult, ProverStrategy } from './provers/prover-types.js';
-import { ProofCache } from './provers/mcp-proof-cache.js';
+import { ProofCache, type ProofCacheLogWriter } from './provers/mcp-proof-cache.js';
 import { Z3WasmBridge } from './provers/z3-wasm-bridge.js';
 import { Cvc5WasmBridge } from './provers/cvc5-wasm-bridge.js';
 import { CoqJsCoqBridge } from './provers/coq-jscoq-bridge.js';
@@ -49,6 +50,8 @@ export interface WasmProverHubOptions {
   cacheTtlMs?: number;
   /** Optional JSONL path for proof-cache logging. */
   cacheLogPath?: string;
+  /** Optional injected JSONL writer for Node/host cache logging. */
+  cacheLogWriter?: ProofCacheLogWriter;
   /** Optional MCP++ connector for the NeuralProverBridge. */
   neuralConnector?: NeuralProverConnector;
 }
@@ -84,6 +87,7 @@ export class WasmProverHub {
       maxEntries: opts.cacheMaxEntries ?? 1_000,
       ttlMs: opts.cacheTtlMs ?? 5 * 60_000,
       logPath: opts.cacheLogPath,
+      logWriter: opts.cacheLogWriter,
     });
     this.z3 = z3;
     this.cvc5 = cvc5;
@@ -128,8 +132,7 @@ export class WasmProverHub {
    * Consults the proof cache first, then dispatches to the appropriate prover
    * based on the configured routing strategy.
    *
-   * Returns `{ reason: 'unknown' }` when no local prover can decide — the caller
-   * should fall back to the remote Python TDFOL engine.
+   * Returns `{ reason: 'unknown' }` when no local prover can decide.
    */
   async checkPolicyConsistency(policy: Policy): Promise<WasmProofResult> {
     const cacheKey = ProofCache.formulaHash(canonicalPolicyKey(policy));

@@ -26,7 +26,6 @@
  * Reference: ipfs_datasets_py/logic/zkp/ucan_zkp_bridge.py §ZKPToUCANBridge
  */
 
-import { createHash } from 'node:crypto';
 import type { ZKProofArtifact } from '../provers/lurk-wasm-bridge.js';
 import type {
   ZkpCapabilityEvidence,
@@ -34,6 +33,7 @@ import type {
   ZkpVerifierId,
 } from './zkp-types.js';
 import { ZkpSimulatedProver, ZKP_SIMULATED_VERIFIER_ID, computeStatementCid } from './zkp-simulated-prover.js';
+import { sha256Hex } from '../provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Options
@@ -88,9 +88,7 @@ export class ZkpUcanBridge {
    * Mirrors `ZKPToUCANBridge._make_caveat()` in the Python reference.
    */
   proofToCaveat(artifact: ZKProofArtifact): ZkpCapabilityEvidence {
-    const proof_hash = createHash('sha256')
-      .update(artifact.proof_b64, 'utf8')
-      .digest('hex');
+    const proof_hash = sha256Hex(artifact.proof_b64);
     const theorem_cid = computeStatementCid(artifact.statement);
 
     const verifier_id = this._backendToVerifierId(artifact.backend);

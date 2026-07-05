@@ -300,7 +300,7 @@ describe('WasmProverHub — Coq + Lean 4 status and routing', () => {
     expect(status.lurk_wasm).toBe(false); // Phase 6 not yet implemented
   });
 
-  it('handles higher_order policy classification and returns unknown for temporal', async () => {
+  it('routes temporal policy classification to native TDFOL', async () => {
     const hub = await WasmProverHub.create({ timeoutMs: 100 });
     const temporal: Policy = {
       id: 'temp', version: '1',
@@ -309,8 +309,8 @@ describe('WasmProverHub — Coq + Lean 4 status and routing', () => {
       temporal: { notBefore: 1000, notAfter: 9999 },
     };
     const result = await hub.checkPolicyConsistency(temporal);
-    expect(result.reason).toBe('unknown');
-    expect(result.meta?.skipped).toBe('remote-only');
+    expect(['proved', 'sat', 'unsat', 'refuted']).toContain(result.reason);
+    expect(result.prover_id).toBe('tdfol-native');
   });
 
   it('Coq bridge provides a script in meta when coqc unavailable', async () => {

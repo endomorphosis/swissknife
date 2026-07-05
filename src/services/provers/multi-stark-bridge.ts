@@ -8,12 +8,12 @@
  * multi-circuit batch and emits content-addressed `ZKProofArtifact` records.
  */
 
-import { createHash } from 'crypto';
 import type { Policy, Obligation } from '../mcp-policy.js';
 import {
   computeZKProofArtifactCid,
   type ZKProofArtifact,
 } from './lurk-wasm-bridge.js';
+import { base64UrlEncode, sha256Hex } from './browser-crypto.js';
 
 const DEFAULT_MULTI_STARK_PACKAGE = 'multi-stark-wasm';
 
@@ -266,17 +266,13 @@ function unwrapDefaultExport(mod: unknown): Record<string, unknown> | null {
 }
 
 function proofToBase64Url(proof: unknown): string {
-  if (typeof proof === 'string') return bufferToBase64Url(Buffer.from(proof, 'utf8'));
-  if (proof instanceof Uint8Array) return bufferToBase64Url(Buffer.from(proof));
-  if (proof instanceof ArrayBuffer) return bufferToBase64Url(Buffer.from(proof));
+  if (typeof proof === 'string') return base64UrlEncode(proof);
+  if (proof instanceof Uint8Array) return base64UrlEncode(proof);
+  if (proof instanceof ArrayBuffer) return base64UrlEncode(proof);
   if (Array.isArray(proof) && proof.every(item => typeof item === 'number')) {
-    return bufferToBase64Url(Buffer.from(proof as number[]));
+    return base64UrlEncode(proof as number[]);
   }
-  return bufferToBase64Url(Buffer.from(stableJson(proof), 'utf8'));
-}
-
-function bufferToBase64Url(buffer: Buffer): string {
-  return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  return base64UrlEncode(stableJson(proof));
 }
 
 function normalizeBase64Url(value: string): string {
@@ -290,7 +286,7 @@ function normalizeCid(value: unknown): string | null {
 }
 
 function cidFor(value: unknown): string {
-  return `sha256:${createHash('sha256').update(stableJson(value)).digest('hex')}`;
+  return `sha256:${sha256Hex(stableJson(value))}`;
 }
 
 function stableJson(value: unknown): string {

@@ -12,7 +12,7 @@
  * tests (marked .skipIf(!Z3_LIVE)) require `Z3_WASM_LIVE=1` env var.
  */
 
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -207,7 +207,10 @@ describe('ProofCache — JSONL file sink', () => {
 
   it('appends one JSON line per put() to the log file', () => {
     const logPath = join(tmpDir, 'proofs.jsonl');
-    const cache = new ProofCache({ logPath });
+    const cache = new ProofCache({
+      logPath,
+      logWriter: (path, line) => appendFileSync(path, line, 'utf8'),
+    });
     cache.put(ProofCache.formulaHash('f1'), makeProvedResult());
     cache.put(ProofCache.formulaHash('f2'), makeUnknownResult());
     const lines = readFileSync(logPath, 'utf8').trim().split('\n');

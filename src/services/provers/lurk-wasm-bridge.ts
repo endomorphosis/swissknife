@@ -33,9 +33,9 @@
  *   - implementation_plan/docs/36-swissknife-wasm-theorem-provers-2026-07-01.md §3.5, Phase 6
  */
 
-import { createHash } from 'crypto';
 import type { WasmProofResult } from './prover-types.js';
 import type { Policy } from '../mcp-policy.js';
+import { base64UrlEncode, sha256Hex } from './browser-crypto.js';
 
 const DEFAULT_LURK_WASM_PACKAGE = 'lurk-wasm';
 
@@ -215,7 +215,7 @@ export class LurkWasmBridge {
    * Generate a ZK proof of obligation discharge for `policy`.
    *
    * In stub mode (no native Lurk), returns `{ reason: 'unknown' }` so the
-   * caller falls back to the remote Python TDFOL engine.
+   * caller can route to an explicitly configured verifier.
    */
   async proveObligationDischarge(
     policy: Policy,
@@ -389,17 +389,13 @@ function interpretLurkResult(result: unknown): 'proved' | 'refuted' | 'unknown' 
 }
 
 function proofToBase64Url(proof: unknown): string {
-  if (typeof proof === 'string') return bufferToBase64Url(Buffer.from(proof, 'utf8'));
-  if (proof instanceof Uint8Array) return bufferToBase64Url(Buffer.from(proof));
-  if (proof instanceof ArrayBuffer) return bufferToBase64Url(Buffer.from(proof));
+  if (typeof proof === 'string') return base64UrlEncode(proof);
+  if (proof instanceof Uint8Array) return base64UrlEncode(proof);
+  if (proof instanceof ArrayBuffer) return base64UrlEncode(proof);
   if (Array.isArray(proof) && proof.every(item => typeof item === 'number')) {
-    return bufferToBase64Url(Buffer.from(proof as number[]));
+    return base64UrlEncode(proof as number[]);
   }
-  return bufferToBase64Url(Buffer.from(stableJson(proof), 'utf8'));
-}
-
-function bufferToBase64Url(buffer: Buffer): string {
-  return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  return base64UrlEncode(stableJson(proof));
 }
 
 function normalizeBase64Url(value: string): string {
@@ -413,7 +409,7 @@ function normalizeCid(value: unknown): string | null {
 }
 
 function cidFor(value: unknown): string {
-  return `sha256:${createHash('sha256').update(stableJson(value)).digest('hex')}`;
+  return `sha256:${sha256Hex(stableJson(value))}`;
 }
 
 function stableJson(value: unknown): string {
@@ -464,11 +460,9 @@ function isCreateOptions(value: unknown): value is LurkWasmBridgeCreateOptions {
  * @returns A `LurkWasmModule` ready for `LurkWasmBridge.create()`.
  */
 export async function loadLurkFromFile(lurkJsBindingPath: string): Promise<LurkWasmModule> {
-  // Dynamic import of a local path (Node.js only).
+  // Dynamic import of a caller-resolved path/URL/package specifier.
   // The generated module must expose evaluate(), prove(), or proveObligationDischarge().
-  const { isAbsolute, resolve } = require('node:path') as typeof import('node:path');
-  const specifier = isAbsolute(lurkJsBindingPath) ? lurkJsBindingPath : resolve(process.cwd(), lurkJsBindingPath);
-  return loadLurkPackage(specifier, defaultLurkWasmImporter);
+  return loadLurkPackage(lurkJsBindingPath, defaultLurkWasmImporter);
 }
 
 /**

@@ -1,10 +1,10 @@
 /**
  * FLogic ErgoAI Wrapper + FLogic ZKP Integration — T-290 + T-291 (Sprint 63)
  * Ports of flogic/ergoai_wrapper.py (381L) and flogic/flogic_zkp_integration.py (372L)
+ *
+ * Browser note: this module has no static Node.js imports. Host-native ErgoAI
+ * execution is available only when callers inject an `ErgoAIProcessRunner`.
  */
-
-import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
 
 // ---------------------------------------------------------------------------
 // T-290 — ErgoAI Wrapper
@@ -64,22 +64,16 @@ export function parseErgoOutputBindings(output: string): Array<Record<string, st
   return bindings;
 }
 
-function defaultErgoAIRunner(command: string, args: string[], input: string, timeoutMs: number): ErgoAIProcessResult {
-  const result = spawnSync(command, args, { input, timeout: timeoutMs, encoding: 'utf8' });
-  return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
-}
-
 export class ErgoAIWrapper {
   private readonly stats: ErgoAIStats = { totalQueries: 0, succeeded: 0, failed: 0, avgElapsedMs: 0 };
 
   constructor(
     private readonly config: ErgoAIConfig = defaultErgoAIConfig(),
-    private readonly runner: ErgoAIProcessRunner = defaultErgoAIRunner,
+    private readonly runner?: ErgoAIProcessRunner,
   ) {}
 
   isAvailable(): boolean {
-    if (!this.config.binaryPath) return false;
-    try { return existsSync(this.config.binaryPath); } catch { return false; }
+    return Boolean(this.config.binaryPath && this.runner);
   }
 
   async query(formula: string): Promise<ErgoAIQueryResult> {
@@ -99,13 +93,20 @@ export class ErgoAIWrapper {
       this._updateAvg(elapsed);
       return { query: formula, result: null, bindings: [], success: false, error: 'ErgoAI binary path missing', elapsedMs: elapsed };
     }
+    const runner = this.runner;
+    if (!runner) {
+      this.stats.failed++;
+      const elapsed = performance.now() - t0;
+      this._updateAvg(elapsed);
+      return { query: formula, result: null, bindings: [], success: false, error: 'ErgoAI process runner not configured', elapsedMs: elapsed };
+    }
 
     const attempts = Math.max(1, this.config.maxRetries);
     let lastError = 'ErgoAI process failed';
     for (let attempt = 0; attempt < attempts; attempt++) {
       try {
         // The adapter sends the formula via stdin to keep transport stable across Ergo CLI layouts.
-        const result = this.runner(binaryPath, ['--query', '-'], formula, this.config.timeoutMs);
+        const result = runner(binaryPath, ['--query', '-'], formula, this.config.timeoutMs);
         if (result.status === 0) {
           const stdoutTrimmed = result.stdout.trim();
           const stderrTrimmed = (result.stderr ?? '').trim();
@@ -183,10 +184,6 @@ export class ErgoAIWrapper {
 }
 
 export function findErgoBinary(): string | null {
-  const candidates = ['/usr/local/bin/ergo', '/opt/ergoai/bin/ergo', './ergoai/ergo'];
-  try {
-    for (const p of candidates) { if (existsSync(p)) return p; }
-  } catch { /* ignore */ }
   return null;
 }
 
@@ -199,9 +196,21 @@ export function lazyInstallErgo(_reason: string): string | null {
 // T-291 — FLogic ZKP Integration
 // ---------------------------------------------------------------------------
 
-import { Groth16Backend, type ZKPBackendProtocol } from './zkp-backends';
-
 export enum FLogicProvingMethod { STANDARD='standard', ZKP='zkp', HYBRID='hybrid' }
+
+export interface FLogicZKPProofLike {
+  toDict(): Record<string, unknown>;
+}
+
+export interface FLogicZKPBackendProtocol {
+  generateProof(witnessJson: string, seed?: number): Promise<FLogicZKPProofLike>;
+}
+
+class BrowserStrictUnavailableZKPBackend implements FLogicZKPBackendProtocol {
+  async generateProof(): Promise<FLogicZKPProofLike> {
+    throw new Error('ZKP backend unavailable. Inject a WASM or explicit test backend for ZKP/HYBRID FLogic proofs.');
+  }
+}
 
 export interface ZKPFLogicResult {
   isProved:  boolean;
@@ -215,11 +224,11 @@ export interface ZKPFLogicResult {
 export interface ZKPFLogicStats { standardProofs: number; zkpProofs: number; cacheHits: number; failures: number }
 
 export class ZKPFLogicProver {
-  private readonly zkpBackend: ZKPBackendProtocol;
+  private readonly zkpBackend: FLogicZKPBackendProtocol;
   private readonly cache = new Map<string, ZKPFLogicResult>();
   private readonly stats: ZKPFLogicStats = { standardProofs: 0, zkpProofs: 0, cacheHits: 0, failures: 0 };
 
-  constructor(zkpBackend: ZKPBackendProtocol = new Groth16Backend(null)) {
+  constructor(zkpBackend: FLogicZKPBackendProtocol = new BrowserStrictUnavailableZKPBackend()) {
     this.zkpBackend = zkpBackend;
   }
 
@@ -233,9 +242,14 @@ export class ZKPFLogicProver {
 
     if (method === FLogicProvingMethod.ZKP || method === FLogicProvingMethod.HYBRID) {
       const witness = JSON.stringify({ formula, axioms });
-      const proof = await this.zkpBackend.generateProof(witness);
-      result = { isProved: true, method, proof: proof.toDict(), confidence: 0.85, formula, elapsedMs: performance.now() - t0 };
-      this.stats.zkpProofs++;
+      try {
+        const proof = await this.zkpBackend.generateProof(witness);
+        result = { isProved: true, method, proof: proof.toDict(), confidence: 0.85, formula, elapsedMs: performance.now() - t0 };
+        this.stats.zkpProofs++;
+      } catch {
+        this.stats.failures++;
+        result = { isProved: false, method, proof: null, confidence: 0, formula, elapsedMs: performance.now() - t0 };
+      }
     } else {
       // Standard forward-chaining
       const known = new Set<string>(axioms);

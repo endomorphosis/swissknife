@@ -6,16 +6,13 @@
  * - deontic/{exports,formula_builder,metrics}.py
  */
 
-import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import {
   classifyLegalEntity,
   classifyModal,
   normalizePredicate,
   scoreScaffoldQuality,
 } from './deontic/deontic-parser-utils.js';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 export interface LegalTextSegment {
   text: string;
@@ -1625,6 +1622,7 @@ export function writeDocumentExportParquet(
   outputDir: string,
   options: { stringifyNested?: boolean } = {},
 ): Record<string, unknown> {
+  const { mkdirSync, writeFileSync, join } = nodeFsPath();
   const tables = buildDocumentExportTables(elements);
   const validation = validateDocumentExportTables(tables);
   if (!validation.valid) throw new Error(`invalid export tables: ${JSON.stringify(validation.errors)}`);
@@ -1959,7 +1957,7 @@ function hashId(prefix: string, identity: unknown): string {
 }
 
 function hashDigest(identity: unknown): string {
-  return createHash('sha256').update(stableStringify(identity), 'utf8').digest('hex');
+  return sha256Hex(stableStringify(identity));
 }
 
 function stableStringify(value: unknown): string {
@@ -1997,7 +1995,31 @@ function cleanText(text: string): string {
 }
 
 function stableId(prefix: string, value: string): string {
-  return `${prefix}_${createHash('sha256').update(value, 'utf8').digest('hex').slice(0, 16)}`;
+  return `${prefix}_${sha256Hex(value).slice(0, 16)}`;
+}
+
+function nodeFsPath(): {
+  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
+  writeFileSync: (file: string, data: string, encoding: BufferEncoding) => void;
+  join: (...parts: string[]) => string;
+} {
+  const runtime = globalThis as { process?: { versions?: { node?: string } } };
+  if (!runtime.process?.versions?.node) {
+    throw new Error('writeDocumentExportParquet is only available in Node.js runtimes');
+  }
+  const localRequire = (0, eval)('require') as (specifier: string) => unknown;
+  const fs = localRequire('node:fs') as {
+    mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
+    writeFileSync: (file: string, data: string, encoding: BufferEncoding) => void;
+  };
+  const path = localRequire('node:path') as {
+    join: (...parts: string[]) => string;
+  };
+  return {
+    mkdirSync: fs.mkdirSync,
+    writeFileSync: fs.writeFileSync,
+    join: path.join,
+  };
 }
 
 function countBy(values: string[]): Record<string, number> {

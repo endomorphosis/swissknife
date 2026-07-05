@@ -16,8 +16,8 @@
  * Reference: ipfs_datasets_py/logic/zkp/zkp_prover.py §ZKPProver (simulation path)
  */
 
-import { createHash } from 'node:crypto';
 import type { ZkpSimulatedProof } from './zkp-types.js';
+import { base64UrlEncode, sha256Hex } from '../provers/browser-crypto.js';
 
 export const ZKP_SIMULATED_VERIFIER_ID = 'simulated-zkp-v0.1' as const;
 
@@ -29,7 +29,7 @@ const MAX_PROOF_BYTES = 256;
  * Format: `sha256:<hex>` (matches the Python `theorem_cid` encoding).
  */
 export function computeStatementCid(statement: string): string {
-  return 'sha256:' + createHash('sha256').update(statement, 'utf8').digest('hex');
+  return 'sha256:' + sha256Hex(statement);
 }
 
 /**
@@ -58,7 +58,7 @@ export class ZkpSimulatedProver {
 
     // Hash each private axiom so they are never revealed in the proof
     const axiom_hashes = privateAxioms.map(ax =>
-      createHash('sha256').update(ax, 'utf8').digest('hex'),
+      sha256Hex(ax),
     );
 
     // Build the simulated proof payload
@@ -66,18 +66,15 @@ export class ZkpSimulatedProver {
       theorem: statement,
       axiom_count: axiom_hashes.length,
       axiom_hashes,
-      nonce: createHash('sha256')
-        .update(statement + axiom_hashes.join('|'))
-        .digest('hex')
-        .slice(0, 16),
+      nonce: sha256Hex(statement + axiom_hashes.join('|')).slice(0, 16),
     };
 
     const payloadJson = JSON.stringify(payload);
 
     // Truncate to MAX_PROOF_BYTES (mirrors Python <500B target)
     const truncated = payloadJson.slice(0, MAX_PROOF_BYTES);
-    const proof_b64 = Buffer.from(truncated, 'utf8').toString('base64url');
-    const proof_hash = createHash('sha256').update(proof_b64, 'utf8').digest('hex');
+    const proof_b64 = base64UrlEncode(truncated);
+    const proof_hash = sha256Hex(proof_b64);
     const statement_cid = computeStatementCid(statement);
 
     return {
@@ -99,9 +96,7 @@ export class ZkpSimulatedProver {
    * structural — NOT a real ZK verification.
    */
   verify(proof: ZkpSimulatedProof): boolean {
-    const expectedHash = createHash('sha256')
-      .update(proof.proof_b64, 'utf8')
-      .digest('hex');
+    const expectedHash = sha256Hex(proof.proof_b64);
     const expectedCid = computeStatementCid(proof.statement);
     return proof.proof_hash === expectedHash && proof.statement_cid === expectedCid;
   }

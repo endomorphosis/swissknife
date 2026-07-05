@@ -12,9 +12,8 @@
  *   buildDeonticFormulasFromIRList() — LegalNormIR[] → string[]
  */
 
-import { createHash } from 'node:crypto';
-
 import type { LegalNormIR } from './deontic/legal-norm-ir.js';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // normalizePredicateName
@@ -794,5 +793,5 @@ function arrayField(value: unknown): unknown[] {
 }
 
 function stableFormulaId(sourceId: string, formula: string): string {
-  return `formula:${createHash('sha256').update(`${sourceId}|${formula}`, 'utf8').digest('hex').slice(0, 24)}`;
+  return `formula:${sha256Hex(`${sourceId}|${formula}`).slice(0, 24)}`;
 }

@@ -15,9 +15,8 @@
  * ```
  */
 
-import { appendFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 import type { WasmProofResult } from './prover-types.js';
+import { sha256Hex } from './browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // ProofCache
@@ -40,12 +39,15 @@ export interface ProofCacheStats {
   time_saved_ms: number;
 }
 
+export type ProofCacheLogWriter = (path: string, line: string) => void;
+
 /**
  * Sha256-keyed proof result cache with ring-buffer eviction.
  *
  * - `maxEntries`: maximum number of entries before oldest are evicted.
  * - `ttlMs`: time-to-live per entry in milliseconds (undefined = no expiry).
- * - `logPath`: optional path to a JSONL file; each cache miss (put) appends a line.
+ * - `logPath` + `logWriter`: optional JSONL sink; file IO is injected so this
+ *   module remains browser-importable.
  */
 export class ProofCache {
   private readonly store = new Map<string, CacheEntry>();
@@ -53,6 +55,7 @@ export class ProofCache {
   private readonly maxEntries: number;
   private readonly ttlMs?: number;
   private readonly logPath?: string;
+  private readonly logWriter?: ProofCacheLogWriter;
   private hits = 0;
   private misses = 0;
   private evictions = 0;
@@ -62,10 +65,12 @@ export class ProofCache {
     maxEntries?: number;
     ttlMs?: number;
     logPath?: string;
+    logWriter?: ProofCacheLogWriter;
   }) {
     this.maxEntries = opts?.maxEntries ?? 2_000;
     this.ttlMs = opts?.ttlMs;
     this.logPath = opts?.logPath;
+    this.logWriter = opts?.logWriter;
   }
 
   // ---------------------------------------------------------------------------
@@ -121,13 +126,9 @@ export class ProofCache {
     this.store.set(key, entry);
     this.insertionOrder.push(key);
 
-    if (this.logPath) {
+    if (this.logPath && this.logWriter) {
       try {
-        appendFileSync(
-          this.logPath,
-          JSON.stringify({ key, result, cachedAt: entry.cachedAt }) + '\n',
-          'utf8',
-        );
+        this.logWriter(this.logPath, JSON.stringify({ key, result, cachedAt: entry.cachedAt }) + '\n');
       } catch { /* file logging is best-effort */ }
     }
   }
@@ -183,7 +184,7 @@ export class ProofCache {
     if (options?.axioms?.length) parts.push(JSON.stringify([...options.axioms].sort()));
     if (options?.proverName)     parts.push(options.proverName);
     if (options?.proverConfig)   parts.push(JSON.stringify(options.proverConfig));
-    return createHash('sha256').update(parts.join('\x00'), 'utf8').digest('hex');
+    return sha256Hex(parts.join('\x00'));
   }
 
   /**

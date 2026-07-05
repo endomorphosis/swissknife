@@ -3,34 +3,27 @@
  *
  * Sprint 4 / Phase 5.  Two execution paths:
  *
- * 1. **Subprocess `lean`** (when the binary is available): mirrors
- *    ipfs_datasets_py LeanProverBridge — writes a temp .lean file and evaluates.
- *    Works in CI environments that have Lean 4 / Lake installed.
+ * 1. **Injected native runner** (Node/host-only opt-in): callers that need
+ *    `lean`, `lake`, or ix can provide a runner. This module does not import
+ *    child_process, fs, path, os, crypto, or Buffer.
  *
  * 2. **Static analysis fast path**: for policies with no detected contradictions,
  *    the translator produces `theorem policy_consistent : True := trivial` which
  *    we treat as proved without running the binary.
  *
- * 3. **ix ZK-attested path** (Sprint 7b, T-52): When `lake` is available and
- *    the ix CLI is installed, `prove()` can additionally generate a ZK proof
- *    of the Lean 4 typecheck via:
+ * 3. **ix ZK-attested path** (Sprint 7b, T-52): when an ix proof runner is
+ *    explicitly injected, callers can generate a ZK proof of Lean 4 typecheck via:
  *      `lake exe ix compile <file.lean> --out <file.ixe>`  (ix compiler)
  *      `cargo run --release -- --execute --ixe <file.ixe>` (SP1 host)
  *    Returns a `ZKProofArtifact` with `backend: 'sphinx'` alongside the
  *    standard WasmProofResult.
  *
- * lean4web WebSocket embedding is intentionally not implemented here — the
- * lean4web server is a separate infrastructure concern for the browser UI.
+ * lean4web/Lean WASM embedding can be layered behind the same runner contract.
  *
  * ix CLI reference: https://github.com/argumentcomputer/ix
  * Reference: ipfs_datasets_py/logic/external_provers/interactive/lean_prover_bridge.py
  */
 
-import { execFileSync } from 'node:child_process';
-import { writeFileSync, unlinkSync, mkdtempSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
-import { createHash } from 'node:crypto';
 import type { WasmProofResult } from './prover-types.js';
 import type { ZKProofArtifact } from './lurk-wasm-bridge.js';
 import type { Policy } from '../mcp-policy.js';
@@ -40,31 +33,56 @@ import { DeonticToLean4Translator } from './deontic-to-lean4.js';
 // Lean4WasmBridge
 // ---------------------------------------------------------------------------
 
+export interface LeanProcessRunResult {
+  readonly exitCode?: number | null;
+  readonly stdout?: string;
+  readonly stderr?: string;
+  readonly timedOut?: boolean;
+}
+
+export interface LeanProcessRunner {
+  isAvailable?(leanPath: string): boolean;
+  runLean(source: string, options: { leanPath: string; timeoutMs: number }): LeanProcessRunResult;
+}
+
+export interface IxProofRunner {
+  isAvailable?(ixPath?: string): boolean;
+  proveWithIx(
+    leanSource: string,
+    options: { ixPath?: string; timeoutMs: number },
+  ): Promise<ZKProofArtifact | null> | ZKProofArtifact | null;
+}
+
 export class Lean4WasmBridge {
   private readonly translator = new DeonticToLean4Translator();
   private readonly leanPath: string | null;
-  /** Whether a `lean` / `lake` subprocess is available. */
+  private readonly runner?: LeanProcessRunner;
+  /** Whether an injected `lean` runner is available. */
   static subprocessAvailable = false;
 
-  private constructor(leanPath: string | null) {
-    this.leanPath = leanPath;
-    if (leanPath) Lean4WasmBridge.subprocessAvailable = true;
+  private constructor(leanPath: string | null, runner?: LeanProcessRunner) {
+    const requestedPath = leanPath ?? 'lean';
+    const available = Boolean(runner && (runner.isAvailable?.(requestedPath) ?? true));
+    this.leanPath = available ? requestedPath : null;
+    this.runner = available ? runner : undefined;
+    Lean4WasmBridge.subprocessAvailable = available;
   }
 
   /**
    * Create a `Lean4WasmBridge`.
-   * Probes for `lean` / `lake` without blocking.
+   *
+   * @param leanPath Override path to the Lean binary.
+   * @param runner Host/native runner. Omit this in browser builds.
    */
-  static async create(leanPath?: string): Promise<Lean4WasmBridge> {
-    const path = leanPath ?? findLean();
-    return new Lean4WasmBridge(path);
+  static async create(leanPath?: string, runner?: LeanProcessRunner): Promise<Lean4WasmBridge> {
+    return new Lean4WasmBridge(leanPath ?? null, runner);
   }
 
   /**
    * Check policy consistency using Lean 4.
    *
    * Static fast path: trivially-consistent policy → `proved` immediately.
-   * Subprocess path: compiles the `.lean` file with `lean --run` / `lean`.
+   * Injected native path: asks the runner to compile/check the Lean source.
    */
   async checkPolicyConsistency(policy: Policy, timeoutMs = 30_000): Promise<WasmProofResult> {
     const start = Date.now();
@@ -80,8 +98,8 @@ export class Lean4WasmBridge {
       };
     }
 
-    // Subprocess path
-    if (this.leanPath) {
+    // Injected native path
+    if (this.leanPath && this.runner) {
       return this._runLean(script.source, script.theoremName, timeoutMs, start);
     }
 
@@ -91,7 +109,7 @@ export class Lean4WasmBridge {
       reason: 'unknown', prover_id: 'lean4-wasm',
       proof_time_ms: Date.now() - start,
       meta: {
-        unavailable: 'lean binary not found; lean4web browser-only',
+        unavailable: 'lean runner not configured; browser-safe mode',
         script: script.source,
       },
     };
@@ -102,20 +120,20 @@ export class Lean4WasmBridge {
    */
   async prove(leanSource: string, timeoutMs = 30_000): Promise<WasmProofResult> {
     const start = Date.now();
-    if (!this.leanPath) {
+    if (!this.leanPath || !this.runner) {
       return {
         proved: false, sat: false, unsat: false,
         reason: 'unknown', prover_id: 'lean4-wasm',
         proof_time_ms: 0,
-        meta: { unavailable: 'lean not found', script: leanSource.slice(0, 200) },
+        meta: { unavailable: 'lean runner not configured', script: leanSource.slice(0, 200) },
       };
     }
     return this._runLean(leanSource, undefined, timeoutMs, start);
   }
 
-  /** Check whether `lean` subprocess is available. */
-  static isAvailable(): boolean {
-    return findLean() !== null;
+  /** Check whether an injected `lean` runner is available. */
+  static isAvailable(runner?: LeanProcessRunner, leanPath = 'lean'): boolean {
+    return Boolean(runner && (runner.isAvailable?.(leanPath) ?? true));
   }
 
   // ---------------------------------------------------------------------------
@@ -128,24 +146,24 @@ export class Lean4WasmBridge {
     timeoutMs: number,
     start: number,
   ): WasmProofResult {
-    let tmpDir: string | undefined;
-    let tmpFile: string | undefined;
     try {
-      tmpDir = mkdtempSync(join(tmpdir(), 'lean4-bridge-'));
-      tmpFile = join(tmpDir, 'policy.lean');
-      writeFileSync(tmpFile, source, 'utf8');
-
-      // Try `lean --run` for simple scripts first
-      let output = '';
-      try {
-        output = execFileSync(this.leanPath!, ['--run', tmpFile], {
-          timeout: timeoutMs, encoding: 'utf8', stdio: 'pipe',
-        }) as unknown as string;
-      } catch {
-        // Try plain `lean` (older invocation style)
-        output = execFileSync(this.leanPath!, [tmpFile], {
-          timeout: timeoutMs, encoding: 'utf8', stdio: 'pipe',
-        }) as unknown as string;
+      const run = this.runner!.runLean(source, { leanPath: this.leanPath!, timeoutMs });
+      const output = [run.stdout, run.stderr].filter(Boolean).join('\n');
+      if (run.timedOut) {
+        return {
+          proved: false, sat: false, unsat: false,
+          reason: 'timeout', prover_id: 'lean4-wasm',
+          proof_time_ms: Date.now() - start,
+          meta: { output: output.slice(0, 500) },
+        };
+      }
+      if (run.exitCode !== undefined && run.exitCode !== null && run.exitCode !== 0) {
+        return {
+          proved: false, sat: false, unsat: false,
+          reason: 'refuted', prover_id: 'lean4-wasm',
+          proof_time_ms: Date.now() - start,
+          meta: { error: output.slice(0, 500) },
+        };
       }
 
       // PORT-030: Lean can exit 0 even when `sorry` is used (unsound proof)
@@ -175,26 +193,8 @@ export class Lean4WasmBridge {
         proof_time_ms: Date.now() - start,
         meta: { error: msg.slice(0, 500) },
       };
-    } finally {
-      if (tmpFile) { try { unlinkSync(tmpFile); } catch { /* best effort */ } }
     }
   }
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function findLean(): string | null {
-  for (const name of ['lean', 'lake']) {
-    try {
-      execFileSync('which', [name], { stdio: 'pipe', encoding: 'utf8' });
-      return name;
-    } catch {
-      // not found
-    }
-  }
-  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -207,16 +207,8 @@ function findLean(): string | null {
  * ix reference: https://github.com/argumentcomputer/ix
  *   Install: `lake run install` inside the ix repo, or `lake exe ix` to run.
  */
-export function findIxCli(): string | null {
-  for (const name of ['ix']) {
-    try {
-      execFileSync('which', [name], { stdio: 'pipe', encoding: 'utf8' });
-      return name;
-    } catch {
-      // not found — try via lake
-    }
-  }
-  return null;
+export function findIxCli(runner?: IxProofRunner, ixPath = 'ix'): string | null {
+  return runner && (runner.isAvailable?.(ixPath) ?? true) ? ixPath : null;
 }
 
 /**
@@ -238,76 +230,14 @@ export async function proveWithIx(
   leanSource: string,
   ixPath?: string,
   timeoutMs = 120_000,
+  runner?: IxProofRunner,
 ): Promise<ZKProofArtifact | null> {
-  const ix = ixPath ?? findIxCli();
-  if (!ix) return null;
-
-  let tmpDir: string | undefined;
+  if (!runner) return null;
+  if (!(runner.isAvailable?.(ixPath) ?? true)) return null;
   try {
-    tmpDir = mkdtempSync(join(tmpdir(), 'ix-proof-'));
-    const leanFile = join(tmpDir, 'theorem.lean');
-    const ixeFile = join(tmpDir, 'theorem.ixe');
-
-    writeFileSync(leanFile, leanSource, 'utf8');
-
-    // Step 1: compile Lean → .ixe
-    try {
-      execFileSync('lake', ['exe', ix, 'compile', leanFile, '--out', ixeFile], {
-        timeout: timeoutMs / 2,
-        encoding: 'utf8',
-        stdio: 'pipe',
-      });
-    } catch {
-      // Try direct ix binary
-      execFileSync(ix, ['compile', leanFile, '--out', ixeFile], {
-        timeout: timeoutMs / 2,
-        encoding: 'utf8',
-        stdio: 'pipe',
-      });
-    }
-
-    if (!existsSync(ixeFile)) return null;
-
-    // Step 2: execute (prove) with SP1
-    const start = Date.now();
-    let executeOutput = '';
-    try {
-      executeOutput = execFileSync(ix, ['execute', '--ixe', ixeFile], {
-        timeout: timeoutMs / 2,
-        encoding: 'utf8',
-        stdio: 'pipe',
-      }) as string;
-    } catch {
-      // Try via lake
-      executeOutput = execFileSync('lake', ['exe', ix, 'execute', '--ixe', ixeFile], {
-        timeout: timeoutMs / 2,
-        encoding: 'utf8',
-        stdio: 'pipe',
-      }) as string;
-    }
-    const proof_time_ms = Date.now() - start;
-
-    // Compute a content-addressed CID for the proof artifact
-    const proofBytes = Buffer.from(executeOutput, 'utf8');
-    const artifact_cid = `sha256:${createHash('sha256').update(proofBytes).digest('hex')}`;
-
-    return {
-      backend: 'sphinx',
-      statement: leanSource.slice(0, 200),
-      proof_b64: proofBytes.toString('base64').slice(0, 200), // truncated for wire format
-      vk_cid: 'sha256:' + '0'.repeat(64), // placeholder VK CID until ix publishes VKs
-      public_inputs: [],
-      artifact_cid,
-      proof_time_ms,
-      lurk_expr: undefined,
-    };
+    return await runner.proveWithIx(leanSource, { ixPath, timeoutMs });
   } catch {
     return null;
-  } finally {
-    if (tmpDir) {
-      try { unlinkSync(join(tmpDir, 'theorem.lean')); } catch { /* best effort */ }
-      try { unlinkSync(join(tmpDir, 'theorem.ixe')); } catch { /* best effort */ }
-    }
   }
 }
 
