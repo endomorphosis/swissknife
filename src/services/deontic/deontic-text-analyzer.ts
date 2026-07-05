@@ -28,6 +28,7 @@ export interface DeonticStatement {
   readonly id: string;
   readonly entity: string;
   readonly modality: DeonticModality;
+  readonly proposition?: string;
   readonly action: string;
   /** Source identifier (document title, URL, etc.). */
   readonly source: string;
@@ -233,18 +234,20 @@ export class DeonticTextAnalyzer {
     s2: DeonticStatement,
     types: ConflictType[] = ['direct', 'conditional', 'jurisdictional', 'temporal'],
   ): DeonticConflict | null {
+    const proposition1 = this.statementProposition(s1);
+    const proposition2 = this.statementProposition(s2);
     const entity1 = s1.entity.toLowerCase();
     const entity2 = s2.entity.toLowerCase();
     if (entity1 !== entity2) return null;
 
     const entity = s1.entity;
-    const similar = this.actionsAreSimilar(s1.action, s2.action);
+    const similar = this.actionsAreSimilar(proposition1, proposition2);
 
     // Direct: same entity, similar action, opposing modalities
     if (types.includes('direct') && similar) {
       if (this._opposingModalities(s1.modality, s2.modality)) {
         return this._makeConflict('direct', 'high', s1, s2, entity,
-          `Direct conflict: ${entity} ${s1.modality} vs ${s2.modality} "${s1.action}"`,
+          `Direct conflict: ${entity} ${s1.modality} vs ${s2.modality} "${proposition1}"`,
           `Resolve by precedence rule or by limiting scope of one norm.`);
       }
     }
@@ -273,6 +276,10 @@ export class DeonticTextAnalyzer {
     }
 
     return null;
+  }
+
+  private statementProposition(statement: DeonticStatement): string {
+    return statement.proposition ?? statement.action;
   }
 
   // ---------------------------------------------------------------------------

@@ -186,6 +186,11 @@ export interface ScaffoldQualityResult {
 export function scoreScaffoldQuality(
   element: Record<string, unknown>,
 ): ScaffoldQualityResult {
+  const slotValue = (slot: string): unknown => {
+    if (slot === 'action') return element['action'] ?? element['proposition'];
+    return element[slot];
+  };
+
   const warnings: string[] = [];
   const normType = element['norm_type'] as string | undefined;
 
@@ -200,7 +205,7 @@ export function scoreScaffoldQuality(
 
   let filled = 0;
   for (const slot of requiredSlots) {
-    const val = element[slot];
+    const val = slotValue(slot);
     const present = Array.isArray(val) ? (val as unknown[]).some(Boolean) : Boolean(val);
     if (present) {
       filled++;

@@ -235,7 +235,15 @@ function collectBlockers(norm: LegalNormIR, missingSlots: string[], blockedTarge
 }
 
 function slotFilled(norm: LegalNormIR, slot: string): boolean {
-  const value = (norm as unknown as Record<string, unknown>)[slot];
+  const record = norm as unknown as Record<string, unknown>;
+  const hasValue = (candidate: unknown): boolean => {
+    if (Array.isArray(candidate)) return candidate.length > 0;
+    if (typeof candidate === 'string') return candidate.trim().length > 0;
+    return candidate !== null && candidate !== undefined;
+  };
+  const value = slot === 'action'
+    ? (hasValue(record['action']) ? record['action'] : record['proposition'])
+    : record[slot];
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === 'string') return value.trim().length > 0;
   if (typeof value === 'number') return Number.isFinite(value);

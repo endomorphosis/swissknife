@@ -28,6 +28,7 @@ import {
 } from '../../src/services/deontic/legal-norm-ir';
 import {
   activeRepairDetailsFromParserElements,
+  buildDeterministicParserCapabilityProfileRecord,
   buildDecoderRecordFromIR,
   buildDecoderRecordsFromIRs,
   buildDecoderSlotGroundingAuditRecord,
@@ -174,6 +175,26 @@ describe('PORT-199 Phase-8 parser QA metrics', () => {
     const report = buildPhase8ParserQualityReport([ready, needsRepair], { requiredSlots: ['actor', 'action'] });
     expect(report.topMissingSlots[0]).toEqual({ slot: 'actor', count: 1 });
     expect(report.repairQueue.map(item => item.sourceId)).toContain('metric-repair');
+  });
+
+  it('counts proposition alias as filling required action slots in metrics', () => {
+    const propositionOnly = {
+      ...buildLegalNormIR({
+        source_id: 'metric-alias',
+        modality: 'O',
+        actor: 'Users',
+        action: '',
+        quality: { ...emptyQuality(), schema_valid: true },
+      }),
+      proposition: 'log access',
+    } as unknown as ReturnType<typeof buildLegalNormIR>;
+
+    const record = buildPhase8ParserMetricRecord(propositionOnly, {
+      requiredSlots: ['actor', 'action'],
+    });
+    expect(record.filledSlots).toEqual(['actor', 'action']);
+    expect(record.missingSlots).toEqual([]);
+    expect(record.slotCoverage).toBe(1);
   });
 });
 
@@ -352,6 +373,30 @@ describe('PORT-214 direct deontic export records', () => {
     }]);
     expect(tables.decoder_reconstructions).toHaveLength(1);
     expect(validateExportTables(tables).valid).toBe(true);
+  });
+
+  it('treats proposition/action as equivalent required slots in export metrics', () => {
+    const capability = buildDeterministicParserCapabilityProfileRecord({
+      sourceId: 'alias-1',
+      normType: 'obligation',
+      modality: 'O',
+      formula: 'O(Agency, NotifyAgency)',
+      actor: 'Agency',
+      proposition: 'notify agency',
+    }, ['actor', 'action']);
+
+    expect(capability.groundedSlots).toEqual(['actor', 'action']);
+    expect(capability.missingSlots).toEqual([]);
+    expect(capability.sourceGroundedSlotRate).toBe(1);
+
+    const reconstruction = summarizeReconstructionSlotLoss([
+      {
+        source_id: 'alias-1',
+        grounded_slots: ['actor', 'proposition'],
+      },
+    ], ['actor', 'action']);
+    expect(reconstruction.slot_reconstruction_complete).toBe(true);
+    expect(reconstruction.missing_required_slots).toEqual([]);
   });
 
   it('classifies decoder-blocking parser warnings like the Python IR helper', () => {

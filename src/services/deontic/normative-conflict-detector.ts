@@ -19,6 +19,7 @@ export interface NormElement {
   readonly norm_type?:        string;
   readonly deontic_operator?: string;
   readonly subject?:          string | string[];
+  readonly proposition?:      string | string[];
   readonly action?:           string | string[];
   readonly conditions?:       Array<Record<string, unknown>>;
   readonly temporal_constraints?: Array<Record<string, unknown>>;
@@ -152,8 +153,8 @@ function _checkConflictPair(
   const op1 = (e1.deontic_operator ?? nt1).toUpperCase();
   const op2 = (e2.deontic_operator ?? nt2).toUpperCase();
 
-  const action1 = _firstText(e1.action).toLowerCase().trim();
-  const action2 = _firstText(e2.action).toLowerCase().trim();
+  const action1 = _firstText(e1.proposition ?? e1.action).toLowerCase().trim();
+  const action2 = _firstText(e2.proposition ?? e2.action).toLowerCase().trim();
   const subject1 = _firstText(e1.subject).toLowerCase().trim();
   const subject2 = _firstText(e2.subject).toLowerCase().trim();
 
