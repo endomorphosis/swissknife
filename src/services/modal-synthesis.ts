@@ -12,7 +12,7 @@
  *   residualSignatureForHint()  — stable signature for clustering hints
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // ModalResidualRepairRoute
@@ -200,7 +200,7 @@ export function residualSignatureForHint(hint: ModalProgramSynthesisHint): strin
     hint_status:     hint.status ?? 'proposed',
   };
   const json = JSON.stringify(payload, null, 0);
-  return createHash('sha256').update(json, 'utf8').digest('hex').slice(0, 24);
+  return sha256Hex(json).slice(0, 24);
 }
 
 // ---------------------------------------------------------------------------
@@ -215,10 +215,7 @@ export function synthesisHintFromRoute(
   route: ModalResidualRepairRoute,
   evidence?: Record<string, unknown>,
 ): ModalProgramSynthesisHint {
-  const hintId = createHash('sha256')
-    .update(`${lossName}:${route.action}:${route.targetComponent}`, 'utf8')
-    .digest('hex')
-    .slice(0, 16);
+  const hintId = sha256Hex(`${lossName}:${route.action}:${route.targetComponent}`).slice(0, 16);
   return new ModalProgramSynthesisHint({
     hintId,
     action: route.action,

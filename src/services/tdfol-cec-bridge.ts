@@ -13,7 +13,7 @@
  *   createEnhancedProver() — factory
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // TDFOLCECBridgeAxiom
@@ -176,7 +176,7 @@ export class EnhancedTDFOLProver {
 
   /** Generate a stable proof ID for a formula. */
   static proofId(formula: string): string {
-    return createHash('sha256').update(formula, 'utf8').digest('hex').slice(0, 16);
+    return sha256Hex(formula).slice(0, 16);
   }
 }
 

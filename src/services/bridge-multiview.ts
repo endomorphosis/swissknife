@@ -12,11 +12,11 @@
  *   evaluateLegalIRMultiview() — run all adapters and aggregate
  */
 
-import { createHash } from 'node:crypto';
 import {
   LegalIRDocument, LegalIRDocumentInit, LogicIRView,
   BridgeEvaluationReport, RoundTripMetrics,
 } from './bridge-types.js';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Adapter interface
@@ -295,7 +295,7 @@ export function evaluateLegalIRMultiview(
   const bridgeNames = adapters.map(a => a.name);
   const resolvedDocId =
     opts.documentId ??
-    `multiview:${createHash('sha256').update(text.slice(0, 512), 'utf8').digest('hex').slice(0, 16)}`;
+    `multiview:${sha256Hex(text.slice(0, 512)).slice(0, 16)}`;
 
   const reports: Record<string, BridgeEvaluationReport> = {};
   const failures: Record<string, string> = {};

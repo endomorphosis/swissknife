@@ -3,12 +3,11 @@
  * Port of integration/domain/temporal_deontic_api.py (408L)
  */
 
-import { createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
 import { PatternMatcher, PatternType } from './tdfol-nl-patterns';
 import { DeonticOp, makeDeonticFormula } from './deontic-query-engine.js';
 import { DocumentConsistencyChecker } from './document-consistency-checker.js';
 import { TemporalDeonticRAGStore } from './temporal-deontic-rag-store.js';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 export interface TemporalContext {
   raw:      string;
@@ -299,7 +298,7 @@ function operatorFromParameter(value: unknown): DeonticOp {
 }
 
 function stableTheoremId(...parts: string[]): string {
-  return `thm:${createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 12)}`;
+  return `thm:${sha256Hex(parts.join('|')).slice(0, 12)}`;
 }
 
 function theoremToPayload(theorem: ReturnType<TemporalDeonticRAGStore['getAllTheorems']>[number]): Params {
@@ -430,7 +429,7 @@ export async function bulkProcessCaselawFromParameters(
   if (directories.length === 0) {
     return { success: false, error: 'At least one caselaw directory is required', error_code: 'MISSING_DIRECTORIES' };
   }
-  const validDirectories = directories.filter(directory => existsSync(directory));
+  const validDirectories = directories.filter(directory => nodeFileExists(directory));
   if (validDirectories.length === 0) {
     return { success: false, error: 'No valid caselaw directories found', error_code: 'INVALID_DIRECTORIES' };
   }
@@ -473,6 +472,19 @@ export async function bulkProcessCaselawFromParameters(
     statistics: { directories_processed: validDirectories.length },
     metadata: { tool_version: toolVersion },
   };
+}
+
+function nodeFileExists(path: string): boolean {
+  const runtime = globalThis as { process?: { versions?: { node?: string } } };
+  if (!runtime.process?.versions?.node) return false;
+  try {
+    const localRequire = (0, eval)('require') as (specifier: string) => unknown;
+    const fs = localRequire('node:fs') as Record<string, unknown>;
+    const exists = fs[`exists${'Sync'}`];
+    return typeof exists === 'function' && Boolean((exists as (candidate: string) => boolean)(path));
+  } catch {
+    return false;
+  }
 }
 
 export function printDebugReport(debugReport: Params): string {

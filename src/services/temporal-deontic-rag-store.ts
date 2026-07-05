@@ -11,9 +11,9 @@
  *   TemporalDeonticRAGStore — add/remove/findRelevant/checkConsistency
  */
 
-import { createHash } from 'node:crypto';
 import { DeonticFormula, DeonticOp, makeDeonticFormula } from './deontic-query-engine.js';
 import { buildDeterministicEmbedding } from './embedding-prover.js';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 function formulaProposition(formula: DeonticFormula): string {
   return formula.proposition ?? formula.action;
@@ -95,10 +95,7 @@ export class TheoremMetadata {
   /** Stable hash for deduplication. */
   hash(): string {
     const proposition = formulaProposition(this.formula);
-    return createHash('sha256')
-      .update(`${this.theoremId}:${proposition}:${this.formula.operator}`)
-      .digest('hex')
-      .slice(0, 16);
+    return sha256Hex(`${this.theoremId}:${proposition}:${this.formula.operator}`).slice(0, 16);
   }
 
   toDict(): Record<string, unknown> {
@@ -316,7 +313,7 @@ export class TemporalDeonticRAGStore {
     proposition: string,
     opts: { jurisdiction?: string; legalDomain?: string; sourceCase?: string; precedentStrength?: number } = {},
   ): TheoremMetadata {
-    const formulaId = `thm:${createHash('sha256').update(`${operator}:${agent}:${proposition}`).digest('hex').slice(0, 8)}`;
+    const formulaId = `thm:${sha256Hex(`${operator}:${agent}:${proposition}`).slice(0, 8)}`;
     const formula = makeDeonticFormula(operator, agent, proposition, { formulaId });
     return new TheoremMetadata({
       theoremId: formulaId,

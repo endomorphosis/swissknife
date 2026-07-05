@@ -11,7 +11,7 @@
  *   DeterministicModalLogicCodec — encode(text) → ModalLogicCodecResult
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // ModalLogicCodecConfig
@@ -240,7 +240,7 @@ function round6(value: number): number {
 }
 
 export function stableMockEmbedding(text: string, dimensions = 8): number[] {
-  const digest = createHash('sha256').update(String(text ?? ''), 'utf8').digest('hex').slice(0, 16);
+  const digest = sha256Hex(String(text ?? '')).slice(0, 16);
   const rng = new PythonRandom(BigInt(`0x${digest}`));
   return Array.from({ length: dimensions }, () => round6(rng.uniform(-1.0, 1.0)));
 }

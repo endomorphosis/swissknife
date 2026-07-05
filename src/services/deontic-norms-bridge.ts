@@ -9,18 +9,18 @@
  *   DeonticNormsBridgeAdapter — encode(text) → {doc, context}
  */
 
-import { createHash } from 'node:crypto';
 import {
   LegalIRDocument, LogicIRView,
   RoundTripMetrics, ProofGateResult, GraphProjectionResult, BridgeEvaluationReport,
 } from './bridge-types.js';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function documentId(prefix: string, text: string): string {
-  return `${prefix}:${createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 16)}`;
+  return `${prefix}:${sha256Hex(text).slice(0, 16)}`;
 }
 
 export interface DeonticSourceIdCarrier {
@@ -1105,7 +1105,7 @@ function canonicalProjectionTriples(
 }
 
 function nodeId(flogicId: string): string {
-  const digest = createHash('sha256').update(flogicId, 'utf8').digest('hex').slice(0, 20);
+  const digest = sha256Hex(flogicId).slice(0, 20);
   return `flogic-node-${digest}`;
 }
 
@@ -1115,7 +1115,7 @@ function relationshipIdentityKey(subject: string, predicate: string, object: str
 
 function relationshipId(index: number, subject: string, predicate: string, object: string): string {
   const payload = `${relationshipIdentityKey(subject, predicate, object)}\x1f${index}`;
-  const digest = createHash('sha256').update(payload, 'utf8').digest('hex').slice(0, 20);
+  const digest = sha256Hex(payload).slice(0, 20);
   return `flogic-rel-${digest}`;
 }
 

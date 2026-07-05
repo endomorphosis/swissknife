@@ -13,7 +13,7 @@
  *   flogicOntologyToDict()                   — ontology → plain object
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Neo4j migration types
@@ -137,10 +137,7 @@ function nodeId(value: string): string {
 }
 
 function relId(index: number, subject: string, predicate: string, obj: string): string {
-  const h = createHash('sha256')
-    .update(`${subject}|${predicate}|${obj}`, 'utf8')
-    .digest('hex')
-    .slice(0, 8);
+  const h = sha256Hex(`${subject}|${predicate}|${obj}`).slice(0, 8);
   return `rel_${index}_${h}`;
 }
 
@@ -171,7 +168,7 @@ export function flogicTriplesToGraphData(
   triples: Array<Record<string, unknown>>,
   opts: { graphId?: string; metadata?: Record<string, unknown> } = {},
 ): GraphData {
-  const graphId = opts.graphId ?? `flogic:${createHash('sha256').update(JSON.stringify(triples).slice(0, 512)).digest('hex').slice(0, 12)}`;
+  const graphId = opts.graphId ?? `flogic:${sha256Hex(JSON.stringify(triples).slice(0, 512)).slice(0, 12)}`;
   const nodeMap = new Map<string, NodeData>();
   const relationships: RelationshipData[] = [];
 

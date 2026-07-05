@@ -13,7 +13,7 @@
  *   BridgeEvaluationReport — aggregated report from a bridge adapter run
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -131,7 +131,7 @@ export class LegalIRDocument {
   }
 
   canonicalHash(): string {
-    return createHash('sha256').update(this.toJson(), 'utf8').digest('hex');
+    return sha256Hex(this.toJson());
   }
 }
 

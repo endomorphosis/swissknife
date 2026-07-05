@@ -9,11 +9,11 @@
  *   CecDcecBridgeAdapter   — encode(text) → {doc, context}
  */
 
-import { createHash } from 'node:crypto';
 import {
   LegalIRDocument, LogicIRView,
   RoundTripMetrics, ProofGateResult, GraphProjectionResult, BridgeEvaluationReport,
 } from './bridge-types.js';
+import { sha256Hex } from './provers/browser-crypto.js';
 import {
   deonticGraphDataFromFrameTriples,
   type DeonticFrameLogicTriple,
@@ -25,7 +25,7 @@ import {
 // ---------------------------------------------------------------------------
 
 function documentId(prefix: string, text: string): string {
-  return `${prefix}:${createHash('sha256').update(text.slice(0, 512), 'utf8').digest('hex').slice(0, 16)}`;
+  return `${prefix}:${sha256Hex(text.slice(0, 512)).slice(0, 16)}`;
 }
 
 function normalize(text: string): string {
@@ -103,7 +103,7 @@ function renderCecFormula(rec: Omit<DcecRecord, 'cec_formula'>): string {
 // ---------------------------------------------------------------------------
 
 function stableShortHash(text: string): string {
-  return createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 16);
+  return sha256Hex(text).slice(0, 16);
 }
 
 function symbolToken(text: unknown, fallback: string): string {
