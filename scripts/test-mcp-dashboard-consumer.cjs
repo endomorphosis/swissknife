@@ -3025,12 +3025,12 @@ assert(
   vai649Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-650-daemon-launch-health-gate.md',
   'VAI-649 launch gate must point at the packet sibling daemon launch gate receipt',
 );
-assert(vai649Gate?.attempt === 1, 'VAI-649 launch gate must preserve the attempt-1 validation receipt number');
+assert(vai649Gate?.attempt === 2, 'VAI-649 launch gate must preserve the attempt-2 validation receipt number');
 assert(
   JSON.stringify(vai649Gate?.attempt_receipts || []) === JSON.stringify([
-    'data/virtual_ai_os/discovery/2026-07-05-vai-649-attempt-1-launch-playwright-validation-gate.md',
+    'data/virtual_ai_os/discovery/2026-07-05-vai-649-attempt-2-launch-playwright-validation-gate.md',
   ]),
-  'VAI-649 launch gate must expose the attempt-1 launch Playwright validation receipt',
+  'VAI-649 launch gate must expose the attempt-2 launch Playwright validation receipt',
 );
 assert(
   JSON.stringify(vai649Gate?.required_evidence || []) === JSON.stringify(vai649LaunchGateReceipt.required_evidence),
