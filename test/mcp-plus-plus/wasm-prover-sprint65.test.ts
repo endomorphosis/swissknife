@@ -17,9 +17,9 @@ import {
   stripWhitespace, stripComments, consolidateParens, checkParens, getMatchingCloseParen,
   DeonticPatterns, extractKeywords, calculateTextSimilarity, areEntitiesSimilar, areActionsSimilar,
   WitnessManager,
-  EProverAdapter, checkEproverInstallation, EProverProofResult,
+  EProverAdapter, checkEproverInstallation, EProverProofResult, type EProverProcessResult,
 } from '../../src/services/sprint65-utils';
-import { Groth16BackendFallback } from '../../src/services/zkp-backends';
+import { Groth16BackendFallback, Groth16Proof } from '../../src/services/zkp-backends';
 
 // ---------------------------------------------------------------------------
 // IPFSProofStorage
@@ -307,6 +307,18 @@ describe('WitnessManager', () => {
     expect(wm.getStats().generated).toBe(1);
     expect(wm.getStats().verified).toBe(1);
   });
+
+  it('fails verification when backend verifyProof returns false', async () => {
+    const wm = new WitnessManager({
+      async generateProof() {
+        return new Groth16Proof(new Uint8Array([0, 1]), {}, { backend: 'fake' }, Date.now(), 2);
+      },
+      async verifyProof() { return false; },
+    });
+    const rec = await wm.generateWitness('X');
+    expect(await wm.verifyWitness(rec.witnessId)).toBe(false);
+    expect(wm.getStats().failures).toBe(1);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -332,6 +344,20 @@ describe('EProverAdapter', () => {
     await adapter.prove('Q');
     await adapter.prove('R');
     expect(adapter.getStats().totalProofs).toBe(2);
+  });
+
+  it('runs real eprover runner path when available', async () => {
+    const runner = (_command: string, _args: string[], _input: string, _timeoutMs: number): EProverProcessResult => ({
+      status: 0,
+      stdout: '% SZS status Theorem\nfof(step_1, plain, p).',
+      stderr: '',
+    });
+    const adapter = new EProverAdapter({ availabilityCheck: () => true, runner, binary: 'eprover' });
+    const result = await adapter.prove('p');
+    expect(result.isProved).toBe(true);
+    expect(result.status).toBe('SZS_Theorem');
+    expect(result.proofSteps.length).toBeGreaterThan(0);
+    expect(result.error).toBeUndefined();
   });
 
   it('checkEproverInstallation returns boolean', () => {

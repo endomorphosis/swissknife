@@ -15,7 +15,7 @@ import {
 
 import {
   StrategySelector,
-  VampireAdapter, checkVampireInstallation,
+  VampireAdapter, checkVampireInstallation, type VampireProcessResult,
   UtilityMonitor, trackPerformance, withCaching, getGlobalStats, clearGlobalCache, resetGlobalStats,
   normalizeProverName, findExecutable, isLazyInstallEnabled, lazyInstallProver,
 } from '../../src/services/sprint66-prover-utils';
@@ -210,6 +210,20 @@ describe('VampireAdapter', () => {
 
   it('checkVampireInstallation returns boolean', () => {
     expect(typeof checkVampireInstallation()).toBe('boolean');
+  });
+
+  it('uses runner output when vampire is available', async () => {
+    const runner = (_command: string, _args: string[], _input: string, _timeoutMs: number): VampireProcessResult => ({
+      status: 0,
+      stdout: '% SZS status Unsatisfiable\nfof(step_1, plain, p).',
+      stderr: '',
+    });
+    const adapter = new VampireAdapter({ availabilityCheck: () => true, runner, binary: 'vampire' });
+    const result = await adapter.prove('p');
+    expect(result.isProved).toBe(true);
+    expect(result.status).toBe('SZS_Unsatisfiable');
+    expect(result.proof).toContain('fof(step_1, plain, p).');
+    expect(result.error).toBeUndefined();
   });
 });
 

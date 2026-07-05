@@ -5,6 +5,8 @@
  *           common/utility_monitor.py (231L),
  *           external_provers/lazy_installer.py (229L)
  */
+import { spawnSync } from 'node:child_process';
+import { createTptpProblem, extractTptpProofSteps, parseSzsStatus } from './tptp-problem';
 
 // ---------------------------------------------------------------------------
 // T-308a — Strategy Selector (strategy_selector.py)
@@ -68,15 +70,78 @@ export interface VampireProofResult {
 
 export interface VampireStats { totalProofs: number; succeeded: number; failed: number; avgCpuTime: number }
 
+export interface VampireProcessResult {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr?: string;
+  readonly signal?: string | null;
+  readonly error?: string;
+}
+
+export type VampireRunner = (
+  command: string,
+  args: string[],
+  input: string,
+  timeoutMs: number,
+) => VampireProcessResult;
+
+export interface VampireAdapterOptions {
+  binary?: string;
+  runner?: VampireRunner;
+  availabilityCheck?: () => boolean;
+}
+
+function defaultVampireRunner(command: string, args: string[], input: string, timeoutMs: number): VampireProcessResult {
+  const result = spawnSync(command, args, { input, timeout: timeoutMs, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+  return {
+    status: result.status,
+    stdout: result.stdout ?? '',
+    stderr: result.stderr ?? '',
+    signal: result.signal,
+    error: result.error?.message,
+  };
+}
+
+function commandAvailable(command: string, args: string[]): boolean {
+  const result = spawnSync(command, args, { encoding: 'utf8', timeout: 2_000 });
+  return !result.error && (result.status === 0 || result.status === null);
+}
+
+function ensureTptpInput(tptpInput: string): string {
+  if (/^\s*(?:fof|cnf)\(/i.test(tptpInput)) return tptpInput;
+  return createTptpProblem({ name: 'vampire_problem', conjectures: [tptpInput] });
+}
+
+function szsStatusToResult(status: string | undefined): { proved: boolean; status: string } {
+  switch ((status ?? '').toLowerCase()) {
+    case 'theorem':
+    case 'unsatisfiable':
+    case 'contradictoryaxioms':
+      return { proved: true, status: `SZS_${status}` };
+    case 'satisfiable':
+    case 'countersatisfiable':
+    case 'gaveup':
+    case 'timeout':
+    case 'resourceout':
+    case 'unknown':
+      return { proved: false, status: `SZS_${status}` };
+    default:
+      return { proved: false, status: 'SZS_Unknown' };
+  }
+}
+
 export class VampireAdapter {
   private readonly stats: VampireStats = { totalProofs: 0, succeeded: 0, failed: 0, avgCpuTime: 0 };
+  private readonly binary: string;
+  private readonly runner: VampireRunner;
+
+  constructor(private readonly opts: VampireAdapterOptions = {}) {
+    this.binary = opts.binary ?? 'vampire';
+    this.runner = opts.runner ?? defaultVampireRunner;
+  }
 
   isAvailable(): boolean {
-    try {
-      const { execSync } = require('child_process') as { execSync: (cmd: string) => string };
-      execSync('vampire --version 2>/dev/null');
-      return true;
-    } catch { return false; }
+    return this.opts.availabilityCheck ? this.opts.availabilityCheck() : commandAvailable(this.binary, ['--version']);
   }
 
   async prove(tptpInput: string, timeoutSec = 30): Promise<VampireProofResult> {
@@ -88,10 +153,30 @@ export class VampireAdapter {
       return { isProved: false, status: 'SZS_GaveUp', proof: '', cpuTime: 0, error: 'Vampire binary not found' };
     }
 
-    this.stats.failed++;
+    const timeoutMs = Math.max(1, timeoutSec) * 1000;
+    const result = this.runner(
+      this.binary,
+      ['--mode', 'casc', '--input_syntax', 'tptp', '--proof', 'tptp', '--time_limit', String(Math.max(1, Math.ceil(timeoutSec)))],
+      ensureTptpInput(tptpInput),
+      timeoutMs,
+    );
+    const output = [result.stdout, result.stderr ?? ''].filter(Boolean).join('\n');
+    const szsStatus = parseSzsStatus(output);
+    const mapped = szsStatusToResult(szsStatus);
+    const proofSteps = extractTptpProofSteps(output);
+    const proof = proofSteps.length > 0 ? proofSteps.join('\n') : output;
+    const error = result.error ?? (result.status && result.status !== 0 && !output ? `Vampire exited with status ${result.status}` : undefined);
     const cpuTime = (performance.now() - t0) / 1000;
     this._updateAvg(cpuTime);
-    return { isProved: false, status: 'SZS_GaveUp', proof: '', cpuTime, error: 'Vampire FFI not bound' };
+    if (mapped.proved && !error) this.stats.succeeded++;
+    else this.stats.failed++;
+    return {
+      isProved: mapped.proved && !error,
+      status: mapped.status,
+      proof,
+      cpuTime,
+      ...(error ? { error } : {}),
+    };
   }
 
   getStats(): Readonly<VampireStats> { return { ...this.stats }; }
@@ -177,9 +262,10 @@ export function normalizeProverName(name: string): string {
 
 export function findExecutable(command: string): string | null {
   try {
-    const { execSync } = require('child_process') as { execSync: (cmd: string) => string };
-    const path = execSync(`which ${command} 2>/dev/null`).trim();
-    return path || null;
+    const result = spawnSync('which', [command], { encoding: 'utf8', timeout: 2_000 });
+    if (result.error || result.status !== 0) return null;
+    const path = String(result.stdout ?? '').trim();
+    return path.length > 0 ? path : null;
   } catch { return null; }
 }
 

@@ -7,6 +7,8 @@
  *           CEC/provers/e_prover_adapter.py (263L)
  */
 
+import { spawnSync } from 'node:child_process';
+import { createTptpProblem, extractTptpProofSteps, parseSzsStatus } from './tptp-problem';
 import { Groth16Backend, type ZKPBackendProtocol } from './zkp-backends';
 
 // ---------------------------------------------------------------------------
@@ -192,8 +194,9 @@ export class WitnessManager {
     const record = this.witnesses.get(witnessId);
     if (!record) { this.stats.failures++; return false; }
     this.stats.verified++;
-    // Simulated verification: always true for stored witnesses
-    return true;
+    const verified = await this.backend.verifyProof(JSON.stringify(record.witness));
+    if (!verified) this.stats.failures++;
+    return verified;
   }
 
   getWitness(witnessId: string): WitnessRecord | null { return this.witnesses.get(witnessId) ?? null; }
@@ -214,16 +217,82 @@ export interface EProverProofResult {
 
 export interface EProverStats { totalProofs: number; succeeded: number; failed: number; avgCpuTime: number }
 
+export interface EProverProcessResult {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr?: string;
+  readonly signal?: string | null;
+  readonly error?: string;
+}
+
+export type EProverRunner = (
+  command: string,
+  args: string[],
+  input: string,
+  timeoutMs: number,
+) => EProverProcessResult;
+
+export interface EProverOptions {
+  binary?: string;
+  runner?: EProverRunner;
+  availabilityCheck?: () => boolean;
+}
+
+function defaultEProverRunner(command: string, args: string[], input: string, timeoutMs: number): EProverProcessResult {
+  const result = spawnSync(command, args, { input, timeout: timeoutMs, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+  return {
+    status: result.status,
+    stdout: result.stdout ?? '',
+    stderr: result.stderr ?? '',
+    signal: result.signal,
+    error: result.error?.message,
+  };
+}
+
+function commandAvailable(command: string, args: string[]): boolean {
+  const result = spawnSync(command, args, { encoding: 'utf8', timeout: 2_000 });
+  return !result.error && (result.status === 0 || result.status === null);
+}
+
+function ensureTptpProblem(formula: string, axioms: string[]): string {
+  if (/^\s*(?:fof|cnf)\(/i.test(formula)) return formula;
+  return createTptpProblem({
+    name: 'eprover_problem',
+    axioms: axioms.map((axiom, index) => ({ name: `ax_${index + 1}`, role: 'axiom', formula: axiom })),
+    conjectures: [{ name: 'goal_1', role: 'conjecture', formula }],
+  });
+}
+
+function szsStatusToResult(status: string | undefined): { proved: boolean; status: string } {
+  switch ((status ?? '').toLowerCase()) {
+    case 'theorem':
+    case 'unsatisfiable':
+    case 'contradictoryaxioms':
+      return { proved: true, status: `SZS_${status}` };
+    case 'satisfiable':
+    case 'countersatisfiable':
+    case 'gaveup':
+    case 'timeout':
+    case 'resourceout':
+    case 'unknown':
+      return { proved: false, status: `SZS_${status}` };
+    default:
+      return { proved: false, status: 'SZS_Unknown' };
+  }
+}
+
 export class EProverAdapter {
   private readonly stats: EProverStats = { totalProofs: 0, succeeded: 0, failed: 0, avgCpuTime: 0 };
+  private readonly binary: string;
+  private readonly runner: EProverRunner;
+
+  constructor(private readonly opts: EProverOptions = {}) {
+    this.binary = opts.binary ?? 'eprover';
+    this.runner = opts.runner ?? defaultEProverRunner;
+  }
 
   isAvailable(): boolean {
-    // E prover requires native binary
-    try {
-      const { execSync } = require('child_process') as { execSync: (cmd: string) => string };
-      execSync('eprover --version 2>/dev/null');
-      return true;
-    } catch { return false; }
+    return this.opts.availabilityCheck ? this.opts.availabilityCheck() : commandAvailable(this.binary, ['--version']);
   }
 
   async prove(formula: string, axioms: string[] = [], timeoutMs = 10_000): Promise<EProverProofResult> {
@@ -235,11 +304,34 @@ export class EProverAdapter {
       return { isProved: false, status: 'GaveUp', proofSteps: [], cpuTime: 0, error: 'E prover binary not found' };
     }
 
-    // Real call: spawn eprover with TPTP input
-    this.stats.failed++;
+    const input = ensureTptpProblem(formula, axioms);
+    const result = this.runner(
+      this.binary,
+      ['--auto', '--tstp-in', '--tstp-out', `--cpu-limit=${Math.max(1, Math.ceil(timeoutMs / 1000))}`],
+      input,
+      timeoutMs,
+    );
+    const output = [result.stdout, result.stderr ?? ''].filter(Boolean).join('\n');
+    const szsStatus = parseSzsStatus(output);
+    const mapped = szsStatusToResult(szsStatus);
+    const proofSteps = extractTptpProofSteps(output);
+    const error = result.error ?? (result.status && result.status !== 0 && !output ? `E prover exited with status ${result.status}` : undefined);
     const cpuTime = (performance.now() - t0) / 1000;
     this._updateAvg(cpuTime);
-    return { isProved: false, status: 'GaveUp', proofSteps: [], cpuTime, error: 'E prover FFI not bound' };
+
+    if (mapped.proved && !error) {
+      this.stats.succeeded++;
+    } else {
+      this.stats.failed++;
+    }
+
+    return {
+      isProved: mapped.proved && !error,
+      status: mapped.status,
+      proofSteps,
+      cpuTime,
+      ...(error ? { error } : {}),
+    };
   }
 
   getStats(): Readonly<EProverStats> { return { ...this.stats }; }
