@@ -319,6 +319,32 @@ export function deonticGuidanceUnderrepresentedComponents(row: Record<string, un
 }
 
 /**
+ * Python parity for `_deontic_guidance_route`.
+ */
+export function deonticGuidanceRoute(guidance: Record<string, unknown>): string {
+  for (const key of [
+    'compiler_guidance_route',
+    'route',
+    'action',
+    'target_component',
+    'target',
+  ] as const) {
+    const value = String(guidance[key] ?? '').trim();
+    if (value) return value;
+  }
+
+  const routes = guidance.compiler_guidance_todo_routes;
+  if (routes && typeof routes === 'object' && !Array.isArray(routes)) {
+    for (const route of Object.keys(routes as Record<string, unknown>)) {
+      const routeText = String(route ?? '').trim();
+      if (routeText) return routeText;
+    }
+  }
+
+  return 'repair_deontic_bridge_quality_gate';
+}
+
+/**
  * Python parity for `_deontic_guidance_target_view`.
  */
 export function deonticGuidanceTargetView(row: Record<string, unknown>): string {
