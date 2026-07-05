@@ -87,6 +87,12 @@ describe('T-72 DeonticTextAnalyzer — statement extraction', () => {
     }
   });
 
+  it('emits proposition as an action alias for extracted statements', () => {
+    const stmts = analyzer.extractStatements('Users must log access.');
+    expect(stmts.length).toBeGreaterThan(0);
+    expect(stmts.every(stmt => stmt.proposition === stmt.action)).toBe(true);
+  });
+
   it('filters by entity when entityFilter is provided', () => {
     const text = 'Admins must log access. Users may view records.';
     const adminOnly = analyzer.extractStatements(text, ['admin']);
@@ -329,6 +335,7 @@ describe('T-74 mcp++ deontic subcommand', () => {
     expect(typeof result.output).toBe('string');
     const parsed = JSON.parse(String(result.output));
     expect(Array.isArray(parsed.statements)).toBe(true);
+    expect(parsed.statements.every((statement: Record<string, unknown>) => statement.proposition === statement.action)).toBe(true);
     expect(parsed.statistics).toBeDefined();
     expect(parsed.statistics.total_statements).toBeGreaterThanOrEqual(1);
   });

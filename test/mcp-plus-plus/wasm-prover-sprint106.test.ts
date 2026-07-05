@@ -91,6 +91,7 @@ describe('PORT-227 deontic legal-text engine compatibility layer', () => {
       norm_type: 'permission',
       deontic_operator: 'P',
       subject: 'agency',
+      proposition: 'inspect records',
       action: 'inspect records',
     });
   });
@@ -155,6 +156,14 @@ describe('PORT-227 deontic legal-text engine compatibility layer', () => {
       proof_obligations: [expect.objectContaining({ source_id: 's1' })],
       procedure_event_records: [expect.objectContaining({ source_id: 's1' })],
     });
+
+    const propositionOnlyFormula = parserElementToFormula({
+      deontic_operator: 'O',
+      subject: 'operator',
+      proposition: 'file report',
+      conditions: [],
+    });
+    expect(propositionOnlyFormula).toContain('FileReport');
   });
 
   it('summarizes parser and prover target metrics', () => {

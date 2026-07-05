@@ -36,6 +36,7 @@ export interface NormativeElement extends Record<string, unknown> {
   subject: string;
   actor_type: string;
   entity_type: string;
+  proposition: string;
   action: string;
   action_verb: string;
   action_object: string;
@@ -239,6 +240,7 @@ export function analyzeNormativeSentence(
     subject,
     actor_type: classifyLegalEntity(subject),
     entity_type: classifyLegalEntity(subject),
+    proposition: action,
     action,
     action_verb: action.split(/\s+/)[0] ?? '',
     action_object: action.split(/\s+/).slice(1).join(' '),
@@ -339,7 +341,7 @@ export function extractTemporalConstraints(text: string): Array<{ text: string; 
 export function parserElementToFormula(element: Record<string, unknown>): string {
   const op = String(element.deontic_operator ?? 'O');
   const subject = normalizePredicate(String(element.subject ?? 'Actor'));
-  const action = normalizePredicate(String(element.action ?? 'Act'));
+  const action = normalizePredicate(String(element.proposition ?? element.action ?? 'Act'));
   const atom = `${action}(${subject})`;
   const conditions = Array.isArray(element.conditions) ? element.conditions.map(String).filter(Boolean) : [];
   if (conditions.length) {
@@ -954,7 +956,7 @@ export function mergeOntologyTerms(
 }
 
 export function buildFormalTerms(element: Record<string, unknown>): Record<string, unknown> {
-  const actionText = firstField(element.action);
+  const actionText = firstField(element.proposition ?? element.action);
   const actor = firstField(element.subject);
   const section = String(asRecord(element.section_context).section ?? '');
   return {
@@ -973,7 +975,7 @@ export function buildFormalTerms(element: Record<string, unknown>): Record<strin
 }
 
 export function buildLogicFrame(element: Record<string, unknown>): Record<string, unknown> {
-  const actionText = firstField(element.action);
+  const actionText = firstField(element.proposition ?? element.action);
   return {
     schema_version: SCHEMA_VERSION,
     source_id: element.source_id ?? '',
@@ -1010,7 +1012,7 @@ export function buildLogicFrame(element: Record<string, unknown>): Record<string
 
 export function classifyLegalFrame(element: Record<string, unknown>): string {
   const text = String(element.text ?? '').toLowerCase();
-  const action = fieldAsArray(element.action).join(' ').toLowerCase();
+  const action = fieldAsArray(element.proposition ?? element.action).join(' ').toLowerCase();
   const subject = fieldAsArray(element.subject).join(' ').toLowerCase();
   const normType = String(element.norm_type ?? '');
   if (['applicability', 'exemption', 'instrument_lifecycle', 'purpose', 'definition'].includes(normType)) return normType;
@@ -1026,7 +1028,7 @@ export function classifyLegalFrame(element: Record<string, unknown>): string {
 
 export function buildKgRelationshipHints(element: Record<string, unknown>): Array<Record<string, string>> {
   const subject = firstField(element.subject);
-  const action = firstField(element.action);
+  const action = firstField(element.proposition ?? element.action);
   const category = String(asRecord(element.legal_frame).category ?? classifyLegalFrame(element));
   const instrumentTarget = extractLegalInstrumentTarget(action);
   const relationships: Array<Record<string, string>> = [];
@@ -1075,7 +1077,8 @@ export function buildLlmRepairPayload(element: Record<string, unknown>): Record<
     deontic_operator: element.deontic_operator ?? '',
     norm_type: element.norm_type ?? '',
     subject: element.subject ?? [],
-    action: element.action ?? [],
+    proposition: element.proposition ?? element.action ?? [],
+    action: element.action ?? element.proposition ?? [],
     conditions: element.condition_details ?? [],
     exceptions: element.exception_details ?? [],
     temporal_constraints: element.temporal_constraint_details ?? [],
@@ -1195,7 +1198,10 @@ export function migrateParserElement(element: Record<string, unknown>): Record<s
   migrated.support_text = supportText;
   migrated.support_span = fieldAsArray(migrated.support_span).length ? migrated.support_span : [0, supportText.length];
   migrated.subject = fieldAsArray(migrated.subject);
+  migrated.proposition = fieldAsArray(migrated.proposition);
   migrated.action = fieldAsArray(migrated.action);
+  if (!migrated.action.length && migrated.proposition.length) migrated.action = [...migrated.proposition];
+  if (!migrated.proposition.length && migrated.action.length) migrated.proposition = [...migrated.action];
   migrated.modal ??= '';
   migrated.norm_type ??= 'unknown';
   migrated.deontic_operator ??= '';
@@ -1230,7 +1236,7 @@ export function migrateParserElement(element: Record<string, unknown>): Record<s
   migrated.legal_frame = Object.keys(asRecord(migrated.legal_frame)).length ? migrated.legal_frame : { category: classifyLegalFrame(migrated) };
   migrated.actor_type = migrated.actor_type || classifyLegalEntity(firstField(migrated.subject));
   migrated.entity_type = migrated.entity_type || migrated.actor_type;
-  const actionText = firstField(migrated.action);
+  const actionText = firstField(migrated.proposition.length ? migrated.proposition : migrated.action);
   migrated.action_verb = migrated.action_verb || firstVerb(actionText);
   migrated.action_object = migrated.action_object || actionObject(actionText);
   migrated.action_recipient = migrated.action_recipient || extractActionRecipientFromText(actionText);
@@ -1246,7 +1252,7 @@ export function migrateParserElement(element: Record<string, unknown>): Record<s
   const validation = validateParserElement(migrated);
   migrated.schema_valid = validation.valid;
   if (migrated.scaffold_quality === undefined || migrated.slot_coverage === undefined || migrated.quality_label === undefined || migrated.promotable_to_theorem === undefined) {
-    const quality = scoreScaffoldQuality({ ...migrated, subject: firstField(migrated.subject), action: firstField(migrated.action) });
+    const quality = scoreScaffoldQuality({ ...migrated, subject: firstField(migrated.subject), action: firstField(migrated.proposition.length ? migrated.proposition : migrated.action) });
     migrated.scaffold_quality = quality.score;
     migrated.slot_coverage = quality.slot_coverage;
     migrated.quality_label = quality.quality_label;

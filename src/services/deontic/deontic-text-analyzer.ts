@@ -169,6 +169,7 @@ export class DeonticTextAnalyzer {
             id,
             entity,
             modality,
+            proposition: action,
             action,
             source,
             date,
