@@ -14,6 +14,30 @@
 import { createHash } from 'node:crypto';
 import { DeonticFormula, DeonticOp, makeDeonticFormula } from './deontic-query-engine.js';
 
+function formulaProposition(formula: DeonticFormula): string {
+  return formula.proposition ?? formula.action;
+}
+
+function hasBoundedTemporalScope(scope: TemporalScope): boolean {
+  return Boolean(scope.start && scope.end);
+}
+
+function temporalScopesOverlap(a: TemporalScope, b: TemporalScope): boolean {
+  if (!hasBoundedTemporalScope(a) || !hasBoundedTemporalScope(b)) return false;
+  const aStart = a.start!.getTime();
+  const aEnd = a.end!.getTime();
+  const bStart = b.start!.getTime();
+  const bEnd = b.end!.getTime();
+  return Math.max(aStart, bStart) <= Math.min(aEnd, bEnd);
+}
+
+function scopeLabel(scope: TemporalScope): string {
+  if (scope.start && scope.end) return `${scope.start.toISOString()}..${scope.end.toISOString()}`;
+  if (scope.start) return `${scope.start.toISOString()}..open`;
+  if (scope.end) return `open..${scope.end.toISOString()}`;
+  return 'unbounded';
+}
+
 // ---------------------------------------------------------------------------
 // TemporalScope
 // ---------------------------------------------------------------------------
@@ -67,8 +91,9 @@ export class TheoremMetadata {
 
   /** Stable hash for deduplication. */
   hash(): string {
+    const proposition = formulaProposition(this.formula);
     return createHash('sha256')
-      .update(`${this.theoremId}:${this.formula.action}:${this.formula.operator}`)
+      .update(`${this.theoremId}:${proposition}:${this.formula.operator}`)
       .digest('hex')
       .slice(0, 16);
   }
@@ -78,7 +103,8 @@ export class TheoremMetadata {
       theorem_id: this.theoremId,
       formula_id: this.formula.formulaId,
       formula_operator: this.formula.operator,
-      formula_action: this.formula.action,
+      formula_proposition: formulaProposition(this.formula),
+      formula_action: formulaProposition(this.formula),
       jurisdiction: this.jurisdiction,
       legal_domain: this.legalDomain,
       confidence: this.confidence,
@@ -122,6 +148,8 @@ export class ConsistencyResult {
     return {
       is_consistent: this.isConsistent,
       conflict_count: this.conflicts.length,
+      temporal_conflicts: this.temporalConflicts,
+      temporal_conflict_count: this.temporalConflicts.length,
       relevant_theorem_count: this.relevantTheorems.length,
       confidence_score: this.confidenceScore,
       reasoning: this.reasoning,
@@ -160,14 +188,15 @@ export class TemporalDeonticRAGStore {
 
   /**
    * Find theorems whose formula is relevant to the given query formula.
-   * Relevance: same operator or overlapping action keywords.
+   * Relevance: same operator or overlapping proposition keywords.
    */
   findRelevant(
     formula: DeonticFormula,
-    opts: { maxResults?: number; jurisdictionFilter?: string } = {},
+    opts: { maxResults?: number; jurisdictionFilter?: string; queryEmbedding?: number[] } = {},
   ): TheoremMetadata[] {
     const maxResults = opts.maxResults ?? 10;
-    const actionWords = new Set(formula.action.toLowerCase().split(/\s+/));
+    const queryText = formulaProposition(formula).toLowerCase();
+    const propositionWords = new Set(queryText.split(/\s+/));
 
     const scored: Array<[TheoremMetadata, number]> = [];
     for (const theorem of this.theorems.values()) {
@@ -176,10 +205,18 @@ export class TemporalDeonticRAGStore {
 
       let score = 0;
       if (theorem.formula.operator === formula.operator) score += 2;
-      const theWords = new Set(theorem.formula.action.toLowerCase().split(/\s+/));
-      for (const w of actionWords) {
+      const theoremText = formulaProposition(theorem.formula).toLowerCase();
+      const theWords = new Set(theoremText.split(/\s+/));
+      for (const w of propositionWords) {
         if (theWords.has(w) && w.length > 3) score++;
       }
+
+      if (opts.queryEmbedding && theorem.embedding && opts.queryEmbedding.length === theorem.embedding.length) {
+        const similarity = Math.max(0, cosineSimilarity(opts.queryEmbedding, theorem.embedding));
+        // Keep embeddings additive so lexical/operator relevance remains explainable.
+        score += similarity * 5;
+      }
+
       if (score > 0) scored.push([theorem, score * theorem.precedentStrength]);
     }
 
@@ -209,10 +246,11 @@ export class TemporalDeonticRAGStore {
       relevantTheorems.push(...relevant);
 
       for (const theorem of relevant) {
-        // Conflict: same action, opposite O/F
-        const sameAction = formula.action.toLowerCase().slice(0, 20) ===
-          theorem.formula.action.toLowerCase().slice(0, 20);
-        if (sameAction) {
+        // Conflict: same proposition, opposite O/F
+        const formulaText = formulaProposition(formula).toLowerCase();
+        const theoremText = formulaProposition(theorem.formula).toLowerCase();
+        const sameProposition = formulaText.slice(0, 20) === theoremText.slice(0, 20);
+        if (sameProposition) {
           const oppositeOF =
             (formula.operator === DeonticOp.OBLIGATION && theorem.formula.operator === DeonticOp.PROHIBITION) ||
             (formula.operator === DeonticOp.PROHIBITION && theorem.formula.operator === DeonticOp.OBLIGATION);
@@ -220,7 +258,7 @@ export class TemporalDeonticRAGStore {
             conflicts.push({
               input_formula: formula.formulaId,
               theorem_id: theorem.theoremId,
-              reason: `Input ${formula.operator}(${formula.action}) conflicts with stored ${theorem.formula.operator}(${theorem.formula.action})`,
+              reason: `Input ${formula.operator}(${formulaProposition(formula)}) conflicts with stored ${theorem.formula.operator}(${formulaProposition(theorem.formula)})`,
               precedent_strength: theorem.precedentStrength,
             });
           }
@@ -229,15 +267,39 @@ export class TemporalDeonticRAGStore {
     }
 
     const uniqueRelevant = [...new Map(relevantTheorems.map(t => [t.theoremId, t])).values()];
+    const temporalConflicts: string[] = [];
+
+    for (let i = 0; i < uniqueRelevant.length; i++) {
+      for (let j = i + 1; j < uniqueRelevant.length; j++) {
+        const lhs = uniqueRelevant[i];
+        const rhs = uniqueRelevant[j];
+        const sameProposition =
+          formulaProposition(lhs.formula).toLowerCase().slice(0, 20) ===
+          formulaProposition(rhs.formula).toLowerCase().slice(0, 20);
+        if (!sameProposition) continue;
+
+        const oppositeOF =
+          (lhs.formula.operator === DeonticOp.OBLIGATION && rhs.formula.operator === DeonticOp.PROHIBITION) ||
+          (lhs.formula.operator === DeonticOp.PROHIBITION && rhs.formula.operator === DeonticOp.OBLIGATION);
+        if (!oppositeOF) continue;
+
+        if (temporalScopesOverlap(lhs.temporalScope, rhs.temporalScope)) {
+          temporalConflicts.push(
+            `Overlapping temporal windows for conflicting precedents ${lhs.theoremId} (${scopeLabel(lhs.temporalScope)}) and ${rhs.theoremId} (${scopeLabel(rhs.temporalScope)})`,
+          );
+        }
+      }
+    }
 
     return new ConsistencyResult({
-      isConsistent: conflicts.length === 0,
+      isConsistent: conflicts.length === 0 && temporalConflicts.length === 0,
       conflicts,
+      temporalConflicts: [...new Set(temporalConflicts)],
       relevantTheorems: uniqueRelevant,
       confidenceScore: uniqueRelevant.length > 0 ? 0.85 : 0.4,
-      reasoning: conflicts.length === 0
+      reasoning: (conflicts.length === 0 && temporalConflicts.length === 0)
         ? `No conflicts found with ${uniqueRelevant.length} relevant theorem(s)`
-        : `Found ${conflicts.length} conflict(s) with stored precedents`,
+        : `Found ${conflicts.length} logical conflict(s) and ${temporalConflicts.length} temporal conflict(s) with stored precedents`,
     });
   }
 
@@ -247,11 +309,11 @@ export class TemporalDeonticRAGStore {
   static makeTheoremFromFormula(
     operator: DeonticOp,
     agent: string,
-    action: string,
+    proposition: string,
     opts: { jurisdiction?: string; legalDomain?: string; sourceCase?: string; precedentStrength?: number } = {},
   ): TheoremMetadata {
-    const formulaId = `thm:${createHash('sha256').update(`${operator}:${agent}:${action}`).digest('hex').slice(0, 8)}`;
-    const formula = makeDeonticFormula(operator, agent, action, { formulaId });
+    const formulaId = `thm:${createHash('sha256').update(`${operator}:${agent}:${proposition}`).digest('hex').slice(0, 8)}`;
+    const formula = makeDeonticFormula(operator, agent, proposition, { formulaId });
     return new TheoremMetadata({
       theoremId: formulaId,
       formula,

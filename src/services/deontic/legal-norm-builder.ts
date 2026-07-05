@@ -11,6 +11,10 @@ import { buildLegalNormIR } from './legal-norm-ir.js';
 import type { LegalNormIR } from './legal-norm-ir.js';
 import type { DeonticStatement } from './deontic-text-analyzer.js';
 
+function statementProposition(statement: DeonticStatement): string {
+  return (statement as DeonticStatement & { proposition?: string }).proposition ?? statement.action;
+}
+
 /** Mapping from DeonticTextAnalyzer modality → LegalNormIR modality code. */
 const MODALITY_MAP: Record<DeonticStatement['modality'], string> = {
   obligation:  'O',
@@ -29,20 +33,21 @@ export class LegalNormBuilder {
     stmt: DeonticStatement,
     opts: { schemaVersion?: string; citation?: string } = {},
   ): LegalNormIR {
+    const proposition = statementProposition(stmt);
     return buildLegalNormIR({
       source_id:           stmt.id,
       schema_version:      opts.schemaVersion ?? '1.0',
       canonical_citation:  opts.citation ?? stmt.source,
       parent_source_id:    stmt.source,
       source_text:         stmt.context,
-      support_text:        stmt.action,
+      support_text:        proposition,
       modality:            MODALITY_MAP[stmt.modality] ?? stmt.modality.toUpperCase(),
       norm_type:           stmt.modality,
       actor:               stmt.entity,
       actor_type:          'general',
-      action:              stmt.action,
-      action_verb:         stmt.action.split(/\s+/)[0] ?? '',
-      action_object:       stmt.action.split(/\s+/).slice(1).join(' '),
+      action:              proposition,
+      action_verb:         proposition.split(/\s+/)[0] ?? '',
+      action_object:       proposition.split(/\s+/).slice(1).join(' '),
       recipient:           '',
       conditions:          stmt.conditions.map(c => ({ text: c })),
       exceptions:          stmt.exceptions.map(e => ({ text: e })),

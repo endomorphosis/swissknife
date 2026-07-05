@@ -115,8 +115,35 @@ function defaultSlots(): string[] {
   return ['actor', 'action', 'condition', 'resource', 'modality'];
 }
 
+function slotAliasNames(slot: string): string[] {
+  if (slot === 'action') return ['action', 'proposition'];
+  if (slot === 'proposition') return ['proposition', 'action'];
+  return [slot];
+}
+
+function hasValue(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  return value !== undefined && value !== null && value !== '';
+}
+
+function slotValueWithAlias(norm: NormRecord, slot: string): unknown {
+  for (const alias of slotAliasNames(slot)) {
+    const value = norm[alias];
+    if (hasValue(value)) return value;
+  }
+  return undefined;
+}
+
+function hasSlotWithAlias(slotSet: Set<string>, slot: string): boolean {
+  return slotAliasNames(slot).some(alias => slotSet.has(alias));
+}
+
+function slotsAliasMatch(left: string, right: string): boolean {
+  return slotAliasNames(left).some(alias => slotAliasNames(right).includes(alias));
+}
+
 function groundedSlots(norm: NormRecord, slots: string[]): string[] {
-  return slots.filter(s => norm[s] !== undefined && norm[s] !== null && norm[s] !== '');
+  return slots.filter(slot => hasValue(slotValueWithAlias(norm, slot)));
 }
 
 // ---------------------------------------------------------------------------
@@ -1015,10 +1042,10 @@ export function summarizeReconstructionSlotLoss(
     }
   }
 
-  const groundedRequired = required.filter(slot => groundedSlots.has(slot)).sort();
-  const missingRequired = required.filter(slot => !groundedSlots.has(slot) || missingSlots.has(slot)).sort();
-  const ungroundedRequired = required.filter(slot => ungroundedSlots.has(slot)).sort();
-  const extraUngrounded = [...ungroundedSlots].filter(slot => !required.includes(slot)).sort();
+  const groundedRequired = required.filter(slot => hasSlotWithAlias(groundedSlots, slot)).sort();
+  const missingRequired = required.filter(slot => !hasSlotWithAlias(groundedSlots, slot) || hasSlotWithAlias(missingSlots, slot)).sort();
+  const ungroundedRequired = required.filter(slot => hasSlotWithAlias(ungroundedSlots, slot)).sort();
+  const extraUngrounded = [...ungroundedSlots].filter(slot => !required.some(requiredSlot => slotsAliasMatch(requiredSlot, slot))).sort();
   const blockers = [
     ...missingRequired.map(slot => `missing_reconstruction_slot:${slot}`),
     ...ungroundedRequired.map(slot => `ungrounded_reconstruction_slot:${slot}`),
@@ -1114,6 +1141,7 @@ export function parserElementsForMetrics(elements: Iterable<Dict>): Dict[] {
       norm_type: norm.norm_type,
       modality: norm.modality,
       actor: norm.actor,
+      proposition: norm.action,
       action: norm.action,
       export_readiness: exportReadiness,
       active_repair_required: resolved ? false : Boolean(element['active_repair_required'] ?? element['repair_required']),
@@ -1157,7 +1185,8 @@ export function activeRepairDetailsFromParserElements(elements: Iterable<Dict>):
         norm_type: element['norm_type'] ?? '',
         modality: element['deontic_operator'] ?? element['modality'] ?? '',
         subject: stringArray(element['subject'] ?? element['actor']),
-        action: stringArray(element['action']),
+        proposition: stringArray(element['proposition'] ?? element['action']),
+        action: stringArray(element['action'] ?? element['proposition']),
         object: element['object'] ?? element['action_object'] ?? '',
         parser_warnings: stringArray(element['parser_warnings']),
         active_repair_warnings: warnings,
@@ -1325,6 +1354,7 @@ function normToCapabilityRecord(norm: LegalNormIR): NormRecord {
     repairRequired: !legalNormIRProofReady(norm),
     blockers: legalNormIRBlockers(norm),
     actor: norm.actor,
+    proposition: norm.action,
     action: norm.action,
     condition: norm.conditions.length > 0 ? norm.conditions : undefined,
     resource: norm.action_object || norm.recipient,

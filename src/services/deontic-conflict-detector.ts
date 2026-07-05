@@ -31,7 +31,8 @@ export enum DeonticConflictType {
 
 export interface LocalDeonticStatement {
   operator: 'O' | 'P' | 'F' | 'R' | 'L';
-  action: string;
+  proposition?: string;
+  action?: string;
   agent: string;
   conditions: string[];
   sourceText: string;
@@ -57,6 +58,10 @@ export interface DeonticConflict {
 
 function actionSimilar(a: string, b: string, threshold = 15): boolean {
   return a.toLowerCase().slice(0, threshold) === b.toLowerCase().slice(0, threshold);
+}
+
+function statementAction(statement: LocalDeonticStatement): string {
+  return String(statement.proposition ?? statement.action ?? '');
 }
 
 function agentSame(a: LocalDeonticStatement, b: LocalDeonticStatement): boolean {
@@ -103,7 +108,9 @@ export class ConflictDetector {
   }
 
   private _detectPairConflict(s1: LocalDeonticStatement, s2: LocalDeonticStatement): DeonticConflict | null {
-    if (!actionSimilar(s1.action, s2.action)) return null;
+    const action1 = statementAction(s1);
+    const action2 = statementAction(s2);
+    if (!action1 || !action2 || !actionSimilar(action1, action2)) return null;
 
     let conflictType: DeonticConflictType = DeonticConflictType.UNKNOWN;
     let severity: DeonticConflict['severity'] = 'low';
@@ -122,7 +129,7 @@ export class ConflictDetector {
       conflictType,
       statement1: s1,
       statement2: s2,
-      explanation: `${s1.operator}(${s1.action.slice(0, 30)}) conflicts with ${s2.operator}(${s2.action.slice(0, 30)})`,
+      explanation: `${s1.operator}(${action1.slice(0, 30)}) conflicts with ${s2.operator}(${action2.slice(0, 30)})`,
       severity,
       suggestedResolution: 'Clarify scope or add conditional qualifications to distinguish the statements',
     };

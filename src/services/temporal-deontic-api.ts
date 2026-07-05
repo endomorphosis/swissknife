@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { PatternMatcher, PatternType } from './tdfol-nl-patterns';
 import { DeonticOp, makeDeonticFormula } from './deontic-query-engine.js';
+import { DocumentConsistencyChecker } from './document-consistency-checker.js';
 import { TemporalDeonticRAGStore } from './temporal-deontic-rag-store.js';
 
 export interface TemporalContext {
@@ -18,6 +19,8 @@ export interface TemporalContext {
 
 export interface TemporalDeonticClause {
   modality:    'obligation' | 'permission' | 'prohibition' | 'unknown';
+  proposition: string;
+  /** Backward-compatible alias for proposition. */
   action:      string;
   agent:       string | null;
   temporalCtx: TemporalContext | null;
@@ -26,6 +29,10 @@ export interface TemporalDeonticClause {
 }
 
 export interface TemporalDeonticAPIStats { extracted: number; validated: number; normalised: number }
+
+function clauseProposition(clause: TemporalDeonticClause): string {
+  return clause.proposition ?? clause.action;
+}
 
 function parseTemporalContext(raw: string): TemporalContext {
   const ctx: TemporalContext = { raw };
@@ -73,6 +80,7 @@ export class TemporalDeonticAPI {
 
       clauses.push({
         modality,
+        proposition: m.entities['action'] ?? m.text,
         action:      m.entities['action'] ?? m.text,
         agent:       m.entities['agent'] ?? null,
         temporalCtx,
@@ -86,16 +94,18 @@ export class TemporalDeonticAPI {
   validate(clause: TemporalDeonticClause): { valid: boolean; errors: string[] } {
     this.stats.validated++;
     const errors: string[] = [];
-    if (!clause.action) errors.push('Missing action');
+    if (!clauseProposition(clause)) errors.push('Missing proposition');
     if (clause.modality === 'unknown') errors.push('Unknown modality');
     return { valid: errors.length === 0, errors };
   }
 
   normalise(clause: TemporalDeonticClause): TemporalDeonticClause {
     this.stats.normalised++;
+    const proposition = clauseProposition(clause).toLowerCase().trim();
     return {
       ...clause,
-      action: clause.action.toLowerCase().trim(),
+      proposition,
+      action: proposition,
       agent:  clause.agent?.toLowerCase().trim() ?? null,
     };
   }
@@ -117,16 +127,107 @@ export interface TemporalConsistencyResult {
   summary:          string;
 }
 
+function normalizeActionText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function actionSimilarity(a: string, b: string): number {
+  const aw = new Set(normalizeActionText(a).split(' ').filter(token => token.length > 3));
+  const bw = new Set(normalizeActionText(b).split(' ').filter(token => token.length > 3));
+  if (aw.size === 0 || bw.size === 0) {
+    return normalizeActionText(a) === normalizeActionText(b) ? 1 : 0;
+  }
+  let intersection = 0;
+  for (const token of aw) {
+    if (bw.has(token)) intersection++;
+  }
+  const union = new Set([...aw, ...bw]).size;
+  return union > 0 ? intersection / union : 0;
+}
+
+function isModalConflict(lhs: TemporalDeonticClause, rhs: TemporalDeonticClause): boolean {
+  return (
+    (lhs.modality === 'obligation' && rhs.modality === 'prohibition') ||
+    (lhs.modality === 'prohibition' && rhs.modality === 'obligation')
+  );
+}
+
+function clausePairs(clauses: TemporalDeonticClause[]): Array<[TemporalDeonticClause, TemporalDeonticClause]> {
+  const pairs: Array<[TemporalDeonticClause, TemporalDeonticClause]> = [];
+  for (let i = 0; i < clauses.length; i++) {
+    for (let j = i + 1; j < clauses.length; j++) {
+      pairs.push([clauses[i], clauses[j]]);
+    }
+  }
+  return pairs;
+}
+
+function buildTemporalConflictDescriptions(clauses: TemporalDeonticClause[]): string[] {
+  const out: string[] = [];
+  for (const [lhs, rhs] of clausePairs(clauses)) {
+    const similarity = actionSimilarity(clauseProposition(lhs), clauseProposition(rhs));
+    if (similarity < 0.6) continue;
+
+    if (isModalConflict(lhs, rhs)) {
+      out.push(
+        `Conflicting modalities on similar proposition: ${lhs.modality}('${clauseProposition(lhs)}') vs ${rhs.modality}('${clauseProposition(rhs)}')`,
+      );
+      continue;
+    }
+
+    const lhsDuration = lhs.temporalCtx?.durationMs;
+    const rhsDuration = rhs.temporalCtx?.durationMs;
+    if (lhsDuration && rhsDuration) {
+      const ratio = Math.max(lhsDuration, rhsDuration) / Math.max(1, Math.min(lhsDuration, rhsDuration));
+      if (ratio >= 2) {
+        out.push(
+          `Incompatible temporal windows for similar action: ${lhs.temporalCtx?.raw ?? 'n/a'} vs ${rhs.temporalCtx?.raw ?? 'n/a'}`,
+        );
+      }
+    }
+  }
+
+  return [...new Set(out)];
+}
+
+function extractTemporalDeonticClauses(text: string): TemporalDeonticClause[] {
+  const api = new TemporalDeonticAPI();
+  return api.extract(text)
+    .map(clause => api.normalise(clause))
+    .filter(clause => api.validate(clause).valid);
+}
+
 /** PORT-140: async wrapper — check_document_consistency_from_parameters */
 export async function checkDocumentConsistencyFromParameters(
-  params: TemporalDocumentParams,
+  params: TemporalDocumentParams & Params,
 ): Promise<TemporalConsistencyResult> {
-  // Stub — wires to TemporalDeonticAPI when initialized
+  const text = paramString(params, 'text', paramString(params, 'document_text', ''));
+  if (!text) {
+    return {
+      isConsistent: false,
+      violations: ['Document text is required'],
+      temporalConflicts: [],
+      summary: 'Consistency check failed: missing document text',
+    };
+  }
+
+  const documentId = paramString(params, 'document_id', `doc_${Date.now()}`);
+  const checker = new DocumentConsistencyChecker();
+  const analysis = checker.analyze(text, documentId);
+  const temporalConflicts = buildTemporalConflictDescriptions(extractTemporalDeonticClauses(text));
+  const violations = [
+    ...analysis.issuesFound.map(issue => String(issue['reason'] ?? issue['message'] ?? 'Detected inconsistency')),
+    ...temporalConflicts,
+  ];
+  const isConsistent = analysis.isConsistent && temporalConflicts.length === 0;
+
   return {
-    isConsistent:     true,
-    violations:       [],
-    temporalConflicts: [],
-    summary:          `Checked ${params.text.length} chars with window=${params.windowDays ?? 30}d`,
+    isConsistent,
+    violations,
+    temporalConflicts,
+    summary: isConsistent
+      ? `No conflicts found in ${analysis.extractedFormulas.length} extracted formula(s)`
+      : `Found ${violations.length} issue(s) in ${analysis.extractedFormulas.length} extracted formula(s)`,
   };
 }
 
@@ -135,21 +236,46 @@ export async function analyzeTemporalObligations(
   text: string,
   windowDays = 30,
 ): Promise<{ obligations: string[]; deadlines: string[] }> {
-  return { obligations: [], deadlines: [] };
+  if (!text.trim()) return { obligations: [], deadlines: [] };
+  const now = Date.now();
+  const horizon = now + windowDays * 864e5;
+  const clauses = extractTemporalDeonticClauses(text)
+    .filter(clause => clause.modality === 'obligation');
+
+  const obligations = [...new Set(clauses.map(clause => clauseProposition(clause)))];
+  const deadlines = clauses
+    .map(clause => clause.temporalCtx)
+    .filter((ctx): ctx is TemporalContext => Boolean(ctx))
+    .map(ctx => {
+      if (ctx.end && ctx.end.getTime() <= horizon) return ctx.end.toISOString();
+      return ctx.raw;
+    });
+
+  return { obligations, deadlines: [...new Set(deadlines)] };
 }
 
 /** PORT-140: async wrapper — detect_temporal_conflicts */
 export async function detectTemporalConflicts(
   text: string,
 ): Promise<{ conflicts: Array<{ type: string; description: string }> }> {
-  return { conflicts: [] };
+  if (!text.trim()) return { conflicts: [] };
+  const clauses = extractTemporalDeonticClauses(text);
+  const descriptions = buildTemporalConflictDescriptions(clauses);
+  return {
+    conflicts: descriptions.map(description => ({
+      type: description.includes('modalities') ? 'modal_conflict' : 'temporal_window_conflict',
+      description,
+    })),
+  };
 }
 
 /** PORT-140: async wrapper — extract_temporal_clauses */
 export async function extractTemporalClauses(
   text: string,
 ): Promise<{ clauses: string[] }> {
-  const clauses = text.match(/\b(?:within|before|after|by|until|during|upon)\s+[^,.;]+/gi) ?? [];
+  const extracted = extractTemporalDeonticClauses(text).map(clause => clause.raw);
+  const fallback = text.match(/\b(?:within|before|after|by|until|during|upon)\s+[^,.;]+/gi) ?? [];
+  const clauses = [...new Set([...extracted, ...fallback])];
   return { clauses };
 }
 
@@ -177,11 +303,12 @@ function stableTheoremId(...parts: string[]): string {
 }
 
 function theoremToPayload(theorem: ReturnType<TemporalDeonticRAGStore['getAllTheorems']>[number]): Params {
+  const proposition = theorem.formula.proposition ?? theorem.formula.action;
   return {
     theorem_id: theorem.theoremId,
     formula: {
       operator: theorem.formula.operator,
-      proposition: theorem.formula.action,
+      proposition,
       agent: theorem.formula.agent,
       confidence: theorem.formula.confidence,
     },

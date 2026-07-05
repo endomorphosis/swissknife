@@ -11,23 +11,21 @@
 import { Groth16Backend, Groth16BackendFallback, ProveKitFFI, ProveKitFFIError } from '../../src/services/zkp-backends';
 
 describe('PORT-192 Groth16Backend real spawn path', () => {
-  it('falls back to simulated when binary is absent only with explicit opt-in', async () => {
-    const backend = new Groth16Backend(null, 5_000, undefined, { allowSimulatedFallback: true });
+  it('fails closed when binary is absent unless simulation is explicitly enabled', async () => {
+    const backend = new Groth16Backend(null, 5_000);
     expect(backend.isAvailable()).toBe(false);
-    const proof = await backend.generateProof('{"a":1}');
-    expect(proof).toBeDefined();
-    // Groth16Proof.toDict() exports proofData/publicInputs/metadata/timestamp/sizeBytes
-    const dict = proof.toDict();
-    expect(dict).toHaveProperty('proofData');
-    expect(dict).toHaveProperty('metadata');
+    await expect(backend.generateProof('{"a":1}')).rejects.toThrow(/allowSimulatedFallback:true/);
+    await expect(backend.verifyProof('{"proof":true}')).resolves.toBe(false);
   });
 
-  it('fails closed when no binary path is provided and simulation is not enabled', async () => {
-    const backend = new Groth16Backend(null, 5_000);
-    // null binary always unavailable
-    expect(backend.isAvailable()).toBe(false);
-    await expect(backend.generateProof('{"b":2}')).rejects.toThrow(/allowSimulatedFallback:true/);
-    await expect(backend.verifyProof('{}')).resolves.toBe(false);
+  it('supports deterministic simulation only via explicit opt-in', async () => {
+    const backend = new Groth16Backend(null, 5_000, undefined, {
+      allowSimulatedFallback: true,
+      fallbackBackend: new Groth16BackendFallback(),
+    });
+    const proof = await backend.generateProof('{"b":2}', 11);
+    expect(proof.toDict()).toHaveProperty('proofData');
+    await expect(backend.verifyProof(JSON.stringify(proof.toDict()))).resolves.toBe(true);
   });
 });
 

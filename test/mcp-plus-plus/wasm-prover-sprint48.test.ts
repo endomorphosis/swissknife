@@ -320,6 +320,35 @@ describe('DeonticAnalyzer — detectDeonticConflicts', () => {
     // No overlap between Alice-pay and Bob-leave
     expect(conflicts.length).toBe(0);
   });
+
+  test('detects conflict when proposition aliases are present and action is empty', async () => {
+    const statements = [
+      {
+        id: 'p1',
+        entity: 'alice',
+        modality: 'permission' as const,
+        proposition: 'share data',
+        action: '',
+        source: 'doc0',
+        date: '2026-01-01',
+        confidence: 0.9,
+      },
+      {
+        id: 'p2',
+        entity: 'alice',
+        modality: 'prohibition' as const,
+        proposition: 'share data',
+        action: '',
+        source: 'doc1',
+        date: '2026-01-01',
+        confidence: 0.9,
+      },
+    ];
+
+    const conflicts = await analyzer.detectDeonticConflicts(statements);
+    expect(conflicts.some(c => c.conflictType === 'permission_prohibition_conflict')).toBe(true);
+    expect(conflicts[0].action).toBe('share data');
+  });
 });
 
 describe('DeonticAnalyzer — getStatistics', () => {
@@ -333,6 +362,32 @@ describe('DeonticAnalyzer — getStatistics', () => {
     expect(stats.byModality.obligation).toBeGreaterThanOrEqual(1);
     expect(stats.byModality.permission).toBeGreaterThanOrEqual(1);
     expect(stats.byModality.prohibition).toBeGreaterThanOrEqual(1);
+  });
+
+  test('uniqueActions uses proposition alias when action is empty', () => {
+    const stats = analyzer.getStatistics([
+      {
+        id: 's1',
+        entity: 'Alice',
+        modality: 'obligation',
+        proposition: 'submit report',
+        action: '',
+        source: 'doc0',
+        date: '2026-01-01',
+        confidence: 0.8,
+      },
+      {
+        id: 's2',
+        entity: 'Alice',
+        modality: 'permission',
+        proposition: 'submit report',
+        action: '',
+        source: 'doc1',
+        date: '2026-01-01',
+        confidence: 0.8,
+      },
+    ]);
+    expect(stats.uniqueActions).toBe(1);
   });
 });
 

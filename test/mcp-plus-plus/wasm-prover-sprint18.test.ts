@@ -135,6 +135,13 @@ describe('T-96 scoreScaffoldQuality', () => {
     expect(q.promotable).toBe(false);
     expect(q.warnings.length).toBeGreaterThan(0);
   });
+
+  it('treats proposition as an action alias for slot coverage', () => {
+    const el = { norm_type: 'obligation', deontic_operator: 'O', subject: ['user'], proposition: ['log access'] };
+    const q = scoreScaffoldQuality(el);
+    expect(q.slot_coverage).toBe(1);
+    expect(q.quality_label).toBe('high');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -193,6 +200,15 @@ describe('T-97 detectNormativeConflicts', () => {
     ];
     const conflicts = detectNormativeConflicts(elements);
     expect(conflicts).toHaveLength(0);
+  });
+
+  it('detects direct conflicts when only proposition aliases are provided', () => {
+    const elements: NormElement[] = [
+      { norm_type: 'obligation', deontic_operator: 'O', subject: 'users', proposition: 'share audit logs' },
+      { norm_type: 'prohibition', deontic_operator: 'F', subject: 'users', proposition: 'share audit logs' },
+    ];
+    const conflicts = detectNormativeConflicts(elements);
+    expect(conflicts.some(c => c.type === 'direct')).toBe(true);
   });
 });
 

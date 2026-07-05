@@ -256,12 +256,14 @@ describe('DeonticExtractor', () => {
     expect(stmts.length).toBeGreaterThan(0);
   });
 
-  test('each statement has operator, agent, action', () => {
+  test('each statement has operator, agent, proposition/action alias', () => {
     const stmts = extractor.extractStatements(LEGAL_TEXT, 'doc-002');
     for (const s of stmts) {
       expect(['O', 'P', 'F', 'R', 'L']).toContain(s.operator);
       expect(typeof s.agent).toBe('string');
+      expect(typeof s.proposition).toBe('string');
       expect(typeof s.action).toBe('string');
+      expect(s.action).toBe(s.proposition);
     }
   });
 

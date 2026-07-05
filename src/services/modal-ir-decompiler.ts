@@ -105,6 +105,33 @@ export class DecodedModalText {
   }
 }
 
+export function decodedModalPhraseSlotTextMap(
+  decoded: DecodedModalText,
+  options?: {
+    includeFixed?: boolean;
+    includeProvenanceOnly?: boolean;
+  },
+): Record<string, string[]> {
+  const includeFixed = options?.includeFixed ?? false;
+  const includeProvenanceOnly = options?.includeProvenanceOnly ?? true;
+
+  const slotTexts: Record<string, string[]> = {};
+  for (const phrase of decoded.phrases) {
+    if (phrase.fixed && !includeFixed) continue;
+    if (phrase.provenanceOnly && !includeProvenanceOnly) continue;
+
+    const slot = cleanText(phrase.slot);
+    const text = cleanText(phrase.text);
+    if (!slot || !text) continue;
+
+    const values = slotTexts[slot] ?? [];
+    if (!values.includes(text)) values.push(text);
+    slotTexts[slot] = values;
+  }
+
+  return slotTexts;
+}
+
 // ---------------------------------------------------------------------------
 // ModalIRDocument stub (minimal interface for decoding)
 // ---------------------------------------------------------------------------
@@ -228,12 +255,28 @@ export function decodeModalIRDocument(doc: ModalIRDocument): DecodedModalText {
  * Compute a token-level Jaccard similarity between two texts.
  */
 export function modalTextTokenSimilarity(left: string, right: string): number {
-  const tokenize = (s: string) => new Set(s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean));
-  const a = tokenize(left);
-  const b = tokenize(right);
-  if (a.size === 0 && b.size === 0) return 1.0;
-  if (a.size === 0 || b.size === 0) return 0.0;
-  const intersection = new Set([...a].filter(t => b.has(t)));
-  const union = new Set([...a, ...b]);
-  return intersection.size / union.size;
+  const leftTokens = new Set(tokenizeForSimilarity(left));
+  const rightTokens = new Set(tokenizeForSimilarity(right));
+  if (leftTokens.size === 0 && rightTokens.size === 0) return 1.0;
+  if (leftTokens.size === 0 || rightTokens.size === 0) return 0.0;
+
+  const overlap = [...leftTokens].filter(token => rightTokens.has(token)).length;
+  if (overlap === 0) return 0.0;
+
+  const precision = overlap / rightTokens.size;
+  const recall = overlap / leftTokens.size;
+  const f1 = (2 * precision * recall) / (precision + recall);
+  return Math.round(f1 * 1_000_000) / 1_000_000;
 }
+
+function cleanText(text: string): string {
+  return String(text ?? '').trim().split(/\s+/).filter(Boolean).join(' ');
+}
+
+function tokenizeForSimilarity(text: string): string[] {
+  const matches = String(text ?? '').match(/[A-Za-z0-9][A-Za-z0-9_'-]*/g);
+  return (matches ?? []).map(token => token.toLowerCase());
+}
+
+export const decoded_modal_phrase_slot_text_map = decodedModalPhraseSlotTextMap;
+export const modal_text_token_similarity = modalTextTokenSimilarity;

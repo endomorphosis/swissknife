@@ -3,7 +3,7 @@
  * Port of zkp/ucan_zkp_bridge.py (592L)
  */
 
-import { Groth16BackendFallback } from './zkp-backends';
+import { Groth16Backend, type ZKPBackendProtocol } from './zkp-backends';
 
 export interface ZKPCapabilityEvidence {
   proof:        Record<string, unknown>;
@@ -26,8 +26,12 @@ export interface ZKPUCANBridgeStats {
 }
 
 export class ZKPToUCANBridge {
-  private readonly backend = new Groth16BackendFallback();
+  private readonly backend: ZKPBackendProtocol;
   private readonly stats: ZKPUCANBridgeStats = { totalBridged: 0, succeeded: 0, failed: 0, verified: 0 };
+
+  constructor(backend: ZKPBackendProtocol = new Groth16Backend(null)) {
+    this.backend = backend;
+  }
 
   async bridge(
     formula: string,

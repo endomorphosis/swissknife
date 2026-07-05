@@ -12,6 +12,10 @@ import { DeonticGraph } from './deontic-graph.js';
 import type { DeonticNode, DeonticRule, DeonticModality } from './deontic-graph.js';
 import type { DeonticStatement, DeonticConflict as AnalyzerConflict } from './deontic-text-analyzer.js';
 
+function statementProposition(statement: DeonticStatement): string {
+  return (statement as DeonticStatement & { proposition?: string }).proposition ?? statement.action;
+}
+
 // Mapping from DeonticTextAnalyzer modalities to DeonticGraph modalities
 function toGraphModality(m: DeonticStatement['modality']): DeonticModality {
   switch (m) {
@@ -44,7 +48,7 @@ export class DeonticGraphBuilder {
    *
    * Each statement becomes:
    *   - One 'actor' node for `stmt.entity`.
-   *   - One 'action' node for `stmt.action`.
+  *   - One 'action' node for the statement proposition/action.
    *   - One rule connecting actor → action with the statement's modality.
    *
    * Conflicts are recorded as pairs of inactive rules (they remain in the graph
@@ -82,14 +86,15 @@ export class DeonticGraphBuilder {
       }
 
       // Action node
-      const actionNodeId = `action_${slugify(stmt.action)}_${stmt.id}`;
+      const proposition = statementProposition(stmt);
+      const actionNodeId = `action_${slugify(proposition)}_${stmt.id}`;
       const actionNode: DeonticNode = {
         id:        actionNodeId,
         node_type: 'action',
-        label:     stmt.action,
+        label:     proposition,
         active:    true,
         confidence: stmt.confidence,
-        attributes: { context: stmt.context },
+        attributes: { context: stmt.context, proposition, action: stmt.action },
       };
       graph.addNode(actionNode);
 

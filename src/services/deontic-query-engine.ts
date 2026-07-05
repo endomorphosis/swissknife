@@ -7,7 +7,7 @@
  *
  * Provides:
  *   QueryType          — enum of supported query types
- *   DeonticFormula     — formula record with operator/agent/action
+ *   DeonticFormula     — formula record with operator/agent/proposition
  *   DeonticRuleSet     — collection of formulas with metadata
  *   QueryResult        — result of a deontic query (toDict())
  *   ComplianceResult   — result of a compliance check (toDict())
@@ -43,6 +43,9 @@ export interface DeonticFormula {
   formulaId: string;
   operator: DeonticOp;
   agent: string;
+  /** Python parity field name (PORT-141). */
+  proposition: string;
+  /** Backward-compatible alias; scheduled for removal after PORT-141 migration. */
   action: string;
   conditions: string[];
   temporal?: string;
@@ -54,13 +57,16 @@ export interface DeonticFormula {
 export function makeDeonticFormula(
   operator: DeonticOp,
   agent: string,
-  action: string,
+  proposition: string,
   opts: { conditions?: string[]; temporal?: string; sourceText?: string; formulaId?: string; confidence?: number } = {},
 ): DeonticFormula {
-  const formulaId = opts.formulaId ?? `${operator}:${agent}:${action.slice(0, 20).replace(/\s+/g, '_')}`;
+  const formulaId = opts.formulaId ?? `${operator}:${agent}:${proposition.slice(0, 20).replace(/\s+/g, '_')}`;
   return {
     formulaId,
-    operator, agent, action,
+    operator,
+    agent,
+    proposition,
+    action: proposition,
     conditions: opts.conditions ?? [],
     temporal: opts.temporal,
     confidence: opts.confidence ?? 0.9,
@@ -68,7 +74,10 @@ export function makeDeonticFormula(
     toDict() {
       return {
         formula_id: formulaId,
-        operator, agent, action,
+        operator,
+        agent,
+        proposition,
+        action: proposition,
         conditions: opts.conditions ?? [],
         temporal: opts.temporal ?? null,
         confidence: opts.confidence ?? 0.9,
@@ -90,6 +99,10 @@ export interface DeonticRuleSet {
 
 export function makeRuleSet(name: string, formulas: DeonticFormula[] = []): DeonticRuleSet {
   return { name, formulas, metadata: {} };
+}
+
+function formulaProposition(formula: DeonticFormula): string {
+  return formula.proposition ?? formula.action;
 }
 
 // ---------------------------------------------------------------------------
@@ -281,8 +294,8 @@ export class DeonticQueryEngine {
     // Check prohibitions
     const prohibitions = this.operatorIndex.get(DeonticOp.PROHIBITION) ?? [];
     const violated = prohibitions.filter(f =>
-      f.action.toLowerCase().includes(actionLower.slice(0, 20)) ||
-      (agentKey && f.agent.toLowerCase() === agentKey && f.action.toLowerCase().includes(actionLower.slice(0, 10)))
+      formulaProposition(f).toLowerCase().includes(actionLower.slice(0, 20)) ||
+      (agentKey && f.agent.toLowerCase() === agentKey && formulaProposition(f).toLowerCase().includes(actionLower.slice(0, 10)))
     );
 
     if (violated.length > 0) {
@@ -291,7 +304,7 @@ export class DeonticQueryEngine {
         complianceScore: 0,
         violatedProhibitions: violated,
         reasoning: `Action "${action}" violates ${violated.length} prohibition(s)`,
-        recommendations: violated.map(f => `Remove or revise: ${f.action}`),
+        recommendations: violated.map(f => `Remove or revise: ${formulaProposition(f)}`),
       });
     }
 
@@ -315,7 +328,7 @@ export class DeonticQueryEngine {
     for (let i = 0; i < all.length; i++) {
       for (let j = i + 1; j < all.length; j++) {
         const f1 = all[i], f2 = all[j];
-        if (f1.agent === f2.agent && f1.action.toLowerCase() === f2.action.toLowerCase()) {
+        if (f1.agent === f2.agent && formulaProposition(f1).toLowerCase() === formulaProposition(f2).toLowerCase()) {
           if (
             (f1.operator === DeonticOp.OBLIGATION && f2.operator === DeonticOp.PROHIBITION) ||
             (f1.operator === DeonticOp.PROHIBITION && f2.operator === DeonticOp.OBLIGATION)
@@ -324,7 +337,7 @@ export class DeonticQueryEngine {
               conflictType: 'obligation_prohibition',
               formula1: f1,
               formula2: f2,
-              explanation: `Agent "${f1.agent}" is both obligated and prohibited from "${f1.action}"`,
+              explanation: `Agent "${f1.agent}" is both obligated and prohibited from "${formulaProposition(f1)}"`,
               severity: 'high',
             });
           }
@@ -349,8 +362,7 @@ export function queryLegalRules(ruleSet: DeonticRuleSet, naturalLanguageQuery: s
 
 export const query_legal_rules = queryLegalRules;
 
-// PORT-141: Convert action→proposition for Python⇄TS interchange
-// Python DeonticFormula uses .proposition; TS uses .action
+// PORT-141: action/proposition compatibility helpers for Python⇄TS interchange
 export function toPropositionField<T extends { action: string }>(formula: T): T & { proposition: string } {
   return { ...formula, proposition: formula.action };
 }

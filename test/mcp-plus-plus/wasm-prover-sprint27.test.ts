@@ -136,6 +136,23 @@ describe('DeonticNormsBridgeAdapter', () => {
     expect(formulas.length).toBeGreaterThan(0);
   });
 
+  test('frame logic and graph outputs keep proposition/action aliases aligned', () => {
+    const { doc } = adapter.encode('The agency must file annual reports.');
+    const norms = ((doc.views['deontic_ir']?.payload as { norms?: Array<Record<string, unknown>> })?.norms) ?? [];
+    const triples = ((doc.views['frame_logic']?.payload as { triples?: Array<Record<string, string>> })?.triples) ?? [];
+    const graphNodes = ((doc.views['neo4j_graph_data']?.payload as { nodes?: Array<Record<string, unknown>> })?.nodes) ?? [];
+
+    expect(norms.length).toBeGreaterThan(0);
+    expect(norms[0]?.['proposition']).toBe(norms[0]?.['action']);
+
+    const actionTriple = triples.find(triple => triple.predicate === 'hasAction');
+    const propositionTriple = triples.find(triple => triple.predicate === 'hasProposition');
+    expect(actionTriple?.object).toBe(propositionTriple?.object);
+
+    const normNode = graphNodes.find(node => String(node.id).includes(':n0')) as { properties?: Record<string, unknown> } | undefined;
+    expect(normNode?.properties?.['action']).toBe(normNode?.properties?.['proposition']);
+  });
+
   test('evaluate returns BridgeEvaluationReport', () => {
     const report = adapter.evaluate(LEGAL_TEXT);
     expect(report).toBeInstanceOf(BridgeEvaluationReport);

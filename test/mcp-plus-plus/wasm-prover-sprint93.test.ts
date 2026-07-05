@@ -28,6 +28,7 @@ import {
 } from '../../src/services/deontic/legal-norm-ir';
 import {
   activeRepairDetailsFromParserElements,
+  buildDeterministicParserCapabilityProfileRecord,
   buildDecoderRecordFromIR,
   buildDecoderRecordsFromIRs,
   buildDecoderSlotGroundingAuditRecord,
@@ -175,6 +176,41 @@ describe('PORT-199 Phase-8 parser QA metrics', () => {
     expect(report.topMissingSlots[0]).toEqual({ slot: 'actor', count: 1 });
     expect(report.repairQueue.map(item => item.sourceId)).toContain('metric-repair');
   });
+
+  it('counts proposition alias as filling required action slots in metrics', () => {
+    const propositionOnly = {
+      ...buildLegalNormIR({
+        source_id: 'metric-alias',
+        modality: 'O',
+        actor: 'Users',
+        action: '',
+        quality: { ...emptyQuality(), schema_valid: true },
+      }),
+      proposition: 'log access',
+    } as unknown as ReturnType<typeof buildLegalNormIR>;
+
+    const record = buildPhase8ParserMetricRecord(propositionOnly, {
+      requiredSlots: ['actor', 'action'],
+    });
+    expect(record.filledSlots).toEqual(['actor', 'action']);
+    expect(record.missingSlots).toEqual([]);
+    expect(record.slotCoverage).toBe(1);
+  });
+
+  it('counts action alias as filling required proposition slots in metrics', () => {
+    const record = buildPhase8ParserMetricRecord(buildLegalNormIR({
+      source_id: 'metric-proposition-slot',
+      modality: 'O',
+      actor: 'Users',
+      action: 'log access',
+      quality: { ...emptyQuality(), schema_valid: true },
+    }), {
+      requiredSlots: ['actor', 'proposition'],
+    });
+    expect(record.filledSlots).toEqual(['actor', 'proposition']);
+    expect(record.missingSlots).toEqual([]);
+    expect(record.slotCoverage).toBe(1);
+  });
 });
 
 describe('PORT-200 prover syntax target coverage and validator', () => {
@@ -186,9 +222,14 @@ describe('PORT-200 prover syntax target coverage and validator', () => {
 
     const full = ProverSyntaxBuilder.buildSyntaxReport(norm, ALL_PROVER_TARGETS);
     expect(full.records.map(record => record.target_id)).toEqual(ALL_PROVER_TARGETS);
+    expect(full.proposition).toBe('LogAccess');
+    expect(full.action).toBe('LogAccess');
     expect(full.records.find(record => record.target_id === 'coq')?.formula).toContain('Theorem');
     expect(full.records.find(record => record.target_id === 'tptp')?.formula).toContain('fof(');
-    expect(JSON.parse(full.records.find(record => record.target_id === 'json-ir')!.formula).source_id).toBe('syntax-1');
+    const jsonIr = JSON.parse(full.records.find(record => record.target_id === 'json-ir')!.formula);
+    expect(jsonIr.source_id).toBe('syntax-1');
+    expect(jsonIr.proposition).toBe('LogAccess');
+    expect(jsonIr.action).toBe('LogAccess');
   });
 
   it('builds target syntax maps and validates complete reports', () => {
@@ -203,6 +244,24 @@ describe('PORT-200 prover syntax target coverage and validator', () => {
     expect(validation.missingTargets).toEqual([]);
     expect(validation.allValid).toBe(true);
     expect(validation.proofReadyTargets).toEqual(ALL_PROVER_TARGETS);
+  });
+
+  it('uses proposition alias when action is empty in syntax report and json-ir target', () => {
+    const propositionOnly = {
+      ...buildLegalNormIR({ source_id: 'syntax-proposition-only', modality: 'O', actor: 'Users', action: '' }),
+      proposition: 'LogAccess',
+    } as unknown as ReturnType<typeof buildLegalNormIR>;
+
+    const report = ProverSyntaxBuilder.buildSyntaxReport(propositionOnly, ALL_PROVER_TARGETS);
+    expect(report.proposition).toBe('LogAccess');
+    expect(report.action).toBe('LogAccess');
+
+    const jsonIr = JSON.parse(report.records.find(record => record.target_id === 'json-ir')!.formula);
+    expect(jsonIr.proposition).toBe('LogAccess');
+    expect(jsonIr.action).toBe('LogAccess');
+
+    const z3 = report.records.find(record => record.target_id === 'z3-smt2');
+    expect(z3?.warnings).not.toContain('action slot is empty');
   });
 
   it('surfaces missing targets and invalid records', () => {
@@ -258,6 +317,11 @@ describe('PORT-214 direct deontic export records', () => {
     expect(irAudit.all_checked_slots_grounded).toBe(true);
     expect(buildIrSlotProvenanceAuditRecords([norm], ['actor'])).toHaveLength(1);
 
+    const propositionAudit = buildIrSlotProvenanceAuditRecord(norm, ['actor', 'proposition']);
+    expect(propositionAudit.checked_slots).toEqual(['actor', 'proposition']);
+    expect(propositionAudit.grounded_slots).toEqual(expect.arrayContaining(['proposition']));
+    expect(propositionAudit.missing_slots).not.toContain('proposition');
+
     const slotAudit = buildDecoderSlotGroundingAuditRecord(decoder, ['actor', 'action']);
     expect(slotAudit.slot_grounding_complete).toBe(true);
     expect(buildDecoderSlotGroundingAuditRecordFromIR(norm).source_id).toBe('export-1');
@@ -300,7 +364,7 @@ describe('PORT-214 direct deontic export records', () => {
       modality: 'O',
       norm_type: 'obligation',
       actor: '',
-      action: 'notify agency',
+      proposition: 'notify agency',
       source_text: 'The agency must be notified.',
       text: 'The agency must be notified.',
       parser_warnings: ['missing actor'],
@@ -309,8 +373,12 @@ describe('PORT-214 direct deontic export records', () => {
     };
 
     expect(parserElementHasActiveRepair(blockedElement)).toBe(true);
-    expect(parserElementsForMetrics([blockedElement])[0].active_repair_required).toBe(true);
-    expect(activeRepairDetailsFromParserElements([blockedElement])).toHaveLength(1);
+    const metricRow = parserElementsForMetrics([blockedElement])[0];
+    expect(metricRow.active_repair_required).toBe(true);
+    expect(metricRow.proposition).toBe('notify agency');
+    const details = activeRepairDetailsFromParserElements([blockedElement]);
+    expect(details).toHaveLength(1);
+    expect((details[0].action as string[])[0]).toBe('notify agency');
     expect(summarizeActiveRepairFromParserElements([blockedElement]).repair_required_count).toBe(1);
 
     const normalized = normalizeRepairRequiredEvaluation([blockedElement], {
@@ -343,6 +411,30 @@ describe('PORT-214 direct deontic export records', () => {
     }]);
     expect(tables.decoder_reconstructions).toHaveLength(1);
     expect(validateExportTables(tables).valid).toBe(true);
+  });
+
+  it('treats proposition/action as equivalent required slots in export metrics', () => {
+    const capability = buildDeterministicParserCapabilityProfileRecord({
+      sourceId: 'alias-1',
+      normType: 'obligation',
+      modality: 'O',
+      formula: 'O(Agency, NotifyAgency)',
+      actor: 'Agency',
+      proposition: 'notify agency',
+    }, ['actor', 'action']);
+
+    expect(capability.groundedSlots).toEqual(['actor', 'action']);
+    expect(capability.missingSlots).toEqual([]);
+    expect(capability.sourceGroundedSlotRate).toBe(1);
+
+    const reconstruction = summarizeReconstructionSlotLoss([
+      {
+        source_id: 'alias-1',
+        grounded_slots: ['actor', 'proposition'],
+      },
+    ], ['actor', 'action']);
+    expect(reconstruction.slot_reconstruction_complete).toBe(true);
+    expect(reconstruction.missing_required_slots).toEqual([]);
   });
 
   it('classifies decoder-blocking parser warnings like the Python IR helper', () => {

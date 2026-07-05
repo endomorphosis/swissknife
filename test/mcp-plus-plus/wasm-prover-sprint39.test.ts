@@ -105,6 +105,10 @@ function makeStmt(operator: 'O' | 'P' | 'F', action: string, agent = 'Agent', id
   return { operator, action, agent, conditions: [], sourceText: action, statementId: id ?? `${operator}:${action}` };
 }
 
+function makeStmtFromProposition(operator: 'O' | 'P' | 'F', proposition: string, agent = 'Agent', id?: string): LocalDeonticStatement {
+  return { operator, proposition, agent, conditions: [], sourceText: proposition, statementId: id ?? `${operator}:${proposition}` };
+}
+
 describe('ConflictDetector', () => {
   const detector = new ConflictDetector();
 
@@ -128,6 +132,17 @@ describe('ConflictDetector', () => {
     expect(conflicts[0].conflictType).toBe(DeonticConflictType.PERMISSION_PROHIBITION);
   });
 
+  test('detectConflicts uses proposition alias when action is absent', () => {
+    const stmts = [
+      makeStmtFromProposition('O', 'deliver goods'),
+      makeStmtFromProposition('F', 'deliver goods'),
+    ];
+    const conflicts = detector.detectConflicts(stmts);
+    expect(conflicts.length).toBeGreaterThan(0);
+    expect(conflicts[0].conflictType).toBe(DeonticConflictType.OBLIGATION_PROHIBITION);
+    expect(conflicts[0].explanation).toContain('deliver goods');
+  });
+
   test('summarize counts by severity', () => {
     const stmts = [makeStmt('O', 'deliver goods'), makeStmt('F', 'deliver goods')];
     const conflicts = detector.detectConflicts(stmts);
@@ -146,6 +161,14 @@ describe('DeonticConflictMixin', () => {
     const mixin = new DeonticConflictMixin();
     const existing = [makeStmt('F', 'deliver goods', 'Agent', 's1')];
     const proposed = makeStmt('O', 'deliver goods', 'Agent', 's2');
+    const conflicts = mixin.wouldConflict(proposed, existing);
+    expect(conflicts.length).toBeGreaterThan(0);
+  });
+
+  test('wouldConflict supports proposition-only statements', () => {
+    const mixin = new DeonticConflictMixin();
+    const existing = [makeStmtFromProposition('F', 'deliver goods', 'Agent', 's1')];
+    const proposed = makeStmtFromProposition('O', 'deliver goods', 'Agent', 's2');
     const conflicts = mixin.wouldConflict(proposed, existing);
     expect(conflicts.length).toBeGreaterThan(0);
   });

@@ -62,6 +62,7 @@ describe('PORT-189 Deontic extraction utilities', () => {
     expect(statements.map(statement => statement.operator)).toEqual(['O', 'F', 'P']);
     expect(statements.find(statement => statement.operator === 'O')).toMatchObject({ actor: 'Controller', action: 'notify users' });
     expect(statements.find(statement => statement.operator === 'F')).toMatchObject({ actor: 'Vendor', action: 'disclose data' });
+    expect(statements.every(statement => statement.proposition === statement.action)).toBe(true);
   });
 
   it('parses nested deontic formulas with operator precedence', () => {

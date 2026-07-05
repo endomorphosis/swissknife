@@ -87,6 +87,12 @@ describe('T-72 DeonticTextAnalyzer — statement extraction', () => {
     }
   });
 
+  it('emits proposition as an action alias for extracted statements', () => {
+    const stmts = analyzer.extractStatements('Users must log access.');
+    expect(stmts.length).toBeGreaterThan(0);
+    expect(stmts.every(stmt => stmt.proposition === stmt.action)).toBe(true);
+  });
+
   it('filters by entity when entityFilter is provided', () => {
     const text = 'Admins must log access. Users may view records.';
     const adminOnly = analyzer.extractStatements(text, ['admin']);
@@ -152,6 +158,25 @@ describe('T-72 DeonticTextAnalyzer — conflict detection', () => {
 
   it('actionsAreSimilar returns false for unrelated actions', () => {
     expect(analyzer.actionsAreSimilar('delete records', 'encrypt passwords')).toBe(false);
+  });
+
+  it('checkStatementConflict uses proposition alias when action is empty', () => {
+    const shared: Partial<DeonticStatement> = {
+      entity: 'Users',
+      action: '',
+      context: '',
+      conditions: [],
+      exceptions: [],
+      confidence: 0.8,
+      source: 'policy',
+      date: '2026-01-01',
+    };
+    const s1 = { id: 'p1', modality: 'obligation', proposition: 'share audit logs', ...shared } as DeonticStatement;
+    const s2 = { id: 'p2', modality: 'prohibition', proposition: 'share audit logs', ...shared } as DeonticStatement;
+
+    const conflict = analyzer.checkStatementConflict(s1, s2, ['direct']);
+    expect(conflict?.type).toBe('direct');
+    expect(conflict?.description).toContain('share audit logs');
   });
 });
 
@@ -310,6 +335,7 @@ describe('T-74 mcp++ deontic subcommand', () => {
     expect(typeof result.output).toBe('string');
     const parsed = JSON.parse(String(result.output));
     expect(Array.isArray(parsed.statements)).toBe(true);
+    expect(parsed.statements.every((statement: Record<string, unknown>) => statement.proposition === statement.action)).toBe(true);
     expect(parsed.statistics).toBeDefined();
     expect(parsed.statistics.total_statements).toBeGreaterThanOrEqual(1);
   });

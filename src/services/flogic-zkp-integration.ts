@@ -7,7 +7,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { Groth16BackendFallback, Groth16Proof, ZKPBackendProtocol } from './zkp-backends.js';
+import { Groth16Backend, Groth16Proof, ZKPBackendProtocol } from './zkp-backends.js';
 
 export interface FLogicFrameFact {
   subject: string;
@@ -70,7 +70,7 @@ export class FLogicZKPIntegration {
   private readonly stats: FLogicZKPStats = { proofsGenerated: 0, proofsVerified: 0, failures: 0 };
   private readonly transpiler = new FLogicCircuitTranspiler();
 
-  constructor(private readonly backend: ZKPBackendProtocol = new Groth16BackendFallback()) {}
+  constructor(private readonly backend: ZKPBackendProtocol = new Groth16Backend(null)) {}
 
   async proveWithZkp(frames: string | FLogicFrameFact[], query: string): Promise<FLogicZKPResult> {
     const started = performance.now();

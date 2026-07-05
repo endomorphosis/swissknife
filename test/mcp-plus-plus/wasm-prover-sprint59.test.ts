@@ -9,6 +9,7 @@ import { LegalVocabulary, MedicalVocabulary, TechnicalVocabulary, DomainVocabula
 import { NaturalLanguageConverter, createEnhancedNlConverter } from '../../src/services/cec-nl-converter';
 import { ShadowProverWrapper, ProverStatus } from '../../src/services/shadow-prover-wrapper';
 import { ZKPToUCANBridge, getZkpUcanBridge } from '../../src/services/zkp-ucan-bridge';
+import { Groth16BackendFallback } from '../../src/services/zkp-backends';
 
 // ---------------------------------------------------------------------------
 // FLogicProofCache tests
@@ -190,7 +191,14 @@ describe('ShadowProverWrapper', () => {
 // ZKPToUCANBridge tests
 // ---------------------------------------------------------------------------
 describe('ZKPToUCANBridge', () => {
-  const bridge = new ZKPToUCANBridge();
+  const bridge = new ZKPToUCANBridge(new Groth16BackendFallback());
+
+  test('fails closed by default when no native backend is configured', async () => {
+    const strictBridge = new ZKPToUCANBridge();
+    const r = await strictBridge.bridge('O(pay)', ['pay', 'transfer'], 'did:key:alice');
+    expect(r.success).toBe(false);
+    expect(r.error).toContain('allowSimulatedFallback:true');
+  });
 
   test('bridge returns success result', async () => {
     const r = await bridge.bridge('O(pay)', ['pay', 'transfer'], 'did:key:alice');
@@ -211,7 +219,7 @@ describe('ZKPToUCANBridge', () => {
   });
 
   test('stats increment after bridge', async () => {
-    const b2 = new ZKPToUCANBridge();
+    const b2 = new ZKPToUCANBridge(new Groth16BackendFallback());
     await b2.bridge('Q', ['write']);
     expect(b2.getStats().totalBridged).toBe(1);
     expect(b2.getStats().succeeded).toBe(1);

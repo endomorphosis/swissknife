@@ -57,6 +57,7 @@ export interface ProverSyntaxReport {
   readonly norm_id:    string;
   readonly modality:   string;
   readonly actor:      string;
+  readonly proposition: string;
   readonly action:     string;
   /** One record per prover target. */
   readonly records:    ProverTargetSyntaxRecord[];
@@ -82,6 +83,11 @@ export interface ProverSyntaxValidationReport {
   readonly issues: ProverSyntaxValidationIssue[];
 }
 
+function normAction(norm: LegalNormIR): string {
+  const withAlias = norm as LegalNormIR & { proposition?: string };
+  return withAlias.proposition ?? norm.action;
+}
+
 // ---------------------------------------------------------------------------
 // Syntax generators per target
 // ---------------------------------------------------------------------------
@@ -89,7 +95,7 @@ export interface ProverSyntaxValidationReport {
 /** Z3 SMT-LIB2 syntax: (assert (O actor action)). */
 function _z3Syntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   const actor  = normalizePredicate(norm.actor);
-  const action = normalizePredicate(norm.action);
+  const action = normalizePredicate(normAction(norm));
   const op = norm.modality.toUpperCase();
 
   let formula: string;
@@ -105,7 +111,7 @@ function _z3Syntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
 
   const warnings: string[] = [];
   if (!norm.actor) warnings.push('actor slot is empty');
-  if (!norm.action) warnings.push('action slot is empty');
+  if (!normAction(norm)) warnings.push('action slot is empty');
 
   return {
     target_id:   'z3-smt2',
@@ -128,14 +134,14 @@ function _smtLib2Syntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
 /** DCEC syntax: O(actor_action) or P(actor_action) or F(actor_action). */
 function _dcecSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   const actor  = normalizePredicate(norm.actor);
-  const action = normalizePredicate(norm.action);
+  const action = normalizePredicate(normAction(norm));
   const op = norm.modality.toUpperCase();
   const inner = action ? `${actor}_${action}` : actor;
 
   const formula = `${op}(${inner})`;
   const warnings: string[] = [];
   if (!norm.actor) warnings.push('actor slot is empty');
-  if (!norm.action) warnings.push('action slot is empty');
+  if (!normAction(norm)) warnings.push('action slot is empty');
 
   return {
     target_id:   'dcec',
@@ -149,7 +155,7 @@ function _dcecSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
 /** TDFOL syntax with □ wrapper when temporal constraints present. */
 function _tdfolSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   const actor  = normalizePredicate(norm.actor);
-  const action = normalizePredicate(norm.action);
+  const action = normalizePredicate(normAction(norm));
   const op = norm.modality.toUpperCase();
   const inner = `${op}(${actor}_${action})`;
   const hasTemporal = Array.isArray(norm.temporal_constraints) && norm.temporal_constraints.length > 0;
@@ -157,7 +163,7 @@ function _tdfolSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
 
   const warnings: string[] = [];
   if (!norm.actor) warnings.push('actor slot is empty');
-  if (!norm.action) warnings.push('action slot is empty');
+  if (!normAction(norm)) warnings.push('action slot is empty');
 
   return {
     target_id:   'tdfol',
@@ -171,14 +177,14 @@ function _tdfolSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
 /** Lean 4 syntax: theorem + by exact. */
 function _lean4Syntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   const actor  = normalizePredicate(norm.actor);
-  const action = normalizePredicate(norm.action);
+  const action = normalizePredicate(normAction(norm));
   const op = norm.modality.toUpperCase();
   const opWord = op === 'O' ? 'Obligation' : op === 'P' ? 'Permission' : 'Prohibition';
   const formula = `theorem ${actor}_${action}_${opWord.toLowerCase()} : ${opWord} (${actor}Prop ∧ ${action}Prop) := by\n  exact ⟨h_actor, h_action⟩`;
 
   const warnings: string[] = [];
   if (!norm.actor) warnings.push('actor slot is empty');
-  if (!norm.action) warnings.push('action slot is empty');
+  if (!normAction(norm)) warnings.push('action slot is empty');
 
   return {
     target_id:   'lean4',
@@ -192,7 +198,7 @@ function _lean4Syntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
 /** Coq proposition skeleton. */
 function _coqSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   const actor = normalizePredicate(norm.actor);
-  const action = normalizePredicate(norm.action);
+  const action = normalizePredicate(normAction(norm));
   const op = norm.modality.toUpperCase();
   const predicate = op === 'O' ? 'Obligation' : op === 'P' ? 'Permission' : 'Prohibition';
   const theoremName = `${actor}_${action}_${predicate}`.toLowerCase();
@@ -216,7 +222,7 @@ function _coqSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
 /** TPTP FOF syntax. */
 function _tptpSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   const actor = normalizePredicate(norm.actor).toLowerCase();
-  const action = normalizePredicate(norm.action).toLowerCase();
+  const action = normalizePredicate(normAction(norm)).toLowerCase();
   const op = norm.modality.toUpperCase();
   const name = normalizePredicate(norm.source_id || `${actor}_${action}`).toLowerCase();
 
@@ -246,7 +252,7 @@ function _tptpSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
 /** Prolog clause form. */
 function _prologSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
   const actor  = normalizePredicate(norm.actor).toLowerCase();
-  const action = normalizePredicate(norm.action).toLowerCase();
+  const action = normalizePredicate(normAction(norm)).toLowerCase();
   const op = norm.modality.toUpperCase();
 
   let formula: string;
@@ -262,8 +268,8 @@ function _prologSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
     target_id:   'prolog',
     formula,
     syntax_type: 'prolog-fact',
-    valid:       Boolean(norm.actor && norm.action),
-    warnings:    norm.actor && norm.action ? [] : ['actor or action is empty'],
+    valid:       Boolean(norm.actor && normAction(norm)),
+    warnings:    norm.actor && normAction(norm) ? [] : ['actor or action is empty'],
   };
 }
 
@@ -277,7 +283,8 @@ function _jsonIrSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
       modality: norm.modality,
       norm_type: norm.norm_type,
       actor: norm.actor,
-      action: norm.action,
+      proposition: normAction(norm),
+      action: normAction(norm),
       conditions: norm.conditions,
       exceptions: norm.exceptions,
       temporal_constraints: norm.temporal_constraints,
@@ -291,7 +298,7 @@ function _jsonIrSyntax(norm: LegalNormIR): ProverTargetSyntaxRecord {
 function slotWarnings(norm: LegalNormIR): string[] {
   const warnings: string[] = [];
   if (!norm.actor) warnings.push('actor slot is empty');
-  if (!norm.action) warnings.push('action slot is empty');
+  if (!normAction(norm)) warnings.push('action slot is empty');
   return warnings;
 }
 
@@ -337,7 +344,8 @@ export class ProverSyntaxBuilder {
       norm_id:   norm.source_id,
       modality:  norm.modality,
       actor:     norm.actor,
-      action:    norm.action,
+      proposition: normAction(norm),
+      action:    normAction(norm),
       records,
       all_valid: records.every(r => r.valid),
     };

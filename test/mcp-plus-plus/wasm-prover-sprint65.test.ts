@@ -19,6 +19,7 @@ import {
   WitnessManager,
   EProverAdapter, checkEproverInstallation, EProverProofResult,
 } from '../../src/services/sprint65-utils';
+import { Groth16BackendFallback } from '../../src/services/zkp-backends';
 
 // ---------------------------------------------------------------------------
 // IPFSProofStorage
@@ -282,14 +283,14 @@ describe('areActionsSimilar', () => {
 // ---------------------------------------------------------------------------
 describe('WitnessManager', () => {
   it('generates a witness with an id', async () => {
-    const wm = new WitnessManager();
+    const wm = new WitnessManager(new Groth16BackendFallback());
     const rec = await wm.generateWitness('P → Q');
     expect(rec.witnessId).toBe('wit-1');
     expect(rec.formula).toBe('P → Q');
   });
 
   it('verifies a generated witness', async () => {
-    const wm = new WitnessManager();
+    const wm = new WitnessManager(new Groth16BackendFallback());
     const rec = await wm.generateWitness('A ∧ B');
     expect(await wm.verifyWitness(rec.witnessId)).toBe(true);
   });
@@ -300,7 +301,7 @@ describe('WitnessManager', () => {
   });
 
   it('tracks stats', async () => {
-    const wm = new WitnessManager();
+    const wm = new WitnessManager(new Groth16BackendFallback());
     await wm.generateWitness('X');
     await wm.verifyWitness('wit-1');
     expect(wm.getStats().generated).toBe(1);

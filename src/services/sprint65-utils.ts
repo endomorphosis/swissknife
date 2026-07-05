@@ -7,7 +7,7 @@
  *           CEC/provers/e_prover_adapter.py (263L)
  */
 
-import { Groth16BackendFallback } from './zkp-backends';
+import { Groth16Backend, type ZKPBackendProtocol } from './zkp-backends';
 
 // ---------------------------------------------------------------------------
 // Logic Verification Utils (logic_verification_utils.py)
@@ -165,9 +165,13 @@ export interface WitnessManagerStats { generated: number; verified: number; fail
 
 export class WitnessManager {
   private readonly witnesses = new Map<string, WitnessRecord>();
-  private readonly backend   = new Groth16BackendFallback();
+  private readonly backend: ZKPBackendProtocol;
   private readonly stats: WitnessManagerStats = { generated: 0, verified: 0, failures: 0 };
   private counter = 0;
+
+  constructor(backend: ZKPBackendProtocol = new Groth16Backend(null)) {
+    this.backend = backend;
+  }
 
   async generateWitness(formula: string, axioms: string[] = []): Promise<WitnessRecord> {
     this.stats.generated++;

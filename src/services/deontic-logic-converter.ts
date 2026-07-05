@@ -132,7 +132,7 @@ function extractAgent(s: string): string {
   return m ? m[1].trim() : 'Agent';
 }
 
-function extractAction(s: string): string {
+function extractProposition(s: string): string {
   const m = s.match(ACTION_RE);
   return m ? m[1].trim().slice(0, 60) : s.slice(0, 40).trim();
 }
@@ -167,7 +167,7 @@ export class DeonticLogicConverter {
       if (!op) continue;
 
       const agent = ctx.enableAgentInference ? extractAgent(sentence) : 'Agent';
-      const action = extractAction(sentence);
+      const proposition = extractProposition(sentence);
       const conditions: string[] = [];
 
       if (ctx.enableTemporalAnalysis) {
@@ -180,7 +180,7 @@ export class DeonticLogicConverter {
         if (cond) conditions.push(cond[0].slice(0, 50).trim());
       }
 
-      const f = makeDeonticFormula(op, agent, action, {
+      const f = makeDeonticFormula(op, agent, proposition, {
         conditions, sourceText: sentence, confidence: 0.8,
       });
       formulas.push(f);
@@ -209,16 +209,18 @@ export class DeonticLogicConverter {
 
   /** Convert a list of entity/relationship records (from GraphRAG) to deontic formulas. */
   convertEntities(
-    entities: Array<{ type: string; name: string; action?: string }>,
+    entities: Array<{ type: string; name: string; proposition?: string; action?: string }>,
     context?: ConversionContext,
   ): ConversionResult {
+    void context;
     const formulas: DeonticFormula[] = [];
     for (const e of entities) {
       const op: DeonticOp =
         e.type === 'prohibition' ? DeonticOp.PROHIBITION :
         e.type === 'permission' ? DeonticOp.PERMISSION :
         DeonticOp.OBLIGATION;
-      formulas.push(makeDeonticFormula(op, e.name, e.action ?? 'Act', { confidence: 0.75 }));
+      const proposition = e.proposition ?? e.action ?? 'Act';
+      formulas.push(makeDeonticFormula(op, e.name, proposition, { confidence: 0.75 }));
     }
     const ruleSet = makeRuleSet('graphrag_entities', formulas);
     return new ConversionResult({ deonticFormulas: formulas, ruleSet });

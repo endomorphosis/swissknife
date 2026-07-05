@@ -19,6 +19,7 @@ export interface ExtractedDeonticStatement {
   operator: DeonticOperator;
   modality: 'obligation' | 'permission' | 'prohibition';
   actor: string;
+  proposition: string;
   action: string;
   source: string;
   confidence: number;
@@ -66,6 +67,7 @@ export function extractDeonticStatements(text: string): ExtractedDeonticStatemen
         operator: pattern.operator,
         modality: pattern.modality,
         actor: cleanPhrase(match.actor),
+        proposition: cleanPhrase(match.action),
         action: cleanPhrase(match.action),
         source: clause,
         confidence: pattern.confidence,

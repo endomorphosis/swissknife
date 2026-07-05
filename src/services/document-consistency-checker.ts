@@ -151,6 +151,10 @@ const PERMISSION_RE = /\b(may|is permitted to|is allowed to)\b/i;
 const PROHIBITION_RE = /\b(shall not|must not|is prohibited from|cannot)\b/i;
 const ACTION_RE = /(?:shall|must|may|cannot)\s+(?:not\s+)?([a-zA-Z][a-zA-Z\s]{3,40}?)(?:[.,;]|$)/i;
 
+function formulaProposition(formula: DeonticFormula): string {
+  return formula.proposition ?? formula.action;
+}
+
 function extractFormulas(text: string, docId: string): DeonticFormula[] {
   const sentences = text.split(/[.;!?]/).map(s => s.trim()).filter(s => s.length > 5);
   const formulas: DeonticFormula[] = [];
@@ -161,9 +165,9 @@ function extractFormulas(text: string, docId: string): DeonticFormula[] {
     else if (OBLIGATION_RE.test(sent)) op = DeonticOp.OBLIGATION;
     else continue;
 
-    const actionMatch = sent.match(ACTION_RE);
-    const action = actionMatch ? actionMatch[1].trim().slice(0, 40) : sent.slice(0, 30).trim();
-    formulas.push(makeDeonticFormula(op, 'Agent', action, { sourceText: sent, formulaId: `${docId}:f${i}` }));
+    const propositionMatch = sent.match(ACTION_RE);
+    const proposition = propositionMatch ? propositionMatch[1].trim().slice(0, 40) : sent.slice(0, 30).trim();
+    formulas.push(makeDeonticFormula(op, 'Agent', proposition, { sourceText: sent, formulaId: `${docId}:f${i}` }));
   }
   return formulas;
 }
@@ -173,13 +177,18 @@ function detectConflicts(formulas: DeonticFormula[]): Array<{ formula1: DeonticF
   for (let i = 0; i < formulas.length; i++) {
     for (let j = i + 1; j < formulas.length; j++) {
       const f1 = formulas[i], f2 = formulas[j];
-      const actionSimilar = f1.action.toLowerCase().slice(0, 15) === f2.action.toLowerCase().slice(0, 15);
-      if (actionSimilar) {
+      const propositionSimilar =
+        formulaProposition(f1).toLowerCase().slice(0, 15) === formulaProposition(f2).toLowerCase().slice(0, 15);
+      if (propositionSimilar) {
         if (
           (f1.operator === DeonticOp.OBLIGATION && f2.operator === DeonticOp.PROHIBITION) ||
           (f1.operator === DeonticOp.PROHIBITION && f2.operator === DeonticOp.OBLIGATION)
         ) {
-          conflicts.push({ formula1: f1, formula2: f2, reason: `Obligation/prohibition conflict on "${f1.action.slice(0, 30)}"` });
+          conflicts.push({
+            formula1: f1,
+            formula2: f2,
+            reason: `Obligation/prohibition conflict on "${formulaProposition(f1).slice(0, 30)}"`,
+          });
         }
       }
     }
