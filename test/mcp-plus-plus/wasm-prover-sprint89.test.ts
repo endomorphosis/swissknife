@@ -10,9 +10,12 @@ import {
   CostBasedStrategySelector,
   ForwardFallbackStrategy,
   ModalTableauxStrategy,
+  TDFOLStrategy,
   createDefaultStrategySelector,
   estimateFormulaCost,
 } from '../../src/services/tdfol-strategy-router';
+import { TDFOLProver, ProofStatus } from '../../src/services/tdfol-prover';
+import { TDFOLKnowledgeBase, mkPredicate } from '../../src/services/tdfol-core';
 
 class FakeExternalProver implements ExternalProver {
   readonly supportsEquality = true;
@@ -89,5 +92,35 @@ describe('PORT-183 modal tableaux and cost selector', () => {
     const selector = createDefaultStrategySelector([new FakeExternalProver()]);
     expect(selector.rank('forall x. P(x)').map(entry => entry.strategy.name))
       .toEqual(expect.arrayContaining(['cec-delegate', 'forward-fallback']));
+  });
+
+  it('exposes Python-style selector aliases', () => {
+    const selector = createDefaultStrategySelector([new FakeExternalProver()]);
+    expect(selector.select_strategy('□P').name).toBe(selector.select('□P').name);
+    expect(selector.select_multiple('forall x. x = x').length).toBeGreaterThan(0);
+  });
+
+  it('plugs strategy selector into TDFOLProver proof flow', () => {
+    const stubStrategy: TDFOLStrategy = {
+      name: 'stub-strategy',
+      canHandle: () => true,
+      can_handle: () => true,
+      estimateCost: () => 0,
+      estimate_cost: () => 0,
+      getPriority: () => 999,
+      get_priority: () => 999,
+      prove: () => ({
+        proved: true,
+        strategy: 'stub-strategy',
+        status: 'proved',
+        cost: 0,
+        steps: ['stub-step'],
+      }),
+    };
+    const selector = new CostBasedStrategySelector([stubStrategy]);
+    const prover = new TDFOLProver(new TDFOLKnowledgeBase(), { strategySelector: selector });
+    const result = prover.prove(mkPredicate('goal'));
+    expect(result.status).toBe(ProofStatus.PROVED);
+    expect(result.method).toBe('strategy:stub-strategy');
   });
 });

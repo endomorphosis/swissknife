@@ -27,6 +27,7 @@ import {
   mkTemporal,
 } from './tdfol-core.js';
 import { ModalTableaux, ModalLogicType } from './modal-tableaux.js';
+import { CostBasedStrategySelector, createDefaultStrategySelector } from './tdfol-strategy-router.js';
 
 // ---------------------------------------------------------------------------
 // ProofStatus / ProofStep / ProofResult
@@ -249,6 +250,8 @@ export interface TDFOLProverOptions {
   maxIterations?: number;
   /** Modal logic type for tableaux fallback (default K). */
   logicType?: ModalLogicType;
+  /** Optional strategy selector (defaults to cost-based selector). */
+  strategySelector?: CostBasedStrategySelector | null;
 }
 
 export class TDFOLProver {
@@ -256,12 +259,16 @@ export class TDFOLProver {
   private rules: TDFOLInferenceRule[];
   private maxIterations: number;
   private logicType: ModalLogicType;
+  private strategySelector: CostBasedStrategySelector | null;
 
   constructor(kb?: TDFOLKnowledgeBase, opts: TDFOLProverOptions = {}) {
     this.kb = kb ?? new TDFOLKnowledgeBase();
     this.rules = opts.rules ?? defaultTdfolRules();
     this.maxIterations = opts.maxIterations ?? 50;
     this.logicType = opts.logicType ?? ModalLogicType.K;
+    this.strategySelector = opts.strategySelector === undefined
+      ? createDefaultStrategySelector()
+      : opts.strategySelector;
   }
 
   /**
@@ -301,7 +308,11 @@ export class TDFOLProver {
       }
     }
 
-    // 3. Forward-chaining
+    // 3. Strategy-selector route (PORT-070) before local derivation fallback.
+    const strategyResult = this.tryStrategyRoute(goal, _timeoutMs, t0);
+    if (strategyResult) return strategyResult;
+
+    // 4. Forward-chaining
     const workingKb = new TDFOLKnowledgeBase();
     for (const f of this.kb.getByRole('axiom')) workingKb.addAxiom(f);
     for (const f of this.kb.getByRole('theorem')) workingKb.addTheorem(f);
@@ -334,7 +345,7 @@ export class TDFOLProver {
       if (!anyNew) break;
     }
 
-    // 4. Modal tableaux fallback — check if goal is a tautology
+    // 5. Modal tableaux fallback — check if goal is a tautology
     const tableaux = new ModalTableaux(this.logicType);
     const result = tableaux.prove(goal);
     if (result.isValid) {
@@ -351,5 +362,32 @@ export class TDFOLProver {
       timeMs: Date.now() - t0, method: 'exhausted',
       message: 'Could not prove formula by axiom lookup, forward chaining, or tableaux',
     };
+  }
+
+  private tryStrategyRoute(goal: Formula, timeoutMs: number, t0: number): ProofResult | null {
+    if (!this.strategySelector) return null;
+    try {
+      const goalString = goal.toStr();
+      const axioms = [
+        ...this.kb.getByRole('axiom').map(item => item.toStr()),
+        ...this.kb.getByRole('theorem').map(item => item.toStr()),
+      ];
+      const strategy = this.strategySelector.select(goalString, axioms);
+      const attempted = strategy.prove(goalString, axioms, timeoutMs);
+      if (attempted instanceof Promise) return null;
+      if (!attempted.proved) return null;
+      const strategySteps = attempted.steps.length
+        ? attempted.steps.map(step => ({ formula: goal, justification: `${attempted.strategy}: ${step}` }))
+        : [{ formula: goal, justification: `${attempted.strategy}: proved` }];
+      return {
+        status: ProofStatus.PROVED,
+        formula: goal,
+        proofSteps: strategySteps,
+        timeMs: Date.now() - t0,
+        method: `strategy:${attempted.strategy}`,
+      };
+    } catch {
+      return null;
+    }
   }
 }

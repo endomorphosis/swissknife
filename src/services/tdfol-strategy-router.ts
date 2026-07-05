@@ -23,7 +23,11 @@ export interface TDFOLStrategyResult {
 export interface TDFOLStrategy {
   readonly name: string;
   canHandle(formula: string): boolean;
+  can_handle(formula: string): boolean;
   estimateCost(formula: string, axioms?: string[]): number;
+  estimate_cost(formula: string, axioms?: string[]): number;
+  getPriority(formula: string, axioms?: string[]): number;
+  get_priority(formula: string, axioms?: string[]): number;
   prove(formula: string, axioms?: string[], timeoutMs?: number): Promise<TDFOLStrategyResult> | TDFOLStrategyResult;
 }
 
@@ -44,11 +48,18 @@ export class ModalTableauxStrategy implements TDFOLStrategy {
   canHandle(formula: string): boolean {
     return /[□◊]/.test(formula) || /\b[OPF]\s*\(/.test(formula);
   }
+  can_handle(formula: string): boolean { return this.canHandle(formula); }
 
   estimateCost(formula: string, axioms: string[] = []): number {
     const estimate = estimateFormulaCost(formula, axioms);
     return estimate.length + estimate.modalOperators * 5 + estimate.connectives * 2;
   }
+  estimate_cost(formula: string, axioms: string[] = []): number { return this.estimateCost(formula, axioms); }
+
+  getPriority(formula: string): number {
+    return this.canHandle(formula) ? 30 : 0;
+  }
+  get_priority(formula: string, axioms: string[] = []): number { return this.getPriority(formula, axioms); }
 
   prove(formula: string, axioms: string[] = []): TDFOLStrategyResult {
     const result = new TableauProver(this.logic).prove(formula, axioms);
@@ -69,10 +80,17 @@ export class ForwardFallbackStrategy implements TDFOLStrategy {
   canHandle(_formula: string): boolean {
     return true;
   }
+  can_handle(formula: string): boolean { return this.canHandle(formula); }
 
   estimateCost(formula: string, axioms: string[] = []): number {
     return estimateFormulaCost(formula, axioms).estimatedCost + 25;
   }
+  estimate_cost(formula: string, axioms: string[] = []): number { return this.estimateCost(formula, axioms); }
+
+  getPriority(_formula: string): number {
+    return 1;
+  }
+  get_priority(formula: string, axioms: string[] = []): number { return this.getPriority(formula, axioms); }
 
   prove(formula: string, axioms: string[] = []): TDFOLStrategyResult {
     const known = new Set(axioms);
@@ -144,11 +162,18 @@ export class CECDelegateStrategy implements TDFOLStrategy {
     const estimate = estimateFormulaCost(formula);
     return estimate.quantifiers > 0 || estimate.equalityAtoms > 0 || formula.length > 80;
   }
+  can_handle(formula: string): boolean { return this.canHandle(formula); }
 
   estimateCost(formula: string, axioms: string[] = []): number {
     const estimate = estimateFormulaCost(formula, axioms);
     return estimate.estimatedCost + 10;
   }
+  estimate_cost(formula: string, axioms: string[] = []): number { return this.estimateCost(formula, axioms); }
+
+  getPriority(formula: string): number {
+    return this.canHandle(formula) ? 20 : 0;
+  }
+  get_priority(formula: string, axioms: string[] = []): number { return this.getPriority(formula, axioms); }
 
   prove(formula: string, axioms: string[] = [], timeoutMs = 30_000): TDFOLStrategyResult {
     return this.router.prove(formula, axioms, timeoutMs);
@@ -163,12 +188,19 @@ export class CostBasedStrategySelector {
     if (!candidates.length) throw new Error('No TDFOL strategies registered');
     return candidates[0]!.strategy;
   }
+  select_strategy(formula: string, axioms: string[] = []): TDFOLStrategy { return this.select(formula, axioms); }
 
   rank(formula: string, axioms: string[] = []): Array<{ strategy: TDFOLStrategy; cost: number }> {
     return this.strategies
       .filter(strategy => strategy.canHandle(formula))
       .map(strategy => ({ strategy, cost: strategy.estimateCost(formula, axioms) }))
-      .sort((a, b) => a.cost - b.cost);
+      .sort((a, b) => {
+        if (a.cost !== b.cost) return a.cost - b.cost;
+        return b.strategy.getPriority(formula, axioms) - a.strategy.getPriority(formula, axioms);
+      });
+  }
+  select_multiple(formula: string, axioms: string[] = [], limit = this.strategies.length): TDFOLStrategy[] {
+    return this.rank(formula, axioms).slice(0, Math.max(0, limit)).map(entry => entry.strategy);
   }
 }
 
