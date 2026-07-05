@@ -104,7 +104,7 @@ export class TheoremMetadata {
       formula_id: this.formula.formulaId,
       formula_operator: this.formula.operator,
       formula_proposition: formulaProposition(this.formula),
-      formula_action: this.formula.action,
+      formula_action: formulaProposition(this.formula),
       jurisdiction: this.jurisdiction,
       legal_domain: this.legalDomain,
       confidence: this.confidence,

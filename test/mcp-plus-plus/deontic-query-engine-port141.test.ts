@@ -12,7 +12,7 @@ import {
 } from '../../src/services/deontic-query-engine';
 import { DeonticLogicConverter } from '../../src/services/deontic-logic-converter';
 import { DocumentConsistencyChecker } from '../../src/services/document-consistency-checker';
-import { TemporalDeonticRAGStore } from '../../src/services/temporal-deontic-rag-store';
+import { TemporalDeonticRAGStore, TheoremMetadata } from '../../src/services/temporal-deontic-rag-store';
 
 describe('PORT-141 proposition/action field parity', () => {
   it('serializes proposition and action aliases in toDict()', () => {
@@ -72,5 +72,32 @@ describe('PORT-141 proposition/action field parity', () => {
 
     expect(payload.formula_proposition).toBe('submit evidence');
     expect(payload.formula_action).toBe('submit evidence');
+  });
+
+  it('theorem serialization keeps action alias populated from proposition fallback', () => {
+    const theorem = new TheoremMetadata({
+      theoremId: 'thm:port141-proposition-only',
+      formula: {
+        formulaId: 'f:port141-proposition-only',
+        operator: DeonticOp.OBLIGATION,
+        agent: 'Agent',
+        proposition: 'file incident report',
+        action: '',
+        conditions: [],
+        confidence: 0.9,
+        sourceText: 'Agent must file incident report.',
+        toDict: () => ({
+          formula_id: 'f:port141-proposition-only',
+          operator: DeonticOp.OBLIGATION,
+          agent: 'Agent',
+          proposition: 'file incident report',
+          action: '',
+        }),
+      },
+    });
+    const payload = theorem.toDict() as Record<string, unknown>;
+
+    expect(payload.formula_proposition).toBe('file incident report');
+    expect(payload.formula_action).toBe('file incident report');
   });
 });
