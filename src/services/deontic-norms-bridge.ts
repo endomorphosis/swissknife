@@ -474,7 +474,10 @@ export function deonticGuidanceFrameCandidates(
     const out: DeonticGuidanceFrameCandidate[] = [];
     for (const item of rows) {
       for (const key of ['selected_frame_after', 'selected_frame', 'frame_after', 'frame'] as const) {
-        out.push({ source: `${item.collectionKey}.${key}`, value: item.row[key] });
+        out.push({
+          source: `${item.collectionKey}.${key}`,
+          value: key in item.row ? item.row[key] : null,
+        });
       }
     }
     return out;
