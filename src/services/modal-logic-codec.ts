@@ -157,6 +157,8 @@ const GRAPH_PROJECTION_GUIDANCE_ROUTE = 'repair_multiview_legal_ir_graph_project
 const NEO4J_COMPAT_TARGET_COMPONENT = 'knowledge_graphs.neo4j_compat';
 const MODAL_FRAME_LOGIC_TARGET_COMPONENT = 'modal.frame_logic';
 const COMPILER_GUIDANCE_MAX_FEATURES = 32;
+const COMPILER_GUIDANCE_MAX_GROUP_FEATURES = 16;
+const COMPILER_GUIDANCE_MAX_EMBEDDING_VALUES = 32;
 const COMPILER_GUIDANCE_FRAME_AUDIT_FEATURE_KEYS = [
   'frame_feature',
   'frame_feature_key',
@@ -175,6 +177,7 @@ const COMPILER_GUIDANCE_FRAME_AUDIT_STAGE_KEYS = [
 const TRAILING_SECTION_PUNCT_RE = /[.;:]+$/;
 const CITATION_SECTION_DELIMITER_RE = /[.-]+/g;
 const USCODE_SOURCE_ID_RE = /^\s*(?<scheme>us-code)-(?<title>[^-]+)-(?<section>.+)-(?<digest>[0-9a-f]{16})\s*$/i;
+const SLOT_FEATURE_TOKEN_RE = /[A-Za-z0-9]+/g;
 const MODAL_CUE_TOKEN_RE = /[a-z0-9]+/g;
 const TEMPORAL_BRIDGE_YEAR_RE = /(?<!\d)(?:18|19|20)\d{2}(?!\d)/;
 const MODAL_OPERATOR_SYMBOL_FEATURE_KEYS: Record<string, string> = {
@@ -238,6 +241,51 @@ const FLOGIC_ONTOLOGY_GUIDANCE_ROUTES = new Set([
   'improve_flogic_frame_alignment',
   'repair_flogic_ontology_constraints',
 ]);
+const GUIDANCE_SURFACE_FORCE_LEXEMES = new Set([
+  'authorized',
+  'may',
+  'must',
+  'permitted',
+  'prohibited',
+  'required',
+  'requires',
+  'shall',
+]);
+const GUIDANCE_SURFACE_SCOPE_TERMS: Record<string, string> = {
+  'condition-prefix': 'if',
+  'exception-suffix': 'except',
+  'temporal-suffix': 'when',
+};
+const GUIDANCE_SURFACE_SCOPE_SIGNATURE_TERMS: Record<string, string> = {
+  conditioned: 'if',
+  excepted: 'except',
+  temporal: 'when',
+};
+const GUIDANCE_SURFACE_CUE_TERMS: Record<string, string> = {
+  authority: 'authority',
+  condition: 'if',
+  conditional: 'if',
+  definition: 'definition',
+  enforcement: 'enforce',
+  exception: 'except',
+  obligation: 'shall',
+  permission: 'may',
+  prohibition: 'not',
+  temporal: 'when',
+};
+const GUIDANCE_SURFACE_NEGATING_FORCE_TERMS = new Set(['prohibited']);
+const GUIDANCE_SURFACE_SOURCE_ALIASES: Record<string, Set<string>> = {
+  authority: new Set(['authority', 'authorized', 'authorizes', 'authorize']),
+  definition: new Set(['definition', 'defined', 'means', 'includes']),
+  enforce: new Set(['enforce', 'enforced', 'enforcement']),
+  except: new Set(['except', 'exception', 'unless', 'notwithstanding']),
+  if: new Set(['if', 'provided', 'condition', 'conditions', 'where']),
+  may: new Set(['authorized', 'may', 'permitted']),
+  not: new Set(['no', 'nor', 'not', 'without']),
+  prohibited: new Set(['forbidden', 'prohibit', 'prohibited', 'prohibits']),
+  shall: new Set(['must', 'required', 'requires', 'shall']),
+  when: new Set(['after', 'before', 'during', 'until', 'when', 'whenever', 'within']),
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -271,6 +319,37 @@ function uniquePreserveOrder(values: Iterable<string>): string[] {
 function safeFloat(value: unknown, fallback = 0): number {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
+}
+
+function round12(value: number): number {
+  return Number(value.toFixed(12));
+}
+
+export function numericDistribution(value: unknown): Record<string, number> {
+  if (!isRecord(value)) return {};
+  const weights: Record<string, number> = {};
+  for (const [key, rawWeight] of Object.entries(value)) {
+    const weight = Math.max(0, safeFloat(rawWeight));
+    if (weight > 0) weights[String(key)] = weight;
+  }
+  const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+  if (total <= 0) return {};
+  return Object.fromEntries(
+    Object.entries(weights)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, weight]) => [key, round12(weight / total)])
+  );
+}
+
+export function numericSignedMapping(value: unknown): Record<string, number> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([key, rawWeight]) => [String(key), safeFloat(rawWeight)] as const)
+      .filter(([, weight]) => Math.abs(weight) > 1.0e-12)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, weight]) => [key, round12(weight)])
+  );
 }
 
 function guidanceFeatureValue(value: unknown): string {
@@ -704,6 +783,309 @@ export function compilerGuidanceFrameAuditFeatures(compilerGuidance: Record<stri
     if (isRecord(item)) collect(item);
   }
   return frameOntologyFeatureKeys(uniquePreserveOrder(candidates), COMPILER_GUIDANCE_MAX_FEATURES);
+}
+
+/**
+ * Python parity for `modal/codec.py::_compiler_guidance_feature_strings`.
+ */
+export function compilerGuidanceFeatureStrings(guidanceSummary: Record<string, unknown>): string[] {
+  const features: string[] = [];
+  features.push(...guidanceFeatureList(guidanceSummary.ranked_guidance_features, 0));
+
+  const rawGroups = guidanceSummary.feature_groups;
+  if (isRecord(rawGroups)) {
+    for (const groupFeatures of Object.values(rawGroups)) {
+      features.push(...guidanceFeatureList(groupFeatures, 0));
+    }
+  }
+
+  features.push(...guidanceFeatureList(guidanceSummary.synthesis_focus, 0));
+
+  for (const [prefix, distributionKey] of [
+    ['family-distribution', 'family_distribution'],
+    ['legal-ir-predicted-view', 'legal_ir_predicted_view_distribution'],
+    ['legal-ir-target-view', 'legal_ir_target_view_distribution'],
+  ] as const) {
+    const distribution = guidanceSummary[distributionKey];
+    if (!isRecord(distribution)) continue;
+    for (const key of Object.keys(distribution)) {
+      features.push(`${prefix}:${key}`);
+    }
+  }
+
+  const gapDistribution = guidanceSummary.legal_ir_view_gap_distribution;
+  if (isRecord(gapDistribution)) {
+    for (const [key, value] of Object.entries(gapDistribution)) {
+      const direction = safeFloat(value) > 0.0 ? 'underrepresented' : 'overrepresented';
+      features.push(`legal-ir-view-gap:${direction}:${key}`);
+    }
+  }
+
+  return uniquePreserveOrder(features);
+}
+
+/**
+ * Python parity for `modal/codec.py::_compiler_guidance_summary`.
+ */
+export function compilerGuidanceSummary(compilerGuidance: unknown): Record<string, unknown> {
+  if (!isRecord(compilerGuidance)) return {};
+  const featureGroups: Record<string, string[]> = {};
+  const rawGroups = compilerGuidance.feature_groups;
+  if (isRecord(rawGroups)) {
+    for (const [groupName, rawFeatures] of Object.entries(rawGroups).sort(([a], [b]) => a.localeCompare(b))) {
+      const features = guidanceFeatureList(rawFeatures, COMPILER_GUIDANCE_MAX_GROUP_FEATURES);
+      if (features.length) featureGroups[String(groupName)] = features;
+    }
+  }
+
+  const frameAuditFeatures = compilerGuidanceFrameAuditFeatures(compilerGuidance);
+  if (frameAuditFeatures.length) {
+    featureGroups.frame_logic_evidence = frameAuditFeatures.slice(0, COMPILER_GUIDANCE_MAX_GROUP_FEATURES);
+  }
+  const viewGapFeatures = compilerGuidanceViewGapFeatures(compilerGuidance);
+  if (viewGapFeatures.length) {
+    featureGroups.legal_ir_view_gap_evidence = viewGapFeatures.slice(0, COMPILER_GUIDANCE_MAX_GROUP_FEATURES);
+  }
+
+  const rankedGuidanceFeatures: Array<Record<string, unknown>> = [];
+  const rawRanked = compilerGuidance.ranked_guidance_features;
+  if (Array.isArray(rawRanked)) {
+    for (const item of rawRanked.slice(0, COMPILER_GUIDANCE_MAX_FEATURES)) {
+      if (!isRecord(item)) continue;
+      const feature = guidanceFeatureValue(item);
+      if (!feature) continue;
+      rankedGuidanceFeatures.push({
+        embedding_weight_norm: round12(safeFloat(item.embedding_weight_norm)),
+        family_logit_magnitude: round12(safeFloat(item.family_logit_magnitude)),
+        feature,
+        legal_ir_view_logit_magnitude: round12(safeFloat(item.legal_ir_view_logit_magnitude)),
+        score: round12(safeFloat(item.score)),
+      });
+    }
+  }
+  for (const feature of compilerGuidanceRouteFeatures(compilerGuidance)) {
+    if (rankedGuidanceFeatures.length >= COMPILER_GUIDANCE_MAX_FEATURES) break;
+    rankedGuidanceFeatures.push({
+      embedding_weight_norm: 0,
+      family_logit_magnitude: 0,
+      feature,
+      legal_ir_view_logit_magnitude: 0,
+      score: 1,
+    });
+  }
+
+  const decodedEmbedding: number[] = [];
+  const rawDecodedEmbedding = compilerGuidance.decoded_embedding;
+  if (Array.isArray(rawDecodedEmbedding)) {
+    for (const value of rawDecodedEmbedding.slice(0, COMPILER_GUIDANCE_MAX_EMBEDDING_VALUES)) {
+      decodedEmbedding.push(round12(safeFloat(value)));
+    }
+  }
+  const decodedEmbeddingNorm = decodedEmbedding.length
+    ? Math.sqrt(decodedEmbedding.reduce((sum, value) => sum + value * value, 0))
+    : 0;
+
+  const legalIrViewMetrics: Record<string, number> = {};
+  if (isRecord(compilerGuidance.legal_ir_view_metrics)) {
+    for (const [key, value] of Object.entries(compilerGuidance.legal_ir_view_metrics).sort(([a], [b]) => a.localeCompare(b))) {
+      const number = safeFloat(value);
+      if (Number.isFinite(number)) legalIrViewMetrics[String(key)] = round12(number);
+    }
+  }
+
+  const legalIrPredictedViewDistribution = numericDistribution(compilerGuidance.legal_ir_predicted_view_distribution);
+  let legalIrTargetViewDistribution = numericDistribution(compilerGuidance.legal_ir_target_view_distribution);
+  if (
+    compilerGuidanceImpliesFrameLogicTarget(compilerGuidance) &&
+    !(MODAL_FRAME_LOGIC_TARGET_COMPONENT in legalIrTargetViewDistribution)
+  ) {
+    legalIrTargetViewDistribution = {
+      ...legalIrTargetViewDistribution,
+      [MODAL_FRAME_LOGIC_TARGET_COMPONENT]: 1.0,
+    };
+  }
+  if (
+    compilerGuidanceImpliesNeo4jProjectionTarget(compilerGuidance) &&
+    !(NEO4J_COMPAT_TARGET_COMPONENT in legalIrTargetViewDistribution)
+  ) {
+    legalIrTargetViewDistribution = {
+      ...legalIrTargetViewDistribution,
+      [NEO4J_COMPAT_TARGET_COMPONENT]: 1.0,
+    };
+  }
+
+  let legalIrViewGapDistribution = numericSignedMapping(compilerGuidance.legal_ir_view_gap_distribution);
+  if (
+    !Object.keys(legalIrViewGapDistribution).length &&
+    (Object.keys(legalIrPredictedViewDistribution).length || Object.keys(legalIrTargetViewDistribution).length)
+  ) {
+    const gapEntries: Array<[string, number]> = [];
+    const keys = new Set([...Object.keys(legalIrPredictedViewDistribution), ...Object.keys(legalIrTargetViewDistribution)]);
+    for (const key of [...keys].sort((a, b) => a.localeCompare(b))) {
+      const gap = round12((legalIrTargetViewDistribution[key] ?? 0) - (legalIrPredictedViewDistribution[key] ?? 0));
+      if (Math.abs(gap) > 1.0e-12) gapEntries.push([key, gap]);
+    }
+    legalIrViewGapDistribution = Object.fromEntries(gapEntries);
+  }
+
+  let synthesisFocus = guidanceFeatureList(compilerGuidance.synthesis_focus, COMPILER_GUIDANCE_MAX_FEATURES);
+  const frameLogicRoutes = compilerGuidanceFrameLogicTargetRoutes(compilerGuidance);
+  if (frameLogicRoutes.length) {
+    synthesisFocus = uniquePreserveOrder([...synthesisFocus, ...frameLogicRoutes]).slice(0, COMPILER_GUIDANCE_MAX_FEATURES);
+  }
+  if (compilerGuidanceImpliesNeo4jProjectionTarget(compilerGuidance)) {
+    synthesisFocus = uniquePreserveOrder([...synthesisFocus, GRAPH_PROJECTION_GUIDANCE_ROUTE]).slice(0, COMPILER_GUIDANCE_MAX_FEATURES);
+  }
+
+  const summary: Record<string, unknown> = {
+    decoded_embedding: decodedEmbedding,
+    decoded_embedding_norm: round12(decodedEmbeddingNorm),
+    family_distribution: numericDistribution(compilerGuidance.family_distribution),
+    feature_groups: featureGroups,
+    legal_ir_predicted_view_distribution: legalIrPredictedViewDistribution,
+    legal_ir_target_view_distribution: legalIrTargetViewDistribution,
+    legal_ir_view_gap_distribution: legalIrViewGapDistribution,
+    legal_ir_view_metrics: legalIrViewMetrics,
+    ranked_guidance_features: rankedGuidanceFeatures,
+    sample_id: String(compilerGuidance.sample_id ?? ''),
+    sample_memory_used: Boolean(compilerGuidance.sample_memory_used),
+    synthesis_focus: synthesisFocus,
+  };
+  return Object.fromEntries(
+    Object.entries(summary).filter(([, value]) => {
+      if (value === null || value === undefined || value === '') return false;
+      if (Array.isArray(value) && value.length === 0) return false;
+      if (isRecord(value) && Object.keys(value).length === 0) return false;
+      return true;
+    })
+  );
+}
+
+function normalizeGuidanceSurfaceOverlayTerms(terms: readonly string[]): string[] {
+  let uniqueTerms = uniquePreserveOrder(terms.map(term => cleanNonEmptyString(term).toLowerCase()));
+  if (uniqueTerms.includes('not') && uniqueTerms.some(term => GUIDANCE_SURFACE_NEGATING_FORCE_TERMS.has(term))) {
+    uniqueTerms = uniqueTerms.filter(term => term !== 'not');
+  }
+  return uniqueTerms;
+}
+
+function guidanceSurfaceTermSourceGrounded(
+  term: string,
+  opts: { sourceTokens: Set<string>; sourceText: string },
+): boolean {
+  const aliases = GUIDANCE_SURFACE_SOURCE_ALIASES[term] ?? new Set([term]);
+  for (const alias of aliases) {
+    if (opts.sourceTokens.has(alias)) return true;
+  }
+  if (
+    term === 'prohibited' &&
+    ['may not', 'shall not', 'must not', 'is not authorized'].some(phrase => opts.sourceText.includes(phrase))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function sourceGroundedGuidanceSurfaceOverlayTerms(
+  terms: readonly string[],
+  sourceText: string,
+): string[] {
+  const sourceRendered = cleanNonEmptyString(sourceText).toLowerCase();
+  const sourceTokens = new Set(
+    (sourceRendered.match(SLOT_FEATURE_TOKEN_RE) ?? [])
+      .map(token => token.toLowerCase())
+      .filter(token => /[a-z]/i.test(token))
+  );
+  if (sourceTokens.size === 0) return [...terms];
+  return terms.filter(term => guidanceSurfaceTermSourceGrounded(String(term), {
+    sourceTokens,
+    sourceText: sourceRendered,
+  }));
+}
+
+/**
+ * Python parity for `modal/codec.py::_compiler_guidance_surface_overlay_terms`.
+ */
+export function compilerGuidanceSurfaceOverlayTerms(
+  guidanceSummary: Record<string, unknown>,
+  limit = 8,
+): string[] {
+  if (!Object.keys(guidanceSummary).length) return [];
+  const terms: string[] = [];
+  const add = (term: string): void => {
+    const cleaned = cleanNonEmptyString(term).toLowerCase();
+    if (cleaned) terms.push(cleaned);
+  };
+  for (const feature of compilerGuidanceFeatureStrings(guidanceSummary)) {
+    const normalized = cleanNonEmptyString(feature).toLowerCase();
+    if (!normalized.startsWith('decompiler-surface:')) continue;
+    const parts = normalized.split(':').filter(Boolean);
+    if (parts.length < 2) continue;
+    const kind = parts[1];
+    if (kind === 'force-lexeme' && parts.length >= 4) {
+      const lexeme = parts[3];
+      if (GUIDANCE_SURFACE_FORCE_LEXEMES.has(lexeme)) add(lexeme);
+    } else if (kind === 'negation-placement') {
+      add('not');
+    } else if (kind === 'scope-realizer' && parts.length >= 3) {
+      const term = GUIDANCE_SURFACE_SCOPE_TERMS[parts[2]];
+      if (term) add(term);
+    } else if (kind === 'force-polarity-template' && parts.length >= 5) {
+      const polarity = parts[3];
+      const scopeSignature = parts[4];
+      if (polarity === 'negative_scope') add('not');
+      for (const [marker, term] of Object.entries(GUIDANCE_SURFACE_SCOPE_SIGNATURE_TERMS)) {
+        if (scopeSignature.includes(marker)) add(term);
+      }
+    } else if (kind === 'cue-surface-ir' && parts.length >= 3) {
+      const term = GUIDANCE_SURFACE_CUE_TERMS[parts[2]];
+      if (term) add(term);
+    }
+  }
+  return normalizeGuidanceSurfaceOverlayTerms(terms).slice(0, Math.max(0, Math.trunc(limit)));
+}
+
+/**
+ * Python parity for `modal/codec.py::_apply_compiler_guidance_surface_overlay`.
+ */
+export function applyCompilerGuidanceSurfaceOverlay(
+  structuralDecodedText: string,
+  overlayTerms: readonly string[],
+  sourceText = '',
+): string {
+  const rendered = cleanNonEmptyString(structuralDecodedText);
+  if (!rendered) return rendered;
+  const existingTokens = new Set(
+    (rendered.match(SLOT_FEATURE_TOKEN_RE) ?? [])
+      .map(token => token.toLowerCase())
+      .filter(token => /[a-z]/i.test(token))
+  );
+  const sourceRendered = cleanNonEmptyString(sourceText).toLowerCase();
+  const sourceTokens = new Set(
+    (sourceRendered.match(SLOT_FEATURE_TOKEN_RE) ?? [])
+      .map(token => token.toLowerCase())
+      .filter(token => /[a-z]/i.test(token))
+  );
+  const additions = uniquePreserveOrder(overlayTerms.map(value => cleanNonEmptyString(value).toLowerCase()))
+    .filter(term => term && !existingTokens.has(term))
+    .filter(term => (
+      sourceTokens.size === 0 ||
+      guidanceSurfaceTermSourceGrounded(term, { sourceTokens, sourceText: sourceRendered })
+    ));
+  if (!additions.length) return rendered;
+  return cleanNonEmptyString(`${rendered} ${additions.join(' ')}`);
+}
+
+export function sourceCopyRewardHackPenalty(opts: {
+  sourceSpanCopyRatio: number;
+  textReconstructionSimilarity: number;
+  structuralTextSimilarity: number;
+}): number {
+  const copiedSimilarityGap = Math.max(
+    0,
+    Number(opts.textReconstructionSimilarity) - Number(opts.structuralTextSimilarity),
+  );
+  return Number(opts.sourceSpanCopyRatio) * copiedSimilarityGap;
 }
 
 // ---------------------------------------------------------------------------

@@ -14,6 +14,11 @@ import {
   LegalIRDocument, LogicIRView,
   RoundTripMetrics, ProofGateResult, GraphProjectionResult, BridgeEvaluationReport,
 } from './bridge-types.js';
+import {
+  deonticGraphDataFromFrameTriples,
+  type DeonticFrameLogicTriple,
+  type DeonticGraphData,
+} from './deontic-norms-bridge.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -36,6 +41,7 @@ export type DcecEventKind = 'Happens' | 'HoldsAt' | 'Initiates' | 'Terminates';
 
 export interface DcecRecord {
   record_id: string;
+  source_id?: string;
   event_kind: DcecEventKind;
   /** Event / action expression */
   event: string;
@@ -48,6 +54,16 @@ export interface DcecRecord {
   source_text: string;
   /** Rendered CEC formula string */
   cec_formula: string;
+  modality?: string;
+  valid?: boolean;
+  event_calculus_formula?: string;
+  event_formula_syntax_valid?: boolean;
+  event_formula_source?: string;
+  event_formula_fingerprint?: string;
+  selected_frame?: string;
+  selected_frame_source?: string;
+  compiler_guidance_source?: string;
+  procedure_event_records?: Array<Record<string, unknown>>;
 }
 
 // Detect if text contains temporal / event language
@@ -86,42 +102,93 @@ function renderCecFormula(rec: Omit<DcecRecord, 'cec_formula'>): string {
 // Frame-logic triples for DCEC records
 // ---------------------------------------------------------------------------
 
-function dcecFrameTriples(
-  docId: string,
-  records: DcecRecord[],
-): Array<Record<string, string>> {
-  const triples: Array<Record<string, string>> = [];
-  for (const rec of records) {
-    triples.push({ subject: docId, predicate: 'hasDcecRecord', object: rec.record_id });
-    triples.push({ subject: rec.record_id, predicate: 'hasEventKind', object: rec.event_kind });
-    triples.push({ subject: rec.record_id, predicate: 'hasEvent', object: rec.event });
-    triples.push({ subject: rec.record_id, predicate: 'hasFluent', object: rec.fluent });
+function stableShortHash(text: string): string {
+  return createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 16);
+}
+
+function symbolToken(text: unknown, fallback: string): string {
+  const token = String(text ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return token || fallback;
+}
+
+function procedureEventFrameLogicTriples(
+  sourceId: string,
+  record: Record<string, unknown>,
+): DeonticFrameLogicTriple[] {
+  const triples: DeonticFrameLogicTriple[] = [];
+  const procedureEvents = Array.isArray(record.procedure_event_records)
+    ? record.procedure_event_records
+    : [];
+  for (const procedureEvent of procedureEvents) {
+    if (!procedureEvent || typeof procedureEvent !== 'object' || Array.isArray(procedureEvent)) continue;
+    const eventRecord = procedureEvent as Record<string, unknown>;
+    let eventId = String(eventRecord.event_id ?? '').trim();
+    const event = String(eventRecord.event ?? '').trim();
+    if (!eventId) {
+      const eventSymbol = String(eventRecord.event_symbol ?? symbolToken(event, 'event'));
+      eventId = `${sourceId}:procedure:${eventSymbol}`;
+    }
+    if (!eventId || !event) continue;
+    triples.push(
+      { subject: sourceId, predicate: 'has_procedure_event', object: eventId },
+      { subject: eventId, predicate: 'type', object: 'cec_procedure_event' },
+      { subject: eventId, predicate: 'event', object: event },
+      { subject: eventId, predicate: 'event_symbol', object: String(eventRecord.event_symbol ?? '') },
+      { subject: eventId, predicate: 'event_order', object: String(eventRecord.event_order ?? '') },
+      { subject: eventId, predicate: 'relation', object: String(eventRecord.relation ?? '') },
+      { subject: eventId, predicate: 'anchor_event', object: String(eventRecord.anchor_event ?? '') },
+      { subject: eventId, predicate: 'proof_role', object: String(eventRecord.proof_role ?? '') },
+    );
   }
   return triples;
+}
+
+/**
+ * Python parity for `bridge/cec_dcec.py::_dcec_frame_logic_triples`.
+ */
+export function dcecFrameLogicTriplesFromRecords(
+  docId: string,
+  records: ReadonlyArray<Record<string, unknown>>,
+): DeonticFrameLogicTriple[] {
+  const triples: DeonticFrameLogicTriple[] = [
+    { subject: docId, predicate: 'type', object: 'legal_dcec_document' },
+  ];
+  for (const rec of records) {
+    const sourceId = String(rec.source_id ?? '');
+    if (!sourceId) continue;
+    triples.push(
+      { subject: docId, predicate: 'contains_event_formula', object: sourceId },
+      { subject: sourceId, predicate: 'type', object: 'dcec_formula' },
+      { subject: sourceId, predicate: 'actor', object: String(rec.actor ?? '') },
+      { subject: sourceId, predicate: 'event', object: String(rec.event ?? '') },
+      { subject: sourceId, predicate: 'formula', object: String(rec.formula ?? '') },
+      { subject: sourceId, predicate: 'modality', object: String(rec.modality ?? '') },
+      { subject: sourceId, predicate: 'valid', object: rec.valid ? 'true' : 'false' },
+      { subject: sourceId, predicate: 'event_calculus_formula', object: String(rec.event_calculus_formula ?? '') },
+      { subject: sourceId, predicate: 'event_formula_syntax_valid', object: rec.event_formula_syntax_valid ? 'true' : 'false' },
+      { subject: sourceId, predicate: 'event_formula_source', object: String(rec.event_formula_source ?? '') },
+      { subject: sourceId, predicate: 'event_formula_fingerprint', object: String(rec.event_formula_fingerprint ?? '') },
+      { subject: sourceId, predicate: 'selected_frame', object: String(rec.selected_frame ?? '') },
+      { subject: sourceId, predicate: 'selected_frame_source', object: String(rec.selected_frame_source ?? '') },
+      { subject: sourceId, predicate: 'compiler_guidance_source', object: String(rec.compiler_guidance_source ?? '') },
+    );
+    triples.push(...procedureEventFrameLogicTriples(sourceId, rec));
+  }
+  return triples.filter(triple => Boolean(triple.object));
 }
 
 // ---------------------------------------------------------------------------
 // Graph data
 // ---------------------------------------------------------------------------
 
-function dcecGraphData(
-  docId: string,
-  records: DcecRecord[],
-): Record<string, unknown> {
-  const nodes = [
-    { id: docId, label: 'Document', properties: {} },
-    ...records.map(r => ({
-      id: r.record_id,
-      label: r.event_kind,
-      properties: { event: r.event.slice(0, 60), fluent: r.fluent, time: r.time, agent: r.agent },
-    })),
-  ];
-  const relationships = records.map(r => ({
-    source: docId,
-    target: r.record_id,
-    type: 'HAS_CEC_RECORD',
-  }));
-  return { nodes, relationships };
+export function dcecGraphDataFromFrameTriples(
+  triples: ReadonlyArray<Record<string, unknown>>,
+  opts: { graphId?: string; metadata?: Record<string, unknown> } = {},
+): DeonticGraphData | null {
+  return deonticGraphDataFromFrameTriples(triples, opts);
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +236,7 @@ export class CecDcecBridgeAdapter {
       const fluent = extractFluent(s);
       const partial = {
         record_id: `${resolvedDocId}:e${i}`,
+        source_id: `${resolvedDocId}:e${i}`,
         event_kind: eventKind,
         event,
         fluent,
@@ -176,12 +244,51 @@ export class CecDcecBridgeAdapter {
         agent: 'Agent',
         source_text: s,
         cec_formula: '',
+        modality: eventKind.toLowerCase(),
+        valid: true,
+        event_calculus_formula: '',
+        event_formula_syntax_valid: true,
+        event_formula_source: 'cec_dcec_bridge_fallback',
+        event_formula_fingerprint: '',
       };
-      return { ...partial, cec_formula: renderCecFormula(partial) };
+      const cecFormula = renderCecFormula(partial);
+      return {
+        ...partial,
+        cec_formula: cecFormula,
+        event_calculus_formula: cecFormula,
+        event_formula_fingerprint: stableShortHash(cecFormula),
+      };
     });
 
-    const triples = dcecFrameTriples(resolvedDocId, records);
-    const graphData = dcecGraphData(resolvedDocId, records);
+    const frameRecords = records.map(record => ({
+      source_id: record.source_id ?? record.record_id,
+      actor: record.agent,
+      event: record.event,
+      formula: record.cec_formula,
+      modality: record.modality,
+      valid: record.valid,
+      event_calculus_formula: record.event_calculus_formula,
+      event_formula_syntax_valid: record.event_formula_syntax_valid,
+      event_formula_source: record.event_formula_source,
+      event_formula_fingerprint: record.event_formula_fingerprint,
+      selected_frame: record.selected_frame,
+      selected_frame_source: record.selected_frame_source,
+      compiler_guidance_source: record.compiler_guidance_source,
+      procedure_event_records: record.procedure_event_records ?? [],
+    }));
+    const triples = dcecFrameLogicTriplesFromRecords(resolvedDocId, frameRecords);
+    const graphData = dcecGraphDataFromFrameTriples(triples, {
+      graphId: `${resolvedDocId}:dcec-flogic`,
+      metadata: {
+        dcec_formula_count: records.length,
+        source: 'cec_dcec_bridge_ir',
+      },
+    }) ?? {
+      nodes: [],
+      relationships: [],
+      schema: { indexes: [], constraints: [], node_labels: [], relationship_types: [] },
+      metadata: {},
+    };
     const cecEventRows = records.map(r => ({ formula: r.cec_formula, event_kind: r.event_kind }));
 
     const proofGate = new ProofGateResult({
@@ -211,14 +318,19 @@ export class CecDcecBridgeAdapter {
       frame_logic: new LogicIRView({
         name: 'frame_logic',
         payload: { triples },
-        format: 'frame_logic_triples',
+        format: 'flogic-triples-v1',
         sourceComponent: this.targetComponent,
+        metadata: { triple_count: triples.length },
       }),
       neo4j_graph_data: new LogicIRView({
         name: 'neo4j_graph_data',
         payload: graphData,
-        format: 'neo4j_graph',
-        sourceComponent: this.targetComponent,
+        format: 'neo4j-compatible-graph-data',
+        sourceComponent: 'knowledge_graphs.neo4j_compat',
+        metadata: {
+          node_count: graphData.nodes.length,
+          relationship_count: graphData.relationships.length,
+        },
       }),
     };
 

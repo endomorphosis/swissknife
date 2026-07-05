@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 import {
+  compilerGuidanceFeatureStrings,
   compilerGuidanceFrameAuditFeatures,
   compilerGuidanceFrameLogicTargetRoutes,
   compilerGuidanceImpliesFrameLogicTarget,
@@ -19,6 +20,7 @@ interface GuidanceResult {
   frameLogicTargetRoutes: string[];
   frameLogicTarget: boolean;
   frameAuditFeatures: string[];
+  featureStrings: string[];
 }
 
 interface GuidanceVector {
@@ -76,6 +78,7 @@ function evaluateTs(guidance: Record<string, unknown>): GuidanceResult {
     frameLogicTargetRoutes: compilerGuidanceFrameLogicTargetRoutes(guidance).sort(),
     frameLogicTarget: compilerGuidanceImpliesFrameLogicTarget(guidance),
     frameAuditFeatures: compilerGuidanceFrameAuditFeatures(guidance),
+    featureStrings: compilerGuidanceFeatureStrings(guidance),
   };
 }
 
@@ -85,7 +88,7 @@ describe('PORT-246 modal codec compiler-guidance parity (cross-language)', () =>
 
   it('matches expected and Python outputs for route, target, view-gap, and frame-audit helpers', () => {
     expect(corpus.schemaVersion).toBe('2026-07-05');
-    expect(corpus.vectors).toHaveLength(3);
+    expect(corpus.vectors).toHaveLength(4);
 
     const pyResults = runPythonReference(corpusPath);
     const pyById = new Map(pyResults.results.map(row => [row.id, row]));
@@ -103,6 +106,7 @@ describe('PORT-246 modal codec compiler-guidance parity (cross-language)', () =>
         frameLogicTargetRoutes: py?.frameLogicTargetRoutes,
         frameLogicTarget: py?.frameLogicTarget,
         frameAuditFeatures: py?.frameAuditFeatures,
+        featureStrings: py?.featureStrings,
       });
     }
   });

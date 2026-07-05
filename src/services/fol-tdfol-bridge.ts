@@ -14,6 +14,11 @@ import {
   LegalIRDocument, LogicIRView,
   RoundTripMetrics, ProofGateResult, GraphProjectionResult, BridgeEvaluationReport,
 } from './bridge-types.js';
+import {
+  deonticGraphDataFromFrameTriples,
+  type DeonticFrameLogicTriple,
+  type DeonticGraphData,
+} from './deontic-norms-bridge.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -51,6 +56,7 @@ export interface TdfolFormulaRecord {
   predicates: string[];
   source_id: string;
   formula_type: 'temporal' | 'deontic' | 'fol' | 'propositional';
+  parse_ok?: boolean;
 }
 
 function classifyFormula(text: string): TdfolFormulaRecord['formula_type'] {
@@ -65,47 +71,42 @@ function classifyFormula(text: string): TdfolFormulaRecord['formula_type'] {
 // Frame-logic triples for TDFOL formulas
 // ---------------------------------------------------------------------------
 
-function tdfolFrameTriples(
+/**
+ * Python parity for `bridge/fol_tdfol.py::_tdfol_frame_logic_triples`.
+ */
+export function tdfolFrameLogicTriplesFromRecords(
   docId: string,
-  records: TdfolFormulaRecord[],
-): Array<Record<string, string>> {
-  const triples: Array<Record<string, string>> = [];
+  records: ReadonlyArray<Record<string, unknown>>,
+): DeonticFrameLogicTriple[] {
+  const triples: DeonticFrameLogicTriple[] = [
+    { subject: docId, predicate: 'type', object: 'legal_tdfol_document' },
+  ];
   for (const rec of records) {
-    triples.push({ subject: docId, predicate: 'hasFormula', object: rec.source_id });
-    triples.push({ subject: rec.source_id, predicate: 'hasType', object: rec.formula_type });
-    for (const pred of rec.predicates) {
-      triples.push({ subject: rec.source_id, predicate: 'hasPredicate', object: pred });
+    const sourceId = String(rec.source_id ?? '');
+    if (!sourceId) continue;
+    triples.push(
+      { subject: docId, predicate: 'contains_formula', object: sourceId },
+      { subject: sourceId, predicate: 'type', object: 'tdfol_formula' },
+      { subject: sourceId, predicate: 'formula', object: String(rec.formula ?? '') },
+      { subject: sourceId, predicate: 'parse_ok', object: rec.parse_ok ? 'true' : 'false' },
+    );
+    const predicates = Array.isArray(rec.predicates) ? rec.predicates : [];
+    for (const pred of predicates) {
+      triples.push({ subject: sourceId, predicate: 'uses_predicate', object: String(pred) });
     }
   }
-  return triples;
+  return triples.filter(triple => Boolean(triple.object));
 }
 
 // ---------------------------------------------------------------------------
 // Graph data
 // ---------------------------------------------------------------------------
 
-function tdfolGraphData(
-  docId: string,
-  records: TdfolFormulaRecord[],
-): Record<string, unknown> {
-  const nodes = [
-    { id: docId, label: 'Document', properties: {} },
-    ...records.map(r => ({
-      id: r.source_id,
-      label: 'TDFOLFormula',
-      properties: {
-        formula: r.formula.slice(0, 120),
-        formula_type: r.formula_type,
-        predicate_count: r.predicates.length,
-      },
-    })),
-  ];
-  const relationships = records.map(r => ({
-    source: docId,
-    target: r.source_id,
-    type: 'HAS_FORMULA',
-  }));
-  return { nodes, relationships };
+export function tdfolGraphDataFromFrameTriples(
+  triples: ReadonlyArray<Record<string, unknown>>,
+  opts: { graphId?: string; metadata?: Record<string, unknown> } = {},
+): DeonticGraphData | null {
+  return deonticGraphDataFromFrameTriples(triples, opts);
 }
 
 // ---------------------------------------------------------------------------
@@ -146,6 +147,7 @@ export class FolTdfolBridgeAdapter {
             predicates: extractPredicates(s),
             source_id: `${resolvedDocId}:f${i}`,
             formula_type: classifyFormula(s),
+            parse_ok: true,
           }))
         : normalizedText
           ? [{
@@ -153,11 +155,25 @@ export class FolTdfolBridgeAdapter {
               predicates: extractPredicates(normalizedText),
               source_id: `${resolvedDocId}:f0`,
               formula_type: classifyFormula(normalizedText),
+              parse_ok: true,
             }]
           : [];
 
-    const triples = tdfolFrameTriples(resolvedDocId, formulaRecords);
-    const graphData = tdfolGraphData(resolvedDocId, formulaRecords);
+    const triples = tdfolFrameLogicTriplesFromRecords(resolvedDocId, formulaRecords);
+    const graphData = tdfolGraphDataFromFrameTriples(triples, {
+      graphId: `${resolvedDocId}:tdfol-flogic`,
+      metadata: {
+        source: 'tdfol_bridge_ir',
+        tdfol_formula_count: formulaRecords.length,
+        compiler_guidance_formula_count: 0,
+        guidance_formula_count: 0,
+      },
+    }) ?? {
+      nodes: [],
+      relationships: [],
+      schema: { indexes: [], constraints: [], node_labels: [], relationship_types: [] },
+      metadata: {},
+    };
 
     const proofGate = new ProofGateResult({
       attemptedCount: formulaRecords.length,
@@ -177,14 +193,19 @@ export class FolTdfolBridgeAdapter {
       frame_logic: new LogicIRView({
         name: 'frame_logic',
         payload: { triples },
-        format: 'frame_logic_triples',
+        format: 'flogic-triples-v1',
         sourceComponent: this.targetComponent,
+        metadata: { triple_count: triples.length },
       }),
       neo4j_graph_data: new LogicIRView({
         name: 'neo4j_graph_data',
         payload: graphData,
-        format: 'neo4j_graph',
-        sourceComponent: this.targetComponent,
+        format: 'neo4j-compatible-graph-data',
+        sourceComponent: 'knowledge_graphs.neo4j_compat',
+        metadata: {
+          node_count: graphData.nodes.length,
+          relationship_count: graphData.relationships.length,
+        },
       }),
     };
 

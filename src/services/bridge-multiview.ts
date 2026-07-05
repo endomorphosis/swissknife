@@ -28,6 +28,22 @@ export interface BridgeAdapter {
   evaluate(text: string, opts?: Record<string, unknown>): BridgeEvaluationReport;
 }
 
+export interface MultiviewDocumentEntry {
+  readonly adapterName: string;
+  readonly doc: LegalIRDocument;
+  readonly report?: BridgeEvaluationReport;
+  readonly accepted?: boolean;
+}
+
+export interface MergeMultiviewDocumentsOpts {
+  readonly documentId: string;
+  readonly sourceText: string;
+  readonly bridgeNames: readonly string[];
+  readonly citation?: string;
+  readonly source?: string;
+  readonly failures?: Record<string, string>;
+}
+
 // ---------------------------------------------------------------------------
 // MultiViewLegalIRReport
 // ---------------------------------------------------------------------------
@@ -137,37 +153,122 @@ export class LegalIRTrainingTarget {
 // Merge helper: combine views from multiple documents into one
 // ---------------------------------------------------------------------------
 
-function mergeDocuments(
-  docs: LegalIRDocument[],
-  resolvedDocId: string,
-  sourceText: string,
-): LegalIRDocument {
-  if (docs.length === 0) {
-    return new LegalIRDocument({ documentId: resolvedDocId, sourceText, normalizedText: sourceText.replace(/\s+/g, ' ').trim() });
+function normalizedText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+function graphProjectionPasses(report: BridgeEvaluationReport | undefined): boolean {
+  if (!report) return false;
+  return (
+    report.graphProjection.neo4jCompatible &&
+    report.graphProjection.nodeCount > 0 &&
+    report.graphProjection.relationshipCount > 0
+  );
+}
+
+function entryAccepted(entry: MultiviewDocumentEntry): boolean {
+  if (entry.accepted !== undefined) return entry.accepted;
+  const report = entry.report;
+  if (!report) return entry.doc.hasFrameLogic;
+  return (
+    report.success &&
+    entry.doc.hasFrameLogic &&
+    report.proofGate.compiles &&
+    graphProjectionPasses(report)
+  );
+}
+
+function firstCitation(entries: readonly MultiviewDocumentEntry[]): string | undefined {
+  for (const entry of entries) {
+    if (entry.doc.citation) return entry.doc.citation;
   }
+  return undefined;
+}
+
+/**
+ * Python parity for `bridge/multiview.py::_merge_reports_to_document`.
+ *
+ * The Python implementation sorts report entries by adapter name, prefixes view
+ * names with `adapter.view`, annotates each merged view with the adapter and
+ * original view name, deduplicates frame-logic triples, and emits a stable
+ * `legal-ir-multiview-v1` document envelope.
+ */
+export function mergeMultiviewDocuments(
+  entries: readonly MultiviewDocumentEntry[],
+  opts: MergeMultiviewDocumentsOpts,
+): LegalIRDocument {
+  if (entries.length === 0) {
+    return new LegalIRDocument({
+      documentId: opts.documentId,
+      sourceText: opts.sourceText,
+      normalizedText: normalizedText(opts.sourceText),
+      source: opts.source ?? 'us_code',
+      citation: opts.citation,
+      metadata: {
+        accepted_bridge_count: 0,
+        attempted_bridge_count: opts.bridgeNames.length,
+        bridge_names: [...opts.bridgeNames],
+        failed_bridge_count: Object.keys(opts.failures ?? {}).length,
+        implemented_bridge_count: 0,
+        multiview_version: 'legal-ir-multiview-v1',
+        view_count: 0,
+      },
+      version: 'legal-ir-multiview-v1',
+    });
+  }
+
   const mergedViews: Record<string, LogicIRView> = {};
   const mergedTriples: Array<Record<string, string>> = [];
+  const seenTriples = new Set<string>();
+  let mergedNormalizedText = normalizedText(opts.sourceText);
 
-  for (const doc of docs) {
-    for (const [name, view] of Object.entries(doc.views)) {
-      // Later adapters' views win on name collision (prefixed with bridge name)
-      const key = `${doc.metadata['bridge'] ?? 'bridge'}:${name}`;
-      mergedViews[key] = view;
+  for (const entry of [...entries].sort((a, b) => a.adapterName.localeCompare(b.adapterName))) {
+    const { adapterName, doc } = entry;
+    if (doc.normalizedText) mergedNormalizedText = doc.normalizedText;
+    for (const [name, view] of Object.entries(doc.views).sort(([a], [b]) => a.localeCompare(b))) {
+      const key = `${adapterName}.${name}`;
+      mergedViews[key] = new LogicIRView({
+        name: key,
+        format: view.format,
+        sourceComponent: view.sourceComponent,
+        payload: view.payload,
+        metadata: {
+          ...view.metadata,
+          adapter_name: adapterName,
+          original_view_name: name,
+        },
+      });
     }
-    mergedTriples.push(...doc.frameLogicTriples);
+    for (const triple of doc.frameLogicTriples) {
+      const subject = String(triple.subject ?? '');
+      const predicate = String(triple.predicate ?? '');
+      const object = String(triple.object ?? '');
+      if (!subject || !predicate || !object) continue;
+      const key = `${subject}\u0000${predicate}\u0000${object}`;
+      if (seenTriples.has(key)) continue;
+      seenTriples.add(key);
+      mergedTriples.push({ subject, predicate, object });
+    }
   }
 
   const init: LegalIRDocumentInit = {
-    documentId: resolvedDocId,
-    sourceText,
-    normalizedText: docs[0].normalizedText,
-    source: docs[0].source,
+    documentId: opts.documentId,
+    sourceText: opts.sourceText,
+    normalizedText: mergedNormalizedText,
+    source: opts.source ?? entries[0]?.doc.source ?? 'us_code',
+    citation: opts.citation ?? firstCitation(entries),
     views: mergedViews,
     frameLogicTriples: mergedTriples,
     metadata: {
-      bridge: 'multiview',
-      adapter_count: docs.length,
+      accepted_bridge_count: entries.filter(entryAccepted).length,
+      attempted_bridge_count: opts.bridgeNames.length,
+      bridge_names: [...opts.bridgeNames],
+      failed_bridge_count: Object.keys(opts.failures ?? {}).length,
+      implemented_bridge_count: entries.length,
+      multiview_version: 'legal-ir-multiview-v1',
+      view_count: Object.keys(mergedViews).length,
     },
+    version: 'legal-ir-multiview-v1',
   };
   return new LegalIRDocument(init);
 }
@@ -198,20 +299,27 @@ export function evaluateLegalIRMultiview(
 
   const reports: Record<string, BridgeEvaluationReport> = {};
   const failures: Record<string, string> = {};
-  const docs: LegalIRDocument[] = [];
+  const entries: MultiviewDocumentEntry[] = [];
 
   for (const adapter of adapters) {
     try {
       const { doc } = adapter.encode(text, { documentId: resolvedDocId, ...opts });
       const report = adapter.evaluate(text, { documentId: resolvedDocId, ...opts });
       reports[adapter.name] = report;
-      docs.push(doc);
+      entries.push({ adapterName: adapter.name, doc, report });
     } catch (err) {
       failures[adapter.name] = String(err);
     }
   }
 
-  const mergedDoc = mergeDocuments(docs, resolvedDocId, text);
+  const mergedDoc = mergeMultiviewDocuments(entries, {
+    documentId: resolvedDocId,
+    sourceText: text,
+    bridgeNames,
+    citation: opts.citation,
+    source: opts.source,
+    failures,
+  });
   return new MultiViewLegalIRReport({ bridgeNames, document: mergedDoc, reports, failures });
 }
 
