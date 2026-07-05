@@ -70,6 +70,10 @@ function normProposition(norm: DeonticNormRecord): string {
   return norm.proposition ?? norm.action;
 }
 
+function normActionAlias(norm: DeonticNormRecord): string {
+  return norm.action || normProposition(norm);
+}
+
 function normToProverSyntax(norm: DeonticNormRecord): string {
   const op = norm.operator;
   const body = `${normProposition(norm)}(${norm.subject})`;
@@ -90,7 +94,7 @@ function deonticFrameTriples(
     triples.push({ subject: norm.norm_id, predicate: 'hasOperator', object: norm.operator });
     triples.push({ subject: norm.norm_id, predicate: 'hasSubject', object: norm.subject });
     triples.push({ subject: norm.norm_id, predicate: 'hasProposition', object: normProposition(norm) });
-    triples.push({ subject: norm.norm_id, predicate: 'hasAction', object: norm.action });
+    triples.push({ subject: norm.norm_id, predicate: 'hasAction', object: normActionAlias(norm) });
   }
   return triples;
 }
@@ -112,7 +116,7 @@ function deonticGraphData(
       properties: {
         subject: n.subject,
         proposition: normProposition(n).slice(0, 60),
-        action: n.action.slice(0, 60),
+        action: normActionAlias(n).slice(0, 60),
         operator: n.operator,
       },
     })),
@@ -198,7 +202,7 @@ export class DeonticNormsBridgeAdapter {
         payload: {
           norms: norms.map(n => ({
             norm_id: n.norm_id, operator: n.operator,
-            subject: n.subject, proposition: normProposition(n), action: n.action,
+            subject: n.subject, proposition: normProposition(n), action: normActionAlias(n),
             conditions: n.conditions, source_text: n.source_text,
           })),
         },
