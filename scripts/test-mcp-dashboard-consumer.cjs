@@ -488,6 +488,14 @@ const vai655LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'vai-655-mcp-dashboard-launch-gate.json',
 );
+const vai657LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-657-mcp-dashboard-launch-gate.json',
+);
 const vai634LaunchGateReceiptPath = path.resolve(
   '..',
   'hallucinate_app',
@@ -629,6 +637,7 @@ const vai649LaunchGateReceipt = JSON.parse(fs.readFileSync(vai649LaunchGateRecei
 const vai651LaunchGateReceipt = JSON.parse(fs.readFileSync(vai651LaunchGateReceiptPath, 'utf8'));
 const vai653LaunchGateReceipt = JSON.parse(fs.readFileSync(vai653LaunchGateReceiptPath, 'utf8'));
 const vai655LaunchGateReceipt = JSON.parse(fs.readFileSync(vai655LaunchGateReceiptPath, 'utf8'));
+const vai657LaunchGateReceipt = JSON.parse(fs.readFileSync(vai657LaunchGateReceiptPath, 'utf8'));
 const vai634LaunchGateReceipt = JSON.parse(fs.readFileSync(vai634LaunchGateReceiptPath, 'utf8'));
 const vai637LaunchGateReceipt = JSON.parse(fs.readFileSync(vai637LaunchGateReceiptPath, 'utf8'));
 const vai631LaunchGateReceipt = JSON.parse(fs.readFileSync(vai631LaunchGateReceiptPath, 'utf8'));
@@ -3206,6 +3215,51 @@ assert(
   ]),
   'VAI-655 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
 );
+const vai657Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-657');
+assert(vai657Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-657 for VAIOS-G724');
+assert(
+  vai657Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-657-objective-gap-3e00ad2a0074.md',
+  'VAI-657 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai657Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-657-mcp-dashboard-launch-gate.md',
+  'VAI-657 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai657Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-657-mcp-dashboard-launch-gate.json',
+  'VAI-657 launch gate must point at the Playwright fixture',
+);
+assert(
+  vai657Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-657 launch gate must be closed by the launch Playwright validation gate',
+);
+assert(
+  vai657Gate?.packet_sibling_task_id === 'VAI-658',
+  'VAI-657 launch gate must preserve the VAI-658 packet sibling task',
+);
+assert(
+  vai657Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-658-daemon-launch-health-gate.md',
+  'VAI-657 launch gate must point at the packet sibling daemon launch gate receipt',
+);
+assert(vai657Gate?.attempt === 2, 'VAI-657 launch gate must preserve the attempt-2 validation receipt number');
+assert(
+  JSON.stringify(vai657Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-05-vai-657-attempt-2-launch-playwright-validation-gate.md',
+  ]),
+  'VAI-657 launch gate must expose the attempt-2 launch Playwright validation receipt',
+);
+assert(
+  JSON.stringify(vai657Gate?.required_evidence || []) === JSON.stringify(vai657LaunchGateReceipt.required_evidence),
+  'VAI-657 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai657Gate?.external_backend_surfaces || []) === JSON.stringify([
+    'external/ipfs_accelerate',
+    'external/ipfs_datasets',
+    'external/ipfs_kit',
+  ]),
+  'VAI-657 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
+);
 const vai631Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-631');
 assert(vai631Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-631 for VAIOS-G723');
 assert(
@@ -3478,6 +3532,7 @@ console.log(JSON.stringify({
     vai651LaunchGateReceipt.task_id,
     vai653LaunchGateReceipt.task_id,
     vai655LaunchGateReceipt.task_id,
+    vai657LaunchGateReceipt.task_id,
     vai631LaunchGateReceipt.task_id,
   ],
   launch_goal_ids: catalog.launch_objective_ids,
