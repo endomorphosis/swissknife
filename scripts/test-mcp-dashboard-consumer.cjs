@@ -3079,12 +3079,12 @@ assert(
   vai651Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-652-daemon-launch-health-gate.md',
   'VAI-651 launch gate must point at the packet sibling daemon launch gate receipt',
 );
-assert(vai651Gate?.attempt === 1, 'VAI-651 launch gate must preserve the attempt-1 validation receipt number');
+assert(vai651Gate?.attempt === 2, 'VAI-651 launch gate must preserve the attempt-2 validation receipt number');
 assert(
   JSON.stringify(vai651Gate?.attempt_receipts || []) === JSON.stringify([
-    'data/virtual_ai_os/discovery/2026-07-05-vai-651-attempt-1-launch-playwright-validation-gate.md',
+    'data/virtual_ai_os/discovery/2026-07-05-vai-651-attempt-2-launch-playwright-validation-gate.md',
   ]),
-  'VAI-651 launch gate must expose the attempt-1 launch Playwright validation receipt',
+  'VAI-651 launch gate must expose the attempt-2 launch Playwright validation receipt',
 );
 assert(
   JSON.stringify(vai651Gate?.required_evidence || []) === JSON.stringify(vai651LaunchGateReceipt.required_evidence),
@@ -3366,6 +3366,8 @@ console.log(JSON.stringify({
     vai632LaunchGateReceipt.task_id,
     vai634LaunchGateReceipt.task_id,
     vai637LaunchGateReceipt.task_id,
+    vai649LaunchGateReceipt.task_id,
+    vai651LaunchGateReceipt.task_id,
     vai631LaunchGateReceipt.task_id,
   ],
   launch_goal_ids: catalog.launch_objective_ids,
