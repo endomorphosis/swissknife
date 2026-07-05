@@ -4,6 +4,8 @@
  *           TDFOL/strategies/cec_delegate.py (216L),
  *           TDFOL/expansion_rules.py (209L)
  */
+import { spawnSync } from 'node:child_process';
+import { createTptpProblem, parseSzsStatus } from './tptp-problem';
 
 // ---------------------------------------------------------------------------
 // T-310a — Groth16 Backup Backend (groth16_backup.py)
@@ -26,7 +28,7 @@ export class Groth16BackupBackend {
     return JSON.stringify({ type: 'groth16-backup', proof: seed, verified: true });
   }
 
-  async verifyProof(proofJson: string, verifyingKey: VerifyingKey): Promise<boolean> {
+  async verifyProof(proofJson: string, _verifyingKey: VerifyingKey): Promise<boolean> {
     try {
       const proof = JSON.parse(proofJson) as { type?: string; verified?: boolean };
       return proof.type === 'groth16-backup' && proof.verified === true;
@@ -38,7 +40,7 @@ export class Groth16BackupBackend {
       circuitId:      id,
       numVariables,
       numConstraints,
-      constraints:    Array.from({ length: numConstraints }, (_, i) => ({
+      constraints:    Array.from({ length: numConstraints }, () => ({
         a: [1, 0, 0, 0].slice(0, numVariables),
         b: [0, 1, 0, 0].slice(0, numVariables),
         c: [0, 0, 1, 0].slice(0, numVariables),
@@ -67,31 +69,95 @@ export interface DelegateProverStrategy {
   isAvailable(): boolean;
 }
 
+export interface CECProcessResult {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr?: string;
+  readonly error?: string;
+}
+
+export type CECRunner = (
+  command: string,
+  args: string[],
+  input: string,
+  timeoutMs: number,
+) => CECProcessResult;
+
+export interface CECDelegateOptions {
+  cecPath?: string;
+  timeoutMs?: number;
+  runner?: CECRunner;
+  availabilityCheck?: () => boolean;
+}
+
+function defaultCECRunner(command: string, args: string[], input: string, timeoutMs: number): CECProcessResult {
+  const result = spawnSync(command, args, { input, timeout: timeoutMs, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+  return {
+    status: result.status,
+    stdout: result.stdout ?? '',
+    stderr: result.stderr ?? '',
+    error: result.error?.message,
+  };
+}
+
+function commandAvailable(command: string): boolean {
+  const result = spawnSync(command, ['--version'], { encoding: 'utf8', timeout: 2_000 });
+  return !result.error && (result.status === 0 || result.status === null);
+}
+
 export class CECDelegateStrategy implements DelegateProverStrategy {
   readonly name = 'cec-delegate';
-  private _available = false;
+  private readonly cecPath?: string;
+  private readonly timeoutMs: number;
+  private readonly runner: CECRunner;
+  private readonly availabilityCheck?: () => boolean;
 
-  constructor(private readonly cecPath?: string) {
-    this._available = !!cecPath;
+  constructor(options: CECDelegateOptions = {}) {
+    this.cecPath = options.cecPath;
+    this.timeoutMs = options.timeoutMs ?? 30_000;
+    this.runner = options.runner ?? defaultCECRunner;
+    this.availabilityCheck = options.availabilityCheck;
   }
 
-  isAvailable(): boolean { return this._available; }
+  isAvailable(): boolean {
+    if (this.availabilityCheck) return this.availabilityCheck();
+    if (!this.cecPath) return false;
+    return commandAvailable(this.cecPath);
+  }
 
   async prove(formula: string, axioms: string[]): Promise<ProverResult> {
-    if (!this._available) {
+    if (!this.isAvailable()) {
       return { proved: false, error: 'CEC prover not available — set cecPath in constructor' };
     }
-    // Real impl would spawn CEC binary; return simulated result
-    return { proved: false, error: 'CEC FFI not bound' };
+    const cecPath = this.cecPath;
+    if (!cecPath) {
+      return { proved: false, error: 'CEC prover path missing' };
+    }
+    const input = createTptpProblem({
+      name: 'cec_delegate_problem',
+      axioms: axioms.map((axiom, index) => ({ name: `ax_${index + 1}`, role: 'axiom', formula: axiom })),
+      conjectures: [{ name: 'goal_1', role: 'conjecture', formula }],
+    });
+    const result = this.runner(cecPath, ['--stdin', '--format', 'tptp'], input, this.timeoutMs);
+    const output = [result.stdout, result.stderr ?? ''].filter(Boolean).join('\n');
+    const status = parseSzsStatus(output);
+    const proved = ['theorem', 'unsatisfiable', 'contradictoryaxioms'].includes((status ?? '').toLowerCase());
+    if (result.error) {
+      return { proved: false, error: result.error };
+    }
+    if (proved) {
+      return { proved: true, proof: output };
+    }
+    return { proved: false, error: output || `CEC exited with status ${String(result.status)}` };
   }
 }
 
 /** Try to locate a CEC prover binary and return a configured delegate. */
 export function createCECDelegate(): CECDelegateStrategy {
   try {
-    const { execSync } = require('child_process') as { execSync: (cmd: string) => string };
-    const path = execSync('which cec 2>/dev/null').trim();
-    return new CECDelegateStrategy(path || undefined);
+    const result = spawnSync('which', ['cec'], { encoding: 'utf8', timeout: 2_000 });
+    const path = String(result.stdout ?? '').trim();
+    return new CECDelegateStrategy({ cecPath: path || undefined });
   } catch { return new CECDelegateStrategy(); }
 }
 

@@ -84,6 +84,21 @@ describe('CECDelegateStrategy', () => {
     const delegate = createCECDelegate();
     expect(delegate).toBeInstanceOf(CECDelegateStrategy);
   });
+
+  it('uses configured runner path when available', async () => {
+    const strategy = new CECDelegateStrategy({
+      cecPath: '/usr/bin/cec',
+      availabilityCheck: () => true,
+      runner: (_command, _args, _input, _timeoutMs) => ({
+        status: 0,
+        stdout: '% SZS status Theorem\nfof(step_1, plain, p).',
+        stderr: '',
+      }),
+    });
+    const result = await strategy.prove('p', ['p']);
+    expect(result.proved).toBe(true);
+    expect(result.proof).toContain('SZS status Theorem');
+  });
 });
 
 // ---------------------------------------------------------------------------
