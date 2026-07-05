@@ -158,5 +158,8 @@ describe('PORT-216 TypeScript conformance runner', () => {
     expect(envelope.engineVersions.z3Mode).toBe('live-strict-self-contained');
     expect(envelope.results.every(result => result.backendMode === 'real')).toBe(true);
     expect(envelope.results.every(result => ['proved', 'refuted', 'sat'].includes(result.status))).toBe(true);
+    const satRows = envelope.results.filter(result => result.vectorId.includes('-sat-'));
+    expect(satRows.length).toBeGreaterThan(0);
+    expect(satRows.every(result => result.status === 'sat')).toBe(true);
   });
 });

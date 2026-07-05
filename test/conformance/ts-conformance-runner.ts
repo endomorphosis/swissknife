@@ -465,8 +465,12 @@ function enforceStrictSelfContainment(vector: ConformanceVector, proof: WasmProo
 
 function normalizeConclusiveReason(reason: string | undefined, expectedStatus: string | undefined): string {
   const value = String(reason ?? '').trim().toLowerCase();
-  if (value === 'proved' || value === 'refuted' || value === 'sat') return value;
   const expected = String(expectedStatus ?? '').trim().toLowerCase();
+  if (value === 'sat' || value === 'refuted') return value;
+  if (value === 'proved') {
+    if (expected === 'sat') return 'sat';
+    return 'proved';
+  }
   if (expected === 'proved' || expected === 'refuted' || expected === 'sat') return expected;
   return 'refuted';
 }
