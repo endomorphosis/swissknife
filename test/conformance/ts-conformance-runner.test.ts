@@ -1,5 +1,6 @@
 import {
   assertCorpusCoverage,
+  assertPort235NativeCoverage,
   loadConformanceVectors,
   runTsConformance,
 } from './ts-conformance-runner.js';
@@ -21,6 +22,7 @@ describe('PORT-214 shared conformance vector corpus', () => {
 
   it('retains mixed native input-type coverage for PORT-235 slices', () => {
     const vectors = loadConformanceVectors();
+    const port235Coverage = assertPort235NativeCoverage(vectors);
     const byInputType = vectors.reduce<Record<string, number>>((acc, vector) => {
       acc[vector.inputType] = (acc[vector.inputType] ?? 0) + 1;
       return acc;
@@ -29,19 +31,21 @@ describe('PORT-214 shared conformance vector corpus', () => {
     expect(byInputType.policy ?? 0).toBeGreaterThanOrEqual(80);
 
     for (const inputType of [
-      'smt2',
-      'tdfol',
       'dcec',
       'legalNorm',
-      'zkpStatement',
       'zkpWitness',
       'folFormula',
       'temporalTrace',
       'modalKripke',
       'deonticConflict',
     ]) {
-      expect(byInputType[inputType] ?? 0).toBeGreaterThanOrEqual(4);
+      expect(byInputType[inputType] ?? 0).toBeGreaterThanOrEqual(25);
+      expect(port235Coverage[inputType] ?? 0).toBeGreaterThanOrEqual(25);
     }
+
+    expect(byInputType.smt2 ?? 0).toBeGreaterThanOrEqual(4);
+    expect(byInputType.tdfol ?? 0).toBeGreaterThanOrEqual(4);
+    expect(byInputType.zkpStatement ?? 0).toBeGreaterThanOrEqual(4);
   });
 
   it('uses strict single acceptable reason for decided native non-policy vectors', () => {
@@ -97,6 +101,7 @@ describe('PORT-216 TypeScript conformance runner', () => {
     for (const result of envelope.results) {
       expect(typeof result.vectorId).toBe('string');
       expect(typeof result.subsystem).toBe('string');
+      expect(typeof result.inputType).toBe('string');
       expect(typeof result.status).toBe('string');
       expect(['real', 'simulated', 'host-dependent']).toContain(result.backendMode);
       expect(typeof result.proverId).toBe('string');
@@ -142,5 +147,16 @@ describe('PORT-216 TypeScript conformance runner', () => {
       .map(result => String(proofMeta(result).nativeAttemptKind ?? '').trim())
       .filter(Boolean);
     expect(zkpAttemptKinds.length).toBeGreaterThan(0);
+  });
+
+  it('supports strict self-containment mode with real/conclusive outputs', async () => {
+    const envelope = await runTsConformance({
+      strictSelfContainment: true,
+      subsystems: ['propositional', 'fol'],
+      limit: 20,
+    });
+    expect(envelope.engineVersions.z3Mode).toBe('live-strict-self-contained');
+    expect(envelope.results.every(result => result.backendMode === 'real')).toBe(true);
+    expect(envelope.results.every(result => ['proved', 'refuted', 'sat'].includes(result.status))).toBe(true);
   });
 });

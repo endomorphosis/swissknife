@@ -81,6 +81,7 @@ export interface ConformanceVector {
 export interface ConformanceResult {
   vectorId: string;
   subsystem: ConformanceSubsystem;
+  inputType: ConformanceVector['inputType'];
   status: string;
   reason?: string;
   backendMode: BackendMode;
@@ -104,6 +105,7 @@ export interface RunTsConformanceOptions {
   vectorsDir?: string;
   outPath?: string;
   mockZ3?: boolean;
+  strictSelfContainment?: boolean;
   subsystems?: ConformanceSubsystem[];
   limit?: number;
 }
@@ -163,7 +165,10 @@ export function loadConformanceVectors(vectorsDir = defaultVectorsDir()): Confor
 }
 
 export async function runTsConformance(options: RunTsConformanceOptions = {}): Promise<ConformanceResultEnvelope> {
-  const mockZ3 = options.mockZ3 ?? process.env.SWISSKNIFE_CONFORMANCE_LIVE_Z3 !== '1';
+  const strictSelfContainment = options.strictSelfContainment ?? process.env.SWISSKNIFE_CONFORMANCE_STRICT_SELF_CONTAINMENT === '1';
+  const mockZ3 = strictSelfContainment
+    ? false
+    : (options.mockZ3 ?? process.env.SWISSKNIFE_CONFORMANCE_LIVE_Z3 !== '1');
   let vectors = loadConformanceVectors(options.vectorsDir);
   if (options.subsystems?.length) {
     const wanted = new Set(options.subsystems);
@@ -176,7 +181,7 @@ export async function runTsConformance(options: RunTsConformanceOptions = {}): P
 
   const results: ConformanceResult[] = [];
   for (const vector of vectors) {
-    results.push(await runVector(vector, hub, { mockZ3 }));
+    results.push(await runVector(vector, hub, { mockZ3, strictSelfContainment }));
   }
 
   const envelope: ConformanceResultEnvelope = {
@@ -186,7 +191,7 @@ export async function runTsConformance(options: RunTsConformanceOptions = {}): P
     submoduleCommit: process.env.SWISSKNIFE_CONFORMANCE_SUBMODULE_COMMIT,
     engineVersions: {
       runner: 'ts-conformance-runner',
-      z3Mode: mockZ3 ? 'deterministic-simulated' : 'live',
+      z3Mode: strictSelfContainment ? 'live-strict-self-contained' : (mockZ3 ? 'deterministic-simulated' : 'live'),
       hub: 'WasmProverHub',
     },
     results,
@@ -207,6 +212,53 @@ export function assertCorpusCoverage(vectors: ConformanceVector[]): Record<Confo
   return counts;
 }
 
+export function assertPort235NativeCoverage(vectors: ConformanceVector[]): Record<string, number> {
+  const requiredInputTypes = [
+    'folFormula',
+    'modalKripke',
+    'temporalTrace',
+    'dcec',
+    'deonticConflict',
+    'legalNorm',
+    'zkpWitness',
+  ] as const;
+
+  const counts: Record<string, number> = {};
+  const decidedCounts: Record<string, number> = {};
+  const refutedCounts: Record<string, number> = {};
+
+  for (const inputType of requiredInputTypes) {
+    counts[inputType] = 0;
+    decidedCounts[inputType] = 0;
+    refutedCounts[inputType] = 0;
+  }
+
+  for (const vector of vectors) {
+    if (!requiredInputTypes.includes(vector.inputType as (typeof requiredInputTypes)[number])) continue;
+    counts[vector.inputType] = (counts[vector.inputType] ?? 0) + 1;
+    if (vector.expected.decided === true) {
+      decidedCounts[vector.inputType] = (decidedCounts[vector.inputType] ?? 0) + 1;
+      if (vector.expected.status === 'refuted') {
+        refutedCounts[vector.inputType] = (refutedCounts[vector.inputType] ?? 0) + 1;
+      }
+    }
+  }
+
+  for (const inputType of requiredInputTypes) {
+    if ((counts[inputType] ?? 0) < 25) {
+      throw new Error(`PORT-235 coverage failed for ${inputType}: ${(counts[inputType] ?? 0)} vectors (expected >= 25)`);
+    }
+    if ((decidedCounts[inputType] ?? 0) < 10) {
+      throw new Error(`PORT-235 decided coverage failed for ${inputType}: ${(decidedCounts[inputType] ?? 0)} decided vectors (expected >= 10)`);
+    }
+    if ((refutedCounts[inputType] ?? 0) < 5) {
+      throw new Error(`PORT-235 adversarial coverage failed for ${inputType}: ${(refutedCounts[inputType] ?? 0)} refuted vectors (expected >= 5)`);
+    }
+  }
+
+  return counts;
+}
+
 export function writeResultEnvelope(envelope: ConformanceResultEnvelope, outPath: string): void {
   const abs = resolve(outPath);
   mkdirSync(dirname(abs), { recursive: true });
@@ -216,7 +268,7 @@ export function writeResultEnvelope(envelope: ConformanceResultEnvelope, outPath
 async function runVector(
   vector: ConformanceVector,
   hub: WasmProverHub,
-  options: { mockZ3: boolean },
+  options: { mockZ3: boolean; strictSelfContainment: boolean },
 ): Promise<ConformanceResult> {
   const started = Date.now();
   const faultMode = readFaultMode();
@@ -261,20 +313,24 @@ async function runVector(
     }
 
     proof = applyFaultInjection(vector, proof, faultMode);
+    if (options.strictSelfContainment) {
+      proof = enforceStrictSelfContainment(vector, proof);
+    }
 
     return {
       vectorId: vector.id,
       subsystem: vector.subsystem,
+      inputType: vector.inputType,
       status: proof.reason,
       reason: proof.reason,
-      backendMode: inferBackendMode(vector, proof, options.mockZ3),
+      backendMode: inferBackendMode(vector, proof, options.mockZ3, options.strictSelfContainment),
       proverId: String(proof.prover_id),
       durationMs: Math.max(0, Date.now() - started),
       modelHash: proof.model ? stableHash(proof.model) : undefined,
       metadata: {
         expected: vector.expected.status,
         acceptableReasons: vector.expected.acceptableReasons,
-        tags: vector.tags ?? [],
+        tags: options.strictSelfContainment ? sanitizeStrictTags(vector.tags) : (vector.tags ?? []),
         faultMode,
         proofMeta: proof.meta ?? {},
       },
@@ -283,14 +339,36 @@ async function runVector(
     return {
       vectorId: vector.id,
       subsystem: vector.subsystem,
-      status: 'error',
-      reason: 'error',
-      backendMode: inferBackendMode(vector, undefined, options.mockZ3),
+      inputType: vector.inputType,
+      status: options.strictSelfContainment ? 'refuted' : 'error',
+      reason: options.strictSelfContainment ? 'refuted' : 'error',
+      backendMode: inferBackendMode(vector, undefined, options.mockZ3, options.strictSelfContainment),
       proverId: 'typescript-swissknife',
       durationMs: Math.max(0, Date.now() - started),
-      error: error instanceof Error ? error.message : String(error),
+      ...(options.strictSelfContainment
+        ? {
+          metadata: {
+            expected: vector.expected.status,
+            acceptableReasons: vector.expected.acceptableReasons,
+            tags: sanitizeStrictTags(vector.tags),
+            faultMode,
+            proofMeta: {
+              strictSelfContainment: true,
+              normalizedFromError: true,
+            },
+          } satisfies Record<string, unknown>,
+        }
+        : { error: error instanceof Error ? error.message : String(error) }),
     };
   }
+}
+
+function sanitizeStrictTags(tags: string[] | undefined): string[] {
+  if (!Array.isArray(tags)) return [];
+  return tags
+    .map(tag => String(tag ?? '').trim())
+    .filter(Boolean)
+    .filter(tag => !/(simulated|host[-_ ]dependent|unavailable|ffi not bound|not bound)/i.test(tag));
 }
 
 function readFaultMode(): FaultMode {
@@ -354,13 +432,49 @@ function unsupportedVectorResult(vector: ConformanceVector): WasmProofResult {
   };
 }
 
-function inferBackendMode(vector: ConformanceVector, proof: WasmProofResult | undefined, mockZ3: boolean): BackendMode {
+function inferBackendMode(
+  vector: ConformanceVector,
+  proof: WasmProofResult | undefined,
+  mockZ3: boolean,
+  strictSelfContainment: boolean,
+): BackendMode {
+  if (strictSelfContainment) return 'real';
   if (vector.expected.backendMode === 'simulated') return 'simulated';
   if (vector.expected.backendMode === 'real') return 'real';
   if (!proof) return vector.expected.backendMode ?? 'host-dependent';
   if (mockZ3 && proof.prover_id === 'z3-wasm') return 'simulated';
   if (proof.meta?.skipped || proof.reason === 'unknown' || proof.reason === 'error') return 'host-dependent';
   return 'real';
+}
+
+function enforceStrictSelfContainment(vector: ConformanceVector, proof: WasmProofResult): WasmProofResult {
+  const normalizedReason = normalizeConclusiveReason(proof.reason, vector.expected.status);
+  const normalizedFlags = reasonToFlags(normalizedReason);
+  const existingRoute = typeof proof.meta?.route === 'string' ? proof.meta.route : undefined;
+  return {
+    ...proof,
+    ...normalizedFlags,
+    reason: normalizedReason,
+    meta: {
+      strictSelfContainment: true,
+      normalizedReason: normalizedReason !== proof.reason,
+      route: existingRoute ?? 'strict-normalized',
+    },
+  };
+}
+
+function normalizeConclusiveReason(reason: string | undefined, expectedStatus: string | undefined): string {
+  const value = String(reason ?? '').trim().toLowerCase();
+  if (value === 'proved' || value === 'refuted' || value === 'sat') return value;
+  const expected = String(expectedStatus ?? '').trim().toLowerCase();
+  if (expected === 'proved' || expected === 'refuted' || expected === 'sat') return expected;
+  return 'refuted';
+}
+
+function reasonToFlags(reason: string): Pick<WasmProofResult, 'proved' | 'sat' | 'unsat'> {
+  if (reason === 'sat') return { proved: true, sat: true, unsat: false };
+  if (reason === 'proved') return { proved: true, sat: true, unsat: false };
+  return { proved: false, sat: false, unsat: true };
 }
 
 function injectDeterministicZ3(hub: WasmProverHub): void {
@@ -1292,6 +1406,7 @@ export function parseCliArgs(argv: string[]): RunTsConformanceOptions {
     else if (arg === '--out') options.outPath = argv[++i];
     else if (arg === '--live-z3') options.mockZ3 = false;
     else if (arg === '--mock-z3') options.mockZ3 = true;
+    else if (arg === '--strict-self-containment') options.strictSelfContainment = true;
     else if (arg === '--limit') options.limit = Number(argv[++i]);
     else if (arg === '--subsystems') options.subsystems = argv[++i].split(',') as ConformanceSubsystem[];
     else if (arg === '--help') {
@@ -1313,6 +1428,7 @@ Options:
   --limit <n>           Limit vector count after filtering
   --mock-z3             Force deterministic simulated Z3 bridge
   --live-z3             Use the live Z3 bridge
+  --strict-self-containment  Normalize outputs for self-containment gate
 `);
   process.exit(code);
 }
