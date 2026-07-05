@@ -1,6 +1,6 @@
 # SwissKnife Codebase Map for Programming Agents
 
-Generated: 2026-07-04T23:57:16.767Z
+Generated: 2026-07-05T00:08:42.652Z
 
 ## Purpose
 Help programming agents understand and interact with the codebase
