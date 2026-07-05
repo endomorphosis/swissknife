@@ -203,6 +203,50 @@ describe('checkPolicyConsistencyRemote', () => {
     expect(report.consistent).toBe(true);
   });
 
+  it('PORT-255 decides temporal consistency natively without probing the remote connector', async () => {
+    const connector = new MockConnector({
+      logic_health: { status: 'unavailable' },
+      tdfol_prove: { proved: true },
+    });
+    const engine = new RemoteDeonticEngine({ connector });
+    const policy = permitAllPolicy({
+      permissions: [{ cap: 'archive', rsc: 'case' }],
+      prohibitions: [],
+      obligations: [{ description: 'retain case file', requiredCap: 'retain', rsc: 'case', deadline: 9999999999 }],
+      temporal: { notBefore: 0, notAfter: 4102444800 },
+    });
+
+    const report = await checkPolicyConsistencyRemote(policy, engine);
+
+    expect(report.consistent).toBe(true);
+    expect(report.remoteChecked).toBe(false);
+    expect(report.remoteError).toBeUndefined();
+    expect(report.localProver).toBe('tdfol-native');
+    expect(connector.calls).toHaveLength(0);
+  });
+
+  it('PORT-255 returns native inconsistent verdicts without probing the remote connector', async () => {
+    const connector = new MockConnector({
+      logic_health: { status: 'unavailable' },
+      tdfol_prove: { proved: false },
+    });
+    const engine = new RemoteDeonticEngine({ connector });
+    const policy = permitAllPolicy({
+      permissions: [],
+      prohibitions: [{ cap: 'log/write', rsc: 'audit' }],
+      obligations: [{ description: 'write audit log', requiredCap: 'log/write', rsc: 'audit', deadline: 9999999999 }],
+      temporal: { notBefore: 0, notAfter: 4102444800 },
+    });
+
+    const report = await checkPolicyConsistencyRemote(policy, engine);
+
+    expect(report.consistent).toBe(false);
+    expect(report.remoteChecked).toBe(false);
+    expect(report.remoteError).toBeUndefined();
+    expect(report.localProver).toBe('tdfol-native');
+    expect(connector.calls).toHaveLength(0);
+  });
+
   it('appends a theory conflict when the prover finds an inconsistency the local fragment misses', async () => {
     const connector = new MockConnector({ logic_health: HEALTHY, tdfol_prove: { proved: true } });
     const engine = new RemoteDeonticEngine({ connector });

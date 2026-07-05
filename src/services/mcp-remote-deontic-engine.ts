@@ -50,6 +50,8 @@ import {
   type ORBDeonticEvaluator,
 } from './mcp-deontic-interface-broker';
 import type { WasmProverHub } from './mcp-wasm-prover-hub';
+import { TdfolProverBridge } from './provers/tdfol-prover-bridge';
+import type { WasmProofResult } from './provers/prover-types';
 
 // ---------------------------------------------------------------------------
 // Connector contract (structural — the real MCPPPServerConnector satisfies it)
@@ -356,6 +358,37 @@ export interface RemoteConsistencyResult extends DeonticConsistencyResult {
   localProver?: string;
 }
 
+function isConclusiveLocalProof(result: WasmProofResult): boolean {
+  return result.reason !== 'unknown'
+    && result.reason !== 'error'
+    && result.reason !== 'timeout';
+}
+
+function consistencyFromLocalProof(
+  local: DeonticConsistencyResult,
+  result: WasmProofResult,
+  detail: string,
+): RemoteConsistencyResult {
+  const conflicts: DeonticConflict[] = [...local.conflicts];
+  const isConsistent = result.reason !== 'refuted' && !result.unsat;
+
+  if (!isConsistent && conflicts.length === 0) {
+    conflicts.push({
+      kind: 'permission_prohibition',
+      capability: '*',
+      resource: '*',
+      detail,
+    });
+  }
+
+  return {
+    consistent: isConsistent && conflicts.length === 0,
+    conflicts,
+    remoteChecked: false,
+    localProver: result.prover_id,
+  };
+}
+
 /**
  * Combine the cheap local {@link checkPolicyConsistency} with a remote TDFOL
  * refutation over the full deontic theory. Local conflicts are always returned;
@@ -380,26 +413,26 @@ export async function checkPolicyConsistencyRemote(
   // and fall through to the remote engine below.
   if (localHub) {
     const wasmResult = await localHub.checkPolicyConsistency(policy);
-    if (wasmResult.reason !== 'unknown' && wasmResult.reason !== 'error' && wasmResult.reason !== 'timeout') {
-      const isConsistent = wasmResult.reason !== 'refuted';
-      const conflicts: DeonticConflict[] = [...local.conflicts];
-      if (!isConsistent && conflicts.length === 0) {
-        conflicts.push({
-          kind: 'permission_prohibition',
-          capability: '*',
-          resource: '*',
-          detail: `Z3 WASM prover found the policy theory unsatisfiable (local SMT check).`,
-        });
-      }
-      return {
-        consistent: conflicts.length === 0,
-        conflicts,
-        remoteChecked: false,
-        localProver: wasmResult.prover_id,
-      };
+    if (isConclusiveLocalProof(wasmResult)) {
+      return consistencyFromLocalProof(
+        local,
+        wasmResult,
+        'Z3 WASM prover found the policy theory unsatisfiable (local SMT check).',
+      );
     }
   }
   // -------------------------------------------------------------------------
+
+  if (isTemporalPolicy(policy)) {
+    const nativeTemporal = await new TdfolProverBridge().checkPolicyConsistency(policy);
+    if (isConclusiveLocalProof(nativeTemporal)) {
+      return consistencyFromLocalProof(
+        local,
+        nativeTemporal,
+        'Native TDFOL prover found the temporal-deontic policy theory unsatisfiable.',
+      );
+    }
+  }
 
   if (!(await engine.isAvailable())) {
     return {

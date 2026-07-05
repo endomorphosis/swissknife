@@ -202,6 +202,20 @@ describe('T-64 TdfolProverBridge.checkPolicyConsistency (temporal)', () => {
     expect(result.proved).toBe(true);
     expect(result.reason).toBe('proved');
   });
+
+  it('returns refuted for a temporal deadline obligation prohibited in the same window', async () => {
+    const policy: Policy = {
+      id: 'tp-conflict', version: 1,
+      permissions: [],
+      prohibitions: [{ cap: 'log/write', rsc: 'audit' }],
+      obligations: [{ description: 'write audit log', requiredCap: 'log/write', rsc: 'audit', deadline: 86400 }],
+      temporal: { start: 0, end: 9999 },
+    };
+    const result = await bridge.checkPolicyConsistency(policy);
+    expect(result.unsat).toBe(true);
+    expect(result.reason).toBe('refuted');
+    expect(result.prover_id).toBe('tdfol-native');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -236,6 +250,19 @@ describe('T-65 PolicyToTdfolTranslator', () => {
     const kb = translator.translate(policy);
     expect(kb).toHaveLength(1);
     expect(serializeTdfol(kb[0])).toBe('EVENTUALLY(O(file_report))');
+  });
+
+  it('encodes requiredCap obligations with cap/resource atoms for native conflict checks', () => {
+    const policy: Policy = {
+      id: 'required-cap', version: 1,
+      permissions: [],
+      prohibitions: [{ cap: 'log/write', rsc: 'audit' }],
+      obligations: [{ description: 'write audit log', requiredCap: 'log/write', rsc: 'audit', deadline: 86400 }],
+    };
+    const kb = translator.translate(policy);
+    const sers = kb.map(serializeTdfol);
+    expect(sers).toContain('F(log_write_audit)');
+    expect(sers).toContain('EVENTUALLY(O(log_write_audit))');
   });
 
   it('wraps all three rule types in □ for temporal policy', () => {

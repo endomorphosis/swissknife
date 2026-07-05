@@ -152,6 +152,57 @@ export interface ModalIRDocument {
   metadata?: Record<string, unknown>;
 }
 
+const TRAILING_SECTION_PUNCT_RE = /[.;:]+$/;
+const CITATION_SECTION_DELIMITER_RE = /[.-]+/g;
+const USCODE_SOURCE_ID_RE = /^\s*(?<scheme>us-code)-(?<title>[^-]+)-(?<section>.+)-(?<digest>[0-9a-f]{16})\s*$/i;
+const MODAL_CUE_TOKEN_RE = /[a-z0-9]+/g;
+const TEMPORAL_BRIDGE_YEAR_RE = /(?<!\d)(?:18|19|20)\d{2}(?!\d)/;
+const MODAL_OPERATOR_SYMBOL_FEATURE_KEYS: Record<string, string> = {
+  'O|': 'o_pipe',
+  '[a]': 'a_box',
+  '□': 'box',
+  '◇': 'diamond',
+};
+const DECOMPILER_TEMPORAL_CLAUSE_PREFIX_RELATIONS: Record<string, string> = {
+  when: 'when',
+  until: 'until',
+  after: 'after',
+  only_after: 'after',
+  before: 'before',
+  by: 'deadline',
+  no_later_than: 'deadline',
+  not_later_than: 'deadline',
+  within: 'deadline',
+  upon: 'after',
+};
+const DECOMPILER_TEMPORAL_BRIDGE_CONTEXT_TOKENS = new Set([
+  'year',
+  'day',
+  'month',
+  'deadline',
+  'effective',
+  'edition',
+  'fiscal',
+  'calendar',
+  'immediately',
+  'promptly',
+  'timely',
+  'period',
+  'date',
+]);
+const TEMPORAL_BRIDGE_CONTEXT_PHRASES: Array<[string, string]> = [
+  ['on and after', 'on_and_after'],
+  ['on or after', 'on_or_after'],
+  ['no later than', 'no_later_than'],
+  ['not later than', 'not_later_than'],
+  ['effective date', 'effective_date'],
+  ['effective dates', 'effective_date'],
+  ['fiscal year', 'fiscal_year'],
+  ['fiscal years', 'fiscal_year'],
+  ['calendar year', 'calendar_year'],
+  ['calendar years', 'calendar_year'],
+];
+
 // ---------------------------------------------------------------------------
 // modalFormulaToText
 // ---------------------------------------------------------------------------
@@ -278,5 +329,162 @@ function tokenizeForSimilarity(text: string): string[] {
   return (matches ?? []).map(token => token.toLowerCase());
 }
 
+function uniquePreserveOrder(values: Iterable<string>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function decompilerCueTokens(value: string): string[] {
+  return value.toLowerCase().match(MODAL_CUE_TOKEN_RE) ?? [];
+}
+
+function hasTemporalContextPhrase(normalizedText: string, phrase: string): boolean {
+  const phraseRe = new RegExp(`(^|[^A-Za-z0-9_])${escapeRegExp(phrase)}($|[^A-Za-z0-9_])`);
+  return phraseRe.test(normalizedText);
+}
+
+export function decompilerModalOperatorFeatureKey(symbol: string): string {
+  const normalizedSymbol = cleanText(symbol);
+  if (!normalizedSymbol) return '';
+  const mappedSymbol = MODAL_OPERATOR_SYMBOL_FEATURE_KEYS[normalizedSymbol];
+  if (mappedSymbol) return mappedSymbol;
+  const tokens = decompilerCueTokens(normalizedSymbol);
+  return tokens.length ? tokens.join('_') : '';
+}
+
+export function decompilerModalOperatorPairFeatureKey(sourceSymbol: string, targetSymbol: string): string {
+  const sourceKey = decompilerModalOperatorFeatureKey(sourceSymbol);
+  const targetKey = decompilerModalOperatorFeatureKey(targetSymbol);
+  if (!sourceKey || !targetKey) return '';
+  return `${sourceKey}_to_${targetKey}`;
+}
+
+export function decompilerTemporalClausePrefixRelation(prefixKey: string): string {
+  const normalizedKey = cleanText(prefixKey).toLowerCase();
+  if (!normalizedKey) return '';
+  return DECOMPILER_TEMPORAL_CLAUSE_PREFIX_RELATIONS[normalizedKey] ?? '';
+}
+
+export function decompilerTemporalTransitionContextCuesFromText(text: string): string[] {
+  const normalizedText = cleanText(text).replace(/_/g, ' ').toLowerCase();
+  if (!normalizedText) return [];
+
+  const cues: string[] = [];
+  for (const [phrase, cue] of TEMPORAL_BRIDGE_CONTEXT_PHRASES) {
+    if (hasTemporalContextPhrase(normalizedText, phrase) && !cues.includes(cue)) {
+      cues.push(cue);
+    }
+  }
+
+  const tokens = decompilerCueTokens(normalizedText);
+  const tokenSet = new Set(tokens);
+  for (const token of tokens) {
+    const normalizedToken = token.endsWith('s') ? token.slice(0, -1) : token;
+    if (DECOMPILER_TEMPORAL_BRIDGE_CONTEXT_TOKENS.has(normalizedToken) && !cues.includes(normalizedToken)) {
+      cues.push(normalizedToken);
+    }
+  }
+
+  if (TEMPORAL_BRIDGE_YEAR_RE.test(normalizedText)) {
+    if (!cues.includes('year')) cues.push('year');
+    if (tokenSet.has('edition') && !cues.includes('edition_year')) cues.push('edition_year');
+  }
+  return cues;
+}
+
+export function decompilerCanonicalUscCitation(title: string, section: string): string {
+  const normalizedTitle = cleanText(title);
+  const normalizedSection = cleanText(String(section ?? '').replace(TRAILING_SECTION_PUNCT_RE, ''));
+  if (!normalizedTitle || !normalizedSection) return '';
+  return `${normalizedTitle} U.S.C. ${normalizedSection}`;
+}
+
+export function decompilerTitleSectionCoordinate(title: string, section: string): string {
+  const normalizedTitle = cleanText(title);
+  const normalizedSection = cleanText(String(section ?? '').replace(TRAILING_SECTION_PUNCT_RE, ''));
+  if (!normalizedTitle || !normalizedSection) return '';
+  return `${normalizedTitle}:${normalizedSection}`;
+}
+
+export function decompilerCitationSectionDelimiterTokens(section: string): string[] {
+  const tokens = String(section ?? '').match(CITATION_SECTION_DELIMITER_RE) ?? [];
+  return tokens.map(cleanText).filter(Boolean);
+}
+
+export function decompilerCitationSectionDelimiterKind(delimiter: string): string {
+  const cleaned = cleanText(delimiter);
+  if (!cleaned) return '';
+  if ([...cleaned].every(character => character === '.')) return 'dot';
+  if ([...cleaned].every(character => character === '-')) return 'hyphen';
+  if ([...cleaned].every(character => character === '.' || character === '-')) return 'mixed';
+  return 'other';
+}
+
+export function decompilerCitationSectionComponentSignature(opts: {
+  number: string;
+  suffix?: string;
+  suffixKind?: string;
+}): string {
+  const numberText = cleanText(opts.number);
+  const suffixText = cleanText(opts.suffix ?? '');
+  const numberWidth = numberText ? String(numberText.length) : '0';
+  if (!suffixText) return `N${numberWidth}`;
+  const kindKey = cleanText(opts.suffixKind ?? '').toLowerCase();
+  const kindSymbol = kindKey === 'roman' ? 'R' : kindKey === 'alpha' ? 'A' : 'O';
+  return `N${numberWidth}${kindSymbol}${suffixText.length}`;
+}
+
+export function decompilerCitationSectionComponentProfile(opts: {
+  componentCount: number;
+  suffixComponentCount: number;
+  isRange: boolean;
+}): string {
+  const componentCount = Math.trunc(Number(opts.componentCount));
+  const suffixComponentCount = Math.trunc(Number(opts.suffixComponentCount));
+  if (componentCount <= 0) return '';
+  if (Boolean(opts.isRange)) return 'range';
+  if (componentCount === 1) return suffixComponentCount ? 'single_alphanumeric' : 'single_numeric';
+  if (suffixComponentCount === 0) return 'compound_numeric';
+  if (suffixComponentCount === componentCount) return 'compound_alphanumeric';
+  return 'compound_mixed';
+}
+
+export function decompilerSourceIdInferredCitation(sourceId: string): string {
+  const normalizedSourceId = cleanText(sourceId);
+  if (!normalizedSourceId) return '';
+  const match = USCODE_SOURCE_ID_RE.exec(normalizedSourceId);
+  if (!match?.groups) return '';
+  const title = cleanText(match.groups.title);
+  const section = cleanText(match.groups.section);
+  if (!title || !section) return '';
+  return `${title} U.S.C. ${section}`;
+}
+
+export function decompilerInferredCitationsFromSourceIds(sourceIds: string[]): string[] {
+  return uniquePreserveOrder(sourceIds.map(decompilerSourceIdInferredCitation).filter(Boolean));
+}
+
 export const decoded_modal_phrase_slot_text_map = decodedModalPhraseSlotTextMap;
 export const modal_text_token_similarity = modalTextTokenSimilarity;
+export const canonical_usc_citation = decompilerCanonicalUscCitation;
+export const title_section_coordinate = decompilerTitleSectionCoordinate;
+export const citation_section_delimiter_tokens = decompilerCitationSectionDelimiterTokens;
+export const citation_section_delimiter_kind = decompilerCitationSectionDelimiterKind;
+export const citation_section_component_signature = decompilerCitationSectionComponentSignature;
+export const citation_section_component_profile = decompilerCitationSectionComponentProfile;
+export const source_id_inferred_citation = decompilerSourceIdInferredCitation;
+export const inferred_citations_from_source_ids = decompilerInferredCitationsFromSourceIds;
+export const modal_operator_feature_key = decompilerModalOperatorFeatureKey;
+export const modal_operator_pair_feature_key = decompilerModalOperatorPairFeatureKey;
+export const temporal_clause_prefix_relation = decompilerTemporalClausePrefixRelation;
+export const temporal_transition_context_cues_from_text = decompilerTemporalTransitionContextCuesFromText;

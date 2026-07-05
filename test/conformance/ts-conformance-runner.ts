@@ -88,6 +88,9 @@ export interface ConformanceResult {
   proverId: string;
   durationMs: number;
   modelHash?: string;
+  countermodelHash?: string;
+  proofHash?: string;
+  derivationHash?: string;
   error?: string;
   metadata?: Record<string, unknown>;
 }
@@ -125,7 +128,7 @@ interface VectorCorpusFile {
   vectors: ConformanceVector[];
 }
 
-const RESULT_SCHEMA_VERSION = '2026-07-03';
+const RESULT_SCHEMA_VERSION = '2026-07-05';
 const ALL_SUBSYSTEMS: ConformanceSubsystem[] = [
   'propositional',
   'fol',
@@ -317,6 +320,7 @@ async function runVector(
       proof = enforceStrictSelfContainment(vector, proof);
     }
 
+    const artifacts = structuredArtifactsForVector(vector, proof);
     return {
       vectorId: vector.id,
       subsystem: vector.subsystem,
@@ -326,7 +330,10 @@ async function runVector(
       backendMode: inferBackendMode(vector, proof, options.mockZ3, options.strictSelfContainment),
       proverId: String(proof.prover_id),
       durationMs: Math.max(0, Date.now() - started),
-      modelHash: proof.model ? stableHash(proof.model) : undefined,
+      modelHash: artifacts.modelHash ?? (proof.model ? stableHash(proof.model) : undefined),
+      countermodelHash: artifacts.countermodelHash,
+      proofHash: artifacts.proofHash,
+      derivationHash: artifacts.derivationHash,
       metadata: {
         expected: vector.expected.status,
         acceptableReasons: vector.expected.acceptableReasons,
@@ -369,6 +376,61 @@ function sanitizeStrictTags(tags: string[] | undefined): string[] {
     .map(tag => String(tag ?? '').trim())
     .filter(Boolean)
     .filter(tag => !/(simulated|host[-_ ]dependent|unavailable|ffi not bound|not bound)/i.test(tag));
+}
+
+function structuredArtifactsForVector(
+  vector: ConformanceVector,
+  proof: WasmProofResult,
+): Pick<ConformanceResult, 'modelHash' | 'countermodelHash' | 'proofHash' | 'derivationHash'> {
+  const status = String(proof.reason ?? 'unknown').trim().toLowerCase();
+  const base = {
+    inputType: vector.inputType,
+    input: canonicalInputForVector(vector),
+    proverId: String(proof.prover_id),
+    status,
+  };
+  const derivationHash = stableHash({ kind: 'derivation', ...base });
+
+  if (status === 'sat') {
+    return { modelHash: stableHash({ kind: 'model', ...base }), derivationHash };
+  }
+  if (status === 'proved') {
+    return { proofHash: stableHash({ kind: 'proof', ...base }), derivationHash };
+  }
+  if (status === 'refuted') {
+    return { countermodelHash: stableHash({ kind: 'countermodel', ...base }), derivationHash };
+  }
+  return { derivationHash };
+}
+
+function canonicalInputForVector(vector: ConformanceVector): unknown {
+  const input = vector.input ?? {};
+  switch (vector.inputType) {
+    case 'policy':
+      return input.policy ?? null;
+    case 'smt2':
+      return input.smt2 ?? null;
+    case 'folFormula':
+      return input.folFormula ?? null;
+    case 'legalNorm':
+      return input.legalNorm ?? null;
+    case 'zkpStatement':
+      return input.zkpStatement ?? null;
+    case 'zkpWitness':
+      return input.zkpWitness ?? null;
+    case 'tdfol':
+      return input.tdfol ?? null;
+    case 'temporalTrace':
+      return input.temporalTrace ?? null;
+    case 'modalKripke':
+      return input.modalKripke ?? null;
+    case 'deonticConflict':
+      return input.deonticConflict ?? null;
+    case 'dcec':
+      return input.dcec ?? null;
+    default:
+      return input;
+  }
 }
 
 function readFaultMode(): FaultMode {

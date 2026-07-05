@@ -17,6 +17,19 @@ import type { TdfolFormula } from './tdfol-types.js';
 import { Atom, Const, Obligation, Permission, Prohibition, Negation } from './dcec-types.js';
 import { Always, Eventually, Until } from './tdfol-types.js';
 
+function normalizeAtomPart(value: string): string {
+  return value
+    .trim()
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase() || 'any';
+}
+
+function normAtom(capability: string, resource?: string): string {
+  const cap = normalizeAtomPart(capability);
+  return resource === undefined ? cap : `${cap}_${normalizeAtomPart(resource)}`;
+}
+
 export class PolicyToTdfolTranslator {
   /**
    * Translate `policy` to a TDFOL KB.
@@ -30,22 +43,25 @@ export class PolicyToTdfolTranslator {
     const hasTemporalWindow = policy.temporal !== undefined;
 
     for (const perm of policy.permissions ?? []) {
-      const inner = Permission(Atom(`${perm.cap}_${perm.rsc}`));
+      const inner = Permission(Atom(normAtom(perm.cap, perm.rsc)));
       kb.push(hasTemporalWindow ? Always(inner) : inner);
     }
 
     for (const proh of policy.prohibitions ?? []) {
-      const inner = Prohibition(Atom(`${proh.cap}_${proh.rsc}`));
+      const inner = Prohibition(Atom(normAtom(proh.cap, proh.rsc)));
       kb.push(hasTemporalWindow ? Always(inner) : inner);
     }
 
     for (const obl of policy.obligations ?? []) {
-      const inner = Obligation(
-        Atom(
+      const obligationAtom = obl.requiredCap
+        ? normAtom(obl.requiredCap, obl.rsc ?? '*')
+        : normAtom(
           typeof obl.description === 'string'
-            ? obl.description.replace(/\s+/g, '_').toLowerCase()
+            ? obl.description
             : `obligation_${kb.length}`,
-        ),
+        );
+      const inner = Obligation(
+        Atom(obligationAtom),
       );
       // If the obligation has a deadline, encode as ◊O(φ) — eventually obligatory
       const hasDeadline = 'deadline' in obl && obl.deadline !== undefined;

@@ -219,13 +219,26 @@ export function analyzeNormativeSentence(
   const match = MODAL_RE.exec(text);
   if (!match?.groups) return null;
 
-  const subject = cleanText(match.groups.subject).replace(/^the\s+/i, '');
+  const subject = cleanText(match.groups.subject).replace(/^(?:the|a|an)\s+/i, '');
   const modal = cleanText(match.groups.modal).toLowerCase();
   const action = cleanAction(match.groups.action);
   const classification = classifyModal(modal);
   const sourceId = options.sourceId ?? stableId('norm', text);
   const supportSpan = options.span ?? [0, text.length];
   const canonicalCitation = options.canonicalCitation ?? buildCanonicalCitation(text, sourceId);
+  const conditions = extractConditionTexts(text);
+  const conditionDetails = extractConditionDetails(text);
+  const temporalConstraintDetails = extractTemporalConstraintDetails(text);
+  const temporalConstraints = extractTemporalConstraints(text).map(item => item.text);
+  const exceptions = extractExceptionTexts(text);
+  const exceptionDetails = extractExceptionDetails(text);
+  const crossReferences = extractCrossReferences(text)
+    .filter(ref => buildCanonicalCitation(ref, ref) !== canonicalCitation);
+  const crossReferenceDetails = extractCrossReferenceDetails(text)
+    .filter(ref => buildCanonicalCitation(String(ref.raw_text ?? ''), String(ref.raw_text ?? '')) !== canonicalCitation);
+  const parserWarnings: string[] = [];
+  if (exceptions.length) parserWarnings.push('exception_requires_scope_review');
+  if (crossReferences.length) parserWarnings.push('cross_reference_requires_resolution');
   const element: NormativeElement = {
     schema_version: SCHEMA_VERSION,
     source_id: sourceId,
@@ -244,11 +257,14 @@ export function analyzeNormativeSentence(
     action,
     action_verb: action.split(/\s+/)[0] ?? '',
     action_object: action.split(/\s+/).slice(1).join(' '),
-    conditions: extractConditionTexts(text),
-    temporal_constraints: extractTemporalConstraints(text).map(item => item.text),
-    exceptions: extractExceptionTexts(text),
-    cross_references: extractCrossReferences(text)
-      .filter(ref => buildCanonicalCitation(ref, ref) !== canonicalCitation),
+    conditions,
+    condition_details: conditionDetails,
+    temporal_constraints: temporalConstraints,
+    temporal_constraint_details: temporalConstraintDetails,
+    exceptions,
+    exception_details: exceptionDetails,
+    cross_references: crossReferences,
+    cross_reference_details: crossReferenceDetails,
     resolved_cross_references: [],
     enforcement_links: extractEnforcementLinks(text),
     document_type: documentType,
@@ -256,14 +272,14 @@ export function analyzeNormativeSentence(
     confidence_floor: 0.72,
     scaffold_quality: 0,
     quality_label: 'low',
-    parser_warnings: [],
+    parser_warnings: parserWarnings,
     promotable_to_theorem: false,
   };
   const quality = scoreScaffoldQuality(element);
   element.scaffold_quality = quality.score;
   element.quality_label = quality.quality_label;
-  element.parser_warnings = quality.warnings;
-  element.promotable_to_theorem = quality.promotable;
+  element.parser_warnings = Array.from(new Set([...parserWarnings, ...quality.warnings]));
+  element.promotable_to_theorem = quality.promotable && element.parser_warnings.length === 0;
   element.export_readiness = {
     proof_ready: quality.promotable,
     export_repair_required: !quality.promotable,
@@ -541,6 +557,7 @@ export function extractCrossReferenceDetails(sentence: string): Array<Record<str
       } else {
         value = match.slice(1).filter(Boolean).join(' ').trim().toLowerCase();
       }
+      value = value.replace(/[.;:,]+$/g, '');
       if (!value) continue;
       const key = `${type}:${value}`;
       if (seen.has(key)) continue;
@@ -1020,7 +1037,7 @@ export function classifyLegalFrame(element: Record<string, unknown>): string {
   if (normType === 'violation' || /violation|offense|infraction/.test(text)) return 'violation';
   if (element.entity_type === 'legal_event' && /\b(?:appeal|citation|complaint|fee|hearing|inspection|notice|offense|order|penalty|violation)\b/.test(subject)) return 'procedure';
   if (/\b(?:appeal|appealed|hearing|notice|decision|inspect|inspection|revoke|revocation|suspend|suspension)\b/.test(action)) return 'procedure';
-  if (/\b(?:permit|license|certificate|registration)\b/.test(text) || extractLegalInstrumentTarget(action)) return 'permit_or_license';
+  if (/\b(?:permits?|licenses?|certificates?|registrations?)\b/.test(text) || extractLegalInstrumentTarget(action)) return 'permit_or_license';
   if (text.includes('fee') || fieldAsArray(element.monetary_amounts).length) return 'fee';
   if (/^(file|submit|apply|provide)\b/.test(action)) return 'filing_requirement';
   return 'norm';
@@ -1968,7 +1985,10 @@ function extractCrossReferences(text: string): string[] {
 }
 
 function cleanAction(action: string): string {
-  return cleanText(action).replace(/\b(if|when|where|provided that|unless|except|before|after|within)\b.*$/i, '').trim();
+  return cleanText(action)
+    .replace(/\b(if|when|where|provided that|unless|except|before|after|within)\b.*$/i, '')
+    .replace(/\b(?:under|pursuant to|in accordance with)\s+(?:section|sec\.?|§)\b.*$/i, '')
+    .trim();
 }
 
 function cleanText(text: string): string {

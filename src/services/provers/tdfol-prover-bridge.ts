@@ -292,20 +292,43 @@ class TdfolModusPonensRule implements TdfolRule {
 function detectTdfolContradiction(
   kb: readonly TdfolFormula[],
 ): [TdfolFormula, TdfolFormula] | null {
-  const obligs  = kb.filter((f): f is DeonticFormula => f.kind === 'deontic' && f.operator === 'O');
-  const prohibs = kb.filter((f): f is DeonticFormula => f.kind === 'deontic' && f.operator === 'F');
+  const deontics = kb.flatMap(collectDeonticViews);
+  const obligs = deontics.filter(view => view.formula.operator === 'O' || view.formula.operator === 'P');
+  const prohibs = deontics.filter(view => view.formula.operator === 'F');
 
   for (const obl of obligs) {
-    const content = serializeTdfol(obl.formula);
-    const agent   = obl.agent ? serializeTerm(obl.agent) : '';
+    const content = serializeTdfol(obl.formula.formula);
+    const agent = obl.formula.agent ? serializeTerm(obl.formula.agent) : '';
     for (const proh of prohibs) {
-      if (serializeTdfol(proh.formula) === content &&
-          (proh.agent ? serializeTerm(proh.agent) : '') === agent) {
-        return [obl, proh];
+      if (serializeTdfol(proh.formula.formula) === content &&
+          (proh.formula.agent ? serializeTerm(proh.formula.agent) : '') === agent) {
+        return [obl.source, proh.source];
       }
     }
   }
   return null;
+}
+
+function collectDeonticViews(
+  formula: TdfolFormula,
+  source: TdfolFormula = formula,
+): Array<{ formula: DeonticFormula; source: TdfolFormula }> {
+  if (formula.kind === 'deontic') {
+    return [{ formula, source }];
+  }
+  if (formula.kind === 'ltl_unary') {
+    return collectDeonticViews(formula.formula, source);
+  }
+  if (formula.kind === 'ltl_binary') {
+    return [
+      ...collectDeonticViews(formula.left, source),
+      ...collectDeonticViews(formula.right, source),
+    ];
+  }
+  if (formula.kind === 'connective' && (formula.connective === 'AND' || formula.connective === 'OR')) {
+    return formula.formulas.flatMap(child => collectDeonticViews(child as TdfolFormula, source));
+  }
+  return [];
 }
 
 // ---------------------------------------------------------------------------

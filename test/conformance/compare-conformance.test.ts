@@ -36,7 +36,8 @@ describe('PORT-236 comparator hardening', () => {
           status: 'proved',
           reason: 'proved',
           proverId: 'fol-native',
-          modelHash: 'abc',
+          proofHash: 'proof-abc',
+          derivationHash: 'derivation-abc',
           backendMode: 'simulated',
         },
       ],
@@ -50,7 +51,6 @@ describe('PORT-236 comparator hardening', () => {
             status: 'proved',
             decided: true,
             strictStructuredParity: true,
-            structuredFields: ['status', 'reason', 'proverId', 'modelHash'],
           },
         },
       ],
@@ -60,6 +60,7 @@ describe('PORT-236 comparator hardening', () => {
     expect(report.rows).toHaveLength(1);
     expect(report.rows[0].outcome).toBe('MATCH');
     expect(report.rows[0].expectedStatusMatch).toBe(true);
+    expect(report.rows[0].structuredArtifactMatch).toBe(true);
   });
 
   it('mismatches decided vectors when TS/Python agree but differ from expected.status', () => {
@@ -93,5 +94,45 @@ describe('PORT-236 comparator hardening', () => {
     expect(json.rows[0].expectedStatusMatch).toBe(false);
     expect(json.rows[0].outcome).toBe('MISMATCH');
     expect(md).toContain('expected-status mismatch (expected proved)');
+  });
+
+  it('mismatches strict decided rows when proof artifacts are absent', () => {
+    const py = {
+      results: [
+        {
+          vectorId: 'strict-artifact-001',
+          subsystem: 'fol',
+          status: 'proved',
+          reason: 'proved',
+          proverId: 'fol-native',
+          backendMode: 'real',
+        },
+      ],
+    };
+    const ts = JSON.parse(JSON.stringify(py));
+    const vectors = {
+      vectors: [
+        {
+          id: 'strict-artifact-001',
+          expected: {
+            status: 'proved',
+            decided: true,
+            strictStructuredParity: true,
+          },
+        },
+      ],
+    };
+
+    const { json, md } = runCompare(py, ts, vectors);
+    expect(json.rows).toHaveLength(1);
+    expect(json.rows[0].structuredArtifactMatch).toBe(false);
+    expect(json.rows[0].structuredArtifactProblems).toEqual([
+      'python.proofHash',
+      'typescript.proofHash',
+      'python.derivationHash',
+      'typescript.derivationHash',
+    ]);
+    expect(json.rows[0].outcome).toBe('MISMATCH');
+    expect(md).toContain('strict structured artifact missing');
   });
 });

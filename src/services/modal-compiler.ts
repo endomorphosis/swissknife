@@ -25,6 +25,7 @@ import { FormulaAnalyzer, FormulaType } from './formula-analyzer';
  */
 export interface ModalCompilerConfig {
   parserBackend: 'regex' | 'spacy' | 'legal';
+  spacyModelName: string;
   topKFrames: number;
   frameDomain: string | null;
   frameScoreMargin: number;
@@ -32,11 +33,19 @@ export interface ModalCompilerConfig {
   modalFamilySecondaryShareFloor: number;
   modalPrimaryFamilyMargin: number;
   modalAdaptiveFamilyMargin: number;
+  modalPrimaryFamilyOutvoteMargin: number;
+  modalConditionalTargetFamilyOutvoteMargin: number;
+  modalDeonticTargetFamilyOutvoteMargin: number;
+  modalDynamicTargetFamilyOutvoteMargin: number;
+  modalAlethicTargetFamilyOutvoteMargin: number;
+  modalTemporalTargetFamilyOutvoteMargin: number;
+  modalFrameTargetFamilyOutvoteMargin: number;
 }
 
 export function defaultModalCompilerConfig(): ModalCompilerConfig {
   return {
     parserBackend:                    'regex',
+    spacyModelName:                   'en_core_web_sm',
     topKFrames:                       3,
     frameDomain:                      null,
     frameScoreMargin:                 0.05,
@@ -44,6 +53,41 @@ export function defaultModalCompilerConfig(): ModalCompilerConfig {
     modalFamilySecondaryShareFloor:   0.20,
     modalPrimaryFamilyMargin:         0.15,
     modalAdaptiveFamilyMargin:        0.15,
+    modalPrimaryFamilyOutvoteMargin:  0.0,
+    modalConditionalTargetFamilyOutvoteMargin: 0.0,
+    modalDeonticTargetFamilyOutvoteMargin: 0.0,
+    modalDynamicTargetFamilyOutvoteMargin: 0.0,
+    modalAlethicTargetFamilyOutvoteMargin: 0.0,
+    modalTemporalTargetFamilyOutvoteMargin: 0.0,
+    modalFrameTargetFamilyOutvoteMargin: 0.0,
+  };
+}
+
+export function pythonDefaultModalCompilerConfig(): ModalCompilerConfig {
+  return {
+    ...defaultModalCompilerConfig(),
+    parserBackend: 'spacy',
+  };
+}
+
+export function modalCompilerConfigToPythonDict(config: ModalCompilerConfig): Record<string, unknown> {
+  return {
+    parser_backend: config.parserBackend,
+    spacy_model_name: config.spacyModelName,
+    top_k_frames: config.topKFrames,
+    frame_domain: config.frameDomain,
+    frame_score_margin: config.frameScoreMargin,
+    modal_family_share_margin: config.modalFamilyShareMargin,
+    modal_family_secondary_share_floor: config.modalFamilySecondaryShareFloor,
+    modal_primary_family_margin: config.modalPrimaryFamilyMargin,
+    modal_adaptive_family_margin: config.modalAdaptiveFamilyMargin,
+    modal_primary_family_outvote_margin: config.modalPrimaryFamilyOutvoteMargin,
+    modal_conditional_target_family_outvote_margin: config.modalConditionalTargetFamilyOutvoteMargin,
+    modal_deontic_target_family_outvote_margin: config.modalDeonticTargetFamilyOutvoteMargin,
+    modal_dynamic_target_family_outvote_margin: config.modalDynamicTargetFamilyOutvoteMargin,
+    modal_alethic_target_family_outvote_margin: config.modalAlethicTargetFamilyOutvoteMargin,
+    modal_temporal_target_family_outvote_margin: config.modalTemporalTargetFamilyOutvoteMargin,
+    modal_frame_target_family_outvote_margin: config.modalFrameTargetFamilyOutvoteMargin,
   };
 }
 
@@ -56,7 +100,7 @@ export interface ModalCompilationAmbiguity {
   ambiguityType: string;
   message: string;
   candidateIds: string[];
-  severity: 'review' | 'error' | 'warning';
+  severity: 'review' | 'error' | 'warning' | 'requires_rule';
   metadata: Record<string, unknown>;
 }
 
@@ -76,6 +120,16 @@ export function makeAmbiguity(
 
 export function ambiguityToDict(a: ModalCompilationAmbiguity): Record<string, unknown> {
   return { ambiguityType: a.ambiguityType, message: a.message, candidateIds: a.candidateIds, severity: a.severity, metadata: a.metadata };
+}
+
+export function ambiguityToPythonDict(a: ModalCompilationAmbiguity): Record<string, unknown> {
+  return {
+    ambiguity_type: a.ambiguityType,
+    message: a.message,
+    candidate_ids: a.candidateIds,
+    severity: a.severity,
+    metadata: a.metadata,
+  };
 }
 
 // ---------------------------------------------------------------------------
