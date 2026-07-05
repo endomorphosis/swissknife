@@ -132,6 +132,67 @@ const FRAME_KEYWORDS: Record<string, string[]> = {
   conditional: ['if', 'when', 'provided that', 'unless'],
 };
 
+const CANONICAL_MODAL_FAMILIES = new Set([
+  'deontic',
+  'temporal',
+  'alethic',
+  'epistemic',
+  'conditional',
+  'dynamic',
+]);
+
+/**
+ * Normalize modal-family tokens for deterministic policy table lookups.
+ *
+ * Mirrors the Python helper `_canonical_modal_family_token` by stripping
+ * routing prefixes/suffixes and trying a conservative candidate sequence.
+ */
+export function canonicalModalFamilyToken(value: unknown): string {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+
+  let resolved = raw;
+  if (resolved.includes('->')) {
+    const target = resolved.split('->', 2)[1]?.trim();
+    if (target) resolved = target;
+  }
+
+  const remember = (token: string, seen: Set<string>, out: string[]): void => {
+    const normalized = String(token ?? '').trim();
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    out.push(normalized);
+  };
+
+  const leafDot = resolved.includes('.') ? resolved.split('.').at(-1) ?? resolved : resolved;
+  const leafColon = leafDot.includes(':') ? leafDot.split(':').at(-1) ?? leafDot : leafDot;
+  const leafSlash = leafColon.includes('/') ? leafColon.split('/').at(-1) ?? leafColon : leafColon;
+  const leafPipe = leafSlash.includes('|') ? leafSlash.split('|').at(-1) ?? leafSlash : leafSlash;
+
+  const splitTokens: string[] = [];
+  for (const delimiter of ['.', ':', '/', '|']) {
+    if (!resolved.includes(delimiter)) continue;
+    for (const part of resolved.split(delimiter)) {
+      const cleaned = part.trim();
+      if (cleaned) splitTokens.push(cleaned);
+    }
+  }
+
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  for (const token of [resolved, leafDot, leafColon, leafSlash, leafPipe, ...splitTokens]) {
+    remember(token, seen, candidates);
+    const lowered = token.toLowerCase();
+    remember(lowered, seen, candidates);
+    remember(lowered.replace(/[- ]/g, '_'), seen, candidates);
+  }
+
+  for (const candidate of candidates) {
+    if (CANONICAL_MODAL_FAMILIES.has(candidate)) return candidate;
+  }
+  return leafPipe.toLowerCase().replace(/[- ]/g, '_');
+}
+
 function detectModalFamily(text: string): { family: string; score: number }[] {
   const lower = text.toLowerCase();
   const scores: { family: string; score: number }[] = [];
