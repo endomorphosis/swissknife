@@ -126,7 +126,7 @@ describe('T-69 ZkpSimulatedProver', () => {
 
 describe('T-70 ZkpUcanBridge', () => {
   let bridge: ZkpUcanBridge;
-  beforeEach(() => { bridge = new ZkpUcanBridge(); });
+  beforeEach(() => { bridge = new ZkpUcanBridge({ allowSimulatedFallback: true }); });
 
   it('proofToCaveat() converts a real ZKProofArtifact to ZkpCapabilityEvidence', () => {
     const artifact: ZKProofArtifact = {
@@ -162,6 +162,18 @@ describe('T-70 ZkpUcanBridge', () => {
     };
     const caveat = bridge.proofToCaveat(artifact);
     expect(caveat.verifier_id).toBe('lurk-nova-v0.1');
+  });
+
+  it('fails closed by default when no real prover is available', async () => {
+    const strictBridge = new ZkpUcanBridge();
+    await expect(
+      strictBridge.proveAndDelegate(
+        'All agents must log access',
+        'did:key:alice',
+        'mcp++/audit',
+        'proof/invoke',
+      ),
+    ).rejects.toThrow('Real ZK prover unavailable and simulated fallback is disabled');
   });
 
   it('proveAndDelegate() returns success with simulation caveat when no real prover', async () => {

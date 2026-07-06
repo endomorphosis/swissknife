@@ -49,6 +49,11 @@ export interface ZkpUcanBridgeOptions {
    * DID of the issuer.  Defaults to 'did:key:issuer' (test mode).
    */
   issuerDid?: string;
+  /**
+   * Allow deterministic simulation fallback when a real prover is unavailable.
+   * Defaults to false (fail closed).
+   */
+  allowSimulatedFallback?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -65,11 +70,13 @@ export interface ZkpUcanBridgeOptions {
 export class ZkpUcanBridge {
   private readonly verifierId: string;
   private readonly issuerDid: string;
+  private readonly allowSimulatedFallback: boolean;
   private readonly simProver: ZkpSimulatedProver;
 
   constructor(opts: ZkpUcanBridgeOptions = {}) {
     this.verifierId = opts.verifierId ?? ZKP_SIMULATED_VERIFIER_ID;
     this.issuerDid = opts.issuerDid ?? 'did:key:issuer';
+    this.allowSimulatedFallback = opts.allowSimulatedFallback === true;
     this.simProver = new ZkpSimulatedProver();
   }
 
@@ -175,8 +182,14 @@ export class ZkpUcanBridge {
       }
     }
 
-    // --- Simulation fallback ---
+    // --- Simulation fallback (explicit opt-in only) ---
     if (!zkp_caveat) {
+      if (!this.allowSimulatedFallback) {
+        throw new Error(
+          'Real ZK prover unavailable and simulated fallback is disabled. ' +
+          'Inject a real prover or set allowSimulatedFallback:true only for explicit test paths.',
+        );
+      }
       const simProof = await this.simProver.prove(theorem, opts.privateAxioms);
       zkp_caveat = this.simulatedProofToCaveat(
         simProof.proof_hash,
