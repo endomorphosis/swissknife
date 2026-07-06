@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 /**
  * Sprint 62 tests — Enhanced Grammar Parser, Temporal Deontic API,
  *                   NLP Predicate Extractor, Profiling Utils,
@@ -16,9 +18,6 @@ import {
   printDebugReport,
   queryTheoremsFromParameters,
 } from '../../src/services/temporal-deontic-api';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/nlp-predicate-extractor';
 import {
   FormulaProfiler, BottleneckAnalyzer, ProfilingReporter,
@@ -144,17 +143,12 @@ describe('TemporalDeonticAPI', () => {
   });
 
   test('bulkProcessCaselawFromParameters validates directories', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'td-api-'));
-    try {
-      const result = await bulkProcessCaselawFromParameters({
-        caselaw_directories: [dir],
-        async_processing: false,
-      });
-      expect(result.success).toBe(true);
-      expect((result.results as Record<string, unknown>).documents_processed).toBe(1);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    const result = await bulkProcessCaselawFromParameters({
+      caselaw_directories: ['.'],
+      async_processing: false,
+    });
+    expect(result.success).toBe(true);
+    expect((result.results as Record<string, unknown>).documents_processed).toBe(1);
   });
 
   test('demo helpers expose sample corpus, debug report, batch, and RAG retrieval data', () => {

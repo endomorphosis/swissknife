@@ -6,6 +6,8 @@
  *         T-211 (tdfol-nl-llm.ts).
  */
 
+import { vi } from 'vitest';
+
 import {
   PatternType,
   PatternMatcher,
@@ -207,7 +209,7 @@ describe('NLPolicyConflictDetector — toDict()', () => {
 
 describe('NLPolicyConflictDetector — detectAndWarn', () => {
   test('emits console.warn for each conflict', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const det = new NLPolicyConflictDetector();
     const clauses = [
       clause('permission', 'write', 'eve'),

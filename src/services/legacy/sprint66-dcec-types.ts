@@ -167,4 +167,4 @@ export {
   CognitiveOperator as CanonicalCognitiveOperator,
   LogicalConnective as CanonicalLogicalConnective,
   DCECTemporalOperator as CanonicalTemporalOperator,
-} from './dcec-core-types.js';
+} from '../dcec-core-types.js';

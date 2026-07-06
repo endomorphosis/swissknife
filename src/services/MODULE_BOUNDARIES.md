@@ -122,20 +122,20 @@ known to be transitional. Tighten it progressively with:
 node scripts/audit-services-modules.mjs --fail-on-unknown --fail-on-forbidden
 ```
 
-Current baseline after the initial IPFS and platform implementation moves on
-`2026-07-06`:
+Current baseline after the initial IPFS, platform, integrations, proof-engine,
+`logic.nl`, and legacy sprint-bundle implementation moves on `2026-07-06`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 362 |
+| Service files | 417 |
 | Root-level service files | 277 |
-| Root compatibility shims | 28 |
-| Root implementation files | 249 |
+| Root compatibility shims | 79 |
+| Root implementation files | 198 |
 | Legacy root files | 277 |
 | Legacy path files | 26 |
 | Unknown files | 0 |
-| Import edges | 503 |
-| Forbidden cross-module imports | 76 |
+| Import edges | 605 |
+| Forbidden cross-module imports | 75 |
 
 The final acceptance target is fewer than 20 files directly under
 `src/services`, no unknown service files, and no forbidden cross-module imports.

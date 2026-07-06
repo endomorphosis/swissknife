@@ -9,15 +9,15 @@ import {
 } from '@statsig/js-client'
 import './browserMocks.js' // Initialize browser mocks
 import { FileSystemStorageProvider } from './statsigStorage.js'
-import { STATSIG_CLIENT_KEY } from '../constants/keys.js'
-import { env } from '../utils/env.js'
-import { getUser } from '../utils/user.js'
-import { logError } from '../utils/log.js'
-import { SESSION_ID } from '../utils/log.js'
-import { getBetas } from '../utils/betas.js'
-import { getIsGit } from '../utils/git.js'
-import { getSlowAndCapableModel } from '../utils/model.js'
-import { MACRO } from '../constants/macros.js'
+import { STATSIG_CLIENT_KEY } from '../../constants/keys.js'
+import { env } from '../../utils/env.js'
+import { getUser } from '../../utils/user.js'
+import { logError } from '../../utils/log.js'
+import { SESSION_ID } from '../../utils/log.js'
+import { getBetas } from '../../utils/betas.js'
+import { getIsGit } from '../../utils/git.js'
+import { getSlowAndCapableModel } from '../../utils/model.js'
+import { MACRO } from '../../constants/macros.js'
 const gateValues: Record<string, boolean> = {}
 let client: StatsigClient | null = null
 

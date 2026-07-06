@@ -4,6 +4,7 @@
  */
 
 import { ProofStatus }               from '../../src/services/tdfol-prover';
+import { mkBinary, mkPredicate, mkUnary } from '../../src/services/tdfol-core';
 import { ALL_COMPLETENESS_RULES }    from '../../src/services/provers/tdfol-completeness-rules';
 import { isSubtypeOf, makeSort, formatDCECBracket, parseDCECBracket, dcecFormulaEquals, dcecFormulaHash } from '../../src/services/dcec-core-types';
 import { CognitiveOperator }         from '../../src/services/sprint66-dcec-types';
@@ -72,7 +73,6 @@ describe('PORT-060..066 ALL_COMPLETENESS_RULES', () => {
   });
 
   it('ConjunctionEliminationLeft extracts left conjunct', () => {
-    const { mkBinary, mkPredicate } = require('../../src/services/tdfol-core');
     const p = mkPredicate('p');
     const q = mkPredicate('q');
     const pAndQ = mkBinary('∧', p, q);
@@ -83,7 +83,6 @@ describe('PORT-060..066 ALL_COMPLETENESS_RULES', () => {
   });
 
   it('ConjunctionEliminationRight extracts right conjunct', () => {
-    const { mkBinary, mkPredicate } = require('../../src/services/tdfol-core');
     const p = mkPredicate('p');
     const q = mkPredicate('q');
     const pAndQ = mkBinary('∧', p, q);
@@ -93,7 +92,6 @@ describe('PORT-060..066 ALL_COMPLETENESS_RULES', () => {
   });
 
   it('DeMorganAnd derives ¬A ∨ ¬B from ¬(A ∧ B)', () => {
-    const { mkBinary, mkPredicate, mkUnary } = require('../../src/services/tdfol-core');
     const p = mkPredicate('p');
     const q = mkPredicate('q');
     const negAndPQ = mkUnary(mkBinary('∧', p, q));
@@ -103,7 +101,6 @@ describe('PORT-060..066 ALL_COMPLETENESS_RULES', () => {
   });
 
   it('UntilInductionStep unfolds φ U ψ', () => {
-    const { mkBinary, mkPredicate } = require('../../src/services/tdfol-core');
     const p = mkPredicate('p');
     const q = mkPredicate('q');
     const until = mkBinary('U', p, q);

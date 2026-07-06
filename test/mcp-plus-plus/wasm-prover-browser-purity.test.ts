@@ -6,10 +6,21 @@
  * only through explicit injected runners.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { base64UrlEncode, sha256Hex } from '../../src/services/provers/browser-crypto';
 
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  existsSync: (path: string) => boolean;
+  readFileSync: (path: string, encoding: BufferEncoding) => string;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for browser-purity source inspection');
+}
+
+const { existsSync, readFileSync } = nodeFs;
 const ROOT = resolve(__dirname, '../..');
 
 const BROWSER_FACING_PROVER_FILES = [

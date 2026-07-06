@@ -10,7 +10,7 @@
  * Reference: ipfs_datasets_py/logic/TDFOL/proof_tree_visualizer.py
  */
 
-import type { WasmProofResult } from './provers/prover-types.js';
+import type { WasmProofResult } from '../provers/prover-types.js';
 
 // ---------------------------------------------------------------------------
 // Enumerations

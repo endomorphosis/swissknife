@@ -3,17 +3,17 @@ import * as http from 'http.js'
 import { IncomingMessage, ServerResponse } from 'http.js'
 import * as url from 'url.js'
 
-import { OAUTH_CONFIG } from '../constants/oauth.js'
-import { openBrowser } from '../utils/browser.js'
-import { logEvent } from '../services/statsig.js'
-import { logError } from '../utils/log.js'
+import { OAUTH_CONFIG } from '../../constants/oauth.js'
+import { openBrowser } from '../../utils/browser.js'
+import { logEvent } from './statsig.js'
+import { logError } from '../../utils/log.js'
 import { resetAnthropicClient } from './claude.js'
 import {
   AccountInfo,
   getGlobalConfig,
   saveGlobalConfig,
   normalizeApiKeyForConfig,
-} from '../utils/config.js'
+} from '../../utils/config.js'
 
 // Base64URL encoding function (RFC 4648)
 function base64URLEncode(buffer: Buffer): string {

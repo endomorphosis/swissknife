@@ -7,7 +7,7 @@
  * characteristics; supports sequential, parallel, and automatic strategies.
  */
 
-import { FormulaAnalyzer, FormulaType, FormulaComplexity } from './formula-analyzer';
+import { FormulaAnalyzer, FormulaType, FormulaComplexity } from '../formula-analyzer';
 
 // ---------------------------------------------------------------------------
 // Strategy enum

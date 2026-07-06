@@ -7,23 +7,23 @@ import chalk from 'chalk.js'
 import { createHash, randomUUID } from 'crypto.js'
 import 'dotenv/config'
 
-import { addToTotalCost } from '../cost-tracker.js'
-import type { AssistantMessage, UserMessage } from '../query.js'
-import { Tool } from '../Tool.js'
+import { addToTotalCost } from '../../cost-tracker.js'
+import type { AssistantMessage, UserMessage } from '../../query.js'
+import { Tool } from '../../Tool.js'
 import {
   getAnthropicApiKey,
   getOrCreateUserID,
   getGlobalConfig,
   getActiveApiKey,
   markApiKeyAsFailed,
-} from '../utils/config.js'
-import { logError, SESSION_ID } from '../utils/log.js'
-import { USER_AGENT } from '../utils/http.js'
+} from '../../utils/config.js'
+import { logError, SESSION_ID } from '../../utils/log.js'
+import { USER_AGENT } from '../../utils/http.js'
 import {
   createAssistantAPIErrorMessage,
   normalizeContentFromAPI,
-} from '../utils/messages.js'
-import { countTokens } from '../utils/tokens.js'
+} from '../../utils/messages.js'
+import { countTokens } from '../../utils/tokens.js'
 import { logEvent } from './statsig.js'
 import { withVCR } from './vcr.js'
 import { zodToJsonSchema } from 'zod-to-json-schema.js'
@@ -33,15 +33,15 @@ import type {
   MessageParam,
   TextBlockParam,
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { SMALL_FAST_MODEL, USE_BEDROCK, USE_VERTEX } from '../utils/model.js'
-import { getCLISyspromptPrefix } from '../constants/prompts.js'
-import { getVertexRegionForModel } from '../utils/model.js'
+import { SMALL_FAST_MODEL, USE_BEDROCK, USE_VERTEX } from '../../utils/model.js'
+import { getCLISyspromptPrefix } from '../../constants/prompts.js'
+import { getVertexRegionForModel } from '../../utils/model.js'
 import OpenAI from 'openai.js'
 import type { ChatCompletionStream } from 'openai/lib/ChatCompletionStream.js'
 import { ContentBlock } from '@anthropic-ai/sdk/resources/messages/messages'
 import { nanoid } from 'nanoid.js'
 import { getCompletion } from './openai.js'
-import { getReasoningEffort } from '../utils/thinking.js'
+import { getReasoningEffort } from '../../utils/thinking.js'
 
 interface StreamResponse extends APIMessage {
   ttftMs?: number

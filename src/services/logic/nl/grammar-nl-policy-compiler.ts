@@ -8,7 +8,7 @@
  * matching when the grammar engine is unavailable.
  */
 
-import { PatternMatcher, PatternType } from './tdfol-nl-patterns';
+import { PatternMatcher, PatternType } from '../../tdfol-nl-patterns';
 
 // ---------------------------------------------------------------------------
 // Clause type constants

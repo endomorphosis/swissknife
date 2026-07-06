@@ -475,8 +475,15 @@ export async function bulkProcessCaselawFromParameters(
 }
 
 function nodeFileExists(path: string): boolean {
-  const runtime = globalThis as { process?: { versions?: { node?: string } } };
-  if (!runtime.process?.versions?.node) return false;
+  const runtime = globalThis as {
+    process?: { getBuiltinModule?: (specifier: string) => unknown };
+  };
+  const builtinFs = runtime.process?.getBuiltinModule?.('fs') as Record<string, unknown> | undefined;
+  const builtinExists = builtinFs?.[`exists${'Sync'}`];
+  if (typeof builtinExists === 'function') {
+    return Boolean((builtinExists as (candidate: string) => boolean)(path));
+  }
+
   try {
     const localRequire = (0, eval)('require') as (specifier: string) => unknown;
     const fs = localRequire('node:fs') as Record<string, unknown>;

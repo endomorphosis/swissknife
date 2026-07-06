@@ -1,4 +1,4 @@
-import { buildDeterministicEmbedding, cosineSimilarity } from './embedding-prover.js';
+import { buildDeterministicEmbedding, cosineSimilarity } from '../embedding-prover.js';
 
 /**
  * neurosymbolic-api.ts

@@ -15,7 +15,7 @@
 
 import { createHash } from 'crypto';
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import * as fs from 'fs';
 
 export interface ZKPProcessResult {
   readonly status: number | null;
@@ -134,7 +134,7 @@ export class Groth16Backend implements ZKPBackendProtocol {
   isAvailable(): boolean {
     // In pure-TS runtime, the native binary is not available
     if (!this.binaryPath) return false;
-    try { return existsSync(this.binaryPath); } catch { return false; }
+    try { return fs.existsSync(this.binaryPath); } catch { return false; }
   }
 
   async generateProof(witnessJson: string, seed?: number): Promise<Groth16Proof> {
@@ -273,7 +273,7 @@ export class ProveKitFFI implements ZKPBackendProtocol {
       './libprovekit.so', './libprovekit.dylib', './provekit.dll',
     ];
     try {
-      for (const p of candidates) { if (existsSync(p)) return new ProveKitFFI(p); }
+      for (const p of candidates) { if (fs.existsSync(p)) return new ProveKitFFI(p); }
     } catch { /* ignore */ }
     return new ProveKitFFI(null);
   }

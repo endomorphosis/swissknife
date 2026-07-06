@@ -5,10 +5,10 @@ import {
   getActiveApiKey,
   markApiKeyAsFailed,
   getApiKeys,
-} from '../utils/config.js'
+} from '../../utils/config.js'
 import { ProxyAgent, fetch, Response } from 'undici.js'
-import { setSessionState, getSessionState } from '../utils/sessionState.js'
-import { logEvent } from '../services/statsig.js'
+import { setSessionState, getSessionState } from '../../utils/sessionState.js'
+import { logEvent } from './statsig.js'
 
 enum ModelErrorType {
   MaxLength = '1024',

@@ -5,7 +5,7 @@
  * coreference resolution, temporal extraction, and structured clause output.
  */
 
-import { ProcessedDocument, TDFOLNLPreprocessor } from './tdfol-nl-preprocessor.js';
+import { ProcessedDocument, TDFOLNLPreprocessor } from '../../tdfol-nl-preprocessor.js';
 
 export type DCECModality = 'obligation' | 'permission' | 'prohibition';
 export type DCECOperator = 'O' | 'P' | 'F';
