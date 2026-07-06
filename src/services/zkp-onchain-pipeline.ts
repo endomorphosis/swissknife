@@ -6,7 +6,6 @@
  * gas estimation, and an injectable EVM submission client.
  */
 
-import { createHash } from 'crypto';
 import {
   buildRegisterVkCalldata,
   buildRegisterVkPayload,
@@ -14,6 +13,7 @@ import {
   packPublicInputsForEvm,
   vkHashHexToBytes32,
 } from './sprint68-eth-bridge.js';
+import { bytesToHex, sha256Hex, utf8Bytes } from './provers/browser-crypto.js';
 
 export interface EvmSubmissionClient {
   submitTransaction(calldata: string, opts?: { to?: string; gasLimit?: bigint }): Promise<string>;
@@ -60,11 +60,11 @@ export interface OnchainZkpPipelineResult {
 }
 
 export function computeProofHash(proofJson: string): string {
-  return createHash('sha256').update(proofJson, 'utf8').digest('hex');
+  return sha256Hex(proofJson);
 }
 
 export function computeVkHash(vk: Record<string, unknown>): string {
-  return createHash('sha256').update(JSON.stringify(vk), 'utf8').digest('hex');
+  return sha256Hex(JSON.stringify(vk));
 }
 
 export function encodeVerifierCalldata(
@@ -74,7 +74,7 @@ export function encodeVerifierCalldata(
 ): string {
   if (options.encoding === 'json-hex') {
     const packed = packPublicInputsForEvm(publicInputs);
-    const encoded = Buffer.from(JSON.stringify({ proof: JSON.parse(proofJson), publicInputs: packed }), 'utf8').toString('hex');
+    const encoded = bytesToHex(utf8Bytes(JSON.stringify({ proof: JSON.parse(proofJson), publicInputs: packed })));
     return '0x' + encoded;
   }
   return encodeVerifyProofSolidityCalldata(proofJson, publicInputs, options.methodSelector);
@@ -182,7 +182,7 @@ function proofJsonToHex(proofJson: string): string {
       if (/^[0-9a-fA-F]+$/.test(hex)) return hex.length % 2 === 0 ? hex : '0' + hex;
     }
   }
-  return Buffer.from(proofJson, 'utf8').toString('hex');
+  return bytesToHex(utf8Bytes(proofJson));
 }
 
 function encodeBytes(hexValue: string): string {

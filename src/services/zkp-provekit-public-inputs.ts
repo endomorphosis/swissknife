@@ -4,8 +4,6 @@
  * TypeScript port of ipfs_datasets_py/logic/zkp/provekit/public_inputs.py.
  */
 
-import { createHash } from 'node:crypto';
-
 import {
   buildProofAttestationView,
   compilerGuidanceRefFromMetadata,
@@ -14,6 +12,7 @@ import {
   formatCircuitRef,
   parseCircuitRefLenient,
 } from './zkp-statement.js';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 export const PROVEKIT_PUBLIC_INPUT_SCHEMA_VERSION = 'provekit-public-inputs-v1';
 export const DEFAULT_PROVEKIT_CIRCUIT_ID = 'provekit_knowledge_of_axioms';
@@ -341,10 +340,6 @@ function coerceNonNegativeInt(value: unknown, fallback: number): number {
   if (value === null || value === undefined || typeof value === 'boolean') return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? Math.trunc(parsed) : fallback;
-}
-
-function sha256Hex(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
 function canonicalJson(value: unknown): string {

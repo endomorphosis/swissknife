@@ -33,6 +33,11 @@ const BROWSER_FACING_PROVER_FILES = [
   'src/services/provers/lean4-wasm-bridge.ts',
   'src/services/provers/lurk-wasm-bridge.ts',
   'src/services/provers/multi-stark-bridge.ts',
+  'src/services/zkp-attestation-bridge.ts',
+  'src/services/zkp-circuits.ts',
+  'src/services/zkp-onchain-pipeline.ts',
+  'src/services/zkp-provekit-cache.ts',
+  'src/services/zkp-provekit-public-inputs.ts',
   'src/services/zkp/zkp-simulated-prover.ts',
   'src/services/zkp/zkp-ucan-bridge.ts',
 ];
@@ -80,6 +85,11 @@ describe('WASM prover browser purity', () => {
       import('../../src/services/provers/lean4-wasm-bridge'),
       import('../../src/services/provers/lurk-wasm-bridge'),
       import('../../src/services/provers/multi-stark-bridge'),
+      import('../../src/services/zkp-attestation-bridge'),
+      import('../../src/services/zkp-circuits'),
+      import('../../src/services/zkp-onchain-pipeline'),
+      import('../../src/services/zkp-provekit-cache'),
+      import('../../src/services/zkp-provekit-public-inputs'),
       import('../../src/services/zkp/zkp-simulated-prover'),
       import('../../src/services/zkp/zkp-ucan-bridge'),
     ]);

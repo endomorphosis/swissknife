@@ -4,7 +4,7 @@
  * TypeScript port of ipfs_datasets_py/logic/zkp/provekit/cache.py.
  */
 
-import { createHash } from 'node:crypto';
+import { base64Encode, sha256Hex, utf8Bytes } from './provers/browser-crypto.js';
 
 export const PROVEKIT_CACHE_KEY_SCHEMA = 'provekit-cache-key-v1';
 export const PROVEKIT_IPFS_PAYLOAD_SCHEMA = 'provekit-ipfs-payload-v1';
@@ -86,7 +86,7 @@ export function buildProveKitProofCacheKeyFromProof(
 export function buildProveKitIpfsPayload(
   proofPublicInputs: Record<string, unknown>,
   proofMetadata: Record<string, unknown>,
-  proofData: Buffer | Uint8Array | string,
+  proofData: Uint8Array | string,
   options: BuildProveKitIpfsPayloadOptions = {},
 ): Record<string, unknown> {
   const provekit = isRecord(proofMetadata.provekit) ? proofMetadata.provekit : {};
@@ -108,7 +108,7 @@ export function buildProveKitIpfsPayload(
     schema: PROVEKIT_IPFS_PAYLOAD_SCHEMA,
     backend_id: String(proofMetadata.backend ?? 'provekit'),
     proof_system: options.proofSystem ?? 'ProveKit-WHIR',
-    proof_data_b64: bytes.toString('base64'),
+    proof_data_b64: base64Encode(bytes),
     proof_size_bytes: bytes.length,
     public_inputs: { ...(proofPublicInputs ?? {}) },
     attestation_view: { ...attestationView },
@@ -144,10 +144,9 @@ function validateSha256Hex(name: string, value: unknown): void {
   }
 }
 
-function proofDataToBuffer(value: Buffer | Uint8Array | string): Buffer {
-  if (Buffer.isBuffer(value)) return value;
-  if (value instanceof Uint8Array) return Buffer.from(value);
-  return Buffer.from(String(value), 'utf8');
+function proofDataToBytes(value: Uint8Array | string): Uint8Array {
+  if (value instanceof Uint8Array) return value;
+  return utf8Bytes(String(value));
 }
 
 function containsPrivateArtifactKey(value: unknown): boolean {
@@ -157,10 +156,6 @@ function containsPrivateArtifactKey(value: unknown): boolean {
   return Object.entries(record).some(([key, nested]) => (
     PRIVATE_ARTIFACT_KEYS.has(key) || containsPrivateArtifactKey(nested)
   ));
-}
-
-function sha256Hex(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
 function canonicalJson(value: unknown): string {

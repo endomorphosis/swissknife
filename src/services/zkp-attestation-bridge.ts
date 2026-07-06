@@ -11,7 +11,6 @@
  *   ZkpAttestationBridgeAdapter — encode(text) → {doc, context}
  */
 
-import { createHash } from 'node:crypto';
 import {
   LegalIRDocument, LegalIRDocumentInit,
   LogicIRView,
@@ -20,13 +19,14 @@ import {
   GraphProjectionResult,
   BridgeEvaluationReport,
 } from './bridge-types.js';
+import { sha256Hex } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function documentId(prefix: string, text: string): string {
-  const hash = createHash('sha256').update(text.slice(0, 512), 'utf8').digest('hex').slice(0, 16);
+  const hash = sha256Hex(text.slice(0, 512)).slice(0, 16);
   return `${prefix}:${hash}`;
 }
 
@@ -35,7 +35,7 @@ function normalizeText(text: string): string {
 }
 
 function proofHash(formula: string): string {
-  return createHash('sha256').update(formula, 'utf8').digest('hex').slice(0, 32);
+  return sha256Hex(formula).slice(0, 32);
 }
 
 // ---------------------------------------------------------------------------

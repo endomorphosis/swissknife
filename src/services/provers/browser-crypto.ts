@@ -16,6 +16,7 @@ const SHA256_K = new Uint32Array([
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]);
 
+const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const BASE64_URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
 export function sha256Hex(input: string | Uint8Array): string {
@@ -103,6 +104,40 @@ export function base64UrlEncode(input: string | Uint8Array | ArrayBuffer | reado
   return out;
 }
 
+export function base64Encode(input: string | Uint8Array | ArrayBuffer | readonly number[]): string {
+  const bytes = bytesFrom(input);
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b1 = bytes[i];
+    const hasB2 = i + 1 < bytes.length;
+    const hasB3 = i + 2 < bytes.length;
+    const b2 = hasB2 ? bytes[i + 1] : 0;
+    const b3 = hasB3 ? bytes[i + 2] : 0;
+    out += BASE64[b1 >> 2];
+    out += BASE64[((b1 & 0x03) << 4) | (b2 >> 4)];
+    out += hasB2 ? BASE64[((b2 & 0x0f) << 2) | (b3 >> 6)] : '=';
+    out += hasB3 ? BASE64[b3 & 0x3f] : '=';
+  }
+  return out;
+}
+
+export function bytesToHex(input: Uint8Array | ArrayBuffer | readonly number[]): string {
+  const bytes = bytesFrom(input);
+  let out = '';
+  for (const byte of bytes) out += byte.toString(16).padStart(2, '0');
+  return out;
+}
+
+export function hexToBytes(input: string): Uint8Array {
+  const clean = input.startsWith('0x') || input.startsWith('0X') ? input.slice(2) : input;
+  if (clean.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(clean)) {
+    throw new Error('hex input must contain an even number of hexadecimal characters');
+  }
+  const bytes = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = Number.parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  return bytes;
+}
+
 export function utf8Bytes(input: string): Uint8Array {
   if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(input);
   const bytes: number[] = [];
@@ -126,7 +161,7 @@ export function utf8Bytes(input: string): Uint8Array {
   return new Uint8Array(bytes);
 }
 
-function bytesFrom(input: string | Uint8Array | ArrayBuffer | readonly number[]): Uint8Array {
+export function bytesFrom(input: string | Uint8Array | ArrayBuffer | readonly number[]): Uint8Array {
   if (typeof input === 'string') return utf8Bytes(input);
   if (input instanceof Uint8Array) return input;
   if (input instanceof ArrayBuffer) return new Uint8Array(input);

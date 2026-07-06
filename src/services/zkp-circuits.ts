@@ -13,33 +13,32 @@
  *   compilerGuidanceRefFromMetadata() — extract compiler guidance ref
  */
 
-import { createHash } from 'node:crypto';
+import { bytesToHex, hexToBytes, sha256Hex, utf8Bytes } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // SIMZKP/1 layout constants (mirrors Python)
 // ---------------------------------------------------------------------------
 
-const SIMZKP_MAGIC = Buffer.from('SIMZKP/1', 'ascii');
+const SIMZKP_MAGIC = utf8Bytes('SIMZKP/1');
 const SIMZKP_PROOF_LENGTH = 256; // bytes
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function bytesFromProofData(proofData: unknown): Buffer {
-  if (Buffer.isBuffer(proofData)) return proofData;
-  if (proofData instanceof Uint8Array) return Buffer.from(proofData);
+function bytesFromProofData(proofData: unknown): Uint8Array {
+  if (proofData instanceof Uint8Array) return proofData;
   if (typeof proofData === 'string') {
     const stripped = proofData.trim();
     const hex = stripped.startsWith('0x') || stripped.startsWith('0X')
       ? stripped.slice(2) : stripped;
     if (hex && hex.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(hex)) {
-      try { return Buffer.from(hex, 'hex'); } catch { /* fallthrough */ }
+      try { return hexToBytes(hex); } catch { /* fallthrough */ }
     }
-    return Buffer.from(stripped, 'utf8');
+    return utf8Bytes(stripped);
   }
-  if (proofData == null) return Buffer.alloc(0);
-  return Buffer.from(String(proofData), 'utf8');
+  if (proofData == null) return new Uint8Array(0);
+  return utf8Bytes(String(proofData));
 }
 
 function mappingDict(value: unknown): Record<string, unknown> {
@@ -69,9 +68,7 @@ function canonicalPublicInputs(publicInputs: Record<string, unknown>): [Record<s
   for (const [k, v] of Object.entries(publicInputs).sort()) {
     if (v !== undefined && v !== null) canonical[k] = v;
   }
-  const commitment = createHash('sha256')
-    .update(JSON.stringify(canonical), 'utf8')
-    .digest('hex');
+  const commitment = sha256Hex(JSON.stringify(canonical));
   return [canonical, commitment];
 }
 
@@ -119,16 +116,16 @@ export function decodeSimulatedProofLayout(proofData: unknown): ProofLayout {
   const base: ProofLayout = { byteLength: raw.length, format: 'opaque', valid: false };
 
   if (raw.length !== SIMZKP_PROOF_LENGTH) return base;
-  if (!raw.slice(0, 8).equals(SIMZKP_MAGIC)) return base;
+  if (!bytesEqual(raw.slice(0, 8), SIMZKP_MAGIC)) return base;
 
   const proofHash = raw.slice(8, 40);
-  const circuitVersion = raw.readUInt32BE(40);
+  const circuitVersion = readUInt32BE(raw, 40);
 
   return {
     byteLength: raw.length,
     format: 'simzkp1',
     valid: true,
-    proofDigest: proofHash.toString('hex'),
+    proofDigest: bytesToHex(proofHash),
     proofType: 'simulated',
     circuitVersion,
   };
@@ -181,7 +178,7 @@ export function buildProofAttestationView(opts: {
     publicInputs['compiler_guidance_version'] ?? metaDict['compiler_guidance_version'] ?? 0
   );
 
-  const proofDigest = createHash('sha256').update(proofBytes).digest('hex');
+  const proofDigest = sha256Hex(proofBytes);
   const [canonical, publicInputsCommitment] = canonicalPublicInputs(publicInputs);
 
   const attestationBasis: Record<string, unknown> = {
@@ -196,9 +193,7 @@ export function buildProofAttestationView(opts: {
     attestationBasis['compiler_guidance_version'] = cgVersion;
   }
 
-  const attestationRef = createHash('sha256')
-    .update(JSON.stringify(attestationBasis, Object.keys(attestationBasis).sort()), 'utf8')
-    .digest('hex');
+  const attestationRef = sha256Hex(JSON.stringify(attestationBasis, Object.keys(attestationBasis).sort()));
 
   const view: AttestationView = {
     attestationRef,
@@ -320,12 +315,12 @@ export class ZKPCircuit {
   }
 
   getCircuitHash(): string {
-    return createHash('sha256').update(canonicalJson({
+    return sha256Hex(canonicalJson({
       num_gates: this.gates.length,
       num_inputs: this.inputs.size,
       num_wires: this.nextWire,
       gates: this.gates.map(gate => gate.toDict()),
-    }), 'utf8').digest('hex');
+    }));
   }
 
   toR1cs(): Record<string, unknown> {
@@ -490,4 +485,20 @@ function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   const record = value as Record<string, unknown>;
   return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(',')}}`;
+}
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+function readUInt32BE(bytes: Uint8Array, offset: number): number {
+  if (offset < 0 || offset + 4 > bytes.length) throw new RangeError('uint32 offset out of range');
+  return (
+    ((bytes[offset] ?? 0) * 0x1000000) +
+    (((bytes[offset + 1] ?? 0) << 16) >>> 0) +
+    ((bytes[offset + 2] ?? 0) << 8) +
+    (bytes[offset + 3] ?? 0)
+  ) >>> 0;
 }
