@@ -126,7 +126,7 @@ describe('T-69 ZkpSimulatedProver', () => {
 
 describe('T-70 ZkpUcanBridge', () => {
   let bridge: ZkpUcanBridge;
-  beforeEach(() => { bridge = new ZkpUcanBridge({ allowSimulatedFallback: true }); });
+  beforeEach(() => { bridge = new ZkpUcanBridge(); });
 
   it('proofToCaveat() converts a real ZKProofArtifact to ZkpCapabilityEvidence', () => {
     const artifact: ZKProofArtifact = {
@@ -176,27 +176,6 @@ describe('T-70 ZkpUcanBridge', () => {
     ).rejects.toThrow('Real ZK prover unavailable and simulated fallback is disabled');
   });
 
-  it('proveAndDelegate() returns success with simulation caveat when no real prover', async () => {
-    const result = await bridge.proveAndDelegate(
-      'All agents must log access',
-      'did:key:alice',
-      'mcp++/audit',
-      'proof/invoke',
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.theorem).toBe('All agents must log access');
-    expect(result.actor).toBe('did:key:alice');
-    expect(result.resource).toBe('mcp++/audit');
-    expect(result.ability).toBe('proof/invoke');
-    expect(result.zkp_caveat).toBeDefined();
-    expect(result.zkp_caveat?.type).toBe('zkp_evidence');
-    expect(result.zkp_caveat?.is_simulation).toBe(true);
-    expect(result.zkp_caveat?.verifier_id).toBe('simulated-zkp-v0.1');
-    expect(result.proof_artifact).toBeUndefined();
-    expect(result.warnings).toHaveLength(0); // no real prover injected = no warning
-  });
-
   it('proveAndDelegate() uses real prover when provided and it succeeds', async () => {
     const fakeArtifact: ZKProofArtifact = {
       backend: 'sphinx',
@@ -223,39 +202,48 @@ describe('T-70 ZkpUcanBridge', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
-  it('proveAndDelegate() falls back to simulation when real prover returns null', async () => {
-    const result = await bridge.proveAndDelegate(
-      'theorem',
-      'did:key:carol',
-      'resource',
-      'ability',
-      { realProver: async () => null },
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.zkp_caveat?.is_simulation).toBe(true);
-    expect(result.warnings).toContain(
-      'Real ZK prover returned null — falling back to simulation.',
-    );
+  it('proveAndDelegate() fails closed when real prover returns null', async () => {
+    await expect(
+      bridge.proveAndDelegate(
+        'theorem',
+        'did:key:carol',
+        'resource',
+        'ability',
+        { realProver: async () => null },
+      ),
+    ).rejects.toThrow('Real ZK prover returned null');
   });
 
-  it('proveAndDelegate() falls back to simulation when real prover throws', async () => {
-    const result = await bridge.proveAndDelegate(
-      'theorem',
-      'did:key:dave',
-      'resource',
-      'ability',
-      { realProver: async () => { throw new Error('ix binary not found'); } },
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.zkp_caveat?.is_simulation).toBe(true);
-    expect(result.warnings[0]).toContain('ix binary not found');
-    expect(result.warnings[1]).toContain('SIMULATION');
+  it('proveAndDelegate() propagates real prover failures', async () => {
+    await expect(
+      bridge.proveAndDelegate(
+        'theorem',
+        'did:key:dave',
+        'resource',
+        'ability',
+        { realProver: async () => { throw new Error('ix binary not found'); } },
+      ),
+    ).rejects.toThrow('ix binary not found');
   });
 
   it('ZkpCapabilityEvidence can be serialised to JSON and round-tripped', async () => {
-    const result = await bridge.proveAndDelegate('theorem', 'did:key:x', 'r', 'a');
+    const result = await bridge.proveAndDelegate(
+      'theorem',
+      'did:key:x',
+      'r',
+      'a',
+      {
+        realProver: async () => ({
+          backend: 'circom',
+          statement: 'theorem',
+          proof_b64: 'dGhlb3JlbQ',
+          vk_cid: 'sha256:' + 'f'.repeat(64),
+          public_inputs: ['theorem'],
+          artifact_cid: 'sha256:' + '1'.repeat(64),
+          proof_time_ms: 10,
+        }),
+      },
+    );
     const json = JSON.stringify(result.zkp_caveat);
     const parsed = JSON.parse(json) as ZkpCapabilityEvidence;
     expect(parsed.type).toBe('zkp_evidence');

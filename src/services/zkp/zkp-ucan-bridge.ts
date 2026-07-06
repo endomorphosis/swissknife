@@ -10,7 +10,7 @@
  *
  *   theorem string
  *     │
- *     ▼  [1] ZKPProver (real: LurkWasmBridge/proveWithIx; sim: ZkpSimulatedProver)
+ *     ▼  [1] ZKPProver (real: LurkWasmBridge/proveWithIx/browser Schnorr)
  *   proof artifact { proof_b64, artifact_cid, backend, … }
  *     │
  *     ▼  [2] proofToCaveat()
@@ -19,8 +19,7 @@
  *     ▼  [3] Embed in UCAN delegation token (via DelegationManager)
  *   Signed delegation with ZKP evidence caveat
  *
- * The bridge gracefully degrades to the simulated prover when no real ZK
- * backend is available (lurk-wasm absent, ix CLI absent).
+ * The bridge is fail-closed when no real ZK backend is available.
  *
  * Sprint 11, T-70.
  * Reference: ipfs_datasets_py/logic/zkp/ucan_zkp_bridge.py §ZKPToUCANBridge
@@ -32,7 +31,6 @@ import type {
   ZkpBridgeResult,
   ZkpVerifierId,
 } from './zkp-types.js';
-import { ZkpSimulatedProver, ZKP_SIMULATED_VERIFIER_ID, computeStatementCid } from './zkp-simulated-prover.js';
 import { sha256Hex } from '../provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
@@ -40,20 +38,12 @@ import { sha256Hex } from '../provers/browser-crypto.js';
 // ---------------------------------------------------------------------------
 
 export interface ZkpUcanBridgeOptions {
-  /**
-   * Verifier ID to embed in caveats.  Defaults to 'simulated-zkp-v0.1'.
-   * When a real ZK artifact is supplied, the artifact's backend is used instead.
-   */
+  /** Verifier ID to embed in caveats. */
   verifierId?: ZkpVerifierId | string;
   /**
    * DID of the issuer.  Defaults to 'did:key:issuer' (test mode).
    */
   issuerDid?: string;
-  /**
-   * Allow deterministic simulation fallback when a real prover is unavailable.
-   * Defaults to false (fail closed).
-   */
-  allowSimulatedFallback?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,14 +60,10 @@ export interface ZkpUcanBridgeOptions {
 export class ZkpUcanBridge {
   private readonly verifierId: string;
   private readonly issuerDid: string;
-  private readonly allowSimulatedFallback: boolean;
-  private readonly simProver: ZkpSimulatedProver;
 
   constructor(opts: ZkpUcanBridgeOptions = {}) {
-    this.verifierId = opts.verifierId ?? ZKP_SIMULATED_VERIFIER_ID;
+    this.verifierId = opts.verifierId ?? 'browser-schnorr-zkp-v0.1';
     this.issuerDid = opts.issuerDid ?? 'did:key:issuer';
-    this.allowSimulatedFallback = opts.allowSimulatedFallback === true;
-    this.simProver = new ZkpSimulatedProver();
   }
 
   // ---------------------------------------------------------------------------
@@ -111,31 +97,11 @@ export class ZkpUcanBridge {
   }
 
   /**
-   * Convert a simulated proof to a UCAN caveat.
-   * `is_simulation` is `true` — NOT cryptographically secure.
-   */
-  simulatedProofToCaveat(
-    proofHash: string,
-    statementCid: string,
-    publicInputs: Record<string, unknown> = {},
-  ): ZkpCapabilityEvidence {
-    return {
-      type: 'zkp_evidence',
-      proof_hash: proofHash,
-      theorem_cid: statementCid,
-      verifier_id: ZKP_SIMULATED_VERIFIER_ID,
-      public_inputs: publicInputs,
-      is_simulation: true,
-    };
-  }
-
-  /**
    * Full bridge pipeline: prove a theorem and produce a UCAN delegation result.
    *
    * 1. Attempts to use a real ZK proof via `realProver` (injected) if provided.
-   * 2. Falls back to `ZkpSimulatedProver` when no real prover is available.
-   * 3. Packages the proof as a `ZkpCapabilityEvidence` caveat.
-   * 4. Returns `ZkpBridgeResult` with the caveat + delegation metadata.
+   * 2. Packages the proof as a `ZkpCapabilityEvidence` caveat.
+   * 3. Returns `ZkpBridgeResult` with the caveat + delegation metadata.
    *
    * Note: actual UCAN JWT signing requires `DelegationManager` and a real DID key.
    * This method returns the caveat and metadata so callers can complete signing
@@ -152,8 +118,7 @@ export class ZkpUcanBridge {
       privateAxioms?: string[];
       /**
        * Optional real ZK prover. If provided and returns a `ZKProofArtifact`,
-       * a non-simulation caveat is produced.  Errors are caught and demoted to
-       * simulation-path with a warning.
+       * a non-simulation caveat is produced.
        */
       realProver?: () => Promise<ZKProofArtifact | null>;
     } = {},
@@ -162,44 +127,20 @@ export class ZkpUcanBridge {
     let zkp_caveat: ZkpCapabilityEvidence | undefined;
     let proof_artifact: ZkpBridgeResult['proof_artifact'] | undefined;
 
-    // --- Attempt real ZK prover ---
-    if (opts.realProver) {
-      try {
-        const artifact = await opts.realProver();
-        if (artifact) {
-          zkp_caveat = this.proofToCaveat(artifact);
-          proof_artifact = {
-            backend: artifact.backend,
-            artifact_cid: artifact.artifact_cid,
-            proof_b64: artifact.proof_b64,
-            proof_time_ms: artifact.proof_time_ms,
-          };
-        } else {
-          warnings.push('Real ZK prover returned null — falling back to simulation.');
-        }
-      } catch (err) {
-        warnings.push(`Real ZK prover failed (${err instanceof Error ? err.message : String(err)}) — falling back to simulation.`);
-      }
+    if (!opts.realProver) {
+      throw new Error('Real ZK prover unavailable. Inject a browser/WASM prover before delegating UCAN evidence.');
     }
-
-    // --- Simulation fallback (explicit opt-in only) ---
-    if (!zkp_caveat) {
-      if (!this.allowSimulatedFallback) {
-        throw new Error(
-          'Real ZK prover unavailable and simulated fallback is disabled. ' +
-          'Inject a real prover or set allowSimulatedFallback:true only for explicit test paths.',
-        );
-      }
-      const simProof = await this.simProver.prove(theorem, opts.privateAxioms);
-      zkp_caveat = this.simulatedProofToCaveat(
-        simProof.proof_hash,
-        simProof.statement_cid,
-        { theorem },
-      );
-      if (opts.realProver) {
-        warnings.push('Caveat is a SIMULATION — replace with real ZK proof in production.');
-      }
+    const artifact = await opts.realProver();
+    if (!artifact) {
+      throw new Error('Real ZK prover returned no artifact. Refusing to create UCAN evidence.');
     }
+    zkp_caveat = this.proofToCaveat(artifact);
+    proof_artifact = {
+      backend: artifact.backend,
+      artifact_cid: artifact.artifact_cid,
+      proof_b64: artifact.proof_b64,
+      proof_time_ms: artifact.proof_time_ms,
+    };
 
     return {
       success: true,
@@ -219,11 +160,20 @@ export class ZkpUcanBridge {
 
   private _backendToVerifierId(backend: ZKProofArtifact['backend']): ZkpVerifierId {
     switch (backend) {
+      case 'circom':   return 'groth16-bn254-v0.1';
       case 'sphinx':   return 'sphinx-zkp-v0.1';
       case 'nova':     return 'lurk-nova-v0.1';
       case 'plonky3':  return 'lurk-plonky3-v0.1';
       case 'lurk':     return 'lurk-nova-v0.1';
-      default:         return 'simulated-zkp-v0.1';
+      case 'browser-schnorr':
+      case 'browser-schnorr-wasm':
+        return 'browser-schnorr-zkp-v0.1';
+      default:
+        return this.verifierId as ZkpVerifierId;
     }
   }
+}
+
+function computeStatementCid(statement: string): string {
+  return `sha256:${sha256Hex(statement)}`;
 }
