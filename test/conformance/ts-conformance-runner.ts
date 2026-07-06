@@ -5,6 +5,27 @@ import { dirname, resolve } from 'node:path';
 import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub.js';
 import type { Policy } from '../../src/services/mcp-policy.js';
 import type { WasmProofResult } from '../../src/services/provers/prover-types.js';
+import { TdfolProverBridge } from '../../src/services/provers/tdfol-prover-bridge.js';
+import {
+  Atom,
+  Conjunction,
+  Disjunction,
+  Implies,
+  Negation,
+  Obligation,
+  Permission,
+  Prohibition,
+  type DCECFormula,
+} from '../../src/services/provers/dcec-types.js';
+import {
+  Always,
+  Eventually,
+  Next,
+  Release,
+  Since,
+  Until,
+  type TdfolFormula,
+} from '../../src/services/provers/tdfol-types.js';
 
 export type ConformanceSubsystem =
   | 'propositional'
@@ -298,7 +319,7 @@ async function runVector(
         vector.input.zkpWitness as { claims?: string[]; witnessState?: 'valid' | 'invalid' | 'unknown' },
       );
     } else if (vector.inputType === 'tdfol' && vector.input.tdfol && typeof vector.input.tdfol === 'object') {
-      proof = deterministicTdfolResult(vector.input.tdfol as { axioms?: string[]; goal?: string });
+      proof = await nativeTdfolResult(vector.input.tdfol as { axioms?: string[]; goal?: string });
     } else if (vector.inputType === 'temporalTrace' && vector.input.temporalTrace && typeof vector.input.temporalTrace === 'object') {
       proof = deterministicTemporalTraceResult(vector.input.temporalTrace as { events?: string[]; query?: string });
     } else if (vector.inputType === 'modalKripke' && vector.input.modalKripke && typeof vector.input.modalKripke === 'object') {
@@ -619,7 +640,120 @@ function deterministicSmt2Result(smt2: string): WasmProofResult {
   };
 }
 
-function deterministicTdfolResult(input: { axioms?: string[]; goal?: string }): WasmProofResult {
+function parseTdfolFormulaText(text: string): TdfolFormula {
+  const source = String(text ?? '').trim();
+  if (!source) throw new Error('empty formula');
+  if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(source)) return Atom(source);
+
+  const call = source.match(/^([A-Za-z_][A-Za-z0-9_]*)\((.*)\)$/);
+  if (!call) throw new Error(`unsupported TDFOL formula syntax: ${source}`);
+
+  const op = String(call[1] ?? '').trim().toUpperCase();
+  const argText = String(call[2] ?? '').trim();
+
+  if (op === 'NOT') {
+    const args = splitTopLevelArgs(argText, 1, op);
+    return Negation(parseTdfolFormulaText(args[0]) as DCECFormula);
+  }
+  if (op === 'AND') {
+    const args = splitTopLevelArgs(argText, 2, op);
+    return Conjunction(parseTdfolFormulaText(args[0]) as DCECFormula, parseTdfolFormulaText(args[1]) as DCECFormula);
+  }
+  if (op === 'OR') {
+    const args = splitTopLevelArgs(argText, 2, op);
+    return Disjunction(parseTdfolFormulaText(args[0]) as DCECFormula, parseTdfolFormulaText(args[1]) as DCECFormula);
+  }
+  if (op === 'IMPLIES') {
+    const args = splitTopLevelArgs(argText, 2, op);
+    return Implies(parseTdfolFormulaText(args[0]) as DCECFormula, parseTdfolFormulaText(args[1]) as DCECFormula);
+  }
+  if (op === 'O') return Obligation(parseTdfolFormulaText(argText) as DCECFormula);
+  if (op === 'P') return Permission(parseTdfolFormulaText(argText) as DCECFormula);
+  if (op === 'F') return Prohibition(parseTdfolFormulaText(argText) as DCECFormula);
+
+  if (op === 'ALWAYS' || op === 'G') return Always(parseTdfolFormulaText(argText));
+  if (op === 'EVENTUALLY') return Eventually(parseTdfolFormulaText(argText));
+  if (op === 'NEXT' || op === 'X') return Next(parseTdfolFormulaText(argText));
+  if (op === 'UNTIL' || op === 'SINCE' || op === 'RELEASE') {
+    const args = splitTopLevelArgs(argText, 2, op);
+    const left = parseTdfolFormulaText(args[0]);
+    const right = parseTdfolFormulaText(args[1]);
+    if (op === 'UNTIL') return Until(left, right);
+    if (op === 'SINCE') return Since(left, right);
+    return Release(left, right);
+  }
+
+  throw new Error(`unsupported TDFOL operator: ${op}`);
+}
+
+function splitTopLevelArgs(args: string, expectedArity: number, operator: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < args.length; index++) {
+    const ch = args[index];
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    else if (ch === ',' && depth === 0) {
+      parts.push(args.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+  parts.push(args.slice(start).trim());
+  const clean = parts.filter(Boolean);
+  if (clean.length !== expectedArity) {
+    throw new Error(`operator ${operator} expected ${expectedArity} arguments, got ${clean.length}`);
+  }
+  return clean;
+}
+
+async function nativeTdfolResult(input: { axioms?: string[]; goal?: string }): Promise<WasmProofResult> {
+  const started = Date.now();
+  const axioms = Array.isArray(input.axioms)
+    ? input.axioms.map(item => String(item ?? '').trim()).filter(Boolean)
+    : [];
+  const goal = String(input.goal ?? '').trim();
+
+  if (axioms.length === 0) {
+    return {
+      proved: false,
+      sat: false,
+      unsat: false,
+      reason: 'unknown',
+      prover_id: 'tdfol-native',
+      proof_time_ms: Math.max(0, Date.now() - started),
+      meta: { simulated: false, route: 'empty' },
+    };
+  }
+
+  try {
+    const bridge = new TdfolProverBridge();
+    const kb = axioms.map(parseTdfolFormulaText);
+    const parsedGoal = goal ? parseTdfolFormulaText(goal) : kb[0];
+    const proof = await bridge.prove(kb, parsedGoal);
+    return {
+      ...proof,
+      meta: {
+        ...(proof.meta ?? {}),
+        simulated: false,
+        route: goal ? 'tdfol-native-goal-proof' : 'tdfol-native-axiom-consistency',
+      },
+    };
+  } catch (error) {
+    const fallback = deterministicTdfolFallbackResult(input);
+    return {
+      ...fallback,
+      meta: {
+        ...(fallback.meta ?? {}),
+        nativeAttempted: true,
+        nativeFallback: true,
+        nativeError: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+function deterministicTdfolFallbackResult(input: { axioms?: string[]; goal?: string }): WasmProofResult {
   const started = Date.now();
   const proverId = 'tdfol-native';
   const axioms = Array.isArray(input.axioms)
