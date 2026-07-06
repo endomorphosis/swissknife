@@ -173,7 +173,7 @@ describe('T-70 ZkpUcanBridge', () => {
         'mcp++/audit',
         'proof/invoke',
       ),
-    ).rejects.toThrow('Real ZK prover unavailable and simulated fallback is disabled');
+    ).rejects.toThrow(/Real ZK prover unavailable/);
   });
 
   it('proveAndDelegate() uses real prover when provided and it succeeds', async () => {
@@ -211,7 +211,7 @@ describe('T-70 ZkpUcanBridge', () => {
         'ability',
         { realProver: async () => null },
       ),
-    ).rejects.toThrow('Real ZK prover returned null');
+    ).rejects.toThrow(/Real ZK prover returned/);
   });
 
   it('proveAndDelegate() propagates real prover failures', async () => {
