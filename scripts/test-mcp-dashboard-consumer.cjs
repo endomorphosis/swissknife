@@ -448,6 +448,62 @@ const vai644LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'vai-644-mcp-dashboard-launch-gate.json',
 );
+const vai647LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-647-mcp-dashboard-launch-gate.json',
+);
+const vai649LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-649-mcp-dashboard-launch-gate.json',
+);
+const vai651LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-651-mcp-dashboard-launch-gate.json',
+);
+const vai653LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-653-mcp-dashboard-launch-gate.json',
+);
+const vai655LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-655-mcp-dashboard-launch-gate.json',
+);
+const vai657LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-657-mcp-dashboard-launch-gate.json',
+);
+const vai659LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'vai-659-mcp-dashboard-launch-gate.json',
+);
 const vai634LaunchGateReceiptPath = path.resolve(
   '..',
   'hallucinate_app',
@@ -584,6 +640,13 @@ const vai638LaunchGateReceipt = JSON.parse(fs.readFileSync(vai638LaunchGateRecei
 const vai640LaunchGateReceipt = JSON.parse(fs.readFileSync(vai640LaunchGateReceiptPath, 'utf8'));
 const vai642LaunchGateReceipt = JSON.parse(fs.readFileSync(vai642LaunchGateReceiptPath, 'utf8'));
 const vai644LaunchGateReceipt = JSON.parse(fs.readFileSync(vai644LaunchGateReceiptPath, 'utf8'));
+const vai647LaunchGateReceipt = JSON.parse(fs.readFileSync(vai647LaunchGateReceiptPath, 'utf8'));
+const vai649LaunchGateReceipt = JSON.parse(fs.readFileSync(vai649LaunchGateReceiptPath, 'utf8'));
+const vai651LaunchGateReceipt = JSON.parse(fs.readFileSync(vai651LaunchGateReceiptPath, 'utf8'));
+const vai653LaunchGateReceipt = JSON.parse(fs.readFileSync(vai653LaunchGateReceiptPath, 'utf8'));
+const vai655LaunchGateReceipt = JSON.parse(fs.readFileSync(vai655LaunchGateReceiptPath, 'utf8'));
+const vai657LaunchGateReceipt = JSON.parse(fs.readFileSync(vai657LaunchGateReceiptPath, 'utf8'));
+const vai659LaunchGateReceipt = JSON.parse(fs.readFileSync(vai659LaunchGateReceiptPath, 'utf8'));
 const vai634LaunchGateReceipt = JSON.parse(fs.readFileSync(vai634LaunchGateReceiptPath, 'utf8'));
 const vai637LaunchGateReceipt = JSON.parse(fs.readFileSync(vai637LaunchGateReceiptPath, 'utf8'));
 const vai631LaunchGateReceipt = JSON.parse(fs.readFileSync(vai631LaunchGateReceiptPath, 'utf8'));
@@ -2936,6 +2999,335 @@ assert(
   ]),
   'VAI-644 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
 );
+const vai647Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-647');
+assert(vai647Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-647 for VAIOS-G724');
+assert(
+  vai647Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-647-objective-gap-3e00ad2a0074.md',
+  'VAI-647 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai647Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-647-mcp-dashboard-launch-gate.md',
+  'VAI-647 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai647Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-647-mcp-dashboard-launch-gate.json',
+  'VAI-647 launch gate must point at the Playwright fixture',
+);
+assert(
+  vai647Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-647 launch gate must be closed by the launch Playwright validation gate',
+);
+assert(
+  vai647Gate?.packet_sibling_task_id === 'VAI-648',
+  'VAI-647 launch gate must preserve the VAI-648 packet sibling task',
+);
+assert(
+  vai647Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-648-daemon-launch-health-gate.md',
+  'VAI-647 launch gate must point at the packet sibling daemon launch gate receipt',
+);
+assert(vai647Gate?.attempt === 2, 'VAI-647 launch gate must preserve the attempt-2 validation receipt number');
+assert(
+  JSON.stringify(vai647Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-05-vai-647-attempt-2-launch-playwright-validation-gate.md',
+  ]),
+  'VAI-647 launch gate must expose the attempt-2 launch Playwright validation receipt',
+);
+assert(
+  JSON.stringify(vai647Gate?.required_evidence || []) === JSON.stringify(vai647LaunchGateReceipt.required_evidence),
+  'VAI-647 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai647Gate?.external_backend_surfaces || []) === JSON.stringify([
+    'external/ipfs_accelerate',
+    'external/ipfs_datasets',
+    'external/ipfs_kit',
+  ]),
+  'VAI-647 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
+);
+const vai649Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-649');
+assert(vai649Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-649 for VAIOS-G724');
+assert(
+  vai649Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-649-objective-gap-3e00ad2a0074.md',
+  'VAI-649 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai649Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-649-mcp-dashboard-launch-gate.md',
+  'VAI-649 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai649Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-649-mcp-dashboard-launch-gate.json',
+  'VAI-649 launch gate must point at the Playwright fixture',
+);
+assert(
+  vai649Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-649 launch gate must be closed by the launch Playwright validation gate',
+);
+assert(
+  vai649Gate?.packet_sibling_task_id === 'VAI-650',
+  'VAI-649 launch gate must preserve the VAI-650 packet sibling task',
+);
+assert(
+  vai649Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-650-daemon-launch-health-gate.md',
+  'VAI-649 launch gate must point at the packet sibling daemon launch gate receipt',
+);
+assert(vai649Gate?.attempt === 2, 'VAI-649 launch gate must preserve the attempt-2 validation receipt number');
+assert(
+  JSON.stringify(vai649Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-05-vai-649-attempt-2-launch-playwright-validation-gate.md',
+  ]),
+  'VAI-649 launch gate must expose the attempt-2 launch Playwright validation receipt',
+);
+assert(
+  JSON.stringify(vai649Gate?.required_evidence || []) === JSON.stringify(vai649LaunchGateReceipt.required_evidence),
+  'VAI-649 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai649Gate?.external_backend_surfaces || []) === JSON.stringify([
+    'external/ipfs_accelerate',
+    'external/ipfs_datasets',
+    'external/ipfs_kit',
+  ]),
+  'VAI-649 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
+);
+const vai651Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-651');
+assert(vai651Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-651 for VAIOS-G724');
+assert(
+  vai651Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-651-objective-gap-3e00ad2a0074.md',
+  'VAI-651 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai651Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-651-mcp-dashboard-launch-gate.md',
+  'VAI-651 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai651Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-651-mcp-dashboard-launch-gate.json',
+  'VAI-651 launch gate must point at the Playwright fixture',
+);
+assert(
+  vai651Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-651 launch gate must be closed by the launch Playwright validation gate',
+);
+assert(
+  vai651Gate?.packet_sibling_task_id === 'VAI-652',
+  'VAI-651 launch gate must preserve the VAI-652 packet sibling task',
+);
+assert(
+  vai651Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-652-daemon-launch-health-gate.md',
+  'VAI-651 launch gate must point at the packet sibling daemon launch gate receipt',
+);
+assert(vai651Gate?.attempt === 2, 'VAI-651 launch gate must preserve the attempt-2 validation receipt number');
+assert(
+  JSON.stringify(vai651Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-05-vai-651-attempt-2-launch-playwright-validation-gate.md',
+  ]),
+  'VAI-651 launch gate must expose the attempt-2 launch Playwright validation receipt',
+);
+assert(
+  JSON.stringify(vai651Gate?.required_evidence || []) === JSON.stringify(vai651LaunchGateReceipt.required_evidence),
+  'VAI-651 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai651Gate?.external_backend_surfaces || []) === JSON.stringify([
+    'external/ipfs_accelerate',
+    'external/ipfs_datasets',
+    'external/ipfs_kit',
+  ]),
+  'VAI-651 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
+);
+const vai653Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-653');
+assert(vai653Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-653 for VAIOS-G724');
+assert(
+  vai653Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-653-objective-gap-3e00ad2a0074.md',
+  'VAI-653 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai653Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-653-mcp-dashboard-launch-gate.md',
+  'VAI-653 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai653Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-653-mcp-dashboard-launch-gate.json',
+  'VAI-653 launch gate must point at the Playwright fixture',
+);
+assert(
+  vai653Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-653 launch gate must be closed by the launch Playwright validation gate',
+);
+assert(
+  vai653Gate?.packet_sibling_task_id === 'VAI-654',
+  'VAI-653 launch gate must preserve the VAI-654 packet sibling task',
+);
+assert(
+  vai653Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-654-daemon-launch-health-gate.md',
+  'VAI-653 launch gate must point at the packet sibling daemon launch gate receipt',
+);
+assert(vai653Gate?.attempt === 2, 'VAI-653 launch gate must preserve the attempt-2 validation receipt number');
+assert(
+  JSON.stringify(vai653Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-05-vai-653-attempt-2-launch-playwright-validation-gate.md',
+  ]),
+  'VAI-653 launch gate must expose the attempt-2 launch Playwright validation receipt',
+);
+assert(
+  JSON.stringify(vai653Gate?.required_evidence || []) === JSON.stringify(vai653LaunchGateReceipt.required_evidence),
+  'VAI-653 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai653Gate?.external_backend_surfaces || []) === JSON.stringify([
+    'external/ipfs_accelerate',
+    'external/ipfs_datasets',
+    'external/ipfs_kit',
+  ]),
+  'VAI-653 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
+);
+const vai655Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-655');
+assert(vai655Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-655 for VAIOS-G724');
+assert(
+  vai655Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-655-objective-gap-3e00ad2a0074.md',
+  'VAI-655 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai655Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-655-mcp-dashboard-launch-gate.md',
+  'VAI-655 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai655Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-655-mcp-dashboard-launch-gate.json',
+  'VAI-655 launch gate must point at the Playwright fixture',
+);
+assert(
+  vai655Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-655 launch gate must be closed by the launch Playwright validation gate',
+);
+assert(
+  vai655Gate?.packet_sibling_task_id === 'VAI-656',
+  'VAI-655 launch gate must preserve the VAI-656 packet sibling task',
+);
+assert(
+  vai655Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-656-daemon-launch-health-gate.md',
+  'VAI-655 launch gate must point at the packet sibling daemon launch gate receipt',
+);
+assert(vai655Gate?.attempt === 1, 'VAI-655 launch gate must preserve the attempt-1 validation receipt number');
+assert(
+  JSON.stringify(vai655Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-05-vai-655-attempt-1-launch-playwright-validation-gate.md',
+  ]),
+  'VAI-655 launch gate must expose the attempt-1 launch Playwright validation receipt',
+);
+assert(
+  JSON.stringify(vai655Gate?.required_evidence || []) === JSON.stringify(vai655LaunchGateReceipt.required_evidence),
+  'VAI-655 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai655Gate?.external_backend_surfaces || []) === JSON.stringify([
+    'external/ipfs_accelerate',
+    'external/ipfs_datasets',
+    'external/ipfs_kit',
+  ]),
+  'VAI-655 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
+);
+const vai657Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-657');
+assert(vai657Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-657 for VAIOS-G724');
+assert(
+  vai657Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-657-objective-gap-3e00ad2a0074.md',
+  'VAI-657 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai657Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-657-mcp-dashboard-launch-gate.md',
+  'VAI-657 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai657Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-657-mcp-dashboard-launch-gate.json',
+  'VAI-657 launch gate must point at the Playwright fixture',
+);
+assert(
+  JSON.stringify(vai657Gate?.todo_source || {}) === JSON.stringify({
+    file: 'implementation_plan/docs/19-virtual-ai-os-submodule-integration.todo.md',
+    source_line: 8696,
+  }),
+  'VAI-657 launch gate must preserve the supervisor todo source line for Swissknife consumers',
+);
+assert(
+  vai657Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-657 launch gate must be closed by the launch Playwright validation gate',
+);
+assert(
+  vai657Gate?.packet_sibling_task_id === 'VAI-658',
+  'VAI-657 launch gate must preserve the VAI-658 packet sibling task',
+);
+assert(
+  vai657Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-658-daemon-launch-health-gate.md',
+  'VAI-657 launch gate must point at the packet sibling daemon launch gate receipt',
+);
+assert(vai657Gate?.attempt === 2, 'VAI-657 launch gate must preserve the attempt-2 validation receipt number');
+assert(
+  JSON.stringify(vai657Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-05-vai-657-attempt-2-launch-playwright-validation-gate.md',
+  ]),
+  'VAI-657 launch gate must expose the attempt-2 launch Playwright validation receipt',
+);
+assert(
+  JSON.stringify(vai657Gate?.required_evidence || []) === JSON.stringify(vai657LaunchGateReceipt.required_evidence),
+  'VAI-657 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai657Gate?.external_backend_surfaces || []) === JSON.stringify([
+    'external/ipfs_accelerate',
+    'external/ipfs_datasets',
+    'external/ipfs_kit',
+  ]),
+  'VAI-657 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
+);
+const vai659Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-659');
+assert(vai659Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-659 for VAIOS-G724');
+assert(
+  vai659Gate?.supervisor_gap_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-659-objective-gap-3e00ad2a0074.md',
+  'VAI-659 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  vai659Gate?.launch_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-659-mcp-dashboard-launch-gate.md',
+  'VAI-659 launch gate must point at the current launch gate receipt',
+);
+assert(
+  vai659Gate?.receipt_fixture === 'hallucinate_app/test/e2e/fixtures/vai-659-mcp-dashboard-launch-gate.json',
+  'VAI-659 launch gate must point at the Playwright fixture',
+);
+assert(
+  JSON.stringify(vai659Gate?.todo_source || {}) === JSON.stringify({
+    file: 'implementation_plan/docs/19-virtual-ai-os-submodule-integration.todo.md',
+    source_line: 8768,
+  }),
+  'VAI-659 launch gate must preserve the supervisor todo source line for Swissknife consumers',
+);
+assert(
+  vai659Gate?.gate_state === 'gate_closed_by_playwright_validation',
+  'VAI-659 launch gate must be closed by the launch Playwright validation gate',
+);
+assert(
+  vai659Gate?.packet_sibling_task_id === 'VAI-660',
+  'VAI-659 launch gate must preserve the VAI-660 packet sibling task',
+);
+assert(
+  vai659Gate?.packet_sibling_gate_receipt === 'data/virtual_ai_os/discovery/2026-07-05-vai-660-daemon-launch-health-gate.md',
+  'VAI-659 launch gate must point at the packet sibling daemon launch gate receipt',
+);
+assert(vai659Gate?.attempt === 1, 'VAI-659 launch gate must preserve the attempt-1 validation receipt number');
+assert(
+  JSON.stringify(vai659Gate?.attempt_receipts || []) === JSON.stringify([
+    'data/virtual_ai_os/discovery/2026-07-05-vai-659-attempt-1-launch-playwright-validation-gate.md',
+  ]),
+  'VAI-659 launch gate must expose the attempt-1 launch Playwright validation receipt',
+);
+assert(
+  JSON.stringify(vai659Gate?.required_evidence || []) === JSON.stringify(vai659LaunchGateReceipt.required_evidence),
+  'VAI-659 launch gate must preserve dashboard capability catalog evidence terms for Swissknife consumers',
+);
+assert(
+  JSON.stringify(vai659Gate?.external_backend_surfaces || []) === JSON.stringify([
+    'external/ipfs_accelerate',
+    'external/ipfs_datasets',
+    'external/ipfs_kit',
+  ]),
+  'VAI-659 launch gate must expose the external IPFS backend surfaces for Swissknife consumers',
+);
 const vai631Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-631');
 assert(vai631Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include VAI-631 for VAIOS-G723');
 assert(
@@ -3204,6 +3596,12 @@ console.log(JSON.stringify({
     vai632LaunchGateReceipt.task_id,
     vai634LaunchGateReceipt.task_id,
     vai637LaunchGateReceipt.task_id,
+    vai649LaunchGateReceipt.task_id,
+    vai651LaunchGateReceipt.task_id,
+    vai653LaunchGateReceipt.task_id,
+    vai655LaunchGateReceipt.task_id,
+    vai657LaunchGateReceipt.task_id,
+    vai659LaunchGateReceipt.task_id,
     vai631LaunchGateReceipt.task_id,
   ],
   launch_goal_ids: catalog.launch_objective_ids,
