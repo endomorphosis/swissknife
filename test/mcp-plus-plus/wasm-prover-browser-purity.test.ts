@@ -6,8 +6,8 @@
  * only through explicit injected runners.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { base64UrlEncode, sha256Hex } from '../../src/services/provers/browser-crypto';
 
 const ROOT = resolve(__dirname, '../..');
@@ -49,6 +49,68 @@ const FORBIDDEN_PATTERNS = [
   /\b(execFileSync|spawnSync|appendFileSync|writeFileSync|mkdtempSync|unlinkSync|existsSync|createHash)\b/,
   /\bBuffer\.from\b/,
 ];
+
+const TRANSITIVE_FORBIDDEN_PATTERNS = [
+  /from\s+['"]node:(child_process|fs|crypto|path|os)['"]/,
+  /from\s+['"]crypto['"]/,
+  /require\(['"]node:(child_process|fs|crypto|path|os)['"]\)/,
+  /\bcreateHash\s*\(/,
+  /\bBuffer\.from\s*\(/,
+];
+
+const STATIC_IMPORT_PATTERNS = [
+  /\bimport\s+[^'"]*from\s+['"]([^'"]+)['"]/g,
+  /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+];
+
+const SERVICES_ROOT = resolve(ROOT, 'src/services');
+
+function localServiceImports(source: string): string[] {
+  const imports = new Set<string>();
+  for (const pattern of STATIC_IMPORT_PATTERNS) {
+    pattern.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(source)) !== null) {
+      const spec = String(match[1] ?? '').trim();
+      if (spec.startsWith('.')) imports.add(spec);
+    }
+  }
+  return [...imports];
+}
+
+function resolveServiceImport(fromAbsPath: string, spec: string): string | null {
+  const root = resolve(dirname(fromAbsPath), spec);
+  const candidates = [
+    root,
+    `${root}.ts`,
+    `${root}.tsx`,
+    `${root}.js`,
+    resolve(root, 'index.ts'),
+    resolve(root, 'index.tsx'),
+    resolve(root, 'index.js'),
+  ];
+  for (const candidate of candidates) {
+    if (!candidate.startsWith(SERVICES_ROOT) || !existsSync(candidate)) continue;
+    return candidate;
+  }
+  return null;
+}
+
+function reachableServiceFiles(entryRelativePaths: string[]): string[] {
+  const queue = entryRelativePaths.map(path => resolve(ROOT, path));
+  const seen = new Set<string>();
+  while (queue.length) {
+    const current = queue.shift()!;
+    if (!current.startsWith(SERVICES_ROOT) || seen.has(current)) continue;
+    seen.add(current);
+    const source = readFileSync(current, 'utf8');
+    for (const spec of localServiceImports(source)) {
+      const imported = resolveServiceImport(current, spec);
+      if (imported && !seen.has(imported)) queue.push(imported);
+    }
+  }
+  return [...seen];
+}
 
 describe('WASM prover browser purity', () => {
   it('uses deterministic pure TypeScript sha256 and base64url helpers', () => {
@@ -93,5 +155,16 @@ describe('WASM prover browser purity', () => {
       import('../../src/services/zkp/zkp-simulated-prover'),
       import('../../src/services/zkp/zkp-ucan-bridge'),
     ]);
+  });
+
+  it('has no static Node host dependencies in transitive service imports', () => {
+    const files = reachableServiceFiles(BROWSER_FACING_PROVER_FILES);
+    expect(files.length).toBeGreaterThanOrEqual(BROWSER_FACING_PROVER_FILES.length);
+    for (const file of files) {
+      const source = readFileSync(file, 'utf8');
+      for (const pattern of TRANSITIVE_FORBIDDEN_PATTERNS) {
+        expect(source).not.toMatch(pattern);
+      }
+    }
   });
 });
