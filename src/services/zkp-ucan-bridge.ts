@@ -71,8 +71,11 @@ export class ZKPToUCANBridge {
 
   async verify(evidence: ZKPCapabilityEvidence): Promise<boolean> {
     this.stats.verified++;
-    // Simulated verification: check proof data is non-empty
-    return typeof evidence.proof['proofData'] === 'string' && evidence.proof['proofData'].length > 0;
+    try {
+      return await this.backend.verifyProof(JSON.stringify(evidence.proof));
+    } catch {
+      return false;
+    }
   }
 
   getStats(): Readonly<ZKPUCANBridgeStats> { return { ...this.stats }; }

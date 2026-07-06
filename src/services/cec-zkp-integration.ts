@@ -46,7 +46,12 @@ class CECZKPBackend {
   async provePrivate(formula: string, axioms: string[]): Promise<{ proof: Record<string, unknown>; isProved: boolean }> {
     const witness = JSON.stringify({ formula, axioms: axioms.map((_, i) => `axiom_${i}`) });
     const proof = await this.backend.generateProof(witness);
-    return { proof: proof.toDict(), isProved: true };
+    const proofDict = proof.toDict();
+    const backend = String((proofDict['metadata'] as Record<string, unknown> | undefined)?.['backend'] ?? '').trim().toLowerCase();
+    return {
+      proof: proofDict,
+      isProved: backend !== 'simulated',
+    };
   }
 
   async verify(proof: Record<string, unknown>, formula: string): Promise<boolean> {
@@ -177,12 +182,13 @@ export class ZKPCECProver {
   private async _proveZKP(formula: string, axioms: string[], t0: number): Promise<UnifiedCECProofResult> {
     if (!this.zkpBackend) throw new Error('ZKP is not enabled');
     const { proof, isProved } = await this.zkpBackend.provePrivate(formula, axioms);
+    const backend = String((proof['metadata'] as Record<string, unknown> | undefined)?.['backend'] ?? 'unknown');
     return {
       isProved, method: ProvingMethod.ZKP,
       proofTime: (performance.now() - t0) / 1000,
       zkpProof: proof, isPrivate: true,
       confidence: isProved ? 0.85 : 0,
-      formula, metadata: { backend: 'simulated' },
+      formula, metadata: { backend },
     };
   }
 

@@ -147,17 +147,18 @@ describe('ZKPCECProver — ZKP mode', () => {
     await expect(prover.prove('P', ['P'])).rejects.toThrow(/allowSimulatedFallback:true/);
   });
 
-  test('produces private proof with explicit simulated backend injection', async () => {
+  test('keeps simulated backend explicit and non-proving', async () => {
     const prover = new ZKPCECProver({
       enableZkp: true,
       method: ProvingMethod.ZKP,
       zkpBackend: new Groth16BackendFallback(),
     });
     const r = await prover.prove('P', ['P']);
-    expect(r.isProved).toBe(true);
+    expect(r.isProved).toBe(false);
     expect(r.method).toBe(ProvingMethod.ZKP);
     expect(r.isPrivate).toBe(true);
     expect(r.zkpProof).not.toBeNull();
+    expect((r.metadata as Record<string, unknown>)['backend']).toBe('simulated');
   });
 
   test('verifyZkp returns true for valid proof', async () => {
