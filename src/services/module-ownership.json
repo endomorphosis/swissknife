@@ -1,0 +1,239 @@
+{
+  "schemaVersion": "2026-07-06",
+  "description": "Target ownership and dependency policy for src/services. This manifest classifies the current flat service tree during the staged module-containment refactor.",
+  "sourceRoot": "src/services",
+  "excludedFiles": [
+    "src/services/module-ownership.json"
+  ],
+  "modules": {
+    "shared": {
+      "targetPath": "src/services/shared",
+      "purpose": "Browser-safe primitives shared across service modules: hashes, ids, errors, config contracts, serialization helpers.",
+      "allowedImports": ["shared"]
+    },
+    "platform": {
+      "targetPath": "src/services/platform",
+      "purpose": "Host/platform adapters: provider clients, telemetry, resource pools, browser acceleration, runtime feature detection.",
+      "allowedImports": ["shared", "platform"]
+    },
+    "mcp": {
+      "targetPath": "src/services/mcp",
+      "purpose": "MCP protocol, registries, descriptors, policy broker, transport, and schema/UI descriptor orchestration.",
+      "allowedImports": ["shared", "platform", "mcp", "logic.shared", "provers", "zkp"]
+    },
+    "glasses": {
+      "targetPath": "src/services/glasses",
+      "purpose": "Meta-glasses/orb/webapp control surfaces, adapters, widget compilation, and display/input/audio/camera profiles.",
+      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs"]
+    },
+    "ipfs": {
+      "targetPath": "src/services/ipfs",
+      "purpose": "IPFS interface descriptors, UI profiles, widgets, and storage/cache integration points.",
+      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs", "proof-engine"]
+    },
+    "logic.shared": {
+      "targetPath": "src/services/logic/shared",
+      "purpose": "Common theorem-prover domain types, formula analyzers, parsers, validation, canonicalization, and proof metadata.",
+      "allowedImports": ["shared", "logic.shared", "provers"]
+    },
+    "logic.nl": {
+      "targetPath": "src/services/logic/nl",
+      "purpose": "Natural-language parsing, policy compilation, multilingual parsers, grammar loading, and sentence-level conversion helpers.",
+      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.deontic", "logic.tdfol", "logic.dcec"]
+    },
+    "logic.fol": {
+      "targetPath": "src/services/logic/fol",
+      "purpose": "FOL parsing, formatting, conversion, export, symbolic FOL helpers, and FOL-specific syntax validation.",
+      "allowedImports": ["shared", "logic.shared", "logic.fol", "provers"]
+    },
+    "logic.tdfol": {
+      "targetPath": "src/services/logic/tdfol",
+      "purpose": "TDFOL core AST, parser, prover, temporal/deontic APIs, strategy routing, optimization, and performance helpers.",
+      "allowedImports": ["shared", "logic.shared", "logic.fol", "logic.tdfol", "logic.deontic", "logic.cec", "logic.dcec", "provers", "zkp"]
+    },
+    "logic.dcec": {
+      "targetPath": "src/services/logic/dcec",
+      "purpose": "DCEC core types, grammar/parsing, prototypes, integration, and DCEC-specific error handling.",
+      "allowedImports": ["shared", "logic.shared", "logic.dcec", "logic.cec"]
+    },
+    "logic.cec": {
+      "targetPath": "src/services/logic/cec",
+      "purpose": "CEC/Event Calculus rules, tableaux, fluents, context, proof cache, and CEC prover management.",
+      "allowedImports": ["shared", "logic.shared", "logic.cec", "logic.dcec", "logic.deontic", "logic.modal", "zkp"]
+    },
+    "logic.deontic": {
+      "targetPath": "src/services/logic/deontic",
+      "purpose": "Deontic parsing, norm IR, formula building, legal-text extraction, conflict detection, and normative graph projection.",
+      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp"]
+    },
+    "logic.modal": {
+      "targetPath": "src/services/logic/modal",
+      "purpose": "Modal codec/compiler/decompiler/tableaux, Kripke structures, KG bridges, ambiguity handling, and modal synthesis.",
+      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.deontic", "logic.modal", "provers"]
+    },
+    "logic.bridges": {
+      "targetPath": "src/services/logic/bridges",
+      "purpose": "Cross-logic bridge adapters and graph/multiview projections across FOL, TDFOL, CEC, DCEC, modal, and deontic views.",
+      "allowedImports": ["shared", "logic.shared", "logic.fol", "logic.tdfol", "logic.cec", "logic.dcec", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp"]
+    },
+    "provers": {
+      "targetPath": "src/services/provers",
+      "purpose": "Concrete prover adapters and prover-facing serializers for Z3, CVC5, Coq, Lean, DCEC, TDFOL, Lurk, STARK, and neural prover bridges.",
+      "allowedImports": ["shared", "logic.shared", "logic.fol", "logic.tdfol", "logic.dcec", "logic.deontic", "provers"]
+    },
+    "zkp": {
+      "targetPath": "src/services/zkp",
+      "purpose": "ZKP statements, circuits, proving backends, browser ZKP, UCAN bridge, on-chain bridge, artifacts, witness/key management.",
+      "allowedImports": ["shared", "platform", "logic.shared", "logic.tdfol", "logic.deontic", "logic.cec", "provers", "zkp"]
+    },
+    "proof-engine": {
+      "targetPath": "src/services/proof-engine",
+      "purpose": "Proof execution, proof trees, proof strategies, caches, explainers, formula dependency graphs, and proof-engine contracts.",
+      "allowedImports": ["shared", "logic.shared", "provers", "proof-engine"]
+    },
+    "integrations": {
+      "targetPath": "src/services/integrations",
+      "purpose": "External/optional integration wrappers: FLogic, ErgoAI, ShadowProver, spaCy WASM, neurosymbolic services, UCAN policy bridges.",
+      "allowedImports": ["shared", "platform", "logic.shared", "logic.fol", "logic.deontic", "logic.tdfol", "logic.modal", "provers", "zkp", "integrations"]
+    },
+    "legacy": {
+      "targetPath": "src/services/legacy",
+      "purpose": "Temporary holding area for sprint bundles and files whose ownership still needs human review before movement.",
+      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs", "logic.shared", "logic.nl", "logic.fol", "logic.tdfol", "logic.cec", "logic.dcec", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp", "proof-engine", "integrations", "legacy"]
+    }
+  },
+  "pathRules": [
+    { "pattern": "src/services/shared/**", "module": "shared" },
+    { "pattern": "src/services/platform/**", "module": "platform" },
+    { "pattern": "src/services/mcp/**", "module": "mcp" },
+    { "pattern": "src/services/glasses/**", "module": "glasses" },
+    { "pattern": "src/services/ipfs/**", "module": "ipfs" },
+    { "pattern": "src/services/logic/shared/**", "module": "logic.shared" },
+    { "pattern": "src/services/logic/nl/**", "module": "logic.nl" },
+    { "pattern": "src/services/logic/fol/**", "module": "logic.fol" },
+    { "pattern": "src/services/logic/tdfol/**", "module": "logic.tdfol" },
+    { "pattern": "src/services/logic/dcec/**", "module": "logic.dcec" },
+    { "pattern": "src/services/logic/cec/**", "module": "logic.cec" },
+    { "pattern": "src/services/logic/deontic/**", "module": "logic.deontic" },
+    { "pattern": "src/services/logic/modal/**", "module": "logic.modal" },
+    { "pattern": "src/services/logic/bridges/**", "module": "logic.bridges" },
+    { "pattern": "src/services/provers/**", "module": "provers" },
+    { "pattern": "src/services/deontic/**", "module": "logic.deontic", "legacyPath": true },
+    { "pattern": "src/services/fol/**", "module": "logic.fol", "legacyPath": true },
+    { "pattern": "src/services/fol-utils/**", "module": "logic.fol", "legacyPath": true },
+    { "pattern": "src/services/zkp/**", "module": "zkp" },
+    { "pattern": "src/services/bridge/**", "module": "logic.bridges", "legacyPath": true },
+    { "pattern": "src/services/mcp-*.ts", "module": "mcp", "legacyRoot": true },
+    { "pattern": "src/services/mcp*.ts", "module": "mcp", "legacyRoot": true },
+    { "pattern": "src/services/mcp*.tsx", "module": "mcp", "legacyRoot": true },
+    { "pattern": "src/services/mcp*.js", "module": "mcp", "legacyRoot": true },
+    { "pattern": "src/services/mcp*.json", "module": "mcp", "legacyRoot": true },
+    { "pattern": "src/services/swissknife-mcp-*.ts", "module": "mcp", "legacyRoot": true },
+    { "pattern": "src/services/meta-glasses-*.ts", "module": "glasses", "legacyRoot": true },
+    { "pattern": "src/services/glasses-*.ts", "module": "glasses", "legacyRoot": true },
+    { "pattern": "src/services/control-surface-*.ts", "module": "glasses", "legacyRoot": true },
+    { "pattern": "src/services/idl-to-glasses-*.ts", "module": "glasses", "legacyRoot": true },
+    { "pattern": "src/services/deployment-readiness-validator.ts", "module": "glasses", "legacyRoot": true },
+    { "pattern": "src/services/ipfs-glasses-*.ts", "module": "glasses", "legacyRoot": true },
+    { "pattern": "src/services/ipfs-*.ts", "module": "ipfs", "legacyRoot": true },
+    { "pattern": "src/services/ipld-*.ts", "module": "ipfs", "legacyRoot": true },
+    { "pattern": "src/services/deontic-*.ts", "module": "logic.deontic", "legacyRoot": true },
+    { "pattern": "src/services/deontological-*.ts", "module": "logic.deontic", "legacyRoot": true },
+    { "pattern": "src/services/compliance-checker.ts", "module": "logic.deontic", "legacyRoot": true },
+    { "pattern": "src/services/document-consistency-checker.ts", "module": "logic.deontic", "legacyRoot": true },
+    { "pattern": "src/services/i18n-conflict-report.ts", "module": "logic.deontic", "legacyRoot": true },
+    { "pattern": "src/services/modal-*.ts", "module": "logic.modal", "legacyRoot": true },
+    { "pattern": "src/services/kripke-*.ts", "module": "logic.modal", "legacyRoot": true },
+    { "pattern": "src/services/ambiguity-resolver.ts", "module": "logic.modal", "legacyRoot": true },
+    { "pattern": "src/services/tdfol-*.ts", "module": "logic.tdfol", "legacyRoot": true },
+    { "pattern": "src/services/temporal-*.ts", "module": "logic.tdfol", "legacyRoot": true },
+    { "pattern": "src/services/cec-*.ts", "module": "logic.cec", "legacyRoot": true },
+    { "pattern": "src/services/event-*.ts", "module": "logic.cec", "legacyRoot": true },
+    { "pattern": "src/services/dcec-*.ts", "module": "logic.dcec", "legacyRoot": true },
+    { "pattern": "src/services/sprint66-dcec-*.ts", "module": "logic.dcec", "legacyRoot": true },
+    { "pattern": "src/services/fol-*.ts", "module": "logic.fol", "legacyRoot": true },
+    { "pattern": "src/services/interactive-fol-*.ts", "module": "logic.fol", "legacyRoot": true },
+    { "pattern": "src/services/symbolic-fol-*.ts", "module": "logic.fol", "legacyRoot": true },
+    { "pattern": "src/services/nlp-predicate-*.ts", "module": "logic.fol", "legacyRoot": true },
+    { "pattern": "src/services/*-parser.ts", "module": "logic.nl", "legacyRoot": true },
+    { "pattern": "src/services/*-nl-*.ts", "module": "logic.nl", "legacyRoot": true },
+    { "pattern": "src/services/nl-*.ts", "module": "logic.nl", "legacyRoot": true },
+    { "pattern": "src/services/grammar-*.ts", "module": "logic.nl", "legacyRoot": true },
+    { "pattern": "src/services/enhanced-grammar-*.ts", "module": "logic.nl", "legacyRoot": true },
+    { "pattern": "src/services/french-parser.ts", "module": "logic.nl", "legacyRoot": true },
+    { "pattern": "src/services/german-parser.ts", "module": "logic.nl", "legacyRoot": true },
+    { "pattern": "src/services/spanish-parser.ts", "module": "logic.nl", "legacyRoot": true },
+    { "pattern": "src/services/portuguese-parser.ts", "module": "logic.nl", "legacyRoot": true },
+    { "pattern": "src/services/bridge-*.ts", "module": "logic.bridges", "legacyRoot": true },
+    { "pattern": "src/services/*-bridge.ts", "module": "logic.bridges", "legacyRoot": true },
+    { "pattern": "src/services/bridge-types.ts", "module": "logic.bridges", "legacyRoot": true },
+    { "pattern": "src/services/logic-*.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/formula-*.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/canonicalization.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/domain-vocabulary.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/legal-*.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/medical-theorem-*.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/cognitive-inference-*.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/reasoning-coordinator.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/symbolic-logic-*.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/hybrid-confidence.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/lemma-generation.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/base-parser.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/embedding-prover.ts", "module": "logic.shared", "legacyRoot": true },
+    { "pattern": "src/services/zkp-*.ts", "module": "zkp", "legacyRoot": true },
+    { "pattern": "src/services/vk-registry.ts", "module": "zkp", "legacyRoot": true },
+    { "pattern": "src/services/witness-manager.ts", "module": "zkp", "legacyRoot": true },
+    { "pattern": "src/services/setup-artifacts.ts", "module": "zkp", "legacyRoot": true },
+    { "pattern": "src/services/sprint67-groth16-*.ts", "module": "zkp", "legacyRoot": true },
+    { "pattern": "src/services/sprint67-crypto-*.ts", "module": "zkp", "legacyRoot": true },
+    { "pattern": "src/services/proof-*.ts", "module": "proof-engine", "legacyRoot": true },
+    { "pattern": "src/services/prover-*.ts", "module": "proof-engine", "legacyRoot": true },
+    { "pattern": "src/services/base-prover-bridge.ts", "module": "proof-engine", "legacyRoot": true },
+    { "pattern": "src/services/external-provers.ts", "module": "provers", "legacyRoot": true },
+    { "pattern": "src/services/cvc5-prover-bridge.ts", "module": "provers", "legacyRoot": true },
+    { "pattern": "src/services/z3-*.ts", "module": "provers", "legacyRoot": true },
+    { "pattern": "src/services/tptp-problem.ts", "module": "provers", "legacyRoot": true },
+    { "pattern": "src/services/shadow-prover*.ts", "module": "integrations", "legacyRoot": true },
+    { "pattern": "src/services/flogic-*.ts", "module": "integrations", "legacyRoot": true },
+    { "pattern": "src/services/ergoai-*.ts", "module": "integrations", "legacyRoot": true },
+    { "pattern": "src/services/spacy-wasm-*.ts", "module": "integrations", "legacyRoot": true },
+    { "pattern": "src/services/neurosymbolic-*.ts", "module": "integrations", "legacyRoot": true },
+    { "pattern": "src/services/ucan-policy-*.ts", "module": "integrations", "legacyRoot": true },
+    { "pattern": "src/services/integration-init.ts", "module": "integrations", "legacyRoot": true },
+    { "pattern": "src/services/claude.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/openai.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/oauth.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/statsig*.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/sentry.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/otel-*.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/prometheus-*.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/observability-*.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/performance-*.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/resource-pool.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/hardware-*.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/browser-acceleration.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/model-streamer.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/feature-detection.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/llm-circuit-breaker.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/notifier.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/utility-monitor.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/webgpu-optimizer.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/security-core.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/structured-logging.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/policy-audit-log.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/submodule-registry.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/registry.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/batch-processor.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/caselaw-bulk-processor.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/e2e-validator.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/browserMocks.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/vcr.ts", "module": "platform", "legacyRoot": true },
+    { "pattern": "src/services/sprint*.ts", "module": "legacy", "legacyRoot": true }
+  ],
+  "migrationTargets": {
+    "maxRootFilesAfterPhase1": 220,
+    "maxRootFilesAfterPhase2": 120,
+    "maxRootFilesAfterPhase3": 40,
+    "maxRootFilesFinal": 20
+  }
+}
