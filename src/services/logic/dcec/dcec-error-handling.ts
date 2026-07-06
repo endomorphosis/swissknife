@@ -7,7 +7,7 @@
  * that should return stable error envelopes instead of throwing raw errors.
  */
 
-import { LogicError } from './logic-errors.js';
+import { LogicError } from '../../logic-errors.js';
 
 export enum DCECErrorCode {
   PARSE_ERROR = 'parse_error',

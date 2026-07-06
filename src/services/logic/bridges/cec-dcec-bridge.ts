@@ -13,7 +13,7 @@ import {
   LegalIRDocument, LogicIRView,
   RoundTripMetrics, ProofGateResult, GraphProjectionResult, BridgeEvaluationReport,
 } from './bridge-types.js';
-import { sha256Hex } from './provers/browser-crypto.js';
+import { sha256Hex } from '../../provers/browser-crypto.js';
 import {
   deonticGraphDataFromFrameTriples,
   type DeonticFrameLogicTriple,

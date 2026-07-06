@@ -13,6 +13,11 @@
 
 import * as fs from 'fs';
 
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as typeof fs | undefined;
+const runtimeFs = nodeFs ?? fs;
+
 export const LOG_SCHEMA_VERSION = '1.0.0';
 
 // ---------------------------------------------------------------------------
@@ -429,7 +434,7 @@ export class LogPerformance {
 
 export function parse_json_log_file(log_file: string): Array<Record<string, unknown>> {
   const records: Array<Record<string, unknown>> = [];
-  const content = fs.readFileSync(log_file, 'utf8');
+  const content = runtimeFs.readFileSync(log_file, 'utf8');
   for (const line of content.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed) continue;

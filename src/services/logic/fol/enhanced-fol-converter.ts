@@ -5,7 +5,7 @@
  * and conversion monitoring around the existing FOL converter.
  */
 
-import { FOLConverter } from '../logic-converters.js';
+import { FOLConverter } from '../../logic-converters.js';
 
 export interface SemanticRole {
   role: 'agent' | 'action' | 'patient' | 'condition';

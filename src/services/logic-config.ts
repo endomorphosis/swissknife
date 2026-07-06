@@ -4,9 +4,14 @@
  * TypeScript port of ipfs_datasets_py/logic/config.py.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import * as fs from 'fs';
 
 import { ConfigurationError } from './logic-errors.js';
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as typeof fs | undefined;
+const runtimeFs = nodeFs ?? fs;
 
 export type ProverOptions = Record<string, unknown>;
 export type ProverMap = Record<string, ProverConfig>;
@@ -222,11 +227,11 @@ export class LogicConfig {
   }
 
   static fromFile(path: string): LogicConfig {
-    if (!existsSync(path)) {
+    if (!runtimeFs.existsSync(path)) {
       throw new ConfigurationError(`Configuration file not found: ${path}`, { path });
     }
     try {
-      return new LogicConfig(parseConfigText(readFileSync(path, 'utf8')));
+      return new LogicConfig(parseConfigText(runtimeFs.readFileSync(path, 'utf8')));
     } catch (error) {
       if (error instanceof ConfigurationError) throw error;
       const message = error instanceof Error ? error.message : String(error);
@@ -248,7 +253,7 @@ export class LogicConfig {
   }
 
   save(path: string): void {
-    writeFileSync(path, JSON.stringify(this.toDict(), null, 2) + '\n', 'utf8');
+    runtimeFs.writeFileSync(path, JSON.stringify(this.toDict(), null, 2) + '\n', 'utf8');
   }
 }
 
@@ -262,7 +267,7 @@ let globalConfig: LogicConfig | null = null;
 export function loadConfig(options: LoadConfigOptions = {}): LogicConfig {
   const env = options.env ?? process.env;
   const path = options.path ?? 'config.yaml';
-  const base = existsSync(path) ? LogicConfig.fromFile(path).toDict() : LogicConfig.defaults().toDict();
+  const base = runtimeFs.existsSync(path) ? LogicConfig.fromFile(path).toDict() : LogicConfig.defaults().toDict();
   return new LogicConfig(applyEnvOverrides(base, env, false));
 }
 
