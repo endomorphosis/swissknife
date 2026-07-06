@@ -28,19 +28,26 @@ const BROWSER_FACING_PROVER_FILES = [
   'src/services/tdfol-cec-bridge.ts',
   'src/services/temporal-deontic-api.ts',
   'src/services/temporal-deontic-rag-store.ts',
-  'src/services/provers/mcp-proof-cache.ts',
-  'src/services/provers/coq-jscoq-bridge.ts',
-  'src/services/provers/lean4-wasm-bridge.ts',
-  'src/services/provers/lurk-wasm-bridge.ts',
-  'src/services/provers/multi-stark-bridge.ts',
+  'src/services/flogic-zkp-integration.ts',
+  'src/services/sprint68-eth-bridge.ts',
   'src/services/zkp-attestation-bridge.ts',
   'src/services/zkp-circuits.ts',
   'src/services/zkp-onchain-pipeline.ts',
   'src/services/zkp-provekit-cache.ts',
   'src/services/zkp-provekit-public-inputs.ts',
+  'src/services/zkp-statement.ts',
+  'src/services/provers/mcp-proof-cache.ts',
+  'src/services/provers/coq-jscoq-bridge.ts',
+  'src/services/provers/lean4-wasm-bridge.ts',
+  'src/services/provers/lurk-wasm-bridge.ts',
+  'src/services/provers/multi-stark-bridge.ts',
   'src/services/zkp/zkp-simulated-prover.ts',
   'src/services/zkp/zkp-ucan-bridge.ts',
+  'src/services/zkp-browser-schnorr.ts',
+  'src/services/zkp/browser-snarkjs-backend.ts',
 ];
+
+const UNIQUE_BROWSER_FACING_PROVER_FILES = [...new Set(BROWSER_FACING_PROVER_FILES)];
 
 const FORBIDDEN_PATTERNS = [
   /from\s+['"]node:(child_process|fs|crypto|path|os)['"]/,
@@ -48,6 +55,7 @@ const FORBIDDEN_PATTERNS = [
   /require\(['"]node:(child_process|fs|crypto|path|os)['"]\)/,
   /\b(execFileSync|spawnSync|appendFileSync|writeFileSync|mkdtempSync|unlinkSync|existsSync|createHash)\b/,
   /\bBuffer\.from\b/,
+  /['"]\.\/zkp-backends(?:\.js)?['"]/,
 ];
 
 const TRANSITIVE_FORBIDDEN_PATTERNS = [
@@ -118,7 +126,7 @@ describe('WASM prover browser purity', () => {
     expect(base64UrlEncode('sphinx-proof')).toBe('c3BoaW54LXByb29m');
   });
 
-  it.each(BROWSER_FACING_PROVER_FILES)('%s has no static Node host dependencies', file => {
+  it.each(UNIQUE_BROWSER_FACING_PROVER_FILES)('%s has no static Node host dependencies', file => {
     const source = readFileSync(resolve(ROOT, file), 'utf8');
     for (const pattern of FORBIDDEN_PATTERNS) {
       expect(source).not.toMatch(pattern);
@@ -142,24 +150,29 @@ describe('WASM prover browser purity', () => {
       import('../../src/services/tdfol-cec-bridge'),
       import('../../src/services/temporal-deontic-api'),
       import('../../src/services/temporal-deontic-rag-store'),
-      import('../../src/services/provers/mcp-proof-cache'),
-      import('../../src/services/provers/coq-jscoq-bridge'),
-      import('../../src/services/provers/lean4-wasm-bridge'),
-      import('../../src/services/provers/lurk-wasm-bridge'),
-      import('../../src/services/provers/multi-stark-bridge'),
+      import('../../src/services/flogic-zkp-integration'),
+      import('../../src/services/sprint68-eth-bridge'),
       import('../../src/services/zkp-attestation-bridge'),
       import('../../src/services/zkp-circuits'),
       import('../../src/services/zkp-onchain-pipeline'),
       import('../../src/services/zkp-provekit-cache'),
       import('../../src/services/zkp-provekit-public-inputs'),
+      import('../../src/services/zkp-statement'),
+      import('../../src/services/provers/mcp-proof-cache'),
+      import('../../src/services/provers/coq-jscoq-bridge'),
+      import('../../src/services/provers/lean4-wasm-bridge'),
+      import('../../src/services/provers/lurk-wasm-bridge'),
+      import('../../src/services/provers/multi-stark-bridge'),
       import('../../src/services/zkp/zkp-simulated-prover'),
       import('../../src/services/zkp/zkp-ucan-bridge'),
+      import('../../src/services/zkp-browser-schnorr'),
+      import('../../src/services/zkp/browser-snarkjs-backend'),
     ]);
   });
 
   it('has no static Node host dependencies in transitive service imports', () => {
-    const files = reachableServiceFiles(BROWSER_FACING_PROVER_FILES);
-    expect(files.length).toBeGreaterThanOrEqual(BROWSER_FACING_PROVER_FILES.length);
+    const files = reachableServiceFiles(UNIQUE_BROWSER_FACING_PROVER_FILES);
+    expect(files.length).toBeGreaterThanOrEqual(UNIQUE_BROWSER_FACING_PROVER_FILES.length);
     for (const file of files) {
       const source = readFileSync(file, 'utf8');
       for (const pattern of TRANSITIVE_FORBIDDEN_PATTERNS) {

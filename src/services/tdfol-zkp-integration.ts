@@ -4,12 +4,15 @@
  * Port of ipfs_datasets_py/logic/TDFOL/zkp_integration.py
  *
  * Provides a unified prover that combines standard TDFOL proving with
- * zero-knowledge proof generation, including a simulated ZKP backend
- * for testing and a real Groth16 interface for production.
- *
- * Security note: The SimulatedZKPBackend is NOT cryptographically secure.
- * Do not use it in production systems that require real zero-knowledge proofs.
+ * zero-knowledge proof generation through an injected or browser-native ZKP
+ * backend. The default ZKP backend is a browser/WASM Schnorr Fiat-Shamir proof
+ * of knowledge; it is not a Groth16 semantic circuit.
  */
+
+import { BrowserSchnorrZkpBackend, BROWSER_SCHNORR_BACKEND_ID } from './zkp-browser-schnorr.js';
+import { TDFOLKnowledgeBase } from './tdfol-core.js';
+import { parseTdfolSafe } from './tdfol-parser.js';
+import { ProofStatus, TDFOLProver } from './tdfol-prover.js';
 
 // ---------------------------------------------------------------------------
 // Proof result types
@@ -21,6 +24,7 @@ export interface ZKPProofData {
   readonly publicInputs: unknown[];
   readonly backend: string;
   readonly securityLevel: number;
+  readonly metadata?: Record<string, unknown>;
 }
 
 /** Unified proof result covering both standard TDFOL and ZKP paths. */
@@ -57,40 +61,40 @@ export interface UnifiedProofResult {
   metadata: Record<string, unknown>;
 }
 
-// ---------------------------------------------------------------------------
-// Simulated ZKP backend (educational/testing only)
-// ---------------------------------------------------------------------------
+export interface TDFOLZKPBackend {
+  readonly backendId: string;
+  readonly securityLevel: number;
+  prove(formulaText: string, options?: { privateAxioms?: boolean; timeout?: number }): Promise<ZKPProofData>;
+  verify(proof: ZKPProofData, formulaText: string): Promise<boolean>;
+}
 
-/** Simulated ZKP prover — NOT cryptographically secure. For testing only. */
-class SimulatedZKPBackend {
-  constructor(
-    private readonly securityLevel: number,
-    private readonly backend: string,
-  ) {}
+class BrowserSchnorrTDFOLBackend implements TDFOLZKPBackend {
+  readonly backendId = BROWSER_SCHNORR_BACKEND_ID;
+  readonly securityLevel = 128;
+  private readonly backend = new BrowserSchnorrZkpBackend();
 
   async prove(formulaText: string): Promise<ZKPProofData> {
-    // Simulate proof generation latency
-    await new Promise(resolve => setTimeout(resolve, 5));
-    // Produce a deterministic pseudo-proof for testing
-    const encoder = new TextEncoder();
-    const encoded = encoder.encode(`zkp:${this.backend}:${formulaText}`);
+    const proof = await this.backend.generateProof(JSON.stringify({
+      statement: formulaText,
+      publicInputs: { formulaLength: formulaText.length },
+      privateWitness: { formulaText },
+    }));
+    const payload = proof.payload();
     return {
-      proofBytes: encoded,
-      publicInputs: [formulaText.length],
-      backend: this.backend,
+      proofBytes: proof.proofData,
+      publicInputs: [payload.publicInputs, payload.publicKey],
+      backend: this.backendId,
       securityLevel: this.securityLevel,
+      metadata: proof.metadata,
     };
   }
 
-  async verify(proof: ZKPProofData, formula: string): Promise<boolean> {
-    // Simulated verification — always passes for matching formula
-    const encoder = new TextEncoder();
-    const expected = encoder.encode(`zkp:${this.backend}:${formula}`);
-    if (proof.proofBytes.length !== expected.length) return false;
-    for (let i = 0; i < expected.length; i++) {
-      if (proof.proofBytes[i] !== expected[i]) return false;
-    }
-    return true;
+  async verify(proof: ZKPProofData, formulaText: string): Promise<boolean> {
+    if (proof.backend !== this.backendId) return false;
+    const proofText = bytesToString(proof.proofBytes);
+    const parsed = JSON.parse(proofText) as { statement?: unknown };
+    if (parsed.statement !== formulaText) return false;
+    return this.backend.verifyProof(proofText);
   }
 }
 
@@ -105,11 +109,15 @@ export interface ZKPTDFOLProverOptions {
    */
   enableZkp?: boolean;
   /**
-   * ZKP backend identifier.  Only 'simulated' is provided by this module;
-   * real Groth16 requires an external library.
-   * @default 'simulated'
+   * ZKP backend identifier.
+   * @default 'browser-schnorr-wasm'
    */
   zkpBackend?: string;
+  /**
+   * Optional real ZKP backend. If omitted and ZKP is enabled, the browser/WASM
+   * Schnorr backend is used.
+   */
+  zkpEngine?: TDFOLZKPBackend;
   /**
    * Security bits for the ZKP backend.
    * @default 128
@@ -211,7 +219,7 @@ export interface ZKPTDFOLProverStats {
  * ```ts
  * const prover = new ZKPTDFOLProver({
  *   enableZkp: true,
- *   zkpBackend: 'simulated',
+ *   zkpBackend: 'browser-schnorr-wasm',
  *   zkpFallback: 'standard',
  * });
  * const result = await prover.prove('P(x) ∧ Q(x)', { preferZkp: true });
@@ -223,7 +231,7 @@ export class ZKPTDFOLProver {
   private readonly zkpBackend: string;
   private readonly zkpSecurityLevel: number;
   private readonly zkpFallback: 'standard' | 'none';
-  private readonly zkpEngine: SimulatedZKPBackend | null;
+  private readonly zkpEngine: TDFOLZKPBackend | null;
   private readonly cache: ProofCache | null;
 
   private readonly stats: ZKPTDFOLProverStats = {
@@ -237,21 +245,21 @@ export class ZKPTDFOLProver {
 
   constructor(opts: ZKPTDFOLProverOptions = {}) {
     this.enableZkp = opts.enableZkp ?? false;
-    this.zkpBackend = opts.zkpBackend ?? 'simulated';
-    this.zkpSecurityLevel = opts.zkpSecurityLevel ?? 128;
+    this.zkpEngine = this.enableZkp ? (opts.zkpEngine ?? new BrowserSchnorrTDFOLBackend()) : null;
+    this.zkpBackend = opts.zkpBackend ?? this.zkpEngine?.backendId ?? BROWSER_SCHNORR_BACKEND_ID;
+    this.zkpSecurityLevel = opts.zkpSecurityLevel ?? this.zkpEngine?.securityLevel ?? 128;
     this.zkpFallback = opts.zkpFallback ?? 'standard';
     const enableCache = opts.enableCache ?? true;
 
-    if (this.enableZkp && this.zkpBackend !== 'simulated') {
-      throw new Error(
-        `ZKP backend '${this.zkpBackend}' requires an external cryptography library. ` +
-        `Only 'simulated' is available in this module.`,
-      );
+    if (this.enableZkp && opts.zkpBackend && !opts.zkpEngine && opts.zkpBackend !== BROWSER_SCHNORR_BACKEND_ID) {
+      throw new Error(`ZKP backend '${opts.zkpBackend}' requires an injected real TDFOLZKPBackend.`);
     }
 
-    this.zkpEngine = this.enableZkp
-      ? new SimulatedZKPBackend(this.zkpSecurityLevel, this.zkpBackend)
-      : null;
+    if (this.enableZkp && !this.zkpEngine) {
+      throw new Error(
+        `ZKP backend '${this.zkpBackend}' is unavailable. Inject a real TDFOLZKPBackend.`,
+      );
+    }
 
     this.cache = enableCache ? new ProofCache(10_000, 3_600_000) : null;
   }
@@ -332,11 +340,13 @@ export class ZKPTDFOLProver {
 
   private async _proveWithZkp(formulaText: string, t0: number, isPrivate: boolean): Promise<UnifiedProofResult> {
     if (!this.zkpEngine) throw new Error('ZKP engine unavailable');
-    const proof = await this.zkpEngine.prove(formulaText);
+    const proof = await this.zkpEngine.prove(formulaText, { privateAxioms: isPrivate });
+    const verified = await this.zkpEngine.verify(proof, formulaText);
+    if (!verified) throw new Error(`ZKP proof failed verification for backend ${proof.backend}`);
     const proofTime = (performance.now() - t0) / 1000;
     this.stats.totalTimeMs += performance.now() - t0;
     return {
-      isProved: true,
+      isProved: verified,
       formula: formulaText,
       method: 'tdfol_zkp',
       proofTime,
@@ -348,20 +358,41 @@ export class ZKPTDFOLProver {
       securityLevel: this.zkpSecurityLevel,
       cacheHit: false,
       cacheCid: null,
-      metadata: { backend: this.zkpBackend },
+      metadata: { backend: this.zkpBackend, proofMetadata: proof.metadata ?? {} },
     };
   }
 
   private _proveStandard(formulaText: string, t0: number): UnifiedProofResult {
-    // Minimal forward-chaining simulation (real implementation would call TDFOLProver)
-    const proofSteps = [`assume(${formulaText})`, `apply_modus_ponens`, `qed`];
-    const inferenceRules = ['modus_ponens', 'universal_instantiation'];
+    const parsed = parseTdfolSafe(formulaText);
     const elapsed = performance.now() - t0;
     this.stats.totalTimeMs += elapsed;
+    if (!parsed) {
+      return {
+        isProved: false,
+        formula: formulaText,
+        method: 'failed',
+        proofTime: elapsed / 1000,
+        proofSteps: [],
+        inferenceRules: [],
+        zkpProof: null,
+        isPrivate: false,
+        backend: null,
+        securityLevel: 0,
+        cacheHit: false,
+        cacheCid: null,
+        metadata: { error: 'TDFOL parse failed' },
+      };
+    }
+    const kb = new TDFOLKnowledgeBase();
+    kb.addAxiom(parsed);
+    const proved = new TDFOLProver(kb, { strategySelector: null }).prove(parsed);
+    const isProved = proved.status === ProofStatus.PROVED;
+    const proofSteps = proved.proofSteps.map(step => `${step.justification}: ${step.formula.toStr()}`);
+    const inferenceRules = proved.proofSteps.map(step => step.justification);
     return {
-      isProved: true,
+      isProved,
       formula: formulaText,
-      method: 'tdfol_standard',
+      method: isProved ? 'tdfol_standard' : 'failed',
       proofTime: elapsed / 1000,
       proofSteps,
       inferenceRules,
@@ -371,7 +402,12 @@ export class ZKPTDFOLProver {
       securityLevel: 0,
       cacheHit: false,
       cacheCid: null,
-      metadata: {},
+      metadata: { nativeStatus: proved.status, nativeMethod: proved.method, message: proved.message ?? null },
     };
   }
+}
+
+function bytesToString(bytes: Uint8Array): string {
+  if (typeof TextDecoder !== 'undefined') return new TextDecoder().decode(bytes);
+  return Array.from(bytes, byte => String.fromCharCode(byte)).join('');
 }

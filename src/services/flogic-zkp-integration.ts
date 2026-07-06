@@ -6,8 +6,27 @@
  * development do not require native prover binaries.
  */
 
-import { createHash } from 'node:crypto';
-import { Groth16Backend, Groth16Proof, ZKPBackendProtocol } from './zkp-backends.js';
+import { sha256Hex } from './provers/browser-crypto.js';
+
+export interface ZKPProofLike {
+  toDict(): Record<string, unknown>;
+  readonly metadata: Record<string, unknown>;
+}
+
+export interface ZKPBackendProtocol {
+  generateProof(witnessJson: string, seed?: number): Promise<ZKPProofLike>;
+  verifyProof(proofJson: string): Promise<boolean>;
+}
+
+class MissingZKPBackend implements ZKPBackendProtocol {
+  async generateProof(): Promise<ZKPProofLike> {
+    throw new Error('Groth16 native backend unavailable. Inject a browser/WASM backend or set allowSimulatedFallback:true only in explicit tests.');
+  }
+
+  async verifyProof(): Promise<boolean> {
+    return false;
+  }
+}
 
 export interface FLogicFrameFact {
   subject: string;
@@ -70,7 +89,7 @@ export class FLogicZKPIntegration {
   private readonly stats: FLogicZKPStats = { proofsGenerated: 0, proofsVerified: 0, failures: 0 };
   private readonly transpiler = new FLogicCircuitTranspiler();
 
-  constructor(private readonly backend: ZKPBackendProtocol = new Groth16Backend(null)) {}
+  constructor(private readonly backend: ZKPBackendProtocol = new MissingZKPBackend()) {}
 
   async proveWithZkp(frames: string | FLogicFrameFact[], query: string): Promise<FLogicZKPResult> {
     const started = performance.now();
@@ -158,7 +177,7 @@ function normalizeSymbol(value: string): string {
 }
 
 function sha256(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex');
+  return sha256Hex(value);
 }
 
-export { Groth16Proof };
+export type Groth16Proof = ZKPProofLike;

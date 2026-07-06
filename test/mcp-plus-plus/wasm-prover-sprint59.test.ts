@@ -193,11 +193,11 @@ describe('ShadowProverWrapper', () => {
 describe('ZKPToUCANBridge', () => {
   const bridge = new ZKPToUCANBridge(new Groth16BackendFallback());
 
-  test('fails closed by default when no native backend is configured', async () => {
+  test('uses the browser Schnorr backend by default', async () => {
     const strictBridge = new ZKPToUCANBridge();
     const r = await strictBridge.bridge('O(pay)', ['pay', 'transfer'], 'did:key:alice');
-    expect(r.success).toBe(false);
-    expect(r.error).toContain('allowSimulatedFallback:true');
+    expect(r.success).toBe(true);
+    expect(r.evidence?.proof.metadata).toMatchObject({ backend: 'browser-schnorr-wasm' });
   });
 
   test('bridge returns success result', async () => {

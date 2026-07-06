@@ -6,7 +6,7 @@
  *           zkp/evm_public_inputs.py (106L)
  */
 
-import { createHash } from 'crypto';
+import { bytesToHex, sha256Hex, utf8Bytes } from './provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // T-315a — ETH VK Registry Payloads (eth_vk_registry_payloads.py)
@@ -26,7 +26,7 @@ export function vkHashHexToBytes32(vkHashHex: string): string {
 }
 
 export function circuitIdTextToBytes32(circuitIdText: string): string {
-  const hash = createHash('sha256').update(circuitIdText, 'utf8').digest('hex');
+  const hash = sha256Hex(circuitIdText);
   return '0x' + normalizeBytes32Hex(hash);
 }
 
@@ -46,7 +46,7 @@ export function buildRegisterVkPayload(circuitId: string, vk: unknown, vkHashHex
 
 export function buildRegisterVkCalldata(payload: RegisterVKPayload): string {
   // ABI-encode the payload as a hex string (simplified)
-  const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('hex');
+  const encoded = bytesToHex(utf8Bytes(JSON.stringify(payload)));
   return '0x' + encoded;
 }
 
@@ -139,7 +139,7 @@ export function bytes32HexToIntModFr(bytes32Hex: string): bigint {
 }
 
 export function hashTextToFieldSha256(text: string): string {
-  const hash = createHash('sha256').update(text, 'utf8').digest('hex');
+  const hash = sha256Hex(text);
   const val  = bytes32HexToIntModFr(hash);
   return intTo0x32(val);
 }

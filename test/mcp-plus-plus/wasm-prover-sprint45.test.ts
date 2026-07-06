@@ -268,13 +268,13 @@ describe('ZKPTDFOLProver — standard mode', () => {
 });
 
 describe('ZKPTDFOLProver — ZKP mode', () => {
-  test('produces ZKP proof with simulated backend', async () => {
+  test('produces ZKP proof with browser Schnorr backend', async () => {
     const prover = new ZKPTDFOLProver({ enableZkp: true });
     const result = await prover.prove('P(x)', { preferZkp: true });
     expect(result.isProved).toBe(true);
     expect(result.method).toBe('tdfol_zkp');
     expect(result.zkpProof).not.toBeNull();
-    expect(result.backend).toBe('simulated');
+    expect(result.backend).toBe('browser-schnorr-wasm');
   });
 
   test('verifyZkp returns true for matching proof', async () => {

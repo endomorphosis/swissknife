@@ -16,10 +16,19 @@
  * Reference: ipfs_datasets_py/logic/zkp/zkp_prover.py §ZKPProver (simulation path)
  */
 
-import type { ZkpSimulatedProof } from './zkp-types.js';
 import { base64UrlEncode, sha256Hex } from '../provers/browser-crypto.js';
 
 export const ZKP_SIMULATED_VERIFIER_ID = 'simulated-zkp-v0.1' as const;
+
+export interface ZkpSimulatedProof {
+  readonly statement: string;
+  readonly proof_b64: string;
+  readonly proof_hash: string;
+  readonly statement_cid: string;
+  readonly axiom_hashes: string[];
+  readonly proof_time_ms: number;
+  readonly verifier_id: typeof ZKP_SIMULATED_VERIFIER_ID;
+}
 
 // Maximum proof bytes (mirrors Python <500B target)
 const MAX_PROOF_BYTES = 256;

@@ -32,7 +32,9 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/src/$1.ts",
     "^@test-helpers/(.*)$": "<rootDir>/test/helpers/$1",
     "../utils/test-helpers": "<rootDir>/test/utils/test-helpers.ts",
+    "^(ffjavascript)$": "<rootDir>/node_modules/ffjavascript/build/main.cjs",
     "^(merkletreejs)$": "<rootDir>/node_modules/merkletreejs/dist/esm/index.js",
+    "^(snarkjs)$": "<rootDir>/node_modules/snarkjs/build/main.cjs",
     "^(zod)$": "<rootDir>/node_modules/zod/dist/esm/index.js",
     "^(\\.{1,2}/.+)\\.js$": "$1"
   },

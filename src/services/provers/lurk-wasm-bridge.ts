@@ -50,7 +50,7 @@ const DEFAULT_LURK_WASM_PACKAGE = 'lurk-wasm';
  */
 export interface ZKProofArtifact {
   /** ZK proof system backend. */
-  backend: 'lurk' | 'nova' | 'sphinx' | 'plonky3' | 'circom';
+  backend: 'lurk' | 'nova' | 'sphinx' | 'plonky3' | 'circom' | 'browser-schnorr' | 'browser-schnorr-wasm';
   /** The proposition that was proved (human-readable). */
   statement: string;
   /** Serialised proof bytes as a base64url string. */

@@ -1,10 +1,15 @@
 import { sha256Hex } from '../provers/browser-crypto.js';
-import { Groth16Proof, type ZKPBackendProtocol } from '../zkp-backends.js';
+
+export interface ZKPBackendProtocol {
+  generateProof(witnessJson: string, seed?: number): Promise<BrowserSnarkjsProof>;
+  verifyProof(proofJson: string): Promise<boolean>;
+}
 
 export interface BrowserSnarkjsBackendOptions {
   wasmPath?: string;
   zkeyPath?: string;
   verificationKeyPath?: string;
+  verificationKey?: Record<string, unknown>;
 }
 
 interface SnarkJsModule {
@@ -22,6 +27,33 @@ interface SnarkJsModule {
   };
 }
 
+export class BrowserSnarkjsProof {
+  constructor(
+    public readonly proofData: Uint8Array,
+    public readonly publicInputs: Record<string, unknown>,
+    public readonly metadata: Record<string, unknown>,
+    public readonly timestamp: number,
+    public readonly sizeBytes: number,
+    public readonly proof?: unknown,
+    public readonly publicSignals?: unknown,
+  ) {}
+
+  toDict(): Record<string, unknown> {
+    const proofData = bytesToHex(this.proofData);
+    return {
+      proofData,
+      proof_hash: sha256Hex(this.proofData),
+      is_proved: this.proofData.length > 0,
+      publicInputs: this.publicInputs,
+      metadata: this.metadata,
+      timestamp: this.timestamp,
+      sizeBytes: this.sizeBytes,
+      proof: this.proof,
+      publicSignals: this.publicSignals,
+    };
+  }
+}
+
 const DEFAULT_BROWSER_ZKP_WASM_PATH = '/assets/zkp/groth16/circuit.wasm';
 const DEFAULT_BROWSER_ZKP_ZKEY_PATH = '/assets/zkp/groth16/circuit_final.zkey';
 const DEFAULT_BROWSER_ZKP_VK_PATH = '/assets/zkp/groth16/verification_key.json';
@@ -37,15 +69,16 @@ export class BrowserSnarkjsGroth16Backend implements ZKPBackendProtocol {
     this.wasmPath = String(options.wasmPath ?? DEFAULT_BROWSER_ZKP_WASM_PATH);
     this.zkeyPath = String(options.zkeyPath ?? DEFAULT_BROWSER_ZKP_ZKEY_PATH);
     this.verificationKeyPath = String(options.verificationKeyPath ?? DEFAULT_BROWSER_ZKP_VK_PATH);
+    this.verificationKey = options.verificationKey;
   }
 
-  async generateProof(witnessJson: string): Promise<Groth16Proof> {
+  async generateProof(witnessJson: string): Promise<BrowserSnarkjsProof> {
     const snarkjs = await this.loadSnarkjs();
     const witness = parseWitness(witnessJson);
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(witness, this.wasmPath, this.zkeyPath);
     const proofJson = JSON.stringify({ proof, publicSignals });
     const proofBytes = new TextEncoder().encode(proofJson);
-    return new Groth16Proof(
+    return new BrowserSnarkjsProof(
       proofBytes,
       { publicSignals },
       {
@@ -56,12 +89,14 @@ export class BrowserSnarkjsGroth16Backend implements ZKPBackendProtocol {
       },
       Date.now(),
       proofBytes.length,
+      proof,
+      publicSignals,
     );
   }
 
   async verifyProof(proofJson: string): Promise<boolean> {
     const snarkjs = await this.loadSnarkjs();
-    const parsed = JSON.parse(proofJson) as Record<string, unknown>;
+    const parsed = normalizeProofEnvelope(JSON.parse(proofJson) as Record<string, unknown>);
     const publicSignals = parsed.publicSignals ?? parsed.public_inputs ?? parsed.inputs;
     const proof = parsed.proof ?? parsed.pi_a ?? parsed.proofData;
     if (!publicSignals || !proof) return false;
@@ -99,6 +134,40 @@ export class BrowserSnarkjsGroth16Backend implements ZKPBackendProtocol {
   }
 }
 
+function bytesToHex(input: Uint8Array): string {
+  let out = '';
+  for (const byte of input) out += byte.toString(16).padStart(2, '0');
+  return out;
+}
+
+function hexToBytes(input: string): Uint8Array {
+  const clean = input.startsWith('0x') ? input.slice(2) : input;
+  if (!/^[0-9a-fA-F]*$/.test(clean) || clean.length % 2 !== 0) {
+    throw new Error('invalid hex proof data');
+  }
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = Number.parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+
+function bytesToString(input: Uint8Array): string {
+  if (typeof TextDecoder !== 'undefined') return new TextDecoder().decode(input);
+  return Array.from(input, byte => String.fromCharCode(byte)).join('');
+}
+
+function normalizeProofEnvelope(parsed: Record<string, unknown>): Record<string, unknown> {
+  if (parsed.proof && parsed.publicSignals) return parsed;
+  if (typeof parsed.proofData === 'string') {
+    try {
+      const decoded = JSON.parse(bytesToString(hexToBytes(parsed.proofData))) as Record<string, unknown>;
+      return { ...decoded, ...parsed };
+    } catch {
+      return parsed;
+    }
+  }
+  return parsed;
+}
+
 function parseWitness(witnessJson: string): Record<string, unknown> {
   const parsed = JSON.parse(witnessJson) as unknown;
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -106,4 +175,3 @@ function parseWitness(witnessJson: string): Record<string, unknown> {
   }
   return parsed as Record<string, unknown>;
 }
-

@@ -4,7 +4,6 @@
  * Mirrors ipfs_datasets_py/logic/zkp/ucan_zkp_bridge.py types:
  *   `ZKPCapabilityEvidence` (the UCAN caveat payload)
  *   `ZkpBridgeResult` (the full bridge operation result)
- *   `ZkpSimulatedProof` (a compact simulated proof, NOT real Groth16)
  *
  * Sprint 11, T-68.
  * Reference: ipfs_datasets_py/logic/zkp/ucan_zkp_bridge.py §ZKPCapabilityEvidence
@@ -14,10 +13,10 @@
 // Verifier IDs
 // ---------------------------------------------------------------------------
 
-/** Known ZKP verifier IDs — mirrors Python SIMULATED_VERIFIER_ID / GROTH16_VERIFIER_ID. */
+/** Known production ZKP verifier IDs. */
 export type ZkpVerifierId =
-  | 'simulated-zkp-v0.1'    // Simulation only — NOT cryptographically secure
   | 'groth16-bn254-v0.1'    // Real Groth16 over BN254 (requires artifacts)
+  | 'browser-schnorr-zkp-v0.1' // Browser/WASM Schnorr Fiat-Shamir proof of knowledge
   | 'sphinx-zkp-v0.1'       // Sphinx/SP1 backend (via ix CLI)
   | 'lurk-nova-v0.1'        // Lurk + Nova backend
   | 'lurk-plonky3-v0.1';    // Lurk + Plonky3 backend
@@ -33,9 +32,8 @@ export type ZkpVerifierId =
  * (`ucan_zkp_bridge.py:119`). The `type: "zkp_evidence"` field is the UCAN caveat
  * discriminator, allowing downstream verifiers to recognize and validate the caveat.
  *
- * The `is_simulation` flag MUST be checked by any consumer before trusting the proof:
- * - `true`  → simulated hash-based proof; NOT cryptographically binding.
- * - `false` → real Groth16/Sphinx/Lurk proof; verifiable against `vk_cid`.
+ * The `is_simulation` flag is retained for rejecting legacy caveats. Production
+ * bridge code emits `false` only.
  */
 export interface ZkpCapabilityEvidence {
   /** UCAN caveat discriminator. */
@@ -50,33 +48,6 @@ export interface ZkpCapabilityEvidence {
   readonly public_inputs: Record<string, unknown>;
   /** True when this is a simulated proof — NOT real cryptography. */
   readonly is_simulation: boolean;
-}
-
-// ---------------------------------------------------------------------------
-// ZkpSimulatedProof — output of ZkpSimulatedProver
-// ---------------------------------------------------------------------------
-
-/**
- * A compact simulated ZKP proof.
- *
- * Mirrors the non-Groth16 path of `ZKPProver` in `zkp_prover.py`.
- * Size < 500 bytes; generation < 1ms. NOT cryptographically secure.
- */
-export interface ZkpSimulatedProof {
-  /** The theorem that was "proved". */
-  readonly statement: string;
-  /** Deterministic proof bytes encoded as base64url. */
-  readonly proof_b64: string;
-  /** SHA-256 hex digest of `proof_b64`. */
-  readonly proof_hash: string;
-  /** Content-ID of the statement string. */
-  readonly statement_cid: string;
-  /** Private axioms that were "used" (only their hashes are revealed). */
-  readonly axiom_hashes: string[];
-  /** Generation time in milliseconds (always fast for simulation). */
-  readonly proof_time_ms: number;
-  /** Verifier ID: always 'simulated-zkp-v0.1' for this prover. */
-  readonly verifier_id: 'simulated-zkp-v0.1';
 }
 
 // ---------------------------------------------------------------------------

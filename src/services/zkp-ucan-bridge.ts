@@ -3,7 +3,14 @@
  * Port of zkp/ucan_zkp_bridge.py (592L)
  */
 
-import { Groth16Backend, type ZKPBackendProtocol } from './zkp-backends';
+import { BrowserSchnorrZkpBackend } from './zkp-browser-schnorr.js';
+
+export interface ZKPBackendProtocol {
+  generateProof(witnessJson: string, seed?: number): Promise<{
+    toDict(): Record<string, unknown>;
+  }>;
+  verifyProof(proofJson: string): Promise<boolean>;
+}
 
 export interface ZKPCapabilityEvidence {
   proof:        Record<string, unknown>;
@@ -29,7 +36,7 @@ export class ZKPToUCANBridge {
   private readonly backend: ZKPBackendProtocol;
   private readonly stats: ZKPUCANBridgeStats = { totalBridged: 0, succeeded: 0, failed: 0, verified: 0 };
 
-  constructor(backend: ZKPBackendProtocol = new Groth16Backend(null)) {
+  constructor(backend: ZKPBackendProtocol = new BrowserSchnorrZkpBackend()) {
     this.backend = backend;
   }
 

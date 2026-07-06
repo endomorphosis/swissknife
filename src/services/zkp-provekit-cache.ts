@@ -103,7 +103,7 @@ export function buildProveKitIpfsPayload(
     publicArtifactRefs.verifier_key_ref = options.verifierKeyRef;
   }
 
-  const bytes = proofDataToBuffer(proofData);
+  const bytes = proofDataToBytes(proofData);
   const payload: Record<string, unknown> = {
     schema: PROVEKIT_IPFS_PAYLOAD_SCHEMA,
     backend_id: String(proofMetadata.backend ?? 'provekit'),

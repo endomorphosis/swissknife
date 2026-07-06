@@ -1,9 +1,9 @@
 /**
  * mcp-remote-deontic-engine.ts
  *
- * Round 51 — delegate HARD deontic proofs to the Python `ipfs_datasets_py`
- * formal-logic engine over the MCP++ libp2p connector, complementing the local
- * TypeScript `PolicyEngine` (Profile D) and the Deontic Interface Broker.
+ * Deprecated compatibility adapter for the Python `ipfs_datasets_py`
+ * formal-logic engine over the MCP++ libp2p connector. New browser-facing
+ * theorem-prover paths must use the local TypeScript/WASM provers instead.
  *
  * The local `PolicyEngine` / `checkPolicyConsistency()` cover the cheap,
  * common fragment (exact permit/prohibit clashes, obligation-vs-prohibition
@@ -25,7 +25,9 @@
  *   - `logic_health`              — availability probe
  *
  * Everything degrades safely: when the remote engine is unavailable or errors,
- * callers keep the authoritative local decision (fail-safe to local).
+ * callers keep the authoritative local decision (fail-safe to local). Treat
+ * this module as an optional migration bridge, not as proof of self-contained
+ * browser support.
  *
  * See also:
  *   - mcp-policy.ts                        (Profile D — Policy / PolicyEngine)
