@@ -39,7 +39,7 @@ import {
   type Prohibition,
   type Obligation,
   type ActiveObligation,
-} from '../logic/deontic/mcp-policy.js';
+} from './mcp-policy.js';
 import type { GeneratedUIPolicyDecision } from './mcp-schema-ui-generator.js';
 
 export interface IDLMethodSchema {

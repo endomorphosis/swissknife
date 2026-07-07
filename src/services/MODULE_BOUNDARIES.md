@@ -110,10 +110,11 @@ Run:
 npm run services:audit
 ```
 
-The audit reports root-file debt, module classification, unknown files, and
-cross-module imports. The npm script is strict by default and fails on root-file
-debt, unknown files, and forbidden cross-module imports. To inspect the report
-without the npm script defaults, run:
+The audit reports root-file debt, legacy root import specifiers, module
+classification, unknown files, and cross-module imports. The npm script is
+strict by default and fails on root-file debt, legacy root imports, unknown
+files, and forbidden cross-module imports. To inspect the report without the
+npm script defaults, run:
 
 ```bash
 node scripts/audit-services-modules.mjs
@@ -121,12 +122,13 @@ node scripts/audit-services-modules.mjs
 
 Current baseline after removing root service compatibility shims, migrating the
 old `bridge`, `deontic`, `fol`, and `fol-utils` namespace folders into
-module-owned paths, relocating the remaining sprint bundles out of `legacy`,
-collapsing the remaining FOL `utils` namespace, moving TDFOL/DCEC formula
-types, policy translators, and domain processors into logic-owned modules,
-retargeting downstream imports, reconciling the strict dependency manifest,
-promoting browser-safe crypto primitives into `shared`, and moving MCP EventDAG
-provenance into `mcp`
+module-owned paths, relocating and behavior-renaming the remaining numbered
+implementation bundles, collapsing the remaining FOL `utils` namespace, moving
+TDFOL/DCEC formula types, policy translators, and domain processors into
+logic-owned modules, retargeting downstream imports, reconciling the strict
+dependency manifest, promoting browser-safe crypto primitives into `shared`,
+moving MCP EventDAG provenance into `mcp`, and adding an audit gate for active
+root-level service import specifiers
 on `2026-07-06`:
 
 | Metric | Count |
@@ -138,8 +140,9 @@ on `2026-07-06`:
 | Legacy root files | 0 |
 | Legacy path files | 0 |
 | Unknown files | 0 |
-| Import edges | 757 |
+| Import edges | 760 |
 | Forbidden cross-module imports | 0 |
+| Legacy root import specifiers | 0 |
 
 The final acceptance target is satisfied for root files: only
 `MODULE_BOUNDARIES.md` and `module-ownership.json` remain directly under

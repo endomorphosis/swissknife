@@ -1,5 +1,5 @@
 /**
- * Sprint 67 — NLP Types: Portuguese Parser + Deontic Reasoning Types + FLogic Types
+ * Portuguese Deontic and F-Logic Types
  * Ports of: CEC/nl/portuguese_parser.py (181L),
  *           integration/reasoning/deontological_reasoning_types.py (164L),
  *           flogic/flogic_types.py (144L)

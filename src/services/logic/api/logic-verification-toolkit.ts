@@ -1,5 +1,5 @@
 /**
- * Sprint 65 — Utilities, Cleaning, Reasoning Utils, Witness Manager, E-Prover
+ * Logic Verification Toolkit — Utilities, Cleaning, Reasoning Utils, Witness Manager, E-Prover
  * Ports of: integration/reasoning/logic_verification_utils.py (336L),
  *           CEC/native/dcec_cleaning.py (304L),
  *           integration/reasoning/deontological_reasoning_utils.py (303L),

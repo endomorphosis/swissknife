@@ -1,5 +1,5 @@
 /**
- * Sprint 67 — Crypto Utils: Canonicalization + Feature Detection + Rate Limiting + VK Registry + Legal Theorem Semantics
+ * ZKP Canonicalization Runtime — Feature Detection + Rate Limiting + VK Registry + Legal Theorem Semantics
  * Ports of: zkp/canonicalization.py (181L),
  *           common/feature_detection.py (180L),
  *           security/rate_limiting.py (159L),

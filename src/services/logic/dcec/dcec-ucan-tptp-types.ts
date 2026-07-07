@@ -1,5 +1,5 @@
 /**
- * Sprint 66 — DCEC Types + TPTP Utils + DCEC-to-UCAN Bridge
+ * DCEC UCAN and TPTP Types
  * Ports of: CEC/native/dcec_types.py (385L),
  *           CEC/provers/tptp_utils.py (259L),
  *           CEC/nl/dcec_to_ucan_bridge.py (257L)
@@ -158,7 +158,7 @@ export class DCECToUCANBridge {
   }
 }
 
-// PORT-002: This legacy sprint module is now a compatibility facade.
+// PORT-002: This legacy DCEC helper module is now a compatibility facade.
 // Canonical DCEC operator/type metadata lives in dcec-core-types.ts.
 export {
   canonicalDcecTypeManifest,

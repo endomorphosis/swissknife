@@ -1,5 +1,5 @@
 /**
- * Sprint 68 — Prover Wrappers
+ * External Prover Wrappers
  * Ports of: external_provers/talos_wrapper.py (379L),
  *           CEC/nl/eng_dcec_wrapper.py (345L),
  *           CEC/native/dcec_wrapper.py (314L),

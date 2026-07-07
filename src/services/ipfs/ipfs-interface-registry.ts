@@ -12,7 +12,7 @@
 import { InterfaceRepository, computeInterfaceCID } from '../mcp/mcp-idl.js';
 import { ipfsKitDescriptor, ipfsDatasetsDescriptor, ipfsAccelerateDescriptor } from './ipfs-idl-descriptors.js';
 import { ipfsKitUIProfile, ipfsDatasetsUIProfile, ipfsAccelerateUIProfile } from './ipfs-ui-profiles.js';
-import { ipfsKitGlassesWidget, ipfsDatasetsGlassesWidget, ipfsAccelerateGlassesWidget } from '../ipfs-glasses-widgets.js';
+import { ipfsKitGlassesWidget, ipfsDatasetsGlassesWidget, ipfsAccelerateGlassesWidget } from '../glasses/ipfs-glasses-widgets.js';
 import type { MCPUIProfileDescriptor } from '../mcp/mcp-ui-profile.js';
 
 export interface IPFSRegistrationResult {

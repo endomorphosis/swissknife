@@ -1,5 +1,5 @@
 /**
- * Sprint 67 — Groth16 Backup + CEC Delegate + Expansion Rules
+ * Groth16 CEC Expansion — Backup Backend + CEC Delegate + Expansion Rules
  * Ports of: zkp/backends/groth16_backup.py (222L),
  *           TDFOL/strategies/cec_delegate.py (216L),
  *           TDFOL/expansion_rules.py (209L)

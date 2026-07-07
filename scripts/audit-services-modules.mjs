@@ -28,6 +28,10 @@ function walk(dir) {
   return out;
 }
 
+function isSourceFile(file) {
+  return /\.(ts|tsx|js|jsx)$/.test(file);
+}
+
 function globToRegExp(glob) {
   let re = '';
   for (let i = 0; i < glob.length; i += 1) {
@@ -118,6 +122,34 @@ function extractImports(source) {
   return imports;
 }
 
+function isPathInside(childAbs, parentAbs) {
+  const rel = path.relative(parentAbs, childAbs);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+function rootServiceImportRel(sourceAbs, specifier, serviceRootAbs) {
+  let relToService = null;
+  if (specifier.startsWith('.')) {
+    const baseAbs = path.resolve(path.dirname(sourceAbs), specifier);
+    if (isPathInside(baseAbs, serviceRootAbs)) {
+      relToService = normalizePath(path.relative(serviceRootAbs, baseAbs));
+    }
+  } else {
+    for (const prefix of ['@src/services/', '@/services/', 'src/services/']) {
+      if (specifier.startsWith(prefix)) {
+        relToService = specifier.slice(prefix.length);
+        break;
+      }
+    }
+  }
+
+  if (relToService === null) return null;
+  const withoutExtension = relToService.replace(/\.(ts|tsx|js|jsx|json)$/u, '');
+  if (!withoutExtension || withoutExtension.includes('/')) return null;
+  if (withoutExtension === 'module-ownership' || withoutExtension === 'MODULE_BOUNDARIES') return null;
+  return relToService;
+}
+
 function moduleAllows(manifest, sourceModule, targetModule) {
   if (sourceModule === targetModule) return true;
   if (sourceModule === 'unknown' || targetModule === 'unknown') return false;
@@ -169,6 +201,7 @@ for (const abs of files) {
 
 const forbiddenImports = [];
 const importEdges = [];
+const legacyRootImportSpecifiers = [];
 const byPath = new Map(fileRecords.map((record) => [record.path, record]));
 
 for (const record of fileRecords) {
@@ -193,6 +226,25 @@ for (const record of fileRecords) {
   }
 }
 
+for (const scanRoot of ['src', 'test']) {
+  const scanAbs = path.join(repoRoot, scanRoot);
+  if (!fs.existsSync(scanAbs)) continue;
+  for (const abs of walk(scanAbs).filter(isSourceFile)) {
+    const rel = normalizePath(path.relative(repoRoot, abs));
+    if (rel.startsWith('test/archived/')) continue;
+    const source = fs.readFileSync(abs, 'utf8');
+    for (const specifier of extractImports(source)) {
+      const rootImportRel = rootServiceImportRel(abs, specifier, serviceRoot);
+      if (!rootImportRel) continue;
+      legacyRootImportSpecifiers.push({
+        from: rel,
+        specifier,
+        rootServiceTarget: rootImportRel,
+      });
+    }
+  }
+}
+
 const summary = {
   schemaVersion: manifest.schemaVersion,
   serviceFiles: fileRecords.length,
@@ -204,6 +256,7 @@ const summary = {
   unknownFiles: unknownFiles.length,
   importEdges: importEdges.length,
   forbiddenImports: forbiddenImports.length,
+  legacyRootImportSpecifiers: legacyRootImportSpecifiers.length,
   moduleCounts: formatCounts(moduleCounts),
   migrationTargets: manifest.migrationTargets,
 };
@@ -216,6 +269,7 @@ const report = {
   legacyRootFiles,
   legacyPathFiles,
   forbiddenImports,
+  legacyRootImportSpecifiers,
 };
 
 if (jsonOutput) {
@@ -231,6 +285,7 @@ if (jsonOutput) {
   console.log(`  unknown files: ${summary.unknownFiles}`);
   console.log(`  import edges: ${summary.importEdges}`);
   console.log(`  forbidden imports: ${summary.forbiddenImports}`);
+  console.log(`  legacy root import specifiers: ${summary.legacyRootImportSpecifiers}`);
   console.log('');
   console.log('Files by module:');
   for (const [moduleId, count] of Object.entries(summary.moduleCounts)) {
@@ -250,11 +305,24 @@ if (jsonOutput) {
     }
     if (forbiddenImports.length > 40) console.log(`  ... ${forbiddenImports.length - 40} more`);
   }
+  if (legacyRootImportSpecifiers.length) {
+    console.log('');
+    console.log('Legacy root service import samples:');
+    for (const item of legacyRootImportSpecifiers.slice(0, 40)) {
+      console.log(`  ${item.from}: ${item.specifier} -> src/services/${item.rootServiceTarget}`);
+    }
+    if (legacyRootImportSpecifiers.length > 40) {
+      console.log(`  ... ${legacyRootImportSpecifiers.length - 40} more`);
+    }
+  }
 }
 
 let failed = false;
 if (failOnUnknown && unknownFiles.length) failed = true;
 if (failOnForbidden && forbiddenImports.length) failed = true;
-if (failOnRootDebt && rootFiles.length > (manifest.migrationTargets?.maxRootFilesFinal ?? 20)) failed = true;
+if (
+  failOnRootDebt &&
+  (rootFiles.length > (manifest.migrationTargets?.maxRootFilesFinal ?? 20) || legacyRootImportSpecifiers.length)
+) failed = true;
 
 process.exitCode = failed ? 1 : 0;

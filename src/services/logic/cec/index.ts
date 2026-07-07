@@ -14,7 +14,7 @@ export * from './cec-prover-core.js';
 export * from './cec-prover-manager.js';
 export * from './cec-resolution-rules.js';
 export * from './cec-specialized-rules.js';
-export * from './cec-sprint63-utils.js';
+export * from './cec-runtime-context-utils.js';
 export * from './cec-syntax-tree.js';
 export * from './cec-types.js';
 export * from './cec-zkp-integration.js';

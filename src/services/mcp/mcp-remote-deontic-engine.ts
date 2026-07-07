@@ -39,7 +39,7 @@
 import {
   PolicyEngine,
   type Policy,
-} from '../logic/deontic/mcp-policy.js';
+} from './mcp-policy.js';
 import {
   deonticAtom,
   isTemporalPolicy,

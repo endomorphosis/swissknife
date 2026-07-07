@@ -1,6 +1,6 @@
 /**
- * Sprint 64 — TDFOL Forward Chaining + NL Preprocessor + Ambiguity Resolver +
- *             Semantic Normalizer + Text to FOL + Legal Text to Deontic
+ * Reasoning Normalization Pipeline — TDFOL Forward Chaining + NL Preprocessor +
+ * Ambiguity Resolver + Semantic Normalizer + Text to FOL + Legal Text to Deontic
  * Ports of: TDFOL/strategies/forward_chaining.py (327L),
  *           TDFOL/nl/tdfol_nl_preprocessor.py (327L),
  *           CEC/native/ambiguity_resolver.py (323L),

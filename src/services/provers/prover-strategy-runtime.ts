@@ -1,5 +1,5 @@
 /**
- * Sprint 66 — Prover Utils: Strategy Selector + Vampire Adapter + Utility Monitor + Lazy Installer
+ * Prover Strategy Runtime — Strategy Selector + Vampire Adapter + Utility Monitor + Lazy Installer
  * Ports of: TDFOL/strategies/strategy_selector.py (256L),
  *           CEC/provers/vampire_adapter.py (239L),
  *           common/utility_monitor.py (231L),

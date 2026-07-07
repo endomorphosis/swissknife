@@ -12,7 +12,7 @@ import {
   loadContractArtifact,
   packPublicInputsForEvm,
   vkHashHexToBytes32,
-} from './sprint68-eth-bridge.js';
+} from './ethereum-zkp-bridge.js';
 import { bytesToHex, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
 
 export interface EvmSubmissionClient {

@@ -1,5 +1,5 @@
 /**
- * Sprint 65 — Storage + Parsers
+ * Proof Storage and Problem Parsers
  * Ports of: TDFOL/p2p/ipfs_proof_storage.py (346L),
  *           CEC/native/problem_parser.py (346L),
  *           CEC/native/grammar_loader.py (304L)

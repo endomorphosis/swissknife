@@ -16,7 +16,7 @@ import type {
   MetaGlassesWidgetDescriptor,
 } from './meta-glasses-display-profile.js';
 import { META_GLASSES_DISPLAY_PROFILE, META_GLASSES_DISPLAY_PROFILE_VERSION } from './meta-glasses-display-profile.js';
-import { ipfsKitUIProfile, ipfsDatasetsUIProfile, ipfsAccelerateUIProfile } from '../ipfs-ui-profiles.js';
+import { ipfsKitUIProfile, ipfsDatasetsUIProfile, ipfsAccelerateUIProfile } from '../ipfs/ipfs-ui-profiles.js';
 
 // ---------------------------------------------------------------------------
 // IPFS Kit - Glasses Widget (Content Status Card)

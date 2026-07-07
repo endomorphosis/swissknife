@@ -18,7 +18,7 @@ import {
   handleProofError, handleParseError, withErrorContext, safeCall, safeCallAsync,
   formatErrorMessage, validateNotNull,
   NLContext, makeTDFOLEntity, ContextResolver,
-} from '../../src/services/logic/cec/cec-sprint63-utils';
+} from '../../src/services/logic/cec/cec-runtime-context-utils';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

@@ -1,5 +1,5 @@
 /**
- * Sprint 68 — Ethereum Bridge
+ * Ethereum ZKP Bridge
  * Ports of: zkp/eth_vk_registry_payloads.py (138L),
  *           zkp/onchain_pipeline.py (124L),
  *           zkp/eth_contract_artifacts.py (119L),

@@ -1,5 +1,5 @@
 /**
- * Sprint 68 — Utility Types
+ * Session and Translation Types
  * Ports of: fol/interactive_fol_types.py (101L),
  *           fol/interactive_fol_utils.py (107L),
  *           CEC/nl/bridge_types.py (100L),

@@ -1,5 +1,5 @@
 /**
- * Prometheus Metrics + CEC Base Parser + CEC Error Handling + TDFOL NL Context — T-292–T-295 (Sprint 63)
+ * CEC Runtime Context Utilities — Prometheus Metrics + Base Parser + Error Handling + TDFOL NL Context
  */
 
 import { PatternMatcher, PatternType, PatternMatch } from '../shared/tdfol-nl-patterns.js';

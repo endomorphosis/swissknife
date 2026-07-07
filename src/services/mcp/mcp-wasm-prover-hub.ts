@@ -23,7 +23,7 @@
  * ```
  */
 
-import type { Policy } from '../logic/deontic/mcp-policy.js';
+import type { Policy } from './mcp-policy.js';
 import type { WasmProofResult, ProverStrategy } from '../provers/prover-types.js';
 import { ProofCache, type ProofCacheLogWriter } from '../provers/mcp-proof-cache.js';
 import { Z3WasmBridge } from '../provers/z3-wasm-bridge.js';
