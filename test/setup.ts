@@ -12,12 +12,18 @@ vi.mock('process', () => ({
 }))
 
 // Mock common Node.js modules for browser testing
-vi.mock('fs', () => ({
-  readFileSync: vi.fn(),
-  writeFileSync: vi.fn(),
-  existsSync: vi.fn(() => true),
-  mkdirSync: vi.fn()
-}))
+vi.mock('fs', () => {
+  const mockFs = {
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn(),
+    existsSync: vi.fn(() => true),
+    mkdirSync: vi.fn()
+  }
+  return {
+    ...mockFs,
+    default: mockFs
+  }
+})
 
 vi.mock('path', async () => {
   const actual = await vi.importActual('path-browserify')
@@ -26,14 +32,19 @@ vi.mock('path', async () => {
 
 // Mock crypto for consistent testing
 vi.mock('crypto', async () => {
-  const actual = await vi.importActual('crypto-browserify')
+  const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto')
   let randomUuidCounter = 0
+  const randomUUID = vi.fn(() => {
+    randomUuidCounter += 1
+    return `00000000-0000-4000-8000-${String(randomUuidCounter).padStart(12, '0')}`
+  })
   return {
     ...(actual as Record<string, unknown>),
-    randomUUID: vi.fn(() => {
-      randomUuidCounter += 1
-      return `00000000-0000-4000-8000-${String(randomUuidCounter).padStart(12, '0')}`
-    })
+    default: {
+      ...((actual as { default?: Record<string, unknown> }).default ?? actual),
+      randomUUID
+    },
+    randomUUID
   }
 })
 

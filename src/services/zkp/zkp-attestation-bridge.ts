@@ -18,8 +18,8 @@ import {
   ProofGateResult,
   GraphProjectionResult,
   BridgeEvaluationReport,
-} from './bridge-types.js';
-import { sha256Hex } from './provers/browser-crypto.js';
+} from '../bridge-types.js';
+import { sha256Hex } from '../provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

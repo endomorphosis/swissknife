@@ -4,7 +4,7 @@
  * TypeScript port of ipfs_datasets_py/logic/zkp/statement.py.
  */
 
-import { sha256Hex } from './provers/browser-crypto.js';
+import { sha256Hex } from '../provers/browser-crypto.js';
 
 const U64_MAX = (1n << 64n) - 1n;
 const P_BN254 = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;

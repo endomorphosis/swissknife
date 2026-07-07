@@ -1,4 +1,5 @@
 import { computeInterfaceCID } from '../../src/services/mcp-idl';
+import { vi } from 'vitest';
 import {
   META_GLASSES_MOBILE_ORB_OPERATIONS,
   MetaGlassesMobileORBBridgeAdapter,
@@ -14,9 +15,8 @@ import {
 } from '../../src/services/meta-glasses-mobile-orb-bridge';
 import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
 
-jest.mock('crypto', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const actual = jest.requireActual<typeof import('node:crypto')>('node:crypto');
+vi.mock('crypto', async () => {
+  const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto');
   return {
     ...actual,
     createHash: actual.createHash,

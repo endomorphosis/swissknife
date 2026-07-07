@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   MetaGlassesDisplayORBAdapter,
@@ -10,6 +9,16 @@ import {
 } from '../../src/services/meta-glasses-display-orb-adapter';
 import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
 import type { MetaGlassesWidgetDescriptor } from '../../src/services/meta-glasses-display-profile';
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  readFileSync: (path: string, encoding: BufferEncoding) => string;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for meta-glasses display fixture tests');
+}
 
 const FIXTURE_PATH = join(
   __dirname,
@@ -38,7 +47,7 @@ const OBJECT_SCHEMA = {
 };
 
 function loadDescriptor(): MetaGlassesWidgetDescriptor {
-  return JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')) as MetaGlassesWidgetDescriptor;
+  return JSON.parse(nodeFs.readFileSync(FIXTURE_PATH, 'utf8')) as MetaGlassesWidgetDescriptor;
 }
 
 function displayDescriptor(): MetaGlassesWidgetDescriptor {

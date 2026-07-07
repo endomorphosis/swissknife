@@ -4,7 +4,15 @@
  * TypeScript port of ipfs_datasets_py/logic/zkp/setup_artifacts.py.
  */
 
-import { existsSync } from 'node:fs';
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  existsSync: (path: string) => boolean;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for Groth16 setup artifacts');
+}
 
 export class Groth16SetupArtifacts {
   readonly provingKeyCid: string;
@@ -49,10 +57,10 @@ export async function storeGroth16SetupArtifactsInIpfs(
   if (typeof verifyingKeyPath !== 'string' || !verifyingKeyPath) {
     throw new Error('manifest must contain non-empty verifying_key_path');
   }
-  if (!existsSync(provingKeyPath)) {
+  if (!nodeFs.existsSync(provingKeyPath)) {
     throw new Error(`proving_key_path does not exist: ${provingKeyPath}`);
   }
-  if (!existsSync(verifyingKeyPath)) {
+  if (!nodeFs.existsSync(verifyingKeyPath)) {
     throw new Error(`verifying_key_path does not exist: ${verifyingKeyPath}`);
   }
 

@@ -4,16 +4,34 @@
  * TypeScript port of ipfs_datasets_py/logic/zkp/provekit/artifacts.py.
  */
 
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
+
+interface NodeFsDirent {
+  name: string;
+  isDirectory(): boolean;
+}
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  existsSync: (path: string) => boolean;
+  lstatSync: (
+    path: string,
+    options?: { throwIfNoEntry?: boolean },
+  ) => { isFile(): boolean; isDirectory(): boolean } | undefined;
+  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
+  readFileSync: {
+    (path: string): Buffer;
+    (path: string, encoding: BufferEncoding): string;
+  };
+  readdirSync: (path: string, options: { withFileTypes: true }) => NodeFsDirent[];
+  writeFileSync: (path: string, data: string, encoding: BufferEncoding) => void;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for ProveKit artifact manifests');
+}
 
 import {
   DEFAULT_PROVEKIT_CIRCUIT_VERSION,
@@ -254,17 +272,17 @@ export class ProveKitArtifactManifest {
 }
 
 export function sha256File(path: string): string {
-  if (!lstatSync(path, { throwIfNoEntry: false })?.isFile()) {
+  if (!nodeFs.lstatSync(path, { throwIfNoEntry: false })?.isFile()) {
     throw new Error(`file does not exist: ${path}`);
   }
-  return createHash('sha256').update(readFileSync(path)).digest('hex');
+  return createHash('sha256').update(nodeFs.readFileSync(path)).digest('hex');
 }
 
 export function sha256Directory(
   path: string,
   options: { excludeDirs?: string[]; excludeSuffixes?: string[] } = {},
 ): string {
-  if (!lstatSync(path, { throwIfNoEntry: false })?.isDirectory()) {
+  if (!nodeFs.lstatSync(path, { throwIfNoEntry: false })?.isDirectory()) {
     throw new Error(`directory does not exist: ${path}`);
   }
   const root = resolve(path);
@@ -274,7 +292,7 @@ export function sha256Directory(
   const digest = createHash('sha256');
   for (const filePath of files) {
     const relPath = relative(root, filePath).split(sep).join('/');
-    const payload = readFileSync(filePath);
+    const payload = nodeFs.readFileSync(filePath);
     const size = Buffer.alloc(8);
     size.writeBigUInt64BE(BigInt(payload.length));
     digest.update(Buffer.from(relPath, 'utf8'));
@@ -315,7 +333,7 @@ export function findProveKitKeyPair(
   searchRoot: string,
   options: { circuitId: string; circuitVersion?: number },
 ): ProveKitKeyPair | null {
-  if (!existsSync(searchRoot)) {
+  if (!nodeFs.existsSync(searchRoot)) {
     throw new Error(`ProveKit artifact search root does not exist: ${searchRoot}`);
   }
   const version = options.circuitVersion ?? DEFAULT_PROVEKIT_CIRCUIT_VERSION;
@@ -330,7 +348,7 @@ export function findProveKitKeyPair(
     const priority = preferredStems.indexOf(stem);
     if (priority < 0) continue;
     const pkvPath = `${pkpPath.slice(0, -4)}.pkv`;
-    if (lstatSync(pkvPath, { throwIfNoEntry: false })?.isFile()) {
+    if (nodeFs.lstatSync(pkvPath, { throwIfNoEntry: false })?.isFile()) {
       matches.push({ priority, pkpPath, pkvPath });
     }
   }
@@ -344,8 +362,8 @@ export function findProveKitKeyPair(
 }
 
 export function saveProveKitArtifactManifest(manifest: ProveKitArtifactManifest, path: string): string {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${prettyCanonicalJson(manifest.toDict())}\n`, 'utf8');
+  nodeFs.mkdirSync(dirname(path), { recursive: true });
+  nodeFs.writeFileSync(path, `${prettyCanonicalJson(manifest.toDict())}\n`, 'utf8');
   return path;
 }
 
@@ -353,10 +371,10 @@ export function loadProveKitArtifactManifest(
   path: string,
   options: { validateFiles?: boolean } = {},
 ): ProveKitArtifactManifest {
-  if (!lstatSync(path, { throwIfNoEntry: false })?.isFile()) {
+  if (!nodeFs.lstatSync(path, { throwIfNoEntry: false })?.isFile()) {
     throw new Error(`ProveKit artifact manifest does not exist: ${path}`);
   }
-  const manifest = ProveKitArtifactManifest.fromDict(JSON.parse(readFileSync(path, 'utf8')));
+  const manifest = ProveKitArtifactManifest.fromDict(JSON.parse(nodeFs.readFileSync(path, 'utf8')));
   if (options.validateFiles ?? true) manifest.validateFiles();
   return manifest;
 }
@@ -378,7 +396,7 @@ function iterManifestFiles(root: string, excludeDirs: Set<string>, excludeSuffix
 
 function walkFiles(root: string): string[] {
   const out: string[] = [];
-  for (const entry of readdirSync(root, { withFileTypes: true })) {
+  for (const entry of nodeFs.readdirSync(root, { withFileTypes: true })) {
     const path = join(root, entry.name);
     if (entry.isDirectory()) {
       out.push(...walkFiles(path));

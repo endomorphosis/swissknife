@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 import { InterfaceRepository } from '../../src/services/mcp-idl';
 import {
@@ -36,9 +35,10 @@ const HALLUCINATE_DASHBOARD_CATALOG_FIXTURE = path.resolve(
   'fixtures',
   'vai-512-mcp-dashboard-catalog.json',
 );
+const nodeFs = process.getBuiltinModule?.('fs') ?? require('fs');
 
 function loadHallucinateDashboardCatalog(): HallucinateDashboardCapabilityCatalog {
-  return JSON.parse(fs.readFileSync(HALLUCINATE_DASHBOARD_CATALOG_FIXTURE, 'utf8'));
+  return JSON.parse(nodeFs.readFileSync(HALLUCINATE_DASHBOARD_CATALOG_FIXTURE, 'utf8'));
 }
 
 describe('IPFS MCP++ UI descriptor fixtures', () => {

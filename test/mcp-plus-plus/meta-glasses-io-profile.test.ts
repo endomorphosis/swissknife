@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs';
 import { computeInterfaceCID } from '../../src/services/mcp-idl';
 import {
   META_GLASSES_IO_ERROR_CODES,
@@ -15,6 +14,16 @@ import {
   validateMetaGlassesIOProfileDescriptor,
   type MetaGlassesIOProfileDescriptor,
 } from '../../src/services/meta-glasses-io-profile';
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  readFileSync: (path: string, encoding: BufferEncoding) => string;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for meta-glasses IO fixture tests');
+}
 
 function descriptor(): MetaGlassesIOProfileDescriptor {
   return {
@@ -138,7 +147,7 @@ describe('Meta glasses I/O profile contract', () => {
 
   it('ships a hardware-free expanded I/O fixture aligned with the profile capabilities', () => {
     const fixture = JSON.parse(
-      readFileSync('test/fixtures/meta-glasses-io/hardware-free-expanded-io.json', 'utf8'),
+      nodeFs.readFileSync('test/fixtures/meta-glasses-io/hardware-free-expanded-io.json', 'utf8'),
     );
     const capabilityKinds = fixture.capabilities.map((capability: { kind: string }) => capability.kind);
     const bindingIds = fixture.swissknife_app_bindings.map(

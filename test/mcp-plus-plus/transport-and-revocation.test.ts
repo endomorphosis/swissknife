@@ -7,7 +7,7 @@
  *  5. UCANRevocationRegistry — revoke, isRevoked, validateToken integration
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MCPTransportFactory, MCPClient } from '../../src/services/mcp-transport.js';
 import { UCANAuth } from '../../src/auth/ucan-auth.js';
 import { UCANRevocationRegistry } from '../../src/auth/ucan-auth.js';
@@ -171,7 +171,7 @@ describe('WebSocketTransport', () => {
 
 describe('HttpsTransport', () => {
   it('connect() marks ready even when OPTIONS returns 405', async () => {
-    // We mock node-fetch via jest module mocking is complex; just check
+    // We avoid mocking node-fetch here; just check
     // that connect() doesn't throw and returns true or false without crashing.
     const transport = MCPTransportFactory.create({
       type: 'https',

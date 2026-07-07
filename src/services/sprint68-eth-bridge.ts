@@ -1,1 +1,1 @@
-export * from './legacy/sprint68-eth-bridge.js';
+export * from './zkp/sprint68-eth-bridge.js';
