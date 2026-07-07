@@ -4,8 +4,13 @@
  * TypeScript compatibility surface for flogic/ergoai_wrapper.py.
  */
 
-import { existsSync, statSync } from 'node:fs';
+import * as fs from 'fs';
 import { delimiter, join, resolve } from 'node:path';
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as typeof fs | undefined;
+const runtimeFs = nodeFs ?? fs;
 
 export interface ResolveErgoBinaryOptions {
   binary?: string | null;
@@ -40,9 +45,9 @@ export function resolveErgoBinary(options: ResolveErgoBinaryOptions = {}): strin
 export const resolve_ergo_binary = resolveErgoBinary;
 
 function ergoBinaryIsConfigured(path: string): boolean {
-  if (!existsSync(path)) return false;
+  if (!runtimeFs.existsSync(path)) return false;
   try {
-    const stat = statSync(path);
+    const stat = runtimeFs.statSync(path);
     return stat.isFile() && (stat.mode & 0o111) !== 0;
   } catch {
     return false;
