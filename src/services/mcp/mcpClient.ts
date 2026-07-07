@@ -46,7 +46,7 @@ async function getMcpPlusPlusEnvelope() {
   return import('./mcp-envelope.js') as Promise<typeof import('./mcp-envelope.js')>
 }
 async function getMcpPlusPlusEventDAG() {
-  return import('../event-dag.js') as Promise<typeof import('../event-dag.js')>
+  return import('../logic/shared/event-dag.js') as Promise<typeof import('../logic/shared/event-dag.js')>
 }
 async function getMcpPlusPlusIDL() {
   return import('./mcp-idl.js') as Promise<typeof import('./mcp-idl.js')>
@@ -56,8 +56,8 @@ async function getMcpPlusPlusIDL() {
  * Module-level EventDAG singleton — shared across all tool calls within a
  * process so that causal ordering is maintained across the session.
  */
-let _eventDAG: import('../event-dag.js').EventDAG | null = null
-async function getEventDAG(): Promise<import('../event-dag.js').EventDAG> {
+let _eventDAG: import('../logic/shared/event-dag.js').EventDAG | null = null
+async function getEventDAG(): Promise<import('../logic/shared/event-dag.js').EventDAG> {
   if (!_eventDAG) {
     const { EventDAG } = await getMcpPlusPlusEventDAG()
     _eventDAG = new EventDAG()

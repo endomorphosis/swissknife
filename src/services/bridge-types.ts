@@ -1,1 +1,1 @@
-export * from './logic/bridges/bridge-types.js';
+export * from './logic/shared/bridge-types.js';

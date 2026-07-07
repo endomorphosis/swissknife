@@ -6,7 +6,7 @@
  * hand-maintains a parallel tool list. Each manifest tool becomes a backend
  * binding the dashboard can render and call over MCP/MCP++.
  */
-import manifest from '../mcp-ipfs-kit-tools-manifest.json';
+import manifest from './mcp-ipfs-kit-tools-manifest.json';
 
 export interface IPFSKitToolDef {
   name: string;

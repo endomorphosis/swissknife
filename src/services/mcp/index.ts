@@ -12,6 +12,7 @@ export * from './mcp-interface-registry.js';
 export * from './mcp-ipfs-accelerate-descriptor-pack.js';
 export * from './mcp-ipfs-datasets-descriptor-pack.js';
 export * from './mcp-ipfs-kit-descriptor-pack.js';
+export { default as ipfsKitToolsManifest } from './mcp-ipfs-kit-tools-manifest.json';
 export * from './mcp-ipfs-ui-descriptors.js';
 export * from './mcp-orb-capability-router.js';
 export * from './mcp-p2p-session.js';

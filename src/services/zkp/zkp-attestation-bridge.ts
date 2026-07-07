@@ -18,7 +18,7 @@ import {
   ProofGateResult,
   GraphProjectionResult,
   BridgeEvaluationReport,
-} from '../bridge-types.js';
+} from '../logic/shared/bridge-types.js';
 import { sha256Hex } from '../provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------

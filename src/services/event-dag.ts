@@ -1,1 +1,1 @@
-export * from './logic/cec/event-dag.js';
+export * from './logic/shared/event-dag.js';
