@@ -6,7 +6,7 @@
  * development do not require native prover binaries.
  */
 
-import { sha256Hex } from '../provers/browser-crypto.js';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 export interface ZKPProofLike {
   toDict(): Record<string, unknown>;

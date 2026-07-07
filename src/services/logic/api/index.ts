@@ -6,3 +6,4 @@ export * from './sprint64-modules.js';
 export * from './sprint65-storage-parsers.js';
 export * from './sprint65-utils.js';
 export * from './sprint68-utils-types.js';
+export * from './submodule-registry.js';

@@ -18,7 +18,7 @@
     },
     "mcp": {
       "targetPath": "src/services/mcp",
-      "purpose": "MCP protocol, registries, descriptors, policy broker, transport, and schema/UI descriptor orchestration.",
+      "purpose": "MCP protocol, registries, descriptors, event DAG provenance, policy broker, transport, and schema/UI descriptor orchestration.",
       "allowedImports": ["shared", "platform", "mcp", "logic.shared", "logic.deontic", "provers", "zkp"]
     },
     "glasses": {

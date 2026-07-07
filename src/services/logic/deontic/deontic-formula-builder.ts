@@ -13,7 +13,7 @@
  */
 
 import type { LegalNormIR } from './legal-norm-ir.js';
-import { sha256Hex } from '../../provers/browser-crypto.js';
+import { sha256Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // normalizePredicateName

@@ -123,7 +123,7 @@ describe('Envelope → Receipt pipeline', () => {
 
 // ── EventDAG records from envelope ───────────────────────────────────────────
 
-import { EventDAG } from '../../src/services/logic/shared/event-dag.js';
+import { EventDAG } from '../../src/services/mcp/mcp-event-dag.js';
 
 describe('EventDAG ← envelope integration', () => {
   it('appendEvent with envelope_cid links provenance correctly', () => {

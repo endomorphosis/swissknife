@@ -5,7 +5,7 @@
 
 import { PolicyEngine, Policy, computePolicyCID } from '../../src/services/logic/deontic/mcp-policy';
 import { RiskScorer, MCPScheduler } from '../../src/services/mcp/mcp-scheduler';
-import { EventDAG } from '../../src/services/logic/shared/event-dag';
+import { EventDAG } from '../../src/services/mcp/mcp-event-dag';
 
 // ---------------------------------------------------------------------------
 // Fixtures

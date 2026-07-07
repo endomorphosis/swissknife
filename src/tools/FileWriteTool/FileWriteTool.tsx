@@ -8,7 +8,7 @@ import { z } from 'zod.js.js.js.js.js'
 import { FileEditToolUpdatedMessage } from '../../components/FileEditToolUpdatedMessage.js.js.js.js.js.js.js.js.js.js'
 import { HighlightedCode } from '../../components/HighlightedCode.js.js.js.js.js.js.js.js.js.js'
 import { StructuredDiff } from '../../components/StructuredDiff.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../../services/statsig.js.js.js.js.js.js.js.js.js.js'
+import { logEvent } from '../../services/platform/statsig.js'
 import type { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js'
 import { intersperse } from '../../utils/array.js.js.js.js.js.js.js.js.js.js'
 import {

@@ -2,7 +2,6 @@ export * from './bridge-types.js';
 export * from './cognitive-inference-rules.js';
 export * from './domain-vocabulary.js';
 export * from './embedding-prover.js';
-export * from './event-dag.js';
 export * from './formula-analyzer.js';
 export * from './formula-cache.js';
 export * from './formula-dependency-graph.js';

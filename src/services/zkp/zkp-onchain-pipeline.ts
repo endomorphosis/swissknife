@@ -13,7 +13,7 @@ import {
   packPublicInputsForEvm,
   vkHashHexToBytes32,
 } from './sprint68-eth-bridge.js';
-import { bytesToHex, sha256Hex, utf8Bytes } from '../provers/browser-crypto.js';
+import { bytesToHex, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
 
 export interface EvmSubmissionClient {
   submitTransaction(calldata: string, opts?: { to?: string; gasLimit?: bigint }): Promise<string>;

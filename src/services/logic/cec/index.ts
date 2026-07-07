@@ -19,4 +19,3 @@ export * from './cec-syntax-tree.js';
 export * from './cec-types.js';
 export * from './cec-zkp-integration.js';
 export * from './event-calculus.js';
-export * from '../shared/event-dag.js';

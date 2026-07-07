@@ -44,7 +44,7 @@ src/services/
 |---|---|
 | `shared` | Browser-safe primitives: hashes, ids, encoding, errors, small config contracts. |
 | `platform` | Runtime adapters: provider clients, telemetry, resource pools, hardware/browser acceleration, feature detection. |
-| `mcp` | MCP protocol, registries, descriptors, transports, policy broker, generated UI state. |
+| `mcp` | MCP protocol, registries, descriptors, transports, event DAG provenance, policy broker, generated UI state. |
 | `glasses` | Meta-glasses, orb, webapp, control-plane, widget, display/input/audio/camera adapters. |
 | `ipfs` | IPFS interface descriptors, UI profiles, widgets, storage/cache integration points. |
 | `logic.shared` | Common formula/proof domain types, analyzers, validation, shared NL/temporal helpers, and shared theorem metadata. |
@@ -124,19 +124,21 @@ old `bridge`, `deontic`, `fol`, and `fol-utils` namespace folders into
 module-owned paths, relocating the remaining sprint bundles out of `legacy`,
 collapsing the remaining FOL `utils` namespace, moving TDFOL/DCEC formula
 types, policy translators, and domain processors into logic-owned modules,
-retargeting downstream imports, and reconciling the strict dependency manifest
+retargeting downstream imports, reconciling the strict dependency manifest,
+promoting browser-safe crypto primitives into `shared`, and moving MCP EventDAG
+provenance into `mcp`
 on `2026-07-06`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 354 |
+| Service files | 355 |
 | Root-level service files | 0 |
 | Root compatibility shims | 0 |
 | Root implementation files | 0 |
 | Legacy root files | 0 |
 | Legacy path files | 0 |
 | Unknown files | 0 |
-| Import edges | 756 |
+| Import edges | 757 |
 | Forbidden cross-module imports | 0 |
 
 The final acceptance target is satisfied for root files: only

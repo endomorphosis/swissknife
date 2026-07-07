@@ -65,7 +65,7 @@ import {
   ensureConfigScope,
 } from '../services/mcp/mcpClient.js'
 import { handleMcprcServerApprovals } from '../services/mcp/mcpServerApproval.js'
-import { checkGate, initializeStatsig, logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
+import { checkGate, initializeStatsig, logEvent } from '../services/platform/statsig.js'
 import { getExampleCommands } from '../utils/exampleCommands.js.js.js.js.js.js.js.js.js.js'
 import { cursorShow } from 'ansi-escapes.js.js.js.js.js'
 import ansiColors from 'ansi-colors.js.js.js.js.js'

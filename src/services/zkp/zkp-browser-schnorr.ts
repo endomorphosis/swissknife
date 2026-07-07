@@ -6,7 +6,7 @@
  * Groth16/ProveKit remain separate host-native adapters.
  */
 
-import { base64Encode, bytesToHex, hexToBytes, sha256Hex, utf8Bytes } from '../provers/browser-crypto.js';
+import { base64Encode, bytesToHex, hexToBytes, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
 
 const MODP_2048_P_HEX = [
   'FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1',

@@ -21,7 +21,7 @@ import { ProverSyntaxBuilder } from '../deontic/prover-syntax-builder.js';
 import { DeonticGraph } from '../deontic/deontic-graph.js';
 import { DeonticGraphBuilder } from '../deontic/deontic-graph-builder.js';
 import { LogicMonitor } from '../shared/logic-monitor.js';
-import { getSubmoduleSpecs, getIntegrationManifest } from '../../platform/submodule-registry.js';
+import { getSubmoduleSpecs, getIntegrationManifest } from './submodule-registry.js';
 import { BatchProcessor } from './batch-processor.js';
 
 // ---------------------------------------------------------------------------

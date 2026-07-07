@@ -1,4 +1,4 @@
-import { sha256Hex } from '../provers/browser-crypto.js';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 export interface ZKPBackendProtocol {
   generateProof(witnessJson: string, seed?: number): Promise<BrowserSnarkjsProof>;

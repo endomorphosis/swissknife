@@ -11,7 +11,7 @@ import { MalformedCommandError } from './errors.js.js.js.js.js.js.js.js.js.js.js
 import { logError } from './log.js.js.js.js.js.js.js.js.js.js.js'
 import { resolve } from 'path'
 import { last, memoize } from 'lodash-es'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js.js'
+import { logEvent } from '../services/platform/statsig.js'
 // Import basic types without explicit type interfaces
 import type { Tool } from '../Tool.js.js.js.js.js.js.js.js.js.js.js'
 
@@ -19,7 +19,7 @@ import type { Tool } from '../Tool.js.js.js.js.js.js.js.js.js.js.js'
 type SetToolJSXFn = any // Simplify for now
 type ToolUseContext = any  // Simplify for now
 import { lastX } from '../utils/generators.js.js.js.js.js.js.js.js.js.js.js'
-import { NO_CONTENT_MESSAGE } from '../services/claude.js.js.js.js.js.js.js.js.js.js.js'
+import { NO_CONTENT_MESSAGE } from '../services/platform/claude.js'
 import {
   ImageBlockParam,
   TextBlockParam,

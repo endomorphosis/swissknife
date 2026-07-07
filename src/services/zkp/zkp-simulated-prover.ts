@@ -16,7 +16,7 @@
  * Reference: ipfs_datasets_py/logic/zkp/zkp_prover.py §ZKPProver (simulation path)
  */
 
-import { base64UrlEncode, sha256Hex } from '../provers/browser-crypto.js';
+import { base64UrlEncode, sha256Hex } from '../shared/browser-crypto.js';
 
 export const ZKP_SIMULATED_VERIFIER_ID = 'simulated-zkp-v0.1' as const;
 

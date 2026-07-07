@@ -3,7 +3,7 @@ import { UserBashInputMessage } from './UserBashInputMessage.js.js.js.js.js.js.j
 import { UserCommandMessage } from './UserCommandMessage.js.js.js.js.js.js.js.js.js.js'
 import { UserPromptMessage } from './UserPromptMessage.js.js.js.js.js.js.js.js.js.js'
 import * as React from 'react.js.js.js.js.js'
-import { NO_CONTENT_MESSAGE } from '../../services/claude.js.js.js.js.js.js.js.js.js.js'
+import { NO_CONTENT_MESSAGE } from '../../services/platform/claude.js'
 
 type Props = {
   addMargin: boolean

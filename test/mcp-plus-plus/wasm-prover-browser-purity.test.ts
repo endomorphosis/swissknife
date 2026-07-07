@@ -7,7 +7,7 @@
  */
 
 import { dirname, resolve } from 'node:path';
-import { base64UrlEncode, sha256Hex } from '../../src/services/provers/browser-crypto';
+import { base64UrlEncode, sha256Hex } from '../../src/services/shared/browser-crypto';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

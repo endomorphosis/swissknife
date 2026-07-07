@@ -11,7 +11,7 @@
  *   DeterministicModalLogicCodec — encode(text) → ModalLogicCodecResult
  */
 
-import { sha256Hex } from '../../provers/browser-crypto.js';
+import { sha256Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // ModalLogicCodecConfig

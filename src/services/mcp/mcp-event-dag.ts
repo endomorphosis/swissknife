@@ -10,7 +10,7 @@
  * References: docs/spec/event-dag-ordering.md in endomorphosis/Mcp-Plus-Plus
  */
 
-import { createHash, type BinaryLike } from 'crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,9 +82,8 @@ function canonicalJSON(value: unknown): string {
   );
 }
 
-function computeCID(data: string | Buffer): string {
-  const input = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
-  return `sha256:${createHash('sha256').update(input as unknown as BinaryLike).digest('hex')}`;
+function computeCID(data: string): string {
+  return `sha256:${sha256Hex(data)}`;
 }
 
 // ---------------------------------------------------------------------------

@@ -16,7 +16,7 @@ import type { HealthStatus } from '../../src/services/logic/shared/logic-monitor
 import {
   getSubmoduleSpecs, getSubmoduleSpec, getSubmoduleNames,
   getIntegrationManifest,
-} from '../../src/services/platform/submodule-registry.js';
+} from '../../src/services/logic/api/submodule-registry.js';
 import { BatchProcessor, successRate } from '../../src/services/logic/api/batch-processor.js';
 
 // ---------------------------------------------------------------------------

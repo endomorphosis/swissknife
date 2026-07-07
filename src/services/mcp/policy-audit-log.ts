@@ -18,10 +18,6 @@ const nodeFs = (globalThis.process as unknown as {
   appendFileSync: (path: string, data: string, encoding: BufferEncoding) => void;
 } | undefined;
 
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for PolicyAuditLog file sinks');
-}
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -101,6 +97,9 @@ export class PolicyAuditLog {
   }) {
     this.enabled = opts?.enabled ?? true;
     this.maxEntries = opts?.maxEntries ?? 10_000;
+    if (opts?.logPath && !nodeFs) {
+      throw new Error('node:fs builtin module is required for PolicyAuditLog file sinks');
+    }
     this.logPath = opts?.logPath;
     this.sink = opts?.sink;
   }
@@ -189,7 +188,7 @@ export class PolicyAuditLog {
     // JSONL file
     if (this.logPath) {
       try {
-        nodeFs.appendFileSync(this.logPath, JSON.stringify(entry) + '\n', 'utf8');
+        nodeFs?.appendFileSync(this.logPath, JSON.stringify(entry) + '\n', 'utf8');
       } catch { /* file errors must not crash caller */ }
     }
 

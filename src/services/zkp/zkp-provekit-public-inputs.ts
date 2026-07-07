@@ -12,7 +12,7 @@ import {
   formatCircuitRef,
   parseCircuitRefLenient,
 } from './zkp-statement.js';
-import { sha256Hex } from '../provers/browser-crypto.js';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 export const PROVEKIT_PUBLIC_INPUT_SCHEMA_VERSION = 'provekit-public-inputs-v1';
 export const DEFAULT_PROVEKIT_CIRCUIT_ID = 'provekit_knowledge_of_axioms';

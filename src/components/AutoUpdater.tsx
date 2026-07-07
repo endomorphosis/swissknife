@@ -10,7 +10,7 @@ import {
   installGlobalPackage,
 } from '../utils/autoUpdater.js.js.js.js.js.js.js.js.js.js.js'
 import { useInterval } from '../hooks/useInterval.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
+import { logEvent } from '../services/platform/statsig.js'
 import { MACRO } from '../constants/macros.js.js.js.js.js.js.js.js.js.js'
 import { PRODUCT_COMMAND } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
 type Props = {

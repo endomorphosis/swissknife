@@ -9,7 +9,7 @@
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { PolicyAuditLog, type AuditEntry } from '../../src/services/platform/policy-audit-log';
+import { PolicyAuditLog, type AuditEntry } from '../../src/services/mcp/policy-audit-log';
 import {
   ComplianceChecker,
   addMCPPPBaseRules,
