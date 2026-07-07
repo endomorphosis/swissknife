@@ -1,7 +1,7 @@
 import {
   inspectGeneratedAppReplayLog,
   inspectMCPUIProfileDescriptor,
-} from '../../src/services/mcp-descriptor-inspector';
+} from '../../src/services/mcp/mcp-descriptor-inspector';
 import {
   GeneratedAppStateManager,
   MemoryGeneratedAppReplayStorage,

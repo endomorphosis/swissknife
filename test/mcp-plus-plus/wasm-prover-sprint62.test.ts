@@ -21,14 +21,14 @@ import {
 import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/nlp-predicate-extractor';
 import {
   FormulaProfiler, BottleneckAnalyzer, ProfilingReporter,
-} from '../../src/services/cec-resolution-rules';
+} from '../../src/services/logic/cec/cec-resolution-rules';
 import {
   PruningStrategy, makeProofNode, ProofTreePruner, RedundancyEliminator,
   ResolutionRule, UnitResolutionRule, FactoringRule,
   SubsumptionRule, CaseAnalysisRule, ProofByContradictionRule,
   ALL_RESOLUTION_RULES,
   FormulaProfiler as FP2, BottleneckAnalyzer as BA2, ProfilingReporter as PR2,
-} from '../../src/services/cec-resolution-rules';
+} from '../../src/services/logic/cec/cec-resolution-rules';
 
 // ---------------------------------------------------------------------------
 // EnhancedGrammarParser

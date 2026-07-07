@@ -8,7 +8,7 @@ import {
   assertMCPUIProfileDescriptorTrusted,
   signMCPUIProfileDescriptor,
   verifyMCPUIProfileDescriptorTrust,
-} from '../../src/services/mcp-descriptor-trust';
+} from '../../src/services/mcp/mcp-descriptor-trust';
 import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp-ipfs-ui-descriptors';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
 

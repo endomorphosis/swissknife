@@ -17,7 +17,7 @@ import {
   type ORBDescriptorSource,
 } from '../../src/services/mcp-orb-capability-router';
 import { generateSchemaDrivenUI } from '../../src/services/mcp-schema-ui-generator';
-import { compileIDLToGlassesDisplay } from '../../src/services/idl-to-glasses-compiler';
+import { compileIDLToGlassesDisplay } from '../../src/services/glasses/idl-to-glasses-compiler';
 import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp-ipfs-ui-descriptors';
 import type { InterfaceDescriptor } from '../../src/services/mcp-idl';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';

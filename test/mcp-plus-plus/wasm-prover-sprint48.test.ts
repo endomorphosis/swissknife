@@ -15,7 +15,7 @@ import {
   createDcecGrammar,
   LexicalCategory,
   SemanticType,
-} from '../../src/services/dcec-english-grammar';
+} from '../../src/services/logic/dcec/dcec-english-grammar';
 
 import {
   ProofExplainer,
@@ -25,12 +25,12 @@ import {
   explainZkpProof,
   proofStepNL,
   proofExplanationToString,
-} from '../../src/services/proof-explainer';
+} from '../../src/services/proof-engine/proof-explainer';
 
 import {
   DeonticAnalyzer,
   DocumentCorpus,
-} from '../../src/services/deontic-analyzer';
+} from '../../src/services/logic/deontic/deontic-analyzer';
 
 import {
   LogField,

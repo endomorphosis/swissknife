@@ -4,7 +4,7 @@
  */
 
 import { PolicyEngine, Policy, computePolicyCID } from '../../src/services/mcp-policy';
-import { RiskScorer, MCPScheduler } from '../../src/services/mcp-scheduler';
+import { RiskScorer, MCPScheduler } from '../../src/services/mcp/mcp-scheduler';
 import { EventDAG } from '../../src/services/event-dag';
 
 // ---------------------------------------------------------------------------

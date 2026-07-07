@@ -22,7 +22,7 @@ import {
   buildSwissknifeMCPMediatedInvocationPlan,
   getSwissknifeMCPCapabilityRegistry,
   type HallucinateDashboardCapabilityCatalog,
-} from '../../src/services/swissknife-mcp-capability-registry';
+} from '../../src/services/mcp/swissknife-mcp-capability-registry';
 
 const HALLUCINATE_DASHBOARD_CATALOG_FIXTURE = path.resolve(
   __dirname,

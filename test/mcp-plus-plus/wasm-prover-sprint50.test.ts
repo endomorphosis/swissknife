@@ -40,7 +40,7 @@ import {
   CECFramework,
   ReasoningMode,
   defaultFrameworkConfig,
-} from '../../src/services/cec-framework';
+} from '../../src/services/logic/cec/cec-framework';
 
 // ---------------------------------------------------------------------------
 // TableauNode tests

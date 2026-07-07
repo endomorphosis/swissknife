@@ -7,7 +7,7 @@
  * intelligent selection and parallel / sequential execution strategies.
  */
 
-import { FormulaAnalyzer } from '../../formula-analyzer';
+import { FormulaAnalyzer } from '../shared/formula-analyzer.js';
 
 // ---------------------------------------------------------------------------
 // Enumerations

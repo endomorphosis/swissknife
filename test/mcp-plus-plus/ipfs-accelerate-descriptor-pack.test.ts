@@ -4,7 +4,7 @@ import {
   getIPFSAccelerateDescriptorPackDescriptors,
   ipfsAccelerateDescriptorPack,
   validateIPFSAccelerateDescriptorPack,
-} from '../../src/services/mcp-ipfs-accelerate-descriptor-pack';
+} from '../../src/services/mcp/mcp-ipfs-accelerate-descriptor-pack';
 import { generateSchemaDrivenUI } from '../../src/services/mcp-schema-ui-generator';
 import { validateMCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
 

@@ -12,7 +12,7 @@ import {
   type MetaGlassesMobileORBInvokeServiceResponse,
   type MetaGlassesMobileORBRegisterResponse,
   type MetaGlassesMobileORBSubscribeServiceUpdatesResponse,
-} from '../../src/services/meta-glasses-mobile-orb-bridge';
+} from '../../src/services/glasses/meta-glasses-mobile-orb-bridge';
 import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
 
 vi.mock('crypto', async () => {

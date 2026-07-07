@@ -16,7 +16,7 @@ import {
 import {
   ProvingMethod, ZKPCECProver, UnifiedCECProofResult,
   createHybridProver,
-} from '../../src/services/cec-zkp-integration';
+} from '../../src/services/logic/cec/cec-zkp-integration';
 import { Groth16BackendFallback } from '../../src/services/zkp-backends';
 
 import {

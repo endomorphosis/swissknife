@@ -17,7 +17,7 @@ import {
   type BusMessage,
   type BusMessageHandler,
   type PubSubTransport,
-} from '../../src/services/mcp-pubsub-bus';
+} from '../../src/services/mcp/mcp-pubsub-bus';
 
 // ---------------------------------------------------------------------------
 // Helpers

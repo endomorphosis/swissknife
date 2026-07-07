@@ -15,12 +15,12 @@ import {
 
 import {
   FluentType, PersistenceRule, FluentManager,
-} from '../../src/services/cec-fluents';
+} from '../../src/services/logic/cec/cec-fluents';
 import { TimePoint } from '../../src/services/event-calculus';
 
 import {
   isFormulaDict, isProofResultDict,
-} from '../../src/services/cec-types';
+} from '../../src/services/logic/cec/cec-types';
 
 import {
   TDFOLTraceNotDerivableError, TDFOLTraceBoundExceededError, TDFOLTraceSchemaError,

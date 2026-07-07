@@ -67,14 +67,16 @@ export class BrowserAccelerator {
       return 'server'; // Indicate non-browser environment
     }
     const userAgent = navigator.userAgent;
+    if (/Node\.js/i.test(userAgent)) return 'server';
 
     if (userAgent.indexOf("Firefox") > -1) return "firefox";
     // Edge user agent contains "Edg/" (note the capital 'E')
     if (userAgent.indexOf("Edg/") > -1) return "edge";
-     // Chrome user agent contains "Chrome" but not "Edg/"
+    // Chrome user agent contains "Chrome" but not "Edg/"
     if (userAgent.indexOf("Chrome") > -1 && userAgent.indexOf("Edg/") === -1) return "chrome";
     // Safari user agent contains "Safari" but not "Chrome" or "Edg/"
     if (userAgent.indexOf("Safari") > -1 && userAgent.indexOf("Chrome") === -1 && userAgent.indexOf("Edg/") === -1) return "safari";
+    if (typeof process !== 'undefined' && process.versions?.node) return 'server';
 
     return "unknown";
   }

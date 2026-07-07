@@ -11,7 +11,7 @@ import {
   interfaceDescriptorFromToolList,
   type DeonticUIControl,
   type ManifestToolInvoker,
-} from '../../src/services/mcp-deontic-ui-manifest';
+} from '../../src/services/mcp/mcp-deontic-ui-manifest';
 import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp-ipfs-ui-descriptors';
 import {
   RemoteDeonticEngine,

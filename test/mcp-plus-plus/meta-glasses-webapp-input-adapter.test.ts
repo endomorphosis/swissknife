@@ -7,7 +7,7 @@ import {
   routeMetaGlassesWebAppInputEvent,
   type MetaGlassesWebAppInputEventRequest,
   type MetaGlassesWebAppInputSource,
-} from '../../src/services/meta-glasses-webapp-input-adapter';
+} from '../../src/services/glasses/meta-glasses-webapp-input-adapter';
 
 const APP_ID = 'com.example.webapp';
 

@@ -15,7 +15,7 @@ import {
   TemporalObligation,
   ALL_ADVANCED_RULES, findApplicableAdvancedRules,
   get_all_advanced_rules, get_combined_rules, get_deontic_rules, get_modal_rules, get_temporal_rules,
-} from '../../src/services/cec-advanced-inference';
+} from '../../src/services/logic/cec/cec-advanced-inference';
 
 import {
   DeonticKAxiomRule, DeonticDAxiomRule, ProhibitionEquivalenceRule,

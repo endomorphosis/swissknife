@@ -3,7 +3,7 @@ import {
   META_GLASSES_MULTIMODAL_IO_CONTRACT,
   buildMetaGlassesPlaywrightFixture,
   type MetaGlassesControlPlanePlaywrightFixture,
-} from '../../src/services/meta-glasses-multimodal-io-transport-contract';
+} from '../../src/services/glasses/meta-glasses-multimodal-io-transport-contract';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

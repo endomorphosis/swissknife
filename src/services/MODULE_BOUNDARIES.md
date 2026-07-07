@@ -135,19 +135,21 @@ deontic, modal, TDFOL, root prover, ZKP, and glasses/control-plane
 implementation moves, plus MCP, `logic.shared`, final root implementation
 containment, EventDAG, shared bridge-type moves, `logic.api`, MCP policy
 deontic ownership, shared NL/temporal helper moves, MCP control-surface
-ownership, and strict dependency manifest reconciliation on
+ownership, strict dependency manifest reconciliation, Phase 1 root shim
+pruning, CEC/platform test-import retargeting, and
+NL/shared/modal/proof-engine plus MCP/glasses test-import retargeting on
 `2026-07-06`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 642 |
-| Root-level service files | 276 |
-| Root compatibility shims | 276 |
+| Service files | 525 |
+| Root-level service files | 159 |
+| Root compatibility shims | 159 |
 | Root implementation files | 0 |
-| Legacy root files | 276 |
+| Legacy root files | 159 |
 | Legacy path files | 26 |
 | Unknown files | 0 |
-| Import edges | 1033 |
+| Import edges | 904 |
 | Forbidden cross-module imports | 0 |
 
 The final acceptance target is fewer than 20 files directly under

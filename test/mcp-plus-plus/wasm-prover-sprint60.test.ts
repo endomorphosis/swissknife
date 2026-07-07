@@ -3,11 +3,11 @@
  *                   CEC Proof Cache, DCEC Prototypes, TDFOL Performance Engine
  */
 
-import { GrammarEngine, CompositeGrammar, Category, makeBinaryRule, makeUnaryRule } from '../../src/services/cec-grammar-engine';
-import { parseExpressionToToken, tokenToFormula, parseDcecString, validateFormula, DCECParsingError } from '../../src/services/dcec-integration';
-import { ContextManager, AnaphoraResolver, DiscourseAnalyzer, EntityType, makeEntity } from '../../src/services/cec-context-manager';
+import { GrammarEngine, CompositeGrammar, Category, makeBinaryRule, makeUnaryRule } from '../../src/services/logic/cec/cec-grammar-engine';
+import { parseExpressionToToken, tokenToFormula, parseDcecString, validateFormula, DCECParsingError } from '../../src/services/logic/dcec/dcec-integration';
+import { ContextManager, AnaphoraResolver, DiscourseAnalyzer, EntityType, makeEntity } from '../../src/services/logic/cec/cec-context-manager';
 import { CachedTheoremProver, getGlobalCachedProver } from '../../src/services/cec-proof-cache';
-import { DCECPrototypeNamespace, TDFOLPerformanceEngine } from '../../src/services/dcec-prototypes';
+import { DCECPrototypeNamespace, TDFOLPerformanceEngine } from '../../src/services/logic/dcec/dcec-prototypes';
 import { makeSort, SORT_OBJECT } from '../../src/services/dcec-core-types';
 
 // ---------------------------------------------------------------------------

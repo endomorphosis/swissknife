@@ -17,7 +17,7 @@ import {
   NLPolicyConflictDetector,
   detectConflicts,
   PolicyClause,
-} from '../../src/services/nl-policy-conflict-detector';
+} from '../../src/services/logic/nl/nl-policy-conflict-detector';
 
 import {
   buildConversionPrompt,
@@ -26,7 +26,7 @@ import {
   getOperatorHintsForText,
   LLMResponseCache,
   makeLLMParseResult,
-} from '../../src/services/tdfol-nl-llm';
+} from '../../src/services/logic/tdfol/tdfol-nl-llm';
 
 // ---------------------------------------------------------------------------
 // PatternMatcher tests

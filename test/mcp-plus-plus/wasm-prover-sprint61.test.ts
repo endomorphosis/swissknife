@@ -4,9 +4,9 @@
  */
 
 import { OTelTracer, SpanStatus, EventType, Span, Trace, setupOtelTracer } from '../../src/services/otel-integration';
-import { SyntaxTree, SyntaxNode, NodeType } from '../../src/services/cec-syntax-tree';
-import { LanguageDetector, Language } from '../../src/services/cec-language-detector';
-import { DCECNamespace, DCECContainer, compileDcecToClause, NLToPolicyCompiler } from '../../src/services/cec-dcec-namespace';
+import { SyntaxTree, SyntaxNode, NodeType } from '../../src/services/logic/cec/cec-syntax-tree';
+import { LanguageDetector, Language } from '../../src/services/logic/cec/cec-language-detector';
+import { DCECNamespace, DCECContainer, compileDcecToClause, NLToPolicyCompiler } from '../../src/services/logic/cec/cec-dcec-namespace';
 import { makeSort } from '../../src/services/dcec-core-types';
 
 // ---------------------------------------------------------------------------

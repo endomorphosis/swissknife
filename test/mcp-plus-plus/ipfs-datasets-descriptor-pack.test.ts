@@ -4,7 +4,7 @@ import {
   getIPFSDatasetsDescriptorPackDescriptors,
   ipfsDatasetsDescriptorPack,
   validateIPFSDatasetsDescriptorPack,
-} from '../../src/services/mcp-ipfs-datasets-descriptor-pack';
+} from '../../src/services/mcp/mcp-ipfs-datasets-descriptor-pack';
 import { generateSchemaDrivenUI } from '../../src/services/mcp-schema-ui-generator';
 import { validateMCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
 
