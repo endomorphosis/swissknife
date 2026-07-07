@@ -5,10 +5,10 @@
  * cost-based strategy selection for TDFOL proof attempts.
  */
 
-import { ExternalProver, ProverStatus } from './external-provers.js';
-import { createTptpProblem } from './tptp-problem.js';
-import { ModalLogic } from './shadow-prover.js';
-import { TableauProver } from './cec-modal-tableaux.js';
+import { ExternalProver, ProverStatus } from '../../provers/external-provers.js';
+import { createTptpProblem } from '../../provers/tptp-problem.js';
+import { ModalLogic } from '../../shadow-prover.js';
+import { TableauProver } from '../../cec-modal-tableaux.js';
 
 export interface TDFOLStrategyResult {
   proved: boolean;

@@ -194,13 +194,16 @@ describe('PolicyEngine', () => {
       expect(overdue[0].overdue).toBe(true);
     });
 
-    it('emits obligation:spawned event', done => {
-      engine.on('obligation:spawned', (ob) => {
-        expect(ob.description).toBe('Log the access');
-        done();
+    it('emits obligation:spawned event', async () => {
+      const emitted = new Promise<void>((resolve) => {
+        engine.on('obligation:spawned', (ob) => {
+          expect(ob.description).toBe('Log the access');
+          resolve();
+        });
       });
       const cid = engine.registerPolicy(WITH_OBLIGATION_POLICY);
       engine.evaluatePolicy(cid, { cap: 'mcp++/invoke', rsc: '*' });
+      await emitted;
     });
   });
 });

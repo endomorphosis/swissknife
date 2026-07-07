@@ -26,7 +26,7 @@ import {
   mkDeontic,
   mkTemporal,
 } from './tdfol-core.js';
-import { ModalTableaux, ModalLogicType } from './modal-tableaux.js';
+import { ModalTableaux, ModalLogicType } from '../modal/modal-tableaux.js';
 import { CostBasedStrategySelector, createDefaultStrategySelector } from './tdfol-strategy-router.js';
 
 // ---------------------------------------------------------------------------

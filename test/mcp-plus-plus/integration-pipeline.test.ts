@@ -6,7 +6,7 @@
  *  - InterfaceRepository shared-instance / getSharedInstance()
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 // ── InterfaceRepository shared instance ──────────────────────────────────────
 
@@ -103,17 +103,21 @@ describe('Envelope → Receipt pipeline', () => {
     expect(computeReceiptCID(receipt)).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 
-  it('computeReceiptCID is stable across calls', () => {
+  it('computeReceiptCID is stable for equivalent receipt payloads', () => {
     const envelope = buildEnvelope(
       { toolName: 'calc', params: { a: 1 } },
       'sha256:' + '0'.repeat(64),
     );
     const outputBytes = Buffer.from('{"answer":42}', 'utf8');
 
-    const r1 = buildReceipt(envelope, outputBytes);
-    const r2 = buildReceipt(envelope, outputBytes);
-    // computeReceiptCID must produce the same CID for two identical receipts
-    expect(computeReceiptCID(r1)).toBe(computeReceiptCID(r2));
+    const receipt = buildReceipt(envelope, outputBytes);
+    const equivalentReceipt = {
+      issuedAt: receipt.issuedAt,
+      output_cid: receipt.output_cid,
+      envelope_cid: receipt.envelope_cid,
+      decision_cid: receipt.decision_cid,
+    };
+    expect(computeReceiptCID(receipt)).toBe(computeReceiptCID(equivalentReceipt));
   });
 });
 

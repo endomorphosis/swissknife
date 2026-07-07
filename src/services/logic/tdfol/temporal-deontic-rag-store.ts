@@ -11,9 +11,9 @@
  *   TemporalDeonticRAGStore — add/remove/findRelevant/checkConsistency
  */
 
-import { DeonticFormula, DeonticOp, makeDeonticFormula } from './deontic-query-engine.js';
-import { buildDeterministicEmbedding } from './embedding-prover.js';
-import { sha256Hex } from './provers/browser-crypto.js';
+import { DeonticFormula, DeonticOp, makeDeonticFormula } from '../../deontic-query-engine.js';
+import { buildDeterministicEmbedding } from '../../embedding-prover.js';
+import { sha256Hex } from '../../provers/browser-crypto.js';
 
 function formulaProposition(formula: DeonticFormula): string {
   return formula.proposition ?? formula.action;

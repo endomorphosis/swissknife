@@ -9,7 +9,7 @@
  * of knowledge; it is not a Groth16 semantic circuit.
  */
 
-import { BrowserSchnorrZkpBackend, BROWSER_SCHNORR_BACKEND_ID } from './zkp-browser-schnorr.js';
+import { BrowserSchnorrZkpBackend, BROWSER_SCHNORR_BACKEND_ID } from '../../zkp-browser-schnorr.js';
 import { TDFOLKnowledgeBase } from './tdfol-core.js';
 import { parseTdfolSafe } from './tdfol-parser.js';
 import { ProofStatus, TDFOLProver } from './tdfol-prover.js';

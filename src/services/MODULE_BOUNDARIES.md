@@ -123,19 +123,19 @@ node scripts/audit-services-modules.mjs --fail-on-unknown --fail-on-forbidden
 ```
 
 Current baseline after the initial IPFS, platform, integrations, proof-engine,
-`logic.nl`, legacy sprint-bundle, FOL, bridge-core, DCEC, modal, and root prover
-implementation moves on `2026-07-06`:
+`logic.nl`, legacy sprint-bundle, FOL, bridge-core, DCEC, CEC/Event Calculus,
+deontic, modal, TDFOL, and root prover implementation moves on `2026-07-06`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 466 |
+| Service files | 527 |
 | Root-level service files | 277 |
-| Root compatibility shims | 114 |
-| Root implementation files | 163 |
+| Root compatibility shims | 172 |
+| Root implementation files | 105 |
 | Legacy root files | 277 |
 | Legacy path files | 26 |
 | Unknown files | 0 |
-| Import edges | 686 |
+| Import edges | 802 |
 | Forbidden cross-module imports | 71 |
 
 The final acceptance target is fewer than 20 files directly under

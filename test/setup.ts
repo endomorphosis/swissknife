@@ -27,7 +27,14 @@ vi.mock('path', async () => {
 // Mock crypto for consistent testing
 vi.mock('crypto', async () => {
   const actual = await vi.importActual('crypto-browserify')
-  return actual
+  let randomUuidCounter = 0
+  return {
+    ...(actual as Record<string, unknown>),
+    randomUUID: vi.fn(() => {
+      randomUuidCounter += 1
+      return `00000000-0000-4000-8000-${String(randomUuidCounter).padStart(12, '0')}`
+    })
+  }
 })
 
 // Setup global objects that might be needed. Guarded so this shared setup file

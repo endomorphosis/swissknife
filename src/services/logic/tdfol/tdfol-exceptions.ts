@@ -10,7 +10,7 @@
  * Reference: ipfs_datasets_py/logic/TDFOL/exceptions.py
  */
 
-import { LogicError } from './logic-errors.js';
+import { LogicError } from '../../logic-errors.js';
 
 // ---------------------------------------------------------------------------
 // TDFOLError — base

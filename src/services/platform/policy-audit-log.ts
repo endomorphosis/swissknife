@@ -10,8 +10,17 @@
  * (Phase 8 Observability).
  */
 
-import { appendFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  appendFileSync: (path: string, data: string, encoding: BufferEncoding) => void;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for PolicyAuditLog file sinks');
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -180,7 +189,7 @@ export class PolicyAuditLog {
     // JSONL file
     if (this.logPath) {
       try {
-        appendFileSync(this.logPath, JSON.stringify(entry) + '\n', 'utf8');
+        nodeFs.appendFileSync(this.logPath, JSON.stringify(entry) + '\n', 'utf8');
       } catch { /* file errors must not crash caller */ }
     }
 
