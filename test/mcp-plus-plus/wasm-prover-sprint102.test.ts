@@ -27,7 +27,7 @@ import {
 import {
   compileExplainIter,
   evaluateWithManager,
-} from '../../src/services/logic/shared/logic-api-remainders';
+} from '../../src/services/logic/api/logic-api-remainders';
 
 describe('PORT-226 FOL text utilities', () => {
   it('formats FOL into Python-compatible Prolog, TPTP, JSON, and metadata shapes', () => {

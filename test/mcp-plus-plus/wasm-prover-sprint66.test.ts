@@ -11,14 +11,14 @@ import {
   makeVariable, makeFunction, makePredicate,
   formulaToTPTP, createTPTPProblem, TPTPConverter,
   DCECToUCANMapping, DCECToUCANBridge,
-} from '../../src/services/legacy/sprint66-dcec-types';
+} from '../../src/services/logic/dcec/sprint66-dcec-types';
 
 import {
   StrategySelector,
   VampireAdapter, checkVampireInstallation, type VampireProcessResult,
   UtilityMonitor, trackPerformance, withCaching, getGlobalStats, clearGlobalCache, resetGlobalStats,
   normalizeProverName, findExecutable, isLazyInstallEnabled, lazyInstallProver,
-} from '../../src/services/legacy/sprint66-prover-utils';
+} from '../../src/services/provers/sprint66-prover-utils';
 
 // ---------------------------------------------------------------------------
 // DCEC Enums

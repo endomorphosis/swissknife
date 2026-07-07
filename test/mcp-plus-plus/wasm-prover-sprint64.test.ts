@@ -11,7 +11,7 @@ import {
   SemanticNormalizer, getGlobalNormalizer,
   convertTextToFol, extractTextFromDataset, getQuantifierDistribution, getOperatorDistribution,
   legalTextToDeontic, extractLegalTextFromDataset, convertResultToLegacyFormat,
-} from '../../src/services/legacy/sprint64-modules';
+} from '../../src/services/logic/api/sprint64-modules';
 
 // ---------------------------------------------------------------------------
 // ForwardChainingStrategy

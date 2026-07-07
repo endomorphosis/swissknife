@@ -8,8 +8,8 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { createTptpProblem, extractTptpProofSteps, parseSzsStatus } from '../provers/tptp-problem.js';
-import { Groth16Backend, type ZKPBackendProtocol } from '../zkp/zkp-backends';
+import { createTptpProblem, extractTptpProofSteps, parseSzsStatus } from '../../provers/tptp-problem.js';
+import { Groth16Backend, type ZKPBackendProtocol } from '../../zkp/zkp-backends.js';
 
 // ---------------------------------------------------------------------------
 // Logic Verification Utils (logic_verification_utils.py)

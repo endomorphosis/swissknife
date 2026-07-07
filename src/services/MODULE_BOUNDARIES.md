@@ -36,7 +36,6 @@ src/services/
   zkp/
   proof-engine/
   integrations/
-  legacy/
 ```
 
 ## Module Intent
@@ -62,7 +61,6 @@ src/services/
 | `zkp` | ZKP statements, circuits, browser/native backends, UCAN bridge, on-chain bridge, artifacts, witness/key management. |
 | `proof-engine` | Proof execution, proof trees, strategies, caches, explainers, dependency graphs. |
 | `integrations` | Optional external wrappers: FLogic, ErgoAI, spaCy WASM, neurosymbolic services, and compatibility shims for migrated integrations. |
-| `legacy` | Temporary holding area for sprint bundles and unclassified modules during migration. |
 
 ## Dependency Direction
 
@@ -82,8 +80,6 @@ src/services/
   should live under `logic/*`.
 - MCP control-surface mediation belongs to `mcp`; glasses modules may re-export
   or consume its structural contracts for device-specific adapters.
-- `legacy` is temporary; new code must not be added there without a migration
-  ticket.
 
 ## Migration Rules
 
@@ -104,7 +100,7 @@ src/services/
 6. `logic.tdfol`, `logic.cec`, and `logic.dcec`.
 7. `logic.bridges`.
 8. `zkp`, `provers`, and `proof-engine`.
-9. `integrations` and remaining `legacy` files.
+9. `integrations`.
 
 ## Audit
 
@@ -115,32 +111,34 @@ npm run services:audit
 ```
 
 The audit reports root-file debt, module classification, unknown files, and
-cross-module imports. By default it is report-only because the current tree is
-known to be transitional. Tighten it progressively with:
+cross-module imports. The npm script is strict by default and fails on root-file
+debt, unknown files, and forbidden cross-module imports. To inspect the report
+without the npm script defaults, run:
 
 ```bash
-node scripts/audit-services-modules.mjs --fail-on-unknown --fail-on-forbidden
+node scripts/audit-services-modules.mjs
 ```
 
 Current baseline after removing root service compatibility shims, migrating the
 old `bridge`, `deontic`, `fol`, and `fol-utils` namespace folders into
-module-owned paths, retargeting downstream imports, and reconciling the strict
-dependency manifest on `2026-07-06`:
+module-owned paths, relocating the remaining sprint bundles out of `legacy`,
+retargeting downstream imports, and reconciling the strict dependency manifest
+on `2026-07-06`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 356 |
+| Service files | 355 |
 | Root-level service files | 0 |
 | Root compatibility shims | 0 |
 | Root implementation files | 0 |
 | Legacy root files | 0 |
 | Legacy path files | 0 |
 | Unknown files | 0 |
-| Import edges | 755 |
+| Import edges | 754 |
 | Forbidden cross-module imports | 0 |
 
 The final acceptance target is satisfied for root files: only
 `MODULE_BOUNDARIES.md` and `module-ownership.json` remain directly under
-`src/services`. The legacy path exception count is also zero; new
-implementation files should be assigned to a non-legacy owner unless there is a
-migration ticket.
+`src/services`. The legacy module and legacy path exception counts are also
+zero; new implementation files should be assigned to an explicit non-legacy
+owner.

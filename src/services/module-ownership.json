@@ -1,6 +1,6 @@
 {
   "schemaVersion": "2026-07-06",
-  "description": "Target ownership and dependency policy for src/services. This manifest classifies the current flat service tree during the staged module-containment refactor.",
+  "description": "Target ownership and dependency policy for src/services. All service implementation files must live inside an explicit module-owned path.",
   "sourceRoot": "src/services",
   "excludedFiles": [
     "src/services/module-ownership.json"
@@ -100,11 +100,6 @@
       "targetPath": "src/services/integrations",
       "purpose": "External/optional integration wrappers: FLogic, ErgoAI, ShadowProver, spaCy WASM, neurosymbolic services, UCAN policy bridges.",
       "allowedImports": ["shared", "platform", "logic.shared", "logic.fol", "logic.deontic", "logic.tdfol", "logic.modal", "provers", "zkp", "proof-engine", "integrations"]
-    },
-    "legacy": {
-      "targetPath": "src/services/legacy",
-      "purpose": "Temporary holding area for sprint bundles and files whose ownership still needs human review before movement.",
-      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs", "logic.shared", "logic.nl", "logic.fol", "logic.tdfol", "logic.cec", "logic.dcec", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp", "proof-engine", "integrations", "legacy"]
     }
   },
   "pathRules": [
@@ -115,7 +110,6 @@
     { "pattern": "src/services/ipfs/**", "module": "ipfs" },
     { "pattern": "src/services/integrations/**", "module": "integrations" },
     { "pattern": "src/services/proof-engine/**", "module": "proof-engine" },
-    { "pattern": "src/services/legacy/**", "module": "legacy" },
     { "pattern": "src/services/logic/shared/**", "module": "logic.shared" },
     { "pattern": "src/services/logic/api/**", "module": "logic.api" },
     { "pattern": "src/services/logic/nl/**", "module": "logic.nl" },
@@ -133,6 +127,6 @@
     "maxRootFilesAfterPhase1": 220,
     "maxRootFilesAfterPhase2": 120,
     "maxRootFilesAfterPhase3": 40,
-    "maxRootFilesFinal": 20
+    "maxRootFilesFinal": 0
   }
 }

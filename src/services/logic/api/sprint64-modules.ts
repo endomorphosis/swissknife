@@ -9,8 +9,8 @@
  *           deontic/legal_text_to_deontic.py (305L)
  */
 
-import { PatternMatcher, PatternType } from '../logic/shared/tdfol-nl-patterns';
-import { DeonticAnalyzer } from '../deontic-analyzer';
+import { PatternMatcher, PatternType } from '../shared/tdfol-nl-patterns.js';
+import { DeonticAnalyzer } from '../deontic/deontic-analyzer.js';
 
 // ---------------------------------------------------------------------------
 // T-297 — TDFOL Forward Chaining Strategy

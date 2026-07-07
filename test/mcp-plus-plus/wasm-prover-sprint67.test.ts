@@ -11,13 +11,13 @@ import {
   CECDelegateStrategy, createCECDelegate,
   AndExpansionRule, OrExpansionRule, ImpliesExpansionRule, IffExpansionRule, NotExpansionRule,
   getAllExpansionRules, selectExpansionRule,
-} from '../../src/services/legacy/sprint67-groth16-cec';
+} from '../../src/services/zkp/sprint67-groth16-cec';
 
 import {
   getPortugueseDeonticKeywords, PortugueseParser,
   DeonticModality, ConflictType, detectConflict,
   FLogicStatus, makeFrame, makeOntology,
-} from '../../src/services/legacy/sprint67-nlp-types';
+} from '../../src/services/logic/nl/sprint67-nlp-types';
 
 import {
   normalizeText, canonicalizeTheorem, canonicalizeAxioms, theoremHashHex, axiomsCommitmentHex, tdfolV1AxiomsCommitmentHexV2,
@@ -25,7 +25,7 @@ import {
   RateLimiter, RateLimitExceeded, getRateLimiter, rateLimit,
   VKRegistry, computeVkHash,
   HornAxiom, parseTdfolV1Axiom, parseTdfolV1Theorem, evaluateTdfolV1Holds, deriveTdfolV1Trace, LegalTheoremSyntaxError,
-} from '../../src/services/legacy/sprint67-crypto-utils';
+} from '../../src/services/zkp/sprint67-crypto-utils';
 
 // ---------------------------------------------------------------------------
 // Groth16BackupBackend

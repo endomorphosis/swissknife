@@ -10,7 +10,6 @@ export * from './hybrid-confidence.js';
 export * from './legal-domain-knowledge.js';
 export * from './legal-symbolic-analyzer.js';
 export * from './lemma-generation.js';
-export * from './logic-api-remainders.js';
 export * from './logic-audit-log.js';
 export * from './logic-config.js';
 export * from './logic-converters.js';

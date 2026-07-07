@@ -5,3 +5,4 @@ export * from './dcec-error-handling.js';
 export * from './dcec-integration.js';
 export * from './dcec-parsing.js';
 export * from './dcec-prototypes.js';
+export * from './sprint66-dcec-types.js';

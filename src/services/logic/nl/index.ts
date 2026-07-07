@@ -9,3 +9,4 @@ export * from './nl-to-dcec-compiler.js';
 export * from './nl-ucan-policy-compiler.js';
 export * from './portuguese-parser.js';
 export * from './spanish-parser.js';
+export * from './sprint67-nlp-types.js';

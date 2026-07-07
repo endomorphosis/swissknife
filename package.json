@@ -62,7 +62,7 @@
     "test:production": "npm run test:vite && npm run test:collaborative && npm run test:p2p",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
-    "services:audit": "node scripts/audit-services-modules.mjs",
+    "services:audit": "node scripts/audit-services-modules.mjs --fail-on-root-debt --fail-on-unknown --fail-on-forbidden",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json && tsc --noEmit -p ipfs_accelerate_js/tsconfig.json",
