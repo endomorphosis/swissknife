@@ -1,4 +1,6 @@
 export * from './browser-snarkjs-backend.js';
+export * from './canonicalization.js';
+export * from './legal-theorem-semantics.js';
 export * from './setup-artifacts.js';
 export * from './sprint68-eth-bridge.js';
 export * from './vk-registry.js';

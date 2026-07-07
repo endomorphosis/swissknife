@@ -6,10 +6,10 @@
 
 import {
   cosineSimilarity, EmbeddingEnhancedProver,
-} from '../../src/services/embedding-prover.js';
+} from '../../src/services/logic/shared/embedding-prover.js';
 import {
   generateDeonticSMT2Axioms, ProverBackendMixin,
-} from '../../src/services/prover-backend-mixin.js';
+} from '../../src/services/proof-engine/prover-backend-mixin.js';
 import {
   LogicalComponents, SymbolicFOLBridge,
 } from '../../src/services/symbolic-fol-bridge.js';

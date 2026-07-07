@@ -9,3 +9,4 @@ export * from './modal-logic-codec.js';
 export * from './modal-logic-extension.js';
 export * from './modal-synthesis.js';
 export * from './modal-tableaux.js';
+export * from './shadow-prover.js';

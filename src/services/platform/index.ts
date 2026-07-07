@@ -3,7 +3,6 @@ export * from './browser-acceleration.js';
 export * from './browserMocks.js';
 export * from './caselaw-bulk-processor.js';
 export * from './claude.js';
-export * from './e2e-validator.js';
 export * from './feature-detection.js';
 export * from './hardware-abstraction.js';
 export * from './llm-circuit-breaker.js';

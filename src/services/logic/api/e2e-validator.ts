@@ -13,16 +13,16 @@
  * Reference: ipfs_datasets_py/logic/e2e_validation.py §E2EValidator
  */
 
-import { FolTextConverter } from '../logic/fol/fol-text-converter.js';
-import { DeonticTextAnalyzer } from '../deontic/deontic-text-analyzer.js';
-import { LegalNormBuilder } from '../deontic/legal-norm-builder.js';
-import { decodeLegalNormIR } from '../deontic/legal-norm-decoder.js';
-import { ProverSyntaxBuilder } from '../deontic/prover-syntax-builder.js';
-import { DeonticGraph } from '../deontic/deontic-graph.js';
-import { DeonticGraphBuilder } from '../deontic/deontic-graph-builder.js';
-import { LogicMonitor } from '../logic/shared/logic-monitor.js';
-import { getSubmoduleSpecs, getIntegrationManifest } from './submodule-registry.js';
-import { BatchProcessor } from './batch-processor.js';
+import { FolTextConverter } from '../fol/fol-text-converter.js';
+import { DeonticTextAnalyzer } from '../../deontic/deontic-text-analyzer.js';
+import { LegalNormBuilder } from '../../deontic/legal-norm-builder.js';
+import { decodeLegalNormIR } from '../../deontic/legal-norm-decoder.js';
+import { ProverSyntaxBuilder } from '../../deontic/prover-syntax-builder.js';
+import { DeonticGraph } from '../../deontic/deontic-graph.js';
+import { DeonticGraphBuilder } from '../../deontic/deontic-graph-builder.js';
+import { LogicMonitor } from '../shared/logic-monitor.js';
+import { getSubmoduleSpecs, getIntegrationManifest } from '../../platform/submodule-registry.js';
+import { BatchProcessor } from '../../platform/batch-processor.js';
 
 // ---------------------------------------------------------------------------
 // ValidationResult

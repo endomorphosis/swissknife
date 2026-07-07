@@ -1,1 +1,1 @@
-export * from './logic/shared/legal-theorem-semantics.js';
+export * from './zkp/legal-theorem-semantics.js';

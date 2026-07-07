@@ -10,7 +10,7 @@
  * - version-history: Get version history
  */
 
-import { DeploymentManager } from '../services/mcp-deployment-manager.js';
+import { DeploymentManager } from '../services/mcp/mcp-deployment-manager.js';
 import { 
   parseEnvVars, 
   ensureConfigScope, 

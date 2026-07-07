@@ -1,1 +1,1 @@
-export * from './logic/shared/logic-batch-processing.js';
+export * from './logic/api/logic-batch-processing.js';

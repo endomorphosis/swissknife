@@ -11,7 +11,7 @@ import { GATE_USE_EXTERNAL_UPDATER } from '../constants/betas.js'
 import { ConfigParseError } from './errors.js'
 import type { ThemeNames } from './theme.js'
 import { getSessionState, setSessionState } from './sessionState.js'
-import type { McpVersionHistory } from '../services/mcp-types.js'
+import type { McpVersionHistory } from '../services/mcp/mcp-types.js'
 
 export type McpPlusPlusConfig = {
   enableP2P?: boolean

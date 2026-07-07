@@ -19,7 +19,7 @@
     "mcp": {
       "targetPath": "src/services/mcp",
       "purpose": "MCP protocol, registries, descriptors, policy broker, transport, and schema/UI descriptor orchestration.",
-      "allowedImports": ["shared", "platform", "mcp", "logic.shared", "provers", "zkp"]
+      "allowedImports": ["shared", "platform", "mcp", "logic.shared", "logic.deontic", "provers", "zkp"]
     },
     "glasses": {
       "targetPath": "src/services/glasses",
@@ -36,6 +36,11 @@
       "purpose": "Common theorem-prover domain types, formula analyzers, parsers, validation, canonicalization, and proof metadata.",
       "allowedImports": ["shared", "logic.shared", "provers"]
     },
+    "logic.api": {
+      "targetPath": "src/services/logic/api",
+      "purpose": "Stable logic-layer facades, end-to-end validators, and public orchestration APIs that compose multiple logic modules.",
+      "allowedImports": ["shared", "platform", "logic.shared", "logic.api", "logic.nl", "logic.fol", "logic.tdfol", "logic.cec", "logic.dcec", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp", "proof-engine"]
+    },
     "logic.nl": {
       "targetPath": "src/services/logic/nl",
       "purpose": "Natural-language parsing, policy compilation, multilingual parsers, grammar loading, and sentence-level conversion helpers.",
@@ -49,7 +54,7 @@
     "logic.tdfol": {
       "targetPath": "src/services/logic/tdfol",
       "purpose": "TDFOL core AST, parser, prover, temporal/deontic APIs, strategy routing, optimization, and performance helpers.",
-      "allowedImports": ["shared", "logic.shared", "logic.fol", "logic.tdfol", "logic.deontic", "logic.cec", "logic.dcec", "provers", "zkp"]
+      "allowedImports": ["shared", "logic.shared", "logic.fol", "logic.tdfol", "logic.deontic", "logic.cec", "logic.dcec", "logic.modal", "provers", "zkp", "proof-engine"]
     },
     "logic.dcec": {
       "targetPath": "src/services/logic/dcec",
@@ -69,7 +74,7 @@
     "logic.modal": {
       "targetPath": "src/services/logic/modal",
       "purpose": "Modal codec/compiler/decompiler/tableaux, Kripke structures, KG bridges, ambiguity handling, and modal synthesis.",
-      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.deontic", "logic.modal", "provers"]
+      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.tdfol", "logic.deontic", "logic.modal", "provers"]
     },
     "logic.bridges": {
       "targetPath": "src/services/logic/bridges",
@@ -112,6 +117,7 @@
     { "pattern": "src/services/proof-engine/**", "module": "proof-engine" },
     { "pattern": "src/services/legacy/**", "module": "legacy" },
     { "pattern": "src/services/logic/shared/**", "module": "logic.shared" },
+    { "pattern": "src/services/logic/api/**", "module": "logic.api" },
     { "pattern": "src/services/logic/nl/**", "module": "logic.nl" },
     { "pattern": "src/services/logic/fol/**", "module": "logic.fol" },
     { "pattern": "src/services/logic/tdfol/**", "module": "logic.tdfol" },
@@ -127,6 +133,7 @@
     { "pattern": "src/services/zkp/**", "module": "zkp" },
     { "pattern": "src/services/bridge/**", "module": "logic.bridges", "legacyPath": true },
     { "pattern": "src/services/sprint*.ts", "module": "legacy", "legacyRoot": true },
+    { "pattern": "src/services/mcp-policy.ts", "module": "logic.deontic", "legacyRoot": true },
     { "pattern": "src/services/mcp-*.ts", "module": "mcp", "legacyRoot": true },
     { "pattern": "src/services/mcp*.ts", "module": "mcp", "legacyRoot": true },
     { "pattern": "src/services/mcp*.tsx", "module": "mcp", "legacyRoot": true },
@@ -135,6 +142,7 @@
     { "pattern": "src/services/swissknife-mcp-*.ts", "module": "mcp", "legacyRoot": true },
     { "pattern": "src/services/meta-glasses-*.ts", "module": "glasses", "legacyRoot": true },
     { "pattern": "src/services/glasses-*.ts", "module": "glasses", "legacyRoot": true },
+    { "pattern": "src/services/control-surface-mediator.ts", "module": "mcp", "legacyRoot": true },
     { "pattern": "src/services/control-surface-*.ts", "module": "glasses", "legacyRoot": true },
     { "pattern": "src/services/idl-to-glasses-*.ts", "module": "glasses", "legacyRoot": true },
     { "pattern": "src/services/deployment-readiness-validator.ts", "module": "glasses", "legacyRoot": true },
@@ -149,6 +157,10 @@
     { "pattern": "src/services/compliance-checker.ts", "module": "logic.deontic", "legacyRoot": true },
     { "pattern": "src/services/document-consistency-checker.ts", "module": "logic.deontic", "legacyRoot": true },
     { "pattern": "src/services/i18n-conflict-report.ts", "module": "logic.deontic", "legacyRoot": true },
+    { "pattern": "src/services/e2e-validator.ts", "module": "logic.api", "legacyRoot": true },
+    { "pattern": "src/services/logic-batch-processing.ts", "module": "logic.api", "legacyRoot": true },
+    { "pattern": "src/services/logic-public-api.ts", "module": "logic.api", "legacyRoot": true },
+    { "pattern": "src/services/tdfol-nl-patterns.ts", "module": "logic.shared", "legacyRoot": true },
     { "pattern": "src/services/modal-*.ts", "module": "logic.modal", "legacyRoot": true },
     { "pattern": "src/services/kripke-*.ts", "module": "logic.modal", "legacyRoot": true },
     { "pattern": "src/services/ambiguity-resolver.ts", "module": "logic.modal", "legacyRoot": true },
@@ -176,9 +188,10 @@
     { "pattern": "src/services/bridge-*.ts", "module": "logic.bridges", "legacyRoot": true },
     { "pattern": "src/services/*-bridge.ts", "module": "logic.bridges", "legacyRoot": true },
     { "pattern": "src/services/bridge-types.ts", "module": "logic.bridges", "legacyRoot": true },
+    { "pattern": "src/services/canonicalization.ts", "module": "zkp", "legacyRoot": true },
+    { "pattern": "src/services/legal-theorem-semantics.ts", "module": "zkp", "legacyRoot": true },
     { "pattern": "src/services/logic-*.ts", "module": "logic.shared", "legacyRoot": true },
     { "pattern": "src/services/formula-*.ts", "module": "logic.shared", "legacyRoot": true },
-    { "pattern": "src/services/canonicalization.ts", "module": "logic.shared", "legacyRoot": true },
     { "pattern": "src/services/domain-vocabulary.ts", "module": "logic.shared", "legacyRoot": true },
     { "pattern": "src/services/legal-*.ts", "module": "logic.shared", "legacyRoot": true },
     { "pattern": "src/services/medical-theorem-*.ts", "module": "logic.shared", "legacyRoot": true },
@@ -202,6 +215,7 @@
     { "pattern": "src/services/cvc5-prover-bridge.ts", "module": "provers", "legacyRoot": true },
     { "pattern": "src/services/z3-*.ts", "module": "provers", "legacyRoot": true },
     { "pattern": "src/services/tptp-problem.ts", "module": "provers", "legacyRoot": true },
+    { "pattern": "src/services/shadow-prover.ts", "module": "logic.modal", "legacyRoot": true },
     { "pattern": "src/services/shadow-prover*.ts", "module": "integrations", "legacyRoot": true },
     { "pattern": "src/services/flogic-*.ts", "module": "integrations", "legacyRoot": true },
     { "pattern": "src/services/ergoai-*.ts", "module": "integrations", "legacyRoot": true },
@@ -234,7 +248,6 @@
     { "pattern": "src/services/registry.ts", "module": "platform", "legacyRoot": true },
     { "pattern": "src/services/batch-processor.ts", "module": "platform", "legacyRoot": true },
     { "pattern": "src/services/caselaw-bulk-processor.ts", "module": "platform", "legacyRoot": true },
-    { "pattern": "src/services/e2e-validator.ts", "module": "platform", "legacyRoot": true },
     { "pattern": "src/services/browserMocks.ts", "module": "platform", "legacyRoot": true },
     { "pattern": "src/services/vcr.ts", "module": "platform", "legacyRoot": true },
     { "pattern": "src/services/sprint*.ts", "module": "legacy", "legacyRoot": true }

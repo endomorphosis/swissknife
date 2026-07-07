@@ -14,7 +14,7 @@
  * Sprint 9, T-60.
  */
 
-import type { Policy } from '../mcp-policy.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
 import {
   type DCECFormula,
   Atom, Const, Obligation, Permission, Prohibition, HoldsAt,

@@ -67,7 +67,7 @@ const mcpPlusPlusCommand: LocalCommand = {
           return chalk.red('Usage: mcp-plus-plus p2p connect <multiaddr>');
         }
         try {
-          const { MCPTransportFactory } = await import('../services/mcp-transport.js');
+          const { MCPTransportFactory } = await import('../services/mcp/mcp-transport.js');
           const transport = MCPTransportFactory.create({
             type: 'libp2p',
             endpoint: multiaddr,

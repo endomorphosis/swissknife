@@ -12,7 +12,7 @@
  * Sprint 10, T-65.
  */
 
-import type { Policy } from '../mcp-policy.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
 import type { TdfolFormula } from './tdfol-types.js';
 import { Atom, Const, Obligation, Permission, Prohibition, Negation } from './dcec-types.js';
 import { Always, Eventually, Until } from './tdfol-types.js';

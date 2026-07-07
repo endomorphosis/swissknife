@@ -11,7 +11,7 @@ import {
   Formula, LogicOperator, TemporalOperator,
   binary, unary, atom, temporalUnary,
   formulaEquals,
-} from '../tdfol/temporal-inference-rules';
+} from '../shared/temporal-inference-rules.js';
 
 // ---------------------------------------------------------------------------
 // Deontic operators (extend the formula ADT locally)

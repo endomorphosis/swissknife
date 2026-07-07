@@ -8,8 +8,6 @@
  * Reference parity: `ipfs_datasets_py.mcp_server.compliance_checker.ComplianceChecker`
  */
 
-import { PolicyAuditLog, type AuditEntry } from '../../policy-audit-log.js';
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -49,6 +47,26 @@ export interface ComplianceReport {
   checked_at: number;
   /** Number of rules executed. */
   rule_count: number;
+}
+
+export interface ComplianceAuditEntry {
+  decision: 'allow' | 'deny' | 'allow_with_obligations';
+  justification: string;
+  tool: string;
+  [key: string]: unknown;
+}
+
+export interface ComplianceAuditLog {
+  record(opts: {
+    policy_cid: string;
+    intent_cid: string;
+    decision: 'allow' | 'deny' | 'allow_with_obligations';
+    actor?: string;
+    tool?: string;
+    justification: string;
+    obligations: string[];
+    extra: Record<string, unknown>;
+  }): ComplianceAuditEntry | null;
 }
 
 /**
@@ -91,11 +109,11 @@ export interface ComplianceRuleEntry<TContext = unknown> {
 export class ComplianceChecker<TContext = unknown> {
   private readonly rules = new Map<string, ComplianceRuleEntry<TContext>>();
   private readonly ruleOrder: string[] = [];
-  private readonly auditLog?: PolicyAuditLog;
+  private readonly auditLog?: ComplianceAuditLog;
 
   constructor(opts?: {
     /** Optional audit log to record compliance check outcomes. */
-    auditLog?: PolicyAuditLog;
+    auditLog?: ComplianceAuditLog;
   }) {
     this.auditLog = opts?.auditLog;
   }
@@ -243,9 +261,9 @@ export class ComplianceChecker<TContext = unknown> {
       actor?: string;
       tool?: string;
     },
-  ): Promise<{ report: ComplianceReport; auditEntry: AuditEntry | null }> {
+  ): Promise<{ report: ComplianceReport; auditEntry: ComplianceAuditEntry | null }> {
     const report = await this.check(context);
-    let auditEntry: AuditEntry | null = null;
+    let auditEntry: ComplianceAuditEntry | null = null;
 
     if (this.auditLog) {
       const decision = report.passed ? 'allow' : 'deny';
@@ -275,9 +293,7 @@ export class ComplianceChecker<TContext = unknown> {
 
   static getInstance(): ComplianceChecker<unknown> {
     if (!ComplianceChecker._instance) {
-      ComplianceChecker._instance = new ComplianceChecker({
-        auditLog: PolicyAuditLog.getInstance(),
-      });
+      ComplianceChecker._instance = new ComplianceChecker();
     }
     return ComplianceChecker._instance;
   }

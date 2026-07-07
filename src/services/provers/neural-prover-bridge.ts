@@ -22,7 +22,7 @@
  */
 
 import type { WasmProofResult } from './prover-types.js';
-import type { Policy } from '../mcp-policy.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
 import { Lean4WasmBridge } from './lean4-wasm-bridge.js';
 import { CoqJsCoqBridge } from './coq-jscoq-bridge.js';
 

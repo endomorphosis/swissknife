@@ -2,7 +2,7 @@
  * Prometheus Metrics + CEC Base Parser + CEC Error Handling + TDFOL NL Context — T-292–T-295 (Sprint 63)
  */
 
-import { PatternMatcher, PatternType, PatternMatch } from '../tdfol/tdfol-nl-patterns';
+import { PatternMatcher, PatternType, PatternMatch } from '../shared/tdfol-nl-patterns.js';
 
 // ---------------------------------------------------------------------------
 // T-292 — Prometheus Metrics

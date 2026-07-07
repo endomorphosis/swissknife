@@ -15,7 +15,7 @@ import {
 import {
   makeEthereumConfig, EthereumProofClient, ProofSubmissionPipeline,
   makePerformanceMetrics, Phase7_4Benchmarks,
-} from '../../src/services/zkp-eth-integration.js';
+} from '../../src/services/zkp/zkp-eth-integration.js';
 
 // ---------------------------------------------------------------------------
 // ZKP Circuits

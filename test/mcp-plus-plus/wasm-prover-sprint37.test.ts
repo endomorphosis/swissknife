@@ -7,7 +7,7 @@
 import {
   DEFAULT_CAPABILITIES, NeurosymbolicReasoner,
   getReasoner, resetReasoner,
-} from '../../src/services/neurosymbolic-api.js';
+} from '../../src/services/integrations/neurosymbolic-api.js';
 import {
   CachedProof, ProofCache,
   getGlobalCache, resetGlobalCache,

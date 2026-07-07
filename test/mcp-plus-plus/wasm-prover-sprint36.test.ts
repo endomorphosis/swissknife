@@ -12,7 +12,7 @@ import {
   MedicalTheoremType, ConfidenceLevel,
   makeMedicalEntity, makeTemporalConstraint,
   MedicalTheorem, MedicalTheoremGenerator, FuzzyLogicValidator,
-} from '../../src/services/medical-theorem-framework.js';
+} from '../../src/services/logic/shared/medical-theorem-framework.js';
 import {
   TDFOLCECBridge, EnhancedTDFOLProver, createEnhancedProver,
 } from '../../src/services/tdfol-cec-bridge.js';

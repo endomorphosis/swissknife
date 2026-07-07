@@ -8,7 +8,7 @@
  * multi-circuit batch and emits content-addressed `ZKProofArtifact` records.
  */
 
-import type { Policy, Obligation } from '../mcp-policy.js';
+import type { Policy, Obligation } from '../logic/deontic/mcp-policy.js';
 import {
   computeZKProofArtifactCid,
   type ZKProofArtifact,

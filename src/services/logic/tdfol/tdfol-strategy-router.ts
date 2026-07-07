@@ -7,8 +7,8 @@
 
 import { ExternalProver, ProverStatus } from '../../provers/external-provers.js';
 import { createTptpProblem } from '../../provers/tptp-problem.js';
-import { ModalLogic } from '../../shadow-prover.js';
-import { TableauProver } from '../../cec-modal-tableaux.js';
+import { ModalLogic } from '../modal/shadow-prover.js';
+import { TableauProver } from '../cec/cec-modal-tableaux.js';
 
 export interface TDFOLStrategyResult {
   proved: boolean;

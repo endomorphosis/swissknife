@@ -5,7 +5,7 @@ import {
   type ControlSurfaceMediationResult,
   type ControlSurfaceMediationReceipt,
   type ControlSurfaceInteractionEnvelope,
-} from '../glasses/control-surface-mediator.js';
+} from './control-surface-mediator.js';
 import type { InterfaceDescriptor, MethodSignature } from './mcp-idl.js';
 import { computeCID } from './mcp-idl.js';
 import type { MCPInterfaceDiscoveryRegistry } from './mcp-interface-registry.js';

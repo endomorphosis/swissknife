@@ -12,7 +12,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { buildDeterministicEmbedding, cosineSimilarity } from '../embedding-prover.js';
+import { buildDeterministicEmbedding, cosineSimilarity } from '../logic/shared/embedding-prover.js';
 
 // ---------------------------------------------------------------------------
 // RAGEntry — stored knowledge graph entry

@@ -11,7 +11,7 @@ import { clearTerminal } from '../utils/terminal.js.js.js.js.js.js.js.js.js.js'
 import { SimpleSpinner } from './Spinner.js.js.js.js.js.js.js.js.js.js'
 import { WelcomeBox } from './Onboarding.js.js.js.js.js.js.js.js.js.js'
 import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
-import { sendNotification } from '../services/notifier.js.js.js.js.js.js.js.js.js.js'
+import { sendNotification } from '../services/platform/notifier.js'
 
 type Props = {
   onDone(): void

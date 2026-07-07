@@ -3,7 +3,7 @@
  * Port of CEC/native/nl_converter.py (445L)
  */
 
-import { PatternMatcher, PatternType, PatternMatch } from '../tdfol/tdfol-nl-patterns';
+import { PatternMatcher, PatternType, PatternMatch } from '../shared/tdfol-nl-patterns.js';
 
 export interface CECConversionResult {
   text:         string;

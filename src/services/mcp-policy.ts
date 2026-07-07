@@ -1,1 +1,1 @@
-export * from './mcp/mcp-policy.js';
+export * from './logic/deontic/mcp-policy.js';

@@ -17,8 +17,8 @@
  * - `(check-sat)` at the end; `sat` means consistent, `unsat` means conflicting.
  */
 
-import type { Policy } from '../mcp-policy.js';
-import type { PolicyFormulaSet } from '../mcp-remote-deontic-engine.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
+import type { PolicyFormulaSet } from '../logic/deontic/policy-formulas.js';
 
 // ---------------------------------------------------------------------------
 // SMT2Serializer

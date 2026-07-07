@@ -23,6 +23,7 @@ src/services/
   glasses/
   ipfs/
   logic/
+    api/
     shared/
     nl/
     fol/
@@ -48,7 +49,8 @@ src/services/
 | `mcp` | MCP protocol, registries, descriptors, transports, policy broker, generated UI state. |
 | `glasses` | Meta-glasses, orb, webapp, control-plane, widget, display/input/audio/camera adapters. |
 | `ipfs` | IPFS interface descriptors, UI profiles, widgets, storage/cache integration points. |
-| `logic.shared` | Common formula/proof domain types, analyzers, validation, canonicalization, shared theorem metadata. |
+| `logic.shared` | Common formula/proof domain types, analyzers, validation, shared NL/temporal helpers, and shared theorem metadata. |
+| `logic.api` | Stable logic-layer facades, batch processing, public APIs, and end-to-end validation. |
 | `logic.nl` | NL parsing, grammar, multilingual parsers, NL-to-policy/DCEC/TDFOL compilation. |
 | `logic.fol` | FOL parsing, formatting, conversion, exports, symbolic FOL helpers. |
 | `logic.tdfol` | TDFOL AST, parser, prover, temporal/deontic APIs, strategy, performance, optimization. |
@@ -60,7 +62,7 @@ src/services/
 | `provers` | Concrete prover adapters and prover-facing serializers. |
 | `zkp` | ZKP statements, circuits, browser/native backends, UCAN bridge, on-chain bridge, artifacts, witness/key management. |
 | `proof-engine` | Proof execution, proof trees, strategies, caches, explainers, dependency graphs. |
-| `integrations` | Optional external wrappers: FLogic, ErgoAI, ShadowProver, spaCy WASM, neurosymbolic services. |
+| `integrations` | Optional external wrappers: FLogic, ErgoAI, spaCy WASM, neurosymbolic services, and compatibility shims for migrated integrations. |
 | `legacy` | Temporary holding area for sprint bundles and unclassified modules during migration. |
 
 ## Dependency Direction
@@ -68,6 +70,9 @@ src/services/
 - `shared` imports only `shared`.
 - `logic/*` imports `shared`, `logic.shared`, its own module, and explicitly
   allowed adjacent logic modules.
+- `logic.modal` and `logic.tdfol` may depend on each other for modal tableaux
+  over TDFOL formulas and TDFOL prover fallback strategies. TDFOL bridge code
+  may depend on proof-engine bridge contracts.
 - `mcp` can orchestrate logic, provers, and ZKP. Logic modules must not import
   `mcp`.
 - `glasses` can use MCP descriptors and IPFS profiles. MCP core should not
@@ -76,6 +81,8 @@ src/services/
   `provers`. Browser ZKP entrypoints must not import Node-only backends.
 - `provers` owns solver adapters. Policy translation and theorem semantics
   should live under `logic/*`.
+- MCP control-surface mediation belongs to `mcp`; glasses modules may re-export
+  or consume its structural contracts for device-specific adapters.
 - `legacy` is temporary; new code must not be added there without a migration
   ticket.
 
@@ -126,20 +133,22 @@ Current baseline after the initial IPFS, platform, integrations, proof-engine,
 `logic.nl`, legacy sprint-bundle, FOL, bridge-core, DCEC, CEC/Event Calculus,
 deontic, modal, TDFOL, root prover, ZKP, and glasses/control-plane
 implementation moves, plus MCP, `logic.shared`, final root implementation
-containment, EventDAG, and shared bridge-type moves on
+containment, EventDAG, shared bridge-type moves, `logic.api`, MCP policy
+deontic ownership, shared NL/temporal helper moves, MCP control-surface
+ownership, and strict dependency manifest reconciliation on
 `2026-07-06`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 635 |
+| Service files | 642 |
 | Root-level service files | 276 |
 | Root compatibility shims | 276 |
 | Root implementation files | 0 |
 | Legacy root files | 276 |
 | Legacy path files | 26 |
 | Unknown files | 0 |
-| Import edges | 1020 |
-| Forbidden cross-module imports | 65 |
+| Import edges | 1033 |
+| Forbidden cross-module imports | 0 |
 
 The final acceptance target is fewer than 20 files directly under
 `src/services`, no unknown service files, and no forbidden cross-module imports.

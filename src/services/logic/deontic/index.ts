@@ -11,3 +11,5 @@ export * from './deontic-query-engine.js';
 export * from './deontological-reasoning.js';
 export * from './document-consistency-checker.js';
 export * from './i18n-conflict-report.js';
+export * from './mcp-policy.js';
+export * from './policy-formulas.js';

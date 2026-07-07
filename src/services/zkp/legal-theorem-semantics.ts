@@ -17,7 +17,7 @@ import {
   TDFOLTraceWitness,
   TDFOLTraceNotDerivableError,
   TDFOLTraceBoundExceededError,
-} from '../../zkp-trace.js';
+} from './zkp-trace.js';
 import {
   canonicalizeAxiomSet,
   axiomSetAccumulatorCommitment,

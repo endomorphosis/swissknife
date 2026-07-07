@@ -13,10 +13,10 @@
  */
 
 import type { Command as PublicCommand } from '../types/command.js';
-import { createMCPPlusPlusClient, IPFS_KIT_INTERFACE, IPFS_ACCELERATE_INTERFACE, IPFS_DATASETS_INTERFACE } from '../services/mcp-plus-plus.js';
-import { createMultiServerConnector, IPFS_KIT_SERVER, IPFS_DATASETS_SERVER, IPFS_ACCELERATE_SERVER, mcpppToolTotal } from '../services/mcp-plus-plus-connector.js';
-import type { MCPPPMultiServerConnector, MultiServerConnectorOptions } from '../services/mcp-plus-plus-connector.js';
-import { WasmProverHub } from '../services/mcp-wasm-prover-hub.js';
+import { createMCPPlusPlusClient, IPFS_KIT_INTERFACE, IPFS_ACCELERATE_INTERFACE, IPFS_DATASETS_INTERFACE } from '../services/mcp/mcp-plus-plus.js';
+import { createMultiServerConnector, IPFS_KIT_SERVER, IPFS_DATASETS_SERVER, IPFS_ACCELERATE_SERVER, mcpppToolTotal } from '../services/mcp/mcp-plus-plus-connector.js';
+import type { MCPPPMultiServerConnector, MultiServerConnectorOptions } from '../services/mcp/mcp-plus-plus-connector.js';
+import { WasmProverHub } from '../services/mcp/mcp-wasm-prover-hub.js';
 
 // Singleton client initialized with placeholder DID (replaced at runtime)
 let mcpppClient: ReturnType<typeof createMCPPlusPlusClient> | null = null;

@@ -34,7 +34,7 @@
  */
 
 import type { WasmProofResult } from './prover-types.js';
-import type { Policy } from '../mcp-policy.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
 import { base64UrlEncode, sha256Hex } from './browser-crypto.js';
 
 const DEFAULT_LURK_WASM_PACKAGE = 'lurk-wasm';

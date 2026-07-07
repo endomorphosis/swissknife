@@ -1,1 +1,1 @@
-export * from './logic/tdfol/tdfol-nl-patterns.js';
+export * from './logic/shared/tdfol-nl-patterns.js';

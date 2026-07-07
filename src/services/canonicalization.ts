@@ -1,1 +1,1 @@
-export * from './logic/shared/canonicalization.js';
+export * from './zkp/canonicalization.js';

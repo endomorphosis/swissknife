@@ -39,10 +39,13 @@
 import {
   PolicyEngine,
   type Policy,
-  type Permission,
-  type Prohibition,
-  type Obligation,
-} from './mcp-policy.js';
+} from '../logic/deontic/mcp-policy.js';
+import {
+  deonticAtom,
+  isTemporalPolicy,
+  policyToDeonticFormulas,
+  type PolicyFormulaSet,
+} from '../logic/deontic/policy-formulas.js';
 import {
   checkPolicyConsistency,
   createDeonticORBEvaluator,
@@ -54,6 +57,13 @@ import {
 import type { WasmProverHub } from './mcp-wasm-prover-hub.js';
 import { TdfolProverBridge } from '../provers/tdfol-prover-bridge.js';
 import type { WasmProofResult } from '../provers/prover-types.js';
+
+export {
+  deonticAtom,
+  isTemporalPolicy,
+  policyToDeonticFormulas,
+  type PolicyFormulaSet,
+} from '../logic/deontic/policy-formulas.js';
 
 // ---------------------------------------------------------------------------
 // Connector contract (structural — the real MCPPPServerConnector satisfies it)
@@ -97,14 +107,6 @@ export interface RemoteHealth {
   detail?: unknown;
 }
 
-export interface PolicyFormulaSet {
-  permissions: string[];
-  prohibitions: string[];
-  obligations: string[];
-  /** All clauses, conjunction of which is the policy's deontic theory. */
-  all: string[];
-}
-
 export interface RemoteDeonticEngineOptions {
   connector: DeonticLogicConnector;
   /** Hierarchical category the logic tools live under. Defaults to `logic_tools`. */
@@ -120,66 +122,6 @@ export interface RemoteDeonticEngineOptions {
    */
   falsumSymbol?: string;
 }
-
-// ---------------------------------------------------------------------------
-// Policy → TDFOL formula mapping (pure, network-free, unit-testable)
-// ---------------------------------------------------------------------------
-
-/**
- * Canonical TDFOL atom for a (capability, resource) pair. Sanitized to a valid
- * identifier (`[A-Za-z0-9_]`, letter-initial) so the same cap+resource always
- * yields the same predicate — a prerequisite for the prover to see clashes.
- */
-export function deonticAtom(capability: string, resource: string): string {
-  const norm = (s: string): string =>
-    (s || '')
-      .trim()
-      .replace(/[^A-Za-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .toLowerCase() || 'any';
-  return `act_${norm(capability)}_on_${norm(resource)}`;
-}
-
-/** True when any part of the policy carries temporal semantics (window/deadline). */
-export function isTemporalPolicy(policy: Policy): boolean {
-  if (policy.temporal) return true;
-  const hasTemporal = (c: { temporal?: unknown }): boolean => Boolean(c.temporal);
-  if (policy.permissions.some(hasTemporal)) return true;
-  if (policy.prohibitions.some(hasTemporal)) return true;
-  if (policy.obligations.some(o => o.deadline !== undefined)) return true;
-  return false;
-}
-
-/**
- * Map a Profile-D {@link Policy} to TDFOL clauses. Permissions become `P(a)`,
- * prohibitions `F(a)`, obligations `O(a)`. Obligations carrying a deadline are
- * wrapped `◊O(a)` ("eventually obligatory") to preserve the temporal intent for
- * the prover; permanent policies (a `notAfter`-free top-level window) leave the
- * clauses unwrapped.
- */
-export function policyToDeonticFormulas(policy: Policy): PolicyFormulaSet {
-  const permissions = policy.permissions.map(
-    (p: Permission) => `P(${deonticAtom(p.cap, p.rsc)})`,
-  );
-  const prohibitions = policy.prohibitions.map(
-    (p: Prohibition) => `F(${deonticAtom(p.cap, p.rsc)})`,
-  );
-  const obligations = policy.obligations.map((o: Obligation) => {
-    const atom = deonticAtom(o.requiredCap ?? o.description, o.rsc ?? '*');
-    const core = `O(${atom})`;
-    return o.deadline !== undefined ? `◊${core}` : core;
-  });
-  return {
-    permissions,
-    prohibitions,
-    obligations,
-    all: [...permissions, ...prohibitions, ...obligations],
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Remote engine
-// ---------------------------------------------------------------------------
 
 /**
  * Thin, well-typed client for the datasets formal-logic MCP tools. All methods

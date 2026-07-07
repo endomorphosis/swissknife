@@ -19,7 +19,7 @@ import {
   toNoirTraceFieldInputs,
   TDFOLTraceNotDerivableError,
   TDFOLTraceBoundExceededError,
-} from '../../zkp-trace.js';
+} from './zkp-trace.js';
 
 // ---------------------------------------------------------------------------
 // Canonical axiom set

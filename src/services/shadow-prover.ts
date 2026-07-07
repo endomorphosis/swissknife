@@ -1,1 +1,1 @@
-export * from './integrations/shadow-prover.js';
+export * from './logic/modal/shadow-prover.js';

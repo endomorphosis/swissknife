@@ -6,10 +6,10 @@
 
 import {
   PipelineResult, NeurosymbolicGraphRAG,
-} from '../../src/services/neurosymbolic-graphrag.js';
+} from '../../src/services/integrations/neurosymbolic-graphrag.js';
 import {
   ConfidenceSource, ConfidenceBreakdown, HybridConfidenceScorer,
-} from '../../src/services/hybrid-confidence.js';
+} from '../../src/services/logic/shared/hybrid-confidence.js';
 import {
   BridgeCapability, BridgeRegistry,
   BaseProverBridge, getBridgeRegistry, resetBridgeRegistry, StubProverBridge,

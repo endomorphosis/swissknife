@@ -7,7 +7,7 @@
  * conformance tests can select modal frame rules explicitly.
  */
 
-import { ModalLogic } from '../../shadow-prover.js';
+import { ModalLogic } from './shadow-prover.js';
 
 export interface ModalAxiomApplication {
   ruleName: string;

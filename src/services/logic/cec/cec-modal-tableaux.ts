@@ -8,7 +8,7 @@
  * if the tableau closes (every branch is contradictory), the goal is proved.
  */
 
-import { ModalLogic } from '../../shadow-prover';
+import { ModalLogic } from '../modal/shadow-prover.js';
 
 // ---------------------------------------------------------------------------
 // Enumerations

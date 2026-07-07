@@ -26,7 +26,7 @@
 
 import type { WasmProofResult } from './prover-types.js';
 import type { ZKProofArtifact } from './lurk-wasm-bridge.js';
-import type { Policy } from '../mcp-policy.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
 import { DeonticToLean4Translator } from './deontic-to-lean4.js';
 
 // ---------------------------------------------------------------------------

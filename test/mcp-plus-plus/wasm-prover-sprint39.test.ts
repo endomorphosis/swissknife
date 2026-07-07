@@ -6,11 +6,11 @@
 
 import {
   ReasoningStrategy, CoordinatedResult, NeuralSymbolicCoordinator,
-} from '../../src/services/reasoning-coordinator.js';
+} from '../../src/services/logic/shared/reasoning-coordinator.js';
 import {
   DeonticConflictType, ConflictDetector, DeonticConflictMixin,
   LocalDeonticStatement,
-} from '../../src/services/deontic-conflict-detector.js';
+} from '../../src/services/logic/deontic/deontic-conflict-detector.js';
 import {
   InteractiveFOLConstructor,
 } from '../../src/services/interactive-fol-constructor.js';

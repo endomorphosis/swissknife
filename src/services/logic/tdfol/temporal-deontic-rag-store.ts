@@ -12,7 +12,7 @@
  */
 
 import { DeonticFormula, DeonticOp, makeDeonticFormula } from '../../deontic-query-engine.js';
-import { buildDeterministicEmbedding } from '../../embedding-prover.js';
+import { buildDeterministicEmbedding } from '../shared/embedding-prover.js';
 import { sha256Hex } from '../../provers/browser-crypto.js';
 
 function formulaProposition(formula: DeonticFormula): string {

@@ -22,7 +22,7 @@ import {
   QuantifiedFormula,
   mkUnary,
   mkBinary,
-} from '../../tdfol-core.js';
+} from '../tdfol/tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // Modal logic types

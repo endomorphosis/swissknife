@@ -3,7 +3,7 @@ import {
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
   type MCPUIProfileDescriptor,
 } from './mcp-ui-profile.js';
-import { createDefaultControlSurfaceContract } from '../glasses/control-surface-mediator.js';
+import { createDefaultControlSurfaceContract } from './control-surface-mediator.js';
 
 const CID_SCHEMA = {
   type: 'string',

@@ -11,10 +11,10 @@
  * already available in the swissknife runtime.
  */
 
-import { PatternMatcher, PatternType } from '../../tdfol-nl-patterns';
-import { FormulaAnalyzer, FormulaType } from '../../formula-analyzer';
-import { extractNormativeElements, segmentLegalText } from '../../deontic-legal-text-engine';
-import { parserElementToFormula } from '../../deontic-formula-builder';
+import { PatternMatcher, PatternType } from '../shared/tdfol-nl-patterns.js';
+import { FormulaAnalyzer, FormulaType } from '../shared/formula-analyzer.js';
+import { extractNormativeElements, segmentLegalText } from '../deontic/deontic-legal-text-engine.js';
+import { parserElementToFormula } from '../deontic/deontic-formula-builder.js';
 
 // ---------------------------------------------------------------------------
 // ModalCompilerConfig

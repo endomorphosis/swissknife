@@ -5,7 +5,7 @@
  * into the cheapest local prover tier that can handle it.
  */
 
-import type { Policy } from '../mcp-policy.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
 import type { FormulaClass } from './prover-types.js';
 
 export class FormulaClassifier {

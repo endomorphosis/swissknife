@@ -16,8 +16,8 @@
  * Reference: ipfs_datasets_py/logic/api.py §LogicPublicApi
  */
 
-import { FolTextConverter } from '../../fol/fol-text-converter.js';
-import type { FolConversionResult } from '../../fol/fol-text-converter.js';
+import { FolTextConverter } from '../fol/fol-text-converter.js';
+import type { FolConversionResult } from '../fol/fol-text-converter.js';
 import { DeonticTextAnalyzer } from '../../deontic/deontic-text-analyzer.js';
 import type { DeonticStatement, DeonticConflict } from '../../deontic/deontic-text-analyzer.js';
 import { LegalNormBuilder } from '../../deontic/legal-norm-builder.js';
@@ -28,13 +28,13 @@ import { ProverSyntaxBuilder } from '../../deontic/prover-syntax-builder.js';
 import type { ProverSyntaxReport } from '../../deontic/prover-syntax-builder.js';
 import { DeonticGraphBuilder } from '../../deontic/deontic-graph-builder.js';
 import type { DeonticGraph } from '../../deontic/deontic-graph.js';
-import { LogicMonitor } from './logic-monitor.js';
+import { LogicMonitor } from '../shared/logic-monitor.js';
 import { getSubmoduleSpecs, getIntegrationManifest } from '../../submodule-registry.js';
 import type { LogicSubmoduleSpec } from '../../submodule-registry.js';
 import { BatchProcessor } from '../../batch-processor.js';
 import type { BatchResult } from '../../batch-processor.js';
-import { detectMultilingualConflicts } from '../../i18n-conflict-report.js';
-import type { I18NConflictReport } from '../../i18n-conflict-report.js';
+import { detectMultilingualConflicts } from '../deontic/i18n-conflict-report.js';
+import type { I18NConflictReport } from '../deontic/i18n-conflict-report.js';
 
 // ---------------------------------------------------------------------------
 // Analysis result types

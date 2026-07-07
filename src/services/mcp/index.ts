@@ -1,3 +1,4 @@
+export * from './control-surface-mediator.js';
 export * from './mcp-deontic-interface-broker.js';
 export * from './mcp-deontic-ui-manifest.js';
 export * from './mcp-deployment-manager.js';
@@ -18,7 +19,7 @@ export * from './mcp-orb-capability-router.js';
 export * from './mcp-p2p-session.js';
 export * from './mcp-plus-plus-connector.js';
 export * from './mcp-plus-plus.js';
-export * from './mcp-policy.js';
+export * from '../logic/deontic/mcp-policy.js';
 export * from './mcp-pubsub-bus.js';
 export * from './mcp-registry.js';
 export * from './mcp-remote-deontic-engine.js';

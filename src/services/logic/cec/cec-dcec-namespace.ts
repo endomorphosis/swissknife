@@ -96,7 +96,7 @@ export class DCECContainer {
 // NLToPolicyCompiler (T-281)
 // ---------------------------------------------------------------------------
 
-import { PatternMatcher, PatternType } from '../tdfol/tdfol-nl-patterns';
+import { PatternMatcher, PatternType } from '../shared/tdfol-nl-patterns.js';
 
 export interface PolicyClauseFromNL {
   clause_type: 'permission' | 'prohibition' | 'obligation' | 'unknown';
