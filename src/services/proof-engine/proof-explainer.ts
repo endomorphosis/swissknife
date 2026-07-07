@@ -1,5 +1,5 @@
 /**
- * Proof Explainer — T-214 (Sprint 48)
+ * Proof Explainer — T-214
  *
  * Port of ipfs_datasets_py/logic/TDFOL/proof_explainer.py
  *

@@ -1,10 +1,10 @@
 /**
- * FLogic Proof Cache — T-263 (Sprint 59)
+ * FLogic Proof Cache — T-263
  * Port of flogic/flogic_proof_cache.py (447L)
  */
 
-import { createHash } from 'crypto';
 import { ProofCacheBase } from '../proof-engine/proof-cache-base.js';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 export interface FLogicCachedQueryResult {
   query:     string;
@@ -51,7 +51,7 @@ export class FLogicProofCache extends ProofCacheBase<FLogicCachedQueryResult> {
 
   private _key(query: string, context?: Record<string, unknown>): string {
     const raw = JSON.stringify({ query, context: context ?? {} });
-    try { return createHash('sha256').update(raw).digest('hex').slice(0, 16); }
+    try { return sha256Hex(raw).slice(0, 16); }
     catch { return query.slice(0, 32); }
   }
 

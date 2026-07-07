@@ -1,5 +1,5 @@
 /**
- * DCEC Prototypes + TDFOL Performance Engine — T-274 + T-275 (Sprint 60)
+ * DCEC Prototypes + TDFOL Performance Engine — T-274 + T-275
  * Ports of CEC/native/dcec_prototypes.py (435L) and TDFOL/tdfol_performance_engine.py (427L)
  */
 

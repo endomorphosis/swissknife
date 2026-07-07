@@ -13,7 +13,7 @@
  * const result = await bridge.prove(kb, goal);
  * ```
  *
- * Sprint 13, T-76 + T-77.
+ * T-76 + T-77.
  */
 
 import type { WasmProofResult } from './prover-types.js';
@@ -363,7 +363,7 @@ class FutureObligationPersistenceRule implements ExtRule {
  *                  ObligationEventually (□O(φ)⊢◊φ),
  *                  FutureObligationPersistence (O(φ)⊢□O(φ))
  *
- * Sprint 13, T-77.
+ * T-77.
  */
 export class ExtendedTdfolProverBridge extends TdfolProverBridge {
   private readonly extRules: ExtRule[];

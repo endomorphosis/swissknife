@@ -1,5 +1,5 @@
 /**
- * CEC ZKP Integration — T-260 (Sprint 58)
+ * CEC ZKP Integration — T-260
  *
  * Port of CEC/native/cec_zkp_integration.py (574L)
  *

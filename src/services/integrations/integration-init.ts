@@ -107,7 +107,7 @@ export function getIntegrationStatus(): IntegrationStatus {
   }
 
   return {
-    version: '1.0.0-sprint43',
+    version: '1.0.0-integration-init',
     capabilities: caps,
     availableModules: availableModules.sort(),
     unavailableModules: unavailableModules.sort(),

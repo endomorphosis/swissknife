@@ -5,7 +5,7 @@
  *           CEC/native/grammar_loader.py (304L)
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // T-304a — IPFS Proof Storage (ipfs_proof_storage.py)
@@ -31,7 +31,7 @@ export class IPFSProofStorage {
 
   private _cid(formula: string, proof: unknown): string {
     const raw = JSON.stringify({ formula, proof });
-    try { return 'bafk-' + createHash('sha256').update(raw).digest('hex').slice(0, 32); }
+    try { return 'bafk-' + sha256Hex(raw).slice(0, 32); }
     catch { return 'bafk-' + raw.slice(0, 32).replace(/\W/g, ''); }
   }
 

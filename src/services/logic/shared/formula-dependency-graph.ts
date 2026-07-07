@@ -6,7 +6,7 @@
  *   DependencyNode / DependencyEdge
  *   FormulaDependencyGraph (addNode/addEdge/topologicalSort/detectCycles/findProofChain)
  *
- * Sprint 23, T-118.
+ * T-118.
  * Reference: ipfs_datasets_py/logic/TDFOL/formula_dependency_graph.py
  */
 

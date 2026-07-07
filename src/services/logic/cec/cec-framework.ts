@@ -1,5 +1,5 @@
 /**
- * CEC Framework — T-226 (Sprint 50)
+ * CEC Framework — T-226
  *
  * Port of ipfs_datasets_py/logic/CEC/cec_framework.py
  *

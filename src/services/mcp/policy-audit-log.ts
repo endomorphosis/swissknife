@@ -10,7 +10,7 @@
  * (Phase 8 Observability).
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;
@@ -284,5 +284,5 @@ function computeEntryCID(entry: AuditEntry): string {
   // Exclude entry_cid itself from the hash to avoid circularity.
   const { entry_cid: _omit, ...rest } = entry;
   const canonical = JSON.stringify(rest, Object.keys(rest).sort());
-  return `sha256:${createHash('sha256').update(canonical, 'utf8').digest('hex')}`;
+  return `sha256:${sha256Hex(canonical)}`;
 }

@@ -1,5 +1,5 @@
 /**
- * DCEC English Grammar — T-213 (Sprint 48)
+ * DCEC English Grammar — T-213
  *
  * Port of ipfs_datasets_py/logic/CEC/native/dcec_english_grammar.py
  *

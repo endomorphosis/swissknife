@@ -1,5 +1,5 @@
 /**
- * CEC Specialized Inference Rules — T-256 (Sprint 57)
+ * CEC Specialized Inference Rules — T-256
  *
  * Port of CEC/native/inference_rules/specialized.py (456L)
  *

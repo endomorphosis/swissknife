@@ -1,5 +1,5 @@
 /**
- * DCEC Error Handling — PORT-176 (Sprint 83)
+ * DCEC Error Handling — PORT-176
  *
  * Port of ipfs_datasets_py/logic/CEC/native/error_handling.py.
  *

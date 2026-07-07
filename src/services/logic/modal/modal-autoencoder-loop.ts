@@ -1,5 +1,5 @@
 /**
- * Modal Autoencoder Loop — T-259 (Sprint 58)
+ * Modal Autoencoder Loop — T-259
  *
  * Port of modal/autoencoder_loop.py (776L — key API)
  *

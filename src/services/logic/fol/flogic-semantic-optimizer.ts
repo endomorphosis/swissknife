@@ -21,7 +21,7 @@
  * Real embeddings (e.g. from an LLM) must be supplied by the caller;
  * this module does NOT produce embeddings.
  *
- * Sprint 15, T-84.
+ * T-84.
  * Reference: ipfs_datasets_py/logic/flogic_optimizer.py §FLogicSemanticOptimizer
  */
 
@@ -201,7 +201,7 @@ class FLogicOntology {
  * const optimizer = new FLogicSemanticOptimizer({ similarityThreshold: 0.85 });
  * const result = optimizer.evaluate(
  *   'The dog ran across the park.',
- *   'A canine sprinted through the green space.',
+ *   'A canine ran through the green space.',
  *   sourceEmbedding,  // e.g. from an LLM embedding API
  *   decodedEmbedding,
  * );

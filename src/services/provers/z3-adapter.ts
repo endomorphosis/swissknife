@@ -1,5 +1,5 @@
 /**
- * Z3 Adapter — T-225 (Sprint 50)
+ * Z3 Adapter — T-225
  *
  * Port of ipfs_datasets_py/logic/CEC/provers/z3_adapter.py
  *

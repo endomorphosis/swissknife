@@ -1,5 +1,5 @@
 /**
- * Namespaced Logic Type Modules — PORT-207 (Sprint 85)
+ * Namespaced Logic Type Modules — PORT-207
  *
  * Collects common, translation, deontic, and FOL-facing types in one place
  * while leaving existing service-local exports intact.

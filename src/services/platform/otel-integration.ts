@@ -1,5 +1,5 @@
 /**
- * OpenTelemetry Integration — T-277 (Sprint 61)
+ * OpenTelemetry Integration — T-277
  * Port of observability/otel_integration.py (435L)
  */
 

@@ -1,5 +1,5 @@
 /**
- * Portuguese Parser for DCEC — PORT-179 (Sprint 82)
+ * Portuguese Parser for DCEC — PORT-179
  *
  * Port of ipfs_datasets_py/logic/CEC/nl/portuguese_parser.py.
  *

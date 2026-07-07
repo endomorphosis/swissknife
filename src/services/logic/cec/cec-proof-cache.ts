@@ -1,9 +1,9 @@
 /**
- * CEC Proof Cache — T-273 (Sprint 60)
+ * CEC Proof Cache — T-273
  * Port of CEC/native/cec_proof_cache.py (422L)
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../../shared/browser-crypto.js';
 
 export interface CECCachedProofResult {
   formula:  string;
@@ -51,7 +51,7 @@ export class CachedTheoremProver {
 
   private _key(formula: string, axioms: string[]): string {
     const raw = `${formula}|${[...axioms].sort().join(',')}`;
-    try { return createHash('sha256').update(raw).digest('hex').slice(0, 16); }
+    try { return sha256Hex(raw).slice(0, 16); }
     catch { return raw.slice(0, 32); }
   }
 

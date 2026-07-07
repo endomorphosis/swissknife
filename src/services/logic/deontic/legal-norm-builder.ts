@@ -1,10 +1,10 @@
 /**
  * LegalNormBuilder — builds `LegalNormIR` instances from analyzer output.
  *
- * Bridges `DeonticTextAnalyzer` (Sprint 12) statement extraction → `LegalNormIR`
- * for downstream use by `LegalNormDecoder` (Sprint 17) and `DeonticGraph` (Sprint 16).
+ * Bridges `DeonticTextAnalyzer`  statement extraction → `LegalNormIR`
+ * for downstream use by `LegalNormDecoder`  and `DeonticGraph` .
  *
- * Sprint 17, T-94.
+ * T-94.
  */
 
 import { buildLegalNormIR } from './legal-norm-ir.js';

@@ -1,5 +1,5 @@
 /**
- * Modal Compiler — T-252 (Sprint 56)
+ * Modal Compiler — T-252
  *
  * Port of ipfs_datasets_py/logic/modal/compiler.py (3221L — key API only)
  *

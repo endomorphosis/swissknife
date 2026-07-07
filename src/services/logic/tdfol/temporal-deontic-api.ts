@@ -1,5 +1,5 @@
 /**
- * Temporal Deontic API — T-284 (Sprint 62)
+ * Temporal Deontic API — T-284
  * Port of integration/domain/temporal_deontic_api.py (408L)
  */
 

@@ -8,7 +8,7 @@
  * Wraps the WasmProverHub for bulk policy consistency checking and provides
  * general-purpose batch processing with progress tracking.
  *
- * Sprint 19, T-102.
+ * T-102.
  * Reference: ipfs_datasets_py/logic/batch_processing.py
  */
 

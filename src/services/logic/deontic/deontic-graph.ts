@@ -17,7 +17,7 @@
  *     entitlement) between source nodes and a governed target node.
  *   - The graph supports conflict detection, rule assessment, and export.
  *
- * Sprint 16, T-88.
+ * T-88.
  * Reference: ipfs_datasets_py/logic/deontic/graph.py §DeonticGraph
  */
 

@@ -1,5 +1,5 @@
 /**
- * ZKP-TDFOL Integration — T-202 (Sprint 45)
+ * ZKP-TDFOL Integration — T-202
  *
  * Port of ipfs_datasets_py/logic/TDFOL/zkp_integration.py
  *

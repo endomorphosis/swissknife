@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { bytesToHex, hexToBytes, sha256Hex } from '../../shared/browser-crypto.js';
 
 export const MULTIFORMATS_AVAILABLE = true;
 export const HAVE_SPACY = false;
@@ -25,11 +25,10 @@ export function create_cache_cid(data: Record<string, unknown>): string {
     throw new Error(`Failed to serialize data to JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  const digest = createHash('sha256').update(json, 'utf8').digest();
-  const bytes = Buffer.concat([
-    Buffer.from([0x01, RAW_CODEC, SHA2_256, SHA2_256_LENGTH]),
-    digest,
-  ]);
+  const digest = hexToBytes(sha256Hex(json));
+  const bytes = new Uint8Array(4 + digest.length);
+  bytes.set([0x01, RAW_CODEC, SHA2_256, SHA2_256_LENGTH], 0);
+  bytes.set(digest, 4);
   return `b${base32Encode(bytes)}`;
 }
 
@@ -61,7 +60,7 @@ export function parse_cid(cid_str: string): ParsedCid {
     codec: 'raw',
     hashfun: {
       name: 'sha2-256',
-      digest: Buffer.from(bytes.slice(4)).toString('hex'),
+      digest: bytesToHex(bytes.slice(4)),
     },
   };
 }

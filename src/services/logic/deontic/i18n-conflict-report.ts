@@ -6,7 +6,7 @@
  * Collects normative conflicts detected across multiple language variants of the
  * same legal text (e.g. EN/FR/DE versions of an EU regulation).
  *
- * Sprint 20, T-104.
+ * T-104.
  * Reference: ipfs_datasets_py/logic/api.py §I18NConflictReport
  */
 

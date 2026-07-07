@@ -15,7 +15,7 @@
  *     → batch through WasmProverHub (one formula per policy-consistency check)
  *     → aggregate ProofGateResult {compiles, valid_count, failure_ratio, details}
  *
- * Sprint 13, T-78.
+ * T-78.
  * Reference: ipfs_datasets_py/logic/bridge/external_prover_router.py §ExternalProverRouterBridgeAdapter.evaluate()
  */
 

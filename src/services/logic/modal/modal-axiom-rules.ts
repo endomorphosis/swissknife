@@ -1,5 +1,5 @@
 /**
- * Named Modal Axiom Rules — PORT-178 (Sprint 84)
+ * Named Modal Axiom Rules — PORT-178
  *
  * Port of ipfs_datasets_py/logic/CEC/native/inference_rules/modal.py.
  *

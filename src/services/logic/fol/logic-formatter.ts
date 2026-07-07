@@ -1,5 +1,5 @@
 /**
- * Logic Formatter — PORT-188 (Sprint 82)
+ * Logic Formatter — PORT-188
  *
  * Port of ipfs_datasets_py/logic/fol/utils/logic_formatter.py.
  *

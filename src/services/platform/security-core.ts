@@ -1,11 +1,11 @@
 /**
- * Security Core Utilities — PORT-203 (Sprint 85)
+ * Security Core Utilities — PORT-203
  *
  * Consolidates input validation, fixed-window rate limiting, and a generic
  * append-only audit log for logic services.
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 export interface SecurityValidationResult {
   valid: boolean;
@@ -270,7 +270,7 @@ export function resetSecurityAuditLog(): void {
 
 function hashAuditEntry(entry: AuditLogEntry): string {
   const { entryHash: _omit, ...hashable } = entry;
-  return createHash('sha256').update(stableStringify(hashable), 'utf8').digest('hex');
+  return sha256Hex(stableStringify(hashable));
 }
 
 function stableStringify(value: unknown): string {

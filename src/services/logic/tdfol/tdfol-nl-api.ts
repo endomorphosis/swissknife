@@ -5,11 +5,11 @@
  *   ParseOptions, NLParseResult, parse_natural_language(text, opts?)
  *
  * Uses the existing swissknife stack:
- *   DeonticTextAnalyzer  (Sprint 12) — extract O/P/F statements
- *   FolTextConverter     (Sprint 14) — extract FOL formula
- *   PolicyToTdfolTranslator (Sprint 10) — convert deontic statements → TdfolFormula[]
+ *   DeonticTextAnalyzer   — extract O/P/F statements
+ *   FolTextConverter      — extract FOL formula
+ *   PolicyToTdfolTranslator  — convert deontic statements → TdfolFormula[]
  *
- * Sprint 21, T-110.
+ * T-110.
  * Reference: ipfs_datasets_py/logic/TDFOL/nl/tdfol_nl_api.py §parse_natural_language
  */
 

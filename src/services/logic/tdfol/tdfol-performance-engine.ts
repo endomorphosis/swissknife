@@ -1,5 +1,5 @@
 /**
- * TDFOL Performance Engine — PORT-184 (Sprint 88)
+ * TDFOL Performance Engine — PORT-184
  *
  * Aggregates per-strategy proof timings over MetricsCollector and produces
  * strategy-level summaries, comparisons, and dashboard-ready reports.

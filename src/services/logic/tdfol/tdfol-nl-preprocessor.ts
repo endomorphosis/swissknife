@@ -1,5 +1,5 @@
 /**
- * TDFOL NL Preprocessor — PORT-186 (Sprint 90)
+ * TDFOL NL Preprocessor — PORT-186
  *
  * Provides entity/context tracking, simple coreference resolution, sentence
  * segmentation, token/POS hints, and temporal normalization for NL -> TDFOL.

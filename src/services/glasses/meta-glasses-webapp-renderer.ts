@@ -1,4 +1,3 @@
-import { URL } from 'url';
 import {
   META_GLASSES_DISPLAY_VIEWPORT,
   type MetaGlassesViewport,

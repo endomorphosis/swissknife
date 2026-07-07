@@ -1,5 +1,5 @@
 /**
- * CEC Prover Core + Extended Rules — T-255 (Sprint 57)
+ * CEC Prover Core + Extended Rules — T-255
  *
  * Ports of:
  *   - CEC/native/prover_core.py (649L) — ProofResult + 8 core rules

@@ -1,5 +1,5 @@
 /**
- * Grammar NL Policy Compiler — T-243 (Sprint 54)
+ * Grammar NL Policy Compiler — T-243
  *
  * Port of ipfs_datasets_py/logic/CEC/nl/grammar_nl_policy_compiler.py
  *

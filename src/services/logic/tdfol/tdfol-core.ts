@@ -9,7 +9,7 @@
  *   DeonticFormulaTDFOL / TemporalFormulaTDFOL
  *   TDFOLKnowledgeBase
  *
- * Sprint 23, T-116.
+ * T-116.
  * Reference: ipfs_datasets_py/logic/TDFOL/tdfol_core.py
  */
 

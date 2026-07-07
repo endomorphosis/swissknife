@@ -1,5 +1,5 @@
 /**
- * Prometheus Metrics Exporter — PORT-202 (Sprint 84)
+ * Prometheus Metrics Exporter — PORT-202
  *
  * Port of ipfs_datasets_py/logic/observability/metrics_prometheus.py.
  *

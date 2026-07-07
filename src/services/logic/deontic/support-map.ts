@@ -7,7 +7,7 @@
  *   class SupportMapEntry
  *   class SupportMapBuilder
  *
- * Sprint 16, T-90.
+ * T-90.
  * Reference: ipfs_datasets_py/logic/deontic/support_map.py
  */
 

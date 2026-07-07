@@ -1,5 +1,5 @@
 /**
- * Shadow Prover Wrapper — T-267 (Sprint 59)
+ * Shadow Prover Wrapper — T-267
  * Port of CEC/shadow_prover_wrapper.py (541L)
  */
 

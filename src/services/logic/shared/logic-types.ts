@@ -9,11 +9,11 @@
  * These types are intentionally lightweight and import-safe.
  * They mirror the public shape of the Python `logic/types/` layer.
  *
- * Sprint 21, T-108.
+ * T-108.
  * Reference: ipfs_datasets_py/logic/types/
  */
 
-import { createHash } from 'node:crypto';
+import { md5Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Operator enumerations
@@ -176,7 +176,7 @@ export class DeonticFormula {
 
   private _generateId(): string {
     const content = `${this.operator}:${this.proposition}:${this.agent?.identifier ?? ''}`;
-    return createHash('md5').update(content).digest('hex').slice(0, 12);
+    return md5Hex(content).slice(0, 12);
   }
 }
 
@@ -205,7 +205,7 @@ export class DeonticRuleSet {
     this.version        = opts.version      ?? '1.0';
     this.sourceDocument = opts.sourceDocument;
     this.legalContext   = opts.legalContext;
-    this.ruleSetId      = createHash('md5').update(`${opts.name}:${opts.version ?? '1.0'}`).digest('hex').slice(0, 10);
+    this.ruleSetId      = md5Hex(`${opts.name}:${opts.version ?? '1.0'}`).slice(0, 10);
     this.creationTimestamp = new Date().toISOString();
     if (opts.formulas) this._formulas.push(...opts.formulas);
   }

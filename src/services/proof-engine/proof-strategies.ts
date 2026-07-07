@@ -1,5 +1,5 @@
 /**
- * Proof Strategies — T-240 (Sprint 53)
+ * Proof Strategies — T-240
  *
  * Port of ipfs_datasets_py/logic/CEC/native/proof_strategies.py
  *

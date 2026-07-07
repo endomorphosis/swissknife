@@ -7,13 +7,13 @@
  *   build_prover_syntax_records_from_irs(irs)
  *   validate_ir_with_provers(irs)
  *
- * Connects `LegalNormIR` (Sprint 17) to the local prover stack:
+ * Connects `LegalNormIR`  to the local prover stack:
  *   Z3-SMT2 syntax for `Z3WasmBridge`
  *   DCEC syntax for `DcecProverBridge`
  *   TDFOL syntax for `TdfolProverBridge`
  *   Lean 4 syntax for `Lean4WasmBridge`
  *
- * Sprint 18, T-98.
+ * T-98.
  * Reference: ipfs_datasets_py/logic/deontic/prover_syntax.py
  */
 

@@ -1,10 +1,10 @@
 /**
  * DeonticGraphBuilder — builds DeonticGraph instances from extracted NL output.
  *
- * Bridges the output of `DeonticTextAnalyzer` (Sprint 12) and
- * `DeonticKnowledgeBase` (Sprint 12) into a `DeonticGraph` (Sprint 16).
+ * Bridges the output of `DeonticTextAnalyzer`  and
+ * `DeonticKnowledgeBase`  into a `DeonticGraph` .
  *
- * Sprint 16, T-89.
+ * T-89.
  * Reference: ipfs_datasets_py/logic/deontic/graph.py §DeonticGraphBuilder
  */
 

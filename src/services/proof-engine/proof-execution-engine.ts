@@ -11,7 +11,7 @@
  *   executeProof()         — module-level helper
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 import { ProofStatus, ProofResult } from './proof-execution-engine-types.js';
 import { SupportedProver, ProofEngine } from './proof-execution-engine-utils.js';
 
@@ -36,9 +36,7 @@ export class ProofCache {
   ) {}
 
   private key(prover: string, statement: string, context?: string): string {
-    return createHash('sha256')
-      .update(`${prover}||${statement}||${context ?? ''}`)
-      .digest('hex');
+    return sha256Hex(`${prover}||${statement}||${context ?? ''}`);
   }
 
   get(prover: string, statement: string, context?: string): ProofResult | null {

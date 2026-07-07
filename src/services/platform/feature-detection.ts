@@ -1,11 +1,11 @@
 /**
- * Runtime Feature Detection — PORT-204 (Sprint 82)
+ * Runtime Feature Detection — PORT-204
  *
  * Port of ipfs_datasets_py/logic/common/feature_detection.py.
  *
  * Provides a dedicated, discoverable common module for optional dependency and
- * runtime capability checks. Older sprint helpers remain in place, but this is
- * the canonical service surface for new code.
+ * runtime capability checks. Older compatibility helpers remain in place, but
+ * this is the canonical service surface for new code.
  */
 
 export interface FeatureStatus {

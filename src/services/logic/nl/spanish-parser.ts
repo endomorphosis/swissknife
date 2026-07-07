@@ -1,5 +1,5 @@
 /**
- * Spanish Parser for DCEC — T-233 (Sprint 52)
+ * Spanish Parser for DCEC — T-233
  *
  * Port of ipfs_datasets_py/logic/CEC/nl/spanish_parser.py
  *

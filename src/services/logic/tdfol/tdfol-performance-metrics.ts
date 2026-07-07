@@ -1,5 +1,5 @@
 /**
- * TDFOL Performance Metrics — T-201 (Sprint 45)
+ * TDFOL Performance Metrics — T-201
  *
  * Port of ipfs_datasets_py/logic/TDFOL/performance_metrics.py
  *

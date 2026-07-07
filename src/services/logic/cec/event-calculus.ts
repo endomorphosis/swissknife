@@ -1,5 +1,5 @@
 /**
- * Event Calculus — T-230 (Sprint 51)
+ * Event Calculus — T-230
  *
  * Port of ipfs_datasets_py/logic/CEC/native/event_calculus.py
  *

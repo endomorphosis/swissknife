@@ -1,5 +1,5 @@
 /**
- * ZKP to UCAN Bridge — T-268 (Sprint 59)
+ * ZKP to UCAN Bridge — T-268
  * Port of zkp/ucan_zkp_bridge.py (592L)
  */
 

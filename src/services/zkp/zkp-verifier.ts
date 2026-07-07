@@ -12,7 +12,7 @@
  *   verifyProof()      — module-level helper
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -127,9 +127,7 @@ export class ZKPVerifier {
         error = String(e);
       }
     } else if (algorithm === 'simulated' || this.options.allowSimulatedVerification === true) {
-      const inputsHash = createHash('sha256')
-        .update(JSON.stringify(publicInputs))
-        .digest('hex');
+      const inputsHash = sha256Hex(JSON.stringify(publicInputs));
       verified = proofHash.length > 0 && inputsHash.length > 0;
     } else {
       verified = false;

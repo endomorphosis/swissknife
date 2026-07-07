@@ -1,5 +1,5 @@
 /**
- * ShadowProver — T-205 (Sprint 46)
+ * ShadowProver — T-205
  *
  * Port of ipfs_datasets_py/logic/CEC/native/shadow_prover.py
  *

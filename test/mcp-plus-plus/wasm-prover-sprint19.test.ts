@@ -118,7 +118,7 @@ describe('T-101 LogicSubmoduleRegistry', () => {
       expect(typeof spec.description).toBe('string');
       expect(Array.isArray(spec.roles)).toBe(true);
       expect(Array.isArray(spec.capabilities)).toBe(true);
-      expect(typeof spec.sprint).toBe('number');
+      expect(typeof spec.implementationPhase).toBe('number');
     }
   });
 
@@ -127,7 +127,7 @@ describe('T-101 LogicSubmoduleRegistry', () => {
     expect(spec).toBeDefined();
     expect(spec!.name).toBe('z3-wasm');
     expect(spec!.roles).toContain('prover');
-    expect(spec!.sprint).toBe(1);
+    expect(spec!.implementationPhase).toBe(1);
   });
 
   it('getSubmoduleSpec returns undefined for unknown name', () => {

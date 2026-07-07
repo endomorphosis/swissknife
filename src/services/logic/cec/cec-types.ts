@@ -1,5 +1,5 @@
 /**
- * CEC Type Definitions — T-235 (Sprint 52)
+ * CEC Type Definitions — T-235
  *
  * Port of ipfs_datasets_py/logic/CEC/native/types.py
  *

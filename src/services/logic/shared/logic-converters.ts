@@ -1,5 +1,5 @@
 /**
- * TDFOL / FOL / Deontic Multi-converter — T-219 / T-220 / T-221 (Sprint 49)
+ * TDFOL / FOL / Deontic Multi-converter — T-219 / T-220 / T-221
  *
  * Ports of:
  *   - ipfs_datasets_py/logic/TDFOL/tdfol_converter.py  (528L)

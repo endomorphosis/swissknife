@@ -5,7 +5,7 @@
  *   ipfs_datasets_py/logic/common/validators.py (277L)
  *   ipfs_datasets_py/logic/common/bounded_cache.py (233L)
  *
- * Sprint 21, T-109.
+ * T-109.
  */
 
 // ---------------------------------------------------------------------------

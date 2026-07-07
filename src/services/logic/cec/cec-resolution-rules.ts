@@ -1,5 +1,5 @@
 /**
- * CEC Profiling Utils + Proof Optimization + Resolution Rules — T-286/T-287/T-288 (Sprint 62)
+ * CEC Profiling Utils + Proof Optimization + Resolution Rules — T-286/T-287/T-288
  * Ports of CEC/optimization/profiling_utils.py (393L), CEC/native/proof_optimization.py (390L),
  * CEC/native/inference_rules/resolution.py (380L)
  */

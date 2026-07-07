@@ -12,7 +12,7 @@
  *
  * Used to replace the basic confidence heuristic in `FolTextConverter.convert()`.
  *
- * Sprint 15, T-85.
+ * T-85.
  * Reference: ipfs_datasets_py/logic/ml_confidence.py §MLConfidenceScorer
  */
 

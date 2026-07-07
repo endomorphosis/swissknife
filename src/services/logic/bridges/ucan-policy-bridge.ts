@@ -12,7 +12,7 @@
  *   compileAndEvaluate()     — convenience wrapper
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // DelegationToken (minimal stub)
@@ -28,7 +28,7 @@ export interface DelegationToken {
 }
 
 function stubDelegationToken(capability: string, issuer: string, audience: string): DelegationToken {
-  const cid = `ucan:${createHash('sha256').update(`${issuer}:${audience}:${capability}`).digest('hex').slice(0, 16)}`;
+  const cid = `ucan:${sha256Hex(`${issuer}:${audience}:${capability}`).slice(0, 16)}`;
   return { cid, issuer, audience, capability };
 }
 
@@ -134,7 +134,7 @@ function sentenceSplit(text: string): string[] {
 }
 
 function makePolicyCid(text: string): string {
-  return `policy:${createHash('sha256').update(text.slice(0, 512), 'utf8').digest('hex').slice(0, 16)}`;
+  return `policy:${sha256Hex(text.slice(0, 512)).slice(0, 16)}`;
 }
 
 export interface CompileNlOpts {
@@ -233,7 +233,7 @@ export class UCANPolicyBridge {
     result.policyCid = policyCid;
     result.issuer = opts.issuerDid ?? this.issuerDid;
     result.audience = opts.audienceDid ?? this.audienceDid;
-    result.signatureCid = `sig:${createHash('sha256').update(`${result.issuer}:${policyCid}`).digest('hex').slice(0, 16)}`;
+    result.signatureCid = `sig:${sha256Hex(`${result.issuer}:${policyCid}`).slice(0, 16)}`;
     result.valid = !!policyCid;
     return result;
   }

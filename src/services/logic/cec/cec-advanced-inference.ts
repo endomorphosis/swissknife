@@ -1,5 +1,5 @@
 /**
- * CEC Advanced Inference Rules — T-228 (Sprint 51)
+ * CEC Advanced Inference Rules — T-228
  *
  * Port of ipfs_datasets_py/logic/CEC/native/advanced_inference.py
  *

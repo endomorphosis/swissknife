@@ -43,8 +43,8 @@ src/services/
 | Module | Owns |
 |---|---|
 | `shared` | Browser-safe primitives: hashes, ids, encoding, errors, small config contracts. |
-| `platform` | Runtime adapters: provider clients, telemetry, resource pools, hardware/browser acceleration, feature detection. |
-| `mcp` | MCP protocol, registries, descriptors, transports, event DAG provenance, policy broker, generated UI state. |
+| `platform` | Runtime adapters: provider clients, telemetry, resource pools, hardware/browser acceleration, feature detection, with `browser.ts` for browser-safe utilities and `host.ts` for Node/CLI adapters. |
+| `mcp` | MCP protocol, registries, descriptors, transports, event DAG provenance, policy broker, generated UI state, with `browser.ts` for descriptor/envelope/schema/policy primitives and `host.ts` for transports, discovery, descriptor trust, and CLI wrappers. |
 | `glasses` | Meta-glasses, orb, webapp, control-plane, widget, display/input/audio/camera adapters. |
 | `ipfs` | IPFS interface descriptors, UI profiles, widgets, storage/cache integration points. |
 | `logic.shared` | Common formula/proof domain types, analyzers, validation, shared NL/temporal helpers, and shared theorem metadata. |
@@ -57,27 +57,37 @@ src/services/
 | `logic.deontic` | Deontic parser, legal norm IR, legal-text extraction, conflict detection, normative graph projection. |
 | `logic.modal` | Modal codec/compiler/decompiler/tableaux, Kripke structures, KG bridge, synthesis, ambiguity logic. |
 | `logic.bridges` | Cross-logic adapters and multiview graph projection. |
-| `provers` | Concrete prover adapters and prover-facing serializers. |
-| `zkp` | ZKP statements, circuits, browser/native backends, UCAN bridge, on-chain bridge, artifacts, witness/key management. |
+| `provers` | Concrete prover adapters and prover-facing serializers, with `browser.ts` for pure TS/WASM imports and `host.ts` for native process/filesystem wrappers. |
+| `zkp` | ZKP statements, circuits, browser/native backends, UCAN bridge, on-chain bridge, artifacts, witness/key management, with `browser.ts` for browser-safe imports and `host.ts` for native/artifact wrappers. |
 | `proof-engine` | Proof execution, proof trees, strategies, caches, explainers, dependency graphs. |
 | `integrations` | Optional external wrappers: FLogic, ErgoAI, spaCy WASM, neurosymbolic services, and compatibility shims for migrated integrations. |
 
 ## Dependency Direction
 
 - `shared` imports only `shared`.
+- Browser code should import `src/services/platform/browser` for telemetry,
+  resource, acceleration, security, and utility helpers. Server or CLI code may
+  import `src/services/platform/host` or the compatibility `index.ts` barrel
+  when provider SDKs, filesystem, process, or terminal adapters are required.
 - `logic/*` imports `shared`, `logic.shared`, its own module, and explicitly
   allowed adjacent logic modules.
 - `logic.modal` and `logic.tdfol` may depend on each other for modal tableaux
   over TDFOL formulas and TDFOL prover fallback strategies. TDFOL bridge code
   may depend on proof-engine bridge contracts.
 - `mcp` can orchestrate logic, provers, and ZKP. Logic modules must not import
-  `mcp`.
+  `mcp`. Browser code should import `src/services/mcp/browser`; native
+  CLI/server code may import `src/services/mcp/host` or the compatibility
+  `index.ts` barrel.
 - `glasses` can use MCP descriptors and IPFS profiles. MCP core should not
   import glasses implementations.
 - `zkp` can depend on `shared`, `logic.shared`, selected theorem modules, and
-  `provers`. Browser ZKP entrypoints must not import Node-only backends.
+  `provers`. Browser ZKP entrypoints must not import Node-only backends; browser
+  code should import `src/services/zkp/browser`, while CLI/server code may use
+  `src/services/zkp/host` or the compatibility `index.ts` barrel.
 - `provers` owns solver adapters. Policy translation and theorem semantics
-  should live under `logic/*`.
+  should live under `logic/*`. Browser code should import
+  `src/services/provers/browser`; native CLI/server code may import
+  `src/services/provers/host` or the compatibility `index.ts` barrel.
 - MCP control-surface mediation belongs to `mcp`; glasses modules may re-export
   or consume its structural contracts for device-specific adapters.
 
@@ -128,19 +138,22 @@ TDFOL/DCEC formula types, policy translators, and domain processors into
 logic-owned modules, retargeting downstream imports, reconciling the strict
 dependency manifest, promoting browser-safe crypto primitives into `shared`,
 moving MCP EventDAG provenance into `mcp`, and adding an audit gate for active
-root-level service import specifiers
-on `2026-07-06`:
+root-level service import specifiers, then adding explicit browser-safe and
+host-native MCP/platform/prover/ZKP entrypoints, replacing deterministic
+logic/IPFS/proof hash helpers with shared browser-safe crypto, and moving
+MCP envelope/IDL content addressing onto browser-safe bytes
+on `2026-07-07`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 355 |
+| Service files | 363 |
 | Root-level service files | 0 |
 | Root compatibility shims | 0 |
 | Root implementation files | 0 |
 | Legacy root files | 0 |
 | Legacy path files | 0 |
 | Unknown files | 0 |
-| Import edges | 760 |
+| Import edges | 816 |
 | Forbidden cross-module imports | 0 |
 | Legacy root import specifiers | 0 |
 

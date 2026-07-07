@@ -1,5 +1,5 @@
 /**
- * Formula Cache System — T-224 (Sprint 50)
+ * Formula Cache System — T-224
  *
  * Port of ipfs_datasets_py/logic/CEC/optimization/formula_cache.py
  *
@@ -8,7 +8,7 @@
  *   ParseResultCache, MemoizationCache, CacheManager.
  */
 
-import { createHash } from 'crypto';
+import { md5Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // CacheEntry
@@ -57,8 +57,7 @@ export class FormulaInterningCache<T = unknown> {
 
   private _key(formula: T): string {
     const s = typeof formula === 'string' ? formula : JSON.stringify(formula);
-    // MD5-like via Node crypto; fallback to simple hash
-    try { return createHash('md5').update(s).digest('hex'); } catch {
+    try { return md5Hex(s); } catch {
       let h = 0x811c9dc5;
       for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193); }
       return (h >>> 0).toString(16);
@@ -145,7 +144,7 @@ export class ProofResultCache {
 
   private _key(formula: string, assumptions: string[]): string {
     const raw = formula + '|' + assumptions.sort().join(',');
-    try { return createHash('md5').update(raw).digest('hex'); } catch {
+    try { return md5Hex(raw); } catch {
       return raw.slice(0, 64);
     }
   }

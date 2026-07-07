@@ -1,5 +1,5 @@
 /**
- * Formula Complexity Analyzer — T-203 (Sprint 45)
+ * Formula Complexity Analyzer — T-203
  *
  * Port of ipfs_datasets_py/logic/external_provers/formula_analyzer.py
  *

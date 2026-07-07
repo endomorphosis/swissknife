@@ -11,7 +11,7 @@
  * from `LegalNormIR` slots and fixed grammar templates only.  No heuristics,
  * NLP, or LLM calls.  Each phrase is tagged with a slot name for provenance.
  *
- * Sprint 17, T-93.
+ * T-93.
  * Reference: ipfs_datasets_py/logic/deontic/decoder.py §decode_legal_norm_ir
  */
 

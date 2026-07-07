@@ -18,7 +18,7 @@
  *   ProhibitionElimination — F(φ) ⊢ ¬P(φ)
  *   DeonticProhibEquiv     — F(φ) ↔ O(¬φ)  (inherited from DCEC)
  *
- * Sprint 10, T-64.
+ * T-64.
  * Reference: ipfs_datasets_py/logic/TDFOL/tdfol_prover.py §TemporalNecessitationRule etc.
  */
 

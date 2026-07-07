@@ -1,5 +1,5 @@
 /**
- * CEC Language Detector — T-279 (Sprint 61)
+ * CEC Language Detector — T-279
  * Port of CEC/nl/language_detector.py (413L)
  */
 

@@ -1,5 +1,5 @@
 /**
- * French Parser for DCEC — T-231 (Sprint 51)
+ * French Parser for DCEC — T-231
  *
  * Port of ipfs_datasets_py/logic/CEC/nl/french_parser.py
  *

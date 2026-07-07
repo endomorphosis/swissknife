@@ -9,7 +9,7 @@
  *   - Temporal event-calculus operators: HOLDS_AT, INITIATES, TERMINATES, HAPPENS
  *   - First-order quantifiers: FORALL, EXISTS
  *
- * Sprint 9, T-58.
+ * T-58.
  * Reference: §2.4 of 36-swissknife-wasm-theorem-provers-2026-07-01.md
  */
 

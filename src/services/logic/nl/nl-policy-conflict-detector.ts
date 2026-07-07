@@ -1,5 +1,5 @@
 /**
- * NL Policy Conflict Detector — T-210 (Sprint 47)
+ * NL Policy Conflict Detector — T-210
  *
  * Port of ipfs_datasets_py/logic/CEC/nl/nl_policy_conflict_detector.py
  *

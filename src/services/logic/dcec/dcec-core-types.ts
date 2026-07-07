@@ -1,5 +1,5 @@
 /**
- * DCEC Core Types — T-261 (Sprint 58)
+ * DCEC Core Types — T-261
  *
  * Port of CEC/native/dcec_core.py (1452L — key enums and type interfaces only)
  *
@@ -22,7 +22,7 @@ export enum DeonticOperator {
   LIBERTY        = 'L',    // L(φ) — φ is a liberty/privilege
   POWER          = 'POW',  // POW(φ) — power to bring about φ
   IMMUNITY       = 'IMM',  // IMM(φ) — immunity from φ
-  WAIVER         = 'W',    // W(φ) — waiver of a right (PORT-002: reconciles sprint66 extra)
+  WAIVER         = 'W',    // W(φ) — waiver of a right (PORT-002: reconciles legacy DCEC helper extra)
   // Backward-compat aliases
   OBLIGATORY     = 'O',
   PERMITTED      = 'P',
@@ -40,7 +40,7 @@ export enum CognitiveOperator {
   INTENTION = 'I',   // I(agent, φ) — agent intends φ
   DESIRE    = 'D',   // D(agent, φ) — agent desires φ
   GOAL      = 'G',   // G(agent, φ) — agent has goal φ
-  KNOWS     = 'K',   // PORT-002 alias for sprint66 naming
+  KNOWS     = 'K',   // PORT-002 alias for legacy DCEC helper naming
   BELIEVES  = 'B',
   INTENDS   = 'I',
   DESIRES   = 'D',

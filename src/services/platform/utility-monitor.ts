@@ -1,5 +1,5 @@
 /**
- * Utility Monitor — PORT-204 (Sprint 82)
+ * Utility Monitor — PORT-204
  *
  * Port of ipfs_datasets_py/logic/common/utility_monitor.py.
  *

@@ -1,5 +1,5 @@
 /**
- * Temporal Logic Inference Rules — T-206 (Sprint 46)
+ * Temporal Logic Inference Rules — T-206
  *
  * Port of ipfs_datasets_py/logic/TDFOL/inference_rules/temporal.py
  *

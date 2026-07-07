@@ -1,5 +1,5 @@
 /**
- * NLP Predicate Extractor — T-285 (Sprint 62)
+ * NLP Predicate Extractor — T-285
  * Port of fol/utils/nlp_predicate_extractor.py (403L)
  * Regex-based (no spaCy dependency).
  */

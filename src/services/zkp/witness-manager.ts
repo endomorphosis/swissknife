@@ -12,7 +12,7 @@
  *   computeWitness()   — module-level helper
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,19 +45,15 @@ export interface WitnessStats {
 // ---------------------------------------------------------------------------
 
 function hashField(value: string): string {
-  return createHash('sha256').update(value).digest('hex').slice(0, 16);
+  return sha256Hex(value).slice(0, 16);
 }
 
 function axiomCommitment(axioms: string[]): string {
-  return createHash('sha256')
-    .update(axioms.slice().sort().join('||'))
-    .digest('hex');
+  return sha256Hex(axioms.slice().sort().join('||'));
 }
 
 function traceCommitment(trace: Record<string, unknown>[]): string {
-  return createHash('sha256')
-    .update(JSON.stringify(trace))
-    .digest('hex');
+  return sha256Hex(JSON.stringify(trace));
 }
 
 // ---------------------------------------------------------------------------
@@ -110,9 +106,7 @@ export class WitnessManager {
       ...Object.values(privateInputs),
     ];
 
-    const witnessHash = createHash('sha256')
-      .update(witness.join('|'))
-      .digest('hex');
+    const witnessHash = sha256Hex(witness.join('|'));
 
     this.stats.totalComputed++;
     this.stats.valid++;
@@ -132,9 +126,7 @@ export class WitnessManager {
     if (witnessJson.witness.length === 0) errors.push('witness array is empty');
 
     // Recompute hash
-    const expected = createHash('sha256')
-      .update(witnessJson.witness.join('|'))
-      .digest('hex');
+    const expected = sha256Hex(witnessJson.witness.join('|'));
     if (expected !== witnessJson.witnessHash) errors.push('witnessHash mismatch');
 
     if (errors.length > 0) this.stats.invalid++;

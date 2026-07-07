@@ -9,7 +9,7 @@
  *   FOL pipeline → Deontic pipeline → Proof execution →
  *   Monitor → Registry → Batch → Error handling
  *
- * Sprint 20, T-105.
+ * T-105.
  * Reference: ipfs_datasets_py/logic/e2e_validation.py §E2EValidator
  */
 

@@ -7,7 +7,7 @@
  *   class LogicMonitor
  *   def get_global_monitor()
  *
- * Sprint 19, T-100.
+ * T-100.
  * Reference: ipfs_datasets_py/logic/monitoring.py §LogicMonitor
  */
 

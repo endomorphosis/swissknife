@@ -1,5 +1,5 @@
 /**
- * F-logic Semantic Normalizer — PORT-191 (Sprint 92)
+ * F-logic Semantic Normalizer — PORT-191
  *
  * Rule-based semantic normalization for frame-logic text and triples. This is
  * broader than the round-trip optimizer: it rewrites symbols, aliases,

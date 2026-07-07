@@ -1,5 +1,5 @@
 /**
- * TDFOL Deontic Inference Rules — T-229 (Sprint 51)
+ * TDFOL Deontic Inference Rules — T-229
  *
  * Port of ipfs_datasets_py/logic/TDFOL/inference_rules/deontic.py
  *

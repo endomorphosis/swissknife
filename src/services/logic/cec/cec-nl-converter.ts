@@ -1,5 +1,5 @@
 /**
- * CEC NL Converter — T-266 (Sprint 59)
+ * CEC NL Converter — T-266
  * Port of CEC/native/nl_converter.py (445L)
  */
 

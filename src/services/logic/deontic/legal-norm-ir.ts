@@ -5,11 +5,11 @@
  * ipfs_datasets_py/logic/deontic/ir.py (2720 lines).
  *
  * `LegalNormIR` is the canonical IR that bridges:
- *   DeonticTextAnalyzer (Sprint 12) → LegalNormIR → DeonticGraph (Sprint 16)
- *   LegalNormDecoder (Sprint 17) → rendered legal text
+ *   DeonticTextAnalyzer  → LegalNormIR → DeonticGraph
+ *   LegalNormDecoder  → rendered legal text
  *   formal provers (Z3/DCEC/TDFOL) → WasmProofResult
  *
- * Sprint 17, T-92.
+ * T-92.
  * Reference: ipfs_datasets_py/logic/deontic/ir.py §LegalNormIR
  */
 

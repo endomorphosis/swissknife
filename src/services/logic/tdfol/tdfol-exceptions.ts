@@ -6,7 +6,7 @@
  *                            ConversionError / InferenceError / NLProcessingError → PatternMatchError
  *                            CacheError
  *
- * Sprint 22, T-112.
+ * T-112.
  * Reference: ipfs_datasets_py/logic/TDFOL/exceptions.py
  */
 

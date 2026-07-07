@@ -1,5 +1,5 @@
 /**
- * DCEC Namespace + NL Policy Compiler — T-280 + T-281 (Sprint 61)
+ * DCEC Namespace + NL Policy Compiler — T-280 + T-281
  * Ports of CEC/native/dcec_namespace.py (388L) and CEC/nl/nl_to_policy_compiler.py (420L)
  */
 

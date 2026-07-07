@@ -28,7 +28,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Well-known topics (mirrors mcp-discovery.ts constants)
@@ -505,5 +505,5 @@ function computeMessageCID(msg: Omit<BusMessage, 'message_cid'>): string {
     published_at: msg.published_at,
     ucan_token: msg.ucan_token ?? null,
   });
-  return `sha256:${createHash('sha256').update(canonical, 'utf8').digest('hex')}`;
+  return `sha256:${sha256Hex(canonical)}`;
 }

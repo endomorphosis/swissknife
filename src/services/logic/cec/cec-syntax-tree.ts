@@ -1,5 +1,5 @@
 /**
- * CEC Syntax Tree — T-278 (Sprint 61)
+ * CEC Syntax Tree — T-278
  * Port of CEC/native/syntax_tree.py (419L)
  */
 

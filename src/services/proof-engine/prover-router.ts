@@ -1,5 +1,5 @@
 /**
- * Prover Router — T-207 (Sprint 46)
+ * Prover Router — T-207
  *
  * Port of ipfs_datasets_py/logic/external_provers/prover_router.py
  *

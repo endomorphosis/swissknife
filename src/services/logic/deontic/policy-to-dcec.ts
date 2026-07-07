@@ -11,7 +11,7 @@
  *   policy.obligations[]   → O(description) deontic atom
  *   policy.temporal        → HOLDS_AT(P(…), now) wrapper when temporal window present
  *
- * Sprint 9, T-60.
+ * T-60.
  */
 
 import type { Policy } from './mcp-policy.js';

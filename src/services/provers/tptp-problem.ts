@@ -1,5 +1,5 @@
 /**
- * TPTP Problem Utilities — PORT-172 (Sprint 86)
+ * TPTP Problem Utilities — PORT-172
  *
  * Dedicated TPTP emitter/parser for external ATP integration. Supports fof/cnf
  * declarations with nested formulas, role grouping, SZS status extraction, and

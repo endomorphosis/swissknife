@@ -1,5 +1,5 @@
 /**
- * TDFOL Strategy Router — PORT-182/183 (Sprint 89)
+ * TDFOL Strategy Router — PORT-182/183
  *
  * Adds a delegating CEC/external-prover router plus modal-tableaux and
  * cost-based strategy selection for TDFOL proof attempts.

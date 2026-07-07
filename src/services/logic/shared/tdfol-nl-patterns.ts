@@ -1,5 +1,5 @@
 /**
- * TDFOL NL Pattern Matcher — T-209 (Sprint 47)
+ * TDFOL NL Pattern Matcher — T-209
  *
  * Port of ipfs_datasets_py/logic/TDFOL/nl/tdfol_nl_patterns.py
  *

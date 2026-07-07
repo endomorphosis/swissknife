@@ -1,5 +1,5 @@
 /**
- * Enhanced Grammar Parser — T-283 (Sprint 62)
+ * Enhanced Grammar Parser — T-283
  * Port of CEC/native/enhanced_grammar_parser.py (413L)
  * Earley-style CYK parser for DCEC grammar.
  */

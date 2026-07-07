@@ -1,5 +1,5 @@
 /**
- * Domain Vocabulary — T-265 (Sprint 59)
+ * Domain Vocabulary — T-265
  * Port of CEC/nl/domain_vocabularies/domain_vocab.py (465L)
  */
 

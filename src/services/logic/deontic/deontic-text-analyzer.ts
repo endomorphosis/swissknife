@@ -11,7 +11,7 @@
  *   - Entity-based statement organization
  *   - Confidence scoring heuristics
  *
- * Sprint 12, T-72.
+ * T-72.
  * Reference: ipfs_datasets_py/logic/deontic/analyzer.py §DeonticAnalyzer
  */
 

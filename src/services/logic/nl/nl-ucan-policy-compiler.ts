@@ -1,5 +1,5 @@
 /**
- * NL UCAN Policy Compiler — T-264 (Sprint 59)
+ * NL UCAN Policy Compiler — T-264
  * Port of integration/nl_ucan_policy_compiler.py (494L)
  */
 

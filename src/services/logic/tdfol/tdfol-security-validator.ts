@@ -12,7 +12,7 @@
  *   - Malformed unicode (invalid characters)
  *   - Blocked keyword patterns
  *
- * Sprint 22, T-114.
+ * T-114.
  * Reference: ipfs_datasets_py/logic/TDFOL/security_validator.py §SecurityValidator
  */
 

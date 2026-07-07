@@ -1,5 +1,5 @@
 /**
- * NL to DCEC Compiler — PORT-180 (Sprint 90)
+ * NL to DCEC Compiler — PORT-180
  *
  * End-to-end sentence -> DCEC policy compiler with preprocessing, simple
  * coreference resolution, temporal extraction, and structured clause output.

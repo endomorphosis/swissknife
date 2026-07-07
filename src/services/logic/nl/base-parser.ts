@@ -1,5 +1,5 @@
 /**
- * CEC Base Parser Contract — PORT-181 (Sprint 84)
+ * CEC Base Parser Contract — PORT-181
  *
  * Port of ipfs_datasets_py/logic/CEC/nl/base_parser.py.
  *

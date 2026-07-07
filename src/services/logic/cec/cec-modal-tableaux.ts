@@ -1,5 +1,5 @@
 /**
- * CEC Modal Tableaux — T-223 (Sprint 50)
+ * CEC Modal Tableaux — T-223
  *
  * Port of ipfs_datasets_py/logic/CEC/native/modal_tableaux.py
  *

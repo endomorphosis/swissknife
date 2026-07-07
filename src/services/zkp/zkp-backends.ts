@@ -1,5 +1,5 @@
 /**
- * ZKP Backends — T-250 (Sprint 55)
+ * ZKP Backends — T-250
  *
  * Ports of:
  *   - ipfs_datasets_py/logic/zkp/backends/groth16_ffi.py  (613L)

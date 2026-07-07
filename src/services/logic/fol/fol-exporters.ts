@@ -1,5 +1,5 @@
 /**
- * FOL Exporters — PORT-173 (Sprint 86)
+ * FOL Exporters — PORT-173
  *
  * Exports FOL formulas to Prolog, TPTP FOF, TPTP CNF, and prefix notation for
  * external theorem prover interop.

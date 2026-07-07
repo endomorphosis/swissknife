@@ -1,5 +1,5 @@
 /**
- * CEC Grammar Engine — T-270 (Sprint 60)
+ * CEC Grammar Engine — T-270
  * Port of CEC/native/grammar_engine.py (437L)
  */
 

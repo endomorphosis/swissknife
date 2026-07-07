@@ -17,7 +17,7 @@
  * Forward chaining runs until a fixpoint (no new formulas) or the goal is
  * derived, up to `maxRounds` saturation rounds to guard against loops.
  *
- * Sprint 9, T-59.
+ * T-59.
  * Reference: §2.4 of 36-swissknife-wasm-theorem-provers-2026-07-01.md
  */
 

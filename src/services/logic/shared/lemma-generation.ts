@@ -1,5 +1,5 @@
 /**
- * Lemma Generation — T-239 (Sprint 53)
+ * Lemma Generation — T-239
  *
  * Port of ipfs_datasets_py/logic/CEC/native/lemma_generation.py
  *
@@ -7,7 +7,7 @@
  * to speed up repeated proving tasks.
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Enumerations
@@ -39,7 +39,7 @@ export interface Lemma {
 
 function makePatternHash(formula: string): string {
   try {
-    return createHash('sha256').update(formula.trim()).digest('hex').slice(0, 16);
+    return sha256Hex(formula.trim()).slice(0, 16);
   } catch {
     let h = 0x811c9dc5;
     for (const ch of formula) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193); }

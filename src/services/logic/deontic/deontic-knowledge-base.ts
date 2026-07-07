@@ -9,7 +9,7 @@
  *   - `DeonticKnowledgeBase`: add statements/rules/facts, infer via forward-chaining,
  *     check compliance for a given actor+action+time
  *
- * Sprint 12, T-73.
+ * T-73.
  * Reference: ipfs_datasets_py/logic/deontic/knowledge_base.py §DeonticKnowledgeBase
  */
 

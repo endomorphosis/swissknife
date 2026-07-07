@@ -13,7 +13,7 @@
  *   createLogicStorageWithProvenance() — convenience factory
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // LogicProvenanceChain
@@ -77,7 +77,7 @@ export interface StoredFormula {
 
 /** CID-like hash from formula content. */
 function makeCid(content: string): string {
-  return `bafk${createHash('sha256').update(content, 'utf8').digest('hex').slice(0, 32)}`;
+  return `bafk${sha256Hex(content).slice(0, 32)}`;
 }
 
 export class LogicIPLDNode {

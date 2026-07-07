@@ -16,7 +16,7 @@
  *   formatAsProlog(formula)      — Prolog clause form
  *   formatAsTptp(formula)        — TPTP notation for theorem provers
  *
- * Sprint 14, T-80.
+ * T-80.
  * Reference: ipfs_datasets_py/logic/fol/
  */
 
@@ -262,7 +262,7 @@ export function formatAsTptp(formula: string): string {
  * ```
  */
 export class FolTextConverter {
-  /** Sprint 15 T-86: use MLConfidenceScorer for improved confidence scores. */
+  /** T-86: use MLConfidenceScorer for improved confidence scores. */
   private readonly _scorer: import('./ml-confidence-scorer.js').MLConfidenceScorer | null = null;
 
   constructor() {

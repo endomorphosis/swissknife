@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import {
   control_surface_mediator,
   type ControlSurfacePolicyEvaluator,
@@ -15,6 +14,7 @@ import type {
   MCPUIProfileDescriptor,
   MCPUIServiceDescriptor,
 } from './mcp-ui-profile.js';
+import { randomUUID } from '../shared/browser-crypto.js';
 
 export const ORB_TRANSPORT_KINDS = ['local', 'websocket', 'http', 'mcp-server'] as const;
 

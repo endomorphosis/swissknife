@@ -7,7 +7,7 @@
  *     detect_normative_conflicts(elements)
  *     _check_conflict_pair(elem1, elem2)
  *
- * Sprint 18, T-97.
+ * T-97.
  * Reference: ipfs_datasets_py/logic/deontic/utils/deontic_parser.py §detect_normative_conflicts
  */
 

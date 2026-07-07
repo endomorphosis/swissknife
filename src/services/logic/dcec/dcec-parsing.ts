@@ -1,5 +1,5 @@
 /**
- * DCEC Parsing Utilities — T-245 (Sprint 54)
+ * DCEC Parsing Utilities — T-245
  *
  * Port of ipfs_datasets_py/logic/CEC/native/dcec_parsing.py
  *

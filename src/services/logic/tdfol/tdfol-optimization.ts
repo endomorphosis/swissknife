@@ -8,7 +8,7 @@
  *   class OptimizedProver
  *   def create_optimized_prover()
  *
- * Sprint 22, T-113.
+ * T-113.
  * Reference: ipfs_datasets_py/logic/TDFOL/tdfol_optimization.py
  */
 

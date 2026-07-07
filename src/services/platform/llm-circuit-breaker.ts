@@ -1,5 +1,5 @@
 /**
- * LLM Circuit Breaker — T-241 (Sprint 53)
+ * LLM Circuit Breaker — T-241
  *
  * Port of ipfs_datasets_py/logic/security/llm_circuit_breaker.py
  *

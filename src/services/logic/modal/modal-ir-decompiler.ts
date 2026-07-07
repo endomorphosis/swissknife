@@ -289,7 +289,7 @@ export function modalFormulaToText(formula: string): string {
  * Python parity for `modal/decompiler.py::modal_formula_to_text`.
  *
  * This renders a structured ModalIRFormula, not the legacy string pretty-printer
- * above that remains for older Sprint 44 tests.
+ * above that remains for older acceptance tests.
  */
 export function modalIrFormulaToText(formula: ModalIRFormula): string {
   const operator = typeof formula.operator === 'object' && formula.operator !== null

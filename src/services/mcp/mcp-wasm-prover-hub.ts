@@ -230,8 +230,8 @@ export class WasmProverHub {
       lean4_wasm: this.lean4 !== undefined,
       lurk_wasm: false,                     // Phase 6 — adapter exists; hub has no owned lurk-wasm instance by default
       neural: this.neural !== undefined,
-      dcec_native: true,                    // Sprint 9 — always available (pure TS)
-      tdfol_native: true,                   // Sprint 10 — always available (pure TS)
+      dcec_native: true,                    // always available (pure TS)
+      tdfol_native: true,                   // always available (pure TS)
     };
   }
 

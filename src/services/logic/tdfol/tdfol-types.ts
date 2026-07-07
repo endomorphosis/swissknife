@@ -15,7 +15,7 @@
  * Standard Deontic Logic (SDL) operators (already in DCEC):
  *   O  Obligation, P  Permission, F  Prohibition (re-exported here)
  *
- * Sprint 10, T-63.
+ * T-63.
  * Reference: ipfs_datasets_py/logic/TDFOL/tdfol_core.py
  */
 

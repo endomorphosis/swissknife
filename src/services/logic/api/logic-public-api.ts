@@ -4,15 +4,15 @@
  * Mirrors ipfs_datasets_py/logic/api.py (723 lines) — the stable canonical
  * import surface for external consumers of the logic layer.
  *
- * Provides a single entry point that composes all 19 sprint modules:
- *   - NL → FOL (Sprint 14)
- *   - NL → Deontic statements + conflicts (Sprint 12)
- *   - NL → LegalNormIR + decoded text (Sprint 17)
- *   - NL → Prover syntax (Sprint 18)
- *   - NL → DeonticGraph (Sprint 16)
- *   - Monitoring, Registry, Batch (Sprint 19)
+ * Provides a single entry point that composes all 19 logic service modules:
+ *   - NL → FOL
+ *   - NL → Deontic statements + conflicts
+ *   - NL → LegalNormIR + decoded text
+ *   - NL → Prover syntax
+ *   - NL → DeonticGraph
+ *   - Monitoring, Registry, Batch
  *
- * Sprint 20, T-106.
+ * T-106.
  * Reference: ipfs_datasets_py/logic/api.py §LogicPublicApi
  */
 

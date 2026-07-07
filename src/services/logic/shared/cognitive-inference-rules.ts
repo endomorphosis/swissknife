@@ -1,5 +1,5 @@
 /**
- * Cognitive Inference Rules — T-238 (Sprint 53)
+ * Cognitive Inference Rules — T-238
  *
  * Port of ipfs_datasets_py/logic/CEC/native/inference_rules/cognitive.py
  *

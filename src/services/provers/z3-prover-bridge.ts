@@ -1,5 +1,5 @@
 /**
- * Z3 Prover Bridge — T-248 (Sprint 55)
+ * Z3 Prover Bridge — T-248
  *
  * Port of ipfs_datasets_py/logic/external_provers/smt/z3_prover_bridge.py
  *

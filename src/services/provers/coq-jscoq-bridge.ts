@@ -1,7 +1,7 @@
 /**
  * CoqJsCoqBridge — Coq theorem prover integration for swissknife.
  *
- * Sprint 3 / Phase 4.  Two execution paths:
+ * Phase 4.  Two execution paths:
  *
  * 1. **Injected native runner** (Node/host-only opt-in): callers that need
  *    `coqc` can provide a runner. This module does not import child_process or

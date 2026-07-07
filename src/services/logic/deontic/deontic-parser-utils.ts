@@ -9,7 +9,7 @@
  *   extract_action_recipient() — extract beneficiary from action phrase
  *   score_scaffold_quality()  — assess deterministic parse quality
  *
- * Sprint 18, T-96.
+ * T-96.
  * Reference: ipfs_datasets_py/logic/deontic/utils/deontic_parser.py
  */
 

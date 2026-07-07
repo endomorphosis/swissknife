@@ -1,5 +1,5 @@
 /**
- * Deontic Extraction Utilities — PORT-189 (Sprint 91)
+ * Deontic Extraction Utilities — PORT-189
  *
  * Completes reusable predicate/deontic extraction heuristics and nested
  * deontic formula parsing with explicit operator precedence.

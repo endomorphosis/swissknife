@@ -1,5 +1,5 @@
 /**
- * FLogic ErgoAI Wrapper + FLogic ZKP Integration — T-290 + T-291 (Sprint 63)
+ * FLogic ErgoAI Wrapper + FLogic ZKP Integration — T-290 + T-291
  * Ports of flogic/ergoai_wrapper.py (381L) and flogic/flogic_zkp_integration.py (372L)
  *
  * Browser note: this module has no static Node.js imports. Host-native ErgoAI

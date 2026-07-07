@@ -1,5 +1,5 @@
 /**
- * DCEC Integration — T-271 (Sprint 60)
+ * DCEC Integration — T-271
  * Port of CEC/native/dcec_integration.py (427L)
  */
 

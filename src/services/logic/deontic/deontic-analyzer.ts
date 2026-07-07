@@ -1,5 +1,5 @@
 /**
- * Deontic Analyzer — T-215 (Sprint 48)
+ * Deontic Analyzer — T-215
  *
  * Port of ipfs_datasets_py/logic/deontic/analyzer.py
  *

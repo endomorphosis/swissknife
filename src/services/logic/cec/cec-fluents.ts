@@ -1,5 +1,5 @@
 /**
- * CEC Fluents — T-234 (Sprint 52)
+ * CEC Fluents — T-234
  *
  * Port of ipfs_datasets_py/logic/CEC/native/fluents.py
  *

@@ -1,5 +1,5 @@
 /**
- * German Parser for DCEC — T-218 (Sprint 49)
+ * German Parser for DCEC — T-218
  *
  * Port of ipfs_datasets_py/logic/CEC/nl/german_parser.py
  *

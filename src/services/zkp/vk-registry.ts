@@ -11,7 +11,7 @@
  *   registerVK()       — module-level helper
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 import type { VerificationKey } from './zkp-verifier.js';
 
 // ---------------------------------------------------------------------------
@@ -91,9 +91,7 @@ export class VKRegistry {
         description:   entry.description,
       };
     }
-    const payloadHash = createHash('sha256')
-      .update(JSON.stringify(entries))
-      .digest('hex');
+    const payloadHash = sha256Hex(JSON.stringify(entries));
     return { entries, payloadHash, exportedAt: Date.now() };
   }
 

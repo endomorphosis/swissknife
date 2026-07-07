@@ -1,5 +1,5 @@
 /**
- * CEC Parse Ambiguity Resolver — PORT-174 (Sprint 83)
+ * CEC Parse Ambiguity Resolver — PORT-174
  *
  * Port of ipfs_datasets_py/logic/CEC/native/ambiguity_resolver.py.
  *

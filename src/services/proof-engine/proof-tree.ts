@@ -6,7 +6,7 @@
  *   ProofTreeNode (formula/nodeType/ruleName/justification/premises/metadata)
  *   ProofTreeVisualizer (ASCII rendering)
  *
- * Sprint 23, T-117.
+ * T-117.
  * Reference: ipfs_datasets_py/logic/TDFOL/proof_tree_visualizer.py
  */
 

@@ -11,7 +11,7 @@
  *   runTrustedSetup()  — simulated trusted setup for a circuit
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 import type { VerificationKey } from './zkp-verifier.js';
 
 // ---------------------------------------------------------------------------
@@ -111,7 +111,7 @@ export function runTrustedSetup(
   if (algorithm !== 'simulated' && options.allowSimulated !== true) {
     throw new Error(`Native ${algorithm} trusted setup runner not configured; pass algorithm:'simulated' for deterministic test artifacts`);
   }
-  const seed = createHash('sha256').update(`${circuitId}:${algorithm}:${version}`).digest('hex');
+  const seed = sha256Hex(`${circuitId}:${algorithm}:${version}`);
   const now  = Date.now();
 
   const provingKey: ProvingKey = {

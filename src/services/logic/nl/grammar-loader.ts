@@ -1,5 +1,5 @@
 /**
- * CEC Grammar Loader — PORT-177 (Sprint 83)
+ * CEC Grammar Loader — PORT-177
  *
  * Port of ipfs_datasets_py/logic/CEC/native/grammar_loader.py.
  *

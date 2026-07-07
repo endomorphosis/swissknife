@@ -1,5 +1,5 @@
 /**
- * F-logic ZKP Integration — PORT-190 (Sprint 92)
+ * F-logic ZKP Integration — PORT-190
  *
  * Standalone frame-logic to circuit witness transpilation plus proof generation
  * and verification helpers. Uses an injectable ZKP backend so tests and local

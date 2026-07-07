@@ -1,5 +1,5 @@
 /**
- * TDFOL Expansion Rules — PORT-185 (Sprint 83)
+ * TDFOL Expansion Rules — PORT-185
  *
  * Port of ipfs_datasets_py/logic/TDFOL/expansion_rules.py.
  *
@@ -188,5 +188,5 @@ function insideCall(text: string): string {
   return start >= 0 && text.endsWith(')') ? text.slice(start + 1, -1).trim() : text;
 }
 
-// Backward-compatible alias used by older sprint tests.
+// Backward-compatible alias used by older acceptance tests.
 export { NegationExpansionRule as NotExpansionRule };

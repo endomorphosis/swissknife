@@ -9,7 +9,7 @@
  *   ipfs_datasets_py/logic/TDFOL/tdfol_prover.py
  *   ipfs_datasets_py/logic/TDFOL/tdfol_dcec_parser.py
  *
- * Sprint 10, T-65.
+ * T-65.
  */
 
 import type { Policy } from '../deontic/mcp-policy.js';

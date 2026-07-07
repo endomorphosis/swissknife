@@ -1,5 +1,5 @@
 /**
- * CEC Context Manager — T-272 (Sprint 60)
+ * CEC Context Manager — T-272
  * Port of CEC/native/context_manager.py (423L)
  */
 

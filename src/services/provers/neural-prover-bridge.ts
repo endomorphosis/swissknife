@@ -1,7 +1,7 @@
 /**
  * NeuralProverBridge — LLM-guided proof sketch verifier (T-38, T-57).
  *
- * Sprint 7 / Phase 7 (P2).  Mirrors Python's SymbolicAI prover bridge
+ * Phase 7 (P2).  Mirrors Python's SymbolicAI prover bridge
  * (`ipfs_datasets_py/logic/external_provers/neural/symbolicai_prover_bridge.py`).
  *
  * Strategy:

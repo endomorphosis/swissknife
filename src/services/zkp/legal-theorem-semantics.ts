@@ -11,7 +11,6 @@
  *   legalTheoremToCircuit() — translate a legal theorem into circuit-ready form
  */
 
-import { createHash } from 'crypto';
 import {
   buildTdfolV1TraceWitness,
   TDFOLTraceWitness,

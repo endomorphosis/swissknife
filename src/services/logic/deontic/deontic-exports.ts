@@ -1,5 +1,5 @@
 /**
- * Deontic Exports — T-253 (Sprint 56)
+ * Deontic Exports — T-253
  *
  * Port of ipfs_datasets_py/logic/deontic/exports.py (5134L — key API only)
  *

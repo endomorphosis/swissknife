@@ -12,7 +12,7 @@
  *                               getSession/reset/exportFormulas
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // StatementAnalysis
@@ -119,7 +119,7 @@ export class InteractiveFOLConstructor extends (class {} as new () => object) {
 
   private _newSession(domain: string): FOLConstructorSession {
     return {
-      sessionId: createHash('sha256').update(`${Date.now()}`).digest('hex').slice(0, 16),
+      sessionId: sha256Hex(`${Date.now()}`).slice(0, 16),
       domain,
       statements: [],
       formulas: [],

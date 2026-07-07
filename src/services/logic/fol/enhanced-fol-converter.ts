@@ -1,5 +1,5 @@
 /**
- * Enhanced FOL Converter — PORT-187 (Sprint 91)
+ * Enhanced FOL Converter — PORT-187
  *
  * Adds confidence scoring, lightweight NLP enrichment, semantic role extraction,
  * and conversion monitoring around the existing FOL converter.

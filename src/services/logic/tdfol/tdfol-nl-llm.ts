@@ -1,5 +1,5 @@
 /**
- * TDFOL NL LLM Prompt Builder — T-211 (Sprint 47)
+ * TDFOL NL LLM Prompt Builder — T-211
  *
  * Port of ipfs_datasets_py/logic/TDFOL/nl/llm.py
  *
@@ -8,6 +8,8 @@
  *  - `LLMParseResult` data class
  *  - `LLMResponseCache` — CID-keyed in-memory cache with LRU eviction
  */
+
+import { sha256Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // System prompt templates
@@ -265,20 +267,6 @@ export class LLMResponseCache {
 
   private async _makeKey(text: string, provider: string, promptHash: string): Promise<string> {
     const payload = JSON.stringify({ text, provider, promptHash, version: '1.0' });
-    if (typeof globalThis.crypto?.subtle?.digest === 'function') {
-      const bytes = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload));
-      return 'sha256-' + Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-    // Node.js crypto fallback
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const crypto = require('crypto') as { createHash(alg: string): { update(d: string): { digest(enc: string): string } } };
-      return 'sha256-' + crypto.createHash('sha256').update(payload).digest('hex');
-    } catch {
-      // Last resort: simple deterministic hash
-      let h = 0x811c9dc5;
-      for (const ch of payload) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193); }
-      return `fnv32-${(h >>> 0).toString(16)}`;
-    }
+    return `sha256-${sha256Hex(payload)}`;
   }
 }

@@ -1,6 +1,12 @@
 // Global test setup for Vitest
 import { vi } from 'vitest'
 
+const jestCompat = vi as typeof vi & { setTimeout(timeout: number): void }
+jestCompat.setTimeout = (timeout: number) => {
+  vi.setConfig({ testTimeout: timeout })
+}
+;(globalThis as typeof globalThis & { jest?: typeof jestCompat }).jest = jestCompat
+
 // Mock environment variables
 vi.mock('process', () => ({
   env: {
@@ -88,7 +94,7 @@ console.debug = vi.fn()
 console.warn = vi.fn()
 
 // Increase timeout for AI-related tests
-vi.setConfig({ 
+vi.setConfig({
   testTimeout: 30000,
-  hookTimeout: 10000 
+  hookTimeout: 10000
 })

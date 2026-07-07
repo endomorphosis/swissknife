@@ -1,5 +1,5 @@
 /**
- * CVC5 Prover Bridge — T-249 (Sprint 55)
+ * CVC5 Prover Bridge — T-249
  *
  * Port of ipfs_datasets_py/logic/external_provers/smt/cvc5_prover_bridge.py
  *

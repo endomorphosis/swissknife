@@ -13,12 +13,12 @@
     },
     "platform": {
       "targetPath": "src/services/platform",
-      "purpose": "Host/platform adapters: provider clients, telemetry, resource pools, browser acceleration, runtime feature detection.",
+      "purpose": "Host/platform adapters and browser-safe runtime utilities: provider clients, telemetry, resource pools, browser acceleration, runtime feature detection. Browser-safe entrypoints live in browser.ts; host-native process/filesystem wrappers live in host.ts.",
       "allowedImports": ["shared", "platform"]
     },
     "mcp": {
       "targetPath": "src/services/mcp",
-      "purpose": "MCP protocol, registries, descriptors, event DAG provenance, policy broker, transport, and schema/UI descriptor orchestration.",
+      "purpose": "MCP protocol, registries, descriptors, event DAG provenance, policy broker, transport, and schema/UI descriptor orchestration. Browser-safe descriptor/envelope/schema entrypoints live in browser.ts; host transports, discovery, trust, and CLI wrappers live in host.ts.",
       "allowedImports": ["shared", "platform", "mcp", "logic.shared", "logic.deontic", "provers", "zkp"]
     },
     "glasses": {
@@ -83,12 +83,12 @@
     },
     "provers": {
       "targetPath": "src/services/provers",
-      "purpose": "Concrete prover adapters and prover-facing serializers for Z3, CVC5, Coq, Lean, DCEC, TDFOL, Lurk, STARK, and neural prover bridges.",
+      "purpose": "Concrete prover adapters and prover-facing serializers for Z3, CVC5, Coq, Lean, DCEC, TDFOL, Lurk, STARK, and neural prover bridges. Browser-safe entrypoints live in browser.ts; host-native wrappers live in host.ts.",
       "allowedImports": ["shared", "logic.shared", "logic.fol", "logic.tdfol", "logic.dcec", "logic.deontic", "provers"]
     },
     "zkp": {
       "targetPath": "src/services/zkp",
-      "purpose": "ZKP statements, circuits, proving backends, browser ZKP, UCAN bridge, on-chain bridge, artifacts, witness/key management.",
+      "purpose": "ZKP statements, circuits, proving backends, browser ZKP, UCAN bridge, on-chain bridge, artifacts, witness/key management. Browser-safe entrypoints live in browser.ts; host-native artifact/toolchain wrappers live in host.ts.",
       "allowedImports": ["shared", "platform", "logic.shared", "logic.tdfol", "logic.deontic", "logic.cec", "provers", "zkp"]
     },
     "proof-engine": {

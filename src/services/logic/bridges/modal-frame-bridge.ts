@@ -11,7 +11,7 @@
  * This TypeScript port replaces that with the already-implemented regex extractors,
  * giving practical text→modal-logic→proof results without an NLP dependency.
  *
- * Sprint 14, T-81.
+ * T-81.
  * Reference: ipfs_datasets_py/logic/bridge/modal_frame_logic.py §ModalFrameLogicBridgeAdapter
  */
 

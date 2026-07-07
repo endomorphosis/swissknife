@@ -1,5 +1,5 @@
 /**
- * CEC Prover Manager — T-257 (Sprint 57)
+ * CEC Prover Manager — T-257
  *
  * Port of CEC/provers/prover_manager.py (444L)
  *

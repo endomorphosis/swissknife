@@ -1,5 +1,5 @@
 /**
- * ZKP Trace Witness — T-236 (Sprint 52)
+ * ZKP Trace Witness — T-236
  *
  * Port of ipfs_datasets_py/logic/zkp/provekit/trace.py
  *
@@ -10,7 +10,7 @@
  * Only use toPublicMetadata() in external-facing contexts.
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -55,10 +55,6 @@ export class TDFOLTraceSchemaError extends Error {
 // ---------------------------------------------------------------------------
 // Hashing helpers
 // ---------------------------------------------------------------------------
-
-function sha256Hex(text: string): string {
-  return createHash('sha256').update(text, 'utf8').digest('hex');
-}
 
 /**
  * Convert a SHA-256 hex digest to a BN254 scalar field integer

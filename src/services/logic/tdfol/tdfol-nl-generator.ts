@@ -1,5 +1,5 @@
 /**
- * TDFOL NL Formula Generator — T-244 (Sprint 54)
+ * TDFOL NL Formula Generator — T-244
  *
  * Port of ipfs_datasets_py/logic/TDFOL/nl/tdfol_nl_generator.py
  *

@@ -1,5 +1,5 @@
 /**
- * DCEC Cleaning Utilities — PORT-175 (Sprint 83)
+ * DCEC Cleaning Utilities — PORT-175
  *
  * Port of ipfs_datasets_py/logic/CEC/native/dcec_cleaning.py.
  *

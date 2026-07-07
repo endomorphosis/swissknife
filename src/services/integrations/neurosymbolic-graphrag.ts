@@ -11,8 +11,8 @@
  *   NeurosymbolicGraphRAG  — ingest/query/prove/getStats
  */
 
-import { createHash } from 'node:crypto';
 import { buildDeterministicEmbedding, cosineSimilarity } from '../logic/shared/embedding-prover.js';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // RAGEntry — stored knowledge graph entry
@@ -97,7 +97,7 @@ function extractEntities(text: string): string[] {
 }
 
 function docHash(text: string): string {
-  return createHash('sha256').update(text.slice(0, 256), 'utf8').digest('hex').slice(0, 12);
+  return sha256Hex(text.slice(0, 256)).slice(0, 12);
 }
 
 // ---------------------------------------------------------------------------

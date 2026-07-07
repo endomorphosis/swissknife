@@ -12,7 +12,7 @@
  * In a production system this would be replaced by real Groth16/Sphinx/Lurk
  * proofs.  The `is_simulation: true` flag on all outputs marks this clearly.
  *
- * Sprint 11, T-69.
+ * T-69.
  * Reference: ipfs_datasets_py/logic/zkp/zkp_prover.py §ZKPProver (simulation path)
  */
 

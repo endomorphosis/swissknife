@@ -1,5 +1,5 @@
 /**
- * ZKP Form Completion Circuit — T-246 (Sprint 54)
+ * ZKP Form Completion Circuit — T-246
  *
  * Port of ipfs_datasets_py/logic/zkp/form_circuit.py
  *
@@ -7,14 +7,14 @@
  * certificate generation and verification for form verification results.
  */
 
-import { createHash } from 'crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function sha256(s: string): string {
-  return createHash('sha256').update(s, 'utf8').digest('hex');
+  return sha256Hex(s);
 }
 
 // ---------------------------------------------------------------------------

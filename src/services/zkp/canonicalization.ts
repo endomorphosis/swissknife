@@ -12,7 +12,7 @@
  *   deriveCircuitV2Inputs()        — full circuit_v2 input derivation
  */
 
-import { createHash } from 'crypto';
+import { bytesToHex, hexToBytes, sha256Hex } from '../shared/browser-crypto.js';
 import {
   buildTdfolV1TraceWitness,
   theoremHashHex,
@@ -49,12 +49,17 @@ export function canonicalizeAxiomSet(axioms: string[]): string[] {
 // Axiom-set accumulator commitment
 // ---------------------------------------------------------------------------
 
-function hashLeaf(value: string): Buffer {
-  return createHash('sha256').update(value).digest();
+type DigestBytes = Uint8Array;
+
+function hashLeaf(value: string): DigestBytes {
+  return hexToBytes(sha256Hex(value));
 }
 
-function hashPair(a: Buffer, b: Buffer): Buffer {
-  return createHash('sha256').update(a).update(b).digest();
+function hashPair(a: DigestBytes, b: DigestBytes): DigestBytes {
+  const combined = new Uint8Array(a.length + b.length);
+  combined.set(a);
+  combined.set(b, a.length);
+  return hexToBytes(sha256Hex(combined));
 }
 
 /**
@@ -67,11 +72,11 @@ function hashPair(a: Buffer, b: Buffer): Buffer {
 export function axiomSetAccumulatorCommitment(axioms: string[]): string {
   const canon = canonicalizeAxiomSet(axioms);
   if (canon.length === 0) {
-    return createHash('sha256').update('empty').digest('hex');
+    return sha256Hex('empty');
   }
   let layer = canon.map(hashLeaf);
   while (layer.length > 1) {
-    const next: Buffer[] = [];
+    const next: DigestBytes[] = [];
     for (let i = 0; i < layer.length; i += 2) {
       if (i + 1 < layer.length) {
         next.push(hashPair(layer[i]!, layer[i + 1]!));
@@ -81,7 +86,7 @@ export function axiomSetAccumulatorCommitment(axioms: string[]): string {
     }
     layer = next;
   }
-  return layer[0]!.toString('hex');
+  return bytesToHex(layer[0]!);
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +148,7 @@ export function deriveCircuitV2Inputs(
   const publicInputs: CircuitV2PublicInputs = {
     theorem_hash:           thmHash,
     axioms_commitment:      canonAxioms.slice().sort().join('\n').length > 0
-      ? createHash('sha256').update(canonAxioms.join('\n')).digest('hex')
+      ? sha256Hex(canonAxioms.join('\n'))
       : '',
     accumulator_commitment: accumCommitment,
     tdfol_v1_trace_root,

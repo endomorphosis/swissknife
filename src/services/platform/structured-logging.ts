@@ -1,5 +1,5 @@
 /**
- * Structured Logging — T-216 (Sprint 48)
+ * Structured Logging — T-216
  *
  * Port of ipfs_datasets_py/logic/observability/structured_logging.py
  *
