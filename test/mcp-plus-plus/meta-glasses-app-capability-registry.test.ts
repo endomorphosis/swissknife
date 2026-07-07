@@ -1,4 +1,4 @@
-import { computeInterfaceCID } from '../../src/services/mcp-idl';
+import { computeInterfaceCID } from '../../src/services/mcp/mcp-idl';
 import {
   META_GLASSES_APP_CAPABILITY_REGISTRY_ID,
   createDefaultMetaGlassesAppCapabilityRegistry,
@@ -11,7 +11,7 @@ import {
 import {
   META_GLASSES_IO_PERMISSION_SCOPES,
   META_GLASSES_IO_PROFILE_PROPERTY,
-} from '../../src/services/meta-glasses-io-profile';
+} from '../../src/services/glasses/meta-glasses-io-profile';
 
 describe('Meta glasses app capability registry', () => {
   it('enumerates SDK-free app-facing capabilities for every I/O surface plus fallback states', () => {

@@ -1,7 +1,7 @@
-import { TrafficManager } from '../../../../src/services/mcp-traffic-manager';
-import { ServerRegistry } from '../../../../src/services/mcp-registry';
+import { TrafficManager } from '../../../../src/services/mcp/mcp-traffic-manager';
+import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry';
 import { VersionedServerConfig } from '../../../../src/types/mcp'; // Assuming this type exists
-import { connectToServer } from '../../../../src/services/mcpClient'; // Assuming this function exists
+import { connectToServer } from '../../../../src/services/mcp/mcpClient'; // Assuming this function exists
 
 const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -10,7 +10,7 @@ const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  */
 
 // Mock the registry
-jest.mock('../../../../src/services/mcp-registry', () => {
+jest.mock('../../../../src/services/mcp/mcp-registry', () => {
     const mockRegistry = {
         initialize: jest.fn().mockResolvedValue(undefined),
         getActiveServerVersions: jest.fn(),
@@ -26,7 +26,7 @@ jest.mock('../../../../src/services/mcp-registry', () => {
 });
 
 // Mock the connectToServer function
-jest.mock('../../../../src/services/mcpClient', () => ({
+jest.mock('../../../../src/services/mcp/mcpClient', () => ({
     connectToServer: jest.fn()
 }));
 

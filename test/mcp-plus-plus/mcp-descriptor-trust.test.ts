@@ -1,16 +1,16 @@
 import { DIDKeystore } from '../../src/auth/did-keystore';
-import { InterfaceRepository } from '../../src/services/mcp-idl';
+import { InterfaceRepository } from '../../src/services/mcp/mcp-idl';
 import {
   LocalMCPInterfaceRegistryBackend,
   MCPInterfaceDiscoveryRegistry,
-} from '../../src/services/mcp-interface-registry';
+} from '../../src/services/mcp/mcp-interface-registry';
 import {
   assertMCPUIProfileDescriptorTrusted,
   signMCPUIProfileDescriptor,
   verifyMCPUIProfileDescriptorTrust,
 } from '../../src/services/mcp/mcp-descriptor-trust';
-import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp-ipfs-ui-descriptors';
-import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
+import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 function descriptor(): MCPUIProfileDescriptor {
   return JSON.parse(JSON.stringify(ipfsDatasetsUIProfileDescriptor)) as MCPUIProfileDescriptor;

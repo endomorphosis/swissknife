@@ -11,7 +11,7 @@
  *   DeonticLogicConverter — main converter class
  */
 
-import { LegalDomain } from '../../legal-symbolic-analyzer.js';
+import { LegalDomain } from '../shared/legal-symbolic-analyzer.js';
 import {
   DeonticFormula, DeonticRuleSet, DeonticOp,
   makeDeonticFormula, makeRuleSet,

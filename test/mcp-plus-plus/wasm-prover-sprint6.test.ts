@@ -20,8 +20,8 @@ import {
 import {
   lurkBetaBuildInstructions,
 } from '../../src/services/provers/lurk-wasm-bridge';
-import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub';
-import type { Policy } from '../../src/services/mcp-policy';
+import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -296,9 +296,9 @@ describe('T-31 Integration: local-first evaluation path (checkPolicyConsistencyR
         remoteCalled = true;
         return { consistent: true, proof: { proved: true } };
       }),
-    } as unknown as import('../../src/services/mcp-remote-deontic-engine').RemoteDeonticEngine;
+    } as unknown as import('../../src/services/mcp/mcp-remote-deontic-engine').RemoteDeonticEngine;
 
-    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp-remote-deontic-engine');
+    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp/mcp-remote-deontic-engine');
     const result = await checkPolicyConsistencyRemote(permissivePolicy(), fakeRemote, hub);
 
     expect(mockZ3.checkPolicyConsistency).toHaveBeenCalledWith(
@@ -322,7 +322,7 @@ describe('T-31 Integration: local-first evaluation path (checkPolicyConsistencyR
         remoteCalled = true;
         return { consistent: true, proof: { proved: true } };
       }),
-    } as unknown as import('../../src/services/mcp-remote-deontic-engine').RemoteDeonticEngine;
+    } as unknown as import('../../src/services/mcp/mcp-remote-deontic-engine').RemoteDeonticEngine;
 
     const temporalPolicy: Policy = {
       id: 'temp', version: '1',
@@ -331,7 +331,7 @@ describe('T-31 Integration: local-first evaluation path (checkPolicyConsistencyR
       temporal: { notBefore: 1000, notAfter: 9999 },
     };
 
-    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp-remote-deontic-engine');
+    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp/mcp-remote-deontic-engine');
     const result = await checkPolicyConsistencyRemote(temporalPolicy, fakeRemote, hub);
     // Sprint 10: tdfol-native decides locally; remote skipped
     expect(result.localProver).toBe('tdfol-native');
@@ -357,7 +357,7 @@ describe('T-31 Integration: local-first evaluation path (checkPolicyConsistencyR
         remoteCalled = true;
         return { consistent: false, proof: { proved: false } };
       }),
-    } as unknown as import('../../src/services/mcp-remote-deontic-engine').RemoteDeonticEngine;
+    } as unknown as import('../../src/services/mcp/mcp-remote-deontic-engine').RemoteDeonticEngine;
 
     const conflictPolicy: Policy = {
       id: 'conflict', version: '1.0.0',
@@ -366,7 +366,7 @@ describe('T-31 Integration: local-first evaluation path (checkPolicyConsistencyR
       obligations: [],
     };
 
-    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp-remote-deontic-engine');
+    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp/mcp-remote-deontic-engine');
     const result = await checkPolicyConsistencyRemote(conflictPolicy, fakeRemote, hub);
 
     expect(remoteCalled).toBe(false);       // remote NOT called

@@ -1,11 +1,11 @@
-import { computeInterfaceCID } from '../../src/services/mcp-idl';
+import { computeInterfaceCID } from '../../src/services/mcp/mcp-idl';
 import {
   META_GLASSES_AUDIO_ADAPTER_ID,
   createMetaGlassesAudioAdapterDescriptor,
   createMetaGlassesAudioAppRequirements,
   requestMetaGlassesAudioRoute,
-} from '../../src/services/meta-glasses-audio-adapter';
-import { META_GLASSES_IO_PERMISSION_SCOPES } from '../../src/services/meta-glasses-io-profile';
+} from '../../src/services/glasses/meta-glasses-audio-adapter';
+import { META_GLASSES_IO_PERMISSION_SCOPES } from '../../src/services/glasses/meta-glasses-io-profile';
 
 describe('Meta glasses audio adapter', () => {
   it('declares microphone, speaker, and headphone requirements without DAT SDK imports', () => {

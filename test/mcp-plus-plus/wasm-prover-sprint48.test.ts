@@ -47,7 +47,7 @@ import {
   log_mcp_tool,
   log_performance,
   parse_json_log_file,
-} from '../../src/services/structured-logging';
+} from '../../src/services/platform/structured-logging';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

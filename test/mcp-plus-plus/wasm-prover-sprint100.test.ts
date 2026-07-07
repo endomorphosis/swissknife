@@ -16,9 +16,9 @@ import {
   LogicError,
   ModalError,
   TemporalError,
-} from '../../src/services/logic-errors';
-import { TDFOLError } from '../../src/services/tdfol-exceptions';
-import { DCECHandledError } from '../../src/services/dcec-error-handling';
+} from '../../src/services/logic/shared/logic-errors';
+import { TDFOLError } from '../../src/services/logic/tdfol/tdfol-exceptions';
+import { DCECHandledError } from '../../src/services/logic/dcec/dcec-error-handling';
 import {
   ProofStatement,
   Statement,
@@ -26,7 +26,7 @@ import {
   formatCircuitRef,
   parseCircuitRef,
   parseCircuitRefLenient,
-} from '../../src/services/zkp-statement';
+} from '../../src/services/zkp/zkp-statement';
 import {
   DEFAULT_PROVEKIT_CIRCUIT_ID,
   PROVEKIT_PUBLIC_INPUT_SCHEMA_VERSION,
@@ -34,7 +34,7 @@ import {
   buildProveKitPublicInputRecord,
   fieldElementFromHexDigest,
   fieldElementFromText,
-} from '../../src/services/zkp-provekit-public-inputs';
+} from '../../src/services/zkp/zkp-provekit-public-inputs';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

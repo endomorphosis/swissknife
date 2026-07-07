@@ -24,8 +24,8 @@ import {
   isProved,
 } from '../../src/services/provers/prover-types';
 import { ProofCache } from '../../src/services/provers/mcp-proof-cache';
-import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub';
-import type { Policy } from '../../src/services/mcp-policy';
+import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
 
 // ---------------------------------------------------------------------------
 // Helpers

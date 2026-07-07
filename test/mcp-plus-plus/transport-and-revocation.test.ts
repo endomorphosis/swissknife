@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { MCPTransportFactory, MCPClient } from '../../src/services/mcp-transport.js';
+import { MCPTransportFactory, MCPClient } from '../../src/services/mcp/mcp-transport.js';
 import { UCANAuth } from '../../src/auth/ucan-auth.js';
 import { UCANRevocationRegistry } from '../../src/auth/ucan-auth.js';
 import { DIDKeystore } from '../../src/auth/did-keystore.js';

@@ -5,13 +5,13 @@ import {
   type MCPCapabilityRouterOptions,
   type ORBDescriptorSource,
   type ORBStreamEvent,
-} from '../../src/services/mcp-orb-capability-router';
+} from '../../src/services/mcp/mcp-orb-capability-router';
 import type {
   ControlSurfacePolicyDecision,
   ControlSurfacePolicyEvaluationRequest,
-} from '../../src/services/control-surface-mediator';
-import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp-ipfs-ui-descriptors';
-import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
+} from '../../src/services/mcp/control-surface-mediator';
+import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 const DATASET_INTERFACE_CID = 'sha256:dataset-fixture';
 

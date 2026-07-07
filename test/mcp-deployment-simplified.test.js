@@ -11,7 +11,7 @@ const addApiKey = jest.fn().mockImplementation(() => Promise.resolve());
 
 
 // Mock the registry
-jest.mock('../../src/services/mcp-registry.js', () => {
+jest.mock('../../src/services/mcp/mcp-registry.js', () => {
   const mockServerRegistry = {
     initialize: jest.fn().mockResolvedValue(undefined),
     registerServer: jest.fn(),

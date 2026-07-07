@@ -6,7 +6,7 @@
  * MCPCapabilityRouter's discover/bind/invoke lifecycle.
  */
 
-import type { MCPUIProfileDescriptor, MCPUIServiceDescriptor } from '../mcp-ui-profile.js';
+import type { MCPUIProfileDescriptor, MCPUIServiceDescriptor } from '../mcp/mcp-ui-profile.js';
 
 const HANDSFREE_BASE = 'http://localhost:8080';
 

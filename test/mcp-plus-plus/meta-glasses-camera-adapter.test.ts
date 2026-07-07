@@ -1,4 +1,4 @@
-import { computeInterfaceCID } from '../../src/services/mcp-idl';
+import { computeInterfaceCID } from '../../src/services/mcp/mcp-idl';
 import {
   META_GLASSES_CAMERA_ADAPTER_PROFILE,
   META_GLASSES_CAMERA_ADAPTER_PROFILE_VERSION,
@@ -11,7 +11,7 @@ import {
   validateMetaGlassesCameraDescriptor,
   type MetaGlassesCameraCaptureRequest,
   type MetaGlassesCameraAppDescriptor,
-} from '../../src/services/meta-glasses-camera-adapter';
+} from '../../src/services/glasses/meta-glasses-camera-adapter';
 
 function allowedRequest(overrides: Partial<MetaGlassesCameraCaptureRequest> = {}): MetaGlassesCameraCaptureRequest {
   return {

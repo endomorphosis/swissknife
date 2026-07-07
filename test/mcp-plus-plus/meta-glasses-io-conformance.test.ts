@@ -3,31 +3,31 @@ import {
   createMetaGlassesControlPlaneRouter,
   type MetaGlassesControlPlaneBinding,
   type MetaGlassesControlPlaneRouteDecision,
-} from '../../src/services/meta-glasses-control-plane-router';
+} from '../../src/services/glasses/meta-glasses-control-plane-router';
 import {
   createMetaGlassesCameraBridgeEnvelope,
   type MetaGlassesCameraCaptureRequest,
-} from '../../src/services/meta-glasses-camera-adapter';
+} from '../../src/services/glasses/meta-glasses-camera-adapter';
 import {
   createMetaGlassesAudioAppRequirements,
   type MetaGlassesAudioRouteRequest,
-} from '../../src/services/meta-glasses-audio-adapter';
+} from '../../src/services/glasses/meta-glasses-audio-adapter';
 import {
   createMetaGlassesInputAppBindings,
   type MetaGlassesInputCapability,
   type MetaGlassesInputEventRequest,
-} from '../../src/services/meta-glasses-input-adapter';
+} from '../../src/services/glasses/meta-glasses-input-adapter';
 import {
   META_GLASSES_IO_PERMISSION_SCOPES,
   type MetaGlassesIOCapabilityKind,
   type MetaGlassesIOPayloadRef,
-} from '../../src/services/meta-glasses-io-profile';
+} from '../../src/services/glasses/meta-glasses-io-profile';
 import {
   META_GLASSES_IO_TRANSPORT_ERROR_CODES,
   createMetaGlassesIOBridgeEnvelope,
   validateMetaGlassesIOBridgeEnvelope,
   type MetaGlassesIOBridgeEnvelope,
-} from '../../src/services/meta-glasses-io-transport';
+} from '../../src/services/glasses/meta-glasses-io-transport';
 
 const APP_ID = 'com.example.meta-glasses-io-conformance';
 const CID_PATTERN = /^sha256:[a-f0-9]{64}$/;

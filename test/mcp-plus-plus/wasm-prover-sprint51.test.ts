@@ -26,7 +26,7 @@ import {
   obligation, permission, prohibition,
   DeonticOp,
 } from '../../src/services/logic/deontic/deontic-inference-rules';
-import { atom, binary, unary, LogicOperator } from '../../src/services/temporal-inference-rules';
+import { atom, binary, unary, LogicOperator } from '../../src/services/logic/tdfol/temporal-inference-rules';
 
 import {
   Event, Fluent, TimePoint, EventCalculus,
@@ -37,7 +37,7 @@ import {
   getFrenchVerbConjugations, getFrenchArticles,
   getFrenchNegationPatterns, getFrenchDeonticKeywords,
   FR_DEONTIC_OP,
-} from '../../src/services/french-parser';
+} from '../../src/services/logic/nl/french-parser';
 
 // ---------------------------------------------------------------------------
 // CEC Advanced Inference Rules tests

@@ -6,7 +6,7 @@
  * compatibility checking, and auto-UI generation via the schema-driven pipeline.
  */
 
-import type { InterfaceDescriptor, MethodSignature } from '../mcp-idl.js';
+import type { InterfaceDescriptor, MethodSignature } from '../mcp/mcp-idl.js';
 
 // ---------------------------------------------------------------------------
 // IPFS Kit Interface Descriptor

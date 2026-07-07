@@ -3,8 +3,8 @@ import {
   SWISSKNIFE_MCP_UI_PROFILE,
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
   validateMCPUIProfileDescriptor,
-} from '../../src/services/mcp-ui-profile';
-import { createDefaultControlSurfaceContract } from '../../src/services/control-surface-mediator';
+} from '../../src/services/mcp/mcp-ui-profile';
+import { createDefaultControlSurfaceContract } from '../../src/services/mcp/control-surface-mediator';
 import {
   META_GLASSES_DISPLAY_ERROR_CODES,
   META_GLASSES_DISPLAY_PROFILE,
@@ -16,7 +16,7 @@ import {
   validateMetaGlassesWidgetDescriptor,
   type MetaGlassesDisplayProfile,
   type MetaGlassesWidgetDescriptor,
-} from '../../src/services/meta-glasses-display-profile';
+} from '../../src/services/glasses/meta-glasses-display-profile';
 import { META_GLASSES_DISPLAY_WIDGET_EXAMPLES } from '../fixtures/meta-glasses-display/valid-widget-examples';
 
 const nodeFs = (globalThis.process as unknown as {

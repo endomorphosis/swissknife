@@ -11,7 +11,7 @@ import { vi } from 'vitest';
 import {
   PatternType,
   PatternMatcher,
-} from '../../src/services/tdfol-nl-patterns';
+} from '../../src/services/logic/shared/tdfol-nl-patterns';
 
 import {
   NLPolicyConflictDetector,

@@ -10,12 +10,12 @@
  * the `mcp++ connect` command output.
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import {
   MCPPP_META_TOOL_NAMES,
   domainToolNames,
   mcpppToolTotal,
-} from '../../src/services/mcp-plus-plus-connector';
+} from '../../src/services/mcp/mcp-plus-plus-connector';
 
 const META = [
   'tools_list_categories',

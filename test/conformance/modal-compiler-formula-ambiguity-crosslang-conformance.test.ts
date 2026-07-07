@@ -1,5 +1,18 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
+  mkdtempSync: (prefix: string) => string;
+  readFileSync: (path: string, encoding: BufferEncoding) => string;
+  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
+  writeFileSync: (path: string, data: string) => void;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for conformance tests');
+}
+
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -8,7 +21,7 @@ import {
   modalCompilerFormulaAmbiguities,
   modalCompilerRankingShare,
   type ModalCompilerFormulaLike,
-} from '../../src/services/modal-compiler';
+} from '../../src/services/logic/modal/modal-compiler';
 
 interface FormulaDocumentVector {
   id: string;
@@ -34,11 +47,11 @@ interface PyResults {
 
 function loadCorpus(): Corpus {
   const path = resolve(process.cwd(), '../implementation_plan/conformance/modal-compiler-formula-ambiguity-vectors.json');
-  return JSON.parse(readFileSync(path, 'utf8')) as Corpus;
+  return JSON.parse(nodeFs.readFileSync(path, 'utf8')) as Corpus;
 }
 
 function runPythonReference(corpusPath: string): PyResults {
-  const tempDir = mkdtempSync(join(tmpdir(), 'modal-compiler-formula-ambiguity-py-'));
+  const tempDir = nodeFs.mkdtempSync(join(tmpdir(), 'modal-compiler-formula-ambiguity-py-'));
   const outPath = join(tempDir, 'py-results.json');
   try {
     const scriptPath = resolve(process.cwd(), '../implementation_plan/conformance/modal_compiler_formula_ambiguity_py_runner.py');
@@ -52,9 +65,9 @@ function runPythonReference(corpusPath: string): PyResults {
     if (proc.status !== 0) {
       throw new Error(`Python modal compiler formula ambiguity runner failed: ${proc.stderr || proc.stdout}`);
     }
-    return JSON.parse(readFileSync(outPath, 'utf8')) as PyResults;
+    return JSON.parse(nodeFs.readFileSync(outPath, 'utf8')) as PyResults;
   } finally {
-    rmSync(tempDir, { recursive: true, force: true });
+    nodeFs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

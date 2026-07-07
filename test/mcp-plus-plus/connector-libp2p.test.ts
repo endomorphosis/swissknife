@@ -9,12 +9,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { MCPp2pSession, P2PStream } from '../../src/services/mcp-p2p-session';
+import { MCPp2pSession, P2PStream } from '../../src/services/mcp/mcp-p2p-session';
 import {
   MCPPPServerConnector,
   IPFS_KIT_SERVER,
   createMultiServerConnector,
-} from '../../src/services/mcp-plus-plus-connector';
+} from '../../src/services/mcp/mcp-plus-plus-connector';
 
 // ---------------------------------------------------------------------------
 // Framing helpers (mirror MCP++ Profile E §5.1)

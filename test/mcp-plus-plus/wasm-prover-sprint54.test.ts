@@ -17,7 +17,7 @@ import {
 import {
   FormulaGenerator,
 } from '../../src/services/logic/tdfol/tdfol-nl-generator';
-import { PatternMatcher } from '../../src/services/tdfol-nl-patterns';
+import { PatternMatcher } from '../../src/services/logic/shared/tdfol-nl-patterns';
 
 import {
   ParseToken,

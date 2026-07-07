@@ -3,25 +3,25 @@ import {
   MetaGlassesControlPlaneRouter,
   createMetaGlassesControlPlaneRouter,
   type MetaGlassesControlPlaneBinding,
-} from '../../src/services/meta-glasses-control-plane-router';
+} from '../../src/services/glasses/meta-glasses-control-plane-router';
 import {
   createMetaGlassesCameraBridgeEnvelope,
   type MetaGlassesCameraCaptureRequest,
-} from '../../src/services/meta-glasses-camera-adapter';
+} from '../../src/services/glasses/meta-glasses-camera-adapter';
 import {
   createMetaGlassesAudioAppRequirements,
   type MetaGlassesAudioRouteRequest,
-} from '../../src/services/meta-glasses-audio-adapter';
+} from '../../src/services/glasses/meta-glasses-audio-adapter';
 import {
   createMetaGlassesInputAppBindings,
   createMetaGlassesInputBridgeEnvelope,
   type MetaGlassesInputCapability,
   type MetaGlassesInputEventRequest,
-} from '../../src/services/meta-glasses-input-adapter';
+} from '../../src/services/glasses/meta-glasses-input-adapter';
 import {
   META_GLASSES_IO_PERMISSION_SCOPES,
   type MetaGlassesIOPayloadRef,
-} from '../../src/services/meta-glasses-io-profile';
+} from '../../src/services/glasses/meta-glasses-io-profile';
 
 const APP_ID = 'com.example.control-plane';
 

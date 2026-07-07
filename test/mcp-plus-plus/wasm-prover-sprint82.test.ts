@@ -14,7 +14,7 @@ import {
   getPortugueseLegalTerms,
   getPortugueseNegationPatterns,
   getPortugueseVerbConjugations,
-} from '../../src/services/portuguese-parser';
+} from '../../src/services/logic/nl/portuguese-parser';
 import {
   formatFormula,
   format_formula,

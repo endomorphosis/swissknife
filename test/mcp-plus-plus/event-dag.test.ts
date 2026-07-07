@@ -2,7 +2,7 @@
  * Phase 5 — Event DAG Provenance tests
  */
 
-import { EventDAG, EventNode } from '../../src/services/event-dag';
+import { EventDAG, EventNode } from '../../src/services/logic/shared/event-dag';
 
 function makeNode(overrides: Partial<EventNode> = {}): EventNode {
   return {

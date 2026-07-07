@@ -12,13 +12,13 @@ import {
   type DeonticUIControl,
   type ManifestToolInvoker,
 } from '../../src/services/mcp/mcp-deontic-ui-manifest';
-import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp-ipfs-ui-descriptors';
+import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
 import {
   RemoteDeonticEngine,
   type DeonticLogicConnector,
-} from '../../src/services/mcp-remote-deontic-engine';
-import type { InterfaceDescriptor } from '../../src/services/mcp-idl';
-import type { Policy, DeviceInteractionProfile } from '../../src/services/mcp-deontic-interface-broker';
+} from '../../src/services/mcp/mcp-remote-deontic-engine';
+import type { InterfaceDescriptor } from '../../src/services/mcp/mcp-idl';
+import type { Policy, DeviceInteractionProfile } from '../../src/services/mcp/mcp-deontic-interface-broker';
 
 // --- fixtures ---------------------------------------------------------------
 

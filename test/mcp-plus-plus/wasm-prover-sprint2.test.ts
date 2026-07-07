@@ -10,8 +10,8 @@
 
 import { SMT2Serializer } from '../../src/services/provers/smt2-serializer';
 import { Cvc5WasmBridge } from '../../src/services/provers/cvc5-wasm-bridge';
-import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub';
-import type { Policy } from '../../src/services/mcp-policy';
+import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -265,9 +265,9 @@ describe('checkPolicyConsistencyRemote — localHub pre-check (T-07)', () => {
     const fakeEngine = {
       isAvailable: async () => true,
       checkTheoryConsistency: async () => { remoteCalled = true; return { consistent: true, proof: { proved: true } }; },
-    } as unknown as import('../../src/services/mcp-remote-deontic-engine').RemoteDeonticEngine;
+    } as unknown as import('../../src/services/mcp/mcp-remote-deontic-engine').RemoteDeonticEngine;
 
-    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp-remote-deontic-engine');
+    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp/mcp-remote-deontic-engine');
     const result = await checkPolicyConsistencyRemote(permissivePolicy(), fakeEngine, hub);
 
     expect(mockZ3.checkPolicyConsistency).toHaveBeenCalled();
@@ -285,7 +285,7 @@ describe('checkPolicyConsistencyRemote — localHub pre-check (T-07)', () => {
     const fakeEngine = {
       isAvailable: async () => true,
       checkTheoryConsistency: async () => ({ consistent: true, proof: { proved: true } }),
-    } as unknown as import('../../src/services/mcp-remote-deontic-engine').RemoteDeonticEngine;
+    } as unknown as import('../../src/services/mcp/mcp-remote-deontic-engine').RemoteDeonticEngine;
 
     const temporalPolicy: Policy = {
       id: 'temp', version: '1', permissions: [{ cap: '*', rsc: '*' }],
@@ -293,7 +293,7 @@ describe('checkPolicyConsistencyRemote — localHub pre-check (T-07)', () => {
       temporal: { notBefore: 1000, notAfter: 9999 },
     };
 
-    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp-remote-deontic-engine');
+    const { checkPolicyConsistencyRemote } = await import('../../src/services/mcp/mcp-remote-deontic-engine');
     const result = await checkPolicyConsistencyRemote(temporalPolicy, fakeEngine, hub);
 
     // Sprint 10: tdfol-native decides locally; remote may be skipped

@@ -3,14 +3,14 @@
  * Tests for Sprint 78 — §12 type fixes and completeness rules (PORT-010..066 etc.)
  */
 
-import { ProofStatus }               from '../../src/services/tdfol-prover';
-import { mkBinary, mkPredicate, mkUnary } from '../../src/services/tdfol-core';
+import { ProofStatus }               from '../../src/services/logic/tdfol/tdfol-prover';
+import { mkBinary, mkPredicate, mkUnary } from '../../src/services/logic/tdfol/tdfol-core';
 import { ALL_COMPLETENESS_RULES }    from '../../src/services/provers/tdfol-completeness-rules';
-import { isSubtypeOf, makeSort, formatDCECBracket, parseDCECBracket, dcecFormulaEquals, dcecFormulaHash } from '../../src/services/dcec-core-types';
-import { CognitiveOperator }         from '../../src/services/sprint66-dcec-types';
-import { toPropositionField, fromPropositionField } from '../../src/services/deontic-query-engine';
-import { toProofResultWire, fromProofResultWire }    from '../../src/services/logic-verifier';
-import { LegalDomainKind }           from '../../src/services/legal-domain-knowledge';
+import { isSubtypeOf, makeSort, formatDCECBracket, parseDCECBracket, dcecFormulaEquals, dcecFormulaHash } from '../../src/services/logic/dcec/dcec-core-types';
+import { CognitiveOperator }         from '../../src/services/legacy/sprint66-dcec-types';
+import { toPropositionField, fromPropositionField } from '../../src/services/logic/deontic/deontic-query-engine';
+import { toProofResultWire, fromProofResultWire }    from '../../src/services/logic/shared/logic-verifier';
+import { LegalDomainKind }           from '../../src/services/logic/shared/legal-domain-knowledge';
 
 // ---------------------------------------------------------------------------
 // PORT-010: 'failed' ProofReason
@@ -250,11 +250,11 @@ describe('PORT-151 toProofResultWire / fromProofResultWire', () => {
 // ---------------------------------------------------------------------------
 describe('PORT-162 LogicConflict.severity vocabulary', () => {
   it("'critical' is assignable to severity", () => {
-    const s: import('../../src/services/deontic-query-engine').LogicConflict['severity'] = 'critical';
+    const s: import('../../src/services/logic/deontic/deontic-query-engine').LogicConflict['severity'] = 'critical';
     expect(s).toBe('critical');
   });
   it("'warning' is assignable", () => {
-    const s: import('../../src/services/deontic-query-engine').LogicConflict['severity'] = 'warning';
+    const s: import('../../src/services/logic/deontic/deontic-query-engine').LogicConflict['severity'] = 'warning';
     expect(s).toBe('warning');
   });
 });

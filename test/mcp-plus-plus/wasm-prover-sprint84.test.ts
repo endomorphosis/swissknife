@@ -10,7 +10,7 @@ import {
   makeParserAdapter,
   normalizeParseResult,
 } from '../../src/services/logic/nl/base-parser';
-import { PortugueseParser } from '../../src/services/portuguese-parser';
+import { PortugueseParser } from '../../src/services/logic/nl/portuguese-parser';
 import {
   BModalAxiomRule,
   DModalAxiomRule,
@@ -21,7 +21,7 @@ import {
   applyModalAxiomRules,
   getModalAxiomRules,
 } from '../../src/services/logic/modal/modal-axiom-rules';
-import { ModalLogic } from '../../src/services/shadow-prover';
+import { ModalLogic } from '../../src/services/logic/modal/shadow-prover';
 import {
   PrometheusExporter,
   exportPrometheusMetrics,

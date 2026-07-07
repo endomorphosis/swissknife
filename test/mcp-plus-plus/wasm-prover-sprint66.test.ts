@@ -11,7 +11,7 @@ import {
   makeVariable, makeFunction, makePredicate,
   formulaToTPTP, createTPTPProblem, TPTPConverter,
   DCECToUCANMapping, DCECToUCANBridge,
-} from '../../src/services/sprint66-dcec-types';
+} from '../../src/services/legacy/sprint66-dcec-types';
 
 import {
   StrategySelector,

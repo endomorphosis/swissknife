@@ -1,6 +1,6 @@
-import { computeCID, computeInterfaceCID } from '../mcp-idl.js';
+import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
 import type { ControlSurfacePolicyEvaluator } from './control-surface-mediator.js';
-import type { MCPUIProfileDescriptor } from '../mcp-ui-profile.js';
+import type { MCPUIProfileDescriptor } from '../mcp/mcp-ui-profile.js';
 import {
   LocalORBTransportAdapter,
   MCPCapabilityRouter,
@@ -16,7 +16,7 @@ import {
   type ORBStreamSubscription,
   type ORBTransportInvocationResult,
   type ORBTransportKind,
-} from '../mcp-orb-capability-router.js';
+} from '../mcp/mcp-orb-capability-router.js';
 
 export const META_GLASSES_MOBILE_ORB_OPERATIONS = [
   'register_edge_capabilities',

@@ -9,7 +9,7 @@ import {
   computeInterfaceCID,
   InterfaceRepository,
   InterfaceDescriptor,
-} from '../../src/services/mcp-idl';
+} from '../../src/services/mcp/mcp-idl';
 
 const SAMPLE_DESCRIPTOR: InterfaceDescriptor = {
   name: 'search',

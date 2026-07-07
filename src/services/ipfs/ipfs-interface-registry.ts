@@ -9,11 +9,11 @@
  * all IPFS operations discoverable through the ORB lifecycle.
  */
 
-import { InterfaceRepository, computeInterfaceCID } from '../mcp-idl.js';
+import { InterfaceRepository, computeInterfaceCID } from '../mcp/mcp-idl.js';
 import { ipfsKitDescriptor, ipfsDatasetsDescriptor, ipfsAccelerateDescriptor } from './ipfs-idl-descriptors.js';
 import { ipfsKitUIProfile, ipfsDatasetsUIProfile, ipfsAccelerateUIProfile } from './ipfs-ui-profiles.js';
 import { ipfsKitGlassesWidget, ipfsDatasetsGlassesWidget, ipfsAccelerateGlassesWidget } from '../ipfs-glasses-widgets.js';
-import type { MCPUIProfileDescriptor } from '../mcp-ui-profile.js';
+import type { MCPUIProfileDescriptor } from '../mcp/mcp-ui-profile.js';
 
 export interface IPFSRegistrationResult {
   descriptors: Array<{ name: string; cid: string }>;

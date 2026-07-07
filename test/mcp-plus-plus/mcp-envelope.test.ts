@@ -7,7 +7,7 @@ import {
   buildReceipt,
   computeReceiptCID,
   computeCID,
-} from '../../src/services/mcp-envelope';
+} from '../../src/services/mcp/mcp-envelope';
 import { DIDKeystore } from '../../src/auth/did-keystore';
 
 const SAMPLE_INTERFACE_CID = 'sha256:abc123def456' + '0'.repeat(52);

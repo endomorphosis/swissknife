@@ -14,7 +14,7 @@ import {
   computeBackoffDelay,
   negotiateCapabilities,
   MCP_PLUS_PLUS_PROFILES,
-} from '../../src/services/mcp-p2p-session';
+} from '../../src/services/mcp/mcp-p2p-session';
 
 // ---------------------------------------------------------------------------
 // Mock P2PStream

@@ -1,4 +1,4 @@
-import { computeCID, computeInterfaceCID } from '../mcp-idl.js';
+import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
 import {
   META_GLASSES_DISPLAY_PROFILE_PROPERTY,
   META_GLASSES_DISPLAY_VIEWPORT,

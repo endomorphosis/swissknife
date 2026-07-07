@@ -55,7 +55,7 @@ import {
   summarizeProverTargetSemanticFamilies,
   summarizeReconstructionSlotLoss,
   validateExportTables,
-} from '../../src/services/deontic-exports';
+} from '../../src/services/logic/deontic/deontic-exports';
 
 describe('PORT-198 decoder provenance audit trail', () => {
   it('builds phrase-level source grounding and slot support maps', () => {

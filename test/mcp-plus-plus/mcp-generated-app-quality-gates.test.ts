@@ -1,13 +1,13 @@
 import {
   runGeneratedAppQualityGate,
   validateDescriptorSet,
-} from '../../src/services/mcp-generated-app-quality-gates';
+} from '../../src/services/mcp/mcp-generated-app-quality-gates';
 import {
   IPFS_MCP_UI_PROFILE_DESCRIPTORS,
   ipfsDatasetInferenceWorkflowDescriptor,
   ipfsDatasetsUIProfileDescriptor,
-} from '../../src/services/mcp-ipfs-ui-descriptors';
-import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
+} from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 describe('generated app quality gates', () => {
   it('launches a generated app, invokes an action, streams updates, recovers, and covers denial', async () => {

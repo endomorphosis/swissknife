@@ -12,11 +12,11 @@ import {
 import {
   META_GLASSES_DISPLAY_PROFILE_PROPERTY,
   type MetaGlassesWidgetDescriptor,
-} from '../../src/services/meta-glasses-display-profile';
+} from '../../src/services/glasses/meta-glasses-display-profile';
 import {
   compileMetaGlassesWidgetManifest,
   type MetaGlassesWidgetManifest,
-} from '../../src/services/meta-glasses-widget-compiler';
+} from '../../src/services/glasses/meta-glasses-widget-compiler';
 
 const FIXED_NOW = new Date('2026-05-22T12:45:00.000Z');
 const nodeFs = (globalThis.process as unknown as {

@@ -8,12 +8,12 @@
  * `{ category, tool }` wire shape.
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import {
   MCPPPServerConnector,
   splitDottedToolName,
   type MCPPPServerConfig,
-} from '../../src/services/mcp-plus-plus-connector';
+} from '../../src/services/mcp/mcp-plus-plus-connector';
 
 describe('splitDottedToolName', () => {
   it('splits on the first dot (matches server str.partition("."))', () => {

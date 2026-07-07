@@ -20,8 +20,8 @@ import {
 } from '../../src/services/provers/dcec-types.js';
 import { DcecProverBridge } from '../../src/services/provers/dcec-prover-bridge.js';
 import { PolicyToDcecTranslator } from '../../src/services/provers/policy-to-dcec.js';
-import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub.js';
-import type { Policy } from '../../src/services/mcp-policy.js';
+import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub.js';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy.js';
 
 // ---------------------------------------------------------------------------
 // T-58: DCEC formula type system

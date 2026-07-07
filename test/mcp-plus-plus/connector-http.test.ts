@@ -28,7 +28,7 @@ import {
   IPFS_DATASETS_SERVER,
   IPFS_ACCELERATE_SERVER,
   extractRestToolNames,
-} from '../../src/services/mcp-plus-plus-connector';
+} from '../../src/services/mcp/mcp-plus-plus-connector';
 
 // ---------------------------------------------------------------------------
 // fetch polyfill — Jest's node test environment does not expose global fetch

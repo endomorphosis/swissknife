@@ -1,8 +1,8 @@
-import type { InterfaceDescriptor } from '../mcp-idl.js';
+import type { InterfaceDescriptor } from '../mcp/mcp-idl.js';
 import type {
   MCPUIConformanceIssue,
   MCPUIConformanceResult,
-} from '../mcp-ui-profile.js';
+} from '../mcp/mcp-ui-profile.js';
 
 export const META_GLASSES_IO_PROFILE = 'handsfree.meta-glasses/io-capability';
 export const META_GLASSES_IO_PROFILE_VERSION = '0.1.0';

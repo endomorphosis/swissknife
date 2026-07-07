@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
-import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub.js';
-import type { Policy } from '../../src/services/mcp-policy.js';
+import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub.js';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy.js';
 import type { WasmProofResult } from '../../src/services/provers/prover-types.js';
 import { TdfolProverBridge } from '../../src/services/provers/tdfol-prover-bridge.js';
 import {

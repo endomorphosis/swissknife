@@ -1,37 +1,37 @@
-import { computeCID } from '../../src/services/mcp-idl.js';
+import { computeCID } from '../../src/services/mcp/mcp-idl.js';
 import {
   createMetaGlassesAudioAppRequirements,
   type MetaGlassesAudioCapability,
   type MetaGlassesAudioRouteRequest,
-} from '../../src/services/meta-glasses-audio-adapter.js';
+} from '../../src/services/glasses/meta-glasses-audio-adapter.js';
 import {
   createMetaGlassesCameraBridgeEnvelope,
   type MetaGlassesCameraCaptureRequest,
-} from '../../src/services/meta-glasses-camera-adapter.js';
+} from '../../src/services/glasses/meta-glasses-camera-adapter.js';
 import {
   createMetaGlassesControlPlaneRouter,
   type MetaGlassesControlPlaneBinding,
   type MetaGlassesControlPlaneRouteDecision,
   type MetaGlassesControlPlaneRouteRequest,
-} from '../../src/services/meta-glasses-control-plane-router.js';
+} from '../../src/services/glasses/meta-glasses-control-plane-router.js';
 import {
   createMetaGlassesInputAppBindings,
   createMetaGlassesInputBridgeEnvelope,
   type MetaGlassesInputCapability,
   type MetaGlassesInputEventRequest,
   type MetaGlassesInputSample,
-} from '../../src/services/meta-glasses-input-adapter.js';
+} from '../../src/services/glasses/meta-glasses-input-adapter.js';
 import {
   META_GLASSES_IO_PERMISSION_SCOPES,
   type MetaGlassesIOCapabilityKind,
   type MetaGlassesIOPayloadRef,
   type MetaGlassesIOPolicyDecision,
   type MetaGlassesIOReadiness,
-} from '../../src/services/meta-glasses-io-profile.js';
+} from '../../src/services/glasses/meta-glasses-io-profile.js';
 import {
   createMetaGlassesIOBridgeEnvelope,
   type MetaGlassesIOBridgeEnvelope,
-} from '../../src/services/meta-glasses-io-transport.js';
+} from '../../src/services/glasses/meta-glasses-io-transport.js';
 
 export const META_GLASSES_CONTROL_PLANE_DEMO_APP_ID =
   'swissknife.examples.meta-glasses-control-plane-demo';

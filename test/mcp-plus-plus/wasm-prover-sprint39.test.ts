@@ -13,7 +13,7 @@ import {
 } from '../../src/services/logic/deontic/deontic-conflict-detector.js';
 import {
   InteractiveFOLConstructor,
-} from '../../src/services/interactive-fol-constructor.js';
+} from '../../src/services/logic/fol/interactive-fol-constructor.js';
 
 // ---------------------------------------------------------------------------
 // ReasoningStrategy + CoordinatedResult

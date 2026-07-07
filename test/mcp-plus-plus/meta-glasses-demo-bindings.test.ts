@@ -3,7 +3,7 @@ import {
   createMetaGlassesControlPlaneDemo,
   runMetaGlassesControlPlaneDemoScenario,
 } from '../../examples/meta-glasses-control-plane-demo';
-import type { MetaGlassesIOCapabilityKind } from '../../src/services/meta-glasses-io-profile';
+import type { MetaGlassesIOCapabilityKind } from '../../src/services/glasses/meta-glasses-io-profile';
 
 const CID_PATTERN = /^sha256:[a-f0-9]{64}$/;
 

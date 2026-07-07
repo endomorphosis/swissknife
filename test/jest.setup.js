@@ -221,7 +221,7 @@ jest.mock('@src/ipfs/client', () => ({
   })),
 }));
 
-jest.mock('@src/services/mcpClient', () => ({
+jest.mock('@src/services/mcp/mcpClient', () => ({
   addMcpServer: jest.fn(),
   removeMcpServer: jest.fn(),
   getClients: jest.fn(),
@@ -295,7 +295,7 @@ jest.mock('@src/utils/encryption', () => ({
   decrypt: jest.fn((data) => data.replace('encrypted-', '')),
 }));
 
-jest.mock('@src/services/registry', () => ({
+jest.mock('@src/services/platform/registry', () => ({
   ServiceRegistry: {
     getInstance: jest.fn().mockReturnValue({
       register: jest.fn(),

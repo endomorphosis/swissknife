@@ -63,7 +63,7 @@ import {
   removeMcpServer,
   getClients,
   ensureConfigScope,
-} from '../services/mcpClient.js.js.js.js.js.js.js.js.js.js.js'
+} from '../services/mcp/mcpClient.js'
 import { handleMcprcServerApprovals } from '../services/mcp/mcpServerApproval.js'
 import { checkGate, initializeStatsig, logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
 import { getExampleCommands } from '../utils/exampleCommands.js.js.js.js.js.js.js.js.js.js'

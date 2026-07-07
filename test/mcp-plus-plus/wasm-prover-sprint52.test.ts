@@ -11,7 +11,7 @@ import {
   SpanishPatternMatcher, SpanishParser,
   getSpanishVerbConjugations, getSpanishArticles, getSpanishDeonticKeywords,
   ES_DEONTIC_OP,
-} from '../../src/services/spanish-parser';
+} from '../../src/services/logic/nl/spanish-parser';
 
 import {
   FluentType, PersistenceRule, FluentManager,

@@ -1,4 +1,4 @@
-import { computeInterfaceCID, type InterfaceDescriptor } from '../mcp-idl.js';
+import { computeInterfaceCID, type InterfaceDescriptor } from '../mcp/mcp-idl.js';
 import {
   META_GLASSES_IO_PERMISSION_SCOPES,
   META_GLASSES_IO_PROFILE_PROPERTY,

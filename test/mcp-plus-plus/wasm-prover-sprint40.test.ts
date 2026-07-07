@@ -12,7 +12,7 @@ import {
 } from '../../src/services/proof-engine/prover-backend-mixin.js';
 import {
   LogicalComponents, SymbolicFOLBridge,
-} from '../../src/services/symbolic-fol-bridge.js';
+} from '../../src/services/logic/fol/symbolic-fol-bridge.js';
 
 const LEGAL_TEXT =
   'The contractor shall deliver the goods within 30 days. ' +

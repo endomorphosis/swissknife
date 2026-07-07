@@ -6,7 +6,7 @@ import {
   modalFormulaToText,
   targetFamilyDistributionForModalIr,
   targetFamilyForModalIr,
-} from '../../src/services/modal-logic-codec';
+} from '../../src/services/logic/modal/modal-logic-codec';
 import {
   CircuitBreakerState,
   PrometheusMetricsCollector,

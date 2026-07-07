@@ -1,5 +1,5 @@
-import { mkPredicate } from '../../src/services/tdfol-core';
-import { ModalLogicType } from '../../src/services/modal-tableaux';
+import { mkPredicate } from '../../src/services/logic/tdfol/tdfol-core';
+import { ModalLogicType } from '../../src/services/logic/modal/modal-tableaux';
 import {
   BoxChars,
   CounterModel,
@@ -8,7 +8,7 @@ import {
   KripkeStructure,
   extractCountermodel,
   visualizeCountermodel,
-} from '../../src/services/kripke-structure';
+} from '../../src/services/logic/modal/kripke-structure';
 import {
   DCECStringParser,
   parseDcec,
@@ -21,7 +21,7 @@ import {
   completeZkpAttestationRecord,
   createImplicationCircuit,
   createKnowledgeOfAxiomsCircuit,
-} from '../../src/services/zkp-circuits';
+} from '../../src/services/zkp/zkp-circuits';
 
 describe('PORT-228 TDFOL countermodel and DCEC parser remainders', () => {
   it('builds Python-shaped CounterModel renderings and extraction helpers', () => {

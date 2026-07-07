@@ -6,7 +6,7 @@
 
 import {
   ModalLogicType, TDFOLShadowProverBridge, ModalAwareTDFOLProver, createModalAwareProver,
-} from '../../src/services/tdfol-shadowprover-bridge.js';
+} from '../../src/services/logic/tdfol/tdfol-shadowprover-bridge.js';
 import {
   LogicVerifierBackendsMixin,
 } from '../../src/services/logic/shared/logic-verifier-backends-mixin.js';

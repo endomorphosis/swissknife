@@ -17,9 +17,9 @@
  */
 
 import { SMT2Serializer } from '../../src/services/provers/smt2-serializer';
-import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub';
+import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
 import { ProofCache } from '../../src/services/provers/mcp-proof-cache';
-import type { Policy } from '../../src/services/mcp-policy';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
 
 const Z3_LIVE = process.env.Z3_WASM_LIVE === '1';
 

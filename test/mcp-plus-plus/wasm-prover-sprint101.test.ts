@@ -9,7 +9,7 @@ import {
   NamespaceError,
   ParsingError,
   ProvingError,
-} from '../../src/services/logic-errors';
+} from '../../src/services/logic/shared/logic-errors';
 import {
   AuditLogger,
   resetAuditLogger,
@@ -28,7 +28,7 @@ import {
   buildProveKitProofCacheKey,
   buildProveKitProofCacheKeyFromProof,
   provekitIpfsPayloadIsPublicOnly,
-} from '../../src/services/zkp-provekit-cache';
+} from '../../src/services/zkp/zkp-provekit-cache';
 import {
   Groth16SetupArtifacts,
   storeGroth16SetupArtifactsInIpfs,

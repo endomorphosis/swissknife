@@ -1,4 +1,4 @@
-import { computeInterfaceCID } from '../../src/services/mcp-idl';
+import { computeInterfaceCID } from '../../src/services/mcp/mcp-idl';
 import {
   META_GLASSES_IO_ERROR_CODES,
   META_GLASSES_IO_PERMISSION_SCOPES,
@@ -13,7 +13,7 @@ import {
   validateMetaGlassesIOProfile,
   validateMetaGlassesIOProfileDescriptor,
   type MetaGlassesIOProfileDescriptor,
-} from '../../src/services/meta-glasses-io-profile';
+} from '../../src/services/glasses/meta-glasses-io-profile';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

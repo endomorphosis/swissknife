@@ -19,7 +19,7 @@ import {
   loadContractArtifact, loadContractAbi, normalizeHexPrefixed,
   hashTextToFieldSha256, packPublicInputsForEvm, packManyPublicInputsForEvm,
   packPublicInputsUint256, validateUint256Array,
-} from '../../src/services/sprint68-eth-bridge';
+} from '../../src/services/zkp/sprint68-eth-bridge';
 
 import {
   createSession, addStatement,

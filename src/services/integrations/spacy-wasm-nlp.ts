@@ -134,6 +134,14 @@ export class SpacyWasmNlp {
       return false;
     }
 
+    const env = typeof process !== 'undefined' ? process.env : {};
+    const isVitest = env['VITEST'] === 'true' || env['NODE_ENV'] === 'test';
+    if (isVitest && env['SPACY_WASM_ENABLE_PYODIDE_IN_TESTS'] !== '1') {
+      console.log('[SpacyWasmNlp] Test environment detected — using regex fallback.');
+      this.initialized = true;
+      return false;
+    }
+
     try {
       // Dynamic import so the service works even when pyodide is not installed
       // (optional peer dependency)

@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 // ── InterfaceRepository shared instance ──────────────────────────────────────
 
-import { InterfaceRepository, computeInterfaceCID } from '../../src/services/mcp-idl.js';
+import { InterfaceRepository, computeInterfaceCID } from '../../src/services/mcp/mcp-idl.js';
 
 describe('InterfaceRepository', () => {
   beforeEach(() => {
@@ -61,7 +61,7 @@ describe('InterfaceRepository', () => {
 
 // ── buildEnvelope + buildReceipt roundtrip ───────────────────────────────────
 
-import { buildEnvelope, buildReceipt, computeReceiptCID } from '../../src/services/mcp-envelope.js';
+import { buildEnvelope, buildReceipt, computeReceiptCID } from '../../src/services/mcp/mcp-envelope.js';
 
 describe('Envelope → Receipt pipeline', () => {
   it('buildEnvelope carries interfaceCid from IDL', () => {
@@ -123,7 +123,7 @@ describe('Envelope → Receipt pipeline', () => {
 
 // ── EventDAG records from envelope ───────────────────────────────────────────
 
-import { EventDAG } from '../../src/services/event-dag.js';
+import { EventDAG } from '../../src/services/logic/shared/event-dag.js';
 
 describe('EventDAG ← envelope integration', () => {
   it('appendEvent with envelope_cid links provenance correctly', () => {
@@ -223,8 +223,8 @@ describe('IDL compat check', () => {
 
 // ── Descriptor-only generated app workflow quality gate ─────────────────────
 
-import { runGeneratedAppQualityGate } from '../../src/services/mcp-generated-app-quality-gates.js';
-import { IPFS_MCP_UI_PROFILE_DESCRIPTORS } from '../../src/services/mcp-ipfs-ui-descriptors.js';
+import { runGeneratedAppQualityGate } from '../../src/services/mcp/mcp-generated-app-quality-gates.js';
+import { IPFS_MCP_UI_PROFILE_DESCRIPTORS } from '../../src/services/mcp/mcp-ipfs-ui-descriptors.js';
 
 describe('Generated MCP++ app workflow pipeline', () => {
   it('chains dataset selection, pinning, inference, artifact collection, and publication', async () => {

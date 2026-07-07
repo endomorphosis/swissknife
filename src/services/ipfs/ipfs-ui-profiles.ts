@@ -15,7 +15,7 @@ import type {
   MCPUIPermissions,
   MCPUIStateModel,
   MCPUIWorkflowGraph,
-} from '../mcp-ui-profile.js';
+} from '../mcp/mcp-ui-profile.js';
 
 const HANDSFREE_BASE = 'http://localhost:8080';
 

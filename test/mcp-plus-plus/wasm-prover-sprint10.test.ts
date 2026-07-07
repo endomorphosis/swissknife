@@ -22,8 +22,8 @@ import {
 } from '../../src/services/provers/tdfol-types.js';
 import { TdfolProverBridge } from '../../src/services/provers/tdfol-prover-bridge.js';
 import { PolicyToTdfolTranslator } from '../../src/services/provers/policy-to-tdfol.js';
-import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub.js';
-import type { Policy } from '../../src/services/mcp-policy.js';
+import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub.js';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy.js';
 
 // ---------------------------------------------------------------------------
 // T-63: TDFOL formula types + serialisation

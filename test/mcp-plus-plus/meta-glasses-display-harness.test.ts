@@ -2,7 +2,7 @@ import { join } from 'path';
 import {
   LocalMCPInterfaceRegistryBackend,
   MCPInterfaceDiscoveryRegistry,
-} from '../../src/services/mcp-interface-registry';
+} from '../../src/services/mcp/mcp-interface-registry';
 import {
   MetaGlassesDisplayORBAdapter,
   createMetaGlassesDisplayORBDescriptorSource,
@@ -10,12 +10,12 @@ import {
   type MetaGlassesDisplayORBAdapterOptions,
   type MetaGlassesDisplayORBOperation,
   type MetaGlassesDisplayORBOperationOutput,
-} from '../../src/services/meta-glasses-display-orb-adapter';
-import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
+} from '../../src/services/glasses/meta-glasses-display-orb-adapter';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';
 import {
   compileMetaGlassesWidgetManifest,
-} from '../../src/services/meta-glasses-widget-compiler';
-import type { MetaGlassesWidgetDescriptor } from '../../src/services/meta-glasses-display-profile';
+} from '../../src/services/glasses/meta-glasses-widget-compiler';
+import type { MetaGlassesWidgetDescriptor } from '../../src/services/glasses/meta-glasses-display-profile';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

@@ -5,7 +5,7 @@
  * with a lightweight regex fallback for offline/test environments.
  */
 
-import { SpacyWasmNlp, regexFallbackExtract, SpacyPredicates } from '../services/spacy-wasm-nlp.js';
+import { SpacyWasmNlp, regexFallbackExtract, SpacyPredicates } from '../services/integrations/spacy-wasm-nlp.js';
 
 /** Minimal graph node and edge contracts. */
 export interface GraphNode { id: string; type: string; label?: string; metadata?: Record<string, unknown> }

@@ -1,4 +1,4 @@
-import { computeCID } from '../mcp-idl.js';
+import { computeCID } from '../mcp/mcp-idl.js';
 import {
   META_GLASSES_CAMERA_ADAPTER_PROPERTY,
   createMetaGlassesCameraDescriptor,

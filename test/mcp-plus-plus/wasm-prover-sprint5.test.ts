@@ -10,8 +10,8 @@
 
 import { LurkWasmBridge, DeonticToLurkTranslator } from '../../src/services/provers/lurk-wasm-bridge';
 import type { ZKProofArtifact } from '../../src/services/provers/lurk-wasm-bridge';
-import { PolicyAuditLog } from '../../src/services/policy-audit-log';
-import type { Policy } from '../../src/services/mcp-policy';
+import { PolicyAuditLog } from '../../src/services/platform/policy-audit-log';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
 
 // ---------------------------------------------------------------------------
 // Helpers

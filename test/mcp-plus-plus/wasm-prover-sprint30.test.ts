@@ -7,11 +7,11 @@
 import {
   decodeSimulatedProofLayout, buildProofAttestationView,
   attestationViewMatchesProof, compilerGuidanceRefFromMetadata,
-} from '../../src/services/zkp-circuits.js';
+} from '../../src/services/zkp/zkp-circuits.js';
 import {
   BridgeCompileResult, BridgeEvaluationResult,
   UCANPolicyBridge, compileAndEvaluate, getUCANPolicyBridge,
-} from '../../src/services/ucan-policy-bridge.js';
+} from '../../src/services/logic/bridges/ucan-policy-bridge.js';
 import {
   makeEthereumConfig, EthereumProofClient, ProofSubmissionPipeline,
   makePerformanceMetrics, Phase7_4Benchmarks,

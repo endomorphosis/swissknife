@@ -1,4 +1,4 @@
-import { computeInterfaceCID } from '../../src/services/mcp-idl';
+import { computeInterfaceCID } from '../../src/services/mcp/mcp-idl';
 import {
   META_GLASSES_INPUT_ADAPTER_ID,
   createMetaGlassesInputAdapterDescriptor,
@@ -7,8 +7,8 @@ import {
   routeMetaGlassesInputEvent,
   type MetaGlassesInputCapability,
   type MetaGlassesInputEventRequest,
-} from '../../src/services/meta-glasses-input-adapter';
-import { META_GLASSES_IO_PERMISSION_SCOPES } from '../../src/services/meta-glasses-io-profile';
+} from '../../src/services/glasses/meta-glasses-input-adapter';
+import { META_GLASSES_IO_PERMISSION_SCOPES } from '../../src/services/glasses/meta-glasses-io-profile';
 
 const APP_ID = 'com.example.inputs';
 

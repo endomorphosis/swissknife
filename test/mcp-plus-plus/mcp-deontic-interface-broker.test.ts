@@ -9,19 +9,19 @@ import {
   PolicyEngine,
   type DeviceInteractionProfile,
   type Policy,
-} from '../../src/services/mcp-deontic-interface-broker';
+} from '../../src/services/mcp/mcp-deontic-interface-broker';
 import {
   MCPCapabilityRouter,
   LocalORBTransportAdapter,
   createDefaultORBAdapters,
   type ORBDescriptorSource,
-} from '../../src/services/mcp-orb-capability-router';
-import { generateSchemaDrivenUI } from '../../src/services/mcp-schema-ui-generator';
+} from '../../src/services/mcp/mcp-orb-capability-router';
+import { generateSchemaDrivenUI } from '../../src/services/mcp/mcp-schema-ui-generator';
 import { compileIDLToGlassesDisplay } from '../../src/services/glasses/idl-to-glasses-compiler';
-import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp-ipfs-ui-descriptors';
-import type { InterfaceDescriptor } from '../../src/services/mcp-idl';
-import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
-import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
+import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import type { InterfaceDescriptor } from '../../src/services/mcp/mcp-idl';
+import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';
 
 const DATASET_INTERFACE_CID = 'sha256:dataset-fixture';
 

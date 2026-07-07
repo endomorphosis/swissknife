@@ -7,7 +7,7 @@
  * proofs (ZKP) for privacy-preserving reasoning.
  */
 
-import { Groth16Backend, type ZKPBackendProtocol } from '../../zkp-backends';
+import { Groth16Backend, type ZKPBackendProtocol } from '../../zkp/zkp-backends';
 
 // ---------------------------------------------------------------------------
 // ProvingMethod

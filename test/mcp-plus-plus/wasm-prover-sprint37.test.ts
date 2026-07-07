@@ -11,8 +11,8 @@ import {
 import {
   CachedProof, ProofCache,
   getGlobalCache, resetGlobalCache,
-} from '../../src/services/proof-cache-base.js';
-import { CECBridge } from '../../src/services/cec-bridge.js';
+} from '../../src/services/proof-engine/proof-cache-base.js';
+import { CECBridge } from '../../src/services/logic/cec/cec-bridge.js';
 
 // ---------------------------------------------------------------------------
 // ReasoningCapabilities / DEFAULT_CAPABILITIES

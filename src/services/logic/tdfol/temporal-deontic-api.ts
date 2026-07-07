@@ -4,8 +4,8 @@
  */
 
 import { PatternMatcher, PatternType } from './tdfol-nl-patterns';
-import { DeonticOp, makeDeonticFormula } from '../../deontic-query-engine.js';
-import { DocumentConsistencyChecker } from '../../document-consistency-checker.js';
+import { DeonticOp, makeDeonticFormula } from '../deontic/deontic-query-engine.js';
+import { DocumentConsistencyChecker } from '../deontic/document-consistency-checker.js';
 import { TemporalDeonticRAGStore } from './temporal-deontic-rag-store.js';
 import { sha256Hex } from '../../provers/browser-crypto.js';
 

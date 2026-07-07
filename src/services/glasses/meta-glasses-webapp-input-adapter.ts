@@ -1,4 +1,4 @@
-import { computeCID, computeInterfaceCID, type InterfaceDescriptor } from '../mcp-idl.js';
+import { computeCID, computeInterfaceCID, type InterfaceDescriptor } from '../mcp/mcp-idl.js';
 import {
   META_GLASSES_INPUT_ADAPTER_ID,
   createMetaGlassesInputAdapterDescriptor,

@@ -2,32 +2,32 @@ import {
   computeInterfaceCID,
   type InterfaceDescriptor,
   type MethodSignature,
-} from '../../../src/services/mcp-idl';
+} from '../../../src/services/mcp/mcp-idl';
 import {
   MetaGlassesDisplayORBAdapter,
   type MetaGlassesDisplayBridge,
   type MetaGlassesDisplayMobileAction,
   type MetaGlassesDisplayORBOperationOutput,
-} from '../../../src/services/meta-glasses-display-orb-adapter';
+} from '../../../src/services/glasses/meta-glasses-display-orb-adapter';
 import {
   META_GLASSES_DISPLAY_PROFILE,
   META_GLASSES_DISPLAY_PROFILE_VERSION,
   META_GLASSES_DISPLAY_PROFILE_PROPERTY,
   META_GLASSES_DISPLAY_VIEWPORT,
   type MetaGlassesWidgetDescriptor,
-} from '../../../src/services/meta-glasses-display-profile';
+} from '../../../src/services/glasses/meta-glasses-display-profile';
 import {
   compileMetaGlassesWidgetManifest,
   type MetaGlassesWidgetManifest,
-} from '../../../src/services/meta-glasses-widget-compiler';
+} from '../../../src/services/glasses/meta-glasses-widget-compiler';
 import {
   renderMetaGlassesWebappPreview,
   type MetaGlassesWebappPreview,
-} from '../../../src/services/meta-glasses-webapp-renderer';
+} from '../../../src/services/glasses/meta-glasses-webapp-renderer';
 import {
   SWISSKNIFE_MCP_UI_PROFILE,
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
-} from '../../../src/services/mcp-ui-profile';
+} from '../../../src/services/mcp/mcp-ui-profile';
 
 export interface SwissKnifeDesktopAppSnapshot {
   appId: string;

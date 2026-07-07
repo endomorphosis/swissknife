@@ -7,7 +7,7 @@
  * WasmProverHub when available; returns UNKNOWN otherwise.
  */
 
-import type { Formula } from '../tdfol-core.js';
+import type { Formula } from '../logic/tdfol/tdfol-core.js';
 import { TDFOLToZ3Converter } from './z3-prover-bridge.js';
 
 // ---------------------------------------------------------------------------

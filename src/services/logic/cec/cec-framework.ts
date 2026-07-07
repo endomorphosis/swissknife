@@ -7,7 +7,7 @@
  * that combines NL conversion, deontic reasoning, and automated proving.
  */
 
-import { DeonticConverter } from '../../logic-converters';
+import { DeonticConverter } from '../shared/logic-converters';
 
 // ---------------------------------------------------------------------------
 // Enumerations / configuration

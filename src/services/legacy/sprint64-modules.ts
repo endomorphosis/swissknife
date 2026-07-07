@@ -9,7 +9,7 @@
  *           deontic/legal_text_to_deontic.py (305L)
  */
 
-import { PatternMatcher, PatternType } from '../tdfol-nl-patterns';
+import { PatternMatcher, PatternType } from '../logic/shared/tdfol-nl-patterns';
 import { DeonticAnalyzer } from '../deontic-analyzer';
 
 // ---------------------------------------------------------------------------

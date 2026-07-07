@@ -4,10 +4,10 @@
  * Sprint 24: TDFOL Parser + Modal Tableaux + Performance Profiler
  */
 
-import { parseTdfol, parseTdfolSafe } from '../../src/services/tdfol-parser.js';
-import { ModalLogicType, ModalTableaux, World, TableauxBranch, proveModalFormula } from '../../src/services/modal-tableaux.js';
-import { PerformanceProfiler, benchmarkProviders, ProfileBlock, BottleneckSeverity } from '../../src/services/performance-profiler.js';
-import { mkPredicate, mkBinary, mkUnary, mkQuantified, mkDeontic, mkTemporal, mkVariable } from '../../src/services/tdfol-core.js';
+import { parseTdfol, parseTdfolSafe } from '../../src/services/logic/tdfol/tdfol-parser.js';
+import { ModalLogicType, ModalTableaux, World, TableauxBranch, proveModalFormula } from '../../src/services/logic/modal/modal-tableaux.js';
+import { PerformanceProfiler, benchmarkProviders, ProfileBlock, BottleneckSeverity } from '../../src/services/platform/performance-profiler.js';
+import { mkPredicate, mkBinary, mkUnary, mkQuantified, mkDeontic, mkTemporal, mkVariable } from '../../src/services/logic/tdfol/tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // parseTdfol

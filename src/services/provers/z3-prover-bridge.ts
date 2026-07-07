@@ -11,7 +11,7 @@
  * provers namespace).  The bridge is the external-prover-facing API.
  */
 
-import type { Formula, SortKind, Term } from '../tdfol-core.js';
+import type { Formula, SortKind, Term } from '../logic/tdfol/tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // Z3ProofResult

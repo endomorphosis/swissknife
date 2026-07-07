@@ -9,7 +9,7 @@
  */
 
 import type { TDFOLInferenceRule } from './tdfol-prover.js';
-import { mkBinary, mkUnary, mkTemporal, mkPredicate, Formula } from '../tdfol-core.js';
+import { mkBinary, mkUnary, mkTemporal, mkPredicate, Formula } from '../logic/tdfol/tdfol-core.js';
 
 type KB   = Formula[];
 type Rule = TDFOLInferenceRule;

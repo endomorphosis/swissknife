@@ -1,15 +1,15 @@
-import { InterfaceRepository } from '../../src/services/mcp-idl';
+import { InterfaceRepository } from '../../src/services/mcp/mcp-idl';
 import {
   LocalMCPInterfaceRegistryBackend,
   MCPInterfaceDiscoveryRegistry,
-} from '../../src/services/mcp-interface-registry';
+} from '../../src/services/mcp/mcp-interface-registry';
 import {
   SWISSKNIFE_MCP_UI_PROFILE,
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
   selectTemplateForDescriptor,
   validateMCPUIProfileDescriptor,
   type MCPUIProfileDescriptor,
-} from '../../src/services/mcp-ui-profile';
+} from '../../src/services/mcp/mcp-ui-profile';
 
 function datasetDescriptor(overrides: Partial<MCPUIProfileDescriptor> = {}): MCPUIProfileDescriptor {
   const descriptor: MCPUIProfileDescriptor = {

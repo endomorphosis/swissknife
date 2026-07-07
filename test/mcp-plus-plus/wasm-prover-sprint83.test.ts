@@ -30,7 +30,7 @@ import {
   safeDcecCallAsync,
   throwParseError,
   withDcecErrorHandling,
-} from '../../src/services/dcec-error-handling';
+} from '../../src/services/logic/dcec/dcec-error-handling';
 import {
   GrammarLoader,
   getGrammarLoader,

@@ -1,5 +1,5 @@
-import type { InterfaceDescriptor } from '../mcp-idl.js';
-import { computeCID } from '../mcp-idl.js';
+import type { InterfaceDescriptor } from '../mcp/mcp-idl.js';
+import { computeCID } from '../mcp/mcp-idl.js';
 import {
   META_GLASSES_IO_PROFILE,
   META_GLASSES_IO_PROFILE_VERSION,

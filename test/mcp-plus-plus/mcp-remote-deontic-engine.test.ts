@@ -17,7 +17,7 @@ import {
   PolicyEngine,
   type DeonticLogicConnector,
   type Policy,
-} from '../../src/services/mcp-remote-deontic-engine';
+} from '../../src/services/mcp/mcp-remote-deontic-engine';
 
 // --- mock connector ---------------------------------------------------------
 

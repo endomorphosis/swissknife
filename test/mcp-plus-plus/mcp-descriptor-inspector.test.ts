@@ -5,12 +5,12 @@ import {
 import {
   GeneratedAppStateManager,
   MemoryGeneratedAppReplayStorage,
-} from '../../src/services/mcp-generated-app-state';
+} from '../../src/services/mcp/mcp-generated-app-state';
 import {
   ipfsDatasetInferenceWorkflowDescriptor,
   ipfsDatasetsUIProfileDescriptor,
-} from '../../src/services/mcp-ipfs-ui-descriptors';
-import type { MCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
+} from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 describe('MCP++ descriptor inspector', () => {
   it('summarizes descriptor sections, operations, permissions, and state events', () => {

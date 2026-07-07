@@ -1,4 +1,17 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
+  mkdtempSync: (prefix: string) => string;
+  readFileSync: (path: string, encoding: BufferEncoding) => string;
+  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
+  writeFileSync: (path: string, data: string) => void;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for conformance tests');
+}
+
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -11,7 +24,7 @@ import {
   modalIrFormulaToText,
   modalTextTokenSimilarity,
   type ModalIRDocument,
-} from '../../src/services/modal-ir-decompiler';
+} from '../../src/services/logic/modal/modal-ir-decompiler';
 
 interface SimilarityCase {
   id: string;
@@ -107,11 +120,11 @@ interface DecodedDocumentSummary {
 
 function loadCorpus(): DecompilerCorpus {
   const path = resolve(process.cwd(), '../implementation_plan/conformance/modal-decompiler-vectors.json');
-  return JSON.parse(readFileSync(path, 'utf8')) as DecompilerCorpus;
+  return JSON.parse(nodeFs.readFileSync(path, 'utf8')) as DecompilerCorpus;
 }
 
 function runPythonReference(corpusPath: string): PyResultFile {
-  const tempDir = mkdtempSync(join(tmpdir(), 'modal-decompiler-py-'));
+  const tempDir = nodeFs.mkdtempSync(join(tmpdir(), 'modal-decompiler-py-'));
   const outPath = join(tempDir, 'py-results.json');
   try {
     const scriptPath = resolve(process.cwd(), '../implementation_plan/conformance/modal_decompiler_py_runner.py');
@@ -119,9 +132,9 @@ function runPythonReference(corpusPath: string): PyResultFile {
     if (proc.status !== 0) {
       throw new Error(`Python decompiler runner failed: ${proc.stderr || proc.stdout}`);
     }
-    return JSON.parse(readFileSync(outPath, 'utf8')) as PyResultFile;
+    return JSON.parse(nodeFs.readFileSync(outPath, 'utf8')) as PyResultFile;
   } finally {
-    rmSync(tempDir, { recursive: true, force: true });
+    nodeFs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

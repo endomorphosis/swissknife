@@ -1,4 +1,4 @@
-import { computeInterfaceCID } from '../../src/services/mcp-idl';
+import { computeInterfaceCID } from '../../src/services/mcp/mcp-idl';
 import { vi } from 'vitest';
 import {
   META_GLASSES_MOBILE_ORB_OPERATIONS,
@@ -13,7 +13,7 @@ import {
   type MetaGlassesMobileORBRegisterResponse,
   type MetaGlassesMobileORBSubscribeServiceUpdatesResponse,
 } from '../../src/services/glasses/meta-glasses-mobile-orb-bridge';
-import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';
 
 vi.mock('crypto', async () => {
   const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto');

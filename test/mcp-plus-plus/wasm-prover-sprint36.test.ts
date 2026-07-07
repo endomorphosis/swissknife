@@ -7,7 +7,7 @@
 import {
   IPFSCachedProof, IPFSProofCache,
   getGlobalIPFSCache, resetGlobalIPFSCache,
-} from '../../src/services/ipfs-proof-cache.js';
+} from '../../src/services/ipfs/ipfs-proof-cache.js';
 import {
   MedicalTheoremType, ConfidenceLevel,
   makeMedicalEntity, makeTemporalConstraint,
@@ -15,7 +15,7 @@ import {
 } from '../../src/services/logic/shared/medical-theorem-framework.js';
 import {
   TDFOLCECBridge, EnhancedTDFOLProver, createEnhancedProver,
-} from '../../src/services/tdfol-cec-bridge.js';
+} from '../../src/services/logic/bridges/tdfol-cec-bridge.js';
 
 // ---------------------------------------------------------------------------
 // IPFSCachedProof

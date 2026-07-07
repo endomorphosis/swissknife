@@ -6,15 +6,15 @@
 
 import {
   ProofStatus, ProofResult, makeProofResult,
-} from '../../src/services/proof-execution-engine-types.js';
+} from '../../src/services/proof-engine/proof-execution-engine-types.js';
 import {
   ProverStatus, VampireProver, EProver, ProverRegistry,
   getProverRegistry, resetProverRegistry,
-} from '../../src/services/external-provers.js';
+} from '../../src/services/provers/external-provers.js';
 import {
   makeCaselawDocument, ProcessingStats, makeDefaultConfig,
   CaselawBulkProcessor, createBulkProcessor,
-} from '../../src/services/caselaw-bulk-processor.js';
+} from '../../src/services/platform/caselaw-bulk-processor.js';
 
 // ---------------------------------------------------------------------------
 // ProofStatus + ProofResult

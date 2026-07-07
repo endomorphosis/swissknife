@@ -1,4 +1,4 @@
-import { computeInterfaceCID } from '../../src/services/mcp-idl';
+import { computeInterfaceCID } from '../../src/services/mcp/mcp-idl';
 import {
   META_GLASSES_IO_TRANSPORT_ERROR_CODES,
   META_GLASSES_IO_TRANSPORT_PROFILE,
@@ -11,7 +11,7 @@ import {
   validateMetaGlassesIOBridgeEnvelope,
   validateMetaGlassesIOTransportDescriptor,
   type MetaGlassesIOBridgeEnvelope,
-} from '../../src/services/meta-glasses-io-transport';
+} from '../../src/services/glasses/meta-glasses-io-transport';
 
 describe('Meta glasses I/O bridge transport envelopes', () => {
   it('models Bluetooth and Wi-Fi as app-level bridge envelopes', () => {

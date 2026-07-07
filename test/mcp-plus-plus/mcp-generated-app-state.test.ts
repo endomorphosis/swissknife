@@ -3,8 +3,8 @@ import {
   MemoryGeneratedAppReplayStorage,
   replayGeneratedAppState,
   restoreGeneratedAppState,
-} from '../../src/services/mcp-generated-app-state';
-import type { ORBStreamEvent } from '../../src/services/mcp-orb-capability-router';
+} from '../../src/services/mcp/mcp-generated-app-state';
+import type { ORBStreamEvent } from '../../src/services/mcp/mcp-orb-capability-router';
 
 function streamEvent(overrides: Partial<ORBStreamEvent> = {}): ORBStreamEvent {
   return {

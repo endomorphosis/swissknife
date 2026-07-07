@@ -9,11 +9,11 @@ import {
   type MetaGlassesWidgetCompileOptions,
   type MetaGlassesWidgetCompileIssue,
   type MetaGlassesWidgetManifest,
-} from '../../src/services/meta-glasses-widget-compiler';
+} from '../../src/services/glasses/meta-glasses-widget-compiler';
 import {
   META_GLASSES_DISPLAY_PROFILE_PROPERTY,
   type MetaGlassesWidgetDescriptor,
-} from '../../src/services/meta-glasses-display-profile';
+} from '../../src/services/glasses/meta-glasses-display-profile';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

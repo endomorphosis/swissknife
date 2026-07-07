@@ -2,7 +2,7 @@
  * Mock implementation of MCP Transport for testing
  */
 
-import { MCPTransportType, MCPTransportOptions, MCPTransport } from '../../../src/services/mcp-transport.js';
+import { MCPTransportType, MCPTransportOptions, MCPTransport } from '../../../src/services/mcp/mcp-transport.js';
 
 /**
  * A mock implementation of MCPTransport for testing

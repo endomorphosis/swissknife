@@ -19,7 +19,7 @@ import {
   detectFormulaFormat,
   formatFormula,
   normalizeSyntax,
-} from '../../src/services/logic-converters';
+} from '../../src/services/logic/shared/logic-converters';
 import {
   CommonTypes,
   DeonticTypes,
@@ -30,9 +30,9 @@ import {
   BoundedCache,
   ProofCache,
   getUnifiedCacheStats,
-} from '../../src/services/proof-cache-base';
-import { FLogicProofCache } from '../../src/services/flogic-proof-cache';
-import { IPFSProofCache } from '../../src/services/ipfs-proof-cache';
+} from '../../src/services/proof-engine/proof-cache-base';
+import { FLogicProofCache } from '../../src/services/integrations/flogic-proof-cache';
+import { IPFSProofCache } from '../../src/services/ipfs/ipfs-proof-cache';
 
 // ---------------------------------------------------------------------------
 // PORT-203 — unified security facade

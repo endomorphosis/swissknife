@@ -2,8 +2,8 @@ import type {
   MCPUIConformanceIssue,
   MCPUIConformanceResult,
   MCPUIProfileDescriptor,
-} from '../mcp-ui-profile.js';
-import { validateMCPUIProfileDescriptor } from '../mcp-ui-profile.js';
+} from '../mcp/mcp-ui-profile.js';
+import { validateMCPUIProfileDescriptor } from '../mcp/mcp-ui-profile.js';
 
 export const META_GLASSES_DISPLAY_PROFILE = 'handsfree.meta-glasses/display-widget';
 export const META_GLASSES_DISPLAY_PROFILE_VERSION = '0.1.0';

@@ -5,8 +5,8 @@ import {
   ipfsDatasetsDescriptorPack,
   validateIPFSDatasetsDescriptorPack,
 } from '../../src/services/mcp/mcp-ipfs-datasets-descriptor-pack';
-import { generateSchemaDrivenUI } from '../../src/services/mcp-schema-ui-generator';
-import { validateMCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
+import { generateSchemaDrivenUI } from '../../src/services/mcp/mcp-schema-ui-generator';
+import { validateMCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 describe('ipfs_datasets_py descriptor pack', () => {
   it('validates offline without a live ipfs_datasets_py service', () => {

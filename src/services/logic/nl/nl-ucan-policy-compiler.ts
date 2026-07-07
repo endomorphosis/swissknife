@@ -3,7 +3,7 @@
  * Port of integration/nl_ucan_policy_compiler.py (494L)
  */
 
-import { PatternMatcher, PatternType } from '../../tdfol-nl-patterns';
+import { PatternMatcher, PatternType } from '../shared/tdfol-nl-patterns';
 
 export interface UCANCapability { can: string; with: string; [key: string]: unknown; }
 export interface UCANToken { issuer: string; audience: string; capabilities: UCANCapability[]; notBefore?: string; expiration?: string; }

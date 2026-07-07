@@ -10,13 +10,13 @@ import {
   parseFLogicFacts,
   proveWithZkp,
   verifyFLogicZkpProof,
-} from '../../src/services/flogic-zkp-integration';
-import { Groth16BackendFallback } from '../../src/services/zkp-backends';
+} from '../../src/services/integrations/flogic-zkp-integration';
+import { Groth16BackendFallback } from '../../src/services/zkp/zkp-backends';
 import {
   FLogicSemanticNormalizer,
   normalizeFLogic,
   parseNormalizedTriples,
-} from '../../src/services/flogic-semantic-normalizer';
+} from '../../src/services/integrations/flogic-semantic-normalizer';
 
 describe('PORT-190 FLogic ZKP integration', () => {
   it('parses frame and predicate F-logic facts', () => {

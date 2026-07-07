@@ -1,21 +1,21 @@
 import path from 'path';
-import { InterfaceRepository } from '../../src/services/mcp-idl';
+import { InterfaceRepository } from '../../src/services/mcp/mcp-idl';
 import {
   LocalMCPInterfaceRegistryBackend,
   MCPInterfaceDiscoveryRegistry,
-} from '../../src/services/mcp-interface-registry';
+} from '../../src/services/mcp/mcp-interface-registry';
 import {
   IPFS_MCP_UI_PROFILE_DESCRIPTORS,
   getIPFSMCPUIProfileDescriptors,
   ipfsAccelerateUIProfileDescriptor,
   ipfsDatasetInferenceWorkflowDescriptor,
   ipfsDatasetsUIProfileDescriptor,
-} from '../../src/services/mcp-ipfs-ui-descriptors';
-import { generateSchemaDrivenUI } from '../../src/services/mcp-schema-ui-generator';
+} from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import { generateSchemaDrivenUI } from '../../src/services/mcp/mcp-schema-ui-generator';
 import {
   selectTemplateForDescriptor,
   validateMCPUIProfileDescriptor,
-} from '../../src/services/mcp-ui-profile';
+} from '../../src/services/mcp/mcp-ui-profile';
 import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,

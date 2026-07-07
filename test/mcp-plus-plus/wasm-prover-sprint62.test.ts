@@ -6,7 +6,7 @@
  *                   Proof Optimization, Resolution Rules
  */
 
-import { EnhancedGrammarParser, ParseTree, Category } from '../../src/services/enhanced-grammar-parser';
+import { EnhancedGrammarParser, ParseTree, Category } from '../../src/services/logic/nl/enhanced-grammar-parser';
 import {
   TemporalDeonticAPI,
   addTheoremFromParameters,
@@ -17,7 +17,7 @@ import {
   demoRagRetrieval,
   printDebugReport,
   queryTheoremsFromParameters,
-} from '../../src/services/temporal-deontic-api';
+} from '../../src/services/logic/tdfol/temporal-deontic-api';
 import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/logic/fol/nlp-predicate-extractor';
 import {
   FormulaProfiler, BottleneckAnalyzer, ProfilingReporter,

@@ -5,8 +5,8 @@ import {
   ipfsAccelerateDescriptorPack,
   validateIPFSAccelerateDescriptorPack,
 } from '../../src/services/mcp/mcp-ipfs-accelerate-descriptor-pack';
-import { generateSchemaDrivenUI } from '../../src/services/mcp-schema-ui-generator';
-import { validateMCPUIProfileDescriptor } from '../../src/services/mcp-ui-profile';
+import { generateSchemaDrivenUI } from '../../src/services/mcp/mcp-schema-ui-generator';
+import { validateMCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 describe('ipfs_accelerate_py descriptor pack', () => {
   it('validates offline without a live ipfs_accelerate_py service', () => {

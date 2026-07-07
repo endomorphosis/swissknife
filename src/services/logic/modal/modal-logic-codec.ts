@@ -705,6 +705,17 @@ export function compilerGuidanceSelectedFrameEvidence(compilerGuidance: Record<s
   return uniquePreserveOrder(frames);
 }
 
+function compilerGuidanceRouteName(value: unknown): string {
+  let normalized = cleanNonEmptyString(value).toLowerCase();
+  for (const prefix of ['compiler-guidance-route:', 'compiler-guidance:']) {
+    if (normalized.startsWith(prefix)) {
+      normalized = normalized.slice(prefix.length).trim();
+      break;
+    }
+  }
+  return normalized;
+}
+
 export function compilerGuidanceRouteFeatures(compilerGuidance: Record<string, unknown>): string[] {
   const routes: string[] = [];
   for (const routesKey of ['compiler_guidance_todo_routes', 'todo_routes', 'routes']) {
@@ -726,6 +737,12 @@ export function compilerGuidanceRouteFeatures(compilerGuidance: Record<string, u
   ]) {
     const route = cleanNonEmptyString(compilerGuidance[routeKey]);
     if (route) routes.push(route);
+  }
+  for (const sampleKey of ['sample', 'samples', 'sample_id', 'sample_ids']) {
+    for (const sample of guidanceFeatureList(compilerGuidance[sampleKey], 0)) {
+      const route = compilerGuidanceRouteName(sample);
+      if (route) routes.push(route);
+    }
   }
   routes.push(...compilerGuidanceRoutesFromViewGaps(compilerGuidance));
 

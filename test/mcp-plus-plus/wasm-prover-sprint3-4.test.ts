@@ -13,8 +13,8 @@ import { DeonticToCoqTranslator } from '../../src/services/provers/deontic-to-co
 import { DeonticToLean4Translator } from '../../src/services/provers/deontic-to-lean4';
 import { CoqJsCoqBridge } from '../../src/services/provers/coq-jscoq-bridge';
 import { Lean4WasmBridge } from '../../src/services/provers/lean4-wasm-bridge';
-import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub';
-import type { Policy } from '../../src/services/mcp-policy';
+import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
 
 // ---------------------------------------------------------------------------
 // Helpers
