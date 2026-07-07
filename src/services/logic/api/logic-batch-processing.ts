@@ -4,7 +4,7 @@
  * TypeScript port of ipfs_datasets_py/logic/batch_processing.py remainders.
  */
 
-import { parseFol } from '../../fol-utils/fol-parser.js';
+import { parseFol } from '../fol/utils/fol-parser.js';
 
 export class LogicBatchResult<T = unknown> {
   readonly totalItems: number;

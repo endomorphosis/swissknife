@@ -20,7 +20,7 @@ import {
   serializeTdfol,
 } from '../../src/services/provers/tdfol-types.js';
 import { ExtendedTdfolProverBridge } from '../../src/services/provers/tdfol-extended-rules.js';
-import { ProverRouterBridgeAdapter } from '../../src/services/bridge/prover-router-bridge.js';
+import { ProverRouterBridgeAdapter } from '../../src/services/logic/bridges/prover-router-bridge.js';
 import type { TdfolFormula } from '../../src/services/provers/tdfol-types.js';
 
 // ---------------------------------------------------------------------------

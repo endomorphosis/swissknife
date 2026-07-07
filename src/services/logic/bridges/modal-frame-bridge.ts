@@ -23,9 +23,9 @@ import { ProverRouterBridgeAdapter } from './prover-router-bridge.js';
 import type { ProofGateResult } from './prover-router-bridge.js';
 import {
   Atom, Obligation, Permission, Prohibition,
-} from '../provers/dcec-types.js';
-import type { DCECFormula } from '../provers/dcec-types.js';
-import type { TdfolFormula } from '../provers/tdfol-types.js';
+} from '../../provers/dcec-types.js';
+import type { DCECFormula } from '../../provers/dcec-types.js';
+import type { TdfolFormula } from '../../provers/tdfol-types.js';
 
 // ---------------------------------------------------------------------------
 // Result types

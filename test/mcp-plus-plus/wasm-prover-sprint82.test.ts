@@ -28,7 +28,7 @@ import {
   toTptp,
   toUnicode,
   to_unicode,
-} from '../../src/services/fol/logic-formatter';
+} from '../../src/services/logic/fol/logic-formatter';
 import {
   FeatureDetector,
   clearFeatureDetectionCache,

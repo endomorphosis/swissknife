@@ -12,7 +12,7 @@
  *   buildDeonticFormulasFromIRList() — LegalNormIR[] → string[]
  */
 
-import type { LegalNormIR } from '../../deontic/legal-norm-ir.js';
+import type { LegalNormIR } from './legal-norm-ir.js';
 import { sha256Hex } from '../../provers/browser-crypto.js';
 
 // ---------------------------------------------------------------------------

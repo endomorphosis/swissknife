@@ -13,11 +13,11 @@ import { buildDeonticFormulaRecordFromIR } from './deontic-formula-builder.js';
 import {
   buildDecodedPhraseAuditRecords,
   buildDecoderSlotSupportMap,
-} from '../../deontic/decoder-provenance.js';
+} from './decoder-provenance.js';
 import {
   decodeLegalNormIR,
   decodedPhraseSlotTextMap,
-} from '../../deontic/legal-norm-decoder.js';
+} from './legal-norm-decoder.js';
 import {
   DEFAULT_IR_PROVENANCE_SLOTS,
   legalNormIRBlockers,
@@ -27,14 +27,14 @@ import {
   legalNormIRToDict,
   parserElementToIR,
   type LegalNormIR,
-} from '../../deontic/legal-norm-ir.js';
+} from './legal-norm-ir.js';
 import {
   ALL_PROVER_TARGETS,
   ProverSyntaxBuilder,
   ProverSyntaxValidator,
   type ProverTarget,
   type ProverTargetSyntaxRecord,
-} from '../../deontic/prover-syntax-builder.js';
+} from './prover-syntax-builder.js';
 
 // ---------------------------------------------------------------------------
 // Shared record types

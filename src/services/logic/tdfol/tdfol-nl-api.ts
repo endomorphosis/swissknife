@@ -13,10 +13,10 @@
  * Reference: ipfs_datasets_py/logic/TDFOL/nl/tdfol_nl_api.py §parse_natural_language
  */
 
-import { DeonticTextAnalyzer } from '../../deontic/deontic-text-analyzer.js';
-import type { DeonticStatement } from '../../deontic/deontic-text-analyzer.js';
-import { FolTextConverter } from '../../fol/fol-text-converter.js';
-import type { FolConversionResult } from '../../fol/fol-text-converter.js';
+import { DeonticTextAnalyzer } from '../deontic/deontic-text-analyzer.js';
+import type { DeonticStatement } from '../deontic/deontic-text-analyzer.js';
+import { FolTextConverter } from '../fol/fol-text-converter.js';
+import type { FolConversionResult } from '../fol/fol-text-converter.js';
 import { serializeTdfol } from '../../provers/tdfol-types.js';
 import type { TdfolFormula } from '../../provers/tdfol-types.js';
 import {

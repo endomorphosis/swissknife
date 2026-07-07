@@ -21,7 +21,7 @@ import {
   classifyModal,
   extractActionRecipient,
   normalizePredicate,
-} from '../../src/services/deontic/deontic-parser-utils';
+} from '../../src/services/logic/deontic/deontic-parser-utils';
 
 interface ModalCase {
   id: string;

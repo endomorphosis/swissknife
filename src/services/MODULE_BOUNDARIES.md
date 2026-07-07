@@ -122,24 +122,25 @@ known to be transitional. Tighten it progressively with:
 node scripts/audit-services-modules.mjs --fail-on-unknown --fail-on-forbidden
 ```
 
-Current baseline after removing root service compatibility shims, retargeting
-downstream imports to module-owned paths, and reconciling the strict dependency
-manifest on `2026-07-06`:
+Current baseline after removing root service compatibility shims, migrating the
+old `bridge`, `deontic`, `fol`, and `fol-utils` namespace folders into
+module-owned paths, retargeting downstream imports, and reconciling the strict
+dependency manifest on `2026-07-06`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 366 |
+| Service files | 356 |
 | Root-level service files | 0 |
 | Root compatibility shims | 0 |
 | Root implementation files | 0 |
 | Legacy root files | 0 |
-| Legacy path files | 26 |
+| Legacy path files | 0 |
 | Unknown files | 0 |
-| Import edges | 745 |
+| Import edges | 755 |
 | Forbidden cross-module imports | 0 |
 
 The final acceptance target is satisfied for root files: only
 `MODULE_BOUNDARIES.md` and `module-ownership.json` remain directly under
-`src/services`. The remaining 26 legacy path files are tracked explicitly in
-`module-ownership.json`; new implementation files should be assigned to a
-non-legacy owner unless there is a migration ticket.
+`src/services`. The legacy path exception count is also zero; new
+implementation files should be assigned to a non-legacy owner unless there is a
+migration ticket.

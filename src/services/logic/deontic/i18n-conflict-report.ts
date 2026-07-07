@@ -10,8 +10,8 @@
  * Reference: ipfs_datasets_py/logic/api.py §I18NConflictReport
  */
 
-import { DeonticTextAnalyzer } from '../../deontic/deontic-text-analyzer.js';
-import type { DeonticConflict } from '../../deontic/deontic-text-analyzer.js';
+import { DeonticTextAnalyzer } from './deontic-text-analyzer.js';
+import type { DeonticConflict } from './deontic-text-analyzer.js';
 
 // ---------------------------------------------------------------------------
 // I18NConflictReport

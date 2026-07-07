@@ -127,11 +127,7 @@
     { "pattern": "src/services/logic/modal/**", "module": "logic.modal" },
     { "pattern": "src/services/logic/bridges/**", "module": "logic.bridges" },
     { "pattern": "src/services/provers/**", "module": "provers" },
-    { "pattern": "src/services/deontic/**", "module": "logic.deontic", "legacyPath": true },
-    { "pattern": "src/services/fol/**", "module": "logic.fol", "legacyPath": true },
-    { "pattern": "src/services/fol-utils/**", "module": "logic.fol", "legacyPath": true },
-    { "pattern": "src/services/zkp/**", "module": "zkp" },
-    { "pattern": "src/services/bridge/**", "module": "logic.bridges", "legacyPath": true }
+    { "pattern": "src/services/zkp/**", "module": "zkp" }
   ],
   "migrationTargets": {
     "maxRootFilesAfterPhase1": 220,

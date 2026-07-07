@@ -11,7 +11,7 @@ import {
   classifyModal,
   normalizePredicate,
   scoreScaffoldQuality,
-} from '../../deontic/deontic-parser-utils.js';
+} from './deontic-parser-utils.js';
 import { sha256Hex } from '../../provers/browser-crypto.js';
 
 export interface LegalTextSegment {

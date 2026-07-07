@@ -189,7 +189,7 @@ describe('PORT-095 CognitiveOperator.GOAL', () => {
 // ---------------------------------------------------------------------------
 describe('PORT-111 hierarchical ConflictType', () => {
   it("'hierarchical' is valid ConflictType literal", () => {
-    const t: import('../../src/services/deontic/deontic-text-analyzer').ConflictType = 'hierarchical';
+    const t: import('../../src/services/logic/deontic/deontic-text-analyzer').ConflictType = 'hierarchical';
     expect(t).toBe('hierarchical');
   });
 });

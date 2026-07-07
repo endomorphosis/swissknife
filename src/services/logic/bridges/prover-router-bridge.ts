@@ -19,11 +19,11 @@
  * Reference: ipfs_datasets_py/logic/bridge/external_prover_router.py §ExternalProverRouterBridgeAdapter.evaluate()
  */
 
-import type { TdfolFormula } from '../provers/tdfol-types.js';
-import type { DCECFormula } from '../provers/dcec-types.js';
-import { serializeTdfol } from '../provers/tdfol-types.js';
-import { ExtendedTdfolProverBridge } from '../provers/tdfol-extended-rules.js';
-import type { ProofReason } from '../provers/prover-types.js';
+import type { TdfolFormula } from '../../provers/tdfol-types.js';
+import type { DCECFormula } from '../../provers/dcec-types.js';
+import { serializeTdfol } from '../../provers/tdfol-types.js';
+import { ExtendedTdfolProverBridge } from '../../provers/tdfol-extended-rules.js';
+import type { ProofReason } from '../../provers/prover-types.js';
 
 // ---------------------------------------------------------------------------
 // ProofGateResult type (mirrors Python bridge types.py)

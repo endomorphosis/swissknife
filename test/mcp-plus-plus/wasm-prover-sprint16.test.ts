@@ -11,11 +11,11 @@
  * Reference: ipfs_datasets_py/logic/deontic/graph.py + support_map.py
  */
 
-import { DeonticGraph } from '../../src/services/deontic/deontic-graph.js';
-import type { DeonticNode, DeonticRule } from '../../src/services/deontic/deontic-graph.js';
-import { DeonticGraphBuilder } from '../../src/services/deontic/deontic-graph-builder.js';
-import { SupportMapBuilder } from '../../src/services/deontic/support-map.js';
-import { DeonticTextAnalyzer } from '../../src/services/deontic/deontic-text-analyzer.js';
+import { DeonticGraph } from '../../src/services/logic/deontic/deontic-graph.js';
+import type { DeonticNode, DeonticRule } from '../../src/services/logic/deontic/deontic-graph.js';
+import { DeonticGraphBuilder } from '../../src/services/logic/deontic/deontic-graph-builder.js';
+import { SupportMapBuilder } from '../../src/services/logic/deontic/support-map.js';
+import { DeonticTextAnalyzer } from '../../src/services/logic/deontic/deontic-text-analyzer.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

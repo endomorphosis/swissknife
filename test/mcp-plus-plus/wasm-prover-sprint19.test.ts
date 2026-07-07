@@ -11,13 +11,13 @@
  * Reference: ipfs_datasets_py/logic/monitoring.py + submodule_registry.py + batch_processing.py
  */
 
-import { LogicMonitor } from '../../src/services/logic-monitor.js';
-import type { HealthStatus } from '../../src/services/logic-monitor.js';
+import { LogicMonitor } from '../../src/services/logic/shared/logic-monitor.js';
+import type { HealthStatus } from '../../src/services/logic/shared/logic-monitor.js';
 import {
   getSubmoduleSpecs, getSubmoduleSpec, getSubmoduleNames,
   getIntegrationManifest,
-} from '../../src/services/submodule-registry.js';
-import { BatchProcessor, successRate } from '../../src/services/batch-processor.js';
+} from '../../src/services/platform/submodule-registry.js';
+import { BatchProcessor, successRate } from '../../src/services/platform/batch-processor.js';
 
 // ---------------------------------------------------------------------------
 // T-100: LogicMonitor

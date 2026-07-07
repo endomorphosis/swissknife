@@ -12,14 +12,14 @@ import {
   createPermission,
   createProhibition,
   demonstrateDeonticLogic,
-} from '../../src/services/deontic-logic-core.js';
+} from '../../src/services/logic/deontic/deontic-logic-core.js';
 import {
   makeProvenanceChain, LogicIPLDNode, LogicIPLDStorage,
   LogicProvenanceTracker, createLogicStorageWithProvenance,
-} from '../../src/services/ipld-logic-storage.js';
+} from '../../src/services/ipfs/ipld-logic-storage.js';
 import {
   DeonticExtractor, DeontologicalReasoningEngine,
-} from '../../src/services/deontological-reasoning.js';
+} from '../../src/services/logic/deontic/deontological-reasoning.js';
 
 const LEGAL_TEXT =
   'The contractor shall deliver the goods within 30 days. ' +
