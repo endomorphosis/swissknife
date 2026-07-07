@@ -22,7 +22,7 @@ import { DeonticGraph } from '../deontic/deontic-graph.js';
 import { DeonticGraphBuilder } from '../deontic/deontic-graph-builder.js';
 import { LogicMonitor } from '../shared/logic-monitor.js';
 import { getSubmoduleSpecs, getIntegrationManifest } from '../../platform/submodule-registry.js';
-import { BatchProcessor } from '../../platform/batch-processor.js';
+import { BatchProcessor } from './batch-processor.js';
 
 // ---------------------------------------------------------------------------
 // ValidationResult

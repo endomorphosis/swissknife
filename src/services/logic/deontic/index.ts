@@ -1,3 +1,4 @@
+export * from './caselaw-bulk-processor.js';
 export * from './compliance-checker.js';
 export * from './decoder-provenance.js';
 export * from './deontic-analyzer.js';
@@ -24,6 +25,7 @@ export * from './legal-norm-ir.js';
 export * from './mcp-policy.js';
 export * from './normative-conflict-detector.js';
 export * from './parser-qa-metrics.js';
+export * from './policy-to-dcec.js';
 export * from './policy-formulas.js';
 export * from './prover-syntax-builder.js';
 export * from './support-map.js';

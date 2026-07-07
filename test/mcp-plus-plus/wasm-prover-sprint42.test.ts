@@ -14,7 +14,7 @@ import {
 import {
   makeCaselawDocument, ProcessingStats, makeDefaultConfig,
   CaselawBulkProcessor, createBulkProcessor,
-} from '../../src/services/platform/caselaw-bulk-processor.js';
+} from '../../src/services/logic/deontic/caselaw-bulk-processor.js';
 
 // ---------------------------------------------------------------------------
 // ProofStatus + ProofResult

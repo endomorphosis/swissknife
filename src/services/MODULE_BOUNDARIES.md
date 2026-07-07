@@ -122,19 +122,21 @@ node scripts/audit-services-modules.mjs
 Current baseline after removing root service compatibility shims, migrating the
 old `bridge`, `deontic`, `fol`, and `fol-utils` namespace folders into
 module-owned paths, relocating the remaining sprint bundles out of `legacy`,
+collapsing the remaining FOL `utils` namespace, moving TDFOL/DCEC formula
+types, policy translators, and domain processors into logic-owned modules,
 retargeting downstream imports, and reconciling the strict dependency manifest
 on `2026-07-06`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 355 |
+| Service files | 354 |
 | Root-level service files | 0 |
 | Root compatibility shims | 0 |
 | Root implementation files | 0 |
 | Legacy root files | 0 |
 | Legacy path files | 0 |
 | Unknown files | 0 |
-| Import edges | 754 |
+| Import edges | 756 |
 | Forbidden cross-module imports | 0 |
 
 The final acceptance target is satisfied for root files: only

@@ -103,7 +103,7 @@ export function getIntegrationStatus(): IntegrationStatus {
 
   if (!caps.externalProvers) {
     unavailableModules.push('vampire', 'eprover');
-    warnings.push('External provers (Vampire, E-Prover) require installation via prover-installer.ts');
+    warnings.push('External provers (Vampire, E-Prover) require installation via provers/prover-installer.ts');
   }
 
   return {

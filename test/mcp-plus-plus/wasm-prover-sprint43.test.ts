@@ -14,7 +14,7 @@ import {
 import {
   detectPlatformInstallProfile, installComponent, installComponents,
   listKnownComponents,
-} from '../../src/services/proof-engine/prover-installer.js';
+} from '../../src/services/provers/prover-installer.js';
 
 // ---------------------------------------------------------------------------
 // Integration Init

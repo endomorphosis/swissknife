@@ -13,9 +13,9 @@
  */
 
 import { ExtendedTdfolProverBridge } from '../../provers/tdfol-extended-rules.js';
-import type { TdfolFormula } from '../../provers/tdfol-types.js';
+import type { TdfolFormula } from './tdfol-types.js';
 import type { WasmProofResult } from '../../provers/prover-types.js';
-import { serializeTdfol } from '../../provers/tdfol-types.js';
+import { serializeTdfol } from './tdfol-types.js';
 import { BoundedCache } from '../shared/logic-validators.js';
 
 // ---------------------------------------------------------------------------

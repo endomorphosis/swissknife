@@ -31,8 +31,8 @@ import type { DeonticGraph } from '../deontic/deontic-graph.js';
 import { LogicMonitor } from '../shared/logic-monitor.js';
 import { getSubmoduleSpecs, getIntegrationManifest } from '../../platform/submodule-registry.js';
 import type { LogicSubmoduleSpec } from '../../platform/submodule-registry.js';
-import { BatchProcessor } from '../../platform/batch-processor.js';
-import type { BatchResult } from '../../platform/batch-processor.js';
+import { BatchProcessor } from './batch-processor.js';
+import type { BatchResult } from './batch-processor.js';
 import { detectMultilingualConflicts } from '../deontic/i18n-conflict-report.js';
 import type { I18NConflictReport } from '../deontic/i18n-conflict-report.js';
 

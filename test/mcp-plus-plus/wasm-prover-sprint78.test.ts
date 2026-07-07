@@ -5,7 +5,7 @@
 
 import { ProofStatus }               from '../../src/services/logic/tdfol/tdfol-prover';
 import { mkBinary, mkPredicate, mkUnary } from '../../src/services/logic/tdfol/tdfol-core';
-import { ALL_COMPLETENESS_RULES }    from '../../src/services/provers/tdfol-completeness-rules';
+import { ALL_COMPLETENESS_RULES }    from '../../src/services/logic/tdfol/tdfol-completeness-rules';
 import { isSubtypeOf, makeSort, formatDCECBracket, parseDCECBracket, dcecFormulaEquals, dcecFormulaHash } from '../../src/services/logic/dcec/dcec-core-types';
 import { CognitiveOperator }         from '../../src/services/logic/dcec/sprint66-dcec-types';
 import { toPropositionField, fromPropositionField } from '../../src/services/logic/deontic/deontic-query-engine';

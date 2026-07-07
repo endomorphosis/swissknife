@@ -69,7 +69,7 @@
     "logic.deontic": {
       "targetPath": "src/services/logic/deontic",
       "purpose": "Deontic parsing, norm IR, formula building, legal-text extraction, conflict detection, and normative graph projection.",
-      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp"]
+      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.dcec", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp"]
     },
     "logic.modal": {
       "targetPath": "src/services/logic/modal",

@@ -4,20 +4,20 @@ import {
   extractFolMetadata,
   formatFol,
   parseFolToJson,
-} from '../../src/services/logic/fol/utils/logic-formatter';
+} from '../../src/services/logic/fol/fol-output-formatters';
 import {
   parseFol,
   parseLogicalOperators,
   parseQuantifiers,
   validateFolSyntax,
-} from '../../src/services/logic/fol/utils/fol-parser';
+} from '../../src/services/logic/fol/fol-text-parser';
 import {
   extractLogicalRelationsNlp,
   extractPredicatesNlp,
   extractSemanticRoles,
   getExtractionStats,
   getSpacyModel,
-} from '../../src/services/logic/fol/utils/nlp-predicate-extractor';
+} from '../../src/services/logic/fol/fol-nlp-extraction';
 import {
   ChunkedBatchProcessor,
   FOLBatchProcessor,

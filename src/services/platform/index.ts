@@ -1,7 +1,5 @@
-export * from './batch-processor.js';
 export * from './browser-acceleration.js';
 export * from './browserMocks.js';
-export * from './caselaw-bulk-processor.js';
 export * from './claude.js';
 export * from './feature-detection.js';
 export * from './hardware-abstraction.js';
@@ -12,8 +10,6 @@ export * from './observability-metrics-prometheus.js';
 export * from './oauth.js';
 export * from './openai.js';
 export * from './otel-integration.js';
-export * from './performance-dashboard.js';
-export * from './performance-profiler.js';
 export * from './policy-audit-log.js';
 export * from './prometheus-exporter.js';
 export * from './registry.js';

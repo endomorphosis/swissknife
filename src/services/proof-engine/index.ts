@@ -7,5 +7,4 @@ export * from './proof-explainer.js';
 export * from './proof-strategies.js';
 export * from './proof-tree.js';
 export * from './prover-backend-mixin.js';
-export * from './prover-installer.js';
 export * from './prover-router.js';

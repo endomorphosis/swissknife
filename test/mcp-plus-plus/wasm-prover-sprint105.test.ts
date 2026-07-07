@@ -18,7 +18,7 @@ import {
   ensureErgoai,
   ensureLean,
   ensureSymbolicai,
-} from '../../src/services/proof-engine/prover-installer';
+} from '../../src/services/provers/prover-installer';
 import { resolveErgoBinary } from '../../src/services/integrations/ergoai-wrapper';
 
 const nodeFs = (globalThis.process as unknown as {

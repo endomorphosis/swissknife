@@ -10,7 +10,7 @@ import { TDFOLProver, ProofStatus, defaultTdfolRules } from '../../src/services/
 import {
   PerformanceDashboard, MetricType, makeProofMetrics,
   getGlobalDashboard, resetGlobalDashboard,
-} from '../../src/services/platform/performance-dashboard.js';
+} from '../../src/services/logic/tdfol/performance-dashboard.js';
 import { TDFOLKnowledgeBase, mkPredicate, mkDeontic, mkTemporal, mkBinary, mkUnary } from '../../src/services/logic/tdfol/tdfol-core.js';
 
 // ---------------------------------------------------------------------------

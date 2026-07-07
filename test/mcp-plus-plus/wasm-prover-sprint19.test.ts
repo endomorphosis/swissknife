@@ -17,7 +17,7 @@ import {
   getSubmoduleSpecs, getSubmoduleSpec, getSubmoduleNames,
   getIntegrationManifest,
 } from '../../src/services/platform/submodule-registry.js';
-import { BatchProcessor, successRate } from '../../src/services/platform/batch-processor.js';
+import { BatchProcessor, successRate } from '../../src/services/logic/api/batch-processor.js';
 
 // ---------------------------------------------------------------------------
 // T-100: LogicMonitor

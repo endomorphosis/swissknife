@@ -45,10 +45,10 @@ export {
   ForAll, Exists,
   serializeTerm,
   serializeFormula,
-} from './dcec-types.js';
+} from '../dcec/dcec-types.js';
 
-import type { DCECFormula, Term } from './dcec-types.js';
-import { serializeFormula as serializeDcecFormula } from './dcec-types.js';
+import type { DCECFormula, Term } from '../dcec/dcec-types.js';
+import { serializeFormula as serializeDcecFormula } from '../dcec/dcec-types.js';
 
 // ---------------------------------------------------------------------------
 // LTL operators

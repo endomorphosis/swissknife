@@ -10,7 +10,7 @@ import {
   extractLogicalRelations,
   extractPredicates,
   normalizePredicateName,
-} from './fol-parser.js';
+} from './fol-text-parser.js';
 
 export function getSpacyModel(_modelName = 'en_core_web_sm'): null {
   return null;

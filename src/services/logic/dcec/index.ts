@@ -1,5 +1,6 @@
 export * from './dcec-cleaning.js';
 export * from './dcec-core-types.js';
+export * from './dcec-types.js';
 export * from './dcec-english-grammar.js';
 export * from './dcec-error-handling.js';
 export * from './dcec-integration.js';

@@ -16,7 +16,7 @@ import {
   Permission,
   Prohibition,
   type DCECFormula,
-} from '../../src/services/provers/dcec-types.js';
+} from '../../src/services/logic/dcec/dcec-types.js';
 import {
   Always,
   Eventually,
@@ -25,7 +25,7 @@ import {
   Since,
   Until,
   type TdfolFormula,
-} from '../../src/services/provers/tdfol-types.js';
+} from '../../src/services/logic/tdfol/tdfol-types.js';
 
 export type ConformanceSubsystem =
   | 'propositional'
