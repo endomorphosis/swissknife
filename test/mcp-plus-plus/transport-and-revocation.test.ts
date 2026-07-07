@@ -74,6 +74,11 @@ describe('MCPTransportFactory', () => {
     expect(t.getType()).toBe('libp2p');
   });
 
+  it('defaults to libp2p when type is omitted', () => {
+    const t = MCPTransportFactory.create({ endpoint: '/ip4/127.0.0.1/tcp/9100' });
+    expect(t.getType()).toBe('libp2p');
+  });
+
   it('creates a WebRTC transport', () => {
     const t = MCPTransportFactory.create({ type: 'webrtc', endpoint: 'ws://signaling:4000' });
     expect(t.getType()).toBe('webrtc');

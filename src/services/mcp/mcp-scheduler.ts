@@ -9,7 +9,7 @@
  * References: docs/spec/risk-scheduling.md in endomorphosis/Mcp-Plus-Plus
  */
 
-import { EventEmitter } from 'events';
+import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
 import { EventDAG, StoredEventNode } from './mcp-event-dag.js';
 
 // ---------------------------------------------------------------------------
@@ -192,7 +192,7 @@ export interface SchedulerOptions {
 
 export type CallExecutor<T> = (call: T) => Promise<unknown>;
 
-export class MCPScheduler<T = unknown> extends EventEmitter {
+export class MCPScheduler<T = unknown> extends BrowserEventEmitter {
   private queue = new MinHeap<T>();
   private inFlight = 0;
   private riskScorer: RiskScorer;

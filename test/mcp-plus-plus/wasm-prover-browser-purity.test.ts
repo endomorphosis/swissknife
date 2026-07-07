@@ -7,7 +7,7 @@
  */
 
 import { dirname, resolve } from 'node:path';
-import { base64UrlEncode, md5Hex, sha256Hex } from '../../src/services/shared/browser-crypto';
+import { base64UrlDecode, base64UrlEncode, md5Hex, sha256Hex } from '../../src/services/shared/browser-crypto';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;
@@ -26,8 +26,25 @@ const ROOT = resolve(__dirname, '../..');
 const BROWSER_FACING_SERVICE_FILES = [
   'src/services/mcp/mcp-wasm-prover-hub.ts',
   'src/services/mcp/browser.ts',
+  'src/services/mcp/libp2p-browser-runtime.ts',
+  'src/services/mcp/mcp-deontic-interface-broker.ts',
+  'src/services/mcp/mcp-descriptor-inspector.ts',
+  'src/services/mcp/mcp-descriptor-trust.ts',
+  'src/services/mcp/mcp-discovery.ts',
+  'src/services/mcp/mcp-generated-app-quality-gates.ts',
+  'src/services/mcp/mcp-generated-app-state.ts',
   'src/services/mcp/mcp-idl.ts',
+  'src/services/mcp/mcp-interface-registry.ts',
+  'src/services/mcp/mcp-ipfs-ui-descriptors.ts',
+  'src/services/mcp/mcp-orb-capability-router.ts',
   'src/services/mcp/mcp-envelope.ts',
+  'src/services/mcp/mcp-p2p-session.ts',
+  'src/services/mcp/mcp-pubsub-bus.ts',
+  'src/services/mcp/mcp-remote-deontic-engine.ts',
+  'src/services/mcp/mcp-scheduler.ts',
+  'src/services/mcp/mcp-transport.ts',
+  'src/services/mcp/policy-audit-log.ts',
+  'src/services/mcp/swissknife-mcp-capability-registry.ts',
   'src/services/integrations/flogic-ergoai-wrapper.ts',
   'src/services/logic/bridges/bridge-multiview.ts',
   'src/services/logic/shared/bridge-types.ts',
@@ -44,9 +61,11 @@ const BROWSER_FACING_SERVICE_FILES = [
   'src/services/logic/tdfol/temporal-deontic-rag-store.ts',
   'src/services/integrations/flogic-zkp-integration.ts',
   'src/services/zkp/ethereum-zkp-bridge.ts',
+  'src/services/zkp/groth16-cec-expansion.ts',
   'src/services/zkp/browser.ts',
   'src/services/zkp/zkp-attestation-bridge.ts',
   'src/services/zkp/zkp-circuits.ts',
+  'src/services/zkp/zkp-canonicalization-runtime.ts',
   'src/services/zkp/zkp-onchain-pipeline.ts',
   'src/services/zkp/zkp-provekit-cache.ts',
   'src/services/zkp/zkp-provekit-public-inputs.ts',
@@ -145,6 +164,20 @@ describe('WASM prover browser purity', () => {
     expect(sha256Hex('abc')).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
     expect(md5Hex('abc')).toBe('900150983cd24fb0d6963f7d28e17f72');
     expect(base64UrlEncode('sphinx-proof')).toBe('c3BoaW54LXByb29m');
+    expect(new TextDecoder().decode(base64UrlDecode('c3BoaW54LXByb29m'))).toBe('sphinx-proof');
+  });
+
+  it('builds browser libp2p defaults with real transports and GossipSub', async () => {
+    const { createMcpLibp2pConfig } = await import('../../src/services/mcp/libp2p-browser-runtime');
+    const { enabled, unavailable } = await createMcpLibp2pConfig({
+      bootstrapMultiaddrs: ['/ip4/127.0.0.1/tcp/4001/ws/p2p/12D3KooWMockPeer'],
+      mdns: false,
+      dht: false,
+    });
+    expect(enabled.transports).toEqual(expect.arrayContaining(['websockets', 'webrtc']));
+    expect(enabled.services).toEqual(expect.arrayContaining(['noise', 'yamux', 'identify', 'gossipsub']));
+    expect(enabled.peerDiscovery).toContain('bootstrap');
+    expect(unavailable).toHaveLength(0);
   });
 
   it.each(UNIQUE_BROWSER_FACING_SERVICE_FILES)('%s has no static Node host dependencies', file => {
@@ -158,8 +191,25 @@ describe('WASM prover browser purity', () => {
     await Promise.all([
       import('../../src/services/mcp/mcp-wasm-prover-hub'),
       import('../../src/services/mcp/browser'),
+      import('../../src/services/mcp/libp2p-browser-runtime'),
+      import('../../src/services/mcp/mcp-deontic-interface-broker'),
+      import('../../src/services/mcp/mcp-descriptor-inspector'),
+      import('../../src/services/mcp/mcp-descriptor-trust'),
+      import('../../src/services/mcp/mcp-discovery'),
+      import('../../src/services/mcp/mcp-generated-app-quality-gates'),
+      import('../../src/services/mcp/mcp-generated-app-state'),
       import('../../src/services/mcp/mcp-idl'),
+      import('../../src/services/mcp/mcp-interface-registry'),
+      import('../../src/services/mcp/mcp-ipfs-ui-descriptors'),
+      import('../../src/services/mcp/mcp-orb-capability-router'),
       import('../../src/services/mcp/mcp-envelope'),
+      import('../../src/services/mcp/mcp-p2p-session'),
+      import('../../src/services/mcp/mcp-pubsub-bus'),
+      import('../../src/services/mcp/mcp-remote-deontic-engine'),
+      import('../../src/services/mcp/mcp-scheduler'),
+      import('../../src/services/mcp/mcp-transport'),
+      import('../../src/services/mcp/policy-audit-log'),
+      import('../../src/services/mcp/swissknife-mcp-capability-registry'),
       import('../../src/services/integrations/flogic-ergoai-wrapper'),
       import('../../src/services/logic/bridges/bridge-multiview'),
       import('../../src/services/logic/shared/bridge-types'),
@@ -176,9 +226,11 @@ describe('WASM prover browser purity', () => {
       import('../../src/services/logic/tdfol/temporal-deontic-rag-store'),
       import('../../src/services/integrations/flogic-zkp-integration'),
       import('../../src/services/zkp/ethereum-zkp-bridge'),
+      import('../../src/services/zkp/groth16-cec-expansion'),
       import('../../src/services/zkp/browser'),
       import('../../src/services/zkp/zkp-attestation-bridge'),
       import('../../src/services/zkp/zkp-circuits'),
+      import('../../src/services/zkp/zkp-canonicalization-runtime'),
       import('../../src/services/zkp/zkp-onchain-pipeline'),
       import('../../src/services/zkp/zkp-provekit-cache'),
       import('../../src/services/zkp/zkp-provekit-public-inputs'),

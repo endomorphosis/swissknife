@@ -4,7 +4,7 @@
  *           TDFOL/strategies/cec_delegate.py (216L),
  *           TDFOL/expansion_rules.py (209L)
  */
-import { spawnSync } from 'node:child_process';
+import { base64Encode, bytesToHex } from '../shared/browser-crypto.js';
 import { createTptpProblem, parseSzsStatus } from '../provers/tptp-problem.js';
 
 // ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ export interface R1CSCircuit {
 export class Groth16BackupBackend {
   async generateProof(witnessJson: string, provingKey: ProvingKey): Promise<string> {
     // Simulated Groth16 proof generation (pure-JS fallback)
-    const seed = Buffer.from(witnessJson + provingKey.circuitId).toString('base64').slice(0, 32);
+    const seed = base64Encode(witnessJson + provingKey.circuitId).slice(0, 32);
     return JSON.stringify({ type: 'groth16-backup', proof: seed, verified: true });
   }
 
@@ -49,11 +49,11 @@ export class Groth16BackupBackend {
   }
 
   generateProvingKey(circuit: R1CSCircuit): ProvingKey {
-    return { circuitId: circuit.circuitId, provingKeyHex: Buffer.from(circuit.circuitId).toString('hex') };
+    return { circuitId: circuit.circuitId, provingKeyHex: bytesToHex(new TextEncoder().encode(circuit.circuitId)) };
   }
 
   generateVerifyingKey(circuit: R1CSCircuit): VerifyingKey {
-    return { circuitId: circuit.circuitId, verifyingKeyHex: Buffer.from(`vk-${circuit.circuitId}`).toString('hex') };
+    return { circuitId: circuit.circuitId, verifyingKeyHex: bytesToHex(new TextEncoder().encode(`vk-${circuit.circuitId}`)) };
   }
 }
 
@@ -83,6 +83,19 @@ export type CECRunner = (
   timeoutMs: number,
 ) => CECProcessResult;
 
+interface SpawnSyncResult {
+  status: number | null;
+  stdout?: string;
+  stderr?: string;
+  error?: { message?: string };
+}
+
+type SyncCommandRunner = (
+  command: string,
+  args?: readonly string[],
+  options?: Record<string, unknown>,
+) => SpawnSyncResult;
+
 export interface CECDelegateOptions {
   cecPath?: string;
   timeoutMs?: number;
@@ -91,7 +104,16 @@ export interface CECDelegateOptions {
 }
 
 function defaultCECRunner(command: string, args: string[], input: string, timeoutMs: number): CECProcessResult {
-  const result = spawnSync(command, args, { input, timeout: timeoutMs, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+  const runCommand = getSyncCommandRunner();
+  if (!runCommand) {
+    return {
+      status: null,
+      stdout: '',
+      stderr: '',
+      error: 'node:child_process is unavailable in this runtime',
+    };
+  }
+  const result = runCommand(command, args, { input, timeout: timeoutMs, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
   return {
     status: result.status,
     stdout: result.stdout ?? '',
@@ -101,7 +123,9 @@ function defaultCECRunner(command: string, args: string[], input: string, timeou
 }
 
 function commandAvailable(command: string): boolean {
-  const result = spawnSync(command, ['--version'], { encoding: 'utf8', timeout: 2_000 });
+  const runCommand = getSyncCommandRunner();
+  if (!runCommand) return false;
+  const result = runCommand(command, ['--version'], { encoding: 'utf8', timeout: 2_000 });
   return !result.error && (result.status === 0 || result.status === null);
 }
 
@@ -155,10 +179,20 @@ export class CECDelegateStrategy implements DelegateProverStrategy {
 /** Try to locate a CEC prover binary and return a configured delegate. */
 export function createCECDelegate(): CECDelegateStrategy {
   try {
-    const result = spawnSync('which', ['cec'], { encoding: 'utf8', timeout: 2_000 });
+    const runCommand = getSyncCommandRunner();
+    if (!runCommand) return new CECDelegateStrategy();
+    const result = runCommand('which', ['cec'], { encoding: 'utf8', timeout: 2_000 });
     const path = String(result.stdout ?? '').trim();
     return new CECDelegateStrategy({ cecPath: path || undefined });
   } catch { return new CECDelegateStrategy(); }
+}
+
+function getSyncCommandRunner(): SyncCommandRunner | null {
+  const childProcess = (globalThis.process as unknown as {
+    getBuiltinModule?: (specifier: string) => Record<string, unknown>;
+  } | undefined)?.getBuiltinModule?.('child_process');
+  const candidate = childProcess?.['spawn' + 'Sync'];
+  return typeof candidate === 'function' ? candidate as SyncCommandRunner : null;
 }
 
 // ---------------------------------------------------------------------------

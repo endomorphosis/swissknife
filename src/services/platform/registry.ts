@@ -5,7 +5,7 @@
  * and lifecycle methods.
  */
 
-import { EventEmitter } from 'events';
+import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
 
 export interface ServiceOptions {
   type?: string;
@@ -14,7 +14,7 @@ export interface ServiceOptions {
   inject?: (service: any, dependencies: Record<string, any>) => void;
 }
 
-export class ServiceRegistry extends EventEmitter {
+export class ServiceRegistry extends BrowserEventEmitter {
   private static instance: ServiceRegistry;
   private services: Map<string, any> = new Map();
   private options: Map<string, ServiceOptions> = new Map();

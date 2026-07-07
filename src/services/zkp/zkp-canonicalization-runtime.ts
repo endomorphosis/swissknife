@@ -7,7 +7,7 @@
  *           zkp/legal_theorem_semantics.py (153L)
  */
 
-import { createHash } from 'crypto';
+import { bytesToHex, hexToBytes, sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // T-312a — Canonicalization (canonicalization.py)
@@ -29,12 +29,12 @@ export function canonicalizeAxioms(axioms: string[]): string[] {
 }
 
 export function hashTheorem(theorem: string): Buffer {
-  return createHash('sha256').update(canonicalizeTheorem(theorem), 'utf8').digest();
+  return new DigestBytes(hexToBytes(sha256Hex(canonicalizeTheorem(theorem)))) as unknown as Buffer;
 }
 
 export function hashAxiomsCommitment(axioms: string[]): Buffer {
   const canonical = canonicalizeAxioms(axioms).join('\n');
-  return createHash('sha256').update(canonical, 'utf8').digest();
+  return new DigestBytes(hexToBytes(sha256Hex(canonical))) as unknown as Buffer;
 }
 
 export function theoremHashHex(theorem: string): string {
@@ -46,14 +46,13 @@ export function axiomsCommitmentHex(axioms: string[]): string {
 }
 
 export function sha256FieldInt(text: string): bigint {
-  const hash = createHash('sha256').update(text, 'utf8').digest();
-  return BigInt('0x' + hash.toString('hex'));
+  return BigInt('0x' + sha256Hex(text));
 }
 
 export function tdfolV1AxiomsCommitmentHexV2(axioms: string[]): string {
   const sorted = [...axioms].sort();
   const combined = sorted.join('\x00');
-  return createHash('sha256').update(combined, 'utf8').digest('hex');
+  return sha256Hex(combined);
 }
 
 // ---------------------------------------------------------------------------
@@ -64,12 +63,7 @@ const _featureCache = new Map<string, boolean>();
 
 export function isModuleAvailable(moduleName: string): boolean {
   if (_featureCache.has(moduleName)) return _featureCache.get(moduleName)!;
-
-  let available = false;
-  try {
-    require.resolve(moduleName);
-    available = true;
-  } catch { available = false; }
+  const available = getNodeBuiltin(moduleName) !== null;
 
   _featureCache.set(moduleName, available);
   return available;
@@ -78,8 +72,7 @@ export function isModuleAvailable(moduleName: string): boolean {
 export function clearFeatureDetectionCache(): void { _featureCache.clear(); }
 
 export function importOptionalModule<T = unknown>(moduleName: string): T | null {
-  if (!isModuleAvailable(moduleName)) return null;
-  try { return require(moduleName) as T; } catch { return null; }
+  return getNodeBuiltin(moduleName) as T | null;
 }
 
 export function warnOptionalImportsEnabled(): boolean {
@@ -158,7 +151,7 @@ export function rateLimit<T extends (...args: unknown[]) => unknown>(fn: T): T {
 
 export function computeVkHash(vk: unknown): string {
   const json = typeof vk === 'string' ? vk : JSON.stringify(vk);
-  return createHash('sha256').update(json, 'utf8').digest('hex');
+  return sha256Hex(json);
 }
 
 export interface VKRegistryEntry {
@@ -257,4 +250,18 @@ export function deriveTdfolV1Trace(privateAxioms: string[], theorem: string): st
   };
 
   return derive(parsedTheorem) ? trace : null;
+}
+
+class DigestBytes extends Uint8Array {
+  override toString(encoding = 'hex'): string {
+    if (encoding === 'hex') return bytesToHex(this);
+    if (encoding === 'utf8' || encoding === 'utf-8') return new TextDecoder().decode(this);
+    return bytesToHex(this);
+  }
+}
+
+function getNodeBuiltin(moduleName: string): unknown | null {
+  return ((globalThis.process as unknown as {
+    getBuiltinModule?: (specifier: string) => unknown;
+  } | undefined)?.getBuiltinModule?.(moduleName)) ?? null;
 }

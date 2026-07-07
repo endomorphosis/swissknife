@@ -1,8 +1,4 @@
 import {
-  createPublicKey,
-  verify as cryptoVerify,
-} from 'crypto';
-import {
   canonicalize,
   computeInterfaceCID,
   type InterfaceDescriptor,
@@ -11,6 +7,7 @@ import type {
   MCPUIDescriptorTrustMetadata,
   MCPUIProfileDescriptor,
 } from './mcp-ui-profile.js';
+import { base64UrlDecode, base64UrlEncode } from '../shared/browser-crypto.js';
 
 export interface MCPUIDescriptorTrustPolicy {
   require_signature?: boolean;
@@ -50,7 +47,7 @@ export function signMCPUIProfileDescriptor(
   const trust: MCPUIDescriptorTrustMetadata = {
     signed_by: signerDid,
     signature_algorithm: 'Ed25519',
-    signature: base64urlEncode(signature),
+    signature: base64UrlEncode(signature),
     signed_at: signedAt,
     canonical_cid: computeInterfaceCID(unsigned),
   };
@@ -121,7 +118,7 @@ export function verifyMCPUIProfileDescriptorTrust(
   try {
     signatureValid = keystore.verify(
       new Uint8Array(canonicalize(unsigned as InterfaceDescriptor)),
-      base64urlDecode(trust.signature),
+      base64UrlDecode(trust.signature),
       trust.signed_by,
     );
   } catch {
@@ -171,36 +168,36 @@ export function stripDescriptorTrust<TDescriptor extends Partial<MCPUIProfileDes
   return clone;
 }
 
-function base64urlEncode(bytes: Uint8Array): string {
-  return Buffer.from(bytes)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
-}
-
-function base64urlDecode(value: string): Uint8Array {
-  const padded = value.padEnd(value.length + ((4 - (value.length % 4)) % 4), '=');
-  return new Uint8Array(Buffer.from(padded.replace(/-/g, '+').replace(/_/g, '/'), 'base64'));
-}
-
 const didKeyVerifier: MCPUIDescriptorTrustKeystore = {
   sign(): Uint8Array {
     throw new Error('Descriptor signing requires an explicit keystore.');
   },
   verify(data: Uint8Array, signature: Uint8Array, did: string): boolean {
+    const nodeCrypto = getNodeCrypto();
+    if (!nodeCrypto) return false;
     try {
-      const publicKey = createPublicKey({
-        key: Buffer.from(buildEd25519SpkiDer(didToEd25519PublicKeyBytes(did))),
+      const publicKey = nodeCrypto.createPublicKey({
+        key: buildEd25519SpkiDer(didToEd25519PublicKeyBytes(did)),
         format: 'der',
         type: 'spki',
       });
-      return cryptoVerify(null, data, publicKey, signature);
+      return nodeCrypto.verify(null, data, publicKey, signature);
     } catch {
       return false;
     }
   },
 };
+
+type NodeCryptoModule = {
+  createPublicKey(options: { key: Uint8Array; format: 'der'; type: 'spki' }): unknown;
+  verify(algorithm: null, data: Uint8Array, key: unknown, signature: Uint8Array): boolean;
+};
+
+function getNodeCrypto(): NodeCryptoModule | null {
+  return ((globalThis.process as unknown as {
+    getBuiltinModule?: (specifier: string) => unknown;
+  } | undefined)?.getBuiltinModule?.('crypto') as NodeCryptoModule | undefined) ?? null;
+}
 
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const ED25519_MULTICODEC_PREFIX = new Uint8Array([0xed, 0x01]);

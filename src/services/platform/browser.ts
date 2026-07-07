@@ -5,6 +5,7 @@ export * from './model-streamer.js';
 export * from './observability-metrics-prometheus.js';
 export * from './otel-integration.js';
 export * from './prometheus-exporter.js';
+export * from './registry.js';
 export * from './resource-pool.js';
 export * from './security-core.js';
 export * from './sentry.js';

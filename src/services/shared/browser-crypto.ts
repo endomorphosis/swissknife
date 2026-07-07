@@ -171,6 +171,10 @@ export function base64UrlEncode(input: string | Uint8Array | ArrayBuffer | reado
   return out;
 }
 
+export function base64UrlDecode(input: string): Uint8Array {
+  return base64Decode(input.replace(/-/g, '+').replace(/_/g, '/'));
+}
+
 export function base64Encode(input: string | Uint8Array | ArrayBuffer | readonly number[]): string {
   const bytes = bytesFrom(input);
   let out = '';
@@ -186,6 +190,30 @@ export function base64Encode(input: string | Uint8Array | ArrayBuffer | readonly
     out += hasB3 ? BASE64[b3 & 0x3f] : '=';
   }
   return out;
+}
+
+export function base64Decode(input: string): Uint8Array {
+  const clean = input.replace(/\s+/g, '');
+  if (clean.length % 4 === 1) throw new Error('invalid base64 input length');
+  const padded = clean.padEnd(clean.length + ((4 - (clean.length % 4)) % 4), '=');
+  const out: number[] = [];
+
+  for (let i = 0; i < padded.length; i += 4) {
+    const c1 = base64Value(padded[i]);
+    const c2 = base64Value(padded[i + 1]);
+    const c3 = padded[i + 2] === '=' ? -1 : base64Value(padded[i + 2]);
+    const c4 = padded[i + 3] === '=' ? -1 : base64Value(padded[i + 3]);
+    if (c1 < 0 || c2 < 0 || (c3 < 0 && padded[i + 2] !== '=') || (c4 < 0 && padded[i + 3] !== '=')) {
+      throw new Error('invalid base64 character');
+    }
+    if (c3 < 0 && c4 >= 0) throw new Error('invalid base64 padding');
+
+    out.push((c1 << 2) | (c2 >> 4));
+    if (c3 >= 0) out.push(((c2 & 0x0f) << 4) | (c3 >> 2));
+    if (c4 >= 0 && c3 >= 0) out.push(((c3 & 0x03) << 6) | c4);
+  }
+
+  return new Uint8Array(out);
 }
 
 export function bytesToHex(input: Uint8Array | ArrayBuffer | readonly number[]): string {
@@ -265,6 +293,10 @@ function rotl(value: number, bits: number): number {
 
 function wordToHex(value: number): string {
   return value.toString(16).padStart(8, '0');
+}
+
+function base64Value(char: string): number {
+  return BASE64.indexOf(char);
 }
 
 function wordToLittleEndianHex(value: number): string {

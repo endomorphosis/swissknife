@@ -141,19 +141,20 @@ moving MCP EventDAG provenance into `mcp`, and adding an audit gate for active
 root-level service import specifiers, then adding explicit browser-safe and
 host-native MCP/platform/prover/ZKP entrypoints, replacing deterministic
 logic/IPFS/proof hash helpers with shared browser-safe crypto, and moving
-MCP envelope/IDL content addressing onto browser-safe bytes
+MCP envelope/IDL content addressing onto browser-safe bytes, then promoting
+browser-safe MCP libp2p defaults and event emitters
 on `2026-07-07`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 363 |
+| Service files | 365 |
 | Root-level service files | 0 |
 | Root compatibility shims | 0 |
 | Root implementation files | 0 |
 | Legacy root files | 0 |
 | Legacy path files | 0 |
 | Unknown files | 0 |
-| Import edges | 816 |
+| Import edges | 847 |
 | Forbidden cross-module imports | 0 |
 | Legacy root import specifiers | 0 |
 
