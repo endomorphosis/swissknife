@@ -137,19 +137,20 @@ containment, EventDAG, shared bridge-type moves, `logic.api`, MCP policy
 deontic ownership, shared NL/temporal helper moves, MCP control-surface
 ownership, strict dependency manifest reconciliation, Phase 1 root shim
 pruning, CEC/platform test-import retargeting, and
-NL/shared/modal/proof-engine plus MCP/glasses test-import retargeting on
+NL/shared/modal/proof-engine plus MCP/glasses/legacy sprint/deontic/FOL
+test-import retargeting on
 `2026-07-06`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 525 |
-| Root-level service files | 159 |
-| Root compatibility shims | 159 |
+| Service files | 486 |
+| Root-level service files | 120 |
+| Root compatibility shims | 120 |
 | Root implementation files | 0 |
-| Legacy root files | 159 |
+| Legacy root files | 120 |
 | Legacy path files | 26 |
 | Unknown files | 0 |
-| Import edges | 904 |
+| Import edges | 865 |
 | Forbidden cross-module imports | 0 |
 
 The final acceptance target is fewer than 20 files directly under

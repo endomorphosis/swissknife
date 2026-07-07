@@ -13,7 +13,7 @@ import {
   TDFOLStrategy,
   createDefaultStrategySelector,
   estimateFormulaCost,
-} from '../../src/services/tdfol-strategy-router';
+} from '../../src/services/logic/tdfol/tdfol-strategy-router';
 import { TDFOLProver, ProofStatus } from '../../src/services/tdfol-prover';
 import { TDFOLKnowledgeBase, mkPredicate } from '../../src/services/tdfol-core';
 

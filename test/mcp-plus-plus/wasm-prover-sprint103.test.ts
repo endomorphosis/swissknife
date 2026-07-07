@@ -13,7 +13,7 @@ import {
   DCECStringParser,
   parseDcec,
   parseDcecSafe,
-} from '../../src/services/tdfol-dcec-parser';
+} from '../../src/services/logic/tdfol/tdfol-dcec-parser';
 import {
   MVPCircuit,
   TDFOLv1DerivationCircuit,

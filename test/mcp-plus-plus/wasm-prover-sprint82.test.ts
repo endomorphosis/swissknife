@@ -37,7 +37,7 @@ import {
   detectRuntimeFeature,
   importOptionalModule,
   isModuleAvailable,
-} from '../../src/services/feature-detection';
+} from '../../src/services/platform/feature-detection';
 import {
   UtilityMonitor,
   clearGlobalCache,
@@ -46,7 +46,7 @@ import {
   resetGlobalStats,
   trackPerformance,
   withCaching,
-} from '../../src/services/utility-monitor';
+} from '../../src/services/platform/utility-monitor';
 
 // ---------------------------------------------------------------------------
 // PORT-179 — dedicated Portuguese CEC/NL parser

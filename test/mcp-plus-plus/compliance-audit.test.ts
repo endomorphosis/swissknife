@@ -15,7 +15,7 @@ import {
   addMCPPPBaseRules,
   type ComplianceResult,
   type MCPPPComplianceContext,
-} from '../../src/services/compliance-checker';
+} from '../../src/services/logic/deontic/compliance-checker';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

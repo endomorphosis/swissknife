@@ -9,7 +9,7 @@ import {
   ProverConfig,
   SecurityConfig,
   loadConfig,
-} from '../../src/services/logic-config';
+} from '../../src/services/logic/shared/logic-config';
 import {
   BridgeError,
   ConfigurationError,

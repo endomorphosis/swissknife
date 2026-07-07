@@ -18,7 +18,7 @@ import {
   VampireAdapter, checkVampireInstallation, type VampireProcessResult,
   UtilityMonitor, trackPerformance, withCaching, getGlobalStats, clearGlobalCache, resetGlobalStats,
   normalizeProverName, findExecutable, isLazyInstallEnabled, lazyInstallProver,
-} from '../../src/services/sprint66-prover-utils';
+} from '../../src/services/legacy/sprint66-prover-utils';
 
 // ---------------------------------------------------------------------------
 // DCEC Enums

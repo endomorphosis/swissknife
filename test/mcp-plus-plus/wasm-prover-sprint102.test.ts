@@ -23,11 +23,11 @@ import {
   FOLBatchProcessor,
   LogicBatchResult,
   ProofBatchProcessor,
-} from '../../src/services/logic-batch-processing';
+} from '../../src/services/logic/api/logic-batch-processing';
 import {
   compileExplainIter,
   evaluateWithManager,
-} from '../../src/services/logic-api-remainders';
+} from '../../src/services/logic/shared/logic-api-remainders';
 
 describe('PORT-226 FOL text utilities', () => {
   it('formats FOL into Python-compatible Prolog, TPTP, JSON, and metadata shapes', () => {

@@ -18,7 +18,7 @@ import {
   printDebugReport,
   queryTheoremsFromParameters,
 } from '../../src/services/temporal-deontic-api';
-import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/nlp-predicate-extractor';
+import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/logic/fol/nlp-predicate-extractor';
 import {
   FormulaProfiler, BottleneckAnalyzer, ProfilingReporter,
 } from '../../src/services/logic/cec/cec-resolution-rules';

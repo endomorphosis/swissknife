@@ -13,7 +13,7 @@ import {
 import {
   AuditLogger,
   resetAuditLogger,
-} from '../../src/services/logic-audit-log';
+} from '../../src/services/logic/shared/logic-audit-log';
 import {
   ProveKitArtifactManifest,
   buildProveKitArtifactManifest,
@@ -22,7 +22,7 @@ import {
   saveProveKitArtifactManifest,
   sha256Directory,
   sha256File,
-} from '../../src/services/zkp-provekit-artifacts';
+} from '../../src/services/zkp/zkp-provekit-artifacts';
 import {
   buildProveKitIpfsPayload,
   buildProveKitProofCacheKey,
@@ -32,7 +32,7 @@ import {
 import {
   Groth16SetupArtifacts,
   storeGroth16SetupArtifactsInIpfs,
-} from '../../src/services/zkp-provekit-setup-artifacts';
+} from '../../src/services/zkp/zkp-provekit-setup-artifacts';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

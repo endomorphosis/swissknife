@@ -8,7 +8,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { createTptpProblem, extractTptpProofSteps, parseSzsStatus } from '../tptp-problem';
+import { createTptpProblem, extractTptpProofSteps, parseSzsStatus } from '../provers/tptp-problem.js';
 import { Groth16Backend, type ZKPBackendProtocol } from '../zkp-backends';
 
 // ---------------------------------------------------------------------------

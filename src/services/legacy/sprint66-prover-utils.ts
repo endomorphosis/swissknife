@@ -6,7 +6,7 @@
  *           external_provers/lazy_installer.py (229L)
  */
 import { spawnSync } from 'node:child_process';
-import { createTptpProblem, extractTptpProofSteps, parseSzsStatus } from '../tptp-problem';
+import { createTptpProblem, extractTptpProofSteps, parseSzsStatus } from '../provers/tptp-problem.js';
 
 // ---------------------------------------------------------------------------
 // T-308a — Strategy Selector (strategy_selector.py)

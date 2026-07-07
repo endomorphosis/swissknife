@@ -11,7 +11,7 @@ import {
   EngDCECWrapper,
   DCECStatement, DCECLibraryWrapper,
   ZKPVerifier,
-} from '../../src/services/sprint68-prover-wrappers';
+} from '../../src/services/legacy/sprint68-prover-wrappers';
 
 import {
   normalizeBytes32Hex, vkHashHexToBytes32, circuitIdTextToBytes32,
@@ -27,7 +27,7 @@ import {
   validateText, validateFormula, validateFormulaList, ValidationError, InputValidator,
   LogicTranslationTarget,
   getGlobalProofCache, clearGlobalProofCache,
-} from '../../src/services/sprint68-utils-types';
+} from '../../src/services/legacy/sprint68-utils-types';
 
 // ---------------------------------------------------------------------------
 // TalosWrapper

@@ -11,15 +11,15 @@ import {
   CircuitBreakerState,
   PrometheusMetricsCollector,
   getPrometheusCollector,
-} from '../../src/services/observability-metrics-prometheus';
+} from '../../src/services/platform/observability-metrics-prometheus';
 import {
   ensureCoq,
   ensureCvc5,
   ensureErgoai,
   ensureLean,
   ensureSymbolicai,
-} from '../../src/services/prover-installer';
-import { resolveErgoBinary } from '../../src/services/ergoai-wrapper';
+} from '../../src/services/proof-engine/prover-installer';
+import { resolveErgoBinary } from '../../src/services/integrations/ergoai-wrapper';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

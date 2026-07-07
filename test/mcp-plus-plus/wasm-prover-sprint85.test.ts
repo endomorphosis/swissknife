@@ -11,7 +11,7 @@ import {
   getSecurityAuditLog,
   rateLimit,
   resetSecurityAuditLog,
-} from '../../src/services/security-core';
+} from '../../src/services/platform/security-core';
 import {
   convertFormula,
   convertFormulaBatch,
@@ -25,7 +25,7 @@ import {
   DeonticTypes,
   FOLTypes,
   TranslationTypes,
-} from '../../src/services/logic-type-modules';
+} from '../../src/services/logic/shared/logic-type-modules';
 import {
   BoundedCache,
   ProofCache,

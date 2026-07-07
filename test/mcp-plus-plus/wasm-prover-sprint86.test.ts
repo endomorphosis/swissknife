@@ -10,7 +10,7 @@ import {
   parseSzsStatus,
   parseTptpFormulas,
   parseTptpProblem,
-} from '../../src/services/tptp-problem';
+} from '../../src/services/provers/tptp-problem';
 import {
   convertFolToProlog,
   convertFolToTptp,

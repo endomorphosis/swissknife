@@ -25,12 +25,12 @@ import {
   ALL_DEONTIC_RULES, findApplicableDeonticRules,
   obligation, permission, prohibition,
   DeonticOp,
-} from '../../src/services/deontic-inference-rules';
+} from '../../src/services/logic/deontic/deontic-inference-rules';
 import { atom, binary, unary, LogicOperator } from '../../src/services/temporal-inference-rules';
 
 import {
   Event, Fluent, TimePoint, EventCalculus,
-} from '../../src/services/event-calculus';
+} from '../../src/services/logic/cec/event-calculus';
 
 import {
   FrenchPatternMatcher, FrenchParser,

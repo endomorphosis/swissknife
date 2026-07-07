@@ -22,7 +22,7 @@ import { Groth16BackendFallback } from '../../src/services/zkp-backends';
 import {
   LegalModalAutoencoderLoop,
   defaultAutoencoderConfig,
-} from '../../src/services/modal-autoencoder-loop';
+} from '../../src/services/logic/modal/modal-autoencoder-loop';
 
 // ---------------------------------------------------------------------------
 // DCEC Core Types tests

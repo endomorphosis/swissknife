@@ -9,7 +9,7 @@ import {
   IPFSProofStorage, getDefaultProofStorage,
   TPTPParser, ProblemParser, parseProblemFile,
   GrammarLoader, getGrammarLoader,
-} from '../../src/services/sprint65-storage-parsers';
+} from '../../src/services/legacy/sprint65-storage-parsers';
 
 import {
   getBasicAxioms, getBasicProofRules, validateFormulaSyntax,
@@ -18,7 +18,7 @@ import {
   DeonticPatterns, extractKeywords, calculateTextSimilarity, areEntitiesSimilar, areActionsSimilar,
   WitnessManager,
   EProverAdapter, checkEproverInstallation, EProverProofResult, type EProverProcessResult,
-} from '../../src/services/sprint65-utils';
+} from '../../src/services/legacy/sprint65-utils';
 import { Groth16BackendFallback, Groth16Proof } from '../../src/services/zkp-backends';
 
 // ---------------------------------------------------------------------------

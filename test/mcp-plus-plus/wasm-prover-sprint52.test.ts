@@ -16,7 +16,7 @@ import {
 import {
   FluentType, PersistenceRule, FluentManager,
 } from '../../src/services/logic/cec/cec-fluents';
-import { TimePoint } from '../../src/services/event-calculus';
+import { TimePoint } from '../../src/services/logic/cec/event-calculus';
 
 import {
   isFormulaDict, isProofResultDict,
@@ -29,7 +29,7 @@ import {
   toNoirTraceFieldInputs, toPublicMetadata,
   theoremHashHex,
   MAX_TRACE_STEPS, CIRCUIT_REF, RULESET_ID,
-} from '../../src/services/zkp-trace';
+} from '../../src/services/zkp/zkp-trace';
 
 // ---------------------------------------------------------------------------
 // SpanishPatternMatcher tests

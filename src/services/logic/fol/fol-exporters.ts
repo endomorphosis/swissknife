@@ -5,7 +5,7 @@
  * external theorem prover interop.
  */
 
-import { formulaToTptp } from '../../tptp-problem.js';
+import { formulaToTptp } from '../../provers/tptp-problem.js';
 
 export type FolExportFormat = 'prolog' | 'tptp' | 'tptp-cnf' | 'prefix';
 

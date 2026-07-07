@@ -34,7 +34,7 @@ import {
   toSmtLib2,
   checkZ3Installation,
   getZ3Version,
-} from '../../src/services/z3-adapter';
+} from '../../src/services/provers/z3-adapter';
 
 import {
   CECFramework,
