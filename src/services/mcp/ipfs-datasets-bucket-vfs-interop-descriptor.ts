@@ -1,10 +1,12 @@
 /**
  * SwissKnife <-> external/ipfs_datasets bucket-VFS interoperability descriptor.
  *
- * MGW-571 objective validation repair: interface contract
+ * VAI-663 objective validation repair: interface contract
  * swissknife external/ipfs_datasets,
  * goal_packet/interoperability/swissknife/06921590135c,
+ * data/virtual_ai_os/discovery/2026-07-08-vai-663-objective-validation-repair.md,
  * tests/integration/test_swissknife_external_ipfs_datasets_interop.py.
+ * Historical proof: MGW-571.
  *
  * `external/ipfs_datasets` bundles a vendored `.tools/ipfs_kit_py` tree that
  * ships the bucket-VFS MCP tool surface, the unified bucket interface, and a
@@ -182,11 +184,14 @@ export const SWISSKNIFE_IPFS_DATASETS_INTEROP_DESCRIPTOR = {
     control_surface_policy_id: 'policy:swissknife:ipfs-datasets-bucket-vfs-interop',
   },
   validation: {
-    task_id: 'MGW-571',
+    task_id: 'VAI-663',
+    legacy_task_id: 'MGW-571',
     goal_id: 'VAIOS-G702',
     objective_gap_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-571-objective-gap-c21adb3eb488.md',
+      'data/virtual_ai_os/discovery/2026-07-08-vai-663-objective-gap-c21adb3eb488.md',
     validation_repair_ref:
+      'data/virtual_ai_os/discovery/2026-07-08-vai-663-objective-validation-repair.md',
+    historical_validation_repair_ref:
       'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-571-objective-validation-repair.md',
     evidence: 'objective validation repair',
   },
