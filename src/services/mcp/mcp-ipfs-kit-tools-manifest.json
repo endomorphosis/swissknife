@@ -548,3 +548,62 @@
     }
   ]
 }
+{
+  "profiles": [
+    "mcp++/profile-a-idl",
+    "mcp++/profile-b-cid-artifacts",
+    "mcp++/profile-c-ucan",
+    "mcp++/profile-d-temporal-policy",
+    "mcp++/profile-e-mcp-p2p"
+  ],
+  "protocol": "mcp++",
+  "server": "ipfs_kit_py",
+  "tools": [
+    {
+      "category": "pin_tools",
+      "description": "Pin a CID in ipfs_kit.",
+      "inputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "cid": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "cid"
+        ],
+        "type": "object"
+      },
+      "name": "pin_tools/pin_add",
+      "tags": [
+        "ipfs",
+        "pin",
+        "mcp++"
+      ]
+    },
+    {
+      "category": "pin_tools",
+      "description": "Unpin a CID in ipfs_kit.",
+      "inputSchema": {
+        "additionalProperties": true,
+        "properties": {
+          "cid": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "cid"
+        ],
+        "type": "object"
+      },
+      "name": "pin_tools/pin_rm",
+      "tags": [
+        "ipfs",
+        "pin",
+        "mcp++"
+      ]
+    }
+  ]
+}
