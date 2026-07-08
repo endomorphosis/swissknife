@@ -138,6 +138,19 @@
           "type": "object",
           "additionalProperties": true
         },
+        "arguments_hash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable hash or content-addressed reference for normalized_intent.arguments."
+        },
+        "allowed_surfaces": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
         "confidence": {
           "type": "number",
           "minimum": 0,
@@ -162,6 +175,47 @@
           "items": {
             "type": "string"
           }
+        },
+        "agent_identity": {
+          "$ref": "#/$defs/agentIdentity"
+        }
+      },
+      "additionalProperties": false
+    },
+    "agentIdentity": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["user", "agent", "system", "remote_client", "device"]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "edge_session_id": {
+          "type": ["string", "null"]
+        },
+        "platform": {
+          "type": "string"
+        },
+        "delegation_chain": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowed_surfaces": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
         }
       },
       "additionalProperties": false

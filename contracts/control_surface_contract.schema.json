@@ -337,6 +337,104 @@
       },
       "additionalProperties": false
     },
+    "interopTarget": {
+      "type": "object",
+      "required": ["target_id", "submodule", "contract_refs", "allowed_surfaces", "runtime_handoff"],
+      "properties": {
+        "target_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "submodule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective_goal_id": {
+          "type": "string",
+          "pattern": "^VAIOS-G\\d+$"
+        },
+        "objective_packet_goals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^VAIOS-G\\d+$"
+          },
+          "uniqueItems": true
+        },
+        "descriptor_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "contract_refs": {
+          "type": "object",
+          "required": ["control_surface_contract_schema_ref", "interaction_envelope_schema_ref"],
+          "properties": {
+            "control_surface_contract_schema_ref": {
+              "type": "string",
+              "const": "control_surface_contract"
+            },
+            "interaction_envelope_schema_ref": {
+              "type": "string",
+              "const": "interaction_envelope"
+            },
+            "policy_decision_schema_ref": {
+              "type": "string",
+              "const": "policy_decision"
+            },
+            "mediation_receipt_schema_ref": {
+              "type": "string",
+              "const": "mediation_receipt"
+            },
+            "mcp_plus_plus_compatibility_receipt_schema_ref": {
+              "type": "string",
+              "const": "mcp_plus_plus_compatibility_receipt"
+            }
+          },
+          "additionalProperties": false
+        },
+        "allowed_surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "runtime_handoff": {
+          "type": "object",
+          "required": ["agent_identity", "arguments_hash", "receipt_chain"],
+          "properties": {
+            "agent_identity": {
+              "type": "boolean"
+            },
+            "arguments_hash": {
+              "type": "boolean"
+            },
+            "receipt_chain": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "interaction_envelope",
+                  "policy_decision",
+                  "mediation_receipt",
+                  "mcp_plus_plus_compatibility_receipt"
+                ]
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "controlSurfaceContract": {
       "type": "object",
       "required": [
@@ -386,6 +484,12 @@
         },
         "mediation_receipts": {
           "$ref": "#/$defs/mediationReceipts"
+        },
+        "interop_targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/interopTarget"
+          }
         }
       },
       "additionalProperties": false
