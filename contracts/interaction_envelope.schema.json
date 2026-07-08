@@ -3,6 +3,7 @@
   "$id": "https://hallucinate.app/contracts/interaction_envelope.schema.json",
   "title": "interaction_envelope",
   "description": "Canonical normalized interaction payload emitted by voice, gesture, pointer, remote client, and agent control surfaces before policy mediation.",
+  "$comment": "VAI-661 objective validation repair: interface contract swissknife mobile validates SwissKnife-originated mobile ORB interaction envelopes with this schema.",
   "type": "object",
   "required": [
     "interaction_id",
