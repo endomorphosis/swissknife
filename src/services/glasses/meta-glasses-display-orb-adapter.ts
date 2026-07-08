@@ -40,6 +40,15 @@ export const META_GLASSES_DISPLAY_ORB_OPERATIONS = [
   'subscribe_updates',
 ] as const;
 
+export const SWISSKNIFE_MOBILE_INTEROP_CONTRACT =
+  'interface contract swissknife mobile';
+export const SWISSKNIFE_MOBILE_INTEROP_CONTRACT_ID =
+  'handsfree.meta-glasses/swissknife-mobile-interop@0.1.0';
+export const SWISSKNIFE_MOBILE_CONTROL_SURFACE_CONTRACT_REF =
+  'control_surface_contract:swissknife-mobile:display-widget';
+export const SWISSKNIFE_MOBILE_INTERACTION_ENVELOPE_REF =
+  'interaction_envelope:swissknife-mobile:display-widget';
+
 export type MetaGlassesDisplayORBOperation =
   (typeof META_GLASSES_DISPLAY_ORB_OPERATIONS)[number];
 
@@ -78,12 +87,18 @@ export interface MetaGlassesDisplayORBInput {
 }
 
 export interface MetaGlassesDisplayMobileAction {
+  contract: 'handsfree.meta-glasses/display-widget-action@0.1.0';
+  interop_contract: typeof SWISSKNIFE_MOBILE_INTEROP_CONTRACT;
+  interop_contract_id: typeof SWISSKNIFE_MOBILE_INTEROP_CONTRACT_ID;
   type: MetaGlassesDisplayMobileActionType;
   operation: MetaGlassesDisplayORBOperation;
   correlation_id: string;
   request_id?: string;
   widget_id: string;
   interface_cid: string;
+  control_surface_contract_ref: typeof SWISSKNIFE_MOBILE_CONTROL_SURFACE_CONTRACT_REF;
+  interaction_envelope_ref: typeof SWISSKNIFE_MOBILE_INTERACTION_ENVELOPE_REF;
+  schema_refs: string[];
   widget_cid?: string;
   manifest?: MetaGlassesWidgetManifest;
   patch?: Record<string, MetaGlassesJSONValue>;
@@ -820,12 +835,23 @@ function baseMobileAction(
 ): MetaGlassesDisplayMobileAction {
   const widgetId = widgetIdOverride ?? manifestOrUndefined?.widget_id ?? input.widget_id ?? defaultWidgetId(binding.descriptor);
   return omitUndefined({
+    contract: 'handsfree.meta-glasses/display-widget-action@0.1.0',
+    interop_contract: SWISSKNIFE_MOBILE_INTEROP_CONTRACT,
+    interop_contract_id: SWISSKNIFE_MOBILE_INTEROP_CONTRACT_ID,
     type: MOBILE_ACTION_TYPES[operation],
     operation,
     correlation_id: context.correlation_id,
     request_id: input.request_id ?? input.idempotency_key,
     widget_id: widgetId,
     interface_cid: binding.interface_cid,
+    control_surface_contract_ref: SWISSKNIFE_MOBILE_CONTROL_SURFACE_CONTRACT_REF,
+    interaction_envelope_ref: SWISSKNIFE_MOBILE_INTERACTION_ENVELOPE_REF,
+    schema_refs: [
+      'control_surface_contract',
+      'interaction_envelope',
+      'mcp_plus_plus_compatibility_receipt',
+      'mediation_receipt',
+    ],
     widget_cid: manifestOrUndefined?.widget_cid,
     fallback: manifestOrUndefined?.fallback,
     issued_at: new Date().toISOString(),

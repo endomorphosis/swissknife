@@ -387,6 +387,10 @@ const MOBILE_ORB_RESPONSE_DISPATCH_CAPABILITY = 'mobile/orb.response.dispatch';
 const MOBILE_ORB_BINDING_REVOKE_CAPABILITY = 'mobile/orb.binding.revoke';
 const OBJECT_SCHEMA = { type: 'object', additionalProperties: true } as const;
 const CONTROL_SURFACE_CONTRACT_REF = 'control_surface_contract:hallucinate-app:remote-client';
+export const SWISSKNIFE_MOBILE_INTEROP_CONTRACT =
+  'interface contract swissknife mobile';
+export const SWISSKNIFE_MOBILE_INTEROP_CONTRACT_ID =
+  'handsfree.meta-glasses/swissknife-mobile-interop@0.1.0';
 const CONTROL_SURFACE_POLICY_BUNDLE_REF = {
   policy_id: 'policy:hallucinate-app:remote-client-transport',
   policy_cid: 'local:hallucinate-app:remote-client-transport',
@@ -535,6 +539,9 @@ export function createMetaGlassesMobileORBBridgeDescriptor(
       ],
     },
     data_contracts: {
+      interop_contract: SWISSKNIFE_MOBILE_INTEROP_CONTRACT,
+      interop_contract_id: SWISSKNIFE_MOBILE_INTEROP_CONTRACT_ID,
+      schema_refs: CONTROL_SURFACE_SCHEMA_REFS,
       operations: operations.map(operation => ({
         method: operation,
         title: titleForOperation(operation),

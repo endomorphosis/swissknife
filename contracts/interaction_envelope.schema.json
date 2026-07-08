@@ -55,6 +55,27 @@
       "items": {
         "$ref": "#/$defs/selectedLogicBinding"
       }
+    },
+    "interop_contract": {
+      "type": "string",
+      "description": "Scanner-visible interoperability assertion, for example interface contract swissknife mobile."
+    },
+    "interop_contract_id": {
+      "type": "string"
+    },
+    "schema_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "control_surface_contract",
+          "interaction_envelope",
+          "policy_decision",
+          "mediation_receipt",
+          "mcp_plus_plus_compatibility_receipt"
+        ]
+      },
+      "uniqueItems": true
     }
   },
   "additionalProperties": false,
