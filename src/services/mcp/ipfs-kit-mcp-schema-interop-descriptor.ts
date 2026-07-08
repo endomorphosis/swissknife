@@ -1,7 +1,7 @@
 /**
  * SwissKnife <-> external/ipfs_kit MCP schema interoperability descriptor.
  *
- * MGW-572 objective validation repair: interface contract
+ * VAI-664 objective validation repair: interface contract
  * swissknife external/ipfs_kit,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_ipfs_kit_interop.py.
@@ -175,12 +175,12 @@ export const SWISSKNIFE_IPFS_KIT_INTEROP_DESCRIPTOR = {
     control_surface_policy_id: 'policy:swissknife:ipfs-kit-mcp-schema-interop',
   },
   validation: {
-    task_id: 'MGW-572',
+    task_id: 'VAI-664',
     goal_id: 'VAIOS-G703',
     objective_gap_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-572-objective-gap-f463532ba4e3.md',
+      'data/virtual_ai_os/discovery/2026-07-08-vai-664-objective-gap-f463532ba4e3.md',
     validation_repair_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-572-objective-validation-repair.md',
+      'data/virtual_ai_os/discovery/2026-07-08-vai-664-objective-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
@@ -337,7 +337,7 @@ export function buildSwissKnifeIPFSKitInteractionEnvelope() {
 export function buildSwissKnifeIPFSKitMCPPlusPlusCompatibilityReceipt() {
   return {
     receipt_schema: 'mcp_plus_plus_compatibility_receipt_v1',
-    task_id: 'MGW-572',
+    task_id: 'VAI-664',
     session_id: 'session:swissknife-ipfs-kit-mcp-schema',
     correlation_id: 'corr:swissknife-ipfs-kit-mcp-schema',
     daemon_id: 'ipfs_kit',
