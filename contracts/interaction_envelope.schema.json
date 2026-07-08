@@ -55,6 +55,18 @@
       "items": {
         "$ref": "#/$defs/selectedLogicBinding"
       }
+    },
+    "interface_contract": {
+      "type": "string",
+      "const": "interface contract swissknife mobile"
+    },
+    "source_module": {
+      "type": "string",
+      "const": "swissknife"
+    },
+    "target_module": {
+      "type": "string",
+      "const": "mobile"
     }
   },
   "additionalProperties": false,
@@ -138,6 +150,10 @@
           "type": "object",
           "additionalProperties": true
         },
+        "arguments_hash": {
+          "type": "string",
+          "minLength": 1
+        },
         "confidence": {
           "type": "number",
           "minimum": 0,
@@ -162,6 +178,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "agent_identity": {
+          "type": "string",
+          "description": "Stable user, agent, or remote-client identity bound to the mobile handoff."
         }
       },
       "additionalProperties": false
@@ -199,6 +219,13 @@
         "device_context": {
           "type": "object",
           "additionalProperties": true
+        },
+        "allowed_surfaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
         }
       },
       "additionalProperties": false

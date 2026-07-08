@@ -337,6 +337,57 @@
       },
       "additionalProperties": false
     },
+    "interopProfile": {
+      "type": "object",
+      "required": ["interface_contract", "source_module", "target_module", "schema_refs"],
+      "properties": {
+        "interface_contract": {
+          "type": "string",
+          "const": "interface contract swissknife mobile"
+        },
+        "source_module": {
+          "type": "string",
+          "const": "swissknife"
+        },
+        "target_module": {
+          "type": "string",
+          "const": "mobile"
+        },
+        "schema_refs": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "enum": [
+              "control_surface_contract",
+              "interaction_envelope",
+              "policy_decision",
+              "mediation_receipt"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "runtime_handoff": {
+          "type": "object",
+          "properties": {
+            "registration_operation": {
+              "type": "string"
+            },
+            "event_operation": {
+              "type": "string"
+            },
+            "invocation_operation": {
+              "type": "string"
+            },
+            "response_operation": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "controlSurfaceContract": {
       "type": "object",
       "required": [
@@ -386,6 +437,9 @@
         },
         "mediation_receipts": {
           "$ref": "#/$defs/mediationReceipts"
+        },
+        "interop_profile": {
+          "$ref": "#/$defs/interopProfile"
         }
       },
       "additionalProperties": false
