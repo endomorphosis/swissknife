@@ -11,5 +11,8 @@ export * from './apps/swissknife-mcp-capability-registry';
 // MCP++
 // HAO-674
 // ipfs_kit_py ipfs-kit
+// port: 8014
 // ipfs_datasets_py ipfs-datasets
+// port: 3002
 // ipfs_accelerate_py ipfs-accelerate
+// port: 3003
