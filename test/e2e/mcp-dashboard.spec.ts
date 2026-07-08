@@ -33,6 +33,15 @@ const VAI_512_CONSUMPTION_RECEIPT = path.resolve(
   'fixtures',
   'vai-512-hallucinate-swissknife-mcp-dashboard-consumption.json',
 );
+const HAO_729_LAUNCH_GATE_FIXTURE = path.resolve(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-729-mcp-dashboard-launch-gate.json',
+);
 const HAO_681_CATALOG_CONSUMER_FIXTURE = path.resolve(
   process.cwd(),
   'test',
@@ -179,6 +188,35 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
       mutation: false,
       expected_receipt: 'ipfs_accelerate_hardware_profile_probe',
     });
+  });
+
+  test('consumes the HAO-729 VAIOS-G723 launch Playwright validation gate', () => {
+    const catalog = readJson<any>(DASHBOARD_CATALOG_FIXTURE);
+    const receipt = readJson<any>(HAO_729_LAUNCH_GATE_FIXTURE);
+    const launchGate = catalog.launch_validation_gates.find((gate: any) => gate.task_id === 'HAO-729');
+
+    expect(launchGate).toEqual(receipt);
+    expect(launchGate).toMatchObject({
+      task_id: 'HAO-729',
+      goal_id: 'VAIOS-G723',
+      evidence_term: 'launch Playwright validation gate',
+      supervisor_gap_receipt: 'data/hallucinate_multimodal_control/discovery/2026-06-30-hao-729-objective-gap-7ea369464239.md',
+      launch_gate_receipt: 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-729-mcp-dashboard-launch-gate.md',
+      receipt_fixture: 'hallucinate_app/test/e2e/fixtures/hao-729-mcp-dashboard-launch-gate.json',
+      gate_state: 'gate_closed_by_playwright_validation',
+      related_task_ids: ['HAO-729', 'HAO-750'],
+    });
+    expect(launchGate.validation_commands).toContain(
+      'cd hallucinate_app && (env -u DISPLAY -u WAYLAND_DISPLAY HALLUCINATE_APP_E2E_NO_BOOTSTRAP=true node scripts/run_playwright_test.mjs --help || test $? -eq 78)'
+    );
+    expect(launchGate.required_evidence).toEqual(expect.arrayContaining([
+      'dashboard capability catalog',
+      'backend service catalog',
+      'mediated tool-call receipts',
+      'Swissknife consumers',
+      'Playwright coverage',
+      'launch Playwright validation gate',
+    ]));
   });
 
   test('proves HAO-681 storage, dataset, and compute apps consume the Hallucinate App MCP dashboard catalog', () => {
