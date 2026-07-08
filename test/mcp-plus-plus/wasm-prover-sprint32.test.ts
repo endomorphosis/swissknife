@@ -8,15 +8,15 @@ import {
   QueryType, DeonticOp, makeDeonticFormula, makeRuleSet,
   QueryResult, ComplianceResult, DeonticQueryEngine, createQueryEngine,
   queryLegalRules,
-} from '../../src/services/deontic-query-engine.js';
+} from '../../src/services/logic/deontic/deontic-query-engine.js';
 import {
   LegalConceptType, LegalDomainKind,
   makeLegalPattern, makeAgentPattern, LegalDomainKnowledge,
-} from '../../src/services/legal-domain-knowledge.js';
+} from '../../src/services/logic/shared/legal-domain-knowledge.js';
 import {
   TDFOLGrammarBridge, NaturalLanguageTDFOLInterface, parseNl, explainFormula,
-} from '../../src/services/tdfol-grammar-bridge.js';
-import { mkPredicate, mkDeontic } from '../../src/services/tdfol-core.js';
+} from '../../src/services/logic/tdfol/tdfol-grammar-bridge.js';
+import { mkPredicate, mkDeontic } from '../../src/services/logic/tdfol/tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // Build test rule sets

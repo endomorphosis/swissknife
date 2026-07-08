@@ -3,9 +3,9 @@
  * This file provides utilities for working with MCP configuration
  */
 
-import fs from 'fs/promises.js';
-import path from 'path.js';
-import os from 'os.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 
 /**
  * MCP Server configuration type
@@ -54,7 +54,7 @@ async function ensureConfigDir() {
 /**
  * Gets the current project configuration
  */
-export async function getCurrentProjectConfig(): Promise<ProjectConfig> {
+export async function getCurrentProjectConfig() {
   try {
     const configData = await fs.readFile(PROJECT_CONFIG_FILE, 'utf-8');
     return JSON.parse(configData);
@@ -67,7 +67,7 @@ export async function getCurrentProjectConfig(): Promise<ProjectConfig> {
 /**
  * Saves the current project configuration
  */
-export async function saveCurrentProjectConfig(config: ProjectConfig): Promise<void> {
+export async function saveCurrentProjectConfig(config) {
   const configData = JSON.stringify(config, null, 2);
   await fs.writeFile(PROJECT_CONFIG_FILE, configData, 'utf-8');
 }
@@ -75,7 +75,7 @@ export async function saveCurrentProjectConfig(config: ProjectConfig): Promise<v
 /**
  * Gets the global configuration
  */
-export async function getGlobalConfig(): Promise<GlobalConfig> {
+export async function getGlobalConfig() {
   try {
     await ensureConfigDir();
     const configData = await fs.readFile(GLOBAL_CONFIG_FILE, 'utf-8');
@@ -89,7 +89,7 @@ export async function getGlobalConfig(): Promise<GlobalConfig> {
 /**
  * Saves the global configuration
  */
-export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
+export async function saveGlobalConfig(config) {
   await ensureConfigDir();
   const configData = JSON.stringify(config, null, 2);
   await fs.writeFile(GLOBAL_CONFIG_FILE, configData, 'utf-8');
@@ -98,7 +98,7 @@ export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
 /**
  * Gets configuration from .mcprc file
  */
-export async function getMcprcConfig(): Promise<any> {
+export async function getMcprcConfig() {
   try {
     await ensureConfigDir();
     const configData = await fs.readFile(MCPRC_FILE, 'utf-8');

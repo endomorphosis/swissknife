@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   LocalMCPInterfaceRegistryBackend,
@@ -17,6 +16,19 @@ import {
   compileMetaGlassesWidgetManifest,
 } from '../../src/services/glasses/meta-glasses-widget-compiler';
 import type { MetaGlassesWidgetDescriptor } from '../../src/services/glasses/meta-glasses-display-profile';
+<<<<<<< HEAD
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  readFileSync: (path: string, encoding: BufferEncoding) => string;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for meta-glasses display fixture tests');
+}
+=======
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 const FIXTURE_PATH = join(
   __dirname,
@@ -60,7 +72,7 @@ const allowDisplayControlSurfacePolicy = () => ({
 });
 
 function loadDescriptor(): MetaGlassesWidgetDescriptor {
-  return JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')) as MetaGlassesWidgetDescriptor;
+  return JSON.parse(nodeFs.readFileSync(FIXTURE_PATH, 'utf8')) as MetaGlassesWidgetDescriptor;
 }
 
 function displayDescriptor(): MetaGlassesWidgetDescriptor {

@@ -40,7 +40,7 @@ import type { Tool } from '../Tool.js'
 import { MCPTool } from '../tools/MCPTool/MCPTool.js'
 import { logMCPError } from '../utils/log.js'
 import { Command } from '../commands.js'
-import { logEvent } from '../services/statsig.js'
+import { logEvent } from '../../services/platform/statsig.js'
 import { PRODUCT_COMMAND } from '../constants/product.js'
 
 type McpName = string

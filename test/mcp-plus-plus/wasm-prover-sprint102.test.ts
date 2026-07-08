@@ -4,30 +4,30 @@ import {
   extractFolMetadata,
   formatFol,
   parseFolToJson,
-} from '../../src/services/fol-utils/logic-formatter';
+} from '../../src/services/logic/fol/fol-output-formatters';
 import {
   parseFol,
   parseLogicalOperators,
   parseQuantifiers,
   validateFolSyntax,
-} from '../../src/services/fol-utils/fol-parser';
+} from '../../src/services/logic/fol/fol-text-parser';
 import {
   extractLogicalRelationsNlp,
   extractPredicatesNlp,
   extractSemanticRoles,
   getExtractionStats,
   getSpacyModel,
-} from '../../src/services/fol-utils/nlp-predicate-extractor';
+} from '../../src/services/logic/fol/fol-nlp-extraction';
 import {
   ChunkedBatchProcessor,
   FOLBatchProcessor,
   LogicBatchResult,
   ProofBatchProcessor,
-} from '../../src/services/logic-batch-processing';
+} from '../../src/services/logic/api/logic-batch-processing';
 import {
   compileExplainIter,
   evaluateWithManager,
-} from '../../src/services/logic-api-remainders';
+} from '../../src/services/logic/api/logic-api-remainders';
 
 describe('PORT-226 FOL text utilities', () => {
   it('formats FOL into Python-compatible Prolog, TPTP, JSON, and metadata shapes', () => {

@@ -17,6 +17,11 @@
  * - Performance mode for live coding
  */
 
+import {
+    describeMediaArtifactCapabilities,
+    runMediaArtifactWorkflow
+} from './media-artifact-capabilities.js';
+
 export class UnifiedMusicStudioApp {
     constructor(desktop) {
         this.desktop = desktop;
@@ -69,6 +74,8 @@ export class UnifiedMusicStudioApp {
         this.collaborationSession = null;
         this.connectedPeers = [];
         this.sharedProjects = new Map();
+        this.mediaArtifactCapabilities = describeMediaArtifactCapabilities('music-studio-unified');
+        this.lastMediaArtifactWorkflow = null;
         
         // Initialize presets and samples
         this.initializePresets();
@@ -752,6 +759,36 @@ note("c2 eb2 f2 g2").slow(4)
 
     triggerPad(padIndex) {
         console.log(`🎭 Performance pad ${padIndex + 1} triggered`);
+    }
+
+    getMediaArtifactCapabilities() {
+        return this.mediaArtifactCapabilities;
+    }
+
+    async exerciseMediaArtifactGateway(input = {}) {
+        this.lastMediaArtifactWorkflow = await runMediaArtifactWorkflow({
+            desktop: this.desktop,
+            appId: 'music-studio-unified',
+            mediaType: 'audio',
+            mimeType: 'audio/wav',
+            operation: input.operation || 'render-music-project',
+            model: input.model || 'music-generator',
+            prompt: input.prompt || `Render ${this.currentPattern || 'the current music studio project'}.`,
+            artifact: {
+                id: input.id || this.instanceId,
+                name: input.name || 'unified-music-studio-mix',
+                filename: input.filename || 'unified-music-studio-mix.json',
+                content: {
+                    current_pattern: this.currentPattern,
+                    bpm: this.bpm,
+                    track_count: this.tracks.size,
+                    current_view: this.currentView,
+                    selected_instrument: this.selectedInstrument,
+                    connected_peers: this.connectedPeers.length
+                }
+            }
+        });
+        return this.lastMediaArtifactWorkflow;
     }
 }
 

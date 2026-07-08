@@ -1,7 +1,7 @@
 /**
  * NeuralProverBridge — LLM-guided proof sketch verifier (T-38, T-57).
  *
- * Sprint 7 / Phase 7 (P2).  Mirrors Python's SymbolicAI prover bridge
+ * Phase 7 (P2).  Mirrors Python's SymbolicAI prover bridge
  * (`ipfs_datasets_py/logic/external_provers/neural/symbolicai_prover_bridge.py`).
  *
  * Strategy:
@@ -22,7 +22,7 @@
  */
 
 import type { WasmProofResult } from './prover-types.js';
-import type { Policy } from '../mcp-policy.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
 import { Lean4WasmBridge } from './lean4-wasm-bridge.js';
 import { CoqJsCoqBridge } from './coq-jscoq-bridge.js';
 

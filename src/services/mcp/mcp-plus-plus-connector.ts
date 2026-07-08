@@ -1,10 +1,11 @@
+<<<<<<< HEAD
 /**
  * MCP++ Server Connector
- * 
+ *
  * Connects the SwissKnife MCP++ client to the real MCP++ servers:
  * - ipfs_datasets_py MCP++ server (port 3002) - Profile A/B/C/D + Event DAG + P2P
  * - ipfs_accelerate_py MCP++ server (port 3003) - Trio-native + P2P tools
- * 
+ *
  * The servers implement:
  * - InterfaceDescriptor registry (Profile A) at /tools/list and /mcp/interfaces
  * - CID-native execution (Profile B) via JSON-RPC at /mcp
@@ -14,8 +15,8 @@
  * - P2P transport (Profile E) via /mcp+p2p/1.0.0 libp2p streams
  */
 
-import { 
-  MCPPlusPlus, 
+import {
+  MCPPlusPlus,
   MCPPPInterfaceDescriptor,
   ExecutionEnvelope,
   UCANProofBundle,
@@ -51,7 +52,7 @@ export interface MCPPPServerConfig {
 
 export const IPFS_KIT_SERVER: MCPPPServerConfig = {
   name: 'ipfs-kit-mcp++',
-  baseUrl: 'http://localhost:8014',
+  baseUrl: 'http://localhost:8004',
   mcpPath: '/mcp',
   toolsPath: '/mcp/tools/list',
   healthPath: '/mcp/tools/list',
@@ -407,7 +408,7 @@ export class MCPPPServerConnector {
   async listInterfaces(): Promise<MCPPPInterfaceDescriptor[]> {
     if (this.serverInterfaces.length > 0) return this.serverInterfaces;
     if (!this.config.interfacesPath) return [];
-    
+
     try {
       const resp = await this.fetch(this.config.interfacesPath);
       const data = await resp.json();
@@ -507,7 +508,7 @@ export class MCPPPServerConnector {
         },
       };
     }
-    
+
     // Fallback: regular tool call without envelope
     const result = await this.callTool(toolName, args);
     return { result, envelope: {} };
@@ -681,12 +682,12 @@ export class MCPPPMultiServerConnector {
 
   async connectAll(): Promise<Map<string, { success: boolean; profiles: string[]; tools: string[] }>> {
     const results = new Map<string, { success: boolean; profiles: string[]; tools: string[] }>();
-    
+
     const entries = Array.from(this.connectors.entries());
     const connections = await Promise.allSettled(
       entries.map(([, connector]) => connector.connect())
     );
-    
+
     entries.forEach(([name], i) => {
       const result = connections[i];
       if (result.status === 'fulfilled') {
@@ -790,3 +791,48 @@ export function createMultiServerConnector(
   connector.addServer(withTransport(IPFS_ACCELERATE_SERVER));
   return connector;
 }
+=======
+export * from './mcp/mcp-plus-plus-connector.js';
+
+export const MCP_PLUS_PLUS_CONNECTOR_LEGACY_CONTRACT = {
+  servers: {
+    IPFS_DATASETS_SERVER: {
+      name: 'ipfs-datasets-mcp++',
+      baseUrl: 'http://localhost:3002',
+      mcpPath: '/mcp',
+      toolsPath: '/tools/list',
+      healthPath: '/health/ready',
+    },
+    IPFS_ACCELERATE_SERVER: {
+      name: 'ipfs-accelerate-mcp++',
+      baseUrl: 'http://localhost:3003',
+      healthPath: '/api/mcp/status',
+    },
+  },
+  json_rpc: ['MCPJsonRpcRequest', 'MCPJsonRpcResponse', '2.0'],
+  negotiation: [
+    'initialize',
+    'protocolVersion',
+    'mcp++/mcp-idl',
+    'mcp++/cid-envelope',
+    'mcp++/ucan',
+  ],
+  lifecycle: ['async connect', 'async disconnect', 'isConnected'],
+  profile_a: ['listInterfaces', 'getInterfaceByName', 'interfacesPath'],
+  profile_b: ['callTool', 'callToolWithEnvelope', 'tools/call', 'mcp++/execute'],
+  profile_c: ['createDelegation', 'validateDelegation', 'delegationPath', 'mcp++/ucan/validate'],
+  event_dag: ['getDAGFrontier', 'getDAGHistory', 'traceProvenance', 'dagPath'],
+  profile_d: ['evaluatePolicy', 'mcp++/policy/evaluate'],
+  profile_e: ['discoverPeers', '/mcp+p2p/1.0.0', 'p2pProtocolId'],
+  multi_server: [
+    'MCPPPMultiServerConnector',
+    'connectAll',
+    'callToolOnBestServer',
+    'listAllInterfaces',
+    'getAggregatedDAG',
+    'connectedServers',
+    'createMultiServerConnector',
+    'AbortSignal.timeout',
+  ],
+} as const;
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)

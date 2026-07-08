@@ -9,7 +9,7 @@ import {
 } from '../utils/config.js.js.js.js.js.js.js.js.js.js'
 import { getCwd } from '../utils/state.js.js.js.js.js.js.js.js.js.js'
 import { AsciiLogo } from './AsciiLogo.js.js.js.js.js.js.js.js.js.js'
-import type { WrappedClient } from '../services/mcpClient.js.js.js.js.js.js.js.js.js.js'
+import type { WrappedClient } from '../services/mcp/mcpClient.js'
 
 export const MIN_LOGO_WIDTH = 50
 

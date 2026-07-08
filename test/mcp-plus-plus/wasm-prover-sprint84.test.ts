@@ -9,8 +9,8 @@ import {
   getParser,
   makeParserAdapter,
   normalizeParseResult,
-} from '../../src/services/base-parser';
-import { PortugueseParser } from '../../src/services/portuguese-parser';
+} from '../../src/services/logic/nl/base-parser';
+import { PortugueseParser } from '../../src/services/logic/nl/portuguese-parser';
 import {
   BModalAxiomRule,
   DModalAxiomRule,
@@ -20,14 +20,14 @@ import {
   TModalAxiomRule,
   applyModalAxiomRules,
   getModalAxiomRules,
-} from '../../src/services/modal-axiom-rules';
-import { ModalLogic } from '../../src/services/shadow-prover';
+} from '../../src/services/logic/modal/modal-axiom-rules';
+import { ModalLogic } from '../../src/services/logic/modal/shadow-prover';
 import {
   PrometheusExporter,
   exportPrometheusMetrics,
   getPrometheusExporter,
   metricKey,
-} from '../../src/services/prometheus-exporter';
+} from '../../src/services/platform/prometheus-exporter';
 
 // ---------------------------------------------------------------------------
 // PORT-181 — shared parser base contract

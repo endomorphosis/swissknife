@@ -9,15 +9,12 @@ export interface BrowserGroth16ArtifactIntegrity {
   readonly bytes: number;
   readonly sha256: string;
   readonly sri: string;
-  readonly sriSha384?: string;
 }
 
 export interface BrowserGroth16ArtifactDescriptor extends BrowserGroth16ArtifactIntegrity {
   readonly role: BrowserGroth16ArtifactRole;
   readonly fileName: string;
   readonly url: string;
-  readonly browserUrl?: string;
-  readonly cachePolicy?: 'immutable';
 }
 
 export interface BrowserGroth16CircuitManifest {
@@ -27,13 +24,6 @@ export interface BrowserGroth16CircuitManifest {
   readonly curve: 'bn128' | string;
   readonly compiler: string;
   readonly prover: string;
-  readonly browserBaseUrl?: string;
-  readonly cachePolicy?: 'immutable';
-  readonly crossOriginIsolation?: {
-    readonly required: boolean;
-    readonly coop: string;
-    readonly coep: string;
-  };
   readonly semanticClaim: string;
   readonly publicInputs: readonly string[];
   readonly privateInputs: readonly string[];
@@ -45,9 +35,6 @@ export interface BrowserGroth16CircuitManifest {
   readonly artifacts: Record<string, {
     readonly bytes: number;
     readonly sha256: string;
-    readonly sriSha384?: string;
-    readonly browserUrl?: string;
-    readonly cachePolicy?: 'immutable';
   }>;
 }
 
@@ -100,13 +87,6 @@ const DEONTIC_DISCHARGE_MANIFEST: BrowserGroth16CircuitManifest = Object.freeze(
   curve: 'bn128',
   compiler: 'circom2 2.2.3',
   prover: 'snarkjs 0.7.x',
-  browserBaseUrl: '/assets/zkp/groth16/deontic_discharge_v1/',
-  cachePolicy: 'immutable',
-  crossOriginIsolation: Object.freeze({
-    required: false,
-    coop: 'same-origin',
-    coep: 'credentialless',
-  }),
   semanticClaim: 'expected_discharge = obligation AND permitted AND not_prohibited, with permitted and not_prohibited as private witness facts',
   publicInputs: Object.freeze(['obligation', 'expected_discharge']),
   privateInputs: Object.freeze(['permitted', 'not_prohibited']),
@@ -119,30 +99,18 @@ const DEONTIC_DISCHARGE_MANIFEST: BrowserGroth16CircuitManifest = Object.freeze(
     'deontic_discharge_v1.r1cs': Object.freeze({
       bytes: 880,
       sha256: 'd8ca1aedbb1aa421bbf09584d91ef0813cc115647ee8c753adc6e352d1321c9f',
-      sriSha384: 'sha384-ol6i+Bgy5FOrNRG666jVQRu8PZaMtcd/V0Trh+MYuhgSceiWM07nD02gE4UDhAgT',
-      browserUrl: '/assets/zkp/groth16/deontic_discharge_v1/deontic_discharge_v1.r1cs',
-      cachePolicy: 'immutable',
     }),
     'deontic_discharge_v1.wasm': Object.freeze({
       bytes: 34804,
       sha256: '0c3295889939f6f7dae5d9b380c4146e6464254fc33e173d1b199a154d113e5a',
-      sriSha384: 'sha384-i18nXg0XfHobglXQSpk64FD/fxUyzxG5cUkddcq5NY4npRB/XI1W4mLBy3SES86g',
-      browserUrl: '/assets/zkp/groth16/deontic_discharge_v1/deontic_discharge_v1.wasm',
-      cachePolicy: 'immutable',
     }),
     'deontic_discharge_v1_final.zkey': Object.freeze({
       bytes: 5079,
       sha256: '48a364014929366ed2088d97aed16823ab56a54820a3c67b335b563c3a78fccc',
-      sriSha384: 'sha384-sEhmfz5q+qS37z59xvquvO3/X9CnUF2m//uKhpcvmyishaWWLRe9dpd8rhsBEfBD',
-      browserUrl: '/assets/zkp/groth16/deontic_discharge_v1/deontic_discharge_v1_final.zkey',
-      cachePolicy: 'immutable',
     }),
     'verification_key.json': Object.freeze({
       bytes: 3108,
       sha256: '138fc4b9bd00602afe1b4db9d8c6a5a42391ee5e47bb1f2d212c67217e65368a',
-      sriSha384: 'sha384-0iYqvDw3N83N1mAB9vaeBrRLSGBKaXC8FtOdbNT91/pNfFnstRxmTTLcXXXOBhLG',
-      browserUrl: '/assets/zkp/groth16/deontic_discharge_v1/verification_key.json',
-      cachePolicy: 'immutable',
     }),
   }),
 });
@@ -245,9 +213,6 @@ function descriptorFromManifest(
     bytes: integrity.bytes,
     sha256: integrity.sha256,
     sri: sha256Sri(integrity.sha256),
-    sriSha384: integrity.sriSha384,
-    browserUrl: integrity.browserUrl,
-    cachePolicy: integrity.cachePolicy,
   });
 }
 

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for:
  *  1. WebSocketTransport — connection lifecycle, send, auto-reconnect
@@ -7,7 +8,11 @@
  *  5. UCANRevocationRegistry — revoke, isRevoked, validateToken integration
  */
 
+<<<<<<< HEAD
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+=======
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import { MCPTransportFactory, MCPClient } from '../../src/services/mcp/mcp-transport.js';
 import { UCANAuth } from '../../src/auth/ucan-auth.js';
 import { UCANRevocationRegistry } from '../../src/auth/ucan-auth.js';
@@ -71,6 +76,11 @@ describe('MCPTransportFactory', () => {
 
   it('creates a libp2p transport', () => {
     const t = MCPTransportFactory.create({ type: 'libp2p', endpoint: '/ip4/127.0.0.1/tcp/9100' });
+    expect(t.getType()).toBe('libp2p');
+  });
+
+  it('defaults to libp2p when type is omitted', () => {
+    const t = MCPTransportFactory.create({ endpoint: '/ip4/127.0.0.1/tcp/9100' });
     expect(t.getType()).toBe('libp2p');
   });
 
@@ -171,7 +181,7 @@ describe('WebSocketTransport', () => {
 
 describe('HttpsTransport', () => {
   it('connect() marks ready even when OPTIONS returns 405', async () => {
-    // We mock node-fetch via jest module mocking is complex; just check
+    // We avoid mocking node-fetch here; just check
     // that connect() doesn't throw and returns true or false without crashing.
     const transport = MCPTransportFactory.create({
       type: 'https',

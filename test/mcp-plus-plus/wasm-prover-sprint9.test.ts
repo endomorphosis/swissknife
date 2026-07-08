@@ -17,11 +17,17 @@ import {
   Obligation, Permission, Prohibition,
   Negation, Conjunction, Implies, HoldsAt, Belief, ForAll,
   serializeFormula, serializeTerm,
-} from '../../src/services/provers/dcec-types.js';
+} from '../../src/services/logic/dcec/dcec-types.js';
 import { DcecProverBridge } from '../../src/services/provers/dcec-prover-bridge.js';
+<<<<<<< HEAD
+import { PolicyToDcecTranslator } from '../../src/services/logic/deontic/policy-to-dcec.js';
+import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub.js';
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy.js';
+=======
 import { PolicyToDcecTranslator } from '../../src/services/provers/policy-to-dcec.js';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub.js';
 import type { Policy } from '../../src/services/mcp/mcp-policy.js';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 // ---------------------------------------------------------------------------
 // T-58: DCEC formula type system

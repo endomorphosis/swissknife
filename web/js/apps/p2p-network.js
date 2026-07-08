@@ -1,24 +1,8 @@
-import {
-  BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
-  getBrowserLibp2pDefaultStatus,
-  summarizeBrowserLibp2pGaps
-} from '../../../src/services/mcp/libp2p-browser-runtime.ts';
-
 // P2P Network Manager Application for SwissKnife Virtual Desktop
 // Enhanced with Phase 4: Web Workers & Audio Workers Infrastructure
 
 (function() {
   'use strict';
-
-  const LIBP2P_BROWSER_CAPABILITY_LABELS = {
-    webrtc: 'WebRTC',
-    websockets: 'WebSockets',
-    'circuit-relay-v2': 'Circuit Relay v2',
-    identify: 'Identify',
-    noise: 'Noise',
-    yamux: 'Yamux',
-    gossipsub: 'GossipSub'
-  };
 
   // Import the P2P ML System (when available)
   let P2PMLSystem = null;
@@ -60,10 +44,6 @@ import {
   let p2pManager = null;
   let connectionStatus = 'disconnected';
   let systemStatus = null;
-  let libp2pBrowserDefaults = null;
-  let libp2pBrowserDefaultsError = null;
-  let libp2pBrowserDefaultsLoading = false;
-  let libp2pBrowserDefaultsPromise = null;
 
   // Phase 2: Collaborative state
   let workspaces = [];
@@ -107,7 +87,6 @@ import {
             <button class="tab-button" data-tab="cloudflare">CloudFlare</button>
             <button class="tab-button" data-tab="hybrid">Hybrid Workers</button>
             <button class="tab-button" data-tab="huggingface">🤗 Hugging Face</button>
-            <button class="tab-button" data-tab="transport">Transport</button>
           </div>
 
           <div class="tab-content active" id="network-tab">
@@ -144,10 +123,6 @@ import {
 
           <div class="tab-content" id="huggingface-tab">
             ${createHuggingFaceTab()}
-          </div>
-
-          <div class="tab-content" id="transport-tab">
-            ${renderLibp2pBrowserDefaultsPanel({ includeActions: true })}
           </div>
         </div>
       </div>
@@ -226,56 +201,6 @@ import {
       .tab-content.active {
         display: block;
       }
-
-      .libp2p-browser-defaults {
-        margin: 18px 0;
-        padding: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.24);
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.18);
-      }
-
-      .libp2p-browser-header,
-      .libp2p-browser-summary {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .libp2p-browser-capabilities,
-      .libp2p-browser-gaps {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 8px;
-        margin-top: 12px;
-      }
-
-      .libp2p-capability {
-        padding: 10px;
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.12);
-        border-left: 4px solid #94a3b8;
-      }
-
-      .libp2p-capability.configured {
-        border-left-color: #4ade80;
-      }
-
-      .libp2p-capability.gap {
-        border-left-color: #fbbf24;
-      }
-
-      .libp2p-capability strong,
-      .libp2p-capability code {
-        display: block;
-      }
-
-      .libp2p-gap {
-        color: #ffe8a3;
-        font-size: 12px;
-      }
     </style>`;
   }
 
@@ -296,7 +221,6 @@ import {
           <p>0</p>
         </div>
       </div>
-      ${renderLibp2pBrowserDefaultsPanel({ includeActions: true })}
       <button onclick="window.p2pNetworkApp?.connect()" class="action-btn">Connect to Network</button>
     `;
   }
@@ -436,29 +360,49 @@ import {
   }
 
   // Create P2P Network Manager application
-  window.createP2PNetworkApp = function() {
-    const app = {
+  window.createP2PNetworkApp = function(desktop = null) {
+    return {
       name: "P2P Network",
       icon: "🌐",
+      desktop,
+      lastSystemNetworkLocalWorkflow: null,
+      async getSystemNetworkLocalCapabilities() {
+        const { describeSystemNetworkLocalCapabilities } = await import('./system-network-local-capabilities.js');
+        return describeSystemNetworkLocalCapabilities('p2p-network', {
+          localCapabilities: ['peer_list', 'task_queue', 'workspace_presence', 'worker_pool', 'cloudflare_status'],
+          remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry']
+        });
+      },
+      async exerciseSystemNetworkLocalGateway(input = {}) {
+        const { runSystemNetworkLocalWorkflow } = await import('./system-network-local-capabilities.js');
+        this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
+          desktop: this.desktop,
+          appId: 'p2p-network',
+          localCapabilities: ['peer_list', 'task_queue', 'workspace_presence', 'worker_pool', 'cloudflare_status'],
+          remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry'],
+          localState: {
+            connection_status: connectionStatus,
+            peer_count: peers.length,
+            task_count: tasks.length,
+            distributed_task_count: distributedTasks.length,
+            workspace_count: workspaces.length,
+            active_session_count: activeSessions.length,
+            worker_pool_active: workerPoolActive,
+            worker_count: workerStats.size,
+            cloudflare_stats: cloudflareStats,
+            hybrid_task_count: hybridTasks.length
+          },
+          summary: input.summary || 'Validate P2P Network local peer/task state and remote node/accelerator fallbacks.'
+        });
+        return this.lastSystemNetworkLocalWorkflow;
+      },
       async initialize() {
         console.log('🌐 P2P Network App initializing...');
-        await refreshLibp2pBrowserDefaults({ silent: true });
       },
       async render() {
-        await refreshLibp2pBrowserDefaults({ silent: true });
         return createP2PNetworkUI();
       },
-      async refreshLibp2pBrowserDefaults() {
-        await refreshLibp2pBrowserDefaults();
-      },
-      async connect() {
-        if (!p2pManager) {
-          setupFallbackP2PManager();
-        }
-        await p2pManager?.start?.();
-      },
       async init(container) {
-        await refreshLibp2pBrowserDefaults({ silent: true });
         await initializeP2PMLSystem();
         renderApp(container);
         setupEventHandlers(container);
@@ -489,8 +433,6 @@ import {
         delete window.p2pNetworkApp;
       }
     };
-    window.p2pNetworkApp = app;
-    return app;
   };
 
   async function initializeP2PMLSystem() {
@@ -1024,83 +966,6 @@ import {
           
           .tab-content.active {
             display: block;
-          }
-
-          .libp2p-browser-defaults {
-            margin: 18px 0 24px;
-            padding: 18px;
-            background: #ffffff;
-            border: 1px solid #d8dee8;
-            border-radius: 8px;
-            color: #243041;
-          }
-
-          .libp2p-browser-header,
-          .libp2p-browser-summary {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-          }
-
-          .libp2p-browser-header h3 {
-            margin: 0;
-            color: #243041;
-          }
-
-          .libp2p-browser-meta {
-            margin-top: 8px;
-            color: #5d6b7c;
-            font-size: 13px;
-          }
-
-          .libp2p-browser-capabilities,
-          .libp2p-browser-gaps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 10px;
-            margin-top: 14px;
-          }
-
-          .libp2p-capability {
-            padding: 12px;
-            border: 1px solid #d8dee8;
-            border-left: 4px solid #94a3b8;
-            border-radius: 6px;
-            background: #f8fafc;
-          }
-
-          .libp2p-capability.configured {
-            border-left-color: #16a34a;
-          }
-
-          .libp2p-capability.gap {
-            border-left-color: #d97706;
-            background: #fff7ed;
-          }
-
-          .libp2p-capability strong,
-          .libp2p-capability code {
-            display: block;
-          }
-
-          .libp2p-capability code {
-            margin-top: 4px;
-            color: #475569;
-            white-space: normal;
-            word-break: break-word;
-          }
-
-          .libp2p-gap {
-            margin-top: 6px;
-            color: #92400e;
-            font-size: 12px;
-          }
-
-          .libp2p-browser-actions {
-            display: flex;
-            gap: 8px;
           }
           
           .network-stats {
@@ -1728,7 +1593,6 @@ import {
             <button class="tab-button" data-tab="tasks">Tasks</button>
             <button class="tab-button" data-tab="cloudflare">CloudFlare</button>
             <button class="tab-button" data-tab="resources">Resources</button>
-            <button class="tab-button" data-tab="settings">Settings</button>
           </div>
 
           <div class="tab-content active" id="network-tab">
@@ -1758,10 +1622,6 @@ import {
           <div class="tab-content" id="resources-tab">
             ${renderResourcesTab()}
           </div>
-
-          <div class="tab-content" id="settings-tab">
-            ${renderLibp2pBrowserDefaultsPanel({ includeActions: true })}
-          </div>
         </div>
       </div>
     `;
@@ -1774,124 +1634,6 @@ import {
       case 'disconnected': return 'Disconnected';
       default: return 'Unknown';
     }
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  async function refreshLibp2pBrowserDefaults(options = {}) {
-    if (libp2pBrowserDefaultsPromise) {
-      return libp2pBrowserDefaultsPromise;
-    }
-
-    libp2pBrowserDefaultsLoading = true;
-    libp2pBrowserDefaultsError = null;
-    const shouldUpdate = options.silent !== true;
-    if (shouldUpdate) updateDisplays();
-
-    libp2pBrowserDefaultsPromise = getBrowserLibp2pDefaultStatus()
-      .then(status => {
-        libp2pBrowserDefaults = status;
-        libp2pBrowserDefaultsError = null;
-        return status;
-      })
-      .catch(error => {
-        libp2pBrowserDefaults = null;
-        libp2pBrowserDefaultsError = error instanceof Error ? error.message : String(error);
-        return null;
-      })
-      .finally(() => {
-        libp2pBrowserDefaultsLoading = false;
-        libp2pBrowserDefaultsPromise = null;
-        if (shouldUpdate) updateDisplays();
-      });
-
-    return libp2pBrowserDefaultsPromise;
-  }
-
-  function getLibp2pCapability(name) {
-    return libp2pBrowserDefaults?.report?.capabilities?.find(capability => capability.name === name) || null;
-  }
-
-  function getLibp2pGap(name) {
-    return libp2pBrowserDefaults?.report?.gaps?.find(gap => gap.name === name) || null;
-  }
-
-  function renderLibp2pBrowserDefaultsPanel(options = {}) {
-    const includeActions = options.includeActions === true;
-    const report = libp2pBrowserDefaults?.report || null;
-    const configuredCount = report?.capabilities?.filter(capability => capability.configured).length || 0;
-    const gapCount = report?.gaps?.length || 0;
-    const statusText = libp2pBrowserDefaultsLoading
-      ? 'Checking browser packages'
-      : libp2pBrowserDefaultsError
-        ? 'Capability check failed'
-        : report?.enabled === false
-          ? 'Disabled'
-          : `${configuredCount} configured, ${gapCount} gaps`;
-    const listen = libp2pBrowserDefaults?.listenMultiaddrs?.length
-      ? libp2pBrowserDefaults.listenMultiaddrs.join(', ')
-      : 'not resolved yet';
-    const updated = libp2pBrowserDefaults?.generatedAt
-      ? new Date(libp2pBrowserDefaults.generatedAt).toLocaleTimeString()
-      : 'pending';
-
-    return `
-      <section class="libp2p-browser-defaults" data-testid="p2p-libp2p-browser-defaults">
-        <div class="libp2p-browser-header">
-          <h3>Browser libp2p Defaults</h3>
-          <div class="libp2p-browser-actions">
-            <span data-testid="p2p-libp2p-browser-status">${escapeHtml(statusText)}</span>
-            ${includeActions ? `
-              <button class="action-btn small" onclick="window.p2pNetworkApp.refreshLibp2pBrowserDefaults()">
-                <span class="btn-icon">🔄</span>
-                Refresh
-              </button>
-            ` : ''}
-          </div>
-        </div>
-        <div class="libp2p-browser-meta">
-          Default listen multiaddrs: <code>${escapeHtml(listen)}</code> · Updated: ${escapeHtml(updated)}
-        </div>
-        ${libp2pBrowserDefaultsError ? `
-          <div class="libp2p-capability gap">
-            <strong>Runtime status unavailable</strong>
-            <div class="libp2p-gap">${escapeHtml(libp2pBrowserDefaultsError)}</div>
-          </div>
-        ` : ''}
-        <div class="libp2p-browser-capabilities">
-          ${BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER.map(name => {
-            const capability = getLibp2pCapability(name);
-            const gap = getLibp2pGap(name);
-            const state = capability?.configured ? 'configured' : 'gap';
-            const packageName = capability?.packageName || gap?.packageName || 'package check pending';
-            const detail = capability?.configured
-              ? `configured from ${capability.exportName || 'default export'}`
-              : gap?.reason || (libp2pBrowserDefaultsLoading ? 'checking installed package' : 'not configured');
-            return `
-              <div class="libp2p-capability ${state}" data-testid="p2p-libp2p-capability-${name}" data-installed="${Boolean(capability?.installed)}" data-configured="${Boolean(capability?.configured)}">
-                <strong>${escapeHtml(LIBP2P_BROWSER_CAPABILITY_LABELS[name] || name)}</strong>
-                <code>${escapeHtml(packageName)}</code>
-                <div class="libp2p-gap">${escapeHtml(detail)}</div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-        ${report && report.gaps.length > 0 ? `
-          <div class="libp2p-browser-gaps">
-            ${summarizeBrowserLibp2pGaps(report).map(summary => `
-              <div class="libp2p-capability gap">${escapeHtml(summary)}</div>
-            `).join('')}
-          </div>
-        ` : ''}
-      </section>
-    `;
   }
 
   function renderNetworkTab() {
@@ -1930,8 +1672,6 @@ import {
             </div>
           </div>
         </div>
-
-        ${renderLibp2pBrowserDefaultsPanel({ includeActions: true })}
 
         <div class="network-actions">
           <button class="action-btn primary" onclick="window.p2pNetworkApp.startNetworking()">
@@ -3185,9 +2925,6 @@ import {
       announceCapabilities: () => {
         console.log('Announcing capabilities...');
       },
-      refreshLibp2pBrowserDefaults: async () => {
-        await refreshLibp2pBrowserDefaults();
-      },
       refreshPeers: () => {
         updateDisplay(container);
       },
@@ -3791,10 +3528,6 @@ Availability:
             break;
           case 'resources':
             tabContent.innerHTML = renderResourcesTab();
-            break;
-          case 'settings':
-          case 'transport':
-            tabContent.innerHTML = renderLibp2pBrowserDefaultsPanel({ includeActions: true });
             break;
         }
       }

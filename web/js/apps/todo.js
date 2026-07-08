@@ -4,6 +4,13 @@
  * Different from Task Manager which handles AI inference jobs
  */
 
+import {
+    STORAGE_PROVENANCE_CAPABILITIES,
+    describeStorageProvenanceCapabilities,
+    runStorageProvenanceWorkflow,
+    sanitizeArtifactFilename
+} from './storage-provenance-capabilities.js';
+
 // Use function declaration instead of ES6 class for compatibility
 function TodoApp(desktop) {
     this.desktop = desktop;
@@ -13,6 +20,10 @@ function TodoApp(desktop) {
     this.todos = [];
     this.goals = [];
     this.currentView = 'todos';
+    this.storageProvenanceCapabilities = describeStorageProvenanceCapabilities('todo', {
+        storage: STORAGE_PROVENANCE_CAPABILITIES.dagStorage
+    });
+    this.lastStorageProvenanceWorkflow = null;
     
     this.loadTodos();
 }
@@ -357,6 +368,58 @@ TodoApp.prototype.saveTodos = function() {
     } catch (error) {
         console.error('Failed to save todos:', error);
     }
+};
+
+TodoApp.prototype.getStorageProvenanceCapabilities = function() {
+    return this.storageProvenanceCapabilities;
+};
+
+TodoApp.prototype.exerciseStorageProvenanceGateway = async function(todo) {
+    var selectedTodo = todo || this.todos[0] || {
+        id: 'empty-todo-list',
+        text: 'Empty todo list',
+        priority: 'medium',
+        completed: false,
+        createdAt: new Date().toISOString(),
+        tags: []
+    };
+
+    this.lastStorageProvenanceWorkflow = await runStorageProvenanceWorkflow({
+        desktop: this.desktop,
+        appId: 'todo',
+        storageCapabilityId: STORAGE_PROVENANCE_CAPABILITIES.dagStorage,
+        artifact: {
+            id: String(selectedTodo.id),
+            title: selectedTodo.text || selectedTodo.title || 'Todo item',
+            type: 'todo-item',
+            filename: sanitizeArtifactFilename(selectedTodo.text || selectedTodo.title || 'todo-item'),
+            content: {
+                todo: selectedTodo,
+                goals: this.goals,
+                current_view: this.currentView
+            },
+            metadata: {
+                priority: selectedTodo.priority,
+                completed: Boolean(selectedTodo.completed),
+                goal_count: this.goals.length,
+                todo_count: this.todos.length
+            }
+        },
+        dataset: {
+            dataset_id: 'swissknife-todo',
+            path: '/todo/items/' + selectedTodo.id
+        },
+        provenance: {
+            action: 'todo.record-task-state',
+            subject_id: String(selectedTodo.id),
+            subject_type: 'todo-item',
+            metadata: {
+                current_view: this.currentView,
+                active_todos: this.todos.filter(function(item) { return !item.completed; }).length
+            }
+        }
+    });
+    return this.lastStorageProvenanceWorkflow;
 };
 
 TodoApp.prototype.renderTodos = function() {

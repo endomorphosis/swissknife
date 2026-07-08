@@ -3,7 +3,11 @@ import {
   MemoryGeneratedAppReplayStorage,
   replayGeneratedAppState,
   restoreGeneratedAppState,
+<<<<<<< HEAD
+} from '../../src/services/mcp/mcp-generated-app-state';
+=======
 } from '../../src/services/apps/mcp-generated-app-state';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import type { ORBStreamEvent } from '../../src/services/mcp/mcp-orb-capability-router';
 
 function streamEvent(overrides: Partial<ORBStreamEvent> = {}): ORBStreamEvent {

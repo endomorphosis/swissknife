@@ -1,5 +1,5 @@
 #!/usr/bin/env -S node --no-warnings=ExperimentalWarning --enable-source-maps
-import { initSentry } from '../services/sentry.js.js.js.js.js.js.js.js.js.js'
+import { initSentry } from '../services/platform/sentry.js'
 import { PRODUCT_COMMAND, PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
 initSentry() // Initialize Sentry as early as possible
 
@@ -63,9 +63,9 @@ import {
   removeMcpServer,
   getClients,
   ensureConfigScope,
-} from '../services/mcpClient.js.js.js.js.js.js.js.js.js.js.js'
-import { handleMcprcServerApprovals } from '../services/mcpServerApproval.js.js.js.js.js.js.js.js.js.js'
-import { checkGate, initializeStatsig, logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
+} from '../services/mcp/mcpClient.js'
+import { handleMcprcServerApprovals } from '../services/mcp/mcpServerApproval.js'
+import { checkGate, initializeStatsig, logEvent } from '../services/platform/statsig.js'
 import { getExampleCommands } from '../utils/exampleCommands.js.js.js.js.js.js.js.js.js.js'
 import { cursorShow } from 'ansi-escapes.js.js.js.js.js'
 import ansiColors from 'ansi-colors.js.js.js.js.js'

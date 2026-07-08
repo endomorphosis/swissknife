@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 import { InterfaceRepository } from '../../src/services/mcp/mcp-idl';
 import {
@@ -11,7 +10,11 @@ import {
   ipfsAccelerateUIProfileDescriptor,
   ipfsDatasetInferenceWorkflowDescriptor,
   ipfsDatasetsUIProfileDescriptor,
+<<<<<<< HEAD
+} from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+=======
 } from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import { generateSchemaDrivenUI } from '../../src/services/mcp/mcp-schema-ui-generator';
 import {
   selectTemplateForDescriptor,
@@ -23,7 +26,11 @@ import {
   buildSwissknifeMCPMediatedInvocationPlan,
   getSwissknifeMCPCapabilityRegistry,
   type HallucinateDashboardCapabilityCatalog,
+<<<<<<< HEAD
+} from '../../src/services/mcp/swissknife-mcp-capability-registry';
+=======
 } from '../../src/services/apps/swissknife-mcp-capability-registry';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 const HALLUCINATE_DASHBOARD_CATALOG_FIXTURE = path.resolve(
   __dirname,
@@ -36,9 +43,10 @@ const HALLUCINATE_DASHBOARD_CATALOG_FIXTURE = path.resolve(
   'fixtures',
   'vai-512-mcp-dashboard-catalog.json',
 );
+const nodeFs = process.getBuiltinModule?.('fs') ?? require('fs');
 
 function loadHallucinateDashboardCatalog(): HallucinateDashboardCapabilityCatalog {
-  return JSON.parse(fs.readFileSync(HALLUCINATE_DASHBOARD_CATALOG_FIXTURE, 'utf8'));
+  return JSON.parse(nodeFs.readFileSync(HALLUCINATE_DASHBOARD_CATALOG_FIXTURE, 'utf8'));
 }
 
 describe('IPFS MCP++ UI descriptor fixtures', () => {

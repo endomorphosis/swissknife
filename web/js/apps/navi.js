@@ -3,6 +3,11 @@
  * Context-aware AI assistant with voice interaction, learning capabilities, and deep system integration
  */
 
+import {
+  describeSystemNetworkLocalCapabilities,
+  runSystemNetworkLocalWorkflow
+} from './system-network-local-capabilities.js';
+
 export class NAVIApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -38,6 +43,11 @@ export class NAVIApp {
       'code-assistance',     // Programming help and code review
       'research',            // Information gathering and analysis
     ];
+    this.systemNetworkLocalCapabilities = describeSystemNetworkLocalCapabilities('navi', {
+      localCapabilities: ['command_router', 'voice_state', 'context_snapshot', 'automation_queue', 'learning_memory'],
+      remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry', 'dataset_browse']
+    });
+    this.lastSystemNetworkLocalWorkflow = null;
     
     // Built-in commands
     this.commands = new Map([
@@ -1292,6 +1302,37 @@ System is running normally!`,
     setInterval(() => {
       this.updateContextUI();
     }, 5000);
+  }
+
+  getSystemNetworkLocalCapabilities() {
+    return this.systemNetworkLocalCapabilities;
+  }
+
+  async exerciseSystemNetworkLocalGateway(input = {}) {
+    this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
+      desktop: this.desktop,
+      appId: 'navi',
+      localCapabilities: ['command_router', 'voice_state', 'context_snapshot', 'automation_queue', 'learning_memory'],
+      remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry', 'dataset_browse'],
+      localState: {
+        conversation_count: this.conversations.length,
+        current_conversation: this.currentConversation?.id || null,
+        command_count: this.commands.size,
+        capability_count: this.capabilities.length,
+        voice_enabled: this.voiceEnabled,
+        is_listening: this.isListening,
+        personality: this.personality,
+        ai_model: this.aiModel,
+        context_counts: {
+          apps: this.context.apps.length,
+          files: this.context.files.length,
+          p2p_peers: this.context.p2pPeers.length,
+          recent_actions: this.context.recentActions.length
+        }
+      },
+      summary: input.summary || 'Validate NAVI local assistant controls and remote service status fallbacks.'
+    });
+    return this.lastSystemNetworkLocalWorkflow;
   }
 
   onDestroy() {

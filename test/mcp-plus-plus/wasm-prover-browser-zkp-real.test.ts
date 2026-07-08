@@ -2,7 +2,7 @@ import {
   BrowserSchnorrZkpBackend,
   BROWSER_SCHNORR_BACKEND_ID,
   instantiateSchnorrWasmHelper,
-} from '../../src/services/zkp-browser-schnorr';
+} from '../../src/services/zkp/zkp-browser-schnorr';
 
 describe('browser real ZKP backend', () => {
   test('instantiates the committed WASM helper', async () => {

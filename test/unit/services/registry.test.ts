@@ -2,7 +2,7 @@
  * Unit tests for ServiceRegistry
  */
 
-import { ServiceRegistry } from '@src/services/registry.js';
+import { ServiceRegistry } from '@src/services/platform/registry.js';
 
 // Define a test service interface
 interface TestService {

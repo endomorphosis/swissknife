@@ -1,9 +1,10 @@
+<<<<<<< HEAD
 /**
  * MCPPubSubBus — structured, transport-agnostic pub/sub lifecycle for MCP++.
  *
  * Provides deterministic lifecycle control, per-topic subscription management,
  * resubscribe-on-reconnect semantics, delivery metrics, and a pluggable
- * transport backend (in-process EventEmitter or external libp2p GossipSub).
+ * transport backend (in-process emitter or external libp2p GossipSub).
  *
  * Conformance target: MCP++ Profile E §3 — "Structured PubSubBus lifecycle
  * parity (subscribe/topic mapping/resubscribe metrics)".
@@ -27,8 +28,8 @@
  * ```
  */
 
-import { EventEmitter } from 'events';
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../shared/browser-crypto.js';
+import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
 
 // ---------------------------------------------------------------------------
 // Well-known topics (mirrors mcp-discovery.ts constants)
@@ -125,15 +126,15 @@ export interface PubSubTransport {
 // ---------------------------------------------------------------------------
 
 /**
- * A pure in-memory pub/sub transport using Node.js EventEmitter.
+ * A pure in-memory pub/sub transport using a browser-safe local emitter.
  * Messages published on a topic are immediately delivered to all subscribers.
  * Suitable for testing and for single-process deployments.
  */
 export class InProcessBusTransport implements PubSubTransport {
-  private readonly emitter = new EventEmitter();
+  private readonly emitter = new BrowserEventEmitter();
 
   constructor() {
-    this.emitter.setMaxListeners(0); // unlimited
+    this.emitter.setMaxListeners(0); // no-op compatibility
   }
 
   async publish(topic: string, message: BusMessage): Promise<void> {
@@ -168,7 +169,7 @@ interface Subscription {
  * Lifecycle: idle → starting → running → stopping → stopped
  * Subscriptions declared in any state are auto-replayed on (re)start.
  */
-export class MCPPubSubBus extends EventEmitter {
+export class MCPPubSubBus extends BrowserEventEmitter {
   private state: BusState = 'idle';
   private readonly transport: PubSubTransport;
   /** Original (user-supplied) handlers, indexed by topic. Never mutated. */
@@ -505,5 +506,8 @@ function computeMessageCID(msg: Omit<BusMessage, 'message_cid'>): string {
     published_at: msg.published_at,
     ucan_token: msg.ucan_token ?? null,
   });
-  return `sha256:${createHash('sha256').update(canonical, 'utf8').digest('hex')}`;
+  return `sha256:${sha256Hex(canonical)}`;
 }
+=======
+export * from './mcp/mcp-pubsub-bus.js';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)

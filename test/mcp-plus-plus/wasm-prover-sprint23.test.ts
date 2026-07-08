@@ -29,14 +29,14 @@ import {
   create_prohibition,
   create_universal,
   create_until,
-} from '../../src/services/tdfol-core.js';
+} from '../../src/services/logic/tdfol/tdfol-core.js';
 import {
   ProofTreeNode, ProofTree, ProofTreeBuilder, ProofTreeVisualizer,
-} from '../../src/services/proof-tree.js';
+} from '../../src/services/proof-engine/proof-tree.js';
 import {
   FormulaDependencyGraph,
-} from '../../src/services/formula-dependency-graph.js';
-import type { DependencyNode } from '../../src/services/formula-dependency-graph.js';
+} from '../../src/services/logic/shared/formula-dependency-graph.js';
+import type { DependencyNode } from '../../src/services/logic/shared/formula-dependency-graph.js';
 
 // ---------------------------------------------------------------------------
 // T-116: TDFOL Core Types

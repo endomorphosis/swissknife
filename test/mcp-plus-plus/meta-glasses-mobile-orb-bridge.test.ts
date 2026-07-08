@@ -1,4 +1,8 @@
 import { computeInterfaceCID } from '../../src/services/mcp/mcp-idl';
+<<<<<<< HEAD
+import { vi } from 'vitest';
+=======
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import {
   META_GLASSES_MOBILE_ORB_OPERATIONS,
   MetaGlassesMobileORBBridgeAdapter,
@@ -14,9 +18,8 @@ import {
 } from '../../src/services/glasses/meta-glasses-mobile-orb-bridge';
 import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';
 
-jest.mock('crypto', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const actual = jest.requireActual<typeof import('node:crypto')>('node:crypto');
+vi.mock('crypto', async () => {
+  const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto');
   return {
     ...actual,
     createHash: actual.createHash,

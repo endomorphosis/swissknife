@@ -3,6 +3,11 @@
  * Feature-rich image viewing with editing tools, IPFS integration, and AI features
  */
 
+import {
+  describeMediaArtifactCapabilities,
+  runMediaArtifactWorkflow,
+} from './media-artifact-capabilities.js';
+
 export class ImageViewerApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -36,6 +41,8 @@ export class ImageViewerApp {
       faceRecognition: false,
       contentAnalysis: false
     };
+    this.mediaArtifactCapabilities = describeMediaArtifactCapabilities('image-viewer');
+    this.lastMediaArtifactWorkflow = null;
     
     // Supported formats
     this.supportedFormats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
@@ -1257,6 +1264,42 @@ export class ImageViewerApp {
       console.error('Image enhancement failed:', error);
       alert(`Enhancement failed: ${error.message}`);
     }
+  }
+
+  getMediaArtifactCapabilities() {
+    return this.mediaArtifactCapabilities;
+  }
+
+  async exerciseMediaArtifactGateway(input = {}) {
+    const image = input.image || this.currentImage || this.images[0] || {
+      name: 'image-viewer-demo.png',
+      format: 'PNG',
+      dimensions: '1024x1024',
+      location: 'local',
+    };
+
+    this.lastMediaArtifactWorkflow = await runMediaArtifactWorkflow({
+      desktop: this.desktop,
+      appId: 'image-viewer',
+      mediaType: 'image',
+      mimeType: image.format === 'JPEG' ? 'image/jpeg' : 'image/png',
+      operation: input.operation || 'enhance-image',
+      model: input.model || 'image-enhancer',
+      prompt: input.prompt || `Enhance image ${image.name || 'selected image'} and store the output.`,
+      artifact: {
+        id: image.url || image.name,
+        name: image.name || 'image-viewer-output',
+        filename: `${String(image.name || 'image-viewer-output').replace(/[^a-z0-9._-]+/gi, '-')}.json`,
+        content: {
+          image,
+          filters: this.filters,
+          edit_mode: this.editMode,
+          zoom: this.zoomLevel,
+          rotation: this.rotation,
+        },
+      },
+    });
+    return this.lastMediaArtifactWorkflow;
   }
 
   updateImageDisplay() {

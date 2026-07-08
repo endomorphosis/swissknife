@@ -10,7 +10,7 @@ import {
   CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE,
   INVALID_API_KEY_ERROR_MESSAGE,
   PROMPT_TOO_LONG_ERROR_MESSAGE,
-} from '../../services/claude.js.js.js.js.js.js.js.js.js.js.js'
+} from '../../services/platform/claude.js'
 import {
   CANCEL_MESSAGE,
   INTERRUPT_MESSAGE,

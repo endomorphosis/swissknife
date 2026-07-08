@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * MCP-IDL: CID-Addressed Interface Contracts (MCP++ Profile A)
  *
@@ -10,7 +11,7 @@
  * References: docs/spec/mcp-idl.md in endomorphosis/Mcp-Plus-Plus
  */
 
-import { createHash, type BinaryLike } from 'crypto';
+import { bytesFrom, bytesToHex, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Types (§4)
@@ -103,8 +104,20 @@ export interface CompatibilityVerdict {
  * Keys are sorted lexicographically at every nesting level so that
  * semantically-identical descriptors always hash to the same CID.
  */
-export function canonicalize(descriptor: InterfaceDescriptor): Buffer {
-  return Buffer.from(stableStringify(descriptor), 'utf8');
+export function canonicalize(descriptor: InterfaceDescriptor): CanonicalBytes {
+  return new CanonicalBytes(stableStringify(descriptor));
+}
+
+export class CanonicalBytes extends Uint8Array {
+  constructor(private readonly text: string) {
+    super(utf8Bytes(text));
+  }
+
+  override toString(encoding = 'utf8'): string {
+    if (encoding === 'hex') return bytesToHex(this);
+    if (encoding === 'utf8' || encoding === 'utf-8') return this.text;
+    return this.text;
+  }
 }
 
 function stableStringify(value: unknown): string {
@@ -130,14 +143,12 @@ function stableStringify(value: unknown): string {
  */
 export function computeInterfaceCID(descriptor: InterfaceDescriptor): string {
   const bytes = canonicalize(descriptor);
-  return `sha256:${createHash('sha256').update(bytes as unknown as BinaryLike).digest('hex')}`;
+  return `sha256:${sha256Hex(bytes)}`;
 }
 
 /** Compute a CID for arbitrary bytes / strings. */
-export function computeCID(data: Buffer | Uint8Array | string): string {
-  const input =
-    typeof data === 'string' ? Buffer.from(data, 'utf8') : Buffer.from(data as Uint8Array);
-  return `sha256:${createHash('sha256').update(input as unknown as BinaryLike).digest('hex')}`;
+export function computeCID(data: Uint8Array | ArrayBuffer | readonly number[] | string): string {
+  return `sha256:${sha256Hex(bytesFrom(data))}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -147,7 +158,7 @@ export function computeCID(data: Buffer | Uint8Array | string): string {
 interface RegistryEntry {
   cid: string;
   descriptor: InterfaceDescriptor;
-  canonicalBytes: Buffer;
+  canonicalBytes: CanonicalBytes;
 }
 
 export class InterfaceRepository {
@@ -183,7 +194,7 @@ export class InterfaceRepository {
   }
 
   /** `interfaces/get(interface_cid)` → canonical descriptor bytes (or null) */
-  get(interfaceCid: string): Buffer | null {
+  get(interfaceCid: string): CanonicalBytes | null {
     return this.store.get(interfaceCid)?.canonicalBytes ?? null;
   }
 
@@ -293,3 +304,6 @@ export class InterfaceRepository {
     return InterfaceRepository.getInstance();
   }
 }
+=======
+export * from './mcp/mcp-idl.js';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)

@@ -3,6 +3,11 @@
  * Real-time system monitoring, process management, and P2P task coordination
  */
 
+import {
+  describeAccelerateDatasetsCapabilities,
+  runAccelerateDatasetsWorkflow,
+} from './accelerate-datasets-capabilities.js';
+
 export class TaskManagerApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -20,6 +25,8 @@ export class TaskManagerApp {
     this.p2pSystem = null;
     this.distributedTasks = new Map();
     this.currentView = 'processes'; // 'processes', 'performance', 'network', 'p2p'
+    this.accelerateDatasetsCapabilities = describeAccelerateDatasetsCapabilities('task-manager');
+    this.lastAccelerateDatasetsWorkflow = null;
     
     // Performance monitoring configuration
     this.monitoringConfig = {
@@ -1233,6 +1240,45 @@ export class TaskManagerApp {
     }
     
     this.displayProcesses(filteredProcesses);
+  }
+
+  getAccelerateDatasetsCapabilities() {
+    return this.accelerateDatasetsCapabilities;
+  }
+
+  async exerciseAccelerateDatasetsGateway(input = {}) {
+    const activeTask = input.taskRecord
+      || Array.from(this.distributedTasks.values()).find(task => task.status === 'running')
+      || {
+        id: input.jobId || 'task-manager-demo-job',
+        name: 'Accelerate telemetry monitor',
+        status: 'running',
+        progress: 42,
+      };
+
+    this.lastAccelerateDatasetsWorkflow = await runAccelerateDatasetsWorkflow({
+      desktop: this.desktop,
+      appId: 'task-manager',
+      task: 'job-monitoring',
+      model: input.model || activeTask.model || 'telemetry-monitor',
+      provider: input.provider || 'ipfs_accelerate_py',
+      input: input.prompt || `Monitor accelerate job ${activeTask.id} and summarize system telemetry.`,
+      datasetQuery: input.datasetQuery || 'accelerate job telemetry provenance',
+      collection: 'swissknife-task-manager',
+      jobId: activeTask.id,
+      maxTokens: input.maxTokens || 96,
+      provenance: {
+        action: 'task-manager.monitor-accelerate-job',
+        subject_id: String(activeTask.id),
+        subject_type: 'accelerate-job',
+        metadata: {
+          current_view: this.currentView,
+          process_count: this.processes.length,
+          performance_samples: this.performanceHistory.length,
+        },
+      },
+    });
+    return this.lastAccelerateDatasetsWorkflow;
   }
 
   // App lifecycle methods

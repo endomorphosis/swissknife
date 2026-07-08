@@ -5,7 +5,7 @@ import * as React from 'react'
 import { z } from 'zod'
 import { FallbackToolUseRejectedMessage } from '../../components/FallbackToolUseRejectedMessage'
 import { PRODUCT_NAME } from '../../constants/product'
-import { queryHaiku } from '../../services/claude'
+import { queryHaiku } from '../../services/platform/claude.js'
 import { Tool, ValidationResult } from '../../Tool'
 import { splitCommand } from '../../utils/commands'
 import { isInDirectory } from '../../utils/file'
@@ -16,7 +16,7 @@ import { getGlobalConfig } from '../../utils/config'
 import BashToolResultMessage from './BashToolResultMessage'
 import { BANNED_COMMANDS, PROMPT } from './prompt'
 import { formatOutput, getCommandFilePaths } from './utils'
-import { logEvent } from '../../services/statsig'
+import { logEvent } from '../../services/platform/statsig.js'
 
 export const inputSchema = z.strictObject({
   command: z.string().describe('The command to execute'),

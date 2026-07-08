@@ -7,25 +7,25 @@ import {
   Groth16Backend,
   Groth16BackendFallback,
   Groth16Proof,
-} from '../../src/services/zkp-backends';
+} from '../../src/services/zkp/zkp-backends';
 import {
   ZKPVerifier,
   makeSimulatedVK,
-} from '../../src/services/zkp-verifier';
+} from '../../src/services/zkp/zkp-verifier';
 import {
   runTrustedSetup,
-} from '../../src/services/setup-artifacts';
+} from '../../src/services/zkp/setup-artifacts';
 import {
   EProver,
   ProverStatus,
   VampireProver,
-} from '../../src/services/external-provers';
+} from '../../src/services/provers/external-provers';
 import {
   createEvmSubmissionClient,
   encodeVerifierCalldata,
   encodeVerifyProofSolidityCalldata,
   submitZkpProofOnchain,
-} from '../../src/services/zkp-onchain-pipeline';
+} from '../../src/services/zkp/zkp-onchain-pipeline';
 
 describe('PORT-209 Groth16 strict native default', () => {
   it('fails closed when no native binary is configured', async () => {

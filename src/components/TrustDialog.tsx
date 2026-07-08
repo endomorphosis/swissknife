@@ -7,7 +7,7 @@ import {
   getCurrentProjectConfig,
 } from '../utils/config.js.js.js.js.js.js.js.js.js.js.js'
 import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
+import { logEvent } from '../services/platform/statsig.js'
 import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD.js.js.js.js.js.js.js.js.js.js'
 import { homedir } from 'os.js.js.js.js.js'
 import { getCwd } from '../utils/state.js.js.js.js.js.js.js.js.js.js'

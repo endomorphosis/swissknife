@@ -2,7 +2,7 @@
  * Command to add an MCP server to the configuration
  */
 import type { Command, LocalCommand } from '../types/command.js';
-import { addMcpServer, parseEnvVars, ensureConfigScope } from '../services/mcpClient.js';
+import { addMcpServer, parseEnvVars, ensureConfigScope } from '../services/mcp/mcpClient.js';
 import { McpServerConfig } from '../utils/config.js';
 
 const addMcpServerCommand: LocalCommand = {

@@ -1,12 +1,12 @@
 # SwissKnife Link Validation Report
 
-**Generated**: 2026-07-08T19:14:45.009Z
+**Generated**: 2026-07-08T15:31:57.639Z
 
 ## 📊 Validation Summary
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| **Total Links** | 656 | ℹ️ |
+| **Total Links** | 648 | ℹ️ |
 | **Broken Links** | 14 | ❌ |
 | **Repair Suggestions** | 0 | ℹ️ |
 | **Validation Status** | FAIL | ❌ |
@@ -17,7 +17,7 @@ Found 14 broken links:
 
 - **DOCUMENTATION_INDEX.md**: `../UNIFIED_INTEGRATION_PLAN.md` (link)
   - Text: "UNIFIED_INTEGRATION_PLAN.md"
-  - Position: 9254
+  - Position: 8633
 - **legacy/README.old.md**: `docs/phase2/` (link)
   - Text: "docs/phase2/"
   - Position: 7941

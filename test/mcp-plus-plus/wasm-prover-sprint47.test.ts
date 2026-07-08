@@ -6,16 +6,18 @@
  *         T-211 (tdfol-nl-llm.ts).
  */
 
+import { vi } from 'vitest';
+
 import {
   PatternType,
   PatternMatcher,
-} from '../../src/services/tdfol-nl-patterns';
+} from '../../src/services/logic/shared/tdfol-nl-patterns';
 
 import {
   NLPolicyConflictDetector,
   detectConflicts,
   PolicyClause,
-} from '../../src/services/nl-policy-conflict-detector';
+} from '../../src/services/logic/nl/nl-policy-conflict-detector';
 
 import {
   buildConversionPrompt,
@@ -24,7 +26,7 @@ import {
   getOperatorHintsForText,
   LLMResponseCache,
   makeLLMParseResult,
-} from '../../src/services/tdfol-nl-llm';
+} from '../../src/services/logic/tdfol/tdfol-nl-llm';
 
 // ---------------------------------------------------------------------------
 // PatternMatcher tests
@@ -207,7 +209,7 @@ describe('NLPolicyConflictDetector — toDict()', () => {
 
 describe('NLPolicyConflictDetector — detectAndWarn', () => {
   test('emits console.warn for each conflict', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const det = new NLPolicyConflictDetector();
     const clauses = [
       clause('permission', 'write', 'eve'),

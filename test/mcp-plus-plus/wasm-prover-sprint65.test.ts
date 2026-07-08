@@ -1,15 +1,15 @@
 /**
  * wasm-prover-sprint65.test.ts
  * Tests for Sprint 65 modules:
- *   - sprint65-storage-parsers.ts  (IPFSProofStorage, TPTPParser, ProblemParser, GrammarLoader)
- *   - sprint65-utils.ts            (verification utils, DCEC cleaning, deontic utils, WitnessManager, EProverAdapter)
+ *   - proof-storage-parsers.ts  (IPFSProofStorage, TPTPParser, ProblemParser, GrammarLoader)
+ *   - logic-verification-toolkit.ts            (verification utils, DCEC cleaning, deontic utils, WitnessManager, EProverAdapter)
  */
 
 import {
   IPFSProofStorage, getDefaultProofStorage,
   TPTPParser, ProblemParser, parseProblemFile,
   GrammarLoader, getGrammarLoader,
-} from '../../src/services/sprint65-storage-parsers';
+} from '../../src/services/logic/api/proof-storage-parsers';
 
 import {
   getBasicAxioms, getBasicProofRules, validateFormulaSyntax,
@@ -18,8 +18,8 @@ import {
   DeonticPatterns, extractKeywords, calculateTextSimilarity, areEntitiesSimilar, areActionsSimilar,
   WitnessManager,
   EProverAdapter, checkEproverInstallation, EProverProofResult, type EProverProcessResult,
-} from '../../src/services/sprint65-utils';
-import { Groth16BackendFallback, Groth16Proof } from '../../src/services/zkp-backends';
+} from '../../src/services/logic/api/logic-verification-toolkit';
+import { Groth16BackendFallback, Groth16Proof } from '../../src/services/zkp/zkp-backends';
 
 // ---------------------------------------------------------------------------
 // IPFSProofStorage

@@ -4,7 +4,11 @@ import {
   getIPFSDatasetsDescriptorPackDescriptors,
   ipfsDatasetsDescriptorPack,
   validateIPFSDatasetsDescriptorPack,
+<<<<<<< HEAD
+} from '../../src/services/mcp/mcp-ipfs-datasets-descriptor-pack';
+=======
 } from '../../src/services/ipfs/mcp-ipfs-datasets-descriptor-pack';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import { generateSchemaDrivenUI } from '../../src/services/mcp/mcp-schema-ui-generator';
 import { validateMCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 

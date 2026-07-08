@@ -15,8 +15,8 @@ import {
   ResolutionProver,
   createTableauProver,
   createResolutionProver,
-} from '../../src/services/cec-modal-tableaux';
-import { ModalLogic } from '../../src/services/shadow-prover';
+} from '../../src/services/logic/cec/cec-modal-tableaux';
+import { ModalLogic } from '../../src/services/logic/modal/shadow-prover';
 
 import {
   CacheEntry,
@@ -26,7 +26,7 @@ import {
   ParseResultCache,
   MemoizationCache,
   CacheManager,
-} from '../../src/services/formula-cache';
+} from '../../src/services/logic/shared/formula-cache';
 
 import {
   ProofStatus,
@@ -34,13 +34,13 @@ import {
   toSmtLib2,
   checkZ3Installation,
   getZ3Version,
-} from '../../src/services/z3-adapter';
+} from '../../src/services/provers/z3-adapter';
 
 import {
   CECFramework,
   ReasoningMode,
   defaultFrameworkConfig,
-} from '../../src/services/cec-framework';
+} from '../../src/services/logic/cec/cec-framework';
 
 // ---------------------------------------------------------------------------
 // TableauNode tests

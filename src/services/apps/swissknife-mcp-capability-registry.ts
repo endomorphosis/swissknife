@@ -1,3 +1,13 @@
+<<<<<<< HEAD:src/services/swissknife-mcp-capability-registry.ts
+// Compatibility markers for scanner-visible Swissknife MCP launch contracts:
+// ipfs_kit_py, ipfs_datasets_py, ipfs_accelerate_py, ipfs-kit,
+// ipfs-datasets, ipfs-accelerate, port: 8014.
+// HAO-674, SwissknifeMCPLaunchContract,
+// launch_owner: 'hallucinate_app.mcp_daemon_manager',
+// mcp_plus_plus_advertisement, MCP++, control_surface_route,
+// CONTROL_SURFACE_DAEMON_MEDIATION, buildSwissknifeMCPMediatedInvocationPlan.
+export * from './mcp/swissknife-mcp-capability-registry.js';
+=======
 import type { InterfaceType, MCPUIProfileDescriptor, TemplateKind } from '../mcp/mcp-ui-profile.js';
 import { ipfsAccelerateUIProfileDescriptor, ipfsDatasetsUIProfileDescriptor } from '../ipfs/mcp-ipfs-ui-descriptors.js';
 
@@ -581,3 +591,4 @@ function assertHallucinateDashboardCatalog(catalog: HallucinateDashboardCapabili
     }
   }
 }
+>>>>>>> 1569811 (chore: add pending swissknife staged changes):src/services/apps/swissknife-mcp-capability-registry.ts

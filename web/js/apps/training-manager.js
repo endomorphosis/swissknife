@@ -3,6 +3,11 @@
  * Manage model training processes with IPFS model versioning and P2P coordination
  */
 
+import {
+  describeAccelerateDatasetsCapabilities,
+  runAccelerateDatasetsWorkflow,
+} from './accelerate-datasets-capabilities.js';
+
 const LOCAL_IPFS_ACCELERATE_MODULE = '../../../ipfs_accelerate_js/src/index.js';
 
 async function loadLocalIPFSAccelerateClass() {
@@ -28,7 +33,8 @@ async function loadLocalIPFSAccelerateClass() {
 
 // Export class for ES6 module compatibility
 export class TrainingManagerApp {
-  constructor() {
+  constructor(desktop = null) {
+    this.desktop = desktop;
     this.trainingJobs = [];
     this.datasets = [];
     this.modelVersions = [];
@@ -36,6 +42,8 @@ export class TrainingManagerApp {
     this.p2pSystem = null;
     this.ipfsStorage = null;
     this.modelServer = null;
+    this.accelerateDatasetsCapabilities = describeAccelerateDatasetsCapabilities('training-manager');
+    this.lastAccelerateDatasetsWorkflow = null;
   }
 
   async initialize() {
@@ -79,6 +87,48 @@ export class TrainingManagerApp {
         .app-placeholder { text-align: center; padding: 40px; }
       </style>
     `;
+  }
+
+  getAccelerateDatasetsCapabilities() {
+    return this.accelerateDatasetsCapabilities;
+  }
+
+  async exerciseAccelerateDatasetsGateway(input = {}) {
+    const job = input.job || this.activeJob || this.trainingJobs[0] || {
+      id: input.jobId || 'training-manager-demo-job',
+      name: 'SwissKnife demo training job',
+      architecture: 'transformer',
+      dataset: 'demo-training-dataset',
+      status: 'running',
+      progress: 35,
+      config: { epochs: 10, batchSize: 16 },
+    };
+
+    this.lastAccelerateDatasetsWorkflow = await runAccelerateDatasetsWorkflow({
+      desktop: this.desktop,
+      appId: 'training-manager',
+      task: 'model-training',
+      model: input.model || job.architecture || 'training-model',
+      provider: 'ipfs_accelerate_py',
+      input: input.prompt || `Continue training job ${job.name} on ${job.dataset || 'selected dataset'}.`,
+      datasetQuery: input.datasetQuery || job.dataset || 'training dataset',
+      datasetId: job.dataset || 'training-manager-dataset',
+      collection: 'swissknife-training-manager',
+      jobId: job.id,
+      maxTokens: input.maxTokens || 128,
+      provenance: {
+        action: 'training-manager.train-with-dataset',
+        subject_id: String(job.id),
+        subject_type: 'training-job',
+        metadata: {
+          architecture: job.architecture,
+          status: job.status,
+          progress: job.progress || 0,
+          model_version_count: this.modelVersions.length,
+        },
+      },
+    });
+    return this.lastAccelerateDatasetsWorkflow;
   }
 }
 

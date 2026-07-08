@@ -5,7 +5,11 @@ import MCPDaemonManager from '../../../hallucinate_app/hallucinate_app/node/mcp_
 import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,
+<<<<<<< HEAD
+} from '../../src/services/mcp/swissknife-mcp-capability-registry';
+=======
 } from '../../src/services/apps/swissknife-mcp-capability-registry';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import hallucinateBackendBridge from '../../web/js/hallucinate-backend-bridge.mjs';
 
 const DASHBOARD_CATALOG_FIXTURE = path.resolve(

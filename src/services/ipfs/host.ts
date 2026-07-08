@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+export * from './browser.js';
+=======
 import { spawn, type ChildProcess } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -315,3 +318,4 @@ export {
   type IPFSClientConfig,
   type IPFSPinStatus,
 };
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)

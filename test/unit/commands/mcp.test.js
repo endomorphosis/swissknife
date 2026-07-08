@@ -12,7 +12,7 @@
 // Mock the mcpClient service functions
 const mockListMCPServers = jest.fn();
 const mockGetClients = jest.fn();
-jest.mock('../../../src/services/mcpClient.js', () => ({
+jest.mock('../../../src/services/mcp/mcpClient.js', () => ({
     listMCPServers: mockListMCPServers,
     getClients: mockGetClients,
 }));

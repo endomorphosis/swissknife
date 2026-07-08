@@ -11,7 +11,7 @@ import {
   ProofStatus,
   KProver,
   ProofTree,
-} from '../../src/services/shadow-prover';
+} from '../../src/services/logic/modal/shadow-prover';
 
 import {
   TemporalOperator,
@@ -39,14 +39,14 @@ import {
   UntilReleaseDualityRule,
   WeakUntilExpansionRule,
   NextDistributionRule,
-} from '../../src/services/temporal-inference-rules';
+} from '../../src/services/logic/tdfol/temporal-inference-rules';
 
 import {
   ProverRouter,
   ProverStrategy,
   RegisteredProver,
   SingleProverResult,
-} from '../../src/services/prover-router';
+} from '../../src/services/proof-engine/prover-router';
 
 // ---------------------------------------------------------------------------
 // ShadowProver tests

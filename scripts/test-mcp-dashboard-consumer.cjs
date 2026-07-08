@@ -12,6 +12,9 @@ import MCPDaemonManager from '../hallucinate_app/hallucinate_app/node/mcp_daemon
 import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,
+<<<<<<< HEAD
+} from './src/services/mcp/swissknife-mcp-capability-registry.ts';
+=======
 } from './src/services/apps/swissknife-mcp-capability-registry.ts';
 import {
   MCP_DASHBOARD_BROWSER_CONNECTABLE_TRANSPORTS as SWR027_BROWSER_TRANSPORTS,
@@ -21,6 +24,7 @@ import {
   classifyMcpDashboardHostDaemonCommand as swr027ClassifyHostDaemonCommand,
   isPythonHostDaemonCommand as swr027IsPythonHostDaemonCommand,
 } from './src/services/mcp/mcp-dashboard-browser-policy.ts';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 const catalogPath = path.resolve(
   '..',
@@ -731,6 +735,24 @@ assert(
 assert(
   hao724Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-mcp-dashboard-launch-gate.md',
   'HAO-724 launch gate must point at the current launch gate receipt',
+);
+const hao742Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'HAO-742');
+assert(hao742Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include HAO-742 for VAIOS-G724');
+assert(
+  JSON.stringify(hao742Gate?.packet_goal_ids || []) === JSON.stringify(['VAIOS-G724', 'VAIOS-G728']),
+  'HAO-742 launch gate must preserve VAIOS-G724/VAIOS-G728 packet goals',
+);
+assert(
+  hao742Gate?.packet_sibling_task_id === 'HAO-743' && hao742Gate?.packet_sibling_goal_id === 'VAIOS-G728',
+  'HAO-742 launch gate must preserve the HAO-743/VAIOS-G728 packet sibling',
+);
+assert(
+  hao742Gate?.supervisor_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-742-objective-gap-3e00ad2a0074.md',
+  'HAO-742 launch gate must point at the current supervisor gap receipt',
+);
+assert(
+  hao742Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-742-mcp-dashboard-launch-gate.md',
+  'HAO-742 launch gate must point at the current launch gate receipt',
 );
 const vai535Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-535');
 assert(vai535Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-535 for VAIOS-G724');

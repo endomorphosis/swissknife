@@ -3,8 +3,14 @@
  * AI-powered video editor with multi-track timeline, effects, and professional tools
  */
 
+import {
+  describeMediaArtifactCapabilities,
+  runMediaArtifactWorkflow,
+} from './media-artifact-capabilities.js';
+
 export class CinemaApp {
-  constructor() {
+  constructor(desktop = null) {
+    this.desktop = desktop;
     this.name = 'Cinema';
     this.version = '1.0.0';
     this.description = 'Professional Video Editor with AI Tools';
@@ -73,6 +79,8 @@ export class CinemaApp {
         { name: 'Cross Fade', duration: 0.7, type: 'blend' }
       ]
     };
+    this.mediaArtifactCapabilities = describeMediaArtifactCapabilities('cinema');
+    this.lastMediaArtifactWorkflow = null;
     
     // Initialize components
     this.initializeComponents();
@@ -691,6 +699,36 @@ export class CinemaApp {
       supportedFormats: this.supportedFormats,
       currentProject: this.getProjectStatus()
     };
+  }
+
+  getMediaArtifactCapabilities() {
+    return this.mediaArtifactCapabilities;
+  }
+
+  async exerciseMediaArtifactGateway(input = {}) {
+    const project = this.currentProject || this.createNewProject?.('Cinema Demo Project') || { name: 'Cinema Demo Project' };
+
+    this.lastMediaArtifactWorkflow = await runMediaArtifactWorkflow({
+      desktop: this.desktop,
+      appId: 'cinema',
+      mediaType: 'video',
+      mimeType: 'video/mp4',
+      operation: input.operation || 'render-video',
+      model: input.model || 'video-renderer',
+      prompt: input.prompt || `Render video project ${project.name || 'Cinema project'} with AI effects.`,
+      artifact: {
+        id: project.id || project.name || 'cinema-project',
+        name: `${project.name || 'cinema-project'}-render`,
+        filename: `${String(project.name || 'cinema-project').replace(/[^a-z0-9._-]+/gi, '-')}.mp4.json`,
+        content: {
+          project,
+          timeline: this.timeline,
+          active_tool: Object.entries(this.tools).find(([, tool]) => tool.active)?.[0],
+          effect_count: this.effects.video.length,
+        },
+      },
+    });
+    return this.lastMediaArtifactWorkflow;
   }
   
   // Help system

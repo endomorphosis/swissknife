@@ -5,11 +5,19 @@ import {
 import {
   GeneratedAppStateManager,
   MemoryGeneratedAppReplayStorage,
+<<<<<<< HEAD
+} from '../../src/services/mcp/mcp-generated-app-state';
+import {
+  ipfsDatasetInferenceWorkflowDescriptor,
+  ipfsDatasetsUIProfileDescriptor,
+} from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+=======
 } from '../../src/services/apps/mcp-generated-app-state';
 import {
   ipfsDatasetInferenceWorkflowDescriptor,
   ipfsDatasetsUIProfileDescriptor,
 } from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 describe('MCP++ descriptor inspector', () => {

@@ -3,7 +3,11 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, resolve } from 'node:path';
 
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub.js';
+<<<<<<< HEAD
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy.js';
+=======
 import type { Policy } from '../../src/services/mcp/mcp-policy.js';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import type { WasmProofResult } from '../../src/services/provers/prover-types.js';
 import { TdfolProverBridge } from '../../src/services/provers/tdfol-prover-bridge.js';
 import {
@@ -16,7 +20,7 @@ import {
   Permission,
   Prohibition,
   type DCECFormula,
-} from '../../src/services/provers/dcec-types.js';
+} from '../../src/services/logic/dcec/dcec-types.js';
 import {
   Always,
   Eventually,
@@ -25,7 +29,7 @@ import {
   Since,
   Until,
   type TdfolFormula,
-} from '../../src/services/provers/tdfol-types.js';
+} from '../../src/services/logic/tdfol/tdfol-types.js';
 
 export type ConformanceSubsystem =
   | 'propositional'

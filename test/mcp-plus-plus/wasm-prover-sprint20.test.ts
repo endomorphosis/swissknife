@@ -13,10 +13,10 @@
 import {
   I18NConflictReport,
   detectMultilingualConflicts,
-} from '../../src/services/i18n-conflict-report.js';
-import { E2EValidator } from '../../src/services/e2e-validator.js';
-import { LogicPublicApi } from '../../src/services/logic-public-api.js';
-import { LogicMonitor } from '../../src/services/logic-monitor.js';
+} from '../../src/services/logic/deontic/i18n-conflict-report.js';
+import { E2EValidator } from '../../src/services/logic/api/e2e-validator.js';
+import { LogicPublicApi } from '../../src/services/logic/api/logic-public-api.js';
+import { LogicMonitor } from '../../src/services/logic/shared/logic-monitor.js';
 
 // ---------------------------------------------------------------------------
 // T-104: I18NConflictReport

@@ -12,8 +12,8 @@
  * Reference: ipfs_datasets_py/logic/external_provers/interactive/lean_prover_bridge.py
  */
 
-import type { Policy } from '../mcp-policy.js';
-import type { PolicyFormulaSet } from '../mcp-remote-deontic-engine.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
+import type { PolicyFormulaSet } from '../logic/deontic/policy-formulas.js';
 
 // ---------------------------------------------------------------------------
 // DeonticToLean4Translator

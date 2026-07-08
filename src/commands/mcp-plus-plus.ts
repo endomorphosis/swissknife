@@ -9,8 +9,8 @@
 
 import type { LocalCommand } from '../types/command.js';
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js';
-import { InterfaceRepository } from '../services/mcp-idl.js';
-import { EventDAG } from '../services/event-dag.js';
+import { InterfaceRepository } from '../services/mcp/mcp-idl.js';
+import { EventDAG } from '../services/mcp/mcp-event-dag.js';
 import chalk from 'chalk';
 
 /** Number of CID characters to display in listings (truncated for readability). */
@@ -67,7 +67,7 @@ const mcpPlusPlusCommand: LocalCommand = {
           return chalk.red('Usage: mcp-plus-plus p2p connect <multiaddr>');
         }
         try {
-          const { MCPTransportFactory } = await import('../services/mcp-transport.js');
+          const { MCPTransportFactory } = await import('../services/mcp/mcp-transport.js');
           const transport = MCPTransportFactory.create({
             type: 'libp2p',
             endpoint: multiaddr,

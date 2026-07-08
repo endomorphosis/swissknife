@@ -1,9 +1,3 @@
-import {
-  chmodSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -12,20 +6,33 @@ import {
   modalFormulaToText,
   targetFamilyDistributionForModalIr,
   targetFamilyForModalIr,
-} from '../../src/services/modal-logic-codec';
+} from '../../src/services/logic/modal/modal-logic-codec';
 import {
   CircuitBreakerState,
   PrometheusMetricsCollector,
   getPrometheusCollector,
-} from '../../src/services/observability-metrics-prometheus';
+} from '../../src/services/platform/observability-metrics-prometheus';
 import {
   ensureCoq,
   ensureCvc5,
   ensureErgoai,
   ensureLean,
   ensureSymbolicai,
-} from '../../src/services/prover-installer';
-import { resolveErgoBinary } from '../../src/services/ergoai-wrapper';
+} from '../../src/services/provers/prover-installer';
+import { resolveErgoBinary } from '../../src/services/integrations/ergoai-wrapper';
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  chmodSync: (path: string, mode: number) => void;
+  mkdtempSync: (prefix: string) => string;
+  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
+  writeFileSync: (path: string, data: string) => void;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for ErgoAI fixture tests');
+}
 
 describe('PORT-233 modal codec decode and target-family helpers', () => {
   const modalIr = {
@@ -90,10 +97,10 @@ describe('PORT-233 host-native prover and ErgoAI probes', () => {
   });
 
   it('resolves ErgoAI binaries from explicit paths, env, PATH probes, and lazy installers', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ergoai-wrapper-'));
+    const dir = nodeFs.mkdtempSync(join(tmpdir(), 'ergoai-wrapper-'));
     const binary = join(dir, 'runergo');
-    writeFileSync(binary, '#!/bin/sh\n');
-    chmodSync(binary, 0o755);
+    nodeFs.writeFileSync(binary, '#!/bin/sh\n');
+    nodeFs.chmodSync(binary, 0o755);
 
     try {
       expect(resolveErgoBinary({ binary })).toBe(binary);
@@ -106,7 +113,7 @@ describe('PORT-233 host-native prover and ErgoAI probes', () => {
         reason: 'test',
       })).toBe(binary);
     } finally {
-      rmSync(dir, { recursive: true, force: true });
+      nodeFs.rmSync(dir, { recursive: true, force: true });
     }
   });
 });

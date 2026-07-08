@@ -6,12 +6,12 @@ import { GLOBAL_CLAUDE_FILE } from './env.js'
 import { getCwd } from './state.js'
 import { randomBytes } from 'crypto'
 import { safeParseJSON } from './json.js'
-import { checkGate, logEvent } from '../services/statsig.js'
+import { checkGate, logEvent } from '../services/platform/statsig.js'
 import { GATE_USE_EXTERNAL_UPDATER } from '../constants/betas.js'
 import { ConfigParseError } from './errors.js'
 import type { ThemeNames } from './theme.js'
 import { getSessionState, setSessionState } from './sessionState.js'
-import type { McpVersionHistory } from '../services/mcp-types.js'
+import type { McpVersionHistory } from '../services/mcp/mcp-types.js'
 
 export type McpPlusPlusConfig = {
   enableP2P?: boolean

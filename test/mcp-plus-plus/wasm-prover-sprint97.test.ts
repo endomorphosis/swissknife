@@ -11,7 +11,11 @@ import {
   type LurkWasmModule,
   type ZKProofArtifact,
 } from '../../src/services/provers/lurk-wasm-bridge';
+<<<<<<< HEAD
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
+=======
 import type { Policy } from '../../src/services/mcp/mcp-policy';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 function obligationPolicy(): Policy {
   return {

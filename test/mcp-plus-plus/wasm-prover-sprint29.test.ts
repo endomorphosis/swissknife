@@ -7,11 +7,11 @@
 import {
   flogicTriplesToGraphData, flogicTriplesToOntology, modalIrToNeo4jGraphData,
   flogicOntologyToDict, makeFLogicFrame,
-} from '../../src/services/modal-kg-bridge.js';
+} from '../../src/services/logic/modal/modal-kg-bridge.js';
 import {
   RESIDUAL_REPAIR_ROUTES, routeAutoencoderResidual,
   ModalProgramSynthesisHint, residualSignatureForHint, synthesisHintFromRoute,
-} from '../../src/services/modal-synthesis.js';
+} from '../../src/services/logic/modal/modal-synthesis.js';
 
 // ---------------------------------------------------------------------------
 // Sample triples

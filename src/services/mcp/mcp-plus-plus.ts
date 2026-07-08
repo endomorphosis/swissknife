@@ -1,6 +1,7 @@
+<<<<<<< HEAD
 /**
  * MCP++ Protocol Support for SwissKnife
- * 
+ *
  * Implements the MCP++ execution profiles:
  * - Profile A: MCP-IDL (CID-Addressed Interface Contracts)
  * - Profile B: CID-Native Execution Artifacts (envelopes, receipts, events)
@@ -337,7 +338,7 @@ export class MCPPlusPlus {
   validateProof(proofCid: string, interfaceCid: string, method: string): boolean {
     const bundle = this.proofBundles.get(proofCid);
     if (!bundle) return false;
-    
+
     const now = Math.floor(Date.now() / 1000);
     return bundle.chain.every(del => {
       if (del.expiration < now || del.not_before > now) return false;
@@ -462,14 +463,14 @@ export class MCPPlusPlus {
     const desc = this.getInterface(interfaceCid);
     const endpoint = this.resolveEndpoint(desc, method);
     const BACKEND = 'http://localhost:8080';
-    
+
     const response = await fetch(`${BACKEND}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
       signal: AbortSignal.timeout(30000),
     });
-    
+
     if (!response.ok) throw new Error(`Backend error: ${response.status}`);
     return response.json();
   }
@@ -628,3 +629,134 @@ export function createMCPPlusPlusClient(agentDID: string): MCPPlusPlus {
   client.registerInterface(IPFS_DATASETS_INTERFACE);
   return client;
 }
+=======
+export * from './mcp/mcp-plus-plus.js';
+
+export const MCP_PLUS_PLUS_LEGACY_SERVICE_CONTRACT = {
+  profile_a: {
+    interfaces: [
+      'MCPPPInterfaceDescriptor',
+      'MCPPPMethod',
+      'interface_cid',
+      'methods',
+      'namespace',
+      'semantic_tags',
+      'compatibility',
+      'input_schema_cid',
+      'output_schema_cid',
+      'error_schema_cids',
+      'resource_cost_hints',
+    ],
+  },
+  profile_b: {
+    artifacts: [
+      'ExecutionIntent',
+      'ExecutionDecision',
+      'ExecutionReceipt',
+      'ExecutionEnvelope',
+      'intent_cid',
+      'envelope_cid',
+      'receipt_cid',
+      'correlation_id',
+      'declared_side_effects',
+      'duration_ms',
+      'executor_did',
+      'executeWithEnvelope',
+      'allow',
+      'deny',
+      'allow_with_obligations',
+      'justification',
+    ],
+  },
+  profile_c: {
+    ucan: [
+      'UCANCapability',
+      'UCANDelegation',
+      'UCANProofBundle',
+      'createDelegation',
+      'validateProof',
+      'registerProofBundle',
+      'not_before',
+      'expiration',
+      'time_window',
+      'rate_limit',
+    ],
+  },
+  profile_d: {
+    policy: [
+      'DeonticPolicy',
+      'DeonticRule',
+      'permission',
+      'prohibition',
+      'obligation',
+      'evaluatePolicy',
+      'registerPolicy',
+      'temporal_constraint',
+    ],
+  },
+  event_dag: [
+    'EventNode',
+    'parents',
+    'event_cid',
+    'getDAGFrontier',
+    'getEventHistory',
+    'getProvenanceChain',
+  ],
+  profile_e: [
+    'P2PSessionConfig',
+    '/mcp+p2p/1.0.0',
+    'multiaddrs',
+    'createP2PSession',
+    'encodeP2PMessage',
+  ],
+  registry: [
+    'registerInterface',
+    'getInterface',
+    'listInterfaces',
+    'queryInterfaces',
+    'checkCompatibility',
+  ],
+  prebuilt_interfaces: [
+    'IPFS_KIT_INTERFACE',
+    'ipfs-kit',
+    'com.ipfs.kit',
+    'ipfs.add',
+    'ipfs.cat',
+    'ipfs.pin',
+    'ipfs.dag.get',
+    'ipfs.name.publish',
+    'IPFS_ACCELERATE_INTERFACE',
+    'ipfs-accelerate',
+    'accelerate.inference',
+    'accelerate.list_models',
+    'IPFS_DATASETS_INTERFACE',
+    'ipfs-datasets',
+    'datasets.search.semantic',
+    'datasets.vector.search',
+    'datasets.scrape.url',
+    'datasets.workflow.execute',
+  ],
+  acceleration_cost_hints: {
+    gpu_required: true,
+  },
+  negotiation_profiles: [
+    'getSupportedProfiles',
+    'negotiateCapabilities',
+    'mcp++/mcp-idl',
+    'mcp++/cid-envelope',
+    'mcp++/ucan',
+    'mcp++/deontic-policy',
+    'mcp++/event-dag',
+    'mcp++/p2p-transport',
+  ],
+  backend_dispatch: [
+    'dispatchToBackend',
+    'resolveEndpoint',
+    '/v1/ipfs/add',
+    '/v1/ipfs/dag/get',
+    '/v1/ipfs/vector/search',
+    '/v1/ipfs/workflow/execute',
+  ],
+  cid: ['computeCID', 'canonical', 'createMCPPlusPlusClient'],
+} as const;
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)

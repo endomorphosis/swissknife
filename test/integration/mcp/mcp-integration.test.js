@@ -1,5 +1,5 @@
 /**
- * Integration Tests for MCP Client Service (`src/services/mcpClient.ts`)
+ * Integration Tests for MCP Client Service (`src/services/mcp/mcpClient.ts`)
  *
  * These tests verify the functions responsible for managing MCP server configurations,
  * establishing connections (clients), and retrieving tools exposed by connected servers.

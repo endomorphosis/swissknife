@@ -9,8 +9,13 @@
  * References: docs/spec/risk-scheduling.md in endomorphosis/Mcp-Plus-Plus
  */
 
+<<<<<<< HEAD
+import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
+import { EventDAG, StoredEventNode } from './mcp-event-dag.js';
+=======
 import { EventEmitter } from 'events';
 import { EventDAG, StoredEventNode } from '../event-dag.js';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 // ---------------------------------------------------------------------------
 // Risk Scoring
@@ -192,7 +197,7 @@ export interface SchedulerOptions {
 
 export type CallExecutor<T> = (call: T) => Promise<unknown>;
 
-export class MCPScheduler<T = unknown> extends EventEmitter {
+export class MCPScheduler<T = unknown> extends BrowserEventEmitter {
   private queue = new MinHeap<T>();
   private inFlight = 0;
   private riskScorer: RiskScorer;

@@ -15,7 +15,7 @@
 // Mock the mcpClient service functions
 const mockListMCPServers = jest.fn();
 const mockGetClients = jest.fn();
-jest.mock('../../../src/services/mcpClient', () => ({ // Adjust path
+jest.mock('../../../src/services/mcp/mcpClient', () => ({ // Adjust path
   listMCPServers: mockListMCPServers,
   getClients: mockGetClients,
 }));
@@ -43,7 +43,7 @@ jest.mock('../../../src/constants/product', () => ({ // Adjust path
 
 // --- Imports ---
 import mcpCommand from '../../../src/commands/mcp.js';
-import { listMCPServers, getClients } from '../../../src/services/mcpClient.js';
+import { listMCPServers, getClients } from '../../../src/services/mcp/mcpClient.js';
 import { CommandOption } from '../../../src/types/command.js'; // Assuming types are exported from the command file
 
 // Define placeholder types locally if needed

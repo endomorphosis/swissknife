@@ -1,10 +1,12 @@
+// @vitest-environment node
+
 /**
  * Sprint 62 tests — Enhanced Grammar Parser, Temporal Deontic API,
  *                   NLP Predicate Extractor, Profiling Utils,
  *                   Proof Optimization, Resolution Rules
  */
 
-import { EnhancedGrammarParser, ParseTree, Category } from '../../src/services/enhanced-grammar-parser';
+import { EnhancedGrammarParser, ParseTree, Category } from '../../src/services/logic/nl/enhanced-grammar-parser';
 import {
   TemporalDeonticAPI,
   addTheoremFromParameters,
@@ -15,21 +17,18 @@ import {
   demoRagRetrieval,
   printDebugReport,
   queryTheoremsFromParameters,
-} from '../../src/services/temporal-deontic-api';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/nlp-predicate-extractor';
+} from '../../src/services/logic/tdfol/temporal-deontic-api';
+import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/logic/fol/nlp-predicate-extractor';
 import {
   FormulaProfiler, BottleneckAnalyzer, ProfilingReporter,
-} from '../../src/services/cec-resolution-rules';
+} from '../../src/services/logic/cec/cec-resolution-rules';
 import {
   PruningStrategy, makeProofNode, ProofTreePruner, RedundancyEliminator,
   ResolutionRule, UnitResolutionRule, FactoringRule,
   SubsumptionRule, CaseAnalysisRule, ProofByContradictionRule,
   ALL_RESOLUTION_RULES,
   FormulaProfiler as FP2, BottleneckAnalyzer as BA2, ProfilingReporter as PR2,
-} from '../../src/services/cec-resolution-rules';
+} from '../../src/services/logic/cec/cec-resolution-rules';
 
 // ---------------------------------------------------------------------------
 // EnhancedGrammarParser
@@ -144,17 +143,12 @@ describe('TemporalDeonticAPI', () => {
   });
 
   test('bulkProcessCaselawFromParameters validates directories', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'td-api-'));
-    try {
-      const result = await bulkProcessCaselawFromParameters({
-        caselaw_directories: [dir],
-        async_processing: false,
-      });
-      expect(result.success).toBe(true);
-      expect((result.results as Record<string, unknown>).documents_processed).toBe(1);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    const result = await bulkProcessCaselawFromParameters({
+      caselaw_directories: ['.'],
+      async_processing: false,
+    });
+    expect(result.success).toBe(true);
+    expect((result.results as Record<string, unknown>).documents_processed).toBe(1);
   });
 
   test('demo helpers expose sample corpus, debug report, batch, and RAG retrieval data', () => {

@@ -1,7 +1,7 @@
 /**
  * wasm-prover-sprint74.test.ts
  * Tests for Sprint 74 — spaCy-WASM NLP bridge (sedbytes/spacy-wasm integration):
- *   - services/spacy-wasm-nlp.ts   (SpacyWasmNlp, regexFallbackExtract, extractPredicatesNlp)
+ *   - services/integrations/spacy-wasm-nlp.ts   (SpacyWasmNlp, regexFallbackExtract, extractPredicatesNlp)
  *   - inference/graph-rag-database.ts (now uses SpacyWasmNlp for entity extraction)
  */
 
@@ -11,7 +11,7 @@ import {
   extractPredicatesNlp,
   getSpacyWasmNlp,
   type SpacyPredicates,
-} from '../../src/services/spacy-wasm-nlp';
+} from '../../src/services/integrations/spacy-wasm-nlp';
 
 import { GraphRAGDatabase } from '../../src/inference/graph-rag-database';
 

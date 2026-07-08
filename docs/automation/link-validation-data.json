@@ -1,7 +1,7 @@
 {
-  "generated": "2026-07-08T19:14:45.009Z",
+  "generated": "2026-07-08T15:31:57.639Z",
   "summary": {
-    "totalFiles": 656,
+    "totalFiles": 648,
     "brokenLinks": 14,
     "repairSuggestions": 0,
     "validationStatus": "FAIL"
@@ -12,7 +12,7 @@
       "target": "../UNIFIED_INTEGRATION_PLAN.md",
       "text": "UNIFIED_INTEGRATION_PLAN.md",
       "type": "link",
-      "position": 9254
+      "position": 8633
     },
     {
       "file": "legacy/README.old.md",

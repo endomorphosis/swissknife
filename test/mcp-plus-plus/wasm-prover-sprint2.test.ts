@@ -1,4 +1,8 @@
 /**
+ * @vitest-environment node
+ */
+
+/**
  * Sprint 2 tests — SMT2Serializer + Cvc5WasmBridge (T-13, T-14, T-17)
  *
  * Covers:
@@ -11,7 +15,11 @@
 import { SMT2Serializer } from '../../src/services/provers/smt2-serializer';
 import { Cvc5WasmBridge } from '../../src/services/provers/cvc5-wasm-bridge';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
+<<<<<<< HEAD
+import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
+=======
 import type { Policy } from '../../src/services/mcp/mcp-policy';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -1,8 +1,14 @@
 // SwissKnife Dedicated Hugging Face App
 // Professional AI Model Hub, Dataset Management & Inference Platform
 
+import {
+    describeAccelerateDatasetsCapabilities,
+    runAccelerateDatasetsWorkflow
+} from './accelerate-datasets-capabilities.js';
+
 class HuggingFaceApp {
-    constructor() {
+    constructor(desktop = null) {
+        this.desktop = desktop;
         this.name = 'Hugging Face Hub';
         this.currentTab = 'models';
         this.models = new Map();
@@ -22,6 +28,8 @@ class HuggingFaceApp {
             cacheEnabled: true,
             cacheTTL: 3600000 // 1 hour
         };
+        this.accelerateDatasetsCapabilities = describeAccelerateDatasetsCapabilities('huggingface');
+        this.lastAccelerateDatasetsWorkflow = null;
     }
 
     async initialize() {
@@ -993,6 +1001,47 @@ class HuggingFaceApp {
             container.outerHTML = this.render();
             this.setupEventListeners();
         }
+    }
+
+    getAccelerateDatasetsCapabilities() {
+        return this.accelerateDatasetsCapabilities;
+    }
+
+    async exerciseAccelerateDatasetsGateway(input = {}) {
+        const selectedModel = input.model || this.models.values().next().value || {
+            id: this.settings.defaultModel,
+            name: this.settings.defaultModel,
+            pipeline_tag: 'text-generation'
+        };
+        const selectedDataset = input.dataset || this.datasets.values().next().value || {
+            id: 'squad',
+            name: 'SQuAD 2.0'
+        };
+        const modelId = typeof selectedModel === 'string' ? selectedModel : selectedModel.id || selectedModel.name;
+
+        this.lastAccelerateDatasetsWorkflow = await runAccelerateDatasetsWorkflow({
+            desktop: this.desktop,
+            appId: 'huggingface',
+            task: input.task || selectedModel.pipeline_tag || 'hub-inference',
+            model: modelId,
+            provider: 'huggingface',
+            input: input.prompt || `Run Hugging Face inference for ${modelId}.`,
+            datasetQuery: input.datasetQuery || selectedDataset.id || selectedDataset.name,
+            datasetId: selectedDataset.id || 'huggingface-dataset',
+            collection: 'swissknife-huggingface',
+            maxTokens: input.maxTokens || 128,
+            provenance: {
+                action: 'huggingface.model-dataset-inference',
+                subject_id: modelId,
+                subject_type: 'huggingface-model',
+                metadata: {
+                    current_tab: this.currentTab,
+                    dataset_count: this.datasets.size,
+                    deployment_count: this.deployments.size
+                }
+            }
+        });
+        return this.lastAccelerateDatasetsWorkflow;
     }
 }
 

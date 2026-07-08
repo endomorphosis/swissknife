@@ -7,7 +7,11 @@ import {
   listMetaGlassesAppCapabilities,
   requestMetaGlassesAppCapability,
   type MetaGlassesAppCapabilityId,
+<<<<<<< HEAD
+} from '../../src/services/glasses/meta-glasses-app-capability-registry';
+=======
 } from '../../src/services/apps/meta-glasses-app-capability-registry';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import {
   META_GLASSES_IO_PERMISSION_SCOPES,
   META_GLASSES_IO_PROFILE_PROPERTY,

@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+export * from '../logic/deontic/mcp-policy.js';
+=======
 /**
  * Temporal Deontic Policy Evaluation (MCP++ Profile D)
  *
@@ -9,8 +12,7 @@
  * References: docs/spec/temporal-deontic-policy.md in endomorphosis/Mcp-Plus-Plus
  */
 
-import { createHash, type BinaryLike } from 'crypto';
-import { EventEmitter } from 'events';
+import { sha256Hex } from '../../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -79,6 +81,74 @@ export interface ActiveObligation extends Obligation {
   overdue: boolean;
 }
 
+type PolicyEngineEventMap = {
+  'obligation:spawned': [ActiveObligation];
+  'obligation:fulfilled': [string];
+  'obligation:overdue': [ActiveObligation];
+};
+
+type UntypedListener = (...args: unknown[]) => void;
+
+class PolicyEventEmitter {
+  private readonly listeners = new Map<string, Set<UntypedListener>>();
+
+  on<K extends keyof PolicyEngineEventMap>(
+    event: K,
+    listener: (...args: PolicyEngineEventMap[K]) => void,
+  ): this;
+  on(event: string, listener: UntypedListener): this;
+  on(event: string, listener: UntypedListener): this {
+    const bucket = this.listeners.get(event) ?? new Set<UntypedListener>();
+    bucket.add(listener);
+    this.listeners.set(event, bucket);
+    return this;
+  }
+
+  off<K extends keyof PolicyEngineEventMap>(
+    event: K,
+    listener: (...args: PolicyEngineEventMap[K]) => void,
+  ): this;
+  off(event: string, listener: UntypedListener): this;
+  off(event: string, listener: UntypedListener): this {
+    this.listeners.get(event)?.delete(listener);
+    return this;
+  }
+
+  removeListener<K extends keyof PolicyEngineEventMap>(
+    event: K,
+    listener: (...args: PolicyEngineEventMap[K]) => void,
+  ): this;
+  removeListener(event: string, listener: UntypedListener): this;
+  removeListener(event: string, listener: UntypedListener): this {
+    return this.off(event, listener);
+  }
+
+  once<K extends keyof PolicyEngineEventMap>(
+    event: K,
+    listener: (...args: PolicyEngineEventMap[K]) => void,
+  ): this;
+  once(event: string, listener: UntypedListener): this;
+  once(event: string, listener: UntypedListener): this {
+    const wrapped: UntypedListener = (...args) => {
+      this.off(event, wrapped);
+      listener(...args);
+    };
+    return this.on(event, wrapped);
+  }
+
+  protected emit<K extends keyof PolicyEngineEventMap>(
+    event: K,
+    ...args: PolicyEngineEventMap[K]
+  ): boolean;
+  protected emit(event: string, ...args: unknown[]): boolean;
+  protected emit(event: string, ...args: unknown[]): boolean {
+    const bucket = this.listeners.get(event);
+    if (!bucket?.size) return false;
+    for (const listener of [...bucket]) listener(...args);
+    return true;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -102,9 +172,8 @@ function canonicalJSON(value: unknown): string {
   );
 }
 
-function computeCID(data: string | Buffer): string {
-  const input = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
-  return `sha256:${createHash('sha256').update(input as unknown as BinaryLike).digest('hex')}`;
+function computeCID(data: string | Uint8Array): string {
+  return `sha256:${sha256Hex(data)}`;
 }
 
 function resourceMatches(pattern: string, actual: string): boolean {
@@ -131,7 +200,7 @@ export interface InvocationContext {
   timestamp?: string;
 }
 
-export class PolicyEngine extends EventEmitter {
+export class PolicyEngine extends PolicyEventEmitter {
   private policies: Map<string, Policy> = new Map();
   /** Policy CID → Policy (reverse lookup) */
   private byCid: Map<string, Policy> = new Map();
@@ -360,3 +429,4 @@ function computePolicyCIDInternal(policy: Policy): string {
 }
 
 export { computePolicyCIDInternal as computePolicyCID };
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)

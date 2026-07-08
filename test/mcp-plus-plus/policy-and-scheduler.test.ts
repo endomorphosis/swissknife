@@ -3,9 +3,15 @@
  * Phase 8 — Risk Scorer tests
  */
 
+<<<<<<< HEAD
+import { PolicyEngine, Policy, computePolicyCID } from '../../src/services/logic/deontic/mcp-policy';
+import { RiskScorer, MCPScheduler } from '../../src/services/mcp/mcp-scheduler';
+import { EventDAG } from '../../src/services/mcp/mcp-event-dag';
+=======
 import { PolicyEngine, Policy, computePolicyCID } from '../../src/services/mcp/mcp-policy';
 import { RiskScorer, MCPScheduler } from '../../src/services/mcp/mcp-scheduler';
 import { EventDAG } from '../../src/services/event-dag';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -194,13 +200,16 @@ describe('PolicyEngine', () => {
       expect(overdue[0].overdue).toBe(true);
     });
 
-    it('emits obligation:spawned event', done => {
-      engine.on('obligation:spawned', (ob) => {
-        expect(ob.description).toBe('Log the access');
-        done();
+    it('emits obligation:spawned event', async () => {
+      const emitted = new Promise<void>((resolve) => {
+        engine.on('obligation:spawned', (ob) => {
+          expect(ob.description).toBe('Log the access');
+          resolve();
+        });
       });
       const cid = engine.registerPolicy(WITH_OBLIGATION_POLICY);
       engine.evaluatePolicy(cid, { cap: 'mcp++/invoke', rsc: '*' });
+      await emitted;
     });
   });
 });
@@ -302,15 +311,18 @@ describe('MCPScheduler', () => {
     expect(order[0]).toBe('high');
   });
 
-  it('emits enqueued + completed events', done => {
+  it('emits enqueued + completed events', async () => {
     const scheduler = new MCPScheduler<string>();
     let enqueued = false;
     scheduler.on('enqueued', () => { enqueued = true; });
-    scheduler.on('completed', () => {
-      expect(enqueued).toBe(true);
-      done();
+    const completed = new Promise<void>(resolve => {
+      scheduler.on('completed', () => {
+        expect(enqueued).toBe(true);
+        resolve();
+      });
     });
     scheduler.setExecutor(async () => 'ok');
     scheduler.scheduleToolCall('x');
+    await completed;
   });
 });

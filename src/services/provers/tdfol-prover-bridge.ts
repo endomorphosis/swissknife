@@ -18,12 +18,12 @@
  *   ProhibitionElimination — F(φ) ⊢ ¬P(φ)
  *   DeonticProhibEquiv     — F(φ) ↔ O(¬φ)  (inherited from DCEC)
  *
- * Sprint 10, T-64.
+ * T-64.
  * Reference: ipfs_datasets_py/logic/TDFOL/tdfol_prover.py §TemporalNecessitationRule etc.
  */
 
 import type { WasmProofResult } from './prover-types.js';
-import type { Policy } from '../mcp-policy.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
 import {
   type DCECFormula,
   type DeonticFormula,
@@ -35,7 +35,7 @@ import {
   Permission,
   Prohibition,
   Implies,
-} from './dcec-types.js';
+} from '../logic/dcec/dcec-types.js';
 import {
   type TdfolFormula,
   type LtlUnaryFormula,
@@ -47,8 +47,8 @@ import {
   Until,
   Disjunction as TdfolDisjunction,
   Conjunction as TdfolConjunction,
-} from './tdfol-types.js';
-import { PolicyToTdfolTranslator } from './policy-to-tdfol.js';
+} from '../logic/tdfol/tdfol-types.js';
+import { PolicyToTdfolTranslator } from '../logic/tdfol/policy-to-tdfol.js';
 
 export const TDFOL_PROVER_ID = 'tdfol-native' as const;
 

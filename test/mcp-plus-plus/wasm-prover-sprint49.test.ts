@@ -16,7 +16,7 @@ import {
   DEONTIC_OPERATOR,
   COGNITIVE_OPERATOR,
   TEMPORAL_OPERATOR,
-} from '../../src/services/german-parser';
+} from '../../src/services/logic/nl/german-parser';
 
 import {
   TDFOLToDCECConverter,
@@ -29,7 +29,7 @@ import {
   tdfolToTptp,
   DeonticConverter,
   FOLConverter,
-} from '../../src/services/logic-converters';
+} from '../../src/services/logic/shared/logic-converters';
 
 // ---------------------------------------------------------------------------
 // GermanPatternMatcher tests

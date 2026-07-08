@@ -3,15 +3,16 @@
  * Includes a factory for creating different transport instances (WebSocket, libp2p, WebRTC, HTTPS).
  */
 
-// Proper imports with explicit types
-import { EventEmitter } from 'events'; // Corrected import path
+import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
+import { createMcpLibp2pNode } from './libp2p-browser-runtime.js';
 
 /** Defines the supported MCP transport protocol types. */
 export type MCPTransportType = 'websocket' | 'libp2p' | 'webrtc' | 'https';
 
 /** Options for configuring an MCP transport connection. */
 export interface MCPTransportOptions {
-  type: MCPTransportType;
+  /** Transport type. Defaults to libp2p so browser peers use p2p by default. */
+  type?: MCPTransportType;
   endpoint: string; // URL or multiaddr for the server/peer
   credentials?: Record<string, unknown>; // Authentication credentials (e.g., API key, UCAN token)
   timeout?: number; // Connection/request timeout in ms
@@ -19,8 +20,16 @@ export interface MCPTransportOptions {
   encryption?: boolean; // Enable/disable transport-level encryption (if applicable)
   // Protocol-specific options
   libp2pOptions?: Record<string, unknown>; // Options for libp2p transport
+  p2pProtocolId?: string; // MCP+p2p libp2p protocol ID
+  bootstrapMultiaddrs?: string[]; // Browser relay/peer bootstrap multiaddrs
+  webRTC?: boolean; // Enable browser-compatible libp2p WebRTC transport
+  webSockets?: boolean; // Enable browser-compatible libp2p WebSocket transport
+  circuitRelay?: boolean | { discoverRelays?: number }; // Enable libp2p circuit relay v2 for browser WebRTC
+  pubsub?: boolean; // Enable GossipSub service
   webRTCOptions?: Record<string, unknown>; // Options for WebRTC transport (e.g., signaling server)
 }
+
+type NormalizedMCPTransportOptions = MCPTransportOptions & { type: MCPTransportType };
 
 /**
  * Interface defining the contract for all MCP transport implementations.
@@ -54,13 +63,12 @@ export interface MCPTransport {
 // --- Transport Implementations ---
 
 abstract class BaseTransport implements MCPTransport {
-  protected options: MCPTransportOptions;
+  protected options: NormalizedMCPTransportOptions;
   protected connected: boolean = false;
-  // Basic event emitter functionality
-  private eventEmitter = new EventEmitter();
+  private eventEmitter = new BrowserEventEmitter();
 
   constructor(options: MCPTransportOptions) {
-    this.options = options;
+    this.options = normalizeTransportOptions(options);
   }
 
   abstract connect(): Promise<boolean>;
@@ -96,14 +104,16 @@ interface NodeWebSocket {
   readyState: number;
   send(data: string, cb?: (err?: Error) => void): void;
   close(code?: number, reason?: string): void;
-  on(event: 'open', listener: () => void): this;
-  on(event: 'message', listener: (data: unknown) => void): this;
-  on(event: 'close', listener: (code: number, reason: Buffer) => void): this;
-  on(event: 'error', listener: (err: Error) => void): this;
+  on?(event: 'open', listener: () => void): this;
+  on?(event: 'message', listener: (data: unknown) => void): this;
+  on?(event: 'close', listener: (code: number, reason: unknown) => void): this;
+  on?(event: 'error', listener: (err: Error) => void): this;
+  addEventListener?(event: string, listener: (event: unknown) => void): void;
 }
 
 class WebSocketTransport extends BaseTransport {
   private ws: NodeWebSocket | null = null;
+  private wsUsesSendCallback = false;
   private reconnectAttempts = 0;
   private readonly maxReconnectAttempts = 5;
   private readonly reconnectBaseDelayMs = 1000;
@@ -123,19 +133,27 @@ class WebSocketTransport extends BaseTransport {
       };
 
       try {
-        let WS: new (url: string, options?: unknown) => NodeWebSocket;
+        let WS: new (url: string, optionsOrProtocols?: unknown) => NodeWebSocket;
+        let browserWebSocket = false;
 
         // Use native browser WebSocket if available, otherwise fall back to `ws`.
         if (typeof globalThis !== 'undefined' && typeof (globalThis as Record<string, unknown>).WebSocket === 'function') {
           WS = (globalThis as Record<string, unknown>).WebSocket as typeof WS;
+          browserWebSocket = true;
         } else {
           // Dynamic import keeps the module load-safe in environments without `ws`.
           const mod = await import('ws');
           WS = (mod.WebSocket ?? mod.default) as unknown as typeof WS;
         }
 
-        const headers = this.buildHeaders();
-        this.ws = new WS(this.options.endpoint, headers ? { headers } : undefined);
+        this.wsUsesSendCallback = !browserWebSocket;
+        const init = browserWebSocket
+          ? this.buildBrowserProtocols()
+          : (() => {
+              const headers = this.buildHeaders();
+              return headers ? { headers } : undefined;
+            })();
+        this.ws = new WS(this.options.endpoint, init);
 
         const timeoutMs = this.options.timeout ?? 10_000;
         const timer = setTimeout(() => {
@@ -143,16 +161,19 @@ class WebSocketTransport extends BaseTransport {
           settle(false);
         }, timeoutMs);
 
-        this.ws.on('open', () => {
+        addWebSocketListener(this.ws, 'open', () => {
           clearTimeout(timer);
           this.connected = true;
           this.reconnectAttempts = 0;
           settle(true);
         });
 
-        this.ws.on('message', (raw) => {
+        addWebSocketListener(this.ws, 'message', (raw) => {
           try {
-            const text = typeof raw === 'string' ? raw : String(raw);
+            const data = typeof raw === 'object' && raw !== null && 'data' in raw
+              ? (raw as { data: unknown }).data
+              : raw;
+            const text = typeof data === 'string' ? data : String(data);
             const msg = JSON.parse(text);
             this.emit('message', msg);
           } catch {
@@ -160,7 +181,7 @@ class WebSocketTransport extends BaseTransport {
           }
         });
 
-        this.ws.on('close', () => {
+        addWebSocketListener(this.ws, 'close', () => {
           clearTimeout(timer);
           if (!this.connected) {
             // Connection was never established — resolve as failed
@@ -174,9 +195,10 @@ class WebSocketTransport extends BaseTransport {
           }
         });
 
-        this.ws.on('error', (err: Error) => {
+        addWebSocketListener(this.ws, 'error', (err) => {
           // 'close' will fire after 'error' and handle the settle(false) path.
-          console.error('[WebSocketTransport] error:', err.message);
+          const message = err instanceof Error ? err.message : String(err);
+          console.error('[WebSocketTransport] error:', message);
         });
       } catch (err) {
         console.error('[WebSocketTransport] connect() failed:', err);
@@ -189,6 +211,7 @@ class WebSocketTransport extends BaseTransport {
     this.connected = false;
     this.ws?.close(1000, 'client disconnect');
     this.ws = null;
+    this.wsUsesSendCallback = false;
     this.emit('disconnect');
   }
 
@@ -196,8 +219,13 @@ class WebSocketTransport extends BaseTransport {
     if (!this.isConnected() || !this.ws) {
       throw new Error('WebSocket not connected.');
     }
+    const payload = JSON.stringify(message);
+    if (!this.wsUsesSendCallback) {
+      this.ws.send(payload);
+      return;
+    }
     return new Promise<void>((resolve, reject) => {
-      this.ws!.send(JSON.stringify(message), (err?: Error) => {
+      this.ws!.send(payload, (err?: Error) => {
         if (err) reject(err); else resolve();
       });
     });
@@ -224,6 +252,17 @@ class WebSocketTransport extends BaseTransport {
     return Object.keys(headers).length > 0 ? headers : undefined;
   }
 
+  private buildBrowserProtocols(): string | string[] | undefined {
+    const creds = this.options.credentials;
+    if (!creds) return undefined;
+    const protocols = creds.protocols ?? creds.protocol ?? creds.websocketProtocol;
+    if (typeof protocols === 'string') return protocols;
+    if (Array.isArray(protocols) && protocols.every(item => typeof item === 'string')) {
+      return protocols;
+    }
+    return undefined;
+  }
+
   private async scheduleReconnect(): Promise<void> {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error('[WebSocketTransport] Max reconnect attempts reached.');
@@ -238,6 +277,7 @@ class WebSocketTransport extends BaseTransport {
 
 export class Libp2pTransport extends BaseTransport {
   private session: import('./mcp-p2p-session.js').MCPp2pSession | null = null;
+  private node: { stop(): Promise<void> } | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectBaseDelayMs = 1000;
@@ -248,36 +288,27 @@ export class Libp2pTransport extends BaseTransport {
 
   async connect(): Promise<boolean> {
     try {
-      // Dynamically import libp2p to allow graceful degradation when
-      // optional transport sub-packages are not installed.
-      // @ts-ignore optional runtime dependency
-      const { createLibp2p } = await import('libp2p');
       const { MCP_P2P_PROTOCOL_ID, MCPp2pSession } = await import(
         './mcp-p2p-session.js'
       );
 
-      const libp2pOptions: Record<string, unknown> = {
-        ...(this.options.libp2pOptions ?? {}),
+      const node = await createMcpLibp2pNode({
+        overrides: this.options.libp2pOptions,
+        bootstrapMultiaddrs: this.options.bootstrapMultiaddrs,
+        pubsub: this.options.pubsub ?? true,
+        webRTC: this.options.webRTC ?? true,
+        webSockets: this.options.webSockets ?? true,
+        circuitRelay: this.options.circuitRelay ?? (this.options.webRTC ?? true),
+      }) as {
+        start(): Promise<void>;
+        dialProtocol(endpoint: string, protocol: string): Promise<unknown>;
       };
-
-      // Try to load noise + yamux if available (graceful degradation)
-      try {
-        // @ts-ignore optional runtime dependency
-        const { noise } = await import('@chainsafe/libp2p-noise');
-        // @ts-ignore optional runtime dependency
-        const { yamux } = await import('@chainsafe/libp2p-yamux');
-        libp2pOptions.connectionEncrypters = [noise()];
-        libp2pOptions.streamMuxers = [yamux()];
-      } catch {
-        // Transport sub-packages not installed; proceed without encryption layer
-        // (only acceptable for local dev / testing).
-      }
-
-      const node = await createLibp2p(libp2pOptions as Parameters<typeof createLibp2p>[0]);
       await node.start();
+      this.node = node;
 
       const endpoint = this.options.endpoint;
-      const stream = await node.dialProtocol(endpoint, MCP_P2P_PROTOCOL_ID) as unknown as import('./mcp-p2p-session.js').P2PStream;
+      const protocolId = this.options.p2pProtocolId ?? MCP_P2P_PROTOCOL_ID;
+      const stream = await node.dialProtocol(endpoint, protocolId) as import('./mcp-p2p-session.js').P2PStream;
 
       this.session = new MCPp2pSession(stream, {
         maxFrameBytes:
@@ -318,6 +349,10 @@ export class Libp2pTransport extends BaseTransport {
     if (this.session) {
       await this.session.close();
       this.session = null;
+    }
+    if (this.node) {
+      await this.node.stop().catch(() => undefined);
+      this.node = null;
     }
     this.emit('disconnect');
   }
@@ -556,8 +591,7 @@ class HttpsTransport extends BaseTransport {
     // HTTPS is connectionless per request; mark as ready to send requests.
     // Optionally do a HEAD/OPTIONS probe to verify the endpoint is reachable.
     try {
-      // @ts-ignore optional runtime dependency
-      const { default: fetch } = await import('node-fetch');
+      const fetch = await getFetch();
       const controller = new AbortController();
       const timeout = this.options.timeout ?? 10_000;
       const timer = setTimeout(() => controller.abort(), timeout);
@@ -610,8 +644,7 @@ class HttpsTransport extends BaseTransport {
   }
 
   private async doPost(message: unknown): Promise<unknown> {
-    // @ts-ignore optional runtime dependency
-    const { default: fetch } = await import('node-fetch');
+    const fetch = await getFetch();
     const controller = new AbortController();
     const timeout = this.options.timeout ?? 30_000;
     const timer = setTimeout(() => controller.abort(), timeout);
@@ -666,19 +699,20 @@ export class MCPTransportFactory {
    * @throws {Error} If the transport type is unsupported.
    */
   static create(options: MCPTransportOptions): MCPTransport {
-    console.log(`Creating MCP transport of type: ${options.type}`);
-    switch (options.type) {
+    const normalized = normalizeTransportOptions(options);
+    console.log(`Creating MCP transport of type: ${normalized.type}`);
+    switch (normalized.type) {
       case 'websocket':
-        return new WebSocketTransport(options);
+        return new WebSocketTransport(normalized);
       case 'libp2p':
-        return new Libp2pTransport(options);
+        return new Libp2pTransport(normalized);
       case 'webrtc':
-        return new WebRTCTransport(options);
+        return new WebRTCTransport(normalized);
       case 'https':
-        return new HttpsTransport(options);
+        return new HttpsTransport(normalized);
       default:
         // Ensure exhaustive check (though TypeScript should handle this)
-        const exhaustiveCheck: never = options.type;
+        const exhaustiveCheck: never = normalized.type;
         throw new Error(`Unsupported MCP transport type: ${exhaustiveCheck}`);
     }
   }
@@ -844,4 +878,30 @@ export class MCPClient {
   }
 
   // Add methods for other MCP interactions (list_tools, call_tool, etc.)
+}
+
+function normalizeTransportOptions(options: MCPTransportOptions): NormalizedMCPTransportOptions {
+  return {
+    ...options,
+    type: options.type ?? 'libp2p',
+  };
+}
+
+function addWebSocketListener(
+  ws: NodeWebSocket | null,
+  event: 'open' | 'message' | 'close' | 'error',
+  listener: (event: unknown) => void,
+): void {
+  if (!ws) return;
+  if (typeof ws.addEventListener === 'function') {
+    ws.addEventListener(event, listener);
+    return;
+  }
+  ws.on?.(event as never, listener as never);
+}
+
+async function getFetch(): Promise<typeof fetch> {
+  if (typeof globalThis.fetch === 'function') return globalThis.fetch.bind(globalThis);
+  const mod = await import('node-fetch');
+  return (mod.default as unknown as typeof fetch);
 }

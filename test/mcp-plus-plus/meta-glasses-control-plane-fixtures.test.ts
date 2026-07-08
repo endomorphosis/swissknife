@@ -1,10 +1,22 @@
-import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   META_GLASSES_MULTIMODAL_IO_CONTRACT,
   buildMetaGlassesPlaywrightFixture,
   type MetaGlassesControlPlanePlaywrightFixture,
 } from '../../src/services/glasses/meta-glasses-multimodal-io-transport-contract';
+<<<<<<< HEAD
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  readFileSync: (path: string, encoding: BufferEncoding) => string;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for meta-glasses fixture tests');
+}
+=======
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 const PLAYWRIGHT_FIXTURE_PATH = join(
   __dirname,
@@ -12,7 +24,7 @@ const PLAYWRIGHT_FIXTURE_PATH = join(
 );
 
 function readPlaywrightFixture(): MetaGlassesControlPlanePlaywrightFixture {
-  return JSON.parse(readFileSync(PLAYWRIGHT_FIXTURE_PATH, 'utf8'));
+  return JSON.parse(nodeFs.readFileSync(PLAYWRIGHT_FIXTURE_PATH, 'utf8'));
 }
 
 describe('MGW-519 Meta glasses control-plane fixtures', () => {

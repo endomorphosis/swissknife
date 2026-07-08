@@ -1,17 +1,24 @@
 /**
- * P2P Discovery & Optional Pub/Sub (MCP++ Phase 7)
+ * P2P Discovery & Default Pub/Sub (MCP++ Phase 7)
  *
  * Provides:
- *  - `MCPDiscovery`  — peer discovery (mDNS-local, DHT, rendezvous)
- *  - `MCPPubSub`     — opt-in GossipSub dissemination of interface_cids,
+ *  - `MCPDiscovery`  — browser-ready peer discovery (WebRTC/WebSocket relays,
+ *                      optional mDNS-local, DHT, rendezvous)
+ *  - `MCPPubSub`     — default-on GossipSub dissemination of interface_cids,
  *                      receipt_cids and coordination signals
  *
  * Per MCP++ §9.5: pub/sub MUST NOT be required for point-to-point session
- * correctness.  Everything here is opt-in and controlled by feature flags.
+ * correctness, but browser libp2p peers enable it by default for discovery
+ * announcements and coordination.
  *
  * References: docs/spec/transport-mcp-p2p.md §6, §9.5
  */
 
+<<<<<<< HEAD
+import { utf8Bytes } from '../shared/browser-crypto.js';
+import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
+import { createMcpLibp2pNode, isBrowserRuntime } from './libp2p-browser-runtime.js';
+=======
 import { EventEmitter } from 'events';
 import { UCANAuth } from '../../auth/ucan-auth.js';
 import {
@@ -21,6 +28,7 @@ import {
   type BrowserLibp2pRuntimeOptions,
   type BrowserLibp2pRuntimeReport,
 } from './libp2p-browser-runtime.js';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import { computeCID } from './mcp-envelope.js';
 
 // ---------------------------------------------------------------------------
@@ -46,23 +54,47 @@ export interface PubSubMessage {
 }
 
 export interface DiscoveryOptions {
-  /** Enable mDNS discovery (default true) */
+  /** Enable mDNS discovery. Default is runtime-dependent: false in browsers, true in Node. */
   mdns?: boolean;
-  /** Enable Kademlia DHT peer routing (default true) */
+  /** Enable Kademlia DHT peer routing. Default is runtime-dependent: false in browsers, true in Node. */
   dht?: boolean;
+  /** Enable browser-compatible WebRTC transport (default true) */
+  webRTC?: boolean;
+  /** Enable browser-compatible WebSocket transport (default true) */
+  webSockets?: boolean;
+  /** Bootstrap relay/peer multiaddrs for browser discovery */
+  bootstrapMultiaddrs?: string[];
+  /** libp2p listen multiaddrs; browser default is `/webrtc` */
+  listenMultiaddrs?: string[];
   /** Custom rendezvous/relay multiaddr for NAT traversal (optional) */
   rendezvousAddr?: string;
+<<<<<<< HEAD
+  /** Additional libp2p config merged before defaults are applied */
+  libp2pOptions?: Record<string, unknown>;
+=======
   /** Override browser libp2p runtime assembly. Enabled by default. */
   libp2pRuntime?: BrowserLibp2pRuntimeOptions;
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 }
 
 export interface PubSubOptions {
-  /** Enable pub/sub at all (default false) */
+  /** Enable pub/sub at all (default true) */
   enabled?: boolean;
   /** Topics to subscribe to */
   topics?: string[];
+<<<<<<< HEAD
+  /** Bootstrap relay/peer multiaddrs for browser libp2p */
+  bootstrapMultiaddrs?: string[];
+  /** Additional libp2p config merged before defaults are applied */
+  libp2pOptions?: Record<string, unknown>;
+}
+
+export interface PubSubUCANValidator {
+  validateToken(token: string): boolean | Promise<boolean>;
+=======
   /** Override browser libp2p runtime assembly when this class owns the node. */
   libp2pRuntime?: BrowserLibp2pRuntimeOptions;
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +178,7 @@ function addPeerDiscoveryListener(node: unknown, handler: (peer: PeerInfo) => vo
 // MCPDiscovery
 // ---------------------------------------------------------------------------
 
-export class MCPDiscovery extends EventEmitter {
+export class MCPDiscovery extends BrowserEventEmitter {
   private peers: Map<string, PeerInfo> = new Map();
   private options: DiscoveryOptions;
   private node: unknown = null; // libp2p node once started
@@ -156,10 +188,16 @@ export class MCPDiscovery extends EventEmitter {
 
   constructor(options: DiscoveryOptions = {}) {
     super();
+    const browser = isBrowserRuntime();
     this.options = {
-      mdns: options.mdns ?? true,
-      dht: options.dht ?? true,
+      mdns: options.mdns ?? !browser,
+      dht: options.dht ?? !browser,
+      webRTC: options.webRTC ?? true,
+      webSockets: options.webSockets ?? true,
+      bootstrapMultiaddrs: options.bootstrapMultiaddrs ?? [],
+      listenMultiaddrs: options.listenMultiaddrs,
       rendezvousAddr: options.rendezvousAddr,
+      libp2pOptions: options.libp2pOptions,
     };
   }
 
@@ -177,6 +215,27 @@ export class MCPDiscovery extends EventEmitter {
     if (this.started) return;
 
     try {
+<<<<<<< HEAD
+      const bootstrapMultiaddrs = [
+        ...(this.options.bootstrapMultiaddrs ?? []),
+        ...(this.options.rendezvousAddr ? [this.options.rendezvousAddr] : []),
+      ];
+      const node = await createMcpLibp2pNode({
+        overrides: this.options.libp2pOptions,
+        bootstrapMultiaddrs,
+        listenMultiaddrs: this.options.listenMultiaddrs,
+        webRTC: this.options.webRTC,
+        webSockets: this.options.webSockets,
+        mdns: this.options.mdns,
+        dht: this.options.dht,
+        pubsub: true,
+      });
+
+      addLibp2pEventListener(node, 'peer:discovery', (event: unknown) => {
+        const info = extractPeerDiscoveryInfo(event);
+        if (info) this.handlePeerDiscovery(info);
+      });
+=======
       const libp2pConfig: Record<string, unknown> = {
         ...(this.options.libp2pRuntime?.libp2pOptions ?? {}),
       };
@@ -229,6 +288,7 @@ export class MCPDiscovery extends EventEmitter {
 
       // Listen to peer discovery events
       addPeerDiscoveryListener(node, info => this.handlePeerDiscovery(info));
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
       await (node as { start(): Promise<void> }).start();
       this.node = node;
@@ -302,19 +362,25 @@ export class MCPDiscovery extends EventEmitter {
 // MCPPubSub
 // ---------------------------------------------------------------------------
 
-export class MCPPubSub extends EventEmitter {
+export class MCPPubSub extends BrowserEventEmitter {
   private enabled: boolean;
   private topics: Set<string>;
   private node: unknown = null;
-  private ucanAuth: UCANAuth | null;
+  private ucanAuth: PubSubUCANValidator | null;
   private started = false;
+<<<<<<< HEAD
+  private options: PubSubOptions;
+  private ownsNode = false;
+=======
   private runtimeOptions: BrowserLibp2pRuntimeOptions | undefined;
   private runtimeReport: BrowserLibp2pRuntimeReport | null = null;
   private capabilityGaps: BrowserLibp2pCapabilityGap[] = [];
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
-  constructor(options: PubSubOptions = {}, ucanAuth?: UCANAuth) {
+  constructor(options: PubSubOptions = {}, ucanAuth?: PubSubUCANValidator) {
     super();
-    this.enabled = options.enabled ?? false;
+    this.options = options;
+    this.enabled = options.enabled ?? true;
     this.topics = new Set(options.topics ?? [
       TOPIC_INTERFACE_ANNOUNCE,
       TOPIC_RECEIPT_ANNOUNCE,
@@ -334,6 +400,13 @@ export class MCPPubSub extends EventEmitter {
     try {
       let node = libp2pNode;
       if (!node) {
+<<<<<<< HEAD
+        node = await createMcpLibp2pNode({
+          overrides: this.options.libp2pOptions,
+          bootstrapMultiaddrs: this.options.bootstrapMultiaddrs,
+          pubsub: true,
+        });
+=======
         const runtime = await createBrowserLibp2pNode({
           ...this.runtimeOptions,
           includeGossipSub: true,
@@ -349,7 +422,9 @@ export class MCPPubSub extends EventEmitter {
           });
           return;
         }
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
         await (node as { start(): Promise<void> }).start();
+        this.ownsNode = true;
       }
       this.node = node;
       if (!this.getPubSubService(this.node)) {
@@ -380,8 +455,12 @@ export class MCPPubSub extends EventEmitter {
   }
 
   async stop(): Promise<void> {
+    if (this.ownsNode && this.node) {
+      await (this.node as { stop?: () => Promise<void> }).stop?.().catch(() => undefined);
+    }
     this.started = false;
     this.node = null;
+    this.ownsNode = false;
   }
 
   // -------------------------------------------------------------------------
@@ -425,7 +504,11 @@ export class MCPPubSub extends EventEmitter {
 
     const cid = computeCID(JSON.stringify(payload));
     const msg: PubSubMessage = { topic, payload, ucanToken, cid };
+<<<<<<< HEAD
+    const data = utf8Bytes(JSON.stringify(msg));
+=======
     const data = textEncoder.encode(JSON.stringify(msg));
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
     try {
       await this.getPubSubService(this.node)!.publish(topic, data);
@@ -441,7 +524,11 @@ export class MCPPubSub extends EventEmitter {
   private async handleMessage(evt: unknown): Promise<void> {
     try {
       const raw = (evt as { detail: { data: Uint8Array; topic: string } }).detail;
+<<<<<<< HEAD
+      const text = new TextDecoder().decode(raw.data);
+=======
       const text = textDecoder.decode(raw.data);
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
       const msg: PubSubMessage = JSON.parse(text);
 
       // Validate CID integrity
@@ -500,5 +587,47 @@ export class MCPPubSub extends EventEmitter {
 
   get isEnabled(): boolean {
     return this.enabled;
+  }
+}
+
+function addLibp2pEventListener(
+  target: unknown,
+  event: string,
+  listener: (event: unknown) => void,
+): void {
+  const eventTarget = target as {
+    addEventListener?: (event: string, listener: (event: unknown) => void) => void;
+    on?: (event: string, listener: (event: unknown) => void) => void;
+  };
+  if (typeof eventTarget.addEventListener === 'function') {
+    eventTarget.addEventListener(event, listener);
+  } else if (typeof eventTarget.on === 'function') {
+    eventTarget.on(event, listener);
+  }
+}
+
+function extractPeerDiscoveryInfo(event: unknown): PeerInfo | null {
+  const detail = typeof event === 'object' && event !== null && 'detail' in event
+    ? (event as { detail: unknown }).detail
+    : event;
+  if (typeof detail !== 'object' || detail === null) return null;
+  const raw = detail as {
+    id?: { toString(): string };
+    peerId?: { toString(): string };
+    multiaddrs?: Array<{ toString(): string }>;
+  };
+  const id = raw.id ?? raw.peerId;
+  if (!id) return null;
+  return {
+    peerId: id.toString(),
+    multiaddrs: Array.isArray(raw.multiaddrs) ? raw.multiaddrs.map(m => m.toString()) : [],
+    discoveredAt: Date.now(),
+  };
+}
+async function optionalRuntimeImport(specifier: string): Promise<Record<string, unknown> | null> {
+  try {
+    return await import(/* @vite-ignore */ specifier) as Record<string, unknown>;
+  } catch {
+    return null;
   }
 }

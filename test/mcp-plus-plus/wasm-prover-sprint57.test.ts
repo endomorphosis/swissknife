@@ -20,18 +20,18 @@ import {
   ModalNecessionIntroduction, MutualKnowledgeTransitivity,
   PublicAnnouncementReduction, TemporallyInducedCommonKnowledge,
   ALL_CEC_RULES, findApplicableCECRules,
-} from '../../src/services/cec-prover-core';
+} from '../../src/services/logic/cec/cec-prover-core';
 
 import {
   BiconditionalIntroduction, BiconditionalElimination,
   ConstructiveDilemma, DestructiveDilemma, ExportationRule,
   ALL_SPECIALIZED_RULES, findApplicableSpecializedRules,
-} from '../../src/services/cec-specialized-rules';
+} from '../../src/services/logic/cec/cec-specialized-rules';
 
 import {
   ProverManager, ProverType, ProverStrategyKind,
   defaultProverConfig, ProofStatus,
-} from '../../src/services/cec-prover-manager';
+} from '../../src/services/logic/cec/cec-prover-manager';
 
 // ---------------------------------------------------------------------------
 // ALL_CEC_RULES registry

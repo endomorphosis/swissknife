@@ -1,7 +1,7 @@
 /**
  * LurkWasmBridge — ZK proof-carrying code adapter for swissknife.
  *
- * Sprint 4 / Phase 6 (P2 research-track).  The Lurk ZK WASM integration is
+ * Phase 6 (P2 research-track).  The Lurk ZK WASM integration is
  * pending upstream API stability (`lurk-beta` has preliminary WASM support but
  * no stable npm package as of 2026-07-01).  This file:
  *
@@ -12,9 +12,9 @@
  *      `{ reason: 'unknown', prover_id: 'lurk-wasm' }` until a real Lurk
  *      WASM module is injected or importable.
  *   4. Provides `loadLurkFromFile(wasmPath)` — load a locally-built lurk-beta
- *      WASM binary (Sprint 6a, T-46).
+ *      WASM binary (T-46).
  *
- * Sprint 6a build instructions (T-46):
+ * Local WASM build instructions (T-46):
  *   # Install Rust WASM target
  *   rustup target add wasm32-unknown-unknown
  *   # Clone lurk-beta
@@ -34,8 +34,8 @@
  */
 
 import type { WasmProofResult } from './prover-types.js';
-import type { Policy } from '../mcp-policy.js';
-import { base64UrlEncode, sha256Hex } from './browser-crypto.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
+import { base64UrlEncode, sha256Hex } from '../shared/browser-crypto.js';
 
 const DEFAULT_LURK_WASM_PACKAGE = 'lurk-wasm';
 
@@ -441,13 +441,13 @@ function isCreateOptions(value: unknown): value is LurkWasmBridgeCreateOptions {
 }
 
 // ---------------------------------------------------------------------------
-// Sprint 6a helpers — loading locally-built lurk-beta WASM (T-46, T-47)
+// Local WASM helpers — loading locally-built lurk-beta WASM (T-46, T-47)
 // ---------------------------------------------------------------------------
 
 /**
  * Load a locally-built lurk-beta WASM module from a file path.
  *
- * Use this when you have followed the Sprint 6a build instructions and have
+ * Use this when you have followed the local WASM build instructions and have
  * a `lurk-wasm-pkg/` directory produced by `wasm-bindgen --target nodejs`.
  *
  * ```ts
@@ -471,7 +471,7 @@ export async function loadLurkFromFile(lurkJsBindingPath: string): Promise<LurkW
  */
 export function lurkBetaBuildInstructions(): string {
   return [
-    '# Sprint 6a — Build lurk-beta WASM locally:',
+    '# Build lurk-beta WASM locally:',
     '',
     '# 1. Install Rust WASM target',
     'rustup target add wasm32-unknown-unknown',

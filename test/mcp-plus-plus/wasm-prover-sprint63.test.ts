@@ -6,9 +6,8 @@
 import {
   ErgoAIWrapper, defaultErgoAIConfig, findErgoBinary, lazyInstallErgo,
   ZKPFLogicProver, FLogicProvingMethod, parseErgoOutputBindings,
-} from '../../src/services/flogic-ergoai-wrapper';
-import { Groth16BackendFallback } from '../../src/services/zkp-backends';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+} from '../../src/services/integrations/flogic-ergoai-wrapper';
+import { Groth16BackendFallback } from '../../src/services/zkp/zkp-backends';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -19,7 +18,19 @@ import {
   handleProofError, handleParseError, withErrorContext, safeCall, safeCallAsync,
   formatErrorMessage, validateNotNull,
   NLContext, makeTDFOLEntity, ContextResolver,
-} from '../../src/services/cec-sprint63-utils';
+} from '../../src/services/logic/cec/cec-runtime-context-utils';
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  mkdtempSync: (prefix: string) => string;
+  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
+  writeFileSync: (path: string, data: string, encoding: BufferEncoding) => void;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for ErgoAI fixture tests');
+}
 
 // ---------------------------------------------------------------------------
 // ErgoAI Wrapper
@@ -29,15 +40,15 @@ describe('ErgoAIWrapper', () => {
 
   afterAll(() => {
     for (const dir of tempDirs) {
-      rmSync(dir, { recursive: true, force: true });
+      nodeFs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
   function makeFakeBinaryPath(): string {
-    const dir = mkdtempSync(join(tmpdir(), 'ergoai-wrapper-'));
+    const dir = nodeFs.mkdtempSync(join(tmpdir(), 'ergoai-wrapper-'));
     tempDirs.push(dir);
     const binPath = join(dir, 'ergo');
-    writeFileSync(binPath, '#!/bin/sh\nexit 0\n', 'utf8');
+    nodeFs.writeFileSync(binPath, '#!/bin/sh\nexit 0\n', 'utf8');
     return binPath;
   }
 

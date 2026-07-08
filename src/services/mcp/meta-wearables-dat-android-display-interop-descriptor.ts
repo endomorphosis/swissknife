@@ -1,30 +1,20 @@
 /**
- * SwissKnife <-> external/meta-wearables-dat-android display interoperability descriptor.
+ * SwissKnife <-> external/meta-wearables-dat-android Display interoperability descriptor.
  *
- * HAO-735 and MGW-574 objective validation repair: interface contract
- * swissknife external/meta-wearables-dat-android,
+ * HAO-735 objective validation repair: interface contract swissknife external/meta-wearables-dat-android,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py.
  *
- * `external/meta-wearables-dat-android` ships the DAT Android Display capability
- * docs and the DisplayAccess sample app. This module describes that surface as
- * a canonical MCP-IDL Profile A descriptor that SwissKnife can register on the
- * same MCP++ runtime registry as the pre-built IPFS descriptors, and it provides
- * representative policy-mediated control-surface, interaction-envelope, and
- * compatibility-receipt payloads for validation.
- *
- * It closes the VAIOS-G705 objective gap for the shared
- * `goal_packet/interoperability/swissknife/06921590135c` packet, which also
- * covers VAIOS-G700, VAIOS-G701, VAIOS-G702, VAIOS-G703, VAIOS-G704, and
- * VAIOS-G706.
+ * This module describes the Meta Wearables DAT Android Display session and
+ * registration surface as a canonical MCP-IDL interface that can be
+ * registered on SwissKnife's MCP++ runtime. The static source descriptors live
+ * under `external/meta-wearables-dat-android/.cursor/rules` and the
+ * `samples/DisplayAccess` Android sample.
  */
 
 import {
   MCPPlusPlus,
   MCPPPInterfaceDescriptor,
-  IPFS_KIT_INTERFACE,
-  IPFS_ACCELERATE_INTERFACE,
-  IPFS_DATASETS_INTERFACE,
   createMCPPlusPlusClient,
 } from './mcp-plus-plus.js';
 
@@ -42,17 +32,17 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_METADATA = {
   interface_contract: 'interface contract swissknife external/meta-wearables-dat-android',
   goal_packet: 'goal_packet/interoperability/swissknife/06921590135c',
   goal_id: 'VAIOS-G705',
+  task_id: 'HAO-735',
   source_surface: 'swissknife',
   target_surface: 'external/meta-wearables-dat-android',
 };
 
 export const META_WEARABLES_DAT_ANDROID_DISPLAY_DESCRIPTOR_PATHS = {
-  display_access_doc: 'external/meta-wearables-dat-android/.cursor/rules/display-access.mdc',
-  session_lifecycle_doc:
-    'external/meta-wearables-dat-android/.cursor/rules/session-lifecycle.mdc',
-  permissions_registration_doc:
+  display_access: 'external/meta-wearables-dat-android/.cursor/rules/display-access.mdc',
+  session_lifecycle: 'external/meta-wearables-dat-android/.cursor/rules/session-lifecycle.mdc',
+  permissions_registration:
     'external/meta-wearables-dat-android/.cursor/rules/permissions-registration.mdc',
-  display_manifest:
+  android_manifest:
     'external/meta-wearables-dat-android/samples/DisplayAccess/app/src/main/AndroidManifest.xml',
   display_view_model:
     'external/meta-wearables-dat-android/samples/DisplayAccess/app/src/main/java/com/meta/wearable/dat/externalsampleapps/displayaccess/display/DisplayViewModel.kt',
@@ -103,60 +93,55 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_INTERFACE: MCPPPInter
   name: 'swissknife-meta-wearables-dat-android-display-interop',
   namespace: 'com.swissknife.interop.meta_wearables_dat_android.display',
   version: '0.1.0',
-  interface_cid: 'bafyswissknifemetawearablesdatandroiddisplay0001',
+  interface_cid: 'bafyswissknifemetawearablesdatandroiddisplay001',
   methods: [
     {
       name: 'meta_wearables_dat_android.registration.start',
-      input_schema_cid: 'bafy_mwdat_android_registration_start_in',
-      output_schema_cid: 'bafy_mwdat_android_registration_start_out',
-      error_schema_cids: ['bafy_mwdat_android_err_permission_denied'],
+      input_schema_cid: 'bafy_mwdat_registration_start_in',
+      output_schema_cid: 'bafy_mwdat_registration_start_out',
+      error_schema_cids: ['bafy_err_permission_denied'],
     },
     {
       name: 'meta_wearables_dat_android.registration.check_permission_status',
-      input_schema_cid: 'bafy_mwdat_android_permission_status_in',
-      output_schema_cid: 'bafy_mwdat_android_permission_status_out',
-      error_schema_cids: [],
+      input_schema_cid: 'bafy_mwdat_permission_status_in',
+      output_schema_cid: 'bafy_mwdat_permission_status_out',
+      error_schema_cids: ['bafy_err_permission_denied'],
     },
     {
       name: 'meta_wearables_dat_android.session.create',
-      input_schema_cid: 'bafy_mwdat_android_session_create_in',
-      output_schema_cid: 'bafy_mwdat_android_session_create_out',
-      error_schema_cids: ['bafy_mwdat_android_err_device_unavailable'],
+      input_schema_cid: 'bafy_mwdat_session_create_in',
+      output_schema_cid: 'bafy_mwdat_session_create_out',
+      error_schema_cids: ['bafy_err_session_unavailable'],
     },
     {
       name: 'meta_wearables_dat_android.session.start',
-      input_schema_cid: 'bafy_mwdat_android_session_start_in',
-      output_schema_cid: 'bafy_mwdat_android_session_start_out',
-      error_schema_cids: ['bafy_mwdat_android_err_session_state'],
+      input_schema_cid: 'bafy_mwdat_session_start_in',
+      output_schema_cid: 'bafy_mwdat_session_start_out',
+      error_schema_cids: ['bafy_err_session_unavailable'],
     },
     {
       name: 'meta_wearables_dat_android.display.attach',
-      input_schema_cid: 'bafy_mwdat_android_display_attach_in',
-      output_schema_cid: 'bafy_mwdat_android_display_attach_out',
-      error_schema_cids: ['bafy_mwdat_android_err_display_unavailable'],
+      input_schema_cid: 'bafy_mwdat_display_attach_in',
+      output_schema_cid: 'bafy_mwdat_display_attach_out',
+      error_schema_cids: ['bafy_err_display_unavailable'],
     },
     {
       name: 'meta_wearables_dat_android.display.send_content',
-      input_schema_cid: 'bafy_mwdat_android_display_send_content_in',
-      output_schema_cid: 'bafy_mwdat_android_display_send_content_out',
-      error_schema_cids: ['bafy_mwdat_android_err_display_state'],
+      input_schema_cid: 'bafy_mwdat_display_send_content_in',
+      output_schema_cid: 'bafy_mwdat_display_send_content_out',
+      error_schema_cids: ['bafy_err_policy_mediation_required'],
       interaction_pattern: 'request-response',
     },
   ],
   errors: [
     { name: 'PermissionDenied', code: 403 },
-    { name: 'DeviceUnavailable', code: 404 },
-    { name: 'SessionStateError', code: 409 },
-    { name: 'DisplayUnavailable', code: 404 },
-    { name: 'DisplayStateError', code: 409 },
+    { name: 'SessionUnavailable', code: 409 },
+    { name: 'DisplayUnavailable', code: 409 },
+    { name: 'PolicyMediationRequired', code: 409 },
   ],
-  requires: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
+  requires: ['mcp++/cid-envelope', 'mcp++/ucan', 'mcp++/deontic-policy'],
   compatibility: {
-    compatible_with: [
-      IPFS_KIT_INTERFACE.interface_cid,
-      IPFS_ACCELERATE_INTERFACE.interface_cid,
-      IPFS_DATASETS_INTERFACE.interface_cid,
-    ],
+    compatible_with: [],
     supersedes: [],
   },
   semantic_tags: [
@@ -164,6 +149,7 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_INTERFACE: MCPPPInter
     'swissknife',
     'meta_wearables_dat_android',
     'display',
+    'registration',
     'control-surface',
     'policy-mediation',
   ],
@@ -178,31 +164,36 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_DESCRIPTOR = {
   schema_refs: {
     control_surface_contract: 'swissknife/contracts/control_surface_contract.schema.json',
     interaction_envelope: 'swissknife/contracts/interaction_envelope.schema.json',
-    mediation_receipt: 'swissknife/contracts/mediation_receipt.schema.json',
-    policy_decision: 'swissknife/contracts/policy_decision.schema.json',
     mcp_plus_plus_compatibility_receipt:
       'swissknife/contracts/mcp_plus_plus_compatibility_receipt.schema.json',
-    ...META_WEARABLES_DAT_ANDROID_DISPLAY_DESCRIPTOR_PATHS,
+    mediation_receipt: 'swissknife/contracts/mediation_receipt.schema.json',
+    policy_decision: 'swissknife/contracts/policy_decision.schema.json',
+    display_access: META_WEARABLES_DAT_ANDROID_DISPLAY_DESCRIPTOR_PATHS.display_access,
+    session_lifecycle: META_WEARABLES_DAT_ANDROID_DISPLAY_DESCRIPTOR_PATHS.session_lifecycle,
+    permissions_registration:
+      META_WEARABLES_DAT_ANDROID_DISPLAY_DESCRIPTOR_PATHS.permissions_registration,
+    android_manifest: META_WEARABLES_DAT_ANDROID_DISPLAY_DESCRIPTOR_PATHS.android_manifest,
+    display_view_model: META_WEARABLES_DAT_ANDROID_DISPLAY_DESCRIPTOR_PATHS.display_view_model,
   },
   runtime_handoff: {
     source_surface: 'swissknife',
     target_surface: 'external/meta-wearables-dat-android',
     allowed_surfaces: ['agent', 'mcp_server', 'remote_client'],
     device_session_states: META_WEARABLES_DAT_ANDROID_DEVICE_SESSION_STATES,
-    display_icon_names: META_WEARABLES_DAT_ANDROID_DISPLAY_ICON_NAMES,
-    display_button_styles: META_WEARABLES_DAT_ANDROID_DISPLAY_BUTTON_STYLES,
     manifest_metadata_keys: META_WEARABLES_DAT_ANDROID_MANIFEST_METADATA_KEYS,
     manifest_permissions: META_WEARABLES_DAT_ANDROID_MANIFEST_PERMISSIONS,
+    display_icon_names: META_WEARABLES_DAT_ANDROID_DISPLAY_ICON_NAMES,
+    display_button_styles: META_WEARABLES_DAT_ANDROID_DISPLAY_BUTTON_STYLES,
     control_surface_policy_id:
       'policy:swissknife:meta-wearables-dat-android-display-interop',
   },
   validation: {
-    task_id: 'MGW-574',
+    task_id: 'HAO-735',
     goal_id: 'VAIOS-G705',
     objective_gap_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-574-objective-gap-73dd061c433c.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-735-objective-gap-73dd061c433c.md',
     validation_repair_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-574-objective-validation-repair.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-735-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
@@ -349,7 +340,7 @@ export function buildSwissKnifeMetaWearablesDATAndroidInteractionEnvelope() {
     compiled_policy_cid: 'local:swissknife:meta-wearables-dat-android-display-interop',
     logic_bindings: [
       {
-        binding_id: 'binding:swissknife-meta-wearables-dat-android-display-session',
+        binding_id: META_WEARABLES_DAT_ANDROID_LOGIC_BINDING.binding_id,
         policy_bundle_ref: META_WEARABLES_DAT_ANDROID_POLICY_BUNDLE_REF,
         compiled_policy_cid: 'local:swissknife:meta-wearables-dat-android-display-interop',
         surface_ref: 'display_service',
@@ -357,79 +348,5 @@ export function buildSwissKnifeMetaWearablesDATAndroidInteractionEnvelope() {
         norm_refs: ['agent_identity', 'allowed_surfaces', 'arguments_hash'],
       },
     ],
-  };
-}
-
-export function buildSwissKnifeMetaWearablesDATAndroidMCPPlusPlusCompatibilityReceipt() {
-  return {
-    receipt_schema: 'mcp_plus_plus_compatibility_receipt_v1',
-    task_id: 'MGW-574',
-    session_id: 'session:swissknife-meta-wearables-dat-android-display',
-    correlation_id: 'corr:swissknife-meta-wearables-dat-android-display',
-    daemon_id: 'meta-wearables-dat-android',
-    server_package: 'meta_wearables_dat_android',
-    swissknife_consumer: 'swissknife.meta_wearables_dat_android.display-service',
-    protocol_negotiation: {
-      method: 'initialize',
-      protocol_version: '2026-07-08',
-      client_profiles: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
-      server_profiles: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
-      negotiated_profiles: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
-      initialized: true,
-    },
-    capability_descriptor: {
-      descriptor_id: 'swissknife-meta-wearables-dat-android-display-interop@0.1.0',
-      interface_cid: SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_INTERFACE.interface_cid,
-      name: SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_INTERFACE.name,
-      namespace: SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_INTERFACE.namespace,
-      version: SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_INTERFACE.version,
-      methods: [...META_WEARABLES_DAT_ANDROID_DISPLAY_INTEROP_OPERATIONS],
-      requires: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
-      compatibility_checked: true,
-      compatibility_verdict: 'compatible' as const,
-      event_streams: true,
-    },
-    transport: {
-      kind: 'local' as const,
-      endpoint: 'swissknife://meta-wearables-dat-android/display',
-      protocol_path: 'swissknife/mcp++/meta-wearables-dat-android/display',
-      auth_present: true,
-      redaction_profile: 'display-session-minimal',
-    },
-    tool_call: {
-      tool_name: 'meta_wearables_dat_android.display.send_content',
-      tool_category: 'display',
-      upstream_function: 'Display.sendContent',
-      jsonrpc_method: 'tools/call',
-      arguments_hash: 'sha256:swissknife-meta-wearables-dat-android-send-content',
-      dispatch_allowed: true,
-      upstream_status: 'ok' as const,
-    },
-    policy_contract: {
-      interaction_envelope_id:
-        'interaction:swissknife-meta-wearables-dat-android:send-content:1',
-      policy_decision_id: 'decision:swissknife-meta-wearables-dat-android:allow:1',
-      policy_outcome: 'allow' as const,
-      mediation_receipt_id: 'receipt:swissknife-meta-wearables-dat-android:allow:1',
-      control_surface_contract_ref: 'swissknife/contracts/control_surface_contract.schema.json',
-    },
-    receipt_lineage: {
-      envelope_cid: 'local:swissknife-meta-wearables-dat-android-envelope',
-      decision_cid: 'local:swissknife-meta-wearables-dat-android-decision',
-      receipt_cid: 'local:swissknife-meta-wearables-dat-android-receipt',
-      tool_receipt_id: 'tool-receipt:meta-wearables-dat-android-display-send-content',
-    },
-    lifecycle_events: [
-      { event: 'initialize' as const, at: '2026-07-08T00:00:00Z' },
-      { event: 'initialized' as const, at: '2026-07-08T00:00:01Z' },
-      { event: 'descriptor_refresh' as const, at: '2026-07-08T00:00:02Z' },
-      { event: 'policy_decision' as const, at: '2026-07-08T00:00:03Z' },
-      {
-        event: 'receipt_emitted' as const,
-        at: '2026-07-08T00:00:04Z',
-        receipt_cid: 'local:swissknife-meta-wearables-dat-android-receipt',
-      },
-    ],
-    validated_at: '2026-07-08T00:00:05Z',
   };
 }

@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+export * from './ipfs-idl-descriptors.js';
+export * from './ipfs-interface-registry.js';
+export * from './ipfs-orb-profiles.js';
+export * from './ipfs-proof-cache.js';
+export * from './ipfs-ui-profiles.js';
+export * from './ipld-logic-storage.js';
+=======
 import {
   buildBrowserLibp2pConfig,
   createBrowserLibp2pNode,
@@ -520,3 +528,4 @@ export function summarizeBrowserIPFSCapabilityGaps(report: BrowserIPFSRuntimeRep
     ...(report.libp2p ? summarizeBrowserLibp2pGaps(report.libp2p) : []),
   ];
 }
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)

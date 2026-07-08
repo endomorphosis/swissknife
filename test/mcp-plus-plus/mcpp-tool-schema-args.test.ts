@@ -8,7 +8,7 @@
  * `{ category, tool }` wire shape.
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import {
   MCPPPServerConnector,
   splitDottedToolName,

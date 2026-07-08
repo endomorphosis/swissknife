@@ -7,16 +7,16 @@
 import {
   makeConversionContext, DeonticLogicConverter, ConversionResult,
   demonstrateDeonticConversion,
-} from '../../src/services/deontic-logic-converter.js';
-import { DeonticOp } from '../../src/services/deontic-query-engine.js';
+} from '../../src/services/logic/deontic/deontic-logic-converter.js';
+import { DeonticOp } from '../../src/services/logic/deontic/deontic-query-engine.js';
 import {
   analyzeLogicalStructure, AVAILABLE_PRIMITIVES, getAvailablePrimitives,
   createLogicSymbol, getPrimitive,
-} from '../../src/services/symbolic-logic-primitives.js';
+} from '../../src/services/logic/shared/symbolic-logic-primitives.js';
 import {
   validateFolInput, FOLOutput, FOLSyntaxValidator,
   makeValidationContext,
-} from '../../src/services/fol-syntax-validator.js';
+} from '../../src/services/logic/fol/fol-syntax-validator.js';
 
 const LEGAL_TEXT =
   'The contractor shall deliver the goods within 30 days. ' +

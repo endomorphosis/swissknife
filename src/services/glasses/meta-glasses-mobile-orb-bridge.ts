@@ -1,5 +1,17 @@
+<<<<<<< HEAD
+import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
+import type { ControlSurfacePolicyEvaluator } from './control-surface-mediator.js';
+import {
+  createGlassesManifestControlPlaneCoverage,
+  validateGlassesManifestControlPlaneCoverage,
+} from './glasses-app-control-plane.js';
+=======
+<<<<<<<< HEAD:src/services/meta-glasses-mobile-orb-bridge.ts
+export * from './glasses/meta-glasses-mobile-orb-bridge.js';
+========
 import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
 import type { ControlSurfacePolicyEvaluator } from '../mcp/control-surface-mediator.js';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import type { MCPUIProfileDescriptor } from '../mcp/mcp-ui-profile.js';
 import {
   LocalORBTransportAdapter,
@@ -47,6 +59,63 @@ export type MetaGlassesMobileORBEventType =
   | 'permission_state'
   | 'diagnostic';
 
+<<<<<<< HEAD
+export const META_GLASSES_MOBILE_ORB_CANONICAL_RENDER_TARGETS = [
+  'native_display',
+  'display_webapp',
+  'mobile_card',
+  'notification',
+  'audio_summary',
+] as const;
+
+export type MetaGlassesMobileORBCanonicalRenderTarget =
+  (typeof META_GLASSES_MOBILE_ORB_CANONICAL_RENDER_TARGETS)[number];
+
+export type MetaGlassesMobileORBRenderTarget =
+  | MetaGlassesMobileORBCanonicalRenderTarget
+  | 'display_widget'
+  | 'display_webapp'
+  | 'audio'
+  | 'audio_summary'
+  | 'mobile_card'
+  | 'notification';
+
+export interface MetaGlassesMobileORBFallbackSelection {
+  requested_render_targets: MetaGlassesMobileORBRenderTarget[];
+  canonical_render_targets: MetaGlassesMobileORBCanonicalRenderTarget[];
+  primary_render_target: MetaGlassesMobileORBCanonicalRenderTarget;
+  selected_render_target: MetaGlassesMobileORBCanonicalRenderTarget;
+  fallback_render_target: MetaGlassesMobileORBCanonicalRenderTarget | null;
+  selected_from: 'primary' | 'fallback';
+  native_display_available: boolean;
+  display_webapp_available: boolean;
+  audio_summary_available: boolean;
+  fallback_reason: string | null;
+  fallback?: Record<string, unknown>;
+}
+
+export interface MetaGlassesMobileORBAllAppFallbackPlanEntry {
+  app_id: string;
+  app_title: string;
+  displayable: boolean;
+  primary_render_target: MetaGlassesMobileORBCanonicalRenderTarget;
+  selected_render_target: MetaGlassesMobileORBCanonicalRenderTarget;
+  dispatch_render_targets: MetaGlassesMobileORBCanonicalRenderTarget[];
+  selection: MetaGlassesMobileORBFallbackSelection;
+}
+
+export interface MetaGlassesMobileORBAllAppFallbackPlan {
+  app_count: number;
+  dat_capabilities: MetaGlassesMobileORBDatCapabilities;
+  entries: MetaGlassesMobileORBAllAppFallbackPlanEntry[];
+  validation: {
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+  };
+}
+
+=======
 export type MetaGlassesMobileORBRenderTarget =
   | 'display_widget'
   | 'display_webapp'
@@ -54,6 +123,7 @@ export type MetaGlassesMobileORBRenderTarget =
   | 'mobile_card'
   | 'notification';
 
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 export interface MetaGlassesMobileORBDatCapabilities {
   session?: boolean;
   camera?: boolean;
@@ -204,6 +274,10 @@ export interface MetaGlassesMobileORBDispatchResponseResponse
   dispatched_actions: Record<string, unknown>[];
   display_widget_action?: Record<string, unknown> | null;
   spoken_text?: string | null;
+<<<<<<< HEAD
+  fallback_selection?: MetaGlassesMobileORBFallbackSelection | null;
+=======
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
   receipt_cid: string;
 }
 
@@ -1016,6 +1090,143 @@ function mediationInvoked(artifacts: MetaGlassesMobileORBControlSurfaceArtifacts
   return result?.invoked === true;
 }
 
+<<<<<<< HEAD
+export function normalizeMetaGlassesMobileORBRenderTarget(
+  target: MetaGlassesMobileORBRenderTarget | string,
+): MetaGlassesMobileORBCanonicalRenderTarget {
+  if (target === 'display_widget') return 'native_display';
+  if (target === 'audio') return 'audio_summary';
+  if (META_GLASSES_MOBILE_ORB_CANONICAL_RENDER_TARGETS.includes(
+    target as MetaGlassesMobileORBCanonicalRenderTarget,
+  )) {
+    return target as MetaGlassesMobileORBCanonicalRenderTarget;
+  }
+  return 'notification';
+}
+
+export function selectMetaGlassesMobileORBFallback(request: {
+  render_targets?: readonly (MetaGlassesMobileORBRenderTarget | string)[];
+  fallback?: Record<string, unknown>;
+  dat_capabilities?: MetaGlassesMobileORBDatCapabilities;
+}): MetaGlassesMobileORBFallbackSelection {
+  const requestedTargets = request.render_targets?.length
+    ? [...request.render_targets]
+    : ['notification'];
+  const canonicalTargets = uniqueStrings(
+    requestedTargets.map(target => normalizeMetaGlassesMobileORBRenderTarget(target)),
+  ) as MetaGlassesMobileORBCanonicalRenderTarget[];
+  const fallbackTarget = normalizeFallbackRenderPath(request.fallback?.render_path);
+  if (!canonicalTargets.includes(fallbackTarget)) {
+    canonicalTargets.push(fallbackTarget);
+  }
+
+  const primary = canonicalTargets[0] ?? 'notification';
+  const selected = canonicalTargets.find(target => isRenderTargetAvailable(target, request.dat_capabilities))
+    ?? 'notification';
+  const selectedFrom = selected === primary ? 'primary' : 'fallback';
+
+  return sortedDefinedRecord({
+    requested_render_targets: requestedTargets,
+    canonical_render_targets: canonicalTargets,
+    primary_render_target: primary,
+    selected_render_target: selected,
+    fallback_render_target: selectedFrom === 'fallback' ? selected : null,
+    selected_from: selectedFrom,
+    native_display_available: request.dat_capabilities?.display === true,
+    display_webapp_available: request.dat_capabilities?.webAppDisplay !== false,
+    audio_summary_available: request.dat_capabilities?.audio !== false,
+    fallback_reason: selectedFrom === 'fallback'
+      ? stringFromUnknown(request.fallback?.reason)
+        ?? stringFromUnknown(request.fallback?.message)
+        ?? `${primary} unavailable`
+      : null,
+    fallback: request.fallback,
+  }) as unknown as MetaGlassesMobileORBFallbackSelection;
+}
+
+export function createMetaGlassesMobileORBAllAppFallbackPlan(): MetaGlassesMobileORBAllAppFallbackPlan {
+  const coverage = createGlassesManifestControlPlaneCoverage();
+  const validation = validateGlassesManifestControlPlaneCoverage(coverage);
+  const datCapabilities: MetaGlassesMobileORBDatCapabilities = {
+    session: true,
+    display: true,
+    webAppDisplay: true,
+    audio: true,
+  };
+  const entries = coverage.entries.map(entry => {
+    const primary = primaryRenderTargetForGlassesStrategy(entry.display_source, entry.handoff);
+    const normalizedFallbackTargets = entry.fallback_targets.map(target =>
+      normalizeMetaGlassesMobileORBRenderTarget(target),
+    );
+    const dispatchTargets = uniqueStrings([
+      primary,
+      ...normalizedFallbackTargets,
+      ...META_GLASSES_MOBILE_ORB_CANONICAL_RENDER_TARGETS,
+    ]) as MetaGlassesMobileORBCanonicalRenderTarget[];
+    const fallback = entry.fallback_targets.length > 0
+      ? {
+          reason: `${entry.display_source} fallback for ${entry.app_id}`,
+          render_path: entry.fallback_targets[0],
+        }
+      : undefined;
+    const selection = selectMetaGlassesMobileORBFallback({
+      render_targets: dispatchTargets,
+      fallback,
+      dat_capabilities: datCapabilities,
+    });
+
+    return {
+      app_id: entry.app_id,
+      app_title: entry.app_title,
+      displayable: entry.displayable,
+      primary_render_target: selection.primary_render_target,
+      selected_render_target: selection.selected_render_target,
+      dispatch_render_targets: dispatchTargets,
+      selection,
+    };
+  });
+
+  return {
+    app_count: coverage.app_count,
+    dat_capabilities: datCapabilities,
+    entries,
+    validation,
+  };
+}
+
+function primaryRenderTargetForGlassesStrategy(
+  strategy: string,
+  handoff: string,
+): MetaGlassesMobileORBCanonicalRenderTarget {
+  if (strategy === 'audio-summary' || handoff === 'audio-summary') return 'audio_summary';
+  if (strategy === 'mobile-card' || handoff === 'mobile-card') return 'mobile_card';
+  if (strategy === 'idl-generated') return 'display_webapp';
+  if (strategy === 'display-webapp' || handoff === 'display-webapp') return 'display_webapp';
+  if (handoff === 'native-display') return 'native_display';
+  return 'notification';
+}
+
+function normalizeFallbackRenderPath(value: unknown): MetaGlassesMobileORBCanonicalRenderTarget {
+  if (value === 'dat-native' || value === 'native-display') return 'native_display';
+  if (value === 'display-webapp') return 'display_webapp';
+  if (value === 'mobile-card') return 'mobile_card';
+  if (value === 'audio-summary') return 'audio_summary';
+  if (typeof value === 'string') return normalizeMetaGlassesMobileORBRenderTarget(value);
+  return 'notification';
+}
+
+function isRenderTargetAvailable(
+  target: MetaGlassesMobileORBCanonicalRenderTarget,
+  datCapabilities: MetaGlassesMobileORBDatCapabilities | undefined,
+): boolean {
+  if (target === 'native_display') return datCapabilities?.display === true;
+  if (target === 'display_webapp') return datCapabilities?.webAppDisplay !== false;
+  if (target === 'audio_summary') return datCapabilities?.audio !== false;
+  return true;
+}
+
+=======
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 export function createDefaultMetaGlassesMobileORBBackend(
   now: () => Date = () => new Date(),
 ): MetaGlassesMobileORBBridgeBackend {
@@ -1235,13 +1446,25 @@ export function createDefaultMetaGlassesMobileORBBackend(
     },
 
     dispatchGlassesResponse(request) {
+<<<<<<< HEAD
+      const edgeSession = requireEdgeSession(request.edge_session_id);
+=======
       requireEdgeSession(request.edge_session_id);
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
       const receiptCid = localCid('mobile-orb-receipt', {
         operation: 'dispatch_glasses_response',
         correlation_id: request.correlation_id,
         parent_receipt_cids: request.parent_receipt_cids ?? [],
         render_targets: request.render_targets,
       });
+<<<<<<< HEAD
+      const fallbackSelection = selectMetaGlassesMobileORBFallback({
+        render_targets: request.render_targets,
+        fallback: request.fallback,
+        dat_capabilities: edgeSession.dat_capabilities,
+      });
+=======
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
       const artifacts = buildMobileORBControlSurfaceArtifacts(
         'dispatch_glasses_response',
         request as unknown as Record<string, unknown>,
@@ -1254,6 +1477,10 @@ export function createDefaultMetaGlassesMobileORBBackend(
         dispatched_actions: arrayOfRecords(request.result.follow_up_actions),
         display_widget_action: recordOrNull(request.result.display_widget_action),
         spoken_text: stringFromUnknown(request.result.spoken_text) ?? null,
+<<<<<<< HEAD
+        fallback_selection: fallbackSelection,
+=======
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
         receipt_cid: receiptCid,
         ...controlSurfaceFields(artifacts),
       };
@@ -1570,3 +1797,7 @@ function clonePlain<T>(value: T): T {
 function exhaustive(value: never): never {
   throw new Error(`Unsupported mobile ORB operation: ${String(value)}.`);
 }
+<<<<<<< HEAD
+=======
+>>>>>>>> 1569811 (chore: add pending swissknife staged changes):src/services/glasses/meta-glasses-mobile-orb-bridge.ts
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)

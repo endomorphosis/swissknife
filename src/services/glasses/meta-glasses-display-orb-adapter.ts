@@ -1,5 +1,13 @@
+<<<<<<< HEAD
+import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
+import type { ControlSurfacePolicyEvaluator } from './control-surface-mediator.js';
+=======
+<<<<<<<< HEAD:src/services/meta-glasses-display-orb-adapter.ts
+export * from './glasses/meta-glasses-display-orb-adapter.js';
+========
 import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
 import type { ControlSurfacePolicyEvaluator } from '../mcp/control-surface-mediator.js';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import type { MCPUIProfileDescriptor } from '../mcp/mcp-ui-profile.js';
 import {
   LocalORBTransportAdapter,
@@ -1102,3 +1110,7 @@ function omitUndefined<T extends Record<string, unknown>>(value: T): T {
     Object.entries(value).filter(([, entry]) => entry !== undefined),
   ) as T;
 }
+<<<<<<< HEAD
+=======
+>>>>>>>> 1569811 (chore: add pending swissknife staged changes):src/services/glasses/meta-glasses-display-orb-adapter.ts
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)

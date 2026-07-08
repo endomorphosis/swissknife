@@ -7,15 +7,15 @@
 import {
   LogicIRView, LegalIRDocument, RoundTripMetrics,
   ProofGateResult, GraphProjectionResult, BridgeEvaluationReport,
-} from '../../src/services/bridge-types.js';
+} from '../../src/services/logic/shared/bridge-types.js';
 import {
   LogicBridgeSpec, SPECS,
   logicBridgeSpecs, logicBridgeSpec, logicBridgeManifest,
   bridgeNameForComponent,
-} from '../../src/services/bridge-registry.js';
+} from '../../src/services/logic/bridges/bridge-registry.js';
 import {
   ZkpAttestationBridgeAdapter,
-} from '../../src/services/zkp-attestation-bridge.js';
+} from '../../src/services/zkp/zkp-attestation-bridge.js';
 
 // ---------------------------------------------------------------------------
 // LogicIRView

@@ -1,12 +1,20 @@
 import {
   runGeneratedAppQualityGate,
   validateDescriptorSet,
+<<<<<<< HEAD
+} from '../../src/services/mcp/mcp-generated-app-quality-gates';
+=======
 } from '../../src/services/apps/mcp-generated-app-quality-gates';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import {
   IPFS_MCP_UI_PROFILE_DESCRIPTORS,
   ipfsDatasetInferenceWorkflowDescriptor,
   ipfsDatasetsUIProfileDescriptor,
+<<<<<<< HEAD
+} from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+=======
 } from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 describe('generated app quality gates', () => {

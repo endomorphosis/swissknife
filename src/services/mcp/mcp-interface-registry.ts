@@ -30,7 +30,7 @@ export type MCPInterfaceMethod =
 
 export interface MCPInterfaceRegistryBackend {
   list(): Promise<string[]> | string[];
-  get(interfaceCid: string): Promise<Buffer | string | null> | Buffer | string | null;
+  get(interfaceCid: string): Promise<Uint8Array | string | null> | Uint8Array | string | null;
   compat(interfaceCid: string): Promise<CompatibilityVerdict> | CompatibilityVerdict;
   select?(taskHintCid: string, budget: number): Promise<string[]> | string[];
 }
@@ -79,7 +79,7 @@ export class LocalMCPInterfaceRegistryBackend implements MCPInterfaceRegistryBac
     return this.repository.list();
   }
 
-  get(interfaceCid: string): Buffer | null {
+  get(interfaceCid: string): Uint8Array | null {
     return this.repository.get(interfaceCid);
   }
 
@@ -324,8 +324,8 @@ function parseVersion(version: string): number[] {
     .map(part => (Number.isFinite(part) ? part : 0));
 }
 
-function decodeDescriptor(payload: Buffer | string): InterfaceDescriptor {
-  const text = Buffer.isBuffer(payload) ? payload.toString('utf8') : payload;
+function decodeDescriptor(payload: Uint8Array | string): InterfaceDescriptor {
+  const text = typeof payload === 'string' ? payload : new TextDecoder().decode(payload);
   return JSON.parse(text) as InterfaceDescriptor;
 }
 

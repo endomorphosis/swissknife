@@ -1,9 +1,20 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { deonticDocumentIdFromNorms } from '../../src/services/deontic-norms-bridge';
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  mkdtempSync: (prefix: string) => string;
+  readFileSync: (path: string, encoding: BufferEncoding) => string;
+  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for deontic bridge conformance tests');
+}
+
+import { deonticDocumentIdFromNorms } from '../../src/services/logic/bridges/deontic-norms-bridge';
 
 interface Vector {
   id: string;
@@ -29,11 +40,11 @@ interface PyResults {
 
 function loadCorpus(): Corpus {
   const path = resolve(process.cwd(), '../implementation_plan/conformance/deontic-bridge-document-id-vectors.json');
-  return JSON.parse(readFileSync(path, 'utf8')) as Corpus;
+  return JSON.parse(nodeFs.readFileSync(path, 'utf8')) as Corpus;
 }
 
 function runPythonReference(corpusPath: string): PyResults {
-  const tempDir = mkdtempSync(join(tmpdir(), 'deontic-bridge-docid-py-'));
+  const tempDir = nodeFs.mkdtempSync(join(tmpdir(), 'deontic-bridge-docid-py-'));
   const outPath = join(tempDir, 'py-results.json');
   try {
     const scriptPath = resolve(process.cwd(), '../implementation_plan/conformance/deontic_bridge_document_id_py_runner.py');
@@ -41,9 +52,9 @@ function runPythonReference(corpusPath: string): PyResults {
     if (proc.status !== 0) {
       throw new Error(`Python deontic bridge doc-id runner failed: ${proc.stderr || proc.stdout}`);
     }
-    return JSON.parse(readFileSync(outPath, 'utf8')) as PyResults;
+    return JSON.parse(nodeFs.readFileSync(outPath, 'utf8')) as PyResults;
   } finally {
-    rmSync(tempDir, { recursive: true, force: true });
+    nodeFs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

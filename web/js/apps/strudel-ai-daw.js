@@ -10,6 +10,11 @@
  * - Code-to-sound real-time compilation
  */
 
+import {
+    describeMediaArtifactCapabilities,
+    runMediaArtifactWorkflow
+} from './media-artifact-capabilities.js';
+
 export class StrudelAIDAW {
     constructor(desktop) {
         this.desktop = desktop;
@@ -45,6 +50,8 @@ export class StrudelAIDAW {
         this.aiEnabled = true;
         this.lastAIRequest = null;
         this.codeContext = '';
+        this.mediaArtifactCapabilities = describeMediaArtifactCapabilities('strudel-ai-daw');
+        this.lastMediaArtifactWorkflow = null;
         
         console.log('🎵 Strudel AI DAW initialized');
     }
@@ -1508,6 +1515,36 @@ Make it musical and interesting!`,
 
     stopStrudel() {
         console.log('🎵 Stopping Strudel engine');
+    }
+
+    getMediaArtifactCapabilities() {
+        return this.mediaArtifactCapabilities;
+    }
+
+    async exerciseMediaArtifactGateway(input = {}) {
+        this.lastMediaArtifactWorkflow = await runMediaArtifactWorkflow({
+            desktop: this.desktop,
+            appId: 'strudel-ai-daw',
+            mediaType: 'audio',
+            mimeType: 'audio/wav',
+            operation: input.operation || 'ai-generate-music',
+            model: input.model || 'music-code-generator',
+            prompt: input.prompt || `Generate and render Strudel code for ${this.activePattern || 'main pattern'}.`,
+            artifact: {
+                id: input.id || this.activePattern || 'main',
+                name: input.name || 'strudel-ai-daw-render',
+                filename: input.filename || 'strudel-ai-daw-render.json',
+                content: {
+                    current_code: this.currentCode,
+                    code_context: this.codeContext,
+                    bpm: this.bpm,
+                    active_pattern: this.activePattern,
+                    pattern_count: this.patterns.size,
+                    ai_enabled: this.aiEnabled
+                }
+            }
+        });
+        return this.lastMediaArtifactWorkflow;
     }
 
     // Placeholder methods for remaining functionality

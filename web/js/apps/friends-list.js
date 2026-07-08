@@ -4,6 +4,11 @@
  * Links accounts across GitHub, libp2p, Hugging Face, and other platforms
  */
 
+import {
+  describeSystemNetworkLocalCapabilities,
+  runSystemNetworkLocalWorkflow
+} from './system-network-local-capabilities.js';
+
 export class FriendsListApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -77,6 +82,11 @@ export class FriendsListApp {
         fields: ['username', 'discriminator', 'avatar_url', 'guilds']
       }
     ];
+    this.systemNetworkLocalCapabilities = describeSystemNetworkLocalCapabilities('friends-list', {
+      localCapabilities: ['friend_graph', 'identity_links', 'pending_invites', 'platform_profiles'],
+      remoteCapabilities: ['node_status', 'pin_inventory', 'dataset_browse']
+    });
+    this.lastSystemNetworkLocalWorkflow = null;
     
     // Initialize sample data
     this.initializeSampleData();
@@ -2156,6 +2166,28 @@ export class FriendsListApp {
     } catch (error) {
       console.warn('⚠️ Cleanup had issues:', error);
     }
+  }
+
+  getSystemNetworkLocalCapabilities() {
+    return this.systemNetworkLocalCapabilities;
+  }
+
+  async exerciseSystemNetworkLocalGateway(input = {}) {
+    this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
+      desktop: this.desktop,
+      appId: 'friends-list',
+      localCapabilities: ['friend_graph', 'identity_links', 'pending_invites', 'platform_profiles'],
+      remoteCapabilities: ['node_status', 'pin_inventory', 'dataset_browse'],
+      localState: {
+        friend_count: this.friends.size,
+        identity_link_count: this.identityLinks.size,
+        pending_invite_count: this.pendingInvites.size,
+        platform_count: this.supportedPlatforms.length,
+        current_user: this.currentUser?.id || null
+      },
+      summary: input.summary || 'Validate Friends List local identity graph and remote discovery/storage fallbacks.'
+    });
+    return this.lastSystemNetworkLocalWorkflow;
   }
 }
 

@@ -9,118 +9,6 @@
     "node": ">=18.0.0"
   },
   "type": "module",
-  "types": "./web/src/swissknife-browser-core.ts",
-  "browser": "./web/src/swissknife-browser-core.ts",
-  "exports": {
-    ".": {
-      "types": "./web/src/swissknife-browser-core.ts",
-      "browser": "./web/src/swissknife-browser-core.ts",
-      "import": "./web/src/swissknife-browser-core.ts",
-      "default": "./web/src/swissknife-browser-core.ts"
-    },
-    "./browser": {
-      "types": "./web/src/swissknife-browser-core.ts",
-      "browser": "./web/src/swissknife-browser-core.ts",
-      "import": "./web/src/swissknife-browser-core.ts",
-      "default": "./web/src/swissknife-browser-core.ts"
-    },
-    "./browser/ai": {
-      "types": "./src/ai/browser.ts",
-      "browser": "./src/ai/browser.ts",
-      "import": "./src/ai/browser.ts",
-      "default": "./src/ai/browser.ts"
-    },
-    "./browser/components": {
-      "types": "./src/components/browser/index.ts",
-      "browser": "./src/components/browser/index.ts",
-      "import": "./src/components/browser/index.ts",
-      "default": "./src/components/browser/index.ts"
-    },
-    "./browser/hooks": {
-      "types": "./src/hooks/browser/index.ts",
-      "browser": "./src/hooks/browser/index.ts",
-      "import": "./src/hooks/browser/index.ts",
-      "default": "./src/hooks/browser/index.ts"
-    },
-    "./browser/ipfs": {
-      "types": "./src/services/ipfs/browser.ts",
-      "browser": "./src/services/ipfs/browser.ts",
-      "import": "./src/services/ipfs/browser.ts",
-      "default": "./src/services/ipfs/browser.ts"
-    },
-    "./browser/mcp/dashboard-policy": {
-      "types": "./src/services/mcp/mcp-dashboard-browser-policy.ts",
-      "browser": "./src/services/mcp/mcp-dashboard-browser-policy.ts",
-      "import": "./src/services/mcp/mcp-dashboard-browser-policy.ts",
-      "default": "./src/services/mcp/mcp-dashboard-browser-policy.ts"
-    },
-    "./browser/mcp/libp2p": {
-      "types": "./src/services/mcp/libp2p-browser-runtime.ts",
-      "browser": "./src/services/mcp/libp2p-browser-runtime.ts",
-      "import": "./src/services/mcp/libp2p-browser-runtime.ts",
-      "default": "./src/services/mcp/libp2p-browser-runtime.ts"
-    },
-    "./browser/models": {
-      "types": "./src/models/browser.ts",
-      "browser": "./src/models/browser.ts",
-      "import": "./src/models/browser.ts",
-      "default": "./src/models/browser.ts"
-    },
-    "./browser/platform": {
-      "types": "./src/platform/browser.ts",
-      "browser": "./src/platform/browser.ts",
-      "import": "./src/platform/browser.ts",
-      "default": "./src/platform/browser.ts"
-    },
-    "./browser/screens": {
-      "types": "./src/screens/browser/index.ts",
-      "browser": "./src/screens/browser/index.ts",
-      "import": "./src/screens/browser/index.ts",
-      "default": "./src/screens/browser/index.ts"
-    },
-    "./browser/storage": {
-      "types": "./src/storage/browser.ts",
-      "browser": "./src/storage/browser.ts",
-      "import": "./src/storage/browser.ts",
-      "default": "./src/storage/browser.ts"
-    },
-    "./browser/workers": {
-      "types": "./src/workers/browser.ts",
-      "browser": "./src/workers/browser.ts",
-      "import": "./src/workers/browser.ts",
-      "default": "./src/workers/browser.ts"
-    },
-    "./host": {
-      "types": "./src/platform/host.ts",
-      "node": "./src/platform/host.ts",
-      "default": null
-    },
-    "./host/ai": {
-      "types": "./src/ai/host.ts",
-      "node": "./src/ai/host.ts",
-      "default": null
-    },
-    "./host/models": {
-      "types": "./src/models/host.ts",
-      "node": "./src/models/host.ts",
-      "default": null
-    },
-    "./host/storage": {
-      "types": "./src/storage/host.ts",
-      "node": "./src/storage/host.ts",
-      "default": null
-    },
-    "./host/workers": {
-      "types": "./src/workers/host.ts",
-      "node": "./src/workers/host.ts",
-      "default": null
-    },
-    "./cli": {
-      "node": "./cli.mjs",
-      "default": null
-    },
-    "./package.json": "./package.json"
-  },
   "author": "Benjamin Barber <starworks5@gmail.com>",
   "license": "",
   "description": "Use swissknife, an AI assistant, right from your terminal. swissknife can understand your codebase, edit files, run terminal commands, and handle entire workflows for you.",
@@ -135,11 +23,7 @@
   "files": [
     "cli.mjs",
     "yoga.wasm",
-    "install.sh",
-    "src",
-    "web/src",
-    "docs/browser-public-api.md",
-    "scripts/audit-package-browser-exports.mjs"
+    "install.sh"
   ],
   "scripts": {
     "dev": "vite dev",
@@ -181,14 +65,20 @@
     "test:collaborative": "vitest run test/collaborative --browser",
     "test:p2p": "vitest run test/p2p --browser",
     "test:workers": "vitest run test/workers --browser",
+<<<<<<< HEAD
+    "test:production": "npm run test:vite && npm run test:collaborative && npm run test:p2p",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "services:audit": "node scripts/audit-services-modules.mjs --fail-on-root-debt --fail-on-unknown --fail-on-forbidden",
+=======
     "test:production": "npm run test:release",
     "lint": "npm run lint:source-modules && eslint --quiet scripts/audit-source-modules.mjs",
     "lint:eslint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:source-modules": "node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden",
     "audit:module-boundary": "node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden",
-    "audit:package-browser-exports": "node scripts/audit-package-browser-exports.mjs --fail-on-host-leakage --report docs/browser-public-api.md",
     "services:audit": "node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden --fail-on-legacy --json docs/service-boundary-audit.json && node scripts/audit-release-evidence-freshness.mjs --update module-boundary-audit --json docs/release-evidence-freshness.json --report docs/release-evidence-freshness.md",
     "lint:fix": "npm run lint:source-modules && eslint . --ext .ts,.tsx,.js,.jsx --fix",
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "typecheck": "npm run typecheck:browser && npm run typecheck:services",
@@ -398,11 +288,22 @@
     "@anthropic-ai/claude-code": "^0.2.29",
     "@anthropic-ai/sdk": "^0.39.0",
     "@anthropic-ai/vertex-sdk": "^0.7.0",
+    "@chainsafe/libp2p-gossipsub": "13.2.0",
+    "@chainsafe/libp2p-noise": "15.1.2",
+    "@chainsafe/libp2p-yamux": "6.0.2",
     "@commander-js/extra-typings": "^12.0.0",
     "@iarna/toml": "^2.2.5",
     "@inkjs/ui": "^2.0.0",
+    "@libp2p/bootstrap": "10.1.5",
+    "@libp2p/circuit-relay-v2": "1.1.5",
+    "@libp2p/identify": "1.0.21",
+    "@libp2p/interface": "1.7.0",
+    "@libp2p/webrtc": "4.1.10",
+    "@libp2p/websockets": "8.2.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "@multiformats/multiaddr": "^12.1.14",
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
     "@octokit/rest": "^20.1.2",
     "@sentry/node": "^9.3.0",
     "@statsig/js-client": "^3.12.2",

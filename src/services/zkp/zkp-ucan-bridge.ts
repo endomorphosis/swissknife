@@ -21,7 +21,7 @@
  *
  * The bridge is fail-closed when no real ZK backend is available.
  *
- * Sprint 11, T-70.
+ * T-70.
  * Reference: ipfs_datasets_py/logic/zkp/ucan_zkp_bridge.py §ZKPToUCANBridge
  */
 
@@ -31,7 +31,7 @@ import type {
   ZkpBridgeResult,
   ZkpVerifierId,
 } from './zkp-types.js';
-import { sha256Hex } from '../provers/browser-crypto.js';
+import { sha256Hex } from '../shared/browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Options

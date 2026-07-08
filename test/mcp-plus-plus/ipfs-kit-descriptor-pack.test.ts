@@ -6,7 +6,11 @@ import {
   getIPFSKitInterfaceDescriptors,
   ipfsKitDescriptorPack,
   validateIPFSKitDescriptorPack,
+<<<<<<< HEAD
+} from '../../src/services/mcp/mcp-ipfs-kit-descriptor-pack';
+=======
 } from '../../src/services/ipfs/mcp-ipfs-kit-descriptor-pack';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
 
 describe('ipfs_kit_py descriptor pack', () => {
   it('validates offline against the generated manifest', () => {

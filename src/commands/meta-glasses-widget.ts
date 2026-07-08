@@ -12,12 +12,12 @@ import {
   type MetaGlassesDisplayTemplate,
   type MetaGlassesRenderPath,
   type MetaGlassesWidgetDescriptor,
-} from '../services/meta-glasses-display-profile.js';
+} from '../services/glasses/meta-glasses-display-profile.js';
 import {
   MetaGlassesWidgetCompileError,
   compileMetaGlassesWidgetManifest,
   type MetaGlassesWidgetManifest,
-} from '../services/meta-glasses-widget-compiler.js';
+} from '../services/glasses/meta-glasses-widget-compiler.js';
 
 const COMMAND_NAME = 'meta-glasses';
 const WIDGET_SCOPE = 'widget';

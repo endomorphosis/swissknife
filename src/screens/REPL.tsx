@@ -34,11 +34,11 @@ import {
   type ProgressMessage,
   query,
 } from '../query.js.js.js.js.js.js.js.js.js.js.js'
-import type { WrappedClient } from '../services/mcpClient.js.js.js.js.js.js.js.js.js.js'
+import type { WrappedClient } from '../services/mcp/mcpClient.js'
 import type { Tool } from '../Tool.js.js.js.js.js.js.js.js.js.js'
 import { AutoUpdaterResult } from '../utils/autoUpdater.js.js.js.js.js.js.js.js.js.js'
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
+import { logEvent } from '../services/platform/statsig.js'
 import { getNextAvailableLogForkNumber } from '../utils/log.js.js.js.js.js.js.js.js.js.js'
 import {
   getErroredToolUseMessages,

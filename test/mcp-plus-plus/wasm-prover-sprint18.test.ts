@@ -14,13 +14,13 @@
 import {
   classifyModal, classifyLegalEntity, normalizePredicate,
   extractActionRecipient, scoreScaffoldQuality,
-} from '../../src/services/deontic/deontic-parser-utils.js';
+} from '../../src/services/logic/deontic/deontic-parser-utils.js';
 import {
   identifyObligations, detectNormativeConflicts,
-} from '../../src/services/deontic/normative-conflict-detector.js';
-import type { NormElement } from '../../src/services/deontic/normative-conflict-detector.js';
-import { ProverSyntaxBuilder } from '../../src/services/deontic/prover-syntax-builder.js';
-import { buildLegalNormIR } from '../../src/services/deontic/legal-norm-ir.js';
+} from '../../src/services/logic/deontic/normative-conflict-detector.js';
+import type { NormElement } from '../../src/services/logic/deontic/normative-conflict-detector.js';
+import { ProverSyntaxBuilder } from '../../src/services/logic/deontic/prover-syntax-builder.js';
+import { buildLegalNormIR } from '../../src/services/logic/deontic/legal-norm-ir.js';
 
 // ---------------------------------------------------------------------------
 // T-96: classifyModal

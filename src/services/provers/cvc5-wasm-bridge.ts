@@ -21,7 +21,7 @@
  */
 
 import type { WasmProofResult, WasmProverId } from './prover-types.js';
-import type { Policy } from '../mcp-policy.js';
+import type { Policy } from '../logic/deontic/mcp-policy.js';
 import { SMT2Serializer } from './smt2-serializer.js';
 import { Z3WasmBridge } from './z3-wasm-bridge.js';
 

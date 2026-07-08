@@ -12,11 +12,11 @@
  * This module is test-only. Production browser proof selection must use a real
  * backend such as `snarkjs-browser-groth16` and must reject this verifier ID.
  *
- * Sprint 11, T-69.
+ * T-69.
  * Reference: ipfs_datasets_py/logic/zkp/zkp_prover.py §ZKPProver (simulation path)
  */
 
-import { base64UrlEncode, sha256Hex } from '../provers/browser-crypto.js';
+import { base64UrlEncode, sha256Hex } from '../shared/browser-crypto.js';
 
 export const ZKP_SIMULATED_VERIFIER_ID = 'simulated-zkp-v0.1' as const;
 export const ZKP_SIMULATED_PROVER_SCOPE = 'test-only' as const;

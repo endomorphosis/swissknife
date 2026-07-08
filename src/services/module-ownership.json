@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "2026-07-06",
+  "description": "Target ownership and dependency policy for src/services. All service implementation files must live inside an explicit module-owned path.",
+  "sourceRoot": "src/services",
+  "excludedFiles": [
+    "src/services/module-ownership.json"
+  ],
+  "modules": {
+    "shared": {
+      "targetPath": "src/services/shared",
+      "purpose": "Browser-safe primitives shared across service modules: hashes, ids, errors, config contracts, serialization helpers.",
+      "allowedImports": ["shared"]
+    },
+    "platform": {
+      "targetPath": "src/services/platform",
+      "purpose": "Host/platform adapters and browser-safe runtime utilities: provider clients, telemetry, resource pools, browser acceleration, runtime feature detection. Browser-safe entrypoints live in browser.ts; host-native process/filesystem wrappers live in host.ts.",
+      "allowedImports": ["shared", "platform"]
+    },
+    "mcp": {
+      "targetPath": "src/services/mcp",
+      "purpose": "MCP protocol, registries, descriptors, event DAG provenance, policy broker, transport, and schema/UI descriptor orchestration. Browser-safe descriptor/envelope/schema entrypoints live in browser.ts; host transports, discovery, trust, and CLI wrappers live in host.ts.",
+      "allowedImports": ["shared", "platform", "mcp", "logic.shared", "logic.deontic", "provers", "zkp"]
+    },
+    "glasses": {
+      "targetPath": "src/services/glasses",
+      "purpose": "Meta-glasses/orb/webapp control surfaces, adapters, widget compilation, and display/input/audio/camera profiles.",
+      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs", "apps"]
+    },
+    "ipfs": {
+      "targetPath": "src/services/ipfs",
+      "purpose": "IPFS interface descriptors, UI profiles, widgets, and storage/cache integration points.",
+      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs", "proof-engine"]
+    },
+    "apps": {
+      "targetPath": "src/services/apps",
+      "purpose": "Virtual desktop app manifests, app capability policies, app result envelopes, composite app descriptors, and app capability gateway orchestration.",
+      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs", "apps"]
+    },
+    "logic.shared": {
+      "targetPath": "src/services/logic/shared",
+      "purpose": "Common theorem-prover domain types, formula analyzers, parsers, validation, canonicalization, and proof metadata.",
+      "allowedImports": ["shared", "logic.shared", "provers"]
+    },
+    "logic.api": {
+      "targetPath": "src/services/logic/api",
+      "purpose": "Stable logic-layer facades, end-to-end validators, and public orchestration APIs that compose multiple logic modules.",
+      "allowedImports": ["shared", "platform", "logic.shared", "logic.api", "logic.nl", "logic.fol", "logic.tdfol", "logic.cec", "logic.dcec", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp", "proof-engine"]
+    },
+    "logic.nl": {
+      "targetPath": "src/services/logic/nl",
+      "purpose": "Natural-language parsing, policy compilation, multilingual parsers, grammar loading, and sentence-level conversion helpers.",
+      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.deontic", "logic.tdfol", "logic.dcec"]
+    },
+    "logic.fol": {
+      "targetPath": "src/services/logic/fol",
+      "purpose": "FOL parsing, formatting, conversion, export, symbolic FOL helpers, and FOL-specific syntax validation.",
+      "allowedImports": ["shared", "logic.shared", "logic.fol", "provers"]
+    },
+    "logic.tdfol": {
+      "targetPath": "src/services/logic/tdfol",
+      "purpose": "TDFOL core AST, parser, prover, temporal/deontic APIs, strategy routing, optimization, and performance helpers.",
+      "allowedImports": ["shared", "logic.shared", "logic.fol", "logic.tdfol", "logic.deontic", "logic.cec", "logic.dcec", "logic.modal", "provers", "zkp", "proof-engine"]
+    },
+    "logic.dcec": {
+      "targetPath": "src/services/logic/dcec",
+      "purpose": "DCEC core types, grammar/parsing, prototypes, integration, and DCEC-specific error handling.",
+      "allowedImports": ["shared", "logic.shared", "logic.dcec", "logic.cec"]
+    },
+    "logic.cec": {
+      "targetPath": "src/services/logic/cec",
+      "purpose": "CEC/Event Calculus rules, tableaux, fluents, context, proof cache, and CEC prover management.",
+      "allowedImports": ["shared", "logic.shared", "logic.cec", "logic.dcec", "logic.deontic", "logic.modal", "zkp"]
+    },
+    "logic.deontic": {
+      "targetPath": "src/services/logic/deontic",
+      "purpose": "Deontic parsing, norm IR, formula building, legal-text extraction, conflict detection, and normative graph projection.",
+      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.dcec", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp"]
+    },
+    "logic.modal": {
+      "targetPath": "src/services/logic/modal",
+      "purpose": "Modal codec/compiler/decompiler/tableaux, Kripke structures, KG bridges, ambiguity handling, and modal synthesis.",
+      "allowedImports": ["shared", "logic.shared", "logic.nl", "logic.fol", "logic.tdfol", "logic.deontic", "logic.modal", "provers"]
+    },
+    "logic.bridges": {
+      "targetPath": "src/services/logic/bridges",
+      "purpose": "Cross-logic bridge adapters and graph/multiview projections across FOL, TDFOL, CEC, DCEC, modal, and deontic views.",
+      "allowedImports": ["shared", "logic.shared", "logic.fol", "logic.tdfol", "logic.cec", "logic.dcec", "logic.deontic", "logic.modal", "logic.bridges", "provers", "zkp"]
+    },
+    "provers": {
+      "targetPath": "src/services/provers",
+      "purpose": "Concrete prover adapters and prover-facing serializers for Z3, CVC5, Coq, Lean, DCEC, TDFOL, Lurk, STARK, and neural prover bridges. Browser-safe entrypoints live in browser.ts; host-native wrappers live in host.ts.",
+      "allowedImports": ["shared", "logic.shared", "logic.fol", "logic.tdfol", "logic.dcec", "logic.deontic", "provers"]
+    },
+    "zkp": {
+      "targetPath": "src/services/zkp",
+      "purpose": "ZKP statements, circuits, proving backends, browser ZKP, UCAN bridge, on-chain bridge, artifacts, witness/key management. Browser-safe entrypoints live in browser.ts; host-native artifact/toolchain wrappers live in host.ts.",
+      "allowedImports": ["shared", "platform", "logic.shared", "logic.tdfol", "logic.deontic", "logic.cec", "provers", "zkp"]
+    },
+    "proof-engine": {
+      "targetPath": "src/services/proof-engine",
+      "purpose": "Proof execution, proof trees, proof strategies, caches, explainers, formula dependency graphs, and proof-engine contracts.",
+      "allowedImports": ["shared", "logic.shared", "provers", "proof-engine"]
+    },
+    "integrations": {
+      "targetPath": "src/services/integrations",
+      "purpose": "External/optional integration wrappers: FLogic, ErgoAI, ShadowProver, spaCy WASM, neurosymbolic services, UCAN policy bridges.",
+      "allowedImports": ["shared", "platform", "logic.shared", "logic.fol", "logic.deontic", "logic.tdfol", "logic.modal", "provers", "zkp", "proof-engine", "integrations"]
+    }
+  },
+  "pathRules": [
+    { "pattern": "src/services/shared/**", "module": "shared" },
+    { "pattern": "src/services/platform/**", "module": "platform" },
+    { "pattern": "src/services/mcp/**", "module": "mcp" },
+    { "pattern": "src/services/glasses/**", "module": "glasses" },
+    { "pattern": "src/services/ipfs/**", "module": "ipfs" },
+    { "pattern": "src/services/apps/**", "module": "apps" },
+    { "pattern": "src/services/integrations/**", "module": "integrations" },
+    { "pattern": "src/services/proof-engine/**", "module": "proof-engine" },
+    { "pattern": "src/services/logic/shared/**", "module": "logic.shared" },
+    { "pattern": "src/services/logic/api/**", "module": "logic.api" },
+    { "pattern": "src/services/logic/nl/**", "module": "logic.nl" },
+    { "pattern": "src/services/logic/fol/**", "module": "logic.fol" },
+    { "pattern": "src/services/logic/tdfol/**", "module": "logic.tdfol" },
+    { "pattern": "src/services/logic/dcec/**", "module": "logic.dcec" },
+    { "pattern": "src/services/logic/cec/**", "module": "logic.cec" },
+    { "pattern": "src/services/logic/deontic/**", "module": "logic.deontic" },
+    { "pattern": "src/services/logic/modal/**", "module": "logic.modal" },
+    { "pattern": "src/services/logic/bridges/**", "module": "logic.bridges" },
+    { "pattern": "src/services/provers/**", "module": "provers" },
+    { "pattern": "src/services/zkp/**", "module": "zkp" }
+  ],
+  "migrationTargets": {
+    "maxRootFilesAfterPhase1": 220,
+    "maxRootFilesAfterPhase2": 120,
+    "maxRootFilesAfterPhase3": 40,
+    "maxRootFilesFinal": 0
+  }
+}

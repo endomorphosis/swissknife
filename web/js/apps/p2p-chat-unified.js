@@ -16,6 +16,11 @@
  * - Voice/video calling preparation
  */
 
+import {
+    describeSystemNetworkLocalCapabilities,
+    runSystemNetworkLocalWorkflow
+} from './system-network-local-capabilities.js';
+
 export class UnifiedP2PChatApp {
     constructor(desktop) {
         this.desktop = desktop;
@@ -45,6 +50,11 @@ export class UnifiedP2PChatApp {
         // Integration
         this.friendsList = null;
         this.fileSharing = null;
+        this.systemNetworkLocalCapabilities = describeSystemNetworkLocalCapabilities('p2p-chat-unified', {
+            localCapabilities: ['conversation_state', 'message_queue', 'encryption_keys', 'notification_state'],
+            remoteCapabilities: ['node_status', 'pin_inventory', 'dataset_browse']
+        });
+        this.lastSystemNetworkLocalWorkflow = null;
         
         console.log('🔗 Unified P2P Chat initialized');
     }
@@ -602,6 +612,30 @@ export class UnifiedP2PChatApp {
 
         // Trigger UI update
         console.log(`💬 Selected conversation with ${peerId}`);
+    }
+
+    getSystemNetworkLocalCapabilities() {
+        return this.systemNetworkLocalCapabilities;
+    }
+
+    async exerciseSystemNetworkLocalGateway(input = {}) {
+        this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
+            desktop: this.desktop,
+            appId: 'p2p-chat-unified',
+            localCapabilities: ['conversation_state', 'message_queue', 'encryption_keys', 'notification_state'],
+            remoteCapabilities: ['node_status', 'pin_inventory', 'dataset_browse'],
+            localState: {
+                connection_status: this.connectionStatus,
+                peer_id: this.peerId,
+                peer_count: this.peers.size,
+                conversation_count: this.conversations.size,
+                offline_queue_count: Array.from(this.offlineMessages.values()).reduce((total, messages) => total + messages.length, 0),
+                chat_mode: this.chatMode,
+                selected_conversation: this.selectedConversation
+            },
+            summary: input.summary || 'Validate P2P chat local queues, IPFS storage fallback, and dataset-backed discovery boundaries.'
+        });
+        return this.lastSystemNetworkLocalWorkflow;
     }
 }
 

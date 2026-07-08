@@ -3,8 +3,14 @@
  * Live coding environment for algorithmic music composition
  */
 
+import {
+    describeMediaArtifactCapabilities,
+    runMediaArtifactWorkflow
+} from './media-artifact-capabilities.js';
+
 class StrudelApp {
-    constructor() {
+    constructor(desktop = null) {
+        this.desktop = desktop;
         this.isInitialized = false;
         this.isPlaying = false;
         this.audioContext = null;
@@ -12,6 +18,8 @@ class StrudelApp {
         this.patterns = new Map();
         this.activeTab = 'pattern1';
         this.loopTimeout = null;
+        this.mediaArtifactCapabilities = describeMediaArtifactCapabilities('strudel');
+        this.lastMediaArtifactWorkflow = null;
         
         console.log('🎵 Strudel App initialized');
     }
@@ -3537,6 +3545,39 @@ stack(
      */
     drawPianoRollSelection() {
         // Selection rectangle drawing would go here
+    }
+
+    getMediaArtifactCapabilities() {
+        return this.mediaArtifactCapabilities;
+    }
+
+    async exerciseMediaArtifactGateway(input = {}) {
+        const activePattern = input.pattern || this.patterns.get(this.activeTab) || {
+            id: this.activeTab,
+            name: this.activeTab,
+            code: this.currentPattern || ''
+        };
+
+        this.lastMediaArtifactWorkflow = await runMediaArtifactWorkflow({
+            desktop: this.desktop,
+            appId: 'strudel',
+            mediaType: 'audio',
+            mimeType: 'audio/wav',
+            operation: input.operation || 'render-strudel-pattern',
+            model: input.model || 'strudel-audio-renderer',
+            prompt: input.prompt || `Render Strudel pattern ${activePattern.name || activePattern.id || this.activeTab}.`,
+            artifact: {
+                id: activePattern.id || this.activeTab,
+                name: activePattern.name || 'strudel-pattern',
+                filename: input.filename || `${String(activePattern.name || activePattern.id || 'strudel-pattern').replace(/[^a-z0-9._-]+/gi, '-')}.json`,
+                content: {
+                    active_tab: this.activeTab,
+                    pattern: activePattern,
+                    is_playing: this.isPlaying
+                }
+            }
+        });
+        return this.lastMediaArtifactWorkflow;
     }
 }
 

@@ -1,4 +1,9 @@
 import { createHash } from 'node:crypto';
+<<<<<<< HEAD
+import { resolve } from 'node:path';
+import { vi } from 'vitest';
+import { BrowserSnarkjsGroth16Backend } from '../../src/services/zkp/browser-snarkjs-backend';
+=======
 import { readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { vi } from 'vitest';
@@ -12,6 +17,17 @@ import {
   BrowserZkpArtifactUnavailableError,
   resolveBrowserGroth16Artifacts,
 } from '../../src/services/zkp/artifacts';
+>>>>>>> 1569811 (chore: add pending swissknife staged changes)
+
+const nodeFs = (globalThis.process as unknown as {
+  getBuiltinModule?: (specifier: string) => unknown;
+}).getBuiltinModule?.('fs') as {
+  readFileSync: (path: string, encoding?: BufferEncoding) => Buffer | string;
+} | undefined;
+
+if (!nodeFs) {
+  throw new Error('node:fs builtin module is required for Groth16 artifact fixture tests');
+}
 
 const ROOT = resolve(__dirname, '../..');
 const ARTIFACT_DIR = resolve(ROOT, 'src/services/zkp/artifacts/groth16/deontic_discharge_v1');
@@ -25,11 +41,11 @@ interface ArtifactManifest {
 }
 
 function manifest(): ArtifactManifest {
-  return JSON.parse(readFileSync(resolve(ARTIFACT_DIR, 'manifest.json'), 'utf8')) as ArtifactManifest;
+  return JSON.parse(nodeFs.readFileSync(resolve(ARTIFACT_DIR, 'manifest.json'), 'utf8') as string) as ArtifactManifest;
 }
 
 function sha256File(path: string): string {
-  return createHash('sha256').update(readFileSync(path)).digest('hex');
+  return createHash('sha256').update(nodeFs.readFileSync(path) as Buffer).digest('hex');
 }
 
 describe('browser Groth16 semantic circuit corpus', () => {
@@ -42,7 +58,7 @@ describe('browser Groth16 semantic circuit corpus', () => {
 
     for (const [file, expected] of Object.entries(m.artifacts)) {
       const path = resolve(ARTIFACT_DIR, file);
-      expect(readFileSync(path).byteLength).toBe(expected.bytes);
+      expect((nodeFs.readFileSync(path) as Buffer).byteLength).toBe(expected.bytes);
       expect(sha256File(path)).toBe(expected.sha256);
     }
   });
@@ -122,7 +138,7 @@ describe('browser Groth16 semantic circuit corpus', () => {
     const backend = new BrowserSnarkjsGroth16Backend({
       wasmPath: resolve(ARTIFACT_DIR, 'deontic_discharge_v1.wasm'),
       zkeyPath: resolve(ARTIFACT_DIR, 'deontic_discharge_v1_final.zkey'),
-      verificationKey: JSON.parse(readFileSync(resolve(ARTIFACT_DIR, 'verification_key.json'), 'utf8')),
+      verificationKey: JSON.parse(nodeFs.readFileSync(resolve(ARTIFACT_DIR, 'verification_key.json'), 'utf8') as string),
     });
 
     const proof = await backend.generateProof(JSON.stringify({
@@ -142,7 +158,7 @@ describe('browser Groth16 semantic circuit corpus', () => {
     const backend = new BrowserSnarkjsGroth16Backend({
       wasmPath: resolve(ARTIFACT_DIR, 'deontic_discharge_v1.wasm'),
       zkeyPath: resolve(ARTIFACT_DIR, 'deontic_discharge_v1_final.zkey'),
-      verificationKey: JSON.parse(readFileSync(resolve(ARTIFACT_DIR, 'verification_key.json'), 'utf8')),
+      verificationKey: JSON.parse(nodeFs.readFileSync(resolve(ARTIFACT_DIR, 'verification_key.json'), 'utf8') as string),
     });
 
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -162,7 +178,7 @@ describe('browser Groth16 semantic circuit corpus', () => {
     const backend = new BrowserSnarkjsGroth16Backend({
       wasmPath: resolve(ARTIFACT_DIR, 'deontic_discharge_v1.wasm'),
       zkeyPath: resolve(ARTIFACT_DIR, 'deontic_discharge_v1_final.zkey'),
-      verificationKey: JSON.parse(readFileSync(resolve(ARTIFACT_DIR, 'verification_key.json'), 'utf8')),
+      verificationKey: JSON.parse(nodeFs.readFileSync(resolve(ARTIFACT_DIR, 'verification_key.json'), 'utf8') as string),
     });
 
     const proof = await backend.generateProof(JSON.stringify({
