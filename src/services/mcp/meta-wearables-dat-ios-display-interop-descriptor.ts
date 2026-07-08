@@ -1,7 +1,7 @@
 /**
  * SwissKnife <-> external/meta-wearables-dat-ios Display interoperability descriptor.
  *
- * VAI-667 objective validation repair: interface contract swissknife external/meta-wearables-dat-ios,
+ * HAO-736 objective validation repair: interface contract swissknife external/meta-wearables-dat-ios,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_meta_wearables_dat_ios_interop.py.
  *
@@ -32,7 +32,7 @@ export const SWISSKNIFE_META_WEARABLES_DAT_IOS_INTEROP_METADATA = {
   interface_contract: 'interface contract swissknife external/meta-wearables-dat-ios',
   goal_packet: 'goal_packet/interoperability/swissknife/06921590135c',
   goal_id: 'VAIOS-G706',
-  task_id: 'VAI-667',
+  task_id: 'HAO-736',
   source_surface: 'swissknife',
   target_surface: 'external/meta-wearables-dat-ios',
 };
@@ -223,12 +223,12 @@ export const SWISSKNIFE_META_WEARABLES_DAT_IOS_INTEROP_DESCRIPTOR = {
     control_surface_policy_id: 'policy:swissknife:meta-wearables-dat-ios-display-interop',
   },
   validation: {
-    task_id: 'VAI-667',
+    task_id: 'HAO-736',
     goal_id: 'VAIOS-G706',
     objective_gap_ref:
-      'data/virtual_ai_os/discovery/2026-07-08-vai-667-objective-gap-d6bdae3a60cc.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-736-objective-gap-d6bdae3a60cc.md',
     validation_repair_ref:
-      'data/virtual_ai_os/discovery/2026-07-08-vai-667-objective-validation-repair.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-736-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
