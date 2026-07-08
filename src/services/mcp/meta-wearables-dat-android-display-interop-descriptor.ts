@@ -1,8 +1,9 @@
 /**
  * SwissKnife <-> external/meta-wearables-dat-android display interoperability descriptor.
  *
- * MGW-574 objective validation repair: interface contract swissknife
- * external/meta-wearables-dat-android, goal_packet/interoperability/swissknife/06921590135c,
+ * HAO-735 and MGW-574 objective validation repair: interface contract
+ * swissknife external/meta-wearables-dat-android,
+ * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py.
  *
  * `external/meta-wearables-dat-android` ships the DAT Android Display capability
