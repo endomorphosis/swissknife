@@ -57,6 +57,12 @@ export interface BrowserLibp2pRuntimeConfig {
   report: BrowserLibp2pRuntimeReport;
 }
 
+export interface BrowserLibp2pDefaultStatus {
+  report: BrowserLibp2pRuntimeReport;
+  listenMultiaddrs: string[];
+  generatedAt: string;
+}
+
 export interface BrowserLibp2pNodeRuntime extends BrowserLibp2pRuntimeConfig {
   node: unknown;
 }
@@ -75,6 +81,24 @@ interface OptionalModuleLoad {
 }
 
 const DEFAULT_LISTEN_MULTIADDRS = ['/webrtc'];
+
+/**
+ * Deterministic display order for the browser libp2p capability panel used by
+ * the MCP Control and P2P Network desktop apps (SWR-027 browser-truth
+ * policy). `libp2p` itself is the runtime entrypoint and is listed first,
+ * followed by transports, connection encryption, stream muxers, and services
+ * in the same order `buildBrowserLibp2pConfig` loads them.
+ */
+export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
+  'libp2p',
+  'webrtc',
+  'websockets',
+  'circuit-relay-v2',
+  'noise',
+  'yamux',
+  'identify',
+  'gossipsub',
+];
 
 const MODULES = {
   libp2p: {
@@ -341,4 +365,40 @@ export function summarizeBrowserLibp2pGaps(
   report: BrowserLibp2pRuntimeReport,
 ): string[] {
   return report.gaps.map(gap => `${gap.name} (${gap.packageName}): ${gap.reason}`);
+}
+
+/**
+ * Build the default browser libp2p capability status used by the MCP
+ * Control and P2P Network desktop apps. This probes every optional
+ * transport/encryption/muxer/service package plus the core `libp2p` package
+ * itself (without constructing a live node) and reports installed/configured
+ * status alongside the default listen multiaddrs, matching the shape
+ * `createBrowserLibp2pNode` reports for a real node.
+ */
+export async function getBrowserLibp2pDefaultStatus(
+  options: BrowserLibp2pRuntimeOptions = {},
+): Promise<BrowserLibp2pDefaultStatus> {
+  const importModule = options.importModule ?? defaultImportModule;
+  const runtime = await buildBrowserLibp2pConfig({ ...options, importModule });
+  const statuses = [...runtime.report.capabilities];
+  const gaps = [...runtime.report.gaps];
+
+  if (runtime.report.enabled) {
+    await loadOptionalModule(MODULES.libp2p, importModule, statuses, gaps);
+  }
+
+  const addresses = asRecord(runtime.config.addresses);
+  const listenMultiaddrs = Array.isArray(addresses.listen)
+    ? (addresses.listen as string[])
+    : [...DEFAULT_LISTEN_MULTIADDRS];
+
+  return {
+    report: {
+      enabled: runtime.report.enabled,
+      capabilities: statuses,
+      gaps,
+    },
+    listenMultiaddrs,
+    generatedAt: new Date().toISOString(),
+  };
 }

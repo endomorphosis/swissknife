@@ -1,8 +1,14 @@
+// `../../../src/services/mcp/libp2p-browser-runtime.ts` is the canonical
+// TypeScript source; this browser app imports the co-located plain-JS
+// mirror (`../libp2p-browser-runtime.js`) instead because the SwissKnife
+// desktop web bundle is served as static files without a TypeScript build
+// step, so `web/js/apps/*.js` cannot `import` a `.ts` module directly at
+// runtime. See `web/js/libp2p-browser-runtime.js` for the drift-free mirror.
 import {
   BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
   getBrowserLibp2pDefaultStatus,
   summarizeBrowserLibp2pGaps
-} from '../../../src/services/mcp/libp2p-browser-runtime.ts';
+} from '../libp2p-browser-runtime.js';
 
 // P2P Network Manager Application for SwissKnife Virtual Desktop
 // Enhanced with Phase 4: Web Workers & Audio Workers Infrastructure
