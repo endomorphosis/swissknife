@@ -3,7 +3,7 @@
   "$id": "https://hallucinate.app/contracts/mediation_receipt.schema.json",
   "title": "mediation_receipt",
   "description": "Audit receipt that links a normalized interaction, selected policy references, compiled logic artifacts, and the policy_decision emitted before invocation.",
-  "$comment": "MGW-574 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, VAIOS-G705, goal_packet/interoperability/swissknife/06921590135c, swissknife/src/services/mcp/meta-wearables-dat-android-display-interop-descriptor.ts, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py.",
+  "$comment": "MGW-574 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, VAIOS-G705, goal_packet/interoperability/swissknife/06921590135c, swissknife/src/services/mcp/meta-wearables-dat-android-display-interop-descriptor.ts, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py. MGW-571 objective validation repair: interface contract swissknife external/ipfs_datasets, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_ipfs_datasets_interop.py.",
   "type": "object",
   "required": [
     "receipt_id",
