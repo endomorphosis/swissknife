@@ -491,11 +491,219 @@ async function openApplication(appName: string, swissknife: SwissKnifeBrowserCor
   }
 }
 
+type BrowserMainCapability = {
+  tool: string;
+  policy: string;
+  serviceFamily: string;
+  descriptorPackId: string;
+  interfacePrefix: string;
+};
+
+const BROWSER_MAIN_IPFS_CAPABILITIES: Record<string, BrowserMainCapability> = {
+  'ipfs.kit.tool.node_id': browserMainCapability('node_id', 'read', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.ipfs_add': browserMainCapability('ipfs_add', 'write', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.ipfs_cat': browserMainCapability('ipfs_cat', 'read', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.ipfs_ls': browserMainCapability('ipfs_ls', 'read', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.pin_add': browserMainCapability('pin_add', 'write', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.pin_rm': browserMainCapability('pin_rm', 'destructive', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.get_pinset': browserMainCapability('get_pinset', 'read', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.block_stat': browserMainCapability('block_stat', 'read', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.dag_get': browserMainCapability('dag_get', 'read', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.dag_put': browserMainCapability('dag_put', 'write', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.name_publish': browserMainCapability('name_publish', 'write', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.kit.tool.name_resolve': browserMainCapability('name_resolve', 'read', 'ipfs_kit_py', 'ipfs_kit'),
+  'ipfs.datasets.operation.browse': browserMainCapability('browse', 'read', 'ipfs_datasets_py', 'ipfs_datasets'),
+  'ipfs.datasets.operation.get': browserMainCapability('get', 'read', 'ipfs_datasets_py', 'ipfs_datasets'),
+  'ipfs.datasets.operation.index': browserMainCapability('index', 'write', 'ipfs_datasets_py', 'ipfs_datasets'),
+  'ipfs.datasets.operation.pin': browserMainCapability('pin', 'write', 'ipfs_datasets_py', 'ipfs_datasets'),
+  'ipfs.datasets.operation.publish': browserMainCapability('publish', 'write', 'ipfs_datasets_py', 'ipfs_datasets'),
+  'ipfs.datasets.operation.sync_status': browserMainCapability('sync_status', 'read', 'ipfs_datasets_py', 'ipfs_datasets'),
+  'ipfs.accelerate.operation.hardware_profile': browserMainCapability('hardware_profile', 'read', 'ipfs_accelerate_py', 'ipfs_accelerate'),
+  'ipfs.accelerate.operation.run_inference_job': browserMainCapability('run_inference_job', 'write', 'ipfs_accelerate_py', 'ipfs_accelerate'),
+  'ipfs.accelerate.operation.job_status': browserMainCapability('job_status', 'read', 'ipfs_accelerate_py', 'ipfs_accelerate'),
+  'ipfs.accelerate.operation.telemetry': browserMainCapability('telemetry', 'read', 'ipfs_accelerate_py', 'ipfs_accelerate'),
+};
+
+function browserMainCapability(tool: string, policy: string, serviceFamily: string, interfacePrefix: string): BrowserMainCapability {
+  return {
+    tool,
+    policy,
+    serviceFamily,
+    descriptorPackId: `${serviceFamily}.mcp_dashboard.descriptor_pack.v1`,
+    interfacePrefix,
+  };
+}
+
+async function invokeBrowserMainIPFSCapability(
+  appId: string,
+  capabilityId: string,
+  input: Record<string, unknown> = {},
+) {
+  const startedAt = new Date();
+  const capability = BROWSER_MAIN_IPFS_CAPABILITIES[capabilityId];
+  const correlationId = `browser-main-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  if (!capability) {
+    return buildBrowserMainEnvelope({
+      status: 'error',
+      summary: `Capability ${capabilityId} is not registered.`,
+      error: { code: 'CAPABILITY_NOT_FOUND', message: `Capability ${capabilityId} is not registered.` },
+      output: null,
+      appId,
+      capabilityId,
+      tool: capabilityId,
+      policy: 'read',
+      serviceFamily: 'unknown',
+      descriptorPackId: undefined,
+      interfacePrefix: 'unknown',
+      correlationId,
+      startedAt,
+      warnings: [],
+    });
+  }
+
+  try {
+    const output = await invokeBrowserMainIPFSTool(capability.tool, input);
+    return buildBrowserMainEnvelope({
+      status: 'ok',
+      summary: `Invoked ${capability.tool} through the app capability gateway.`,
+      output,
+      appId,
+      capabilityId,
+      tool: capability.tool,
+      policy: capability.policy,
+      serviceFamily: capability.serviceFamily,
+      descriptorPackId: capability.descriptorPackId,
+      interfacePrefix: capability.interfacePrefix,
+      correlationId,
+      startedAt,
+      warnings: [],
+    });
+  } catch (error: any) {
+    return buildBrowserMainEnvelope({
+      status: 'degraded',
+      summary: `${capability.tool} is unavailable; returning descriptor-backed fallback output.`,
+      error: { code: 'TRANSPORT_UNAVAILABLE', message: error?.message || String(error) },
+      output: { fallback: true, capability_id: capabilityId, mcp_tool_name: capability.tool, input },
+      appId,
+      capabilityId,
+      tool: capability.tool,
+      policy: capability.policy,
+      serviceFamily: capability.serviceFamily,
+      descriptorPackId: capability.descriptorPackId,
+      interfacePrefix: capability.interfacePrefix,
+      correlationId,
+      startedAt,
+      warnings: ['No live IPFS transport was available in browser-main.'],
+    });
+  }
+}
+
+async function invokeBrowserMainIPFSTool(tool: string, input: Record<string, unknown>) {
+  if (tool === 'browse' || tool === 'get' || tool === 'index' || tool === 'publish' || tool === 'sync_status' || tool === 'hardware_profile' || tool === 'run_inference_job' || tool === 'job_status' || tool === 'telemetry') {
+    throw new Error(`No live browser-main descriptor transport is registered for ${tool}.`);
+  }
+  const api = (window as any).SwissKnife?.ipfs || (window as any).ipfs;
+  if (!api) throw new Error('No live IPFS transport is registered.');
+  if (tool === 'node_id') return callBrowserMainIPFS(api, [['id'], ['getPeerId'], ['status']], []);
+  if (tool === 'ipfs_add') return callBrowserMainIPFS(api, [['add'], ['addFile'], ['addContent']], [input.file || input.content || input.file_path || '']);
+  if (tool === 'ipfs_cat') return callBrowserMainIPFS(api, [['cat'], ['get']], [input.cid || input.path]);
+  if (tool === 'ipfs_ls') return callBrowserMainIPFS(api, [['ls'], ['files', 'ls']], [input.path || input.cid || '/']);
+  if (tool === 'pin_add') return callBrowserMainIPFS(api, [['pin'], ['pin', 'add']], [input.cid || input.path]);
+  if (tool === 'pin_rm') return callBrowserMainIPFS(api, [['unpin'], ['pin', 'rm'], ['pin', 'remove']], [input.cid || input.path]);
+  if (tool === 'get_pinset') return callBrowserMainIPFS(api, [['listPins'], ['pins'], ['pin', 'ls']], []);
+  if (tool === 'block_stat') return callBrowserMainIPFS(api, [['stat'], ['block', 'stat'], ['object', 'stat']], [input.cid || input.path]);
+  if (tool === 'dag_get') return callBrowserMainIPFS(api, [['dag', 'get']], [input.cid || input.path]);
+  if (tool === 'dag_put') return callBrowserMainIPFS(api, [['dag', 'put']], [input.data || input]);
+  if (tool === 'name_publish') return callBrowserMainIPFS(api, [['name', 'publish'], ['namePublish']], [input.path || input.cid, input.name].filter(Boolean));
+  if (tool === 'name_resolve') return callBrowserMainIPFS(api, [['name', 'resolve'], ['nameResolve']], [input.name || input.path]);
+  throw new Error(`No browser-main transport mapper exists for ${tool}.`);
+}
+
+async function callBrowserMainIPFS(api: any, paths: string[][], args: unknown[]) {
+  for (const path of paths) {
+    const fn = path.reduce((cursor, key) => cursor?.[key], api);
+    if (typeof fn === 'function') {
+      const parent = path.slice(0, -1).reduce((cursor, key) => cursor?.[key], api) || api;
+      return await fn.apply(parent, args);
+    }
+  }
+  throw new Error(`IPFS API does not expose any of: ${paths.map(path => path.join('.')).join(', ')}`);
+}
+
+function buildBrowserMainEnvelope(input: any) {
+  const finishedAt = new Date();
+  const policy = {
+    policy_class: input.policy,
+    confirmation_policy: input.policy === 'read' ? 'none' : input.policy === 'destructive' ? 'confirm_destructive' : 'confirm',
+    receipt_policy: input.policy === 'read' ? 'optional' : 'required_for_side_effects',
+    decision: 'not_evaluated',
+    reasons: [],
+  };
+  const trace = {
+    correlation_id: input.correlationId,
+    app_id: input.appId,
+    requested_app_id: input.appId,
+    capability_id: input.capabilityId,
+    execution_mode: 'direct_import',
+    service_family: input.serviceFamily,
+    descriptor_pack_id: input.descriptorPackId,
+    mcp_tool_name: input.tool,
+    mcp_plus_plus_interface: `${input.interfacePrefix}/browser-main.${input.tool}`,
+    started_at: input.startedAt.toISOString(),
+    finished_at: finishedAt.toISOString(),
+    duration_ms: Math.max(0, finishedAt.getTime() - input.startedAt.getTime()),
+    transport: input.status === 'ok' ? 'browser-main-ipfs-api' : 'descriptor-fallback',
+    warnings: input.warnings,
+  };
+  return {
+    schema: 'swissknife.app-result-envelope.v1',
+    status: input.status,
+    summary: input.summary,
+    output: input.output,
+    ...(input.error ? { error: input.error } : {}),
+    artifact_refs: [],
+    receipt_refs: [{
+      receipt_cid: `browser-main:${input.correlationId}:${input.capabilityId}`,
+      receipt_schema: 'swissknife.app-capability-receipt.v1',
+      service_family: input.serviceFamily,
+      capability_id: input.capabilityId,
+    }],
+    event_dag_refs: [{
+      event_cid: `browser-main-event:${input.correlationId}:${input.capabilityId}`,
+      parents: [],
+      event_type: 'app_capability_invocation',
+    }],
+    policy,
+    trace,
+  };
+}
+
+function formatBrowserMainEnvelope(envelope: any): string {
+  return JSON.stringify(envelope, null, 2);
+}
+
+function renderBrowserMainEnvelope(envelope: any): string {
+  const color = envelope.status === 'ok' ? '#166534' : envelope.status === 'degraded' ? '#92400e' : '#991b1b';
+  return `<div class="app-capability-envelope" data-envelope-status="${envelope.status}" style="padding:12px;border:1px solid ${color};border-radius:6px;color:${color};">
+    <strong>App Capability Envelope: ${envelope.status}</strong>
+    <pre style="white-space:pre-wrap;color:#111827;">${escapeHTML(formatBrowserMainEnvelope(envelope))}</pre>
+  </div>`;
+}
+
+function escapeHTML(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function openTerminal(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('terminal', 'SwissKnife Terminal', 600, 400);
   const content = window.querySelector('.window-content') as HTMLElement;
   const BACKEND = 'http://localhost:8080';
-  
   content.innerHTML = `
     <div id="terminal-container" style="
       font-family: 'Courier New', monospace;
@@ -525,18 +733,18 @@ async function openTerminal(swissknife: SwissKnifeBrowserCore) {
 
   // Built-in IPFS CLI commands that route to MCP backend
   const ipfsCommands: Record<string, (args: string) => Promise<string>> = {
-    'ipfs status': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/status`); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs add': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/add`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: args }) }); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs cat': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/cat?cid=${encodeURIComponent(args)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid: args }) }); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs pin': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/pin`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid: args }) }); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs pins': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/list_pins`); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs stat': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/stat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid: args }) }); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs unpin': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/unpin`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid: args }) }); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs resolve': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/resolve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: args }) }); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs dag get': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/dag/get`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid: args }) }); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs dag put': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/dag/put`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: args }) }); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs name publish': async (args) => { const [cid, name] = args.split(' '); const r = await fetch(`${BACKEND}/v1/ipfs/name/publish`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid, name }) }); return JSON.stringify(await r.json(), null, 2); },
-    'ipfs name resolve': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/name/resolve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: args }) }); return JSON.stringify(await r.json(), null, 2); },
+    'ipfs status': async () => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.node_id', { operation: 'status' })),
+    'ipfs add': async (args) => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.ipfs_add', { content: args })),
+    'ipfs cat': async (args) => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.ipfs_cat', { cid: args })),
+    'ipfs pin': async (args) => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.pin_add', { cid: args })),
+    'ipfs pins': async () => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.get_pinset', { operation: 'list_pins' })),
+    'ipfs stat': async (args) => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.block_stat', { cid: args })),
+    'ipfs unpin': async (args) => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.pin_rm', { cid: args })),
+    'ipfs resolve': async (args) => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.name_resolve', { name: args })),
+    'ipfs dag get': async (args) => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.dag_get', { cid: args })),
+    'ipfs dag put': async (args) => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.dag_put', { data: args })),
+    'ipfs name publish': async (args) => { const [cid, name] = args.split(' '); return formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.name_publish', { cid, path: cid, name })); },
+    'ipfs name resolve': async (args) => formatBrowserMainEnvelope(await invokeBrowserMainIPFSCapability('terminal', 'ipfs.kit.tool.name_resolve', { name: args })),
     'ipfs embed': async (args) => { const r = await fetch(`${BACKEND}/v1/ipfs/embed`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: args }) }); return JSON.stringify(await r.json(), null, 2); },
     'ipfs models': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/list_models`); return JSON.stringify(await r.json(), null, 2); },
     'ipfs capabilities': async () => { const r = await fetch(`${BACKEND}/v1/ipfs/capabilities`); return JSON.stringify(await r.json(), null, 2); },
@@ -1178,21 +1386,9 @@ async function openModelBrowser(swissknife: SwissKnifeBrowserCore) {
 
   await loadModels();
 }
-              cursor: pointer;
-            ">Test Model</button>
-          </div>
-        `).join('') :
-        '<p>No models configured. Please add AI API keys in Settings.</p>'
-      }
-    </div>
-  `;
-}
-
 async function openIPFSExplorer(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('ipfs-explorer', 'IPFS Explorer', 750, 550);
   const content = window.querySelector('.window-content') as HTMLElement;
-  
-  const BACKEND = 'http://localhost:8080';
   
   content.innerHTML = `
     <div style="display: flex; flex-direction: column; height: 100%; font-family: system-ui, sans-serif;">
@@ -1220,7 +1416,7 @@ async function openIPFSExplorer(swissknife: SwissKnifeBrowserCore) {
       </div>
       
       <div id="ipfs-status-bar" style="padding: 6px 12px; border-top: 1px solid #e2e8f0; background: #f8fafc; font-size: 11px; color: #64748b;">
-        Backend: localhost:8080 | Kit: :8014 | Ready
+        App capability gateway | ipfs_kit_py descriptor pack | Ready
       </div>
     </div>
   `;
@@ -1230,22 +1426,14 @@ async function openIPFSExplorer(swissknife: SwissKnifeBrowserCore) {
   const statusBadge = content.querySelector('#ipfs-status-badge') as HTMLElement;
   const statusBar = content.querySelector('#ipfs-status-bar') as HTMLElement;
   
-  async function backendFetch(path: string, opts: any = {}) {
-    const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 8000);
-    const resp = await fetch(`${BACKEND}${path}`, { ...opts, signal: ctrl.signal });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    return resp.json();
-  }
-  
   // Check backend status
-  try {
-    await backendFetch('/v1/ipfs/status');
+  const statusEnvelope = await invokeBrowserMainIPFSCapability('ipfs-explorer', 'ipfs.kit.tool.node_id', { operation: 'status' });
+  if (statusEnvelope.status === 'ok') {
     statusBadge.textContent = 'Online';
     statusBadge.style.background = '#dcfce7';
     statusBadge.style.color = '#166534';
-  } catch {
-    statusBadge.textContent = 'Offline';
+  } else {
+    statusBadge.textContent = 'Degraded';
     statusBadge.style.background = '#fee2e2';
     statusBadge.style.color = '#991b1b';
   }
@@ -1255,37 +1443,27 @@ async function openIPFSExplorer(swissknife: SwissKnifeBrowserCore) {
     const cid = cidInput.value.trim();
     if (!cid) return;
     contentArea.innerHTML = '<div style="padding: 20px; color: #64748b;">Fetching...</div>';
-    try {
-      const data = await backendFetch(`/v1/ipfs/cat?cid=${encodeURIComponent(cid)}`);
-      contentArea.innerHTML = `<pre style="padding: 12px; background: #1e293b; color: #e2e8f0; border-radius: 6px; font-size: 12px; overflow: auto; white-space: pre-wrap;">${JSON.stringify(data, null, 2)}</pre>`;
-      statusBar.textContent = `Fetched CID: ${cid.slice(0, 20)}...`;
-    } catch (e: any) {
-      contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
-    }
+    const envelope = await invokeBrowserMainIPFSCapability('ipfs-explorer', 'ipfs.kit.tool.ipfs_cat', { cid });
+    contentArea.innerHTML = renderBrowserMainEnvelope(envelope);
+    statusBar.textContent = `${envelope.status}: ${envelope.summary}`;
   });
   
   // Stat
   content.querySelector('#ipfs-stat-btn')?.addEventListener('click', async () => {
     const cid = cidInput.value.trim();
     if (!cid) return;
-    try {
-      const data = await backendFetch(`/v1/ipfs/stat?cid=${encodeURIComponent(cid)}`);
-      contentArea.innerHTML = `<pre style="padding: 12px; background: #f0fdf4; color: #166534; border-radius: 6px; font-size: 12px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
-    } catch (e: any) {
-      contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
-    }
+    const envelope = await invokeBrowserMainIPFSCapability('ipfs-explorer', 'ipfs.kit.tool.block_stat', { cid });
+    contentArea.innerHTML = renderBrowserMainEnvelope(envelope);
+    statusBar.textContent = `${envelope.status}: ${envelope.summary}`;
   });
   
   // Pin
   content.querySelector('#ipfs-pin-btn')?.addEventListener('click', async () => {
     const cid = cidInput.value.trim();
     if (!cid) return;
-    try {
-      await backendFetch('/v1/ipfs/pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cid }) });
-      statusBar.textContent = `Pinned: ${cid.slice(0, 20)}...`;
-    } catch (e: any) {
-      contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">Pin failed: ${e.message}</div>`;
-    }
+    const envelope = await invokeBrowserMainIPFSCapability('ipfs-explorer', 'ipfs.kit.tool.pin_add', { cid });
+    contentArea.innerHTML = renderBrowserMainEnvelope(envelope);
+    statusBar.textContent = `${envelope.status}: ${envelope.summary}`;
   });
   
   // Tab switching
@@ -1298,28 +1476,23 @@ async function openIPFSExplorer(swissknife: SwissKnifeBrowserCore) {
       
       if (tabName === 'pins') {
         contentArea.innerHTML = '<div style="padding: 20px; color: #64748b;">Loading pins...</div>';
-        try {
-          const data = await backendFetch('/v1/ipfs/list_pins');
-          const pins = data.pins || data || [];
-          contentArea.innerHTML = Array.isArray(pins) && pins.length > 0
-            ? pins.map((p: any) => `<div style="padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-family: monospace; font-size: 12px;">${typeof p === 'string' ? p : p.cid || JSON.stringify(p)}</div>`).join('')
-            : `<pre style="padding: 12px; font-size: 12px;">${JSON.stringify(data, null, 2)}</pre>`;
-        } catch (e: any) {
-          contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error: ${e.message}</div>`;
-        }
+        const envelope = await invokeBrowserMainIPFSCapability('ipfs-explorer', 'ipfs.kit.tool.get_pinset', { operation: 'list_pins' });
+        contentArea.innerHTML = renderBrowserMainEnvelope(envelope);
       } else if (tabName === 'dag') {
         contentArea.innerHTML = `<div style="padding: 20px; color: #64748b;">Enter a CID and click Fetch to explore its DAG structure.</div>`;
         const cid = cidInput.value.trim();
         if (cid) {
-          try {
-            const data = await backendFetch(`/v1/ipfs/dag/get?cid=${encodeURIComponent(cid)}`);
-            contentArea.innerHTML = `<pre style="padding: 12px; background: #fffbeb; color: #78350f; border-radius: 6px; font-size: 12px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
-          } catch (e: any) {
-            contentArea.innerHTML = `<div style="padding: 20px; color: #ef4444;">DAG error: ${e.message}</div>`;
-          }
+          const envelope = await invokeBrowserMainIPFSCapability('ipfs-explorer', 'ipfs.kit.tool.dag_get', { cid });
+          contentArea.innerHTML = renderBrowserMainEnvelope(envelope);
         }
       } else if (tabName === 'names') {
-        contentArea.innerHTML = '<div style="padding: 20px; color: #64748b;">IPNS name operations. Enter a name to resolve or a CID to publish.</div>';
+        const name = cidInput.value.trim();
+        if (name) {
+          const envelope = await invokeBrowserMainIPFSCapability('ipfs-explorer', 'ipfs.kit.tool.name_resolve', { name });
+          contentArea.innerHTML = renderBrowserMainEnvelope(envelope);
+        } else {
+          contentArea.innerHTML = '<div style="padding: 20px; color: #64748b;">Enter an IPNS name to resolve.</div>';
+        }
       } else {
         contentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">Enter a CID above and click Fetch.</div>';
       }
@@ -1657,11 +1830,14 @@ async function openIDLExplorer(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('idl-explorer', 'IDL Interface Explorer', 750, 600);
   const content = window.querySelector('.window-content') as HTMLElement;
 
-  const PROFILES = [
-    { name: 'IPFS Kit', id: 'ipfs-kit', template: 'explorer', methods: ['add', 'cat', 'pin', 'unpin', 'list_pins', 'stat', 'dag_get', 'dag_put', 'name_publish', 'name_resolve'], tags: ['storage', 'p2p', 'content-addressed'] },
-    { name: 'IPFS Datasets', id: 'ipfs-datasets', template: 'dashboard', methods: ['embed', 'generate', 'list_datasets', 'search_datasets', 'vector_index', 'vector_search', 'semantic_search', 'similarity_search', 'faceted_search'], tags: ['datasets', 'embeddings', 'vector-search'] },
-    { name: 'IPFS Accelerate', id: 'ipfs-accelerate', template: 'job-console', methods: ['capabilities', 'hardware_profile', 'list_models', 'inference', 'metrics', 'endpoints', 'scrape_url', 'scrape_batch', 'workflow_execute'], tags: ['gpu', 'inference', 'hardware'] },
-  ];
+  const PROFILES = BROWSER_MAIN_DESCRIPTOR_REGISTRY.map(descriptor => ({
+    name: descriptor.ui?.display_name || descriptor.name,
+    id: descriptor.name,
+    template: descriptor.ui?.primary_template || 'explorer',
+    methods: descriptor.methods,
+    tags: descriptor.tags || [],
+    interface_cid: descriptor.interface_cid,
+  }));
 
   content.innerHTML = `
     <div style="padding:16px;font-family:system-ui;height:100%;overflow-y:auto;">
@@ -1687,7 +1863,7 @@ async function openIDLExplorer(swissknife: SwissKnifeBrowserCore) {
               ${p.tags.map(t => `<span style="font-size:10px;background:#f3f4f6;padding:1px 6px;border-radius:3px;color:#4b5563;">${t}</span>`).join('')}
             </div>
             <div style="margin-top:8px;font-family:monospace;font-size:10px;color:#9ca3af;">
-              CID: sha256:${p.id.replace(/-/g, '')}...
+              CID: ${p.interface_cid}
             </div>
           </div>
         `).join('')}
@@ -1706,10 +1882,10 @@ async function openIDLExplorer(swissknife: SwissKnifeBrowserCore) {
         <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;">
           <h3 style="margin:0 0 8px;font-size:0.95rem;">${profile.name} - Method Signatures</h3>
           <div style="display:grid;gap:6px;max-height:250px;overflow-y:auto;">
-            ${profile.methods.map(m => `
+            ${profile.methods.map((m: any) => `
               <div style="background:#f9fafb;padding:6px 10px;border-radius:4px;font-family:monospace;font-size:11px;display:flex;justify-content:space-between;">
-                <span style="color:#1e40af;font-weight:600;">${m}()</span>
-                <span style="color:#6b7280;">→ POST /v1/ipfs/${m.replace(/_/g, '/')}</span>
+                <span style="color:#1e40af;font-weight:600;">${m.name}()</span>
+                <span style="color:#6b7280;">${m.capability_id || 'descriptor-only'}</span>
               </div>
             `).join('')}
           </div>
@@ -1814,56 +1990,97 @@ async function openGlassesPreview(swissknife: SwissKnifeBrowserCore) {
 // ORB Auto-UI Launcher - dynamically opens apps from IDL descriptors
 // ---------------------------------------------------------------------------
 
-const ORB_REGISTERED_DESCRIPTORS = [
+const BROWSER_MAIN_DESCRIPTOR_REGISTRY = [
   {
-    name: 'ipfs-kit',
+    name: 'ipfs_kit_py',
     namespace: 'dev.hallucinate.ipfs.kit',
     version: '1.0.0',
+    service_family: 'ipfs_kit_py',
+    interface_cid: 'sha256:browser-main-ipfs-kit-descriptor-v1',
+    tags: ['ipfs', 'storage', 'dag', 'ipns', 'pinning'],
     methods: [
-      { name: 'add', inputSchema: { type: 'object', properties: { content: { type: 'string' }, filename: { type: 'string' }, pin: { type: 'boolean' } }, required: ['content'] }, outputSchema: { type: 'object', properties: { cid: { type: 'string' }, size: { type: 'number' } } } },
-      { name: 'cat', inputSchema: { type: 'object', properties: { cid: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { content: { type: 'string' } } } },
-      { name: 'pin', inputSchema: { type: 'object', properties: { cid: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { pinned: { type: 'boolean' } } } },
-      { name: 'unpin', inputSchema: { type: 'object', properties: { cid: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { unpinned: { type: 'boolean' } } } },
-      { name: 'list_pins', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { pins: { type: 'array' } } } },
-      { name: 'stat', inputSchema: { type: 'object', properties: { cid: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { cid: { type: 'string' }, size: { type: 'number' }, blocks: { type: 'number' } } } },
-      { name: 'dag_get', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, path: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { data: { type: 'object' } } } },
-      { name: 'dag_put', inputSchema: { type: 'object', properties: { data: { type: 'object' }, pin: { type: 'boolean' } }, required: ['data'] }, outputSchema: { type: 'object', properties: { cid: { type: 'string' } } } },
-      { name: 'name_publish', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, key: { type: 'string' } }, required: ['cid'] }, outputSchema: { type: 'object', properties: { name: { type: 'string' }, value: { type: 'string' } } } },
-      { name: 'name_resolve', inputSchema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] }, outputSchema: { type: 'object', properties: { path: { type: 'string' } } } },
+      { name: 'node_id', capability_id: 'ipfs.kit.tool.node_id', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { id: { type: 'string' } } } },
+      { name: 'ipfs_add', capability_id: 'ipfs.kit.tool.ipfs_add', inputSchema: { type: 'object', properties: { content: { type: 'string' }, filename: { type: 'string' }, pin: { type: 'boolean' } }, required: ['content'] }, outputSchema: { type: 'object', properties: { cid: { type: 'string' }, size: { type: 'number' } } } },
+      { name: 'ipfs_cat', capability_id: 'ipfs.kit.tool.ipfs_cat', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, path: { type: 'string' } } }, outputSchema: { type: 'object', properties: { content: { type: 'string' } } } },
+      { name: 'ipfs_ls', capability_id: 'ipfs.kit.tool.ipfs_ls', inputSchema: { type: 'object', properties: { path: { type: 'string' }, cid: { type: 'string' } } }, outputSchema: { type: 'object', properties: { items: { type: 'array' } } } },
+      { name: 'pin_add', capability_id: 'ipfs.kit.tool.pin_add', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, path: { type: 'string' } } }, outputSchema: { type: 'object', properties: { pinned: { type: 'boolean' } } } },
+      { name: 'pin_rm', capability_id: 'ipfs.kit.tool.pin_rm', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, path: { type: 'string' } } }, outputSchema: { type: 'object', properties: { unpinned: { type: 'boolean' } } } },
+      { name: 'get_pinset', capability_id: 'ipfs.kit.tool.get_pinset', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { pins: { type: 'array' } } } },
+      { name: 'block_stat', capability_id: 'ipfs.kit.tool.block_stat', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, path: { type: 'string' } } }, outputSchema: { type: 'object', properties: { size: { type: 'number' }, blocks: { type: 'number' } } } },
+      { name: 'dag_get', capability_id: 'ipfs.kit.tool.dag_get', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, path: { type: 'string' } } }, outputSchema: { type: 'object', properties: { data: { type: 'object' } } } },
+      { name: 'dag_put', capability_id: 'ipfs.kit.tool.dag_put', inputSchema: { type: 'object', properties: { data: { type: 'object' }, pin: { type: 'boolean' } }, required: ['data'] }, outputSchema: { type: 'object', properties: { cid: { type: 'string' } } } },
+      { name: 'name_publish', capability_id: 'ipfs.kit.tool.name_publish', inputSchema: { type: 'object', properties: { cid: { type: 'string' }, path: { type: 'string' }, name: { type: 'string' } } }, outputSchema: { type: 'object', properties: { name: { type: 'string' }, value: { type: 'string' } } } },
+      { name: 'name_resolve', capability_id: 'ipfs.kit.tool.name_resolve', inputSchema: { type: 'object', properties: { name: { type: 'string' }, path: { type: 'string' } } }, outputSchema: { type: 'object', properties: { path: { type: 'string' } } } },
     ],
     ui: { primary_template: 'explorer', icon: '📦', display_name: 'IPFS Kit', category: 'storage' },
   },
   {
-    name: 'ipfs-datasets',
+    name: 'ipfs_datasets_py',
     namespace: 'dev.hallucinate.ipfs.datasets',
     version: '1.0.0',
+    service_family: 'ipfs_datasets_py',
+    interface_cid: 'sha256:browser-main-ipfs-datasets-descriptor-v1',
+    tags: ['datasets', 'search', 'vectors', 'provenance'],
     methods: [
-      { name: 'list_datasets', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { datasets: { type: 'array' } } } },
-      { name: 'semantic_search', inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'] }, outputSchema: { type: 'object', properties: { results: { type: 'array' } } } },
-      { name: 'embed', inputSchema: { type: 'object', properties: { text: { type: 'string' }, model: { type: 'string' } }, required: ['text'] }, outputSchema: { type: 'object', properties: { embedding: { type: 'array' }, dimensions: { type: 'number' } } } },
-      { name: 'generate', inputSchema: { type: 'object', properties: { prompt: { type: 'string' }, max_tokens: { type: 'number' } }, required: ['prompt'] }, outputSchema: { type: 'object', properties: { text: { type: 'string' }, tokens_used: { type: 'number' } } } },
-      { name: 'vector_search', inputSchema: { type: 'object', properties: { vector: { type: 'array' }, collection: { type: 'string' }, limit: { type: 'number' } }, required: ['vector'] }, outputSchema: { type: 'object', properties: { results: { type: 'array' } } } },
-      { name: 'vector_index', inputSchema: { type: 'object', properties: { collection: { type: 'string' }, documents: { type: 'array' } }, required: ['collection'] }, outputSchema: { type: 'object', properties: { indexed: { type: 'number' } } } },
+      { name: 'browse', capability_id: 'ipfs.datasets.operation.browse', inputSchema: { type: 'object', properties: { root_cid: { type: 'string' }, path: { type: 'string' }, limit: { type: 'number' } } }, outputSchema: { type: 'object', properties: { entries: { type: 'array' } } } },
+      { name: 'get', capability_id: 'ipfs.datasets.operation.get', inputSchema: { type: 'object', properties: { dataset_id: { type: 'string' }, cid: { type: 'string' }, path: { type: 'string' } } }, outputSchema: { type: 'object', properties: { record: { type: 'object' } } } },
+      { name: 'index', capability_id: 'ipfs.datasets.operation.index', inputSchema: { type: 'object', properties: { dataset_id: { type: 'string' }, root_cid: { type: 'string' }, schema: { type: 'object' } } }, outputSchema: { type: 'object', properties: { indexed: { type: 'number' }, index_cid: { type: 'string' } } } },
+      { name: 'pin', capability_id: 'ipfs.datasets.operation.pin', inputSchema: { type: 'object', properties: { dataset_id: { type: 'string' }, cid: { type: 'string' } } }, outputSchema: { type: 'object', properties: { pinned: { type: 'boolean' } } } },
+      { name: 'publish', capability_id: 'ipfs.datasets.operation.publish', inputSchema: { type: 'object', properties: { dataset_id: { type: 'string' }, metadata: { type: 'object' } } }, outputSchema: { type: 'object', properties: { dataset_cid: { type: 'string' }, provenance_cid: { type: 'string' } } } },
+      { name: 'sync_status', capability_id: 'ipfs.datasets.operation.sync_status', inputSchema: { type: 'object', properties: { dataset_id: { type: 'string' } } }, outputSchema: { type: 'object', properties: { status: { type: 'string' }, frontier: { type: 'array' } } } },
     ],
     ui: { primary_template: 'dashboard', icon: '📊', display_name: 'IPFS Datasets', category: 'datasets' },
   },
   {
-    name: 'ipfs-accelerate',
+    name: 'ipfs_accelerate_py',
     namespace: 'dev.hallucinate.ipfs.accelerate',
     version: '1.0.0',
+    service_family: 'ipfs_accelerate_py',
+    interface_cid: 'sha256:browser-main-ipfs-accelerate-descriptor-v1',
+    tags: ['inference', 'hardware', 'telemetry', 'jobs'],
     methods: [
-      { name: 'capabilities', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { backends: { type: 'array' }, models: { type: 'array' }, memory_gb: { type: 'number' } } } },
-      { name: 'hardware_profile', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { gpus: { type: 'array' }, cpu_cores: { type: 'number' }, memory_gb: { type: 'number' } } } },
-      { name: 'inference', inputSchema: { type: 'object', properties: { model: { type: 'string' }, input: { type: 'string' }, max_tokens: { type: 'number' } }, required: ['model', 'input'] }, outputSchema: { type: 'object', properties: { output: { type: 'string' }, latency_ms: { type: 'number' } } } },
-      { name: 'list_models', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { models: { type: 'array' } } } },
-      { name: 'metrics', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { throughput: { type: 'number' }, utilization: { type: 'number' }, requests_total: { type: 'number' } } } },
-      { name: 'endpoints', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { endpoints: { type: 'array' } } } },
-      { name: 'scrape_url', inputSchema: { type: 'object', properties: { url: { type: 'string' }, format: { type: 'string' } }, required: ['url'] }, outputSchema: { type: 'object', properties: { content: { type: 'string' }, title: { type: 'string' } } } },
-      { name: 'workflow_execute', inputSchema: { type: 'object', properties: { workflow_id: { type: 'string' }, params: { type: 'object' } }, required: ['workflow_id'] }, outputSchema: { type: 'object', properties: { result: { type: 'object' }, duration_ms: { type: 'number' } } } },
+      { name: 'hardware_profile', capability_id: 'ipfs.accelerate.operation.hardware_profile', inputSchema: { type: 'object', properties: {} }, outputSchema: { type: 'object', properties: { devices: { type: 'array' }, memory_gb: { type: 'number' } } } },
+      { name: 'run_inference_job', capability_id: 'ipfs.accelerate.operation.run_inference_job', inputSchema: { type: 'object', properties: { model: { type: 'string' }, input: { type: 'string' }, max_tokens: { type: 'number' } }, required: ['model', 'input'] }, outputSchema: { type: 'object', properties: { job_id: { type: 'string' }, status: { type: 'string' } } } },
+      { name: 'job_status', capability_id: 'ipfs.accelerate.operation.job_status', inputSchema: { type: 'object', properties: { job_id: { type: 'string' } } }, outputSchema: { type: 'object', properties: { job_id: { type: 'string' }, status: { type: 'string' }, artifacts: { type: 'array' } } } },
+      { name: 'telemetry', capability_id: 'ipfs.accelerate.operation.telemetry', inputSchema: { type: 'object', properties: { window: { type: 'string', enum: ['1m', '5m', '1h'] } } }, outputSchema: { type: 'object', properties: { throughput: { type: 'number' }, utilization: { type: 'number' }, event_frontier: { type: 'array' } } } },
     ],
-    ui: { primary_template: 'job-console', icon: '⚡', display_name: 'GPU Accelerate', category: 'inference' },
+    ui: { primary_template: 'job-console', icon: '⚡', display_name: 'IPFS Accelerate', category: 'inference' },
   },
 ];
+
+const ORB_REGISTERED_DESCRIPTORS = BROWSER_MAIN_DESCRIPTOR_REGISTRY;
+
+if (typeof window !== 'undefined') {
+  (window as any).__swissKnifeDescriptorRegistry = {
+    registry_id: 'swissknife.browser-main-mcp-descriptor-registry.v1',
+    list: () => BROWSER_MAIN_DESCRIPTOR_REGISTRY,
+    get: (descriptorId: string) => BROWSER_MAIN_DESCRIPTOR_REGISTRY.find(d => d.name === descriptorId || (d as any).service_family === descriptorId),
+    inspect: (descriptorId: string) => {
+      const descriptor = BROWSER_MAIN_DESCRIPTOR_REGISTRY.find(d => d.name === descriptorId || (d as any).service_family === descriptorId);
+      return descriptor ? {
+        registry_id: 'swissknife.browser-main-mcp-descriptor-registry.v1',
+        id: descriptor.name,
+        namespace: descriptor.namespace,
+        interface_cid: (descriptor as any).interface_cid,
+        method_schemas: descriptor.methods.map((method: any) => ({
+          method: method.name,
+          capability_id: method.capability_id,
+          input_schema: method.inputSchema,
+          output_schema: method.outputSchema,
+        })),
+      } : null;
+    },
+    invoke: async ({ descriptor_id, operation, input, app_id }: any) => {
+      const descriptor = BROWSER_MAIN_DESCRIPTOR_REGISTRY.find(d => d.name === descriptor_id || (d as any).service_family === descriptor_id);
+      const method = descriptor?.methods.find((candidate: any) => candidate.name === operation);
+      if (!method?.capability_id) {
+        return invokeBrowserMainIPFSCapability(app_id || 'orb-auto-ui', 'descriptor.operation.missing', input || {});
+      }
+      return invokeBrowserMainIPFSCapability(app_id || `orb-${descriptor?.name}`, method.capability_id, input || {});
+    },
+  };
+  (window as any).swissKnifeDescriptorRegistry = (window as any).__swissKnifeDescriptorRegistry;
+}
 
 async function openORBAutoUILauncher(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('orb-auto-ui', '🪄 ORB Auto-UI Launcher', 500, 450);
@@ -1932,14 +2149,16 @@ async function openORBAutoUILauncher(swissknife: SwissKnifeBrowserCore) {
 async function openMCPPlusPlusExplorer(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('mcp-plus-plus', '🔬 MCP++ Protocol Explorer', 750, 550);
   const content = window.querySelector('.window-content') as HTMLElement;
-  const BACKEND = 'http://localhost:8080';
-  
   // In-browser MCP++ state (mirrors the TypeScript client)
-  const interfaces = [
-    { name: 'ipfs-kit', namespace: 'com.ipfs.kit', version: '1.0.0', cid: 'bafyipfskit000...001', methods: 12, tags: ['ipfs', 'storage', 'dag', 'ipns', 'pinning'] },
-    { name: 'ipfs-accelerate', namespace: 'com.ipfs.accelerate', version: '1.0.0', cid: 'bafyipfsaccelerate...001', methods: 6, tags: ['ai', 'inference', 'gpu', 'models'] },
-    { name: 'ipfs-datasets', namespace: 'com.ipfs.datasets', version: '1.0.0', cid: 'bafyipfsdatasets...001', methods: 13, tags: ['datasets', 'search', 'vectors', 'scraping'] },
-  ];
+  const interfaces = BROWSER_MAIN_DESCRIPTOR_REGISTRY.map(descriptor => ({
+    name: descriptor.name,
+    namespace: descriptor.namespace,
+    version: descriptor.version,
+    cid: descriptor.interface_cid,
+    methods: descriptor.methods.length,
+    method_defs: descriptor.methods,
+    tags: descriptor.tags,
+  }));
 
   const eventDAG: any[] = [];
 
@@ -2014,7 +2233,7 @@ async function openMCPPlusPlusExplorer(swissknife: SwissKnifeBrowserCore) {
             <select id="mcppp-iface" style="padding:6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;">
               ${interfaces.map(i => `<option value="${i.name}">${i.name} (${i.methods} methods)</option>`).join('')}
             </select>
-            <input type="text" id="mcppp-method" placeholder="Method (e.g. ipfs.add, accelerate.inference)" style="padding:6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;">
+            <input type="text" id="mcppp-method" placeholder="Method or capability id (blank = first descriptor method)" style="padding:6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;">
             <textarea id="mcppp-input" placeholder='{"content": "hello world"}' style="height:60px;padding:6px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;font-family:monospace;resize:none;"></textarea>
             <button id="mcppp-exec-btn" style="padding:8px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🚀 Execute with Envelope</button>
           </div>
@@ -2025,28 +2244,29 @@ async function openMCPPlusPlusExplorer(swissknife: SwissKnifeBrowserCore) {
           const inputJson = (content.querySelector('#mcppp-input') as HTMLTextAreaElement).value;
           const resultEl = content.querySelector('#mcppp-result') as HTMLElement;
           
-          if (!method) { resultEl.innerHTML = '<span style="color:red;">Please enter a method name</span>'; return; }
-          
           resultEl.innerHTML = '<span style="color:#6b7280;">Executing...</span>';
           try {
+            const iface = (content.querySelector('#mcppp-iface') as HTMLSelectElement).value;
+            const descriptor = BROWSER_MAIN_DESCRIPTOR_REGISTRY.find(d => d.name === iface);
+            const operation = descriptor?.methods.find((candidate: any) => (
+              candidate.name === method
+              || candidate.capability_id === method
+              || (!method && Boolean(candidate.capability_id))
+            ));
+            if (!descriptor || !operation?.capability_id) {
+              resultEl.innerHTML = '<span style="color:red;">Descriptor operation was not found in the shared registry.</span>';
+              return;
+            }
             const input = inputJson ? JSON.parse(inputJson) : {};
-            // Map method to endpoint
-            const endpoint = '/v1/ipfs/' + method.replace('ipfs.', '').replace('accelerate.', '').replace('datasets.', '').replace(/\./g, '/');
-            const r = await fetch(`${BACKEND}${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input), signal: AbortSignal.timeout(10000) });
-            const output = await r.json();
-            
-            const envelope_cid = 'bafy' + Math.random().toString(36).slice(2, 20);
-            const event_cid = 'bafy' + Math.random().toString(36).slice(2, 20);
-            eventDAG.push({ event_cid, method, timestamp: new Date().toISOString(), success: r.ok });
-            
-            resultEl.innerHTML = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px;">
-              <div style="color:#166534;font-weight:600;">✅ Execution Envelope</div>
-              <div>Envelope CID: ${envelope_cid}</div>
-              <div>Event CID: ${event_cid}</div>
-              <div>Decision: allow</div>
-              <div>Duration: ${Math.round(Math.random() * 100 + 10)}ms</div>
-              <div style="margin-top:4px;">Output: ${JSON.stringify(output).slice(0, 300)}</div>
-            </div>`;
+            const envelope = await invokeBrowserMainIPFSCapability('mcp-plus-plus', operation.capability_id, input);
+            const event = envelope.event_dag_refs?.[0];
+            eventDAG.push({
+              event_cid: event?.event_cid || `browser-main-event:${Date.now()}`,
+              method: operation.name,
+              timestamp: envelope.trace?.finished_at || new Date().toISOString(),
+              success: envelope.status !== 'error',
+            });
+            resultEl.innerHTML = renderBrowserMainEnvelope(envelope);
           } catch (e: any) {
             resultEl.innerHTML = `<span style="color:red;">Error: ${e.message}</span>`;
           }

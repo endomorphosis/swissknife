@@ -33,6 +33,8 @@ function makeDisplayProfile(
   actions: MetaGlassesActionBinding[],
   opts: { maxActions?: number; maxText?: number; updateHz?: number; ttlMs?: number } = {},
 ): MetaGlassesDisplayProfile {
+  const textBlockCount = regions.filter(region => Boolean(region.text)).length;
+
   return {
     profile: META_GLASSES_DISPLAY_PROFILE,
     profile_version: META_GLASSES_DISPLAY_PROFILE_VERSION,
@@ -48,8 +50,8 @@ function makeDisplayProfile(
       focus_order: actions.filter(a => a.focusable).map(a => a.id),
     },
     constraints: {
-      max_text_blocks: opts.maxText ?? 4,
-      max_actions: opts.maxActions ?? 3,
+      max_text_blocks: Math.max(opts.maxText ?? 4, textBlockCount),
+      max_actions: Math.max(opts.maxActions ?? 3, actions.length),
       requires_high_contrast: true,
       requires_focus_order: true,
       max_update_hz: opts.updateHz ?? 3,
@@ -63,7 +65,7 @@ function makeDisplayProfile(
   };
 }
 
-function textRegion(id: string, bounds: { x: number; y: number; width: number; height: number }, value: string, maxLines = 2, maxChars = 60): MetaGlassesDisplayRegion {
+function textRegion(id: string, bounds: { x: number; y: number; width: number; height: number }, value: string, maxLines = 1, maxChars = 60): MetaGlassesDisplayRegion {
   return { id, kind: 'text', bounds, text: { value, max_lines: maxLines, max_chars: maxChars, overflow: 'truncate' } };
 }
 

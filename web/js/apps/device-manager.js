@@ -3,6 +3,11 @@
  * Hardware monitoring, device discovery, and network device management
  */
 
+import {
+  describeSystemNetworkLocalCapabilities,
+  runSystemNetworkLocalWorkflow
+} from './system-network-local-capabilities.js';
+
 export class DeviceManagerApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -14,6 +19,11 @@ export class DeviceManagerApp {
     this.monitoringInterval = null;
     this.currentView = 'hardware'; // 'hardware', 'network', 'performance', 'drivers'
     this.p2pSystem = null;
+    this.systemNetworkLocalCapabilities = describeSystemNetworkLocalCapabilities('device-manager', {
+      localCapabilities: ['browser_device_scan', 'network_device_list', 'performance_benchmark', 'driver_inventory'],
+      remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry']
+    });
+    this.lastSystemNetworkLocalWorkflow = null;
     
     // Device categories
     this.deviceCategories = {
@@ -1307,6 +1317,29 @@ export class DeviceManagerApp {
     }
     
     return drivers;
+  }
+
+  getSystemNetworkLocalCapabilities() {
+    return this.systemNetworkLocalCapabilities;
+  }
+
+  async exerciseSystemNetworkLocalGateway(input = {}) {
+    this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
+      desktop: this.desktop,
+      appId: 'device-manager',
+      localCapabilities: ['browser_device_scan', 'network_device_list', 'performance_benchmark', 'driver_inventory'],
+      remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry'],
+      localState: {
+        current_view: this.currentView,
+        device_count: this.devices.size,
+        network_device_count: this.networkDevices.size,
+        benchmark_count: this.benchmarkResults.size,
+        hardware_info_keys: Object.keys(this.hardwareInfo),
+        p2p_attached: Boolean(this.p2pSystem)
+      },
+      summary: input.summary || 'Validate Device Manager local hardware scan and remote accelerator telemetry boundaries.'
+    });
+    return this.lastSystemNetworkLocalWorkflow;
   }
 
   onDestroy() {

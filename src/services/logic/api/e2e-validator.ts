@@ -1,3 +1,7 @@
+<<<<<<< Updated upstream
+<<<<<<<< Updated upstream:src/services/logic/api/e2e-validator.ts
+=======
+>>>>>>> Stashed changes
 /**
  * E2EValidator — end-to-end pipeline validation for the logic/prover stack.
  *
@@ -9,6 +13,7 @@
  *   FOL pipeline → Deontic pipeline → Proof execution →
  *   Monitor → Registry → Batch → Error handling
  *
+<<<<<<< Updated upstream
  * T-105.
  * Reference: ipfs_datasets_py/logic/e2e_validation.py §E2EValidator
  */
@@ -21,6 +26,20 @@ import { ProverSyntaxBuilder } from '../deontic/prover-syntax-builder.js';
 import { DeonticGraph } from '../deontic/deontic-graph.js';
 import { DeonticGraphBuilder } from '../deontic/deontic-graph-builder.js';
 import { LogicMonitor } from '../shared/logic-monitor.js';
+=======
+ * Sprint 20, T-105.
+ * Reference: ipfs_datasets_py/logic/e2e_validation.py §E2EValidator
+ */
+
+import { FolTextConverter } from '../../fol/fol-text-converter.js';
+import { DeonticTextAnalyzer } from '../../deontic/deontic-text-analyzer.js';
+import { LegalNormBuilder } from '../../deontic/legal-norm-builder.js';
+import { decodeLegalNormIR } from '../../deontic/legal-norm-decoder.js';
+import { ProverSyntaxBuilder } from '../../deontic/prover-syntax-builder.js';
+import { DeonticGraph } from '../../deontic/deontic-graph.js';
+import { DeonticGraphBuilder } from '../../deontic/deontic-graph-builder.js';
+import { LogicMonitor } from '../../logic-monitor.js';
+>>>>>>> Stashed changes
 import { getSubmoduleSpecs, getIntegrationManifest } from './submodule-registry.js';
 import { BatchProcessor } from './batch-processor.js';
 
@@ -228,3 +247,9 @@ export class E2EValidator {
     }
   }
 }
+<<<<<<< Updated upstream
+========
+export * from './logic/api/e2e-validator.js';
+>>>>>>>> Stashed changes:src/services/e2e-validator.ts
+=======
+>>>>>>> Stashed changes

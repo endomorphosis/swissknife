@@ -3,6 +3,11 @@
  * World clock, stopwatch, countdown timer, and alarm functionality
  */
 
+import {
+  describeSystemNetworkLocalCapabilities,
+  runSystemNetworkLocalWorkflow
+} from './system-network-local-capabilities.js';
+
 export class ClockApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -14,6 +19,11 @@ export class ClockApp {
     this.showSeconds = true;
     this.showDate = true;
     this.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    this.systemNetworkLocalCapabilities = describeSystemNetworkLocalCapabilities('clock', {
+      localCapabilities: ['local_time', 'world_clocks', 'stopwatch', 'timer', 'alarms'],
+      remoteCapabilities: []
+    });
+    this.lastSystemNetworkLocalWorkflow = null;
     
     // World clocks
     this.worldClocks = [
@@ -1244,6 +1254,32 @@ export class ClockApp {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
+  }
+
+  getSystemNetworkLocalCapabilities() {
+    return this.systemNetworkLocalCapabilities;
+  }
+
+  async exerciseSystemNetworkLocalGateway(input = {}) {
+    this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
+      desktop: this.desktop,
+      appId: 'clock',
+      localCapabilities: ['local_time', 'world_clocks', 'stopwatch', 'timer', 'alarms'],
+      remoteCapabilities: [],
+      localState: {
+        current_view: this.currentView,
+        clock_format: this.clockFormat,
+        timezone: this.timeZone,
+        world_clock_count: this.worldClocks.length,
+        enabled_world_clock_count: this.worldClocks.filter(clock => clock.enabled).length,
+        stopwatch_running: this.stopwatch.isRunning,
+        timer_running: this.timer.isRunning,
+        alarm_count: this.alarms.length,
+        enabled_alarm_count: this.alarms.filter(alarm => alarm.enabled).length
+      },
+      summary: input.summary || 'Validate Clock as a local-only time utility with no remote service dependency.'
+    });
+    return this.lastSystemNetworkLocalWorkflow;
   }
 
   // Initialize method required by the desktop framework

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream:src/services/mcp/mcp-traffic-manager.ts
 /**
  * TrafficManager - Routes requests to appropriate MCP server versions
  * 
@@ -642,3 +643,6 @@ export class TrafficManager {
     this.clientCacheTtl = ttlMs;
   }
 }
+=======
+export * from './mcp/mcp-traffic-manager.js';
+>>>>>>> Stashed changes:src/services/mcp-traffic-manager.ts

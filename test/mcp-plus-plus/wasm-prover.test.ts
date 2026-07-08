@@ -1,4 +1,8 @@
 /**
+ * @vitest-environment node
+ */
+
+/**
  * WASM theorem prover tests — Phase 1 Sprint 1.
  *
  * Tests for:
@@ -15,6 +19,7 @@
 import { appendFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { vi } from 'vitest';
 
 import {
   type WasmProofResult,
@@ -32,6 +37,7 @@ import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
 // ---------------------------------------------------------------------------
 
 const Z3_LIVE = process.env.Z3_WASM_LIVE === '1';
+const jest = { fn: vi.fn };
 
 function makeProvedResult(prover_id = 'z3-wasm' as const): WasmProofResult {
   return {

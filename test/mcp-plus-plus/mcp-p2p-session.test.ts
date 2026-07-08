@@ -124,8 +124,13 @@ describe('MCPp2pSession framing (MCP++ §5.1)', () => {
     const session = new MCPp2pSession(stream);
 
     await new Promise<void>(resolve => {
+<<<<<<< Updated upstream
       session.on('error', _err => {
         // Session should emit an error and close
+=======
+      session.on('error', () => {
+        // Session should emit an error and close.
+>>>>>>> Stashed changes
         resolve();
       });
       session.on('close', () => resolve());
@@ -203,6 +208,7 @@ describe('MCPp2pSession rate limiting (MCP++ §9.3)', () => {
       rateLimitWindowMs: 10_000, // long window so all 5 are in the same window
     });
 
+<<<<<<< Updated upstream
     let errorCount = 0;
     await new Promise<void>(resolve => {
       session.on('error', () => {
@@ -212,6 +218,13 @@ describe('MCPp2pSession rate limiting (MCP++ §9.3)', () => {
       session.on('message', () => {
         // Some messages will get through (first 2 within limit)
       });
+=======
+    await new Promise<void>(resolve => {
+      session.on('error', () => resolve());
+    });
+    session.on('message', () => {
+      // Some messages will get through (first 2 within limit)
+>>>>>>> Stashed changes
     });
   });
 });

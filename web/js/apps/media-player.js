@@ -5,8 +5,14 @@
  * Supports audio and video playback with comprehensive playlist management.
  */
 
+import {
+    describeMediaArtifactCapabilities,
+    runMediaArtifactWorkflow
+} from './media-artifact-capabilities.js';
+
 class MediaPlayer {
-    constructor() {
+    constructor(desktop = null) {
+        this.desktop = desktop;
         // Playback state
         this.isPlaying = false;
         this.currentTrack = 0;
@@ -53,6 +59,8 @@ class MediaPlayer {
             'Bass Boost': [6, 4, 2, 1, -1, -2, -1, 0, 1, 2],
             'Treble Boost': [-2, -1, 0, 1, 2, 3, 4, 5, 5, 6]
         };
+        this.mediaArtifactCapabilities = describeMediaArtifactCapabilities('media-player');
+        this.lastMediaArtifactWorkflow = null;
         
         this.initializeAudio();
         this.initializeDefaultPlaylist();
@@ -1420,6 +1428,43 @@ class MediaPlayer {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    getMediaArtifactCapabilities() {
+        return this.mediaArtifactCapabilities;
+    }
+
+    async exerciseMediaArtifactGateway(input = {}) {
+        const track = input.track || this.playlist[this.currentTrack] || {
+            title: 'Media Player Demo Track',
+            artist: 'SwissKnife',
+            type: 'audio',
+            duration: 120
+        };
+        const mediaType = track.type === 'video' ? 'video' : 'audio';
+
+        this.lastMediaArtifactWorkflow = await runMediaArtifactWorkflow({
+            desktop: this.desktop,
+            appId: 'media-player',
+            mediaType,
+            mimeType: mediaType === 'video' ? 'video/mp4' : 'audio/wav',
+            operation: input.operation || 'transcode-media',
+            model: input.model || 'media-transcoder',
+            prompt: input.prompt || `Normalize and transcode ${track.title || track.name || 'current media'}.`,
+            artifact: {
+                id: track.id || track.url || track.title || 'media-player-track',
+                name: track.title || track.name || 'media-player-track',
+                filename: `${String(track.title || track.name || 'media-player-track').replace(/[^a-z0-9._-]+/gi, '-')}.json`,
+                content: {
+                    track,
+                    current_time: this.currentTime,
+                    duration: this.duration || track.duration,
+                    eq_bands: this.eqBands,
+                    volume: this.volume
+                }
+            }
+        });
+        return this.lastMediaArtifactWorkflow;
     }
 
     /**

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream:src/services/mcp/mcp-versioned-client.ts
 /**
  * MCP Client Extensions for Blue/Green Deployment
  * 
@@ -461,3 +462,6 @@ export async function runVersionedCommand(
     throw error;
   }
 }
+=======
+export * from './mcp/mcp-versioned-client.js';
+>>>>>>> Stashed changes:src/services/mcp-versioned-client.ts

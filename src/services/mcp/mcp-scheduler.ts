@@ -1,3 +1,7 @@
+<<<<<<< Updated upstream
+<<<<<<<< Updated upstream:src/services/mcp/mcp-scheduler.ts
+=======
+>>>>>>> Stashed changes
 /**
  * Risk Scoring & Multi-Agent Scheduling (MCP++ Phase 8)
  *
@@ -9,8 +13,42 @@
  * References: docs/spec/risk-scheduling.md in endomorphosis/Mcp-Plus-Plus
  */
 
+<<<<<<< Updated upstream
 import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
 import { EventDAG, StoredEventNode } from './mcp-event-dag.js';
+=======
+import { EventDAG, StoredEventNode } from '../event-dag.js';
+
+type SchedulerEventListener = (...args: any[]) => void;
+
+class LocalEventEmitter {
+  private readonly listeners = new Map<string, Set<SchedulerEventListener>>();
+
+  on(event: string, listener: SchedulerEventListener): this {
+    const bucket = this.listeners.get(event) ?? new Set<SchedulerEventListener>();
+    bucket.add(listener);
+    this.listeners.set(event, bucket);
+    return this;
+  }
+
+  off(event: string, listener: SchedulerEventListener): this {
+    const bucket = this.listeners.get(event);
+    if (!bucket) return this;
+    bucket.delete(listener);
+    if (bucket.size === 0) this.listeners.delete(event);
+    return this;
+  }
+
+  emit(event: string, ...args: unknown[]): boolean {
+    const bucket = this.listeners.get(event);
+    if (!bucket || bucket.size === 0) return false;
+    for (const listener of bucket) {
+      listener(...args);
+    }
+    return true;
+  }
+}
+>>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Risk Scoring
@@ -192,7 +230,11 @@ export interface SchedulerOptions {
 
 export type CallExecutor<T> = (call: T) => Promise<unknown>;
 
+<<<<<<< Updated upstream
 export class MCPScheduler<T = unknown> extends BrowserEventEmitter {
+=======
+export class MCPScheduler<T = unknown> extends LocalEventEmitter {
+>>>>>>> Stashed changes
   private queue = new MinHeap<T>();
   private inFlight = 0;
   private riskScorer: RiskScorer;
@@ -303,3 +345,9 @@ export class MCPScheduler<T = unknown> extends BrowserEventEmitter {
     return this.inFlight;
   }
 }
+<<<<<<< Updated upstream
+========
+export * from './mcp/mcp-scheduler.js';
+>>>>>>>> Stashed changes:src/services/mcp-scheduler.ts
+=======
+>>>>>>> Stashed changes

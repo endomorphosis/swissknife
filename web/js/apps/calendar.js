@@ -3,6 +3,13 @@
  * Full-featured calendar with event management, reminders, and scheduling
  */
 
+import {
+  STORAGE_PROVENANCE_CAPABILITIES,
+  describeStorageProvenanceCapabilities,
+  runStorageProvenanceWorkflow,
+  sanitizeArtifactFilename,
+} from './storage-provenance-capabilities.js';
+
 export class CalendarApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -81,6 +88,10 @@ export class CalendarApp {
       workingHours: { start: 9, end: 17 },
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     };
+    this.storageProvenanceCapabilities = describeStorageProvenanceCapabilities('calendar', {
+      storage: STORAGE_PROVENANCE_CAPABILITIES.dagStorage,
+    });
+    this.lastStorageProvenanceWorkflow = null;
     
     this.initializeApp();
   }
@@ -1133,5 +1144,61 @@ export class CalendarApp {
     } catch (error) {
       console.warn('Failed to save calendar events to storage:', error);
     }
+  }
+
+  getStorageProvenanceCapabilities() {
+    return this.storageProvenanceCapabilities;
+  }
+
+  async exerciseStorageProvenanceGateway(event = this.events[0]) {
+    const selectedEvent = event || {
+      id: 'empty-calendar',
+      title: 'Empty calendar',
+      description: '',
+      date: new Date(),
+      category: 'personal',
+      attendees: [],
+    };
+    const eventDate = selectedEvent.date instanceof Date
+      ? selectedEvent.date.toISOString()
+      : new Date(selectedEvent.date || Date.now()).toISOString();
+
+    this.lastStorageProvenanceWorkflow = await runStorageProvenanceWorkflow({
+      desktop: this.desktop,
+      appId: 'calendar',
+      storageCapabilityId: STORAGE_PROVENANCE_CAPABILITIES.dagStorage,
+      artifact: {
+        id: String(selectedEvent.id),
+        title: selectedEvent.title || 'Calendar event',
+        type: 'calendar-event',
+        filename: sanitizeArtifactFilename(selectedEvent.title || 'calendar-event'),
+        content: {
+          ...selectedEvent,
+          date: eventDate,
+          endDate: selectedEvent.endDate
+            ? (selectedEvent.endDate instanceof Date ? selectedEvent.endDate.toISOString() : new Date(selectedEvent.endDate).toISOString())
+            : null,
+        },
+        metadata: {
+          category: selectedEvent.category,
+          attendee_count: Array.isArray(selectedEvent.attendees) ? selectedEvent.attendees.length : 0,
+          timezone: this.settings.timezone,
+        },
+      },
+      dataset: {
+        dataset_id: 'swissknife-calendar',
+        path: `/calendar/events/${selectedEvent.id}`,
+      },
+      provenance: {
+        action: 'calendar.record-event',
+        subject_id: String(selectedEvent.id),
+        subject_type: 'calendar-event',
+        metadata: {
+          current_view: this.currentView,
+          event_count: this.events.length,
+        },
+      },
+    });
+    return this.lastStorageProvenanceWorkflow;
   }
 }

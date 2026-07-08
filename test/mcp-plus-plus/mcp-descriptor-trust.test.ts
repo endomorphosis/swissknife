@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { DIDKeystore } from '../../src/auth/did-keystore';
 import { InterfaceRepository } from '../../src/services/mcp/mcp-idl';
 import {

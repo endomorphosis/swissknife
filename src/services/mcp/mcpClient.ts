@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream:src/services/mcp/mcpClient.ts
 import { zipObject } from 'lodash-es.js'
 import {
   getCurrentProjectConfig,
@@ -712,3 +713,6 @@ export async function runCommand(
     throw error
   }
 }
+=======
+export * from './mcp/host/mcpClient.js';
+>>>>>>> Stashed changes:src/services/mcpClient.ts

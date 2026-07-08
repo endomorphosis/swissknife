@@ -360,10 +360,42 @@
   }
 
   // Create P2P Network Manager application
-  window.createP2PNetworkApp = function() {
+  window.createP2PNetworkApp = function(desktop = null) {
     return {
       name: "P2P Network",
       icon: "🌐",
+      desktop,
+      lastSystemNetworkLocalWorkflow: null,
+      async getSystemNetworkLocalCapabilities() {
+        const { describeSystemNetworkLocalCapabilities } = await import('./system-network-local-capabilities.js');
+        return describeSystemNetworkLocalCapabilities('p2p-network', {
+          localCapabilities: ['peer_list', 'task_queue', 'workspace_presence', 'worker_pool', 'cloudflare_status'],
+          remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry']
+        });
+      },
+      async exerciseSystemNetworkLocalGateway(input = {}) {
+        const { runSystemNetworkLocalWorkflow } = await import('./system-network-local-capabilities.js');
+        this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
+          desktop: this.desktop,
+          appId: 'p2p-network',
+          localCapabilities: ['peer_list', 'task_queue', 'workspace_presence', 'worker_pool', 'cloudflare_status'],
+          remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry'],
+          localState: {
+            connection_status: connectionStatus,
+            peer_count: peers.length,
+            task_count: tasks.length,
+            distributed_task_count: distributedTasks.length,
+            workspace_count: workspaces.length,
+            active_session_count: activeSessions.length,
+            worker_pool_active: workerPoolActive,
+            worker_count: workerStats.size,
+            cloudflare_stats: cloudflareStats,
+            hybrid_task_count: hybridTasks.length
+          },
+          summary: input.summary || 'Validate P2P Network local peer/task state and remote node/accelerator fallbacks.'
+        });
+        return this.lastSystemNetworkLocalWorkflow;
+      },
       async initialize() {
         console.log('🌐 P2P Network App initializing...');
       },

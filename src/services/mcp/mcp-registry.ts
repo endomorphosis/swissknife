@@ -1,3 +1,7 @@
+<<<<<<< Updated upstream
+<<<<<<<< Updated upstream:src/services/mcp/mcp-registry.ts
+=======
+>>>>>>> Stashed changes
 /**
  * Enhanced ServerRegistry for MCP Blue/Green Deployment
  * 
@@ -23,7 +27,44 @@ import {
   getMcprcConfig
 } from '../../utils/config.js';
 import { logError } from '../../utils/log.js';
+<<<<<<< Updated upstream
 import { EventEmitter } from 'events.js';
+=======
+
+type RegistryEventListener = (...args: any[]) => void;
+
+class LocalEventEmitter {
+  private readonly listeners = new Map<string, Set<RegistryEventListener>>();
+
+  on(event: string, listener: RegistryEventListener): this {
+    const bucket = this.listeners.get(event) ?? new Set<RegistryEventListener>();
+    bucket.add(listener);
+    this.listeners.set(event, bucket);
+    return this;
+  }
+
+  off(event: string, listener: RegistryEventListener): this {
+    const bucket = this.listeners.get(event);
+    if (!bucket) return this;
+    bucket.delete(listener);
+    if (bucket.size === 0) this.listeners.delete(event);
+    return this;
+  }
+
+  emit(event: string, ...args: unknown[]): boolean {
+    const bucket = this.listeners.get(event);
+    if (!bucket || bucket.size === 0) return false;
+    for (const listener of bucket) {
+      listener(...args);
+    }
+    return true;
+  }
+
+  setMaxListeners(_count: number): this {
+    return this;
+  }
+}
+>>>>>>> Stashed changes
 
 /**
  * Server information cached in memory with additional metadata
@@ -83,7 +124,11 @@ export interface ServerRegistryEvents {
  * Enhanced registry for tracking MCP server versions and their status
  * with improved persistence and error handling
  */
+<<<<<<< Updated upstream
 export class ServerRegistry extends EventEmitter {
+=======
+export class ServerRegistry extends LocalEventEmitter {
+>>>>>>> Stashed changes
   private static instance: ServerRegistry;
   private initialized: boolean = false;
   
@@ -1158,3 +1203,9 @@ logError('MCP server updated', {
     });
   }
 }
+<<<<<<< Updated upstream
+========
+export * from './mcp/mcp-registry.js';
+>>>>>>>> Stashed changes:src/services/mcp-registry.ts
+=======
+>>>>>>> Stashed changes

@@ -2,6 +2,10 @@
  * Enhanced Terminal App for SwissKnife Web Desktop
  * Advanced terminal with P2P integration, AI assistance, and multi-session support
  */
+import {
+  formatAppCapabilityEnvelope,
+  getBrowserAppCapabilityGateway,
+} from '../core/app-capability-gateway.js';
 
 export class TerminalApp {
   constructor(desktop) {
@@ -15,6 +19,7 @@ export class TerminalApp {
     this.p2pSystem = null;
     this.aiAssist = null;
     this.autoComplete = [];
+    this.capabilityGateway = getBrowserAppCapabilityGateway({ desktop });
     
     // Built-in commands
     this.builtinCommands = new Map([
@@ -127,6 +132,7 @@ export class TerminalApp {
   async initializeIntegrations() {
     try {
       this.swissknife = this.desktop.swissknife;
+      this.capabilityGateway = getBrowserAppCapabilityGateway({ desktop: this.desktop });
       
       // Connect to P2P system for distributed terminal access
       if (window.p2pMLSystem) {
@@ -370,6 +376,11 @@ export class TerminalApp {
     const args = parts.slice(1);
 
     try {
+      if (cmd === 'ipfs' || cmd === 'sk-ipfs') {
+        await this.ipfsCommand(args);
+        return;
+      }
+
       // First try the shared CLI adapter for all SwissKnife commands (if available)
       if (this.cliAdapter && (cmd.startsWith('sk-') || ['sk', 'ai', 'chat', 'task', 'config', 'models', 'storage', 'mcp', 'ipfs'].includes(cmd))) {
         const result = await this.cliAdapter.executeCommand(command);
@@ -974,8 +985,78 @@ Type 'help' for a complete list of commands.
     this.addOutput('File copying not fully implemented yet', 'warning');
   }
 
-  ipfsCommand(args) {
-    this.addOutput('IPFS command not fully implemented yet', 'warning');
+  async ipfsCommand(args = []) {
+    const parsed = this.parseIPFSCommand(args);
+    if (!parsed) {
+      this.addOutput('IPFS capability gateway commands:', 'info');
+      this.addOutput('  ipfs status');
+      this.addOutput('  ipfs add <text-or-path>');
+      this.addOutput('  ipfs cat <cid>');
+      this.addOutput('  ipfs pin <cid>');
+      this.addOutput('  ipfs unpin <cid>');
+      this.addOutput('  ipfs pins');
+      this.addOutput('  ipfs stat <cid>');
+      this.addOutput('  ipfs dag get <cid>');
+      this.addOutput('  ipfs dag put <json>');
+      this.addOutput('  ipfs name publish <cid> [name]');
+      this.addOutput('  ipfs name resolve <name>');
+      return;
+    }
+
+    const envelope = await this.capabilityGateway.invoke({
+      app_id: 'terminal',
+      capability_id: parsed.capabilityId,
+      input: parsed.input,
+    });
+    const outputType = envelope.status === 'ok' ? 'success' : envelope.status === 'degraded' ? 'warning' : 'error';
+    this.addOutput(`App Capability Envelope: ${envelope.status} (${parsed.capabilityId})`, outputType);
+    this.addOutput(formatAppCapabilityEnvelope(envelope), 'normal');
+  }
+
+  parseIPFSCommand(args) {
+    const [first, second, ...rest] = args;
+    const tail = [second, ...rest].filter(Boolean).join(' ').trim();
+    const all = args.join(' ').trim();
+
+    if (!first || first === 'help') return null;
+    if (first === 'status') {
+      return { capabilityId: 'ipfs.kit.tool.node_id', input: { operation: 'status' } };
+    }
+    if (first === 'add') {
+      return { capabilityId: 'ipfs.kit.tool.ipfs_add', input: { content: args.slice(1).join(' ') } };
+    }
+    if (first === 'cat') {
+      return { capabilityId: 'ipfs.kit.tool.ipfs_cat', input: { cid: args[1] || '' } };
+    }
+    if (first === 'pin') {
+      return { capabilityId: 'ipfs.kit.tool.pin_add', input: { cid: args[1] || '' } };
+    }
+    if (first === 'unpin') {
+      return { capabilityId: 'ipfs.kit.tool.pin_rm', input: { cid: args[1] || '' } };
+    }
+    if (first === 'pins') {
+      return { capabilityId: 'ipfs.kit.tool.get_pinset', input: { operation: 'list_pins' } };
+    }
+    if (first === 'stat') {
+      return { capabilityId: 'ipfs.kit.tool.block_stat', input: { cid: args[1] || '' } };
+    }
+    if (first === 'dag' && second === 'get') {
+      return { capabilityId: 'ipfs.kit.tool.dag_get', input: { cid: rest.join(' ') } };
+    }
+    if (first === 'dag' && second === 'put') {
+      return { capabilityId: 'ipfs.kit.tool.dag_put', input: { data: parseMaybeJSON(rest.join(' ')) } };
+    }
+    if (first === 'name' && second === 'publish') {
+      const [cid, name] = rest;
+      return { capabilityId: 'ipfs.kit.tool.name_publish', input: { cid, path: cid, name } };
+    }
+    if (first === 'name' && second === 'resolve') {
+      return { capabilityId: 'ipfs.kit.tool.name_resolve', input: { name: rest.join(' ') } };
+    }
+    if (first === 'resolve') {
+      return { capabilityId: 'ipfs.kit.tool.name_resolve', input: { name: tail || all } };
+    }
+    return null;
   }
 
   p2pCommand(args) {
@@ -1094,5 +1175,14 @@ Type 'help' for a complete list of commands.
 
   restoreData(args) {
     this.addOutput('Data restore not fully implemented yet', 'warning');
+  }
+}
+
+function parseMaybeJSON(value) {
+  if (!value) return {};
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
   }
 }

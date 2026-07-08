@@ -1,10 +1,18 @@
+<<<<<<< Updated upstream
+<<<<<<<< Updated upstream:src/services/mcp/mcp-orb-capability-router.ts
+=======
+>>>>>>> Stashed changes
 import {
   control_surface_mediator,
   type ControlSurfacePolicyEvaluator,
   type ControlSurfaceMediationResult,
   type ControlSurfaceMediationReceipt,
   type ControlSurfaceInteractionEnvelope,
+<<<<<<< Updated upstream
 } from './control-surface-mediator.js';
+=======
+} from '../control-surface-mediator.js';
+>>>>>>> Stashed changes
 import type { InterfaceDescriptor, MethodSignature } from './mcp-idl.js';
 import { computeCID } from './mcp-idl.js';
 import type { MCPInterfaceDiscoveryRegistry } from './mcp-interface-registry.js';
@@ -14,7 +22,10 @@ import type {
   MCPUIProfileDescriptor,
   MCPUIServiceDescriptor,
 } from './mcp-ui-profile.js';
+<<<<<<< Updated upstream
 import { randomUUID } from '../shared/browser-crypto.js';
+=======
+>>>>>>> Stashed changes
 
 export const ORB_TRANSPORT_KINDS = ['local', 'websocket', 'http', 'mcp-server'] as const;
 
@@ -600,7 +611,11 @@ export class MCPCapabilityRouter {
     });
 
     const binding: ORBBoundOperation = {
+<<<<<<< Updated upstream
       handle: randomUUID(),
+=======
+      handle: createRandomUUID(),
+>>>>>>> Stashed changes
       interface_cid: capability.interface_cid,
       descriptor: capability.descriptor,
       service: capability.service,
@@ -1092,7 +1107,11 @@ export function buildORBReceipt(
 ): ORBInvocationReceipt {
   const outputCid = computeCID(stableStringify(output));
   const receiptWithoutCid = {
+<<<<<<< Updated upstream
     correlation_id: context.correlation_id ?? randomUUID(),
+=======
+    correlation_id: context.correlation_id ?? createRandomUUID(),
+>>>>>>> Stashed changes
     interface_cid: binding.interface_cid,
     descriptor_name: binding.descriptor.name,
     descriptor_version: binding.descriptor.version,
@@ -1186,7 +1205,11 @@ function lifecycle(
 function withCorrelationId(context: ORBInvocationContext = {}): ORBInvocationContext & { correlation_id: string } {
   return {
     ...context,
+<<<<<<< Updated upstream
     correlation_id: context.correlation_id ?? randomUUID(),
+=======
+    correlation_id: context.correlation_id ?? createRandomUUID(),
+>>>>>>> Stashed changes
   };
 }
 
@@ -1305,6 +1328,34 @@ function stableStringify(value: unknown): string {
     .join(',') + '}';
 }
 
+<<<<<<< Updated upstream
+=======
+function createRandomUUID(): string {
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === 'function') {
+    return cryptoApi.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  if (typeof cryptoApi?.getRandomValues === 'function') {
+    cryptoApi.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map(byte => byte.toString(16).padStart(2, '0'));
+  return [
+    hex.slice(0, 4).join(''),
+    hex.slice(4, 6).join(''),
+    hex.slice(6, 8).join(''),
+    hex.slice(8, 10).join(''),
+    hex.slice(10, 16).join(''),
+  ].join('-');
+}
+
+>>>>>>> Stashed changes
 function uniqueStrings(values: string[]): string[] {
   return Array.from(new Set(values));
 }
@@ -1325,3 +1376,9 @@ function sleep(ms: number): Promise<void> {
 }
 
 export type ORBCompatibleDescriptor = InterfaceDescriptor & Partial<MCPUIProfileDescriptor>;
+<<<<<<< Updated upstream
+========
+export * from './mcp/mcp-orb-capability-router.js';
+>>>>>>>> Stashed changes:src/services/mcp-orb-capability-router.ts
+=======
+>>>>>>> Stashed changes

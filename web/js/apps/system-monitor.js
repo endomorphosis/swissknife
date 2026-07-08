@@ -3,6 +3,11 @@
  * Real-time system monitoring with detailed analytics and performance insights
  */
 
+import {
+  describeSystemNetworkLocalCapabilities,
+  runSystemNetworkLocalWorkflow
+} from './system-network-local-capabilities.js';
+
 export class SystemMonitorApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -31,6 +36,11 @@ export class SystemMonitorApp {
       sortOrder: 'desc',
       showSystemProcesses: false
     };
+    this.systemNetworkLocalCapabilities = describeSystemNetworkLocalCapabilities('system-monitor', {
+      localCapabilities: ['browser_metrics', 'process_table', 'alert_thresholds', 'storage_snapshot'],
+      remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry']
+    });
+    this.lastSystemNetworkLocalWorkflow = null;
     
     // System data from browser APIs where available
     this.systemInfo = {
@@ -1474,6 +1484,29 @@ export class SystemMonitorApp {
     if (tbody) {
       tbody.innerHTML = this.renderProcessList();
     }
+  }
+
+  getSystemNetworkLocalCapabilities() {
+    return this.systemNetworkLocalCapabilities;
+  }
+
+  async exerciseSystemNetworkLocalGateway(input = {}) {
+    this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
+      desktop: this.desktop,
+      appId: 'system-monitor',
+      localCapabilities: ['browser_metrics', 'process_table', 'alert_thresholds', 'storage_snapshot'],
+      remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry'],
+      localState: {
+        current_view: this.currentView,
+        cpu_cores: this.systemInfo.cpuCores,
+        process_count: this.mockProcesses.length,
+        network_interface_count: this.networkInterfaces.length,
+        storage_device_count: this.storageDevices.length,
+        alert_thresholds: this.alertThresholds
+      },
+      summary: input.summary || 'Validate System Monitor local metrics and remote accelerator telemetry fallbacks.'
+    });
+    return this.lastSystemNetworkLocalWorkflow;
   }
 
   cleanup() {

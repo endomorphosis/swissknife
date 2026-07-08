@@ -1,4 +1,33 @@
 import { getHallucinateBackendBridge } from '../hallucinate-backend-bridge.js';
+import {
+    invokeDescriptorOperation as invokeBrowserDescriptorOperation,
+    listBrowserMCPDescriptors,
+    renderDescriptorRegistrySummary,
+    renderEnvelopeHTML,
+} from '../core/mcp-descriptor-registry.js';
+
+function sampleMCPDescriptorInput(operation) {
+    const properties = operation.input_schema?.properties || {};
+    return Object.fromEntries(Object.entries(properties).map(([name, schema]) => [
+        name,
+        sampleMCPValue(name, schema),
+    ]));
+}
+
+function sampleMCPValue(name, schema = {}) {
+    if (Array.isArray(schema.enum) && schema.enum.length > 0) return schema.enum[0];
+    if (name.includes('cid') || name === 'root_cid') return 'bafybeimcpcontrol';
+    if (name === 'path') return '/ipfs/bafybeimcpcontrol';
+    if (name === 'dataset_id') return 'mcp-control-dataset';
+    if (name === 'model') return 'llama-3.1-8b';
+    if (name === 'input' || name === 'content' || name === 'prompt') return 'MCP Control descriptor probe';
+    if (name === 'job_id') return 'job-mcp-control';
+    if (schema.type === 'boolean') return true;
+    if (schema.type === 'number' || schema.type === 'integer') return 1;
+    if (schema.type === 'array') return [];
+    if (schema.type === 'object') return { source: 'mcp-control' };
+    return `${name}-example`;
+}
 
 // Enhanced MCP Server Control App with Real-Time Monitoring and External Connections
 class MCPControlApp {
@@ -16,6 +45,8 @@ class MCPControlApp {
         this.remoteServers = new Map(); // Remote MCP servers
         this.hallucinateBridge = getHallucinateBackendBridge();
         this.hallucinateSnapshot = null;
+        this.descriptorRegistry = listBrowserMCPDescriptors();
+        this.lastDescriptorEnvelope = null;
         
         // Initialize common server templates
         this.initializeServerTemplates();
@@ -148,6 +179,7 @@ class MCPControlApp {
                         <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary">🌐 Add Remote</button>
                         <button onclick="mcpControlApp.showDiscovery()" class="btn-secondary">🔍 Discovery</button>
                         <button onclick="mcpControlApp.showMetrics()" class="btn-secondary">📊 Metrics</button>
+                        <button onclick="mcpControlApp.showDescriptorRegistry()" class="btn-secondary">🧭 Descriptors</button>
                     </div>
                 </div>
                 
@@ -221,6 +253,10 @@ class MCPControlApp {
                                 <span>Templates Available:</span>
                                 <span class="stat-value">${this.serverTemplates.size}</span>
                             </div>
+                            <div class="stat-item">
+                                <span>Descriptor Packs:</span>
+                                <span class="stat-value">${this.descriptorRegistry.length}</span>
+                            </div>
                         </div>
                         
                         <div class="recent-activity">
@@ -250,6 +286,8 @@ class MCPControlApp {
                                 </select>
                             </div>
                         </div>
+
+                        ${this.renderDescriptorRegistryPanel()}
                         
                         <div class="server-list" id="mcp-server-list">
                             ${this.renderServerList()}
@@ -260,6 +298,84 @@ class MCPControlApp {
                 ${this.renderModals()}
             </div>
         `;
+    }
+
+    renderDescriptorRegistryPanel() {
+        const descriptors = this.descriptorRegistry;
+        return `
+            <section id="mcp-descriptor-registry" class="mcp-descriptor-registry" data-registry-id="swissknife.browser-mcp-descriptor-registry.v1">
+                <div class="descriptor-panel-header">
+                    <div>
+                        <h3>🧭 MCP / MCP++ Descriptor Registry</h3>
+                        <p>Shared descriptor source for MCP Control, IDL Explorer, MCP++ Explorer, ORB Auto-UI, and Meta glasses handoff.</p>
+                    </div>
+                    <span class="descriptor-count">${descriptors.length} packs</span>
+                </div>
+                ${renderDescriptorRegistrySummary(descriptors)}
+                <div class="descriptor-probes">
+                    ${descriptors.map(descriptor => {
+                        const operations = descriptor.data_contracts.operations.slice(0, 3);
+                        return `
+                            <div class="descriptor-probe-card" data-descriptor-id="${descriptor.id}">
+                                <div class="probe-title">${descriptor.ui.icon} ${descriptor.name}</div>
+                                <div class="probe-methods">
+                                    ${operations.map(operation => `
+                                        <button
+                                            class="descriptor-probe"
+                                            data-descriptor-operation="${operation.method}"
+                                            data-capability-id="${operation.capability_id}"
+                                            onclick="mcpControlApp.invokeDescriptorOperation('${descriptor.id}', '${operation.method}')"
+                                        >${operation.method}</button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div id="mcp-descriptor-result" class="descriptor-result">
+                    ${this.lastDescriptorEnvelope ? renderEnvelopeHTML(this.lastDescriptorEnvelope) : `
+                        <pre>{
+  "schema": "swissknife.app-result-envelope.v1",
+  "status": "ready",
+  "registry_id": "swissknife.browser-mcp-descriptor-registry.v1",
+  "receipt_refs": [],
+  "event_dag_refs": []
+}</pre>
+                    `}
+                </div>
+            </section>
+        `;
+    }
+
+    showDescriptorRegistry() {
+        const panel = document.getElementById('mcp-descriptor-registry');
+        if (panel) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    async invokeDescriptorOperation(descriptorId, operationName) {
+        const descriptor = this.descriptorRegistry.find(candidate => candidate.id === descriptorId);
+        const operation = descriptor?.data_contracts.operations.find(candidate => candidate.method === operationName);
+        const result = document.getElementById('mcp-descriptor-result');
+        if (!descriptor || !operation || !result) return;
+
+        result.innerHTML = `<div class="descriptor-invocation-pending">Invoking ${descriptor.name}.${operationName} through the shared gateway...</div>`;
+        try {
+            const envelope = await invokeBrowserDescriptorOperation({
+                descriptor_id: descriptorId,
+                operation: operationName,
+                app_id: 'mcp-control',
+                input: sampleMCPDescriptorInput(operation),
+            });
+            this.lastDescriptorEnvelope = envelope;
+            window.__lastMCPControlDescriptorEnvelope = envelope;
+            result.innerHTML = renderEnvelopeHTML(envelope);
+            this.addConnectionEvent(`Descriptor ${descriptor.name}.${operationName} returned ${envelope.status}`, 'connection_established');
+        } catch (error) {
+            result.innerHTML = `<div class="descriptor-invocation-error">Descriptor invocation failed: ${error.message}</div>`;
+            this.addConnectionEvent(`Descriptor ${descriptorId}.${operationName} failed: ${error.message}`, 'server_error');
+        }
     }
 
     renderServerList() {

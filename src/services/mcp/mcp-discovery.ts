@@ -1,3 +1,5 @@
+<<<<<<< Updated upstream
+<<<<<<<< Updated upstream:src/services/mcp/mcp-discovery.ts
 /**
  * P2P Discovery & Default Pub/Sub (MCP++ Phase 7)
  *
@@ -10,14 +12,69 @@
  * Per MCP++ §9.5: pub/sub MUST NOT be required for point-to-point session
  * correctness, but browser libp2p peers enable it by default for discovery
  * announcements and coordination.
+=======
+/**
+ * P2P Discovery & Optional Pub/Sub (MCP++ Phase 7)
+ *
+ * Provides:
+ *  - `MCPDiscovery`  — peer discovery (mDNS-local, DHT, rendezvous)
+ *  - `MCPPubSub`     — opt-in GossipSub dissemination of interface_cids,
+ *                      receipt_cids and coordination signals
+ *
+ * Per MCP++ §9.5: pub/sub MUST NOT be required for point-to-point session
+ * correctness.  Everything here is opt-in and controlled by feature flags.
+>>>>>>> Stashed changes
  *
  * References: docs/spec/transport-mcp-p2p.md §6, §9.5
  */
 
+<<<<<<< Updated upstream
 import { utf8Bytes } from '../shared/browser-crypto.js';
 import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
 import { createMcpLibp2pNode } from './libp2p-browser-runtime.js';
 import { computeCID } from './mcp-envelope.js';
+=======
+import { computeCID } from './mcp-envelope.js';
+import {
+  bytesToUtf8,
+  utf8ToBytes,
+} from '../shared/browser-bytes.js';
+import {
+  createMcpLibp2pConfig,
+  createMcpLibp2pNode,
+  isBrowserRuntime,
+} from './mcp-transport.js';
+
+type DiscoveryEventListener = (...args: any[]) => void;
+
+class LocalEventEmitter {
+  private readonly listeners = new Map<string, Set<DiscoveryEventListener>>();
+
+  on(event: string, listener: DiscoveryEventListener): this {
+    const bucket = this.listeners.get(event) ?? new Set<DiscoveryEventListener>();
+    bucket.add(listener);
+    this.listeners.set(event, bucket);
+    return this;
+  }
+
+  off(event: string, listener: DiscoveryEventListener): this {
+    const bucket = this.listeners.get(event);
+    if (!bucket) return this;
+    bucket.delete(listener);
+    if (bucket.size === 0) this.listeners.delete(event);
+    return this;
+  }
+
+  emit(event: string, ...args: unknown[]): boolean {
+    const bucket = this.listeners.get(event);
+    if (!bucket || bucket.size === 0) return false;
+    for (const listener of bucket) {
+      listener(...args);
+    }
+    return true;
+  }
+}
+>>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,6 +99,7 @@ export interface PubSubMessage {
 }
 
 export interface DiscoveryOptions {
+<<<<<<< Updated upstream
   /** Enable mDNS discovery. Default is runtime-dependent: false in browsers, true in Node. */
   mdns?: boolean;
   /** Enable Kademlia DHT peer routing. Default is runtime-dependent: false in browsers, true in Node. */
@@ -73,6 +131,25 @@ export interface PubSubOptions {
 
 export interface PubSubUCANValidator {
   validateToken(token: string): boolean | Promise<boolean>;
+=======
+  /** Enable mDNS discovery (default true) */
+  mdns?: boolean;
+  /** Enable Kademlia DHT peer routing (default true) */
+  dht?: boolean;
+  /** Custom rendezvous/relay multiaddr for NAT traversal (optional) */
+  rendezvousAddr?: string;
+}
+
+export interface PubSubOptions {
+  /** Enable pub/sub at all (default false) */
+  enabled?: boolean;
+  /** Topics to subscribe to */
+  topics?: string[];
+}
+
+export interface MCPDiscoveryUCANValidator {
+  validateToken(token: string): Promise<boolean> | boolean;
+>>>>>>> Stashed changes
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +164,11 @@ export const TOPIC_COORD_SIGNAL       = 'mcp++/coord-signal';
 // MCPDiscovery
 // ---------------------------------------------------------------------------
 
+<<<<<<< Updated upstream
 export class MCPDiscovery extends BrowserEventEmitter {
+=======
+export class MCPDiscovery extends LocalEventEmitter {
+>>>>>>> Stashed changes
   private peers: Map<string, PeerInfo> = new Map();
   private options: DiscoveryOptions;
   private node: unknown = null; // libp2p node once started
@@ -95,6 +176,7 @@ export class MCPDiscovery extends BrowserEventEmitter {
 
   constructor(options: DiscoveryOptions = {}) {
     super();
+<<<<<<< Updated upstream
     this.options = {
       mdns: options.mdns,
       dht: options.dht,
@@ -104,6 +186,13 @@ export class MCPDiscovery extends BrowserEventEmitter {
       listenMultiaddrs: options.listenMultiaddrs,
       rendezvousAddr: options.rendezvousAddr,
       libp2pOptions: options.libp2pOptions,
+=======
+    const browser = isBrowserRuntime();
+    this.options = {
+      mdns: options.mdns ?? !browser,
+      dht: options.dht ?? !browser,
+      rendezvousAddr: options.rendezvousAddr,
+>>>>>>> Stashed changes
     };
   }
 
@@ -121,6 +210,7 @@ export class MCPDiscovery extends BrowserEventEmitter {
     if (this.started) return;
 
     try {
+<<<<<<< Updated upstream
       const bootstrapMultiaddrs = [
         ...(this.options.bootstrapMultiaddrs ?? []),
         ...(this.options.rendezvousAddr ? [this.options.rendezvousAddr] : []),
@@ -139,6 +229,60 @@ export class MCPDiscovery extends BrowserEventEmitter {
       addLibp2pEventListener(node, 'peer:discovery', (event: unknown) => {
         const info = extractPeerDiscoveryInfo(event);
         if (info) this.handlePeerDiscovery(info);
+=======
+      const { createLibp2p } = await import('libp2p');
+      const { config: libp2pConfig } = await createMcpLibp2pConfig({
+        bootstrapMultiaddrs: this.options.rendezvousAddr
+          ? [this.options.rendezvousAddr]
+          : [],
+      });
+
+      // mDNS discovery
+      if (this.options.mdns) {
+        try {
+          const mod = await optionalRuntimeImport('@libp2p/mdns');
+          const mdns = mod?.mdns as (() => unknown) | undefined;
+          if (mdns) {
+            libp2pConfig.peerDiscovery = [
+              ...(libp2pConfig.peerDiscovery as unknown[] ?? []),
+              mdns(),
+            ];
+          }
+        } catch {
+          // @libp2p/mdns not installed
+        }
+      }
+
+      // Kad-DHT
+      if (this.options.dht) {
+        try {
+          const mod = await optionalRuntimeImport('@libp2p/kad-dht');
+          const kadDHT = mod?.kadDHT as ((options: { clientMode: boolean }) => unknown) | undefined;
+          if (kadDHT) {
+            libp2pConfig.services = {
+              ...(libp2pConfig.services as Record<string, unknown> ?? {}),
+              dht: kadDHT({ clientMode: true }),
+            };
+          }
+        } catch {
+          // @libp2p/kad-dht not installed
+        }
+      }
+
+      const node = await createLibp2p(libp2pConfig as Parameters<typeof createLibp2p>[0]);
+
+      // Listen to peer discovery events
+      (node as { on(event: string, listener: (value: unknown) => void): void }).on('peer:discovery', (peer: unknown) => {
+        const info = peer as {
+          id: { toString(): string };
+          multiaddrs: Array<{ toString(): string }>;
+        };
+        this.handlePeerDiscovery({
+          peerId: info.id.toString(),
+          multiaddrs: info.multiaddrs.map(m => m.toString()),
+          discoveredAt: Date.now(),
+        });
+>>>>>>> Stashed changes
       });
 
       await (node as { start(): Promise<void> }).start();
@@ -197,6 +341,7 @@ export class MCPDiscovery extends BrowserEventEmitter {
 // MCPPubSub
 // ---------------------------------------------------------------------------
 
+<<<<<<< Updated upstream
 export class MCPPubSub extends BrowserEventEmitter {
   private enabled: boolean;
   private topics: Set<string>;
@@ -210,6 +355,18 @@ export class MCPPubSub extends BrowserEventEmitter {
     super();
     this.options = options;
     this.enabled = options.enabled ?? true;
+=======
+export class MCPPubSub extends LocalEventEmitter {
+  private enabled: boolean;
+  private topics: Set<string>;
+  private node: unknown = null;
+  private ucanAuth: MCPDiscoveryUCANValidator | null;
+  private started = false;
+
+  constructor(options: PubSubOptions = {}, ucanAuth?: MCPDiscoveryUCANValidator) {
+    super();
+    this.enabled = options.enabled ?? false;
+>>>>>>> Stashed changes
     this.topics = new Set(options.topics ?? [
       TOPIC_INTERFACE_ANNOUNCE,
       TOPIC_RECEIPT_ANNOUNCE,
@@ -228,6 +385,7 @@ export class MCPPubSub extends BrowserEventEmitter {
     try {
       let node = libp2pNode;
       if (!node) {
+<<<<<<< Updated upstream
         node = await createMcpLibp2pNode({
           overrides: this.options.libp2pOptions,
           bootstrapMultiaddrs: this.options.bootstrapMultiaddrs,
@@ -235,6 +393,10 @@ export class MCPPubSub extends BrowserEventEmitter {
         });
         await (node as { start(): Promise<void> }).start();
         this.ownsNode = true;
+=======
+        node = await createMcpLibp2pNode({ pubsub: true });
+        await (node as { start(): Promise<void> }).start();
+>>>>>>> Stashed changes
       }
       this.node = node;
 
@@ -260,12 +422,17 @@ export class MCPPubSub extends BrowserEventEmitter {
   }
 
   async stop(): Promise<void> {
+<<<<<<< Updated upstream
     if (this.ownsNode && this.node) {
       await (this.node as { stop?: () => Promise<void> }).stop?.().catch(() => undefined);
     }
     this.started = false;
     this.node = null;
     this.ownsNode = false;
+=======
+    this.started = false;
+    this.node = null;
+>>>>>>> Stashed changes
   }
 
   // -------------------------------------------------------------------------
@@ -309,7 +476,11 @@ export class MCPPubSub extends BrowserEventEmitter {
 
     const cid = computeCID(JSON.stringify(payload));
     const msg: PubSubMessage = { topic, payload, ucanToken, cid };
+<<<<<<< Updated upstream
     const data = utf8Bytes(JSON.stringify(msg));
+=======
+    const data = utf8ToBytes(JSON.stringify(msg));
+>>>>>>> Stashed changes
 
     try {
       await (this.node as {
@@ -327,7 +498,11 @@ export class MCPPubSub extends BrowserEventEmitter {
   private async handleMessage(evt: unknown): Promise<void> {
     try {
       const raw = (evt as { detail: { data: Uint8Array; topic: string } }).detail;
+<<<<<<< Updated upstream
       const text = new TextDecoder().decode(raw.data);
+=======
+      const text = bytesToUtf8(raw.data);
+>>>>>>> Stashed changes
       const msg: PubSubMessage = JSON.parse(text);
 
       // Validate CID integrity
@@ -357,6 +532,7 @@ export class MCPPubSub extends BrowserEventEmitter {
   }
 }
 
+<<<<<<< Updated upstream
 function addLibp2pEventListener(
   target: unknown,
   event: string,
@@ -391,3 +567,15 @@ function extractPeerDiscoveryInfo(event: unknown): PeerInfo | null {
     discoveredAt: Date.now(),
   };
 }
+========
+export * from './mcp/mcp-discovery.js';
+>>>>>>>> Stashed changes:src/services/mcp-discovery.ts
+=======
+async function optionalRuntimeImport(specifier: string): Promise<Record<string, unknown> | null> {
+  try {
+    return await import(/* @vite-ignore */ specifier) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+>>>>>>> Stashed changes

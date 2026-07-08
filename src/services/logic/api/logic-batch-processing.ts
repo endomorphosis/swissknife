@@ -1,10 +1,18 @@
+<<<<<<< Updated upstream
+<<<<<<<< Updated upstream:src/services/logic/api/logic-batch-processing.ts
+=======
+>>>>>>> Stashed changes
 /**
  * Batch processing compatibility helpers for logic modules.
  *
  * TypeScript port of ipfs_datasets_py/logic/batch_processing.py remainders.
  */
 
+<<<<<<< Updated upstream
 import { parseFol } from '../fol/fol-text-parser.js';
+=======
+import { parseFol } from '../../fol-utils/fol-parser.js';
+>>>>>>> Stashed changes
 
 export class LogicBatchResult<T = unknown> {
   readonly totalItems: number;
@@ -194,3 +202,9 @@ function makeResult<T>(
     errors,
   });
 }
+<<<<<<< Updated upstream
+========
+export * from './logic/api/logic-batch-processing.js';
+>>>>>>>> Stashed changes:src/services/logic-batch-processing.ts
+=======
+>>>>>>> Stashed changes

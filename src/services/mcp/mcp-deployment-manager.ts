@@ -365,6 +365,86 @@ export class DeploymentManager {
       logError(`Failed to get version history: ${errorMessage}`);
       return [];
     }
+<<<<<<< Updated upstream
+=======
+  }
+  
+  /**
+   * Migrate existing MCP servers to versioned configuration.
+   * This is used during the first run after upgrading to support blue/green deployments.
+   */
+  public async migrateExistingServers(): Promise<number> {
+    try {
+      // Get all server configurations
+      const projectConfig = getCurrentProjectConfig();
+      const globalConfig = getGlobalConfig();
+      const mcprcConfig = getMcprcConfig();
+      
+      // Track servers we've processed
+      const processedServers = new Set<string>();
+      let count = 0;
+      
+      // Only process servers that don't already have a version
+      const hasVersionHistory = Boolean(projectConfig.mcpVersionHistory);
+      
+      // Process each server
+      const processServer = (name: string, config: McpServerConfig, scope: 'project' | 'global' | 'mcprc') => {
+        if (processedServers.has(name)) {
+          return; // Skip servers we've already processed
+        }
+        
+        processedServers.add(name);
+        
+        // Skip if this server already has version history
+        if (hasVersionHistory && projectConfig.mcpVersionHistory?.[name]) {
+          return;
+        }
+        
+        // Create versioned config
+        const versionedConfig: VersionedServerConfig = {
+          ...config,
+          version: '1.0.0', // Initial version
+          status: 'blue',   // Mark as stable
+          deploymentTimestamp: Date.now(),
+          trafficPercentage: 100,
+          scope
+        };
+        
+        // Register the server version
+        this.registry.registerServer(name, versionedConfig);
+        count++;
+      };
+      
+      // Process project-level servers
+      if (projectConfig.mcpServers) {
+        for (const [name, config] of Object.entries(projectConfig.mcpServers)) {
+          processServer(name, config, 'project');
+        }
+      }
+      
+      // Process mcprc servers
+      for (const [name, config] of Object.entries(mcprcConfig)) {
+        processServer(name, config, 'mcprc');
+      }
+      
+      // Process global servers
+      if (globalConfig.mcpServers) {
+        for (const [name, config] of Object.entries(globalConfig.mcpServers)) {
+          processServer(name, config, 'global');
+        }
+      }
+      
+      logEvent('mcp_servers_migrated', {
+        count: count.toString()
+      });
+      
+      return count;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logError(`Failed to migrate servers: ${errorMessage}`);
+      return 0;
+    }
+>>>>>>> Stashed changes
   }
   
   /**

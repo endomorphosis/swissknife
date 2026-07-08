@@ -1,4 +1,8 @@
 /**
+ * @vitest-environment node
+ */
+
+/**
  * MCP (base protocol) — connector-over-HTTP end-to-end tests.
  *
  * Companion to `connector-libp2p.test.ts` (which covers the MCP++ Profile E

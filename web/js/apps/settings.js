@@ -3,6 +3,11 @@
  * Complete configuration management with live system monitoring and comprehensive preference panels
  */
 
+import {
+  describeSystemNetworkLocalCapabilities,
+  runSystemNetworkLocalWorkflow
+} from './system-network-local-capabilities.js';
+
 export class SettingsApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -15,6 +20,11 @@ export class SettingsApp {
       p2pConnections: 0,
       activeModels: 0
     };
+    this.systemNetworkLocalCapabilities = describeSystemNetworkLocalCapabilities('settings', {
+      localCapabilities: ['preference_store', 'appearance_state', 'security_policy', 'system_metrics_panel'],
+      remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry']
+    });
+    this.lastSystemNetworkLocalWorkflow = null;
     
     // Default settings
     this.defaultSettings = {
@@ -613,5 +623,28 @@ export class SettingsApp {
     if (this.settings.appearance.accentColor) {
       document.documentElement.style.setProperty('--accent-color', this.settings.appearance.accentColor);
     }
+  }
+
+  getSystemNetworkLocalCapabilities() {
+    return this.systemNetworkLocalCapabilities;
+  }
+
+  async exerciseSystemNetworkLocalGateway(input = {}) {
+    this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
+      desktop: this.desktop,
+      appId: 'settings',
+      localCapabilities: ['preference_store', 'appearance_state', 'security_policy', 'system_metrics_panel'],
+      remoteCapabilities: ['node_status', 'hardware_profile', 'telemetry'],
+      localState: {
+        current_section: this.currentSection,
+        unsaved_changes: this.unsavedChanges,
+        telemetry_enabled: this.settings?.general?.telemetry ?? this.defaultSettings.general.telemetry,
+        p2p_enabled: this.settings?.p2p?.enableP2P ?? this.defaultSettings.p2p.enableP2P,
+        security_level: this.settings?.security?.securityLevel ?? this.defaultSettings.security.securityLevel,
+        system_metrics: this.systemMetrics
+      },
+      summary: input.summary || 'Validate Settings local preference boundaries and remote runtime status fallbacks.'
+    });
+    return this.lastSystemNetworkLocalWorkflow;
   }
 }

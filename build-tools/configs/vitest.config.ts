@@ -50,8 +50,8 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       '@web': resolve(__dirname, 'web/src'),
       '@ipfs': resolve(__dirname, 'ipfs_accelerate_js/src'),
-      // Browser polyfills for testing
-      'crypto': 'crypto-browserify',
+      // Browser polyfills for testing. `crypto` is mocked in test/setup.ts for
+      // browser environments so Node-environment tests can still use native Ed25519.
       'stream': 'stream-browserify', 
       'path': 'path-browserify',
       'os': 'os-browserify',

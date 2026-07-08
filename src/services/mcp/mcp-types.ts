@@ -1,3 +1,7 @@
+<<<<<<< Updated upstream
+<<<<<<<< Updated upstream:src/services/mcp/mcp-types.ts
+=======
+>>>>>>> Stashed changes
 /**
  * Enhanced type definitions for MCP Blue/Green Deployment
  * 
@@ -5,7 +9,11 @@
  * for MCP servers.
  */
 
+<<<<<<< Updated upstream
 import { McpServerConfig } from '../../utils/config.js';
+=======
+import type { McpServerConfig } from '../../utils/config.js';
+>>>>>>> Stashed changes
 
 /**
  * Status of a server deployment in the blue/green system
@@ -203,3 +211,9 @@ export interface CliServerVersions {
     reason: string;
   };
 }
+<<<<<<< Updated upstream
+========
+export * from './mcp/mcp-types.js';
+>>>>>>>> Stashed changes:src/services/mcp-types.ts
+=======
+>>>>>>> Stashed changes

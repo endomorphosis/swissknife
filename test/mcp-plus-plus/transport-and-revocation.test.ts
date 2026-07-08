@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for:
  *  1. WebSocketTransport — connection lifecycle, send, auto-reconnect
@@ -7,8 +8,24 @@
  *  5. UCANRevocationRegistry — revoke, isRevoked, validateToken integration
  */
 
+<<<<<<< Updated upstream
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MCPTransportFactory, MCPClient } from '../../src/services/mcp/mcp-transport.js';
+=======
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+vi.mock('crypto', async () => {
+  const actual = await import('node:crypto');
+  return { ...actual, default: actual };
+});
+
+vi.mock('fs', async () => {
+  const actual = await import('node:fs');
+  return { ...actual, default: actual };
+});
+
+import { MCPTransportFactory, MCPClient } from '../../src/services/mcp-transport.js';
+>>>>>>> Stashed changes
 import { UCANAuth } from '../../src/auth/ucan-auth.js';
 import { UCANRevocationRegistry } from '../../src/auth/ucan-auth.js';
 import { DIDKeystore } from '../../src/auth/did-keystore.js';

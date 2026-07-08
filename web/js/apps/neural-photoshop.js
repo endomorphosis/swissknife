@@ -3,6 +3,11 @@
  * Features: Segmentation, Masking, Layering, AI Tools, Geometric Transformations
  */
 
+import {
+  describeMediaArtifactCapabilities,
+  runMediaArtifactWorkflow,
+} from './media-artifact-capabilities.js';
+
 export class NeuralPhotoshopApp {
   constructor(container, desktop) {
     this.container = container;
@@ -74,6 +79,8 @@ export class NeuralPhotoshopApp {
     
     // Clipboard state
     this.internalClipboard = null;
+    this.mediaArtifactCapabilities = describeMediaArtifactCapabilities('neural-photoshop');
+    this.lastMediaArtifactWorkflow = null;
     
     // The app will be initialized by the desktop system calling initialize()
   }
@@ -3059,6 +3066,36 @@ export class NeuralPhotoshopApp {
     console.log('🎨 Rendering Neural Photoshop app...');
     const windowConfig = this.createWindow();
     return windowConfig.content;
+  }
+
+  getMediaArtifactCapabilities() {
+    return this.mediaArtifactCapabilities;
+  }
+
+  async exerciseMediaArtifactGateway(input = {}) {
+    const projectName = input.projectName || this.currentProject?.name || 'neural-photoshop-project';
+
+    this.lastMediaArtifactWorkflow = await runMediaArtifactWorkflow({
+      desktop: this.desktop,
+      appId: 'neural-photoshop',
+      mediaType: 'image',
+      mimeType: 'image/png',
+      operation: input.operation || 'ai-image-edit',
+      model: input.model || this.toolSettings.ai.model || 'stable-diffusion',
+      prompt: input.prompt || `Generate or process layered image project ${projectName}.`,
+      artifact: {
+        id: projectName,
+        name: `${projectName}-composite`,
+        filename: `${projectName.replace(/[^a-z0-9._-]+/gi, '-')}.png.json`,
+        content: {
+          project: this.currentProject,
+          layer_count: this.layers.length,
+          active_tool: this.activeTool,
+          ai_features: this.aiFeatures,
+        },
+      },
+    });
+    return this.lastMediaArtifactWorkflow;
   }
 
   // Static method to launch the GUI version

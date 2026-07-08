@@ -17,6 +17,7 @@ vi.mock('process', () => ({
   argv: ['node', 'test']
 }))
 
+<<<<<<< Updated upstream
 // Mock common Node.js modules for browser testing
 vi.mock('fs', () => {
   const mockFs = {
@@ -30,12 +31,32 @@ vi.mock('fs', () => {
     default: mockFs
   }
 })
+=======
+// Mock common Node.js modules only for browser/jsdom tests. Node-environment
+// tests need the native modules for Ed25519, real filesystem behavior, etc.
+if (typeof window !== 'undefined') {
+  vi.doMock('fs', () => {
+    const fsMock = {
+      readFileSync: vi.fn(),
+      writeFileSync: vi.fn(),
+      existsSync: vi.fn(() => true),
+      mkdirSync: vi.fn(),
+      promises: {
+        readFile: vi.fn(),
+        writeFile: vi.fn(),
+        mkdir: vi.fn(),
+      },
+    }
+    return { ...fsMock, default: fsMock }
+  })
+>>>>>>> Stashed changes
 
-vi.mock('path', async () => {
-  const actual = await vi.importActual('path-browserify')
-  return actual
-})
+  vi.doMock('path', async () => {
+    const actual = await vi.importActual('path-browserify')
+    return { ...(actual as Record<string, unknown>), default: actual }
+  })
 
+<<<<<<< Updated upstream
 // Mock crypto for consistent testing
 vi.mock('crypto', async () => {
   const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto')
@@ -53,6 +74,13 @@ vi.mock('crypto', async () => {
     randomUUID
   }
 })
+=======
+  vi.doMock('crypto', async () => {
+    const actual = await vi.importActual('crypto-browserify')
+    return { ...(actual as Record<string, unknown>), default: actual }
+  })
+}
+>>>>>>> Stashed changes
 
 // Setup global objects that might be needed. Guarded so this shared setup file
 // also works for test files that opt into the node environment
@@ -96,5 +124,9 @@ console.warn = vi.fn()
 // Increase timeout for AI-related tests
 vi.setConfig({
   testTimeout: 30000,
+<<<<<<< Updated upstream
   hookTimeout: 10000
+=======
+  hookTimeout: 10000 
+>>>>>>> Stashed changes
 })

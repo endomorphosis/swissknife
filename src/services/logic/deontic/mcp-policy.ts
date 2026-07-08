@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream:src/services/logic/deontic/mcp-policy.ts
 /**
  * Temporal Deontic Policy Evaluation (MCP++ Profile D)
  *
@@ -426,3 +427,6 @@ function computePolicyCIDInternal(policy: Policy): string {
 }
 
 export { computePolicyCIDInternal as computePolicyCID };
+=======
+export * from './mcp/mcp-policy.js';
+>>>>>>> Stashed changes:src/services/mcp-policy.ts

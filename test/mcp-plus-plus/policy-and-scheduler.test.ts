@@ -195,7 +195,11 @@ describe('PolicyEngine', () => {
     });
 
     it('emits obligation:spawned event', async () => {
+<<<<<<< Updated upstream
       const emitted = new Promise<void>((resolve) => {
+=======
+      const spawned = new Promise<void>(resolve => {
+>>>>>>> Stashed changes
         engine.on('obligation:spawned', (ob) => {
           expect(ob.description).toBe('Log the access');
           resolve();
@@ -203,7 +207,11 @@ describe('PolicyEngine', () => {
       });
       const cid = engine.registerPolicy(WITH_OBLIGATION_POLICY);
       engine.evaluatePolicy(cid, { cap: 'mcp++/invoke', rsc: '*' });
+<<<<<<< Updated upstream
       await emitted;
+=======
+      await spawned;
+>>>>>>> Stashed changes
     });
   });
 });
@@ -305,15 +313,18 @@ describe('MCPScheduler', () => {
     expect(order[0]).toBe('high');
   });
 
-  it('emits enqueued + completed events', done => {
+  it('emits enqueued + completed events', async () => {
     const scheduler = new MCPScheduler<string>();
     let enqueued = false;
     scheduler.on('enqueued', () => { enqueued = true; });
-    scheduler.on('completed', () => {
-      expect(enqueued).toBe(true);
-      done();
+    const completed = new Promise<void>(resolve => {
+      scheduler.on('completed', () => {
+        expect(enqueued).toBe(true);
+        resolve();
+      });
     });
     scheduler.setExecutor(async () => 'ok');
     scheduler.scheduleToolCall('x');
+    await completed;
   });
 });

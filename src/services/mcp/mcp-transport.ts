@@ -1,17 +1,27 @@
+<<<<<<< Updated upstream
+<<<<<<<< Updated upstream:src/services/mcp/mcp-transport.ts
+=======
+>>>>>>> Stashed changes
 /**
  * Implements multi-protocol transport support for the Model Context Protocol (MCP).
  * Includes a factory for creating different transport instances (WebSocket, libp2p, WebRTC, HTTPS).
  */
 
+<<<<<<< Updated upstream
 import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
 import { createMcpLibp2pNode } from './libp2p-browser-runtime.js';
 
+=======
+>>>>>>> Stashed changes
 /** Defines the supported MCP transport protocol types. */
 export type MCPTransportType = 'websocket' | 'libp2p' | 'webrtc' | 'https';
 
 /** Options for configuring an MCP transport connection. */
 export interface MCPTransportOptions {
+<<<<<<< Updated upstream
   /** Transport type. Defaults to libp2p so browser peers use p2p by default. */
+=======
+>>>>>>> Stashed changes
   type?: MCPTransportType;
   endpoint: string; // URL or multiaddr for the server/peer
   credentials?: Record<string, unknown>; // Authentication credentials (e.g., API key, UCAN token)
@@ -20,11 +30,48 @@ export interface MCPTransportOptions {
   encryption?: boolean; // Enable/disable transport-level encryption (if applicable)
   // Protocol-specific options
   libp2pOptions?: Record<string, unknown>; // Options for libp2p transport
+<<<<<<< Updated upstream
   bootstrapMultiaddrs?: string[]; // Browser relay/peer bootstrap multiaddrs
+=======
+  p2pProtocolId?: string; // MCP+p2p libp2p protocol ID
+  bootstrapMultiaddrs?: string[]; // Browser relay/peer bootstrap multiaddrs
+  webRTC?: boolean; // Enable browser-compatible libp2p WebRTC transport
+  webSockets?: boolean; // Enable browser-compatible libp2p WebSocket transport
+  circuitRelay?: boolean | { discoverRelays?: number }; // Enable libp2p circuit relay v2 for browser WebRTC
+  pubsub?: boolean; // Enable GossipSub service
+>>>>>>> Stashed changes
   webRTCOptions?: Record<string, unknown>; // Options for WebRTC transport (e.g., signaling server)
 }
 
 type NormalizedMCPTransportOptions = MCPTransportOptions & { type: MCPTransportType };
+<<<<<<< Updated upstream
+=======
+type Listener = (...args: unknown[]) => void;
+type ServiceFactory = (components: unknown) => unknown;
+
+class LocalEventEmitter {
+  private readonly listeners = new Map<string, Set<Listener>>();
+
+  on(event: string, listener: Listener): void {
+    const bucket = this.listeners.get(event) ?? new Set<Listener>();
+    bucket.add(listener);
+    this.listeners.set(event, bucket);
+  }
+
+  off(event: string, listener: Listener): void {
+    const bucket = this.listeners.get(event);
+    if (!bucket) return;
+    bucket.delete(listener);
+    if (bucket.size === 0) this.listeners.delete(event);
+  }
+
+  emit(event: string, ...args: unknown[]): void {
+    for (const listener of this.listeners.get(event) ?? []) {
+      listener(...args);
+    }
+  }
+}
+>>>>>>> Stashed changes
 
 /**
  * Interface defining the contract for all MCP transport implementations.
@@ -60,7 +107,11 @@ export interface MCPTransport {
 abstract class BaseTransport implements MCPTransport {
   protected options: NormalizedMCPTransportOptions;
   protected connected: boolean = false;
+<<<<<<< Updated upstream
   private eventEmitter = new BrowserEventEmitter();
+=======
+  private eventEmitter = new LocalEventEmitter();
+>>>>>>> Stashed changes
 
   constructor(options: MCPTransportOptions) {
     this.options = normalizeTransportOptions(options);
@@ -108,6 +159,10 @@ interface NodeWebSocket {
 
 class WebSocketTransport extends BaseTransport {
   private ws: NodeWebSocket | null = null;
+<<<<<<< Updated upstream
+=======
+  private wsUsesSendCallback = false;
+>>>>>>> Stashed changes
   private reconnectAttempts = 0;
   private readonly maxReconnectAttempts = 5;
   private readonly reconnectBaseDelayMs = 1000;
@@ -127,19 +182,40 @@ class WebSocketTransport extends BaseTransport {
       };
 
       try {
+<<<<<<< Updated upstream
         let WS: new (url: string, options?: unknown) => NodeWebSocket;
+=======
+        let WS: new (url: string, optionsOrProtocols?: unknown) => NodeWebSocket;
+        let browserWebSocket = false;
+>>>>>>> Stashed changes
 
         // Use native browser WebSocket if available, otherwise fall back to `ws`.
         if (typeof globalThis !== 'undefined' && typeof (globalThis as Record<string, unknown>).WebSocket === 'function') {
           WS = (globalThis as Record<string, unknown>).WebSocket as typeof WS;
+<<<<<<< Updated upstream
+=======
+          browserWebSocket = true;
+>>>>>>> Stashed changes
         } else {
           // Dynamic import keeps the module load-safe in environments without `ws`.
           const mod = await import('ws');
           WS = (mod.WebSocket ?? mod.default) as unknown as typeof WS;
         }
+<<<<<<< Updated upstream
 
         const headers = this.buildHeaders();
         this.ws = new WS(this.options.endpoint, headers ? { headers } : undefined);
+=======
+        this.wsUsesSendCallback = !browserWebSocket;
+
+        const init = browserWebSocket
+          ? this.buildBrowserProtocols()
+          : (() => {
+              const headers = this.buildHeaders();
+              return headers ? { headers } : undefined;
+            })();
+        this.ws = new WS(this.options.endpoint, init);
+>>>>>>> Stashed changes
 
         const timeoutMs = this.options.timeout ?? 10_000;
         const timer = setTimeout(() => {
@@ -197,6 +273,10 @@ class WebSocketTransport extends BaseTransport {
     this.connected = false;
     this.ws?.close(1000, 'client disconnect');
     this.ws = null;
+<<<<<<< Updated upstream
+=======
+    this.wsUsesSendCallback = false;
+>>>>>>> Stashed changes
     this.emit('disconnect');
   }
 
@@ -204,6 +284,7 @@ class WebSocketTransport extends BaseTransport {
     if (!this.isConnected() || !this.ws) {
       throw new Error('WebSocket not connected.');
     }
+<<<<<<< Updated upstream
     return new Promise<void>((resolve, reject) => {
       try {
         const payload = JSON.stringify(message);
@@ -218,6 +299,17 @@ class WebSocketTransport extends BaseTransport {
       } catch (err) {
         reject(err);
       }
+=======
+    const payload = JSON.stringify(message);
+    if (!this.wsUsesSendCallback) {
+      this.ws.send(payload);
+      return;
+    }
+    return new Promise<void>((resolve, reject) => {
+      this.ws!.send(payload, (err?: Error) => {
+        if (err) reject(err); else resolve();
+      });
+>>>>>>> Stashed changes
     });
   }
 
@@ -242,6 +334,20 @@ class WebSocketTransport extends BaseTransport {
     return Object.keys(headers).length > 0 ? headers : undefined;
   }
 
+<<<<<<< Updated upstream
+=======
+  private buildBrowserProtocols(): string | string[] | undefined {
+    const creds = this.options.credentials;
+    if (!creds) return undefined;
+    const protocols = creds.protocols ?? creds.protocol ?? creds.websocketProtocol;
+    if (typeof protocols === 'string') return protocols;
+    if (Array.isArray(protocols) && protocols.every(item => typeof item === 'string')) {
+      return protocols;
+    }
+    return undefined;
+  }
+
+>>>>>>> Stashed changes
   private async scheduleReconnect(): Promise<void> {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error('[WebSocketTransport] Max reconnect attempts reached.');
@@ -270,6 +376,7 @@ export class Libp2pTransport extends BaseTransport {
       const { MCP_P2P_PROTOCOL_ID, MCPp2pSession } = await import(
         './mcp-p2p-session.js'
       );
+<<<<<<< Updated upstream
 
       const node = await createMcpLibp2pNode({
         overrides: this.options.libp2pOptions,
@@ -280,12 +387,25 @@ export class Libp2pTransport extends BaseTransport {
       }) as {
         start(): Promise<void>;
         dialProtocol(endpoint: string, protocol: string): Promise<unknown>;
+=======
+      const protocolId = this.resolveProtocolId(MCP_P2P_PROTOCOL_ID);
+
+      const node = await createMcpLibp2pNode(this.options) as {
+        start(): Promise<void>;
+        stop(): Promise<void>;
+        dialProtocol(endpoint: unknown, protocol: string): Promise<unknown>;
+>>>>>>> Stashed changes
       };
       await node.start();
       this.node = node;
 
+<<<<<<< Updated upstream
       const endpoint = this.options.endpoint;
       const stream = await node.dialProtocol(endpoint, MCP_P2P_PROTOCOL_ID) as import('./mcp-p2p-session.js').P2PStream;
+=======
+      const endpoint = await normalizeLibp2pDialTarget(this.options.endpoint);
+      const stream = await node.dialProtocol(endpoint, protocolId) as unknown as import('./mcp-p2p-session.js').P2PStream;
+>>>>>>> Stashed changes
 
       this.session = new MCPp2pSession(stream, {
         maxFrameBytes:
@@ -365,6 +485,178 @@ export class Libp2pTransport extends BaseTransport {
     await new Promise(resolve => setTimeout(resolve, delay));
     await this.connect();
   }
+<<<<<<< Updated upstream
+=======
+
+  private resolveProtocolId(defaultProtocolId: string): string {
+    if (typeof this.options.p2pProtocolId === 'string' && this.options.p2pProtocolId.length > 0) {
+      return this.options.p2pProtocolId;
+    }
+    const configured = this.options.libp2pOptions?.protocolId;
+    return typeof configured === 'string' && configured.length > 0
+      ? configured
+      : defaultProtocolId;
+  }
+}
+
+export interface McpLibp2pRuntimeConfigResult {
+  config: Record<string, unknown>;
+  enabled: {
+    transports: string[];
+    peerDiscovery: string[];
+    services: string[];
+  };
+  unavailable: string[];
+}
+
+export async function createMcpLibp2pNode(
+  options: Omit<MCPTransportOptions, 'type' | 'endpoint'> = {},
+): Promise<unknown> {
+  const { createLibp2p } = await import('libp2p');
+  const { config } = await createMcpLibp2pConfig(options);
+  return createLibp2p(config as Parameters<typeof createLibp2p>[0]);
+}
+
+export async function createMcpLibp2pConfig(
+  options: Omit<MCPTransportOptions, 'type' | 'endpoint'> = {},
+): Promise<McpLibp2pRuntimeConfigResult> {
+  const config: Record<string, unknown> = { ...(options.libp2pOptions ?? {}) };
+  const enabled = {
+    transports: [] as string[],
+    peerDiscovery: [] as string[],
+    services: [] as string[],
+  };
+  const unavailable: string[] = [];
+  const browser = isBrowserRuntime();
+
+  const addresses = { ...((config.addresses as Record<string, unknown> | undefined) ?? {}) };
+  if (!Array.isArray(addresses.listen)) {
+    addresses.listen = browser ? ['/webrtc'] : [];
+  }
+  config.addresses = addresses;
+
+  const transports = [...asArray(config.transports)];
+  if (options.webSockets ?? true) {
+    const mod = await optionalImport('@libp2p/websockets', unavailable);
+    const webSockets = mod?.webSockets as (() => unknown) | undefined;
+    if (webSockets) {
+      transports.push(webSockets());
+      enabled.transports.push('websockets');
+    }
+  }
+  if (options.webRTC ?? true) {
+    const mod = await optionalImport('@libp2p/webrtc', unavailable);
+    const webRTC = mod?.webRTC as (() => unknown) | undefined;
+    if (webRTC) {
+      transports.push(webRTC());
+      enabled.transports.push('webrtc');
+    }
+  }
+  const relaySetting = options.circuitRelay ?? (options.webRTC ?? true);
+  if (relaySetting) {
+    const mod = await optionalImport('@libp2p/circuit-relay-v2', unavailable);
+    const circuitRelayTransport = mod?.circuitRelayTransport as ((options?: Record<string, unknown>) => unknown) | undefined;
+    if (circuitRelayTransport) {
+      const relayOptions =
+        typeof relaySetting === 'object'
+          ? relaySetting
+          : { discoverRelays: 1 };
+      transports.push(circuitRelayTransport(relayOptions));
+      enabled.transports.push('circuit-relay-v2');
+    }
+  }
+  if (transports.length > 0) config.transports = transports;
+
+  const encrypters = [...asArray(config.connectionEncrypters)];
+  const noiseMod = await optionalImport('@chainsafe/libp2p-noise', unavailable);
+  const noise = noiseMod?.noise as (() => unknown) | undefined;
+  if (noise) {
+    encrypters.push(noise());
+    enabled.services.push('noise');
+  }
+  if (encrypters.length > 0) config.connectionEncrypters = encrypters;
+
+  const muxers = [...asArray(config.streamMuxers)];
+  const yamuxMod = await optionalImport('@chainsafe/libp2p-yamux', unavailable);
+  const yamux = yamuxMod?.yamux as (() => unknown) | undefined;
+  if (yamux) {
+    muxers.push(yamux());
+    enabled.services.push('yamux');
+  }
+  if (muxers.length > 0) config.streamMuxers = muxers;
+
+  const services = { ...((config.services as Record<string, unknown> | undefined) ?? {}) };
+  const identifyMod = await optionalImport('@libp2p/identify', unavailable);
+  const identify = identifyMod?.identify as (() => ServiceFactory) | undefined;
+  if (identify && !services.identify) {
+    services.identify = await createIdentifyFactory(identify(), unavailable);
+    enabled.services.push('identify');
+  }
+  if (options.pubsub ?? true) {
+    const mod = await optionalImport('@chainsafe/libp2p-gossipsub', unavailable);
+    const gossipsub = mod?.gossipsub as (() => unknown) | undefined;
+    if (gossipsub) {
+      services.pubsub = gossipsub();
+      enabled.services.push('gossipsub');
+    }
+  }
+  if (Object.keys(services).length > 0) config.services = services;
+
+  const peerDiscovery = [...asArray(config.peerDiscovery)];
+  const bootstrapAddrs = options.bootstrapMultiaddrs ?? [];
+  if (bootstrapAddrs.length > 0) {
+    const mod = await optionalImport('@libp2p/bootstrap', unavailable);
+    const bootstrap = mod?.bootstrap as ((options: { list: string[] }) => unknown) | undefined;
+    if (bootstrap) {
+      peerDiscovery.push(bootstrap({ list: bootstrapAddrs }));
+      enabled.peerDiscovery.push('bootstrap');
+    }
+  }
+  if (peerDiscovery.length > 0) config.peerDiscovery = peerDiscovery;
+
+  return { config, enabled, unavailable };
+}
+
+export function isBrowserRuntime(): boolean {
+  return typeof globalThis.window !== 'undefined'
+    && typeof globalThis.document !== 'undefined';
+}
+
+async function optionalImport(specifier: string, unavailable: string[]): Promise<Record<string, unknown> | null> {
+  try {
+    return await import(specifier) as Record<string, unknown>;
+  } catch {
+    unavailable.push(specifier);
+    return null;
+  }
+}
+
+async function createIdentifyFactory(
+  factory: ServiceFactory,
+  unavailable: string[],
+): Promise<ServiceFactory> {
+  const interfaceMod = await optionalImport('@libp2p/interface', unavailable);
+  const serviceCapabilities = interfaceMod?.serviceCapabilities as symbol | undefined;
+  if (!serviceCapabilities) return factory;
+
+  return (components: unknown) => {
+    const service = factory(components) as Record<symbol, unknown>;
+    if (!Array.isArray(service[serviceCapabilities])) {
+      service[serviceCapabilities] = ['@libp2p/identify'];
+    }
+    return service;
+  };
+}
+
+async function normalizeLibp2pDialTarget(endpoint: string): Promise<unknown> {
+  if (!endpoint.startsWith('/')) return endpoint;
+  const { multiaddr } = await import('@multiformats/multiaddr');
+  return multiaddr(endpoint);
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+>>>>>>> Stashed changes
 }
 
 /**
@@ -568,6 +860,10 @@ class HttpsTransport extends BaseTransport {
     // HTTPS is connectionless per request; mark as ready to send requests.
     // Optionally do a HEAD/OPTIONS probe to verify the endpoint is reachable.
     try {
+<<<<<<< Updated upstream
+=======
+      // @ts-ignore optional runtime dependency
+>>>>>>> Stashed changes
       const fetch = await getFetch();
       const controller = new AbortController();
       const timeout = this.options.timeout ?? 10_000;
@@ -621,6 +917,10 @@ class HttpsTransport extends BaseTransport {
   }
 
   private async doPost(message: unknown): Promise<unknown> {
+<<<<<<< Updated upstream
+=======
+    // @ts-ignore optional runtime dependency
+>>>>>>> Stashed changes
     const fetch = await getFetch();
     const controller = new AbortController();
     const timeout = this.options.timeout ?? 30_000;
@@ -882,3 +1182,9 @@ async function getFetch(): Promise<typeof fetch> {
   const mod = await import('node-fetch');
   return (mod.default as unknown as typeof fetch);
 }
+<<<<<<< Updated upstream
+========
+export * from './mcp/mcp-transport.js';
+>>>>>>>> Stashed changes:src/services/mcp-transport.ts
+=======
+>>>>>>> Stashed changes

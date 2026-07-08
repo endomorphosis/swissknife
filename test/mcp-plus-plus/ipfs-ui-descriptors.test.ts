@@ -1,3 +1,8 @@
+<<<<<<< Updated upstream
+=======
+// @vitest-environment node
+import fs from 'fs';
+>>>>>>> Stashed changes
 import path from 'path';
 import { InterfaceRepository } from '../../src/services/mcp/mcp-idl';
 import {
