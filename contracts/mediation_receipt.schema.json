@@ -3,7 +3,7 @@
   "$id": "https://hallucinate.app/contracts/mediation_receipt.schema.json",
   "title": "mediation_receipt",
   "description": "Audit receipt that links a normalized interaction, selected policy references, compiled logic artifacts, and the policy_decision emitted before invocation.",
-  "$comment": "MGW-574 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, VAIOS-G705, goal_packet/interoperability/swissknife/06921590135c, swissknife/src/services/mcp/meta-wearables-dat-android-display-interop-descriptor.ts, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py.",
+  "$comment": "MGW-574 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, VAIOS-G705, goal_packet/interoperability/swissknife/06921590135c, swissknife/src/services/mcp/meta-wearables-dat-android-display-interop-descriptor.ts, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py. MGW-571 objective validation repair: interface contract swissknife external/ipfs_datasets, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_ipfs_datasets_interop.py.",
   "type": "object",
   "required": [
     "receipt_id",
@@ -74,11 +74,22 @@
     },
     "deonticOutcome": {
       "type": "string",
-      "enum": ["allow", "deny", "require_confirmation", "defer", "rewrite", "fallback_surface", "rate_limit"]
+      "enum": [
+        "allow",
+        "deny",
+        "require_confirmation",
+        "defer",
+        "rewrite",
+        "fallback_surface",
+        "rate_limit"
+      ]
     },
     "policyBundleRef": {
       "type": "object",
-      "required": ["policy_id", "policy_cid"],
+      "required": [
+        "policy_id",
+        "policy_cid"
+      ],
       "properties": {
         "policy_id": {
           "type": "string",
@@ -96,18 +107,34 @@
         },
         "source": {
           "type": "string",
-          "enum": ["descriptor", "operator_profile", "runtime_override", "remote_client", "system_default"]
+          "enum": [
+            "descriptor",
+            "operator_profile",
+            "runtime_override",
+            "remote_client",
+            "system_default"
+          ]
         }
       },
       "additionalProperties": false
     },
     "compiledArtifactRef": {
       "type": "object",
-      "required": ["artifact_type", "cid"],
+      "required": [
+        "artifact_type",
+        "cid"
+      ],
       "properties": {
         "artifact_type": {
           "type": "string",
-          "enum": ["frame_logic", "event_calculus", "deontic_policy", "ucan", "explanation", "source_text"]
+          "enum": [
+            "frame_logic",
+            "event_calculus",
+            "deontic_policy",
+            "ucan",
+            "explanation",
+            "source_text"
+          ]
         },
         "cid": {
           "$ref": "#/$defs/cid"
@@ -120,7 +147,10 @@
     },
     "policyRef": {
       "type": "object",
-      "required": ["policy_bundle_ref", "compiled_policy_cid"],
+      "required": [
+        "policy_bundle_ref",
+        "compiled_policy_cid"
+      ],
       "properties": {
         "policy_bundle_ref": {
           "$ref": "#/$defs/policyBundleRef"
@@ -146,7 +176,12 @@
     },
     "mediationResult": {
       "type": "object",
-      "required": ["outcome", "invoked", "final_method", "final_target_ref"],
+      "required": [
+        "outcome",
+        "invoked",
+        "final_method",
+        "final_target_ref"
+      ],
       "properties": {
         "outcome": {
           "$ref": "#/$defs/deonticOutcome"
