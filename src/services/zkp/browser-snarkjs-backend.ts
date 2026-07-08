@@ -79,9 +79,10 @@ export class BrowserSnarkjsProof {
   }
 }
 
-const DEFAULT_BROWSER_ZKP_WASM_PATH = '/assets/zkp/groth16/circuit.wasm';
-const DEFAULT_BROWSER_ZKP_ZKEY_PATH = '/assets/zkp/groth16/circuit_final.zkey';
-const DEFAULT_BROWSER_ZKP_VK_PATH = '/assets/zkp/groth16/verification_key.json';
+export const DEFAULT_BROWSER_GROTH16_ARTIFACT_BASE_URL = '/assets/zkp/groth16/deontic_discharge_v1';
+export const DEFAULT_BROWSER_ZKP_WASM_PATH = `${DEFAULT_BROWSER_GROTH16_ARTIFACT_BASE_URL}/deontic_discharge_v1.wasm`;
+export const DEFAULT_BROWSER_ZKP_ZKEY_PATH = `${DEFAULT_BROWSER_GROTH16_ARTIFACT_BASE_URL}/deontic_discharge_v1_final.zkey`;
+export const DEFAULT_BROWSER_ZKP_VK_PATH = `${DEFAULT_BROWSER_GROTH16_ARTIFACT_BASE_URL}/verification_key.json`;
 
 export class BrowserSnarkjsGroth16Backend implements ZKPBackendProtocol {
   private readonly wasmPath: string;

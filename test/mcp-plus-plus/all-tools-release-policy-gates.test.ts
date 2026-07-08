@@ -49,8 +49,8 @@ describe('all MCP/MCP++ tools release policy gates', () => {
   it('writes a release gate report with all required evidence sections', () => {
     expect(report.schema).toBe('swissknife.all-mcp-tools-release-policy-gate.v1');
     expect(report.gate_count).toBe(8);
-    expect(report.tool_count).toBe(488);
-    expect(report.app_visible_tool_count).toBe(418);
+    expect(report.tool_count).toBe(658);
+    expect(report.app_visible_tool_count).toBe(627);
     expect(actualFs.existsSync(gatePath)).toBe(true);
   });
 
@@ -64,16 +64,15 @@ describe('all MCP/MCP++ tools release policy gates', () => {
     expect(gate('high_risk_confirmation_and_receipts').status).toBe('pass');
   });
 
-  it('returns no-go only because SVD-031 still has adapter-required accelerate methods', () => {
+  it('returns go after the configured accelerate adapter exposes every required method', () => {
     const boundary = gate('accelerate_adapter_boundary');
 
-    expect(report.decision).toBe('no_go');
-    expect(report.fail_count).toBe(1);
-    expect(report.blocker_count).toBe(1);
-    expect(boundary.status).toBe('fail');
-    expect(boundary.evidence.adapter_required_tool_count).toBe(11);
-    expect(boundary.evidence.adapter_required_method_count).toBe(17);
-    expect(report.blockers.join('\n')).toContain('bounded ipfs_accelerate_py compatibility endpoint');
+    expect(report.decision).toBe('go');
+    expect(report.fail_count).toBe(0);
+    expect(report.blocker_count).toBe(0);
+    expect(boundary.status).toBe('pass');
+    expect(boundary.evidence.adapter_required_tool_count).toBe(0);
+    expect(boundary.evidence.adapter_required_method_count).toBe(0);
   });
 
   it('validates release gate counters and failing-gate blocker contracts', () => {
@@ -81,7 +80,7 @@ describe('all MCP/MCP++ tools release policy gates', () => {
 
     expect(validation.valid).toBe(true);
     expect(validation.errors).toEqual([]);
-    expect(report.pass_count).toBe(7);
+    expect(report.pass_count).toBe(8);
     expect(report.warn_count).toBe(0);
   });
 });

@@ -9,6 +9,118 @@
     "node": ">=18.0.0"
   },
   "type": "module",
+  "types": "./web/src/swissknife-browser-core.ts",
+  "browser": "./web/src/swissknife-browser-core.ts",
+  "exports": {
+    ".": {
+      "types": "./web/src/swissknife-browser-core.ts",
+      "browser": "./web/src/swissknife-browser-core.ts",
+      "import": "./web/src/swissknife-browser-core.ts",
+      "default": "./web/src/swissknife-browser-core.ts"
+    },
+    "./browser": {
+      "types": "./web/src/swissknife-browser-core.ts",
+      "browser": "./web/src/swissknife-browser-core.ts",
+      "import": "./web/src/swissknife-browser-core.ts",
+      "default": "./web/src/swissknife-browser-core.ts"
+    },
+    "./browser/ai": {
+      "types": "./src/ai/browser.ts",
+      "browser": "./src/ai/browser.ts",
+      "import": "./src/ai/browser.ts",
+      "default": "./src/ai/browser.ts"
+    },
+    "./browser/components": {
+      "types": "./src/components/browser/index.ts",
+      "browser": "./src/components/browser/index.ts",
+      "import": "./src/components/browser/index.ts",
+      "default": "./src/components/browser/index.ts"
+    },
+    "./browser/hooks": {
+      "types": "./src/hooks/browser/index.ts",
+      "browser": "./src/hooks/browser/index.ts",
+      "import": "./src/hooks/browser/index.ts",
+      "default": "./src/hooks/browser/index.ts"
+    },
+    "./browser/ipfs": {
+      "types": "./src/services/ipfs/browser.ts",
+      "browser": "./src/services/ipfs/browser.ts",
+      "import": "./src/services/ipfs/browser.ts",
+      "default": "./src/services/ipfs/browser.ts"
+    },
+    "./browser/mcp/dashboard-policy": {
+      "types": "./src/services/mcp/mcp-dashboard-browser-policy.ts",
+      "browser": "./src/services/mcp/mcp-dashboard-browser-policy.ts",
+      "import": "./src/services/mcp/mcp-dashboard-browser-policy.ts",
+      "default": "./src/services/mcp/mcp-dashboard-browser-policy.ts"
+    },
+    "./browser/mcp/libp2p": {
+      "types": "./src/services/mcp/libp2p-browser-runtime.ts",
+      "browser": "./src/services/mcp/libp2p-browser-runtime.ts",
+      "import": "./src/services/mcp/libp2p-browser-runtime.ts",
+      "default": "./src/services/mcp/libp2p-browser-runtime.ts"
+    },
+    "./browser/models": {
+      "types": "./src/models/browser.ts",
+      "browser": "./src/models/browser.ts",
+      "import": "./src/models/browser.ts",
+      "default": "./src/models/browser.ts"
+    },
+    "./browser/platform": {
+      "types": "./src/platform/browser.ts",
+      "browser": "./src/platform/browser.ts",
+      "import": "./src/platform/browser.ts",
+      "default": "./src/platform/browser.ts"
+    },
+    "./browser/screens": {
+      "types": "./src/screens/browser/index.ts",
+      "browser": "./src/screens/browser/index.ts",
+      "import": "./src/screens/browser/index.ts",
+      "default": "./src/screens/browser/index.ts"
+    },
+    "./browser/storage": {
+      "types": "./src/storage/browser.ts",
+      "browser": "./src/storage/browser.ts",
+      "import": "./src/storage/browser.ts",
+      "default": "./src/storage/browser.ts"
+    },
+    "./browser/workers": {
+      "types": "./src/workers/browser.ts",
+      "browser": "./src/workers/browser.ts",
+      "import": "./src/workers/browser.ts",
+      "default": "./src/workers/browser.ts"
+    },
+    "./host": {
+      "types": "./src/platform/host.ts",
+      "node": "./src/platform/host.ts",
+      "default": null
+    },
+    "./host/ai": {
+      "types": "./src/ai/host.ts",
+      "node": "./src/ai/host.ts",
+      "default": null
+    },
+    "./host/models": {
+      "types": "./src/models/host.ts",
+      "node": "./src/models/host.ts",
+      "default": null
+    },
+    "./host/storage": {
+      "types": "./src/storage/host.ts",
+      "node": "./src/storage/host.ts",
+      "default": null
+    },
+    "./host/workers": {
+      "types": "./src/workers/host.ts",
+      "node": "./src/workers/host.ts",
+      "default": null
+    },
+    "./cli": {
+      "node": "./cli.mjs",
+      "default": null
+    },
+    "./package.json": "./package.json"
+  },
   "author": "Benjamin Barber <starworks5@gmail.com>",
   "license": "",
   "description": "Use swissknife, an AI assistant, right from your terminal. swissknife can understand your codebase, edit files, run terminal commands, and handle entire workflows for you.",
@@ -23,7 +135,11 @@
   "files": [
     "cli.mjs",
     "yoga.wasm",
-    "install.sh"
+    "install.sh",
+    "src",
+    "web/src",
+    "docs/browser-public-api.md",
+    "scripts/audit-package-browser-exports.mjs"
   ],
   "scripts": {
     "dev": "vite dev",
@@ -70,6 +186,7 @@
     "lint:eslint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:source-modules": "node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden",
     "audit:module-boundary": "node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden",
+    "audit:package-browser-exports": "node scripts/audit-package-browser-exports.mjs --fail-on-host-leakage --report docs/browser-public-api.md",
     "services:audit": "node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden --fail-on-legacy --json docs/service-boundary-audit.json && node scripts/audit-release-evidence-freshness.mjs --update module-boundary-audit --json docs/release-evidence-freshness.json --report docs/release-evidence-freshness.md",
     "lint:fix": "npm run lint:source-modules && eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",

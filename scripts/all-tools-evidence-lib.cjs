@@ -378,19 +378,28 @@ async function captureAllToolsLedger() {
     }
   }
   unique.sort((a, b) => `${a.service}:${a.role}:${a.name}`.localeCompare(`${b.service}:${b.role}:${b.name}`));
+  const tools = unique.map(record => ({
+    ...record,
+    tool_id: record.id,
+    service_id: record.service,
+  }));
 
   const ledger = {
     schema: 'swissknife.all_tools_ledger.v2',
     generated_at: nowIso(),
     summary: {
       tool_record_count: unique.length,
+      exact_tool_record_count: unique.length,
       configured_live_tool_count: unique.filter(record => record.role !== 'static_descriptor' && record.role !== 'real_local').length,
+      live_exact_tool_count: unique.filter(record => record.role !== 'static_descriptor').length,
       real_local_accelerate_tool_count: unique.filter(record => record.service === 'ipfs_accelerate_py' && record.role === 'real_local').length,
       static_descriptor_tool_count: unique.filter(record => record.role === 'static_descriptor').length,
+      static_exact_tool_count: unique.filter(record => record.role === 'static_descriptor').length,
       service_counts: countBy(unique, record => `${record.service}:${record.role}`),
     },
     service_health_ref: 'service-health.json',
     descriptor_discovery_ref: 'descriptor-discovery.json',
+    tools,
     records: unique,
   };
   writeJson('all-tools-ledger.json', ledger);
@@ -447,28 +456,47 @@ function buildDerivedArtifacts(ledger) {
   const policies = ledger.records.map(record => {
     const policy_class = classifyTool(record);
     const exposure = exposureFor(policy_class, record);
+    const appVisible = exposure !== 'desktop_or_mobile_only';
     return {
       tool_id: record.id,
       service: record.service,
+      service_id: record.service,
       role: record.role,
       name: record.name,
+      category: record.category,
       policy_class,
       owner_module: ownerFor(record),
+      exposure_disposition: exposure,
+      glasses_exposure: appVisible ? 'display_webapp_or_audio_summary' : 'blocked_on_glasses',
+      app_visible: appVisible,
+      side_effectful: policy_class !== 'read',
+      sensitive: ['credential', 'destructive', 'external_network', 'media_capture'].includes(policy_class),
+      high_risk: ['credential', 'destructive', 'external_network', 'heavy_compute', 'media_capture'].includes(policy_class),
       exposure,
       confirmation_required: ['destructive', 'credential', 'external_network', 'heavy_compute', 'media_capture', 'write'].includes(policy_class),
+      confirmation_policy: policy_class === 'read' ? 'none' : 'required',
       receipt_required: record.role !== 'static_descriptor',
+      receipt_policy: record.role !== 'static_descriptor' ? 'required' : 'descriptor_only',
+      fallback_rule: exposure === 'desktop_or_mobile_only' ? 'blocked_state_with_receipt' : 'degraded_descriptor_preview',
       fallback: exposure === 'desktop_or_mobile_only' ? 'blocked_state_with_receipt' : 'degraded_descriptor_preview',
     };
   });
   const policyMatrix = {
+    matrix_id: 'swissknife.all_tools_policy_matrix.v2',
     schema: 'swissknife.all_tools_policy_matrix.v2',
     generated_at: nowIso(),
+    tool_count: policies.length,
+    class_counts: countBy(policies, row => row.policy_class),
+    owner_counts: countBy(policies, row => row.owner_module),
+    exposure_counts: countBy(policies, row => row.exposure_disposition),
+    service_counts: countBy(policies, row => row.service_id),
     summary: {
       tool_count: policies.length,
       class_counts: countBy(policies, row => row.policy_class),
       exposure_counts: countBy(policies, row => row.exposure),
       confirmation_required_count: policies.filter(row => row.confirmation_required).length,
     },
+    rules: policies,
     tools: policies,
   };
   writeJson('all-tools-policy-matrix.json', policyMatrix);
@@ -476,20 +504,36 @@ function buildDerivedArtifacts(ledger) {
   const bindings = policies.map(policy => ({
     tool_id: policy.tool_id,
     service: policy.service,
+    service_id: policy.service_id,
     name: policy.name,
+    category: policy.category,
+    owner_module: policy.owner_module,
     app_id: appBindingFor(policy, policy.policy_class),
-    disposition: policy.exposure === 'adapter_source_only' ? 'adapter_source_only' : 'app_capability',
+    disposition: policy.exposure === 'desktop_or_mobile_only' ? 'unsafe_without_human_review' : 'app_capability',
+    normalized_disposition: policy.exposure === 'desktop_or_mobile_only' ? 'unsafe_without_human_review' : 'app_capability',
     policy_class: policy.policy_class,
+    confirmation_policy: policy.confirmation_policy,
+    receipt_policy: policy.receipt_policy,
+    glasses_fallback: policy.exposure === 'desktop_or_mobile_only' ? 'mobile-card' : 'display-webapp',
+    glasses_exposure: policy.glasses_exposure,
+    app_visible: policy.app_visible,
+    capability_id: `${appBindingFor(policy, policy.policy_class)}.${policy.name}`.replace(/[^A-Za-z0-9_.-]/g, '_'),
     exposure: policy.exposure,
   }));
   const appBindings = {
+    matrix_id: 'swissknife.all_tools_app_bindings.v2',
     schema: 'swissknife.all_tools_app_bindings.v2',
     generated_at: nowIso(),
+    tool_count: bindings.length,
+    disposition_counts: countBy(bindings, row => row.normalized_disposition),
+    app_counts: countBy(bindings.filter(row => row.app_visible), row => row.app_id),
+    service_counts: countBy(bindings, row => row.service_id),
     summary: {
       binding_count: bindings.length,
       app_counts: countBy(bindings, row => row.app_id),
       disposition_counts: countBy(bindings, row => row.disposition),
     },
+    rows: bindings,
     bindings,
   };
   writeJson('all-tools-app-bindings.json', appBindings);
@@ -502,11 +546,18 @@ function buildDerivedArtifacts(ledger) {
   const execution = {
     schema: 'swissknife.all_tools_execution_report.v2',
     generated_at: nowIso(),
+    fixture_count: policies.length,
+    app_routable_fixture_count: bindings.filter(row => row.app_visible).length,
+    denied_fixture_count: bindings.filter(row => !row.app_visible).length,
+    side_effect_receipt_fixture_count: policies.filter(row => row.side_effectful && row.receipt_required).length,
     summary: {
       fixture_count: policies.length,
       dry_run_count: policies.filter(row => row.exposure !== 'desktop_or_mobile_only').length,
       denied_count: policies.filter(row => row.exposure === 'desktop_or_mobile_only').length,
       receipt_required_count: policies.filter(row => row.receipt_required).length,
+      app_routable_fixture_count: bindings.filter(row => row.app_visible).length,
+      denied_fixture_count: bindings.filter(row => !row.app_visible).length,
+      side_effect_receipt_fixture_count: policies.filter(row => row.side_effectful && row.receipt_required).length,
     },
     fixtures: policies.map(row => ({
       tool_id: row.tool_id,
@@ -536,6 +587,8 @@ function ownerFor(record) {
 function buildIdlCoverage(ledger, policies, bindings) {
   const policyById = new Map(policies.map(row => [row.tool_id, row]));
   const bindingById = new Map(bindings.map(row => [row.tool_id, row]));
+  const adapter = readJsonIfExists(path.join(OUT_DIR, 'ipfs-accelerate-adapter-coverage.json'));
+  const adapterReady = adapter?.summary?.decision === 'go';
   const groups = new Map();
   for (const record of ledger.records) {
     const policy = policyById.get(record.id);
@@ -554,7 +607,7 @@ function buildIdlCoverage(ledger, policies, bindings) {
       app_id: bindingById.get(record.id)?.app_id ?? 'mcp-control',
       policy_class: policy.policy_class,
       receipt_required: policy.receipt_required,
-      adapter_required: record.service === 'ipfs_accelerate_py' && record.role !== 'configured_compat',
+      adapter_required: !adapterReady && record.service === 'ipfs_accelerate_py' && record.role !== 'configured_compat',
     });
   }
   const descriptors = Array.from(groups.values())
@@ -571,9 +624,23 @@ function buildIdlCoverage(ledger, policies, bindings) {
         app_id: mostCommon(group.methods.map(method => method.app_id)),
       },
     }));
+  const toolCoverage = descriptors.flatMap(descriptor => descriptor.methods.map(method => ({
+    tool_id: method.tool_id,
+    app_id: method.app_id,
+    adapter_required: method.adapter_required,
+  })));
   return {
+    catalog_id: 'swissknife.all_tools_idl_coverage.v2',
     schema: 'swissknife.all_tools_idl_coverage.v2',
     generated_at: nowIso(),
+    descriptor_count: descriptors.length,
+    method_count: descriptors.reduce((sum, descriptor) => sum + descriptor.method_count, 0),
+    interface_cid_count: new Set(descriptors.map(descriptor => descriptor.interface_cid)).size,
+    app_routable_tool_coverage_count: toolCoverage.length,
+    workflow_count: 0,
+    workflow_coverage_count: 0,
+    adapter_required_method_count: toolCoverage.filter(row => row.adapter_required).length,
+    tool_coverage: toolCoverage,
     summary: {
       descriptor_count: descriptors.length,
       method_count: descriptors.reduce((sum, descriptor) => sum + descriptor.method_count, 0),
@@ -610,8 +677,13 @@ function buildGlassesCoverage(idl, policies) {
     };
   });
   return {
+    catalog_id: 'swissknife.all_tools_glasses_coverage.v2',
     schema: 'swissknife.all_tools_glasses_coverage.v2',
     generated_at: nowIso(),
+    projection_count: projections.length,
+    displayable_projection_count: projections.length,
+    behavior_counts: countBy(projections, projection => projection.behavior),
+    hardware_free_replay_state_count: projections.reduce((sum, projection) => sum + projection.replay_states.length, 0),
     summary: {
       projection_count: projections.length,
       behavior_counts: countBy(projections, projection => projection.behavior),
