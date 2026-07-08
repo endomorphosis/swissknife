@@ -21,6 +21,7 @@ src/services/
   mcp/
   glasses/
   ipfs/
+  apps/
   logic/
     api/
     shared/
@@ -47,6 +48,7 @@ src/services/
 | `mcp` | MCP protocol, registries, descriptors, transports, event DAG provenance, policy broker, generated UI state, with `browser.ts` for descriptor/envelope/schema/policy primitives and `host.ts` for transports, discovery, descriptor trust, and CLI wrappers. |
 | `glasses` | Meta-glasses, orb, webapp, control-plane, widget, display/input/audio/camera adapters. |
 | `ipfs` | IPFS interface descriptors, UI profiles, widgets, storage/cache integration points. |
+| `apps` | Virtual desktop app manifests, app capability policies, app result envelopes, composite descriptors, and app capability gateway orchestration. |
 | `logic.shared` | Common formula/proof domain types, analyzers, validation, shared NL/temporal helpers, and shared theorem metadata. |
 | `logic.api` | Stable logic-layer facades, batch processing, public APIs, and end-to-end validation. |
 | `logic.nl` | NL parsing, grammar, multilingual parsers, NL-to-policy/DCEC/TDFOL compilation. |
@@ -80,6 +82,10 @@ src/services/
   `index.ts` barrel.
 - `glasses` can use MCP descriptors and IPFS profiles. MCP core should not
   import glasses implementations.
+- `apps` can use MCP descriptors, glasses profiles, and IPFS capability
+  registries to describe app-level orchestration. Other modules should import
+  it only when they are building app manifests, app coverage, or app capability
+  plans.
 - `zkp` can depend on `shared`, `logic.shared`, selected theorem modules, and
   `provers`. Browser ZKP entrypoints must not import Node-only backends; browser
   code should import `src/services/zkp/browser`, while CLI/server code may use
@@ -147,14 +153,14 @@ on `2026-07-07`:
 
 | Metric | Count |
 |---|---:|
-| Service files | 365 |
+| Service files | 406 |
 | Root-level service files | 0 |
 | Root compatibility shims | 0 |
 | Root implementation files | 0 |
 | Legacy root files | 0 |
 | Legacy path files | 0 |
 | Unknown files | 0 |
-| Import edges | 847 |
+| Import edges | 994 |
 | Forbidden cross-module imports | 0 |
 | Legacy root import specifiers | 0 |
 

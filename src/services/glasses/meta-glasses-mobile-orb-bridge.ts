@@ -1,5 +1,9 @@
 import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
 import type { ControlSurfacePolicyEvaluator } from './control-surface-mediator.js';
+import {
+  createGlassesManifestControlPlaneCoverage,
+  validateGlassesManifestControlPlaneCoverage,
+} from './glasses-app-control-plane.js';
 import type { MCPUIProfileDescriptor } from '../mcp/mcp-ui-profile.js';
 import {
   LocalORBTransportAdapter,
@@ -79,6 +83,27 @@ export interface MetaGlassesMobileORBFallbackSelection {
   audio_summary_available: boolean;
   fallback_reason: string | null;
   fallback?: Record<string, unknown>;
+}
+
+export interface MetaGlassesMobileORBAllAppFallbackPlanEntry {
+  app_id: string;
+  app_title: string;
+  displayable: boolean;
+  primary_render_target: MetaGlassesMobileORBCanonicalRenderTarget;
+  selected_render_target: MetaGlassesMobileORBCanonicalRenderTarget;
+  dispatch_render_targets: MetaGlassesMobileORBCanonicalRenderTarget[];
+  selection: MetaGlassesMobileORBFallbackSelection;
+}
+
+export interface MetaGlassesMobileORBAllAppFallbackPlan {
+  app_count: number;
+  dat_capabilities: MetaGlassesMobileORBDatCapabilities;
+  entries: MetaGlassesMobileORBAllAppFallbackPlanEntry[];
+  validation: {
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+  };
 }
 
 export interface MetaGlassesMobileORBDatCapabilities {
@@ -1095,6 +1120,68 @@ export function selectMetaGlassesMobileORBFallback(request: {
       : null,
     fallback: request.fallback,
   }) as unknown as MetaGlassesMobileORBFallbackSelection;
+}
+
+export function createMetaGlassesMobileORBAllAppFallbackPlan(): MetaGlassesMobileORBAllAppFallbackPlan {
+  const coverage = createGlassesManifestControlPlaneCoverage();
+  const validation = validateGlassesManifestControlPlaneCoverage(coverage);
+  const datCapabilities: MetaGlassesMobileORBDatCapabilities = {
+    session: true,
+    display: true,
+    webAppDisplay: true,
+    audio: true,
+  };
+  const entries = coverage.entries.map(entry => {
+    const primary = primaryRenderTargetForGlassesStrategy(entry.display_source, entry.handoff);
+    const normalizedFallbackTargets = entry.fallback_targets.map(target =>
+      normalizeMetaGlassesMobileORBRenderTarget(target),
+    );
+    const dispatchTargets = uniqueStrings([
+      primary,
+      ...normalizedFallbackTargets,
+      ...META_GLASSES_MOBILE_ORB_CANONICAL_RENDER_TARGETS,
+    ]) as MetaGlassesMobileORBCanonicalRenderTarget[];
+    const fallback = entry.fallback_targets.length > 0
+      ? {
+          reason: `${entry.display_source} fallback for ${entry.app_id}`,
+          render_path: entry.fallback_targets[0],
+        }
+      : undefined;
+    const selection = selectMetaGlassesMobileORBFallback({
+      render_targets: dispatchTargets,
+      fallback,
+      dat_capabilities: datCapabilities,
+    });
+
+    return {
+      app_id: entry.app_id,
+      app_title: entry.app_title,
+      displayable: entry.displayable,
+      primary_render_target: selection.primary_render_target,
+      selected_render_target: selection.selected_render_target,
+      dispatch_render_targets: dispatchTargets,
+      selection,
+    };
+  });
+
+  return {
+    app_count: coverage.app_count,
+    dat_capabilities: datCapabilities,
+    entries,
+    validation,
+  };
+}
+
+function primaryRenderTargetForGlassesStrategy(
+  strategy: string,
+  handoff: string,
+): MetaGlassesMobileORBCanonicalRenderTarget {
+  if (strategy === 'audio-summary' || handoff === 'audio-summary') return 'audio_summary';
+  if (strategy === 'mobile-card' || handoff === 'mobile-card') return 'mobile_card';
+  if (strategy === 'idl-generated') return 'display_webapp';
+  if (strategy === 'display-webapp' || handoff === 'display-webapp') return 'display_webapp';
+  if (handoff === 'native-display') return 'native_display';
+  return 'notification';
 }
 
 function normalizeFallbackRenderPath(value: unknown): MetaGlassesMobileORBCanonicalRenderTarget {

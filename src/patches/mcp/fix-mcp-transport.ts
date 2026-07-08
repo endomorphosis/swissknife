@@ -1,1 +1,1 @@
-export * from '../../services/mcp-transport.js';
+export * from '../../services/mcp/mcp-transport.js';

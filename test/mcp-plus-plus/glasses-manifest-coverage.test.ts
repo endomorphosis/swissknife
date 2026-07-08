@@ -1,7 +1,7 @@
 import {
   META_GLASSES_DISPLAY_VIEWPORT,
   META_GLASSES_MAX_SAFE_UPDATE_HZ,
-} from '../../src/services/meta-glasses-display-profile';
+} from '../../src/services/glasses/meta-glasses-display-profile';
 import {
   createGlassesManifestControlPlaneCoverage,
   getGlassesManifestCoverageEntry,

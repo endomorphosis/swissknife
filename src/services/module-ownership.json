@@ -24,12 +24,17 @@
     "glasses": {
       "targetPath": "src/services/glasses",
       "purpose": "Meta-glasses/orb/webapp control surfaces, adapters, widget compilation, and display/input/audio/camera profiles.",
-      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs"]
+      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs", "apps"]
     },
     "ipfs": {
       "targetPath": "src/services/ipfs",
       "purpose": "IPFS interface descriptors, UI profiles, widgets, and storage/cache integration points.",
       "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs", "proof-engine"]
+    },
+    "apps": {
+      "targetPath": "src/services/apps",
+      "purpose": "Virtual desktop app manifests, app capability policies, app result envelopes, composite app descriptors, and app capability gateway orchestration.",
+      "allowedImports": ["shared", "platform", "mcp", "glasses", "ipfs", "apps"]
     },
     "logic.shared": {
       "targetPath": "src/services/logic/shared",
@@ -108,6 +113,7 @@
     { "pattern": "src/services/mcp/**", "module": "mcp" },
     { "pattern": "src/services/glasses/**", "module": "glasses" },
     { "pattern": "src/services/ipfs/**", "module": "ipfs" },
+    { "pattern": "src/services/apps/**", "module": "apps" },
     { "pattern": "src/services/integrations/**", "module": "integrations" },
     { "pattern": "src/services/proof-engine/**", "module": "proof-engine" },
     { "pattern": "src/services/logic/shared/**", "module": "logic.shared" },

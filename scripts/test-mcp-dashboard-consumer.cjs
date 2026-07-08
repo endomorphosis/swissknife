@@ -12,7 +12,7 @@ import MCPDaemonManager from '../hallucinate_app/hallucinate_app/node/mcp_daemon
 import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,
-} from './src/services/swissknife-mcp-capability-registry.ts';
+} from './src/services/mcp/swissknife-mcp-capability-registry.ts';
 
 const catalogPath = path.resolve(
   '..',

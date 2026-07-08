@@ -271,6 +271,7 @@ export interface GlassesManifestControlPlaneValidation {
 
 export interface GlassesManifestControlPlaneCoverageEntry {
   app_id: string;
+  app_title: string;
   title: string;
   displayable: boolean;
   display_source: GlassesManifestDisplaySource;
@@ -385,6 +386,7 @@ function createGlassesManifestControlPlaneCoverageEntry(
 
   return {
     app_id: app.id,
+    app_title: app.title,
     title: app.title,
     displayable: Boolean(displayProfile),
     display_source: app.glasses_strategy.kind,

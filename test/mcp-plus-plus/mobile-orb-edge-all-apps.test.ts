@@ -8,7 +8,7 @@ import {
   type MetaGlassesMobileORBRegisterResponse,
 } from '../../src/services/glasses/meta-glasses-mobile-orb-bridge';
 import { VIRTUAL_DESKTOP_APP_MANIFEST } from '../../src/services/apps/virtual-desktop-app-manifest';
-import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/control-surface-mediator';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';
 
 const ALL_CAPABILITIES = [
   'mobile/orb.edge',
