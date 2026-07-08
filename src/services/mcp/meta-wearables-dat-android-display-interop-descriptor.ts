@@ -1,9 +1,10 @@
 /**
  * SwissKnife <-> external/meta-wearables-dat-android Display interoperability descriptor.
  *
- * MGW-574 objective validation repair: interface contract swissknife external/meta-wearables-dat-android,
+ * VAI-666 objective validation repair: interface contract swissknife external/meta-wearables-dat-android,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py.
+ * MGW-574 records the same Android DAT proof under the Meta Glasses backlog.
  *
  * This module describes the Meta Wearables DAT Android Display session and
  * registration surface as a canonical MCP-IDL interface that can be
@@ -32,7 +33,8 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_METADATA = {
   interface_contract: 'interface contract swissknife external/meta-wearables-dat-android',
   goal_packet: 'goal_packet/interoperability/swissknife/06921590135c',
   goal_id: 'VAIOS-G705',
-  task_id: 'MGW-574',
+  task_id: 'VAI-666',
+  related_task_id: 'MGW-574',
   source_surface: 'swissknife',
   target_surface: 'external/meta-wearables-dat-android',
 };
@@ -186,11 +188,14 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_DESCRIPTOR = {
       'policy:swissknife:meta-wearables-dat-android-display-interop',
   },
   validation: {
-    task_id: 'MGW-574',
+    task_id: 'VAI-666',
+    related_task_id: 'MGW-574',
     goal_id: 'VAIOS-G705',
     objective_gap_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-574-objective-gap-73dd061c433c.md',
+      'data/virtual_ai_os/discovery/2026-07-08-vai-666-objective-gap-73dd061c433c.md',
     validation_repair_ref:
+      'data/virtual_ai_os/discovery/2026-07-08-vai-666-objective-validation-repair.md',
+    related_validation_repair_ref:
       'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-574-objective-validation-repair.md',
     evidence: 'objective validation repair',
   },
@@ -348,4 +353,3 @@ export function buildSwissKnifeMetaWearablesDATAndroidInteractionEnvelope() {
     ],
   };
 }
-
