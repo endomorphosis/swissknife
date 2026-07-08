@@ -1,0 +1,550 @@
+{
+  "tools": [
+    {
+      "category": "ipfs_tools",
+      "deprecated": false,
+      "description": "Add a file to IPFS and return its CID",
+      "inputSchema": {
+        "properties": {
+          "file_path": {
+            "type": "string"
+          },
+          "recursive": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_path"
+        ],
+        "type": "object"
+      },
+      "name": "ipfs_add",
+      "tags": [
+        "ipfs",
+        "write"
+      ]
+    },
+    {
+      "category": "ipfs_tools",
+      "deprecated": false,
+      "description": "Retrieve content from IPFS by CID",
+      "inputSchema": {
+        "properties": {
+          "cid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cid"
+        ],
+        "type": "object"
+      },
+      "name": "ipfs_cat",
+      "tags": [
+        "ipfs",
+        "read"
+      ]
+    },
+    {
+      "category": "ipfs_tools",
+      "deprecated": false,
+      "description": "List entries under an IPFS path",
+      "inputSchema": {
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "name": "ipfs_ls",
+      "tags": [
+        "ipfs",
+        "read"
+      ]
+    },
+    {
+      "category": "pin_tools",
+      "deprecated": false,
+      "description": "Pin a CID to the local node",
+      "inputSchema": {
+        "properties": {
+          "cid": {
+            "type": "string"
+          },
+          "recursive": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cid"
+        ],
+        "type": "object"
+      },
+      "name": "pin_add",
+      "tags": [
+        "pin",
+        "write"
+      ]
+    },
+    {
+      "category": "pin_tools",
+      "deprecated": false,
+      "description": "List pinned CIDs",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "pin_ls",
+      "tags": [
+        "pin",
+        "read"
+      ]
+    },
+    {
+      "category": "pin_tools",
+      "deprecated": false,
+      "description": "Unpin a CID from the local node",
+      "inputSchema": {
+        "properties": {
+          "cid": {
+            "type": "string"
+          },
+          "recursive": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cid"
+        ],
+        "type": "object"
+      },
+      "name": "pin_rm",
+      "tags": [
+        "pin",
+        "write"
+      ]
+    },
+    {
+      "category": "pin_tools",
+      "deprecated": false,
+      "description": "Get full pinset (local + cluster)",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "get_pinset",
+      "tags": [
+        "pin",
+        "read"
+      ]
+    },
+    {
+      "category": "dag_tools",
+      "deprecated": false,
+      "description": "Get a DAG node by CID",
+      "inputSchema": {
+        "properties": {
+          "cid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cid"
+        ],
+        "type": "object"
+      },
+      "name": "dag_get",
+      "tags": [
+        "dag",
+        "read"
+      ]
+    },
+    {
+      "category": "dag_tools",
+      "deprecated": false,
+      "description": "Put a DAG node, returns CID",
+      "inputSchema": {
+        "properties": {
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "name": "dag_put",
+      "tags": [
+        "dag",
+        "write"
+      ]
+    },
+    {
+      "category": "mfs_tools",
+      "deprecated": false,
+      "description": "List an MFS directory",
+      "inputSchema": {
+        "properties": {
+          "long": {
+            "default": false,
+            "type": "boolean"
+          },
+          "path": {
+            "default": "/",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "files_ls",
+      "tags": [
+        "mfs",
+        "read"
+      ]
+    },
+    {
+      "category": "mfs_tools",
+      "deprecated": false,
+      "description": "Make an MFS directory",
+      "inputSchema": {
+        "properties": {
+          "parents": {
+            "default": false,
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "name": "files_mkdir",
+      "tags": [
+        "mfs",
+        "write"
+      ]
+    },
+    {
+      "category": "mfs_tools",
+      "deprecated": false,
+      "description": "Stat an MFS path",
+      "inputSchema": {
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "name": "files_stat",
+      "tags": [
+        "mfs",
+        "read"
+      ]
+    },
+    {
+      "category": "mfs_tools",
+      "deprecated": false,
+      "description": "Write content to an MFS path",
+      "inputSchema": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "type": "object"
+      },
+      "name": "files_write",
+      "tags": [
+        "mfs",
+        "write"
+      ]
+    },
+    {
+      "category": "mfs_tools",
+      "deprecated": false,
+      "description": "Read content from an MFS path",
+      "inputSchema": {
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "name": "files_read",
+      "tags": [
+        "mfs",
+        "read"
+      ]
+    },
+    {
+      "category": "mfs_tools",
+      "deprecated": false,
+      "description": "Remove an MFS path",
+      "inputSchema": {
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "name": "files_rm",
+      "tags": [
+        "mfs",
+        "write"
+      ]
+    },
+    {
+      "category": "swarm_tools",
+      "deprecated": false,
+      "description": "Get local node identity",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "node_id",
+      "tags": [
+        "swarm",
+        "read"
+      ]
+    },
+    {
+      "category": "swarm_tools",
+      "deprecated": false,
+      "description": "List connected swarm peers",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "swarm_peers",
+      "tags": [
+        "swarm",
+        "read"
+      ]
+    },
+    {
+      "category": "name_tools",
+      "deprecated": false,
+      "description": "Publish a path to IPNS",
+      "inputSchema": {
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "name": "name_publish",
+      "tags": [
+        "name",
+        "write"
+      ]
+    },
+    {
+      "category": "name_tools",
+      "deprecated": false,
+      "description": "Resolve an IPNS name to a path",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "name_resolve",
+      "tags": [
+        "name",
+        "read"
+      ]
+    },
+    {
+      "category": "car_tools",
+      "deprecated": false,
+      "description": "Create a CAR archive from roots",
+      "inputSchema": {
+        "properties": {
+          "roots": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "roots"
+        ],
+        "type": "object"
+      },
+      "name": "create_car",
+      "tags": [
+        "car",
+        "write"
+      ]
+    },
+    {
+      "category": "cluster_tools",
+      "deprecated": false,
+      "description": "Get IPFS cluster status",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "cluster_status",
+      "tags": [
+        "cluster",
+        "read"
+      ]
+    },
+    {
+      "category": "block_tools",
+      "deprecated": false,
+      "description": "Store a raw block and return its CID",
+      "inputSchema": {
+        "properties": {
+          "data": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "name": "block_put",
+      "tags": [
+        "block",
+        "write"
+      ]
+    },
+    {
+      "category": "block_tools",
+      "deprecated": false,
+      "description": "Fetch a raw block by CID",
+      "inputSchema": {
+        "properties": {
+          "cid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cid"
+        ],
+        "type": "object"
+      },
+      "name": "block_get",
+      "tags": [
+        "block",
+        "read"
+      ]
+    },
+    {
+      "category": "block_tools",
+      "deprecated": false,
+      "description": "Report size of a raw block",
+      "inputSchema": {
+        "properties": {
+          "cid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cid"
+        ],
+        "type": "object"
+      },
+      "name": "block_stat",
+      "tags": [
+        "block",
+        "read"
+      ]
+    },
+    {
+      "category": "bitswap_tools",
+      "deprecated": false,
+      "description": "Show bitswap exchange statistics",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "bitswap_stat",
+      "tags": [
+        "bitswap",
+        "read"
+      ]
+    },
+    {
+      "category": "bitswap_tools",
+      "deprecated": false,
+      "description": "Show blocks currently on the wantlist",
+      "inputSchema": {
+        "properties": {
+          "peer": {
+            "default": null,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "bitswap_wantlist",
+      "tags": [
+        "bitswap",
+        "read"
+      ]
+    },
+    {
+      "category": "stats_tools",
+      "deprecated": false,
+      "description": "Report node bandwidth statistics",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "stats_bw",
+      "tags": [
+        "stats",
+        "read"
+      ]
+    },
+    {
+      "category": "stats_tools",
+      "deprecated": false,
+      "description": "Report local repo statistics",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "stats_repo",
+      "tags": [
+        "stats",
+        "read"
+      ]
+    }
+  ],
+  "version": "0.1.0"
+}
