@@ -1,7 +1,7 @@
 /**
  * SwissKnife <-> external/ipfs_datasets Bucket VFS interoperability descriptor.
  *
- * MGW-571 objective validation repair: interface contract swissknife external/ipfs_datasets,
+ * HAO-732 objective validation repair: interface contract swissknife external/ipfs_datasets,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_ipfs_datasets_interop.py.
  *
@@ -46,7 +46,7 @@ export const SWISSKNIFE_IPFS_DATASETS_INTEROP_METADATA = {
   interface_contract: 'interface contract swissknife external/ipfs_datasets',
   goal_packet: 'goal_packet/interoperability/swissknife/06921590135c',
   goal_id: 'VAIOS-G702',
-  task_id: 'MGW-571',
+  task_id: 'HAO-732',
   source_surface: 'swissknife',
   target_surface: 'external/ipfs_datasets',
 };
@@ -194,12 +194,12 @@ export const SWISSKNIFE_IPFS_DATASETS_INTEROP_DESCRIPTOR = {
     control_surface_policy_id: 'policy:swissknife:ipfs-datasets-bucket-vfs-interop',
   },
   validation: {
-    task_id: 'MGW-571',
+    task_id: 'HAO-732',
     goal_id: 'VAIOS-G702',
     objective_gap_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-571-objective-gap-c21adb3eb488.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-732-objective-gap-c21adb3eb488.md',
     validation_repair_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-571-objective-validation-repair.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-732-objective-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
