@@ -61,6 +61,15 @@ const MGW_559_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   'fixtures',
   'mgw-559-daemon-launch-health-gate.json',
 );
+const MGW_590_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'mgw-590-daemon-launch-health-gate.json',
+);
 const VAI_568_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   process.cwd(),
   '..',
@@ -491,6 +500,46 @@ test('MGW-559 daemon launch gate fixture preserves Swissknife backend handoff re
   expect(fixture.evidence_term).toBe('launch Playwright validation gate');
   expect(fixture.launch_gate_receipt).toBe(
     'data/meta_glasses_display_widgets/discovery/2026-06-28-mgw-559-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('MGW-590 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(MGW_590_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('MGW-590');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.packet_sibling_task_id).toBe('MGW-589');
+  expect(fixture.packet_sibling_goal_id).toBe('VAIOS-G724');
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-590-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-590-daemon-launch-health-gate.md',
   );
   expect(fixture.validation_commands).toContain(
     'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
