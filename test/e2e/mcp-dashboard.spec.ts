@@ -107,6 +107,21 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
       'mediation_receipt',
       'supervised MCP server transport',
     ]);
+    expect(catalog.launch_validation_gates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        task_id: 'VAI-682',
+        goal_id: 'VAIOS-G723',
+        evidence_term: 'launch Playwright validation gate',
+        source_gap_receipt: 'data/virtual_ai_os/discovery/2026-07-08-vai-682-objective-gap-7ea369464239.md',
+        launch_gate_receipt: 'data/virtual_ai_os/discovery/2026-07-08-vai-682-mcp-dashboard-launch-gate.md',
+        hallucinate_backlog_receipt: 'data/hallucinate_multimodal_control/discovery/2026-07-08-vai-682-mcp-dashboard-launch-gate.md',
+        receipt_fixture: 'hallucinate_app/test/e2e/fixtures/vai-682-mcp-dashboard-launch-gate.json',
+        todo_source: {
+          file: 'implementation_plan/docs/19-virtual-ai-os-submodule-integration.todo.md',
+          source_line: 9430,
+        },
+      }),
+    ]));
 
     const plans = buildSwissknifeMCPDashboardConsumerPlans(catalog);
     expect(plans.map(plan => plan.server_package).sort()).toEqual(EXPECTED_PACKAGES);
