@@ -138,6 +138,11 @@
           "type": "object",
           "additionalProperties": true
         },
+        "arguments_hash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable digest of normalized_intent.arguments for receipt correlation across SwissKnife, mobile, and DAT bridges."
+        },
         "confidence": {
           "type": "number",
           "minimum": 0,
@@ -162,6 +167,22 @@
           "items": {
             "type": "string"
           }
+        },
+        "agent_identity": {
+          "type": "object",
+          "description": "Optional agent identity transported when the actor is an agent or remote client acting on behalf of an agent.",
+          "properties": {
+            "agent_id": {
+              "type": "string"
+            },
+            "display_name": {
+              "type": "string"
+            },
+            "credential_ref": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -199,6 +220,41 @@
         "device_context": {
           "type": "object",
           "additionalProperties": true
+        },
+        "mobile_handoff": {
+          "$ref": "#/$defs/mobileHandoffContext"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mobileHandoffContext": {
+      "type": "object",
+      "required": ["contract", "allowed_surfaces", "runtime_handoff"],
+      "properties": {
+        "contract": {
+          "type": "string",
+          "const": "handsfree.meta-glasses/swissknife-mobile-interop@0.1.0"
+        },
+        "allowed_surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "runtime_handoff": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "descriptor_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
         }
       },
       "additionalProperties": false

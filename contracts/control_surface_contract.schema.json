@@ -287,6 +287,80 @@
       },
       "additionalProperties": false
     },
+    "mobileRemoteClientHandoff": {
+      "type": "object",
+      "required": [
+        "contract",
+        "control_surface_contract_ref",
+        "allowed_surfaces",
+        "artifact_fields",
+        "runtime_handoff"
+      ],
+      "properties": {
+        "contract": {
+          "type": "string",
+          "const": "handsfree.meta-glasses/swissknife-mobile-interop@0.1.0"
+        },
+        "control_surface_contract_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowed_surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "mobile",
+              "meta_glasses",
+              "simulator",
+              "display_widget",
+              "display_webapp",
+              "audio_summary"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "artifact_fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "control_surface_contract_ref",
+              "interaction_envelope",
+              "normalized_intent",
+              "policy_decision",
+              "mediation_receipt"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "runtime_handoff": {
+          "type": "object",
+          "required": ["register", "event", "bind", "invoke", "dispatch"],
+          "properties": {
+            "register": { "type": "string", "const": "register_edge_capabilities" },
+            "event": { "type": "string", "const": "publish_glasses_event" },
+            "bind": { "type": "string", "const": "bind_service" },
+            "invoke": { "type": "string", "const": "invoke_service" },
+            "subscribe": { "type": "string", "const": "subscribe_service_updates" },
+            "dispatch": { "type": "string", "const": "dispatch_glasses_response" },
+            "revoke": { "type": "string", "const": "revoke_binding" }
+          },
+          "additionalProperties": false
+        },
+        "descriptor_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
     "conflictResolution": {
       "type": "object",
       "required": ["default"],
@@ -386,6 +460,9 @@
         },
         "mediation_receipts": {
           "$ref": "#/$defs/mediationReceipts"
+        },
+        "mobile_remote_client_handoff": {
+          "$ref": "#/$defs/mobileRemoteClientHandoff"
         }
       },
       "additionalProperties": false
