@@ -76,6 +76,16 @@ interface OptionalModuleLoad {
 
 const DEFAULT_LISTEN_MULTIADDRS = ['/webrtc'];
 
+export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
+  'webrtc',
+  'websockets',
+  'circuit-relay-v2',
+  'identify',
+  'noise',
+  'yamux',
+  'gossipsub',
+];
+
 const MODULES = {
   libp2p: {
     name: 'libp2p',
@@ -335,6 +345,13 @@ export async function createBrowserLibp2pNode(
       gaps,
     },
   };
+}
+
+export async function getBrowserLibp2pDefaultStatus(
+  options: BrowserLibp2pRuntimeOptions = {},
+): Promise<BrowserLibp2pRuntimeReport> {
+  const { report } = await buildBrowserLibp2pConfig(options);
+  return report;
 }
 
 export function summarizeBrowserLibp2pGaps(

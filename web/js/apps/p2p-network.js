@@ -2,7 +2,7 @@ import {
   BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
   getBrowserLibp2pDefaultStatus,
   summarizeBrowserLibp2pGaps
-} from '../../../src/services/mcp/libp2p-browser-runtime.ts';
+} from '../services/mcp/libp2p-browser-runtime.js';
 
 // P2P Network Manager Application for SwissKnife Virtual Desktop
 // Enhanced with Phase 4: Web Workers & Audio Workers Infrastructure
