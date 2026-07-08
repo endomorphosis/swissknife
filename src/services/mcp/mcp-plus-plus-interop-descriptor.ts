@@ -1,7 +1,8 @@
 /**
  * SwissKnife <-> Mcp-Plus-Plus interoperability descriptor.
  *
- * VAI-665 objective validation repair: interface contract swissknife Mcp-Plus-Plus,
+ * MGW-573 / VAI-665 objective validation repair:
+ * interface contract swissknife Mcp-Plus-Plus,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_mcp_plus_plus_interop.py.
  *
@@ -43,6 +44,8 @@ export const SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_METADATA = {
   interface_contract: 'interface contract swissknife Mcp-Plus-Plus',
   goal_packet: 'goal_packet/interoperability/swissknife/06921590135c',
   goal_id: 'VAIOS-G704',
+  backlog_task_id: 'MGW-573',
+  source_task_id: 'VAI-665',
   source_surface: 'swissknife',
   target_surface: 'mcp_plus_plus',
 };
@@ -173,11 +176,14 @@ export const SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_DESCRIPTOR = {
     control_surface_policy_id: 'policy:swissknife:mcp-plus-plus-interop',
   },
   validation: {
-    task_id: 'VAI-665',
+    task_id: 'MGW-573',
+    source_task_id: 'VAI-665',
     goal_id: 'VAIOS-G704',
     objective_gap_ref:
-      'data/virtual_ai_os/discovery/2026-07-08-vai-665-objective-gap-57359897bf4f.md',
+      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-573-objective-gap-57359897bf4f.md',
     validation_repair_ref:
+      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-573-objective-validation-repair.md',
+    source_validation_repair_ref:
       'data/virtual_ai_os/discovery/2026-07-08-vai-665-validation-repair.md',
     evidence: 'objective validation repair',
   },

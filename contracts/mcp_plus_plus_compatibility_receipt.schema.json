@@ -3,7 +3,7 @@
   "$id": "https://hallucinate.app/contracts/mcp_plus_plus_compatibility_receipt.schema.json",
   "title": "mcp_plus_plus_compatibility_receipt",
   "description": "HAO-445 compatibility receipt for Mcp-Plus-Plus protocol negotiation, capability descriptors, mediated tool calls, errors, receipts, and lifecycle events.",
-  "$comment": "VAI-665 objective validation repair: interface contract swissknife Mcp-Plus-Plus, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_mcp_plus_plus_interop.py. HAO-735 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py. Referenced by swissknife/src/services/mcp/mcp-plus-plus-interop-descriptor.ts and meta-wearables-dat-android display schema_refs.",
+  "$comment": "MGW-573 / VAI-665 objective validation repair: interface contract swissknife Mcp-Plus-Plus, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_mcp_plus_plus_interop.py, data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-573-objective-validation-repair.md. HAO-735 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py. Referenced by swissknife/src/services/mcp/mcp-plus-plus-interop-descriptor.ts and meta-wearables-dat-android display schema_refs.",
   "type": "object",
   "required": [
     "receipt_schema",
