@@ -1,42 +1,42 @@
 {
-  "timestamp": "2026-07-07T19:50:42.809Z",
+  "timestamp": "2026-07-08T04:38:28.795Z",
   "summary": {
-    "qualityScore": 87,
+    "qualityScore": 85,
     "qualityGrade": "B",
-    "totalFiles": 30,
+    "totalFiles": 32,
     "brokenLinks": 14,
     "missingScreenshots": 0,
     "generationTime": 29,
-    "lastUpdate": "2026-07-07T19:50:42.368Z",
+    "lastUpdate": "2026-07-08T04:38:28.294Z",
     "status": "needs-improvement"
   },
   "analytics": {
-    "timestamp": "2026-07-07T19:50:42.368Z",
+    "timestamp": "2026-07-08T04:38:28.294Z",
     "quality": {
-      "overallScore": 87,
-      "completeness": 82,
+      "overallScore": 85,
+      "completeness": 77,
       "consistency": 100,
       "accuracy": 72,
       "maintainability": 100
     },
     "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
+      "totalWords": 37937,
+      "totalFiles": 32,
+      "averageLength": 1186,
       "duplicateContent": 0,
       "brokenReferences": 54
     },
     "structure": {
       "crossReferences": 361,
-      "orphanedFiles": 0,
+      "orphanedFiles": 2,
       "missingScreenshots": 0,
       "inconsistentFormatting": 0
     },
     "changes": {
       "filesModified": 0,
-      "contentChanges": 0,
+      "contentChanges": 535,
       "structureChanges": 0,
-      "newFiles": 0,
+      "newFiles": 2,
       "deletedFiles": 0
     },
     "linkValidation": {
@@ -103,7 +103,7 @@
     }
   },
   "linkValidation": {
-    "generated": "2026-07-07T19:50:42.563Z",
+    "generated": "2026-07-08T04:38:28.504Z",
     "summary": {
       "totalFiles": 648,
       "brokenLinks": 14,
@@ -221,7 +221,7 @@
     ]
   },
   "screenshots": {
-    "generated": "2026-07-07T19:50:42.616Z",
+    "generated": "2026-07-08T04:38:28.568Z",
     "summary": {
       "totalMissing": 0,
       "availableScreenshots": 1,
@@ -236,12 +236,6 @@
     "recommendations": []
   },
   "trends": [
-    {
-      "timestamp": "2026-07-07T02:56:39.525Z",
-      "qualityScore": 87,
-      "totalFiles": 30,
-      "brokenLinks": 54
-    },
     {
       "timestamp": "2026-07-07T03:08:30.697Z",
       "qualityScore": 87,
@@ -294,6 +288,12 @@
       "timestamp": "2026-07-07T19:50:42.368Z",
       "qualityScore": 87,
       "totalFiles": 30,
+      "brokenLinks": 54
+    },
+    {
+      "timestamp": "2026-07-08T04:38:28.294Z",
+      "qualityScore": 85,
+      "totalFiles": 32,
       "brokenLinks": 54
     }
   ]
