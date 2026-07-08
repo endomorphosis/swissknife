@@ -123,6 +123,29 @@ const defaultImportModule: BrowserLibp2pImport = async specifier => {
   return import(/* @vite-ignore */ specifier) as Promise<Record<string, unknown>>;
 };
 
+/**
+ * Canonical capability probe order used by consumers that render a
+ * deterministic capability list (see the browser-safe mirror of this module
+ * at `web/src/services/mcp/libp2p-browser-runtime.js`, consumed by
+ * `web/js/apps/mcp-control.js` and `web/js/apps/p2p-network.js`).
+ */
+export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
+  'libp2p',
+  'webrtc',
+  'websockets',
+  'circuit-relay-v2',
+  'noise',
+  'yamux',
+  'identify',
+  'gossipsub',
+];
+
+export interface BrowserLibp2pDefaultStatus {
+  report: BrowserLibp2pRuntimeReport;
+  listenMultiaddrs: string[];
+  generatedAt: string;
+}
+
 function enabled(value: boolean | undefined): boolean {
   return value !== false;
 }
@@ -341,4 +364,44 @@ export function summarizeBrowserLibp2pGaps(
   report: BrowserLibp2pRuntimeReport,
 ): string[] {
   return report.gaps.map(gap => `${gap.name} (${gap.packageName}): ${gap.reason}`);
+}
+
+/**
+ * Produces a best-effort capability status report for every capability in
+ * `BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER`, including the core `libp2p`
+ * package itself (which `buildBrowserLibp2pConfig()` alone does not probe,
+ * since that package is only loaded lazily by `createBrowserLibp2pNode()`).
+ * This mirrors `getBrowserLibp2pDefaultStatus()` in the browser-safe
+ * `web/src/services/mcp/libp2p-browser-runtime.js` module.
+ */
+export async function getBrowserLibp2pDefaultStatus(
+  options: BrowserLibp2pRuntimeOptions = {},
+): Promise<BrowserLibp2pDefaultStatus> {
+  const importModule = options.importModule ?? defaultImportModule;
+  const runtime = await buildBrowserLibp2pConfig({
+    includeWebRTC: true,
+    includeWebSockets: true,
+    includeCircuitRelay: true,
+    includeNoise: true,
+    includeYamux: true,
+    includeIdentify: true,
+    includeGossipSub: true,
+    ...options,
+    importModule,
+  });
+
+  const capabilities = [...runtime.report.capabilities];
+  const gaps = [...runtime.report.gaps];
+  await loadOptionalModule(MODULES.libp2p, importModule, capabilities, gaps);
+
+  const addresses = asRecord(runtime.config?.addresses);
+  const listenMultiaddrs = Array.isArray(addresses.listen)
+    ? [...(addresses.listen as string[])]
+    : [...DEFAULT_LISTEN_MULTIADDRS];
+
+  return {
+    report: { enabled: runtime.report.enabled, capabilities, gaps },
+    listenMultiaddrs,
+    generatedAt: new Date().toISOString(),
+  };
 }
