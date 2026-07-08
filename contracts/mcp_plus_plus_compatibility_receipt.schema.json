@@ -24,7 +24,7 @@
       "const": "mcp_plus_plus_compatibility_receipt_v1"
     },
     "task_id": {
-      "enum": ["HAO-445", "MGW-574"]
+      "enum": ["HAO-445", "MGW-574", "VAI-665"]
     },
     "session_id": {
       "type": "string",
@@ -35,11 +35,11 @@
     },
     "daemon_id": {
       "type": "string",
-      "enum": ["ipfs-datasets", "ipfs-accelerate", "ipfs-kit", "meta-wearables-dat-android"]
+      "enum": ["ipfs-datasets", "ipfs-accelerate", "ipfs-kit", "meta-wearables-dat-android", "mcp-plus-plus"]
     },
     "server_package": {
       "type": "string",
-      "enum": ["ipfs_datasets_py", "ipfs_accelerate_py", "ipfs_kit_py", "meta_wearables_dat_android"]
+      "enum": ["ipfs_datasets_py", "ipfs_accelerate_py", "ipfs_kit_py", "meta_wearables_dat_android", "mcp_plus_plus"]
     },
     "swissknife_consumer": {
       "type": "string",
