@@ -52,6 +52,15 @@ const HAO_725_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   'fixtures',
   'hao-725-daemon-launch-health-gate.json',
 );
+const HAO_755_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-755-daemon-launch-health-gate.json',
+);
 const MGW_559_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   process.cwd(),
   '..',
@@ -1457,6 +1466,34 @@ test('VAI-660 daemon launch gate fixture preserves Swissknife backend handoff re
   );
   expect(fixture.launch_gate_receipt).toBe(
     'data/virtual_ai_os/discovery/2026-07-05-vai-660-daemon-launch-health-gate.md',
+  );
+  expect(fixture.required_backends.sort()).toEqual([
+    'ipfs_accelerate_py',
+    'ipfs_datasets_py',
+    'ipfs_kit_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('HAO-755 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(HAO_755_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('HAO-755');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-755-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-755-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
   );
   expect(fixture.required_backends.sort()).toEqual([
     'ipfs_accelerate_py',
