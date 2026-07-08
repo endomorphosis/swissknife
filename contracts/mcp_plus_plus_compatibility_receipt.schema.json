@@ -24,7 +24,7 @@
       "const": "mcp_plus_plus_compatibility_receipt_v1"
     },
     "task_id": {
-      "enum": ["HAO-445", "MGW-574", "HAO-736"]
+      "enum": ["HAO-445", "VAI-665", "MGW-574", "HAO-736"]
     },
     "session_id": {
       "type": "string",
@@ -39,6 +39,7 @@
         "ipfs-datasets",
         "ipfs-accelerate",
         "ipfs-kit",
+        "mcp_plus_plus",
         "meta-wearables-dat-android",
         "meta-wearables-dat-ios"
       ]
@@ -49,6 +50,7 @@
         "ipfs_datasets_py",
         "ipfs_accelerate_py",
         "ipfs_kit_py",
+        "Mcp-Plus-Plus",
         "meta_wearables_dat_android",
         "meta_wearables_dat_ios"
       ]
