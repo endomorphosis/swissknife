@@ -1,47 +1,5 @@
 [
   {
-    "timestamp": "2026-06-28T16:25:40.621Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 652,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
     "timestamp": "2026-06-28T16:32:21.343Z",
     "quality": {
       "overallScore": 87,
@@ -2084,6 +2042,48 @@
       "contentChanges": 389,
       "structureChanges": 0,
       "newFiles": 1,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 648,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-07-08T15:31:57.412Z",
+    "quality": {
+      "overallScore": 84,
+      "completeness": 74,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 38326,
+      "totalFiles": 33,
+      "averageLength": 1161,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 3,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
       "deletedFiles": 0
     },
     "linkValidation": {
