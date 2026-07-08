@@ -19,21 +19,9 @@ import {
   scryptSync,
   KeyObject,
 } from 'crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  existsSync: (path: string) => boolean;
-  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  writeFileSync: (path: string, data: string, encoding: BufferEncoding) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for DIDKeystore persistence');
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -209,7 +197,7 @@ export class DIDKeystore {
    */
   constructor(persistDir?: string, passphrase?: string) {
     if (persistDir) {
-      nodeFs.mkdirSync(persistDir, { recursive: true });
+      mkdirSync(persistDir, { recursive: true });
       this.persistPath = join(persistDir, 'did-keystore.json');
       if (!passphrase) {
         console.warn(
@@ -332,14 +320,14 @@ export class DIDKeystore {
       iv,
       authTag,
     };
-    nodeFs.writeFileSync(this.persistPath, JSON.stringify(serialized, null, 2), 'utf8');
+    writeFileSync(this.persistPath, JSON.stringify(serialized, null, 2), 'utf8');
   }
 
   private load(): void {
     if (!this.persistPath || !this.passphrase) return;
-    if (!nodeFs.existsSync(this.persistPath)) return;
+    if (!existsSync(this.persistPath)) return;
     try {
-      const raw = nodeFs.readFileSync(this.persistPath, 'utf8');
+      const raw = readFileSync(this.persistPath, 'utf8');
       const serialized: SerializedKeystore = JSON.parse(raw);
       const plaintext = decryptData(
         serialized.encrypted,

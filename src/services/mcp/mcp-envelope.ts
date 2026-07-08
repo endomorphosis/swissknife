@@ -10,14 +10,17 @@
  * References: docs/spec/cid-native-artifacts.md in endomorphosis/Mcp-Plus-Plus
  */
 
-import { base64UrlEncode, bytesFrom, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
+import { createHash } from 'crypto';
+import { DIDKeystore, base64urlEncode } from '../../auth/did-keystore.js';
 
 // ---------------------------------------------------------------------------
 // CID helpers
 // ---------------------------------------------------------------------------
 
-function computeCID(data: Uint8Array | ArrayBuffer | readonly number[] | string): string {
-  return `sha256:${sha256Hex(bytesFrom(data))}`;
+function computeCID(data: Buffer | Uint8Array | string): string {
+  const input =
+    typeof data === 'string' ? Buffer.from(data, 'utf8') : Buffer.from(data);
+  return `sha256:${createHash('sha256').update(input).digest('hex')}`;
 }
 
 function canonicalJSON(value: unknown): string {
@@ -52,7 +55,7 @@ export interface ExecutionEnvelope {
   /** Parent event CIDs (for causal ordering in the Event DAG) */
   parents: string[];
   /** Raw input bytes stored alongside the CID for transport */
-  _inputBytes: Uint8Array;
+  _inputBytes: Buffer;
   /** ISO-8601 timestamp */
   createdAt: string;
 }
@@ -62,11 +65,6 @@ export interface ToolCallInput {
   params: Record<string, unknown>;
   /** DID of the caller (for UCAN proof) */
   callerDID?: string;
-}
-
-export interface ReceiptSignerKeystore {
-  hasDID(did: string): boolean;
-  sign(data: Uint8Array, did: string): Uint8Array;
 }
 
 /**
@@ -87,7 +85,7 @@ export function buildEnvelope(
 ): ExecutionEnvelope {
   // 1. Content-address the input
   const inputJson = canonicalJSON(toolCall);
-  const inputBytes = utf8Bytes(inputJson);
+  const inputBytes = Buffer.from(inputJson, 'utf8');
   const inputCid = computeCID(inputBytes);
 
   // 2. Content-address the intent (tool name + caller DID)
@@ -100,7 +98,7 @@ export function buildEnvelope(
   // 3. Content-address the proof bundle (if provided)
   let proofCid: string | undefined;
   if (ucanProofToken) {
-    proofCid = computeCID(ucanProofToken);
+    proofCid = computeCID(Buffer.from(ucanProofToken, 'utf8'));
   }
 
   return {
@@ -148,7 +146,7 @@ export function buildReceipt(
   output: unknown,
   decisionCid?: string,
   signerDID?: string,
-  keystore?: ReceiptSignerKeystore,
+  keystore?: DIDKeystore,
 ): ExecutionReceipt {
   // Content-address the envelope
   const envelopeForCid = {
@@ -163,7 +161,9 @@ export function buildReceipt(
   const envelopeCid = computeCID(canonicalJSON(envelopeForCid));
 
   // Content-address the output
-  const outputCid = computeCID(canonicalJSON(output));
+  const outputCid = computeCID(
+    Buffer.from(canonicalJSON(output), 'utf8'),
+  );
 
   const receipt: ExecutionReceipt = {
     envelope_cid: envelopeCid,
@@ -174,16 +174,17 @@ export function buildReceipt(
 
   // Sign the receipt if a signer DID and keystore are provided
   if (signerDID && keystore && keystore.hasDID(signerDID)) {
-    const signingPayload = utf8Bytes(
+    const signingPayload = Buffer.from(
       canonicalJSON({
         envelope_cid: receipt.envelope_cid,
         output_cid: receipt.output_cid,
         decision_cid: receipt.decision_cid,
         issuedAt: receipt.issuedAt,
       }),
+      'utf8',
     );
     const sig = keystore.sign(signingPayload, signerDID);
-    receipt.signature = base64UrlEncode(sig);
+    receipt.signature = base64urlEncode(Buffer.from(sig));
     receipt.signerDID = signerDID;
   }
 

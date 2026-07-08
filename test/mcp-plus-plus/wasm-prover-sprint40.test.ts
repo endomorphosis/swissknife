@@ -6,13 +6,13 @@
 
 import {
   cosineSimilarity, EmbeddingEnhancedProver,
-} from '../../src/services/logic/shared/embedding-prover.js';
+} from '../../src/services/embedding-prover.js';
 import {
   generateDeonticSMT2Axioms, ProverBackendMixin,
-} from '../../src/services/proof-engine/prover-backend-mixin.js';
+} from '../../src/services/prover-backend-mixin.js';
 import {
   LogicalComponents, SymbolicFOLBridge,
-} from '../../src/services/logic/fol/symbolic-fol-bridge.js';
+} from '../../src/services/symbolic-fol-bridge.js';
 
 const LEGAL_TEXT =
   'The contractor shall deliver the goods within 30 days. ' +

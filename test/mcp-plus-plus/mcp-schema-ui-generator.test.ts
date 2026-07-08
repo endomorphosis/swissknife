@@ -9,7 +9,7 @@ import {
   ipfsAccelerateUIProfileDescriptor,
   ipfsDatasetInferenceWorkflowDescriptor,
   ipfsDatasetsUIProfileDescriptor,
-} from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+} from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
 
 describe('MCP schema-driven UI generator', () => {
   it('generates dataset commands, forms, renderers, and expected field widgets', () => {

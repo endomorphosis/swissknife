@@ -1,3 +1,4 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -9,16 +10,16 @@ import {
   ProverConfig,
   SecurityConfig,
   loadConfig,
-} from '../../src/services/logic/shared/logic-config';
+} from '../../src/services/logic-config';
 import {
   BridgeError,
   ConfigurationError,
   LogicError,
   ModalError,
   TemporalError,
-} from '../../src/services/logic/shared/logic-errors';
-import { TDFOLError } from '../../src/services/logic/tdfol/tdfol-exceptions';
-import { DCECHandledError } from '../../src/services/logic/dcec/dcec-error-handling';
+} from '../../src/services/logic-errors';
+import { TDFOLError } from '../../src/services/tdfol-exceptions';
+import { DCECHandledError } from '../../src/services/dcec-error-handling';
 import {
   ProofStatement,
   Statement,
@@ -26,7 +27,7 @@ import {
   formatCircuitRef,
   parseCircuitRef,
   parseCircuitRefLenient,
-} from '../../src/services/zkp/zkp-statement';
+} from '../../src/services/zkp-statement';
 import {
   DEFAULT_PROVEKIT_CIRCUIT_ID,
   PROVEKIT_PUBLIC_INPUT_SCHEMA_VERSION,
@@ -34,19 +35,7 @@ import {
   buildProveKitPublicInputRecord,
   fieldElementFromHexDigest,
   fieldElementFromText,
-} from '../../src/services/zkp/zkp-provekit-public-inputs';
-
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdtempSync: (prefix: string) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-  writeFileSync: (path: string, data: string) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for logic config file tests');
-}
+} from '../../src/services/zkp-provekit-public-inputs';
 
 describe('PORT-220 logic config', () => {
   it('mirrors Python config dataclasses and toDict shape', () => {
@@ -68,9 +57,9 @@ describe('PORT-220 logic config', () => {
   });
 
   it('loads file config and lets environment values take precedence', () => {
-    const dir = nodeFs.mkdtempSync(join(tmpdir(), 'logic-config-'));
+    const dir = mkdtempSync(join(tmpdir(), 'logic-config-'));
     const configPath = join(dir, 'config.json');
-    nodeFs.writeFileSync(configPath, JSON.stringify({
+    writeFileSync(configPath, JSON.stringify({
       provers: { z3: { enabled: false, timeout: 99 } },
       cache: { backend: 'memory', ttl: 10 },
       monitoring: { port: 9000, log_level: 'WARN' },
@@ -93,7 +82,7 @@ describe('PORT-220 logic config', () => {
       expect(config.cache.ttl).toBe(10);
       expect(config.monitoring.logLevel).toBe('ERROR');
     } finally {
-      nodeFs.rmSync(dir, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });

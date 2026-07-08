@@ -1,0 +1,678 @@
+{
+  "schemaVersion": 1,
+  "distDir": "dist",
+  "budgets": {
+    "totalRawBytes": 2750000,
+    "totalGzipBytes": 650000,
+    "totalBrotliBytes": 560000,
+    "libp2pRawBytes": 262144,
+    "libp2pGzipBytes": 85000,
+    "libp2pBrotliBytes": 75000,
+    "libp2pChunkCount": 8
+  },
+  "fileCount": 43,
+  "totals": {
+    "rawBytes": 1729071,
+    "gzipBytes": 367066,
+    "brotliBytes": 313282
+  },
+  "files": [
+    {
+      "file": "dist/assets/index-lX1cMv4V.css",
+      "rawBytes": 237014,
+      "gzipBytes": 38344,
+      "brotliBytes": 31349
+    },
+    {
+      "file": "dist/assets/p2p-network-iaAJOubo.js",
+      "rawBytes": 90205,
+      "gzipBytes": 15677,
+      "brotliBytes": 13323
+    },
+    {
+      "file": "dist/assets/file-manager-vsY99IO3.js",
+      "rawBytes": 67502,
+      "gzipBytes": 14387,
+      "brotliBytes": 11969
+    },
+    {
+      "file": "dist/assets/neural-photoshop-DFGyHC_i.js",
+      "rawBytes": 66893,
+      "gzipBytes": 14535,
+      "brotliBytes": 12235
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "rawBytes": 63585,
+      "gzipBytes": 12673,
+      "brotliBytes": 11008
+    },
+    {
+      "file": "dist/assets/friends-list-CJhCm1zv.js",
+      "rawBytes": 53163,
+      "gzipBytes": 11547,
+      "brotliBytes": 9638
+    },
+    {
+      "file": "dist/assets/ipfs-explorer-BI78ByE9.js",
+      "rawBytes": 52923,
+      "gzipBytes": 11843,
+      "brotliBytes": 10036
+    },
+    {
+      "file": "dist/assets/index-l54fKvJo.js",
+      "rawBytes": 52288,
+      "gzipBytes": 11620,
+      "brotliBytes": 9796
+    },
+    {
+      "file": "dist/assets/training-manager-BbPciXRM.js",
+      "rawBytes": 49867,
+      "gzipBytes": 10567,
+      "brotliBytes": 9131
+    },
+    {
+      "file": "dist/assets/strudel-ai-daw-DoIxqjcD.js",
+      "rawBytes": 48666,
+      "gzipBytes": 12235,
+      "brotliBytes": 10603
+    },
+    {
+      "file": "dist/assets/calculator-DxXtFSyX.js",
+      "rawBytes": 43178,
+      "gzipBytes": 6534,
+      "brotliBytes": 5564
+    },
+    {
+      "file": "dist/assets/huggingface-kNxMl9sf.js",
+      "rawBytes": 42381,
+      "gzipBytes": 6461,
+      "brotliBytes": 5387
+    },
+    {
+      "file": "dist/assets/api-keys-BudxLkI9.js",
+      "rawBytes": 42031,
+      "gzipBytes": 8678,
+      "brotliBytes": 7523
+    },
+    {
+      "file": "dist/assets/system-monitor-DV0YDtb-.js",
+      "rawBytes": 39671,
+      "gzipBytes": 8019,
+      "brotliBytes": 6861
+    },
+    {
+      "file": "dist/assets/image-viewer-DBuvJ1x3.js",
+      "rawBytes": 37571,
+      "gzipBytes": 7454,
+      "brotliBytes": 6370
+    },
+    {
+      "file": "dist/assets/cron-BZ7azz3_.js",
+      "rawBytes": 35749,
+      "gzipBytes": 8288,
+      "brotliBytes": 7142
+    },
+    {
+      "file": "dist/assets/github-C7z4FcBm.js",
+      "rawBytes": 35646,
+      "gzipBytes": 6636,
+      "brotliBytes": 5710
+    },
+    {
+      "file": "dist/assets/music-studio-unified-D96Hde8p.js",
+      "rawBytes": 35026,
+      "gzipBytes": 7245,
+      "brotliBytes": 6222
+    },
+    {
+      "file": "dist/assets/device-manager-BNnL1EZ0.js",
+      "rawBytes": 34690,
+      "gzipBytes": 7751,
+      "brotliBytes": 6722
+    },
+    {
+      "file": "dist/assets/ai-chat-DIGU9k4f.js",
+      "rawBytes": 34308,
+      "gzipBytes": 7350,
+      "brotliBytes": 6275
+    },
+    {
+      "file": "dist/assets/model-browser-QPSo-nha.js",
+      "rawBytes": 33692,
+      "gzipBytes": 8114,
+      "brotliBytes": 6926
+    },
+    {
+      "file": "dist/assets/notes-DRk3rS59.js",
+      "rawBytes": 33635,
+      "gzipBytes": 8015,
+      "brotliBytes": 6825
+    },
+    {
+      "file": "dist/assets/peertube-I9ShmDKZ.js",
+      "rawBytes": 33212,
+      "gzipBytes": 6740,
+      "brotliBytes": 5722
+    },
+    {
+      "file": "dist/assets/media-player-Dog2xcOh.js",
+      "rawBytes": 32989,
+      "gzipBytes": 7401,
+      "brotliBytes": 6418
+    },
+    {
+      "file": "dist/assets/oauth-login-BIBz_IGK.js",
+      "rawBytes": 32289,
+      "gzipBytes": 7291,
+      "brotliBytes": 6306
+    },
+    {
+      "file": "dist/assets/neural-network-designer-DbHPmSiZ.js",
+      "rawBytes": 32090,
+      "gzipBytes": 7726,
+      "brotliBytes": 6665
+    },
+    {
+      "file": "dist/assets/openrouter-X6isg24m.js",
+      "rawBytes": 30936,
+      "gzipBytes": 5966,
+      "brotliBytes": 5117
+    },
+    {
+      "file": "dist/assets/navi-BzJUTMhn.js",
+      "rawBytes": 30442,
+      "gzipBytes": 8349,
+      "brotliBytes": 7133
+    },
+    {
+      "file": "dist/assets/task-manager-Dw1XCIVR.js",
+      "rawBytes": 29971,
+      "gzipBytes": 6942,
+      "brotliBytes": 5970
+    },
+    {
+      "file": "dist/assets/calendar-C9boqXjM.js",
+      "rawBytes": 29486,
+      "gzipBytes": 6400,
+      "brotliBytes": 5481
+    },
+    {
+      "file": "dist/assets/clock-DTEI821Q.js",
+      "rawBytes": 29449,
+      "gzipBytes": 5787,
+      "brotliBytes": 5033
+    },
+    {
+      "file": "dist/assets/strudel-grandma-BLTjt66H.js",
+      "rawBytes": 28151,
+      "gzipBytes": 7029,
+      "brotliBytes": 6036
+    },
+    {
+      "file": "dist/assets/terminal-DCkEMWWa.js",
+      "rawBytes": 27864,
+      "gzipBytes": 7524,
+      "brotliBytes": 6463
+    },
+    {
+      "file": "dist/assets/p2p-chat-BKRNT_gM.js",
+      "rawBytes": 27547,
+      "gzipBytes": 6015,
+      "brotliBytes": 5170
+    },
+    {
+      "file": "dist/assets/cinema-D71-COLf.js",
+      "rawBytes": 21438,
+      "gzipBytes": 5145,
+      "brotliBytes": 4322
+    },
+    {
+      "file": "dist/assets/p2p-chat-unified-CXzE0BPr.js",
+      "rawBytes": 20002,
+      "gzipBytes": 4824,
+      "brotliBytes": 4115
+    },
+    {
+      "file": "dist/assets/settings-BfTepxfi.js",
+      "rawBytes": 19758,
+      "gzipBytes": 4061,
+      "brotliBytes": 3382
+    },
+    {
+      "file": "dist/assets/todo-CYdVt4P9.js",
+      "rawBytes": 18502,
+      "gzipBytes": 4290,
+      "brotliBytes": 3589
+    },
+    {
+      "file": "dist/index.html",
+      "rawBytes": 17507,
+      "gzipBytes": 3085,
+      "brotliBytes": 2467
+    },
+    {
+      "file": "dist/assets/music-studio--P-Otwmv.js",
+      "rawBytes": 13776,
+      "gzipBytes": 3846,
+      "brotliBytes": 3287
+    },
+    {
+      "file": "dist/assets/vibecode-D0wbqg_z.js",
+      "rawBytes": 13072,
+      "gzipBytes": 3723,
+      "brotliBytes": 3078
+    },
+    {
+      "file": "dist/assets/navi-icon--4zhKvv7.png",
+      "rawBytes": 10901,
+      "gzipBytes": 10924,
+      "brotliBytes": 10904
+    },
+    {
+      "file": "dist/assets/favicon-c6ccp5z9.ico",
+      "rawBytes": 5,
+      "gzipBytes": 25,
+      "brotliBytes": 9
+    }
+  ],
+  "libp2p": {
+    "totals": {
+      "rawBytes": 169962,
+      "gzipBytes": 35784,
+      "brotliBytes": 30483,
+      "chunkCount": 4
+    },
+    "chunks": [
+      {
+        "file": "dist/assets/mcp-control-BVpTDsm0.js",
+        "rawBytes": 63585,
+        "gzipBytes": 12673,
+        "brotliBytes": 11008,
+        "modules": [],
+        "reason": "libp2p text reference"
+      },
+      {
+        "file": "dist/assets/friends-list-CJhCm1zv.js",
+        "rawBytes": 53163,
+        "gzipBytes": 11547,
+        "brotliBytes": 9638,
+        "modules": [],
+        "reason": "libp2p text reference"
+      },
+      {
+        "file": "dist/assets/peertube-I9ShmDKZ.js",
+        "rawBytes": 33212,
+        "gzipBytes": 6740,
+        "brotliBytes": 5722,
+        "modules": [],
+        "reason": "libp2p text reference"
+      },
+      {
+        "file": "dist/assets/p2p-chat-unified-CXzE0BPr.js",
+        "rawBytes": 20002,
+        "gzipBytes": 4824,
+        "brotliBytes": 4115,
+        "modules": [],
+        "reason": "libp2p text reference"
+      }
+    ],
+    "sourcePackages": [
+      "@chainsafe/libp2p-gossipsub",
+      "@chainsafe/libp2p-noise",
+      "@chainsafe/libp2p-yamux",
+      "@libp2p/circuit-relay-v2",
+      "@libp2p/gossipsub",
+      "@libp2p/identify",
+      "@libp2p/kad-dht",
+      "@libp2p/mdns",
+      "@libp2p/webrtc",
+      "@libp2p/websockets",
+      "libp2p"
+    ]
+  },
+  "hostLeakage": [],
+  "pythonExposure": [
+    {
+      "file": "dist/assets/github-C7z4FcBm.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "Python",
+      "snippet": "<option value=\"Python\">Python</option>"
+    },
+    {
+      "file": "dist/assets/github-C7z4FcBm.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "Python",
+      "snippet": "<option value=\"Python\">Python</option>"
+    },
+    {
+      "file": "dist/assets/github-C7z4FcBm.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "Python",
+      "snippet": "eturn{JavaScript:\"#f1e05a\",TypeScript:\"#2b7489\",Python:\"#3572A5\",Java:\"#b07219\",Go:\"#00ADD8\",Rus"
+    },
+    {
+      "file": "dist/assets/huggingface-kNxMl9sf.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "Python",
+      "snippet": "<div class=\"example-prompt\">\"Write a Python function to calculate fibonacci...\"</div>"
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python",
+      "snippet": "stCommandInterpreters:Object.freeze([\"python3\",\"python\",\"uvicorn\",\"gunicorn\",\"pip3\",\"pip\",\"node\""
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python",
+      "snippet": "tnet\",\"ruby\",\"php\",\"go\",\"cargo\"])}),k=new Set([\"python\",\"python3\",\"uvicorn\",\"gunicorn\",\"pip\",\"pi"
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python",
+      "snippet": "ss=\"host-daemon-disclaimer${c.isPythonCommand?\" python-command-disclaimer\":\"\"}\">"
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python",
+      "snippet": "ss=\"host-daemon-disclaimer${s.isPythonCommand?\" python-command-disclaimer\":\"\"}\">"
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python",
+      "snippet": "ort:8765},{name:\"example-mcp-server-2\",command:\"python server.py\",status:\"stopped\",port:8766}];f"
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python",
+      "snippet": ".classList.remove(\"hidden\"),t.classList.toggle(\"python-command-disclaimer\",o.isPythonCommand),t."
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "Python",
+      "snippet": "on) must run it. This example text references a Python interpreter/server; it documents the host"
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "Python",
+      "snippet": "d is never parsed or executed by any in-browser Python runtime.\",hostCommandInterpreters:Object."
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "Python",
+      "snippet": "n the command references an interpreter such as Python. </p>"
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python3",
+      "snippet": "ntime.\",hostCommandInterpreters:Object.freeze([\"python3\",\"python\",\"uvicorn\",\"gunicorn\",\"pip3\",\"p"
+    },
+    {
+      "file": "dist/assets/mcp-control-BVpTDsm0.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python3",
+      "snippet": "by\",\"php\",\"go\",\"cargo\"])}),k=new Set([\"python\",\"python3\",\"uvicorn\",\"gunicorn\",\"pip\",\"pip3\"]),$=/"
+    },
+    {
+      "file": "dist/assets/vibecode-D0wbqg_z.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python",
+      "snippet": "entFile=null,this.recentFiles=[],this.language=\"python\",this.theme=\"dark\",this.editorMode=\"split"
+    },
+    {
+      "file": "dist/assets/vibecode-D0wbqg_z.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "Python",
+      "snippet": "<div class=\"status-right\"> <span>Python | Streamlit | Line 1, Col 1</span>"
+    }
+  ],
+  "defaultPyodideExposure": [],
+  "ownershipSummary": [
+    {
+      "type": "source",
+      "name": "web",
+      "owner": "browser-web-app",
+      "classification": "browser-safe",
+      "browserReachability": "web build entrypoint",
+      "modules": 55,
+      "renderedBytes": 1850512,
+      "chunks": 39
+    },
+    {
+      "type": "source",
+      "name": "vite-runtime",
+      "owner": "vite-build-runtime",
+      "classification": "browser-safe",
+      "browserReachability": "Vite build helper",
+      "modules": 2,
+      "renderedBytes": 3303,
+      "chunks": 1
+    }
+  ],
+  "dependencyInventory": [
+    {
+      "packageName": "@chainsafe/libp2p-gossipsub",
+      "bucket": "optionalDependencies",
+      "version": "^13.2.0",
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@chainsafe/libp2p-noise",
+      "bucket": "optionalDependencies",
+      "version": "^15.1.2",
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@chainsafe/libp2p-yamux",
+      "bucket": "optionalDependencies",
+      "version": "^6.0.2",
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@libp2p/circuit-relay-v2",
+      "bucket": "optionalDependencies",
+      "version": "^1.1.5",
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@libp2p/gossipsub",
+      "bucket": "not-declared",
+      "version": null,
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@libp2p/identify",
+      "bucket": "optionalDependencies",
+      "version": "^2.1.5",
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@libp2p/kad-dht",
+      "bucket": "not-declared",
+      "version": null,
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@libp2p/mdns",
+      "bucket": "not-declared",
+      "version": null,
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@libp2p/webrtc",
+      "bucket": "optionalDependencies",
+      "version": "^4.1.10",
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@libp2p/websockets",
+      "bucket": "optionalDependencies",
+      "version": "^8.2.0",
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "@multiformats/multiaddr",
+      "bucket": "dependencies",
+      "version": "^12.1.14",
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "libp2p",
+      "bucket": "dependencies",
+      "version": "^1.2.1",
+      "owner": "mcp-protocol-runtime",
+      "purpose": "browser libp2p transport and peer addressing",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    },
+    {
+      "packageName": "pyodide",
+      "bucket": "optionalDependencies",
+      "version": "^0.21.3",
+      "owner": "browser-python-runtime",
+      "purpose": "in-browser Python runtime exposure",
+      "bundledModules": 0,
+      "renderedBytes": 0
+    }
+  ],
+  "budgetResults": [
+    {
+      "name": "totalRawBytes",
+      "actual": 1729071,
+      "budget": 2750000,
+      "pass": true
+    },
+    {
+      "name": "totalGzipBytes",
+      "actual": 367066,
+      "budget": 650000,
+      "pass": true
+    },
+    {
+      "name": "totalBrotliBytes",
+      "actual": 313282,
+      "budget": 560000,
+      "pass": true
+    },
+    {
+      "name": "libp2pRawBytes",
+      "actual": 169962,
+      "budget": 262144,
+      "pass": true
+    },
+    {
+      "name": "libp2pGzipBytes",
+      "actual": 35784,
+      "budget": 85000,
+      "pass": true
+    },
+    {
+      "name": "libp2pBrotliBytes",
+      "actual": 30483,
+      "budget": 75000,
+      "pass": true
+    },
+    {
+      "name": "libp2pChunkCount",
+      "actual": 4,
+      "budget": 8,
+      "pass": true
+    }
+  ],
+  "viteManifestPresent": true,
+  "metadataPresent": true
+}

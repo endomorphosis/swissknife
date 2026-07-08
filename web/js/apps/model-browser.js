@@ -3,11 +3,6 @@
  * Advanced AI model management with P2P sharing, IPFS integration, and real-time monitoring
  */
 
-import {
-  describeAccelerateDatasetsCapabilities,
-  runAccelerateDatasetsWorkflow,
-} from './accelerate-datasets-capabilities.js';
-
 export class ModelBrowserApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -23,8 +18,6 @@ export class ModelBrowserApp {
     this.ipfsStorage = null;
     this.downloadQueue = [];
     this.modelMetrics = new Map();
-    this.accelerateDatasetsCapabilities = describeAccelerateDatasetsCapabilities('model-browser');
-    this.lastAccelerateDatasetsWorkflow = null;
     
     // Integration with new AI infrastructure
     this.ipfsAccelerateBridge = null;
@@ -1324,46 +1317,6 @@ console.log(result);</code></pre>
       x: 150,
       y: 100
     };
-  }
-
-  getAccelerateDatasetsCapabilities() {
-    return this.accelerateDatasetsCapabilities;
-  }
-
-  async exerciseAccelerateDatasetsGateway(input = {}) {
-    const selectedModel = input.model
-      || this.selectedModel
-      || this.models[0]
-      || {
-        id: 'llama-2-7b',
-        name: 'LLaMA 2 7B',
-        provider: 'meta',
-        category: 'text-generation',
-      };
-    const modelId = typeof selectedModel === 'string' ? selectedModel : selectedModel.id || selectedModel.name;
-
-    this.lastAccelerateDatasetsWorkflow = await runAccelerateDatasetsWorkflow({
-      desktop: this.desktop,
-      appId: 'model-browser',
-      task: input.task || selectedModel.category || 'model-discovery',
-      model: modelId,
-      provider: input.provider || selectedModel.provider || 'local',
-      input: input.prompt || `Evaluate model ${modelId} for SwissKnife desktop workload placement.`,
-      datasetQuery: input.datasetQuery || `${modelId} ${selectedModel.category || ''} benchmark dataset`,
-      collection: 'swissknife-model-browser',
-      maxTokens: input.maxTokens || 128,
-      provenance: {
-        action: 'model-browser.evaluate-model',
-        subject_id: modelId,
-        subject_type: 'model',
-        metadata: {
-          installed_count: this.installedModels.length,
-          shared_count: this.sharedModels.length,
-          filter: this.currentFilter,
-        },
-      },
-    });
-    return this.lastAccelerateDatasetsWorkflow;
   }
 
   getWindowContent() {

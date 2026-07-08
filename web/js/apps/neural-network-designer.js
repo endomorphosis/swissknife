@@ -3,11 +3,6 @@
  * Visual interface for designing and configuring neural networks with IPFS model versioning
  */
 
-import {
-  describeAccelerateDatasetsCapabilities,
-  runAccelerateDatasetsWorkflow,
-} from './accelerate-datasets-capabilities.js';
-
 const LOCAL_IPFS_ACCELERATE_MODULE = '../../../ipfs_accelerate_js/src/index.js';
 
 async function loadLocalIPFSAccelerateClass() {
@@ -54,8 +49,6 @@ export class NeuralNetworkDesignerApp {
     this.connectionMode = false;
     this.p2pSystem = null;
     this.ipfsStorage = null;
-    this.accelerateDatasetsCapabilities = describeAccelerateDatasetsCapabilities('neural-network-designer');
-    this.lastAccelerateDatasetsWorkflow = null;
 
     // Layer types with configurations
     this.layerTypes = {
@@ -1084,38 +1077,6 @@ export class NeuralNetworkDesignerApp {
   commitVersion() { alert('Version commit functionality coming soon!'); }
   viewVersionHistory() { alert('Version history functionality coming soon!'); }
   shareToIPFS() { alert('IPFS sharing functionality coming soon!'); }
-
-  getAccelerateDatasetsCapabilities() {
-    return this.accelerateDatasetsCapabilities;
-  }
-
-  async exerciseAccelerateDatasetsGateway(input = {}) {
-    const networkName = input.networkName || this.networkConfig.metadata.name || 'Untitled Network';
-    const layerSummary = this.networkConfig.layers.map(layer => layer.type || layer.name).join(', ') || 'empty network';
-
-    this.lastAccelerateDatasetsWorkflow = await runAccelerateDatasetsWorkflow({
-      desktop: this.desktop,
-      appId: 'neural-network-designer',
-      task: 'network-training-plan',
-      model: input.model || networkName,
-      provider: 'ipfs_accelerate_py',
-      input: input.prompt || `Compile and profile ${networkName} with layers: ${layerSummary}.`,
-      datasetQuery: input.datasetQuery || `${networkName} training data`,
-      collection: 'swissknife-neural-network-designer',
-      maxTokens: input.maxTokens || 128,
-      provenance: {
-        action: 'neural-network-designer.compile-and-profile',
-        subject_id: networkName,
-        subject_type: 'network-config',
-        metadata: {
-          layer_count: this.networkConfig.layers.length,
-          connection_count: this.networkConfig.connections.length,
-          version: this.networkConfig.metadata.version,
-        },
-      },
-    });
-    return this.lastAccelerateDatasetsWorkflow;
-  }
 
   addStyles() {
     if (document.querySelector('#neural-designer-styles')) return;

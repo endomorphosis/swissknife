@@ -3,9 +3,9 @@
  * This file provides utilities for working with MCP configuration
  */
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import os from 'node:os';
+import fs from 'fs/promises.js';
+import path from 'path.js';
+import os from 'os.js';
 
 /**
  * MCP Server configuration type
@@ -54,7 +54,7 @@ async function ensureConfigDir() {
 /**
  * Gets the current project configuration
  */
-export async function getCurrentProjectConfig() {
+export async function getCurrentProjectConfig(): Promise<ProjectConfig> {
   try {
     const configData = await fs.readFile(PROJECT_CONFIG_FILE, 'utf-8');
     return JSON.parse(configData);
@@ -67,7 +67,7 @@ export async function getCurrentProjectConfig() {
 /**
  * Saves the current project configuration
  */
-export async function saveCurrentProjectConfig(config) {
+export async function saveCurrentProjectConfig(config: ProjectConfig): Promise<void> {
   const configData = JSON.stringify(config, null, 2);
   await fs.writeFile(PROJECT_CONFIG_FILE, configData, 'utf-8');
 }
@@ -75,7 +75,7 @@ export async function saveCurrentProjectConfig(config) {
 /**
  * Gets the global configuration
  */
-export async function getGlobalConfig() {
+export async function getGlobalConfig(): Promise<GlobalConfig> {
   try {
     await ensureConfigDir();
     const configData = await fs.readFile(GLOBAL_CONFIG_FILE, 'utf-8');
@@ -89,7 +89,7 @@ export async function getGlobalConfig() {
 /**
  * Saves the global configuration
  */
-export async function saveGlobalConfig(config) {
+export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
   await ensureConfigDir();
   const configData = JSON.stringify(config, null, 2);
   await fs.writeFile(GLOBAL_CONFIG_FILE, configData, 'utf-8');
@@ -98,7 +98,7 @@ export async function saveGlobalConfig(config) {
 /**
  * Gets configuration from .mcprc file
  */
-export async function getMcprcConfig() {
+export async function getMcprcConfig(): Promise<any> {
   try {
     await ensureConfigDir();
     const configData = await fs.readFile(MCPRC_FILE, 'utf-8');

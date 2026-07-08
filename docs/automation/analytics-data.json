@@ -1,5 +1,845 @@
 [
   {
+    "timestamp": "2026-06-21T03:13:01.679Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-23T15:09:17.421Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-23T16:32:04.577Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-23T17:05:20.164Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-24T08:41:02.992Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-25T21:53:47.734Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-26T01:15:59.595Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-26T02:08:55.820Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-26T04:56:43.101Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-26T23:02:49.096Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-27T05:38:30.455Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-27T15:49:53.573Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-28T00:44:38.365Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-28T03:11:23.407Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-28T04:54:44.793Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-28T06:05:52.824Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-28T15:16:53.436Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-28T16:07:23.457Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-28T16:16:13.861Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-28T16:25:40.621Z",
+    "quality": {
+      "overallScore": 87,
+      "completeness": 82,
+      "consistency": 100,
+      "accuracy": 72,
+      "maintainability": 100
+    },
+    "content": {
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
+      "duplicateContent": 0,
+      "brokenReferences": 54
+    },
+    "structure": {
+      "crossReferences": 361,
+      "orphanedFiles": 0,
+      "missingScreenshots": 0,
+      "inconsistentFormatting": 0
+    },
+    "changes": {
+      "filesModified": 0,
+      "contentChanges": 0,
+      "structureChanges": 0,
+      "newFiles": 0,
+      "deletedFiles": 0
+    },
+    "linkValidation": {
+      "totalLinks": 652,
+      "brokenLinks": 14,
+      "repairedLinks": 0,
+      "validationStatus": "FAIL"
+    },
+    "screenshots": {
+      "totalReferences": 0,
+      "missingScreenshots": 0,
+      "availableScreenshots": 2,
+      "placeholdersGenerated": 0
+    }
+  },
+  {
     "timestamp": "2026-06-28T16:32:21.343Z",
     "quality": {
       "overallScore": 87,
@@ -1248,846 +2088,6 @@
     },
     "linkValidation": {
       "totalLinks": 652,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-06T16:31:19.128Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 652,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-06T17:18:42.404Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-06T18:01:58.146Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-06T18:14:31.452Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T02:13:56.705Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T02:32:08.281Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T02:56:39.525Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T03:08:30.697Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T03:50:28.245Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T03:58:29.698Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T04:23:40.329Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T04:39:29.304Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T06:02:32.301Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T06:35:24.330Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T16:39:05.846Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-07T19:50:42.368Z",
-    "quality": {
-      "overallScore": 87,
-      "completeness": 82,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37402,
-      "totalFiles": 30,
-      "averageLength": 1247,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 0,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-08T04:38:28.294Z",
-    "quality": {
-      "overallScore": 85,
-      "completeness": 77,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37937,
-      "totalFiles": 32,
-      "averageLength": 1186,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 2,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 535,
-      "structureChanges": 0,
-      "newFiles": 2,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-08T04:53:16.825Z",
-    "quality": {
-      "overallScore": 85,
-      "completeness": 77,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 37937,
-      "totalFiles": 32,
-      "averageLength": 1186,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 2,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-08T05:58:15.117Z",
-    "quality": {
-      "overallScore": 84,
-      "completeness": 74,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 38326,
-      "totalFiles": 33,
-      "averageLength": 1161,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 3,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 389,
-      "structureChanges": 0,
-      "newFiles": 1,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
-      "brokenLinks": 14,
-      "repairedLinks": 0,
-      "validationStatus": "FAIL"
-    },
-    "screenshots": {
-      "totalReferences": 0,
-      "missingScreenshots": 0,
-      "availableScreenshots": 2,
-      "placeholdersGenerated": 0
-    }
-  },
-  {
-    "timestamp": "2026-07-08T15:31:57.412Z",
-    "quality": {
-      "overallScore": 84,
-      "completeness": 74,
-      "consistency": 100,
-      "accuracy": 72,
-      "maintainability": 100
-    },
-    "content": {
-      "totalWords": 38326,
-      "totalFiles": 33,
-      "averageLength": 1161,
-      "duplicateContent": 0,
-      "brokenReferences": 54
-    },
-    "structure": {
-      "crossReferences": 361,
-      "orphanedFiles": 3,
-      "missingScreenshots": 0,
-      "inconsistentFormatting": 0
-    },
-    "changes": {
-      "filesModified": 0,
-      "contentChanges": 0,
-      "structureChanges": 0,
-      "newFiles": 0,
-      "deletedFiles": 0
-    },
-    "linkValidation": {
-      "totalLinks": 648,
       "brokenLinks": 14,
       "repairedLinks": 0,
       "validationStatus": "FAIL"

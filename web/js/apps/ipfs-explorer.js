@@ -2,10 +2,6 @@
  * Enhanced IPFS Explorer App for SwissKnife Web Desktop
  * Advanced IPFS file management with P2P integration, content pinning, and network analytics
  */
-import {
-  getBrowserAppCapabilityGateway,
-  renderAppCapabilityEnvelopeHTML,
-} from '../core/app-capability-gateway.js';
 
 export class IPFSExplorerApp {
   constructor(desktop) {
@@ -20,9 +16,6 @@ export class IPFSExplorerApp {
     this.currentView = 'explorer'; // 'explorer', 'pinning', 'network', 'analytics'
     this.contentCache = new Map();
     this.uploadQueue = [];
-    this.capabilityGateway = getBrowserAppCapabilityGateway({ desktop });
-    this.pinned = this.pinnedContent;
-    window.ipfsExplorer = this;
     
     // IPFS gateway configuration
     this.gateways = [
@@ -52,7 +45,6 @@ export class IPFSExplorerApp {
   async initializeIntegrations() {
     try {
       this.swissknife = this.desktop.swissknife;
-      this.capabilityGateway = getBrowserAppCapabilityGateway({ desktop: this.desktop });
       
       // Connect to P2P system for distributed IPFS
       if (window.p2pMLSystem) {
@@ -1028,109 +1020,13 @@ export class IPFSExplorerApp {
   }
 
   async togglePin(hash) {
-    if (this.pinnedContent.has(hash)) {
-      await this.unpinContent(hash);
+    if (this.pinned.has(hash)) {
+      this.pinned.delete(hash);
+      eventBus.emit('ipfs:unpin-complete', { hash });
     } else {
-      await this.pinItem(hash);
+      this.pinned.add(hash);
+      eventBus.emit('ipfs:pin-complete', { hash });
     }
-  }
-
-  async pinCurrentPath() {
-    const hash = this.currentHash || this.currentPath?.replace('/ipfs/', '');
-    if (!hash || hash === '/') {
-      this.showNotification('Enter a CID or IPFS path before pinning.', 'warning');
-      return;
-    }
-    await this.pinItem(hash);
-  }
-
-  async pinItem(hash) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.pin_add', { cid: hash });
-    if (envelope.status !== 'ok') {
-      this.displayCapabilityEnvelope(envelope, 'content-browser');
-    }
-    this.pinnedContent.set(hash, {
-      hash,
-      name: hash,
-      size: 0,
-      type: 'cid',
-      pinnedAt: Date.now(),
-      status: envelope.status === 'ok' ? 'pinned' : 'degraded',
-    });
-    this.pinned = this.pinnedContent;
-    this.savePinnedContent();
-    this.loadRecentPins();
-    this.showNotification(envelope.summary, envelope.status === 'ok' ? 'success' : 'warning');
-    return envelope;
-  }
-
-  async unpinContent(hash) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.pin_rm', { cid: hash });
-    if (envelope.status !== 'ok') {
-      this.displayCapabilityEnvelope(envelope, 'pins-list');
-    }
-    this.pinnedContent.delete(hash);
-    this.pinned = this.pinnedContent;
-    this.savePinnedContent();
-    this.displayPinnedContent();
-    this.showNotification(envelope.summary, envelope.status === 'ok' ? 'success' : 'warning');
-    return envelope;
-  }
-
-  async serviceStatus() {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.node_id', { operation: 'status' });
-    this.displayCapabilityEnvelope(envelope, 'content-browser');
-    return envelope;
-  }
-
-  async catItem(cid) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.ipfs_cat', { cid });
-    this.displayCapabilityEnvelope(envelope, 'content-browser');
-    return envelope;
-  }
-
-  async statItem(cid) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.block_stat', { cid });
-    this.displayCapabilityEnvelope(envelope, 'content-browser');
-    return envelope;
-  }
-
-  async listPins() {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.get_pinset', { operation: 'list_pins' });
-    this.displayCapabilityEnvelope(envelope, 'pins-list');
-    return envelope;
-  }
-
-  async dagGet(cid) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.dag_get', { cid });
-    this.displayCapabilityEnvelope(envelope, 'content-browser');
-    return envelope;
-  }
-
-  async dagPut(data) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.dag_put', { data });
-    this.displayCapabilityEnvelope(envelope, 'content-browser');
-    return envelope;
-  }
-
-  async publishName(cid, name) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.name_publish', { cid, path: cid, name });
-    this.displayCapabilityEnvelope(envelope, 'content-browser');
-    return envelope;
-  }
-
-  async resolveName(name) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.name_resolve', { name });
-    this.displayCapabilityEnvelope(envelope, 'content-browser');
-    return envelope;
-  }
-
-  async previewItem(hash) {
-    return this.catItem(hash);
-  }
-
-  async downloadItem(hash) {
-    return this.catItem(hash);
   }
 
   refreshCurrentView() {
@@ -1279,23 +1175,6 @@ export class IPFSExplorerApp {
     this.loadRecentPins();
   }
 
-  async invokeIPFSCapability(capabilityId, input = {}) {
-    this.capabilityGateway = getBrowserAppCapabilityGateway({ desktop: this.desktop });
-    const envelope = await this.capabilityGateway.invoke({
-      app_id: 'ipfs-explorer',
-      capability_id: capabilityId,
-      input,
-    });
-    this.lastCapabilityEnvelope = envelope;
-    return envelope;
-  }
-
-  displayCapabilityEnvelope(envelope, targetId = 'content-browser') {
-    const target = document.getElementById(targetId);
-    if (!target) return;
-    target.innerHTML = renderAppCapabilityEnvelopeHTML(envelope);
-  }
-
   async loadExplorerContent() {
     const browser = document.getElementById('content-browser');
     if (!browser) return;
@@ -1305,11 +1184,7 @@ export class IPFSExplorerApp {
     try {
       if (this.currentHash) {
         const content = await this.fetchIPFSContent(this.currentHash);
-        if (content?.__appCapabilityEnvelope) {
-          this.displayCapabilityEnvelope(content.envelope, 'content-browser');
-        } else {
-          this.displayContent(content);
-        }
+        this.displayContent(content);
       } else {
         this.displayWelcomeContent();
       }
@@ -1319,14 +1194,40 @@ export class IPFSExplorerApp {
   }
 
   async fetchIPFSContent(hash) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.ipfs_ls', {
-      path: hash.startsWith('/ipfs/') ? hash : `/ipfs/${hash}`,
-      cid: hash.replace('/ipfs/', ''),
-    });
-    if (envelope.status !== 'ok') {
-      return { __appCapabilityEnvelope: true, envelope };
+    // Try to fetch from real IPFS if available
+    if (this.desktop?.swissknife?.ipfs) {
+      try {
+        const content = await this.desktop.swissknife.ipfs.ls(hash);
+        return content;
+      } catch (error) {
+        console.warn('⚠️ IPFS fetch failed:', error);
+      }
     }
-    return normalizeGatewayItems(envelope.output);
+    
+    // Try window.ipfs if available
+    if (window.ipfs) {
+      try {
+        const content = [];
+        for await (const file of window.ipfs.ls(hash)) {
+          content.push({
+            name: file.name,
+            type: file.type === 1 ? 'directory' : 'document',
+            size: file.size,
+            hash: file.cid.toString()
+          });
+        }
+        return content;
+      } catch (error) {
+        console.warn('⚠️ Window IPFS fetch failed:', error);
+      }
+    }
+    
+    // Fallback to example content
+    return [
+      { name: 'readme.md', type: 'document', size: 1024, hash: 'example-QmXxYyZz...' },
+      { name: 'images', type: 'directory', size: 0, hash: 'example-QmAaBbCc...' },
+      { name: 'data.json', type: 'json', size: 512, hash: 'example-QmDdEeFf...' }
+    ];
   }
 
   displayContent(items) {
@@ -1422,30 +1323,6 @@ export class IPFSExplorerApp {
   }
 
   async loadPinningData() {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.get_pinset', {
-      operation: 'list_pins',
-    });
-    if (envelope.status === 'ok') {
-      const pins = normalizeGatewayItems(envelope.output);
-      pins.forEach(pin => {
-        const hash = pin.hash || pin.cid;
-        if (!hash) return;
-        this.pinnedContent.set(hash, {
-          hash,
-          name: pin.name || hash,
-          size: pin.size || 0,
-          type: pin.type || 'cid',
-          pinnedAt: Date.now(),
-          status: 'pinned',
-        });
-      });
-      this.pinned = this.pinnedContent;
-      this.savePinnedContent();
-    } else {
-      this.displayCapabilityEnvelope(envelope, 'pins-list');
-      await this.updatePinningStats();
-      return;
-    }
     await this.updatePinningStats();
     this.displayPinnedContent();
   }
@@ -1854,37 +1731,79 @@ export class IPFSExplorerApp {
   }
 
   async uploadFileToIPFS(file) {
-    const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.ipfs_add', {
-      file,
-      file_path: file.name,
-      content: file,
-    });
-    const hash = envelope.output?.cid || envelope.output?.hash || `degraded-${file.name}`;
-
-    if (envelope.status !== 'ok') {
-      this.displayCapabilityEnvelope(envelope, 'content-browser');
-      this.showNotification(envelope.summary, 'warning');
-    }
-
-    const pinAfterUpload = document.getElementById('pin-after-upload');
-    if (pinAfterUpload?.checked && hash) {
-      const pinEnvelope = await this.invokeIPFSCapability('ipfs.kit.tool.pin_add', { cid: hash });
-      if (pinEnvelope.status !== 'ok') {
-        this.displayCapabilityEnvelope(pinEnvelope, 'content-browser');
+    // Try to upload to real IPFS
+    if (this.desktop?.swissknife?.ipfs) {
+      try {
+        const result = await this.desktop.swissknife.ipfs.add(file);
+        const hash = result.cid || result.hash;
+        
+        // Add to pinned content if option is selected
+        const pinAfterUpload = document.getElementById('pin-after-upload');
+        if (pinAfterUpload?.checked) {
+          await this.desktop.swissknife.ipfs.pin(hash);
+          this.pinnedContent.set(hash, {
+            hash,
+            name: file.name,
+            size: file.size,
+            type: this.getFileType(file.name),
+            pinnedAt: Date.now(),
+            status: 'pinned'
+          });
+        }
+        
+        return hash;
+      } catch (error) {
+        console.warn('⚠️ SwissKnife IPFS upload failed:', error);
       }
-      this.pinnedContent.set(hash, {
-        hash,
-        name: file.name,
-        size: file.size,
-        type: this.getFileType(file.name),
-        pinnedAt: Date.now(),
-        status: pinEnvelope.status === 'ok' ? 'pinned' : 'degraded',
-      });
-      this.pinned = this.pinnedContent;
-      this.savePinnedContent();
     }
-
-    return hash;
+    
+    // Try window.ipfs
+    if (window.ipfs) {
+      try {
+        const result = await window.ipfs.add(file);
+        const hash = result.cid.toString();
+        
+        // Add to pinned content if option is selected
+        const pinAfterUpload = document.getElementById('pin-after-upload');
+        if (pinAfterUpload?.checked) {
+          await window.ipfs.pin.add(hash);
+          this.pinnedContent.set(hash, {
+            hash,
+            name: file.name,
+            size: file.size,
+            type: this.getFileType(file.name),
+            pinnedAt: Date.now(),
+            status: 'pinned'
+          });
+        }
+        
+        return hash;
+      } catch (error) {
+        console.warn('⚠️ Window IPFS upload failed:', error);
+      }
+    }
+    
+    // Fallback: simulate upload for demo
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const hash = 'example-Qm' + Math.random().toString(36).substring(2, 46);
+        
+        // Add to pinned content if option is selected
+        const pinAfterUpload = document.getElementById('pin-after-upload');
+        if (pinAfterUpload?.checked) {
+          this.pinnedContent.set(hash, {
+            hash,
+            name: file.name,
+            size: file.size,
+            type: this.getFileType(file.name),
+            pinnedAt: Date.now(),
+            status: 'pinned'
+          });
+        }
+        
+        resolve(hash);
+      }, 1000);
+    });
   }
 
   // Utility methods
@@ -1939,28 +1858,46 @@ export class IPFSExplorerApp {
     try {
       // Initialize IPFS node connection
       console.log('Initializing IPFS node connection...');
-      const envelope = await this.invokeIPFSCapability('ipfs.kit.tool.node_id', {
-        operation: 'status',
-      });
-      if (envelope.status === 'ok') {
-        const info = envelope.output || {};
-        this.ipfsNode = {
-          id: info.id || info.peerId || info.peer_id || 'connected-ipfs-node',
-          version: info.agentVersion || info.version || 'unknown',
-          connected: true,
-          envelope,
-        };
-        console.log('IPFS node connected through app capability gateway');
-        return;
+      
+      // Try to connect to real IPFS node
+      if (this.desktop?.swissknife?.ipfs) {
+        try {
+          const info = await this.desktop.swissknife.ipfs.id();
+          this.ipfsNode = {
+            id: info.id || info.peerId,
+            version: info.agentVersion || '0.14.0',
+            connected: true
+          };
+          console.log('✅ IPFS node connected via SwissKnife API');
+          return;
+        } catch (error) {
+          console.warn('⚠️ SwissKnife IPFS connection failed:', error);
+        }
       }
-
+      
+      // Try window.ipfs
+      if (window.ipfs) {
+        try {
+          const info = await window.ipfs.id();
+          this.ipfsNode = {
+            id: info.id,
+            version: info.agentVersion || '0.14.0',
+            connected: true
+          };
+          console.log('✅ IPFS node connected via window.ipfs');
+          return;
+        } catch (error) {
+          console.warn('⚠️ Window IPFS connection failed:', error);
+        }
+      }
+      
+      // Fallback to example node info
       this.ipfsNode = {
-        id: 'degraded-ipfs-node',
-        version: 'unknown',
-        connected: false,
-        envelope,
+        id: 'example-12D3KooWExample...',
+        version: '0.14.0',
+        connected: false
       };
-      console.log('Using degraded IPFS node envelope');
+      console.log('⚠️ Using example IPFS node info (not connected)');
       
     } catch (error) {
       console.error('❌ IPFS node connection failed:', error);
@@ -2004,7 +1941,6 @@ export class IPFSExplorerApp {
       if (saved) {
         const data = JSON.parse(saved);
         this.pinnedContent = new Map(data);
-        this.pinned = this.pinnedContent;
       }
     } catch (error) {
       console.error('Error loading pinned content:', error);
@@ -2195,30 +2131,4 @@ export class IPFSExplorerApp {
       </div>
     `;
   }
-}
-
-function normalizeGatewayItems(output) {
-  const rawItems = Array.isArray(output)
-    ? output
-    : Array.isArray(output?.items)
-      ? output.items
-      : Array.isArray(output?.pins)
-        ? output.pins
-        : output?.content
-          ? [{ name: 'content', type: 'document', size: String(output.content).length, hash: output.cid || output.path || 'content', content: output.content }]
-          : [];
-
-  return rawItems.map(item => {
-    if (typeof item === 'string') {
-      return { name: item, type: 'cid', size: 0, hash: item };
-    }
-    const hash = item.hash || item.cid || item.path || item.name || 'unknown';
-    return {
-      name: item.name || item.path || hash,
-      type: item.type === 1 ? 'directory' : item.type || 'document',
-      size: typeof item.size === 'number' ? item.size : 0,
-      hash,
-      children: item.children || 0,
-    };
-  });
 }

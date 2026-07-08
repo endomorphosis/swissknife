@@ -6,12 +6,12 @@
 
 import {
   makeCodecConfig, ModalLogicCodecResult, DeterministicModalLogicCodec,
-} from '../../src/services/logic/modal/modal-logic-codec.js';
+} from '../../src/services/modal-logic-codec.js';
 import {
   DecodedModalPhrase, DecodedModalText,
   decodeModalIRDocument, modalFormulaToText, modalTextTokenSimilarity,
   ModalIRDocument,
-} from '../../src/services/logic/modal/modal-ir-decompiler.js';
+} from '../../src/services/modal-ir-decompiler.js';
 
 // ---------------------------------------------------------------------------
 // ModalLogicCodecConfig + makeCodecConfig

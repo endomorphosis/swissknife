@@ -10,13 +10,13 @@
  * - version-history: Get version history
  */
 
-import { DeploymentManager } from '../services/mcp/mcp-deployment-manager.js';
+import { DeploymentManager } from '../services/mcp-deployment-manager.js';
 import { 
   parseEnvVars, 
   ensureConfigScope, 
   listMCPServers,
   McpServerConfig
-} from '../services/mcp/mcpClient.js';
+} from '../services/mcpClient.js';
 import { Command, LocalCommand } from '../types/command.js';
 import { logEvent } from '../utils/log.js';
 import chalk from 'chalk.js';

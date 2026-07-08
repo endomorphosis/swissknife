@@ -16,7 +16,7 @@
  */
 
 import type { WasmProofResult } from './prover-types.js';
-import { sha256Hex } from '../shared/browser-crypto.js';
+import { sha256Hex } from './browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // ProofCache

@@ -1,41 +1,28 @@
 import { execFileSync } from 'node:child_process';
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-  writeFileSync: (path: string, data: string) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for conformance tests');
-}
-
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 function runCompare(pyEnvelope: unknown, tsEnvelope: unknown, vectors: unknown): { json: any; md: string } {
-  const dir = nodeFs.mkdtempSync(join(tmpdir(), 'compare-conformance-'));
+  const dir = mkdtempSync(join(tmpdir(), 'compare-conformance-'));
   const pyPath = join(dir, 'py.json');
   const tsPath = join(dir, 'ts.json');
   const vectorsDir = join(dir, 'vectors');
   const vectorsPath = join(vectorsDir, 'vectors.json');
   const outDir = join(dir, 'out');
 
-  nodeFs.mkdirSync(vectorsDir, { recursive: true });
-  nodeFs.writeFileSync(pyPath, JSON.stringify(pyEnvelope), 'utf8');
-  nodeFs.writeFileSync(tsPath, JSON.stringify(tsEnvelope), 'utf8');
-  nodeFs.writeFileSync(vectorsPath, JSON.stringify(vectors), 'utf8');
+  mkdirSync(vectorsDir, { recursive: true });
+  writeFileSync(pyPath, JSON.stringify(pyEnvelope), 'utf8');
+  writeFileSync(tsPath, JSON.stringify(tsEnvelope), 'utf8');
+  writeFileSync(vectorsPath, JSON.stringify(vectors), 'utf8');
 
   const comparePath = resolve(__dirname, '../../../implementation_plan/conformance/compare.mjs');
   execFileSync('node', [comparePath, '--python', pyPath, '--ts', tsPath, '--vectors', vectorsDir, '--out-dir', outDir], {
     stdio: 'pipe',
   });
 
-  const json = JSON.parse(nodeFs.readFileSync(join(outDir, 'report.json'), 'utf8'));
-  const md = nodeFs.readFileSync(join(outDir, 'report.md'), 'utf8');
+  const json = JSON.parse(readFileSync(join(outDir, 'report.json'), 'utf8'));
+  const md = readFileSync(join(outDir, 'report.md'), 'utf8');
   return { json, md };
 }
 

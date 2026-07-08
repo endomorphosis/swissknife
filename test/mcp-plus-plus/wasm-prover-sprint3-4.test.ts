@@ -14,7 +14,7 @@ import { DeonticToLean4Translator } from '../../src/services/provers/deontic-to-
 import { CoqJsCoqBridge } from '../../src/services/provers/coq-jscoq-bridge';
 import { Lean4WasmBridge } from '../../src/services/provers/lean4-wasm-bridge';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
-import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
+import type { Policy } from '../../src/services/mcp/mcp-policy';
 
 // ---------------------------------------------------------------------------
 // Helpers

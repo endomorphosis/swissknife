@@ -5,7 +5,7 @@ import MCPDaemonManager from '../../../hallucinate_app/hallucinate_app/node/mcp_
 import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,
-} from '../../src/services/mcp/swissknife-mcp-capability-registry';
+} from '../../src/services/apps/swissknife-mcp-capability-registry';
 import hallucinateBackendBridge from '../../web/js/hallucinate-backend-bridge.mjs';
 
 const DASHBOARD_CATALOG_FIXTURE = path.resolve(

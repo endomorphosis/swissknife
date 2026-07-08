@@ -3,11 +3,6 @@
  * Advanced conversational AI with multi-model support, context awareness, and smart features
  */
 
-import {
-  describeAccelerateDatasetsCapabilities,
-  runAccelerateDatasetsWorkflow,
-} from './accelerate-datasets-capabilities.js';
-
 export class AIChatApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -23,8 +18,6 @@ export class AIChatApp {
     this.messageCount = 0;
     this.tokenUsage = { input: 0, output: 0 };
     this.conversationMetrics = new Map();
-    this.accelerateDatasetsCapabilities = describeAccelerateDatasetsCapabilities('ai-chat');
-    this.lastAccelerateDatasetsWorkflow = null;
     
     // Enhanced AI providers and models
     this.aiProviders = {
@@ -1372,40 +1365,6 @@ For testing, you can:
       console.warn('Failed to load conversations:', error);
       this.conversations = [];
     }
-  }
-
-  getAccelerateDatasetsCapabilities() {
-    return this.accelerateDatasetsCapabilities;
-  }
-
-  async exerciseAccelerateDatasetsGateway(input = {}) {
-    const prompt = input.prompt
-      || this.currentConversation?.messages?.slice().reverse().find(message => message.role === 'user')?.content
-      || 'Explain the current SwissKnife desktop state using cited dataset context.';
-
-    this.lastAccelerateDatasetsWorkflow = await runAccelerateDatasetsWorkflow({
-      desktop: this.desktop,
-      appId: 'ai-chat',
-      task: 'chat-completion',
-      model: input.model || this.selectedModel,
-      provider: input.provider || this.selectedProvider,
-      input: prompt,
-      datasetQuery: input.datasetQuery || `${this.contextMode} context ${prompt}`,
-      collection: 'swissknife-ai-chat-context',
-      maxTokens: input.maxTokens || 256,
-      provenance: {
-        action: 'ai-chat.cited-answer',
-        subject_type: 'chat-completion',
-        metadata: {
-          context_mode: this.contextMode,
-          enabled_context_sources: Object.entries(this.contextSources)
-            .filter(([, source]) => source.enabled)
-            .map(([key]) => key),
-          message_count: this.messageCount,
-        },
-      },
-    });
-    return this.lastAccelerateDatasetsWorkflow;
   }
 
   createNewConversation() {

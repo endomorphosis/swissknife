@@ -1,0 +1,59 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [],
+    "allowImportingTsExtensions": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitAny": false,
+    "noEmit": true
+  },
+  "files": [
+    "web/desktop.ts",
+    "web/src/apps/app-manifest-loader.ts",
+    "web/src/browser-main-working.ts",
+    "web/src/browser-main-simple.ts",
+    "web/src/index.ts",
+    "web/src/adapters/ai-adapter.ts",
+    "web/src/adapters/browser-ai-adapter.ts",
+    "web/src/adapters/browser-command-adapter.ts",
+    "web/src/adapters/browser-globals.ts",
+    "web/src/adapters/browser-storage-adapter.ts",
+    "web/src/adapters/cli-adapter.ts",
+    "web/src/adapters/task-adapter.ts",
+    "web/src/adapters/task-adapter-new.ts",
+    "web/src/components/P2PNetworkApp.ts",
+    "web/src/components/TerminalApp.ts",
+    "web/src/polyfills/browser-polyfills.ts",
+    "web/src/swissknife-browser-core.ts",
+    "web/src/utils/browser-utils.ts",
+    "web/src/utils/desktop-app.ts",
+    "src/platform/browser.ts",
+    "src/ai/browser.ts",
+    "src/models/browser.ts",
+    "src/storage/browser.ts",
+    "src/workers/browser.ts",
+    "src/services/ipfs/browser.ts",
+    "src/services/mcp/libp2p-browser-runtime.ts",
+    "src/services/mcp/mcp-dashboard-browser-policy.ts",
+    "src/components/browser/index.ts",
+    "src/components/browser/BrowserRuntimeSummary.tsx",
+    "src/hooks/browser/index.ts",
+    "src/hooks/browser/useBrowserPlatformSnapshot.ts",
+    "src/screens/browser/index.ts",
+    "src/screens/browser/BrowserHomeScreen.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "web/dist",
+    "web/test-dist"
+  ]
+}

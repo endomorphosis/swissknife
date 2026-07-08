@@ -9,41 +9,41 @@ import {
   ProveKitFFI,
   ProveKitFFIError,
   type ZKPProcessRunner,
-} from '../../src/services/zkp/zkp-backends';
+} from '../../src/services/zkp-backends';
 import {
   axiomSetAccumulatorCommitment,
   canonicalizeAxiomSet,
   deriveCircuitV2Inputs,
-} from '../../src/services/zkp/canonicalization';
+} from '../../src/services/canonicalization';
 import {
   LegalTheoremSemantics,
   deriveTdfolV1Trace,
   legalTheoremToCircuit,
-} from '../../src/services/zkp/legal-theorem-semantics';
+} from '../../src/services/legal-theorem-semantics';
 import {
   WitnessManager,
   computeWitness,
   validateWitness,
-} from '../../src/services/zkp/witness-manager';
+} from '../../src/services/witness-manager';
 import {
   ZKPVerifier,
   makeSimulatedVK,
   verifyProof,
-} from '../../src/services/zkp/zkp-verifier';
+} from '../../src/services/zkp-verifier';
 import {
   SetupArtifactStore,
   getOrCreateArtifact,
   runTrustedSetup,
-} from '../../src/services/zkp/setup-artifacts';
+} from '../../src/services/setup-artifacts';
 import {
   VKRegistry,
   registerVK,
-} from '../../src/services/zkp/vk-registry';
+} from '../../src/services/vk-registry';
 import {
   encodeZkpOnchainPayload,
   estimateZkpOnchainGas,
   submitZkpProofOnchain,
-} from '../../src/services/zkp/zkp-onchain-pipeline';
+} from '../../src/services/zkp-onchain-pipeline';
 
 describe('PORT-192 Groth16 native runner adapter', () => {
   it('passes witness JSON to the configured native runner and parses proof output', async () => {

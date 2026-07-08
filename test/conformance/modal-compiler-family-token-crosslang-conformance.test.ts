@@ -1,22 +1,9 @@
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-  writeFileSync: (path: string, data: string) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for conformance tests');
-}
-
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { canonicalModalFamilyToken } from '../../src/services/logic/modal/modal-compiler';
+import { canonicalModalFamilyToken } from '../../src/services/modal-compiler';
 
 interface Vector {
   id: string;
@@ -41,11 +28,11 @@ interface PyResults {
 
 function loadCorpus(): Corpus {
   const path = resolve(process.cwd(), '../implementation_plan/conformance/modal-compiler-family-token-vectors.json');
-  return JSON.parse(nodeFs.readFileSync(path, 'utf8')) as Corpus;
+  return JSON.parse(readFileSync(path, 'utf8')) as Corpus;
 }
 
 function runPythonReference(corpusPath: string): PyResults {
-  const tempDir = nodeFs.mkdtempSync(join(tmpdir(), 'modal-compiler-token-py-'));
+  const tempDir = mkdtempSync(join(tmpdir(), 'modal-compiler-token-py-'));
   const outPath = join(tempDir, 'py-results.json');
   try {
     const scriptPath = resolve(process.cwd(), '../implementation_plan/conformance/modal_compiler_family_token_py_runner.py');
@@ -53,9 +40,9 @@ function runPythonReference(corpusPath: string): PyResults {
     if (proc.status !== 0) {
       throw new Error(`Python modal compiler family-token runner failed: ${proc.stderr || proc.stdout}`);
     }
-    return JSON.parse(nodeFs.readFileSync(outPath, 'utf8')) as PyResults;
+    return JSON.parse(readFileSync(outPath, 'utf8')) as PyResults;
   } finally {
-    nodeFs.rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

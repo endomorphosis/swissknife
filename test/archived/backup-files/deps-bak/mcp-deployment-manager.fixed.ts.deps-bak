@@ -6,12 +6,12 @@ const addApiKey = jest.fn().mockImplementation(() => Promise.resolve());
  * Unit tests for the DeploymentManager component
  */
 
-import { DeploymentManager } from '../../../../src/services/mcp-deployment-manager.js.js.js.js.js.js.js.js.js.js.js';
-import { ServerRegistry } from '../../../../src/services/mcp-registry.js.js.js.js.js.js.js.js.js.js.js';
-import { VersionedServerConfig } from '../../../../src/services/mcp-types.js.js.js.js.js.js.js.js.js.js.js';
+import { DeploymentManager } from '../../../../src/services/mcp/mcp-deployment-manager.js.js.js.js.js.js.js.js.js.js.js';
+import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry.js.js.js.js.js.js.js.js.js.js.js';
+import { VersionedServerConfig } from '../../../../src/services/mcp/mcp-types.js.js.js.js.js.js.js.js.js.js.js';
 
 // Mock the registry
-jest.mock('../../../../src/services/mcp-registry.js', () => {
+jest.mock('../../../../src/services/mcp/mcp-registry.js', () => {
   const mockServerRegistry = {
     initialize: jest.fn().mockResolvedValue(undefined),
     registerServer: jest.fn(),

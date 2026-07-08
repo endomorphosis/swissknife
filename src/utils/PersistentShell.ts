@@ -6,7 +6,7 @@ import { spawn, execSync, type ChildProcess } from 'child_process'
 import { isAbsolute, resolve, join } from 'path'
 import { logError } from './log.js'
 import * as os from 'os'
-import { logEvent } from '../services/platform/statsig.js'
+import { logEvent } from '../services/statsig.js'
 import { PRODUCT_COMMAND } from '../constants/product.js'
 
 type ExecResult = {

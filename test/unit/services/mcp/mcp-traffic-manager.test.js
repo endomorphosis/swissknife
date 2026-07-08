@@ -26,7 +26,7 @@ jest.mock('../../../../src/services/mcp/mcp-registry', () => {
 
 const connectToServer = jest.fn();
 // Mock the connectToServer function
-jest.mock('../../../../src/services/mcp/mcpClient', () => ({
+jest.mock('../../../../src/services/mcpClient', () => ({
     connectToServer: jest.fn().mockImplementation(() => connectToServer())
 }));
 
@@ -110,7 +110,7 @@ describe('TrafficManager', () => {
 
             // Mock successful connection
             const mockClient = {};
-            const connectToServer = require('../../../../src/services/mcp/mcpClient').connectToServer;
+            const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
             connectToServer.mockResolvedValue(mockClient);
 
             // Request client multiple times and count selections
@@ -171,7 +171,7 @@ describe('TrafficManager', () => {
 
             // Mock successful connection
             const mockClient = {};
-            const connectToServer = require('../../../../src/services/mcp/mcpClient').connectToServer;
+            const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
             connectToServer.mockResolvedValue(mockClient);
 
             // Request with >=1.5.0 constraint
@@ -204,7 +204,7 @@ describe('TrafficManager', () => {
 
             // Mock successful connection
             const mockClient = {};
-            const connectToServer = require('../../../../src/services/mcp/mcpClient').connectToServer;
+            const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
             connectToServer.mockResolvedValue(mockClient);
 
             // First request should create connection

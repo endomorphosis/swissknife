@@ -8,7 +8,7 @@ import { useTerminalSize } from '../hooks/useTerminalSize.js.js.js.js.js.js.js.j
 import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
 import { setupNewPrefix, installGlobalPackage } from '../utils/autoUpdater.js.js.js.js.js.js.js.js.js.js'
 import { logError } from '../utils/log.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/platform/statsig.js'
+import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
 import { MACRO } from '../constants/macros.js.js.js.js.js.js.js.js.js.js'
 type Props = {
   customPrefix: string

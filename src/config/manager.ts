@@ -4,10 +4,10 @@
  * This module provides a centralized way to manage application configuration.
  */
 
-import * as path from 'path.js';
-import * as os from 'os.js';
-import * as fs from 'fs.js';
-import * as fsPromises from 'fs/promises.js';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import * as fs from 'node:fs';
+import * as fsPromises from 'node:fs/promises';
 import { logger } from '../utils/logger.js'; // Keep .js for logger as it's a JS file
 
 // Singleton instance

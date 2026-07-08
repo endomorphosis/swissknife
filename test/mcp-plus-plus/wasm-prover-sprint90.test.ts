@@ -7,11 +7,11 @@ import {
   NLContext,
   TDFOLNLPreprocessor,
   preprocessTdfolNaturalLanguage,
-} from '../../src/services/logic/tdfol/tdfol-nl-preprocessor';
+} from '../../src/services/tdfol-nl-preprocessor';
 import {
   NLToDCECCompiler,
   compileNaturalLanguageToDcec,
-} from '../../src/services/logic/nl/nl-to-dcec-compiler';
+} from '../../src/services/nl-to-dcec-compiler';
 
 describe('PORT-186 TDFOL NL preprocessor', () => {
   it('extracts entities, token hints, and temporal expressions', () => {

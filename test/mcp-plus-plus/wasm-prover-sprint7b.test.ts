@@ -8,13 +8,12 @@
  * - CLI: mcp++ provers subcommand shape
  */
 
-import { vi } from 'vitest';
 import {
   findIxCli,
   ixBuildInstructions,
   proveWithIx,
 } from '../../src/services/provers/lean4-wasm-bridge';
-import { PolicyAuditLog } from '../../src/services/mcp/policy-audit-log';
+import { PolicyAuditLog } from '../../src/services/policy-audit-log';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
 
 const IX_AVAILABLE = findIxCli() !== null;
@@ -55,7 +54,7 @@ describe('T-51 ix CLI evaluation', () => {
 });
 
 (IX_AVAILABLE ? describe : describe.skip)('T-52 ix-backed Lean4WasmBridge (requires ix CLI)', () => {
-  vi.setConfig({ testTimeout: 120_000 }); // ix compilation can be slow
+  jest.setTimeout(120_000); // ix compilation can be slow
 
   it('proveWithIx generates a ZKProofArtifact for a trivial theorem', async () => {
     const result = await proveWithIx('theorem x : True := trivial', undefined, 60_000);
@@ -112,7 +111,7 @@ describe('T-53 PolicyAuditLog zk_proof_cid in extra', () => {
   });
 
   it('zk_proof_cid survives round-trip through JSONL file', async () => {
-    const { mkdtempSync, readFileSync, rmSync } = await vi.importActual<typeof import('node:fs')>('node:fs');
+    const { mkdtempSync, readFileSync, rmSync } = await import('node:fs');
     const { join } = await import('node:path');
     const { tmpdir } = await import('node:os');
     const dir = mkdtempSync(join(tmpdir(), 'pal-ix-'));

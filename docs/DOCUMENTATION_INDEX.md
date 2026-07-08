@@ -65,6 +65,12 @@ SwissKnife provides comprehensive documentation covering all aspects of the plat
 - **[TESTING_BEST_PRACTICES.md](./TESTING_BEST_PRACTICES.md)** - Testing strategy and best practices
 - **[ERROR-HANDLING.md](./ERROR-HANDLING.md)** - Error handling patterns and debugging
 
+### Refactor Architecture Gates
+- **[refactor-evidence-maintenance.md](./refactor-evidence-maintenance.md)** - Refactor task board, evidence, and validation synchronization runbook
+- **[supervisor-refactor-runbook.md](./supervisor-refactor-runbook.md)** - Bounded SWR supervisor invocation, state paths, Git GC behavior, and escalation rules
+- **[source-module-boundaries.md](./source-module-boundaries.md)** - Repository-wide source ownership, runtime classification, and dependency direction
+- **[release-browser-gates.md](./release-browser-gates.md)** - Release-blocking browser, bundle, and evidence freshness gates
+
 ### API Documentation
 - **[docs/api/](./api/)** - Complete API documentation for all integrations
 - **[API_KEY_MANAGEMENT.md](./API_KEY_MANAGEMENT.md)** - Secure API key management

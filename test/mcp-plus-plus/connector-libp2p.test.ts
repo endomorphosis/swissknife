@@ -8,7 +8,7 @@
  * echoes JSON-RPC responses using the exact u32-BE framing the servers speak.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@jest/globals';
 import { MCPp2pSession, P2PStream } from '../../src/services/mcp/mcp-p2p-session';
 import {
   MCPPPServerConnector,

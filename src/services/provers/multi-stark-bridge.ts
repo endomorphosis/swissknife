@@ -8,12 +8,12 @@
  * multi-circuit batch and emits content-addressed `ZKProofArtifact` records.
  */
 
-import type { Policy, Obligation } from '../logic/deontic/mcp-policy.js';
+import type { Policy, Obligation } from '../mcp-policy.js';
 import {
   computeZKProofArtifactCid,
   type ZKProofArtifact,
 } from './lurk-wasm-bridge.js';
-import { base64UrlEncode, sha256Hex } from '../shared/browser-crypto.js';
+import { base64UrlEncode, sha256Hex } from './browser-crypto.js';
 
 const DEFAULT_MULTI_STARK_PACKAGE = 'multi-stark-wasm';
 

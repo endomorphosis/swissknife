@@ -19,7 +19,7 @@ import {
   TemporalNegation,
   UntilWeakening,
   findApplicableCecNativeRules,
-} from '../../src/services/logic/cec/cec-modal-temporal-deontic-rules';
+} from '../../src/services/cec-modal-temporal-deontic-rules';
 
 describe('PORT-224 CEC native modal, temporal, and deontic inference rules', () => {
   it('ports modal rule classes as CECInferenceRule adapters', () => {

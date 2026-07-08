@@ -1,20 +1,9 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for deontic bridge conformance tests');
-}
-
-import { deonticGuidanceEvidenceRows } from '../../src/services/logic/bridges/deontic-norms-bridge';
+import { deonticGuidanceEvidenceRows } from '../../src/services/deontic-norms-bridge';
 
 interface EvidenceRow {
   collectionKey: string;
@@ -44,11 +33,11 @@ interface PyResults {
 
 function loadCorpus(): Corpus {
   const path = resolve(process.cwd(), '../implementation_plan/conformance/deontic-bridge-guidance-evidence-rows-vectors.json');
-  return JSON.parse(nodeFs.readFileSync(path, 'utf8')) as Corpus;
+  return JSON.parse(readFileSync(path, 'utf8')) as Corpus;
 }
 
 function runPythonReference(corpusPath: string): PyResults {
-  const tempDir = nodeFs.mkdtempSync(join(tmpdir(), 'deontic-bridge-guidance-evidence-rows-py-'));
+  const tempDir = mkdtempSync(join(tmpdir(), 'deontic-bridge-guidance-evidence-rows-py-'));
   const outPath = join(tempDir, 'py-results.json');
   try {
     const scriptPath = resolve(process.cwd(), '../implementation_plan/conformance/deontic_bridge_guidance_evidence_rows_py_runner.py');
@@ -62,9 +51,9 @@ function runPythonReference(corpusPath: string): PyResults {
     if (proc.status !== 0) {
       throw new Error(`Python deontic bridge guidance evidence-rows runner failed: ${proc.stderr || proc.stdout}`);
     }
-    return JSON.parse(nodeFs.readFileSync(outPath, 'utf8')) as PyResults;
+    return JSON.parse(readFileSync(outPath, 'utf8')) as PyResults;
   } finally {
-    nodeFs.rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

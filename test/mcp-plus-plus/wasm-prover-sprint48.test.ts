@@ -7,6 +7,7 @@
  *         T-216 (structured-logging.ts).
  */
 
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,7 +16,7 @@ import {
   createDcecGrammar,
   LexicalCategory,
   SemanticType,
-} from '../../src/services/logic/dcec/dcec-english-grammar';
+} from '../../src/services/dcec-english-grammar';
 
 import {
   ProofExplainer,
@@ -25,12 +26,12 @@ import {
   explainZkpProof,
   proofStepNL,
   proofExplanationToString,
-} from '../../src/services/proof-engine/proof-explainer';
+} from '../../src/services/proof-explainer';
 
 import {
   DeonticAnalyzer,
   DocumentCorpus,
-} from '../../src/services/logic/deontic/deontic-analyzer';
+} from '../../src/services/deontic-analyzer';
 
 import {
   LogField,
@@ -47,19 +48,7 @@ import {
   log_mcp_tool,
   log_performance,
   parse_json_log_file,
-} from '../../src/services/platform/structured-logging';
-
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdtempSync: (prefix: string) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-  writeFileSync: (path: string, data: string) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for structured logging file tests');
-}
+} from '../../src/services/structured-logging';
 
 // ---------------------------------------------------------------------------
 // DCECEnglishGrammar tests
@@ -507,9 +496,9 @@ describe('Python-compatible structured logging helpers', () => {
   });
 
   test('parse_json_log_file skips malformed lines and filter_logs narrows records', () => {
-    const dir = nodeFs.mkdtempSync(join(tmpdir(), 'structured-logs-'));
+    const dir = mkdtempSync(join(tmpdir(), 'structured-logs-'));
     const file = join(dir, 'events.jsonl');
-    nodeFs.writeFileSync(file, [
+    writeFileSync(file, [
       JSON.stringify({ level: 'INFO', event_type: 'a', component: 'x', request_id: 'r1' }),
       'not json',
       JSON.stringify({ level: 'ERROR', event_type: 'b', component: 'y', request_id: 'r2' }),
@@ -521,7 +510,7 @@ describe('Python-compatible structured logging helpers', () => {
       expect(filter_logs(records, { level: 'ERROR', component: 'y' })).toHaveLength(1);
       expect(filter_logs(records, { request_id: 'r1' })[0]['event_type']).toBe('a');
     } finally {
-      nodeFs.rmSync(dir, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });

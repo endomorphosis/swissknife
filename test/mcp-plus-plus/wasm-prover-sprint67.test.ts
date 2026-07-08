@@ -1,9 +1,9 @@
 /**
  * wasm-prover-sprint67.test.ts
  * Tests for Sprint 67 modules:
- *   - groth16-cec-expansion.ts   (Groth16BackupBackend, CECDelegateStrategy, ExpansionRules)
- *   - portuguese-deontic-flogic-types.ts     (PortugueseParser, DeonticModality, FLogicOntology)
- *   - zkp-canonicalization-runtime.ts  (canonicalization, feature detection, rate limiting, VKRegistry, Horn axioms)
+ *   - sprint67-groth16-cec.ts   (Groth16BackupBackend, CECDelegateStrategy, ExpansionRules)
+ *   - sprint67-nlp-types.ts     (PortugueseParser, DeonticModality, FLogicOntology)
+ *   - sprint67-crypto-utils.ts  (canonicalization, feature detection, rate limiting, VKRegistry, Horn axioms)
  */
 
 import {
@@ -11,13 +11,13 @@ import {
   CECDelegateStrategy, createCECDelegate,
   AndExpansionRule, OrExpansionRule, ImpliesExpansionRule, IffExpansionRule, NotExpansionRule,
   getAllExpansionRules, selectExpansionRule,
-} from '../../src/services/zkp/groth16-cec-expansion';
+} from '../../src/services/sprint67-groth16-cec';
 
 import {
   getPortugueseDeonticKeywords, PortugueseParser,
   DeonticModality, ConflictType, detectConflict,
   FLogicStatus, makeFrame, makeOntology,
-} from '../../src/services/logic/nl/portuguese-deontic-flogic-types';
+} from '../../src/services/sprint67-nlp-types';
 
 import {
   normalizeText, canonicalizeTheorem, canonicalizeAxioms, theoremHashHex, axiomsCommitmentHex, tdfolV1AxiomsCommitmentHexV2,
@@ -25,7 +25,7 @@ import {
   RateLimiter, RateLimitExceeded, getRateLimiter, rateLimit,
   VKRegistry, computeVkHash,
   HornAxiom, parseTdfolV1Axiom, parseTdfolV1Theorem, evaluateTdfolV1Holds, deriveTdfolV1Trace, LegalTheoremSyntaxError,
-} from '../../src/services/zkp/zkp-canonicalization-runtime';
+} from '../../src/services/sprint67-crypto-utils';
 
 // ---------------------------------------------------------------------------
 // Groth16BackupBackend

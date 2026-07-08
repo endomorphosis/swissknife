@@ -4,15 +4,15 @@
  */
 
 import { explainProof, suggestProofStrategy } from '../../src/services/provers/neural-prover-bridge';
-import { applyAlphaRule, applyBetaRule, isAlphaFormula, isBetaFormula, propositionalTableauxExpand, toProofStepWire } from '../../src/services/logic/cec/cec-modal-tableaux';
-import { synthesisHintsFromAutoencoderIntrospection } from '../../src/services/logic/modal/modal-synthesis';
-import { residualSignatureForHint } from '../../src/services/logic/modal/modal-synthesis';
-import { augmentLegalIrProjectionTriples, LEGAL_CITATION_STRUCTURE, LEGAL_DOCUMENT_SCOPE } from '../../src/services/logic/modal/modal-kg-bridge';
-import { withFLogicOptimizer } from '../../src/services/logic/modal/modal-logic-codec';
-import { getFreeVariables, mkConstant, mkDeontic, mkFuncApp, mkPredicate, mkQuantified, mkTemporal, mkVariable, substitute } from '../../src/services/logic/tdfol/tdfol-core';
-import { naryAnd, naryOr } from '../../src/services/logic/dcec/dcec-core-types';
+import { applyAlphaRule, applyBetaRule, isAlphaFormula, isBetaFormula, propositionalTableauxExpand, toProofStepWire } from '../../src/services/cec-modal-tableaux';
+import { synthesisHintsFromAutoencoderIntrospection } from '../../src/services/modal-synthesis';
+import { residualSignatureForHint } from '../../src/services/modal-synthesis';
+import { augmentLegalIrProjectionTriples, LEGAL_CITATION_STRUCTURE, LEGAL_DOCUMENT_SCOPE } from '../../src/services/modal-kg-bridge';
+import { withFLogicOptimizer } from '../../src/services/modal-logic-codec';
+import { getFreeVariables, mkConstant, mkDeontic, mkFuncApp, mkPredicate, mkQuantified, mkTemporal, mkVariable, substitute } from '../../src/services/tdfol-core';
+import { naryAnd, naryOr } from '../../src/services/dcec-core-types';
 import { DcecProverBridge } from '../../src/services/provers/dcec-prover-bridge';
-import { Atom, Conjunction, Implies, Negation, Obligation, Permission, Prohibition } from '../../src/services/logic/dcec/dcec-types';
+import { Atom, Conjunction, Implies, Negation, Obligation, Permission, Prohibition } from '../../src/services/provers/dcec-types';
 
 // ---------------------------------------------------------------------------
 // PORT-003 / PORT-051 / PORT-052 / PORT-053 / PORT-094 — Type-system closure

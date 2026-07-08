@@ -3,12 +3,6 @@
  * Advanced file management with IPFS integration, cloud storage, and collaborative features
  */
 
-import {
-  describeStorageProvenanceCapabilities,
-  runStorageProvenanceWorkflow,
-  sanitizeArtifactFilename,
-} from './storage-provenance-capabilities.js';
-
 const COLLABORATIVE_FILE_SYSTEM_MODULE =
   '../../../ipfs_accelerate_js/src/p2p/collaborative-file-system.js';
 
@@ -125,8 +119,6 @@ export class FileManagerApp {
     this.clipboard = null; // for cut/copy operations
     this.searchQuery = '';
     this.showHidden = false;
-    this.storageProvenanceCapabilities = describeStorageProvenanceCapabilities('file-manager');
-    this.lastStorageProvenanceWorkflow = null;
     
     // Collaborative features - Phase 3
     this.collaborativeFS = null;
@@ -2178,68 +2170,6 @@ export class FileManagerApp {
       ipfsStatus.textContent = 'Error';
       ipfsStatus.style.color = 'red';
     }
-  }
-
-  getStorageProvenanceCapabilities() {
-    return this.storageProvenanceCapabilities;
-  }
-
-  getSelectedFileForStorageProvenance() {
-    const selectedIndex = Array.from(this.selectedFiles)[0];
-    return this.files[selectedIndex]
-      || this.files.find(file => file.type !== 'folder')
-      || this.exampleFiles.find(file => file.type !== 'folder')
-      || {
-        name: 'file-manager-selection.json',
-        path: `${this.currentPath}/file-manager-selection.json`,
-        type: 'file',
-        size: 0,
-        location: 'local',
-        modified: Date.now(),
-      };
-  }
-
-  async exerciseStorageProvenanceGateway(file = this.getSelectedFileForStorageProvenance()) {
-    const selectedFile = file || this.getSelectedFileForStorageProvenance();
-    const artifact = {
-      id: selectedFile.path || selectedFile.name,
-      title: selectedFile.name || selectedFile.path || 'File Manager artifact',
-      type: selectedFile.type === 'folder' ? 'folder' : 'file',
-      filename: sanitizeArtifactFilename(selectedFile.name || 'file-manager-artifact'),
-      content: JSON.stringify({
-        path: selectedFile.path || `${this.currentPath}/${selectedFile.name}`,
-        name: selectedFile.name,
-        size: selectedFile.size || 0,
-        location: selectedFile.location || 'local',
-        permissions: selectedFile.permissions || 'rw-',
-      }, null, 2),
-      metadata: {
-        current_path: this.currentPath,
-        provider: selectedFile.location || 'local',
-        selected_count: this.selectedFiles.size,
-        modified: selectedFile.modified,
-      },
-    };
-
-    this.lastStorageProvenanceWorkflow = await runStorageProvenanceWorkflow({
-      desktop: this.desktop,
-      appId: 'file-manager',
-      artifact,
-      dataset: {
-        dataset_id: 'swissknife-file-manager',
-        path: artifact.id,
-      },
-      provenance: {
-        action: 'file-manager.pin-selected-file',
-        subject_id: artifact.id,
-        subject_type: artifact.type,
-        metadata: {
-          current_path: this.currentPath,
-          storage_provider: selectedFile.location || 'local',
-        },
-      },
-    });
-    return this.lastStorageProvenanceWorkflow;
   }
 
   getLocalStorageUsage() {

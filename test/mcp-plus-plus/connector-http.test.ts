@@ -1,8 +1,4 @@
 /**
- * @vitest-environment node
- */
-
-/**
  * MCP (base protocol) — connector-over-HTTP end-to-end tests.
  *
  * Companion to `connector-libp2p.test.ts` (which covers the MCP++ Profile E
@@ -22,7 +18,7 @@
  * against the real contract, not a convenient fiction.
  */
 
-import { describe, it, expect, afterEach, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, afterEach, beforeAll, afterAll } from '@jest/globals';
 import { createServer, Server, request as httpRequest } from 'http';
 import { AddressInfo } from 'net';
 import {
@@ -76,7 +72,7 @@ function nodeFetch(url: string, init: any = {}): Promise<any> {
 let _origFetch: any;
 beforeAll(() => {
   _origFetch = (globalThis as any).fetch;
-  (globalThis as any).fetch = nodeFetch;
+  if (typeof _origFetch !== 'function') (globalThis as any).fetch = nodeFetch;
   if (typeof (AbortSignal as any).timeout !== 'function') {
     (AbortSignal as any).timeout = (ms: number) => {
       const c = new AbortController();

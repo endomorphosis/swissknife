@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SwissKnife Browser libp2p Evidence Harness</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #0b0f19;
+        color: #e6e8ef;
+      }
+
+      h1 {
+        font-size: 1.1rem;
+        margin: 0 0 4px;
+      }
+
+      p.subtitle {
+        margin: 0 0 16px;
+        color: #9aa3b2;
+        font-size: 0.85rem;
+      }
+
+      #viewport-banner {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: #1c2333;
+        font-size: 0.75rem;
+        margin-bottom: 16px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      body[data-layout='mobile'] .layout {
+        grid-template-columns: 1fr;
+      }
+
+      section {
+        background: #131a2a;
+        border: 1px solid #232c42;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      section h2 {
+        font-size: 0.95rem;
+        margin: 0 0 8px;
+        border-bottom: 1px solid #232c42;
+        padding-bottom: 6px;
+      }
+
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      li {
+        padding: 4px 0;
+        font-size: 0.8rem;
+        border-bottom: 1px dashed #232c42;
+        word-break: break-word;
+      }
+
+      li:last-child {
+        border-bottom: none;
+      }
+
+      li[data-installed='true'] {
+        color: #7bd88f;
+      }
+
+      li[data-installed='false'] {
+        color: #f28b82;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-right: 6px;
+      }
+
+      .badge-enabled { background: #1e4620; color: #7bd88f; }
+      .badge-disabled { background: #4a1e1e; color: #f28b82; }
+      .badge-pending { background: #3a3410; color: #ecd06f; }
+      .badge-started { background: #1e4620; color: #7bd88f; }
+      .badge-error { background: #4a1e1e; color: #f28b82; }
+      .badge-idle { background: #232c42; color: #9aa3b2; }
+      .badge-handshaking { background: #3a3410; color: #ecd06f; }
+      .badge-open { background: #1e4620; color: #7bd88f; }
+      .badge-closing,
+      .badge-closed { background: #232c42; color: #9aa3b2; }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.72rem;
+        background: #0b0f19;
+        padding: 8px;
+        border-radius: 6px;
+        margin: 0;
+      }
+
+      #harness-ready[data-ready='false'] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>SwissKnife Browser libp2p Evidence Harness (SWR-028)</h1>
+    <p class="subtitle">
+      Exercises the real browser libp2p runtime (<code>src/services/mcp/libp2p-browser-runtime.ts</code>) and the
+      real MCP+p2p session state machine (<code>src/services/mcp/mcp-p2p-session.ts</code>) inside an actual
+      browser so Playwright can capture initialization, capability-gap reporting, relay/bootstrap configuration,
+      and MCP+p2p connection UI state evidence.
+    </p>
+    <div id="viewport-banner" data-testid="viewport-banner">measuring viewport…</div>
+
+    <div class="layout">
+      <section>
+        <h2>Browser libp2p Initialization</h2>
+        <div>
+          <span class="badge badge-pending" data-testid="init-status-badge">pending</span>
+          <span data-testid="init-status">pending</span>
+        </div>
+        <pre data-testid="init-detail"></pre>
+      </section>
+
+      <section>
+        <h2>Capabilities</h2>
+        <ul data-testid="capabilities-list"></ul>
+      </section>
+
+      <section>
+        <h2>Unavailable Package Reporting (Capability Gaps)</h2>
+        <ul data-testid="gaps-list"></ul>
+        <p data-testid="gaps-empty" hidden>No capability gaps detected for this scenario.</p>
+      </section>
+
+      <section>
+        <h2>Peer Discovery Package Availability</h2>
+        <ul data-testid="discovery-list"></ul>
+      </section>
+
+      <section>
+        <h2>Relay &amp; Bootstrap Configuration</h2>
+        <dl>
+          <dt>Listen multiaddrs</dt>
+          <dd><pre data-testid="relay-listen"></pre></dd>
+          <dt>Rendezvous / bootstrap peer</dt>
+          <dd><pre data-testid="relay-rendezvous"></pre></dd>
+          <dt>Bootstrap / circuit-relay peers</dt>
+          <dd><pre data-testid="relay-bootstrap-peers"></pre></dd>
+        </dl>
+      </section>
+
+      <section>
+        <h2>MCP + p2p Connection</h2>
+        <div>
+          <span class="badge badge-idle" data-testid="p2p-status-badge">idle</span>
+          <span data-testid="p2p-status">idle</span>
+        </div>
+        <pre data-testid="p2p-detail"></pre>
+      </section>
+    </div>
+
+    <p id="harness-ready" data-testid="harness-ready" data-ready="false">harness-ready</p>
+
+    <script type="module" src="./harness.ts"></script>
+  </body>
+</html>

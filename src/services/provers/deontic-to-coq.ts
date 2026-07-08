@@ -12,9 +12,9 @@
  *   DeonticToCoqConverter (translates TDFOL to Coq Prop)
  */
 
-import type { Policy } from '../logic/deontic/mcp-policy.js';
-import type { PolicyFormulaSet } from '../logic/deontic/policy-formulas.js';
-import type { Formula, SortKind, Term } from '../logic/tdfol/tdfol-core.js';
+import type { Policy } from '../mcp-policy.js';
+import type { PolicyFormulaSet } from '../mcp-remote-deontic-engine.js';
+import type { Formula, SortKind, Term } from '../tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // DeonticToCoqTranslator

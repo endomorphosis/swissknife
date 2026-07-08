@@ -3,13 +3,13 @@
  *                   CEC NL Converter, Shadow Prover Wrapper, ZKP UCAN Bridge
  */
 
-import { FLogicProofCache, getGlobalCachedWrapper } from '../../src/services/integrations/flogic-proof-cache';
-import { NLUCANPolicyCompiler, compileNlToUcanPolicy } from '../../src/services/logic/nl/nl-ucan-policy-compiler';
-import { LegalVocabulary, MedicalVocabulary, TechnicalVocabulary, DomainVocabularyManager } from '../../src/services/logic/shared/domain-vocabulary';
-import { NaturalLanguageConverter, createEnhancedNlConverter } from '../../src/services/logic/cec/cec-nl-converter';
-import { ShadowProverWrapper, ProverStatus } from '../../src/services/integrations/shadow-prover-wrapper';
-import { ZKPToUCANBridge, getZkpUcanBridge } from '../../src/services/zkp/zkp-to-ucan-bridge';
-import { Groth16BackendFallback } from '../../src/services/zkp/zkp-backends';
+import { FLogicProofCache, getGlobalCachedWrapper } from '../../src/services/flogic-proof-cache';
+import { NLUCANPolicyCompiler, compileNlToUcanPolicy } from '../../src/services/nl-ucan-policy-compiler';
+import { LegalVocabulary, MedicalVocabulary, TechnicalVocabulary, DomainVocabularyManager } from '../../src/services/domain-vocabulary';
+import { NaturalLanguageConverter, createEnhancedNlConverter } from '../../src/services/cec-nl-converter';
+import { ShadowProverWrapper, ProverStatus } from '../../src/services/shadow-prover-wrapper';
+import { ZKPToUCANBridge, getZkpUcanBridge } from '../../src/services/zkp-ucan-bridge';
+import { Groth16BackendFallback } from '../../src/services/zkp-backends';
 
 // ---------------------------------------------------------------------------
 // FLogicProofCache tests

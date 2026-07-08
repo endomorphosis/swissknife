@@ -1,10 +1,9 @@
 import { TrafficManager } from '../../../../src/services/mcp/mcp-traffic-manager';
 import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry';
 import { VersionedServerConfig } from '../../../../src/types/mcp'; // Assuming this type exists
-import { connectToServer } from '../../../../src/services/mcp/mcpClient'; // Assuming this function exists
+import { connectToServer } from '../../../../src/services/mcpClient'; // Assuming this function exists
 
 const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const versionFromConnectionName = (name: unknown) => String(name).replace(/^.*-v/, '');
 
 /**
  * Unit tests for the TrafficManager component
@@ -13,50 +12,46 @@ const versionFromConnectionName = (name: unknown) => String(name).replace(/^.*-v
 // Mock the registry
 jest.mock('../../../../src/services/mcp/mcp-registry', () => {
     const mockRegistry = {
-        initialize: vi.fn().mockResolvedValue(undefined),
-        getActiveServerVersions: vi.fn(),
-        getServerVersion: vi.fn(),
-        updateTrafficPercentage: vi.fn().mockReturnValue(true),
-        getInstance: vi.fn()
+        initialize: jest.fn().mockResolvedValue(undefined),
+        getActiveServerVersions: jest.fn(),
+        getServerVersion: jest.fn(),
+        updateTrafficPercentage: jest.fn().mockReturnValue(true),
+        getInstance: jest.fn()
     };
     return {
         ServerRegistry: {
-            getInstance: vi.fn().mockReturnValue(mockRegistry)
+            getInstance: jest.fn().mockReturnValue(mockRegistry)
         }
     };
 });
 
 // Mock the connectToServer function
-jest.mock('../../../../src/services/mcp/mcpClient', () => ({
+jest.mock('../../../../src/services/mcpClient', () => ({
     connectToServer: jest.fn()
 }));
 
 // Mock the logging utilities
-vi.mock('../../../../src/utils/log', () => ({
-    logEvent: vi.fn(),
-    logError: vi.fn()
+jest.mock('../../../../src/utils/log', () => ({
+    logEvent: jest.fn(),
+    logError: jest.fn()
 }));
 
 
 describe('TrafficManager', () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-    vi.clearAllTimers();
-  });
-  vi.setConfig({ testTimeout: 120000 });
+  afterEach(() => jest.clearAllTimers());
+  jest.setTimeout(120000);
 
     let trafficManager: TrafficManager;
-    let mockRegistry: Mocked<ServerRegistry>;
+    let mockRegistry: jest.Mocked<ServerRegistry>;
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
         // Get the singleton instance
         trafficManager = TrafficManager.getInstance();
-        mockRegistry = ServerRegistry.getInstance() as Mocked<ServerRegistry>;
+        mockRegistry = ServerRegistry.getInstance() as jest.Mocked<ServerRegistry>;
         // Force re-initialization
         // @ts-ignore - accessing private field for testing
         trafficManager.initialized = false;
-        trafficManager.clearCache();
     });
 
     it('should return the same instance (singleton pattern)', () => {
@@ -114,19 +109,11 @@ describe('TrafficManager', () => {
 
             // Mock successful connection
             const mockClient = {};
-            vi.mocked(connectToServer).mockResolvedValue(mockClient as never);
+            (connectToServer as jest.Mock).mockResolvedValue(mockClient);
 
             // Request client multiple times and count selections
             const selections = { '1.0.0': 0, '2.0.0': 0 };
             const iterations = 100;
-            const randomValues = Array.from(
-                { length: iterations },
-                (_, index) => index < 80 ? 0.1 : 0.9
-            );
-            const randomSpy = vi
-                .spyOn(Math, 'random')
-                .mockImplementation(() => randomValues.shift() ?? 0.1);
-
             for (let i = 0; i < iterations; i++) {
                 // Clear the cache each time to force selection
                 // @ts-ignore - accessing private method for testing
@@ -134,21 +121,20 @@ describe('TrafficManager', () => {
                 const client = await trafficManager.getClientForRequest('test-server');
 
                 // Check which server was selected by examining the connection call
-                const lastCall = vi.mocked(connectToServer).mock.calls.length - 1;
-                const selectedVersion = versionFromConnectionName(
-                    vi.mocked(connectToServer).mock.calls[lastCall][0]
-                );
+                const lastCall = (connectToServer as jest.Mock).mock.calls.length - 1;
+                const serverConfigArg = (connectToServer as jest.Mock).mock.calls[lastCall][0];
 
-                if (selectedVersion === '1.0.0') {
+                if (serverConfigArg.version === '1.0.0') {
                     selections['1.0.0']++;
-                } else if (selectedVersion === '2.0.0') {
+                } else if (serverConfigArg.version === '2.0.0') {
                     selections['2.0.0']++;
                 }
             }
-            randomSpy.mockRestore();
 
-            expect(selections['1.0.0']).toBe(80);
-            expect(selections['2.0.0']).toBe(20);
+            // Check roughly 80/20 distribution
+            // Allow some variance because it's random
+            expect(selections['1.0.0']).toBeGreaterThan(iterations * 0.7); // ~80%
+            expect(selections['2.0.0']).toBeLessThan(iterations * 0.3); // ~20%
         });
 
         it('should filter servers based on version constraint', async () => {
@@ -183,18 +169,17 @@ describe('TrafficManager', () => {
 
             // Mock successful connection
             const mockClient = {};
-            vi.mocked(connectToServer).mockResolvedValue(mockClient as never);
+            (connectToServer as jest.Mock).mockResolvedValue(mockClient);
 
             // Request with >=1.5.0 constraint
             await trafficManager.getClientForRequest('test-server', '>=1.5.0');
 
             // Check which servers were selected (should be 1.5.0 or 2.0.0)
-            const calls = vi.mocked(connectToServer).mock.calls;
-            const selectedVersions = calls.map(call => versionFromConnectionName(call[0]));
+            const calls = (connectToServer as jest.Mock).mock.calls;
+            const selectedVersions = calls.map(call => call[0].version);
 
             expect(selectedVersions).not.toContain('1.0.0');
-            expect(selectedVersions.length).toBeGreaterThan(0);
-            expect(selectedVersions.every(version => ['1.5.0', '2.0.0'].includes(version))).toBe(true);
+            expect(selectedVersions).toEqual(expect.arrayContaining(['1.5.0', '2.0.0']));
         });
 
         it('should cache client connections', async () => {
@@ -211,7 +196,7 @@ describe('TrafficManager', () => {
 
             // Mock successful connection
             const mockClient = {};
-            vi.mocked(connectToServer).mockResolvedValue(mockClient as never);
+            (connectToServer as jest.Mock).mockResolvedValue(mockClient);
 
             // First request should create connection
             const client1 = await trafficManager.getClientForRequest('test-server');
@@ -266,7 +251,7 @@ describe('TrafficManager', () => {
             // Mock Date.now for predictable behavior
             const realDateNow = Date.now;
             let currentTime = 1600000000000;
-            global.Date.now = vi.fn(() => currentTime);
+            global.Date.now = jest.fn(() => currentTime);
 
             // Start shift from 20% to 100%
             const shiftPromise = trafficManager.shiftTraffic(

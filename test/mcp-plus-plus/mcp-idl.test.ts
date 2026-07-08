@@ -10,10 +10,6 @@ import {
   InterfaceRepository,
   InterfaceDescriptor,
 } from '../../src/services/mcp/mcp-idl';
-import {
-  bytesToHex,
-  bytesToUtf8,
-} from '../../src/services/shared/browser-bytes';
 
 const SAMPLE_DESCRIPTOR: InterfaceDescriptor = {
   name: 'search',
@@ -38,11 +34,11 @@ describe('canonicalize', () => {
   it('produces deterministic JSON for the same descriptor', () => {
     const a = canonicalize(SAMPLE_DESCRIPTOR);
     const b = canonicalize(SAMPLE_DESCRIPTOR);
-    expect(bytesToHex(a)).toBe(bytesToHex(b));
+    expect(a.toString('hex')).toBe(b.toString('hex'));
   });
 
   it('sorts keys lexicographically', () => {
-    const json = bytesToUtf8(canonicalize(SAMPLE_DESCRIPTOR));
+    const json = canonicalize(SAMPLE_DESCRIPTOR).toString('utf8');
     // 'compatibility' should appear before 'errors' (c < e)
     expect(json.indexOf('"compatibility"')).toBeLessThan(json.indexOf('"errors"'));
   });
@@ -51,7 +47,7 @@ describe('canonicalize', () => {
     const other = { ...SAMPLE_DESCRIPTOR, version: '2.0.0' };
     const a = canonicalize(SAMPLE_DESCRIPTOR);
     const b = canonicalize(other);
-    expect(bytesToHex(a)).not.toBe(bytesToHex(b));
+    expect(a.toString('hex')).not.toBe(b.toString('hex'));
   });
 });
 
@@ -96,7 +92,7 @@ describe('InterfaceRepository', () => {
     const cid = repo.register(SAMPLE_DESCRIPTOR);
     const bytes = repo.get(cid);
     expect(bytes).not.toBeNull();
-    expect(bytesToUtf8(bytes!)).toContain('"search"');
+    expect(bytes!.toString('utf8')).toContain('"search"');
   });
 
   it('returns null for unknown CID', () => {

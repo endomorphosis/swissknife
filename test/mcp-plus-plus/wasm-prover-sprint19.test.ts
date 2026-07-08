@@ -11,13 +11,13 @@
  * Reference: ipfs_datasets_py/logic/monitoring.py + submodule_registry.py + batch_processing.py
  */
 
-import { LogicMonitor } from '../../src/services/logic/shared/logic-monitor.js';
-import type { HealthStatus } from '../../src/services/logic/shared/logic-monitor.js';
+import { LogicMonitor } from '../../src/services/logic-monitor.js';
+import type { HealthStatus } from '../../src/services/logic-monitor.js';
 import {
   getSubmoduleSpecs, getSubmoduleSpec, getSubmoduleNames,
   getIntegrationManifest,
-} from '../../src/services/logic/api/submodule-registry.js';
-import { BatchProcessor, successRate } from '../../src/services/logic/api/batch-processor.js';
+} from '../../src/services/submodule-registry.js';
+import { BatchProcessor, successRate } from '../../src/services/batch-processor.js';
 
 // ---------------------------------------------------------------------------
 // T-100: LogicMonitor
@@ -118,7 +118,7 @@ describe('T-101 LogicSubmoduleRegistry', () => {
       expect(typeof spec.description).toBe('string');
       expect(Array.isArray(spec.roles)).toBe(true);
       expect(Array.isArray(spec.capabilities)).toBe(true);
-      expect(typeof spec.implementationPhase).toBe('number');
+      expect(typeof spec.sprint).toBe('number');
     }
   });
 
@@ -127,7 +127,7 @@ describe('T-101 LogicSubmoduleRegistry', () => {
     expect(spec).toBeDefined();
     expect(spec!.name).toBe('z3-wasm');
     expect(spec!.roles).toContain('prover');
-    expect(spec!.implementationPhase).toBe(1);
+    expect(spec!.sprint).toBe(1);
   });
 
   it('getSubmoduleSpec returns undefined for unknown name', () => {

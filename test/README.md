@@ -123,27 +123,19 @@ Example tests demonstrate how to use the framework for different testing scenari
 - **CLI End-to-End**: Testing complete CLI workflows
 - **Graph-of-Thought**: Testing the Graph-of-Thought reasoning system
 
-## Available Test Scripts
+## Active Test Lanes
 
-The following npm scripts are available to run tests:
+The active gates are documented in [TEST_LANES.md](./TEST_LANES.md). They are
+the scripts CI and release automation should use:
 
 ```bash
-# Run all tests
-npm test
-
-# Run tests by type
-npm run test:unit         # All unit tests
-npm run test:integration  # All integration tests
-npm run test:e2e          # All end-to-end tests
-npm run test:benchmark    # All benchmark tests
-
-# Run tests by phase
-npm run test:phase1       # All Phase 1 tests
-npm run test:phase2       # All Phase 2 tests
-npm run test:phase3       # All Phase 3 tests
-npm run test:phase4       # All Phase 4 tests
-npm run test:phase5       # All Phase 5 tests
-npm run test:all-phases   # All phase tests sequentially
+npm test                         # Default fast lane
+npm run test:fast                # Curated deterministic unit gate
+npm run test:service             # Stable service-level gate
+npm run test:browser-compat      # Static + mocked DOM runtime gate
+npm run test:e2e                 # Jest E2E lane
+npm run test:e2e:mcp             # MCP dashboard Playwright/consumer lane
+npm run test:release             # Fast + service + browser-compat + E2E/MCP
 
 # Run specific benchmarks
 npm run test:benchmark:phase1  # Phase 1 benchmarks
@@ -156,6 +148,10 @@ npm run test:benchmark:all     # All benchmarks
 # Code coverage
 npm run test:coverage     # Generate code coverage report
 ```
+
+Archived configs and backup/debug tests are intentionally excluded from active
+lanes. Keep new gate membership in `config/jest/test-lanes.cjs` or the relevant
+Vitest config under `build-tools/configs/` so test discovery stays deterministic.
 
 ## Documentation Links
 

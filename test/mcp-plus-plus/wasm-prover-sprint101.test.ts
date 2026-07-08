@@ -1,3 +1,10 @@
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -9,11 +16,11 @@ import {
   NamespaceError,
   ParsingError,
   ProvingError,
-} from '../../src/services/logic/shared/logic-errors';
+} from '../../src/services/logic-errors';
 import {
   AuditLogger,
   resetAuditLogger,
-} from '../../src/services/logic/shared/logic-audit-log';
+} from '../../src/services/logic-audit-log';
 import {
   ProveKitArtifactManifest,
   buildProveKitArtifactManifest,
@@ -22,31 +29,17 @@ import {
   saveProveKitArtifactManifest,
   sha256Directory,
   sha256File,
-} from '../../src/services/zkp/zkp-provekit-artifacts';
+} from '../../src/services/zkp-provekit-artifacts';
 import {
   buildProveKitIpfsPayload,
   buildProveKitProofCacheKey,
   buildProveKitProofCacheKeyFromProof,
   provekitIpfsPayloadIsPublicOnly,
-} from '../../src/services/zkp/zkp-provekit-cache';
+} from '../../src/services/zkp-provekit-cache';
 import {
   Groth16SetupArtifacts,
   storeGroth16SetupArtifactsInIpfs,
-} from '../../src/services/zkp/zkp-provekit-setup-artifacts';
-
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-  writeFileSync: (path: string, data: string) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for Sprint 101 fixture tests');
-}
+} from '../../src/services/zkp-provekit-setup-artifacts';
 
 describe('PORT-225 CEC native exception taxonomy', () => {
   it('renders context and suggestions with the Python CECError format', () => {
@@ -84,7 +77,7 @@ describe('PORT-225 CEC native exception taxonomy', () => {
 
 describe('PORT-231 logic audit log', () => {
   it('logs Python-shaped proof and security events to memory and JSONL', () => {
-    const dir = nodeFs.mkdtempSync(join(tmpdir(), 'logic-audit-'));
+    const dir = mkdtempSync(join(tmpdir(), 'logic-audit-'));
     const logPath = join(dir, 'audit.jsonl');
     const logger = new AuditLogger({
       logPath,
@@ -111,11 +104,11 @@ describe('PORT-231 logic audit log', () => {
         details: { severity: 'low', message: 'bad input', validation_type: 'formula' },
       });
 
-      const lines = nodeFs.readFileSync(logPath, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+      const lines = readFileSync(logPath, 'utf8').trim().split('\n').map(line => JSON.parse(line));
       expect(lines).toHaveLength(2);
       expect(logger.events).toHaveLength(2);
     } finally {
-      nodeFs.rmSync(dir, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 
@@ -132,18 +125,18 @@ describe('PORT-231 logic audit log', () => {
 
 describe('PORT-230 ProveKit artifact manifests, cache keys, and setup storage', () => {
   function makeFixture(): { dir: string; noirDir: string; pkp: string; pkv: string } {
-    const dir = nodeFs.mkdtempSync(join(tmpdir(), 'provekit-artifacts-'));
+    const dir = mkdtempSync(join(tmpdir(), 'provekit-artifacts-'));
     const noirDir = join(dir, 'noir');
-    nodeFs.mkdirSync(join(noirDir, 'src'), { recursive: true });
-    nodeFs.mkdirSync(join(noirDir, 'target'), { recursive: true });
-    nodeFs.writeFileSync(join(noirDir, 'Nargo.toml'), '[package]\nname = "demo"\n');
-    nodeFs.writeFileSync(join(noirDir, 'src', 'main.nr'), 'fn main() {}\n');
-    nodeFs.writeFileSync(join(noirDir, 'target', 'ignored.txt'), 'generated');
-    nodeFs.writeFileSync(join(noirDir, 'demo.pkp'), 'ignored key');
+    mkdirSync(join(noirDir, 'src'), { recursive: true });
+    mkdirSync(join(noirDir, 'target'), { recursive: true });
+    writeFileSync(join(noirDir, 'Nargo.toml'), '[package]\nname = "demo"\n');
+    writeFileSync(join(noirDir, 'src', 'main.nr'), 'fn main() {}\n');
+    writeFileSync(join(noirDir, 'target', 'ignored.txt'), 'generated');
+    writeFileSync(join(noirDir, 'demo.pkp'), 'ignored key');
     const pkp = join(dir, 'provekit_knowledge_of_axioms.pkp');
     const pkv = join(dir, 'provekit_knowledge_of_axioms.pkv');
-    nodeFs.writeFileSync(pkp, 'prover-key');
-    nodeFs.writeFileSync(pkv, 'verifier-key');
+    writeFileSync(pkp, 'prover-key');
+    writeFileSync(pkv, 'verifier-key');
     return { dir, noirDir, pkp, pkv };
   }
 
@@ -151,10 +144,10 @@ describe('PORT-230 ProveKit artifact manifests, cache keys, and setup storage', 
     const { dir, noirDir, pkp, pkv } = makeFixture();
     try {
       const before = sha256Directory(noirDir);
-      nodeFs.writeFileSync(join(noirDir, 'target', 'ignored.txt'), 'changed generated output');
-      nodeFs.writeFileSync(join(noirDir, 'demo.pkp'), 'changed ignored key');
+      writeFileSync(join(noirDir, 'target', 'ignored.txt'), 'changed generated output');
+      writeFileSync(join(noirDir, 'demo.pkp'), 'changed ignored key');
       expect(sha256Directory(noirDir)).toBe(before);
-      nodeFs.writeFileSync(join(noirDir, 'src', 'lib.nr'), 'pub fn helper() {}\n');
+      writeFileSync(join(noirDir, 'src', 'lib.nr'), 'pub fn helper() {}\n');
       expect(sha256Directory(noirDir)).not.toBe(before);
 
       const manifest = buildProveKitArtifactManifest({
@@ -191,7 +184,7 @@ describe('PORT-230 ProveKit artifact manifests, cache keys, and setup storage', 
         verifier_key_path: pkv,
       });
     } finally {
-      nodeFs.rmSync(dir, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 
@@ -282,7 +275,7 @@ describe('PORT-230 ProveKit artifact manifests, cache keys, and setup storage', 
         verifying_key_cid: 'cid-vk',
       });
     } finally {
-      nodeFs.rmSync(dir, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-08T11:03:20.432Z",
+  "results": [
+    {
+      "id": "libp2p-browser-playwright",
+      "label": "Browser libp2p Playwright evidence (SWR-028)",
+      "status": "fresh",
+      "updated": false,
+      "missingEvidenceFiles": [],
+      "missingSourceFiles": [],
+      "recordedFingerprint": "e152aebb8f3767ddeedd935e76ab2c4edafdd858acf4d244c7c93efc0e892692",
+      "currentFingerprint": "e152aebb8f3767ddeedd935e76ab2c4edafdd858acf4d244c7c93efc0e892692",
+      "recordedAt": "2026-07-08T10:32:40.831Z",
+      "regenerateHint": "npm run evidence:libp2p-browser"
+    },
+    {
+      "id": "browser-bundle-budget",
+      "label": "Browser bundle budget evidence (SWR-016)",
+      "status": "fresh",
+      "updated": false,
+      "missingEvidenceFiles": [],
+      "missingSourceFiles": [],
+      "recordedFingerprint": "5ab766b82835913235f15bdedfd6fd671e4fc4919ddeec61577eeeda83af135d",
+      "currentFingerprint": "5ab766b82835913235f15bdedfd6fd671e4fc4919ddeec61577eeeda83af135d",
+      "recordedAt": "2026-07-08T10:59:25.304Z",
+      "regenerateHint": "npm run build:web"
+    },
+    {
+      "id": "module-boundary-audit",
+      "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
+      "status": "fresh",
+      "updated": true,
+      "missingEvidenceFiles": [],
+      "missingSourceFiles": [],
+      "recordedFingerprint": "c9e8c71bc91542c9a9141f9dcbf1567888c10c48485aeae4ba52f97828736a7b",
+      "currentFingerprint": "c9e8c71bc91542c9a9141f9dcbf1567888c10c48485aeae4ba52f97828736a7b",
+      "recordedAt": "2026-07-08T11:03:20.432Z",
+      "regenerateHint": "npm run services:audit"
+    }
+  ]
+}

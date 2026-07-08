@@ -6,28 +6,17 @@
  * merge, diff, checkAndAudit wiring, addMCPPPBaseRules built-ins, singletons.
  */
 
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { PolicyAuditLog, type AuditEntry } from '../../src/services/mcp/policy-audit-log';
+import { PolicyAuditLog, type AuditEntry } from '../../src/services/policy-audit-log';
 import {
   ComplianceChecker,
   addMCPPPBaseRules,
   type ComplianceResult,
   type MCPPPComplianceContext,
-} from '../../src/services/logic/deontic/compliance-checker';
-
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for PolicyAuditLog fixture tests');
-}
+} from '../../src/services/compliance-checker';
 
 // ---------------------------------------------------------------------------
 // PolicyAuditLog
@@ -143,11 +132,11 @@ describe('PolicyAuditLog — JSONL file sink', () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = nodeFs.mkdtempSync(join(tmpdir(), 'pal-test-'));
+    tmpDir = mkdtempSync(join(tmpdir(), 'pal-test-'));
   });
 
   afterEach(() => {
-    nodeFs.rmSync(tmpDir, { recursive: true, force: true });
+    rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('appends one JSON line per record to the log file', () => {
@@ -156,7 +145,7 @@ describe('PolicyAuditLog — JSONL file sink', () => {
     log.record({ policy_cid: 'p1', intent_cid: 'i1', decision: 'allow', tool: 'browse' });
     log.record({ policy_cid: 'p1', intent_cid: 'i2', decision: 'deny', tool: 'publish' });
 
-    const lines = nodeFs.readFileSync(logPath, 'utf8').trim().split('\n');
+    const lines = readFileSync(logPath, 'utf8').trim().split('\n');
     expect(lines).toHaveLength(2);
     const parsed = lines.map(l => JSON.parse(l));
     expect(parsed[0].decision).toBe('allow');

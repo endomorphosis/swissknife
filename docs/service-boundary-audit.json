@@ -1,0 +1,374 @@
+{
+  "manifest": {
+    "path": "src/module-ownership.json",
+    "schemaVersion": 1,
+    "manifestVersion": "2026-07-08"
+  },
+  "modules": [
+    {
+      "module": "__mocks__",
+      "owner": "test-fixture-runtime",
+      "runtimeClassification": "host-only",
+      "fileCount": 0
+    },
+    {
+      "module": "ai",
+      "owner": "ai-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 20
+    },
+    {
+      "module": "auth",
+      "owner": "auth-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 4
+    },
+    {
+      "module": "cli",
+      "owner": "legacy-cli-runtime",
+      "runtimeClassification": "host-only",
+      "fileCount": 23
+    },
+    {
+      "module": "client",
+      "owner": "client-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
+    },
+    {
+      "module": "cloudflare",
+      "owner": "cloudflare-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 3
+    },
+    {
+      "module": "commands",
+      "owner": "cli-command-runtime",
+      "runtimeClassification": "host-only",
+      "fileCount": 56
+    },
+    {
+      "module": "components",
+      "owner": "terminal-ui-components",
+      "runtimeClassification": "host-ui",
+      "fileCount": 71
+    },
+    {
+      "module": "components-browser",
+      "owner": "browser-ui-components",
+      "runtimeClassification": "browser-safe",
+      "fileCount": 2
+    },
+    {
+      "module": "config",
+      "owner": "configuration-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 7
+    },
+    {
+      "module": "connectors",
+      "owner": "connector-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
+    },
+    {
+      "module": "constants",
+      "owner": "constant-contracts-runtime",
+      "runtimeClassification": "universal",
+      "fileCount": 10
+    },
+    {
+      "module": "core",
+      "owner": "core-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
+    },
+    {
+      "module": "documentation",
+      "owner": "documentation-runtime",
+      "runtimeClassification": "host-only",
+      "fileCount": 1
+    },
+    {
+      "module": "entrypoints",
+      "owner": "runtime-entrypoint-runtime",
+      "runtimeClassification": "host-only",
+      "fileCount": 6
+    },
+    {
+      "module": "graph",
+      "owner": "graph-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
+    },
+    {
+      "module": "hooks",
+      "owner": "terminal-ui-hooks",
+      "runtimeClassification": "host-ui",
+      "fileCount": 14
+    },
+    {
+      "module": "hooks-browser",
+      "owner": "browser-ui-hooks",
+      "runtimeClassification": "browser-safe",
+      "fileCount": 2
+    },
+    {
+      "module": "huggingface",
+      "owner": "huggingface-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 3
+    },
+    {
+      "module": "inference",
+      "owner": "inference-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 3
+    },
+    {
+      "module": "integration",
+      "owner": "integration-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 10
+    },
+    {
+      "module": "ipfs",
+      "owner": "ipfs-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
+    },
+    {
+      "module": "lib",
+      "owner": "legacy-library-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
+    },
+    {
+      "module": "ml",
+      "owner": "ml-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 4
+    },
+    {
+      "module": "models",
+      "owner": "model-registry-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 8
+    },
+    {
+      "module": "patches",
+      "owner": "patch-runtime",
+      "runtimeClassification": "host-only",
+      "fileCount": 12
+    },
+    {
+      "module": "performance",
+      "owner": "performance-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
+    },
+    {
+      "module": "platform",
+      "owner": "runtime-platform-boundary",
+      "runtimeClassification": "split",
+      "fileCount": 2
+    },
+    {
+      "module": "release",
+      "owner": "release-runtime",
+      "runtimeClassification": "host-only",
+      "fileCount": 1
+    },
+    {
+      "module": "screens",
+      "owner": "terminal-ui-screens",
+      "runtimeClassification": "host-ui",
+      "fileCount": 5
+    },
+    {
+      "module": "screens-browser",
+      "owner": "browser-ui-screens",
+      "runtimeClassification": "browser-safe",
+      "fileCount": 2
+    },
+    {
+      "module": "service-apps",
+      "owner": "app-surface-runtime",
+      "runtimeClassification": "universal",
+      "fileCount": 11
+    },
+    {
+      "module": "service-glasses",
+      "owner": "glasses-surface-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 18
+    },
+    {
+      "module": "service-ipfs",
+      "owner": "ipfs-descriptor-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 12
+    },
+    {
+      "module": "service-mcp",
+      "owner": "mcp-protocol-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 29
+    },
+    {
+      "module": "services",
+      "owner": "domain-service-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 275
+    },
+    {
+      "module": "shared",
+      "owner": "shared-contracts-runtime",
+      "runtimeClassification": "universal",
+      "fileCount": 8
+    },
+    {
+      "module": "storage",
+      "owner": "storage-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 22
+    },
+    {
+      "module": "tasks",
+      "owner": "task-orchestration-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 25
+    },
+    {
+      "module": "testing",
+      "owner": "testing-runtime",
+      "runtimeClassification": "host-only",
+      "fileCount": 1
+    },
+    {
+      "module": "tools",
+      "owner": "tool-runtime",
+      "runtimeClassification": "host-only",
+      "fileCount": 39
+    },
+    {
+      "module": "types",
+      "owner": "type-contracts-runtime",
+      "runtimeClassification": "universal",
+      "fileCount": 13
+    },
+    {
+      "module": "utils",
+      "owner": "utility-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 81
+    },
+    {
+      "module": "ux",
+      "owner": "ux-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
+    },
+    {
+      "module": "vector",
+      "owner": "vector-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
+    },
+    {
+      "module": "workers",
+      "owner": "worker-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 9
+    }
+  ],
+  "summary": {
+    "modules": 46,
+    "rootFiles": 15,
+    "unknownFiles": 0,
+    "forbiddenImports": 0,
+    "legacyCompatibilityShims": 0,
+    "legacyRootImportSpecifiers": 0
+  },
+  "rootDebt": [
+    {
+      "file": "src/cli-phase1.ts",
+      "module": "entrypoints",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/cli-simple.ts",
+      "module": "entrypoints",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/cli.ts",
+      "module": "entrypoints",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/command-registry.ts",
+      "module": "commands",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/commands.ts",
+      "module": "commands",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/context.ts",
+      "module": "commands",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/cost-tracker.ts",
+      "module": "utils",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/history.ts",
+      "module": "commands",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/index.ts",
+      "module": "entrypoints",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/messages.ts",
+      "module": "commands",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/permissions.ts",
+      "module": "utils",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/ProjectOnboarding.tsx",
+      "module": "components",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/query.ts",
+      "module": "commands",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/Tool.ts",
+      "module": "tools",
+      "reason": "root source compatibility file with an explicit owner"
+    },
+    {
+      "file": "src/tools.ts",
+      "module": "tools",
+      "reason": "root source compatibility file with an explicit owner"
+    }
+  ],
+  "unknownFiles": [],
+  "forbiddenImports": [],
+  "legacyCompatibilityShims": [],
+  "legacyRootImportSpecifiers": []
+}

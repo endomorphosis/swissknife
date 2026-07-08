@@ -1,0 +1,1625 @@
+{
+  "schemaVersion": 1,
+  "manifestVersion": "2026-07-08",
+  "description": "Top-level ownership and dependency manifest for SwissKnife source modules.",
+  "classificationValues": {
+    "browser-safe": "May be statically imported by browser bundles.",
+    "host-only": "May use Node, process, filesystem, terminal, subprocess, native, or server-only APIs and must not be statically imported by browser bundles.",
+    "host-ui": "Terminal or Ink UI that runs on the host and must not be treated as browser UI.",
+    "split": "Contains both browser-safe and host-only code; browser imports must use documented browser-safe entrypoints only.",
+    "universal": "Runtime-neutral types, constants, and pure helpers.",
+    "unknown": "Not classified; new imports require review before use."
+  },
+  "dependencyDirection": [
+    "shared",
+    "utils",
+    "storage",
+    "tasks",
+    "workers",
+    "models",
+    "ai",
+    "inference",
+    "platform",
+    "services",
+    "hooks-browser",
+    "components-browser",
+    "screens-browser",
+    "hooks",
+    "components",
+    "screens",
+    "commands",
+    "entrypoints"
+  ],
+  "rules": [
+    "Imports should point to the same layer or an earlier layer in dependencyDirection unless the importing module is an explicit composition layer.",
+    "Browser entrypoints may import only modules or entrypoints classified as browser-safe or universal.",
+    "Host-only modules may import split modules only through host-safe or environment-neutral entrypoints.",
+    "shared and utils must not become owners of domain behavior; domain-specific helpers belong in the owning module.",
+    "New public imports should be added to publicEntrypoints before other modules depend on them."
+  ],
+  "audit": {
+    "ignoredRootFiles": [
+      "src/module-ownership.json",
+      "src/tsconfig.json"
+    ],
+    "rootFileOwners": {
+      "src/ProjectOnboarding.tsx": "components",
+      "src/Tool.ts": "tools",
+      "src/cli-phase1.ts": "entrypoints",
+      "src/cli-simple.ts": "entrypoints",
+      "src/cli.ts": "entrypoints",
+      "src/command-registry.ts": "commands",
+      "src/commands.ts": "commands",
+      "src/context.ts": "commands",
+      "src/cost-tracker.ts": "utils",
+      "src/history.ts": "commands",
+      "src/index.ts": "entrypoints",
+      "src/messages.ts": "commands",
+      "src/permissions.ts": "utils",
+      "src/query.ts": "commands",
+      "src/tools.ts": "tools"
+    },
+    "legacyCompatibilityShims": [],
+    "allowedImportExceptions": [
+      {
+        "from": "utils",
+        "to": "services",
+        "importer": "src/utils/config.ts",
+        "target": "src/services/mcp/mcp-types.js",
+        "reason": "Legacy configuration type dependency retained until MCP config history types move to shared contracts."
+      },
+      {
+        "from": "components",
+        "to": "commands",
+        "reason": "Legacy terminal UI components still import command/query state; remove this exception as command state moves behind UI-safe contracts."
+      },
+      {
+        "from": "constants",
+        "to": "utils",
+        "reason": "Legacy prompt and figure constants still compute values through utility helpers; remove this exception as constants become data-only."
+      },
+      {
+        "from": "hooks",
+        "to": "screens",
+        "reason": "Legacy terminal hooks still reference screen state; remove this exception as screen contracts move to shared UI state."
+      },
+      {
+        "from": "hooks",
+        "to": "commands",
+        "importer": "src/hooks/useCanUseTool.ts",
+        "target": "src/query.ts",
+        "reason": "Legacy terminal permission hook still reads command query state; remove this exception when query contracts move behind UI-safe shared types."
+      },
+      {
+        "from": "hooks",
+        "to": "commands",
+        "importer": "src/hooks/useLogMessages.ts",
+        "target": "src/query.ts",
+        "reason": "Legacy terminal logging hook still reads command message state; remove this exception when message state moves behind UI-safe shared types."
+      },
+      {
+        "from": "hooks",
+        "to": "commands",
+        "importer": "src/hooks/useSlashCommandTypeahead.ts",
+        "target": "src/commands.ts",
+        "reason": "Legacy terminal typeahead hook still reads command registry state; remove this exception when command metadata is exposed through a UI-safe contract."
+      },
+      {
+        "from": "hooks",
+        "to": "commands",
+        "importer": "src/hooks/useArrowKeyHistory.ts",
+        "target": "src/history.ts",
+        "reason": "Legacy terminal history hook still reads command history state; remove this exception when history access moves behind a UI-safe contract."
+      },
+      {
+        "from": "patches",
+        "to": "components",
+        "reason": "Legacy MCP patch code renders terminal components directly; remove this exception when patches are retired or moved under UI ownership."
+      },
+      {
+        "from": "services",
+        "to": "commands",
+        "importer": "src/services/claude.ts",
+        "target": "src/query.ts",
+        "reason": "Legacy Claude service still imports command query types; remove this exception when query message contracts move to shared/types."
+      },
+      {
+        "from": "services",
+        "to": "commands",
+        "importer": "src/services/mcpClient.ts",
+        "target": "src/commands.ts",
+        "reason": "Legacy MCP client still imports command definitions; remove this exception when command registration moves behind MCP-safe descriptors."
+      },
+      {
+        "from": "services",
+        "to": "commands",
+        "importer": "src/services/vcr.ts",
+        "target": "src/query.ts",
+        "reason": "Legacy VCR service still imports command query types; remove this exception when replay message contracts move to shared/types."
+      },
+      {
+        "from": "types",
+        "to": "tasks",
+        "reason": "Legacy type modules still re-export task graph types; remove this exception when task contracts move to shared/types."
+      },
+      {
+        "from": "types",
+        "to": "commands",
+        "importer": "src/types/command.ts",
+        "target": "src/query.ts",
+        "reason": "Legacy command type module still imports query message types; remove this exception when query messages move to shared/types."
+      },
+      {
+        "from": "utils",
+        "to": "ai",
+        "reason": "Legacy utility modules still carry AI conversation helpers; remove this exception as AI-specific helpers move under src/ai."
+      },
+      {
+        "from": "utils",
+        "to": "components",
+        "reason": "Legacy utility rendering helpers still import terminal components; remove this exception as UI helpers move under src/components."
+      },
+      {
+        "from": "utils",
+        "to": "hooks",
+        "reason": "Legacy utility prompting helpers still import terminal hooks; remove this exception as prompt UI moves under src/hooks or components."
+      },
+      {
+        "from": "utils",
+        "to": "services",
+        "reason": "Legacy utility modules still contain telemetry and Claude service adapters; remove this exception as service-specific helpers move under src/services."
+      },
+      {
+        "from": "utils",
+        "to": "commands",
+        "importer": "src/utils/ask.tsx",
+        "target": "src/commands.ts",
+        "reason": "Legacy ask utility still orchestrates command execution; remove this exception when ask flow moves under src/commands."
+      },
+      {
+        "from": "utils",
+        "to": "commands",
+        "importer": "src/utils/ask.tsx",
+        "target": "src/query.ts",
+        "reason": "Legacy ask utility still orchestrates query state; remove this exception when ask flow moves under src/commands."
+      },
+      {
+        "from": "utils",
+        "to": "commands",
+        "importer": "src/utils/ask.tsx",
+        "target": "src/context.ts",
+        "reason": "Legacy ask utility still composes command context; remove this exception when ask flow moves under src/commands."
+      },
+      {
+        "from": "utils",
+        "to": "commands",
+        "importer": "src/utils/messages.tsx",
+        "target": "src/query.ts",
+        "reason": "Legacy message utility still formats command query messages; remove this exception when message formatting moves to a command-owned or shared contract module."
+      },
+      {
+        "from": "utils",
+        "to": "commands",
+        "importer": "src/utils/messages.tsx",
+        "target": "src/commands.ts",
+        "reason": "Legacy message utility still formats command metadata; remove this exception when command metadata formatting moves to src/commands."
+      },
+      {
+        "from": "utils",
+        "to": "commands",
+        "importer": "src/utils/thinking.ts",
+        "target": "src/query.ts",
+        "reason": "Legacy thinking utility still inspects query messages; remove this exception when thinking state moves to src/ai or shared message contracts."
+      },
+      {
+        "from": "utils",
+        "to": "commands",
+        "importer": "src/utils/tokens.ts",
+        "target": "src/query.ts",
+        "reason": "Legacy token utility still counts query messages; remove this exception when token counting accepts shared message contracts."
+      }
+    ]
+  },
+  "modules": {
+    "__mocks__": {
+      "owner": "test-fixture-runtime",
+      "path": "src/__mocks__",
+      "purpose": "Test doubles and module mocks for unit and integration tests.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "forbidden outside test harnesses",
+      "allowedImports": [
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [],
+      "publicEntrypoints": [
+        "src/__mocks__/**/*.ts",
+        "src/__mocks__/**/*.tsx",
+        "src/__mocks__/**/*.js"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Mocks are not production runtime modules."
+      ]
+    },
+    "auth": {
+      "owner": "auth-runtime",
+      "path": "src/auth",
+      "purpose": "API key, delegation, DID keystore, and UCAN authentication helpers.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe auth adapters",
+      "allowedImports": [
+        "services",
+        "shared",
+        "storage",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/auth/*.ts",
+        "src/auth/*.js"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Host credentials and filesystem-backed key stores must stay behind host entrypoints."
+      ]
+    },
+    "cli": {
+      "owner": "legacy-cli-runtime",
+      "path": "src/cli",
+      "purpose": "Legacy CLI parser and registry compatibility code.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "forbidden",
+      "allowedImports": [
+        "commands",
+        "components",
+        "hooks",
+        "screens",
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [],
+      "publicEntrypoints": [
+        "src/cli/*.ts",
+        "src/cli/*.js"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "New process roots belong in src/entrypoints and command behavior belongs in src/commands."
+      ]
+    },
+    "client": {
+      "owner": "client-runtime",
+      "path": "src/client",
+      "purpose": "Protocol clients used by host and integration surfaces.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe client adapters",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/client/*.ts",
+        "src/client/*.js"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Clients that use Node transports are host-only."
+      ]
+    },
+    "cloudflare": {
+      "owner": "cloudflare-runtime",
+      "path": "src/cloudflare",
+      "purpose": "Cloudflare worker deployment and runtime integration helpers.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only for worker-safe code",
+      "allowedImports": [
+        "services",
+        "shared",
+        "storage",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/cloudflare/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Deployment clients are host-only; worker templates must remain browser/worker-safe."
+      ]
+    },
+    "config": {
+      "owner": "configuration-runtime",
+      "path": "src/config",
+      "purpose": "Configuration initialization, schemas, migration, and persistence orchestration.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only for pure schemas and browser-safe config readers",
+      "allowedImports": [
+        "constants",
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/config/*.ts",
+        "src/config/*.js",
+        "src/config/schemas/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Filesystem-backed configuration is host-only."
+      ]
+    },
+    "connectors": {
+      "owner": "connector-runtime",
+      "path": "src/connectors",
+      "purpose": "External connector adapters and data lake integration surfaces.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe or remote connector adapters",
+      "allowedImports": [
+        "services",
+        "shared",
+        "storage",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/connectors/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Connector credentials and host SDKs must not be statically imported by browser code."
+      ]
+    },
+    "constants": {
+      "owner": "constant-contracts-runtime",
+      "path": "src/constants",
+      "purpose": "Product constants, prompts, model constants, release note constants, and static terminal assets.",
+      "runtimeClassification": "universal",
+      "browserReachability": "allowed when constants are browser-safe",
+      "allowedImports": [
+        "shared"
+      ],
+      "forbiddenImports": [
+        "ai",
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "inference",
+        "models",
+        "screens",
+        "services",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/constants/*.ts",
+        "src/constants/*.tsx"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Constants should stay data-only and avoid runtime dependencies."
+      ]
+    },
+    "core": {
+      "owner": "core-runtime",
+      "path": "src/core",
+      "purpose": "Core execution primitives that predate the current module split.",
+      "runtimeClassification": "split",
+      "browserReachability": "requires review",
+      "allowedImports": [
+        "commands",
+        "services",
+        "shared",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "forbiddenImports": [
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/core/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "New code should prefer a more specific owning module."
+      ]
+    },
+    "documentation": {
+      "owner": "documentation-runtime",
+      "path": "src/documentation",
+      "purpose": "Documentation generation and repository documentation automation.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "forbidden",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/documentation/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Documentation generation may use filesystem and process APIs."
+      ]
+    },
+    "graph": {
+      "owner": "graph-runtime",
+      "path": "src/graph",
+      "purpose": "Graph and IPLD graph helpers not yet moved into storage or inference.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only for pure graph helpers",
+      "allowedImports": [
+        "services",
+        "shared",
+        "storage",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/graph/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Persistence-backed graph behavior should move to storage or inference."
+      ]
+    },
+    "huggingface": {
+      "owner": "huggingface-runtime",
+      "path": "src/huggingface",
+      "purpose": "Hugging Face service adapters and Cloudflare worker integrations.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only for browser-safe remote adapters",
+      "allowedImports": [
+        "ai",
+        "models",
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/huggingface/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Provider SDK and credential handling is host-only unless explicitly browser-safe."
+      ]
+    },
+    "integration": {
+      "owner": "integration-runtime",
+      "path": "src/integration",
+      "purpose": "Cross-module integration bridges, registries, and initialization glue.",
+      "runtimeClassification": "split",
+      "browserReachability": "requires explicit adapter review",
+      "allowedImports": [
+        "ai",
+        "client",
+        "connectors",
+        "graph",
+        "inference",
+        "models",
+        "services",
+        "shared",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "forbiddenImports": [
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/integration/*.ts",
+        "src/integration/*/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Integration modules compose owned runtime modules but should not become new domain owners."
+      ]
+    },
+    "ipfs": {
+      "owner": "ipfs-runtime",
+      "path": "src/ipfs",
+      "purpose": "IPFS client and IPFS runtime adapters outside the storage module.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe IPFS clients",
+      "allowedImports": [
+        "services",
+        "shared",
+        "storage",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/ipfs/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "IPFS persistence code should converge with src/storage/ipfs over time."
+      ]
+    },
+    "lib": {
+      "owner": "legacy-library-runtime",
+      "path": "src/lib",
+      "purpose": "Legacy library helpers and collaboration code not yet assigned to narrower modules.",
+      "runtimeClassification": "split",
+      "browserReachability": "requires review",
+      "allowedImports": [
+        "services",
+        "shared",
+        "storage",
+        "tasks",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/lib/**/*.ts",
+        "src/lib/**/*.tsx",
+        "src/lib/**/*.js"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "New domain behavior should move to a named owning module instead of lib."
+      ]
+    },
+    "ml": {
+      "owner": "ml-runtime",
+      "path": "src/ml",
+      "purpose": "Machine learning tensor, optimizer, hardware, and inference support code.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only for browser-safe ML adapters and pure tensor helpers",
+      "allowedImports": [
+        "ai",
+        "models",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/ml/**/*.ts",
+        "src/ml/**/*.js"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Native acceleration and hardware probing are host-only unless isolated by adapter."
+      ]
+    },
+    "patches": {
+      "owner": "patch-runtime",
+      "path": "src/patches",
+      "purpose": "Runtime patches and compatibility overlays.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "forbidden unless an individual patch is documented as browser-safe",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/patches/*.ts",
+        "src/patches/*/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Patches should be explicit and temporary."
+      ]
+    },
+    "platform": {
+      "owner": "runtime-platform-boundary",
+      "path": "src/platform",
+      "purpose": "Explicit browser and host platform facades for runtime-specific capabilities.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through src/platform/browser.ts",
+      "allowedImports": [
+        "commands",
+        "entrypoints",
+        "services",
+        "shared",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "forbiddenImports": [
+        "components",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/platform/browser.ts",
+        "src/platform/host.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "src/platform/browser.ts must remain browser-safe and must not import host modules.",
+        "src/platform/host.ts is the Node process, filesystem, subprocess, CLI, MCP, and command loading boundary."
+      ]
+    },
+    "performance": {
+      "owner": "performance-runtime",
+      "path": "src/performance",
+      "purpose": "Performance measurement and optimization helpers.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe measurement APIs",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/performance/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Host profiling and process metrics must stay out of browser bundles."
+      ]
+    },
+    "release": {
+      "owner": "release-runtime",
+      "path": "src/release",
+      "purpose": "Release packaging and publication helpers.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "forbidden",
+      "allowedImports": [
+        "commands",
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/release/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Release helpers may use filesystem, process, and package-manager APIs."
+      ]
+    },
+    "testing": {
+      "owner": "testing-runtime",
+      "path": "src/testing",
+      "purpose": "Test-only source helpers and fixtures.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "forbidden outside test harnesses",
+      "allowedImports": [
+        "ai",
+        "commands",
+        "components",
+        "hooks",
+        "inference",
+        "models",
+        "screens",
+        "services",
+        "shared",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "forbiddenImports": [
+        "entrypoints"
+      ],
+      "publicEntrypoints": [
+        "src/testing/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Testing helpers are not production runtime dependencies."
+      ]
+    },
+    "tools": {
+      "owner": "tool-runtime",
+      "path": "src/tools",
+      "purpose": "Interactive tool implementations and tool support types.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "forbidden unless exposed through a remote/tool protocol boundary",
+      "allowedImports": [
+        "commands",
+        "components",
+        "hooks",
+        "services",
+        "shared",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "forbiddenImports": [
+        "entrypoints",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/tools.ts",
+        "src/tools/**/*.ts",
+        "src/tools/**/*.tsx"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Host tools may use filesystem and process APIs; browser access should go through tool descriptors or remote execution."
+      ]
+    },
+    "types": {
+      "owner": "type-contracts-runtime",
+      "path": "src/types",
+      "purpose": "Legacy shared TypeScript type contracts.",
+      "runtimeClassification": "universal",
+      "browserReachability": "allowed for type-only and runtime-neutral exports",
+      "allowedImports": [
+        "shared"
+      ],
+      "forbiddenImports": [
+        "ai",
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "inference",
+        "models",
+        "screens",
+        "services",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/types/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "New cross-runtime contracts should move to src/shared/types."
+      ]
+    },
+    "ux": {
+      "owner": "ux-runtime",
+      "path": "src/ux",
+      "purpose": "User-experience helpers outside the terminal component hierarchy.",
+      "runtimeClassification": "split",
+      "browserReachability": "requires review",
+      "allowedImports": [
+        "components",
+        "hooks",
+        "screens",
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "entrypoints",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/ux/*.ts",
+        "src/ux/*.tsx"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Browser UX should live under web/ or a future browser UI module."
+      ]
+    },
+    "vector": {
+      "owner": "vector-runtime",
+      "path": "src/vector",
+      "purpose": "Vector search, embedding, and vector storage helpers.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only for browser-safe vector adapters",
+      "allowedImports": [
+        "models",
+        "services",
+        "shared",
+        "storage",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/vector/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Vector persistence should use storage boundaries."
+      ]
+    },
+    "commands": {
+      "owner": "cli-command-runtime",
+      "path": "src/commands",
+      "purpose": "CLI command definitions, command handlers, help generation, and command-specific orchestration.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "forbidden",
+      "allowedImports": [
+        "ai",
+        "components",
+        "hooks",
+        "inference",
+        "models",
+        "screens",
+        "services",
+        "shared",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "forbiddenImports": [
+        "entrypoints"
+      ],
+      "publicEntrypoints": [
+        "src/commands.ts",
+        "src/commands/*.ts",
+        "src/commands/*.tsx"
+      ],
+      "privateEntrypoints": [
+        "src/commands/*-command.ts",
+        "src/commands/*-commands.ts"
+      ],
+      "notes": [
+        "Command modules may render terminal UI and may use process, filesystem, and network clients.",
+        "Browser adapters must call commands through a protocol boundary, never by static import."
+      ]
+    },
+    "entrypoints": {
+      "owner": "runtime-entrypoint-runtime",
+      "path": "src/entrypoints",
+      "purpose": "Executable process roots and top-level runtime bootstrapping.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "forbidden",
+      "allowedImports": [
+        "ai",
+        "commands",
+        "components",
+        "hooks",
+        "inference",
+        "models",
+        "screens",
+        "services",
+        "shared",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "forbiddenImports": [],
+      "publicEntrypoints": [
+        "src/entrypoints/cli.tsx",
+        "src/entrypoints/mcp.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Entrypoints are composition roots and may import host-only modules.",
+        "Browser application roots live under web/ and must not import src/entrypoints."
+      ]
+    },
+    "components": {
+      "owner": "terminal-ui-components",
+      "path": "src/components",
+      "purpose": "Reusable Ink terminal UI components and message renderers.",
+      "runtimeClassification": "host-ui",
+      "browserReachability": "forbidden",
+      "allowedImports": [
+        "hooks",
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "screens",
+        "storage",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/components/*.tsx",
+        "src/components/CustomSelect/*.tsx",
+        "src/components/binary-feedback/*.tsx",
+        "src/components/messages/*.tsx",
+        "src/components/permissions/*.tsx"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "These components are host terminal UI, not browser UI.",
+        "Browser React components live under the separately owned src/components/browser module.",
+        "Command-specific presentation should stay here only when reusable across commands or screens."
+      ]
+    },
+    "components-browser": {
+      "owner": "browser-ui-components",
+      "path": "src/components/browser",
+      "purpose": "Browser-safe React components that render inside web and browser runtime surfaces.",
+      "runtimeClassification": "browser-safe",
+      "browserReachability": "allowed",
+      "allowedImports": [
+        "hooks-browser",
+        "platform",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens",
+        "storage",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/components/browser/index.ts",
+        "src/components/browser/*.tsx"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Browser UI must use browser-safe hooks and platform facades instead of terminal Ink components.",
+        "Host-only CLI presentation remains under src/components."
+      ]
+    },
+    "screens": {
+      "owner": "terminal-ui-screens",
+      "path": "src/screens",
+      "purpose": "Whole-screen Ink flows that compose components, hooks, and command state.",
+      "runtimeClassification": "host-ui",
+      "browserReachability": "forbidden",
+      "allowedImports": [
+        "components",
+        "hooks",
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "entrypoints",
+        "storage",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/screens/*.tsx"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Screens may import command types but should not invoke command handlers directly.",
+        "Browser screens live under the separately owned src/screens/browser module."
+      ]
+    },
+    "screens-browser": {
+      "owner": "browser-ui-screens",
+      "path": "src/screens/browser",
+      "purpose": "Browser-safe full-screen React flows for web and browser runtime surfaces.",
+      "runtimeClassification": "browser-safe",
+      "browserReachability": "allowed",
+      "allowedImports": [
+        "components-browser",
+        "hooks-browser",
+        "platform",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens",
+        "storage",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/screens/browser/index.ts",
+        "src/screens/browser/*.tsx"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Browser screens may compose only browser-safe components, hooks, platform facades, shared contracts, and utilities.",
+        "Terminal Ink screen flows remain under src/screens."
+      ]
+    },
+    "hooks": {
+      "owner": "terminal-ui-hooks",
+      "path": "src/hooks",
+      "purpose": "React and Ink hooks for terminal interaction, permissions, logging, and input state.",
+      "runtimeClassification": "host-ui",
+      "browserReachability": "forbidden unless a hook is explicitly documented as browser-safe",
+      "allowedImports": [
+        "components",
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "screens",
+        "storage",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/hooks/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Existing hooks read terminal streams and process state, so the directory is host UI by default.",
+        "Browser-safe hooks live under the separately owned src/hooks/browser module."
+      ]
+    },
+    "hooks-browser": {
+      "owner": "browser-ui-hooks",
+      "path": "src/hooks/browser",
+      "purpose": "Browser-safe React hooks for web and browser runtime surfaces.",
+      "runtimeClassification": "browser-safe",
+      "browserReachability": "allowed",
+      "allowedImports": [
+        "platform",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens",
+        "services",
+        "storage",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/hooks/browser/index.ts",
+        "src/hooks/browser/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Browser hooks must depend on browser platform facades and universal contracts.",
+        "Terminal Ink hooks remain under src/hooks."
+      ]
+    },
+    "service-apps": {
+      "owner": "app-surface-runtime",
+      "path": "src/services/apps",
+      "purpose": "Application manifests, generated app state, capability policy contracts, all-tools app bindings, and release policy gates.",
+      "runtimeClassification": "universal",
+      "browserReachability": "allowed through app manifest and capability contract modules",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/apps/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "App-visible capability policy and manifest shape belongs here; protocol mechanics stay in src/services/mcp."
+      ]
+    },
+    "service-glasses": {
+      "owner": "glasses-surface-runtime",
+      "path": "src/services/glasses",
+      "purpose": "Meta glasses display, input, webapp, mobile ORB, and hardware-free replay adapters.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed through display, widget, and mobile ORB browser-safe adapters",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/glasses/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Display/orb adapters and glasses-specific fallbacks belong here; app policy source data stays in src/services/apps."
+      ]
+    },
+    "service-ipfs": {
+      "owner": "ipfs-descriptor-runtime",
+      "path": "src/services/ipfs",
+      "purpose": "IPFS MCP/UI descriptors, descriptor packs, ORB profiles, proof-cache integration, and browser/host IPFS service adapters.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed through browser-safe descriptor and transport modules",
+      "allowedImports": [
+        "services",
+        "shared",
+        "storage",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/ipfs/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "IPFS descriptors and storage integration live here; generic IPFS clients remain under src/ipfs and storage persistence under src/storage/ipfs."
+      ]
+    },
+    "service-mcp": {
+      "owner": "mcp-protocol-runtime",
+      "path": "src/services/mcp",
+      "purpose": "MCP/MCP++ protocol, transport, ORB routing, UI profile contracts, mediation, registry, and generated IDL descriptor logic.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed through browser-safe protocol and transport modules",
+      "allowedImports": [
+        "auth",
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/mcp/*.ts",
+        "src/services/mcp/*.js"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Protocol, transport, mediation, and ORB machinery belongs here; descriptor packs for IPFS-owned apps stay in src/services/ipfs."
+      ]
+    },
+    "services": {
+      "owner": "domain-service-runtime",
+      "path": "src/services",
+      "purpose": "Domain services, protocol adapters, MCP descriptors, logic/prover services, telemetry, and integration facades.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
+      "allowedImports": [
+        "ai",
+        "inference",
+        "models",
+        "shared",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "screens",
+        "hooks"
+      ],
+      "publicEntrypoints": [
+        "src/services/logic-public-api.ts",
+        "src/services/browser-acceleration.ts",
+        "src/services/mcp/*.ts",
+        "src/services/provers/*.ts",
+        "src/services/zkp/*.ts",
+        "src/services/apps/*.ts",
+        "src/services/glasses/*.ts",
+        "src/services/integrations/*.ts",
+        "src/services/ipfs/*.ts"
+      ],
+      "privateEntrypoints": [
+        "src/services/*-wrapper.ts",
+        "src/services/*-bridge.ts",
+        "src/services/*-adapter.ts"
+      ],
+      "notes": [
+        "Browser-safe service files must not import Node, subprocess, native binary, Python, or remote host bridge dependencies.",
+        "Host adapters must be isolated by filename or submodule before they are imported from browser-facing code."
+      ]
+    },
+    "storage": {
+      "owner": "storage-runtime",
+      "path": "src/storage",
+      "purpose": "Storage providers, registries, virtual filesystem abstractions, cache backends, and IPFS storage integration.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe providers and interfaces",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/storage/backend.ts",
+        "src/storage/browser.ts",
+        "src/storage/host.ts",
+        "src/storage/provider.ts",
+        "src/storage/registry.ts",
+        "src/storage/service.ts",
+        "src/storage/storage-service.ts",
+        "src/storage/virtual-filesystem.ts"
+      ],
+      "privateEntrypoints": [
+        "src/storage/backends/*.ts",
+        "src/storage/local/*.ts"
+      ],
+      "notes": [
+        "Filesystem-backed storage is host-only.",
+        "Browser storage must use a browser-specific provider and may not import filesystem backends.",
+        "Browser imports should use src/storage/browser.ts, which selects between IndexedDB, OPFS, Cache Storage, or an injected IPFS transport and never imports Node fs, path, or process.",
+        "Host imports that need Node filesystem, path, or process/config-driven storage should use src/storage/host.ts."
+      ]
+    },
+    "tasks": {
+      "owner": "task-orchestration-runtime",
+      "path": "src/tasks",
+      "purpose": "Task graph, decomposition, delegation, scheduling, synthesis, and coordination primitives.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed for pure graph and scheduler primitives; managers that invoke AI or host workers require review",
+      "allowedImports": [
+        "ai",
+        "models",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/tasks/manager.ts",
+        "src/tasks/registry.ts",
+        "src/tasks/scheduler.ts",
+        "src/tasks/graph/*.ts",
+        "src/tasks/scheduler/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Pure graph and scheduler code should remain runtime-neutral.",
+        "Execution that needs worker threads, subprocesses, or model SDKs belongs behind host-only adapters."
+      ]
+    },
+    "workers": {
+      "owner": "worker-runtime",
+      "path": "src/workers",
+      "purpose": "Worker pool management, worker-thread execution, and task execution isolation.",
+      "runtimeClassification": "split",
+      "browserReachability": "src/workers/browser.ts is browser-safe; every Node worker_threads, filesystem, and subprocess worker entrypoint is host-only",
+      "allowedImports": [
+        "shared",
+        "tasks",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/workers/browser.ts",
+        "src/workers/host.ts"
+      ],
+      "privateEntrypoints": [
+        "src/workers/pool.ts",
+        "src/workers/worker-pool.ts",
+        "src/workers/worker-thread.ts",
+        "src/workers/thread.ts",
+        "src/workers/worker.ts",
+        "src/workers/pool/worker-pool.ts",
+        "src/workers/execution/worker-script.js"
+      ],
+      "notes": [
+        "Browser imports must use src/workers/browser.ts, which is built only on Web Worker APIs (Worker/SharedWorker, postMessage, transferable objects) and never imports worker_threads, child_process, fs, or path.",
+        "Host imports that need node:worker_threads, node:child_process (subprocess workers), or filesystem-based worker script resolution should use src/workers/host.ts.",
+        "src/workers/pool.ts, thread.ts, worker.ts, worker-pool.ts, worker-thread.ts, pool/worker-pool.ts, and execution/worker-script.js are private, host-only legacy Node worker_threads implementations; src/workers/host.ts re-exports the supported subset (worker-pool.ts + worker-thread.ts) and adds a node:child_process subprocess worker runtime.",
+        "build-tools/configs/vite.workers.config.ts builds only src/workers/browser.ts; it must never gain a Node worker_threads/child_process/fs/path entry point.",
+        "The static scripts in public/workers/*.js are already browser-safe Web Worker scripts loaded only by URL (new Worker(url)); src/workers/browser.ts references them by path via BROWSER_WORKER_SCRIPTS instead of importing them."
+      ]
+    },
+    "ai": {
+      "owner": "ai-runtime",
+      "path": "src/ai",
+      "purpose": "AI service facade, agents, model abstractions, thinking graphs, and AI tool execution.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through fetch-based or environment-neutral adapters",
+      "allowedImports": [
+        "models",
+        "shared",
+        "tasks",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/ai/browser.ts",
+        "src/ai/host.ts",
+        "src/ai/service.ts",
+        "src/ai/types.ts",
+        "src/ai/models/index.ts",
+        "src/ai/agent/base-agent.ts",
+        "src/ai/thinking/*.ts"
+      ],
+      "privateEntrypoints": [
+        "src/ai/models/openai-factory.ts",
+        "src/ai/models/openai-model.ts",
+        "src/ai/tools/*.ts"
+      ],
+      "notes": [
+        "Browser imports should use src/ai/browser.ts; host imports that need config, process.env, provider SDKs, terminal tools, or task integration should use src/ai/host.ts.",
+        "Provider SDKs and process.env access are host-only unless wrapped by a browser-safe remote or fetch adapter.",
+        "AI code should depend on model interfaces rather than command or UI modules."
+      ]
+    },
+    "models": {
+      "owner": "model-registry-runtime",
+      "path": "src/models",
+      "purpose": "Model registry, provider metadata, model initialization, and model execution services.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed for provider metadata and pure registry code; execution code requires adapter review",
+      "allowedImports": [
+        "ai",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/models/browser.ts",
+        "src/models/host.ts",
+        "src/models/registry.ts",
+        "src/models/providers.ts",
+        "src/models/init.ts",
+        "src/models/execution.ts"
+      ],
+      "privateEntrypoints": [
+        "src/models/execution/*.ts"
+      ],
+      "notes": [
+        "Browser imports should use src/models/browser.ts for pure provider metadata and fetch-compatible adapters.",
+        "Host imports that need config, process.env, bridge execution, local files, subprocesses, provider SDKs, or native runtimes should use src/models/host.ts.",
+        "Model execution that reads process.env or uses host SDKs must stay out of browser bundles."
+      ]
+    },
+    "inference": {
+      "owner": "inference-runtime",
+      "path": "src/inference",
+      "purpose": "Higher-level inference engines such as graph RAG, swarm inference, and WebNN serving surfaces.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only for browser-native inference adapters and pure data structures",
+      "allowedImports": [
+        "ai",
+        "models",
+        "services",
+        "shared",
+        "storage",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/inference/graph-rag-database.ts",
+        "src/inference/swarm-inference.ts",
+        "src/inference/webnn-server.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Browser inference must use browser-native APIs, WASM, or remote adapters explicitly marked browser-safe.",
+        "Server-style inference endpoints remain host-only."
+      ]
+    },
+    "shared": {
+      "owner": "shared-contracts-runtime",
+      "path": "src/shared",
+      "purpose": "Cross-runtime contracts, constants, events, types, and small pure helpers that are intentionally shared.",
+      "runtimeClassification": "universal",
+      "browserReachability": "allowed",
+      "allowedImports": [
+        "shared"
+      ],
+      "forbiddenImports": [
+        "ai",
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "inference",
+        "models",
+        "screens",
+        "services",
+        "storage",
+        "tasks",
+        "utils",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/shared/index.ts",
+        "src/shared/*/index.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "shared is the lowest layer and must remain domain-neutral.",
+        "If a helper needs runtime state, IO, or a domain dependency, it belongs outside shared."
+      ]
+    },
+    "utils": {
+      "owner": "utility-runtime",
+      "path": "src/utils",
+      "purpose": "Small reusable utilities for formatting, config access, logging, terminal handling, browser helpers, errors, and low-level adapters.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only for browser-safe files such as src/utils/browser.ts and pure helpers",
+      "allowedImports": [
+        "shared"
+      ],
+      "forbiddenImports": [
+        "ai",
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "inference",
+        "models",
+        "screens",
+        "services",
+        "storage",
+        "tasks",
+        "workers"
+      ],
+      "publicEntrypoints": [
+        "src/utils/array.ts",
+        "src/utils/browser.ts",
+        "src/utils/errors.ts",
+        "src/utils/json.ts",
+        "src/utils/log.ts",
+        "src/utils/logger.ts",
+        "src/utils/model.ts",
+        "src/utils/terminal.ts",
+        "src/utils/validate.ts",
+        "src/utils/error_reporting/index.ts"
+      ],
+      "privateEntrypoints": [
+        "src/utils/PersistentShell.ts",
+        "src/utils/execFileNoThrow.ts",
+        "src/utils/file.ts",
+        "src/utils/git.ts",
+        "src/utils/native-loader.ts",
+        "src/utils/permissions/*.ts"
+      ],
+      "notes": [
+        "Utilities do not own product behavior.",
+        "Host-only utilities must stay out of browser bundles unless accessed through a runtime boundary."
+      ]
+    }
+  }
+}

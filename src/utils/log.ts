@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
 import { writeFileSync, readFileSync } from 'fs'
-import { captureException } from '../services/platform/sentry.js'
+import { captureException } from '../services/sentry.js'
 import { randomUUID } from 'crypto'
 import envPaths from 'env-paths'
 import { promises as fsPromises } from 'fs'

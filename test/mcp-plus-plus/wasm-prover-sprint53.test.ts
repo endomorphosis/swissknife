@@ -13,21 +13,21 @@ import {
   IntentionCommitment, BeliefConjunction, KnowledgeDistribution,
   PerceptionImpliesKnowledge, BeliefNegation, KnowledgeConjunction,
   ALL_COGNITIVE_RULES, findApplicableCognitiveRules,
-} from '../../src/services/logic/shared/cognitive-inference-rules';
+} from '../../src/services/cognitive-inference-rules';
 
 import {
   LemmaType, makeLemma, LemmaCache, LemmaGenerator, createLemmaGenerator,
-} from '../../src/services/logic/shared/lemma-generation';
+} from '../../src/services/lemma-generation';
 
 import {
   StrategyType, ForwardChainingStrategy, BackwardChainingStrategy,
   BidirectionalStrategy, HybridStrategy, getStrategy,
-} from '../../src/services/proof-engine/proof-strategies';
+} from '../../src/services/proof-strategies';
 
 import {
   CircuitState, LLMCircuitBreaker, CircuitBreakerOpenError,
   getCircuitBreaker, resetAllCircuitBreakers, getAllCircuitBreakerStats,
-} from '../../src/services/platform/llm-circuit-breaker';
+} from '../../src/services/llm-circuit-breaker';
 
 // ---------------------------------------------------------------------------
 // Cognitive Inference Rules tests

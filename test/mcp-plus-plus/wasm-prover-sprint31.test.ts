@@ -6,16 +6,16 @@
 
 import {
   VerificationResult, makeAxiom, LogicVerifier,
-} from '../../src/services/logic/shared/logic-verifier.js';
+} from '../../src/services/logic-verifier.js';
 import {
   LogicTranslationTarget, TranslationResult,
   LeanTranslator, CoqTranslator, SMTTranslator,
   makeAtomicFormula, translateFormula,
-} from '../../src/services/logic/shared/logic-translation-core.js';
+} from '../../src/services/logic-translation-core.js';
 import {
   LegalDomain, DeonticOperator, LegalSymbolicAnalyzer,
   LegalReasoningEngine, createLegalAnalyzer, createLegalReasoningEngine,
-} from '../../src/services/logic/shared/legal-symbolic-analyzer.js';
+} from '../../src/services/legal-symbolic-analyzer.js';
 
 const LEGAL_TEXT =
   'The contractor shall deliver the goods within 30 days. ' +

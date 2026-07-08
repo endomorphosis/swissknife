@@ -1,6 +1,10 @@
 // src/workers/worker-thread.ts
+//
+// Host-only worker abstraction (in-process task execution). Private
+// implementation detail per `src/module-ownership.json`, re-exported from
+// `src/workers/host.ts` as the recommended in-process worker pool engine.
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 /**
  * Status of a worker thread

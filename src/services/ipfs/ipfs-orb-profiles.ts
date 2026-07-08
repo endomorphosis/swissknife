@@ -158,6 +158,16 @@ export const ipfsAccelerateProfile: MCPUIProfileDescriptor = {
 };
 
 /**
+ * All IPFS backend profile descriptors for bulk registration
+ */
+export const ipfsORBProfiles: MCPUIProfileDescriptor[] = [
+  ipfsKitProfile,
+  ipfsDatasetsProfile,
+  ipfsAccelerateProfile,
+  ipfsExtendedToolsProfile,
+];
+
+/**
  * Extended tools profile (vector store, search, scraping, workflow)
  */
 export const ipfsExtendedToolsProfile: MCPUIProfileDescriptor = {
@@ -218,15 +228,5 @@ export const ipfsExtendedToolsProfile: MCPUIProfileDescriptor = {
     ],
   },
 };
-
-/**
- * All IPFS backend profile descriptors for bulk registration
- */
-export const ipfsORBProfiles: MCPUIProfileDescriptor[] = [
-  ipfsKitProfile,
-  ipfsDatasetsProfile,
-  ipfsAccelerateProfile,
-  ipfsExtendedToolsProfile,
-];
 
 export default ipfsORBProfiles;

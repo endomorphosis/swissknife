@@ -8,7 +8,7 @@ import {
   ProverProcessResult,
   ProverStatus,
   VampireProver,
-} from '../../src/services/provers/external-provers';
+} from '../../src/services/external-provers';
 
 describe('PORT-170 VampireProver real runner path', () => {
   it('invokes a configured Vampire runner with TPTP input and parses SZS theorem', () => {

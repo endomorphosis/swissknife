@@ -1,3 +1,4 @@
+import { URL } from 'url';
 import {
   META_GLASSES_DISPLAY_VIEWPORT,
   type MetaGlassesViewport,
@@ -164,7 +165,7 @@ export function buildMetaGlassesWebappReadinessDescriptor(
     dark_theme_supported: true,
     min_contrast_ratio: contrastRatio,
     browser_preview: {
-      renderer: 'swissknife/src/services/meta-glasses-webapp-renderer.ts',
+      renderer: 'swissknife/src/services/glasses/meta-glasses-webapp-renderer.ts',
       renderable: canRenderBrowserPreview(manifest),
       viewport: { ...manifest.viewport },
     },

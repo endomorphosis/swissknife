@@ -1,6 +1,11 @@
 // src/workers/worker-pool.ts
+//
+// Host-only worker pool built on the in-process `WorkerThread` abstraction.
+// Private implementation detail per `src/module-ownership.json`, re-exported
+// from `src/workers/host.ts` as the recommended in-process worker pool
+// engine.
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { WorkerThread, WorkerTask, WorkerResult, WorkerTaskHandler } from './worker-thread.js';
 import { nanoid } from 'nanoid';
 

@@ -14,13 +14,13 @@
 import {
   cosineSimilarity,
   FLogicSemanticOptimizer,
-} from '../../src/services/logic/fol/flogic-semantic-optimizer.js';
-import type { FLogicOptimizerConfig } from '../../src/services/logic/fol/flogic-semantic-optimizer.js';
+} from '../../src/services/fol/flogic-semantic-optimizer.js';
+import type { FLogicOptimizerConfig } from '../../src/services/fol/flogic-semantic-optimizer.js';
 import {
   MLConfidenceScorer,
   FeatureExtractor,
-} from '../../src/services/logic/fol/ml-confidence-scorer.js';
-import { FolTextConverter, extractPredicates, parseQuantifiers, parseLogicalOperators } from '../../src/services/logic/fol/fol-text-converter.js';
+} from '../../src/services/fol/ml-confidence-scorer.js';
+import { FolTextConverter, extractPredicates, parseQuantifiers, parseLogicalOperators } from '../../src/services/fol/fol-text-converter.js';
 
 // ---------------------------------------------------------------------------
 // T-84: cosineSimilarity

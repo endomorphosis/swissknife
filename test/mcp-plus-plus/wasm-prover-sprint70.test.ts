@@ -7,10 +7,10 @@
  *   - browser-acceleration.ts (initialize, selectOptimalBackend, getOptimizationHints)
  */
 
-import { ResourcePoolManager } from '../../src/services/platform/resource-pool';
-import { ModelStreamer, ExecutionEngine } from '../../src/services/platform/model-streamer';
-import { HardwareAbstraction } from '../../src/services/platform/hardware-abstraction';
-import { BrowserAccelerator } from '../../src/services/platform/browser-acceleration';
+import { ResourcePoolManager } from '../../src/services/resource-pool';
+import { ModelStreamer, ExecutionEngine } from '../../src/services/model-streamer';
+import { HardwareAbstraction } from '../../src/services/hardware-abstraction';
+import { BrowserAccelerator } from '../../src/services/browser-acceleration';
 
 // ---------------------------------------------------------------------------
 // ResourcePoolManager — T-321

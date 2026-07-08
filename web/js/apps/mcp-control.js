@@ -1,32 +1,105 @@
 import { getHallucinateBackendBridge } from '../hallucinate-backend-bridge.js';
-import {
-    invokeDescriptorOperation as invokeBrowserDescriptorOperation,
-    listBrowserMCPDescriptors,
-    renderDescriptorRegistrySummary,
-    renderEnvelopeHTML,
-} from '../core/mcp-descriptor-registry.js';
 
-function sampleMCPDescriptorInput(operation) {
-    const properties = operation.input_schema?.properties || {};
-    return Object.fromEntries(Object.entries(properties).map(([name, schema]) => [
-        name,
-        sampleMCPValue(name, schema),
-    ]));
+// ---------------------------------------------------------------------------
+// MCP dashboard browser-truth policy (SWR-027)
+//
+// The MCP Control dashboard renders two fundamentally different kinds of
+// "server" entries and must never blur the line between them:
+//
+//   - "browser-remote"      HTTP(S), WebSocket, or libp2p endpoints that the
+//                           SwissKnife browser build connects to directly
+//                           (fetch / WebSocket / browser libp2p).
+//   - "host-daemon-command" A shell command (npx ..., uvicorn main:app,
+//                           python server.py, ...) that only a host process
+//                           (Electron main process, desktop app, CLI, or a
+//                           configured MCP daemon) can execute. The command
+//                           text is a *record*, never something the browser
+//                           runs — this is true even when the command text
+//                           references a Python interpreter/server.
+//
+// This block is a literal, hand-maintained mirror of the canonical policy in
+// `src/services/mcp/mcp-dashboard-browser-policy.ts` (this file is plain
+// browser JavaScript and is not compiled from TypeScript, so it cannot
+// `import` that module at runtime). `scripts/test-mcp-dashboard-consumer.cjs`
+// cross-checks the two sources so they cannot silently drift. See
+// `docs/mcp-dashboard-browser-policy.md` for the full policy writeup.
+// ---------------------------------------------------------------------------
+
+const MCP_DASHBOARD_BROWSER_POLICY = Object.freeze({
+    schema: 'swissknife.mcp_dashboard_browser_policy.v1',
+    browserConnectableTransports: Object.freeze(['http', 'https', 'websocket', 'libp2p']),
+    hostDaemonCommandDisclaimer:
+        'Host-managed daemon command \u2014 record only. SwissKnife web builds never execute this command in the browser; a host process (desktop app, CLI, or configured MCP daemon) must run it.',
+    pythonHostDaemonCommandDisclaimer:
+        'Host-managed daemon command \u2014 record only. SwissKnife web builds never execute this command in the browser; a host process (desktop app, CLI, or configured MCP daemon) must run it. This example text references a Python interpreter/server; it documents the host command only and is never parsed or executed by any in-browser Python runtime.',
+    hostCommandInterpreters: Object.freeze([
+        'python3', 'python', 'uvicorn', 'gunicorn', 'pip3', 'pip',
+        'node', 'npx', 'npm', 'deno', 'bun', 'java', 'dotnet', 'ruby', 'php', 'go', 'cargo',
+    ]),
+});
+
+const MCP_DASHBOARD_PYTHON_HOST_INTERPRETERS = new Set(['python', 'python3', 'uvicorn', 'gunicorn', 'pip', 'pip3']);
+const MCP_DASHBOARD_PYTHON_TEXT_PATTERN = /\bpython[0-9.]*\b/i;
+
+/** Extracts the leading interpreter/launcher token from a host command string. */
+function detectMcpDashboardHostCommandInterpreter(command) {
+    const first = String(command || '').trim().split(/\s+/)[0] || '';
+    if (!first) return null;
+    const base = first.split('/').pop() || first;
+    return base || null;
 }
 
-function sampleMCPValue(name, schema = {}) {
-    if (Array.isArray(schema.enum) && schema.enum.length > 0) return schema.enum[0];
-    if (name.includes('cid') || name === 'root_cid') return 'bafybeimcpcontrol';
-    if (name === 'path') return '/ipfs/bafybeimcpcontrol';
-    if (name === 'dataset_id') return 'mcp-control-dataset';
-    if (name === 'model') return 'llama-3.1-8b';
-    if (name === 'input' || name === 'content' || name === 'prompt') return 'MCP Control descriptor probe';
-    if (name === 'job_id') return 'job-mcp-control';
-    if (schema.type === 'boolean') return true;
-    if (schema.type === 'number' || schema.type === 'integer') return 1;
-    if (schema.type === 'array') return [];
-    if (schema.type === 'object') return { source: 'mcp-control' };
-    return `${name}-example`;
+/** True when a host daemon command string references a Python-family interpreter/server. */
+function isPythonHostDaemonCommand(command) {
+    const interpreter = detectMcpDashboardHostCommandInterpreter(command);
+    if (interpreter && MCP_DASHBOARD_PYTHON_HOST_INTERPRETERS.has(interpreter)) return true;
+    return MCP_DASHBOARD_PYTHON_TEXT_PATTERN.test(String(command || ''));
+}
+
+/**
+ * Classifies a host-managed daemon launch command for dashboard rendering.
+ * Never executes the command; only labels the text so it cannot be mistaken
+ * for something the browser runs.
+ */
+function describeMcpDashboardHostDaemonCommand(command, args) {
+    const interpreter = detectMcpDashboardHostCommandInterpreter(command);
+    const isPython = isPythonHostDaemonCommand(command);
+    return {
+        kind: 'host-daemon-command',
+        command,
+        args: args || [],
+        interpreter,
+        isPythonCommand: isPython,
+        browserExecutable: false,
+        badgeLabel: 'HOST DAEMON COMMAND',
+        disclaimer: isPython
+            ? MCP_DASHBOARD_BROWSER_POLICY.pythonHostDaemonCommandDisclaimer
+            : MCP_DASHBOARD_BROWSER_POLICY.hostDaemonCommandDisclaimer,
+    };
+}
+
+/** Normalizes a user-supplied protocol/URL pair to a canonical transport name. */
+function normalizeMcpDashboardTransport(transport, url) {
+    const normalized = String(transport || '').toLowerCase().trim();
+    if (normalized === 'ws' || normalized === 'wss') return 'websocket';
+    if (normalized) return normalized;
+    if (/^wss?:\/\//i.test(url || '')) return 'websocket';
+    if (/^https:\/\//i.test(url || '')) return 'https';
+    if (/^http:\/\//i.test(url || '')) return 'http';
+    if (/^\/(?:dnsaddr|ip4|ip6|dns4|dns6)\//i.test(url || '') || /^libp2p:/i.test(url || '')) return 'libp2p';
+    return normalized || 'http';
+}
+
+/** Classifies a remote MCP endpoint URL/protocol pair as a browser-connectable remote. */
+function describeMcpDashboardRemoteEntry(url, transport) {
+    const resolved = normalizeMcpDashboardTransport(transport, url);
+    return {
+        kind: 'browser-remote',
+        transport: resolved,
+        url,
+        browserExecutable: MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.includes(resolved),
+        badgeLabel: 'BROWSER REMOTE',
+    };
 }
 
 // Enhanced MCP Server Control App with Real-Time Monitoring and External Connections
@@ -45,8 +118,6 @@ class MCPControlApp {
         this.remoteServers = new Map(); // Remote MCP servers
         this.hallucinateBridge = getHallucinateBackendBridge();
         this.hallucinateSnapshot = null;
-        this.descriptorRegistry = listBrowserMCPDescriptors();
-        this.lastDescriptorEnvelope = null;
         
         // Initialize common server templates
         this.initializeServerTemplates();
@@ -161,11 +232,11 @@ class MCPControlApp {
                     <div class="header-left">
                         <h2>🔌 MCP Server Control Center</h2>
                         <div class="server-status">
-                            <span class="status-indicator">
-                                🟢 ${this.getActiveServerCount()} local servers
+                            <span class="status-indicator" title="${MCP_DASHBOARD_BROWSER_POLICY.hostDaemonCommandDisclaimer}">
+                                🟢 ${this.getActiveServerCount()} host daemon commands running
                             </span>
-                            <span class="status-indicator">
-                                🌐 ${this.connections.size} remote connections
+                            <span class="status-indicator" title="Browser-connectable remotes: ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}">
+                                🌐 ${this.connections.size} browser-connected remotes
                             </span>
                             <span class="discovery-status">
                                 ${this.autoDiscovery ? '🔍 Auto-discovery ON' : '🔍 Auto-discovery OFF'}
@@ -175,11 +246,10 @@ class MCPControlApp {
                     <div class="mcp-actions">
                         <button onclick="mcpControlApp.refreshServers()" class="btn-primary">🔄 Refresh</button>
                         <button onclick="mcpControlApp.showServerTemplates()" class="btn-secondary">📋 Templates</button>
-                        <button onclick="mcpControlApp.showAddServer()" class="btn-secondary">➕ Add Server</button>
-                        <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary">🌐 Add Remote</button>
+                        <button onclick="mcpControlApp.showAddServer()" class="btn-secondary" title="${MCP_DASHBOARD_BROWSER_POLICY.hostDaemonCommandDisclaimer}">🖥️ Add Host Daemon</button>
+                        <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary" title="Browser-connectable remotes: ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}">🌐 Add Browser Remote</button>
                         <button onclick="mcpControlApp.showDiscovery()" class="btn-secondary">🔍 Discovery</button>
                         <button onclick="mcpControlApp.showMetrics()" class="btn-secondary">📊 Metrics</button>
-                        <button onclick="mcpControlApp.showDescriptorRegistry()" class="btn-secondary">🧭 Descriptors</button>
                     </div>
                 </div>
                 
@@ -193,14 +263,14 @@ class MCPControlApp {
                                     <span class="category-name">All Servers</span>
                                     <span class="category-count">${this.servers.size + this.remoteServers.size}</span>
                                 </div>
-                                <div class="category-item" data-category="local">
-                                    <span class="category-icon">💻</span>
-                                    <span class="category-name">Local</span>
+                                <div class="category-item" data-category="local" title="${MCP_DASHBOARD_BROWSER_POLICY.hostDaemonCommandDisclaimer}">
+                                    <span class="category-icon">🖥️</span>
+                                    <span class="category-name">Host Daemon</span>
                                     <span class="category-count">${this.servers.size}</span>
                                 </div>
-                                <div class="category-item" data-category="remote">
+                                <div class="category-item" data-category="remote" title="Browser-connectable remotes: ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}">
                                     <span class="category-icon">🌐</span>
-                                    <span class="category-name">Remote</span>
+                                    <span class="category-name">Browser Remote</span>
                                     <span class="category-count">${this.remoteServers.size}</span>
                                 </div>
                                 <div class="category-item" data-category="core">
@@ -234,11 +304,11 @@ class MCPControlApp {
                         <div class="quick-stats">
                             <h4>📊 Quick Stats</h4>
                             <div class="stat-item">
-                                <span>Active Local:</span>
+                                <span>Active Host Daemons:</span>
                                 <span class="stat-value">${this.getActiveServerCount()}</span>
                             </div>
                             <div class="stat-item">
-                                <span>Remote Connections:</span>
+                                <span>Browser Remote Connections:</span>
                                 <span class="stat-value">${this.connections.size}</span>
                             </div>
                             <div class="stat-item">
@@ -252,10 +322,6 @@ class MCPControlApp {
                             <div class="stat-item">
                                 <span>Templates Available:</span>
                                 <span class="stat-value">${this.serverTemplates.size}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span>Descriptor Packs:</span>
-                                <span class="stat-value">${this.descriptorRegistry.length}</span>
                             </div>
                         </div>
                         
@@ -281,13 +347,11 @@ class MCPControlApp {
                                 </select>
                                 <select id="type-filter" onchange="mcpControlApp.filterServers()">
                                     <option value="">All Types</option>
-                                    <option value="local">Local</option>
-                                    <option value="remote">Remote</option>
+                                    <option value="local">Host Daemon</option>
+                                    <option value="remote">Browser Remote</option>
                                 </select>
                             </div>
                         </div>
-
-                        ${this.renderDescriptorRegistryPanel()}
                         
                         <div class="server-list" id="mcp-server-list">
                             ${this.renderServerList()}
@@ -300,84 +364,6 @@ class MCPControlApp {
         `;
     }
 
-    renderDescriptorRegistryPanel() {
-        const descriptors = this.descriptorRegistry;
-        return `
-            <section id="mcp-descriptor-registry" class="mcp-descriptor-registry" data-registry-id="swissknife.browser-mcp-descriptor-registry.v1">
-                <div class="descriptor-panel-header">
-                    <div>
-                        <h3>🧭 MCP / MCP++ Descriptor Registry</h3>
-                        <p>Shared descriptor source for MCP Control, IDL Explorer, MCP++ Explorer, ORB Auto-UI, and Meta glasses handoff.</p>
-                    </div>
-                    <span class="descriptor-count">${descriptors.length} packs</span>
-                </div>
-                ${renderDescriptorRegistrySummary(descriptors)}
-                <div class="descriptor-probes">
-                    ${descriptors.map(descriptor => {
-                        const operations = descriptor.data_contracts.operations.slice(0, 3);
-                        return `
-                            <div class="descriptor-probe-card" data-descriptor-id="${descriptor.id}">
-                                <div class="probe-title">${descriptor.ui.icon} ${descriptor.name}</div>
-                                <div class="probe-methods">
-                                    ${operations.map(operation => `
-                                        <button
-                                            class="descriptor-probe"
-                                            data-descriptor-operation="${operation.method}"
-                                            data-capability-id="${operation.capability_id}"
-                                            onclick="mcpControlApp.invokeDescriptorOperation('${descriptor.id}', '${operation.method}')"
-                                        >${operation.method}</button>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-                <div id="mcp-descriptor-result" class="descriptor-result">
-                    ${this.lastDescriptorEnvelope ? renderEnvelopeHTML(this.lastDescriptorEnvelope) : `
-                        <pre>{
-  "schema": "swissknife.app-result-envelope.v1",
-  "status": "ready",
-  "registry_id": "swissknife.browser-mcp-descriptor-registry.v1",
-  "receipt_refs": [],
-  "event_dag_refs": []
-}</pre>
-                    `}
-                </div>
-            </section>
-        `;
-    }
-
-    showDescriptorRegistry() {
-        const panel = document.getElementById('mcp-descriptor-registry');
-        if (panel) {
-            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }
-
-    async invokeDescriptorOperation(descriptorId, operationName) {
-        const descriptor = this.descriptorRegistry.find(candidate => candidate.id === descriptorId);
-        const operation = descriptor?.data_contracts.operations.find(candidate => candidate.method === operationName);
-        const result = document.getElementById('mcp-descriptor-result');
-        if (!descriptor || !operation || !result) return;
-
-        result.innerHTML = `<div class="descriptor-invocation-pending">Invoking ${descriptor.name}.${operationName} through the shared gateway...</div>`;
-        try {
-            const envelope = await invokeBrowserDescriptorOperation({
-                descriptor_id: descriptorId,
-                operation: operationName,
-                app_id: 'mcp-control',
-                input: sampleMCPDescriptorInput(operation),
-            });
-            this.lastDescriptorEnvelope = envelope;
-            window.__lastMCPControlDescriptorEnvelope = envelope;
-            result.innerHTML = renderEnvelopeHTML(envelope);
-            this.addConnectionEvent(`Descriptor ${descriptor.name}.${operationName} returned ${envelope.status}`, 'connection_established');
-        } catch (error) {
-            result.innerHTML = `<div class="descriptor-invocation-error">Descriptor invocation failed: ${error.message}</div>`;
-            this.addConnectionEvent(`Descriptor ${descriptorId}.${operationName} failed: ${error.message}`, 'server_error');
-        }
-    }
-
     renderServerList() {
         const allServers = new Map([...this.servers, ...this.remoteServers]);
         
@@ -387,15 +373,20 @@ class MCPControlApp {
                     <div class="no-servers-icon">🔌</div>
                     <h3>No MCP Servers Configured</h3>
                     <p>Add your first MCP server to get started with Model Context Protocol integration.</p>
+                    <p class="browser-truth-note">
+                        "Host Daemon" entries record a command line for a host process to run \u2014 the
+                        browser never executes it. "Browser Remote" entries are HTTP(S), WebSocket, or
+                        libp2p endpoints the browser build connects to directly.
+                    </p>
                     <div class="quick-actions">
                         <button onclick="mcpControlApp.showServerTemplates()" class="btn-primary">
                             📋 Browse Templates
                         </button>
                         <button onclick="mcpControlApp.showAddServer()" class="btn-secondary">
-                            ➕ Add Local Server
+                            🖥️ Add Host Daemon Command
                         </button>
                         <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary">
-                            🌐 Add Remote Server
+                            🌐 Add Browser Remote
                         </button>
                     </div>
                 </div>
@@ -407,24 +398,34 @@ class MCPControlApp {
             const statusIcon = this.getStatusIcon(server.status);
             const statusClass = server.status || 'stopped';
             const isRemote = this.remoteServers.has(name);
+            const entryDescriptor = isRemote
+                ? describeMcpDashboardRemoteEntry(server.url, server.protocol)
+                : describeMcpDashboardHostDaemonCommand(server.command, server.args);
             
             return `
                 <div class="server-card ${statusClass} ${isRemote ? 'remote-server' : 'local-server'}">
                     <div class="server-header">
                         <div class="server-info">
                             <div class="server-title">
-                                <span class="server-icon">${server.icon || (isRemote ? '🌐' : '🔌')}</span>
+                                <span class="server-icon">${server.icon || (isRemote ? '🌐' : '🖥️')}</span>
                                 <h4>${server.displayName || name}</h4>
                                 <span class="server-category">${server.category || 'custom'}</span>
-                                <span class="server-type">${isRemote ? 'REMOTE' : 'LOCAL'}</span>
+                                <span class="server-type ${isRemote ? 'server-type-remote' : 'server-type-host-daemon'}" title="${isRemote ? `Browser-connectable remote (${entryDescriptor.transport})` : entryDescriptor.disclaimer}">
+                                    ${isRemote ? `BROWSER REMOTE \u00b7 ${entryDescriptor.transport.toUpperCase()}` : 'HOST DAEMON COMMAND'}
+                                </span>
                             </div>
                             <div class="server-description">${server.description || 'No description'}</div>
                             <div class="server-command">
-                                ${isRemote ? 
+                                ${isRemote ?
                                     `<code>🌐 ${server.url}</code>` :
-                                    `<code>${server.command} ${(server.args || []).join(' ')}</code>`
+                                    `<code>${entryDescriptor.isPythonCommand ? '🐍' : '🖥️'} ${server.command} ${(server.args || []).join(' ')}</code>`
                                 }
                             </div>
+                            ${isRemote ? '' : `
+                                <div class="host-daemon-disclaimer${entryDescriptor.isPythonCommand ? ' python-command-disclaimer' : ''}">
+                                    ⚠️ ${entryDescriptor.disclaimer}
+                                </div>
+                            `}
                         </div>
                         <div class="server-actions">
                             ${isRemote ? this.renderRemoteActions(name, server) : this.renderLocalActions(name, server)}
@@ -526,22 +527,19 @@ class MCPControlApp {
 
     async discoverServers() {
         try {
-            // Auto-discover common MCP servers in common locations
-            const commonPaths = [
-                'node_modules/.bin',
-                '/usr/local/bin',
-                process.env.HOME + '/.local/bin'
-            ];
-            
-            // Check for installed MCP packages
-            const mcpPackages = [
+            // Suggest common MCP server packages that a host process (desktop app,
+            // CLI, or configured MCP daemon) could install/launch. The browser
+            // cannot enumerate host filesystem paths or installed binaries, so
+            // this is a static catalog of well-known host-daemon packages, not a
+            // real filesystem/network scan. Use "🔍 Scan Network" (scanNetwork())
+            // to actually probe for browser-connectable HTTP/WebSocket remotes.
+            const knownHostDaemonPackages = [
                 '@modelcontextprotocol/server-filesystem',
                 '@modelcontextprotocol/server-github',
                 '@modelcontextprotocol/server-sqlite'
             ];
-            
-            // Simulate discovery (in real implementation, this would check actual paths)
-            for (const pkg of mcpPackages) {
+
+            for (const pkg of knownHostDaemonPackages) {
                 const serverName = pkg.split('/').pop().replace('server-', '');
                 if (!this.servers.has(serverName)) {
                     // Found new server, add as template suggestion
@@ -554,7 +552,9 @@ class MCPControlApp {
     }
 
     addDiscoveredServer(name, packageName) {
-        // Add to discovered servers list for user review
+        // Add to discovered servers list for user review. These are always
+        // host-daemon-command suggestions (a host process would run `npx
+        // <packageName>`); the browser never installs or executes them.
         const discovered = JSON.parse(localStorage.getItem('mcp-discovered') || '[]');
         const existing = discovered.find(s => s.name === name);
         
@@ -562,6 +562,7 @@ class MCPControlApp {
             discovered.push({
                 name,
                 packageName,
+                kind: 'host-daemon-command',
                 discoveredAt: new Date().toISOString(),
                 status: 'discovered'
             });
@@ -654,18 +655,25 @@ class MCPControlApp {
             <div id="add-server-modal" class="modal hidden">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>Add Local MCP Server</h3>
+                        <h3>🖥️ Add Host Daemon Command</h3>
                         <button onclick="mcpControlApp.hideAddServer()" class="modal-close">✕</button>
                     </div>
                     <div class="modal-body">
+                        <p class="browser-truth-note">
+                            This records a <strong>host-managed daemon command</strong>. SwissKnife's
+                            browser build never executes this command \u2014 a host process (desktop app,
+                            CLI, or configured MCP daemon supervisor) must run it separately. This applies
+                            even when the command references an interpreter such as Python.
+                        </p>
                         <form id="add-server-form">
                             <div class="form-group">
                                 <label for="server-name">Server Name:</label>
                                 <input type="text" id="server-name" placeholder="my-mcp-server" required>
                             </div>
                             <div class="form-group">
-                                <label for="server-command">Command:</label>
-                                <input type="text" id="server-command" placeholder="npx @modelcontextprotocol/server-filesystem" required>
+                                <label for="server-command">Host Command:</label>
+                                <input type="text" id="server-command" placeholder="npx @modelcontextprotocol/server-filesystem" required oninput="mcpControlApp.updateAddServerCommandWarning()">
+                                <div id="server-command-warning" class="host-daemon-disclaimer hidden"></div>
                             </div>
                             <div class="form-group">
                                 <label for="server-args">Arguments (JSON):</label>
@@ -700,7 +708,7 @@ class MCPControlApp {
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button onclick="mcpControlApp.addServer()" class="btn-primary">Add Server</button>
+                        <button onclick="mcpControlApp.addServer()" class="btn-primary">Add Host Daemon Command</button>
                         <button onclick="mcpControlApp.hideAddServer()" class="btn-secondary">Cancel</button>
                     </div>
                 </div>
@@ -710,25 +718,31 @@ class MCPControlApp {
             <div id="add-remote-modal" class="modal hidden">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>🌐 Add Remote MCP Server</h3>
+                        <h3>🌐 Add Browser-Connectable Remote</h3>
                         <button onclick="mcpControlApp.hideAddRemote()" class="modal-close">✕</button>
                     </div>
                     <div class="modal-body">
+                        <p class="browser-truth-note">
+                            SwissKnife's browser build connects to these endpoints <strong>directly</strong>
+                            using ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}.
+                            Unlike host daemon commands, no separate host process is required to reach them.
+                        </p>
                         <form id="add-remote-form">
                             <div class="form-group">
                                 <label for="remote-name">Server Name:</label>
                                 <input type="text" id="remote-name" placeholder="remote-mcp-server" required>
                             </div>
                             <div class="form-group">
-                                <label for="remote-url">Server URL:</label>
-                                <input type="text" id="remote-url" placeholder="ws://localhost:8765 or https://api.example.com/mcp" required>
+                                <label for="remote-url">Server URL / Multiaddr:</label>
+                                <input type="text" id="remote-url" placeholder="ws://localhost:8765, https://api.example.com/mcp, or /dns4/host/tcp/4001/p2p/<peerId>" required>
                             </div>
                             <div class="form-group">
-                                <label for="remote-protocol">Protocol:</label>
+                                <label for="remote-protocol">Browser-Connectable Transport:</label>
                                 <select id="remote-protocol">
                                     <option value="websocket">WebSocket</option>
                                     <option value="http">HTTP</option>
                                     <option value="https">HTTPS</option>
+                                    <option value="libp2p">libp2p (peer-to-peer)</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -768,7 +782,7 @@ class MCPControlApp {
                     </div>
                     <div class="modal-footer">
                         <button onclick="mcpControlApp.testRemoteConnection()" class="btn-secondary">🧪 Test Connection</button>
-                        <button onclick="mcpControlApp.addRemoteServer()" class="btn-primary">Add Remote Server</button>
+                        <button onclick="mcpControlApp.addRemoteServer()" class="btn-primary">Add Browser Remote</button>
                         <button onclick="mcpControlApp.hideAddRemote()" class="btn-secondary">Cancel</button>
                     </div>
                 </div>
@@ -843,18 +857,24 @@ class MCPControlApp {
     }
 
     renderServerTemplates() {
-        return Array.from(this.serverTemplates.entries()).map(([id, template]) => `
+        return Array.from(this.serverTemplates.entries()).map(([id, template]) => {
+            const entryDescriptor = describeMcpDashboardHostDaemonCommand(template.command, template.args);
+            return `
             <div class="template-card">
                 <div class="template-header">
                     <span class="template-icon">${template.icon}</span>
                     <h4>${template.name}</h4>
                     <span class="template-category">${template.category}</span>
+                    <span class="server-type server-type-host-daemon" title="${entryDescriptor.disclaimer}">HOST DAEMON COMMAND</span>
                 </div>
                 <div class="template-description">
                     ${template.description}
                 </div>
                 <div class="template-command">
-                    <code>${template.command} ${template.args.join(' ')}</code>
+                    <code>${entryDescriptor.isPythonCommand ? '🐍' : '🖥️'} ${template.command} ${template.args.join(' ')}</code>
+                </div>
+                <div class="host-daemon-disclaimer${entryDescriptor.isPythonCommand ? ' python-command-disclaimer' : ''}">
+                    ⚠️ ${entryDescriptor.disclaimer}
                 </div>
                 <div class="template-actions">
                     <button onclick="mcpControlApp.useTemplate('${id}')" class="btn-primary">
@@ -862,7 +882,8 @@ class MCPControlApp {
                     </button>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     renderDiscoveredServers() {
@@ -876,7 +897,8 @@ class MCPControlApp {
             <div class="discovered-server">
                 <div class="server-info">
                     <h5>${server.name}</h5>
-                    <div class="server-package">${server.packageName}</div>
+                    <span class="server-type server-type-host-daemon">HOST DAEMON COMMAND</span>
+                    <div class="server-package">Suggested host command: <code>npx ${server.packageName}</code></div>
                     <div class="discovered-time">Discovered: ${new Date(server.discoveredAt).toLocaleString()}</div>
                 </div>
                 <div class="server-actions">
@@ -1087,13 +1109,25 @@ class MCPControlApp {
             server.status = 'connecting';
             this.refreshUI();
 
-            // Create WebSocket or HTTP connection based on protocol
+            // Create a connection using one of the browser-connectable
+            // transports (HTTP(S), WebSocket, or libp2p). Any other protocol
+            // value is rejected rather than silently treated as HTTP, so the
+            // dashboard never pretends a non-browser-connectable transport
+            // is reachable directly from the browser.
+            const transport = normalizeMcpDashboardTransport(server.protocol, server.url);
             let connection;
-            
-            if (server.protocol === 'websocket' || server.url.startsWith('ws')) {
+
+            if (transport === 'websocket') {
                 connection = await this.createWebSocketConnection(server);
-            } else {
+            } else if (transport === 'libp2p') {
+                connection = await this.createLibp2pConnection(server);
+            } else if (transport === 'http' || transport === 'https') {
                 connection = await this.createHTTPConnection(server);
+            } else {
+                throw new Error(
+                    `Unsupported browser-connectable transport "${transport}". ` +
+                    `Supported: ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}.`
+                );
             }
 
             this.connections.set(name, connection);
@@ -1219,6 +1253,49 @@ class MCPControlApp {
         return connection;
     }
 
+    /**
+     * Connects to a browser-connectable libp2p MCP remote. Unlike a
+     * host-daemon command, this is a real transport the SwissKnife browser
+     * build can dial directly once a browser libp2p runtime/bridge is
+     * available (see `docs/browser-libp2p-evidence.md` and
+     * `src/services/mcp/libp2p-browser-runtime.ts`). If no browser libp2p
+     * capability is wired into this build/host, the connection attempt
+     * fails honestly instead of faking a successful connection.
+     */
+    async createLibp2pConnection(server) {
+        const libp2pBridge = this.desktop?.swissknife?.mcp?.libp2p || this.desktop?.swissknife?.p2p;
+        const hasDialCapability = typeof libp2pBridge?.dialMultiaddr === 'function' || typeof libp2pBridge?.connect === 'function';
+        if (!libp2pBridge || !hasDialCapability) {
+            throw new Error(
+                'libp2p transport requires a browser libp2p runtime/bridge capability that is not ' +
+                'available in this build. See docs/browser-libp2p-evidence.md.'
+            );
+        }
+
+        const dial = libp2pBridge.dialMultiaddr
+            ? (addr) => libp2pBridge.dialMultiaddr(addr)
+            : (addr) => libp2pBridge.connect(addr);
+
+        const peerConnection = await dial(server.url);
+
+        return {
+            type: 'libp2p',
+            url: server.url,
+            peerConnection,
+            async send(message) {
+                if (typeof peerConnection?.send === 'function') {
+                    return await peerConnection.send(message);
+                }
+                throw new Error('libp2p peer connection does not support send()');
+            },
+            close() {
+                if (typeof peerConnection?.close === 'function') {
+                    peerConnection.close();
+                }
+            },
+        };
+    }
+
     async queryServerCapabilities(name) {
         const connection = this.connections.get(name);
         const server = this.remoteServers.get(name) || this.servers.get(name);
@@ -1328,9 +1405,15 @@ class MCPControlApp {
         }
 
         try {
-            const connection = server.protocol === 'websocket' || server.url.startsWith('ws') ?
-                await this.createWebSocketConnection(server) :
-                await this.createHTTPConnection(server);
+            const transport = normalizeMcpDashboardTransport(server.protocol, server.url);
+            let connection;
+            if (transport === 'websocket') {
+                connection = await this.createWebSocketConnection(server);
+            } else if (transport === 'libp2p') {
+                connection = await this.createLibp2pConnection(server);
+            } else {
+                connection = await this.createHTTPConnection(server);
+            }
 
             this.showNotification('Connection test successful!', 'success');
             
@@ -1667,6 +1750,7 @@ class MCPControlApp {
         if (modal) {
             modal.classList.remove('hidden');
         }
+        this.updateAddServerCommandWarning();
     }
 
     hideAddServer() {
@@ -1676,6 +1760,32 @@ class MCPControlApp {
         }
         // Clear form
         document.getElementById('add-server-form').reset();
+    }
+
+    /**
+     * Live-updates the host-daemon-command warning shown under the command
+     * input in the "Add Host Daemon Command" modal. Never executes the
+     * command; only classifies the command text via
+     * `describeMcpDashboardHostDaemonCommand()` so a Python-referencing
+     * command (e.g. `python server.py`, `uvicorn main:app`) is always
+     * labeled as a host-managed record, never as something the browser runs.
+     */
+    updateAddServerCommandWarning() {
+        const input = document.getElementById('server-command');
+        const warning = document.getElementById('server-command-warning');
+        if (!input || !warning) return;
+
+        const command = input.value.trim();
+        if (!command) {
+            warning.classList.add('hidden');
+            warning.textContent = '';
+            return;
+        }
+
+        const entryDescriptor = describeMcpDashboardHostDaemonCommand(command, []);
+        warning.classList.remove('hidden');
+        warning.classList.toggle('python-command-disclaimer', entryDescriptor.isPythonCommand);
+        warning.textContent = `⚠️ ${entryDescriptor.disclaimer}`;
     }
 
     async addServer() {

@@ -9,10 +9,10 @@ import {
   DeonticQueryEngine,
   makeDeonticFormula,
   makeRuleSet,
-} from '../../src/services/logic/deontic/deontic-query-engine';
-import { DeonticLogicConverter } from '../../src/services/logic/deontic/deontic-logic-converter';
-import { DocumentConsistencyChecker } from '../../src/services/logic/deontic/document-consistency-checker';
-import { TemporalDeonticRAGStore, TheoremMetadata } from '../../src/services/logic/tdfol/temporal-deontic-rag-store';
+} from '../../src/services/deontic-query-engine';
+import { DeonticLogicConverter } from '../../src/services/deontic-logic-converter';
+import { DocumentConsistencyChecker } from '../../src/services/document-consistency-checker';
+import { TemporalDeonticRAGStore, TheoremMetadata } from '../../src/services/temporal-deontic-rag-store';
 
 describe('PORT-141 proposition/action field parity', () => {
   it('serializes proposition and action aliases in toDict()', () => {

@@ -11,8 +11,8 @@
  * Reference: ipfs_datasets_py/logic/deontic/analyzer.py + knowledge_base.py
  */
 
-import { DeonticTextAnalyzer } from '../../src/services/logic/deontic/deontic-text-analyzer.js';
-import type { DeonticStatement } from '../../src/services/logic/deontic/deontic-text-analyzer.js';
+import { DeonticTextAnalyzer } from '../../src/services/deontic/deontic-text-analyzer.js';
+import type { DeonticStatement } from '../../src/services/deontic/deontic-text-analyzer.js';
 import {
   DeonticKnowledgeBase,
   KnowledgeDeonticModality,
@@ -20,12 +20,12 @@ import {
   KnowledgeTemporalOperator,
   Pred, And, Or, Not, Implies,
   intervalContains,
-} from '../../src/services/logic/deontic/deontic-knowledge-base.js';
+} from '../../src/services/deontic/deontic-knowledge-base.js';
 import type {
   Party,
   DeonticAction,
   TimeInterval,
-} from '../../src/services/logic/deontic/deontic-knowledge-base.js';
+} from '../../src/services/deontic/deontic-knowledge-base.js';
 import { mcppCommand } from '../../src/commands/mcp-plus-plus-commands.js';
 
 // ---------------------------------------------------------------------------

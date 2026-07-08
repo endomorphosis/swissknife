@@ -17,8 +17,7 @@
  * mcp-transport.ts.
  */
 
-import { utf8Bytes } from '../shared/browser-crypto.js';
-import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
+import { EventEmitter } from 'events';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -268,7 +267,7 @@ class FixedWindowRateLimiter {
 // MCPp2pSession
 // ---------------------------------------------------------------------------
 
-export class MCPp2pSession extends BrowserEventEmitter {
+export class MCPp2pSession extends EventEmitter {
   private stream: P2PStream;
   private maxFrameBytes: number;
   private rateLimiter: FixedWindowRateLimiter;
@@ -279,7 +278,7 @@ export class MCPp2pSession extends BrowserEventEmitter {
   private nextId = 1;
   private _handshakeResult: MCPHandshakeResult | null = null;
   private _closed = false;
-  private _readBuf = new Uint8Array(0);
+  private _readBuf = Buffer.alloc(0);
   /** True once the inbound iterator has ended (half-close). */
   private _readEnded = false;
   /** Explicit session state (MCP++ Profile E §9.5). */
@@ -456,7 +455,7 @@ export class MCPp2pSession extends BrowserEventEmitter {
 
   private async writeFrame(msg: JsonRpcMessage): Promise<void> {
     const json = JSON.stringify(msg);
-    const body = utf8Bytes(json);
+    const body = Buffer.from(json, 'utf8');
     if (body.length > this.maxFrameBytes) {
       throw new SessionError(
         SessionErrorCode.FRAME_OUTBOUND_OVERSIZE,
@@ -464,9 +463,13 @@ export class MCPp2pSession extends BrowserEventEmitter {
         { frameLen: body.length, maxFrameBytes: this.maxFrameBytes },
       );
     }
-    const header = new Uint8Array(4);
-    writeUint32BE(header, body.length, 0);
-    await this.stream.write(concatBytes(header, body));
+    const header = Buffer.allocUnsafe(4);
+    header.writeUInt32BE(body.length, 0);
+    const frame = Buffer.concat([
+      header as unknown as Uint8Array,
+      body as unknown as Uint8Array,
+    ]);
+    await this.stream.write(frame as unknown as Uint8Array);
   }
 
   // -------------------------------------------------------------------------
@@ -476,10 +479,13 @@ export class MCPp2pSession extends BrowserEventEmitter {
   private async _readLoop(): Promise<void> {
     try {
       for await (const chunk of this.stream) {
-        this._readBuf = concatBytes(this._readBuf, chunk);
+        this._readBuf = Buffer.concat([
+          this._readBuf as unknown as Uint8Array,
+          Buffer.from(chunk) as unknown as Uint8Array,
+        ]);
         // Drain all complete frames from the buffer
         while (this._readBuf.length >= 4) {
-          const frameLen = readUint32BE(this._readBuf, 0);
+          const frameLen = this._readBuf.readUInt32BE(0);
           if (frameLen > this.maxFrameBytes) {
             // Frame size violation — abort stream per §9.1
             const err = new SessionError(
@@ -508,7 +514,7 @@ export class MCPp2pSession extends BrowserEventEmitter {
 
           let msg: JsonRpcMessage;
           try {
-            msg = JSON.parse(new TextDecoder().decode(body)) as JsonRpcMessage;
+            msg = JSON.parse(body.toString('utf8')) as JsonRpcMessage;
           } catch {
             this.emit('error', new SessionError(
               SessionErrorCode.FRAME_MALFORMED_JSON,
@@ -521,11 +527,11 @@ export class MCPp2pSession extends BrowserEventEmitter {
       }
     } finally {
       // The read side has ended (half-close).  Reject any remaining in-flight
-      // requests that will never receive a response.  Defer by one microtask so
+      // requests that will never receive a response.  We use setImmediate so
       // that any promises resolved by _dispatch() (e.g. the handshake response)
       // have a chance to run their continuations before we mark the session closed.
       this._readEnded = true;
-      defer(() => {
+      setImmediate(() => {
         if (!this._closed) {
           for (const { reject, timer } of this.inFlight.values()) {
             clearTimeout(timer);
@@ -561,40 +567,5 @@ export class MCPp2pSession extends BrowserEventEmitter {
 
   private assertOpen(): void {
     if (this._closed) throw new SessionError(SessionErrorCode.SESSION_CLOSED, 'Session is closed');
-  }
-}
-
-function concatBytes(...chunks: Uint8Array[]): Uint8Array {
-  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return out;
-}
-
-function writeUint32BE(bytes: Uint8Array, value: number, offset: number): void {
-  bytes[offset] = (value >>> 24) & 0xff;
-  bytes[offset + 1] = (value >>> 16) & 0xff;
-  bytes[offset + 2] = (value >>> 8) & 0xff;
-  bytes[offset + 3] = value & 0xff;
-}
-
-function readUint32BE(bytes: Uint8Array, offset: number): number {
-  return (
-    ((bytes[offset] ?? 0) * 0x1000000)
-    + (((bytes[offset + 1] ?? 0) << 16) >>> 0)
-    + (((bytes[offset + 2] ?? 0) << 8) >>> 0)
-    + (bytes[offset + 3] ?? 0)
-  ) >>> 0;
-}
-
-function defer(fn: () => void): void {
-  if (typeof queueMicrotask === 'function') {
-    queueMicrotask(fn);
-  } else {
-    setTimeout(fn, 0);
   }
 }

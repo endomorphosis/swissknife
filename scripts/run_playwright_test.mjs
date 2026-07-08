@@ -68,38 +68,47 @@ function runPlaywright(playwrightArgs) {
 }
 
 function playwrightEnv(playwrightArgs) {
-  if (!usesMetaGlassesConfig(playwrightArgs)) {
-    return {};
+  const env = {};
+
+  if (usesConfigMatching(playwrightArgs, 'playwright.meta-glasses.config.ts')) {
+    const port = process.env.SWISSKNIFE_META_GLASSES_E2E_PORT
+      || process.env.SWISSKNIFE_E2E_PORT
+      || String(stablePortForPath(projectRoot, 3100));
+
+    env.SWISSKNIFE_META_GLASSES_E2E_PORT = port;
+    env.SWISSKNIFE_E2E_PORT = process.env.SWISSKNIFE_E2E_PORT || port;
   }
 
-  const port = process.env.SWISSKNIFE_META_GLASSES_E2E_PORT
-    || process.env.SWISSKNIFE_E2E_PORT
-    || String(stablePortForPath(projectRoot));
+  if (usesConfigMatching(playwrightArgs, 'playwright.libp2p-browser.config.ts')) {
+    const port = process.env.SWISSKNIFE_LIBP2P_BROWSER_E2E_PORT
+      || process.env.SWISSKNIFE_E2E_PORT
+      || String(stablePortForPath(projectRoot, 5200));
 
-  return {
-    SWISSKNIFE_META_GLASSES_E2E_PORT: port,
-    SWISSKNIFE_E2E_PORT: process.env.SWISSKNIFE_E2E_PORT || port,
-  };
+    env.SWISSKNIFE_LIBP2P_BROWSER_E2E_PORT = port;
+    env.SWISSKNIFE_E2E_PORT = process.env.SWISSKNIFE_E2E_PORT || port;
+  }
+
+  return env;
 }
 
-function usesMetaGlassesConfig(playwrightArgs) {
+function usesConfigMatching(playwrightArgs, configFileName) {
   return playwrightArgs.some((arg, index) => {
-    if (arg.includes('playwright.meta-glasses.config.ts')) {
+    if (arg.includes(configFileName)) {
       return true;
     }
     if ((arg === '-c' || arg === '--config') && playwrightArgs[index + 1]) {
-      return playwrightArgs[index + 1].includes('playwright.meta-glasses.config.ts');
+      return playwrightArgs[index + 1].includes(configFileName);
     }
     return false;
   });
 }
 
-function stablePortForPath(seedPath) {
+function stablePortForPath(seedPath, base = 3100) {
   let hash = 0;
   for (const char of seedPath) {
     hash = (hash * 31 + char.charCodeAt(0)) % 2000;
   }
-  return browserSafePort(3100 + hash);
+  return browserSafePort(base + hash);
 }
 
 function browserSafePort(port) {

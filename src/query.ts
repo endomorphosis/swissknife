@@ -13,8 +13,8 @@ import { CanUseToolFn } from './hooks/useCanUseTool.js'
 import {
   formatSystemPromptWithContext,
   querySonnet,
-} from './services/platform/claude.js'
-import { logEvent } from './services/platform/statsig.js'
+} from './services/claude.js'
+import { logEvent } from './services/statsig.js'
 import { all } from './utils/generators.js'
 import { logError } from './utils/log.js'
 import {

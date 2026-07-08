@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { DIDKeystore } from '../../src/auth/did-keystore';
 import { InterfaceRepository } from '../../src/services/mcp/mcp-idl';
 import {
@@ -10,7 +9,7 @@ import {
   signMCPUIProfileDescriptor,
   verifyMCPUIProfileDescriptorTrust,
 } from '../../src/services/mcp/mcp-descriptor-trust';
-import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 function descriptor(): MCPUIProfileDescriptor {

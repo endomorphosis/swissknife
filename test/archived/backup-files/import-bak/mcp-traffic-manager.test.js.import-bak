@@ -2,7 +2,7 @@
  * Unit tests for the TrafficManager component
  */
 // Mock the registry
-jest.mock('../../../../src/services/mcp-registry', () => {
+jest.mock('../../../../src/services/mcp/mcp-registry', () => {
     const mockRegistry = {
         initialize: jest.fn().mockResolvedValue(undefined),
         getActiveServerVersions: jest.fn(),

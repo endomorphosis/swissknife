@@ -1,1 +1,63 @@
-config/typescript/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": [
+      "ES2022"
+    ],
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "jsx": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "@src/*": [
+        "src/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
+      ],
+      "@web/*": [
+        "web/src/*"
+      ],
+      "@ipfs/*": [
+        "ipfs_accelerate_js/src/*"
+      ]
+    },
+    "allowSyntheticDefaultImports": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noEmit": true,
+    "plugins": [
+      {
+        "transform": "ts-transform-define",
+        "type": "config",
+        "config": {
+          "MACRO": "src/constants/macros.ts"
+        }
+      }
+    ]
+  },
+  "files": [],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "web/dist",
+    "ipfs_accelerate_js/dist"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node",
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "NodeNext"
+    }
+  }
+}

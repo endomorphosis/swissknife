@@ -1,6 +1,10 @@
 // src/workers/pool.ts
-import { Worker } from 'worker_threads.js';
-import { EventEmitter } from 'events.js';
+//
+// Host-only Node worker_threads pool implementation. Private implementation
+// detail per `src/module-ownership.json`; browser code must never import
+// this module. Use `src/workers/host.ts` instead.
+import { Worker } from 'node:worker_threads';
+import { EventEmitter } from 'node:events';
 import { createWorker, WorkerResponseMessage, WorkerStatusMessage, WorkerTaskMessage } from './thread.js';
 import { ConfigurationManager } from '../config/manager.js';
 

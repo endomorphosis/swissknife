@@ -1,17 +1,4 @@
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-  writeFileSync: (path: string, data: string) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for conformance tests');
-}
-
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -19,7 +6,7 @@ import {
   ErgoAIWrapper,
   type ErgoAIConfig,
   type ErgoAIProcessRunner,
-} from '../../src/services/integrations/flogic-ergoai-wrapper';
+} from '../../src/services/flogic-ergoai-wrapper';
 
 interface ErgoCorpusVector {
   id: string;
@@ -47,16 +34,16 @@ interface ErgoCorpusFile {
 
 function loadErgoCorpus(): ErgoCorpusFile {
   const corpusPath = resolve(process.cwd(), '../implementation_plan/conformance/ergoai-vectors.json');
-  return JSON.parse(nodeFs.readFileSync(corpusPath, 'utf8')) as ErgoCorpusFile;
+  return JSON.parse(readFileSync(corpusPath, 'utf8')) as ErgoCorpusFile;
 }
 
 function makeFakeBinaryPath(): { path: string; cleanup: () => void } {
-  const dir = nodeFs.mkdtempSync(join(tmpdir(), 'ergoai-conformance-'));
+  const dir = mkdtempSync(join(tmpdir(), 'ergoai-conformance-'));
   const binaryPath = join(dir, 'ergo');
-  nodeFs.writeFileSync(binaryPath, '#!/bin/sh\nexit 0\n', 'utf8');
+  writeFileSync(binaryPath, '#!/bin/sh\nexit 0\n', 'utf8');
   return {
     path: binaryPath,
-    cleanup: () => nodeFs.rmSync(dir, { recursive: true, force: true }),
+    cleanup: () => rmSync(dir, { recursive: true, force: true }),
   };
 }
 

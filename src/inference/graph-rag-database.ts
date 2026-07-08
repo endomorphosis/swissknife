@@ -1,8 +1,8 @@
 /**
  * Implements a Graph-based Retrieval-Augmented Generation (GraphRAG) database system.
  * Based on the integration plan.
- * Entity extraction uses spaCy-WASM (via sedbytes/spacy-wasm + Pyodide) when available,
- * with a lightweight regex fallback for offline/test environments.
+ * Entity extraction uses the browser-safe spaCy-WASM integration when a Python
+ * sandbox is explicitly enabled, with regex extraction as the default runtime.
  */
 
 import { SpacyWasmNlp, regexFallbackExtract, SpacyPredicates } from '../services/integrations/spacy-wasm-nlp.js';

@@ -1,12 +1,6 @@
 // Global test setup for Vitest
 import { vi } from 'vitest'
 
-const jestCompat = vi as typeof vi & { setTimeout(timeout: number): void }
-jestCompat.setTimeout = (timeout: number) => {
-  vi.setConfig({ testTimeout: timeout })
-}
-;(globalThis as typeof globalThis & { jest?: typeof jestCompat }).jest = jestCompat
-
 // Mock environment variables
 vi.mock('process', () => ({
   env: {
@@ -18,40 +12,36 @@ vi.mock('process', () => ({
 }))
 
 // Mock common Node.js modules for browser testing
-vi.mock('fs', () => {
-  const mockFs = {
-    readFileSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    existsSync: vi.fn(() => true),
-    mkdirSync: vi.fn()
-  }
+vi.mock('fs', async () => {
+  const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
   return {
-    ...mockFs,
-    default: mockFs
+    default: actual,
+    readFileSync: vi.fn(),
+    existsSync: vi.fn(() => true),
+    writeFileSync: vi.fn(),
+    mkdirSync: vi.fn()
   }
 })
 
-  vi.doMock('path', async () => {
-    const actual = await vi.importActual('path-browserify')
-    return { ...(actual as Record<string, unknown>), default: actual }
-  })
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
+  return actual
+})
+
+vi.mock('path', async () => {
+  const actual = await vi.importActual('path-browserify')
+  return actual
+})
+
+vi.mock('node:path', async () => {
+  const actual = await vi.importActual<typeof import('node:path')>('node:path')
+  return actual
+})
 
 // Mock crypto for consistent testing
 vi.mock('crypto', async () => {
-  const actual = await vi.importActual<typeof import('node:crypto')>('node:crypto')
-  let randomUuidCounter = 0
-  const randomUUID = vi.fn(() => {
-    randomUuidCounter += 1
-    return `00000000-0000-4000-8000-${String(randomUuidCounter).padStart(12, '0')}`
-  })
-  return {
-    ...(actual as Record<string, unknown>),
-    default: {
-      ...((actual as { default?: Record<string, unknown> }).default ?? actual),
-      randomUUID
-    },
-    randomUUID
-  }
+  const actual = await vi.importActual('crypto-browserify')
+  return actual
 })
 
 // Setup global objects that might be needed. Guarded so this shared setup file
@@ -94,7 +84,7 @@ console.debug = vi.fn()
 console.warn = vi.fn()
 
 // Increase timeout for AI-related tests
-vi.setConfig({
+vi.setConfig({ 
   testTimeout: 30000,
-  hookTimeout: 10000
+  hookTimeout: 10000 
 })

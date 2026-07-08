@@ -10,14 +10,14 @@ import {
   parseSzsStatus,
   parseTptpFormulas,
   parseTptpProblem,
-} from '../../src/services/provers/tptp-problem';
+} from '../../src/services/tptp-problem';
 import {
   convertFolToProlog,
   convertFolToTptp,
   convertFolToTptpCnf,
   exportFolFormula,
   toPrefixNotation,
-} from '../../src/services/logic/fol/fol-exporters';
+} from '../../src/services/fol/fol-exporters';
 
 // ---------------------------------------------------------------------------
 // PORT-172 — TPTP emit/parse

@@ -7,14 +7,14 @@
 import {
   ModalFormula, LogicClassification,
   AdvancedLogicConverter, convertToModal, detectLogicType,
-} from '../../src/services/logic/modal/modal-logic-extension.js';
+} from '../../src/services/modal-logic-extension.js';
 import {
   DocumentAnalysis, DebugReport, DocumentConsistencyChecker,
-} from '../../src/services/logic/deontic/document-consistency-checker.js';
+} from '../../src/services/document-consistency-checker.js';
 import {
   TheoremMetadata, ConsistencyResult, TemporalDeonticRAGStore,
-} from '../../src/services/logic/tdfol/temporal-deontic-rag-store.js';
-import { DeonticOp, makeDeonticFormula } from '../../src/services/logic/deontic/deontic-query-engine.js';
+} from '../../src/services/temporal-deontic-rag-store.js';
+import { DeonticOp, makeDeonticFormula } from '../../src/services/deontic-query-engine.js';
 
 const LEGAL_TEXT =
   'The contractor shall deliver the goods within 30 days. ' +

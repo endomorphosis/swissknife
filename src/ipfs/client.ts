@@ -93,8 +93,9 @@ export class IPFSKitClient {
     const configManager = ConfigurationManager.getInstance();
     
     // Set up API URL - allow override or use config
-    this.apiUrl = config.apiUrl || 
-      configManager.get<string>('ipfs.apiUrl', 'http://localhost:5001/api/v0');
+    this.apiUrl = config.apiUrl ??
+      configManager.get<string>('ipfs.apiUrl', 'http://localhost:5001/api/v0') ??
+      'http://localhost:5001/api/v0';
     
     // Remove trailing slashes
     this.apiUrl = this.apiUrl.replace(/\/+$/, '');
@@ -111,16 +112,21 @@ export class IPFSKitClient {
     };
     
     // Add API key if provided
-    const apiKey = config.apiKey || configManager.get<string>('ipfs.apiKey');
+    const apiKey = config.apiKey ?? configManager.get<string>('ipfs.apiKey');
     if (apiKey) {
       this.headers['Authorization'] = `Bearer ${apiKey}`;
     }
     
     // Set timeout
-    this.timeout = config.timeout || 
-      configManager.get<number>('ipfs.requestTimeoutMs', 30000);
+    this.timeout = config.timeout ??
+      configManager.get<number>('ipfs.requestTimeoutMs', 30000) ??
+      30000;
     
     logger.debug(`IPFS client initialized with API URL: ${this.apiUrl}`);
+  }
+
+  private createTimeoutSignal(): AbortSignal {
+    return AbortSignal.timeout(this.timeout);
   }
   
   /**
@@ -176,7 +182,7 @@ export class IPFSKitClient {
           ...formData.getHeaders()
         },
         body: formData,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       if (!response.ok) {
@@ -214,7 +220,7 @@ export class IPFSKitClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       if (!response.ok) {
@@ -242,7 +248,7 @@ export class IPFSKitClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       if (!response.ok) {
@@ -276,7 +282,7 @@ export class IPFSKitClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       if (!response.ok) {
@@ -312,7 +318,7 @@ export class IPFSKitClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       if (!response.ok) {
@@ -346,7 +352,7 @@ export class IPFSKitClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       if (!response.ok) {
@@ -388,7 +394,7 @@ export class IPFSKitClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       if (!response.ok) {
@@ -424,7 +430,7 @@ export class IPFSKitClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       if (!response.ok) {
@@ -451,7 +457,7 @@ export class IPFSKitClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       return response.ok;
@@ -473,7 +479,7 @@ export class IPFSKitClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        timeout: this.timeout
+        signal: this.createTimeoutSignal()
       });
       
       if (!response.ok) {

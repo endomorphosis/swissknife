@@ -1,4 +1,4 @@
-import { queryHaiku } from '../../services/platform/claude.js'
+import { queryHaiku } from '../../services/claude.js'
 import { extractTag } from '../../utils/messages.js'
 import { MAX_OUTPUT_LENGTH } from './prompt.js'
 

@@ -3,7 +3,7 @@
  */
 
 // Mock dependencies
-jest.mock('../../../src/services/platform/claude.js', () => ({
+jest.mock('../../../src/services/claude.js', () => ({
   queryHaiku: jest.fn(),
 }));
 

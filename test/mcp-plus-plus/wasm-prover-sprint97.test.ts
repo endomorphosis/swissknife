@@ -11,7 +11,7 @@ import {
   type LurkWasmModule,
   type ZKProofArtifact,
 } from '../../src/services/provers/lurk-wasm-bridge';
-import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
+import type { Policy } from '../../src/services/mcp/mcp-policy';
 
 function obligationPolicy(): Policy {
   return {

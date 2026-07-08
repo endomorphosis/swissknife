@@ -3,11 +3,6 @@
  * Scientific calculator with history, programmer mode, and unit conversions
  */
 
-import {
-  describeSystemNetworkLocalCapabilities,
-  runSystemNetworkLocalWorkflow
-} from './system-network-local-capabilities.js';
-
 export class CalculatorApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -21,11 +16,6 @@ export class CalculatorApp {
     this.angleUnit = 'deg'; // 'deg', 'rad', 'grad'
     this.programmingBase = 'dec'; // 'dec', 'hex', 'oct', 'bin'
     this.conversionCategory = 'length'; // 'length', 'weight', 'temperature', etc.
-    this.systemNetworkLocalCapabilities = describeSystemNetworkLocalCapabilities('calculator', {
-      localCapabilities: ['arithmetic_engine', 'scientific_functions', 'unit_conversions', 'calculation_history'],
-      remoteCapabilities: []
-    });
-    this.lastSystemNetworkLocalWorkflow = null;
     
     this.constants = {
       pi: Math.PI,
@@ -1741,29 +1731,5 @@ export class CalculatorApp {
     }, 0);
 
     return content;
-  }
-
-  getSystemNetworkLocalCapabilities() {
-    return this.systemNetworkLocalCapabilities;
-  }
-
-  async exerciseSystemNetworkLocalGateway(input = {}) {
-    this.lastSystemNetworkLocalWorkflow = await runSystemNetworkLocalWorkflow({
-      desktop: this.desktop,
-      appId: 'calculator',
-      localCapabilities: ['arithmetic_engine', 'scientific_functions', 'unit_conversions', 'calculation_history'],
-      remoteCapabilities: [],
-      localState: {
-        mode: this.mode,
-        display: this.currentDisplay,
-        history_count: this.history.length,
-        memory: this.memory,
-        angle_unit: this.angleUnit,
-        programming_base: this.programmingBase,
-        conversion_category: this.conversionCategory
-      },
-      summary: input.summary || 'Validate Calculator as a local-only utility with no remote service dependency.'
-    });
-    return this.lastSystemNetworkLocalWorkflow;
   }
 }

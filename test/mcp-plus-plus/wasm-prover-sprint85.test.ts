@@ -11,7 +11,7 @@ import {
   getSecurityAuditLog,
   rateLimit,
   resetSecurityAuditLog,
-} from '../../src/services/platform/security-core';
+} from '../../src/services/security-core';
 import {
   convertFormula,
   convertFormulaBatch,
@@ -19,19 +19,19 @@ import {
   detectFormulaFormat,
   formatFormula,
   normalizeSyntax,
-} from '../../src/services/logic/shared/logic-converters';
+} from '../../src/services/logic-converters';
 import {
   CommonTypes,
   DeonticTypes,
   FOLTypes,
   TranslationTypes,
-} from '../../src/services/logic/shared/logic-type-modules';
+} from '../../src/services/logic-type-modules';
 import {
   BoundedCache,
   ProofCache,
   getUnifiedCacheStats,
-} from '../../src/services/proof-engine/proof-cache-base';
-import { FLogicProofCache } from '../../src/services/integrations/flogic-proof-cache';
+} from '../../src/services/proof-cache-base';
+import { FLogicProofCache } from '../../src/services/flogic-proof-cache';
 import { IPFSProofCache } from '../../src/services/ipfs/ipfs-proof-cache';
 
 // ---------------------------------------------------------------------------

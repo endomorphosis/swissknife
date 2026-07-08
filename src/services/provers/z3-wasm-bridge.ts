@@ -17,8 +17,8 @@
  */
 
 import type { WasmProofResult } from './prover-types.js';
-import type { Policy } from '../logic/deontic/mcp-policy.js';
-import type { PolicyFormulaSet } from '../logic/deontic/policy-formulas.js';
+import type { Policy } from '../mcp-policy.js';
+import type { PolicyFormulaSet } from '../mcp-remote-deontic-engine.js';
 
 // ---------------------------------------------------------------------------
 // Z3WasmBridge

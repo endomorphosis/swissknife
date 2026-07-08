@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * Phase 4 — Execution Envelopes & Receipts tests
  */

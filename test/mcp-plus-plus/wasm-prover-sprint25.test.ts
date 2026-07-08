@@ -4,14 +4,14 @@
  * Sprint 25: Kripke Structure + Countermodel Visualizer + TDFOL Prover + Performance Dashboard
  */
 
-import { KripkeStructure, CountermodelVisualizer, createVisualizer } from '../../src/services/logic/modal/kripke-structure.js';
-import { ModalLogicType } from '../../src/services/logic/modal/modal-tableaux.js';
-import { TDFOLProver, ProofStatus, defaultTdfolRules } from '../../src/services/logic/tdfol/tdfol-prover.js';
+import { KripkeStructure, CountermodelVisualizer, createVisualizer } from '../../src/services/kripke-structure.js';
+import { ModalLogicType } from '../../src/services/modal-tableaux.js';
+import { TDFOLProver, ProofStatus, defaultTdfolRules } from '../../src/services/tdfol-prover.js';
 import {
   PerformanceDashboard, MetricType, makeProofMetrics,
   getGlobalDashboard, resetGlobalDashboard,
-} from '../../src/services/logic/tdfol/performance-dashboard.js';
-import { TDFOLKnowledgeBase, mkPredicate, mkDeontic, mkTemporal, mkBinary, mkUnary } from '../../src/services/logic/tdfol/tdfol-core.js';
+} from '../../src/services/performance-dashboard.js';
+import { TDFOLKnowledgeBase, mkPredicate, mkDeontic, mkTemporal, mkBinary, mkUnary } from '../../src/services/tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // KripkeStructure

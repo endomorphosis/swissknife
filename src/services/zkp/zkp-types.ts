@@ -5,7 +5,7 @@
  *   `ZKPCapabilityEvidence` (the UCAN caveat payload)
  *   `ZkpBridgeResult` (the full bridge operation result)
  *
- * T-68.
+ * Sprint 11, T-68.
  * Reference: ipfs_datasets_py/logic/zkp/ucan_zkp_bridge.py §ZKPCapabilityEvidence
  */
 

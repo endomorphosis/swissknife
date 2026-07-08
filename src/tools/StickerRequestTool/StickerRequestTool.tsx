@@ -7,7 +7,7 @@ import {
   StickerRequestForm,
   FormData,
 } from '../../components/StickerRequestForm.js.js.js.js.js.js.js.js.js.js.js'
-import { checkGate, logEvent } from '../../services/platform/statsig.js'
+import { checkGate, logEvent } from '../../services/statsig.js.js.js.js.js.js.js.js.js.js'
 import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js'
 
 const stickerRequestSchema = z.object({

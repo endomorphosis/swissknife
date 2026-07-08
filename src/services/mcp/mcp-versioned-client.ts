@@ -12,7 +12,7 @@ import {
   addMcpServer as addOriginalMcpServer,
   removeMcpServer as removeOriginalMcpServer,
   McpServerConfig
-} from './mcpClient.js';
+} from '../mcpClient.js';
 import { 
   ServerRegistry 
 } from './mcp-registry.js';

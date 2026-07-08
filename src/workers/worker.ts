@@ -1,14 +1,18 @@
 /**
  * Worker Thread - Worker thread implementation for distributed task execution
+ *
+ * Host-only Node worker_threads entry script. Private implementation detail
+ * per `src/module-ownership.json`; browser code must never import this
+ * module. Use `src/workers/host.ts` instead.
  */
 
-import { isMainThread, parentPort, workerData } from 'worker_threads';
+import { isMainThread, parentPort, workerData } from 'node:worker_threads';
 import {
   WorkerInitMessage,
   WorkerTaskMessage,
   WorkerResponseMessage,
   WorkerStatusMessage
-} from './pool';
+} from './thread.js';
 
 // Worker thread implementation - only run this code when in a worker thread
 if (!isMainThread) {

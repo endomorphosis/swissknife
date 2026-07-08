@@ -1,17 +1,4 @@
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-  writeFileSync: (path: string, data: string) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for conformance tests');
-}
-
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -25,7 +12,7 @@ import {
   numericSignedMapping,
   sourceCopyRewardHackPenalty,
   sourceGroundedGuidanceSurfaceOverlayTerms,
-} from '../../src/services/logic/modal/modal-logic-codec';
+} from '../../src/services/modal-logic-codec';
 
 interface Vector {
   id: string;
@@ -65,11 +52,11 @@ interface ResultFile {
 
 function loadCorpus(): Corpus {
   const path = resolve(process.cwd(), '../implementation_plan/conformance/modal-codec-guidance-summary-vectors.json');
-  return JSON.parse(nodeFs.readFileSync(path, 'utf8')) as Corpus;
+  return JSON.parse(readFileSync(path, 'utf8')) as Corpus;
 }
 
 function runPythonReference(corpusPath: string): ResultFile {
-  const tempDir = nodeFs.mkdtempSync(join(tmpdir(), 'modal-codec-guidance-summary-py-'));
+  const tempDir = mkdtempSync(join(tmpdir(), 'modal-codec-guidance-summary-py-'));
   const outPath = join(tempDir, 'py-results.json');
   try {
     const scriptPath = resolve(process.cwd(), '../implementation_plan/conformance/modal_codec_guidance_summary_py_runner.py');
@@ -83,9 +70,9 @@ function runPythonReference(corpusPath: string): ResultFile {
     if (proc.status !== 0) {
       throw new Error(`Python modal codec guidance summary runner failed: ${proc.stderr || proc.stdout}`);
     }
-    return JSON.parse(nodeFs.readFileSync(outPath, 'utf8')) as ResultFile;
+    return JSON.parse(readFileSync(outPath, 'utf8')) as ResultFile;
   } finally {
-    nodeFs.rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

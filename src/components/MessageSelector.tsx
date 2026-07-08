@@ -12,7 +12,7 @@ import {
   isNotEmptyMessage,
   normalizeMessages,
 } from '../utils/messages.js.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/platform/statsig.js'
+import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
 import type { AssistantMessage, UserMessage } from '../query.js.js.js.js.js.js.js.js.js.js'
 import { useExitOnCtrlCD } from '../hooks/useExitOnCtrlCD.js.js.js.js.js.js.js.js.js.js'
 

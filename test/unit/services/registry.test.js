@@ -1,7 +1,7 @@
 /**
  * Unit tests for ServiceRegistry
  */
-import { ServiceRegistry } from '../../../src/services/platform/registry.ts';
+import { ServiceRegistry } from '../../../src/services/registry.ts';
 
 describe('ServiceRegistry', () => {
     let registry;

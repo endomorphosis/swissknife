@@ -1,5 +1,5 @@
-import { runGeneratedAppQualityGate } from '../../src/services/mcp/mcp-generated-app-quality-gates';
-import { IPFS_MCP_UI_PROFILE_DESCRIPTORS } from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import { runGeneratedAppQualityGate } from '../../src/services/apps/mcp-generated-app-quality-gates';
+import { IPFS_MCP_UI_PROFILE_DESCRIPTORS } from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
 import {
   createGeneratedAppState,
   renderGeneratedApp,

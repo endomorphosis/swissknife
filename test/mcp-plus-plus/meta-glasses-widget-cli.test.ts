@@ -19,26 +19,14 @@ import {
 } from '../../src/services/glasses/meta-glasses-widget-compiler';
 
 const FIXED_NOW = new Date('2026-05-22T12:45:00.000Z');
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  existsSync: (path: string) => boolean;
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-  writeFileSync: (path: string, data: string, encoding: BufferEncoding) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for meta-glasses widget CLI tests');
-}
+const realFs = jest.requireActual('fs') as typeof import('fs');
 
 function tempDir(): string {
-  return nodeFs.mkdtempSync(join(tmpdir(), 'mgw-widget-cli-'));
+  return realFs.mkdtempSync(join(tmpdir(), 'mgw-widget-cli-'));
 }
 
 function readJson<T>(filePath: string): T {
-  return JSON.parse(nodeFs.readFileSync(filePath, 'utf8')) as T;
+  return JSON.parse(realFs.readFileSync(filePath, 'utf8')) as T;
 }
 
 describe('Meta glasses widget authoring CLI', () => {
@@ -49,7 +37,7 @@ describe('Meta glasses widget authoring CLI', () => {
   });
 
   afterEach(() => {
-    nodeFs.rmSync(cwd, { recursive: true, force: true });
+    realFs.rmSync(cwd, { recursive: true, force: true });
   });
 
   it('ships a compiling gallery for task progress, confirmation, summary, timer, media, checklist, and metric widgets', () => {
@@ -97,8 +85,8 @@ describe('Meta glasses widget authoring CLI', () => {
     const statePath = join(cwd, 'approval.widget.state.json');
 
     expect(init.ok).toBe(true);
-    expect(nodeFs.existsSync(descriptorPath)).toBe(true);
-    expect(nodeFs.existsSync(statePath)).toBe(true);
+    expect(realFs.existsSync(descriptorPath)).toBe(true);
+    expect(realFs.existsSync(statePath)).toBe(true);
 
     const lint = await runMetaGlassesWidgetCommand([
       'widget',
@@ -136,7 +124,7 @@ describe('Meta glasses widget authoring CLI', () => {
       '--output',
       'approval.preview.html',
     ], { cwd });
-    const previewHtml = nodeFs.readFileSync(join(cwd, 'approval.preview.html'), 'utf8');
+    const previewHtml = realFs.readFileSync(join(cwd, 'approval.preview.html'), 'utf8');
 
     expect(preview.ok).toBe(true);
     expect(previewHtml).toContain('data-meta-glasses-widget-preview="true"');
@@ -204,8 +192,8 @@ describe('Meta glasses widget authoring CLI', () => {
     const descriptor = createMetaGlassesWidgetDescriptor('summary');
     delete descriptor[META_GLASSES_DISPLAY_PROFILE_PROPERTY].fallback;
     const descriptorPath = join(cwd, 'invalid.widget.json');
-    nodeFs.writeFileSync(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`, 'utf8');
-    expect(nodeFs.existsSync(descriptorPath)).toBe(true);
+    realFs.writeFileSync(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`, 'utf8');
+    expect(realFs.existsSync(descriptorPath)).toBe(true);
 
     const lint = await runMetaGlassesWidgetCommand([
       'widget',

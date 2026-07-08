@@ -1,13 +1,6 @@
 // SwissKnife Core Engine - Browser Adapter
 // This file adapts the existing TypeScript SwissKnife core for web usage
 
-// Import core SwissKnife modules (adapted for browser)
-import { AIService } from '../../../src/ai/service.js';
-import { TaskManager } from '../../../src/tasks/manager.js';
-import { StorageService } from '../../../src/storage/service.js';
-import { GraphOfThought } from '../../../src/tasks/graph-of-thought.js';
-import { FibonacciHeapScheduler } from '../../../src/tasks/fibonacci-heap-scheduler.js';
-
 // Browser-specific implementations
 class BrowserStorageEngine {
     constructor() {
@@ -71,6 +64,76 @@ class BrowserStorageEngine {
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
+    }
+}
+
+class BrowserTaskManager {
+    constructor({ storage }) {
+        this.storage = storage;
+        this.tasks = new Map();
+    }
+
+    async loadTasks() {
+        if (this.tasks.size > 0) return;
+
+        try {
+            const stored = await this.storage.list('tasks');
+            for (const item of stored) {
+                const task = item?.id ? item : item?.value;
+                if (task?.id) {
+                    this.tasks.set(task.id, task);
+                }
+            }
+        } catch (error) {
+            console.warn('Unable to load browser tasks:', error);
+        }
+    }
+
+    async addTask(task) {
+        this.tasks.set(task.id, task);
+        await this.storage.store('tasks', task.id, task);
+        return task;
+    }
+
+    async getTask(taskId) {
+        await this.loadTasks();
+        return this.tasks.get(taskId) || null;
+    }
+
+    async updateTask(task) {
+        this.tasks.set(task.id, task);
+        await this.storage.store('tasks', task.id, task);
+        return task;
+    }
+}
+
+class BrowserScheduler {
+    constructor() {
+        this.queue = [];
+    }
+
+    add(task) {
+        this.queue.push(task);
+        this.queue.sort((a, b) => String(a.priority || '').localeCompare(String(b.priority || '')));
+    }
+
+    list() {
+        return [...this.queue];
+    }
+}
+
+class BrowserGraphOfThought {
+    constructor({ taskManager, aiEngine }) {
+        this.taskManager = taskManager;
+        this.aiEngine = aiEngine;
+    }
+
+    async decompose(goal) {
+        return [{
+            id: `thought-${Date.now()}`,
+            goal,
+            status: 'planned'
+        }];
     }
 }
 
@@ -273,14 +336,16 @@ export class SwissKnifeWebEngine {
             // Initialize AI engine
             await this.ai.initHardwareAcceleration();
             
-            // Initialize task management
-            this.scheduler = new FibonacciHeapScheduler();
-            this.taskManager = new TaskManager({
+            // Initialize browser-local task management. Host task managers and
+            // worker-thread implementations are exposed only through host
+            // entrypoints.
+            this.scheduler = new BrowserScheduler();
+            this.taskManager = new BrowserTaskManager({
                 scheduler: this.scheduler,
                 storage: this.storage
             });
             
-            this.graphOfThought = new GraphOfThought({
+            this.graphOfThought = new BrowserGraphOfThought({
                 taskManager: this.taskManager,
                 aiEngine: this.ai
             });

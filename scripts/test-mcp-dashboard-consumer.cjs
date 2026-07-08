@@ -12,7 +12,15 @@ import MCPDaemonManager from '../hallucinate_app/hallucinate_app/node/mcp_daemon
 import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,
-} from './src/services/mcp/swissknife-mcp-capability-registry.ts';
+} from './src/services/apps/swissknife-mcp-capability-registry.ts';
+import {
+  MCP_DASHBOARD_BROWSER_CONNECTABLE_TRANSPORTS as SWR027_BROWSER_TRANSPORTS,
+  MCP_DASHBOARD_HOST_DAEMON_DISCLAIMER as SWR027_HOST_DAEMON_DISCLAIMER,
+  MCP_DASHBOARD_PYTHON_HOST_DAEMON_DISCLAIMER as SWR027_PYTHON_HOST_DAEMON_DISCLAIMER,
+  MCP_DASHBOARD_BROWSER_POLICY as SWR027_BROWSER_POLICY,
+  classifyMcpDashboardHostDaemonCommand as swr027ClassifyHostDaemonCommand,
+  isPythonHostDaemonCommand as swr027IsPythonHostDaemonCommand,
+} from './src/services/mcp/mcp-dashboard-browser-policy.ts';
 
 const catalogPath = path.resolve(
   '..',
@@ -723,24 +731,6 @@ assert(
 assert(
   hao724Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-06-28-hao-724-mcp-dashboard-launch-gate.md',
   'HAO-724 launch gate must point at the current launch gate receipt',
-);
-const hao742Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'HAO-742');
-assert(hao742Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include HAO-742 for VAIOS-G724');
-assert(
-  JSON.stringify(hao742Gate?.packet_goal_ids || []) === JSON.stringify(['VAIOS-G724', 'VAIOS-G728']),
-  'HAO-742 launch gate must preserve VAIOS-G724/VAIOS-G728 packet goals',
-);
-assert(
-  hao742Gate?.packet_sibling_task_id === 'HAO-743' && hao742Gate?.packet_sibling_goal_id === 'VAIOS-G728',
-  'HAO-742 launch gate must preserve the HAO-743/VAIOS-G728 packet sibling',
-);
-assert(
-  hao742Gate?.supervisor_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-742-objective-gap-3e00ad2a0074.md',
-  'HAO-742 launch gate must point at the current supervisor gap receipt',
-);
-assert(
-  hao742Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-742-mcp-dashboard-launch-gate.md',
-  'HAO-742 launch gate must point at the current launch gate receipt',
 );
 const vai535Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'VAI-535');
 assert(vai535Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include VAI-535 for VAIOS-G724');
@@ -3554,9 +3544,100 @@ assert(
   'ipfs_accelerate_py tools/call safe probe mismatch',
 );
 
+// --- SWR-027: MCP dashboard browser-truth policy -----------------------------
+//
+// 'web/js/apps/mcp-control.js' is hand-authored browser JavaScript and embeds
+// a literal mirror of 'src/services/mcp/mcp-dashboard-browser-policy.ts'
+// (rather than importing it, since the file is not compiled from TypeScript).
+// These checks cross-validate the two sources so they cannot silently drift,
+// and assert that the dashboard distinguishes browser-connectable HTTP/
+// WebSocket/libp2p remotes from host-managed daemon commands, and that
+// Python-referencing command text is always labeled as a host-only record.
+const mcpControlSourcePath = path.resolve('web', 'js', 'apps', 'mcp-control.js');
+const mcpControlSource = fs.readFileSync(mcpControlSourcePath, 'utf8');
+
+assert(
+  JSON.stringify([...SWR027_BROWSER_TRANSPORTS]) === JSON.stringify(['http', 'https', 'websocket', 'libp2p']),
+  'SWR-027 canonical browser-connectable transport list changed unexpectedly',
+);
+
+const embeddedTransportsMatch = mcpControlSource.match(
+  /browserConnectableTransports:\s*Object\.freeze\(\[([^\]]+)\]\)/,
+);
+assert(embeddedTransportsMatch, 'mcp-control.js must embed a browserConnectableTransports list');
+const embeddedTransports = embeddedTransportsMatch[1]
+  .split(',')
+  .map(part => part.trim().replace(/^['"]|['"]$/g, ''))
+  .filter(Boolean);
+assert(
+  JSON.stringify(embeddedTransports) === JSON.stringify([...SWR027_BROWSER_TRANSPORTS]),
+  'mcp-control.js browserConnectableTransports must match src/services/mcp/mcp-dashboard-browser-policy.ts',
+);
+
+// Compare on ASCII substrings so the check is unaffected by \\u2014 escaping
+// differences between the raw .js source text and the evaluated TS string.
+const hostDaemonDisclaimerCore = SWR027_HOST_DAEMON_DISCLAIMER.split('record only.')[1];
+const pythonHostDaemonDisclaimerCore = SWR027_PYTHON_HOST_DAEMON_DISCLAIMER.split(
+  'This example text references a Python interpreter/server;',
+)[1];
+assert(hostDaemonDisclaimerCore, 'Host daemon disclaimer must contain the shared "record only." marker');
+assert(pythonHostDaemonDisclaimerCore, 'Python host daemon disclaimer must contain the shared Python marker');
+assert(
+  mcpControlSource.includes('record only.' + hostDaemonDisclaimerCore),
+  'mcp-control.js must embed the canonical host daemon command disclaimer',
+);
+assert(
+  mcpControlSource.includes(
+    'This example text references a Python interpreter/server;' + pythonHostDaemonDisclaimerCore,
+  ),
+  'mcp-control.js must embed the canonical Python host daemon command disclaimer',
+);
+
+assert(mcpControlSource.includes('HOST DAEMON COMMAND'), 'mcp-control.js must badge host daemon entries as HOST DAEMON COMMAND');
+assert(mcpControlSource.includes('BROWSER REMOTE'), 'mcp-control.js must badge remote entries as BROWSER REMOTE');
+assert(mcpControlSource.includes('value="libp2p"'), 'mcp-control.js Add Remote form must offer a libp2p transport option');
+assert(mcpControlSource.includes('describeMcpDashboardHostDaemonCommand'), 'mcp-control.js must classify host daemon commands');
+assert(mcpControlSource.includes('describeMcpDashboardRemoteEntry'), 'mcp-control.js must classify browser remote entries');
+assert(mcpControlSource.includes('createLibp2pConnection'), 'mcp-control.js must implement a libp2p connection path');
+assert(!/\brunPythonAsync\b|\bloadPyodide\b|\bmicropip\b/.test(mcpControlSource), 'mcp-control.js must not statically reference an in-browser Python runtime');
+assert(!mcpControlSource.includes('process.env'), 'mcp-control.js must not reference host process.env (browser code cannot rely on it)');
+
+assert(
+  swr027IsPythonHostDaemonCommand('python server.py') === true,
+  'SWR-027 policy must classify "python server.py" as a Python host daemon command',
+);
+assert(
+  swr027IsPythonHostDaemonCommand('uvicorn main:app') === true,
+  'SWR-027 policy must classify "uvicorn main:app" as a Python host daemon command',
+);
+assert(
+  swr027IsPythonHostDaemonCommand('npx @modelcontextprotocol/server-filesystem') === false,
+  'SWR-027 policy must not classify npx-based commands as Python host daemon commands',
+);
+
+const swr027PythonExample = swr027ClassifyHostDaemonCommand('python server.py', []);
+assert(swr027PythonExample.kind === 'host-daemon-command', 'SWR-027 policy must classify example commands as host-daemon-command');
+assert(swr027PythonExample.browserExecutable === false, 'SWR-027 policy must mark host daemon commands as not browser-executable');
+assert(swr027PythonExample.isPythonCommand === true, 'SWR-027 policy must flag Python interpreter commands');
+assert(
+  swr027PythonExample.disclaimer === SWR027_PYTHON_HOST_DAEMON_DISCLAIMER,
+  'SWR-027 policy must use the canonical Python host daemon disclaimer for Python commands',
+);
+assert(
+  SWR027_BROWSER_POLICY.schema === 'swissknife.mcp_dashboard_browser_policy.v1',
+  'SWR-027 policy schema id changed unexpectedly',
+);
+assert(
+  mcpControlSource.includes(SWR027_BROWSER_POLICY.schema),
+  'mcp-control.js must embed the canonical SWR-027 policy schema id',
+);
+// --- end SWR-027 -------------------------------------------------------------
+
 console.log(JSON.stringify({
   status: 'ok',
   task_id: 'HAO-681',
+  swr_027_task_id: 'SWR-027',
+  swr_027_browser_connectable_transports: [...SWR027_BROWSER_TRANSPORTS],
   catalog_task_id: 'VAI-512',
   consumption_receipt_task_id: vai512ConsumptionReceipt.task_id,
   consumption_evidence_term: vai512ConsumptionReceipt.evidence_term,

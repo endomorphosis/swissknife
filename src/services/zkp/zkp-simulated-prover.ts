@@ -9,16 +9,17 @@
  * cryptographically secure — proofs reveal no information other than
  * structural consistency of the hash chain.
  *
- * In a production system this would be replaced by real Groth16/Sphinx/Lurk
- * proofs.  The `is_simulation: true` flag on all outputs marks this clearly.
+ * This module is test-only. Production browser proof selection must use a real
+ * backend such as `snarkjs-browser-groth16` and must reject this verifier ID.
  *
- * T-69.
+ * Sprint 11, T-69.
  * Reference: ipfs_datasets_py/logic/zkp/zkp_prover.py §ZKPProver (simulation path)
  */
 
-import { base64UrlEncode, sha256Hex } from '../shared/browser-crypto.js';
+import { base64UrlEncode, sha256Hex } from '../provers/browser-crypto.js';
 
 export const ZKP_SIMULATED_VERIFIER_ID = 'simulated-zkp-v0.1' as const;
+export const ZKP_SIMULATED_PROVER_SCOPE = 'test-only' as const;
 
 export interface ZkpSimulatedProof {
   readonly statement: string;
@@ -28,6 +29,7 @@ export interface ZkpSimulatedProof {
   readonly axiom_hashes: string[];
   readonly proof_time_ms: number;
   readonly verifier_id: typeof ZKP_SIMULATED_VERIFIER_ID;
+  readonly scope: typeof ZKP_SIMULATED_PROVER_SCOPE;
 }
 
 // Maximum proof bytes (mirrors Python <500B target)
@@ -94,6 +96,7 @@ export class ZkpSimulatedProver {
       axiom_hashes,
       proof_time_ms: Date.now() - start,
       verifier_id: ZKP_SIMULATED_VERIFIER_ID,
+      scope: ZKP_SIMULATED_PROVER_SCOPE,
     };
   }
 
@@ -107,6 +110,9 @@ export class ZkpSimulatedProver {
   verify(proof: ZkpSimulatedProof): boolean {
     const expectedHash = sha256Hex(proof.proof_b64);
     const expectedCid = computeStatementCid(proof.statement);
-    return proof.proof_hash === expectedHash && proof.statement_cid === expectedCid;
+    return proof.proof_hash === expectedHash
+      && proof.statement_cid === expectedCid
+      && proof.verifier_id === ZKP_SIMULATED_VERIFIER_ID
+      && proof.scope === ZKP_SIMULATED_PROVER_SCOPE;
   }
 }

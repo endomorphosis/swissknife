@@ -9,7 +9,7 @@ import {
   checkDocumentConsistencyFromParameters,
   detectTemporalConflicts,
   extractTemporalClauses,
-} from '../../src/services/logic/tdfol/temporal-deontic-api';
+} from '../../src/services/temporal-deontic-api';
 
 describe('PORT-140 temporal-deontic API wrappers', () => {
   it('extracts temporal clauses from deontic legal text', async () => {

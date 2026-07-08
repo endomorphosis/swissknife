@@ -13,21 +13,21 @@
 import {
   DeonticFormula, DeonticRuleSet,
   DEONTIC_OPERATOR_LABELS, TEMPORAL_OPERATOR_LABELS,
-} from '../../src/services/logic/shared/logic-types.js';
-import type { LegalAgent } from '../../src/services/logic/shared/logic-types.js';
+} from '../../src/services/logic-types.js';
+import type { LegalAgent } from '../../src/services/logic-types.js';
 import {
   validateFormulaString, validateAxiomList, validateLogicSystem, validateTimeoutMs,
   BoundedCache,
   SUPPORTED_LOGIC_SYSTEMS, MAX_FORMULA_LENGTH,
-} from '../../src/services/logic/shared/logic-validators.js';
-import { parseNaturalLanguage } from '../../src/services/logic/tdfol/tdfol-nl-api.js';
+} from '../../src/services/logic-validators.js';
+import { parseNaturalLanguage } from '../../src/services/tdfol-nl-api.js';
 import {
   create_cache_cid,
   load_spacy_model,
   parse_cid,
   require_spacy,
   validate_cid,
-} from '../../src/services/logic/tdfol/tdfol-nl-utils.js';
+} from '../../src/services/tdfol-nl-utils.js';
 
 // ---------------------------------------------------------------------------
 // T-108: Logic Types
@@ -266,7 +266,7 @@ describe('T-110 parseNaturalLanguage', () => {
   });
 
   it('parse_natural_language alias works', async () => {
-    const { parse_natural_language } = await import('../../src/services/logic/tdfol/tdfol-nl-api.js');
+    const { parse_natural_language } = await import('../../src/services/tdfol-nl-api.js');
     const result = parse_natural_language('Users must log.');
     expect(result.fol.formula).toBeTruthy();
   });

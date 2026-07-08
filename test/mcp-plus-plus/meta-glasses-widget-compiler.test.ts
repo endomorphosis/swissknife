@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   META_GLASSES_WIDGET_COMPILER_ERROR_CODES,
@@ -15,16 +16,6 @@ import {
   type MetaGlassesWidgetDescriptor,
 } from '../../src/services/glasses/meta-glasses-display-profile';
 
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for meta-glasses widget fixture tests');
-}
-
 const FIXTURE_PATH = join(
   __dirname,
   '../fixtures/meta-glasses-display/valid-task-progress-widget.json',
@@ -41,7 +32,7 @@ const STATE = {
 };
 
 function loadDescriptor(): MetaGlassesWidgetDescriptor {
-  return JSON.parse(nodeFs.readFileSync(FIXTURE_PATH, 'utf8')) as MetaGlassesWidgetDescriptor;
+  return JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')) as MetaGlassesWidgetDescriptor;
 }
 
 function cloneDescriptor(

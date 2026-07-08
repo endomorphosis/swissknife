@@ -1,8 +1,4 @@
 /**
- * @vitest-environment node
- */
-
-/**
  * T-44 Cross-language conformance: Python reference vs JS prover same formula set.
  *
  * Verifies that the swissknife local WASM prover stack produces results
@@ -23,10 +19,9 @@
 import { SMT2Serializer } from '../../src/services/provers/smt2-serializer';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
 import { ProofCache } from '../../src/services/provers/mcp-proof-cache';
-import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
+import type { Policy } from '../../src/services/mcp/mcp-policy';
 
 const Z3_LIVE = process.env.Z3_WASM_LIVE === '1';
-const jest = { fn: vi.fn };
 
 // ---------------------------------------------------------------------------
 // Policy corpus — drawn from ipfs_datasets_py test policies

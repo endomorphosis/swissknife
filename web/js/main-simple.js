@@ -1,61 +1,6 @@
 // SwissKnife Web Desktop - Main Application (Simplified for Testing)
 
-import {
-    getBrowserMCPDescriptor,
-    inspectBrowserMCPDescriptor,
-    invokeDescriptorOperation,
-    listBrowserMCPDescriptors,
-    renderDescriptorInspectionHTML,
-    renderDescriptorOperationButtons,
-    renderDescriptorRegistrySummary,
-    renderEnvelopeHTML,
-} from './core/mcp-descriptor-registry.js';
-
 console.log('SwissKnife Web Desktop starting...');
-
-function escapeGeneratedHTML(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-function descriptorIdsForGeneratedSurface(config) {
-    if (config.descriptorId) return [config.descriptorId];
-    if (config.service === 'ipfs_datasets_py') return ['ipfs_datasets_py'];
-    if (config.service === 'ipfs_accelerate_py') return ['ipfs_accelerate_py'];
-    if (config.service === 'ipfs_kit_py') return ['ipfs_kit_py'];
-    if (['mcp_plus_plus', 'orb', 'meta_glasses'].includes(config.service)) {
-        return listBrowserMCPDescriptors().map(descriptor => descriptor.id);
-    }
-    return [];
-}
-
-function sampleInputForOperation(operation) {
-    const properties = operation.input_schema?.properties || {};
-    return Object.fromEntries(Object.entries(properties).map(([name, schema]) => [
-        name,
-        sampleValueForSchema(name, schema),
-    ]));
-}
-
-function sampleValueForSchema(name, schema = {}) {
-    if (Array.isArray(schema.enum) && schema.enum.length > 0) return schema.enum[0];
-    if (name.includes('cid') || name === 'root_cid') return 'bafybeidescriptorregistry';
-    if (name === 'path') return '/ipfs/bafybeidescriptorregistry';
-    if (name === 'name') return 'k51descriptorregistry';
-    if (name === 'model') return 'llama-3.1-8b';
-    if (name === 'input' || name === 'prompt' || name === 'content' || name === 'text') return 'SwissKnife descriptor registry test';
-    if (name === 'dataset_id') return 'demo-dataset';
-    if (name === 'job_id') return 'job-descriptor-demo';
-    if (schema.type === 'boolean') return true;
-    if (schema.type === 'number' || schema.type === 'integer') return 1;
-    if (schema.type === 'array') return [];
-    if (schema.type === 'object') return { example: true };
-    return `${name}-example`;
-}
 
 class SwissKnifeDesktop {
     constructor() {
@@ -465,48 +410,6 @@ class SwissKnifeDesktop {
             component: 'MediaPlayer',
             singleton: false
         });
-
-        this.apps.set('datasets-browser', {
-            name: 'Datasets Browser',
-            icon: '📊',
-            component: 'DatasetsBrowserApp',
-            singleton: true
-        });
-
-        this.apps.set('accelerate-panel', {
-            name: 'Accelerate Panel',
-            icon: '⚡',
-            component: 'AcceleratePanelApp',
-            singleton: true
-        });
-
-        this.apps.set('idl-explorer', {
-            name: 'IDL Explorer',
-            icon: '🔗',
-            component: 'IDLExplorerApp',
-            singleton: true
-        });
-
-        this.apps.set('glasses-preview', {
-            name: 'Glasses Preview',
-            icon: '👓',
-            component: 'GlassesPreviewApp',
-            singleton: true
-        });
-
-        this.apps.set('orb-auto-ui', {
-            name: 'ORB Auto-UI',
-            icon: '🪄',
-            component: 'ORBAutoUILauncher',
-            singleton: true
-        });
-
-        this.apps.set('mcp-plus-plus', {
-            name: 'MCP++ Explorer',
-            icon: '🔌',
-            component: 'MCPPlusPlusExplorer',
-            singleton: true
-        });
         
         console.log('📱 Total apps registered:', this.apps.size);
         console.log('📱 Apps list:', Array.from(this.apps.keys()));
@@ -581,9 +484,6 @@ class SwissKnifeDesktop {
         window.createNewFolder = () => this.createNewFolder();
         window.refreshDesktop = () => this.refreshDesktop();
         window.showAbout = () => this.showAbout();
-        window.swissKnifeDesktop = this;
-        window.__swissknifeDesktop = this;
-        window.launchSwissKnifeApp = (appId) => this.launchApp(appId);
     }
     
     async launchApp(appId) {
@@ -845,66 +745,6 @@ class SwissKnifeDesktop {
                     
                 case 'P2PChatApp':
                     await this.createP2PChatApp(contentElement);
-                    break;
-
-                case 'DatasetsBrowserApp':
-                    this.createGeneratedServiceSurfaceApp(contentElement, {
-                        appId: 'datasets-browser',
-                        title: 'Datasets Browser',
-                        service: 'ipfs_datasets_py',
-                        summary: 'Dataset discovery, vector search, embeddings, and provenance through MCP++ descriptors.',
-                        operations: ['list_datasets', 'semantic_search', 'embed', 'vector_search', 'record_provenance']
-                    });
-                    break;
-
-                case 'AcceleratePanelApp':
-                    this.createGeneratedServiceSurfaceApp(contentElement, {
-                        appId: 'accelerate-panel',
-                        title: 'Accelerate Panel',
-                        service: 'ipfs_accelerate_py',
-                        summary: 'Model discovery, hardware profile, inference jobs, metrics, and endpoint telemetry.',
-                        operations: ['capabilities', 'hardware_profile', 'list_models', 'inference', 'metrics']
-                    });
-                    break;
-
-                case 'IDLExplorerApp':
-                    this.createGeneratedServiceSurfaceApp(contentElement, {
-                        appId: 'idl-explorer',
-                        title: 'IDL Explorer',
-                        service: 'mcp_plus_plus',
-                        summary: 'Interface descriptor browser for IPFS Kit, Datasets, Accelerate, and ORB handoff contracts.',
-                        operations: ['discover_interfaces', 'inspect_schema', 'bind_operation', 'invoke_method']
-                    });
-                    break;
-
-                case 'GlassesPreviewApp':
-                    this.createGeneratedServiceSurfaceApp(contentElement, {
-                        appId: 'glasses-preview',
-                        title: 'Glasses Preview',
-                        service: 'meta_glasses',
-                        summary: 'Hardware-free preview of Meta glasses display profiles, focus order, actions, and fallbacks.',
-                        operations: ['render_profile', 'focus_next', 'activate', 'dispatch_fallback']
-                    });
-                    break;
-
-                case 'ORBAutoUILauncher':
-                    this.createGeneratedServiceSurfaceApp(contentElement, {
-                        appId: 'orb-auto-ui',
-                        title: 'ORB Auto-UI',
-                        service: 'orb',
-                        summary: 'Generated app launcher for descriptor-backed MCP and MCP++ interfaces.',
-                        operations: ['discover_services', 'compile_ui', 'launch_generated_app', 'refresh_registry']
-                    });
-                    break;
-
-                case 'MCPPlusPlusExplorer':
-                    this.createGeneratedServiceSurfaceApp(contentElement, {
-                        appId: 'mcp-plus-plus',
-                        title: 'MCP++ Explorer',
-                        service: 'mcp_plus_plus',
-                        summary: 'Protocol explorer for capability binding, receipts, event DAGs, UCAN, and policy decisions.',
-                        operations: ['inspect_registry', 'invoke_gateway', 'show_receipt', 'show_event_dag']
-                    });
                     break;
                     
                 default:
@@ -1732,148 +1572,6 @@ class SwissKnifeDesktop {
         const html = await p2pChat.render();
         contentElement.innerHTML = html;
         return p2pChat;
-    }
-
-    createGeneratedServiceSurfaceApp(contentElement, config) {
-        const descriptorIds = descriptorIdsForGeneratedSurface(config);
-        const descriptors = descriptorIds.map(id => getBrowserMCPDescriptor(id)).filter(Boolean);
-        const scopedDescriptors = descriptors.length > 0 ? descriptors : listBrowserMCPDescriptors();
-        const inspectionHTML = scopedDescriptors.map(descriptor => renderDescriptorInspectionHTML(descriptor)).join('');
-        const operationHTML = scopedDescriptors.map(descriptor => `
-            <div class="descriptor-operation-group" data-descriptor-id="${escapeGeneratedHTML(descriptor.id)}" style="border:1px solid #e2e8f0;border-radius:6px;padding:10px;background:#f8fafc;">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
-                    <strong style="font-size:13px;">${escapeGeneratedHTML(descriptor.name)}</strong>
-                    <button class="inspect-descriptor" data-inspect-descriptor="${escapeGeneratedHTML(descriptor.id)}" style="border:1px solid #cbd5e1;background:#fff;border-radius:5px;padding:5px 8px;cursor:pointer;font-size:11px;">Inspect schemas</button>
-                </div>
-                <div class="service-operations" style="display:flex;flex-wrap:wrap;gap:8px;">${renderDescriptorOperationButtons(descriptor)}</div>
-            </div>
-        `).join('');
-        const launchHTML = config.appId === 'orb-auto-ui' ? `
-            <section class="orb-generated-launchers" style="margin-top:18px;">
-                <h3 style="font-size:15px;margin-bottom:10px;">Generated Auto-UI Apps</h3>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;">
-                    ${scopedDescriptors.map(descriptor => `
-                        <button class="orb-launch-descriptor" data-launch-descriptor="${escapeGeneratedHTML(descriptor.id)}" style="text-align:left;border:1px solid #cbd5e1;border-radius:6px;background:#fff;padding:10px;cursor:pointer;">
-                            <div style="font-size:13px;font-weight:600;">${escapeGeneratedHTML(descriptor.ui.icon)} ${escapeGeneratedHTML(descriptor.ui.display_name)}</div>
-                            <div style="font-size:10px;color:#64748b;margin-top:3px;">${escapeGeneratedHTML(descriptor.ui.primary_template)} | ${descriptor.data_contracts.operations.length} methods</div>
-                        </button>
-                    `).join('')}
-                </div>
-            </section>
-        ` : '';
-        const readyEnvelope = {
-            status: 'ready',
-            app_id: config.appId,
-            service_family: config.service,
-            registry_id: 'swissknife.browser-mcp-descriptor-registry.v1',
-            descriptor_ids: scopedDescriptors.map(descriptor => descriptor.id),
-            receipt_policy: 'required_for_side_effects',
-            event_dag_schema: 'swissknife.app-capability-event-dag.v1',
-        };
-
-        contentElement.innerHTML = `
-            <div class="generated-service-surface descriptor-registry-surface" data-app="${escapeGeneratedHTML(config.appId)}" data-service="${escapeGeneratedHTML(config.service)}" data-registry-id="swissknife.browser-mcp-descriptor-registry.v1" style="padding:20px;height:100%;overflow:auto;">
-                <header style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;">
-                    <div>
-                        <h2 style="margin:0 0 4px;">${escapeGeneratedHTML(config.title)}</h2>
-                        <div class="service-family" style="color:#64748b;font-size:13px;">${escapeGeneratedHTML(config.service)} | ${scopedDescriptors.length} descriptors</div>
-                    </div>
-                    <span class="service-status" style="padding:6px 10px;border-radius:6px;background:#dcfce7;color:#166534;">Descriptor registry ready</span>
-                </header>
-                <p style="max-width:720px;line-height:1.5;">${escapeGeneratedHTML(config.summary)}</p>
-
-                <section style="margin-top:18px;">
-                    <h3 style="font-size:15px;margin-bottom:10px;">Shared Descriptor Registry</h3>
-                    ${renderDescriptorRegistrySummary(scopedDescriptors)}
-                </section>
-
-                <section style="margin-top:18px;">
-                    <h3 style="font-size:15px;margin-bottom:10px;">Method Schemas</h3>
-                    <div class="descriptor-inspection-region" style="display:grid;gap:10px;">${inspectionHTML}</div>
-                </section>
-
-                <section style="margin-top:18px;">
-                    <h3 style="font-size:15px;margin-bottom:10px;">Gateway Operations</h3>
-                    <div class="descriptor-operation-region" style="display:grid;gap:10px;">${operationHTML}</div>
-                </section>
-
-                ${launchHTML}
-
-                <section style="margin-top:18px;">
-                    <h3 style="font-size:15px;margin-bottom:10px;">Result Envelope</h3>
-                    <div class="descriptor-result-panel" data-result-panel style="display:grid;gap:10px;">
-                        <pre class="result-envelope-preview" style="background:#0f172a;color:#e2e8f0;padding:12px;border-radius:6px;overflow:auto;">${escapeGeneratedHTML(JSON.stringify(readyEnvelope, null, 2))}</pre>
-                    </div>
-                </section>
-            </div>
-        `;
-
-        contentElement.querySelectorAll('[data-descriptor-operation]').forEach(button => {
-            button.addEventListener('click', async () => {
-                const descriptorId = button.getAttribute('data-descriptor-id');
-                const operation = button.getAttribute('data-descriptor-operation');
-                const descriptor = getBrowserMCPDescriptor(descriptorId);
-                const method = descriptor?.data_contracts.operations.find(candidate => candidate.method === operation);
-                const resultPanel = contentElement.querySelector('[data-result-panel]');
-                if (!descriptor || !method || !resultPanel) return;
-
-                resultPanel.innerHTML = `<div style="padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:12px;">Invoking ${escapeGeneratedHTML(descriptor.name)}.${escapeGeneratedHTML(operation)} through the app capability gateway...</div>`;
-                try {
-                    const envelope = await invokeDescriptorOperation({
-                        descriptor_id: descriptor.id,
-                        operation,
-                        input: sampleInputForOperation(method),
-                        app_id: config.appId,
-                        desktop: this,
-                    });
-                    this.lastDescriptorEnvelope = envelope;
-                    window.__lastDescriptorInvocationEnvelope = envelope;
-                    resultPanel.innerHTML = renderEnvelopeHTML(envelope);
-                } catch (error) {
-                    resultPanel.innerHTML = `<div class="app-capability-envelope" data-envelope-status="error" style="border:1px solid #fecaca;border-radius:6px;padding:12px;background:#fef2f2;color:#7f1d1d;">${escapeGeneratedHTML(error.message)}</div>`;
-                }
-            });
-        });
-
-        contentElement.querySelectorAll('[data-inspect-descriptor]').forEach(button => {
-            button.addEventListener('click', () => {
-                const descriptorId = button.getAttribute('data-inspect-descriptor');
-                const inspection = inspectBrowserMCPDescriptor(descriptorId);
-                const resultPanel = contentElement.querySelector('[data-result-panel]');
-                if (!inspection || !resultPanel) return;
-                resultPanel.innerHTML = `
-                    <pre class="descriptor-inspection-json" style="background:#0f172a;color:#e2e8f0;padding:12px;border-radius:6px;overflow:auto;font-size:11px;">${escapeGeneratedHTML(JSON.stringify(inspection, null, 2))}</pre>
-                `;
-            });
-        });
-
-        contentElement.querySelectorAll('[data-launch-descriptor]').forEach(button => {
-            button.addEventListener('click', async () => {
-                const descriptorId = button.getAttribute('data-launch-descriptor');
-                const descriptor = getBrowserMCPDescriptor(descriptorId);
-                if (!descriptor) return;
-                const generatedWindow = await this.createWindow({
-                    title: `${descriptor.ui.display_name} Auto-UI`,
-                    icon: descriptor.ui.icon,
-                    appId: `orb-generated-${descriptor.id}`,
-                    width: 820,
-                    height: 620,
-                    x: 140 + (this.windowCounter * 20),
-                    y: 120 + (this.windowCounter * 20),
-                });
-                const generatedContent = generatedWindow.element.querySelector('.window-content');
-                if (generatedContent) {
-                    this.createGeneratedServiceSurfaceApp(generatedContent, {
-                        appId: `orb-generated-${descriptor.id}`,
-                        title: `${descriptor.ui.display_name} Auto-UI`,
-                        service: descriptor.service_family,
-                        descriptorId: descriptor.id,
-                        summary: `Generated ORB Auto-UI from ${descriptor.name} using the shared browser MCP descriptor registry.`,
-                        operations: [],
-                    });
-                }
-            });
-        });
     }
 
     createPlaceholderApp(contentElement, componentName) {

@@ -3,8 +3,13 @@
  */
 
 // Global process polyfill
-if (typeof window !== 'undefined' && !window.process) {
-  window.process = {
+const browserGlobal = globalThis as typeof globalThis & {
+  process?: unknown;
+  Buffer?: unknown;
+};
+
+if (typeof window !== 'undefined' && !browserGlobal.process) {
+  browserGlobal.process = {
     env: {},
     argv: [],
     cwd: () => '/',
@@ -19,7 +24,7 @@ if (typeof window !== 'undefined' && !window.process) {
 
 // Console polyfills
 if (typeof console === 'undefined') {
-  (global as any).console = {
+  (globalThis as any).console = {
     log: () => {},
     error: () => {},
     warn: () => {},
@@ -29,8 +34,8 @@ if (typeof console === 'undefined') {
 }
 
 // Buffer polyfill (if not already available)
-if (typeof Buffer === 'undefined') {
-  (global as any).Buffer = {
+if (typeof browserGlobal.Buffer === 'undefined') {
+  browserGlobal.Buffer = {
     from: (data: any) => new Uint8Array(data),
     alloc: (size: number) => new Uint8Array(size),
     isBuffer: () => false

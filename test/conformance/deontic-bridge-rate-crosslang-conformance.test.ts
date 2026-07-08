@@ -1,24 +1,13 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for deontic bridge conformance tests');
-}
 
 import {
   deonticFloat,
   deonticRate,
   deonticRecordValidationRate,
-} from '../../src/services/logic/bridges/deontic-norms-bridge';
+} from '../../src/services/deontic-norms-bridge';
 
 type VectorKind = 'float' | 'rate' | 'record_validation_rate';
 
@@ -50,11 +39,11 @@ interface PyResults {
 
 function loadCorpus(): Corpus {
   const path = resolve(process.cwd(), '../implementation_plan/conformance/deontic-bridge-rate-vectors.json');
-  return JSON.parse(nodeFs.readFileSync(path, 'utf8')) as Corpus;
+  return JSON.parse(readFileSync(path, 'utf8')) as Corpus;
 }
 
 function runPythonReference(corpusPath: string): PyResults {
-  const tempDir = nodeFs.mkdtempSync(join(tmpdir(), 'deontic-bridge-rate-py-'));
+  const tempDir = mkdtempSync(join(tmpdir(), 'deontic-bridge-rate-py-'));
   const outPath = join(tempDir, 'py-results.json');
   try {
     const scriptPath = resolve(process.cwd(), '../implementation_plan/conformance/deontic_bridge_rate_py_runner.py');
@@ -68,9 +57,9 @@ function runPythonReference(corpusPath: string): PyResults {
     if (proc.status !== 0) {
       throw new Error(`Python deontic bridge rate runner failed: ${proc.stderr || proc.stdout}`);
     }
-    return JSON.parse(nodeFs.readFileSync(outPath, 'utf8')) as PyResults;
+    return JSON.parse(readFileSync(outPath, 'utf8')) as PyResults;
   } finally {
-    nodeFs.rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

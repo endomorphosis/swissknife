@@ -5,7 +5,7 @@ import type { Tool } from '../../Tool.js.js.js.js.js.js.js.js.js.js.js';
 import { DESCRIPTION, PROMPT } from './prompt.js.js.js.js.js.js.js.js.js.js.js';
 import { getTheme } from '../../utils/theme.js.js.js.js.js.js.js.js.js.js.js';
 import { MessageResponse } from '../../components/MessageResponse.js.js.js.js.js.js.js.js.js.js.js';
-import { checkGate, logEvent } from '../../services/platform/statsig.js';
+import { checkGate, logEvent } from '../../services/statsig.js.js.js.js.js.js.js.js.js.js.js';
 import { USE_BEDROCK, USE_VERTEX } from '../../utils/model.js.js.js.js.js.js.js.js.js.js.js';
 
 const thinkToolSchema = z.object({

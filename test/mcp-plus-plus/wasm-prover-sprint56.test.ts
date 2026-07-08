@@ -11,7 +11,7 @@ import {
   makeAmbiguity,
   ambiguityToDict,
   compilationResultToDict,
-} from '../../src/services/logic/modal/modal-compiler';
+} from '../../src/services/modal-compiler';
 
 import {
   buildDeterministicParserCapabilityProfileRecord,
@@ -22,7 +22,7 @@ import {
   buildPhase8QualitySummaryRecord,
   buildPhase8QualitySummaryRecords,
   summarizeProverSyntaxTargetCoverage,
-} from '../../src/services/logic/deontic/deontic-exports';
+} from '../../src/services/deontic-exports';
 
 // ---------------------------------------------------------------------------
 // ModalCompilerConfig tests

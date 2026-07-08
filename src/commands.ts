@@ -36,7 +36,7 @@ import ipfsBackendCommands from './commands/ipfs-backend-commands.js';
 import mcpPlusPlusCommands from './commands/mcp-plus-plus-commands.js';
 
 // Import utilities
-import { getMCPCommands } from './services/mcp/mcpClient.js';
+import { getMCPCommands } from './services/mcpClient.js';
 import { isAnthropicAuthEnabled } from './utils/auth.js';
 
 type PublicCommand = import('./types/command.js').Command;

@@ -8,7 +8,7 @@
 // PORT-192 Groth16Backend real spawn path (availability guard)
 // ---------------------------------------------------------------------------
 
-import { Groth16Backend, Groth16BackendFallback, ProveKitFFI, ProveKitFFIError } from '../../src/services/zkp/zkp-backends';
+import { Groth16Backend, Groth16BackendFallback, ProveKitFFI, ProveKitFFIError } from '../../src/services/zkp-backends';
 
 describe('PORT-192 Groth16Backend real spawn path', () => {
   it('fails closed when binary is absent unless simulation is explicitly enabled', async () => {
@@ -55,7 +55,7 @@ import {
   canonicalizeAxiomSet,
   axiomSetAccumulatorCommitment,
   deriveCircuitV2Inputs,
-} from '../../src/services/zkp/canonicalization';
+} from '../../src/services/canonicalization';
 
 describe('PORT-194 canonicalization & circuit_v2 inputs', () => {
   it('canonicalizes axioms: deduplicates, trims, and sorts', () => {
@@ -90,7 +90,7 @@ describe('PORT-194 canonicalization & circuit_v2 inputs', () => {
   });
 });
 
-import { deriveTdfolV1Trace, legalTheoremToCircuit } from '../../src/services/zkp/legal-theorem-semantics';
+import { deriveTdfolV1Trace, legalTheoremToCircuit } from '../../src/services/legal-theorem-semantics';
 
 describe('PORT-194 legal theorem semantics', () => {
   it('derives TDFOL_v1 trace with semantic metadata', () => {
@@ -115,7 +115,7 @@ describe('PORT-194 legal theorem semantics', () => {
 // PORT-195 Witness Manager, ZKP Verifier, Setup Artifacts, VK Registry
 // ---------------------------------------------------------------------------
 
-import { WitnessManager, computeWitness, validateWitness, derivePublicInputs } from '../../src/services/zkp/witness-manager';
+import { WitnessManager, computeWitness, validateWitness, derivePublicInputs } from '../../src/services/witness-manager';
 
 describe('PORT-195 WitnessManager', () => {
   it('computes a deterministic witness with public/private inputs', () => {
@@ -158,7 +158,7 @@ describe('PORT-195 WitnessManager', () => {
   });
 });
 
-import { ZKPVerifier, verifyProof, makeSimulatedVK } from '../../src/services/zkp/zkp-verifier';
+import { ZKPVerifier, verifyProof, makeSimulatedVK } from '../../src/services/zkp-verifier';
 
 describe('PORT-195 ZKPVerifier', () => {
   it('verifies a structurally valid proof JSON', () => {
@@ -185,7 +185,7 @@ describe('PORT-195 ZKPVerifier', () => {
   });
 });
 
-import { SetupArtifactStore, runTrustedSetup, getOrCreateArtifact } from '../../src/services/zkp/setup-artifacts';
+import { SetupArtifactStore, runTrustedSetup, getOrCreateArtifact } from '../../src/services/setup-artifacts';
 
 describe('PORT-195 SetupArtifacts', () => {
   it('runs a simulated trusted setup and produces PK+VK', () => {
@@ -211,7 +211,7 @@ describe('PORT-195 SetupArtifacts', () => {
   });
 });
 
-import { VKRegistry, registerVK, lookupVK, getVKRegistry } from '../../src/services/zkp/vk-registry';
+import { VKRegistry, registerVK, lookupVK, getVKRegistry } from '../../src/services/vk-registry';
 
 describe('PORT-195 VKRegistry', () => {
   it('registers and retrieves a VK', () => {
@@ -254,8 +254,8 @@ import {
   executeProof,
   proveStatement,
   resetProofExecutionEngine,
-} from '../../src/services/proof-engine/proof-execution-engine';
-import { ProofStatus } from '../../src/services/proof-engine/proof-execution-engine-types';
+} from '../../src/services/proof-execution-engine';
+import { ProofStatus } from '../../src/services/proof-execution-engine-types';
 
 describe('PORT-201 ProofCache', () => {
   it('caches and retrieves results', () => {

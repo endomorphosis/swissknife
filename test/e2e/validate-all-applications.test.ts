@@ -8,36 +8,46 @@ const applications = [
   { name: 'vibecode', selector: '[data-app="vibecode"]', title: 'VibeCode' },
   { name: 'music-studio-unified', selector: '[data-app="music-studio-unified"]', title: 'Music Studio' },
   { name: 'ai-chat', selector: '[data-app="ai-chat"]', title: 'AI Chat' },
-  { name: 'files', selector: '[data-app="files"]', title: 'Files' },
-  { name: 'tasks', selector: '[data-app="tasks"]', title: 'Tasks' },
+  { name: 'file-manager', selector: '[data-app="file-manager"]', title: 'File Manager' },
+  { name: 'task-manager', selector: '[data-app="task-manager"]', title: 'Task Manager' },
   { name: 'todo', selector: '[data-app="todo"]', title: 'Todo' },
-  { name: 'ai-models', selector: '[data-app="ai-models"]', title: 'AI Models' },
-  { name: 'hugging-face', selector: '[data-app="hugging-face"]', title: 'Hugging Face' },
+  { name: 'model-browser', selector: '[data-app="model-browser"]', title: 'AI Model Manager' },
+  { name: 'huggingface', selector: '[data-app="huggingface"]', title: 'Hugging Face' },
   { name: 'openrouter', selector: '[data-app="openrouter"]', title: 'OpenRouter' },
-  { name: 'ipfs', selector: '[data-app="ipfs"]', title: 'IPFS' },
-  { name: 'devices', selector: '[data-app="devices"]', title: 'Devices' },
+  { name: 'ipfs-explorer', selector: '[data-app="ipfs-explorer"]', title: 'IPFS Explorer' },
+  { name: 'device-manager', selector: '[data-app="device-manager"]', title: 'Device Manager' },
   { name: 'settings', selector: '[data-app="settings"]', title: 'Settings' },
   { name: 'mcp-control', selector: '[data-app="mcp-control"]', title: 'MCP Control' },
   { name: 'api-keys', selector: '[data-app="api-keys"]', title: 'API Keys' },
   { name: 'github', selector: '[data-app="github"]', title: 'GitHub' },
-  { name: 'oauth', selector: '[data-app="oauth"]', title: 'OAuth' },
-  { name: 'ai-cron', selector: '[data-app="ai-cron"]', title: 'AI Cron' },
+  { name: 'oauth-login', selector: '[data-app="oauth-login"]', title: 'OAuth Login' },
+  { name: 'cron', selector: '[data-app="cron"]', title: 'AI Cron' },
   { name: 'navi', selector: '[data-app="navi"]', title: 'NAVI' },
-  { name: 'music-studio', selector: '[data-app="music-studio"]', title: 'Music Studio' },
   { name: 'p2p-network', selector: '[data-app="p2p-network"]', title: 'P2P Network' },
-  { name: 'nn-designer', selector: '[data-app="nn-designer"]', title: 'NN Designer' },
-  { name: 'training', selector: '[data-app="training"]', title: 'Training' },
-  { name: 'peertube', selector: '[data-app="peertube"]', title: 'PeerTube' },
+  { name: 'p2p-chat-unified', selector: '[data-app="p2p-chat-unified"]', title: 'P2P Chat' },
+  { name: 'neural-network-designer', selector: '[data-app="neural-network-designer"]', title: 'Neural Network Designer' },
+  { name: 'training-manager', selector: '[data-app="training-manager"]', title: 'Training Manager' },
   { name: 'calculator', selector: '[data-app="calculator"]', title: 'Calculator' },
   { name: 'clock', selector: '[data-app="clock"]', title: 'Clock' },
-  { name: 'images', selector: '[data-app="images"]', title: 'Images' },
-  { name: 'notes', selector: '[data-app="notes"]', title: 'Notes' },
-  { name: 'monitor', selector: '[data-app="monitor"]', title: 'Monitor' },
-  { name: 'cinema', selector: '[data-app="cinema"]', title: 'Cinema' },
-  { name: 'media-player', selector: '[data-app="media-player"]', title: 'Media Player' },
-  { name: 'neural-photoshop', selector: '[data-app="neural-photoshop"]', title: 'Neural Photoshop' },
+  { name: 'calendar', selector: '[data-app="calendar"]', title: 'Calendar' },
+  { name: 'peertube', selector: '[data-app="peertube"]', title: 'PeerTube' },
+  { name: 'friends-list', selector: '[data-app="friends-list"]', title: 'Friends' },
   { name: 'image-viewer', selector: '[data-app="image-viewer"]', title: 'Image Viewer' },
-  { name: 'friends', selector: '[data-app="friends"]', title: 'Friends' }
+  { name: 'notes', selector: '[data-app="notes"]', title: 'Notes' },
+  { name: 'media-player', selector: '[data-app="media-player"]', title: 'Media Player' },
+  { name: 'system-monitor', selector: '[data-app="system-monitor"]', title: 'System Monitor' },
+  { name: 'neural-photoshop', selector: '[data-app="neural-photoshop"]', title: 'Neural Photoshop' },
+  { name: 'cinema', selector: '[data-app="cinema"]', title: 'Cinema' },
+  { name: 'strudel', selector: '[data-app="strudel"]', title: 'Strudel' },
+  { name: 'strudel-ai-daw', selector: '[data-app="strudel-ai-daw"]', title: 'Strudel AI DAW' },
+  { name: 'music-studio', selector: '[data-app="music-studio"]', title: 'Music Studio Classic' },
+  { name: 'p2p-chat', selector: '[data-app="p2p-chat"]', title: 'P2P Chat Classic' },
+  { name: 'datasets-browser', selector: '[data-app="datasets-browser"]', title: 'Datasets Browser' },
+  { name: 'accelerate-panel', selector: '[data-app="accelerate-panel"]', title: 'Accelerate Panel' },
+  { name: 'idl-explorer', selector: '[data-app="idl-explorer"]', title: 'IDL Explorer' },
+  { name: 'glasses-preview', selector: '[data-app="glasses-preview"]', title: 'Glasses Preview' },
+  { name: 'orb-auto-ui', selector: '[data-app="orb-auto-ui"]', title: 'ORB Auto-UI' },
+  { name: 'mcp-plus-plus', selector: '[data-app="mcp-plus-plus"]', title: 'MCP++ Explorer' }
 ];
 
 test.describe('SwissKnife Desktop Application Validation', () => {
@@ -88,7 +98,7 @@ test.describe('SwissKnife Desktop Application Validation', () => {
     
     // Check that desktop icons are present
     const desktopIcons = page.locator('.desktop-icons .icon');
-    await expect(desktopIcons).toHaveCount.greaterThan(20);
+    expect(await desktopIcons.count()).toBeGreaterThan(20);
     
     console.log('Desktop overview captured successfully');
   });

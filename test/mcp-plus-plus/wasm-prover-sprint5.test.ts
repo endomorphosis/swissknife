@@ -8,11 +8,10 @@
  * - PolicyAuditLog.record() prover_id + proof_time_ms in extra (T-40)
  */
 
-import { vi } from 'vitest';
 import { LurkWasmBridge, DeonticToLurkTranslator } from '../../src/services/provers/lurk-wasm-bridge';
 import type { ZKProofArtifact } from '../../src/services/provers/lurk-wasm-bridge';
-import { PolicyAuditLog } from '../../src/services/mcp/policy-audit-log';
-import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
+import { PolicyAuditLog } from '../../src/services/policy-audit-log';
+import type { Policy } from '../../src/services/mcp/mcp-policy';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -130,8 +129,8 @@ describe('LurkWasmBridge — stub mode (no native lurk-wasm)', () => {
 describe('LurkWasmBridge — native mock (T-35)', () => {
   it('uses native Lurk module when provided', async () => {
     const mockLurk = {
-      evaluate: vi.fn().mockResolvedValue({ result: 't', proof: 'PROOF_BYTES' }),
-      verify: vi.fn().mockReturnValue(true),
+      evaluate: jest.fn().mockResolvedValue({ result: 't', proof: 'PROOF_BYTES' }),
+      verify: jest.fn().mockReturnValue(true),
     };
     const bridge = await LurkWasmBridge.create(mockLurk);
     const result = await bridge.proveObligationDischarge(permissivePolicy());
@@ -142,8 +141,8 @@ describe('LurkWasmBridge — native mock (T-35)', () => {
 
   it('returns an artifact with the correct fields', async () => {
     const mockLurk = {
-      evaluate: vi.fn().mockResolvedValue({ result: true, proof: 'bytes' }),
-      verify: vi.fn().mockReturnValue(true),
+      evaluate: jest.fn().mockResolvedValue({ result: true, proof: 'bytes' }),
+      verify: jest.fn().mockReturnValue(true),
     };
     const bridge = await LurkWasmBridge.create(mockLurk);
     const result = await bridge.proveObligationDischarge(permissivePolicy());
@@ -155,8 +154,8 @@ describe('LurkWasmBridge — native mock (T-35)', () => {
 
   it('returns refuted when native Lurk returns falsy', async () => {
     const mockLurk = {
-      evaluate: vi.fn().mockResolvedValue({ result: 'nil', proof: 'x' }),
-      verify: vi.fn().mockReturnValue(false),
+      evaluate: jest.fn().mockResolvedValue({ result: 'nil', proof: 'x' }),
+      verify: jest.fn().mockReturnValue(false),
     };
     const bridge = await LurkWasmBridge.create(mockLurk);
     const result = await bridge.proveObligationDischarge(permissivePolicy());
@@ -166,8 +165,8 @@ describe('LurkWasmBridge — native mock (T-35)', () => {
 
   it('returns error when native Lurk throws', async () => {
     const mockLurk = {
-      evaluate: vi.fn().mockRejectedValue(new Error('lurk crash')),
-      verify: vi.fn().mockReturnValue(false),
+      evaluate: jest.fn().mockRejectedValue(new Error('lurk crash')),
+      verify: jest.fn().mockReturnValue(false),
     };
     const bridge = await LurkWasmBridge.create(mockLurk);
     const result = await bridge.proveObligationDischarge(permissivePolicy());

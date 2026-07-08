@@ -1,10 +1,10 @@
 /**
  * MCP++ Server Connector
- *
+ * 
  * Connects the SwissKnife MCP++ client to the real MCP++ servers:
  * - ipfs_datasets_py MCP++ server (port 3002) - Profile A/B/C/D + Event DAG + P2P
  * - ipfs_accelerate_py MCP++ server (port 3003) - Trio-native + P2P tools
- *
+ * 
  * The servers implement:
  * - InterfaceDescriptor registry (Profile A) at /tools/list and /mcp/interfaces
  * - CID-native execution (Profile B) via JSON-RPC at /mcp
@@ -14,8 +14,8 @@
  * - P2P transport (Profile E) via /mcp+p2p/1.0.0 libp2p streams
  */
 
-import {
-  MCPPlusPlus,
+import { 
+  MCPPlusPlus, 
   MCPPPInterfaceDescriptor,
   ExecutionEnvelope,
   UCANProofBundle,
@@ -51,7 +51,7 @@ export interface MCPPPServerConfig {
 
 export const IPFS_KIT_SERVER: MCPPPServerConfig = {
   name: 'ipfs-kit-mcp++',
-  baseUrl: 'http://localhost:8004',
+  baseUrl: 'http://localhost:8014',
   mcpPath: '/mcp',
   toolsPath: '/mcp/tools/list',
   healthPath: '/mcp/tools/list',
@@ -407,7 +407,7 @@ export class MCPPPServerConnector {
   async listInterfaces(): Promise<MCPPPInterfaceDescriptor[]> {
     if (this.serverInterfaces.length > 0) return this.serverInterfaces;
     if (!this.config.interfacesPath) return [];
-
+    
     try {
       const resp = await this.fetch(this.config.interfacesPath);
       const data = await resp.json();
@@ -507,7 +507,7 @@ export class MCPPPServerConnector {
         },
       };
     }
-
+    
     // Fallback: regular tool call without envelope
     const result = await this.callTool(toolName, args);
     return { result, envelope: {} };
@@ -681,12 +681,12 @@ export class MCPPPMultiServerConnector {
 
   async connectAll(): Promise<Map<string, { success: boolean; profiles: string[]; tools: string[] }>> {
     const results = new Map<string, { success: boolean; profiles: string[]; tools: string[] }>();
-
+    
     const entries = Array.from(this.connectors.entries());
     const connections = await Promise.allSettled(
       entries.map(([, connector]) => connector.connect())
     );
-
+    
     entries.forEach(([name], i) => {
       const result = connections[i];
       if (result.status === 'fulfilled') {

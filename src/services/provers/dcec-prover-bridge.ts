@@ -17,12 +17,12 @@
  * Forward chaining runs until a fixpoint (no new formulas) or the goal is
  * derived, up to `maxRounds` saturation rounds to guard against loops.
  *
- * T-59.
+ * Sprint 9, T-59.
  * Reference: §2.4 of 36-swissknife-wasm-theorem-provers-2026-07-01.md
  */
 
 import type { WasmProofResult } from './prover-types.js';
-import type { Policy } from '../logic/deontic/mcp-policy.js';
+import type { Policy } from '../mcp-policy.js';
 import {
   type DCECFormula,
   type DeonticFormula,
@@ -33,8 +33,8 @@ import {
   Obligation,
   Permission,
   Prohibition,
-} from '../logic/dcec/dcec-types.js';
-import { PolicyToDcecTranslator } from '../logic/deontic/policy-to-dcec.js';
+} from './dcec-types.js';
+import { PolicyToDcecTranslator } from './policy-to-dcec.js';
 
 export const DCEC_PROVER_ID = 'dcec-native' as const;
 

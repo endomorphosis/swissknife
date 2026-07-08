@@ -1,3 +1,4 @@
+import { randomBytes, randomUUID as nodeRandomUUID } from 'node:crypto';
 import {
   control_surface_mediator,
   type ControlSurfacePolicyEvaluator,
@@ -14,11 +15,17 @@ import type {
   MCPUIProfileDescriptor,
   MCPUIServiceDescriptor,
 } from './mcp-ui-profile.js';
-import { randomUUID } from '../shared/browser-crypto.js';
 
 export const ORB_TRANSPORT_KINDS = ['local', 'websocket', 'http', 'mcp-server'] as const;
 
 export type ORBTransportKind = (typeof ORB_TRANSPORT_KINDS)[number];
+
+function newORBId(): string {
+  const webCryptoUUID = globalThis.crypto?.randomUUID?.bind(globalThis.crypto);
+  if (webCryptoUUID) return webCryptoUUID();
+  if (typeof nodeRandomUUID === 'function') return nodeRandomUUID();
+  return `orb-${randomBytes(16).toString('hex')}`;
+}
 
 export type ORBLifecyclePhase =
   | 'discover'
@@ -600,7 +607,7 @@ export class MCPCapabilityRouter {
     });
 
     const binding: ORBBoundOperation = {
-      handle: randomUUID(),
+      handle: newORBId(),
       interface_cid: capability.interface_cid,
       descriptor: capability.descriptor,
       service: capability.service,
@@ -1092,7 +1099,7 @@ export function buildORBReceipt(
 ): ORBInvocationReceipt {
   const outputCid = computeCID(stableStringify(output));
   const receiptWithoutCid = {
-    correlation_id: context.correlation_id ?? randomUUID(),
+    correlation_id: context.correlation_id ?? newORBId(),
     interface_cid: binding.interface_cid,
     descriptor_name: binding.descriptor.name,
     descriptor_version: binding.descriptor.version,
@@ -1186,7 +1193,7 @@ function lifecycle(
 function withCorrelationId(context: ORBInvocationContext = {}): ORBInvocationContext & { correlation_id: string } {
   return {
     ...context,
-    correlation_id: context.correlation_id ?? randomUUID(),
+    correlation_id: context.correlation_id ?? newORBId(),
   };
 }
 

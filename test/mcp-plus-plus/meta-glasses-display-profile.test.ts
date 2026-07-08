@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   SWISSKNIFE_MCP_UI_PROFILE,
@@ -18,16 +19,6 @@ import {
   type MetaGlassesWidgetDescriptor,
 } from '../../src/services/glasses/meta-glasses-display-profile';
 import { META_GLASSES_DISPLAY_WIDGET_EXAMPLES } from '../fixtures/meta-glasses-display/valid-widget-examples';
-
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for meta-glasses display fixture tests');
-}
 
 const VALID_TASK_PROGRESS_WIDGET_PATH = join(
   __dirname,
@@ -91,7 +82,7 @@ function permissions() {
 }
 
 function readJsonFixture<T>(fixturePath: string): T {
-  return JSON.parse(nodeFs.readFileSync(fixturePath, 'utf8')) as T;
+  return JSON.parse(readFileSync(fixturePath, 'utf8')) as T;
 }
 
 function baseDisplayProfile(

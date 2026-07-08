@@ -1,0 +1,46 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node"
+    ],
+    "allowImportingTsExtensions": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noEmit": true
+  },
+  "files": [
+    "src/services/mcp/mcp-idl.ts",
+    "src/services/mcp/mcp-ui-profile.ts",
+    "src/services/mcp/mcp-interface-registry.ts",
+    "src/services/mcp/mcp-descriptor-trust.ts",
+    "src/services/ipfs/mcp-ipfs-ui-descriptors.ts",
+    "src/services/mcp/mcp-schema-ui-generator.ts",
+    "src/services/apps/mcp-generated-app-state.ts",
+    "src/services/mcp/mcp-orb-capability-router.ts",
+    "src/services/mcp/mcp-p2p-session.ts",
+    "src/services/mcp/mcp-policy.ts",
+    "src/services/mcp/mcp-scheduler.ts",
+    "src/services/event-dag.ts",
+    "src/services/mcp/mcp-descriptor-inspector.ts",
+    "src/services/ipfs/mcp-ipfs-datasets-descriptor-pack.ts",
+    "src/services/ipfs/mcp-ipfs-accelerate-descriptor-pack.ts",
+    "src/services/ipfs/browser.ts",
+    "src/services/mcp/libp2p-browser-runtime.ts",
+    "src/storage/host.ts",
+    "src/workers/host.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "web/dist",
+    "ipfs_accelerate_js/dist"
+  ]
+}

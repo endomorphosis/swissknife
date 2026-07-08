@@ -11,15 +11,15 @@
  *   getGlobalIPFSCache() — module-level singleton
  */
 
-import { ProofCacheBase } from '../proof-engine/proof-cache-base.js';
-import { sha256Hex } from '../shared/browser-crypto.js';
+import { createHash } from 'node:crypto';
+import { ProofCacheBase } from '../proof-cache-base.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function makeCid(content: string): string {
-  return `bafk${sha256Hex(content).slice(0, 32)}`;
+  return `bafk${createHash('sha256').update(content, 'utf8').digest('hex').slice(0, 32)}`;
 }
 
 // ---------------------------------------------------------------------------

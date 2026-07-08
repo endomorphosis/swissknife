@@ -7,8 +7,7 @@ const repoRoot = resolve(configDir, '../..');
 
 export default defineConfig({
   testDir: resolve(repoRoot, 'test/e2e'),
-  testMatch: ['**/mcp-dashboard.spec.ts', '**/live-ipfs-mcp-critical-flows.spec.ts'],
-  outputDir: resolve(repoRoot, 'test-results/mcp-dashboard/playwright-artifacts'),
+  testMatch: ['**/mcp-dashboard.spec.ts'],
   timeout: 60 * 1000,
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),

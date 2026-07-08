@@ -13,7 +13,7 @@ import {
 import {
   replayGeneratedAppState,
   type GeneratedAppReplayEvent,
-} from './mcp-generated-app-state.js';
+} from '../apps/mcp-generated-app-state.js';
 
 export interface DescriptorInspectorOperation {
   method: string;

@@ -7,7 +7,7 @@
 
 import { WebSocketTransportImpl, HttpTransportImpl } from './mcp-transport-impl.js';
 import { MemoryTransport } from './memory-transport.js';
-import { MCPTransportFactory, MCPTransportOptions, MCPTransportType } from '../../services/mcp/mcp-transport.js';
+import { MCPTransportFactory, MCPTransportOptions, MCPTransportType } from '../../services/mcp-transport.js';
 
 /**
  * Patch the MCP Transport Factory to use our implementations

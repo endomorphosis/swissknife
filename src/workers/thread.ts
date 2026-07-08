@@ -1,6 +1,10 @@
 // src/workers/thread.ts
-import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
-import * as path from 'path';
+//
+// Host-only Node worker_threads helper. Private implementation detail per
+// `src/module-ownership.json`; browser code must never import this module.
+// Use `src/workers/host.ts` instead.
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
+import * as path from 'node:path';
 
 export interface WorkerInitMessage {
   type: 'init';

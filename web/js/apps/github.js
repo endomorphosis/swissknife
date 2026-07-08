@@ -1,13 +1,6 @@
-import {
-    describeStorageProvenanceCapabilities,
-    runStorageProvenanceWorkflow,
-    sanitizeArtifactFilename
-} from './storage-provenance-capabilities.js';
-
 // GitHub Integration App - Full GitHub management via MCP
 class GitHubApp {
-    constructor(desktop = null) {
-        this.desktop = desktop;
+    constructor() {
         this.name = 'GitHub';
         this.icon = '🐙';
         this.repositories = new Map();
@@ -18,8 +11,6 @@ class GitHubApp {
         this.mcpConnection = null;
         this.accessToken = null;
         this.user = null;
-        this.storageProvenanceCapabilities = describeStorageProvenanceCapabilities('github');
-        this.lastStorageProvenanceWorkflow = null;
         
         // Load saved settings
         this.loadSettings();
@@ -1094,66 +1085,6 @@ class GitHubApp {
         a.click();
         
         this.showNotification('GitHub data exported!', 'success');
-    }
-
-    getStorageProvenanceCapabilities() {
-        return this.storageProvenanceCapabilities;
-    }
-
-    async exerciseStorageProvenanceGateway(repo = this.currentRepo || this.repositories.values().next().value) {
-        const selectedRepo = repo || {
-            id: 'empty-github-cache',
-            name: 'empty-github-cache',
-            full_name: 'swissknife/empty-github-cache',
-            description: 'No repository has been loaded yet.',
-            private: false,
-            updated_at: new Date().toISOString(),
-            owner: { login: this.user?.login || 'swissknife' }
-        };
-
-        this.lastStorageProvenanceWorkflow = await runStorageProvenanceWorkflow({
-            desktop: this.desktop,
-            appId: 'github',
-            artifact: {
-                id: String(selectedRepo.id || selectedRepo.full_name),
-                title: selectedRepo.full_name || selectedRepo.name || 'GitHub repository',
-                type: 'github-repository-snapshot',
-                filename: sanitizeArtifactFilename(selectedRepo.full_name || selectedRepo.name || 'github-repository'),
-                content: JSON.stringify({
-                    id: selectedRepo.id,
-                    name: selectedRepo.name,
-                    full_name: selectedRepo.full_name,
-                    description: selectedRepo.description,
-                    private: Boolean(selectedRepo.private),
-                    owner: selectedRepo.owner?.login,
-                    updated_at: selectedRepo.updated_at,
-                    language: selectedRepo.language,
-                    stargazers_count: selectedRepo.stargazers_count || 0,
-                    forks_count: selectedRepo.forks_count || 0
-                }, null, 2),
-                metadata: {
-                    owner: selectedRepo.owner?.login,
-                    private: Boolean(selectedRepo.private),
-                    current_view: this.currentView,
-                    repository_count: this.repositories.size
-                }
-            },
-            dataset: {
-                dataset_id: 'swissknife-github',
-                path: `/github/repositories/${selectedRepo.full_name || selectedRepo.id}`
-            },
-            provenance: {
-                action: 'github.archive-repository-snapshot',
-                subject_id: String(selectedRepo.id || selectedRepo.full_name),
-                subject_type: 'github-repository',
-                metadata: {
-                    mcp_connected: Boolean(this.mcpConnection),
-                    issue_count: this.issues.size,
-                    pull_request_count: this.pullRequests.size
-                }
-            }
-        });
-        return this.lastStorageProvenanceWorkflow;
     }
 }
 

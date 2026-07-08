@@ -13,25 +13,25 @@
  * const result = await bridge.prove(kb, goal);
  * ```
  *
- * T-76 + T-77.
+ * Sprint 13, T-76 + T-77.
  */
 
 import type { WasmProofResult } from './prover-types.js';
-import type { Policy } from '../logic/deontic/mcp-policy.js';
+import type { Policy } from '../mcp-policy.js';
 import {
   type TdfolFormula,
   type LtlUnaryFormula,
   serializeTdfol,
   Always, Eventually, Next,
-} from '../logic/tdfol/tdfol-types.js';
+} from './tdfol-types.js';
 import {
   type DCECFormula,
   type DeonticFormula,
   type ConnectiveFormula,
   Negation, Obligation, Permission, Prohibition, Implies,
-} from '../logic/dcec/dcec-types.js';
+} from './dcec-types.js';
 import { TdfolProverBridge, TDFOL_PROVER_ID } from './tdfol-prover-bridge.js';
-import { PolicyToTdfolTranslator } from '../logic/tdfol/policy-to-tdfol.js';
+import { PolicyToTdfolTranslator } from './policy-to-tdfol.js';
 
 // ---------------------------------------------------------------------------
 // Rule interface (mirrors TdfolRule from tdfol-prover-bridge.ts)
@@ -363,7 +363,7 @@ class FutureObligationPersistenceRule implements ExtRule {
  *                  ObligationEventually (□O(φ)⊢◊φ),
  *                  FutureObligationPersistence (O(φ)⊢□O(φ))
  *
- * T-77.
+ * Sprint 13, T-77.
  */
 export class ExtendedTdfolProverBridge extends TdfolProverBridge {
   private readonly extRules: ExtRule[];

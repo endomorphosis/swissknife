@@ -3,12 +3,6 @@
  * Feature-rich note-taking with markdown support, tags, search, and AI assistance
  */
 
-import {
-  describeStorageProvenanceCapabilities,
-  runStorageProvenanceWorkflow,
-  sanitizeArtifactFilename,
-} from './storage-provenance-capabilities.js';
-
 export class NotesApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -42,8 +36,6 @@ export class NotesApp {
     
     this.autoSaveTimer = null;
     this.lastSaveTime = null;
-    this.storageProvenanceCapabilities = describeStorageProvenanceCapabilities('notes');
-    this.lastStorageProvenanceWorkflow = null;
     
     this.initializeNotes();
   }
@@ -1193,53 +1185,6 @@ Schedule for next week to review progress.
     } catch (error) {
       console.error('Failed to save notes:', error);
     }
-  }
-
-  getStorageProvenanceCapabilities() {
-    return this.storageProvenanceCapabilities;
-  }
-
-  async exerciseStorageProvenanceGateway(note = this.currentNote || this.notes[0]) {
-    const selectedNote = note || {
-      id: 'empty-notes',
-      title: 'Empty notes collection',
-      content: '',
-      tags: [],
-      created: Date.now(),
-      modified: Date.now(),
-    };
-
-    this.lastStorageProvenanceWorkflow = await runStorageProvenanceWorkflow({
-      desktop: this.desktop,
-      appId: 'notes',
-      artifact: {
-        id: selectedNote.id,
-        title: selectedNote.title || 'Untitled Note',
-        type: 'note',
-        filename: sanitizeArtifactFilename(selectedNote.title || 'note', 'md'),
-        content: selectedNote.content || '',
-        metadata: {
-          tags: selectedNote.tags || [],
-          created: selectedNote.created,
-          modified: selectedNote.modified,
-          word_count: this.getWordCount(selectedNote.content || ''),
-        },
-      },
-      dataset: {
-        dataset_id: 'swissknife-notes',
-        path: `/notes/${selectedNote.id}`,
-      },
-      provenance: {
-        action: 'notes.publish-note',
-        subject_id: selectedNote.id,
-        subject_type: 'note',
-        metadata: {
-          note_count: this.notes.length,
-          current_view: this.currentView,
-        },
-      },
-    });
-    return this.lastStorageProvenanceWorkflow;
   }
 
   exportNote() {

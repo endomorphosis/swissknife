@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react.js.js.js.js.js'
 import { Static, Box, Text, useInput } from 'ink.js.js.js.js.js'
 import TextInput from './TextInput.js.js.js.js.js.js.js.js.js.js'
-import { OAuthService, createAndStoreApiKey } from '../services/platform/oauth.js'
+import { OAuthService, createAndStoreApiKey } from '../services/oauth.js.js.js.js.js.js.js.js.js.js'
 import { getTheme } from '../utils/theme.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/platform/statsig.js'
+import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
 import { AsciiLogo } from './AsciiLogo.js.js.js.js.js.js.js.js.js.js'
 import { useTerminalSize } from '../hooks/useTerminalSize.js.js.js.js.js.js.js.js.js.js'
 import { logError } from '../utils/log.js.js.js.js.js.js.js.js.js.js'
@@ -11,7 +11,7 @@ import { clearTerminal } from '../utils/terminal.js.js.js.js.js.js.js.js.js.js'
 import { SimpleSpinner } from './Spinner.js.js.js.js.js.js.js.js.js.js'
 import { WelcomeBox } from './Onboarding.js.js.js.js.js.js.js.js.js.js'
 import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
-import { sendNotification } from '../services/platform/notifier.js'
+import { sendNotification } from '../services/notifier.js.js.js.js.js.js.js.js.js.js'
 
 type Props = {
   onDone(): void

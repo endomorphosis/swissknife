@@ -1,18 +1,5 @@
 import { spawnSync } from 'node:child_process';
-const nodeFs = (globalThis.process as unknown as {
-  getBuiltinModule?: (specifier: string) => unknown;
-}).getBuiltinModule?.('fs') as {
-  mkdirSync: (path: string, options?: { recursive?: boolean }) => void;
-  mkdtempSync: (prefix: string) => string;
-  readFileSync: (path: string, encoding: BufferEncoding) => string;
-  rmSync: (path: string, options: { recursive?: boolean; force?: boolean }) => void;
-  writeFileSync: (path: string, data: string) => void;
-} | undefined;
-
-if (!nodeFs) {
-  throw new Error('node:fs builtin module is required for conformance tests');
-}
-
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -27,7 +14,7 @@ import {
   Permission,
   Prohibition,
   type DCECFormula,
-} from '../../src/services/logic/dcec/dcec-types';
+} from '../../src/services/provers/dcec-types';
 import {
   Always,
   Eventually,
@@ -36,7 +23,7 @@ import {
   Since,
   type TdfolFormula,
   Until,
-} from '../../src/services/logic/tdfol/tdfol-types';
+} from '../../src/services/provers/tdfol-types';
 
 interface Vector {
   id: string;
@@ -64,11 +51,11 @@ interface PyResults {
 
 function loadCorpus(): Corpus {
   const path = resolve(process.cwd(), '../implementation_plan/conformance/vectors/tdfol-native-vectors.json');
-  return JSON.parse(nodeFs.readFileSync(path, 'utf8')) as Corpus;
+  return JSON.parse(readFileSync(path, 'utf8')) as Corpus;
 }
 
 function runPythonReference(corpusPath: string): PyResults {
-  const tempDir = nodeFs.mkdtempSync(join(tmpdir(), 'tdfol-native-crosslang-py-'));
+  const tempDir = mkdtempSync(join(tmpdir(), 'tdfol-native-crosslang-py-'));
   const outPath = join(tempDir, 'py-results.json');
   try {
     const scriptPath = resolve(process.cwd(), '../implementation_plan/conformance/tdfol_native_py_runner.py');
@@ -82,9 +69,9 @@ function runPythonReference(corpusPath: string): PyResults {
     if (proc.status !== 0) {
       throw new Error(`Python TDFOL native runner failed: ${proc.stderr || proc.stdout}`);
     }
-    return JSON.parse(nodeFs.readFileSync(outPath, 'utf8')) as PyResults;
+    return JSON.parse(readFileSync(outPath, 'utf8')) as PyResults;
   } finally {
-    nodeFs.rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

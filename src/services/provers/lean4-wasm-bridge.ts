@@ -1,7 +1,7 @@
 /**
  * Lean4WasmBridge — Lean 4 theorem prover integration for swissknife.
  *
- * Phase 5.  Two execution paths:
+ * Sprint 4 / Phase 5.  Two execution paths:
  *
  * 1. **Injected native runner** (Node/host-only opt-in): callers that need
  *    `lean`, `lake`, or ix can provide a runner. This module does not import
@@ -11,7 +11,7 @@
  *    the translator produces `theorem policy_consistent : True := trivial` which
  *    we treat as proved without running the binary.
  *
- * 3. **ix ZK-attested path** (T-52): when an ix proof runner is
+ * 3. **ix ZK-attested path** (Sprint 7b, T-52): when an ix proof runner is
  *    explicitly injected, callers can generate a ZK proof of Lean 4 typecheck via:
  *      `lake exe ix compile <file.lean> --out <file.ixe>`  (ix compiler)
  *      `cargo run --release -- --execute --ixe <file.ixe>` (SP1 host)
@@ -26,7 +26,7 @@
 
 import type { WasmProofResult } from './prover-types.js';
 import type { ZKProofArtifact } from './lurk-wasm-bridge.js';
-import type { Policy } from '../logic/deontic/mcp-policy.js';
+import type { Policy } from '../mcp-policy.js';
 import { DeonticToLean4Translator } from './deontic-to-lean4.js';
 
 // ---------------------------------------------------------------------------
@@ -198,7 +198,7 @@ export class Lean4WasmBridge {
 }
 
 // ---------------------------------------------------------------------------
-// ix ZK-attested path (T-52)
+// ix ZK-attested path (T-52) — Sprint 7b
 // ---------------------------------------------------------------------------
 
 /**
@@ -246,7 +246,7 @@ export async function proveWithIx(
  */
 export function ixBuildInstructions(): string {
   return [
-    '# Build and install ix CLI:',
+    '# Sprint 7b — Build and install ix CLI:',
     '',
     '# 1. Prerequisites: install Lean 4, Rust, and Lake',
     '# See https://leanprover.github.io/lean4/doc/setup.html',

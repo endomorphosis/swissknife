@@ -1,34 +1,34 @@
 {
-  "timestamp": "2026-07-08T15:31:57.951Z",
+  "timestamp": "2026-07-05T08:00:49.177Z",
   "summary": {
-    "qualityScore": 84,
+    "qualityScore": 87,
     "qualityGrade": "B",
-    "totalFiles": 33,
+    "totalFiles": 30,
     "brokenLinks": 14,
     "missingScreenshots": 0,
     "generationTime": 29,
-    "lastUpdate": "2026-07-08T15:31:57.412Z",
+    "lastUpdate": "2026-07-05T08:00:48.888Z",
     "status": "needs-improvement"
   },
   "analytics": {
-    "timestamp": "2026-07-08T15:31:57.412Z",
+    "timestamp": "2026-07-05T08:00:48.888Z",
     "quality": {
-      "overallScore": 84,
-      "completeness": 74,
+      "overallScore": 87,
+      "completeness": 82,
       "consistency": 100,
       "accuracy": 72,
       "maintainability": 100
     },
     "content": {
-      "totalWords": 38326,
-      "totalFiles": 33,
-      "averageLength": 1161,
+      "totalWords": 37402,
+      "totalFiles": 30,
+      "averageLength": 1247,
       "duplicateContent": 0,
       "brokenReferences": 54
     },
     "structure": {
       "crossReferences": 361,
-      "orphanedFiles": 3,
+      "orphanedFiles": 0,
       "missingScreenshots": 0,
       "inconsistentFormatting": 0
     },
@@ -40,7 +40,7 @@
       "deletedFiles": 0
     },
     "linkValidation": {
-      "totalLinks": 648,
+      "totalLinks": 652,
       "brokenLinks": 14,
       "repairedLinks": 0,
       "validationStatus": "FAIL"
@@ -103,9 +103,9 @@
     }
   },
   "linkValidation": {
-    "generated": "2026-07-08T15:31:57.639Z",
+    "generated": "2026-07-05T08:00:49.003Z",
     "summary": {
-      "totalFiles": 648,
+      "totalFiles": 652,
       "brokenLinks": 14,
       "repairSuggestions": 0,
       "validationStatus": "FAIL"
@@ -221,7 +221,7 @@
     ]
   },
   "screenshots": {
-    "generated": "2026-07-08T15:31:57.719Z",
+    "generated": "2026-07-05T08:00:49.035Z",
     "summary": {
       "totalMissing": 0,
       "availableScreenshots": 1,
@@ -237,63 +237,63 @@
   },
   "trends": [
     {
-      "timestamp": "2026-07-07T04:23:40.329Z",
+      "timestamp": "2026-07-04T23:22:53.328Z",
       "qualityScore": 87,
       "totalFiles": 30,
       "brokenLinks": 54
     },
     {
-      "timestamp": "2026-07-07T04:39:29.304Z",
+      "timestamp": "2026-07-04T23:45:10.387Z",
       "qualityScore": 87,
       "totalFiles": 30,
       "brokenLinks": 54
     },
     {
-      "timestamp": "2026-07-07T06:02:32.301Z",
+      "timestamp": "2026-07-04T23:57:13.926Z",
       "qualityScore": 87,
       "totalFiles": 30,
       "brokenLinks": 54
     },
     {
-      "timestamp": "2026-07-07T06:35:24.330Z",
+      "timestamp": "2026-07-05T00:08:38.861Z",
       "qualityScore": 87,
       "totalFiles": 30,
       "brokenLinks": 54
     },
     {
-      "timestamp": "2026-07-07T16:39:05.846Z",
+      "timestamp": "2026-07-05T00:18:06.229Z",
       "qualityScore": 87,
       "totalFiles": 30,
       "brokenLinks": 54
     },
     {
-      "timestamp": "2026-07-07T19:50:42.368Z",
+      "timestamp": "2026-07-05T00:23:56.258Z",
       "qualityScore": 87,
       "totalFiles": 30,
       "brokenLinks": 54
     },
     {
-      "timestamp": "2026-07-08T04:38:28.294Z",
-      "qualityScore": 85,
-      "totalFiles": 32,
+      "timestamp": "2026-07-05T01:09:18.229Z",
+      "qualityScore": 87,
+      "totalFiles": 30,
       "brokenLinks": 54
     },
     {
-      "timestamp": "2026-07-08T04:53:16.825Z",
-      "qualityScore": 85,
-      "totalFiles": 32,
+      "timestamp": "2026-07-05T02:45:29.459Z",
+      "qualityScore": 87,
+      "totalFiles": 30,
       "brokenLinks": 54
     },
     {
-      "timestamp": "2026-07-08T05:58:15.117Z",
-      "qualityScore": 84,
-      "totalFiles": 33,
+      "timestamp": "2026-07-05T03:09:49.556Z",
+      "qualityScore": 87,
+      "totalFiles": 30,
       "brokenLinks": 54
     },
     {
-      "timestamp": "2026-07-08T15:31:57.412Z",
-      "qualityScore": 84,
-      "totalFiles": 33,
+      "timestamp": "2026-07-05T08:00:48.888Z",
+      "qualityScore": 87,
+      "totalFiles": 30,
       "brokenLinks": 54
     }
   ]

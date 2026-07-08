@@ -41,45 +41,11 @@ import {
   type ActiveObligation,
 } from './mcp-policy.js';
 import type { GeneratedUIPolicyDecision } from './mcp-schema-ui-generator.js';
-
-export interface IDLMethodSchema {
-  name: string;
-  inputSchema: { type: string; properties?: Record<string, unknown>; required?: string[] };
-  outputSchema: { type: string; properties?: Record<string, unknown> };
-}
-
-export interface IDLProfileDescriptor {
-  name: string;
-  namespace: string;
-  version: string;
-  methods: IDLMethodSchema[];
-  ui?: {
-    primary_template?: string;
-    icon?: string;
-    display_name?: string;
-    category?: string;
-  };
-}
-
-export interface AutoCompileOptions {
-  maxActions?: number;
-  maxTextBlocks?: number;
-  updateHz?: number;
-  priorityMethods?: string[];
-  forceTemplate?:
-    | 'single-card'
-    | 'stack'
-    | 'list'
-    | 'status'
-    | 'progress'
-    | 'media'
-    | 'confirmation'
-    | 'freeform-grid'
-    | 'task-progress'
-    | 'notification-summary'
-    | 'video-preview';
-  icon?: string;
-}
+import type {
+  IDLProfileDescriptor,
+  IDLMethodSchema,
+  AutoCompileOptions,
+} from '../glasses/idl-to-glasses-compiler.js';
 
 // ---------------------------------------------------------------------------
 // Deontic operation state

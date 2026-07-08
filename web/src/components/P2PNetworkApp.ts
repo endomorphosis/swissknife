@@ -1782,7 +1782,7 @@ export function createP2PNetworkApp() {
         const query = (container.querySelector('.hf-search') as HTMLInputElement)?.value || 'bert'
         console.log(`Searching Hugging Face models: ${query}`)
         // Simulate search results
-        const mockModels = [
+        const mockModels: HuggingFaceModel[] = [
           {
             id: `${query}-base-uncased`,
             name: `${query.toUpperCase()} Base`,

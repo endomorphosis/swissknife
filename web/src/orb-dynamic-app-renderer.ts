@@ -26,7 +26,6 @@
 
 interface IDLMethod {
   name: string;
-  capability_id?: string;
   inputSchema: { type: string; properties?: Record<string, any>; required?: string[] };
   outputSchema: { type: string; properties?: Record<string, any> };
 }
@@ -253,7 +252,7 @@ export class ORBDynamicAppRenderer {
         const form = container.querySelector(`.orb-method-form[data-method="${methodName}"]`) as HTMLElement;
         const params = this._collectFormParams(form, method);
         
-        await this._invokeMethod(descriptor, method, params, resultPanel, statusDot, latencyEl);
+        await this._invokeMethod(methodName, params, resultPanel, statusDot, latencyEl);
       });
     });
 
@@ -344,14 +343,12 @@ export class ORBDynamicAppRenderer {
   }
 
   private async _invokeMethod(
-    descriptor: IDLDescriptor,
-    method: IDLMethod,
+    methodName: string,
     params: Record<string, any>,
     resultPanel: HTMLElement,
     statusDot: HTMLElement,
     latencyEl: HTMLElement,
   ): Promise<void> {
-    const methodName = method.name;
     const correlationId = `orb_${++this.correlationCounter}_${Date.now()}`;
     const httpMethod = resolveHttpMethod(methodName);
     const endpoint = resolveEndpoint(methodName, this.backendUrl);
@@ -367,22 +364,6 @@ export class ORBDynamicAppRenderer {
     const startTime = performance.now();
 
     try {
-      const registry = (window as any).swissKnifeDescriptorRegistry || (window as any).__swissKnifeDescriptorRegistry;
-      if (method.capability_id && registry?.invoke) {
-        const envelope = await registry.invoke({
-          descriptor_id: (descriptor as any).service_family || descriptor.name,
-          operation: method.name,
-          input: params,
-          app_id: `orb-${descriptor.name}`,
-          execution_mode: 'mcp_plus_plus_remote',
-        });
-        const elapsed = Math.round(performance.now() - startTime);
-        latencyEl.textContent = `${elapsed}ms`;
-        statusDot.style.background = envelope.status === 'error' ? '#f87171' : '#4ade80';
-        this._renderEnvelopeResult(resultPanel, methodName, envelope, elapsed, correlationId);
-        return;
-      }
-
       const fetchOpts: RequestInit = {
         method: httpMethod,
         headers: { 'Content-Type': 'application/json', 'X-Correlation-Id': correlationId },
@@ -476,26 +457,6 @@ export class ORBDynamicAppRenderer {
             </table>
           </div>
         `}
-      </div>
-    `;
-  }
-
-  private _renderEnvelopeResult(panel: HTMLElement, method: string, envelope: any, elapsed: number, correlationId: string): void {
-    panel.innerHTML = `
-      <div class="app-capability-envelope" data-capability-id="${envelope?.trace?.capability_id || ''}" data-envelope-status="${envelope?.status || 'unknown'}" style="padding:12px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span style="font-size:12px;font-weight:600;color:#166534;">✅ ${method}</span>
-          <span style="font-size:10px;color:#6b7280;">${elapsed}ms</span>
-          <span style="font-size:9px;color:#d1d5db;margin-left:auto;">${correlationId}</span>
-        </div>
-        <div style="border:1px solid #cbd5e1;border-radius:6px;padding:10px;background:#f8fafc;margin-bottom:8px;">
-          <div style="font-size:11px;font-weight:600;color:#334155;">App Capability Envelope: ${envelope?.status}</div>
-          <div style="font-size:10px;color:#64748b;margin-top:3px;">${envelope?.summary || ''}</div>
-          <div style="font-size:10px;color:#475569;margin-top:6px;">
-            receipt_refs: ${envelope?.receipt_refs?.length || 0} | event_dag_refs: ${envelope?.event_dag_refs?.length || 0}
-          </div>
-        </div>
-        <pre style="white-space:pre-wrap;overflow:auto;font-size:10px;background:#111827;color:#e5e7eb;padding:10px;border-radius:4px;">${JSON.stringify(envelope, null, 2)}</pre>
       </div>
     `;
   }

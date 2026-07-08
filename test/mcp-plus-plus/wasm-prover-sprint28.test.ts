@@ -7,17 +7,17 @@
 import {
   MultiViewLegalIRReport, LegalIRTrainingTarget,
   evaluateLegalIRMultiview, toTrainingTarget, BridgeAdapter,
-} from '../../src/services/logic/bridges/bridge-multiview.js';
+} from '../../src/services/bridge-multiview.js';
 import {
   normalizePredicateName, canonicalModalityOperator,
   buildDeonticFormulaFromIR, buildDeonticFormulasFromIRList,
   buildDeonticFormulaRecordFromIR, buildDeonticFormulaRecordsFromIRs,
   buildProverSyntaxRecordsFromIR, parserElementToFormulaRecord,
-} from '../../src/services/logic/deontic/deontic-formula-builder.js';
-import { FolTdfolBridgeAdapter } from '../../src/services/logic/bridges/fol-tdfol-bridge.js';
-import { DeonticNormsBridgeAdapter } from '../../src/services/logic/bridges/deontic-norms-bridge.js';
-import { LegalIRDocument } from '../../src/services/logic/shared/bridge-types.js';
-import { buildLegalNormIR } from '../../src/services/logic/deontic/legal-norm-ir.js';
+} from '../../src/services/deontic-formula-builder.js';
+import { FolTdfolBridgeAdapter } from '../../src/services/fol-tdfol-bridge.js';
+import { DeonticNormsBridgeAdapter } from '../../src/services/deontic-norms-bridge.js';
+import { LegalIRDocument } from '../../src/services/bridge-types.js';
+import { buildLegalNormIR } from '../../src/services/deontic/legal-norm-ir.js';
 
 const LEGAL_TEXT =
   'No person shall be deprived of liberty without due process. ' +

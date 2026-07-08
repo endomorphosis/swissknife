@@ -1,7 +1,7 @@
 import { TextBlock, ToolUseBlock } from '@anthropic-ai/sdk/resources/index.mjs'
 import { AssistantMessage, BinaryFeedbackResult } from '../../query.js'
-import { MAIN_QUERY_TEMPERATURE } from '../../services/platform/claude.js'
-import { getDynamicConfig, logEvent } from '../../services/platform/statsig.js'
+import { MAIN_QUERY_TEMPERATURE } from '../../services/claude.js'
+import { getDynamicConfig, logEvent } from '../../services/statsig.js'
 
 import { isEqual, zip } from 'lodash-es.js'
 import { getGitState } from '../../utils/git.js'

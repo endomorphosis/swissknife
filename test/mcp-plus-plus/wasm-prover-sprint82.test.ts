@@ -14,7 +14,7 @@ import {
   getPortugueseLegalTerms,
   getPortugueseNegationPatterns,
   getPortugueseVerbConjugations,
-} from '../../src/services/logic/nl/portuguese-parser';
+} from '../../src/services/portuguese-parser';
 import {
   formatFormula,
   format_formula,
@@ -28,7 +28,7 @@ import {
   toTptp,
   toUnicode,
   to_unicode,
-} from '../../src/services/logic/fol/logic-formatter';
+} from '../../src/services/fol/logic-formatter';
 import {
   FeatureDetector,
   clearFeatureDetectionCache,
@@ -37,7 +37,7 @@ import {
   detectRuntimeFeature,
   importOptionalModule,
   isModuleAvailable,
-} from '../../src/services/platform/feature-detection';
+} from '../../src/services/feature-detection';
 import {
   UtilityMonitor,
   clearGlobalCache,
@@ -46,7 +46,7 @@ import {
   resetGlobalStats,
   trackPerformance,
   withCaching,
-} from '../../src/services/platform/utility-monitor';
+} from '../../src/services/utility-monitor';
 
 // ---------------------------------------------------------------------------
 // PORT-179 — dedicated Portuguese CEC/NL parser

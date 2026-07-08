@@ -15,15 +15,15 @@
 import {
   Atom, Const, Obligation, Permission, Prohibition, Negation, Implies,
   serializeFormula,
-} from '../../src/services/logic/dcec/dcec-types.js';
+} from '../../src/services/provers/dcec-types.js';
 import {
   Always, Eventually, Next, Until, Since,
   serializeTdfol,
-} from '../../src/services/logic/tdfol/tdfol-types.js';
+} from '../../src/services/provers/tdfol-types.js';
 import { TdfolProverBridge } from '../../src/services/provers/tdfol-prover-bridge.js';
-import { PolicyToTdfolTranslator } from '../../src/services/logic/tdfol/policy-to-tdfol.js';
+import { PolicyToTdfolTranslator } from '../../src/services/provers/policy-to-tdfol.js';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub.js';
-import type { Policy } from '../../src/services/logic/deontic/mcp-policy.js';
+import type { Policy } from '../../src/services/mcp/mcp-policy.js';
 
 // ---------------------------------------------------------------------------
 // T-63: TDFOL formula types + serialisation

@@ -1,14 +1,8 @@
 // SwissKnife Dedicated OpenRouter App
 // Universal LLM Access Hub - Multiple AI Providers Through Single Interface
 
-import {
-    describeAccelerateDatasetsCapabilities,
-    runAccelerateDatasetsWorkflow
-} from './accelerate-datasets-capabilities.js';
-
 class OpenRouterApp {
-    constructor(desktop = null) {
-        this.desktop = desktop;
+    constructor() {
         this.name = 'OpenRouter Hub';
         this.currentTab = 'models';
         this.models = new Map();
@@ -29,8 +23,6 @@ class OpenRouterApp {
         };
         this.requestHistory = [];
         this.modelStats = new Map();
-        this.accelerateDatasetsCapabilities = describeAccelerateDatasetsCapabilities('openrouter');
-        this.lastAccelerateDatasetsWorkflow = null;
     }
 
     async initialize() {
@@ -892,38 +884,6 @@ class OpenRouterApp {
 
     generateResponse() {
         console.log('⚡ Generating AI response...');
-    }
-
-    getAccelerateDatasetsCapabilities() {
-        return this.accelerateDatasetsCapabilities;
-    }
-
-    async exerciseAccelerateDatasetsGateway(input = {}) {
-        const modelId = input.model || this.settings.defaultModel;
-        const provider = modelId.includes('/') ? modelId.split('/')[0] : 'openrouter';
-
-        this.lastAccelerateDatasetsWorkflow = await runAccelerateDatasetsWorkflow({
-            desktop: this.desktop,
-            appId: 'openrouter',
-            task: 'llm-routing',
-            model: modelId,
-            provider,
-            input: input.prompt || `Route a SwissKnife request through ${modelId} with dataset citations.`,
-            datasetQuery: input.datasetQuery || `${modelId} routing benchmark context`,
-            collection: 'swissknife-openrouter',
-            maxTokens: input.maxTokens || this.settings.maxTokens,
-            provenance: {
-                action: 'openrouter.route-with-dataset-context',
-                subject_id: modelId,
-                subject_type: 'openrouter-model',
-                metadata: {
-                    current_tab: this.currentTab,
-                    request_count: this.requestHistory.length,
-                    provider_count: this.providers.size
-                }
-            }
-        });
-        return this.lastAccelerateDatasetsWorkflow;
     }
 }
 

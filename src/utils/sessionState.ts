@@ -1,4 +1,4 @@
-import { logEvent } from '../services/platform/statsig.js'
+import { logEvent } from '../services/statsig.js'
 type SessionState = {
   modelErrors: Record<string, unknown>
   currentError: string | null

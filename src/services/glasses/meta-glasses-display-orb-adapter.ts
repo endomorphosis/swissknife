@@ -1,5 +1,5 @@
 import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
-import type { ControlSurfacePolicyEvaluator } from './control-surface-mediator.js';
+import type { ControlSurfacePolicyEvaluator } from '../mcp/control-surface-mediator.js';
 import type { MCPUIProfileDescriptor } from '../mcp/mcp-ui-profile.js';
 import {
   LocalORBTransportAdapter,

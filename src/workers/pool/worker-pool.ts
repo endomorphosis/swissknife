@@ -1,6 +1,11 @@
-import { Worker } from 'worker_threads.js';
-import path from 'path.js';
-import os from 'os.js';
+// src/workers/pool/worker-pool.ts
+//
+// Host-only Node worker_threads pool implementation. Private implementation
+// detail per `src/module-ownership.json`; browser code must never import
+// this module. Use `src/workers/host.ts` instead.
+import { Worker } from 'node:worker_threads';
+import path from 'node:path';
+import os from 'node:os';
 import { logger } from '../../utils/logger.js';
 
 // Define the structure of messages sent to/from workers

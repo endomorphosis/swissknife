@@ -10,7 +10,7 @@ import type {
   ControlSurfacePolicyDecision,
   ControlSurfacePolicyEvaluationRequest,
 } from '../../src/services/mcp/control-surface-mediator';
-import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 
 const DATASET_INTERFACE_CID = 'sha256:dataset-fixture';

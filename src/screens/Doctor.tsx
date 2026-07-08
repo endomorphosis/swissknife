@@ -10,7 +10,7 @@ import {
   getPermissionsCommand,
 } from '../utils/autoUpdater.js.js.js.js.js.js.js.js.js.js.js'
 import { saveGlobalConfig, getGlobalConfig } from '../utils/config.js.js.js.js.js.js.js.js.js.js'
-import { logEvent } from '../services/platform/statsig.js'
+import { logEvent } from '../services/statsig.js.js.js.js.js.js.js.js.js.js'
 import { PRODUCT_NAME } from '../constants/product.js.js.js.js.js.js.js.js.js.js'
 import { PressEnterToContinue } from '../components/PressEnterToContinue.js.js.js.js.js.js.js.js.js.js'
 

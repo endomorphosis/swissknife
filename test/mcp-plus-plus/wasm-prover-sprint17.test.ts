@@ -16,14 +16,14 @@ import {
   emptySpan,
   emptyQuality,
   parserElementToIR,
-} from '../../src/services/logic/deontic/legal-norm-ir.js';
-import type { LegalNormIR } from '../../src/services/logic/deontic/legal-norm-ir.js';
+} from '../../src/services/deontic/legal-norm-ir.js';
+import type { LegalNormIR } from '../../src/services/deontic/legal-norm-ir.js';
 import {
   decodeLegalNormIR,
   decodedPhraseSlotTextMap,
-} from '../../src/services/logic/deontic/legal-norm-decoder.js';
-import { LegalNormBuilder } from '../../src/services/logic/deontic/legal-norm-builder.js';
-import { DeonticTextAnalyzer } from '../../src/services/logic/deontic/deontic-text-analyzer.js';
+} from '../../src/services/deontic/legal-norm-decoder.js';
+import { LegalNormBuilder } from '../../src/services/deontic/legal-norm-builder.ts.js';
+import { DeonticTextAnalyzer } from '../../src/services/deontic/deontic-text-analyzer.js';
 
 // ---------------------------------------------------------------------------
 // T-92: LegalNormIR type system

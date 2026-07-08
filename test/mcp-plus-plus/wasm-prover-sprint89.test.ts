@@ -3,7 +3,7 @@
  * Tests for §12.20 TDFOL delegate/router and modal strategy selection.
  */
 
-import { ExternalProver, ProverResult, ProverStatus } from '../../src/services/provers/external-provers';
+import { ExternalProver, ProverResult, ProverStatus } from '../../src/services/external-provers';
 import {
   CECDelegateStrategy,
   CECProverRouter,
@@ -13,9 +13,9 @@ import {
   TDFOLStrategy,
   createDefaultStrategySelector,
   estimateFormulaCost,
-} from '../../src/services/logic/tdfol/tdfol-strategy-router';
-import { TDFOLProver, ProofStatus } from '../../src/services/logic/tdfol/tdfol-prover';
-import { TDFOLKnowledgeBase, mkPredicate } from '../../src/services/logic/tdfol/tdfol-core';
+} from '../../src/services/tdfol-strategy-router';
+import { TDFOLProver, ProofStatus } from '../../src/services/tdfol-prover';
+import { TDFOLKnowledgeBase, mkPredicate } from '../../src/services/tdfol-core';
 
 class FakeExternalProver implements ExternalProver {
   readonly supportsEquality = true;

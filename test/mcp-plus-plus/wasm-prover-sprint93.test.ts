@@ -8,24 +8,24 @@ import {
   buildDecoderSlotSupportMap,
   buildDecodedPhraseAuditRecords,
   traceDecodedPhraseToSource,
-} from '../../src/services/logic/deontic/decoder-provenance';
+} from '../../src/services/deontic/decoder-provenance';
 import {
   buildPhase8ParserMetricRecord,
   buildPhase8ParserQualityReport,
   summarizePhase8ParserMetrics,
-} from '../../src/services/logic/deontic/parser-qa-metrics';
+} from '../../src/services/deontic/parser-qa-metrics';
 import {
   ALL_PROVER_TARGETS,
   ProverSyntaxBuilder,
   ProverSyntaxValidator,
-} from '../../src/services/logic/deontic/prover-syntax-builder';
-import { decodeLegalNormIR } from '../../src/services/logic/deontic/legal-norm-decoder';
+} from '../../src/services/deontic/prover-syntax-builder';
+import { decodeLegalNormIR } from '../../src/services/deontic/legal-norm-decoder';
 import {
   buildLegalNormIR,
   emptyQuality,
   parserWarningsRequireDecoderValidation,
   parser_warnings_require_decoder_validation,
-} from '../../src/services/logic/deontic/legal-norm-ir';
+} from '../../src/services/deontic/legal-norm-ir';
 import {
   activeRepairDetailsFromParserElements,
   buildDeterministicParserCapabilityProfileRecord,
@@ -55,7 +55,7 @@ import {
   summarizeProverTargetSemanticFamilies,
   summarizeReconstructionSlotLoss,
   validateExportTables,
-} from '../../src/services/logic/deontic/deontic-exports';
+} from '../../src/services/deontic-exports';
 
 describe('PORT-198 decoder provenance audit trail', () => {
   it('builds phrase-level source grounding and slot support maps', () => {

@@ -18,7 +18,7 @@ import {
 } from '../../src/services/mcp/mcp-orb-capability-router';
 import { generateSchemaDrivenUI } from '../../src/services/mcp/mcp-schema-ui-generator';
 import { compileIDLToGlassesDisplay } from '../../src/services/glasses/idl-to-glasses-compiler';
-import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
+import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
 import type { InterfaceDescriptor } from '../../src/services/mcp/mcp-idl';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
 import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';

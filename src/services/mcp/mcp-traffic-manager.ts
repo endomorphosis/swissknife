@@ -17,7 +17,7 @@ import {
 } from '@modelcontextprotocol/sdk/client/index.js';
 import { 
   connectToServer as createServerConnection
-} from './mcpClient.js';
+} from '../mcpClient.js';
 import { 
   logEvent, 
   logError 

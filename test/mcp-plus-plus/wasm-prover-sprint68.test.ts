@@ -1,9 +1,9 @@
 /**
  * wasm-prover-sprint68.test.ts
  * Tests for Sprint 68 modules:
- *   - external-prover-wrappers.ts (TalosWrapper, EngDCECWrapper, DCECLibraryWrapper, ZKPVerifier)
- *   - ethereum-zkp-bridge.ts     (ETH VK registry, onchain pipeline, contract artifacts, EVM public inputs)
- *   - session-translation-types.ts    (FOL session types, bridge types, input validation, translation types, proof cache)
+ *   - sprint68-prover-wrappers.ts (TalosWrapper, EngDCECWrapper, DCECLibraryWrapper, ZKPVerifier)
+ *   - sprint68-eth-bridge.ts     (ETH VK registry, onchain pipeline, contract artifacts, EVM public inputs)
+ *   - sprint68-utils-types.ts    (FOL session types, bridge types, input validation, translation types, proof cache)
  */
 
 import {
@@ -11,7 +11,7 @@ import {
   EngDCECWrapper,
   DCECStatement, DCECLibraryWrapper,
   ZKPVerifier,
-} from '../../src/services/provers/external-prover-wrappers';
+} from '../../src/services/sprint68-prover-wrappers';
 
 import {
   normalizeBytes32Hex, vkHashHexToBytes32, circuitIdTextToBytes32,
@@ -19,7 +19,7 @@ import {
   loadContractArtifact, loadContractAbi, normalizeHexPrefixed,
   hashTextToFieldSha256, packPublicInputsForEvm, packManyPublicInputsForEvm,
   packPublicInputsUint256, validateUint256Array,
-} from '../../src/services/zkp/ethereum-zkp-bridge';
+} from '../../src/services/sprint68-eth-bridge';
 
 import {
   createSession, addStatement,
@@ -27,7 +27,7 @@ import {
   validateText, validateFormula, validateFormulaList, ValidationError, InputValidator,
   LogicTranslationTarget,
   getGlobalProofCache, clearGlobalProofCache,
-} from '../../src/services/logic/api/session-translation-types';
+} from '../../src/services/sprint68-utils-types';
 
 // ---------------------------------------------------------------------------
 // TalosWrapper

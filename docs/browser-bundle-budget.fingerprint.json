@@ -1,0 +1,29 @@
+{
+  "schema": "swr_029_evidence_freshness_receipt_v1",
+  "id": "browser-bundle-budget",
+  "label": "Browser bundle budget evidence (SWR-016)",
+  "generatedAt": "2026-07-08T10:59:25.304Z",
+  "evidenceFiles": [
+    "docs/browser-bundle-budget.md",
+    "docs/browser-bundle-budget.json"
+  ],
+  "sourceFingerprint": "5ab766b82835913235f15bdedfd6fd671e4fc4919ddeec61577eeeda83af135d",
+  "sourceFiles": [
+    {
+      "path": "package.json",
+      "sha256": "03456c12ef149ee2ba7b229f5c98b94623677bd6a17547bb0e35037fffadf67e"
+    },
+    {
+      "path": "scripts/audit-web-bundle.mjs",
+      "sha256": "8cc1db9ad5241e53051c4226a3b947d44150eca9612e03511beb6ad1d08e59d2"
+    },
+    {
+      "path": "src/module-ownership.json",
+      "sha256": "e85769cd9cf6c73f23b635239f8ec2513c234b74d8b7883334a09b3462cf37cd"
+    },
+    {
+      "path": "vite.web.config.ts",
+      "sha256": "dc79ccae40ae1ee264e0ba9ca16ea197117090b55642349e20e943ffc81021d4"
+    }
+  ]
+}

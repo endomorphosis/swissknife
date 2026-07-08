@@ -14,14 +14,14 @@
 import {
   Atom, Const,
   Obligation, Permission, Prohibition, Negation, Implies, Conjunction,
-} from '../../src/services/logic/dcec/dcec-types.js';
+} from '../../src/services/provers/dcec-types.js';
 import {
   Always, Eventually, Next, Until,
   serializeTdfol,
-} from '../../src/services/logic/tdfol/tdfol-types.js';
+} from '../../src/services/provers/tdfol-types.js';
 import { ExtendedTdfolProverBridge } from '../../src/services/provers/tdfol-extended-rules.js';
-import { ProverRouterBridgeAdapter } from '../../src/services/logic/bridges/prover-router-bridge.js';
-import type { TdfolFormula } from '../../src/services/logic/tdfol/tdfol-types.js';
+import { ProverRouterBridgeAdapter } from '../../src/services/bridge/prover-router-bridge.js';
+import type { TdfolFormula } from '../../src/services/provers/tdfol-types.js';
 
 // ---------------------------------------------------------------------------
 // T-76/T-77: ExtendedTdfolProverBridge — new inference rules
@@ -102,7 +102,7 @@ describe('T-76/T-77 ExtendedTdfolProverBridge — extended rules', () => {
 
   it('TemporalObligationPersistence: O(□φ) ⊢ □O(φ)', async () => {
     const phi = Atom('comply');
-    const kb: TdfolFormula[] = [Obligation(Always(phi) as unknown as import('../../src/services/logic/dcec/dcec-types.js').DCECFormula)];
+    const kb: TdfolFormula[] = [Obligation(Always(phi) as unknown as import('../../src/services/provers/dcec-types.js').DCECFormula)];
     const result = await bridge.prove(kb, Always(Obligation(phi)));
     expect(result.proved).toBe(true);
   });

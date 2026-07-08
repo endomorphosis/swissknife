@@ -36,9 +36,10 @@ export class SwissKnifeCLIAdapter extends BrowserEventEmitter {
 
   constructor() {
     super();
+    const processEnv = ((globalThis as any).process?.env ?? {}) as Record<string, string>;
     this.context = {
       workingDirectory: '/home/user',
-      environment: { ...process.env, PATH: '/usr/local/bin:/usr/bin:/bin' },
+      environment: { ...processEnv, PATH: '/usr/local/bin:/usr/bin:/bin' },
       user: 'user',
       history: []
     };
@@ -471,9 +472,9 @@ Type 'sk <command> --help' for command-specific help.`,
       case 'config':
         return this.handleConfig(subArgs);
       case 'status':
-        return this.handleStatus([]);
+        return this.handleStatus();
       case 'version':
-        return this.handleVersion([]);
+        return this.handleVersion();
       default:
         return {
           success: false,

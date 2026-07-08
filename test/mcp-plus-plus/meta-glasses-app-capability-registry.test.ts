@@ -7,7 +7,7 @@ import {
   listMetaGlassesAppCapabilities,
   requestMetaGlassesAppCapability,
   type MetaGlassesAppCapabilityId,
-} from '../../src/services/glasses/meta-glasses-app-capability-registry';
+} from '../../src/services/apps/meta-glasses-app-capability-registry';
 import {
   META_GLASSES_IO_PERMISSION_SCOPES,
   META_GLASSES_IO_PROFILE_PROPERTY,

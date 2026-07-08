@@ -1,6 +1,6 @@
 /**
  * MCP++ Protocol Support for SwissKnife
- *
+ * 
  * Implements the MCP++ execution profiles:
  * - Profile A: MCP-IDL (CID-Addressed Interface Contracts)
  * - Profile B: CID-Native Execution Artifacts (envelopes, receipts, events)
@@ -337,7 +337,7 @@ export class MCPPlusPlus {
   validateProof(proofCid: string, interfaceCid: string, method: string): boolean {
     const bundle = this.proofBundles.get(proofCid);
     if (!bundle) return false;
-
+    
     const now = Math.floor(Date.now() / 1000);
     return bundle.chain.every(del => {
       if (del.expiration < now || del.not_before > now) return false;
@@ -462,14 +462,14 @@ export class MCPPlusPlus {
     const desc = this.getInterface(interfaceCid);
     const endpoint = this.resolveEndpoint(desc, method);
     const BACKEND = 'http://localhost:8080';
-
+    
     const response = await fetch(`${BACKEND}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
       signal: AbortSignal.timeout(30000),
     });
-
+    
     if (!response.ok) throw new Error(`Backend error: ${response.status}`);
     return response.json();
   }
