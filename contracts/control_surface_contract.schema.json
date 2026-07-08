@@ -3,6 +3,7 @@
   "$id": "https://hallucinate.app/contracts/control_surface_contract.schema.json",
   "title": "control_surface_contract",
   "description": "Descriptor section that binds interface methods and multimodal control surfaces to formal policy bundles, compiled logic artifacts, and mediation receipts.",
+  "$comment": "VAI-675 objective validation repair for VAI-661: interface contract swissknife mobile, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_mobile_interop.py.",
   "type": "object",
   "required": ["control_surface_contract"],
   "properties": {

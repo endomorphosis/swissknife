@@ -51,7 +51,7 @@ export interface MCPPPServerConfig {
 
 export const IPFS_KIT_SERVER: MCPPPServerConfig = {
   name: 'ipfs-kit-mcp++',
-  baseUrl: 'http://localhost:8014',
+  baseUrl: 'http://localhost:8004',
   mcpPath: '/mcp',
   toolsPath: '/mcp/tools/list',
   healthPath: '/mcp/tools/list',
