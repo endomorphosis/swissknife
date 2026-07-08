@@ -896,7 +896,7 @@ async function openSettings(swissknife: SwissKnifeBrowserCore) {
         <h4 style="margin:0 0 8px;font-size:12px;">🔌 MCP Backend</h4>
         <div style="display:grid;gap:4px;font-size:11px;">
           <div>Backend URL: <code>${BACKEND}</code> <span style="color:${backendOnline ? '#16a34a' : '#dc2626'};">${backendOnline ? '● Online' : '○ Offline'}</span></div>
-          <div>IPFS Kit MCP: <code>:8014</code></div>
+          <div>IPFS Kit MCP: <code>:8004</code></div>
           <div>IPFS Datasets MCP: <code>:3002</code></div>
           <div>IPFS Accelerate MCP: <code>:3003</code></div>
           <div>SwissKnife Web: <code>:8765</code></div>
@@ -1081,7 +1081,7 @@ async function openTaskManager(swissknife: SwissKnifeBrowserCore) {
 
     // MCP daemon status
     const daemons = [
-      { name: 'ipfs_kit_py', port: 8014 },
+      { name: 'ipfs_kit_py', port: 8004 },
       { name: 'ipfs_datasets_py', port: 3002 },
       { name: 'ipfs_accelerate_py', port: 3003 },
     ];
@@ -1220,7 +1220,7 @@ async function openIPFSExplorer(swissknife: SwissKnifeBrowserCore) {
       </div>
       
       <div id="ipfs-status-bar" style="padding: 6px 12px; border-top: 1px solid #e2e8f0; background: #f8fafc; font-size: 11px; color: #64748b;">
-        Backend: localhost:8080 | Kit: :8014 | Ready
+        Backend: localhost:8080 | Kit: :8004 | Ready
       </div>
     </div>
   `;
