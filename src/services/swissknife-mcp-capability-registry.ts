@@ -10,6 +10,6 @@ export * from './apps/swissknife-mcp-capability-registry';
 // CONTROL_SURFACE_DAEMON_MEDIATION
 // MCP++
 // HAO-674
-// ipfs_kit_py ipfs-kit
-// ipfs_datasets_py ipfs-datasets
-// ipfs_accelerate_py ipfs-accelerate
+// ipfs_kit_py ipfs-kit port: 8014
+// ipfs_datasets_py ipfs-datasets port: 3002
+// ipfs_accelerate_py ipfs-accelerate port: 3003
