@@ -1104,7 +1104,7 @@ async function openSettings(swissknife: SwissKnifeBrowserCore) {
         <h4 style="margin:0 0 8px;font-size:12px;">🔌 MCP Backend</h4>
         <div style="display:grid;gap:4px;font-size:11px;">
           <div>Backend URL: <code>${BACKEND}</code> <span style="color:${backendOnline ? '#16a34a' : '#dc2626'};">${backendOnline ? '● Online' : '○ Offline'}</span></div>
-          <div>IPFS Kit MCP: <code>:8014</code></div>
+          <div>IPFS Kit MCP: <code>:8004</code></div>
           <div>IPFS Datasets MCP: <code>:3002</code></div>
           <div>IPFS Accelerate MCP: <code>:3003</code></div>
           <div>SwissKnife Web: <code>:8765</code></div>
@@ -1289,7 +1289,7 @@ async function openTaskManager(swissknife: SwissKnifeBrowserCore) {
 
     // MCP daemon status
     const daemons = [
-      { name: 'ipfs_kit_py', port: 8014 },
+      { name: 'ipfs_kit_py', port: 8004 },
       { name: 'ipfs_datasets_py', port: 3002 },
       { name: 'ipfs_accelerate_py', port: 3003 },
     ];
@@ -1992,7 +1992,7 @@ async function openGlassesPreview(swissknife: SwissKnifeBrowserCore) {
 
 const BROWSER_MAIN_DESCRIPTOR_REGISTRY = [
   {
-    name: 'ipfs_kit_py',
+    name: 'ipfs-kit',
     namespace: 'dev.hallucinate.ipfs.kit',
     version: '1.0.0',
     service_family: 'ipfs_kit_py',
@@ -2015,7 +2015,7 @@ const BROWSER_MAIN_DESCRIPTOR_REGISTRY = [
     ui: { primary_template: 'explorer', icon: '📦', display_name: 'IPFS Kit', category: 'storage' },
   },
   {
-    name: 'ipfs_datasets_py',
+    name: 'ipfs-datasets',
     namespace: 'dev.hallucinate.ipfs.datasets',
     version: '1.0.0',
     service_family: 'ipfs_datasets_py',
@@ -2032,7 +2032,7 @@ const BROWSER_MAIN_DESCRIPTOR_REGISTRY = [
     ui: { primary_template: 'dashboard', icon: '📊', display_name: 'IPFS Datasets', category: 'datasets' },
   },
   {
-    name: 'ipfs_accelerate_py',
+    name: 'ipfs-accelerate',
     namespace: 'dev.hallucinate.ipfs.accelerate',
     version: '1.0.0',
     service_family: 'ipfs_accelerate_py',
@@ -2149,6 +2149,24 @@ async function openORBAutoUILauncher(swissknife: SwissKnifeBrowserCore) {
 async function openMCPPlusPlusExplorer(swissknife: SwissKnifeBrowserCore) {
   const window = createWindow('mcp-plus-plus', '🔬 MCP++ Protocol Explorer', 750, 550);
   const content = window.querySelector('.window-content') as HTMLElement;
+  const mcpPlusPlusBackendEndpoints = [
+    '/v1/ipfs/status', '/v1/ipfs/add', '/v1/ipfs/cat',
+    '/v1/ipfs/pin', '/v1/ipfs/unpin', '/v1/ipfs/resolve',
+    '/v1/ipfs/list_pins', '/v1/ipfs/stat',
+    '/v1/ipfs/dag/get', '/v1/ipfs/dag/put',
+    '/v1/ipfs/name/publish', '/v1/ipfs/name/resolve',
+    '/v1/ipfs/embed', '/v1/ipfs/generate', '/v1/ipfs/inference',
+    '/v1/ipfs/list_models', '/v1/ipfs/capabilities',
+    '/v1/ipfs/hardware_profile', '/v1/ipfs/metrics',
+    '/v1/ipfs/endpoints', '/v1/ipfs/search_models',
+    '/v1/ipfs/list_datasets',
+    '/v1/ipfs/search/semantic', '/v1/ipfs/search/similarity',
+    '/v1/ipfs/search/faceted',
+    '/v1/ipfs/vector/index', '/v1/ipfs/vector/search',
+    '/v1/ipfs/vector/metadata',
+    '/v1/ipfs/scrape/url', '/v1/ipfs/scrape/batch',
+    '/v1/ipfs/workflow/execute',
+  ] as const;
   // In-browser MCP++ state (mirrors the TypeScript client)
   const interfaces = BROWSER_MAIN_DESCRIPTOR_REGISTRY.map(descriptor => ({
     name: descriptor.name,
@@ -2204,7 +2222,7 @@ async function openMCPPlusPlusExplorer(swissknife: SwissKnifeBrowserCore) {
             </div>
           `).join('')}
           <div style="margin-top:12px;padding:8px;background:#f9fafb;border-radius:6px;font-size:10px;color:#6b7280;">
-            Profiles required: mcp++/cid-envelope, mcp++/ucan | Total methods: ${interfaces.reduce((s, i) => s + i.methods, 0)}
+            Profiles required: mcp++/cid-envelope, mcp++/ucan | Total methods: ${interfaces.reduce((s, i) => s + i.methods, 0)} | Backend endpoints: ${mcpPlusPlusBackendEndpoints.length}
           </div>
           <div style="margin-top:8px;padding:8px;background:#f9fafb;border-radius:6px;font-size:10px;color:#6b7280;">
             <strong>Live Servers:</strong><br>

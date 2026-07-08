@@ -52,6 +52,15 @@ const HAO_725_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   'fixtures',
   'hao-725-daemon-launch-health-gate.json',
 );
+const HAO_743_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-743-daemon-launch-health-gate.json',
+);
 const MGW_559_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   process.cwd(),
   '..',
@@ -461,6 +470,41 @@ test('HAO-725 daemon launch gate fixture preserves Swissknife backend handoff re
   expect(fixture.validation_commands).toContain(
     'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
   );
+  expect(fixture.required_backends).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.daemon_health_paths.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  expect(fixture.swissknife_handoff.map((entry: Record<string, unknown>) => entry.server_package)).toEqual([
+    'ipfs_kit_py',
+    'ipfs_datasets_py',
+    'ipfs_accelerate_py',
+  ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('HAO-743 daemon launch gate fixture preserves Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(HAO_743_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('HAO-743');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-743-daemon-launch-health-gate.md',
+  );
+  expect(fixture.validation_commands).toEqual(expect.arrayContaining([
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+    'test ! -f hallucinate_app/package.json || npm --prefix hallucinate_app run test:e2e -- daemon-launch-health.spec.ts',
+  ]));
   expect(fixture.required_backends).toEqual([
     'ipfs_kit_py',
     'ipfs_datasets_py',
