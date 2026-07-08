@@ -1,7 +1,7 @@
 /**
  * SwissKnife <-> external/ipfs_accelerate DuckDB benchmark schema interoperability descriptor.
  *
- * VAI-662 objective validation repair: interface contract swissknife external/ipfs_accelerate,
+ * HAO-731 objective validation repair: interface contract swissknife external/ipfs_accelerate,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_ipfs_accelerate_interop.py.
  *
@@ -159,10 +159,12 @@ export const SWISSKNIFE_IPFS_ACCELERATE_INTEROP_DESCRIPTOR = {
     control_surface_policy_id: 'policy:swissknife:ipfs-accelerate-duckdb-interop',
   },
   validation: {
-    task_id: 'VAI-662',
+    task_id: 'HAO-731',
+    prior_task_id: 'VAI-662',
     goal_id: 'VAIOS-G701',
-    objective_gap_ref: 'data/virtual_ai_os/discovery/2026-07-08-vai-662-objective-gap-2394e45d2012.md',
-    validation_repair_ref: 'data/virtual_ai_os/discovery/2026-07-08-vai-662-objective-validation-repair.md',
+    objective_gap_ref: 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-731-objective-gap-2394e45d2012.md',
+    validation_repair_ref: 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-731-validation-repair.md',
+    validation_confirmation_ref: 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-731-attempt-4-validation-confirmation.md',
     evidence: 'objective validation repair',
   },
 };
