@@ -3,6 +3,13 @@
   "$id": "https://hallucinate.app/contracts/interaction_envelope.schema.json",
   "title": "interaction_envelope",
   "description": "Canonical normalized interaction payload emitted by voice, gesture, pointer, remote client, and agent control surfaces before policy mediation.",
+  "x-interop": {
+    "pair": "swissknife mobile",
+    "objective": "VAIOS-G700",
+    "role": "Normalized SwissKnife display-widget handoff consumed by the mobile ORB edge runtime",
+    "mobile_descriptor": "mobile/src/orb/metaGlassesOrbDescriptors.js#SWISSKNIFE_MOBILE_INTEROP_INTERFACE",
+    "mobile_action_contract": "mobile/src/utils/metaWearablesDatDisplayWidgetContract.js#SWISSKNIFE_DISPLAY_WIDGET_HANDOFFS"
+  },
   "type": "object",
   "required": [
     "interaction_id",

@@ -3,6 +3,13 @@
   "$id": "https://hallucinate.app/contracts/control_surface_contract.schema.json",
   "title": "control_surface_contract",
   "description": "Descriptor section that binds interface methods and multimodal control surfaces to formal policy bundles, compiled logic artifacts, and mediation receipts.",
+  "x-interop": {
+    "pair": "swissknife mobile",
+    "objective": "VAIOS-G700",
+    "role": "SwissKnife control-surface contract accepted by the mobile ORB edge runtime",
+    "mobile_descriptor": "mobile/src/orb/metaGlassesOrbDescriptors.js#SWISSKNIFE_MOBILE_INTEROP_INTERFACE",
+    "mobile_action_contract": "mobile/src/utils/metaWearablesDatDisplayWidgetContract.js#DISPLAY_WIDGET_ACTION_CONTRACT"
+  },
   "type": "object",
   "required": ["control_surface_contract"],
   "properties": {
