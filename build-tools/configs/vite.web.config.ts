@@ -77,7 +77,30 @@ const forbiddenBrowserImportSpecifiers = new Set([
   'node:fs',
   'node:fs/promises',
   'node:path',
+  // SWR-041: host-only worker and storage runtimes must never enter the
+  // browser deployment bundle. `src/workers/browser.ts` and
+  // `src/storage/browser.ts` are the only browser-safe entrypoints for
+  // worker and storage access; see docs/browser-deployment-policy.md.
+  'worker_threads',
+  'node:worker_threads',
+  'node:os',
 ])
+
+// SWR-041: browser deployment security headers.
+//
+// `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy:
+// require-corp` opt the page into "cross-origin isolation", which is what
+// gates access to `SharedArrayBuffer` and multi-threaded WASM (used by the
+// browser ZKP/theorem-proving stack behind `src/services/zkp`). These are
+// dev/preview-server equivalents of `web/public/_headers`, which applies the
+// same headers (plus CSP) to the actual deployment output in `dist/`. Keep
+// both in sync; `scripts/audit-browser-deployment-policy.mjs` checks both.
+const crossOriginIsolationHeaders: Record<string, string> = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+  'X-Content-Type-Options': 'nosniff',
+}
 
 function swissknifeWebDistCleanPlugin(): Plugin {
   return {
@@ -184,10 +207,28 @@ export default defineConfig({
     },
     target: 'es2020'
   },
-  
+
+  // SWR-041: browser worker builds emitted from dynamic `new Worker(...)` /
+  // `new SharedWorker(...)` construction inside the web app must use the
+  // same ES module format as `build-tools/configs/vite.workers.config.ts`,
+  // never Vite's classic/IIFE worker output, so worker chunks share the
+  // browser-safe import graph and code-splitting as the rest of the bundle.
+  worker: {
+    format: 'es',
+  },
+
   server: {
     port: 3001,
-    host: true
+    host: true,
+    headers: crossOriginIsolationHeaders,
+  },
+
+  // `vite preview` serves the built `dist/` output and is the closest local
+  // approximation of production hosting; it must carry the same isolation
+  // headers as `web/public/_headers` so WASM/COOP-COEP regressions are
+  // caught before deployment.
+  preview: {
+    headers: crossOriginIsolationHeaders,
   },
   
   resolve: {

@@ -1,0 +1,39 @@
+# SwissKnife web deployment headers (SWR-041)
+#
+# Netlify- and Cloudflare Pages-compatible `_headers` file. Vite copies this
+# file verbatim from `web/public/_headers` to the deployment root
+# (`dist/_headers`) because it lives in the Vite `publicDir`.
+#
+# These headers are the production-hosting equivalent of the dev/preview
+# headers configured in `build-tools/configs/vite.web.config.ts`. Keep both
+# in sync; `scripts/audit-browser-deployment-policy.mjs` checks both.
+#
+# Hosts that do not read a `_headers` file (custom nginx/Apache/Express
+# static hosting, a CDN in front of object storage, ...) MUST reproduce these
+# headers at the server/CDN layer. See `docs/browser-deployment-policy.md`
+# for nginx/Apache/Vercel equivalents.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://esm.sh https://cdn.skypack.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src 'self' https:; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; manifest-src 'self'; frame-ancestors 'none'
+
+/service-worker.js
+  Cache-Control: no-cache
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+*.wasm
+  Content-Type: application/wasm
+  Cross-Origin-Resource-Policy: same-origin
