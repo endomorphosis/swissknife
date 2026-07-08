@@ -163,9 +163,14 @@ export const SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_DESCRIPTOR = {
   },
   validation: {
     task_id: 'VAI-665',
+    meta_glasses_task_id: 'MGW-573',
     goal_id: 'VAIOS-G704',
     objective_gap_ref: 'data/virtual_ai_os/discovery/2026-07-08-vai-665-objective-gap-57359897bf4f.md',
+    meta_glasses_objective_gap_ref:
+      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-573-objective-gap-57359897bf4f.md',
     validation_repair_ref: 'data/virtual_ai_os/discovery/2026-07-08-vai-665-validation-repair.md',
+    meta_glasses_validation_repair_ref:
+      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-573-attempt-2-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
