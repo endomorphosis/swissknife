@@ -1,0 +1,263 @@
+/**
+ * SwissKnife <-> Mcp-Plus-Plus core interoperability descriptor.
+ *
+ * VAI-665 objective validation repair: interface contract swissknife
+ * Mcp-Plus-Plus, goal_packet/interoperability/swissknife/06921590135c,
+ * tests/integration/test_swissknife_mcp_plus_plus_interop.py.
+ */
+
+import {
+  MCPPlusPlus,
+  MCPPPInterfaceDescriptor,
+  createMCPPlusPlusClient,
+} from './mcp-plus-plus.js';
+
+export const SWISSKNIFE_MCP_PLUS_PLUS_OBJECTIVE_GOALS = [
+  'VAIOS-G700',
+  'VAIOS-G701',
+  'VAIOS-G702',
+  'VAIOS-G703',
+  'VAIOS-G704',
+  'VAIOS-G705',
+  'VAIOS-G706',
+] as const;
+
+export const SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_METADATA = {
+  interface_contract: 'interface contract swissknife Mcp-Plus-Plus',
+  goal_packet: 'goal_packet/interoperability/swissknife/06921590135c',
+  goal_id: 'VAIOS-G704',
+  source_surface: 'swissknife',
+  target_surface: 'Mcp-Plus-Plus',
+};
+
+export const MCP_PLUS_PLUS_INTEROP_DESCRIPTOR_PATHS = {
+  control_surface_contract: 'swissknife/contracts/control_surface_contract.schema.json',
+  interaction_envelope: 'swissknife/contracts/interaction_envelope.schema.json',
+  mediation_receipt: 'swissknife/contracts/mediation_receipt.schema.json',
+  policy_decision: 'swissknife/contracts/policy_decision.schema.json',
+  compatibility_receipt: 'swissknife/contracts/mcp_plus_plus_compatibility_receipt.schema.json',
+  mcp_idl_fixture: 'Mcp-Plus-Plus/tests-py/fixtures/valid/mcp_idl_descriptor.json',
+  swissknife_interop_fixture:
+    'Mcp-Plus-Plus/tests-py/fixtures/valid/swissknife_mcp_plus_plus_interop_descriptor.json',
+} as const;
+
+export const MCP_PLUS_PLUS_INTEROP_OPERATIONS = [
+  'mcpplusplus.negotiate_capabilities',
+  'mcpplusplus.execute_with_envelope',
+  'mcpplusplus.create_delegation',
+  'mcpplusplus.evaluate_policy',
+  'mcpplusplus.get_dag_frontier',
+  'mcpplusplus.check_compatibility',
+  'mcpplusplus.create_p2p_session',
+] as const;
+
+export const SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_INTERFACE: MCPPPInterfaceDescriptor = {
+  name: 'swissknife-mcp-plus-plus-interop',
+  namespace: 'com.swissknife.interop.mcp_plus_plus',
+  version: '0.1.0',
+  interface_cid: 'bafyswissknifemcpplusplusinterop000000001',
+  methods: MCP_PLUS_PLUS_INTEROP_OPERATIONS.map((operation) => ({
+    name: operation,
+    input_schema_cid: `bafy_${operation.replaceAll('.', '_')}_in`,
+    output_schema_cid: `bafy_${operation.replaceAll('.', '_')}_out`,
+    error_schema_cids: ['bafy_mcp_plus_plus_interop_error'],
+  })),
+  errors: [
+    { name: 'CapabilityNegotiationError', code: 409 },
+    { name: 'EnvelopeExecutionError', code: 422 },
+    { name: 'PolicyDecisionError', code: 403 },
+  ],
+  requires: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
+  compatibility: { compatible_with: [], supersedes: [] },
+  semantic_tags: [
+    'interop',
+    'swissknife',
+    'mcp-plus-plus',
+    'mcp-idl',
+    'cid-envelope',
+    'deontic-policy',
+    'policy-mediation',
+  ],
+  observability: { trace: true, metrics: true, events: true },
+};
+
+export const SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_DESCRIPTOR = {
+  descriptor_id: 'swissknife-mcp-plus-plus-interop@0.1.0',
+  interface: SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_INTERFACE,
+  metadata: SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_METADATA,
+  objective_goals: SWISSKNIFE_MCP_PLUS_PLUS_OBJECTIVE_GOALS,
+  schema_refs: MCP_PLUS_PLUS_INTEROP_DESCRIPTOR_PATHS,
+  runtime_handoff: {
+    source_surface: 'swissknife',
+    target_surface: 'Mcp-Plus-Plus',
+    allowed_surfaces: ['agent', 'mcp_server', 'remote_client'],
+    operations: MCP_PLUS_PLUS_INTEROP_OPERATIONS,
+    required_context_facts: ['agent_identity', 'allowed_surfaces', 'arguments_hash'],
+    control_surface_policy_id: 'policy:swissknife:mcp-plus-plus-interop',
+  },
+  validation: {
+    task_id: 'VAI-665',
+    goal_id: 'VAIOS-G704',
+    evidence: 'objective validation repair',
+  },
+};
+
+export function registerSwissKnifeMcpPlusPlusInterop(client: MCPPlusPlus): string {
+  return client.registerInterface(SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_INTERFACE);
+}
+
+export function createMCPPlusPlusClientWithSwissKnifeInterop(agentDID: string): MCPPlusPlus {
+  const client = createMCPPlusPlusClient(agentDID);
+  registerSwissKnifeMcpPlusPlusInterop(client);
+  return client;
+}
+
+export function toMcpIdlValidatorDescriptor() {
+  return {
+    name: SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_INTERFACE.name,
+    namespace: SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_INTERFACE.namespace,
+    version: SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_INTERFACE.version,
+    methods: SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_INTERFACE.methods,
+    errors: SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_INTERFACE.errors,
+    requires: SWISSKNIFE_MCP_PLUS_PLUS_INTEROP_INTERFACE.requires,
+  };
+}
+
+const MCP_PLUS_PLUS_POLICY_BUNDLE_REF = {
+  policy_id: 'policy:swissknife:mcp-plus-plus-interop',
+  policy_cid: 'local:swissknife:mcp-plus-plus-interop',
+  version: '0.1.0',
+  scope: 'swissknife-mcp-plus-plus-interop',
+  source: 'system_default' as const,
+};
+
+const MCP_PLUS_PLUS_LOGIC_BINDING = {
+  binding_id: 'binding:swissknife-mcp-plus-plus-negotiate',
+  policy_bundle_ref: MCP_PLUS_PLUS_POLICY_BUNDLE_REF,
+  compiled_policy_cid: 'local:swissknife:mcp-plus-plus-interop',
+  ir_version: '0.1.0',
+  frame_fact_kinds: ['actor', 'surface', 'event', 'method', 'context'],
+  surface_refs: ['agent', 'mcp_server', 'remote_client'],
+  method_refs: ['mcpplusplus.execute_with_envelope', 'mcpplusplus.negotiate_capabilities'],
+  norm_refs: ['agent_identity', 'allowed_surfaces', 'arguments_hash'],
+  compiled_artifact_refs: [
+    {
+      artifact_type: 'deontic_policy' as const,
+      cid: 'local:swissknife:mcp-plus-plus-interop',
+      media_type: 'application/json',
+      description: 'interface contract swissknife Mcp-Plus-Plus',
+    },
+  ],
+  interaction_envelope_schema_ref: 'interaction_envelope' as const,
+  policy_decision_schema_ref: 'policy_decision' as const,
+  mediation_receipt_schema_ref: 'mediation_receipt' as const,
+  mediation_required: true,
+};
+
+export function buildSwissKnifeMcpPlusPlusControlSurfaceContract() {
+  return {
+    control_surface_contract: {
+      version: '0.1.0',
+      control_surfaces: [
+        {
+          id: 'swissknife.mcp_plus_plus.mcp-server',
+          kind: 'mcp_server',
+          event_types: ['execute_with_envelope', 'negotiate_capabilities'],
+          intent_resolver: 'swissknife.mcp_plus_plus.intent_resolver',
+          confidence_policy: { min_confidence: 0.85, clarify_below: 0.6 },
+          logic_bindings: [MCP_PLUS_PLUS_LOGIC_BINDING],
+        },
+      ],
+      intent_bindings: [
+        {
+          intent: 'swissknife.mcp_plus_plus.execute_with_envelope',
+          method: 'mcpplusplus.execute_with_envelope',
+          target_ref: 'mcp_plus_plus:interop_descriptor',
+          allowed_surfaces: ['agent', 'mcp_server', 'remote_client'],
+          required_context_facts: ['agent_identity', 'interface_cid'],
+          logic_bindings: [MCP_PLUS_PLUS_LOGIC_BINDING],
+        },
+      ],
+      policy_hooks: {
+        compile_api: 'swissknife://control-surface/compile',
+        evaluate_api: 'swissknife://control-surface/evaluate',
+        decision_receipt: true,
+        compiled_artifact_types: ['deontic_policy', 'explanation'],
+      },
+      context_schema: {
+        state_frames: ['mcp_plus_plus_session'],
+        time_context: true,
+        location_context: false,
+        device_context: false,
+        agent_identity: true,
+      },
+      conflict_resolution: {
+        default: 'require_confirmation',
+        requires_explanation: true,
+        requires_user_confirmation_for: ['execute_with_envelope'],
+      },
+      logic_bindings: [MCP_PLUS_PLUS_LOGIC_BINDING],
+      mediation_receipts: {
+        decision_schema_ref: 'policy_decision',
+        receipt_schema_ref: 'mediation_receipt',
+        emit_for_outcomes: ['allow', 'deny', 'require_confirmation'],
+        store: 'audit_log',
+      },
+    },
+  };
+}
+
+export function buildSwissKnifeMcpPlusPlusInteractionEnvelope() {
+  return {
+    interaction_id: 'interaction:swissknife-mcp-plus-plus:execute-with-envelope:1',
+    surface: 'mcp_server',
+    surface_event: 'execute_with_envelope',
+    raw_payload: {
+      interface_cid: 'bafyswissknifemcpplusplusinterop000000001',
+      method: 'mcpplusplus.negotiate_capabilities',
+    },
+    normalized_intent: {
+      intent: 'swissknife.mcp_plus_plus.execute_with_envelope',
+      method: 'mcpplusplus.execute_with_envelope',
+      target_ref: 'mcp_plus_plus:interop_descriptor',
+      arguments: {
+        interface_cid: 'bafyswissknifemcpplusplusinterop000000001',
+        arguments_hash: 'sha256:swissknife-mcp-plus-plus-execute-with-envelope',
+      },
+      confidence: 0.97,
+    },
+    actor: {
+      type: 'agent',
+      id: 'swissknife:mcp-plus-plus-operator-agent',
+      delegation_chain: ['ucan:swissknife-mcp-plus-plus-interop'],
+    },
+    context: {
+      local_time: '2026-07-08T00:00:00Z',
+      state_frames: ['mcp_plus_plus_session'],
+      device_mode: 'server',
+      platform: 'mcp_plus_plus',
+      location_context: {},
+      device_context: {
+        interface_cid: 'bafyswissknifemcpplusplusinterop000000001',
+        negotiated_profiles: [
+          'mcp++/mcp-idl',
+          'mcp++/cid-envelope',
+          'mcp++/deontic-policy',
+        ],
+      },
+    },
+    control_surface_contract_ref: 'swissknife/contracts/control_surface_contract.schema.json',
+    policy_bundle_ref: MCP_PLUS_PLUS_POLICY_BUNDLE_REF,
+    compiled_policy_cid: 'local:swissknife:mcp-plus-plus-interop',
+    logic_bindings: [
+      {
+        binding_id: 'binding:swissknife-mcp-plus-plus-negotiate',
+        policy_bundle_ref: MCP_PLUS_PLUS_POLICY_BUNDLE_REF,
+        compiled_policy_cid: 'local:swissknife:mcp-plus-plus-interop',
+        surface_ref: 'mcp_server',
+        method_ref: 'mcpplusplus.execute_with_envelope',
+        norm_refs: ['agent_identity', 'allowed_surfaces', 'arguments_hash'],
+      },
+    ],
+  };
+}
