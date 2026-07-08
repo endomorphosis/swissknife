@@ -1,7 +1,7 @@
 /**
  * SwissKnife <-> external/meta-wearables-dat-android Display interoperability descriptor.
  *
- * MGW-574 objective validation repair: interface contract swissknife external/meta-wearables-dat-android,
+ * HAO-735 objective validation repair: interface contract swissknife external/meta-wearables-dat-android,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py.
  *
@@ -32,7 +32,7 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_METADATA = {
   interface_contract: 'interface contract swissknife external/meta-wearables-dat-android',
   goal_packet: 'goal_packet/interoperability/swissknife/06921590135c',
   goal_id: 'VAIOS-G705',
-  task_id: 'MGW-574',
+  task_id: 'HAO-735',
   source_surface: 'swissknife',
   target_surface: 'external/meta-wearables-dat-android',
 };
@@ -164,6 +164,8 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_DESCRIPTOR = {
   schema_refs: {
     control_surface_contract: 'swissknife/contracts/control_surface_contract.schema.json',
     interaction_envelope: 'swissknife/contracts/interaction_envelope.schema.json',
+    mcp_plus_plus_compatibility_receipt:
+      'swissknife/contracts/mcp_plus_plus_compatibility_receipt.schema.json',
     mediation_receipt: 'swissknife/contracts/mediation_receipt.schema.json',
     policy_decision: 'swissknife/contracts/policy_decision.schema.json',
     display_access: META_WEARABLES_DAT_ANDROID_DISPLAY_DESCRIPTOR_PATHS.display_access,
@@ -186,12 +188,12 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_DESCRIPTOR = {
       'policy:swissknife:meta-wearables-dat-android-display-interop',
   },
   validation: {
-    task_id: 'MGW-574',
+    task_id: 'HAO-735',
     goal_id: 'VAIOS-G705',
     objective_gap_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-574-objective-gap-73dd061c433c.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-735-objective-gap-73dd061c433c.md',
     validation_repair_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-574-objective-validation-repair.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-735-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
@@ -348,4 +350,3 @@ export function buildSwissKnifeMetaWearablesDATAndroidInteractionEnvelope() {
     ],
   };
 }
-
