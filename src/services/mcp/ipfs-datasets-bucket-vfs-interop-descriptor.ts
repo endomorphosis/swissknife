@@ -1,9 +1,10 @@
 /**
  * SwissKnife <-> external/ipfs_datasets bucket-VFS interoperability descriptor.
  *
- * MGW-571 objective validation repair: interface contract
+ * HAO-732 objective validation repair: interface contract
  * swissknife external/ipfs_datasets,
  * goal_packet/interoperability/swissknife/06921590135c,
+ * data/hallucinate_multimodal_control/discovery/2026-07-08-hao-732-validation-repair.md,
  * tests/integration/test_swissknife_external_ipfs_datasets_interop.py.
  *
  * `external/ipfs_datasets` bundles a vendored `.tools/ipfs_kit_py` tree that
@@ -182,12 +183,12 @@ export const SWISSKNIFE_IPFS_DATASETS_INTEROP_DESCRIPTOR = {
     control_surface_policy_id: 'policy:swissknife:ipfs-datasets-bucket-vfs-interop',
   },
   validation: {
-    task_id: 'MGW-571',
+    task_id: 'HAO-732',
     goal_id: 'VAIOS-G702',
     objective_gap_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-571-objective-gap-c21adb3eb488.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-732-objective-gap-c21adb3eb488.md',
     validation_repair_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-571-objective-validation-repair.md',
+      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-732-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
@@ -344,7 +345,7 @@ export function buildSwissKnifeIPFSDatasetsInteractionEnvelope() {
 export function buildSwissKnifeIPFSDatasetsMCPPlusPlusCompatibilityReceipt() {
   return {
     receipt_schema: 'mcp_plus_plus_compatibility_receipt_v1',
-    task_id: 'MGW-571',
+    task_id: 'HAO-732',
     session_id: 'session:swissknife-ipfs-datasets-bucket-vfs',
     correlation_id: 'corr:swissknife-ipfs-datasets-bucket-vfs',
     daemon_id: 'ipfs_datasets',
