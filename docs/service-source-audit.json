@@ -1,0 +1,14 @@
+{
+  "schema": "swissknife.service_source_audit.v1",
+  "generatedAt": "2026-07-08T18:12:28.714Z",
+  "ok": true,
+  "summary": {
+    "serviceFileCount": 330,
+    "forbiddenImportCount": 0,
+    "outboundImportTargets": {
+      "src/services": 41,
+      "src/utils": 19
+    }
+  },
+  "forbiddenImports": []
+}

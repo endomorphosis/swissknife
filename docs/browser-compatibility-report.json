@@ -1,0 +1,114 @@
+{
+  "schema": "swissknife.browser_compatibility_check.v1",
+  "generatedAt": "2026-07-08T18:12:33.206Z",
+  "ok": true,
+  "summary": {
+    "checkCount": 20,
+    "passCount": 20,
+    "failCount": 0,
+    "hostOnlyMatchCount": 0
+  },
+  "checks": [
+    {
+      "name": "required file: web/index.html",
+      "passed": true,
+      "detail": "web/index.html"
+    },
+    {
+      "name": "required file: web/js/main-simple.js",
+      "passed": true,
+      "detail": "web/js/main-simple.js"
+    },
+    {
+      "name": "required file: web/js/core/swissknife-core.js",
+      "passed": true,
+      "detail": "web/js/core/swissknife-core.js"
+    },
+    {
+      "name": "required file: vite.web.config.ts",
+      "passed": true,
+      "detail": "vite.web.config.ts"
+    },
+    {
+      "name": "required file: web/tsconfig.json",
+      "passed": true,
+      "detail": "web/tsconfig.json"
+    },
+    {
+      "name": "index has viewport meta",
+      "passed": true,
+      "detail": "web/index.html"
+    },
+    {
+      "name": "index loads browser module entry",
+      "passed": true,
+      "detail": "web/index.html -> /js/main-simple.js"
+    },
+    {
+      "name": "desktop app registered: terminal",
+      "passed": true,
+      "detail": "data-app=\"terminal\""
+    },
+    {
+      "name": "desktop app registered: ai-chat",
+      "passed": true,
+      "detail": "data-app=\"ai-chat\""
+    },
+    {
+      "name": "desktop app registered: file-manager",
+      "passed": true,
+      "detail": "data-app=\"file-manager\""
+    },
+    {
+      "name": "desktop app registered: task-manager",
+      "passed": true,
+      "detail": "data-app=\"task-manager\""
+    },
+    {
+      "name": "desktop app registered: model-browser",
+      "passed": true,
+      "detail": "data-app=\"model-browser\""
+    },
+    {
+      "name": "desktop app registered: ipfs-explorer",
+      "passed": true,
+      "detail": "data-app=\"ipfs-explorer\""
+    },
+    {
+      "name": "desktop app registered: mcp-control",
+      "passed": true,
+      "detail": "data-app=\"mcp-control\""
+    },
+    {
+      "name": "desktop app registered: p2p-network",
+      "passed": true,
+      "detail": "data-app=\"p2p-network\""
+    },
+    {
+      "name": "desktop app registered: p2p-chat-unified",
+      "passed": true,
+      "detail": "data-app=\"p2p-chat-unified\""
+    },
+    {
+      "name": "vite web base is relative",
+      "passed": true,
+      "detail": "base: ./"
+    },
+    {
+      "name": "vite web target is es2020",
+      "passed": true,
+      "detail": "target: es2020"
+    },
+    {
+      "name": "vite web aliases browser polyfills",
+      "passed": true,
+      "detail": "crypto-browserify alias"
+    },
+    {
+      "name": "web source excludes host-only node APIs",
+      "passed": true,
+      "detail": "no host-only matches"
+    }
+  ],
+  "hostOnlyMatches": []
+}

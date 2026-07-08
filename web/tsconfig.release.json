@@ -1,0 +1,31 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "composite": false,
+    "declaration": true,
+    "emitDeclarationOnly": false,
+    "incremental": false,
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": [
+    "js/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test-dist",
+    "js/adapters/enhanced-cli-adapter.js",
+    "js/core/swissknife-core.js",
+    "js/apps/*-broken.js",
+    "js/apps/*-backup.js",
+    "js/apps/*-old.js",
+    "js/apps/settings-backup.js",
+    "js/apps/neural-network-designer-old.js",
+    "js/apps/strudel-broken.js",
+    "js/apps/strudel-grandma-broken.js",
+    "js/apps/vibecode-broken.js"
+  ]
+}

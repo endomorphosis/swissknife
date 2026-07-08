@@ -1,4 +1,19 @@
 import { getHallucinateBackendBridge } from '../hallucinate-backend-bridge.js';
+import {
+    BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
+    getBrowserLibp2pDefaultStatus,
+    summarizeBrowserLibp2pGaps
+} from '../../../src/services/mcp/libp2p-browser-runtime.ts';
+
+const LIBP2P_BROWSER_CAPABILITY_LABELS = {
+    webrtc: 'WebRTC',
+    websockets: 'WebSockets',
+    'circuit-relay-v2': 'Circuit Relay v2',
+    identify: 'Identify',
+    noise: 'Noise',
+    yamux: 'Yamux',
+    gossipsub: 'GossipSub'
+};
 
 // ---------------------------------------------------------------------------
 // MCP dashboard browser-truth policy (SWR-027)
@@ -118,6 +133,10 @@ class MCPControlApp {
         this.remoteServers = new Map(); // Remote MCP servers
         this.hallucinateBridge = getHallucinateBackendBridge();
         this.hallucinateSnapshot = null;
+        this.libp2pBrowserDefaults = null;
+        this.libp2pBrowserDefaultsError = null;
+        this.libp2pBrowserDefaultsLoading = false;
+        this.libp2pBrowserDefaultsPromise = null;
         
         // Initialize common server templates
         this.initializeServerTemplates();
@@ -131,6 +150,9 @@ class MCPControlApp {
         // Reconcile Electron-supervised Hallucinate/IPFS daemons when hosted in the app.
         this.syncHallucinateDaemons().catch(error => {
             console.warn('Failed to sync Hallucinate daemon catalog:', error);
+        });
+        this.refreshLibp2pBrowserDefaults({ silent: true }).catch(error => {
+            console.warn('Failed to load browser libp2p defaults:', error);
         });
     }
 
@@ -226,8 +248,10 @@ class MCPControlApp {
     }
 
     async render() {
+        await this.refreshLibp2pBrowserDefaults({ silent: true });
         return `
             <div class="mcp-control-app enhanced">
+                ${this.renderLibp2pBrowserStyles()}
                 <div class="mcp-header">
                     <div class="header-left">
                         <h2>🔌 MCP Server Control Center</h2>
@@ -250,6 +274,7 @@ class MCPControlApp {
                         <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary" title="Browser-connectable remotes: ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}">🌐 Add Browser Remote</button>
                         <button onclick="mcpControlApp.showDiscovery()" class="btn-secondary">🔍 Discovery</button>
                         <button onclick="mcpControlApp.showMetrics()" class="btn-secondary">📊 Metrics</button>
+                        <button onclick="mcpControlApp.refreshLibp2pBrowserDefaults()" class="btn-secondary">🔄 libp2p</button>
                     </div>
                 </div>
                 
@@ -324,6 +349,10 @@ class MCPControlApp {
                                 <span class="stat-value">${this.serverTemplates.size}</span>
                             </div>
                         </div>
+
+                        <div id="mcp-libp2p-browser-panel">
+                            ${this.renderLibp2pBrowserDefaultsPanel()}
+                        </div>
                         
                         <div class="recent-activity">
                             <h4>🔔 Recent Activity</h4>
@@ -360,6 +389,202 @@ class MCPControlApp {
                 </div>
                 
                 ${this.renderModals()}
+            </div>
+        `;
+    }
+
+    renderLibp2pBrowserStyles() {
+        return `
+            <style>
+                .libp2p-browser-defaults {
+                    margin-top: 16px;
+                    padding: 12px;
+                    border: 1px solid #d8dee8;
+                    border-radius: 8px;
+                    background: #f8fafc;
+                    color: #243041;
+                }
+
+                .libp2p-browser-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                    margin-bottom: 8px;
+                }
+
+                .libp2p-browser-header h4 {
+                    margin: 0;
+                    font-size: 14px;
+                }
+
+                .libp2p-browser-status {
+                    font-weight: 600;
+                    margin-bottom: 6px;
+                }
+
+                .libp2p-browser-meta {
+                    color: #5d6b7c;
+                    font-size: 12px;
+                    line-height: 1.4;
+                    margin-bottom: 10px;
+                }
+
+                .libp2p-browser-meta code,
+                .libp2p-capability code {
+                    white-space: normal;
+                    word-break: break-word;
+                }
+
+                .libp2p-browser-capabilities,
+                .libp2p-browser-gap-list {
+                    display: grid;
+                    gap: 8px;
+                }
+
+                .libp2p-capability,
+                .libp2p-gap-row {
+                    padding: 8px;
+                    border: 1px solid #d8dee8;
+                    border-left: 4px solid #94a3b8;
+                    border-radius: 6px;
+                    background: #ffffff;
+                    font-size: 12px;
+                }
+
+                .libp2p-capability.configured {
+                    border-left-color: #16a34a;
+                }
+
+                .libp2p-capability.gap,
+                .libp2p-gap-row {
+                    border-left-color: #d97706;
+                    background: #fff7ed;
+                }
+
+                .libp2p-capability strong,
+                .libp2p-capability code {
+                    display: block;
+                    margin-bottom: 3px;
+                }
+
+                .btn-sm {
+                    padding: 4px 8px;
+                    font-size: 12px;
+                }
+            </style>
+        `;
+    }
+
+    escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    async refreshLibp2pBrowserDefaults(options = {}) {
+        if (this.libp2pBrowserDefaultsPromise) {
+            return this.libp2pBrowserDefaultsPromise;
+        }
+
+        this.libp2pBrowserDefaultsLoading = true;
+        this.libp2pBrowserDefaultsError = null;
+        const shouldUpdate = options.silent !== true;
+        if (shouldUpdate) this.refreshUI();
+
+        this.libp2pBrowserDefaultsPromise = getBrowserLibp2pDefaultStatus()
+            .then(status => {
+                this.libp2pBrowserDefaults = status;
+                this.libp2pBrowserDefaultsError = null;
+                return status;
+            })
+            .catch(error => {
+                this.libp2pBrowserDefaults = null;
+                this.libp2pBrowserDefaultsError = error instanceof Error ? error.message : String(error);
+                return null;
+            })
+            .finally(() => {
+                this.libp2pBrowserDefaultsLoading = false;
+                this.libp2pBrowserDefaultsPromise = null;
+                if (shouldUpdate) this.refreshUI();
+            });
+
+        return this.libp2pBrowserDefaultsPromise;
+    }
+
+    getLibp2pCapability(name) {
+        return this.libp2pBrowserDefaults?.report?.capabilities?.find(capability => capability.name === name) || null;
+    }
+
+    getLibp2pGap(name) {
+        return this.libp2pBrowserDefaults?.report?.gaps?.find(gap => gap.name === name) || null;
+    }
+
+    renderLibp2pBrowserDefaultsPanel() {
+        const report = this.libp2pBrowserDefaults?.report || null;
+        const configuredCount = report?.capabilities?.filter(capability => capability.configured).length || 0;
+        const gapCount = report?.gaps?.length || 0;
+        const statusText = this.libp2pBrowserDefaultsLoading
+            ? 'Checking browser packages'
+            : this.libp2pBrowserDefaultsError
+                ? 'Capability check failed'
+                : report?.enabled === false
+                    ? 'Disabled'
+                    : `${configuredCount} configured, ${gapCount} gaps`;
+        const listen = this.libp2pBrowserDefaults?.listenMultiaddrs?.length
+            ? this.libp2pBrowserDefaults.listenMultiaddrs.join(', ')
+            : 'not resolved yet';
+        const updated = this.libp2pBrowserDefaults?.generatedAt
+            ? new Date(this.libp2pBrowserDefaults.generatedAt).toLocaleTimeString()
+            : 'pending';
+
+        return `
+            <div class="libp2p-browser-defaults" data-testid="mcp-libp2p-browser-defaults">
+                <div class="libp2p-browser-header">
+                    <h4>Browser libp2p Defaults</h4>
+                    <button onclick="mcpControlApp.refreshLibp2pBrowserDefaults()" class="btn-secondary btn-sm">Refresh</button>
+                </div>
+                <div class="libp2p-browser-status" data-testid="mcp-libp2p-browser-status">
+                    ${this.escapeHtml(statusText)}
+                </div>
+                <div class="libp2p-browser-meta">
+                    Listen: <code>${this.escapeHtml(listen)}</code><br>
+                    Updated: ${this.escapeHtml(updated)}
+                </div>
+                ${this.libp2pBrowserDefaultsError ? `
+                    <div class="libp2p-capability gap">
+                        <strong>Runtime status unavailable</strong>
+                        <div>${this.escapeHtml(this.libp2pBrowserDefaultsError)}</div>
+                    </div>
+                ` : ''}
+                <div class="libp2p-browser-capabilities">
+                    ${BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER.map(name => {
+                        const capability = this.getLibp2pCapability(name);
+                        const gap = this.getLibp2pGap(name);
+                        const state = capability?.configured ? 'configured' : 'gap';
+                        const packageName = capability?.packageName || gap?.packageName || 'package check pending';
+                        const detail = capability?.configured
+                            ? `configured from ${capability.exportName || 'default export'}`
+                            : gap?.reason || (this.libp2pBrowserDefaultsLoading ? 'checking installed package' : 'not configured');
+                        return `
+                            <div class="libp2p-capability ${state}" data-testid="mcp-libp2p-capability-${name}" data-installed="${Boolean(capability?.installed)}" data-configured="${Boolean(capability?.configured)}">
+                                <strong>${this.escapeHtml(LIBP2P_BROWSER_CAPABILITY_LABELS[name] || name)}</strong>
+                                <code>${this.escapeHtml(packageName)}</code>
+                                <div>${this.escapeHtml(detail)}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                ${report && report.gaps.length > 0 ? `
+                    <div class="libp2p-browser-gap-list">
+                        ${summarizeBrowserLibp2pGaps(report).map(summary => `
+                            <div class="libp2p-gap-row">${this.escapeHtml(summary)}</div>
+                        `).join('')}
+                    </div>
+                ` : ''}
             </div>
         `;
     }
@@ -1542,6 +1767,10 @@ class MCPControlApp {
         const container = document.getElementById('mcp-server-list');
         if (container) {
             container.innerHTML = this.renderServerList();
+        }
+        const libp2pPanel = document.getElementById('mcp-libp2p-browser-panel');
+        if (libp2pPanel) {
+            libp2pPanel.innerHTML = this.renderLibp2pBrowserDefaultsPanel();
         }
     }
 
