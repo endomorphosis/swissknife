@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/logic/api/batch-processor.ts
-=======
->>>>>>> Stashed changes
 /**
  * BatchProcessor — async/parallel batch formula evaluation.
  *
@@ -12,11 +8,7 @@
  * Wraps the WasmProverHub for bulk policy consistency checking and provides
  * general-purpose batch processing with progress tracking.
  *
-<<<<<<< Updated upstream
  * T-102.
-=======
- * Sprint 19, T-102.
->>>>>>> Stashed changes
  * Reference: ipfs_datasets_py/logic/batch_processing.py
  */
 
@@ -154,9 +146,3 @@ export class BatchProcessor {
     return BatchProcessor.process(items, fn, { ...opts, concurrency: 1 });
   }
 }
-<<<<<<< Updated upstream
-========
-export * from './logic/api/batch-processor.js';
->>>>>>>> Stashed changes:src/services/batch-processor.ts
-=======
->>>>>>> Stashed changes

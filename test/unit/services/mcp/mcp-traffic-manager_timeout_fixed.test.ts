@@ -1,15 +1,7 @@
-<<<<<<< Updated upstream
 import { TrafficManager } from '../../../../src/services/mcp/mcp-traffic-manager';
 import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry';
 import { VersionedServerConfig } from '../../../../src/types/mcp'; // Assuming this type exists
 import { connectToServer } from '../../../../src/services/mcp/mcpClient'; // Assuming this function exists
-=======
-import { describe, it, expect, beforeEach, afterEach, vi, type Mocked } from 'vitest';
-import { TrafficManager } from '../../../../src/services/mcp-traffic-manager';
-import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry';
-import type { VersionedServerConfig } from '../../../../src/services/mcp-types';
-import { connectToServer } from '../../../../src/services/mcp/host/mcpClient';
->>>>>>> Stashed changes
 
 const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const versionFromConnectionName = (name: unknown) => String(name).replace(/^.*-v/, '');
@@ -19,11 +11,7 @@ const versionFromConnectionName = (name: unknown) => String(name).replace(/^.*-v
  */
 
 // Mock the registry
-<<<<<<< Updated upstream
 jest.mock('../../../../src/services/mcp/mcp-registry', () => {
-=======
-vi.mock('../../../../src/services/mcp/mcp-registry', () => {
->>>>>>> Stashed changes
     const mockRegistry = {
         initialize: vi.fn().mockResolvedValue(undefined),
         getActiveServerVersions: vi.fn(),
@@ -39,13 +27,8 @@ vi.mock('../../../../src/services/mcp/mcp-registry', () => {
 });
 
 // Mock the connectToServer function
-<<<<<<< Updated upstream
 jest.mock('../../../../src/services/mcp/mcpClient', () => ({
     connectToServer: jest.fn()
-=======
-vi.mock('../../../../src/services/mcp/host/mcpClient', () => ({
-    connectToServer: vi.fn()
->>>>>>> Stashed changes
 }));
 
 // Mock the logging utilities

@@ -1,28 +1,13 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/mcp/mcp-descriptor-trust.ts
-=======
-import { ed25519 } from '@noble/curves/ed25519';
->>>>>>> Stashed changes
 import {
   canonicalize,
   computeInterfaceCID,
   type InterfaceDescriptor,
 } from './mcp-idl.js';
-<<<<<<< Updated upstream
-=======
-import {
-  base64urlDecodeToBytes,
-  base64urlEncodeBytes,
-} from '../shared/browser-bytes.js';
->>>>>>> Stashed changes
 import type {
   MCPUIDescriptorTrustMetadata,
   MCPUIProfileDescriptor,
 } from './mcp-ui-profile.js';
-<<<<<<< Updated upstream
 import { base64UrlDecode, base64UrlEncode } from '../shared/browser-crypto.js';
-=======
->>>>>>> Stashed changes
 
 export interface MCPUIDescriptorTrustPolicy {
   require_signature?: boolean;
@@ -62,11 +47,7 @@ export function signMCPUIProfileDescriptor(
   const trust: MCPUIDescriptorTrustMetadata = {
     signed_by: signerDid,
     signature_algorithm: 'Ed25519',
-<<<<<<< Updated upstream
     signature: base64UrlEncode(signature),
-=======
-    signature: base64urlEncodeBytes(signature),
->>>>>>> Stashed changes
     signed_at: signedAt,
     canonical_cid: computeInterfaceCID(unsigned),
   };
@@ -137,11 +118,7 @@ export function verifyMCPUIProfileDescriptorTrust(
   try {
     signatureValid = keystore.verify(
       new Uint8Array(canonicalize(unsigned as InterfaceDescriptor)),
-<<<<<<< Updated upstream
       base64UrlDecode(trust.signature),
-=======
-      base64urlDecodeToBytes(trust.signature),
->>>>>>> Stashed changes
       trust.signed_by,
     );
   } catch {
@@ -196,7 +173,6 @@ const didKeyVerifier: MCPUIDescriptorTrustKeystore = {
     throw new Error('Descriptor signing requires an explicit keystore.');
   },
   verify(data: Uint8Array, signature: Uint8Array, did: string): boolean {
-<<<<<<< Updated upstream
     const nodeCrypto = getNodeCrypto();
     if (!nodeCrypto) return false;
     try {
@@ -206,17 +182,12 @@ const didKeyVerifier: MCPUIDescriptorTrustKeystore = {
         type: 'spki',
       });
       return nodeCrypto.verify(null, data, publicKey, signature);
-=======
-    try {
-      return ed25519.verify(signature, data, didToEd25519PublicKeyBytes(did));
->>>>>>> Stashed changes
     } catch {
       return false;
     }
   },
 };
 
-<<<<<<< Updated upstream
 type NodeCryptoModule = {
   createPublicKey(options: { key: Uint8Array; format: 'der'; type: 'spki' }): unknown;
   verify(algorithm: null, data: Uint8Array, key: unknown, signature: Uint8Array): boolean;
@@ -228,8 +199,6 @@ function getNodeCrypto(): NodeCryptoModule | null {
   } | undefined)?.getBuiltinModule?.('crypto') as NodeCryptoModule | undefined) ?? null;
 }
 
-=======
->>>>>>> Stashed changes
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const ED25519_MULTICODEC_PREFIX = new Uint8Array([0xed, 0x01]);
 
@@ -270,7 +239,6 @@ function base58Decode(value: string): Uint8Array {
   }
   return new Uint8Array(bytes.reverse());
 }
-<<<<<<< Updated upstream
 
 function buildEd25519SpkiDer(rawPublicKey: Uint8Array): Uint8Array {
   return new Uint8Array([
@@ -289,8 +257,3 @@ function buildEd25519SpkiDer(rawPublicKey: Uint8Array): Uint8Array {
     ...rawPublicKey,
   ]);
 }
-========
-export * from './mcp/mcp-descriptor-trust.js';
->>>>>>>> Stashed changes:src/services/mcp-descriptor-trust.ts
-=======
->>>>>>> Stashed changes

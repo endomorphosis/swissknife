@@ -146,7 +146,15 @@ test('captures launch, screenshot, console, and network evidence for every manif
     const canvases = await appWindow.locator('canvas').count();
     const links = await appWindow.locator('a').count();
     const generatedSurface = await appWindow.locator('.generated-service-surface, .generated-mcp-app').count();
-    const errorText = /error|failed|exception/.test(lower);
+    const errorSurface = await appWindow.locator([
+      '.app-error',
+      '.descriptor-invocation-error',
+      '.scan-error',
+      '.neural-photoshop-error',
+      '.media-player-error',
+      '[data-envelope-status="error"]',
+    ].join(', ')).count();
+    const errorText = errorSurface > 0 || /\b(app load error|failed to load|uncaught|exception|traceback)\b/.test(lower);
     const placeholderText = /placeholder|coming soon|not implemented|under construction/.test(lower);
     const status = classifyApp({
       launchKind: app.launch_kind,
@@ -333,6 +341,7 @@ function mimeType(filePath: string): string {
     case '.html':
       return 'text/html; charset=utf-8';
     case '.js':
+    case '.mjs':
       return 'text/javascript; charset=utf-8';
     case '.css':
       return 'text/css; charset=utf-8';

@@ -163,6 +163,8 @@ async function probeHttpEndpoint(service, kind, endpointPath, options) {
     const response = await fetchWithTimeout(url, options);
     const text = await response.text();
     const body = parseJson(text);
+    const toolNames = uniqueStrings(extractToolNames(body));
+    const interfaceDescriptors = extractInterfaceDescriptors(body);
     const health404Ignored = kind === 'health' && response.status === 404 && !service.health_404_is_failure;
     return {
       kind,
@@ -173,6 +175,14 @@ async function probeHttpEndpoint(service, kind, endpointPath, options) {
       duration_ms: Date.now() - startedAt,
       health_404_ignored: health404Ignored,
       payload_summary: summarizePayload(body ?? text),
+      derived: {
+        tool_names: toolNames,
+        tool_count: toolNames.length,
+        tool_sample: toolNames.slice(0, 20),
+        interface_descriptors: interfaceDescriptors,
+        interface_count: interfaceDescriptors.length,
+        interface_sample: interfaceDescriptors.slice(0, 10),
+      },
       ...(body !== null ? { body_sample: samplePayload(body) } : {}),
     };
   } catch (error) {
@@ -216,13 +226,13 @@ async function fetchWithTimeout(url, options) {
 
 function buildDescriptorDiscovery(service, probes) {
   const toolNames = uniqueStrings([
-    ...extractToolNames(probes.tools.body_sample),
-    ...extractToolNames(probes.mcp.body_sample),
+    ...probeToolNames(probes.tools),
+    ...probeToolNames(probes.mcp),
   ]);
-  const interfaceDescriptors = extractInterfaceDescriptors(probes.interfaces.body_sample);
+  const interfaceDescriptors = probeInterfaceDescriptors(probes.interfaces);
   const liveSources = [
     probes.tools.ok && toolNames.length > 0 ? 'tools_list' : null,
-    probes.mcp.ok && extractToolNames(probes.mcp.body_sample).length > 0 ? 'mcp_json_rpc_tools_list' : null,
+    probes.mcp.ok && probeToolNames(probes.mcp).length > 0 ? 'mcp_json_rpc_tools_list' : null,
     probes.interfaces.ok && interfaceDescriptors.length > 0 ? 'interfaces' : null,
   ].filter(Boolean);
   const staticDescriptor = staticDescriptorPackSummary(service.descriptor_pack);
@@ -366,8 +376,30 @@ function slimProbe(probe) {
     duration_ms: probe.duration_ms,
     health_404_ignored: probe.health_404_ignored,
     payload_summary: probe.payload_summary,
+    derived: probe.derived
+      ? {
+        tool_count: probe.derived.tool_count,
+        tool_sample: probe.derived.tool_sample,
+        interface_count: probe.derived.interface_count,
+        interface_sample: probe.derived.interface_sample,
+      }
+      : undefined,
     error: probe.error,
   };
+}
+
+function probeToolNames(probe) {
+  if (Array.isArray(probe.derived?.tool_names)) {
+    return probe.derived.tool_names;
+  }
+  return extractToolNames(probe.body_sample);
+}
+
+function probeInterfaceDescriptors(probe) {
+  if (Array.isArray(probe.derived?.interface_descriptors)) {
+    return probe.derived.interface_descriptors;
+  }
+  return extractInterfaceDescriptors(probe.body_sample);
 }
 
 function summarizePayload(payload) {

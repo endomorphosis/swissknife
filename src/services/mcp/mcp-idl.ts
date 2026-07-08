@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/mcp/mcp-idl.ts
-=======
->>>>>>> Stashed changes
 /**
  * MCP-IDL: CID-Addressed Interface Contracts (MCP++ Profile A)
  *
@@ -14,17 +10,7 @@
  * References: docs/spec/mcp-idl.md in endomorphosis/Mcp-Plus-Plus
  */
 
-<<<<<<< Updated upstream
 import { bytesFrom, bytesToHex, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
-=======
-import { sha256 } from '@noble/hashes/sha256';
-import {
-  bytesToHex,
-  toUint8Array,
-  utf8ToBytes,
-  type BytesLike,
-} from '../shared/browser-bytes.js';
->>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Types (§4)
@@ -117,12 +103,11 @@ export interface CompatibilityVerdict {
  * Keys are sorted lexicographically at every nesting level so that
  * semantically-identical descriptors always hash to the same CID.
  */
-<<<<<<< Updated upstream
-export function canonicalize(descriptor: InterfaceDescriptor): Buffer {
-  return new CanonicalBytes(stableStringify(descriptor)) as unknown as Buffer;
+export function canonicalize(descriptor: InterfaceDescriptor): CanonicalBytes {
+  return new CanonicalBytes(stableStringify(descriptor));
 }
 
-class CanonicalBytes extends Uint8Array {
+export class CanonicalBytes extends Uint8Array {
   constructor(private readonly text: string) {
     super(utf8Bytes(text));
   }
@@ -132,10 +117,6 @@ class CanonicalBytes extends Uint8Array {
     if (encoding === 'utf8' || encoding === 'utf-8') return this.text;
     return this.text;
   }
-=======
-export function canonicalize(descriptor: InterfaceDescriptor): Uint8Array {
-  return utf8ToBytes(stableStringify(descriptor));
->>>>>>> Stashed changes
 }
 
 function stableStringify(value: unknown): string {
@@ -161,22 +142,12 @@ function stableStringify(value: unknown): string {
  */
 export function computeInterfaceCID(descriptor: InterfaceDescriptor): string {
   const bytes = canonicalize(descriptor);
-<<<<<<< Updated upstream
   return `sha256:${sha256Hex(bytes)}`;
 }
 
 /** Compute a CID for arbitrary bytes / strings. */
-export function computeCID(data: Buffer | Uint8Array | ArrayBuffer | readonly number[] | string): string {
+export function computeCID(data: Uint8Array | ArrayBuffer | readonly number[] | string): string {
   return `sha256:${sha256Hex(bytesFrom(data))}`;
-=======
-  return `sha256:${bytesToHex(sha256(bytes))}`;
-}
-
-/** Compute a CID for arbitrary bytes / strings. */
-export function computeCID(data: BytesLike): string {
-  const input = toUint8Array(data);
-  return `sha256:${bytesToHex(sha256(input))}`;
->>>>>>> Stashed changes
 }
 
 // ---------------------------------------------------------------------------
@@ -186,11 +157,7 @@ export function computeCID(data: BytesLike): string {
 interface RegistryEntry {
   cid: string;
   descriptor: InterfaceDescriptor;
-<<<<<<< Updated upstream
-  canonicalBytes: Buffer;
-=======
-  canonicalBytes: Uint8Array;
->>>>>>> Stashed changes
+  canonicalBytes: CanonicalBytes;
 }
 
 export class InterfaceRepository {
@@ -226,11 +193,7 @@ export class InterfaceRepository {
   }
 
   /** `interfaces/get(interface_cid)` → canonical descriptor bytes (or null) */
-<<<<<<< Updated upstream
-  get(interfaceCid: string): Buffer | null {
-=======
-  get(interfaceCid: string): Uint8Array | null {
->>>>>>> Stashed changes
+  get(interfaceCid: string): CanonicalBytes | null {
     return this.store.get(interfaceCid)?.canonicalBytes ?? null;
   }
 
@@ -340,9 +303,3 @@ export class InterfaceRepository {
     return InterfaceRepository.getInstance();
   }
 }
-<<<<<<< Updated upstream
-========
-export * from './mcp/mcp-idl.js';
->>>>>>>> Stashed changes:src/services/mcp-idl.ts
-=======
->>>>>>> Stashed changes

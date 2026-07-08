@@ -1,13 +1,10 @@
-<<<<<<< Updated upstream
-export * from './mcp/mcp-generated-app-quality-gates.js';
-=======
 import {
   InterfaceRepository,
 } from './mcp-idl.js';
 import type {
   ControlSurfacePolicyEvaluationRequest,
   ControlSurfacePolicyEvaluator,
-} from '../control-surface-mediator.js';
+} from './control-surface-mediator.js';
 import {
   LocalMCPInterfaceRegistryBackend,
   MCPInterfaceDiscoveryRegistry,
@@ -687,4 +684,3 @@ function sampleString(schema: Record<string, unknown>): string {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
->>>>>>> Stashed changes

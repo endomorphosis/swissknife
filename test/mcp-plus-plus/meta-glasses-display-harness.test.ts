@@ -1,11 +1,3 @@
-<<<<<<< Updated upstream
-=======
-/**
- * @vitest-environment node
- */
-
-import { readFileSync } from 'fs';
->>>>>>> Stashed changes
 import { join } from 'path';
 import {
   LocalMCPInterfaceRegistryBackend,

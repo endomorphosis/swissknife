@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/mcp/mcp-remote-deontic-engine.ts
-=======
->>>>>>> Stashed changes
 /**
  * mcp-remote-deontic-engine.ts
  *
@@ -43,7 +39,6 @@
 import {
   PolicyEngine,
   type Policy,
-<<<<<<< Updated upstream
 } from './mcp-policy.js';
 import {
   deonticAtom,
@@ -51,12 +46,6 @@ import {
   policyToDeonticFormulas,
   type PolicyFormulaSet,
 } from '../logic/deontic/policy-formulas.js';
-=======
-  type Permission,
-  type Prohibition,
-  type Obligation,
-} from './mcp-policy';
->>>>>>> Stashed changes
 import {
   checkPolicyConsistency,
   createDeonticORBEvaluator,
@@ -64,7 +53,6 @@ import {
   type DeonticConsistencyResult,
   type ORBDeonticEvaluation,
   type ORBDeonticEvaluator,
-<<<<<<< Updated upstream
 } from './mcp-deontic-interface-broker.js';
 import type { WasmProverHub } from './mcp-wasm-prover-hub.js';
 import { TdfolProverBridge } from '../provers/tdfol-prover-bridge.js';
@@ -76,12 +64,6 @@ export {
   policyToDeonticFormulas,
   type PolicyFormulaSet,
 } from '../logic/deontic/policy-formulas.js';
-=======
-} from './mcp-deontic-interface-broker';
-import type { WasmProverHub } from './mcp-wasm-prover-hub';
-import { TdfolProverBridge } from '../provers/tdfol-prover-bridge';
-import type { WasmProofResult } from '../provers/prover-types';
->>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Connector contract (structural — the real MCPPPServerConnector satisfies it)
@@ -125,17 +107,6 @@ export interface RemoteHealth {
   detail?: unknown;
 }
 
-<<<<<<< Updated upstream
-=======
-export interface PolicyFormulaSet {
-  permissions: string[];
-  prohibitions: string[];
-  obligations: string[];
-  /** All clauses, conjunction of which is the policy's deontic theory. */
-  all: string[];
-}
-
->>>>>>> Stashed changes
 export interface RemoteDeonticEngineOptions {
   connector: DeonticLogicConnector;
   /** Hierarchical category the logic tools live under. Defaults to `logic_tools`. */
@@ -152,69 +123,6 @@ export interface RemoteDeonticEngineOptions {
   falsumSymbol?: string;
 }
 
-<<<<<<< Updated upstream
-=======
-// ---------------------------------------------------------------------------
-// Policy → TDFOL formula mapping (pure, network-free, unit-testable)
-// ---------------------------------------------------------------------------
-
-/**
- * Canonical TDFOL atom for a (capability, resource) pair. Sanitized to a valid
- * identifier (`[A-Za-z0-9_]`, letter-initial) so the same cap+resource always
- * yields the same predicate — a prerequisite for the prover to see clashes.
- */
-export function deonticAtom(capability: string, resource: string): string {
-  const norm = (s: string): string =>
-    (s || '')
-      .trim()
-      .replace(/[^A-Za-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .toLowerCase() || 'any';
-  return `act_${norm(capability)}_on_${norm(resource)}`;
-}
-
-/** True when any part of the policy carries temporal semantics (window/deadline). */
-export function isTemporalPolicy(policy: Policy): boolean {
-  if (policy.temporal) return true;
-  const hasTemporal = (c: { temporal?: unknown }): boolean => Boolean(c.temporal);
-  if (policy.permissions.some(hasTemporal)) return true;
-  if (policy.prohibitions.some(hasTemporal)) return true;
-  if (policy.obligations.some(o => o.deadline !== undefined)) return true;
-  return false;
-}
-
-/**
- * Map a Profile-D {@link Policy} to TDFOL clauses. Permissions become `P(a)`,
- * prohibitions `F(a)`, obligations `O(a)`. Obligations carrying a deadline are
- * wrapped `◊O(a)` ("eventually obligatory") to preserve the temporal intent for
- * the prover; permanent policies (a `notAfter`-free top-level window) leave the
- * clauses unwrapped.
- */
-export function policyToDeonticFormulas(policy: Policy): PolicyFormulaSet {
-  const permissions = policy.permissions.map(
-    (p: Permission) => `P(${deonticAtom(p.cap, p.rsc)})`,
-  );
-  const prohibitions = policy.prohibitions.map(
-    (p: Prohibition) => `F(${deonticAtom(p.cap, p.rsc)})`,
-  );
-  const obligations = policy.obligations.map((o: Obligation) => {
-    const atom = deonticAtom(o.requiredCap ?? o.description, o.rsc ?? '*');
-    const core = `O(${atom})`;
-    return o.deadline !== undefined ? `◊${core}` : core;
-  });
-  return {
-    permissions,
-    prohibitions,
-    obligations,
-    all: [...permissions, ...prohibitions, ...obligations],
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Remote engine
-// ---------------------------------------------------------------------------
-
->>>>>>> Stashed changes
 /**
  * Thin, well-typed client for the datasets formal-logic MCP tools. All methods
  * normalize the Python return dicts and never throw for expected remote/tool
@@ -342,18 +250,6 @@ export class RemoteDeonticEngine {
     return { consistent: !proof.proved, proof };
   }
 
-<<<<<<< Updated upstream
-=======
-  /**
-   * Structural adapter used by browser-facing callers that accept an injected
-   * consistency checker without statically depending on this deprecated remote
-   * bridge.
-   */
-  async checkPolicyConsistency(policy: Policy, localHub?: WasmProverHub): Promise<RemoteConsistencyResult> {
-    return checkPolicyConsistencyRemote(policy, this, localHub);
-  }
-
->>>>>>> Stashed changes
   /** Convert legal / policy text to deontic formulas via `legal_text_to_deontic`. */
   async legalTextToDeontic(
     text: string,
@@ -732,9 +628,3 @@ export function createLocalFirstDeonticORBEvaluator(
     },
   };
 }
-<<<<<<< Updated upstream
-========
-export * from './mcp/mcp-remote-deontic-engine.js';
->>>>>>>> Stashed changes:src/services/mcp-remote-deontic-engine.ts
-=======
->>>>>>> Stashed changes

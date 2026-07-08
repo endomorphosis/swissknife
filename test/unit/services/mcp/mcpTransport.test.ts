@@ -17,6 +17,63 @@ describe('MCP Transport Service', () => {
       expect(transport.getType()).toBe('websocket');
       expect(transport.isConnected()).toBe(false);
     });
+
+    it('should use browser WebSocket protocols instead of Node header options', async () => {
+      const originalWebSocket = (globalThis as Record<string, unknown>).WebSocket;
+      const constructed: Array<{ url: string; init: unknown }> = [];
+
+      class FakeBrowserWebSocket {
+        readyState = 1;
+        private readonly listeners = new Map<string, Array<(event: unknown) => void>>();
+
+        constructor(url: string, init?: unknown) {
+          constructed.push({ url, init });
+          queueMicrotask(() => {
+            for (const listener of this.listeners.get('open') ?? []) {
+              listener({ type: 'open' });
+            }
+          });
+        }
+
+        addEventListener(event: string, listener: (event: unknown) => void): void {
+          const listeners = this.listeners.get(event) ?? [];
+          listeners.push(listener);
+          this.listeners.set(event, listeners);
+        }
+
+        send(_data: string): void {}
+
+        close(): void {}
+      }
+
+      (globalThis as Record<string, unknown>).WebSocket = FakeBrowserWebSocket;
+      try {
+        const transport = MCPTransportFactory.create({
+          type: 'websocket',
+          endpoint: 'ws://browser.example/mcp',
+          credentials: {
+            token: 'host-only-header-must-not-be-used',
+            protocol: 'mcp.v1',
+          },
+        });
+
+        await expect(transport.connect()).resolves.toBe(true);
+        expect(constructed).toHaveLength(1);
+        expect(constructed[0]).toEqual({
+          url: 'ws://browser.example/mcp',
+          init: 'mcp.v1',
+        });
+        expect(transport.isConnected()).toBe(true);
+        await expect(transport.send({ ok: true })).resolves.toBeUndefined();
+        await transport.disconnect();
+      } finally {
+        if (originalWebSocket === undefined) {
+          delete (globalThis as Record<string, unknown>).WebSocket;
+        } else {
+          (globalThis as Record<string, unknown>).WebSocket = originalWebSocket;
+        }
+      }
+    });
     
     it('should create libp2p transport', () => {
       const transport = MCPTransportFactory.create({

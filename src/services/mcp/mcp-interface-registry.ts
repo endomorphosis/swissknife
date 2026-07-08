@@ -1,16 +1,8 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/mcp/mcp-interface-registry.ts
-=======
->>>>>>> Stashed changes
 import {
   InterfaceRepository,
   type CompatibilityVerdict,
   type InterfaceDescriptor,
 } from './mcp-idl.js';
-<<<<<<< Updated upstream
-=======
-import { bytesToUtf8 } from '../shared/browser-bytes.js';
->>>>>>> Stashed changes
 import {
   assertMCPUIProfileDescriptor,
   selectTemplateForDescriptor,
@@ -333,11 +325,7 @@ function parseVersion(version: string): number[] {
 }
 
 function decodeDescriptor(payload: Uint8Array | string): InterfaceDescriptor {
-<<<<<<< Updated upstream
   const text = typeof payload === 'string' ? payload : new TextDecoder().decode(payload);
-=======
-  const text = typeof payload === 'string' ? payload : bytesToUtf8(payload);
->>>>>>> Stashed changes
   return JSON.parse(text) as InterfaceDescriptor;
 }
 
@@ -358,9 +346,3 @@ function isLocalBackend(
 function assertNever(value: never): never {
   throw new Error(`Unsupported MCP interface method: ${String(value)}`);
 }
-<<<<<<< Updated upstream
-========
-export * from './mcp/mcp-interface-registry.js';
->>>>>>>> Stashed changes:src/services/mcp-interface-registry.ts
-=======
->>>>>>> Stashed changes

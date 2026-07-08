@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/mcp/mcp-p2p-session.ts
-=======
->>>>>>> Stashed changes
 /**
  * MCPp2pSession — encapsulates a single MCP+p2p session stream.
  *
@@ -21,54 +17,8 @@
  * mcp-transport.ts.
  */
 
-<<<<<<< Updated upstream
 import { utf8Bytes } from '../shared/browser-crypto.js';
 import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
-=======
-import {
-  bytesToUtf8,
-  concatBytes,
-  utf8ToBytes,
-} from '../shared/browser-bytes.js';
-
-type SessionListener = (...args: any[]) => void;
-
-class LocalEventEmitter {
-  private readonly listeners = new Map<string, Set<SessionListener>>();
-
-  on(event: string, listener: SessionListener): this {
-    const bucket = this.listeners.get(event) ?? new Set<SessionListener>();
-    bucket.add(listener);
-    this.listeners.set(event, bucket);
-    return this;
-  }
-
-  off(event: string, listener: SessionListener): this {
-    const bucket = this.listeners.get(event);
-    if (!bucket) return this;
-    bucket.delete(listener);
-    if (bucket.size === 0) this.listeners.delete(event);
-    return this;
-  }
-
-  emit(event: string, ...args: unknown[]): boolean {
-    const bucket = this.listeners.get(event);
-    if (!bucket || bucket.size === 0) return false;
-    for (const listener of bucket) {
-      listener(...args);
-    }
-    return true;
-  }
-}
-
-function defer(fn: () => void): void {
-  if (typeof globalThis.queueMicrotask === 'function') {
-    globalThis.queueMicrotask(fn);
-    return;
-  }
-  setTimeout(fn, 0);
-}
->>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -180,27 +130,6 @@ export interface ReconnectPolicy {
   jitter: number;
 }
 
-<<<<<<< Updated upstream
-=======
-function readUint32BE(bytes: Uint8Array, offset = 0): number {
-  return (
-    (bytes[offset] << 24)
-    | (bytes[offset + 1] << 16)
-    | (bytes[offset + 2] << 8)
-    | bytes[offset + 3]
-  ) >>> 0;
-}
-
-function writeUint32BE(value: number): Uint8Array {
-  const bytes = new Uint8Array(4);
-  bytes[0] = (value >>> 24) & 0xff;
-  bytes[1] = (value >>> 16) & 0xff;
-  bytes[2] = (value >>> 8) & 0xff;
-  bytes[3] = value & 0xff;
-  return bytes;
-}
-
->>>>>>> Stashed changes
 const DEFAULT_RECONNECT_POLICY: ReconnectPolicy = {
   initialDelayMs: 500,
   backoffFactor: 2,
@@ -339,11 +268,7 @@ class FixedWindowRateLimiter {
 // MCPp2pSession
 // ---------------------------------------------------------------------------
 
-<<<<<<< Updated upstream
 export class MCPp2pSession extends BrowserEventEmitter {
-=======
-export class MCPp2pSession extends LocalEventEmitter {
->>>>>>> Stashed changes
   private stream: P2PStream;
   private maxFrameBytes: number;
   private rateLimiter: FixedWindowRateLimiter;
@@ -531,11 +456,7 @@ export class MCPp2pSession extends LocalEventEmitter {
 
   private async writeFrame(msg: JsonRpcMessage): Promise<void> {
     const json = JSON.stringify(msg);
-<<<<<<< Updated upstream
     const body = utf8Bytes(json);
-=======
-    const body = utf8ToBytes(json);
->>>>>>> Stashed changes
     if (body.length > this.maxFrameBytes) {
       throw new SessionError(
         SessionErrorCode.FRAME_OUTBOUND_OVERSIZE,
@@ -543,15 +464,9 @@ export class MCPp2pSession extends LocalEventEmitter {
         { frameLen: body.length, maxFrameBytes: this.maxFrameBytes },
       );
     }
-<<<<<<< Updated upstream
     const header = new Uint8Array(4);
     writeUint32BE(header, body.length, 0);
     await this.stream.write(concatBytes(header, body));
-=======
-    const header = writeUint32BE(body.length);
-    const frame = concatBytes([header, body]);
-    await this.stream.write(frame);
->>>>>>> Stashed changes
   }
 
   // -------------------------------------------------------------------------
@@ -561,11 +476,7 @@ export class MCPp2pSession extends LocalEventEmitter {
   private async _readLoop(): Promise<void> {
     try {
       for await (const chunk of this.stream) {
-<<<<<<< Updated upstream
         this._readBuf = concatBytes(this._readBuf, chunk);
-=======
-        this._readBuf = concatBytes([this._readBuf, chunk]);
->>>>>>> Stashed changes
         // Drain all complete frames from the buffer
         while (this._readBuf.length >= 4) {
           const frameLen = readUint32BE(this._readBuf, 0);
@@ -597,11 +508,7 @@ export class MCPp2pSession extends LocalEventEmitter {
 
           let msg: JsonRpcMessage;
           try {
-<<<<<<< Updated upstream
             msg = JSON.parse(new TextDecoder().decode(body)) as JsonRpcMessage;
-=======
-            msg = JSON.parse(bytesToUtf8(body)) as JsonRpcMessage;
->>>>>>> Stashed changes
           } catch {
             this.emit('error', new SessionError(
               SessionErrorCode.FRAME_MALFORMED_JSON,
@@ -614,15 +521,9 @@ export class MCPp2pSession extends LocalEventEmitter {
       }
     } finally {
       // The read side has ended (half-close).  Reject any remaining in-flight
-<<<<<<< Updated upstream
       // requests that will never receive a response.  Defer by one microtask so
       // that any promises resolved by _dispatch() (e.g. the handshake response)
       // have a chance to run their continuations before we mark the session closed.
-=======
-      // requests that will never receive a response. Defer this so promises
-      // resolved by _dispatch() (e.g. the handshake response) can run before
-      // we mark the session closed.
->>>>>>> Stashed changes
       this._readEnded = true;
       defer(() => {
         if (!this._closed) {
@@ -662,7 +563,6 @@ export class MCPp2pSession extends LocalEventEmitter {
     if (this._closed) throw new SessionError(SessionErrorCode.SESSION_CLOSED, 'Session is closed');
   }
 }
-<<<<<<< Updated upstream
 
 function concatBytes(...chunks: Uint8Array[]): Uint8Array {
   const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
@@ -698,8 +598,3 @@ function defer(fn: () => void): void {
     setTimeout(fn, 0);
   }
 }
-========
-export * from './mcp/mcp-p2p-session.js';
->>>>>>>> Stashed changes:src/services/mcp-p2p-session.ts
-=======
->>>>>>> Stashed changes

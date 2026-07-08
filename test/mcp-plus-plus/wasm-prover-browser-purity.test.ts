@@ -1,13 +1,5 @@
 /**
-<<<<<<< Updated upstream
  * Browser-purity regression for the WASM/TypeScript service surfaces.
-=======
- * @vitest-environment node
- */
-
-/**
- * Browser-purity regression for the WASM/TypeScript prover surface.
->>>>>>> Stashed changes
  *
  * Browser-facing paths must not statically import Node process, filesystem,
  * path, or crypto primitives. Native host binaries remain available only
@@ -31,7 +23,6 @@ if (!nodeFs) {
 const { existsSync, readFileSync } = nodeFs;
 const ROOT = resolve(__dirname, '../..');
 
-<<<<<<< Updated upstream
 const BROWSER_FACING_SERVICE_FILES = [
   'src/services/mcp/mcp-wasm-prover-hub.ts',
   'src/services/mcp/browser.ts',
@@ -49,7 +40,6 @@ const BROWSER_FACING_SERVICE_FILES = [
   'src/services/mcp/mcp-envelope.ts',
   'src/services/mcp/mcp-p2p-session.ts',
   'src/services/mcp/mcp-pubsub-bus.ts',
-  'src/services/mcp/mcp-remote-deontic-engine.ts',
   'src/services/mcp/mcp-scheduler.ts',
   'src/services/mcp/mcp-transport.ts',
   'src/services/mcp/policy-audit-log.ts',
@@ -79,33 +69,6 @@ const BROWSER_FACING_SERVICE_FILES = [
   'src/services/zkp/zkp-provekit-cache.ts',
   'src/services/zkp/zkp-provekit-public-inputs.ts',
   'src/services/zkp/zkp-statement.ts',
-=======
-const BROWSER_FACING_PROVER_FILES = [
-  'src/services/mcp-wasm-prover-hub.ts',
-  'src/services/mcp/mcp-wasm-prover-hub.ts',
-  'src/services/flogic-ergoai-wrapper.ts',
-  'src/services/bridge-multiview.ts',
-  'src/services/bridge-types.ts',
-  'src/services/cec-dcec-bridge.ts',
-  'src/services/modal-compiler.ts',
-  'src/services/modal-kg-bridge.ts',
-  'src/services/modal-logic-codec.ts',
-  'src/services/modal-synthesis.ts',
-  'src/services/deontic-norms-bridge.ts',
-  'src/services/deontic-formula-builder.ts',
-  'src/services/fol-tdfol-bridge.ts',
-  'src/services/tdfol-cec-bridge.ts',
-  'src/services/temporal-deontic-api.ts',
-  'src/services/temporal-deontic-rag-store.ts',
-  'src/services/flogic-zkp-integration.ts',
-  'src/services/sprint68-eth-bridge.ts',
-  'src/services/zkp-attestation-bridge.ts',
-  'src/services/zkp-circuits.ts',
-  'src/services/zkp-onchain-pipeline.ts',
-  'src/services/zkp-provekit-cache.ts',
-  'src/services/zkp-provekit-public-inputs.ts',
-  'src/services/zkp-statement.ts',
->>>>>>> Stashed changes
   'src/services/provers/mcp-proof-cache.ts',
   'src/services/provers/browser.ts',
   'src/services/provers/coq-jscoq-bridge.ts',
@@ -241,7 +204,6 @@ describe('WASM prover browser purity', () => {
       import('../../src/services/mcp/mcp-envelope'),
       import('../../src/services/mcp/mcp-p2p-session'),
       import('../../src/services/mcp/mcp-pubsub-bus'),
-      import('../../src/services/mcp/mcp-remote-deontic-engine'),
       import('../../src/services/mcp/mcp-scheduler'),
       import('../../src/services/mcp/mcp-transport'),
       import('../../src/services/mcp/policy-audit-log'),

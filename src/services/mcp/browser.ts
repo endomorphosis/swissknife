@@ -16,7 +16,6 @@ export * from './mcp-orb-capability-router.js';
 export * from './mcp-p2p-session.js';
 export * from './mcp-policy.js';
 export * from './mcp-pubsub-bus.js';
-export * from './mcp-remote-deontic-engine.js';
 export * from './mcp-schema-ui-generator.js';
 export * from './mcp-scheduler.js';
 export * from './mcp-transport.js';

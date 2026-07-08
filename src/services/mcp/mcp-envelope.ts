@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/mcp/mcp-envelope.ts
-=======
->>>>>>> Stashed changes
 /**
  * CID-Native Execution Envelopes & Receipts (MCP++ Profile B)
  *
@@ -14,32 +10,14 @@
  * References: docs/spec/cid-native-artifacts.md in endomorphosis/Mcp-Plus-Plus
  */
 
-<<<<<<< Updated upstream
 import { base64UrlEncode, bytesFrom, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
-=======
-import { sha256 } from '@noble/hashes/sha256';
-import type { DIDKeystore } from '../../auth/did-keystore.js';
-import {
-  base64urlEncodeBytes,
-  bytesToHex,
-  toUint8Array,
-  utf8ToBytes,
-  type BytesLike,
-} from '../shared/browser-bytes.js';
->>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // CID helpers
 // ---------------------------------------------------------------------------
 
-<<<<<<< Updated upstream
 function computeCID(data: Uint8Array | ArrayBuffer | readonly number[] | string): string {
   return `sha256:${sha256Hex(bytesFrom(data))}`;
-=======
-function computeCID(data: BytesLike): string {
-  const input = toUint8Array(data);
-  return `sha256:${bytesToHex(sha256(input))}`;
->>>>>>> Stashed changes
 }
 
 function canonicalJSON(value: unknown): string {
@@ -86,14 +64,11 @@ export interface ToolCallInput {
   callerDID?: string;
 }
 
-<<<<<<< Updated upstream
 export interface ReceiptSignerKeystore {
   hasDID(did: string): boolean;
   sign(data: Uint8Array, did: string): Uint8Array;
 }
 
-=======
->>>>>>> Stashed changes
 /**
  * Build a CID-native execution envelope for an MCP tool call.
  *
@@ -112,11 +87,7 @@ export function buildEnvelope(
 ): ExecutionEnvelope {
   // 1. Content-address the input
   const inputJson = canonicalJSON(toolCall);
-<<<<<<< Updated upstream
   const inputBytes = utf8Bytes(inputJson);
-=======
-  const inputBytes = utf8ToBytes(inputJson);
->>>>>>> Stashed changes
   const inputCid = computeCID(inputBytes);
 
   // 2. Content-address the intent (tool name + caller DID)
@@ -177,11 +148,7 @@ export function buildReceipt(
   output: unknown,
   decisionCid?: string,
   signerDID?: string,
-<<<<<<< Updated upstream
   keystore?: ReceiptSignerKeystore,
-=======
-  keystore?: DIDKeystore,
->>>>>>> Stashed changes
 ): ExecutionReceipt {
   // Content-address the envelope
   const envelopeForCid = {
@@ -207,11 +174,7 @@ export function buildReceipt(
 
   // Sign the receipt if a signer DID and keystore are provided
   if (signerDID && keystore && keystore.hasDID(signerDID)) {
-<<<<<<< Updated upstream
     const signingPayload = utf8Bytes(
-=======
-    const signingPayload = utf8ToBytes(
->>>>>>> Stashed changes
       canonicalJSON({
         envelope_cid: receipt.envelope_cid,
         output_cid: receipt.output_cid,
@@ -220,11 +183,7 @@ export function buildReceipt(
       }),
     );
     const sig = keystore.sign(signingPayload, signerDID);
-<<<<<<< Updated upstream
     receipt.signature = base64UrlEncode(sig);
-=======
-    receipt.signature = base64urlEncodeBytes(sig);
->>>>>>> Stashed changes
     receipt.signerDID = signerDID;
   }
 
@@ -235,19 +194,9 @@ export function buildReceipt(
  * Compute the CID of a receipt (for use as a node in the Event DAG).
  */
 export function computeReceiptCID(receipt: ExecutionReceipt): string {
-<<<<<<< Updated upstream
   const { signature: _sig, ...withoutSig } = receipt;
-=======
-  const { signature: _sig, issuedAt: _issuedAt, ...withoutSig } = receipt;
->>>>>>> Stashed changes
   return computeCID(canonicalJSON(withoutSig));
 }
 
 // Re-export computeCID for use by other modules
 export { computeCID };
-<<<<<<< Updated upstream
-========
-export * from './mcp/mcp-envelope.js';
->>>>>>>> Stashed changes:src/services/mcp-envelope.ts
-=======
->>>>>>> Stashed changes

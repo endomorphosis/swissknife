@@ -24,6 +24,7 @@ export default defineConfig({
     '**/meta-glasses-all-app-handoff.spec.ts',
   ],
   timeout: 240 * 1000,
+  outputDir: resolve(repoRoot, 'test-results/meta-glasses/playwright-artifacts'),
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

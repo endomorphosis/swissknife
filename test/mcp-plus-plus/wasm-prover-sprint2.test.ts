@@ -14,16 +14,8 @@
 
 import { SMT2Serializer } from '../../src/services/provers/smt2-serializer';
 import { Cvc5WasmBridge } from '../../src/services/provers/cvc5-wasm-bridge';
-<<<<<<< Updated upstream
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
 import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
-=======
-import { WasmProverHub } from '../../src/services/mcp-wasm-prover-hub';
-import type { Policy } from '../../src/services/mcp-policy';
-import { vi } from 'vitest';
-
-const jest = { fn: vi.fn };
->>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -1,17 +1,9 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/mcp/mcp-pubsub-bus.ts
-=======
->>>>>>> Stashed changes
 /**
  * MCPPubSubBus — structured, transport-agnostic pub/sub lifecycle for MCP++.
  *
  * Provides deterministic lifecycle control, per-topic subscription management,
  * resubscribe-on-reconnect semantics, delivery metrics, and a pluggable
-<<<<<<< Updated upstream
  * transport backend (in-process emitter or external libp2p GossipSub).
-=======
- * transport backend (in-process EventEmitter or external libp2p GossipSub).
->>>>>>> Stashed changes
  *
  * Conformance target: MCP++ Profile E §3 — "Structured PubSubBus lifecycle
  * parity (subscribe/topic mapping/resubscribe metrics)".
@@ -35,40 +27,8 @@
  * ```
  */
 
-<<<<<<< Updated upstream
 import { sha256Hex } from '../shared/browser-crypto.js';
 import { BrowserEventEmitter } from '../shared/browser-event-emitter.js';
-=======
-type BusEventListener = (...args: any[]) => void;
-
-class LocalEventEmitter {
-  private readonly listeners = new Map<string, Set<BusEventListener>>();
-
-  on(event: string, listener: BusEventListener): this {
-    const bucket = this.listeners.get(event) ?? new Set<BusEventListener>();
-    bucket.add(listener);
-    this.listeners.set(event, bucket);
-    return this;
-  }
-
-  off(event: string, listener: BusEventListener): this {
-    const bucket = this.listeners.get(event);
-    if (!bucket) return this;
-    bucket.delete(listener);
-    if (bucket.size === 0) this.listeners.delete(event);
-    return this;
-  }
-
-  emit(event: string, ...args: unknown[]): boolean {
-    const bucket = this.listeners.get(event);
-    if (!bucket || bucket.size === 0) return false;
-    for (const listener of bucket) {
-      listener(...args);
-    }
-    return true;
-  }
-}
->>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Well-known topics (mirrors mcp-discovery.ts constants)
@@ -165,24 +125,16 @@ export interface PubSubTransport {
 // ---------------------------------------------------------------------------
 
 /**
-<<<<<<< Updated upstream
  * A pure in-memory pub/sub transport using a browser-safe local emitter.
-=======
- * A pure in-memory pub/sub transport using a local event emitter.
->>>>>>> Stashed changes
  * Messages published on a topic are immediately delivered to all subscribers.
  * Suitable for testing and for single-process deployments.
  */
 export class InProcessBusTransport implements PubSubTransport {
-<<<<<<< Updated upstream
   private readonly emitter = new BrowserEventEmitter();
 
   constructor() {
     this.emitter.setMaxListeners(0); // no-op compatibility
   }
-=======
-  private readonly emitter = new LocalEventEmitter();
->>>>>>> Stashed changes
 
   async publish(topic: string, message: BusMessage): Promise<void> {
     this.emitter.emit(topic, message);
@@ -216,11 +168,7 @@ interface Subscription {
  * Lifecycle: idle → starting → running → stopping → stopped
  * Subscriptions declared in any state are auto-replayed on (re)start.
  */
-<<<<<<< Updated upstream
 export class MCPPubSubBus extends BrowserEventEmitter {
-=======
-export class MCPPubSubBus extends LocalEventEmitter {
->>>>>>> Stashed changes
   private state: BusState = 'idle';
   private readonly transport: PubSubTransport;
   /** Original (user-supplied) handlers, indexed by topic. Never mutated. */
@@ -392,11 +340,7 @@ export class MCPPubSubBus extends LocalEventEmitter {
       message_cid: '', // filled below
       ucan_token: opts?.ucan_token,
     };
-<<<<<<< Updated upstream
     msg.message_cid = computeMessageCID(msg);
-=======
-    msg.message_cid = await computeMessageCID(msg);
->>>>>>> Stashed changes
 
     if (this.state !== 'running') {
       this.emit('warning', { message: `publish called in state '${this.state}'; dropping`, topic });
@@ -554,40 +498,12 @@ export class MCPPubSubBus extends LocalEventEmitter {
 // Helpers
 // ---------------------------------------------------------------------------
 
-<<<<<<< Updated upstream
 function computeMessageCID(msg: Omit<BusMessage, 'message_cid'>): string {
-=======
-async function computeMessageCID(msg: Omit<BusMessage, 'message_cid'>): Promise<string> {
->>>>>>> Stashed changes
   const canonical = JSON.stringify({
     topic: msg.topic,
     payload: msg.payload,
     published_at: msg.published_at,
     ucan_token: msg.ucan_token ?? null,
   });
-<<<<<<< Updated upstream
   return `sha256:${sha256Hex(canonical)}`;
 }
-========
-export * from './mcp/mcp-pubsub-bus.js';
->>>>>>>> Stashed changes:src/services/mcp-pubsub-bus.ts
-=======
-  return `sha256:${await sha256Hex(canonical)}`;
-}
-
-async function sha256Hex(input: string): Promise<string> {
-  const bytes = new TextEncoder().encode(input);
-  const digest = await resolveSubtleCrypto().digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)]
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function resolveSubtleCrypto(): SubtleCrypto {
-  const subtle = globalThis.crypto?.subtle;
-  if (!subtle) {
-    throw new Error('Web Crypto SHA-256 is not available in this runtime.');
-  }
-  return subtle;
-}
->>>>>>> Stashed changes

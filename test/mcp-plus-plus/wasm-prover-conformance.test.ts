@@ -23,12 +23,7 @@
 import { SMT2Serializer } from '../../src/services/provers/smt2-serializer';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
 import { ProofCache } from '../../src/services/provers/mcp-proof-cache';
-<<<<<<< Updated upstream
 import type { Policy } from '../../src/services/logic/deontic/mcp-policy';
-=======
-import type { Policy } from '../../src/services/mcp-policy';
-import { vi } from 'vitest';
->>>>>>> Stashed changes
 
 const Z3_LIVE = process.env.Z3_WASM_LIVE === '1';
 const jest = { fn: vi.fn };

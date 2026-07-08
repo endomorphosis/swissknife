@@ -195,11 +195,7 @@ describe('PolicyEngine', () => {
     });
 
     it('emits obligation:spawned event', async () => {
-<<<<<<< Updated upstream
       const emitted = new Promise<void>((resolve) => {
-=======
-      const spawned = new Promise<void>(resolve => {
->>>>>>> Stashed changes
         engine.on('obligation:spawned', (ob) => {
           expect(ob.description).toBe('Log the access');
           resolve();
@@ -207,11 +203,7 @@ describe('PolicyEngine', () => {
       });
       const cid = engine.registerPolicy(WITH_OBLIGATION_POLICY);
       engine.evaluatePolicy(cid, { cap: 'mcp++/invoke', rsc: '*' });
-<<<<<<< Updated upstream
       await emitted;
-=======
-      await spawned;
->>>>>>> Stashed changes
     });
   });
 });

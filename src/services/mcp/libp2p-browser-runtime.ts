@@ -4,7 +4,7 @@
  * The module is intentionally dynamic-import based so browser bundles can load
  * the MCP service surface without Node polyfills.  When the compatible libp2p
  * packages are installed, the default config enables WebRTC, WebSockets,
- * Noise, Yamux, GossipSub, and optional bootstrap relays.
+ * circuit relay v2, Noise, Yamux, GossipSub, and optional bootstrap relays.
  */
 
 export interface McpLibp2pRuntimeOptions {
@@ -18,6 +18,8 @@ export interface McpLibp2pRuntimeOptions {
   webRTC?: boolean;
   /** Enable browser-compatible WebSocket transport. Default true. */
   webSockets?: boolean;
+  /** Enable circuit relay v2 transport for browser WebRTC reachability. Default true when WebRTC is enabled. */
+  circuitRelay?: boolean | { discoverRelays?: number };
   /** Enable GossipSub service. Default true. */
   pubsub?: boolean;
   /** Enable bootstrap discovery when bootstrap multiaddrs are present. Default true. */
@@ -82,6 +84,16 @@ export async function createMcpLibp2pConfig(
     if (webRTC) {
       transports.push(webRTC());
       enabled.transports.push('webrtc');
+    }
+  }
+  const relaySetting = options.circuitRelay ?? (options.webRTC ?? true);
+  if (relaySetting) {
+    const mod = await optionalImport('@libp2p/circuit-relay-v2', unavailable);
+    const circuitRelayTransport = mod?.circuitRelayTransport as ((options?: Record<string, unknown>) => unknown) | undefined;
+    if (circuitRelayTransport) {
+      const relayOptions = typeof relaySetting === 'object' ? relaySetting : undefined;
+      transports.push(circuitRelayTransport(relayOptions));
+      enabled.transports.push('circuit-relay-v2');
     }
   }
   if (transports.length > 0) config.transports = transports;

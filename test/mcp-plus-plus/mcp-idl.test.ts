@@ -9,15 +9,11 @@ import {
   computeInterfaceCID,
   InterfaceRepository,
   InterfaceDescriptor,
-<<<<<<< Updated upstream
 } from '../../src/services/mcp/mcp-idl';
-=======
-} from '../../src/services/mcp-idl';
 import {
   bytesToHex,
   bytesToUtf8,
 } from '../../src/services/shared/browser-bytes';
->>>>>>> Stashed changes
 
 const SAMPLE_DESCRIPTOR: InterfaceDescriptor = {
   name: 'search',

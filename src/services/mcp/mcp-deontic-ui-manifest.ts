@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-export * from './mcp/mcp-deontic-ui-manifest.js';
-=======
 /**
  * Deontic UI Manifest — the headless bridge between the formal-logic layer and
  * any front-end (Hallucinate dashboards, SwissKnife desktop, glasses HUD).
@@ -8,8 +5,8 @@ export * from './mcp/mcp-deontic-ui-manifest.js';
  * Rounds 50–51 built the machinery that turns a formal-logic (Profile-D) policy
  * + an interface contract into a device-constrained interface model
  * (`buildConstrainedInterfaceModel`) and, when the fragment is hard/temporal,
- * can augment the local TS/WASM consistency pass through an injected checker.
- * But that output is a rich in-memory model —
+ * delegates the proof to the real Python TDFOL engine
+ * (optionally provided by host-side prover adapters). But that output is a rich in-memory model —
  * nothing serialises it into something a UI can render, and nothing binds a
  * rendered control back to a real MCP++ tool call.
  *
@@ -123,37 +120,27 @@ export interface DeonticUIManifest {
   default_device_id: string | null;
 }
 
+export interface DeonticConsistencyAugmentation {
+  consistent: boolean;
+  conflicts: DeonticConflict[];
+  remoteChecked: boolean;
+  remoteInconsistent?: boolean;
+}
+
+export type DeonticConsistencyCheck = (
+  policy: Policy,
+) => Promise<DeonticConsistencyAugmentation>;
+
 export interface BuildDeonticUIManifestOptions {
   /** Devices to conform the interface to. Omit for a single default panel. */
   devices?: DeviceInteractionProfile[];
   context?: DeonticProjectionContext;
   /** Reuse a specific engine for the projection (default: throwaway). */
   engine?: PolicyEngine;
-  /**
-   * Optional checker for hard/temporal fragments. Browser-facing callers should
-   * inject a local TS/WASM checker. The deprecated remote adapter also satisfies
-   * this structural contract for host-only compatibility tests.
-   */
-  consistencyChecker?: DeonticUIConsistencyChecker;
-  /**
-   * @deprecated Use `consistencyChecker`. Kept as a compatibility alias for the
-   * old remote adapter without statically importing that adapter into this
-   * browser-facing module.
-   */
-  remoteEngine?: DeonticUIConsistencyChecker;
+  /** Optional host/WASM consistency checker. Browser callers should inject a local TS/WASM checker. */
+  consistencyCheck?: DeonticConsistencyCheck;
   /** Deterministic timestamp override (tests). Default: `new Date()`. */
   now?: Date;
-}
-
-export interface DeonticUIConsistencyResult {
-  consistent: boolean;
-  conflicts: DeonticConflict[];
-  remoteChecked?: boolean;
-  remoteInconsistent?: boolean;
-}
-
-export interface DeonticUIConsistencyChecker {
-  checkPolicyConsistency(policy: Policy): Promise<DeonticUIConsistencyResult> | DeonticUIConsistencyResult;
 }
 
 const DEFAULT_PANEL_ID = '__default__';
@@ -185,13 +172,12 @@ export async function buildDeonticUIManifest(
   let conflicts: DeonticConflict[] = model.consistency.conflicts;
   let remoteChecked = false;
   let remoteInconsistent: boolean | undefined;
-  const consistencyChecker = options.consistencyChecker ?? options.remoteEngine;
-  if (consistencyChecker) {
-    const checked = await consistencyChecker.checkPolicyConsistency(policy);
-    remoteChecked = checked.remoteChecked ?? true;
-    remoteInconsistent = checked.remoteInconsistent;
-    consistent = checked.consistent;
-    conflicts = checked.conflicts;
+  if (options.consistencyCheck) {
+    const remote = await options.consistencyCheck(policy);
+    remoteChecked = remote.remoteChecked;
+    remoteInconsistent = remote.remoteInconsistent;
+    consistent = remote.consistent;
+    conflicts = remote.conflicts;
   }
 
   const panels: DeonticUIPanel[] = [];
@@ -489,4 +475,3 @@ function resolveCategoryTool(
   }
   return { category: null, tool: method };
 }
->>>>>>> Stashed changes

@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/mcp/mcp-wasm-prover-hub.ts
-=======
->>>>>>> Stashed changes
 /**
  * WasmProverHub — local-first prover router with proof cache.
  *
@@ -234,13 +230,8 @@ export class WasmProverHub {
       lean4_wasm: this.lean4 !== undefined,
       lurk_wasm: false,                     // Phase 6 — adapter exists; hub has no owned lurk-wasm instance by default
       neural: this.neural !== undefined,
-<<<<<<< Updated upstream
       dcec_native: true,                    // always available (pure TS)
       tdfol_native: true,                   // always available (pure TS)
-=======
-      dcec_native: true,                    // Sprint 9 — always available (pure TS)
-      tdfol_native: true,                   // Sprint 10 — always available (pure TS)
->>>>>>> Stashed changes
     };
   }
 
@@ -337,11 +328,7 @@ function canonicalPolicyKey(policy: Policy): string {
 // PORT-042: Strategy-aware prover selection
 // Previously the hub ignored this.strategy; now it maps to the right prover tier.
 export function selectProversByStrategy(
-<<<<<<< Updated upstream
   strategy: import('../provers/prover-types.js').ProverStrategy,
-=======
-  strategy: import('./provers/prover-types.js').ProverStrategy,
->>>>>>> Stashed changes
   availableProvers: string[],
 ): string[] {
   switch (strategy) {
@@ -358,9 +345,3 @@ export function selectProversByStrategy(
     default:              return availableProvers.slice(0, 1);
   }
 }
-<<<<<<< Updated upstream
-========
-export * from './mcp/mcp-wasm-prover-hub.js';
->>>>>>>> Stashed changes:src/services/mcp-wasm-prover-hub.ts
-=======
->>>>>>> Stashed changes

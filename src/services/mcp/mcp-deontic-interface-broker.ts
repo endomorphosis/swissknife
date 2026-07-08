@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/mcp/mcp-deontic-interface-broker.ts
-=======
->>>>>>> Stashed changes
 /**
  * Deontic Interface Broker (DIB)
  *
@@ -45,7 +41,6 @@ import {
   type ActiveObligation,
 } from './mcp-policy.js';
 import type { GeneratedUIPolicyDecision } from './mcp-schema-ui-generator.js';
-<<<<<<< Updated upstream
 
 export interface IDLMethodSchema {
   name: string;
@@ -85,13 +80,6 @@ export interface AutoCompileOptions {
     | 'video-preview';
   icon?: string;
 }
-=======
-import type {
-  IDLProfileDescriptor,
-  IDLMethodSchema,
-  AutoCompileOptions,
-} from '../idl-to-glasses-compiler.js';
->>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Deontic operation state
@@ -680,9 +668,3 @@ export function buildConstrainedInterfaceModel(
 // importing two modules.
 export type { Policy, Permission, Prohibition, Obligation, ActiveObligation };
 export { PolicyEngine };
-<<<<<<< Updated upstream
-========
-export * from './mcp/mcp-deontic-interface-broker.js';
->>>>>>>> Stashed changes:src/services/mcp-deontic-interface-broker.ts
-=======
->>>>>>> Stashed changes

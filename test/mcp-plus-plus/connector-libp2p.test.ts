@@ -9,11 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-<<<<<<< Updated upstream
 import { MCPp2pSession, P2PStream } from '../../src/services/mcp/mcp-p2p-session';
-=======
-import { MCPp2pSession, P2PStream } from '../../src/services/mcp-p2p-session';
->>>>>>> Stashed changes
 import {
   MCPPPServerConnector,
   IPFS_KIT_SERVER,

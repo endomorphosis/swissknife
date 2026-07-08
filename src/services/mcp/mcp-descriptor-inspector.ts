@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-export * from './mcp/mcp-descriptor-inspector.js';
-=======
 import {
   selectTemplateForDescriptor,
   validateMCPUIProfileDescriptor,
@@ -16,7 +13,7 @@ import {
 import {
   replayGeneratedAppState,
   type GeneratedAppReplayEvent,
-} from '../mcp-generated-app-state.js';
+} from './mcp-generated-app-state.js';
 
 export interface DescriptorInspectorOperation {
   method: string;
@@ -256,4 +253,3 @@ function humanize(value: string): string {
     .trim()
     .replace(/\b\w/g, char => char.toUpperCase());
 }
->>>>>>> Stashed changes

@@ -10,10 +10,10 @@ const {
 } = require('../src/services/apps/virtual-desktop-app-manifest.ts');
 const {
   GLASSES_APP_REGISTRY,
-} = require('../src/services/glasses-app-control-plane.ts');
+} = require('../src/services/glasses/glasses-app-control-plane.ts');
 const {
   IPFS_IDL_DESCRIPTORS,
-} = require('../src/services/idl-to-glasses-compiler.ts');
+} = require('../src/services/glasses/idl-to-glasses-compiler.ts');
 
 const root = path.resolve(__dirname, '..');
 const reportPath = path.join(root, 'test-results', 'virtual-desktop-ipfs-mcp-orb', 'manifest-drift.json');
@@ -48,7 +48,13 @@ function docAppIds() {
     fs.readdirSync(path.join(root, 'docs', 'applications'))
       .filter(name => name.endsWith('.md'))
       .map(name => name.replace(/\.md$/, ''))
-      .filter(id => !['README', 'backend-dependencies', 'features-matrix'].includes(id)),
+      .filter(id => ![
+        'README',
+        'app-capability-policy',
+        'backend-dependencies',
+        'composite-ipfs-workflows',
+        'features-matrix',
+      ].includes(id)),
   );
 }
 
@@ -108,7 +114,7 @@ const strictSources = [
   compareSource('list-all-applications script', 'list-all-applications', idsFromObjectIdList(read('scripts/list-all-applications.cjs')), 'scripts/list-all-applications.cjs'),
   compareSource('batch-test-apps script', 'batch-test-apps', idsFromObjectIdList(read('scripts/batch-test-apps.cjs')), 'scripts/batch-test-apps.cjs'),
   compareSource('docs applications', 'docs-applications', docAppIds(), 'docs/applications'),
-  compareSource('glasses registry', 'glasses-registry', GLASSES_APP_REGISTRY.map(entry => entry.id), 'src/services/glasses-app-control-plane.ts'),
+  compareSource('glasses registry', 'glasses-registry', GLASSES_APP_REGISTRY.map(entry => entry.id), 'src/services/glasses/glasses-app-control-plane.ts'),
   compareSource('idl generated apps', 'idl-generated', IPFS_IDL_DESCRIPTORS.map(descriptor => descriptor.name), 'src/services/idl-to-glasses-compiler.ts'),
 ];
 

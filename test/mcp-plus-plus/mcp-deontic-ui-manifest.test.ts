@@ -14,6 +14,7 @@ import {
 } from '../../src/services/mcp/mcp-deontic-ui-manifest';
 import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/mcp/mcp-ipfs-ui-descriptors';
 import {
+  checkPolicyConsistencyRemote,
   RemoteDeonticEngine,
   type DeonticLogicConnector,
 } from '../../src/services/mcp/mcp-remote-deontic-engine';
@@ -319,7 +320,7 @@ describe('buildDeonticUIManifest — remote TDFOL consistency', () => {
       connector: new MockLogicConnector({ logic_health: HEALTHY, tdfol_prove: { proved: true } }),
     });
     const manifest = await buildDeonticUIManifest(syntheticDescriptor(['x']), permitAll(), {
-      remoteEngine: engine,
+      consistencyCheck: policy => checkPolicyConsistencyRemote(policy, engine),
     });
     expect(manifest.remote_checked).toBe(true);
     expect(manifest.remote_inconsistent).toBe(true);
@@ -332,7 +333,7 @@ describe('buildDeonticUIManifest — remote TDFOL consistency', () => {
       connector: new MockLogicConnector({ logic_health: HEALTHY, tdfol_prove: { proved: false } }),
     });
     const manifest = await buildDeonticUIManifest(syntheticDescriptor(['x']), permitAll(), {
-      remoteEngine: engine,
+      consistencyCheck: policy => checkPolicyConsistencyRemote(policy, engine),
     });
     expect(manifest.remote_checked).toBe(true);
     expect(manifest.remote_inconsistent).toBe(false);
@@ -344,7 +345,7 @@ describe('buildDeonticUIManifest — remote TDFOL consistency', () => {
       connector: new MockLogicConnector({ logic_health: { status: 'unavailable' } }),
     });
     const manifest = await buildDeonticUIManifest(syntheticDescriptor(['x']), permitAll(), {
-      remoteEngine: engine,
+      consistencyCheck: policy => checkPolicyConsistencyRemote(policy, engine),
     });
     expect(manifest.remote_checked).toBe(false);
     expect(manifest.consistent).toBe(true);

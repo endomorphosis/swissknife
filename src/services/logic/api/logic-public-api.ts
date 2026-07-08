@@ -1,14 +1,9 @@
-<<<<<<< Updated upstream
-<<<<<<<< Updated upstream:src/services/logic/api/logic-public-api.ts
-=======
->>>>>>> Stashed changes
 /**
  * LogicPublicApi — top-level public API facade for the swissknife logic stack.
  *
  * Mirrors ipfs_datasets_py/logic/api.py (723 lines) — the stable canonical
  * import surface for external consumers of the logic layer.
  *
-<<<<<<< Updated upstream
  * Provides a single entry point that composes all 19 logic service modules:
  *   - NL → FOL
  *   - NL → Deontic statements + conflicts
@@ -34,44 +29,12 @@ import type { ProverSyntaxReport } from '../deontic/prover-syntax-builder.js';
 import { DeonticGraphBuilder } from '../deontic/deontic-graph-builder.js';
 import type { DeonticGraph } from '../deontic/deontic-graph.js';
 import { LogicMonitor } from '../shared/logic-monitor.js';
-=======
- * Provides a single entry point that composes all 19 sprint modules:
- *   - NL → FOL (Sprint 14)
- *   - NL → Deontic statements + conflicts (Sprint 12)
- *   - NL → LegalNormIR + decoded text (Sprint 17)
- *   - NL → Prover syntax (Sprint 18)
- *   - NL → DeonticGraph (Sprint 16)
- *   - Monitoring, Registry, Batch (Sprint 19)
- *
- * Sprint 20, T-106.
- * Reference: ipfs_datasets_py/logic/api.py §LogicPublicApi
- */
-
-import { FolTextConverter } from '../../fol/fol-text-converter.js';
-import type { FolConversionResult } from '../../fol/fol-text-converter.js';
-import { DeonticTextAnalyzer } from '../../deontic/deontic-text-analyzer.js';
-import type { DeonticStatement, DeonticConflict } from '../../deontic/deontic-text-analyzer.js';
-import { LegalNormBuilder } from '../../deontic/legal-norm-builder.js';
-import type { LegalNormIR } from '../../deontic/legal-norm-ir.js';
-import { decodeLegalNormIR } from '../../deontic/legal-norm-decoder.js';
-import type { DecodedLegalText } from '../../deontic/legal-norm-decoder.js';
-import { ProverSyntaxBuilder } from '../../deontic/prover-syntax-builder.js';
-import type { ProverSyntaxReport } from '../../deontic/prover-syntax-builder.js';
-import { DeonticGraphBuilder } from '../../deontic/deontic-graph-builder.js';
-import type { DeonticGraph } from '../../deontic/deontic-graph.js';
-import { LogicMonitor } from '../../logic-monitor.js';
->>>>>>> Stashed changes
 import { getSubmoduleSpecs, getIntegrationManifest } from './submodule-registry.js';
 import type { LogicSubmoduleSpec } from './submodule-registry.js';
 import { BatchProcessor } from './batch-processor.js';
 import type { BatchResult } from './batch-processor.js';
-<<<<<<< Updated upstream
 import { detectMultilingualConflicts } from '../deontic/i18n-conflict-report.js';
 import type { I18NConflictReport } from '../deontic/i18n-conflict-report.js';
-=======
-import { detectMultilingualConflicts } from '../../i18n-conflict-report.js';
-import type { I18NConflictReport } from '../../i18n-conflict-report.js';
->>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Analysis result types
@@ -214,9 +177,3 @@ export class LogicPublicApi {
     );
   }
 }
-<<<<<<< Updated upstream
-========
-export * from './logic/api/logic-public-api.js';
->>>>>>>> Stashed changes:src/services/logic-public-api.ts
-=======
->>>>>>> Stashed changes
