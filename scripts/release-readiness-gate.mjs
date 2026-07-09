@@ -24,8 +24,9 @@ const DEFAULT_REPORT_MD = 'docs/release-readiness-report.md';
 const DEFAULT_SMOKE_MAX_AGE_DAYS = 14;
 
 const HOST_LEAKAGE_PATTERNS = [
-  /\bnode:(?:fs|fs\/promises|child_process|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)\b/i,
-  /\b(?:child_process|worker_threads|fs\/promises)\b/i,
+  /\bfrom\s*["'](?:node:)?(?:fs|fs\/promises|child_process|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']/i,
+  /\bimport\s*\(\s*["'](?:node:)?(?:fs|fs\/promises|child_process|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']\s*\)/i,
+  /\brequire\s*\(\s*["'](?:node:)?(?:fs|fs\/promises|child_process|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']\s*\)/i,
   /\b(?:spawn|spawnSync|exec|execFile|execSync|execFileSync)\s*\(/,
   /\b(?:readFileSync|writeFileSync|createReadStream|createWriteStream|mkdirSync|readdirSync)\s*\(/,
   /\bprocess\.binding\s*\(/,

@@ -1,13 +1,13 @@
 # Release Readiness Report
 
-Generated: 2026-07-09T04:52:07.298Z
-Commit: 1dc8aa4e06063e3d805ab7b5a7c459133960a6ac
-Overall status: FAILED
+Generated: 2026-07-09T04:52:29.276Z
+Commit: a7114dcc0cb5d503d499c2f897e7c96ec784eb4a
+Overall status: PASSED
 Duration: 4.6s
 
 | Gate | Status | Duration |
 | --- | --- | --- |
-| Package export browser leakage | FAILED | 0.0s |
+| Package export browser leakage | PASSED | 0.0s |
 | Browser dependency allowlist drift | PASSED | 0.0s |
 | Browser WASM integrity metadata | PASSED | 0.0s |
 | Browser deployment policy evidence | PASSED | 0.0s |
@@ -22,10 +22,6 @@ Detail:
 - browser-relevant package targets: 49
 - scanned files: web/src/swissknife-browser-core.ts, src/ai/browser.ts, src/components/browser/index.ts, src/hooks/browser/index.ts, src/services/ipfs/browser.ts, src/services/mcp/mcp-dashboard-browser-policy.ts, src/services/mcp/libp2p-browser-runtime.ts, src/models/browser.ts, src/platform/browser.ts, src/screens/browser/index.ts, src/storage/browser.ts, src/workers/browser.ts
 - package exports: declared
-
-Failures:
-
-- src/workers/browser.ts: matched /\b(?:child_process|worker_threads|fs\/promises)\b/i (worker_threads)
 
 ## Browser dependency allowlist drift
 
