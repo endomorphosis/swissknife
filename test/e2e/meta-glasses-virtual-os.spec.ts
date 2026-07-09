@@ -1542,6 +1542,13 @@ test('HAO-755 daemon launch gate fixture preserves Swissknife backend handoff re
   expect(fixture.launch_gate_receipt).toBe(
     'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-755-daemon-launch-health-gate.md',
   );
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.validation_receipt).toBe(
+    'data/hallucinate_multimodal_control/discovery/2026-07-09-hao-757-hao-755-implementation-retry-budget-repair.md',
+  );
+  expect(fixture.validation_receipts).toContain(
+    'data/hallucinate_multimodal_control/discovery/2026-07-09-hao-757-hao-755-implementation-retry-budget-repair.md',
+  );
   expect(fixture.validation_commands).toContain(
     'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
   );
