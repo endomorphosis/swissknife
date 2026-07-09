@@ -1,10 +1,13 @@
 /**
  * SwissKnife <-> external/ipfs_accelerate DuckDB benchmark interoperability descriptor.
  *
- * MGW-570 objective validation repair: interface contract
+ * VAI-662 objective validation repair: interface contract
  * swissknife external/ipfs_accelerate,
  * goal_packet/interoperability/swissknife/06921590135c,
+ * data/virtual_ai_os/discovery/2026-07-08-vai-662-objective-validation-repair.md,
  * tests/integration/test_swissknife_external_ipfs_accelerate_interop.py.
+ * MGW-570 and HAO-731 record sibling scanner confirmations for the same
+ * VAIOS-G701 proof stack.
  *
  * `external/ipfs_accelerate` ships a DuckDB-backed time-series benchmark
  * schema (`data/duckdb/db_schema/time_series_schema.sql`) plus the schema
@@ -158,12 +161,12 @@ export const SWISSKNIFE_IPFS_ACCELERATE_INTEROP_DESCRIPTOR = {
     control_surface_policy_id: 'policy:swissknife:ipfs-accelerate-duckdb-interop',
   },
   validation: {
-    task_id: 'MGW-570',
+    task_id: 'VAI-662',
     goal_id: 'VAIOS-G701',
     objective_gap_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-570-objective-gap-2394e45d2012.md',
+      'data/virtual_ai_os/discovery/2026-07-08-vai-662-objective-gap-2394e45d2012.md',
     validation_repair_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-570-objective-validation-repair.md',
+      'data/virtual_ai_os/discovery/2026-07-08-vai-662-objective-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
@@ -323,7 +326,7 @@ export function buildSwissKnifeIPFSAccelerateInteractionEnvelope() {
 export function buildSwissKnifeIPFSAccelerateMCPPlusPlusCompatibilityReceipt() {
   return {
     receipt_schema: 'mcp_plus_plus_compatibility_receipt_v1',
-    task_id: 'MGW-570',
+    task_id: 'VAI-662',
     session_id: 'session:swissknife-ipfs-accelerate-duckdb',
     correlation_id: 'corr:swissknife-ipfs-accelerate-duckdb',
     daemon_id: 'ipfs_accelerate',
