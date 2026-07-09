@@ -24,7 +24,7 @@
       "const": "mcp_plus_plus_compatibility_receipt_v1"
     },
     "task_id": {
-      "enum": ["HAO-445", "VAI-665", "MGW-573", "MGW-574", "HAO-736"]
+      "enum": ["HAO-445", "VAI-665", "MGW-573", "MGW-574", "HAO-735", "HAO-736"]
     },
     "session_id": {
       "type": "string",
