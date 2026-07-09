@@ -61,6 +61,15 @@ const HAO_725_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   'fixtures',
   'hao-725-daemon-launch-health-gate.json',
 );
+const HAO_745_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-745-daemon-launch-health-gate.json',
+);
 const HAO_755_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   process.cwd(),
   '..',
@@ -1550,6 +1559,46 @@ test('HAO-755 daemon launch gate fixture preserves Swissknife backend handoff re
     'ipfs_datasets_py',
     'ipfs_kit_py',
   ]);
+  for (const handoff of fixture.swissknife_handoff) {
+    expect(handoff.swissknife_consumer).toContain('Swissknife');
+    expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
+  }
+});
+
+test('HAO-745 daemon launch gate fixture preserves closed Swissknife backend handoff records', async () => {
+  const fixture = JSON.parse(fs.readFileSync(HAO_745_DAEMON_LAUNCH_GATE_FIXTURE, 'utf8'));
+
+  expect(fixture.task_id).toBe('HAO-745');
+  expect(fixture.goal_id).toBe('VAIOS-G728');
+  expect(fixture.goal_packet).toBe('goal_packet/launch/hallucinate_app/44dceea6bc53');
+  expect(fixture.packet_goals).toEqual(['VAIOS-G724', 'VAIOS-G728']);
+  expect(fixture.evidence_term).toBe('launch Playwright validation gate');
+  expect(fixture.gate_state).toBe('gate_closed_by_playwright_validation');
+  expect(fixture.attempt).toBe(5);
+  expect(fixture.attempt_receipt).toBe(
+    'data/hallucinate_multimodal_control/discovery/2026-07-09-hao-745-attempt-5-validation.md',
+  );
+  expect(fixture.objective_gap_receipt).toBe(
+    'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-745-objective-gap-b023c8de5b69.md',
+  );
+  expect(fixture.launch_gate_receipt).toBe(
+    'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-745-daemon-launch-health-gate.md',
+  );
+  expect(fixture.packet_sibling_task_id).toBe('HAO-744');
+  expect(fixture.packet_sibling_goal_id).toBe('VAIOS-G724');
+  expect(fixture.validation_commands).toContain(
+    'test ! -f swissknife/package.json || npm --prefix swissknife run test:e2e:meta-glasses',
+  );
+  expect(fixture.required_backends.sort()).toEqual([
+    'ipfs_accelerate_py',
+    'ipfs_datasets_py',
+    'ipfs_kit_py',
+  ]);
+  expect(fixture.launch_playwright_validation_gate_coverage).toMatchObject({
+    status: 'closed',
+    swissknife_handoff_verified: true,
+    missing: [],
+  });
   for (const handoff of fixture.swissknife_handoff) {
     expect(handoff.swissknife_consumer).toContain('Swissknife');
     expect(handoff.mediation_contract_ref).toContain('control_surface_contract:mcp-daemon:');
