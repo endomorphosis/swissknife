@@ -26,7 +26,7 @@ function resolveLibp2pBrowserHarnessPort(): number {
 // and mobile browser engines, rather than mocks.
 export default defineConfig({
   testDir: resolve(repoRoot, 'test/e2e'),
-  testMatch: ['**/libp2p-browser.spec.ts'],
+  testMatch: ['**/libp2p-browser.spec.ts', '**/libp2p-bootstrap-matrix.spec.ts'],
   timeout: 90 * 1000,
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),

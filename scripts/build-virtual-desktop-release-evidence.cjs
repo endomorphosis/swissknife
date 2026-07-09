@@ -2,8 +2,10 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 const projectRoot = path.resolve(__dirname, '..');
+const workspaceRoot = path.resolve(projectRoot, '..');
 const evidenceRoot = path.join(projectRoot, 'test-results', 'virtual-desktop-ipfs-mcp-orb');
 const evidenceRootRelative = path.relative(projectRoot, evidenceRoot);
 
@@ -228,9 +230,10 @@ const allToolsDrift = allToolsLedger?.summary?.drift
 const allToolsTombstoneCount = allToolsLedger?.summary?.tombstone_count
   ?? (allToolsLedger?.tombstones ?? []).length
   ?? 0;
-const failedGates = (allToolsReleaseGate?.gates ?? []).filter(gate => gate.status === 'fail');
+const failedGates = (allToolsReleaseGate?.gates ?? [])
+  .filter(gate => gate.status === 'fail' || gate.passed === false);
 const adapterBoundaryGate = (allToolsReleaseGate?.gates ?? [])
-  .find(gate => gate.gate_id === 'accelerate_adapter_boundary');
+  .find(gate => (gate.gate_id ?? gate.id) === 'accelerate_adapter_boundary');
 
 if (allToolsReleaseGate) {
   if (allToolsReleaseGate.decision !== 'go') {
@@ -252,7 +255,8 @@ if ((allToolsDrift.changed_schema_tool_count ?? 0) > 0) {
 
 const representativeDecision = representativeBlockers.length === 0 ? 'go' : 'no_go';
 const allToolsDecision = allToolsBlockers.length === 0 ? 'go' : 'no_go';
-const blockers = [...representativeBlockers, ...dedupe(allToolsBlockers)];
+const allToolsBlockerTexts = dedupe(allToolsBlockers.map(blockerText));
+const blockers = [...representativeBlockers.map(blockerText), ...allToolsBlockerTexts];
 const decision = representativeDecision === 'go' && allToolsDecision === 'go' ? 'go' : 'no_go';
 const nextActions = decision === 'go'
   ? []
@@ -365,9 +369,17 @@ const report = {
           status: 'present',
           path: artifacts.all_tools_ledger.path,
           generated_at: allToolsLedger.generated_at,
-          exact_tool_record_count: allToolsLedger.summary?.exact_tool_record_count ?? allToolsLedger.tools?.length ?? null,
-          live_exact_tool_count: allToolsLedger.summary?.live_exact_tool_count ?? null,
-          static_exact_tool_count: allToolsLedger.summary?.static_exact_tool_count ?? null,
+          exact_tool_record_count: allToolsLedger.summary?.exact_tool_record_count
+            ?? allToolsLedger.summary?.tool_record_count
+            ?? allToolsLedger.tools?.length
+            ?? allToolsLedger.records?.length
+            ?? null,
+          live_exact_tool_count: allToolsLedger.summary?.live_exact_tool_count
+            ?? allToolsLedger.summary?.configured_live_tool_count
+            ?? null,
+          static_exact_tool_count: allToolsLedger.summary?.static_exact_tool_count
+            ?? allToolsLedger.summary?.static_descriptor_tool_count
+            ?? null,
           tombstone_count: allToolsTombstoneCount,
           duplicate_group_count: allToolsLedger.summary?.duplicate_group_count ?? (allToolsLedger.duplicate_groups ?? []).length,
           drift: {
@@ -382,20 +394,25 @@ const report = {
       ? {
           status: 'present',
           path: artifacts.all_tools_policy_matrix.path,
-          tool_count: allToolsPolicyMatrix.tool_count,
-          class_counts: allToolsPolicyMatrix.class_counts ?? {},
-          owner_counts: allToolsPolicyMatrix.owner_counts ?? {},
-          exposure_counts: allToolsPolicyMatrix.exposure_counts ?? {},
+          tool_count: allToolsPolicyMatrix.tool_count
+            ?? allToolsPolicyMatrix.summary?.tool_count
+            ?? allToolsPolicyMatrix.tools?.length,
+          class_counts: allToolsPolicyMatrix.class_counts ?? allToolsPolicyMatrix.summary?.class_counts ?? {},
+          owner_counts: allToolsPolicyMatrix.owner_counts ?? allToolsPolicyMatrix.summary?.owner_counts ?? {},
+          exposure_counts: allToolsPolicyMatrix.exposure_counts ?? allToolsPolicyMatrix.summary?.exposure_counts ?? {},
         }
       : missingStatus(artifacts.all_tools_policy_matrix.path),
     app_bindings: allToolsAppBindings
       ? {
           status: 'present',
           path: artifacts.all_tools_app_bindings.path,
-          tool_count: allToolsAppBindings.tool_count,
-          app_visible_tool_count: (allToolsAppBindings.rows ?? []).filter(row => row.app_visible).length,
-          disposition_counts: allToolsAppBindings.disposition_counts ?? {},
-          app_counts: allToolsAppBindings.app_counts ?? {},
+          tool_count: allToolsAppBindings.tool_count
+            ?? allToolsAppBindings.summary?.binding_count
+            ?? allToolsAppBindings.rows?.length
+            ?? allToolsAppBindings.bindings?.length,
+          app_visible_tool_count: appVisibleBindingCount(allToolsAppBindings),
+          disposition_counts: allToolsAppBindings.disposition_counts ?? allToolsAppBindings.summary?.disposition_counts ?? {},
+          app_counts: allToolsAppBindings.app_counts ?? allToolsAppBindings.summary?.app_counts ?? {},
       }
       : missingStatus(artifacts.all_tools_app_bindings.path),
     app_family_coverage: allToolsAppFamilyCoverage
@@ -416,35 +433,63 @@ const report = {
       ? {
           status: 'present',
           path: artifacts.all_tools_execution_report.path,
-          fixture_count: allToolsExecutionReport.fixture_count,
-          app_routable_fixture_count: allToolsExecutionReport.app_routable_fixture_count,
-          denied_fixture_count: allToolsExecutionReport.denied_fixture_count,
-          side_effect_receipt_fixture_count: allToolsExecutionReport.side_effect_receipt_fixture_count,
+          fixture_count: allToolsExecutionReport.fixture_count
+            ?? allToolsExecutionReport.summary?.fixture_count
+            ?? allToolsExecutionReport.fixtures?.length,
+          app_routable_fixture_count: allToolsExecutionReport.app_routable_fixture_count
+            ?? allToolsExecutionReport.summary?.dry_run_count
+            ?? (allToolsExecutionReport.fixtures ?? []).filter(fixture => fixture.mode !== 'denied_envelope').length,
+          denied_fixture_count: allToolsExecutionReport.denied_fixture_count
+            ?? allToolsExecutionReport.summary?.denied_count
+            ?? (allToolsExecutionReport.fixtures ?? []).filter(fixture => fixture.mode === 'denied_envelope').length,
+          side_effect_receipt_fixture_count: allToolsExecutionReport.side_effect_receipt_fixture_count
+            ?? allToolsExecutionReport.summary?.receipt_required_count
+            ?? null,
         }
       : missingStatus(artifacts.all_tools_execution_report.path),
     orb_idl: allToolsIdlCoverage
       ? {
           status: 'present',
           path: artifacts.all_tools_idl_coverage.path,
-          descriptor_count: allToolsIdlCoverage.descriptor_count,
-          method_count: allToolsIdlCoverage.method_count,
-          app_routable_tool_count: allToolsIdlCoverage.app_routable_tool_count,
-          app_routable_tool_coverage_count: allToolsIdlCoverage.app_routable_tool_coverage_count,
-          workflow_count: allToolsIdlCoverage.workflow_count,
-          workflow_coverage_count: allToolsIdlCoverage.workflow_coverage_count,
-          interface_cid_count: allToolsIdlCoverage.interface_cid_count,
-          adapter_required_method_count: allToolsIdlCoverage.adapter_required_method_count,
+          descriptor_count: allToolsIdlCoverage.descriptor_count
+            ?? allToolsIdlCoverage.summary?.descriptor_count
+            ?? allToolsIdlCoverage.descriptors?.length,
+          method_count: allToolsIdlCoverage.method_count
+            ?? allToolsIdlCoverage.summary?.method_count
+            ?? null,
+          app_routable_tool_count: allToolsIdlCoverage.app_routable_tool_count
+            ?? allToolsIdlCoverage.summary?.method_count
+            ?? null,
+          app_routable_tool_coverage_count: allToolsIdlCoverage.app_routable_tool_coverage_count
+            ?? allToolsIdlCoverage.summary?.method_count
+            ?? null,
+          workflow_count: allToolsIdlCoverage.workflow_count ?? 0,
+          workflow_coverage_count: allToolsIdlCoverage.workflow_coverage_count ?? 0,
+          interface_cid_count: allToolsIdlCoverage.interface_cid_count
+            ?? allToolsIdlCoverage.summary?.interface_cid_count
+            ?? null,
+          adapter_required_method_count: allToolsIdlCoverage.adapter_required_method_count
+            ?? allToolsIdlCoverage.summary?.adapter_required_method_count
+            ?? null,
         }
       : missingStatus(artifacts.all_tools_idl_coverage.path),
     glasses_projection: allToolsGlassesCoverage
       ? {
           status: 'present',
           path: artifacts.all_tools_glasses_coverage.path,
-          projection_count: allToolsGlassesCoverage.projection_count,
-          displayable_projection_count: allToolsGlassesCoverage.displayable_projection_count,
-          hardware_free_replay_state_count: allToolsGlassesCoverage.hardware_free_replay_state_count,
-          adapter_required_projection_count: allToolsGlassesCoverage.adapter_required_projection_count,
-          behavior_counts: allToolsGlassesCoverage.behavior_counts ?? {},
+          projection_count: allToolsGlassesCoverage.projection_count
+            ?? allToolsGlassesCoverage.summary?.projection_count
+            ?? allToolsGlassesCoverage.projections?.length,
+          displayable_projection_count: allToolsGlassesCoverage.displayable_projection_count
+            ?? allToolsGlassesCoverage.summary?.projection_count
+            ?? allToolsGlassesCoverage.projections?.length,
+          hardware_free_replay_state_count: allToolsGlassesCoverage.hardware_free_replay_state_count
+            ?? allToolsGlassesCoverage.summary?.hardware_free_replay_state_count
+            ?? null,
+          adapter_required_projection_count: allToolsGlassesCoverage.adapter_required_projection_count
+            ?? allToolsGlassesCoverage.summary?.adapter_required_projection_count
+            ?? null,
+          behavior_counts: allToolsGlassesCoverage.behavior_counts ?? allToolsGlassesCoverage.summary?.behavior_counts ?? {},
         }
       : missingStatus(artifacts.all_tools_glasses_coverage.path),
     release_policy_gate: allToolsReleaseGate
@@ -452,22 +497,25 @@ const report = {
           status: 'present',
           path: artifacts.all_tools_policy_release_gate.path,
           decision: allToolsReleaseGate.decision,
-          gate_count: allToolsReleaseGate.gate_count,
-          pass_count: allToolsReleaseGate.pass_count,
-          fail_count: allToolsReleaseGate.fail_count,
-          warn_count: allToolsReleaseGate.warn_count,
-          blocker_count: allToolsReleaseGate.blocker_count,
+          gate_count: allToolsReleaseGate.gate_count ?? allToolsReleaseGate.summary?.gate_count,
+          pass_count: allToolsReleaseGate.pass_count ?? allToolsReleaseGate.summary?.pass_count,
+          fail_count: allToolsReleaseGate.fail_count ?? allToolsReleaseGate.summary?.fail_count,
+          warn_count: allToolsReleaseGate.warn_count ?? allToolsReleaseGate.summary?.warn_count ?? 0,
+          blocker_count: allToolsReleaseGate.blocker_count ?? allToolsReleaseGate.summary?.blocker_count,
           failed_gates: failedGates.map(gate => ({
-            gate_id: gate.gate_id,
-            summary: gate.summary,
+            gate_id: gate.gate_id ?? gate.id,
+            summary: gate.summary ?? (gate.passed === false ? 'gate failed' : 'gate status is fail'),
             blockers: gate.blockers ?? [],
           })),
         }
       : missingStatus(artifacts.all_tools_policy_release_gate.path),
     adapter_boundary: adapterBoundaryGate
       ? {
-          status: adapterBoundaryGate.status,
-          summary: adapterBoundaryGate.summary,
+          status: adapterBoundaryGate.status ?? (adapterBoundaryGate.passed ? 'pass' : 'fail'),
+          summary: adapterBoundaryGate.summary ?? {
+            passed: adapterBoundaryGate.passed,
+            count: adapterBoundaryGate.count,
+          },
           evidence: adapterBoundaryGate.evidence,
           blockers: adapterBoundaryGate.blockers,
         }
@@ -476,7 +524,7 @@ const report = {
   exhaustive_all_tools_gate: {
     decision: allToolsDecision,
     blocker_count: allToolsBlockers.length,
-    blockers: dedupe(allToolsBlockers),
+    blockers: allToolsBlockerTexts,
   },
   go_no_go: {
     decision,
@@ -493,12 +541,17 @@ const report = {
 const releaseJsonPath = path.join(evidenceRoot, 'release-evidence.json');
 const releaseMarkdownPath = path.join(evidenceRoot, 'release-evidence.md');
 const allToolsMarkdownPath = path.join(evidenceRoot, 'all-tools-release-evidence.md');
+const supervisorFreshnessPath = path.join(evidenceRoot, 'all-tools-supervisor-release-freshness.json');
 const markdown = renderMarkdown(report);
 
 fs.mkdirSync(evidenceRoot, { recursive: true });
 fs.writeFileSync(releaseJsonPath, `${JSON.stringify(report, null, 2)}\n`);
 fs.writeFileSync(releaseMarkdownPath, markdown);
 fs.writeFileSync(allToolsMarkdownPath, markdown);
+fs.writeFileSync(
+  supervisorFreshnessPath,
+  `${JSON.stringify(buildSupervisorReleaseFreshness(report), null, 2)}\n`,
+);
 
 console.log(JSON.stringify({
   decision,
@@ -506,6 +559,7 @@ console.log(JSON.stringify({
   warning_count: report.go_no_go.warning_count,
   all_tools_decision: allToolsDecision,
   output: path.relative(projectRoot, releaseJsonPath),
+  supervisor_freshness_output: path.relative(projectRoot, supervisorFreshnessPath),
 }, null, 2));
 
 function readArtifact(fileName, required) {
@@ -588,6 +642,160 @@ function dedupe(items) {
   return [...new Set(items)];
 }
 
+function blockerText(blocker) {
+  if (typeof blocker === 'string') return blocker;
+  if (!blocker || typeof blocker !== 'object') return String(blocker);
+  if (blocker.gate_id && blocker.reason) return `${blocker.gate_id}: ${blocker.reason}`;
+  if (blocker.id && blocker.reason) return `${blocker.id}: ${blocker.reason}`;
+  if (blocker.reason) return blocker.reason;
+  return JSON.stringify(blocker);
+}
+
+function appVisibleBindingCount(appBindings) {
+  if (Array.isArray(appBindings.rows)) {
+    return appBindings.rows.filter(row => row.app_visible).length;
+  }
+  if (Array.isArray(appBindings.bindings)) {
+    return appBindings.bindings
+      .filter(row => row.exposure !== 'desktop_or_mobile_only')
+      .length;
+  }
+  return null;
+}
+
+function readJsonAbsoluteIfExists(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function fileRevision(relativePath) {
+  const filePath = path.join(projectRoot, relativePath);
+  if (!fs.existsSync(filePath)) {
+    return { status: 'missing', path: relativePath };
+  }
+  const stat = fs.statSync(filePath);
+  return {
+    status: 'present',
+    path: relativePath,
+    mtime: stat.mtime.toISOString(),
+    size: stat.size,
+  };
+}
+
+function adapterListener(port) {
+  try {
+    const output = execFileSync('ss', ['-ltnp'], { encoding: 'utf8' });
+    const line = output
+      .split('\n')
+      .find(candidate => candidate.includes(`127.0.0.1:${port}`) || candidate.includes(`0.0.0.0:${port}`));
+    const pid = line?.match(/pid=(\d+)/)?.[1] ?? null;
+    return {
+      port,
+      listening: Boolean(line),
+      pid: pid ? Number(pid) : null,
+      source: 'ss -ltnp',
+      line: line ?? null,
+    };
+  } catch (error) {
+    return {
+      port,
+      listening: false,
+      pid: null,
+      source: 'ss -ltnp',
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function buildSupervisorReleaseFreshness(releaseReport) {
+  const state = readJsonAbsoluteIfExists(path.join(
+    workspaceRoot,
+    'data/virtual_ai_os/state/swissknife_virtual_desktop_task_state.json',
+  ));
+  const queue = readJsonAbsoluteIfExists(path.join(
+    workspaceRoot,
+    'data/swissknife_virtual_desktop/all_tools_supervisor_queue.json',
+  ));
+  const freshness = readJsonAbsoluteIfExists(path.join(projectRoot, 'docs/release-evidence-freshness.json'));
+  const appSmoke = readJsonAbsoluteIfExists(path.join(evidenceRoot, 'all-tools-app-smoke-coverage.json'));
+  const routeCoverage = readJsonAbsoluteIfExists(path.join(evidenceRoot, 'all-tools-app-route-coverage.json'));
+  const callEnvelopes = readJsonAbsoluteIfExists(path.join(evidenceRoot, 'all-tools-call-envelope-fixtures.json'));
+  const freshnessResults = freshness?.results ?? [];
+
+  return {
+    schema: 'swissknife.all-tools-supervisor-release-freshness.v1',
+    generated_at: generatedAt,
+    supervisor: {
+      id: queue?.supervisor?.id ?? 'ipfs_accelerate_py.agent_supervisor.swissknife_all_tools',
+      active_task_id: state?.active_task_id ?? null,
+      recommended_task_id: queue?.summary?.recommended_task_id ?? null,
+      completed_count: queue?.summary?.completed_count ?? state?.completed_count ?? null,
+      ready_task_ids: queue?.summary?.ready_task_ids ?? state?.ready_task_ids ?? [],
+      waiting_task_ids: queue?.summary?.waiting_task_ids ?? state?.waiting_task_ids ?? [],
+      blocked_task_ids: queue?.summary?.blocked_task_ids ?? state?.blocked_task_ids ?? [],
+    },
+    live_mcp_endpoints: (serviceHealth?.services ?? []).map(service => ({
+      service: service.service,
+      role: service.role,
+      endpoint: service.endpoint,
+      available: service.available,
+      tool_count: service.tool_count,
+    })),
+    configured_accelerate_adapter: {
+      endpoint: 'http://127.0.0.1:3003',
+      listener: adapterListener(3003),
+      coverage_decision: releaseReport.all_tools.adapter_boundary.status ?? null,
+      missing_required_count: releaseReport.all_tools.adapter_boundary.summary?.missing_configured_required_count
+        ?? releaseReport.all_tools.adapter_boundary.summary?.adapter_required_tool_count
+        ?? releaseReport.all_tools.adapter_boundary.summary?.count
+        ?? null,
+    },
+    evidence_timestamps: {
+      release_evidence: releaseReport.generated_at,
+      freshness_report: freshness?.generatedAt ?? null,
+      app_smoke: appSmoke?.generated_at ?? null,
+      route_coverage: routeCoverage?.generated_at ?? null,
+      call_envelopes: callEnvelopes?.generated_at ?? null,
+      all_tools_ledger: allToolsLedger?.generated_at ?? null,
+      service_health: serviceHealth?.generated_at ?? null,
+      capability_matrix: data.capability_matrix?.generated_at ?? null,
+    },
+    stale_evidence_policy: {
+      mode: 'fingerprint',
+      stale_statuses: ['missing-evidence', 'never-certified', 'stale'],
+      failure_behavior: 'force_no_go',
+      freshness_gate_passed: freshnessResults.every(result => result.status === 'fresh'),
+      results: freshnessResults.map(result => ({
+        id: result.id,
+        status: result.status,
+        recordedAt: result.recordedAt,
+        regenerateHint: result.regenerateHint,
+      })),
+    },
+    manifest_and_tool_drift: {
+      manifest_status: report.manifest.status,
+      manifest_app_count: report.manifest.app_count,
+      browser_compatibility_inventory: fileRevision('docs/browser-compatibility-inventory.md'),
+      tool_record_count: report.all_tools.ledger.exact_tool_record_count,
+      app_routable_tool_count: routeCoverage?.app_routable_tool_count ?? appSmoke?.app_routable_tool_count ?? null,
+      call_envelope_count: callEnvelopes?.envelope_count ?? appSmoke?.call_envelope_count ?? null,
+      drift: report.all_tools.ledger.drift,
+    },
+    release_gate: {
+      decision: releaseReport.go_no_go.decision,
+      representative_decision: releaseReport.go_no_go.representative_decision,
+      all_tools_decision: releaseReport.go_no_go.all_tools_decision,
+      blocker_count: releaseReport.go_no_go.blocker_count,
+      blockers: releaseReport.go_no_go.blockers,
+      validation: 'node scripts/audit-release-evidence-freshness.mjs && node scripts/build-virtual-desktop-release-evidence.cjs',
+    },
+  };
+}
+
 function renderMarkdown(report) {
   const lines = [];
   lines.push('# SwissKnife Virtual Desktop All-Tools Release Evidence');
@@ -599,7 +807,7 @@ function renderMarkdown(report) {
   if (report.go_no_go.blockers.length === 0) {
     lines.push('- None');
   } else {
-    for (const blocker of report.go_no_go.blockers) lines.push(`- ${blocker}`);
+    for (const blocker of report.go_no_go.blockers) lines.push(`- ${blockerText(blocker)}`);
   }
   lines.push('');
   lines.push('## Representative App Evidence');

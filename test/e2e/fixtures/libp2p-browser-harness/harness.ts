@@ -34,6 +34,7 @@ import {
   createBrowserLibp2pNode,
   summarizeBrowserLibp2pGaps,
   type BrowserLibp2pImport,
+  type BrowserLibp2pRuntimeOptions,
   type BrowserLibp2pRuntimeReport,
 } from '../../../../src/services/mcp/libp2p-browser-runtime';
 import {
@@ -85,10 +86,12 @@ function buildImportModule(forcedMissing: ReadonlySet<string>): BrowserLibp2pImp
 // Scenario configuration (driven by URL query parameters)
 // ---------------------------------------------------------------------------
 
-type Scenario = 'available' | 'missing-webrtc' | 'missing-multiple' | 'disabled';
+type Scenario = 'available' | 'relay-only' | 'websocket-only' | 'missing-webrtc' | 'missing-multiple' | 'disabled';
 
 const SCENARIO_FORCED_MISSING: Record<Scenario, string[]> = {
   available: [],
+  'relay-only': [],
+  'websocket-only': [],
   'missing-webrtc': ['@libp2p/webrtc'],
   'missing-multiple': ['@libp2p/webrtc', '@libp2p/circuit-relay-v2', '@chainsafe/libp2p-gossipsub'],
   disabled: [],
@@ -96,12 +99,15 @@ const SCENARIO_FORCED_MISSING: Record<Scenario, string[]> = {
 
 const DEFAULT_RELAY_MULTIADDR =
   '/dns4/relay.swissknife-mcp.example/tcp/443/wss/p2p/12D3KooWRelayBootstrapExamplePeerAaaaaaaaaaaaaaaaaaaaaaaaaa/p2p-circuit';
+const DEFAULT_WEBSOCKET_BOOTSTRAP_MULTIADDR =
+  '/dns4/bootstrap.swissknife-mcp.example/tcp/443/wss/p2p/12D3KooWBrowserBootstrapPeerAaaaaaaaaaaaaaaaaaaaaaaaa';
 
 interface HarnessConfig {
   scenario: Scenario;
   listenMultiaddrs: string[];
   rendezvousAddr: string;
   bootstrapPeers: string[];
+  usesDefaultBootstrap: boolean;
   p2pOutcome: 'success' | 'error' | 'timeout';
 }
 
@@ -109,6 +115,8 @@ function parseConfig(): HarnessConfig {
   const params = new URLSearchParams(window.location.search);
   const scenarioParam = params.get('scenario');
   const scenario: Scenario =
+    scenarioParam === 'relay-only' ||
+    scenarioParam === 'websocket-only' ||
     scenarioParam === 'missing-webrtc' ||
     scenarioParam === 'missing-multiple' ||
     scenarioParam === 'disabled'
@@ -121,19 +129,28 @@ function parseConfig(): HarnessConfig {
   // initialization; the dedicated `relayListen=true` scenario demonstrates
   // the real (and realistic) failure when no relay is reachable.
   const includeRelayListen = params.get('relayListen') === 'true';
-  const listenMultiaddrs = ['/webrtc', ...(includeRelayListen ? ['/p2p-circuit'] : [])];
+  const listenMultiaddrs =
+    scenario === 'relay-only'
+      ? ['/p2p-circuit']
+      : scenario === 'websocket-only'
+        ? []
+        : ['/webrtc', ...(includeRelayListen ? ['/p2p-circuit'] : [])];
 
-  const rendezvousAddr = params.get('relay') ?? DEFAULT_RELAY_MULTIADDR;
+  const relayParam = params.get('relay');
+  const rendezvousAddr = relayParam ?? DEFAULT_RELAY_MULTIADDR;
   const bootstrapParam = params.get('bootstrap');
   const bootstrapPeers = bootstrapParam
     ? bootstrapParam.split(',').map(value => value.trim()).filter(Boolean)
-    : [rendezvousAddr];
+    : scenario === 'websocket-only'
+      ? [DEFAULT_WEBSOCKET_BOOTSTRAP_MULTIADDR]
+      : [rendezvousAddr];
+  const usesDefaultBootstrap = bootstrapParam === null && relayParam === null;
 
   const p2pParam = params.get('p2p');
   const p2pOutcome: HarnessConfig['p2pOutcome'] =
     p2pParam === 'error' || p2pParam === 'timeout' ? p2pParam : 'success';
 
-  return { scenario, listenMultiaddrs, rendezvousAddr, bootstrapPeers, p2pOutcome };
+  return { scenario, listenMultiaddrs, rendezvousAddr, bootstrapPeers, usesDefaultBootstrap, p2pOutcome };
 }
 
 // ---------------------------------------------------------------------------
@@ -234,6 +251,52 @@ function renderRelayConfig(config: HarnessConfig): void {
   el('relay-bootstrap-peers').textContent = JSON.stringify(config.bootstrapPeers, null, 2);
 }
 
+function renderBootstrapMatrix(report: BrowserLibp2pRuntimeReport): void {
+  const matrix = report.bootstrap;
+  el('bootstrap-mode').textContent = matrix.transportMode;
+  el('bootstrap-report').textContent = JSON.stringify(
+    {
+      schema: matrix.schema,
+      defaultBootstrap: matrix.defaultBootstrap,
+      listenMultiaddrs: matrix.listenMultiaddrs,
+      bootstrapPeers: matrix.bootstrapPeers,
+      relayMultiaddr: matrix.relayMultiaddr,
+      relayOnlyFallback: matrix.relayOnlyFallback,
+      webRTCUnavailable: matrix.webRTCUnavailable,
+      webSocketOnly: matrix.webSocketOnly,
+      gossipSubAvailable: matrix.gossipSubAvailable,
+      simulatedTransports: matrix.simulatedTransports,
+      capabilities: matrix.capabilities,
+      notes: matrix.notes,
+    },
+    null,
+    2,
+  );
+  el('bootstrap-capability-gaps').textContent = JSON.stringify(matrix.capabilityGaps, null, 2);
+}
+
+function buildRuntimeOptions(
+  config: HarnessConfig,
+  importModule?: BrowserLibp2pImport,
+  extraOptions: BrowserLibp2pRuntimeOptions = {},
+): BrowserLibp2pRuntimeOptions {
+  const transportMode =
+    config.scenario === 'relay-only'
+      ? 'relay-only'
+      : config.scenario === 'websocket-only'
+        ? 'websocket-only'
+        : 'default';
+
+  return {
+    importModule,
+    transportMode,
+    relayMultiaddr: config.usesDefaultBootstrap ? undefined : config.rendezvousAddr,
+    bootstrapPeers: config.usesDefaultBootstrap ? undefined : config.bootstrapPeers,
+    libp2pOptions: { addresses: { listen: config.listenMultiaddrs } },
+    ...extraOptions,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Browser libp2p initialization
 // ---------------------------------------------------------------------------
@@ -244,9 +307,10 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
   const detail = el('init-detail');
 
   if (config.scenario === 'disabled') {
-    const { report } = await buildBrowserLibp2pConfig({ enabled: false });
+    const { report } = await buildBrowserLibp2pConfig(buildRuntimeOptions(config, undefined, { enabled: false }));
     renderCapabilities(report);
     renderGaps(report);
+    renderBootstrapMatrix(report);
     setBadge(statusBadge, statusText, 'disabled', '');
     detail.textContent = 'Browser libp2p runtime disabled by scenario (enabled: false); no node was created.';
     return;
@@ -262,19 +326,18 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
   // scenarios where starting the node legitimately fails (e.g. no reachable
   // circuit-relay bootstrap peer).
   const { report } = await buildBrowserLibp2pConfig({
-    importModule,
-    libp2pOptions: { addresses: { listen: config.listenMultiaddrs } },
+    ...buildRuntimeOptions(config, importModule),
   });
   renderCapabilities(report);
   renderGaps(report);
+  renderBootstrapMatrix(report);
 
   try {
     // `start: false` defers the actual transport listen attempt so we can
     // control and time it explicitly below, independent of whatever
     // `createLibp2p`'s own default auto-start behavior is.
     const runtime = await createBrowserLibp2pNode({
-      importModule,
-      libp2pOptions: { addresses: { listen: config.listenMultiaddrs }, start: false },
+      ...buildRuntimeOptions(config, importModule, { libp2pOptions: { addresses: { listen: config.listenMultiaddrs }, start: false } }),
     });
 
     const node = runtime.node as {

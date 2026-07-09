@@ -2,11 +2,11 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "libp2p-browser-playwright",
   "label": "Browser libp2p Playwright evidence (SWR-028)",
-  "generatedAt": "2026-07-08T10:32:40.831Z",
+  "generatedAt": "2026-07-09T04:37:23.060Z",
   "evidenceFiles": [
     "docs/browser-libp2p-evidence.md"
   ],
-  "sourceFingerprint": "e152aebb8f3767ddeedd935e76ab2c4edafdd858acf4d244c7c93efc0e892692",
+  "sourceFingerprint": "0e65ac0b819357819deed1b73d2d3ac1ebaabcb0847dbe95ebdf4aefe4dcf8e6",
   "sourceFiles": [
     {
       "path": "build-tools/configs/playwright.libp2p-browser.config.ts",
@@ -18,7 +18,7 @@
     },
     {
       "path": "src/services/mcp/libp2p-browser-runtime.ts",
-      "sha256": "13c7de64a7dd93ec3837466e114bb4824848bdf849ecc32be76eba44e7d8c774"
+      "sha256": "06f14f970a349f7e71602dc279452c96b7588b6062ce540337419a1a0a7ec9f3"
     },
     {
       "path": "src/services/mcp/mcp-discovery.ts",

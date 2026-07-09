@@ -17,6 +17,7 @@ export type BrowserLibp2pCapabilityName =
   | 'gossipsub';
 
 export type BrowserLibp2pImport = (specifier: string) => Promise<Record<string, unknown>>;
+export type BrowserLibp2pTransportMode = 'default' | 'relay-only' | 'websocket-only';
 
 export interface BrowserLibp2pCapabilityGap {
   name: BrowserLibp2pCapabilityName;
@@ -33,14 +34,43 @@ export interface BrowserLibp2pCapabilityStatus {
   reason?: string;
 }
 
+export interface BrowserLibp2pBootstrapCapabilitySummary {
+  requested: boolean;
+  installed: boolean;
+  configured: boolean;
+  packageName?: string;
+  reason?: string;
+}
+
+export interface BrowserLibp2pBootstrapReport {
+  schema: 'swissknife.browser_libp2p_bootstrap_report.v1';
+  transportMode: BrowserLibp2pTransportMode;
+  defaultBootstrap: boolean;
+  listenMultiaddrs: string[];
+  bootstrapPeers: string[];
+  relayMultiaddr?: string;
+  relayOnlyFallback: boolean;
+  webRTCUnavailable: boolean;
+  webSocketOnly: boolean;
+  gossipSubAvailable: boolean;
+  simulatedTransports: false;
+  capabilities: Record<'webrtc' | 'websockets' | 'circuit-relay-v2' | 'gossipsub', BrowserLibp2pBootstrapCapabilitySummary>;
+  capabilityGaps: BrowserLibp2pCapabilityGap[];
+  notes: string[];
+}
+
 export interface BrowserLibp2pRuntimeReport {
   enabled: boolean;
   capabilities: BrowserLibp2pCapabilityStatus[];
   gaps: BrowserLibp2pCapabilityGap[];
+  bootstrap: BrowserLibp2pBootstrapReport;
 }
 
 export interface BrowserLibp2pRuntimeOptions {
   enabled?: boolean;
+  transportMode?: BrowserLibp2pTransportMode;
+  bootstrapPeers?: string[];
+  relayMultiaddr?: string;
   includeWebRTC?: boolean;
   includeWebSockets?: boolean;
   includeCircuitRelay?: boolean;
@@ -54,6 +84,13 @@ export interface BrowserLibp2pRuntimeOptions {
 
 export interface BrowserLibp2pRuntimeConfig {
   config: Record<string, unknown>;
+  report: BrowserLibp2pRuntimeReport;
+}
+
+export interface BrowserLibp2pDefaultStatus {
+  schema: 'swissknife.browser_libp2p_default_status.v1';
+  generatedAt: string;
+  listenMultiaddrs: string[];
   report: BrowserLibp2pRuntimeReport;
 }
 
@@ -75,6 +112,27 @@ interface OptionalModuleLoad {
 }
 
 const DEFAULT_LISTEN_MULTIADDRS = ['/webrtc'];
+const DEFAULT_RELAY_MULTIADDR =
+  '/dns4/relay.swissknife-mcp.example/tcp/443/wss/p2p/12D3KooWRelayBootstrapExamplePeerAaaaaaaaaaaaaaaaaaaaaaaaaa/p2p-circuit';
+const DEFAULT_WEBSOCKET_BOOTSTRAP_MULTIADDR =
+  '/dns4/bootstrap.swissknife-mcp.example/tcp/443/wss/p2p/12D3KooWBrowserBootstrapPeerAaaaaaaaaaaaaaaaaaaaaaaaa';
+const DEFAULT_BOOTSTRAP_PEERS = [DEFAULT_RELAY_MULTIADDR, DEFAULT_WEBSOCKET_BOOTSTRAP_MULTIADDR];
+
+/**
+ * Canonical, UI-facing display order for the optional browser libp2p
+ * capabilities. `web/js/apps/mcp-control.js` and `web/js/apps/p2p-network.js`
+ * both render this exact order so the MCP dashboard and P2P network app show
+ * browser transport/capability status consistently.
+ */
+export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
+  'webrtc',
+  'websockets',
+  'circuit-relay-v2',
+  'identify',
+  'noise',
+  'yamux',
+  'gossipsub',
+];
 
 const MODULES = {
   libp2p: {
@@ -120,7 +178,21 @@ const MODULES = {
 } satisfies Record<string, OptionalModuleSpec>;
 
 const defaultImportModule: BrowserLibp2pImport = async specifier => {
+  const loader = BROWSER_LITERAL_LOADERS[specifier];
+  if (loader) return loader();
   return import(/* @vite-ignore */ specifier) as Promise<Record<string, unknown>>;
+};
+
+const BROWSER_LITERAL_LOADERS: Record<string, () => Promise<Record<string, unknown>>> = {
+  libp2p: () => import('libp2p') as Promise<Record<string, unknown>>,
+  '@libp2p/webrtc': () => import('@libp2p/webrtc') as Promise<Record<string, unknown>>,
+  '@libp2p/websockets': () => import('@libp2p/websockets') as Promise<Record<string, unknown>>,
+  '@libp2p/circuit-relay-v2': () => import('@libp2p/circuit-relay-v2') as Promise<Record<string, unknown>>,
+  '@chainsafe/libp2p-noise': () => import('@chainsafe/libp2p-noise') as Promise<Record<string, unknown>>,
+  '@chainsafe/libp2p-yamux': () => import('@chainsafe/libp2p-yamux') as Promise<Record<string, unknown>>,
+  '@libp2p/identify': () => import('@libp2p/identify') as Promise<Record<string, unknown>>,
+  '@chainsafe/libp2p-gossipsub': () =>
+    import('@chainsafe/libp2p-gossipsub') as Promise<Record<string, unknown>>,
 };
 
 function enabled(value: boolean | undefined): boolean {
@@ -137,9 +209,125 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? [...value] : [];
 }
 
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(item => String(item)) : [];
+}
+
 function gapReason(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
   return String(error);
+}
+
+function requestedForMode(
+  mode: BrowserLibp2pTransportMode,
+  capability: 'webrtc' | 'websockets' | 'circuit-relay-v2',
+  requested: boolean | undefined,
+): boolean {
+  if (mode === 'relay-only') {
+    return capability === 'websockets' || capability === 'circuit-relay-v2';
+  }
+  if (mode === 'websocket-only') {
+    return capability === 'websockets';
+  }
+  return enabled(requested);
+}
+
+function defaultListenMultiaddrsForMode(mode: BrowserLibp2pTransportMode): string[] {
+  if (mode === 'relay-only') return ['/p2p-circuit'];
+  if (mode === 'websocket-only') return [];
+  return [...DEFAULT_LISTEN_MULTIADDRS];
+}
+
+function defaultBootstrapPeersForMode(mode: BrowserLibp2pTransportMode): string[] {
+  if (mode === 'websocket-only') return [DEFAULT_WEBSOCKET_BOOTSTRAP_MULTIADDR];
+  return [...DEFAULT_BOOTSTRAP_PEERS];
+}
+
+function resolveBootstrapPeers(options: BrowserLibp2pRuntimeOptions, mode: BrowserLibp2pTransportMode): string[] {
+  return options.bootstrapPeers?.map(peer => String(peer)) ?? defaultBootstrapPeersForMode(mode);
+}
+
+function findCapability(
+  statuses: BrowserLibp2pCapabilityStatus[],
+  name: BrowserLibp2pCapabilityName,
+): BrowserLibp2pCapabilityStatus | undefined {
+  return statuses.find(status => status.name === name);
+}
+
+function bootstrapCapabilitySummary(
+  statuses: BrowserLibp2pCapabilityStatus[],
+  name: 'webrtc' | 'websockets' | 'circuit-relay-v2' | 'gossipsub',
+  requested: boolean,
+): BrowserLibp2pBootstrapCapabilitySummary {
+  const status = findCapability(statuses, name);
+  return {
+    requested,
+    installed: status?.installed ?? false,
+    configured: status?.configured ?? false,
+    packageName: status?.packageName,
+    reason: status?.reason,
+  };
+}
+
+function buildBootstrapReport(
+  options: BrowserLibp2pRuntimeOptions,
+  config: Record<string, unknown>,
+  statuses: BrowserLibp2pCapabilityStatus[],
+  gaps: BrowserLibp2pCapabilityGap[],
+  requested: {
+    webrtc: boolean;
+    websockets: boolean;
+    relay: boolean;
+    gossipsub: boolean;
+  },
+): BrowserLibp2pBootstrapReport {
+  const mode = options.transportMode ?? 'default';
+  const addresses = asRecord(config.addresses);
+  const listenMultiaddrs = asStringArray(addresses.listen);
+  const bootstrapPeers = resolveBootstrapPeers(options, mode);
+  const relayMultiaddr = options.relayMultiaddr ?? bootstrapPeers.find(peer => peer.includes('/p2p-circuit'));
+  const capabilities = {
+    webrtc: bootstrapCapabilitySummary(statuses, 'webrtc', requested.webrtc),
+    websockets: bootstrapCapabilitySummary(statuses, 'websockets', requested.websockets),
+    'circuit-relay-v2': bootstrapCapabilitySummary(statuses, 'circuit-relay-v2', requested.relay),
+    gossipsub: bootstrapCapabilitySummary(statuses, 'gossipsub', requested.gossipsub),
+  };
+  const webRTCUnavailable = requested.webrtc && !capabilities.webrtc.configured;
+  const relayOnlyFallback = mode === 'relay-only' || (webRTCUnavailable && capabilities['circuit-relay-v2'].configured);
+  const notes: string[] = [];
+
+  if (mode === 'default') {
+    notes.push('Default browser mode prefers WebRTC listen with WebSocket and circuit-relay transports available for outbound relay/bootstrap paths.');
+  }
+  if (relayOnlyFallback) {
+    notes.push('Relay-only fallback requires a reachable WebSocket relay/bootstrap peer; no local transport replacement is configured.');
+  }
+  if (mode === 'websocket-only') {
+    notes.push('WebSocket-only mode disables WebRTC and circuit-relay transports and keeps browser networking outbound-only.');
+  }
+  if (webRTCUnavailable) {
+    notes.push('WebRTC was requested but unavailable; the gap is reported explicitly and no substitute WebRTC transport is installed.');
+  }
+  if (capabilities.gossipsub.configured) {
+    notes.push('GossipSub is available as the libp2p pubsub service.');
+  }
+
+  return {
+    schema: 'swissknife.browser_libp2p_bootstrap_report.v1',
+    transportMode: mode,
+    defaultBootstrap: options.bootstrapPeers === undefined,
+    listenMultiaddrs,
+    bootstrapPeers,
+    relayMultiaddr,
+    relayOnlyFallback,
+    webRTCUnavailable,
+    webSocketOnly: mode === 'websocket-only',
+    gossipSubAvailable: capabilities.gossipsub.configured,
+    simulatedTransports: false,
+    capabilities,
+    capabilityGaps: [...gaps],
+    notes,
+  };
 }
 
 async function loadOptionalModule(
@@ -255,31 +443,43 @@ export async function buildBrowserLibp2pConfig(
   const statuses: BrowserLibp2pCapabilityStatus[] = [];
   const gaps: BrowserLibp2pCapabilityGap[] = [];
   const importModule = options.importModule ?? defaultImportModule;
+  const transportMode = options.transportMode ?? 'default';
+  const requested = {
+    webrtc: requestedForMode(transportMode, 'webrtc', options.includeWebRTC),
+    websockets: requestedForMode(transportMode, 'websockets', options.includeWebSockets),
+    relay: requestedForMode(transportMode, 'circuit-relay-v2', options.includeCircuitRelay),
+    gossipsub: enabled(options.includeGossipSub),
+  };
 
   if (!enabled(options.enabled)) {
     return {
       config,
-      report: { enabled: false, capabilities: statuses, gaps },
+      report: {
+        enabled: false,
+        capabilities: statuses,
+        gaps,
+        bootstrap: buildBootstrapReport(options, config, statuses, gaps, requested),
+      },
     };
   }
 
   const addresses = asRecord(config.addresses);
   if (!Array.isArray(addresses.listen)) {
-    addresses.listen = DEFAULT_LISTEN_MULTIADDRS;
+    addresses.listen = defaultListenMultiaddrsForMode(transportMode);
     config.addresses = addresses;
   }
 
-  if (enabled(options.includeWebRTC)) {
+  if (requested.webrtc) {
     const webrtc = await loadOptionalModule(MODULES.webrtc, importModule, statuses, gaps);
     if (webrtc) addFactory('transports', config, webrtc, statuses, gaps);
   }
 
-  if (enabled(options.includeWebSockets)) {
+  if (requested.websockets) {
     const websockets = await loadOptionalModule(MODULES.websockets, importModule, statuses, gaps);
     if (websockets) addFactory('transports', config, websockets, statuses, gaps);
   }
 
-  if (enabled(options.includeCircuitRelay)) {
+  if (requested.relay) {
     const relay = await loadOptionalModule(MODULES.relay, importModule, statuses, gaps);
     if (relay) addFactory('transports', config, relay, statuses, gaps);
   }
@@ -299,14 +499,36 @@ export async function buildBrowserLibp2pConfig(
     if (identify) addServiceFactory('identify', config, identify, statuses, gaps);
   }
 
-  if (enabled(options.includeGossipSub)) {
+  if (requested.gossipsub) {
     const gossipSub = await loadOptionalModule(MODULES.gossipsub, importModule, statuses, gaps);
     if (gossipSub) addServiceFactory('pubsub', config, gossipSub, statuses, gaps);
   }
 
   return {
     config,
-    report: { enabled: true, capabilities: statuses, gaps },
+    report: {
+      enabled: true,
+      capabilities: statuses,
+      gaps,
+      bootstrap: buildBootstrapReport(options, config, statuses, gaps, requested),
+    },
+  };
+}
+
+export async function getBrowserLibp2pDefaultStatus(
+  options: BrowserLibp2pRuntimeOptions = {},
+): Promise<BrowserLibp2pDefaultStatus> {
+  const runtime = await buildBrowserLibp2pConfig(options);
+  const addresses = asRecord(runtime.config.addresses);
+  const listenMultiaddrs = Array.isArray(addresses.listen)
+    ? addresses.listen.map(value => String(value))
+    : [...DEFAULT_LISTEN_MULTIADDRS];
+
+  return {
+    schema: 'swissknife.browser_libp2p_default_status.v1',
+    generatedAt: new Date().toISOString(),
+    listenMultiaddrs,
+    report: runtime.report,
   };
 }
 
@@ -333,6 +555,7 @@ export async function createBrowserLibp2pNode(
       enabled: runtime.report.enabled,
       capabilities: statuses,
       gaps,
+      bootstrap: runtime.report.bootstrap,
     },
   };
 }
@@ -341,44 +564,4 @@ export function summarizeBrowserLibp2pGaps(
   report: BrowserLibp2pRuntimeReport,
 ): string[] {
   return report.gaps.map(gap => `${gap.name} (${gap.packageName}): ${gap.reason}`);
-}
-
-/**
- * Canonical, UI-facing display order for the optional browser libp2p
- * capabilities (SWR-039 / SWR-042). `web/js/apps/mcp-control.js` and
- * `web/js/apps/p2p-network.js` both render this exact order so the MCP
- * dashboard and P2P network app show libp2p browser transport/capability
- * status consistently.
- */
-export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
-  'webrtc',
-  'websockets',
-  'circuit-relay-v2',
-  'identify',
-  'noise',
-  'yamux',
-  'gossipsub',
-];
-
-/**
- * Convenience wrapper around {@link buildBrowserLibp2pConfig} that enables
- * every optional capability by default (SWR-039 real-transport defaults).
- * Callers (MCP dashboard, P2P network app) use this to report the live
- * browser libp2p capability/gap status without needing to repeat the full
- * `includeWebRTC`/`includeWebSockets`/... option set at every call site.
- */
-export async function getBrowserLibp2pDefaultStatus(
-  options: BrowserLibp2pRuntimeOptions = {},
-): Promise<BrowserLibp2pRuntimeConfig> {
-  return buildBrowserLibp2pConfig({
-    enabled: true,
-    includeWebRTC: true,
-    includeWebSockets: true,
-    includeCircuitRelay: true,
-    includeNoise: true,
-    includeYamux: true,
-    includeIdentify: true,
-    includeGossipSub: true,
-    ...options,
-  });
 }

@@ -7,8 +7,8 @@ derived from the current state of the source it depends on.
 
 | Evidence | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- |
-| Browser libp2p Playwright evidence (SWR-028) | ❌ stale | 2026-07-08T10:32:40.831Z | npm run evidence:libp2p-browser |
-| Browser bundle budget evidence (SWR-016) | ✅ fresh | 2026-07-08T19:54:09.298Z | npm run build:web |
+| Browser libp2p Playwright evidence (SWR-028) | ✅ fresh | 2026-07-09T04:37:23.060Z | npm run evidence:libp2p-browser |
+| Browser bundle budget evidence (SWR-016) | ✅ fresh | 2026-07-08T10:59:25.304Z | npm run build:web |
 | Module-boundary / service-boundary audit evidence (SWR-024) | ✅ fresh | 2026-07-08T11:03:20.432Z | npm run services:audit |
 
 ## Browser libp2p Playwright evidence (SWR-028)

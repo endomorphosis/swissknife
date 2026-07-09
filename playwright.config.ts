@@ -5,6 +5,7 @@ export default defineConfig({
   testMatch: [
     '**/meta-glasses-io-apps.spec.ts',
     '**/meta-glasses-expanded-io.spec.ts',
+    '**/all-tools-virtual-desktop-app-smoke.spec.ts',
   ],
   timeout: 90_000,
   expect: {
@@ -19,6 +20,7 @@ export default defineConfig({
     ['html', { open: 'never', outputFolder: 'playwright-report/meta-glasses-io' }],
     ['json', { outputFile: 'test-results/meta-glasses-io/results.json' }],
   ],
+  outputDir: 'test-results/playwright-artifacts',
   use: {
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

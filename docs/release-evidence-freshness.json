@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-08T19:54:09.299Z",
+  "generatedAt": "2026-07-09T04:37:23.063Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
       "label": "Browser libp2p Playwright evidence (SWR-028)",
-      "status": "stale",
-      "updated": false,
+      "status": "fresh",
+      "updated": true,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-      "recordedFingerprint": "e152aebb8f3767ddeedd935e76ab2c4edafdd858acf4d244c7c93efc0e892692",
-      "currentFingerprint": "b832491104df0611cfb5b070f3d014d3b6b0e153bfbcd25b43436007e6e81387",
-      "recordedAt": "2026-07-08T10:32:40.831Z",
+      "recordedFingerprint": "0e65ac0b819357819deed1b73d2d3ac1ebaabcb0847dbe95ebdf4aefe4dcf8e6",
+      "currentFingerprint": "0e65ac0b819357819deed1b73d2d3ac1ebaabcb0847dbe95ebdf4aefe4dcf8e6",
+      "recordedAt": "2026-07-09T04:37:23.060Z",
       "regenerateHint": "npm run evidence:libp2p-browser"
     },
     {
