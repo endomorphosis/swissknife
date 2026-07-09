@@ -10,19 +10,13 @@
     "libp2pBrotliBytes": 75000,
     "libp2pChunkCount": 8
   },
-  "fileCount": 50,
+  "fileCount": 49,
   "totals": {
-    "rawBytes": 2370992,
-    "gzipBytes": 555426,
-    "brotliBytes": 465959
+    "rawBytes": 1758855,
+    "gzipBytes": 376890,
+    "brotliBytes": 321267
   },
   "files": [
-    {
-      "file": "dist/assets/vendor-libp2p-mzcuGnKQ.js",
-      "rawBytes": 605907,
-      "gzipBytes": 176658,
-      "brotliBytes": 143081
-    },
     {
       "file": "dist/assets/index-lX1cMv4V.css",
       "rawBytes": 237014,
@@ -30,16 +24,16 @@
       "brotliBytes": 31349
     },
     {
-      "file": "dist/assets/p2p-network-Ozj6AGSB.js",
-      "rawBytes": 97057,
-      "gzipBytes": 17541,
-      "brotliBytes": 14716
+      "file": "dist/assets/p2p-network-DmqzmI_H.js",
+      "rawBytes": 97037,
+      "gzipBytes": 17517,
+      "brotliBytes": 14714
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
-      "rawBytes": 70843,
-      "gzipBytes": 14250,
-      "brotliBytes": 12355
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
+      "rawBytes": 70823,
+      "gzipBytes": 14231,
+      "brotliBytes": 12374
     },
     {
       "file": "dist/assets/file-manager-vsY99IO3.js",
@@ -54,10 +48,10 @@
       "brotliBytes": 12235
     },
     {
-      "file": "dist/assets/index-Bjxa2dvY.js",
-      "rawBytes": 57380,
+      "file": "dist/assets/index-0BPxI9qz.js",
+      "rawBytes": 57388,
       "gzipBytes": 13229,
-      "brotliBytes": 11078
+      "brotliBytes": 11083
     },
     {
       "file": "dist/assets/friends-list-CJhCm1zv.js",
@@ -78,10 +72,10 @@
       "brotliBytes": 9045
     },
     {
-      "file": "dist/assets/strudel-ai-daw-C-ibg3qz.js",
+      "file": "dist/assets/strudel-ai-daw-CcCQsbZu.js",
       "rawBytes": 48666,
-      "gzipBytes": 12235,
-      "brotliBytes": 10618
+      "gzipBytes": 12236,
+      "brotliBytes": 10626
     },
     {
       "file": "dist/assets/calculator-DxXtFSyX.js",
@@ -254,8 +248,8 @@
     {
       "file": "dist/index.html",
       "rawBytes": 18372,
-      "gzipBytes": 3446,
-      "brotliBytes": 2771
+      "gzipBytes": 3447,
+      "brotliBytes": 2773
     },
     {
       "file": "dist/assets/music-studio--P-Otwmv.js",
@@ -276,16 +270,10 @@
       "brotliBytes": 10904
     },
     {
-      "file": "dist/assets/libp2p-browser-runtime-6ZZGosuR.js",
-      "rawBytes": 6922,
-      "gzipBytes": 2241,
-      "brotliBytes": 2006
-    },
-    {
       "file": "dist/service-worker.js",
-      "rawBytes": 5159,
-      "gzipBytes": 2050,
-      "brotliBytes": 1667
+      "rawBytes": 5186,
+      "gzipBytes": 2059,
+      "brotliBytes": 1676
     },
     {
       "file": "dist/_headers",
@@ -306,6 +294,12 @@
       "brotliBytes": 365
     },
     {
+      "file": "dist/assets/libp2p-browser-runtime-browser-C8EfLClI.js",
+      "rawBytes": 697,
+      "gzipBytes": 395,
+      "brotliBytes": 354
+    },
+    {
       "file": "dist/assets/ipfs-accelerate-global-adapter-CBnSSR1i.js",
       "rawBytes": 104,
       "gzipBytes": 101,
@@ -320,50 +314,33 @@
   ],
   "libp2p": {
     "totals": {
-      "rawBytes": 944486,
-      "gzipBytes": 247030,
-      "brotliBytes": 202711,
-      "chunkCount": 8
+      "rawBytes": 332322,
+      "gzipBytes": 68483,
+      "brotliBytes": 58000,
+      "chunkCount": 7
     },
     "chunks": [
       {
-        "file": "dist/assets/vendor-libp2p-mzcuGnKQ.js",
-        "rawBytes": 605907,
-        "gzipBytes": 176658,
-        "brotliBytes": 143081,
-        "modules": [
-          "package:@libp2p/interface",
-          "package:@libp2p/interface",
-          "package:@libp2p/interface",
-          "package:@libp2p/interface",
-          "package:@libp2p/interface",
-          "package:@libp2p/interface",
-          "package:@libp2p/interface",
-          "package:@libp2p/interface"
-        ],
-        "reason": "package:@libp2p/interface, package:@libp2p/interface, package:@libp2p/interface"
-      },
-      {
-        "file": "dist/assets/p2p-network-Ozj6AGSB.js",
-        "rawBytes": 97057,
-        "gzipBytes": 17541,
-        "brotliBytes": 14716,
+        "file": "dist/assets/p2p-network-DmqzmI_H.js",
+        "rawBytes": 97037,
+        "gzipBytes": 17517,
+        "brotliBytes": 14714,
         "modules": [],
         "reason": "libp2p text reference"
       },
       {
-        "file": "dist/assets/mcp-control-BFYVBS2D.js",
-        "rawBytes": 70843,
-        "gzipBytes": 14250,
-        "brotliBytes": 12355,
+        "file": "dist/assets/mcp-control-DP6Fha63.js",
+        "rawBytes": 70823,
+        "gzipBytes": 14231,
+        "brotliBytes": 12374,
         "modules": [],
         "reason": "libp2p text reference"
       },
       {
-        "file": "dist/assets/index-Bjxa2dvY.js",
-        "rawBytes": 57380,
+        "file": "dist/assets/index-0BPxI9qz.js",
+        "rawBytes": 57388,
         "gzipBytes": 13229,
-        "brotliBytes": 11078,
+        "brotliBytes": 11083,
         "modules": [],
         "reason": "libp2p text reference"
       },
@@ -392,14 +369,14 @@
         "reason": "libp2p text reference"
       },
       {
-        "file": "dist/assets/libp2p-browser-runtime-6ZZGosuR.js",
-        "rawBytes": 6922,
-        "gzipBytes": 2241,
-        "brotliBytes": 2006,
+        "file": "dist/assets/libp2p-browser-runtime-browser-C8EfLClI.js",
+        "rawBytes": 697,
+        "gzipBytes": 395,
+        "brotliBytes": 354,
         "modules": [
-          "module:src/services/mcp/libp2p-browser-runtime.ts"
+          "module:web/js/core/libp2p-browser-runtime-browser.js"
         ],
-        "reason": "module:src/services/mcp/libp2p-browser-runtime.ts"
+        "reason": "module:web/js/core/libp2p-browser-runtime-browser.js"
       }
     ],
     "sourcePackages": [
@@ -416,35 +393,7 @@
       "libp2p"
     ]
   },
-  "hostLeakage": [
-    {
-      "file": "dist/assets/vendor-libp2p-mzcuGnKQ.js",
-      "ruleId": "acceptance-forbidden-token",
-      "severity": "host-only",
-      "fail": true,
-      "description": "Forbidden browser bundle token from SWR-008 acceptance gate",
-      "match": "Buffer.from",
-      "snippet": "ToString(t,\"binary\");return btoa(n)}else return Buffer.from(t).toString(\"base64\")}static FromBas"
-    },
-    {
-      "file": "dist/assets/vendor-libp2p-mzcuGnKQ.js",
-      "ruleId": "acceptance-forbidden-token",
-      "severity": "host-only",
-      "fail": true,
-      "description": "Forbidden browser bundle token from SWR-008 acceptance gate",
-      "match": "Buffer.from",
-      "snippet": "tob<\"u\"?this.FromBinary(atob(t)):new Uint8Array(Buffer.from(t,\"base64\")).buffer}static FromBase6"
-    },
-    {
-      "file": "dist/service-worker.js",
-      "ruleId": "acceptance-forbidden-token",
-      "severity": "host-only",
-      "fail": true,
-      "description": "Forbidden browser bundle token from SWR-008 acceptance gate",
-      "match": "child_process",
-      "snippet": "lt-ins (`fs`, `path`, // `worker_threads`, `child_process`, ...); doing so would not even lo"
-    }
-  ],
+  "hostLeakage": [],
   "pythonExposure": [
     {
       "file": "dist/assets/github-C7z4FcBm.js",
@@ -483,7 +432,7 @@
       "snippet": "<div class=\"example-prompt\">\"Write a Python function to calculate fibonacci...\"</div>"
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -492,7 +441,7 @@
       "snippet": "stCommandInterpreters:Object.freeze([\"python3\",\"python\",\"uvicorn\",\"gunicorn\",\"pip3\",\"pip\",\"node\""
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -501,7 +450,7 @@
       "snippet": "tnet\",\"ruby\",\"php\",\"go\",\"cargo\"])}),E=new Set([\"python\",\"python3\",\"uvicorn\",\"gunicorn\",\"pip\",\"pi"
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -510,7 +459,7 @@
       "snippet": "ss=\"host-daemon-disclaimer${c.isPythonCommand?\" python-command-disclaimer\":\"\"}\">"
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -519,7 +468,7 @@
       "snippet": "ss=\"host-daemon-disclaimer${s.isPythonCommand?\" python-command-disclaimer\":\"\"}\">"
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -528,7 +477,7 @@
       "snippet": "ort:8765},{name:\"example-mcp-server-2\",command:\"python server.py\",status:\"stopped\",port:8766}];f"
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -537,7 +486,7 @@
       "snippet": ".classList.remove(\"hidden\"),t.classList.toggle(\"python-command-disclaimer\",o.isPythonCommand),t."
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -546,7 +495,7 @@
       "snippet": "on) must run it. This example text references a Python interpreter/server; it documents the host"
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -555,7 +504,7 @@
       "snippet": "d is never parsed or executed by any in-browser Python code interpreter.\",hostCommandInterpreter"
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -564,7 +513,7 @@
       "snippet": "n the command references an interpreter such as Python. </p>"
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -573,7 +522,7 @@
       "snippet": "reter.\",hostCommandInterpreters:Object.freeze([\"python3\",\"python\",\"uvicorn\",\"gunicorn\",\"pip3\",\"p"
     },
     {
-      "file": "dist/assets/mcp-control-BFYVBS2D.js",
+      "file": "dist/assets/mcp-control-DP6Fha63.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -608,589 +557,9 @@
       "owner": "browser-web-app",
       "classification": "browser-safe",
       "browserReachability": "web build entrypoint",
-      "modules": 56,
-      "renderedBytes": 1873237,
-      "chunks": 40
-    },
-    {
-      "type": "package",
-      "name": "@chainsafe/libp2p-gossipsub",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 27,
-      "renderedBytes": 212741,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "libp2p",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 25,
-      "renderedBytes": 140672,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@noble/curves",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 10,
-      "renderedBytes": 129886,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "asn1js",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 97916,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/webrtc",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 18,
-      "renderedBytes": 76652,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/circuit-relay-v2",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 12,
-      "renderedBytes": 70290,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/utils",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 26,
-      "renderedBytes": 57646,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "multiformats",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 60,
-      "renderedBytes": 57425,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@chainsafe/libp2p-yamux",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 8,
-      "renderedBytes": 38650,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@multiformats/multiaddr",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 13,
-      "renderedBytes": 38437,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/crypto",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 22,
-      "renderedBytes": 38002,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "p-queue",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 3,
-      "renderedBytes": 33970,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@noble/hashes",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 12,
-      "renderedBytes": 33550,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@chainsafe/libp2p-noise",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 16,
-      "renderedBytes": 32823,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "protons-runtime",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 12,
-      "renderedBytes": 30778,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/peer-store",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 8,
-      "renderedBytes": 30426,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@noble/ciphers",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 5,
-      "renderedBytes": 26477,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/identify",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 6,
-      "renderedBytes": 22220,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "uint8arraylist",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 19387,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/multistream-select",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 5,
-      "renderedBytes": 16687,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "netmask",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 7,
-      "renderedBytes": 15805,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@multiformats/multiaddr-matcher",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 15618,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "mortice",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 7,
-      "renderedBytes": 14851,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/peer-record",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 7,
-      "renderedBytes": 13679,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-queue",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 5,
-      "renderedBytes": 13202,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "denque",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 13167,
-      "chunks": 1
-    },
-    {
-      "type": "source",
-      "name": "service-mcp",
-      "owner": "mcp-protocol-runtime",
-      "classification": "split",
-      "browserReachability": "allowed through browser-safe protocol and transport modules",
-      "modules": 1,
-      "renderedBytes": 12861,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "weald",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 3,
-      "renderedBytes": 12772,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "pvtsutils",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 12358,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "murmurhash3js-revisited",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 4,
-      "renderedBytes": 12169,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@multiformats/dns",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 8,
-      "renderedBytes": 11690,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "interface-datastore",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 10311,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "eventemitter3",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 4,
-      "renderedBytes": 10065,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/websockets",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 5,
-      "renderedBytes": 9860,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@multiformats/multiaddr-to-uri",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 9061,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/interface",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 24,
-      "renderedBytes": 8908,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-pushable",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 8300,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@chainsafe/is-ip",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 3,
-      "renderedBytes": 8203,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-ws",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 7,
-      "renderedBytes": 7919,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/peer-id",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 1,
-      "renderedBytes": 7786,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "detect-browser",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 7503,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-queueless-pushable",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 7364,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-length-prefixed",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 5,
-      "renderedBytes": 6735,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "race-signal",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 3,
-      "renderedBytes": 5838,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@multiformats/mafmt",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 5767,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/peer-collections",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 9,
-      "renderedBytes": 5211,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "uint8-varint",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 5205,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "race-event",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 5201,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "uint8arrays",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 13,
-      "renderedBytes": 5158,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "event-iterator",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 5,
-      "renderedBytes": 5060,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "p-timeout",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 4993,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "pvutils",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 4829,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-byte-stream",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 4237,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "datastore-core",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 3,
-      "renderedBytes": 4229,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "merge-options",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 3,
-      "renderedBytes": 3935,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-length-prefixed-stream",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 3708,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "main-event",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 3683,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "ms",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 3597,
-      "chunks": 1
+      "modules": 57,
+      "renderedBytes": 1874295,
+      "chunks": 41
     },
     {
       "type": "source",
@@ -1201,326 +570,17 @@
       "modules": 2,
       "renderedBytes": 3303,
       "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/logger",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 2,
-      "renderedBytes": 3258,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-parallel",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 2907,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "p-event",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 2647,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@sindresorhus/fnv1a",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 2473,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-pipe",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 2448,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-merge",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 2411,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-foreach",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 2212,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-filter",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 2122,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-peekable",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 1874,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "err-code",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 1693,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-protobuf-stream",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 1670,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-take",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 1428,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "delay",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 1395,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "hashlru",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 1382,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-sort",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 1233,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/peer-id-factory",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 2,
-      "renderedBytes": 1057,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-all",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 1013,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "is-electron",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 1012,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-drain",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 981,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "abort-error",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 938,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "any-signal",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 861,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "it-pair",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 2,
-      "renderedBytes": 783,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "wherearewe",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 734,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "get-iterator",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 458,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "progress-events",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 429,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "is-plain-obj",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 406,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@libp2p/pubsub",
-      "owner": "mcp-protocol-runtime",
-      "classification": "third-party",
-      "purpose": "browser libp2p transport and peer addressing",
-      "modules": 2,
-      "renderedBytes": 330,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "p-defer",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 181,
-      "chunks": 1
-    },
-    {
-      "type": "source",
-      "name": "unknown",
-      "owner": "unknown",
-      "classification": "unknown",
-      "browserReachability": "requires review",
-      "modules": 1,
-      "renderedBytes": 140,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "@chainsafe/netmask",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 5,
-      "renderedBytes": 0,
-      "chunks": 1
     }
   ],
   "dependencyInventory": [
-    {
-      "packageName": "@chainsafe/is-ip",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 3,
-      "renderedBytes": 8203
-    },
     {
       "packageName": "@chainsafe/libp2p-gossipsub",
       "bucket": "optionalDependencies",
       "version": "^13.2.0",
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 27,
-      "renderedBytes": 212741
+      "bundledModules": 0,
+      "renderedBytes": 0
     },
     {
       "packageName": "@chainsafe/libp2p-noise",
@@ -1528,8 +588,8 @@
       "version": "^15.1.2",
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 16,
-      "renderedBytes": 32823
+      "bundledModules": 0,
+      "renderedBytes": 0
     },
     {
       "packageName": "@chainsafe/libp2p-yamux",
@@ -1537,16 +597,7 @@
       "version": "^6.0.2",
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 8,
-      "renderedBytes": 38650
-    },
-    {
-      "packageName": "@chainsafe/netmask",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 5,
+      "bundledModules": 0,
       "renderedBytes": 0
     },
     {
@@ -1555,17 +606,8 @@
       "version": "^1.1.5",
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 12,
-      "renderedBytes": 70290
-    },
-    {
-      "packageName": "@libp2p/crypto",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 22,
-      "renderedBytes": 38002
+      "bundledModules": 0,
+      "renderedBytes": 0
     },
     {
       "packageName": "@libp2p/gossipsub",
@@ -1582,17 +624,8 @@
       "version": "^2.1.5",
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 6,
-      "renderedBytes": 22220
-    },
-    {
-      "packageName": "@libp2p/interface",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 24,
-      "renderedBytes": 8908
+      "bundledModules": 0,
+      "renderedBytes": 0
     },
     {
       "packageName": "@libp2p/kad-dht",
@@ -1604,15 +637,6 @@
       "renderedBytes": 0
     },
     {
-      "packageName": "@libp2p/logger",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 2,
-      "renderedBytes": 3258
-    },
-    {
       "packageName": "@libp2p/mdns",
       "bucket": "not-declared",
       "version": null,
@@ -1622,85 +646,13 @@
       "renderedBytes": 0
     },
     {
-      "packageName": "@libp2p/multistream-select",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 5,
-      "renderedBytes": 16687
-    },
-    {
-      "packageName": "@libp2p/peer-collections",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 9,
-      "renderedBytes": 5211
-    },
-    {
-      "packageName": "@libp2p/peer-id",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 1,
-      "renderedBytes": 7786
-    },
-    {
-      "packageName": "@libp2p/peer-id-factory",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 2,
-      "renderedBytes": 1057
-    },
-    {
-      "packageName": "@libp2p/peer-record",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 7,
-      "renderedBytes": 13679
-    },
-    {
-      "packageName": "@libp2p/peer-store",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 8,
-      "renderedBytes": 30426
-    },
-    {
-      "packageName": "@libp2p/pubsub",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 2,
-      "renderedBytes": 330
-    },
-    {
-      "packageName": "@libp2p/utils",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "mcp-protocol-runtime",
-      "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 26,
-      "renderedBytes": 57646
-    },
-    {
       "packageName": "@libp2p/webrtc",
       "bucket": "optionalDependencies",
       "version": "^4.1.10",
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 18,
-      "renderedBytes": 76652
+      "bundledModules": 0,
+      "renderedBytes": 0
     },
     {
       "packageName": "@libp2p/websockets",
@@ -1708,26 +660,8 @@
       "version": "^8.2.0",
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 5,
-      "renderedBytes": 9860
-    },
-    {
-      "packageName": "@multiformats/dns",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 8,
-      "renderedBytes": 11690
-    },
-    {
-      "packageName": "@multiformats/mafmt",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 5767
+      "bundledModules": 0,
+      "renderedBytes": 0
     },
     {
       "packageName": "@multiformats/multiaddr",
@@ -1735,368 +669,8 @@
       "version": "^12.1.14",
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 13,
-      "renderedBytes": 38437
-    },
-    {
-      "packageName": "@multiformats/multiaddr-matcher",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 15618
-    },
-    {
-      "packageName": "@multiformats/multiaddr-to-uri",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 9061
-    },
-    {
-      "packageName": "@noble/ciphers",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 5,
-      "renderedBytes": 26477
-    },
-    {
-      "packageName": "@noble/curves",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 10,
-      "renderedBytes": 129886
-    },
-    {
-      "packageName": "@noble/hashes",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 12,
-      "renderedBytes": 33550
-    },
-    {
-      "packageName": "@sindresorhus/fnv1a",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 2473
-    },
-    {
-      "packageName": "abort-error",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 938
-    },
-    {
-      "packageName": "any-signal",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 861
-    },
-    {
-      "packageName": "asn1js",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 97916
-    },
-    {
-      "packageName": "datastore-core",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 3,
-      "renderedBytes": 4229
-    },
-    {
-      "packageName": "delay",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 1395
-    },
-    {
-      "packageName": "denque",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 13167
-    },
-    {
-      "packageName": "detect-browser",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 7503
-    },
-    {
-      "packageName": "err-code",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 1693
-    },
-    {
-      "packageName": "event-iterator",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 5,
-      "renderedBytes": 5060
-    },
-    {
-      "packageName": "eventemitter3",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 4,
-      "renderedBytes": 10065
-    },
-    {
-      "packageName": "get-iterator",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 458
-    },
-    {
-      "packageName": "hashlru",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 1382
-    },
-    {
-      "packageName": "interface-datastore",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 10311
-    },
-    {
-      "packageName": "is-electron",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 1012
-    },
-    {
-      "packageName": "is-plain-obj",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 406
-    },
-    {
-      "packageName": "it-all",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 1013
-    },
-    {
-      "packageName": "it-byte-stream",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 4237
-    },
-    {
-      "packageName": "it-drain",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 981
-    },
-    {
-      "packageName": "it-filter",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 2122
-    },
-    {
-      "packageName": "it-foreach",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 2212
-    },
-    {
-      "packageName": "it-length-prefixed",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 5,
-      "renderedBytes": 6735
-    },
-    {
-      "packageName": "it-length-prefixed-stream",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 3708
-    },
-    {
-      "packageName": "it-merge",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 2411
-    },
-    {
-      "packageName": "it-pair",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 783
-    },
-    {
-      "packageName": "it-parallel",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 2907
-    },
-    {
-      "packageName": "it-peekable",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 1874
-    },
-    {
-      "packageName": "it-pipe",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 2448
-    },
-    {
-      "packageName": "it-protobuf-stream",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 1670
-    },
-    {
-      "packageName": "it-pushable",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 8300
-    },
-    {
-      "packageName": "it-queue",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 5,
-      "renderedBytes": 13202
-    },
-    {
-      "packageName": "it-queueless-pushable",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 7364
-    },
-    {
-      "packageName": "it-sort",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 1233
-    },
-    {
-      "packageName": "it-take",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 1428
-    },
-    {
-      "packageName": "it-ws",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 7,
-      "renderedBytes": 7919
+      "bundledModules": 0,
+      "renderedBytes": 0
     },
     {
       "packageName": "libp2p",
@@ -2104,143 +678,8 @@
       "version": "^1.2.1",
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
-      "bundledModules": 25,
-      "renderedBytes": 140672
-    },
-    {
-      "packageName": "main-event",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 3683
-    },
-    {
-      "packageName": "merge-options",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 3,
-      "renderedBytes": 3935
-    },
-    {
-      "packageName": "mortice",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 7,
-      "renderedBytes": 14851
-    },
-    {
-      "packageName": "ms",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 3597
-    },
-    {
-      "packageName": "multiformats",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 60,
-      "renderedBytes": 57425
-    },
-    {
-      "packageName": "murmurhash3js-revisited",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 4,
-      "renderedBytes": 12169
-    },
-    {
-      "packageName": "netmask",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 7,
-      "renderedBytes": 15805
-    },
-    {
-      "packageName": "p-defer",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 181
-    },
-    {
-      "packageName": "p-event",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 2647
-    },
-    {
-      "packageName": "p-queue",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 3,
-      "renderedBytes": 33970
-    },
-    {
-      "packageName": "p-timeout",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 2,
-      "renderedBytes": 4993
-    },
-    {
-      "packageName": "progress-events",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 429
-    },
-    {
-      "packageName": "protons-runtime",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 12,
-      "renderedBytes": 30778
-    },
-    {
-      "packageName": "pvtsutils",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 12358
-    },
-    {
-      "packageName": "pvutils",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 4829
+      "bundledModules": 0,
+      "renderedBytes": 0
     },
     {
       "packageName": "pyodide",
@@ -2250,111 +689,48 @@
       "purpose": "in-browser Python runtime exposure",
       "bundledModules": 0,
       "renderedBytes": 0
-    },
-    {
-      "packageName": "race-event",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 5201
-    },
-    {
-      "packageName": "race-signal",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 3,
-      "renderedBytes": 5838
-    },
-    {
-      "packageName": "uint8-varint",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 5205
-    },
-    {
-      "packageName": "uint8arraylist",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 19387
-    },
-    {
-      "packageName": "uint8arrays",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 13,
-      "renderedBytes": 5158
-    },
-    {
-      "packageName": "weald",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 3,
-      "renderedBytes": 12772
-    },
-    {
-      "packageName": "wherearewe",
-      "bucket": "not-declared",
-      "version": null,
-      "owner": "third-party-runtime",
-      "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 734
     }
   ],
   "budgetResults": [
     {
       "name": "totalRawBytes",
-      "actual": 2370992,
+      "actual": 1758855,
       "budget": 2750000,
       "pass": true
     },
     {
       "name": "totalGzipBytes",
-      "actual": 555426,
+      "actual": 376890,
       "budget": 650000,
       "pass": true
     },
     {
       "name": "totalBrotliBytes",
-      "actual": 465959,
+      "actual": 321267,
       "budget": 560000,
       "pass": true
     },
     {
       "name": "libp2pRawBytes",
-      "actual": 944486,
+      "actual": 332322,
       "budget": 393216,
-      "pass": false
+      "pass": true
     },
     {
       "name": "libp2pGzipBytes",
-      "actual": 247030,
+      "actual": 68483,
       "budget": 85000,
-      "pass": false
+      "pass": true
     },
     {
       "name": "libp2pBrotliBytes",
-      "actual": 202711,
+      "actual": 58000,
       "budget": 75000,
-      "pass": false
+      "pass": true
     },
     {
       "name": "libp2pChunkCount",
-      "actual": 8,
+      "actual": 7,
       "budget": 8,
       "pass": true
     }

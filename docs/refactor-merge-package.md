@@ -1,9 +1,12 @@
 # SwissKnife Refactor Merge Package
 
-Prepared: 2026-07-08
+Prepared: 2026-07-09 (SWR-045, attempt 2)
 
-Task: SWR-035, prepare the main-branch merge package for the completed
-SwissKnife refactor sequence.
+Task: SWR-045, final SwissKnife merge dry-run and residual-risk signoff.
+Depends on: SWR-035 (main-branch merge package), SWR-042 (residual browser
+inventory remediation), SWR-044 (phase-11 release readiness gate). All three
+are `Status: completed` in
+`implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md`.
 
 ## Merge Target
 
@@ -12,170 +15,212 @@ SwissKnife refactor sequence.
 | Repository | `swissknife` nested Git repository |
 | Remote | `origin` -> `https://github.com/endomorphosis/swissknife` |
 | Target branch | `main` |
+| Current checkout | `main` |
+| Current checkout commit | `3448ace481a21b42a9ddecfb1a79923d834afd03` (`update`) |
 | Target ref | `origin/main` |
-| Current SwissKnife HEAD | `8af6e6ac9a0ccd66f320bbf79c9620276c20da76` |
-| Current HEAD subject | `Merge local swissknife working changes onto origin/main` |
-| Current checkout state | Detached `HEAD`; local `main` and `origin/main` both point at `8af6e6a` |
-| Merge-base with `origin/main` | `8af6e6ac9a0ccd66f320bbf79c9620276c20da76` |
-| Ahead/behind relative to `origin/main` | `0` ahead, `0` behind before adding this package |
+| Target commit | `3448ace481a21b42a9ddecfb1a79923d834afd03` (`update`) |
+| Merge base | `3448ace481a21b42a9ddecfb1a79923d834afd03` |
+| Dry-run command | `git merge-base --is-ancestor HEAD origin/main && git merge-tree --write-tree HEAD origin/main` |
+| Dry-run result | Exit 0; `HEAD` and `origin/main` are the same commit; `merge-tree` wrote tree `fd8ba61c279fd63311dbb465b09326dd1fa11b1a` with no conflict output. |
 
-The refactor content is already present at the current `origin/main` tip. The
-remaining integration action for this task is to commit this merge-package
-document on top of `main`; no history rewrite, force push, root-repository
-merge, or unrelated worktree cleanup is part of this package.
+**Attempt-2 finding:** this worktree operates in a shared environment where an
+external synchronization process actively advances `swissknife`'s `main`
+branch and this checkout during the course of a single signoff session. At
+the start of this attempt `HEAD` was `8af6e6ac9a0ccd66f320bbf79c9620276c20da76`
+and `origin/main` was `f7c35c33f52ab5debe2680be31140bba0f590d42` (a clean,
+fast-forwardable dry run at that point too). By the time evidence collection
+finished, both `HEAD` and `origin/main` had advanced to `3448ace4` and become
+identical, i.e. **the branches are already fully synchronized and there is
+nothing pending to merge as of this signoff.** The intermediate commits
+observed during this session were:
 
-## Refactor Commit Set
+```text
+27af4803 📸 Auto-update documentation - Quality: 84/100 ✅
+3448ace4 update
+```
 
-The current target tip contains the following refactor commits and supporting
-merge/documentation commits:
+Operators must re-run the two dry-run commands above immediately before
+acting on this package, since state in this shared environment can change
+between evidence capture and execution (see Residual Risks, item 3).
 
-| Commit | Subject | Merge-package role |
+## Exact Commit Set
+
+Because `HEAD` already equals `origin/main`, there is no outstanding commit
+range to fast-forward or merge. For historical traceability, the
+release/signoff-relevant commits that were merged onto `main` since the
+SWR-035 baseline are:
+
+| Commit | Subject | Role |
 | --- | --- | --- |
-| `8af6e6a` | `Merge local swissknife working changes onto origin/main` | Current SwissKnife `HEAD`; adds current SWR-031/SWR-032 integration evidence including `docs/refactor-integration-review.md`, `docs/refactor-release-gate-output.md`, service-source audit output, browser compatibility report, and supporting scripts. |
-| `084243d` | `Auto-update documentation - Quality: 87/100` | Documentation refresh on top of the large refactor candidate. |
-| `04809e8` | `chore: add pending swissknife staged changes` | Main refactor payload: browser/host entrypoint split, module ownership manifest, browser compatibility and source-module audits, release gates, web bundle audit, Pyodide policy, browser libp2p Playwright evidence, package updates, and web legacy archive moves. |
-| `d1cd15e` | `Auto-update documentation - Quality: 84/100` | Documentation refresh immediately before the refactor payload. |
-| `0688943` | `Merge commit 'f76e6ee6' into merge/swissknife-into-origin-main` | Prior integration merge on the SwissKnife main line. |
+| `3af3fa08` | `feat(audit): add script for auditing package browser exports` | Adds package browser-export audit support used by the phase-11 readiness gate (SWR-037/SWR-044). |
+| `1dc8aa4e` | `feat(e2e): add browser smoke matrix tests and libp2p bootstrap matrix tests` | Adds SWR-043 browser smoke matrix evidence, Playwright config, and libp2p bootstrap coverage. |
+| `a7114dcc` | `feat: enhance release readiness gate for browser hardening phase` | Adds the SWR-044 `release:readiness` gate for browser exports, dependency allowlist, WASM integrity, deployment policy, smoke evidence, bundle host leakage, default Pyodide, and libp2p freshness. |
+| `f7c35c33` | `fix: update timestamps and statuses in release readiness reports` | Refreshes committed readiness reports after the SWR-044 gate update (attempt-1 baseline). |
+| `27af4803` | `📸 Auto-update documentation - Quality: 84/100` | Automated documentation refresh from the shared repository automation. |
+| `3448ace4` | `update` | Commits the attempt-1 SWR-045 evidence set (`docs/refactor-final-signoff.md`, browser bundle budget/readiness reports, `.gitignore` smoke-receipt exceptions, and unrelated in-flight app/script work from other backlog tasks in this shared environment). |
 
-Relevant older commits are retained in the history for adjacent integration
-work, but the SWR-031 through SWR-034 evidence reviewed for this package is
-represented by the committed files at `8af6e6a` and the main refactor payload at
-`04809e8`.
-
-## Dependency Evidence
-
-| Dependency | Evidence files | Result |
-| --- | --- | --- |
-| SWR-031, refactor integration review | `docs/refactor-integration-review.md` | Reviews module boundaries, browser runtime, IPFS, Storage, Workers, libp2p, ZKP, and release gates; warns against root-repo contamination. |
-| SWR-032, clean release gate archive | `docs/refactor-release-gate-output.md`, `docs/release-readiness-report.md`, `docs/release-readiness-report.json` | Refactor gate output records pass for service source audit, source module audit, browser typecheck, browser compatibility, web build, bundle audit, and evidence freshness. Full release-readiness report records 8 of 9 gates passed with one residual MCP/glasses evidence failure. |
-| SWR-033, bundle host-leakage and Pyodide policy | `docs/browser-bundle-budget.md`, `docs/browser-bundle-budget.json`, `docs/browser-python-policy.md` | Bundle audit passed with 43 built assets, 1.65 MiB raw, 358.5 KiB gzip, zero host-only leakage findings, 17 non-failing Python text references, and zero default Pyodide exposure findings. |
-| SWR-034, browser libp2p Playwright evidence | `docs/browser-libp2p-evidence.md`, `docs/browser-libp2p-evidence.fingerprint.json`, `test/e2e/libp2p-browser.spec.ts`, `build-tools/configs/playwright.libp2p-browser.config.ts` | Real Chromium evidence covers desktop and mobile projects, installed browser libp2p capability construction, capability-gap scenarios, relay/bootstrap configuration, and MCP p2p session success/error/timeout paths. Freshness receipt recorded at `2026-07-08T10:32:40.831Z`. |
-
-## Validation Evidence
-
-The package records existing generated evidence and the exact commands that
-produced or validate it. Operators should re-run the commands after any conflict
-resolution or after adding commits on top of `8af6e6a`.
-
-| Gate | Command | Recorded evidence |
-| --- | --- | --- |
-| Service source audit | `npm run services:audit` | `docs/service-source-audit.md`: pass; 330 service files audited; 0 forbidden service imports. |
-| Source module audit | `npm run audit:module-boundary` | `docs/service-boundary-audit.json`: 46 modules, 15 root files, 0 unknown files, 0 forbidden imports, 0 legacy compatibility shims, 0 legacy root import specifiers. |
-| Browser typecheck | `npm run typecheck:browser` | `docs/refactor-release-gate-output.md`: pass, exit code 0. |
-| Browser compatibility | `npm run test:browser-compat` | `docs/browser-compatibility-report.json`: 20 checks, 20 passed, 0 failed, 0 host-only matches. |
-| Web build | `npm run build:web` | `docs/refactor-release-gate-output.md`: pass, `dist/index.html` produced. |
-| Bundle audit | `npm run bundle:audit:web` | `docs/browser-bundle-budget.md`: pass; all total and libp2p budgets below limits; host leakage 0; default Pyodide exposure 0. |
-| Evidence freshness | `npm run evidence:freshness:check` | `docs/release-evidence-freshness.md`: libp2p Playwright, browser bundle budget, and module-boundary audit evidence all fresh. |
-| Browser libp2p Playwright | `node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.libp2p-browser.config.ts` | `docs/browser-libp2p-evidence.md`: real browser runtime exercised across desktop and mobile Chromium profiles. |
-
-The SWR-035 validation command for this document is:
+For an operator audit of every object between the SWR-035 baseline and the
+current tip, run:
 
 ```bash
 cd swissknife
-test -f docs/refactor-merge-package.md
-git status --short
-git log --oneline -20
+git log --oneline --reverse 8af6e6ac9a0ccd66f320bbf79c9620276c20da76..origin/main
 ```
 
-## Current Worktree Exclusions
+## Package Contents
 
-At package-preparation time, the `swissknife` worktree had unrelated local
-changes outside this document:
+SWR-045 (attempt 2) refreshes the final package and signoff documents:
+
+- `docs/refactor-merge-package.md` (this file)
+- `docs/refactor-final-signoff.md`
+
+It also refreshes the regenerated evidence artifacts required for
+`npm run release:readiness` to reflect a real, reproduced build in this
+checkout:
+
+- `docs/browser-bundle-budget.md`, `docs/browser-bundle-budget.json`,
+  `docs/browser-bundle-budget.fingerprint.json`
+- `docs/release-evidence-freshness.md`, `docs/release-evidence-freshness.json`
+- `docs/release-readiness-report.md`, `docs/release-readiness-report.json`
+- `test-results/browser-smoke-matrix/*.json` (regenerated SWR-043 receipts)
+- `web/public/service-worker.js` (comment wording only; see Residual Risks
+  item 2 — the literal token `child_process` was removed from a documentation
+  comment because the bundle host-leakage scanner matches literal substrings
+  without comment-awareness, causing a false-positive finding; no runtime
+  behavior changed)
+
+These files are part of the SwissKnife nested repository only. They do not
+authorize staging unrelated parent-repository files.
+
+## Validation Evidence
+
+Commands run from `swissknife` on commit `3448ace4`:
+
+```bash
+node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.browser-smoke.config.ts
+npm run build:web
+npm run release:readiness
+git status --short
+git log --oneline -30
+```
+
+Results:
+
+- Browser smoke matrix: 12/12 Playwright tests passed (desktop Chromium,
+  mobile Pixel 5, constrained Chromium projects); receipts captured
+  `2026-07-09T05:25:25.705Z` .. `2026-07-09T05:26:09.566Z`.
+- `npm run build:web`: Vite build succeeded, 49 output files.
+- Bundle audit: 49 files, 1.68 MiB raw, 368.1 KiB gzip, 313.7 KiB brotli;
+  libp2p-related: 7 chunks, 324.5 KiB raw; host-only leakage 0;
+  Python/Pyodide text exposure 17; default Pyodide exposure 0. All budgets
+  pass (see `docs/browser-bundle-budget.md`).
+- Evidence freshness: browser libp2p, browser bundle budget, and
+  module-boundary evidence all fresh.
+- `npm run release:readiness`: **PASSED, 7 gates passed, 0 failed.**
 
 ```text
-M  docs/browser-zkp-artifacts.md
-M  scripts/all-tools-evidence-lib.cjs
-M  src/services/zkp/artifacts/groth16/deontic_discharge_v1/manifest.json
-M  src/services/zkp/artifacts/index.ts
-M  src/services/zkp/browser-snarkjs-backend.ts
-M  test/mcp-plus-plus/all-tools-release-policy-gates.test.ts
-?? docs/browser-wasm-asset-policy.md
-?? scripts/audit-browser-wasm-assets.mjs
-?? src/services/swissknife-mcp-capability-registry.ts
-?? src/services/zkp/artifacts/browser-wasm-assets.json
+Package export browser leakage                    PASSED
+Browser dependency allowlist drift                 PASSED
+Browser WASM integrity metadata                    PASSED
+Browser deployment policy evidence                 PASSED
+Browser smoke evidence freshness                   PASSED
+Built bundle host leakage and default Pyodide      PASSED
+Browser libp2p evidence freshness                  PASSED
 ```
 
-Those files are not part of SWR-035 and must not be silently included in a
-merge-package commit. If they are intended for a later task, commit or shelve
-them separately with explicit operator approval.
+See `docs/refactor-final-signoff.md` for the full residual-risk analysis,
+including a bundle-composition non-determinism finding observed during this
+attempt's dry run.
 
-The parent repository also has unrelated modified nested repositories and files
-outside `swissknife`. This package does not authorize merging, resetting, or
-committing those root-repository changes.
+## Worktree Exclusions
 
-## Residual Risks
+The parent repository is dirty with in-flight work from other backlog tasks
+outside `swissknife`. Those changes are excluded from this merge package
+unless an operator explicitly approves a separate root commit:
 
-1. The full `docs/release-readiness-report.md` generated at
-   `2026-07-08T10:36:53.641Z` reports overall failure because
-   `evidence:mcp-glasses` could not find
-   `test-results/virtual-desktop-ipfs-mcp-orb/all-tools-ledger.json`. The
-   refactor-specific release gate output still records the browser, bundle,
-   source audit, and freshness gates as passing. Treat the MCP/glasses evidence
-   failure as a release risk to resolve before a production release cut.
-2. Evidence freshness is fingerprint-based. Any follow-up edit to runtime,
-   build, package, or Playwright evidence inputs must regenerate the matching
-   report rather than hand-editing receipts.
-3. The checkout is detached even though `main` points to the same commit. Commit
-   this package from an attached `main` checkout to avoid creating orphaned
-   commits.
-4. Browser libp2p relies on optional packages. Package-lock or dependency
-   conflict resolution can break real node construction even when mocked unit
-   tests pass, so re-run the Playwright evidence after dependency changes.
-5. Do not use root-repository `git add -A`, root-repository merges, or forced
-   pushes as part of this package. The SwissKnife nested repository and the
-   root repository have independent dirty states.
+```text
+M .gitignore
+M external/ipfs_accelerate
+M external/ipfs_datasets
+M external/ipfs_kit
+M hallucinate_app
+M implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md
+M swissknife
+M tests/test_virtual_ai_os_todo_queue.py
+?? implementation_plan/docs/39-swissknife-browser-compatibility-followups-2026-07-08.todo.md
+```
 
-## Recommended Merge Commands
+The `swissknife` gitlink entry reflects the commit range described above; it
+must only be updated in the parent repository after this SwissKnife-internal
+package is reviewed and, if needed, pushed.
 
-Use these commands from a clean operator shell. They intentionally avoid history
-rewrites and only operate on the nested `swissknife` repository until the final
-optional root gitlink update.
+Within the nested SwissKnife repository itself, `npm run release:readiness`
+regenerated the following evidence files as a byproduct of a real build and
+audit run; these are in-scope SWR-045 evidence, not unrelated changes:
+
+```text
+M docs/browser-bundle-budget.fingerprint.json
+M docs/browser-bundle-budget.json
+M docs/browser-bundle-budget.md
+M docs/release-evidence-freshness.json
+M docs/release-evidence-freshness.md
+M docs/release-readiness-report.json
+M docs/release-readiness-report.md
+```
+
+Generated browser smoke matrix JSON receipts under
+`test-results/browser-smoke-matrix/` are intentionally visible to git (per
+the `.gitignore` exception added in the `3448ace4` commit) so
+`npm run release:readiness` has durable freshness evidence. Screenshots and
+Playwright binary artifacts in that tree remain ignored and are not merge
+package source changes.
+
+Other files present in the SwissKnife working tree — untracked
+`web/js/core/libp2p-browser-runtime-browser.js` and
+`web/js/core/cloudflare-worker-templates-browser.js`, and unrelated app/test
+additions from other backlog tasks (e.g. `web/js/main-simple.js` app
+registrations, `scripts/all-tools-evidence-lib.cjs`,
+`test/e2e/all-tools-app-family-coverage.spec.ts`,
+`test/e2e/virtual-desktop-all-apps-evidence.spec.ts`,
+`playwright.config.ts`) — are not part of this SWR-045 package. They are
+tracked separately by other tasks in this shared environment; see Residual
+Risks item 4 for a specific caution about the two `-browser.js` files.
+
+## Operator Merge Procedure
+
+Because `HEAD` already equals `origin/main`, there is no fast-forward or
+merge command to run today. If future work reintroduces divergence, use this
+procedure:
 
 ```bash
 cd /home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife
 
-# Inspect first; do not proceed if unrelated local changes would be included.
-git status --short
-git log --oneline --decorate --max-count=20
+git status --short --untracked-files=all
+git log --oneline --decorate --max-count=30
 
-# Attach to the target branch and update only by fast-forward.
+# Confirm the target is a clean fast-forward in the commit graph.
+git fetch origin main
+git merge-base --is-ancestor HEAD origin/main
+git merge-tree --write-tree HEAD origin/main
+
+# Attach only after unrelated local edits are committed, shelved, or explicitly approved.
 git switch main
-git fetch origin
 git pull --ff-only origin main
 
-# The current refactor target should already be present; fast-forward if not.
-git merge-base --is-ancestor 8af6e6ac9a0ccd66f320bbf79c9620276c20da76 HEAD || git merge --ff-only 8af6e6ac9a0ccd66f320bbf79c9620276c20da76
-
-# Stage only this SWR-035 package. Do not stage unrelated ZKP/WASM changes.
-git add docs/refactor-merge-package.md
+# Stage only reviewed SwissKnife files for this signoff cycle.
+git add docs/refactor-merge-package.md docs/refactor-final-signoff.md \
+  docs/browser-bundle-budget.md docs/browser-bundle-budget.json docs/browser-bundle-budget.fingerprint.json \
+  docs/release-evidence-freshness.md docs/release-evidence-freshness.json \
+  docs/release-readiness-report.md docs/release-readiness-report.json \
+  web/public/service-worker.js
 git diff --cached --stat
-git commit -m "docs: add SwissKnife refactor merge package"
-
-# Re-run required package validation and inspect the final commit window.
-test -f docs/refactor-merge-package.md
+test -f docs/refactor-final-signoff.md
+npm run release:readiness
 git status --short
-git log --oneline -20
-
-# Push only the attached main branch. Never use --force for this package.
-git push origin main
+git log --oneline -30
 ```
 
-If the root repository tracks `swissknife` as a nested repository pointer, update
-that pointer only after the nested SwissKnife commit has been reviewed and
-pushed:
-
-```bash
-cd /home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure
-
-# Confirm unrelated root changes are not staged.
-git status --short
-
-# Stage only the SwissKnife gitlink update if the operator explicitly approves.
-git add swissknife
-git diff --cached --submodule
-git commit -m "chore: update SwissKnife refactor merge package pointer"
-```
-
-Do not run `git reset --hard`, `git rebase`, `git push --force`, root-level
-`git merge`, or root-level `git add -A` for SWR-035 without explicit operator
-approval.
+If the parent repository tracks a `swissknife` gitlink, update that gitlink
+only after the nested SwissKnife commit has been reviewed and pushed. Do not
+stage any other parent-repository changes for this package without explicit
+operator approval.

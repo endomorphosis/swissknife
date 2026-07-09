@@ -1,22 +1,22 @@
 {
   "schemaVersion": 2,
   "taskId": "SWR-044",
-  "generatedAt": "2026-07-09T05:32:42.129Z",
-  "startedAt": "2026-07-09T05:32:35.308Z",
-  "durationMs": 6821,
-  "commitSha": "f7c35c33f52ab5debe2680be31140bba0f590d42",
-  "overallStatus": "failed",
+  "generatedAt": "2026-07-09T05:36:57.586Z",
+  "startedAt": "2026-07-09T05:36:52.417Z",
+  "durationMs": 5169,
+  "commitSha": "3448ace481a21b42a9ddecfb1a79923d834afd03",
+  "overallStatus": "passed",
   "summary": {
     "total": 7,
-    "passed": 6,
-    "failed": 1
+    "passed": 7,
+    "failed": 0
   },
   "gates": [
     {
       "id": "package-browser-exports",
       "label": "Package export browser leakage",
       "status": "passed",
-      "durationMs": 20,
+      "durationMs": 13,
       "detail": [
         "browser-relevant package targets: 49",
         "scanned files: web/src/swissknife-browser-core.ts, src/ai/browser.ts, src/components/browser/index.ts, src/hooks/browser/index.ts, src/services/ipfs/browser.ts, src/services/mcp/mcp-dashboard-browser-policy.ts, src/services/mcp/libp2p-browser-runtime.ts, src/models/browser.ts, src/platform/browser.ts, src/screens/browser/index.ts, src/storage/browser.ts, src/workers/browser.ts",
@@ -39,7 +39,7 @@
       "id": "browser-wasm-integrity",
       "label": "Browser WASM integrity metadata",
       "status": "passed",
-      "durationMs": 3,
+      "durationMs": 2,
       "detail": [
         "checked artifacts: 5",
         "policy docs: docs/browser-zkp-artifacts.md, docs/browser-wasm-asset-policy.md"
@@ -61,7 +61,7 @@
       "id": "browser-smoke-evidence",
       "label": "Browser smoke evidence freshness",
       "status": "passed",
-      "durationMs": 3,
+      "durationMs": 2,
       "detail": [
         "required receipts: 9",
         "max age days: 14",
@@ -72,27 +72,20 @@
     {
       "id": "bundle-host-pyodide",
       "label": "Built bundle host leakage and default Pyodide",
-      "status": "failed",
-      "durationMs": 6706,
+      "status": "passed",
+      "durationMs": 5033,
       "detail": [
-        "Audited 50 web bundle files (2.26 MiB raw, 542.4 KiB gzip).",
-        "libp2p: 8 chunk(s), 922.3 KiB raw.",
-        "host leakage: 3; Python/Pyodide exposure: 17; default Pyodide: 0.",
-        "FAIL: host-only leakage detected: 3 finding(s)"
+        "Audited 49 web bundle files (1.68 MiB raw, 368.1 KiB gzip).",
+        "libp2p: 7 chunk(s), 324.5 KiB raw.",
+        "host leakage: 0; Python/Pyodide exposure: 17; default Pyodide: 0."
       ],
-      "failures": [
-        "audit-web-bundle failed with exit 1",
-        "Audited 50 web bundle files (2.26 MiB raw, 542.4 KiB gzip).",
-        "libp2p: 8 chunk(s), 922.3 KiB raw.",
-        "host leakage: 3; Python/Pyodide exposure: 17; default Pyodide: 0.",
-        "FAIL: host-only leakage detected: 3 finding(s)"
-      ]
+      "failures": []
     },
     {
       "id": "libp2p-evidence-freshness",
       "label": "Browser libp2p evidence freshness",
       "status": "passed",
-      "durationMs": 84,
+      "durationMs": 117,
       "detail": [
         "Release evidence freshness:",
         "  - Browser libp2p Playwright evidence (SWR-028): fresh",
