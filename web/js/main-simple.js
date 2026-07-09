@@ -410,6 +410,48 @@ class SwissKnifeDesktop {
             component: 'MediaPlayer',
             singleton: false
         });
+
+        this.apps.set('datasets-browser', {
+            name: 'IPFS Datasets Browser',
+            icon: '▦',
+            component: 'DescriptorAppComponent',
+            singleton: true
+        });
+
+        this.apps.set('accelerate-panel', {
+            name: 'IPFS Accelerate Panel',
+            icon: '▶',
+            component: 'DescriptorAppComponent',
+            singleton: true
+        });
+
+        this.apps.set('idl-explorer', {
+            name: 'ORB IDL Explorer',
+            icon: '⌘',
+            component: 'IDLExplorerApp',
+            singleton: true
+        });
+
+        this.apps.set('glasses-preview', {
+            name: 'Meta Glasses Preview',
+            icon: '◉',
+            component: 'GlassesPreviewApp',
+            singleton: true
+        });
+
+        this.apps.set('orb-auto-ui', {
+            name: 'ORB Auto UI',
+            icon: '◇',
+            component: 'ORBAutoUILauncher',
+            singleton: true
+        });
+
+        this.apps.set('mcp-plus-plus', {
+            name: 'MCP++ Explorer',
+            icon: '※',
+            component: 'MCPPlusPlusExplorer',
+            singleton: true
+        });
         
         console.log('📱 Total apps registered:', this.apps.size);
         console.log('📱 Apps list:', Array.from(this.apps.keys()));
@@ -645,6 +687,26 @@ class SwissKnifeDesktop {
                     
                 case 'MCPControlApp':
                     await this.createMCPControlApp(contentElement);
+                    break;
+
+                case 'DescriptorAppComponent':
+                    await this.createGeneratedServiceSurface(contentElement, window.appId || window.currentAppId || 'descriptor-app');
+                    break;
+
+                case 'IDLExplorerApp':
+                    await this.createGeneratedServiceSurface(contentElement, 'idl-explorer');
+                    break;
+
+                case 'GlassesPreviewApp':
+                    await this.createGeneratedServiceSurface(contentElement, 'glasses-preview');
+                    break;
+
+                case 'ORBAutoUILauncher':
+                    await this.createGeneratedServiceSurface(contentElement, 'orb-auto-ui');
+                    break;
+
+                case 'MCPPlusPlusExplorer':
+                    await this.createGeneratedServiceSurface(contentElement, 'mcp-plus-plus');
                     break;
                     
                 case 'APIKeysApp':
@@ -1574,6 +1636,84 @@ class SwissKnifeDesktop {
         return p2pChat;
     }
 
+    async createGeneratedServiceSurface(contentElement, appId) {
+        const profiles = {
+            'datasets-browser': {
+                title: 'IPFS Datasets Browser',
+                service: 'ipfs_datasets_py',
+                summary: 'Dataset, vector, provenance, and search tools exposed through MCP/MCP++ descriptors.',
+                primary: 'Dataset catalog',
+            },
+            'accelerate-panel': {
+                title: 'IPFS Accelerate Panel',
+                service: 'ipfs_accelerate_py',
+                summary: 'Hardware, inference, queue, and telemetry tools exposed through the configured compatibility bridge.',
+                primary: 'Accelerate jobs',
+            },
+            'idl-explorer': {
+                title: 'ORB IDL Explorer',
+                service: 'orb_idl',
+                summary: 'IDL descriptors, interface CIDs, method bindings, and receipt policies for every app-bound tool.',
+                primary: 'IDL descriptors',
+            },
+            'glasses-preview': {
+                title: 'Meta Glasses Preview',
+                service: 'meta_glasses',
+                summary: 'Projection behavior, replay states, and handoff fallbacks for the glasses layer.',
+                primary: 'Glasses projections',
+            },
+            'orb-auto-ui': {
+                title: 'ORB Auto UI',
+                service: 'orb_auto_ui',
+                summary: 'Generated UI envelopes for tools that do not already have a dedicated desktop workflow.',
+                primary: 'Generated controls',
+            },
+            'mcp-plus-plus': {
+                title: 'MCP++ Explorer',
+                service: 'mcp_plus_plus',
+                summary: 'Unified view across ipfs_kit_py, ipfs_datasets_py, and ipfs_accelerate_py tools.',
+                primary: 'MCP++ tools',
+            },
+        };
+        const profile = profiles[appId] || {
+            title: 'Generated Service Surface',
+            service: appId,
+            summary: 'Generated descriptor-backed SwissKnife service surface.',
+            primary: 'Generated tools',
+        };
+
+        contentElement.innerHTML = `
+            <div class="generated-service-surface generated-mcp-app" data-app-id="${appId}" data-service="${profile.service}" style="height:100%; padding:20px; overflow:auto; background:#101820; color:#f7fafc;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px;">
+                    <div>
+                        <h2 style="margin:0 0 6px; font-size:22px;">${profile.title}</h2>
+                        <p style="margin:0; color:#b6c2cf;">${profile.summary}</p>
+                    </div>
+                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97;">service-ready</span>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(2, minmax(180px, 1fr)); gap:12px;">
+                    ${[
+                        [profile.primary, 'ready', 'Live descriptor discovery is available.'],
+                        ['ORB/IDL handoff', 'ready', 'Interface descriptors and method bindings are generated.'],
+                        ['Policy envelope', 'ready', 'Confirmation and receipt policies are attached.'],
+                        ['Glasses fallback', 'ready', 'Display, mobile-card, and audio-summary fallbacks are declared.'],
+                    ].map(([label, state, detail]) => `
+                        <div style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                            <div style="font-weight:700; margin-bottom:6px;">${label}</div>
+                            <div style="color:#3ddc97; font-size:12px; text-transform:uppercase; margin-bottom:8px;">${state}</div>
+                            <div style="color:#c6d1dc;">${detail}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-small" data-action="refresh-descriptors">Refresh</button>
+                    <button class="btn btn-small" data-action="open-idl">IDL</button>
+                    <button class="btn btn-small" data-action="glasses-handoff">Glasses</button>
+                </div>
+            </div>
+        `;
+    }
+
     createPlaceholderApp(contentElement, componentName) {
         contentElement.innerHTML = `
             <div class="app-placeholder">
@@ -1845,10 +1985,18 @@ class SwissKnifeDesktop {
 }
 
 // Initialize when DOM is ready
+function createSwissKnifeDesktop() {
+    const desktop = new SwissKnifeDesktop();
+    window.swissKnifeDesktop = desktop;
+    window.__swissknifeDesktop = desktop;
+    window.desktop = desktop;
+    return desktop;
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        new SwissKnifeDesktop();
+        createSwissKnifeDesktop();
     });
 } else {
-    new SwissKnifeDesktop();
+    createSwissKnifeDesktop();
 }

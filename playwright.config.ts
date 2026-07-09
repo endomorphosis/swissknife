@@ -6,6 +6,8 @@ export default defineConfig({
     '**/meta-glasses-io-apps.spec.ts',
     '**/meta-glasses-expanded-io.spec.ts',
     '**/all-tools-virtual-desktop-app-smoke.spec.ts',
+    '**/virtual-desktop-all-apps-evidence.spec.ts',
+    '**/all-tools-app-family-coverage.spec.ts',
   ],
   timeout: 90_000,
   expect: {

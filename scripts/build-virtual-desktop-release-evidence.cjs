@@ -64,6 +64,8 @@ const allToolsExecutionReport = data.all_tools_execution_report;
 const allToolsIdlCoverage = data.all_tools_idl_coverage;
 const allToolsGlassesCoverage = data.all_tools_glasses_coverage;
 const allToolsReleaseGate = data.all_tools_policy_release_gate;
+const serviceHealthSummary = normalizeServiceHealth(serviceHealth);
+const descriptorDiscoverySummary = normalizeDescriptorDiscovery(descriptorDiscovery);
 
 const appScreenshotCoverage = screenshotCoverage(
   'app-screenshots',
@@ -129,18 +131,18 @@ if (manifestDrift) {
 }
 
 if (serviceHealth) {
-  const unavailable = serviceHealth.summary?.unavailable ?? [];
+  const unavailable = serviceHealthSummary.unavailable;
   if (unavailable.length > 0) {
     representativeBlockers.push(`MCP services unavailable: ${unavailable.join(', ')}.`);
   }
-  const endpointFailures = serviceHealth.summary?.endpoint_failures ?? 0;
+  const endpointFailures = serviceHealthSummary.endpoint_failures;
   if (endpointFailures > 0) {
     warnings.push(`${endpointFailures} MCP endpoint probes failed while service availability remained usable.`);
   }
 }
 
 if (descriptorDiscovery) {
-  const available = descriptorDiscovery.summary?.live_discovery_available ?? [];
+  const available = descriptorDiscoverySummary.live_discovery_available;
   for (const serviceId of ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py']) {
     if (!available.includes(serviceId)) {
       representativeBlockers.push(`${serviceId} live descriptor discovery is unavailable.`);
@@ -298,10 +300,10 @@ const report = {
           status: 'present',
           path: artifacts.descriptor_discovery.path,
           generated_at: descriptorDiscovery.generated_at,
-          live_discovery_available: descriptorDiscovery.summary?.live_discovery_available ?? [],
-          static_fallback_used: descriptorDiscovery.summary?.static_fallback_used ?? [],
-          tool_counts: descriptorDiscovery.summary?.tool_counts ?? {},
-          interface_counts: descriptorDiscovery.summary?.interface_counts ?? {},
+          live_discovery_available: descriptorDiscoverySummary.live_discovery_available,
+          static_fallback_used: descriptorDiscoverySummary.static_fallback_used,
+          tool_counts: descriptorDiscoverySummary.tool_counts,
+          interface_counts: descriptorDiscoverySummary.interface_counts,
         }
       : missingStatus(artifacts.descriptor_discovery.path),
     manifest_drift: manifestDrift
@@ -320,11 +322,11 @@ const report = {
         status: 'present',
         path: artifacts.service_health.path,
         generated_at: serviceHealth.generated_at,
-        service_count: (serviceHealth.services ?? []).length,
-        available: serviceHealth.summary?.available ?? [],
-        unavailable: serviceHealth.summary?.unavailable ?? [],
-        endpoint_failures: serviceHealth.summary?.endpoint_failures ?? 0,
-        normalized_failure_count: serviceHealth.summary?.normalized_failure_count ?? serviceHealth.summary?.endpoint_failures ?? 0,
+        service_count: serviceHealthSummary.service_count,
+        available: serviceHealthSummary.available,
+        unavailable: serviceHealthSummary.unavailable,
+        endpoint_failures: serviceHealthSummary.endpoint_failures,
+        normalized_failure_count: serviceHealthSummary.normalized_failure_count,
       }
     : missingStatus(artifacts.service_health.path),
   glasses_handoff: glassesHandoff
@@ -561,6 +563,56 @@ console.log(JSON.stringify({
   output: path.relative(projectRoot, releaseJsonPath),
   supervisor_freshness_output: path.relative(projectRoot, supervisorFreshnessPath),
 }, null, 2));
+
+function normalizeServiceHealth(health) {
+  const services = Array.isArray(health?.services) ? health.services : [];
+  const configured = services.filter(service => service.role !== 'real_local');
+  const available = health?.summary?.available
+    ?? configured.filter(service => service.available).map(service => service.service);
+  const unavailable = health?.summary?.unavailable
+    ?? configured.filter(service => !service.available).map(service => service.service);
+  const endpointFailures = health?.summary?.endpoint_failures
+    ?? health?.summary?.normalized_failure_count
+    ?? unavailable.length;
+
+  return {
+    service_count: services.length,
+    available: Array.from(new Set(available)).sort(),
+    unavailable: Array.from(new Set(unavailable)).sort(),
+    endpoint_failures: endpointFailures,
+    normalized_failure_count: health?.summary?.normalized_failure_count ?? endpointFailures,
+  };
+}
+
+function normalizeDescriptorDiscovery(discovery) {
+  const services = Array.isArray(discovery?.services) ? discovery.services : [];
+  const configured = services.filter(service => service.role !== 'real_local');
+  const liveFromSummary = discovery?.summary?.live_discovery_available;
+  const fallbackFromSummary = discovery?.summary?.static_fallback_used;
+  const toolCountsFromSummary = discovery?.summary?.tool_counts;
+  const staticCounts = discovery?.static_descriptor_counts ?? {};
+
+  const liveDiscoveryAvailable = Array.isArray(liveFromSummary)
+    ? liveFromSummary
+    : configured
+      .filter(service => (service.tool_count ?? 0) > 0)
+      .map(service => service.service);
+  const staticFallbackUsed = Array.isArray(fallbackFromSummary)
+    ? fallbackFromSummary
+    : configured
+      .filter(service => (service.tool_count ?? 0) === 0 && (staticCounts[service.service] ?? 0) > 0)
+      .map(service => service.service);
+  const toolCounts = toolCountsFromSummary && typeof toolCountsFromSummary === 'object'
+    ? toolCountsFromSummary
+    : Object.fromEntries(configured.map(service => [service.service, service.tool_count ?? 0]));
+
+  return {
+    live_discovery_available: Array.from(new Set(liveDiscoveryAvailable)).sort(),
+    static_fallback_used: Array.from(new Set(staticFallbackUsed)).sort(),
+    tool_counts: toolCounts,
+    interface_counts: discovery?.summary?.interface_counts ?? {},
+  };
+}
 
 function readArtifact(fileName, required) {
   const absolutePath = path.join(evidenceRoot, fileName);

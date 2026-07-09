@@ -2,14 +2,14 @@ import {
   BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
   getBrowserLibp2pDefaultStatus,
   summarizeBrowserLibp2pGaps
-} from '../../../src/services/mcp/libp2p-browser-runtime.ts';
+} from '../core/libp2p-browser-runtime-browser.js';
 // SWR-042 / SWR-036-FU-006: statically import the sample CloudFlare worker
 // templates. `src/cloudflare/worker-templates.ts` exports plain string
 // constants (worker source text) with no Node/host dependencies of its own,
 // so it is safe to import directly rather than resolving a computed
 // `/src/cloudflare/worker-templates.ts` path at runtime through a
 // non-literal dynamic import expression guarded by a `@vite-ignore` hint.
-import { getWorkerTemplate } from '../../../src/cloudflare/worker-templates.ts';
+import { getWorkerTemplate } from '../core/cloudflare-worker-templates-browser.js';
 
 // P2P Network Manager Application for SwissKnife Virtual Desktop
 // Enhanced with Phase 4: Web Workers & Audio Workers Infrastructure

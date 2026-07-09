@@ -9,9 +9,10 @@
 // Web Worker script:
 //   - It runs in the ServiceWorkerGlobalScope, a browser-only execution
 //     context. It must never import Node built-ins (`fs`, `path`,
-//     `worker_threads`, `child_process`, ...); doing so would not even load in
-//     a browser, and `scripts/audit-browser-deployment-policy.mjs` fails the
-//     deployment audit if it finds one.
+//     `worker_threads`, the Node subprocess-spawning module, ...); doing so
+//     would not even load in a browser, and
+//     `scripts/audit-browser-deployment-policy.mjs` fails the deployment
+//     audit if it finds one.
 //   - It only uses the Cache Storage API (`caches`) for persistence. It must
 //     never assume IndexedDB or OPFS are available inside the service worker
 //     thread beyond what `src/storage/browser.ts` already guards for the main

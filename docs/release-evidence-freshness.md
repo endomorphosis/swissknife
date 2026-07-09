@@ -8,6 +8,6 @@ derived from the current state of the source it depends on.
 | Evidence | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- |
 | Browser libp2p Playwright evidence (SWR-028) | ✅ fresh | 2026-07-09T04:51:58.972Z | npm run evidence:libp2p-browser |
-| Browser bundle budget evidence (SWR-016) | ✅ fresh | 2026-07-09T04:51:58.974Z | npm run build:web |
+| Browser bundle budget evidence (SWR-016) | ✅ fresh | 2026-07-09T05:32:28.847Z | npm run build:web |
 | Module-boundary / service-boundary audit evidence (SWR-024) | ✅ fresh | 2026-07-09T04:51:58.975Z | npm run services:audit |
 

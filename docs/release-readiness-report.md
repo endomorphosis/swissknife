@@ -1,9 +1,9 @@
 # Release Readiness Report
 
-Generated: 2026-07-09T04:52:29.276Z
-Commit: a7114dcc0cb5d503d499c2f897e7c96ec784eb4a
-Overall status: PASSED
-Duration: 4.6s
+Generated: 2026-07-09T05:32:42.129Z
+Commit: f7c35c33f52ab5debe2680be31140bba0f590d42
+Overall status: FAILED
+Duration: 6.8s
 
 | Gate | Status | Duration |
 | --- | --- | --- |
@@ -12,7 +12,7 @@ Duration: 4.6s
 | Browser WASM integrity metadata | PASSED | 0.0s |
 | Browser deployment policy evidence | PASSED | 0.0s |
 | Browser smoke evidence freshness | PASSED | 0.0s |
-| Built bundle host leakage and default Pyodide | PASSED | 4.5s |
+| Built bundle host leakage and default Pyodide | FAILED | 6.7s |
 | Browser libp2p evidence freshness | PASSED | 0.1s |
 
 ## Package export browser leakage
@@ -50,15 +50,24 @@ Detail:
 
 - required receipts: 9
 - max age days: 14
-- capturedAt range: 2026-07-09T04:34:50.579Z .. 2026-07-09T04:35:29.995Z
+- capturedAt range: 2026-07-09T05:25:25.705Z .. 2026-07-09T05:26:09.566Z
 
 ## Built bundle host leakage and default Pyodide
 
 Detail:
 
-- Audited 49 web bundle files (1.67 MiB raw, 367.1 KiB gzip).
-- libp2p: 7 chunk(s), 322.6 KiB raw.
-- host leakage: 0; Python/Pyodide exposure: 17; default Pyodide: 0.
+- Audited 50 web bundle files (2.26 MiB raw, 542.4 KiB gzip).
+- libp2p: 8 chunk(s), 922.3 KiB raw.
+- host leakage: 3; Python/Pyodide exposure: 17; default Pyodide: 0.
+- FAIL: host-only leakage detected: 3 finding(s)
+
+Failures:
+
+- audit-web-bundle failed with exit 1
+- Audited 50 web bundle files (2.26 MiB raw, 542.4 KiB gzip).
+- libp2p: 8 chunk(s), 922.3 KiB raw.
+- host leakage: 3; Python/Pyodide exposure: 17; default Pyodide: 0.
+- FAIL: host-only leakage detected: 3 finding(s)
 
 ## Browser libp2p evidence freshness
 

@@ -3,7 +3,7 @@ import {
     BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
     getBrowserLibp2pDefaultStatus,
     summarizeBrowserLibp2pGaps
-} from '../../../src/services/mcp/libp2p-browser-runtime.ts';
+} from '../core/libp2p-browser-runtime-browser.js';
 
 const LIBP2P_BROWSER_CAPABILITY_LABELS = {
     webrtc: 'WebRTC',

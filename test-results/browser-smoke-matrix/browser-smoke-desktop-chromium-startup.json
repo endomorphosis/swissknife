@@ -1,0 +1,24 @@
+{
+  "schema": "swr_043_browser_smoke_matrix_receipt_v1",
+  "task_id": "SWR-043",
+  "capturedAt": "2026-07-09T05:25:25.705Z",
+  "project": "browser-smoke-desktop-chromium",
+  "evidence": "desktop_or_mobile_startup_storage_worker",
+  "viewport": {
+    "width": 1366,
+    "height": 768
+  },
+  "layout": "desktop",
+  "browserCapabilities": {
+    "localStorage": true,
+    "sessionStorage": true,
+    "indexedDB": true,
+    "cacheStorage": true,
+    "storageEstimate": true,
+    "opfs": "available",
+    "worker": true,
+    "serviceWorker": true,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36"
+  },
+  "hostLeakageEvents": []
+}

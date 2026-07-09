@@ -42,6 +42,7 @@ interface Ledger {
 const evidenceRoot = join(process.cwd(), 'test-results/virtual-desktop-ipfs-mcp-orb');
 const bindingPath = join(evidenceRoot, 'all-tools-app-bindings.json');
 const ledgerPath = join(evidenceRoot, 'all-tools-ledger.json');
+const accelerateCoveragePath = join(evidenceRoot, 'ipfs-accelerate-adapter-coverage.json');
 const accelerateDecisionPath = join(evidenceRoot, 'ipfs-accelerate-endpoint-decision.md');
 const outputPath = join(evidenceRoot, 'all-tools-app-family-coverage.json');
 
@@ -50,6 +51,7 @@ test.describe.configure({ mode: 'serial' });
 test('all bound virtual desktop app families expose expected all-tools states and fallbacks', async () => {
   const bindings = readJson<BindingMatrix>(bindingPath);
   const ledger = readJson<Ledger>(ledgerPath);
+  const accelerateCoverage = readJson<{ summary?: { decision?: string } }>(accelerateCoveragePath);
   const liveByTool = new Map(ledger.tools.map(tool => [tool.tool_id, Boolean(tool.discovery?.live)]));
   const staticOnlyByTool = new Map(ledger.tools.map(tool => [tool.tool_id, tool.coverage_status === 'static_only']));
   const accelerateDecision = readFileSync(accelerateDecisionPath, 'utf8');
@@ -95,7 +97,11 @@ test('all bound virtual desktop app families expose expected all-tools states an
   expect(report.summary.app_visible_tool_count).toBeGreaterThan(400);
   expect(report.summary.desktop_mobile_only_count).toBe(50);
   expect(report.summary.supervisor_only_count).toBe(20);
-  expect(report.summary.adapter_required_accelerate_count).toBeGreaterThanOrEqual(10);
+  if (accelerateCoverage.summary?.decision === 'go') {
+    expect(report.summary.adapter_required_accelerate_count).toBe(0);
+  } else {
+    expect(report.summary.adapter_required_accelerate_count).toBeGreaterThanOrEqual(10);
+  }
 
   for (const family of appFamilies) {
     expect(family.tool_count, family.app_id).toBeGreaterThan(0);
@@ -110,14 +116,18 @@ test('all bound virtual desktop app families expose expected all-tools states an
   }
 
   const accelerate = appFamilies.find(family => family.app_id === 'accelerate-panel');
-  expect(accelerate?.adapter_required_tool_ids).toEqual(
-    expect.arrayContaining([
-      'ipfs_accelerate_py:detect_hardware',
-      'ipfs_accelerate_py:run_inference_job',
-      'ipfs_accelerate_py:submit_task',
-      'ipfs_accelerate_py:telemetry',
-    ]),
-  );
+  if (accelerateCoverage.summary?.decision === 'go') {
+    expect(accelerate?.adapter_required_tool_ids ?? []).toHaveLength(0);
+  } else {
+    expect(accelerate?.adapter_required_tool_ids).toEqual(
+      expect.arrayContaining([
+        'ipfs_accelerate_py:detect_hardware',
+        'ipfs_accelerate_py:run_inference_job',
+        'ipfs_accelerate_py:submit_task',
+        'ipfs_accelerate_py:telemetry',
+      ]),
+    );
+  }
 
   const hiddenRows = bindings.rows.filter(row => !row.app_visible);
   for (const row of hiddenRows) {

@@ -240,6 +240,11 @@ source-maps/
 cli.mjs# Organized structure - generated reports
 docs/reports/*.md
 test-results/
+!test-results/
+test-results/*
+!test-results/browser-smoke-matrix/
+test-results/browser-smoke-matrix/*
+!test-results/browser-smoke-matrix/*.json
 benchmark-results/
 playwright-report/
 coverage/

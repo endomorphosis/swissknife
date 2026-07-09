@@ -1,0 +1,17 @@
+{
+  "name": "swissknife-browser-package-consumer-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal browser-only package consumer for the published SwissKnife browser API surface.",
+  "scripts": {
+    "build": "vite build --config vite.config.mjs"
+  },
+  "dependencies": {
+    "swissknife": "0.0.53"
+  },
+  "devDependencies": {
+    "vite": "^7.1.6",
+    "typescript": "^5.6.3"
+  }
+}
