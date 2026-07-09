@@ -1,23 +1,8 @@
 name: Release Readiness Gates
 
-# SWR-009: Wire CI and release readiness gates for the swissknife repository
-# refactor (implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md).
-# SWR-029 extends this workflow with the browser bundle policy gates: the
-# repository module-boundary audit (SWR-024), an explicit web-bundle
-# host-leakage re-audit on top of the one embedded in `build:web` (SWR-016),
-# and a release-evidence freshness gate that fails when the SWR-028 browser
-# libp2p Playwright evidence (or the SWR-016 bundle-budget / SWR-024
-# module-boundary audit snapshots) no longer matches the current state of the
-# source it was captured from. See docs/release-browser-gates.md for the full
-# policy.
-#
-# This workflow is the enforcement point for the refactor's release-readiness
-# contract: a release candidate cannot pass when there is service-boundary
-# drift, browser/host leakage in the web bundle, a TypeScript typecheck
-# failure, missing/broken browser-compatibility coverage, libp2p bundle-budget
-# drift, or stale browser/libp2p evidence. Each gate below maps 1:1 to a
-# `npm run` script so the same commands can be reproduced locally with
-# `npm run release:gate`.
+# SWR-044: phase-11 browser hardening release readiness.
+# The workflow intentionally runs the same command as local release validation:
+# `npm run release:readiness`.
 
 on:
   push:
@@ -35,186 +20,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  services-audit:
-    name: Service-boundary audit
+  release-readiness:
+    name: SWR-044 browser hardening readiness
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
           cache-dependency-path: package-lock.json
+
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit --legacy-peer-deps
-      - name: Service-boundary audit (root/unknown/forbidden/legacy imports)
-        run: npm run services:audit
-      - name: Upload service-boundary audit report
+
+      - name: Run release readiness
+        run: npm run release:readiness
+
+      - name: Upload release readiness evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: service-boundary-audit
-          path: docs/service-boundary-audit.json
-          if-no-files-found: ignore
-
-  module-boundary-audit:
-    name: Repository module-boundary audit (SWR-024/SWR-029)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --legacy-peer-deps
-      - name: Module-boundary audit (unknown/forbidden imports across src)
-        run: npm run audit:module-boundary
-
-  typecheck:
-    name: TypeScript typecheck (browser + host)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --legacy-peer-deps
-      - name: Typecheck browser + host project references
-        run: npm run typecheck
-
-  test-fast:
-    name: Fast unit test lane
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --legacy-peer-deps
-      - name: Run fast unit lane
-        run: npm run test:fast
-
-  browser-compat:
-    name: Browser compatibility gate (static + runtime)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --legacy-peer-deps
-      - name: Run browser-compatibility static + runtime lanes
-        run: npm run test:browser-compat
-
-  build-web:
-    name: Web bundle build + host-leakage/budget audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --legacy-peer-deps
-      - name: Build browser bundle (fails on host leakage / default Pyodide / budget overrun)
-        run: npm run build:web
-      - name: Explicit web bundle host-leakage re-audit (SWR-029)
-        run: npm run audit:bundle-host-leakage
-      - name: Upload bundle budget report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: browser-bundle-budget
+          name: release-readiness-evidence
           path: |
-            docs/browser-bundle-budget.json
-            docs/browser-bundle-budget.md
-          if-no-files-found: ignore
-
-  browser-libp2p-evidence-freshness:
-    name: Browser/libp2p release evidence freshness (SWR-029)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --legacy-peer-deps
-      - name: Fail if SWR-028 Playwright / SWR-016 bundle-budget / SWR-024 module-boundary evidence is stale
-        run: npm run evidence:freshness:check
-      - name: Upload evidence freshness report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-evidence-freshness
-          path: |
+            docs/release-readiness-report.json
+            docs/release-readiness-report.md
             docs/release-evidence-freshness.json
             docs/release-evidence-freshness.md
+            docs/browser-bundle-budget.json
+            docs/browser-bundle-budget.md
+            docs/browser-libp2p-evidence.md
+            test-results/browser-smoke-matrix/*.json
+            test-results/browser-smoke-matrix/screenshots/*.png
           if-no-files-found: ignore
-
-  mcp-glasses-evidence:
-    name: MCP/glasses capability evidence
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --legacy-peer-deps
-      - name: Validate glasses manifest + capability coverage evidence is not stale
-        run: npm run evidence:mcp-glasses
-
-  release-readiness-gate:
-    name: Release readiness gate (aggregate)
-    runs-on: ubuntu-latest
-    needs:
-      - services-audit
-      - module-boundary-audit
-      - typecheck
-      - test-fast
-      - browser-compat
-      - build-web
-      - browser-libp2p-evidence-freshness
-      - mcp-glasses-evidence
-    if: always()
-    steps:
-      - name: Fail if any release-readiness gate did not pass
-        run: |
-          echo "services-audit:                 ${{ needs.services-audit.result }}"
-          echo "module-boundary-audit:          ${{ needs.module-boundary-audit.result }}"
-          echo "typecheck:                      ${{ needs.typecheck.result }}"
-          echo "test-fast:                      ${{ needs.test-fast.result }}"
-          echo "browser-compat:                 ${{ needs.browser-compat.result }}"
-          echo "build-web:                      ${{ needs.build-web.result }}"
-          echo "browser-libp2p-evidence-freshness: ${{ needs.browser-libp2p-evidence-freshness.result }}"
-          echo "mcp-glasses-evidence:           ${{ needs.mcp-glasses-evidence.result }}"
-          if [ "${{ needs.services-audit.result }}" != "success" ] || \
-             [ "${{ needs.module-boundary-audit.result }}" != "success" ] || \
-             [ "${{ needs.typecheck.result }}" != "success" ] || \
-             [ "${{ needs.test-fast.result }}" != "success" ] || \
-             [ "${{ needs.browser-compat.result }}" != "success" ] || \
-             [ "${{ needs.build-web.result }}" != "success" ] || \
-             [ "${{ needs.browser-libp2p-evidence-freshness.result }}" != "success" ] || \
-             [ "${{ needs.mcp-glasses-evidence.result }}" != "success" ]; then
-            echo "One or more release-readiness gates failed; blocking release candidate."
-            exit 1
-          fi
-          echo "All release-readiness gates passed."

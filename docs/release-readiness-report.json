@@ -1,107 +1,100 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-07-08T10:36:53.641Z",
-  "startedAt": "2026-07-08T10:36:21.381Z",
-  "durationMs": 32260,
-  "commitSha": "f752f53b9ebff975f9d3856b278dd34b0eaabfd8",
+  "schemaVersion": 2,
+  "taskId": "SWR-044",
+  "generatedAt": "2026-07-09T04:52:07.298Z",
+  "startedAt": "2026-07-09T04:52:02.742Z",
+  "durationMs": 4556,
+  "commitSha": "1dc8aa4e06063e3d805ab7b5a7c459133960a6ac",
   "overallStatus": "failed",
-  "stoppedEarly": "evidence-mcp-glasses",
   "summary": {
-    "total": 9,
-    "passed": 8,
-    "failed": 1,
-    "skipped": 0
+    "total": 7,
+    "passed": 6,
+    "failed": 1
   },
   "gates": [
     {
-      "id": "services-audit",
-      "label": "Service-boundary audit (services:audit)",
-      "status": "passed",
-      "durationMs": 674,
-      "tail": []
-    },
-    {
-      "id": "module-boundary-audit",
-      "label": "Repository module-boundary audit (audit:module-boundary)",
-      "status": "passed",
-      "durationMs": 630,
-      "tail": []
-    },
-    {
-      "id": "typecheck",
-      "label": "TypeScript project typecheck (typecheck)",
-      "status": "passed",
-      "durationMs": 5218,
-      "tail": []
-    },
-    {
-      "id": "test-fast",
-      "label": "Fast unit test lane (test:fast)",
-      "status": "passed",
-      "durationMs": 4128,
-      "tail": []
-    },
-    {
-      "id": "test-browser-compat",
-      "label": "Browser compatibility lane (test:browser-compat)",
-      "status": "passed",
-      "durationMs": 7786,
-      "tail": []
-    },
-    {
-      "id": "build-web",
-      "label": "Web bundle build + host-leakage/budget audit (build:web)",
-      "status": "passed",
-      "durationMs": 6878,
-      "tail": []
-    },
-    {
-      "id": "bundle-host-leakage",
-      "label": "Web bundle host-leakage re-audit (audit:bundle-host-leakage)",
-      "status": "passed",
-      "durationMs": 4518,
-      "tail": []
-    },
-    {
-      "id": "evidence-freshness",
-      "label": "Browser/libp2p release evidence freshness (evidence:freshness:check)",
-      "status": "passed",
-      "durationMs": 257,
-      "tail": []
-    },
-    {
-      "id": "evidence-mcp-glasses",
-      "label": "MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)",
+      "id": "package-browser-exports",
+      "label": "Package export browser leakage",
       "status": "failed",
-      "durationMs": 2166,
-      "tail": [
-        "> swissknife@0.0.53 evidence:mcp-glasses",
-        "> npm run test:run -- test/mcp-plus-plus/glasses-manifest-coverage.test.ts test/mcp-plus-plus/mobile-orb-edge-all-apps.test.ts",
-        "> swissknife@0.0.53 test:run",
-        "> vitest run --config build-tools/configs/vitest.config.ts test/mcp-plus-plus/glasses-manifest-coverage.test.ts test/mcp-plus-plus/mobile-orb-edge-all-apps.test.ts",
-        " RUN  v3.2.7 /home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife",
-        " ❯ test/mcp-plus-plus/glasses-manifest-coverage.test.ts (2 tests | 1 failed) 17ms",
-        "   ✓ SWR-006 glasses manifest ownership and coverage > keeps product surface files under their owning service directories 7ms",
-        "   × SWR-006 glasses manifest ownership and coverage > rebuilds ORB/IDL and glasses coverage from app-owned manifest inputs 8ms",
-        "     → ENOENT: no such file or directory, open '/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test-results/virtual-desktop-ipfs-mcp-orb/all-tools-ledger.json'",
-        " ✓ test/mcp-plus-plus/mobile-orb-edge-all-apps.test.ts (1 test) 147ms",
-        " Test Files  1 failed | 1 passed (2)",
-        "      Tests  1 failed | 2 passed (3)",
-        "   Start at  03:36:52",
-        "   Duration  1.13s (transform 453ms, setup 122ms, collect 631ms, tests 164ms, environment 1ms, prepare 331ms)",
-        "⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
-        " FAIL  test/mcp-plus-plus/glasses-manifest-coverage.test.ts > SWR-006 glasses manifest ownership and coverage > rebuilds ORB/IDL and glasses coverage from app-owned manifest inputs",
-        "Error: ENOENT: no such file or directory, open '/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test-results/virtual-desktop-ipfs-mcp-orb/all-tools-ledger.json'",
-        " ❯ readJson test/mcp-plus-plus/glasses-manifest-coverage.test.ts:114:21",
-        "    112| ",
-        "    113| function readJson<T>(fileName: string): T {",
-        "    114|   return JSON.parse(readFileSync(join(evidenceRoot, fileName), 'utf8')…",
-        "       |                     ^",
-        "    115| }",
-        "    116| ",
-        " ❯ test/mcp-plus-plus/glasses-manifest-coverage.test.ts:80:20",
-        "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯"
+      "durationMs": 12,
+      "detail": [
+        "browser-relevant package targets: 49",
+        "scanned files: web/src/swissknife-browser-core.ts, src/ai/browser.ts, src/components/browser/index.ts, src/hooks/browser/index.ts, src/services/ipfs/browser.ts, src/services/mcp/mcp-dashboard-browser-policy.ts, src/services/mcp/libp2p-browser-runtime.ts, src/models/browser.ts, src/platform/browser.ts, src/screens/browser/index.ts, src/storage/browser.ts, src/workers/browser.ts",
+        "package exports: declared"
+      ],
+      "failures": [
+        "src/workers/browser.ts: matched /\\b(?:child_process|worker_threads|fs\\/promises)\\b/i (worker_threads)"
       ]
+    },
+    {
+      "id": "browser-dependency-allowlist",
+      "label": "Browser dependency allowlist drift",
+      "status": "passed",
+      "durationMs": 1,
+      "detail": [
+        "allowlisted browser packages: 29",
+        "declared browser-critical packages checked: 29"
+      ],
+      "failures": []
+    },
+    {
+      "id": "browser-wasm-integrity",
+      "label": "Browser WASM integrity metadata",
+      "status": "passed",
+      "durationMs": 2,
+      "detail": [
+        "checked artifacts: 5",
+        "policy docs: docs/browser-zkp-artifacts.md, docs/browser-wasm-asset-policy.md"
+      ],
+      "failures": []
+    },
+    {
+      "id": "browser-deployment-policy",
+      "label": "Browser deployment policy evidence",
+      "status": "passed",
+      "durationMs": 1,
+      "detail": [
+        "required evidence files: 4",
+        "service worker: present"
+      ],
+      "failures": []
+    },
+    {
+      "id": "browser-smoke-evidence",
+      "label": "Browser smoke evidence freshness",
+      "status": "passed",
+      "durationMs": 2,
+      "detail": [
+        "required receipts: 9",
+        "max age days: 14",
+        "capturedAt range: 2026-07-09T04:34:50.579Z .. 2026-07-09T04:35:29.995Z"
+      ],
+      "failures": []
+    },
+    {
+      "id": "bundle-host-pyodide",
+      "label": "Built bundle host leakage and default Pyodide",
+      "status": "passed",
+      "durationMs": 4456,
+      "detail": [
+        "Audited 49 web bundle files (1.67 MiB raw, 367.1 KiB gzip).",
+        "libp2p: 7 chunk(s), 322.6 KiB raw.",
+        "host leakage: 0; Python/Pyodide exposure: 17; default Pyodide: 0."
+      ],
+      "failures": []
+    },
+    {
+      "id": "libp2p-evidence-freshness",
+      "label": "Browser libp2p evidence freshness",
+      "status": "passed",
+      "durationMs": 81,
+      "detail": [
+        "Release evidence freshness:",
+        "  - Browser libp2p Playwright evidence (SWR-028): fresh",
+        "  - Browser bundle budget evidence (SWR-016): fresh",
+        "  - Module-boundary / service-boundary audit evidence (SWR-024): fresh"
+      ],
+      "failures": []
     }
   ]
 }

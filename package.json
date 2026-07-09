@@ -289,7 +289,8 @@
     "docs:user-guide": "npx markdown-to-html README.md > docs/user-guide.html",
     "release:prepare": "npm run release:gate && npm run build:all && npm run security-audit",
     "release:publish": "npm run release:prepare && npm publish",
-    "release:gate": "node scripts/release-readiness-gate.mjs",
+    "release:readiness": "node scripts/release-readiness-gate.mjs",
+    "release:gate": "npm run release:readiness",
     "docker:build": "docker build -t swissknife:latest -f Dockerfile .",
     "docker:run": "docker run -p 3001:3001 swissknife:latest",
     "docker:push": "docker tag swissknife:latest hallucinate-llc/swissknife:latest && docker push hallucinate-llc/swissknife:latest",
@@ -382,6 +383,15 @@
           "pyodide"
         ],
         "policy": "Optional only; Pyodide must not be statically reachable from default web entry chunks."
+      },
+      "browser-wasm-prover-runtime": {
+        "owner": "src/services/zkp",
+        "packages": [
+          "ffjavascript",
+          "snarkjs",
+          "z3-solver"
+        ],
+        "policy": "WASM/ZKP proving dependencies require deterministic artifact resolution and sha256 integrity metadata before they can be exposed to browser builds."
       },
       "protocol-client-runtime": {
         "owner": "src/services",
