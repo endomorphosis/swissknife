@@ -48,6 +48,14 @@ const hao727LaunchGateReceiptPath = path.resolve(
   'fixtures',
   'hao-727-mcp-dashboard-launch-gate.json',
 );
+const hao750LaunchGateReceiptPath = path.resolve(
+  '..',
+  'hallucinate_app',
+  'test',
+  'e2e',
+  'fixtures',
+  'hao-750-mcp-dashboard-launch-gate.json',
+);
 const mgw558LaunchGateReceiptPath = path.resolve(
   '..',
   'hallucinate_app',
@@ -597,6 +605,7 @@ const consumerReceipt = JSON.parse(fs.readFileSync(consumerReceiptPath, 'utf8'))
 const launchReceipt = JSON.parse(fs.readFileSync(launchReceiptPath, 'utf8'));
 const vai512ConsumptionReceipt = JSON.parse(fs.readFileSync(vai512ConsumptionReceiptPath, 'utf8'));
 const hao727LaunchGateReceipt = JSON.parse(fs.readFileSync(hao727LaunchGateReceiptPath, 'utf8'));
+const hao750LaunchGateReceipt = JSON.parse(fs.readFileSync(hao750LaunchGateReceiptPath, 'utf8'));
 const mgw558LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw558LaunchGateReceiptPath, 'utf8'));
 const mgw559LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw559LaunchGateReceiptPath, 'utf8'));
 const mgw561LaunchGateReceipt = JSON.parse(fs.readFileSync(mgw561LaunchGateReceiptPath, 'utf8'));
@@ -881,6 +890,36 @@ assert(
     'data/hallucinate_multimodal_control/discovery/2026-06-30-hao-727-attempt-5-validation.md',
   ]),
   'HAO-727 launch gate must point at the attempt-5 validation receipt',
+);
+const hao750Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'HAO-750');
+assert(hao750Gate?.goal_id === 'VAIOS-G723', 'Catalog launch validation gates must include HAO-750 for VAIOS-G723');
+assert(
+  JSON.stringify(hao750Gate) === JSON.stringify(hao750LaunchGateReceipt),
+  'HAO-750 launch gate fixture must match the shared Hallucinate dashboard catalog entry',
+);
+assert(
+  hao750Gate?.source_gap_receipt === 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-750-objective-gap-7ea369464239.md',
+  'HAO-750 launch gate must point at the current objective gap receipt',
+);
+assert(
+  hao750Gate?.launch_gate_receipt === 'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-750-mcp-dashboard-launch-gate.md',
+  'HAO-750 launch gate must point at the current launch gate receipt',
+);
+assert(
+  hao750Gate?.gate_state === 'gate_open_until_playwright_passes',
+  'HAO-750 launch gate must remain explicit until Playwright validation closes it',
+);
+assert(
+  JSON.stringify(hao750Gate?.child_goals || []) === JSON.stringify(hao727LaunchGateReceipt.child_goals),
+  'HAO-750 launch gate must expose VAIOS-G723 dashboard child goals',
+);
+assert(
+  JSON.stringify(hao750Gate?.required_evidence || []) === JSON.stringify(hao727LaunchGateReceipt.required_evidence),
+  'HAO-750 launch gate must preserve dashboard launch evidence terms for Swissknife consumers',
+);
+assert(
+  (hao750Gate?.validation_commands || []).includes('cd hallucinate_app && (env -u DISPLAY -u WAYLAND_DISPLAY HALLUCINATE_APP_E2E_NO_BOOTSTRAP=true node scripts/run_playwright_test.mjs --help || test $? -eq 78)'),
+  'HAO-750 launch gate must include the headless Playwright CLI validation check',
 );
 const mgw555Gate = (catalog.launch_validation_gates || []).find(gate => gate.task_id === 'MGW-555');
 assert(mgw555Gate?.goal_id === 'VAIOS-G724', 'Catalog launch validation gates must include MGW-555 for VAIOS-G724');
