@@ -1,7 +1,7 @@
 /**
  * SwissKnife <-> external/meta-wearables-dat-android display interoperability descriptor.
  *
- * HAO-735 and MGW-574 objective validation repair: interface contract
+ * VAI-666 objective validation repair: interface contract
  * swissknife external/meta-wearables-dat-android,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py.
@@ -197,12 +197,12 @@ export const SWISSKNIFE_META_WEARABLES_DAT_ANDROID_INTEROP_DESCRIPTOR = {
       'policy:swissknife:meta-wearables-dat-android-display-interop',
   },
   validation: {
-    task_id: 'MGW-574',
+    task_id: 'VAI-666',
     goal_id: 'VAIOS-G705',
     objective_gap_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-574-objective-gap-73dd061c433c.md',
+      'data/virtual_ai_os/discovery/2026-07-08-vai-666-objective-gap-73dd061c433c.md',
     validation_repair_ref:
-      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-574-objective-validation-repair.md',
+      'data/virtual_ai_os/discovery/2026-07-08-vai-666-objective-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
@@ -363,7 +363,7 @@ export function buildSwissKnifeMetaWearablesDATAndroidInteractionEnvelope() {
 export function buildSwissKnifeMetaWearablesDATAndroidMCPPlusPlusCompatibilityReceipt() {
   return {
     receipt_schema: 'mcp_plus_plus_compatibility_receipt_v1',
-    task_id: 'MGW-574',
+    task_id: 'VAI-666',
     session_id: 'session:swissknife-meta-wearables-dat-android-display',
     correlation_id: 'corr:swissknife-meta-wearables-dat-android-display',
     daemon_id: 'meta-wearables-dat-android',
