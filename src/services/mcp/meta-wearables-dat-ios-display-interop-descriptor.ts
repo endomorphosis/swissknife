@@ -1,8 +1,9 @@
 /**
  * SwissKnife <-> external/meta-wearables-dat-ios display interoperability descriptor.
  *
- * HAO-736 objective validation repair: interface contract swissknife
+ * MGW-575 objective validation repair: interface contract swissknife
  * external/meta-wearables-dat-ios,
+ * data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-575-objective-validation-repair.md,
  * goal_packet/interoperability/swissknife/06921590135c,
  * tests/integration/test_swissknife_external_meta_wearables_dat_ios_interop.py.
  *
@@ -17,8 +18,8 @@
  * It closes the VAIOS-G706 objective gap for the shared
  * `goal_packet/interoperability/swissknife/06921590135c` packet, which also
  * covers VAIOS-G700, VAIOS-G701, VAIOS-G702, VAIOS-G703, VAIOS-G704, and
- * VAIOS-G705. VAI-667 first recorded the virtual_ai_os proof; HAO-736 records
- * the hallucinate_multimodal_control lane repair.
+ * VAIOS-G705. VAI-667 first recorded the virtual_ai_os proof; MGW-575 records
+ * the meta_glasses_display_widgets lane repair.
  */
 
 import {
@@ -231,12 +232,12 @@ export const SWISSKNIFE_META_WEARABLES_DAT_IOS_INTEROP_DESCRIPTOR = {
     control_surface_policy_id: 'policy:swissknife:meta-wearables-dat-ios-display-interop',
   },
   validation: {
-    task_id: 'HAO-736',
+    task_id: 'MGW-575',
     goal_id: 'VAIOS-G706',
     objective_gap_ref:
-      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-736-objective-gap-d6bdae3a60cc.md',
+      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-575-objective-gap-d6bdae3a60cc.md',
     validation_repair_ref:
-      'data/hallucinate_multimodal_control/discovery/2026-07-08-hao-736-validation-repair.md',
+      'data/meta_glasses_display_widgets/discovery/2026-07-08-mgw-575-objective-validation-repair.md',
     evidence: 'objective validation repair',
   },
 };
@@ -396,7 +397,7 @@ export function buildSwissKnifeMetaWearablesDATIOSInteractionEnvelope() {
 export function buildSwissKnifeMetaWearablesDATIOSMCPPlusPlusCompatibilityReceipt() {
   return {
     receipt_schema: 'mcp_plus_plus_compatibility_receipt_v1',
-    task_id: 'HAO-736',
+    task_id: 'MGW-575',
     session_id: 'session:swissknife-meta-wearables-dat-ios-display',
     correlation_id: 'corr:swissknife-meta-wearables-dat-ios-display',
     daemon_id: 'meta-wearables-dat-ios',
