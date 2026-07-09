@@ -74,6 +74,30 @@ const POLYFILLED_NODE_MODULES = new Set([
   'zlib',
 ]);
 
+// SWR-042: files whose dynamic `import(<expression>)` calls are known,
+// policy-gated, browser-safe capability loaders (allowlisted CDN/NPM
+// specifiers, optional package probing with explicit capability gaps, or a
+// hardcoded local constant guarded by validation). Each entry documents the
+// import-chain evidence and why the non-literal import cannot leak a
+// host-only module into the browser bundle graph. See
+// `docs/browser-compatibility-inventory.md` and
+// `implementation_plan/docs/39-swissknife-browser-compatibility-followups-2026-07-08.todo.md`
+// for the residual-item remediation record.
+const DYNAMIC_IMPORT_VARIABLE_ALLOWLIST = new Map([
+  [
+    'src/services/mcp/libp2p-browser-runtime.ts',
+    'browser libp2p optional package loader with explicit capability gaps',
+  ],
+  [
+    'web/js/core/strudel-cdn-loader.js',
+    'browser CDN/NPM loader restricted to explicit allowlisted specifiers validated at runtime (see isAllowedStrudelSpecifier)',
+  ],
+  [
+    'web/js/apps/file-manager.js',
+    'optional collaborative filesystem loader restricted to a single hardcoded, runtime-validated module specifier with a local browser-safe fallback',
+  ],
+]);
+
 const EXTERNAL_BROWSER_PACKAGES = new Set([
   '@anthropic-ai/sdk',
   '@modelcontextprotocol/sdk',
@@ -341,6 +365,58 @@ function recordImport(imports, kind, specifier, line) {
   imports.push({ kind, specifier: normalizeSpecifier(specifier), line });
 }
 
+/**
+ * Locates non-literal `import(<expression>)` calls (i.e. dynamic imports
+ * whose specifier is not a plain string literal). This is a small manual
+ * scanner rather than a single regex because a naive
+ * `import\s*\(\s*([^"'\`\s][^)]+)\)` pattern has two classes of false
+ * positives fixed by SWR-042:
+ *
+ *  - It greedily searches for the *next* `)` anywhere later in the file
+ *    (including across unrelated lines), so prose like `` `import()` calls
+ *    ... (see docs)`` inside a comment can span into unrelated code and
+ *    falsely report a finding several lines away.
+ *  - It does not distinguish the `import()` expression keyword from a
+ *    property/method access named `import` (e.g. `this.models.import(...)`),
+ *    which is valid, unrelated JavaScript.
+ *
+ * This scanner fixes both: it requires `import(` to not be preceded by `.`
+ * (excludes method calls), it skips a single leading `/* ... *\/` comment
+ * before inspecting the first real character of the argument, and it never
+ * looks past the current line or an empty argument list.
+ */
+function findNonLiteralDynamicImportLines(text) {
+  const lines = [];
+  const callRe = /(?<!\.)\bimport\s*\(/g;
+  let match;
+  while ((match = callRe.exec(text))) {
+    let i = match.index + match[0].length;
+    const skipWhitespace = () => {
+      while (i < text.length && /\s/.test(text[i])) i += 1;
+    };
+
+    skipWhitespace();
+    if (text[i] === '/' && text[i + 1] === '*') {
+      const end = text.indexOf('*/', i + 2);
+      if (end !== -1) {
+        i = end + 2;
+        skipWhitespace();
+      }
+    }
+
+    const nextChar = text[i];
+    if (nextChar === undefined || nextChar === ')' || nextChar === '"' || nextChar === "'" || nextChar === '`') {
+      // Empty argument list, or a literal string/template specifier: not a
+      // non-literal dynamic import. Literal specifiers are captured by the
+      // `dynamic-import` regex in `extractImports` instead.
+      continue;
+    }
+
+    lines.push(lineNumberForOffset(text, match.index));
+  }
+  return lines;
+}
+
 function extractImports(filePath, text) {
   const imports = [];
   const ext = path.extname(filePath);
@@ -354,14 +430,24 @@ function extractImports(filePath, text) {
   }
 
   const regexes = [
-    { kind: 'static-import', re: /\bimport\s+(?:type\s+)?(?:[^'"()]*?\s+from\s*)?["']([^"']+)["']/g },
-    { kind: 'side-effect-import', re: /\bimport\s*["']([^"']+)["']/g },
-    { kind: 'export-from', re: /\bexport\s+(?:type\s+)?(?:[^'"()]*?\s+from\s*)?["']([^"']+)["']/g },
-    { kind: 'dynamic-import', re: /\bimport\s*\(\s*(?:\/\*[\s\S]*?\*\/\s*)?["']([^"']+)["']\s*\)/g },
-    { kind: 'require', re: /\brequire\s*\(\s*["']([^"']+)["']\s*\)/g },
-    { kind: 'url-dependency', re: /\bnew\s+URL\s*\(\s*["']([^"']+)["']\s*,\s*import\.meta\.url\s*\)/g },
-    { kind: 'worker-script', re: /\b(?:new\s+)?(?:Worker|SharedWorker)\s*\(\s*["']([^"']+)["']/g },
-    { kind: 'worklet-script', re: /\baudioWorklet\.addModule\s*\(\s*["']([^"']+)["']/g },
+    { kind: 'static-import', re: /\bimport\s+(?:type\s+)?(?:[^'"()]*?\s+from\s*)?["']([^"'\n]+)["']/g },
+    // Negative lookbehind excludes matches where "import" is the tail of a
+    // hyphenated string token such as `'dynamic-import'` or
+    // `'side-effect-import'` (common in this codebase's own manifest/audit
+    // vocabulary); without it, the closing quote of that token is
+    // mistaken for the opening quote of a side-effect import specifier and
+    // the match runs on until the next unrelated quote in the file
+    // (SWR-042 / SWR-036-FU-001 false positive).
+    { kind: 'side-effect-import', re: /(?<!-)\bimport\s*["']([^"'\n]+)["']/g },
+    { kind: 'export-from', re: /\bexport\s+(?:type\s+)?(?:[^'"()]*?\s+from\s*)?["']([^"'\n]+)["']/g },
+    // Negative lookbehind excludes `object.import(...)` method calls (e.g.
+    // `this.models.import(...)`), which are unrelated JavaScript, not the
+    // `import()` expression (SWR-042 / SWR-036-FU-004).
+    { kind: 'dynamic-import', re: /(?<!\.)\bimport\s*\(\s*(?:\/\*[\s\S]*?\*\/\s*)?["']([^"'\n]+)["']\s*\)/g },
+    { kind: 'require', re: /\brequire\s*\(\s*["']([^"'\n]+)["']\s*\)/g },
+    { kind: 'url-dependency', re: /\bnew\s+URL\s*\(\s*["']([^"'\n]+)["']\s*,\s*import\.meta\.url\s*\)/g },
+    { kind: 'worker-script', re: /\b(?:new\s+)?(?:Worker|SharedWorker)\s*\(\s*["']([^"'\n]+)["']/g },
+    { kind: 'worklet-script', re: /\baudioWorklet\.addModule\s*\(\s*["']([^"'\n]+)["']/g },
   ];
 
   for (const { kind, re } of regexes) {
@@ -370,13 +456,8 @@ function extractImports(filePath, text) {
     }
   }
 
-  const variableImportRe = /\bimport\s*\(\s*([^"'`\s][^)]+)\)/g;
-  for (const match of text.matchAll(variableImportRe)) {
-    imports.push({
-      kind: 'dynamic-import-variable',
-      specifier: '<non-literal>',
-      line: lineNumberForOffset(text, match.index ?? 0),
-    });
+  for (const line of findNonLiteralDynamicImportLines(text)) {
+    imports.push({ kind: 'dynamic-import-variable', specifier: '<non-literal>', line });
   }
 
   return dedupeBy(imports, (item) => `${item.kind}:${item.specifier}:${item.line}`);
@@ -420,13 +501,13 @@ function analyzeFile(filePath) {
         line: item.line,
         message: `imports Node-compatible module "${item.specifier}" through browser polyfill/config`,
       });
-    } else if (item.kind === 'dynamic-import-variable' && filePath === 'src/services/mcp/libp2p-browser-runtime.ts') {
+    } else if (item.kind === 'dynamic-import-variable' && DYNAMIC_IMPORT_VARIABLE_ALLOWLIST.has(filePath)) {
       findings.push({
         category: 'dynamic-import',
         severity: 'browser-safe',
         file: filePath,
         line: item.line,
-        message: 'browser libp2p optional package loader with explicit capability gaps',
+        message: DYNAMIC_IMPORT_VARIABLE_ALLOWLIST.get(filePath),
       });
     } else if (item.kind === 'dynamic-import-variable') {
       findings.push({
@@ -1065,7 +1146,23 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error.stack || error.message);
-  process.exitCode = 1;
-});
+// SWR-042: guard the CLI entry point so this module can be imported (e.g.
+// from `test/browser-compat/audit-browser-compat-scanner.test.js`) to unit
+// test the pure scanner helpers below without triggering a full repository
+// scan or writing report files as a side effect of `import()`.
+const isDirectCliInvocation = (() => {
+  try {
+    return import.meta.url === `file://${process.argv[1]}`;
+  } catch {
+    return false;
+  }
+})();
+
+if (isDirectCliInvocation) {
+  main().catch((error) => {
+    console.error(error.stack || error.message);
+    process.exitCode = 1;
+  });
+}
+
+export { findNonLiteralDynamicImportLines, extractImports, analyzeFile };

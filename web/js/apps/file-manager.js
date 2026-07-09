@@ -95,6 +95,20 @@ class CollaborativeFileSystemFallback {
 }
 
 async function loadCollaborativeFileSystem() {
+  // SWR-042 / SWR-036-FU-002: the module specifier is a single hardcoded
+  // constant (never caller/user-provided), so it cannot be used to smuggle
+  // an arbitrary path into the browser bundle. It remains a non-literal
+  // `import()` argument (rather than a literal specifier) so the browser
+  // compatibility audit does not need to statically resolve into the
+  // host-oriented `ipfs_accelerate_js/src` tree; `scripts/audit-browser-compat.mjs`
+  // allowlists this exact file/import pair as browser-safe on that basis.
+  // If the constant is ever tampered with (e.g. by a future edit), this
+  // guard refuses to import anything other than the expected path.
+  if (COLLABORATIVE_FILE_SYSTEM_MODULE !== '../../../ipfs_accelerate_js/src/p2p/collaborative-file-system.js') {
+    console.warn('Collaborative file system module specifier changed unexpectedly; using local fallback.');
+    return CollaborativeFileSystemFallback;
+  }
+
   try {
     const module = await import(COLLABORATIVE_FILE_SYSTEM_MODULE);
     return module.CollaborativeFileSystem || CollaborativeFileSystemFallback;

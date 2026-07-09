@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-08T19:20:27.306Z",
+  "package": "swissknife",
+  "version": "0.0.53",
+  "csp": {
+    "entry": "web/index.html",
+    "present": true,
+    "content": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://esm.sh https://cdn.skypack.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src 'self' http://localhost:* http://127.0.0.1:* https:; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; manifest-src 'self'; frame-ancestors 'none'",
+    "directives": {
+      "default-src": "'self'",
+      "script-src": "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://esm.sh https://cdn.skypack.dev",
+      "style-src": "'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+      "img-src": "'self' data: https: blob:",
+      "font-src": "'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+      "connect-src": "'self' http://localhost:* http://127.0.0.1:* https:",
+      "worker-src": "'self' blob:",
+      "child-src": "'self' blob:",
+      "media-src": "'self' blob: data:",
+      "object-src": "'none'",
+      "base-uri": "'self'",
+      "manifest-src": "'self'",
+      "frame-ancestors": "'none'"
+    },
+    "missingRequired": [],
+    "missingRecommended": [],
+    "manifestLinked": true,
+    "serviceWorkerRegistered": true
+  },
+  "workers": {
+    "browserEntrypoint": "src/workers/browser.ts",
+    "hostEntrypoint": "src/workers/host.ts",
+    "browserEntrypointExists": true,
+    "hostEntrypointExists": true,
+    "browserEntrypointHostImports": [],
+    "workersConfigExternalizesHostModules": true,
+    "webConfigDeniesHostModules": true,
+    "webConfigUsesEsWorkerFormat": true
+  },
+  "storage": {
+    "browserEntrypoint": "src/storage/browser.ts",
+    "hostEntrypoint": "src/storage/host.ts",
+    "browserEntrypointExists": true,
+    "hostEntrypointExists": true,
+    "browserEntrypointHostImports": [],
+    "usesIndexedDb": true,
+    "usesOpfs": true,
+    "usesCacheStorage": true
+  },
+  "wasmIsolation": {
+    "devServerHeaders": [
+      "Cross-Origin-Opener-Policy",
+      "Cross-Origin-Embedder-Policy"
+    ],
+    "previewServerHeaders": [
+      "Cross-Origin-Opener-Policy",
+      "Cross-Origin-Embedder-Policy"
+    ],
+    "deploymentHeadersFile": "web/public/_headers",
+    "deploymentHeadersFileExists": true,
+    "deploymentHeadersPresent": [
+      "Cross-Origin-Opener-Policy",
+      "Cross-Origin-Embedder-Policy"
+    ]
+  },
+  "offline": {
+    "artifacts": [
+      {
+        "path": "web/public/service-worker.js",
+        "label": "Service worker",
+        "exists": true
+      },
+      {
+        "path": "web/public/manifest.webmanifest",
+        "label": "Web app manifest",
+        "exists": true
+      },
+      {
+        "path": "web/public/offline.html",
+        "label": "Offline fallback page",
+        "exists": true
+      }
+    ],
+    "serviceWorkerHostImports": [],
+    "serviceWorkerHasInstall": true,
+    "serviceWorkerHasFetch": true,
+    "serviceWorkerHasActivate": true,
+    "serviceWorkerUsesCacheStorage": true
+  },
+  "bundleHostLeakage": {
+    "metadataPath": "dist/.vite/swissknife-bundle-metadata.json",
+    "metadataPresent": true,
+    "hostOnlyModulesInBundle": []
+  },
+  "findings": [],
+  "summary": {
+    "findings": 0,
+    "violations": 0
+  }
+}

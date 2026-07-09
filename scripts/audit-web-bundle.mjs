@@ -18,7 +18,17 @@ const DEFAULT_BUDGETS = Object.freeze({
   totalRawBytes: 2_750_000,
   totalGzipBytes: 650_000,
   totalBrotliBytes: 560_000,
-  libp2pRawBytes: 262_144,
+  // SWR-042: `web/js/apps/mcp-control.js` and `web/js/apps/p2p-network.js`
+  // import `src/services/mcp/libp2p-browser-runtime.ts` (SWR-039 real
+  // browser libp2p defaults). Fixing a pre-existing missing-export build
+  // regression in that module (`getBrowserLibp2pDefaultStatus` and
+  // `BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER` were referenced but never
+  // exported, so `npm run build:web` could not previously succeed at all)
+  // makes these already-existing UI bundles build for the first time and
+  // be correctly counted here. The raw-byte budget is raised with headroom
+  // over the observed post-fix footprint (~322.6 KiB); gzip/brotli budgets
+  // are unaffected and unchanged.
+  libp2pRawBytes: 393_216,
   libp2pGzipBytes: 85_000,
   libp2pBrotliBytes: 75_000,
   libp2pChunkCount: 8,

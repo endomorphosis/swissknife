@@ -46,7 +46,7 @@ const MCP_DASHBOARD_BROWSER_POLICY = Object.freeze({
     hostDaemonCommandDisclaimer:
         'Host-managed daemon command \u2014 record only. SwissKnife web builds never execute this command in the browser; a host process (desktop app, CLI, or configured MCP daemon) must run it.',
     pythonHostDaemonCommandDisclaimer:
-        'Host-managed daemon command \u2014 record only. SwissKnife web builds never execute this command in the browser; a host process (desktop app, CLI, or configured MCP daemon) must run it. This example text references a Python interpreter/server; it documents the host command only and is never parsed or executed by any in-browser Python runtime.',
+        'Host-managed daemon command \u2014 record only. SwissKnife web builds never execute this command in the browser; a host process (desktop app, CLI, or configured MCP daemon) must run it. This example text references a Python interpreter/server; it documents the host command only and is never parsed or executed by any in-browser Python code interpreter.',
     hostCommandInterpreters: Object.freeze([
         'python3', 'python', 'uvicorn', 'gunicorn', 'pip3', 'pip',
         'node', 'npx', 'npm', 'deno', 'bun', 'java', 'dotnet', 'ruby', 'php', 'go', 'cargo',

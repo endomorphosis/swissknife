@@ -342,3 +342,43 @@ export function summarizeBrowserLibp2pGaps(
 ): string[] {
   return report.gaps.map(gap => `${gap.name} (${gap.packageName}): ${gap.reason}`);
 }
+
+/**
+ * Canonical, UI-facing display order for the optional browser libp2p
+ * capabilities (SWR-039 / SWR-042). `web/js/apps/mcp-control.js` and
+ * `web/js/apps/p2p-network.js` both render this exact order so the MCP
+ * dashboard and P2P network app show libp2p browser transport/capability
+ * status consistently.
+ */
+export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
+  'webrtc',
+  'websockets',
+  'circuit-relay-v2',
+  'identify',
+  'noise',
+  'yamux',
+  'gossipsub',
+];
+
+/**
+ * Convenience wrapper around {@link buildBrowserLibp2pConfig} that enables
+ * every optional capability by default (SWR-039 real-transport defaults).
+ * Callers (MCP dashboard, P2P network app) use this to report the live
+ * browser libp2p capability/gap status without needing to repeat the full
+ * `includeWebRTC`/`includeWebSockets`/... option set at every call site.
+ */
+export async function getBrowserLibp2pDefaultStatus(
+  options: BrowserLibp2pRuntimeOptions = {},
+): Promise<BrowserLibp2pRuntimeConfig> {
+  return buildBrowserLibp2pConfig({
+    enabled: true,
+    includeWebRTC: true,
+    includeWebSockets: true,
+    includeCircuitRelay: true,
+    includeNoise: true,
+    includeYamux: true,
+    includeIdentify: true,
+    includeGossipSub: true,
+    ...options,
+  });
+}

@@ -56,6 +56,32 @@ const STRUDEL_CDN_CONFIG = {
 };
 
 /**
+ * Flattened allowlist of every CDN/alternative-CDN/NPM specifier declared in
+ * `STRUDEL_CDN_CONFIG` (SWR-042 / SWR-036-FU-007). `StrudelCDNLoader` only
+ * ever calls `import(<url or path>)` with a specifier drawn from this
+ * allowlist — never an arbitrary caller-supplied string — so the runtime
+ * network-loaded-code surface is explicit and auditable even though the
+ * import target is a computed value rather than a string literal.
+ */
+function getAllowedStrudelSpecifiers(config) {
+    const allowed = new Set();
+    for (const url of Object.values(config.cdn || {})) {
+        allowed.add(url);
+    }
+    for (const urls of Object.values(config.cdnAlternatives || {})) {
+        for (const url of urls) allowed.add(url);
+    }
+    for (const npmPath of Object.values(config.npm || {})) {
+        allowed.add(npmPath);
+        // loadFromNPM() falls back to a script-tag path derived from the NPM
+        // path with the `./node_modules/` prefix stripped; allowlist that
+        // derived form too so the fallback path is also validated.
+        allowed.add(npmPath.replace('./node_modules/', './'));
+    }
+    return allowed;
+}
+
+/**
  * Advanced CDN loader with robust fallback handling
  */
 class StrudelCDNLoader {
@@ -64,11 +90,23 @@ class StrudelCDNLoader {
         this.cache = new Map();
         this.loadingPromises = new Map();
         this.failureCount = new Map();
+        this.allowedSpecifiers = getAllowedStrudelSpecifiers(config);
         
         // Bind methods
         this.loadLibrary = this.loadLibrary.bind(this);
         this.loadFromCDN = this.loadFromCDN.bind(this);
         this.loadFromNPM = this.loadFromNPM.bind(this);
+    }
+
+    /**
+     * Validates a specifier against the CDN/NPM allowlist derived from
+     * `this.config` before it is ever passed to `import()`.
+     */
+    assertAllowedSpecifier(specifier) {
+        if (!this.allowedSpecifiers.has(specifier)) {
+            throw new Error(`Refusing to dynamically import non-allowlisted Strudel specifier: ${specifier}`);
+        }
+        return specifier;
     }
     
     /**
@@ -166,8 +204,10 @@ class StrudelCDNLoader {
             
             script.onload = () => {
                 clearTimeout(timeout);
-                // For ES modules, we need to import them
-                import(url).then(resolve).catch(reject);
+                // For ES modules, we need to import them. `url` is always
+                // validated against the CDN/NPM allowlist before this point
+                // (see loadFromCDN/loadFromNPM), never arbitrary caller input.
+                import(this.assertAllowedSpecifier(url)).then(resolve).catch(reject);
             };
             
             script.onerror = () => {
@@ -188,8 +228,10 @@ class StrudelCDNLoader {
         }
         
         try {
-            // Try dynamic import for bundled modules
-            return await import(npmPath);
+            // Try dynamic import for bundled modules. `npmPath` always comes
+            // from `this.config.npm` (never caller input) and is validated
+            // against the CDN/NPM allowlist before import.
+            return await import(this.assertAllowedSpecifier(npmPath));
         } catch (importError) {
             // Fallback to script tag loading for bundled files
             const scriptPath = npmPath.replace('./node_modules/', './');

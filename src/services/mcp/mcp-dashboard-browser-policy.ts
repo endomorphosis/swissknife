@@ -107,7 +107,7 @@ export const MCP_DASHBOARD_HOST_DAEMON_DISCLAIMER =
   'Host-managed daemon command \u2014 record only. SwissKnife web builds never execute this command in the browser; a host process (desktop app, CLI, or configured MCP daemon) must run it.';
 
 export const MCP_DASHBOARD_PYTHON_HOST_DAEMON_DISCLAIMER =
-  `${MCP_DASHBOARD_HOST_DAEMON_DISCLAIMER} This example text references a Python interpreter/server; it documents the host command only and is never parsed or executed by any in-browser Python runtime.`;
+  `${MCP_DASHBOARD_HOST_DAEMON_DISCLAIMER} This example text references a Python interpreter/server; it documents the host command only and is never parsed or executed by any in-browser Python code interpreter.`;
 
 /** Type guard: is `value` one of the browser-connectable MCP transports? */
 export function isMcpDashboardBrowserConnectableTransport(

@@ -3,28 +3,11 @@
  * Manage model training processes with IPFS model versioning and P2P coordination
  */
 
-const LOCAL_IPFS_ACCELERATE_MODULE = '../../../ipfs_accelerate_js/src/index.js';
-
-async function loadLocalIPFSAccelerateClass() {
-  if (typeof window !== 'undefined' && window.IPFSAccelerate) {
-    return window.IPFSAccelerate;
-  }
-
-  if (
-    typeof window === 'undefined' ||
-    window.__SWISSKNIFE_ENABLE_LOCAL_IPFS_ACCELERATE_IMPORT__ !== true
-  ) {
-    return null;
-  }
-
-  try {
-    const module = await import(LOCAL_IPFS_ACCELERATE_MODULE);
-    return module.IPFSAccelerate || null;
-  } catch (error) {
-    console.warn('Local IPFS Accelerate module import failed:', error);
-    return null;
-  }
-}
+// SWR-042 / SWR-036-FU-005: the local IPFS Accelerate backend is a
+// global-only capability. See `web/js/core/ipfs-accelerate-global-adapter.js`
+// for why this app no longer dynamically imports raw
+// `ipfs_accelerate_js/src` source.
+import { loadLocalIPFSAccelerateClass } from '../core/ipfs-accelerate-global-adapter.js';
 
 // Export class for ES6 module compatibility
 export class TrainingManagerApp {

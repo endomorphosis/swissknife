@@ -1,0 +1,5918 @@
+{
+  "results": [
+    {
+      "path": "src/services/mcp/libp2p-browser-runtime.ts",
+      "kind": "service-barrel, shared-reachable-module",
+      "reason": "Service barrel/interface module transitively reachable from active browser build roots; Shared source module transitively reachable from active browser build roots",
+      "classification": "browser-safe",
+      "reachable": [
+        "src/services/mcp/libp2p-browser-runtime.ts"
+      ],
+      "findings": [
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "src/services/mcp/libp2p-browser-runtime.ts",
+          "line": 123,
+          "message": "browser libp2p optional package loader with explicit capability gaps",
+          "chain": [
+            "src/services/mcp/libp2p-browser-runtime.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/aero-test.html",
+      "kind": "simulated-test-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "simulated/test-only",
+      "reachable": [
+        "web/aero-test.html"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/ai-infrastructure-test.html",
+      "kind": "simulated-test-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "simulated/test-only",
+      "reachable": [
+        "web/ai-infrastructure-test.html",
+        "web/js/ipfs-accelerate-bridge.js",
+        "web/js/ai-model-router.js",
+        "web/js/test/ai-infrastructure-test.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/ai-model-router.js",
+          "line": 453,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/ai-infrastructure-test.html",
+            "web/js/ai-model-router.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/ai-model-router.js",
+          "line": 482,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/ai-infrastructure-test.html",
+            "web/js/ai-model-router.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/debug-loader.html",
+      "kind": "simulated-test-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "simulated/test-only",
+      "reachable": [
+        "web/debug-loader.html"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/debug.html",
+      "kind": "simulated-test-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "simulated/test-only",
+      "reachable": [
+        "web/debug.html"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/demo.html",
+      "kind": "simulated-test-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "simulated/test-only",
+      "reachable": [
+        "web/demo.html"
+      ],
+      "findings": [
+        {
+          "category": "unresolved-import",
+          "severity": "unknown",
+          "file": "web/demo.html",
+          "line": 23,
+          "message": "unresolved html-script \"./dist/swissknife.d7ca76c5f459131b7ca0.js\" (tried web/dist/swissknife.d7ca76c5f459131b7ca0.js)",
+          "chain": [
+            "web/demo.html"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/desktop.ts",
+      "kind": "vite-ts-entry",
+      "reason": "Alternate index.vite.html TypeScript entry",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/desktop.ts",
+        "web/src/apps/app-manifest-loader.ts",
+        "src/services/apps/app-manifest-registry.ts",
+        "src/services/apps/app-manifest.ts",
+        "web/js/apps/ai-chat.js",
+        "web/js/apps/api-keys.js",
+        "web/js/apps/calculator.js",
+        "web/js/apps/calendar.js",
+        "web/js/apps/cinema.js",
+        "web/js/apps/clock.js",
+        "web/js/apps/cron.js",
+        "web/js/apps/device-manager.js",
+        "web/js/apps/file-manager.js",
+        "web/js/apps/friends-list.js",
+        "web/js/apps/github.js",
+        "web/js/apps/huggingface.js",
+        "web/js/apps/image-viewer.js",
+        "web/js/apps/ipfs-explorer.js",
+        "web/js/apps/mcp-control.js",
+        "web/js/apps/media-player.js",
+        "web/js/apps/model-browser.js",
+        "web/js/apps/music-studio-unified.js",
+        "web/js/apps/music-studio.js",
+        "web/js/apps/navi.js",
+        "web/js/apps/neural-network-designer.js",
+        "web/js/apps/neural-photoshop.js",
+        "web/js/apps/notes.js",
+        "web/js/apps/oauth-login.js",
+        "web/js/apps/openrouter.js",
+        "web/js/apps/p2p-chat-unified.js",
+        "web/js/apps/p2p-chat.js",
+        "web/js/apps/p2p-network.js",
+        "web/js/apps/peertube.js",
+        "web/js/apps/settings.js",
+        "web/js/apps/strudel-ai-daw.js",
+        "web/js/apps/strudel-grandma.js",
+        "web/js/apps/system-monitor.js",
+        "web/js/apps/task-manager.js",
+        "web/js/apps/terminal.js",
+        "web/js/apps/todo.js",
+        "web/js/apps/training-manager.js",
+        "web/js/apps/vibecode.js",
+        "web/js/hallucinate-backend-bridge.js",
+        "src/services/mcp/libp2p-browser-runtime.ts",
+        "web/js/core/ipfs-accelerate-global-adapter.js",
+        "src/cloudflare/worker-templates.ts",
+        "web/js/audio/strudel-processor.js",
+        "web/js/hallucinate-backend-bridge.mjs"
+      ],
+      "findings": [
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "src/services/mcp/libp2p-browser-runtime.ts",
+          "line": 123,
+          "message": "browser libp2p optional package loader with explicit capability gaps",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js",
+            "src/services/mcp/libp2p-browser-runtime.ts"
+          ]
+        },
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "web/js/apps/file-manager.js",
+          "line": 113,
+          "message": "optional collaborative filesystem loader restricted to a single hardcoded, runtime-validated module specifier with a local browser-safe fallback",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ai-chat.js",
+          "line": 123,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ai-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/api-keys.js",
+          "line": 1064,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/api-keys.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/calendar.js",
+          "line": 96,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/calendar.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/calendar.js",
+          "line": 97,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/calendar.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/cron.js",
+          "line": 104,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/cron.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/device-manager.js",
+          "line": 37,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/device-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/file-manager.js",
+          "line": 247,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 153,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 154,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 186,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 562,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 657,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 814,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/image-viewer.js",
+          "line": 1323,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/image-viewer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 47,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1200,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1400,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1452,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1737,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1743,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1865,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1381,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1448,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1714,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1725,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1783,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1785,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/model-browser.js",
+          "line": 561,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/model-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/model-browser.js",
+          "line": 1283,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/model-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/navi.js",
+          "line": 61,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/navi.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 99,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 350,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 356,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 365,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 375,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 381,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 390,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 419,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 420,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 439,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 441,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 501,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 530,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 548,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 611,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 675,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 685,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 698,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 708,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 1107,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 1128,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 93,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 141,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 174,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 546,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat.js",
+          "line": 44,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat.js",
+          "line": 993,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 743,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 813,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 822,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 831,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 2672,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 100,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 101,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 123,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 124,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/settings.js",
+          "line": 70,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/settings.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 53,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-grandma.js",
+          "line": 1107,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-grandma.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/task-manager.js",
+          "line": 41,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/task-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/terminal.js",
+          "line": 129,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/terminal.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/todo.js",
+          "line": 21,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/todo.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 269,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 275,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 285,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 293,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 299,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 305,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 311,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 317,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 324,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 342,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 343,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 360,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 366,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 758,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 760,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 762,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 763,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/index-enhanced.html",
+      "kind": "alternate-web-app, web-html",
+      "reason": "Legacy enhanced browser shell in web root; Top-level browser HTML document under web/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/index-enhanced.html"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/index-simple.html",
+      "kind": "alternate-web-app, web-html",
+      "reason": "Legacy simple browser shell in web root; Top-level browser HTML document under web/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/index-simple.html"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/index.html",
+      "kind": "vite-html-entry, web-html",
+      "reason": "Top-level browser HTML document under web/; Vite web build input from vite.web.config.ts",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/index.html",
+        "web/js/p2p-ml-bridge.js",
+        "web/js/main-simple.js",
+        "web/js/apps/terminal.js",
+        "web/js/apps/vibecode.js",
+        "web/js/apps/strudel-ai-daw.js",
+        "web/js/apps/ai-chat.js",
+        "web/js/apps/file-manager.js",
+        "web/js/apps/task-manager.js",
+        "web/js/apps/model-browser.js",
+        "web/js/apps/huggingface.js",
+        "web/js/apps/openrouter.js",
+        "web/js/apps/ipfs-explorer.js",
+        "web/js/apps/device-manager.js",
+        "web/js/apps/settings.js",
+        "web/js/apps/mcp-control.js",
+        "web/js/apps/api-keys.js",
+        "web/js/apps/github.js",
+        "web/js/apps/oauth-login.js",
+        "web/js/apps/cron.js",
+        "web/js/apps/navi.js",
+        "web/js/apps/calculator.js",
+        "web/js/apps/clock.js",
+        "web/js/apps/calendar.js",
+        "web/js/apps/todo.js",
+        "web/js/apps/friends-list.js",
+        "web/js/apps/image-viewer.js",
+        "web/js/apps/notes.js",
+        "web/js/apps/system-monitor.js",
+        "web/js/apps/neural-photoshop.js",
+        "web/js/apps/cinema.js",
+        "web/js/apps/media-player.js",
+        "web/js/apps/p2p-network.js",
+        "web/js/apps/neural-network-designer.js",
+        "web/js/apps/p2p-chat-unified.js",
+        "web/js/apps/training-manager.js",
+        "web/js/apps/peertube.js",
+        "web/js/apps/strudel-grandma.js",
+        "web/js/apps/music-studio-unified.js",
+        "web/js/apps/music-studio.js",
+        "web/js/apps/p2p-chat.js",
+        "web/js/audio/strudel-processor.js",
+        "web/js/hallucinate-backend-bridge.js",
+        "src/services/mcp/libp2p-browser-runtime.ts",
+        "src/cloudflare/worker-templates.ts",
+        "web/js/core/ipfs-accelerate-global-adapter.js",
+        "web/js/hallucinate-backend-bridge.mjs"
+      ],
+      "findings": [
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "src/services/mcp/libp2p-browser-runtime.ts",
+          "line": 123,
+          "message": "browser libp2p optional package loader with explicit capability gaps",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/mcp-control.js",
+            "src/services/mcp/libp2p-browser-runtime.ts"
+          ]
+        },
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "web/js/apps/file-manager.js",
+          "line": 113,
+          "message": "optional collaborative filesystem loader restricted to a single hardcoded, runtime-validated module specifier with a local browser-safe fallback",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ai-chat.js",
+          "line": 123,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/ai-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/api-keys.js",
+          "line": 1064,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/api-keys.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/calendar.js",
+          "line": 96,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/calendar.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/calendar.js",
+          "line": 97,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/calendar.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/cron.js",
+          "line": 104,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/cron.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/device-manager.js",
+          "line": 37,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/device-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/file-manager.js",
+          "line": 247,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 153,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 154,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 186,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 562,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 657,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 814,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/image-viewer.js",
+          "line": 1323,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/image-viewer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 47,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1200,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1400,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1452,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1737,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1743,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1865,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1381,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1448,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1714,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1725,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1783,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1785,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/model-browser.js",
+          "line": 561,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/model-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/model-browser.js",
+          "line": 1283,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/model-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/navi.js",
+          "line": 61,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/navi.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 99,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 350,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 356,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 365,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 375,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 381,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 390,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 419,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 420,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 439,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 441,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 501,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 530,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 548,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 611,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 675,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 685,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 698,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 708,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 1107,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 1128,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 93,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 141,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 174,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 546,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat.js",
+          "line": 44,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat.js",
+          "line": 993,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 743,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 813,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 822,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 831,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 2672,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 100,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 101,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 123,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 124,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/settings.js",
+          "line": 70,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/settings.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 53,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-grandma.js",
+          "line": 1107,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/strudel-grandma.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/task-manager.js",
+          "line": 41,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/task-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/terminal.js",
+          "line": 129,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/terminal.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/todo.js",
+          "line": 21,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/todo.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 269,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 275,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 285,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 293,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 299,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 305,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 311,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 317,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 324,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 342,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 343,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 360,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 366,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 758,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 760,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 762,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 763,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/index.vite.html",
+      "kind": "alternate-web-app, web-html",
+      "reason": "Alternate Vite desktop shell kept in web root; Top-level browser HTML document under web/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/index.vite.html",
+        "web/js/p2p-ml-bridge.js",
+        "web/desktop.ts",
+        "web/src/apps/app-manifest-loader.ts",
+        "src/services/apps/app-manifest-registry.ts",
+        "src/services/apps/app-manifest.ts",
+        "web/js/apps/ai-chat.js",
+        "web/js/apps/api-keys.js",
+        "web/js/apps/calculator.js",
+        "web/js/apps/calendar.js",
+        "web/js/apps/cinema.js",
+        "web/js/apps/clock.js",
+        "web/js/apps/cron.js",
+        "web/js/apps/device-manager.js",
+        "web/js/apps/file-manager.js",
+        "web/js/apps/friends-list.js",
+        "web/js/apps/github.js",
+        "web/js/apps/huggingface.js",
+        "web/js/apps/image-viewer.js",
+        "web/js/apps/ipfs-explorer.js",
+        "web/js/apps/mcp-control.js",
+        "web/js/apps/media-player.js",
+        "web/js/apps/model-browser.js",
+        "web/js/apps/music-studio-unified.js",
+        "web/js/apps/music-studio.js",
+        "web/js/apps/navi.js",
+        "web/js/apps/neural-network-designer.js",
+        "web/js/apps/neural-photoshop.js",
+        "web/js/apps/notes.js",
+        "web/js/apps/oauth-login.js",
+        "web/js/apps/openrouter.js",
+        "web/js/apps/p2p-chat-unified.js",
+        "web/js/apps/p2p-chat.js",
+        "web/js/apps/p2p-network.js",
+        "web/js/apps/peertube.js",
+        "web/js/apps/settings.js",
+        "web/js/apps/strudel-ai-daw.js",
+        "web/js/apps/strudel-grandma.js",
+        "web/js/apps/system-monitor.js",
+        "web/js/apps/task-manager.js",
+        "web/js/apps/terminal.js",
+        "web/js/apps/todo.js",
+        "web/js/apps/training-manager.js",
+        "web/js/apps/vibecode.js",
+        "web/js/hallucinate-backend-bridge.js",
+        "src/services/mcp/libp2p-browser-runtime.ts",
+        "web/js/core/ipfs-accelerate-global-adapter.js",
+        "src/cloudflare/worker-templates.ts",
+        "web/js/audio/strudel-processor.js",
+        "web/js/hallucinate-backend-bridge.mjs"
+      ],
+      "findings": [
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "src/services/mcp/libp2p-browser-runtime.ts",
+          "line": 123,
+          "message": "browser libp2p optional package loader with explicit capability gaps",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js",
+            "src/services/mcp/libp2p-browser-runtime.ts"
+          ]
+        },
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "web/js/apps/file-manager.js",
+          "line": 113,
+          "message": "optional collaborative filesystem loader restricted to a single hardcoded, runtime-validated module specifier with a local browser-safe fallback",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ai-chat.js",
+          "line": 123,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ai-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/api-keys.js",
+          "line": 1064,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/api-keys.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/calendar.js",
+          "line": 96,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/calendar.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/calendar.js",
+          "line": 97,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/calendar.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/cron.js",
+          "line": 104,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/cron.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/device-manager.js",
+          "line": 37,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/device-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/file-manager.js",
+          "line": 247,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 153,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 154,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 186,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 562,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 657,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 814,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/image-viewer.js",
+          "line": 1323,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/image-viewer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 47,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1200,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1400,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1452,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1737,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1743,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1865,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1381,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1448,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1714,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1725,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1783,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1785,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/model-browser.js",
+          "line": 561,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/model-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/model-browser.js",
+          "line": 1283,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/model-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/navi.js",
+          "line": 61,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/navi.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 99,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 350,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 356,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 365,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 375,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 381,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 390,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 419,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 420,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 439,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 441,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 501,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 530,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 548,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 611,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 675,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 685,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 698,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 708,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 1107,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 1128,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 93,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 141,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 174,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 546,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat.js",
+          "line": 44,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat.js",
+          "line": 993,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 743,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 813,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 822,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 831,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 2672,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 100,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 101,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 123,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 124,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/settings.js",
+          "line": 70,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/settings.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 53,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-grandma.js",
+          "line": 1107,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-grandma.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/task-manager.js",
+          "line": 41,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/task-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/terminal.js",
+          "line": 129,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/terminal.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/todo.js",
+          "line": 21,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/todo.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 269,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 275,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 285,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 293,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 299,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 305,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 311,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 317,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 324,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 342,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 343,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 360,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 366,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 758,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 760,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 762,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 763,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/adapters/cli-adapter.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/adapters/cli-adapter.js",
+        "web/js/ml/webnn-inference.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/ai-chat.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/ai-chat.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ai-chat.js",
+          "line": 123,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/ai-chat.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/api-keys.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/api-keys.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/api-keys.js",
+          "line": 1064,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/api-keys.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/calculator.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/calculator.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/calendar.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/calendar.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/calendar.js",
+          "line": 96,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/calendar.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/calendar.js",
+          "line": 97,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/calendar.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/cinema.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/cinema.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/clock.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/clock.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/cron.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/cron.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/cron.js",
+          "line": 104,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/cron.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/device-manager.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/device-manager.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/device-manager.js",
+          "line": 37,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/device-manager.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/file-manager.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/file-manager.js"
+      ],
+      "findings": [
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "web/js/apps/file-manager.js",
+          "line": 113,
+          "message": "optional collaborative filesystem loader restricted to a single hardcoded, runtime-validated module specifier with a local browser-safe fallback",
+          "chain": [
+            "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/file-manager.js",
+          "line": 247,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/file-manager.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/friends-list.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/friends-list.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 153,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 154,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/friends-list.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/friends-list.js",
+          "line": 186,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/friends-list.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/github.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/github.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 562,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 657,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/github.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/github.js",
+          "line": 814,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/github.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/huggingface.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/huggingface.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/image-viewer.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/image-viewer.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/image-viewer.js",
+          "line": 1323,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/image-viewer.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/ipfs-explorer.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/ipfs-explorer.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 47,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1200,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1400,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1452,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1737,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1743,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/ipfs-explorer.js",
+          "line": 1865,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/ipfs-explorer.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/mcp-control.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/mcp-control.js",
+        "web/js/hallucinate-backend-bridge.js",
+        "src/services/mcp/libp2p-browser-runtime.ts",
+        "web/js/hallucinate-backend-bridge.mjs"
+      ],
+      "findings": [
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "src/services/mcp/libp2p-browser-runtime.ts",
+          "line": 123,
+          "message": "browser libp2p optional package loader with explicit capability gaps",
+          "chain": [
+            "web/js/apps/mcp-control.js",
+            "src/services/mcp/libp2p-browser-runtime.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1381,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1448,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1714,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1725,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1783,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/mcp-control.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/mcp-control.js",
+          "line": 1785,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/mcp-control.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/media-player.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/media-player.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/model-browser.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/model-browser.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/model-browser.js",
+          "line": 561,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/model-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/model-browser.js",
+          "line": 1283,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/model-browser.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/music-studio-unified.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/music-studio-unified.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/music-studio.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/music-studio.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/navi.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/navi.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/navi.js",
+          "line": 61,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/navi.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/neural-network-designer.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/neural-network-designer.js",
+        "web/js/core/ipfs-accelerate-global-adapter.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 99,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 350,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 356,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 365,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 375,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 381,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 390,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 419,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 420,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 439,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 441,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/neural-network-designer.js",
+          "line": 501,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/neural-network-designer.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/neural-photoshop.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/neural-photoshop.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/notes.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/notes.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/oauth-login.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/oauth-login.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 530,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 548,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 611,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 675,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 685,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 698,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 708,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 1107,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/oauth-login.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/oauth-login.js",
+          "line": 1128,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/oauth-login.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/openrouter.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/openrouter.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/p2p-chat-unified.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/p2p-chat-unified.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 93,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 141,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 174,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat-unified.js",
+          "line": 546,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-chat-unified.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/p2p-chat.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/p2p-chat.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat.js",
+          "line": 44,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-chat.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-chat.js",
+          "line": 993,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-chat.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/p2p-network.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/p2p-network.js",
+        "src/services/mcp/libp2p-browser-runtime.ts",
+        "src/cloudflare/worker-templates.ts"
+      ],
+      "findings": [
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "src/services/mcp/libp2p-browser-runtime.ts",
+          "line": 123,
+          "message": "browser libp2p optional package loader with explicit capability gaps",
+          "chain": [
+            "web/js/apps/p2p-network.js",
+            "src/services/mcp/libp2p-browser-runtime.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 743,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 813,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 822,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 831,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-network.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/p2p-network.js",
+          "line": 2672,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/p2p-network.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/peertube.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/peertube.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 100,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 101,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 123,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/peertube.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/peertube.js",
+          "line": 124,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/peertube.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/settings.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/settings.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/settings.js",
+          "line": 70,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/settings.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/strudel-ai-daw.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/strudel-ai-daw.js",
+        "web/js/audio/strudel-processor.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 53,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 758,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 760,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 762,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-ai-daw.js",
+          "line": 763,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/js/apps/strudel-ai-daw.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/strudel-grandma.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/strudel-grandma.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/strudel-grandma.js",
+          "line": 1107,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/strudel-grandma.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/system-monitor.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/system-monitor.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/apps/task-manager.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/task-manager.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/task-manager.js",
+          "line": 41,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/task-manager.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/terminal.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/terminal.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/terminal.js",
+          "line": 129,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/terminal.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/todo.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/todo.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/todo.js",
+          "line": 21,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/todo.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/training-manager.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/training-manager.js",
+        "web/js/core/ipfs-accelerate-global-adapter.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 269,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 275,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 285,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 293,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 299,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 305,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 311,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 317,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 324,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 342,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 343,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 360,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/training-manager.js",
+          "line": 366,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/training-manager.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/vibecode.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/vibecode.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/audio/strudel-processor.js",
+      "kind": "browser-worker",
+      "reason": "Browser worker/worklet script under web/js/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/audio/strudel-processor.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/core/descriptor-runtime.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/descriptor-runtime.js",
+        "web/js/core/idl-contracts.js",
+        "web/js/core/ui-templates.js",
+        "web/js/core/orb-client.js",
+        "web/js/core/template-policy.js",
+        "web/js/descriptors/contracts/app-capability-contract.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/core/idl-contracts.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/idl-contracts.js",
+        "web/js/descriptors/contracts/app-capability-contract.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/core/ipfs-accelerate-global-adapter.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/ipfs-accelerate-global-adapter.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/core/orb-client.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/orb-client.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/core/strudel-cdn-loader.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/strudel-cdn-loader.js"
+      ],
+      "findings": [
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "web/js/core/strudel-cdn-loader.js",
+          "line": 61,
+          "message": "browser CDN/NPM loader restricted to explicit allowlisted specifiers validated at runtime (see isAllowedStrudelSpecifier)",
+          "chain": [
+            "web/js/core/strudel-cdn-loader.js"
+          ]
+        },
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "web/js/core/strudel-cdn-loader.js",
+          "line": 210,
+          "message": "browser CDN/NPM loader restricted to explicit allowlisted specifiers validated at runtime (see isAllowedStrudelSpecifier)",
+          "chain": [
+            "web/js/core/strudel-cdn-loader.js"
+          ]
+        },
+        {
+          "category": "dynamic-import",
+          "severity": "browser-safe",
+          "file": "web/js/core/strudel-cdn-loader.js",
+          "line": 234,
+          "message": "browser CDN/NPM loader restricted to explicit allowlisted specifiers validated at runtime (see isAllowedStrudelSpecifier)",
+          "chain": [
+            "web/js/core/strudel-cdn-loader.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/core/swissknife-core.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/swissknife-core.js",
+        "web/js/core/task-worker.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/swissknife-core.js",
+          "line": 208,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/core/swissknife-core.js"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/js/core/swissknife-core.js",
+          "line": 286,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/js/core/swissknife-core.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/core/task-worker.js",
+      "kind": "browser-support-module, browser-worker",
+      "reason": "Browser support utility reachable from web build roots or app bundles; Browser worker/worklet script under web/js/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/task-worker.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/core/template-policy.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/template-policy.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/core/ui-templates.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/ui-templates.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/src/adapters/ai-adapter.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/adapters/ai-adapter.ts",
+        "web/src/utils/browser-utils.ts"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/ai-adapter.ts",
+          "line": 103,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/ai-adapter.ts",
+          "line": 186,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/ai-adapter.ts",
+          "line": 236,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/ai-adapter.ts",
+          "line": 363,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 120,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/ai-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 133,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/ai-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 188,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/src/adapters/ai-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/adapters/browser-ai-adapter.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/adapters/browser-ai-adapter.ts"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/browser-ai-adapter.ts",
+          "line": 169,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/browser-ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/browser-ai-adapter.ts",
+          "line": 200,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/browser-ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/browser-ai-adapter.ts",
+          "line": 329,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/browser-ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/browser-ai-adapter.ts",
+          "line": 258,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/src/adapters/browser-ai-adapter.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/adapters/browser-command-adapter.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/adapters/browser-command-adapter.ts"
+      ],
+      "findings": [
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/browser-command-adapter.ts",
+          "line": 535,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/src/adapters/browser-command-adapter.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/adapters/browser-globals.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/adapters/browser-globals.ts"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/src/adapters/browser-storage-adapter.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/adapters/browser-storage-adapter.ts"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/src/adapters/cli-adapter.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/adapters/cli-adapter.ts",
+        "web/src/utils/browser-utils.ts"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 120,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/cli-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 133,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/cli-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 188,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/src/adapters/cli-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/adapters/task-adapter-new.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/adapters/task-adapter-new.ts",
+        "web/src/utils/browser-utils.ts"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter-new.ts",
+          "line": 115,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter-new.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter-new.ts",
+          "line": 194,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter-new.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter-new.ts",
+          "line": 233,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter-new.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter-new.ts",
+          "line": 263,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter-new.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 120,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter-new.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 133,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter-new.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 188,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/src/adapters/task-adapter-new.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/adapters/task-adapter.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/adapters/task-adapter.ts",
+        "web/src/utils/browser-utils.ts"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter.ts",
+          "line": 115,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter.ts",
+          "line": 194,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter.ts",
+          "line": 233,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter.ts",
+          "line": 263,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 120,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 133,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/adapters/task-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 188,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/src/adapters/task-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/browser-main-simple.ts",
+      "kind": "browser-entry",
+      "reason": "Browser TypeScript entrypoint",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/browser-main-simple.ts"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/src/browser-main-working.ts",
+      "kind": "webpack-browser-entry",
+      "reason": "Entry in web/webpack.browser.config.js",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/browser-main-working.ts",
+        "web/src/adapters/ai-adapter.ts",
+        "web/src/adapters/task-adapter.ts",
+        "web/src/adapters/cli-adapter.ts",
+        "web/src/components/TerminalApp.ts",
+        "web/src/utils/browser-utils.ts"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/ai-adapter.ts",
+          "line": 103,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/ai-adapter.ts",
+          "line": 186,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/ai-adapter.ts",
+          "line": 236,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/ai-adapter.ts",
+          "line": 363,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/ai-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter.ts",
+          "line": 115,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/task-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter.ts",
+          "line": 194,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/task-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter.ts",
+          "line": 233,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/task-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/adapters/task-adapter.ts",
+          "line": 263,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/task-adapter.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 120,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/ai-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 133,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/ai-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 188,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/src/browser-main-working.ts",
+            "web/src/adapters/ai-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/components/P2PNetworkApp.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/components/P2PNetworkApp.ts",
+        "web/src/utils/desktop-app.ts"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/components/P2PNetworkApp.ts",
+          "line": 741,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/components/P2PNetworkApp.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/components/TerminalApp.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/components/TerminalApp.ts",
+        "web/src/adapters/cli-adapter.ts",
+        "web/src/utils/browser-utils.ts"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 120,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/components/TerminalApp.ts",
+            "web/src/adapters/cli-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 133,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/components/TerminalApp.ts",
+            "web/src/adapters/cli-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 188,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/src/components/TerminalApp.ts",
+            "web/src/adapters/cli-adapter.ts",
+            "web/src/utils/browser-utils.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/utils/browser-utils.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/utils/browser-utils.ts"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 120,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 133,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/src/utils/browser-utils.ts"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/src/utils/browser-utils.ts",
+          "line": 188,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/src/utils/browser-utils.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/src/utils/desktop-app.ts",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/src/utils/desktop-app.ts"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/swissknife-working.html",
+      "kind": "web-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/swissknife-working.html"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/template.html",
+      "kind": "web-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/template.html"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/test-enhanced.html",
+      "kind": "simulated-test-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "simulated/test-only",
+      "reachable": [
+        "web/test-enhanced.html"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/test-minimal.html",
+      "kind": "simulated-test-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "simulated/test-only",
+      "reachable": [
+        "web/test-minimal.html"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/test-strudel-integration.html",
+      "kind": "simulated-test-html",
+      "reason": "Top-level browser HTML document under web/",
+      "classification": "simulated/test-only",
+      "reachable": [
+        "web/test-strudel-integration.html"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/test-strudel-integration.html",
+          "line": 134,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/test-strudel-integration.html"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/test-strudel-integration.html",
+          "line": 167,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/test-strudel-integration.html"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,13 @@ import {
   getBrowserLibp2pDefaultStatus,
   summarizeBrowserLibp2pGaps
 } from '../../../src/services/mcp/libp2p-browser-runtime.ts';
+// SWR-042 / SWR-036-FU-006: statically import the sample CloudFlare worker
+// templates. `src/cloudflare/worker-templates.ts` exports plain string
+// constants (worker source text) with no Node/host dependencies of its own,
+// so it is safe to import directly rather than resolving a computed
+// `/src/cloudflare/worker-templates.ts` path at runtime through a
+// non-literal dynamic import expression guarded by a `@vite-ignore` hint.
+import { getWorkerTemplate } from '../../../src/cloudflare/worker-templates.ts';
 
 // P2P Network Manager Application for SwissKnife Virtual Desktop
 // Enhanced with Phase 4: Web Workers & Audio Workers Infrastructure
@@ -798,16 +805,9 @@ import {
   // Deploy sample CloudFlare workers
   async function deploySampleWorkers() {
     try {
-      // Optional dynamic import for dev-only templates; wrap to avoid build-time resolution failure
-      let getWorkerTemplate;
-      try {
-        const cfModule = '/src/cloudflare/worker-templates.ts';
-        ({ getWorkerTemplate } = await import(/* @vite-ignore */ cfModule));
-      } catch (e) {
-        console.warn('Cloudflare worker templates not available in web build, using stub');
-        getWorkerTemplate = (name) => `// stub worker: ${name}`;
-      }
-      
+      // Worker templates are statically imported at module scope (SWR-042);
+      // no runtime import needed here.
+
       // Deploy AI Inference Worker
       const aiWorkerScript = getWorkerTemplate('ai-inference');
       await cloudflareIntegration.deployWorker(aiWorkerScript, {
