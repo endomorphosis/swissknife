@@ -1,8 +1,8 @@
 /**
  * wasm-prover-sprint66.test.ts
  * Tests for Sprint 66 modules:
- *   - sprint66-dcec-types.ts    (DCEC enums/sorts, TPTP utils, DCEC-to-UCAN bridge)
- *   - sprint66-prover-utils.ts  (StrategySelector, VampireAdapter, UtilityMonitor, lazy installer)
+ *   - deontic-cognitive-logic-types.ts    (DCEC enums/sorts, TPTP utils, DCEC-to-UCAN bridge)
+ *   - prover-strategy-adapters.ts  (StrategySelector, VampireAdapter, UtilityMonitor, lazy installer)
  */
 
 import {
@@ -11,14 +11,14 @@ import {
   makeVariable, makeFunction, makePredicate,
   formulaToTPTP, createTPTPProblem, TPTPConverter,
   DCECToUCANMapping, DCECToUCANBridge,
-} from '../../src/services/sprint66-dcec-types';
+} from '../../src/services/deontic-cognitive-logic-types';
 
 import {
   StrategySelector,
   VampireAdapter, checkVampireInstallation, type VampireProcessResult,
   UtilityMonitor, trackPerformance, withCaching, getGlobalStats, clearGlobalCache, resetGlobalStats,
   normalizeProverName, findExecutable, isLazyInstallEnabled, lazyInstallProver,
-} from '../../src/services/sprint66-prover-utils';
+} from '../../src/services/prover-strategy-adapters';
 
 // ---------------------------------------------------------------------------
 // DCEC Enums

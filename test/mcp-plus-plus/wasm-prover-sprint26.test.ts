@@ -255,8 +255,18 @@ describe('ZkpAttestationBridgeAdapter', () => {
     for (const att of context.attestations) {
       expect(att).toHaveProperty('proofHash');
       expect(att).toHaveProperty('verified');
-      expect(att.backend).toBe('simulated');
+      expect(att.backend).toBe('browser-schnorr-wasm');
     }
+  });
+
+  test('simulated attestation backend is explicit test-only opt-in', () => {
+    expect(() => new ZkpAttestationBridgeAdapter({ backend: 'simulated' })).toThrow(/allowTestOnlySimulation:true/);
+    const simulated = new ZkpAttestationBridgeAdapter({
+      backend: 'simulated',
+      allowTestOnlySimulation: true,
+    });
+    const { context } = simulated.encode('The defendant shall appear in court.');
+    expect(context.attestations[0]?.backend).toBe('simulated');
   });
 
   test('empty text produces at most one fallback attestation', () => {

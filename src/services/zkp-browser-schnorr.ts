@@ -7,6 +7,10 @@
  */
 
 import { base64Encode, bytesToHex, hexToBytes, sha256Hex, utf8Bytes } from './provers/browser-crypto.js';
+import {
+  BrowserZkpSimulationRejectedError,
+  assertBrowserZkpEnvelopeIsReal,
+} from './zkp/browser-zkp-policy.js';
 
 const MODP_2048_P_HEX = [
   'FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1',
@@ -191,6 +195,7 @@ export class BrowserSchnorrZkpBackend {
     try {
       await this.ensureWasm();
       const payload = parseProofEnvelope(proofJson);
+      assertBrowserZkpEnvelopeIsReal(payload);
       if (payload.backend !== BROWSER_SCHNORR_BACKEND_ID) return false;
       if (payload.verifierId !== BROWSER_SCHNORR_VERIFIER_ID) return false;
       if (payload.group !== 'rfc3526-modp-2048') return false;
@@ -216,7 +221,11 @@ export class BrowserSchnorrZkpBackend {
       const left = modPow(MODP_2048_G, response, MODP_2048_P);
       const right = (commitment * modPow(publicKey, challenge, MODP_2048_P)) % MODP_2048_P;
       return left === right;
-    } catch {
+    } catch (error) {
+      if (error instanceof BrowserZkpSimulationRejectedError) {
+        this.stats.failures++;
+        return false;
+      }
       this.stats.failures++;
       return false;
     }

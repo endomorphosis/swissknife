@@ -10,13 +10,17 @@ const {
 const rootDir = path.resolve(__dirname, '../..');
 
 const browserEntrypoints = [
+  'src/browser.ts',
   'src/ai/browser.ts',
   'src/models/browser.ts',
   'src/platform/browser.ts',
+  'src/services/deontic/browser-nlp.ts',
   'src/services/ipfs/browser.ts',
+  'src/services/mcp/browser-mcp.ts',
   'src/services/mcp/libp2p-browser-runtime.ts',
   'src/services/provers/browser-crypto.ts',
   'src/services/zkp-browser-schnorr.ts',
+  'src/services/zkp/browser-zkp.ts',
   'src/services/zkp/browser-snarkjs-backend.ts',
   'src/utils/browser.ts',
   'web/src/apps/app-manifest-loader.ts',
@@ -46,6 +50,40 @@ const forbiddenHostModules = [
   'worker_threads',
 ];
 
+const expectedPackageBrowserExports = {
+  '.': './src/browser.ts',
+  './browser': './src/browser.ts',
+  './mcp': './src/services/mcp/browser-mcp.ts',
+  './mcp/libp2p': './src/services/mcp/libp2p-browser-runtime.ts',
+  './libp2p': './src/services/mcp/libp2p-browser-runtime.ts',
+  './ipfs': './src/services/ipfs/browser.ts',
+  './storage': './src/storage/browser.ts',
+  './workers': './src/workers/browser.ts',
+  './logic-language': './src/services/logic-language-pipeline.ts',
+  './deontic-nlp': './src/services/deontic/browser-nlp.ts',
+  './zkp': './src/services/zkp/browser-zkp.ts',
+};
+
+const forbiddenBrowserExportPathPatterns = [
+  /(?:^|\/)src\/services\/nlp-predicate-extractor\.ts$/,
+  /(?:^|\/)src\/services\/spacy-wasm-nlp\.ts$/,
+  /(?:^|\/)src\/services\/zkp-ucan-bridge\.ts$/,
+  /(?:^|\/)src\/services\/ipfs\/host\.ts$/,
+  /(?:^|\/)src\/storage\/host\.ts$/,
+  /(?:^|\/)src\/workers\/host\.ts$/,
+  /(?:^|\/)src\/services\/mcp\/mcp-remote-deontic-engine\.ts$/,
+  /(?:^|\/)src\/services\/external-prover-wrappers\.ts$/,
+  /(?:^|\/)src\/services\/external-provers\.ts$/,
+  /(?:^|\/)src\/services\/prover-installer\.ts$/,
+  /(?:^|\/)src\/services\/zkp-provekit-/,
+];
+
+const forbiddenBrowserExportSpecifiers = [
+  ...forbiddenHostModules,
+  'pyodide',
+  'ws',
+];
+
 const activeLaneMatches = [
   ...fastTestMatch,
   ...serviceTestMatch,
@@ -71,6 +109,107 @@ function collectModuleSpecifiers(source) {
   }
 
   return specifiers;
+}
+
+function collectRuntimeModuleSpecifiers(source) {
+  const specifiers = [];
+  const patterns = [
+    /\bimport\s+(?!type\b)(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g,
+    /\bexport\s+(?!type\b)(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g,
+    /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /\bimport\s*\(\s*(?:\/\*[\s\S]*?\*\/\s*)?['"]([^'"]+)['"]\s*\)/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match = pattern.exec(source);
+    while (match) {
+      specifiers.push(match[1]);
+      match = pattern.exec(source);
+    }
+  }
+
+  return specifiers;
+}
+
+function normalizePackageTarget(target) {
+  return target.startsWith('./') ? target.slice(2) : target;
+}
+
+function resolveBrowserExportTarget(exportsEntry) {
+  if (typeof exportsEntry === 'string') return exportsEntry;
+  if (!exportsEntry || typeof exportsEntry !== 'object' || Array.isArray(exportsEntry)) return undefined;
+  for (const condition of ['browser', 'import', 'default']) {
+    const target = resolveBrowserExportTarget(exportsEntry[condition]);
+    if (target) return target;
+  }
+  return undefined;
+}
+
+function candidatePaths(basePath) {
+  const extension = path.extname(basePath);
+  const candidates = [];
+  if (extension) {
+    candidates.push(basePath);
+    if (extension === '.js' || extension === '.jsx' || extension === '.mjs') {
+      const withoutExtension = basePath.slice(0, -extension.length);
+      candidates.push(`${withoutExtension}.ts`, `${withoutExtension}.tsx`, `${withoutExtension}.jsx`);
+    }
+  } else {
+    candidates.push(
+      basePath,
+      `${basePath}.ts`,
+      `${basePath}.tsx`,
+      `${basePath}.js`,
+      `${basePath}.jsx`,
+      path.join(basePath, 'index.ts'),
+      path.join(basePath, 'index.tsx'),
+      path.join(basePath, 'index.js'),
+      path.join(basePath, 'index.jsx'),
+    );
+  }
+  return [...new Set(candidates)];
+}
+
+function resolveLocalSpecifier(specifier, importerPath) {
+  const cleanSpecifier = specifier.replace(/[?#].*$/, '');
+  if (!cleanSpecifier.startsWith('.') && !cleanSpecifier.startsWith('/')) return null;
+  const basePath = cleanSpecifier.startsWith('/')
+    ? path.join(rootDir, 'web', cleanSpecifier.slice(1))
+    : path.resolve(path.dirname(path.join(rootDir, importerPath)), cleanSpecifier);
+
+  for (const candidate of candidatePaths(basePath)) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      return path.relative(rootDir, candidate).split(path.sep).join('/');
+    }
+  }
+
+  return null;
+}
+
+function collectBrowserExportGraph(entrypoint) {
+  const visited = new Set();
+  const imports = [];
+  const stack = [entrypoint];
+
+  while (stack.length > 0) {
+    const relativePath = stack.pop();
+    if (visited.has(relativePath)) continue;
+    visited.add(relativePath);
+    const source = readProjectFile(relativePath);
+
+    for (const specifier of collectRuntimeModuleSpecifiers(source)) {
+      imports.push({ importer: relativePath, specifier });
+      const localTarget = resolveLocalSpecifier(specifier, relativePath);
+      if (localTarget && !visited.has(localTarget)) {
+        stack.push(localTarget);
+      }
+    }
+  }
+
+  return {
+    files: Array.from(visited).sort(),
+    imports,
+  };
 }
 
 describe('browser compatibility lane', () => {
@@ -132,6 +271,44 @@ describe('browser compatibility lane', () => {
       const source = readProjectFile(relativePath);
       const specifiers = collectModuleSpecifiers(source);
       expect(specifiers).not.toEqual(expect.arrayContaining(forbiddenHostModules));
+    }
+  });
+
+  it('locks package browser exports to audited browser-safe entrypoints', () => {
+    const pkg = JSON.parse(readProjectFile('package.json'));
+    expect(pkg.browser).toBe('./src/browser.ts');
+    expect(pkg.files).toEqual(expect.arrayContaining([
+      'src',
+      'docs/browser-distribution-policy.md',
+    ]));
+
+    for (const [subpath, expectedTarget] of Object.entries(expectedPackageBrowserExports)) {
+      const actualTarget = resolveBrowserExportTarget(pkg.exports[subpath]);
+      expect({ subpath, actualTarget }).toEqual({ subpath, actualTarget: expectedTarget });
+      expect(fs.existsSync(path.join(rootDir, normalizePackageTarget(actualTarget)))).toBe(true);
+    }
+  });
+
+  it('keeps package browser export graphs free of host-only modules and quarantined adapters', () => {
+    const pkg = JSON.parse(readProjectFile('package.json'));
+
+    for (const subpath of Object.keys(expectedPackageBrowserExports)) {
+      const target = normalizePackageTarget(resolveBrowserExportTarget(pkg.exports[subpath]));
+      const graph = collectBrowserExportGraph(target);
+
+      for (const filePath of graph.files) {
+        for (const forbiddenPattern of forbiddenBrowserExportPathPatterns) {
+          expect(filePath).not.toMatch(forbiddenPattern);
+        }
+      }
+
+      for (const item of graph.imports) {
+        expect({ subpath, ...item }).not.toEqual(
+          expect.objectContaining({
+            specifier: expect.stringMatching(new RegExp(`^(node:)?(${forbiddenBrowserExportSpecifiers.join('|')})$`)),
+          }),
+        );
+      }
     }
   });
 });

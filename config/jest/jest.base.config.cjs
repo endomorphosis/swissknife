@@ -1,5 +1,36 @@
 const { archivedAndBackupIgnorePatterns } = require('./test-lanes.cjs');
 
+function transformImportMetaUrlForJest({ types: t }) {
+  return {
+    name: 'transform-import-meta-url-for-jest',
+    visitor: {
+      MemberExpression(path) {
+        const { node } = path;
+        if (
+          node.property.type === 'Identifier'
+          && node.property.name === 'url'
+          && node.object.type === 'MetaProperty'
+          && node.object.meta.name === 'import'
+          && node.object.property.name === 'meta'
+        ) {
+          path.replaceWith(
+            t.memberExpression(
+              t.callExpression(
+                t.memberExpression(
+                  t.callExpression(t.identifier('require'), [t.stringLiteral('node:url')]),
+                  t.identifier('pathToFileURL'),
+                ),
+                [t.identifier('__filename')],
+              ),
+              t.identifier('href'),
+            ),
+          );
+        }
+      },
+    },
+  };
+}
+
 module.exports = {
   testEnvironment: 'node',
   rootDir: '../..',
@@ -9,7 +40,7 @@ module.exports = {
         ['@babel/preset-env', { targets: { node: 'current' } }],
         '@babel/preset-typescript',
       ],
-      plugins: ['@babel/plugin-transform-modules-commonjs'],
+      plugins: [transformImportMetaUrlForJest, '@babel/plugin-transform-modules-commonjs'],
     }],
     '^.+\\.(js|jsx|cjs)$': ['babel-jest', {
       presets: [['@babel/preset-env', { targets: { node: 'current' } }]],

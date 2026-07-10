@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import MCPDaemonManager from '../../../hallucinate_app/hallucinate_app/node/mcp_daemon_manager.js';
@@ -40,6 +41,17 @@ const HAO_681_CATALOG_CONSUMER_FIXTURE = path.resolve(
   'fixtures',
   'hao-681-mcp-dashboard-catalog-consumer.json',
 );
+const VIRTUAL_DESKTOP_EVIDENCE_ROOT = path.resolve(
+  process.cwd(),
+  'test-results',
+  'virtual-desktop-ipfs-mcp-orb',
+);
+const CAPABILITY_MATRIX_FIXTURE = path.join(VIRTUAL_DESKTOP_EVIDENCE_ROOT, 'capability-matrix.json');
+const COMPOSITE_WORKFLOWS_FIXTURE = path.join(VIRTUAL_DESKTOP_EVIDENCE_ROOT, 'all-tools-composite-workflows.json');
+const TOOL_UI_SMOKE_RECEIPT = path.join(VIRTUAL_DESKTOP_EVIDENCE_ROOT, 'tool-ui-smoke-receipts.json');
+const TOOL_UI_SMOKE_MARKDOWN = path.join(VIRTUAL_DESKTOP_EVIDENCE_ROOT, 'tool-ui-smoke-receipts.md');
+const TOOL_UI_SMOKE_SCREENSHOT_DIR = path.join(VIRTUAL_DESKTOP_EVIDENCE_ROOT, 'tool-ui-smoke-screenshots');
+const TOOL_UI_SMOKE_DOC = path.resolve(process.cwd(), 'docs', 'virtual-desktop-tool-ui-smoke-evidence.md');
 
 const EXPECTED_PACKAGES = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
 const {
@@ -62,7 +74,154 @@ const REQUIRED_EVIDENCE = [
 ];
 
 function readJson<T>(filePath: string): T {
+  if (
+    filePath === CAPABILITY_MATRIX_FIXTURE
+    && (!fs.existsSync(filePath) || !fs.existsSync(COMPOSITE_WORKFLOWS_FIXTURE))
+  ) {
+    ensureCapabilityMatrixEvidence();
+  }
   return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
+}
+
+function ensureCapabilityMatrixEvidence(): void {
+  for (const script of [
+    'scripts/capture-ipfs-mcp-all-tools-ledger.cjs',
+    'scripts/build-all-tools-composite-workflows.cjs',
+    'scripts/build-all-tools-capability-matrix.cjs',
+  ]) {
+    const result = spawnSync(process.execPath, [script], {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      env: process.env,
+    });
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(`${script} exited with status ${result.status}`);
+    }
+  }
+}
+
+interface ToolBackedSmokeApp {
+  app_id: string;
+  title: string;
+  binding_state: string;
+  service_families: string[];
+  sample_tool_ids: string[];
+  app_visible_tool_count: number;
+  desktop_mobile_only_count: number;
+  supervisor_only_count: number;
+  rationale: string;
+}
+
+interface ToolBackedSmokeReceipt {
+  schema: string;
+  task_id: string;
+  generated_at: string;
+  source_matrix: string;
+  matrix_cid: string;
+  app_count: number;
+  state_count: number;
+  screenshot_dir: string;
+  validation_commands: string[];
+  required_states: string[];
+  apps: Array<ToolBackedSmokeApp & {
+    observed_states: string[];
+    screenshot: string;
+    receipts: Array<{
+      state: string;
+      receipt_cid: string;
+      service_families: string[];
+      sample_tool_ids: string[];
+      ui_path: string[];
+    }>;
+  }>;
+}
+
+function buildToolBackedSmokeApps(): ToolBackedSmokeApp[] {
+  const matrix = readJson<any>(CAPABILITY_MATRIX_FIXTURE);
+  return matrix.rows
+    .filter((row: any) => row.binding_state === 'tool_backed')
+    .map((row: any) => {
+      const sampleToolIds = [
+        ...(row.all_tools?.app_visible_tool_ids ?? []),
+        ...(row.all_tools?.desktop_mobile_only_tool_ids ?? []),
+        ...(row.all_tools?.supervisor_only_tool_ids ?? []),
+      ].slice(0, 5);
+      return {
+        app_id: row.app_id,
+        title: row.title,
+        binding_state: row.binding_state,
+        service_families: row.manifest_service_families ?? [],
+        sample_tool_ids: sampleToolIds,
+        app_visible_tool_count: row.all_tools?.app_visible_tool_count ?? 0,
+        desktop_mobile_only_count: row.all_tools?.desktop_mobile_only_count ?? 0,
+        supervisor_only_count: row.all_tools?.supervisor_only_count ?? 0,
+        rationale: row.binding_rationale,
+      };
+    })
+    .sort((a: ToolBackedSmokeApp, b: ToolBackedSmokeApp) => a.app_id.localeCompare(b.app_id));
+}
+
+function writeToolUiSmokeEvidence(receipt: ToolBackedSmokeReceipt): void {
+  fs.mkdirSync(VIRTUAL_DESKTOP_EVIDENCE_ROOT, { recursive: true });
+  fs.writeFileSync(TOOL_UI_SMOKE_RECEIPT, `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+
+  const rows = receipt.apps.map(app => (
+    `| ${app.app_id} | ${app.service_families.join(', ')} | ${app.app_visible_tool_count} | ${app.desktop_mobile_only_count} | ${app.observed_states.join(', ')} | ${app.screenshot} |`
+  ));
+  const markdown = [
+    '# Virtual Desktop Tool UI Smoke Receipts',
+    '',
+    `Generated: ${receipt.generated_at}`,
+    `Task: ${receipt.task_id}`,
+    `Matrix CID: \`${receipt.matrix_cid}\``,
+    '',
+    '## Summary',
+    '',
+    `- Tool-backed apps covered: ${receipt.app_count}`,
+    `- UI states recorded: ${receipt.state_count}`,
+    `- Screenshot directory: \`${receipt.screenshot_dir}\``,
+    '',
+    '## Coverage',
+    '',
+    '| App | Backends | App-visible | Fallback/desktop | States | Screenshot |',
+    '| --- | --- | ---: | ---: | --- | --- |',
+    ...rows,
+    '',
+  ].join('\n');
+  fs.writeFileSync(TOOL_UI_SMOKE_MARKDOWN, markdown, 'utf8');
+
+  const doc = [
+    '# Virtual Desktop Tool UI Smoke Evidence',
+    '',
+    'SWR-085 covers every virtual desktop app whose SWR-084 matrix row is `tool_backed`.',
+    'The Playwright smoke opens each app through the desktop icon path, waits for the MCP capability control panel, records success/fallback/error UI receipts, and captures a screenshot for the rendered app window.',
+    '',
+    '## Evidence Artifacts',
+    '',
+    '- `test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-receipts.json`',
+    '- `test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-receipts.md`',
+    '- `test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/`',
+    '',
+    '## Validation',
+    '',
+    '- `npm run test:e2e:mcp`',
+    '- `npm run evidence:mcp-glasses`',
+    '',
+    '## Required UI States',
+    '',
+    '- `success`: the app records an MCP-backed receipt using its intended service family and representative tool ids.',
+    '- `fallback`: the app exposes the degraded or desktop/mobile confirmation path without breaking the window shell.',
+    '- `error`: the app records an error-state receipt while keeping the desktop window interactive.',
+    '',
+    '## Current Coverage',
+    '',
+    markdown.split('## Coverage\n\n')[1].trim(),
+    '',
+  ].join('\n');
+  fs.writeFileSync(TOOL_UI_SMOKE_DOC, doc, 'utf8');
 }
 
 // The published catalog fixture snapshots the DEFAULT daemon ports; normalize an
@@ -323,5 +482,101 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
       safeProbeTool: 'ipfs_status',
       safeProbeReceipt: 'ipfs_kit_status_probe',
     });
+  });
+
+  test('opens every tool-backed virtual desktop app and records MCP UI smoke receipts', async ({ page }, testInfo) => {
+    test.setTimeout(180 * 1000);
+    const matrix = readJson<any>(CAPABILITY_MATRIX_FIXTURE);
+    const apps = buildToolBackedSmokeApps();
+    const catalog = Object.fromEntries(apps.map(app => [app.app_id, app]));
+    const coveredApps: ToolBackedSmokeReceipt['apps'] = [];
+
+    fs.mkdirSync(TOOL_UI_SMOKE_SCREENSHOT_DIR, { recursive: true });
+    await page.setViewportSize({ width: 1440, height: 1200 });
+    await page.addInitScript((injectedCatalog) => {
+      window.__SWISSKNIFE_TOOL_UI_SMOKE_CATALOG__ = injectedCatalog as any;
+      window.__SWISSKNIFE_TOOL_UI_SMOKE_RECEIPTS__ = [];
+    }, catalog);
+    await page.goto('/');
+    await expect(page.locator('#desktop')).toBeVisible();
+    await page.waitForFunction(() => {
+      const desktop = (window as any).swissknifeDesktop;
+      return Boolean(desktop?.apps?.size >= 38);
+    });
+    await page.locator('#loading-screen').evaluate(element => {
+      (element as HTMLElement).style.display = 'none';
+    });
+
+    for (const app of apps) {
+      await page.locator('.window').evaluateAll(windows => windows.forEach(windowElement => windowElement.remove()));
+      const icon = page.locator(`.icon[data-app="${app.app_id}"]`).first();
+      await expect(icon, `desktop icon for ${app.app_id}`).toHaveCount(1);
+      await icon.scrollIntoViewIfNeeded();
+      await icon.click({ force: true });
+
+      const panel = page.locator(`.tool-smoke-panel[data-app-id="${app.app_id}"]`).last();
+      await expect(panel, `MCP smoke panel for ${app.app_id}`).toBeVisible();
+      await expect(panel.getByTestId('tool-smoke-control-state')).toContainText(String(app.app_visible_tool_count));
+      for (const serviceFamily of app.service_families) {
+        await expect(panel.getByTestId('tool-smoke-control-state')).toContainText(serviceFamily);
+      }
+      for (const toolId of app.sample_tool_ids.slice(0, 1)) {
+        await expect(panel.getByTestId('tool-smoke-tools')).toContainText(toolId);
+      }
+
+      const observedStates: string[] = [];
+      for (const state of ['success', 'fallback', 'error'] as const) {
+        await panel.getByTestId(`tool-smoke-${state}`).click();
+        await expect(panel.getByTestId('tool-smoke-state')).toHaveText(state);
+        await expect(panel.getByTestId('tool-smoke-receipt')).toContainText('sha256:');
+        observedStates.push(state);
+      }
+
+      const screenshotPath = path.join(TOOL_UI_SMOKE_SCREENSHOT_DIR, `${app.app_id}.png`);
+      await panel.screenshot({ path: screenshotPath });
+      await testInfo.attach(`tool-ui-smoke-${app.app_id}`, {
+        path: screenshotPath,
+        contentType: 'image/png',
+      });
+
+      const appReceipts = await page.evaluate((appId) => (
+        (((window as any).__SWISSKNIFE_TOOL_UI_SMOKE_RECEIPTS__ ?? []) as any[])
+          .filter(receipt => receipt.app_id === appId)
+          .map(receipt => ({
+            state: receipt.state,
+            receipt_cid: receipt.receipt_cid,
+            service_families: receipt.service_families,
+            sample_tool_ids: receipt.sample_tool_ids,
+            ui_path: receipt.ui_path,
+          }))
+      ), app.app_id);
+
+      expect(appReceipts.map(receipt => receipt.state).sort()).toEqual(['error', 'fallback', 'success']);
+      coveredApps.push({
+        ...app,
+        observed_states: observedStates,
+        screenshot: path.relative(process.cwd(), screenshotPath),
+        receipts: appReceipts,
+      });
+    }
+
+    expect(coveredApps.map(app => app.app_id).sort()).toEqual(apps.map(app => app.app_id).sort());
+    const receipt: ToolBackedSmokeReceipt = {
+      schema: 'swissknife.virtual-desktop-tool-ui-smoke-evidence.v1',
+      task_id: 'SWR-085',
+      generated_at: new Date().toISOString(),
+      source_matrix: path.relative(process.cwd(), CAPABILITY_MATRIX_FIXTURE),
+      matrix_cid: matrix.matrix_cid,
+      app_count: coveredApps.length,
+      state_count: coveredApps.reduce((sum, app) => sum + app.observed_states.length, 0),
+      screenshot_dir: path.relative(process.cwd(), TOOL_UI_SMOKE_SCREENSHOT_DIR),
+      validation_commands: [
+        'npm run test:e2e:mcp',
+        'npm run evidence:mcp-glasses',
+      ],
+      required_states: ['success', 'fallback', 'error'],
+      apps: coveredApps,
+    };
+    writeToolUiSmokeEvidence(receipt);
   });
 });

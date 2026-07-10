@@ -8,31 +8,31 @@
  * silently skipping downstream checks.
  *
  * Gates (in order):
- *   1. services:audit             - service-boundary drift (root/unknown/forbidden/legacy imports)
- *   2. audit:module-boundary       - SWR-024 repository module-boundary audit (unknown/forbidden
+ *   1. browser-service-regression-sentinel - SWR-095 duplicate/browser/ZKP regression sentinel
+ *   2. services:audit             - service-boundary drift (root/unknown/forbidden/legacy imports)
+ *   3. audit:module-boundary       - SWR-024 repository module-boundary audit (unknown/forbidden
  *      imports across all top-level `src` modules; deterministic, CI-suitable, independent of the
  *      `--fail-on-legacy` shim check that `services:audit` also performs).
- *   3. typecheck                  - browser + host TypeScript project references
- *   4. test:fast                  - fast unit lane
- *   5. test:browser-compat        - static + runtime browser-compatibility lanes
- *   6. build:web                  - production web bundle + bundle budget/host-leakage audit
- *   7. audit:bundle-host-leakage   - SWR-016/SWR-029 explicit re-audit of the just-built `dist`
+ *   4. typecheck                  - browser + host TypeScript project references
+ *   5. test:fast                  - fast unit lane
+ *   6. test:browser-compat        - static + runtime browser-compatibility lanes
+ *   7. build:web                  - production web bundle + bundle budget/host-leakage audit
+ *   8. audit:bundle-host-leakage   - SWR-016/SWR-029 explicit re-audit of the just-built `dist`
  *      bundle for host-only leakage (Node core imports, subprocess APIs, native module loading,
  *      filesystem APIs), independent confirmation on top of the audit embedded in `build:web`.
- *   8. evidence:freshness:check    - SWR-029 staleness gate for evidence that is too expensive to
+ *   9. evidence:freshness:check    - SWR-029 staleness gate for evidence that is too expensive to
  *      regenerate on every release candidate (SWR-028 browser libp2p Playwright evidence, SWR-016
  *      bundle budget snapshot, SWR-024 module-boundary audit snapshot). Fails when the recorded
  *      evidence fingerprint no longer matches the current state of the source it depends on.
- *   9. evidence:mcp-glasses       - MCP/glasses manifest + capability coverage evidence
- *   10. virtual-desktop-release-evidence - virtual desktop go/no-go evidence, including
- *      hierarchical MCP facade and representative dispatch evidence.
- *   11. evidence:dashboard-consumer (optional, cross-repo) - MCP dashboard catalog/launch-gate
+ *   10. evidence:mcp-glasses       - MCP/glasses manifest + capability coverage evidence
+ *   11. skipped-gate-policy        - explicit skip reasons and browser-safety skip enforcement
+ *   12. evidence:dashboard-consumer (optional, cross-repo) - MCP dashboard catalog/launch-gate
  *      receipt consistency against the live capability registry. Only runs when the sibling
  *      `hallucinate_app` checkout is present (monorepo/local dev); it is skipped, not failed,
  *      in a standalone `swissknife` checkout where that sibling repo does not exist.
  *
  * Usage:
- *   node scripts/release-readiness-gate.mjs [--skip-build] [--json <path>] [--report <path>]
+ *   node scripts/release-readiness-gate.mjs [--skip-build --skip-build-reason <reason>] [--json <path>] [--report <path>] [--signoff <path>]
  *
  * Exit code is non-zero when any required gate fails. A JSON report is always
  * written (default: docs/release-readiness-report.json) so failures/successes
@@ -53,156 +53,65 @@ const repoRoot = path.resolve(__dirname, '..');
 
 const DEFAULT_REPORT_JSON = 'docs/release-readiness-report.json';
 const DEFAULT_REPORT_MD = 'docs/release-readiness-report.md';
-const DEFAULT_SMOKE_MAX_AGE_DAYS = 14;
-
-const HOST_LEAKAGE_PATTERNS = [
-  /\bfrom\s*["'](?:node:)?(?:fs|fs\/promises|child_process|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']/i,
-  /\bimport\s*\(\s*["'](?:node:)?(?:fs|fs\/promises|child_process|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']\s*\)/i,
-  /\brequire\s*\(\s*["'](?:node:)?(?:fs|fs\/promises|child_process|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']\s*\)/i,
-  /\b(?:spawn|spawnSync|exec|execFile|execSync|execFileSync)\s*\(/,
-  /\b(?:readFileSync|writeFileSync|createReadStream|createWriteStream|mkdirSync|readdirSync)\s*\(/,
-  /\bprocess\.binding\s*\(/,
-  /["'][^"']+\.node["']/i,
-  /\bmcp-remote-deontic-engine\b/i,
-];
-
-const FORBIDDEN_EXPORT_SEGMENTS = [
-  '/host',
-  '/cli',
-  '/terminal',
-  '/workers/host',
-  '/storage/host',
-  '/node/',
-  '/scripts/',
-  '/test/',
-  '/tests/',
-  '/archived/',
-];
-
-const REQUIRED_BROWSER_ALLOWLIST_PACKAGES = [
-  '@anthropic-ai/sdk',
-  '@chainsafe/libp2p-gossipsub',
-  '@chainsafe/libp2p-noise',
-  '@chainsafe/libp2p-yamux',
-  '@libp2p/circuit-relay-v2',
-  '@libp2p/identify',
-  '@libp2p/webrtc',
-  '@libp2p/websockets',
-  '@modelcontextprotocol/sdk',
-  '@multiformats/multiaddr',
-  'assert',
-  'buffer',
-  'constants-browserify',
-  'crypto-browserify',
-  'ffjavascript',
-  'libp2p',
-  'openai',
-  'os-browserify',
-  'path-browserify',
-  'process',
-  'pyodide',
-  'querystring-es3',
-  'react',
-  'react-dom',
-  'snarkjs',
-  'stream-browserify',
-  'url',
-  'util',
-  'z3-solver',
-];
-
-const NODE_BUILTIN_DENYLIST_PACKAGES = [
-  'child_process',
-  'fs',
-  'fs/promises',
-  'worker_threads',
-  'net',
-  'tls',
-  'dgram',
-  'dns',
-  'readline',
-  'repl',
-  'tty',
-  'vm',
-];
-
-const REQUIRED_SMOKE_RECEIPTS = [
+const DEFAULT_SIGNOFF_MD = 'docs/refactor-final-signoff.md';
+const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
+const ALLOWED_SERVICE_DUPLICATE_BASENAMES = new Set(['index']);
+const ALLOWED_ROOT_ENTRYPOINT_DUPLICATES = new Set(['src/browser.ts', 'src/index.ts']);
+const BROWSER_SAFETY_GATE_IDS = new Set([
+  'browser-service-regression-sentinel',
+  'test-browser-compat',
+  'build-web',
+  'bundle-host-leakage',
+  'evidence-freshness',
+  'skipped-gate-policy',
+]);
+const HOST_IMPORT_PATTERN =
+  /\b(?:from|import)\s*(?:[^'"()]*?\s+from\s*)?["'](?:node:)?(?:child_process|fs\/promises|fs|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']|\brequire\s*\(\s*["'](?:node:)?(?:child_process|fs\/promises|fs|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']\s*\)|\bnode:(?:child_process|fs\/promises|fs|path|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)\b/g;
+const PYODIDE_DEFAULT_PATTERN = /\b(?:loadPyodide|runPython|runPythonAsync)\b|<script[^>]+(?:pyodide|loadPyodide)[^>]*>/gi;
+const BROWSER_ZKP_FORBIDDEN_PATTERNS = [
   {
-    file: 'test-results/browser-smoke-matrix/browser-smoke-desktop-chromium-startup.json',
-    project: 'browser-smoke-desktop-chromium',
-    evidence: 'desktop_or_mobile_startup_storage_worker',
+    id: 'simulated-prover-import',
+    re: /\bfrom\s+["'][^"']*zkp-simulated-prover(?:\.js)?["']|\bimport\s*\(\s*["'][^"']*zkp-simulated-prover(?:\.js)?["']\s*\)/,
+    message: 'browser-facing ZKP source imports the test-only simulated prover',
   },
   {
-    file: 'test-results/browser-smoke-matrix/browser-smoke-mobile-pixel-5-startup.json',
-    project: 'browser-smoke-mobile-pixel-5',
-    evidence: 'desktop_or_mobile_startup_storage_worker',
+    id: 'simulated-default-backend',
+    re: /\bDEFAULT_BROWSER_ZKP_BACKEND_ID\b[^;\n]*["'][^"']*simulat[^"']*["']|\b(?:backend|backend_id|backendId)\s*[:=]\s*["'][^"']*simulat[^"']*["']/i,
+    message: 'browser-facing ZKP source selects a simulated backend by default',
   },
   {
-    file: 'test-results/browser-smoke-matrix/browser-smoke-desktop-chromium-mcp-dashboard.json',
-    project: 'browser-smoke-desktop-chromium',
-    evidence: 'mcp_dashboard_lazy_loading_browser_safe',
-  },
-  {
-    file: 'test-results/browser-smoke-matrix/browser-smoke-mobile-pixel-5-mcp-dashboard.json',
-    project: 'browser-smoke-mobile-pixel-5',
-    evidence: 'mcp_dashboard_lazy_loading_browser_safe',
-  },
-  {
-    file: 'test-results/browser-smoke-matrix/browser-smoke-desktop-chromium-libp2p-capable.json',
-    project: 'browser-smoke-desktop-chromium',
-    evidence: 'libp2p_capable_capability_state',
-  },
-  {
-    file: 'test-results/browser-smoke-matrix/browser-smoke-mobile-pixel-5-libp2p-capable.json',
-    project: 'browser-smoke-mobile-pixel-5',
-    evidence: 'libp2p_capable_capability_state',
-  },
-  {
-    file: 'test-results/browser-smoke-matrix/browser-smoke-constrained-chromium-startup.json',
-    project: 'browser-smoke-constrained-chromium',
-    evidence: 'desktop_or_mobile_startup_storage_worker',
-  },
-  {
-    file: 'test-results/browser-smoke-matrix/browser-smoke-constrained-chromium-mcp-dashboard.json',
-    project: 'browser-smoke-constrained-chromium',
-    evidence: 'mcp_dashboard_lazy_loading_browser_safe',
-  },
-  {
-    file: 'test-results/browser-smoke-matrix/browser-smoke-constrained-chromium-libp2p-constrained.json',
-    project: 'browser-smoke-constrained-chromium',
-    evidence: 'libp2p_constrained_capability_state',
+    id: 'test-simulation-waiver',
+    re: /\ballowTestOnlySimulation\s*:\s*true\b/,
+    message: 'browser-facing ZKP source enables the test-only simulation waiver',
   },
 ];
-
-function abs(relativePath) {
-  return path.resolve(repoRoot, relativePath);
-}
-
-function rel(filePath) {
-  return path.relative(repoRoot, filePath).split(path.sep).join('/');
-}
 
 function parseArgs(argv) {
   const args = {
+    skipBuild: false,
+    skipBuildReason: null,
     json: DEFAULT_REPORT_JSON,
     report: DEFAULT_REPORT_MD,
-    smokeMaxAgeDays: Number(process.env.SWISSKNIFE_BROWSER_SMOKE_MAX_AGE_DAYS || DEFAULT_SMOKE_MAX_AGE_DAYS),
+    signoff: DEFAULT_SIGNOFF_MD,
     help: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--json') {
+    if (arg === '--skip-build') {
+      args.skipBuild = true;
+    } else if (arg === '--skip-build-reason') {
+      args.skipBuildReason = argv[++i];
+      if (!args.skipBuildReason) throw new Error('--skip-build-reason requires a non-empty reason');
+    } else if (arg === '--json') {
       args.json = argv[++i];
       if (!args.json) throw new Error('--json requires an output path');
     } else if (arg === '--report') {
       args.report = argv[++i];
       if (!args.report) throw new Error('--report requires an output path');
-    } else if (arg === '--smoke-max-age-days') {
-      args.smokeMaxAgeDays = Number(argv[++i]);
-      if (!Number.isFinite(args.smokeMaxAgeDays) || args.smokeMaxAgeDays <= 0) {
-        throw new Error('--smoke-max-age-days requires a positive number');
-      }
+    } else if (arg === '--signoff') {
+      args.signoff = argv[++i];
+      if (!args.signoff) throw new Error('--signoff requires an output path');
     } else if (arg === '--help' || arg === '-h') {
       args.help = true;
     } else {
@@ -218,10 +127,13 @@ function usage() {
     'Usage: node scripts/release-readiness-gate.mjs [options]',
     '',
     'Options:',
-    '  --json <path>                 Write machine-readable readiness report.',
-    '  --report <path>               Write Markdown readiness report.',
-    '  --smoke-max-age-days <days>   Maximum age for SWR-043 browser smoke receipts.',
-    '  --help, -h                    Show this help text.',
+    '  --skip-build       Skip the build:web gate (useful for fast local iteration).',
+    '  --skip-build-reason <reason>',
+    '                     Record an explicit reason when --skip-build is used. Browser-safety skips still fail release readiness.',
+    '  --json <path>      Write the deterministic gate report as JSON (default: docs/release-readiness-report.json).',
+    '  --report <path>    Write a human-readable Markdown summary (default: docs/release-readiness-report.md).',
+    '  --signoff <path>   Write final refactor signoff evidence (default: docs/refactor-final-signoff.md).',
+    '  --help, -h         Show this help text.',
   ].join('\n');
 }
 
@@ -663,49 +575,324 @@ function runNodeScript(scriptPath, extraArgs = []) {
   };
 }
 
-function runVirtualDesktopReleaseEvidenceGate() {
-  const capture = runNodeScript('scripts/capture-hierarchical-mcp-tools-evidence.cjs');
-  if (!capture.ok) return capture;
+function isSourcePath(relativePath) {
+  return SOURCE_EXTENSIONS.has(path.extname(relativePath));
+}
 
-  const build = runNodeScript('scripts/build-virtual-desktop-release-evidence.cjs');
-  const durationMs = capture.durationMs + build.durationMs;
-  const tail = [...capture.tail, ...build.tail].slice(-40);
-  if (!build.ok) {
-    return { ...build, durationMs, tail };
+function toPosix(filePath) {
+  return filePath.split(path.sep).join('/');
+}
+
+function rel(filePath) {
+  return toPosix(path.relative(repoRoot, filePath));
+}
+
+function listFiles(relativeDir, predicate, acc = []) {
+  const absoluteDir = abs(relativeDir);
+  if (!fs.existsSync(absoluteDir)) return acc;
+
+  for (const entry of fs.readdirSync(absoluteDir, { withFileTypes: true })) {
+    const absolute = path.join(absoluteDir, entry.name);
+    const relative = rel(absolute);
+    if (entry.isDirectory()) {
+      if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === 'dist') continue;
+      listFiles(relative, predicate, acc);
+    } else if (predicate(relative, absolute)) {
+      acc.push(relative);
+    }
   }
 
-  const evidencePath = abs('test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json');
-  let evidence;
-  try {
-    evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
-  } catch (error) {
-    return {
-      ok: false,
-      status: 1,
-      durationMs,
-      tail: [...tail, `Failed to read ${path.relative(repoRoot, evidencePath)}: ${error.message}`].slice(-40),
-    };
+  return acc.sort((a, b) => a.localeCompare(b));
+}
+
+function basenameWithoutExtension(filePath) {
+  return path.basename(filePath, path.extname(filePath));
+}
+
+function sourceLineForOffset(source, offset) {
+  let line = 1;
+  for (let i = 0; i < offset; i += 1) {
+    if (source.charCodeAt(i) === 10) line += 1;
+  }
+  return line;
+}
+
+function readText(relativePath) {
+  return fs.readFileSync(abs(relativePath), 'utf8');
+}
+
+function pushFinding(findings, id, message, file = null, detail = null) {
+  findings.push({ id, message, file, detail });
+}
+
+function findDuplicateServiceBasenames(findings) {
+  const groups = new Map();
+  for (const file of listFiles('src/services', isSourcePath)) {
+    const basename = basenameWithoutExtension(file);
+    if (ALLOWED_SERVICE_DUPLICATE_BASENAMES.has(basename)) continue;
+    if (!groups.has(basename)) groups.set(basename, []);
+    groups.get(basename).push(file);
   }
 
-  const decision = evidence.go_no_go?.decision ?? evidence.decision;
-  if (decision !== 'go') {
-    const blockers = evidence.go_no_go?.blockers ?? evidence.blockers ?? [];
-    return {
-      ok: false,
-      status: 1,
-      durationMs,
-      tail: [
-        ...tail,
-        `Virtual desktop release evidence decision: ${decision ?? 'unknown'}`,
-        ...blockers.slice(0, 20).map((blocker) => `- ${typeof blocker === 'string' ? blocker : JSON.stringify(blocker)}`),
-      ].slice(-40),
-    };
+  for (const [basename, files] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
+    if (files.length <= 1) continue;
+    pushFinding(
+      findings,
+      'duplicate-service-basename',
+      `duplicate service basename "${basename}" appears in ${files.length} files`,
+      null,
+      files.join(', '),
+    );
   }
+}
+
+function findSprintNamedServices(findings) {
+  for (const file of listFiles('src/services', isSourcePath)) {
+    const basename = basenameWithoutExtension(file);
+    if (/\bsprint[-_]?\d+\b/i.test(basename)) {
+      pushFinding(findings, 'sprint-named-service', 'service filename still carries a sprint identifier', file);
+    }
+  }
+}
+
+function findRootDuplicateWrappers(findings) {
+  const nestedServiceBases = new Map();
+  for (const file of listFiles('src/services', isSourcePath)) {
+    if (path.dirname(file) === 'src/services') continue;
+    const basename = basenameWithoutExtension(file);
+    if (ALLOWED_SERVICE_DUPLICATE_BASENAMES.has(basename)) continue;
+    if (!nestedServiceBases.has(basename)) nestedServiceBases.set(basename, []);
+    nestedServiceBases.get(basename).push(file);
+  }
+
+  for (const file of listFiles('src/services', (relativePath) => path.dirname(relativePath) === 'src/services' && isSourcePath(relativePath))) {
+    const basename = basenameWithoutExtension(file);
+    const nestedMatches = nestedServiceBases.get(basename) ?? [];
+    if (nestedMatches.length === 0) continue;
+    const source = readText(file);
+    const isWrapper =
+      /^\s*(?:\/\*[\s\S]*?\*\/\s*)?(?:export\s+\*\s+from|export\s*\{[\s\S]*?\}\s+from|import[\s\S]*?;\s*export)/.test(source);
+    if (isWrapper) {
+      pushFinding(
+        findings,
+        'root-duplicate-wrapper',
+        `top-level service wrapper duplicates nested service basename "${basename}"`,
+        file,
+        nestedMatches.join(', '),
+      );
+    }
+  }
+
+  const serviceBases = new Map();
+  for (const file of listFiles('src/services', isSourcePath)) {
+    const basename = basenameWithoutExtension(file);
+    if (ALLOWED_SERVICE_DUPLICATE_BASENAMES.has(basename)) continue;
+    if (!serviceBases.has(basename)) serviceBases.set(basename, []);
+    serviceBases.get(basename).push(file);
+  }
+  for (const file of listFiles('src', (relativePath) => path.dirname(relativePath) === 'src' && isSourcePath(relativePath))) {
+    if (ALLOWED_ROOT_ENTRYPOINT_DUPLICATES.has(file)) continue;
+    const matches = serviceBases.get(basenameWithoutExtension(file)) ?? [];
+    if (matches.length > 0) {
+      pushFinding(
+        findings,
+        'root-duplicate-wrapper',
+        'root source file duplicates a service basename outside the documented package entrypoint allowlist',
+        file,
+        matches.join(', '),
+      );
+    }
+  }
+}
+
+function browserEntrypointFilesFromPackage() {
+  const packageJson = JSON.parse(readText('package.json'));
+  const files = new Set(['src/browser.ts']);
+  if (typeof packageJson.browser === 'string') {
+    files.add(packageJson.browser.replace(/^\.\//, ''));
+  }
+  for (const value of Object.values(packageJson.exports ?? {})) {
+    if (typeof value === 'string') {
+      if (value.startsWith('./src/')) files.add(value.slice(2));
+    } else if (value && typeof value === 'object') {
+      for (const key of ['browser', 'import', 'default']) {
+        const candidate = value[key];
+        if (typeof candidate === 'string' && candidate.startsWith('./src/')) files.add(candidate.slice(2));
+      }
+    }
+  }
+  return [...files].sort((a, b) => a.localeCompare(b));
+}
+
+function findBrowserHostLeakage(findings) {
+  for (const file of browserEntrypointFilesFromPackage()) {
+    if (!fs.existsSync(abs(file))) {
+      pushFinding(findings, 'missing-browser-entrypoint', 'package browser/export entrypoint does not exist', file);
+      continue;
+    }
+    const source = readText(file);
+    HOST_IMPORT_PATTERN.lastIndex = 0;
+    let match;
+    while ((match = HOST_IMPORT_PATTERN.exec(source)) !== null) {
+      pushFinding(
+        findings,
+        'browser-host-leakage',
+        'browser package entrypoint statically references a host-only Node API',
+        file,
+        `line ${sourceLineForOffset(source, match.index)}: ${match[0]}`,
+      );
+    }
+  }
+}
+
+function findDefaultPyodideSourceExposure(findings) {
+  for (const file of browserEntrypointFilesFromPackage()) {
+    if (!fs.existsSync(abs(file))) continue;
+    const source = readText(file);
+    PYODIDE_DEFAULT_PATTERN.lastIndex = 0;
+    let match;
+    while ((match = PYODIDE_DEFAULT_PATTERN.exec(source)) !== null) {
+      pushFinding(
+        findings,
+        'default-pyodide-source-exposure',
+        'browser package entrypoint exposes Pyodide from the default import path',
+        file,
+        `line ${sourceLineForOffset(source, match.index)}: ${match[0]}`,
+      );
+    }
+  }
+}
+
+function findBrowserZkpSimulationDrift(findings) {
+  const zkpBrowserFiles = [
+    'src/services/zkp-browser-schnorr.ts',
+    'src/services/zkp/browser-snarkjs-backend.ts',
+    'src/services/zkp/browser-zkp-policy.ts',
+    'src/services/zkp/browser-zkp.ts',
+  ];
+  for (const file of zkpBrowserFiles) {
+    if (!fs.existsSync(abs(file))) {
+      pushFinding(findings, 'missing-browser-zkp-file', 'browser ZKP release sentinel input is missing', file);
+      continue;
+    }
+    const source = readText(file);
+    for (const pattern of BROWSER_ZKP_FORBIDDEN_PATTERNS) {
+      const match = source.match(pattern.re);
+      if (match) {
+        pushFinding(
+          findings,
+          `browser-zkp-${pattern.id}`,
+          pattern.message,
+          file,
+          `line ${sourceLineForOffset(source, match.index ?? 0)}: ${match[0]}`,
+        );
+      }
+    }
+  }
+
+  const browserZkpSource = fs.existsSync(abs('src/services/zkp/browser-zkp.ts'))
+    ? readText('src/services/zkp/browser-zkp.ts')
+    : '';
+  if (!/\bDEFAULT_BROWSER_ZKP_BACKEND_ID\s*=\s*BROWSER_SCHNORR_BACKEND_ID\b/.test(browserZkpSource)) {
+    pushFinding(
+      findings,
+      'browser-zkp-default-drift',
+      'default browser ZKP backend must remain the real browser Schnorr/WASM backend',
+      'src/services/zkp/browser-zkp.ts',
+    );
+  }
+
+  const browserZkpPolicySource = fs.existsSync(abs('src/services/zkp/browser-zkp-policy.ts'))
+    ? readText('src/services/zkp/browser-zkp-policy.ts')
+    : '';
+  for (const required of [
+    'SIMULATED_BROWSER_ZKP_BACKEND_IDS',
+    'REAL_BROWSER_ZKP_BACKEND_IDS',
+    'BrowserZkpSimulationRejectedError',
+    'assertProductionBrowserZkpBackendId',
+    'assertBrowserZkpEnvelopeIsReal',
+  ]) {
+    if (!browserZkpPolicySource.includes(required)) {
+      pushFinding(
+        findings,
+        'browser-zkp-policy-drift',
+        `browser ZKP policy no longer exposes ${required}`,
+        'src/services/zkp/browser-zkp-policy.ts',
+      );
+    }
+  }
+}
+
+function assertReleaseScriptCoverage(findings) {
+  const packageJson = JSON.parse(readText('package.json'));
+  const scripts = packageJson.scripts ?? {};
+  const bundleAuditScript = scripts['bundle:audit:web'] ?? '';
+  if (!bundleAuditScript.includes('--fail-on-host-leakage')) {
+    pushFinding(findings, 'bundle-host-leakage-flag-missing', 'bundle:audit:web must fail on host leakage', 'package.json');
+  }
+  if (!bundleAuditScript.includes('--fail-on-default-pyodide')) {
+    pushFinding(findings, 'bundle-default-pyodide-flag-missing', 'bundle:audit:web must fail on default Pyodide exposure', 'package.json');
+  }
+  if (!String(scripts['evidence:freshness:check'] ?? '').includes('--fail-on-stale')) {
+    pushFinding(findings, 'stale-evidence-flag-missing', 'evidence:freshness:check must fail on stale browser/libp2p evidence', 'package.json');
+  }
+  if (!scripts['release:readiness']) {
+    pushFinding(findings, 'release-readiness-script-missing', 'package.json must expose npm run release:readiness', 'package.json');
+  }
+}
+
+function runBrowserServiceRegressionSentinel() {
+  const startedAt = Date.now();
+  const findings = [];
+
+  findDuplicateServiceBasenames(findings);
+  findSprintNamedServices(findings);
+  findRootDuplicateWrappers(findings);
+  findBrowserHostLeakage(findings);
+  findDefaultPyodideSourceExposure(findings);
+  findBrowserZkpSimulationDrift(findings);
+  assertReleaseScriptCoverage(findings);
+
+  const tail = findings.flatMap((finding) => [
+    `${finding.id}: ${finding.message}`,
+    finding.file ? `  file: ${finding.file}` : null,
+    finding.detail ? `  detail: ${finding.detail}` : null,
+  ].filter(Boolean));
 
   return {
-    ok: true,
-    status: 0,
-    durationMs,
+    ok: findings.length === 0,
+    status: findings.length === 0 ? 0 : 1,
+    durationMs: Date.now() - startedAt,
+    findings,
+    tail,
+  };
+}
+
+function runSkippedGatePolicy(gates) {
+  const startedAt = Date.now();
+  const findings = [];
+  for (const gate of gates) {
+    if (gate.status !== 'skipped') continue;
+    if (!gate.skipReason || gate.skipReason.trim().length === 0) {
+      pushFinding(findings, 'missing-skip-reason', 'skipped gate has no explicit reason', null, gate.id);
+    }
+    if (BROWSER_SAFETY_GATE_IDS.has(gate.id)) {
+      pushFinding(
+        findings,
+        'browser-safety-gate-skipped',
+        'browser-safety gates cannot be skipped for release readiness',
+        null,
+        gate.id,
+      );
+    }
+  }
+
+  const tail = findings.map((finding) => `${finding.id}: ${finding.message}${finding.detail ? ` (${finding.detail})` : ''}`);
+  return {
+    ok: findings.length === 0,
+    status: findings.length === 0 ? 0 : 1,
+    durationMs: Date.now() - startedAt,
+    findings,
     tail,
   };
 }
@@ -782,6 +969,11 @@ function main() {
 
   const requiredGates = [
     {
+      id: 'browser-service-regression-sentinel',
+      label: 'Browser/service duplicate regression sentinel (SWR-095)',
+      run: () => runBrowserServiceRegressionSentinel(),
+    },
+    {
       id: 'services-audit',
       label: 'Service-boundary audit (services:audit)',
       run: () => runNpmScript('services:audit'),
@@ -810,12 +1002,18 @@ function main() {
       id: 'build-web',
       label: 'Web bundle build + host-leakage/budget audit (build:web)',
       skip: args.skipBuild,
+      skipReason: args.skipBuild
+        ? (args.skipBuildReason ?? 'explicit --skip-build request; browser-safety skip policy will fail release readiness')
+        : null,
       run: () => runNpmScript('build:web'),
     },
     {
       id: 'bundle-host-leakage',
       label: 'Web bundle host-leakage re-audit (audit:bundle-host-leakage)',
       skip: args.skipBuild,
+      skipReason: args.skipBuild
+        ? (args.skipBuildReason ?? 'explicit --skip-build request; browser-safety skip policy will fail release readiness')
+        : null,
       run: () => runNpmScript('audit:bundle-host-leakage'),
     },
     {
@@ -837,7 +1035,14 @@ function main() {
 
   for (const gate of requiredGates) {
     if (gate.skip) {
-      gates.push({ id: gate.id, label: gate.label, status: 'skipped', durationMs: 0, tail: [] });
+      gates.push({
+        id: gate.id,
+        label: gate.label,
+        status: 'skipped',
+        durationMs: 0,
+        tail: [],
+        skipReason: gate.skipReason ?? 'explicit skip requested',
+      });
       continue;
     }
 
@@ -849,6 +1054,7 @@ function main() {
       status: outcome.ok ? 'passed' : 'failed',
       durationMs: outcome.durationMs,
       tail: outcome.ok ? [] : outcome.tail,
+      findings: outcome.findings ?? [],
     });
 
     if (outcome.ok) {
@@ -858,6 +1064,68 @@ function main() {
       process.stdout.write(`${outcome.tail.join('\n')}\n`);
       stoppedEarly = gate.id;
       break;
+    }
+  }
+
+  // Optional cross-repo evidence gate: only meaningful (and only possible) when
+  // this checkout is embedded in the monorepo alongside `hallucinate_app`. In a
+  // standalone `swissknife` checkout (e.g. its own GitHub repo CI), the sibling
+  // directory will not exist and this gate is recorded as skipped rather than
+  // failed so the release gate stays runnable in both contexts.
+  if (!stoppedEarly) {
+    const dashboardConsumerLabel =
+      'MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer)';
+    if (fs.existsSync(siblingHallucinateAppDir)) {
+      process.stdout.write(`\n▶ ${dashboardConsumerLabel}\n`);
+      const outcome = runNpmScript('evidence:dashboard-consumer');
+      gates.push({
+        id: 'evidence-dashboard-consumer',
+        label: dashboardConsumerLabel,
+        status: outcome.ok ? 'passed' : 'failed',
+        durationMs: outcome.durationMs,
+        tail: outcome.ok ? [] : outcome.tail,
+        findings: outcome.findings ?? [],
+      });
+      if (outcome.ok) {
+        process.stdout.write(`  ✓ passed in ${formatDuration(outcome.durationMs)}\n`);
+      } else {
+        process.stdout.write(`  ✗ failed in ${formatDuration(outcome.durationMs)} (exit ${outcome.status})\n`);
+        process.stdout.write(`${outcome.tail.join('\n')}\n`);
+        stoppedEarly = 'evidence-dashboard-consumer';
+      }
+    } else {
+      gates.push({
+        id: 'evidence-dashboard-consumer',
+        label: dashboardConsumerLabel,
+        status: 'skipped',
+        durationMs: 0,
+        tail: [],
+        skipReason: 'sibling hallucinate_app checkout not present (standalone swissknife checkout)',
+      });
+      process.stdout.write(
+        `\n▶ ${dashboardConsumerLabel}\n  ⏭ skipped (sibling hallucinate_app checkout not present)\n`,
+      );
+    }
+  }
+
+  if (!stoppedEarly) {
+    const skippedGatePolicyLabel = 'Skipped gate policy (explicit reason + browser-safety enforcement)';
+    process.stdout.write(`\n▶ ${skippedGatePolicyLabel}\n`);
+    const outcome = runSkippedGatePolicy(gates);
+    gates.push({
+      id: 'skipped-gate-policy',
+      label: skippedGatePolicyLabel,
+      status: outcome.ok ? 'passed' : 'failed',
+      durationMs: outcome.durationMs,
+      tail: outcome.ok ? [] : outcome.tail,
+      findings: outcome.findings ?? [],
+    });
+    if (outcome.ok) {
+      process.stdout.write(`  ✓ passed in ${formatDuration(outcome.durationMs)}\n`);
+    } else {
+      process.stdout.write(`  ✗ failed in ${formatDuration(outcome.durationMs)} (exit ${outcome.status})\n`);
+      process.stdout.write(`${outcome.tail.join('\n')}\n`);
+      stoppedEarly = 'skipped-gate-policy';
     }
   }
 
@@ -901,7 +1169,8 @@ function main() {
     '| --- | --- | --- |',
     ...gates.map((gate) => {
       const icon = gate.status === 'passed' ? '✅' : gate.status === 'failed' ? '❌' : '⏭️';
-      return `| ${gate.label} | ${icon} ${gate.status} | ${formatDuration(gate.durationMs)} |`;
+      const reason = gate.status === 'skipped' ? ` (${gate.skipReason ?? 'no reason recorded'})` : '';
+      return `| ${gate.label} | ${icon} ${gate.status}${reason} | ${formatDuration(gate.durationMs)} |`;
     }),
     '',
   ];
@@ -982,9 +1251,54 @@ function main() {
   fs.mkdirSync(path.dirname(mdPath), { recursive: true });
   fs.writeFileSync(mdPath, `${mdLines.join('\n')}\n`);
 
+  const sentinelGate = gates.find((gate) => gate.id === 'browser-service-regression-sentinel');
+  const signoffLines = [
+    '# Refactor Final Signoff',
+    '',
+    `Generated: ${report.generatedAt}`,
+    `Commit: ${report.commitSha ?? 'unknown'}`,
+    `Release readiness: ${overallStatus === 'passed' ? 'PASSED' : 'FAILED'}`,
+    '',
+    '## SWR-095 Browser/Service Sentinel',
+    '',
+    `Status: ${sentinelGate?.status ?? 'not-run'}`,
+    '',
+    'The release readiness gate now fails on:',
+    '',
+    '- duplicate service basenames',
+    '- sprint-named service files',
+    '- top-level duplicate service wrappers',
+    '- browser package entrypoints that statically reference host-only Node APIs',
+    '- default browser package entrypoints that expose Pyodide APIs',
+    '- stale browser/libp2p release evidence through `evidence:freshness:check --fail-on-stale`',
+    '- browser ZKP source drift toward simulated/test-only proof backends',
+    '- skipped browser-safety gates',
+    '',
+    '## Gate Summary',
+    '',
+    '| Gate | Status | Reason |',
+    '| --- | --- | --- |',
+    ...gates.map((gate) => `| ${gate.id} | ${gate.status} | ${gate.skipReason ?? ''} |`),
+    '',
+  ];
+  if (failed.length > 0) {
+    signoffLines.push('## Blocking Failures', '');
+    for (const gate of failed) {
+      signoffLines.push(`### ${gate.id}`, '', ...gate.tail.map((line) => `- ${line}`), '');
+    }
+  }
+
+  const signoffPath = abs(args.signoff);
+  fs.mkdirSync(path.dirname(signoffPath), { recursive: true });
+  fs.writeFileSync(signoffPath, `${signoffLines.join('\n')}\n`);
+
   process.stdout.write('\n' + '='.repeat(72) + '\n');
-  process.stdout.write(`Release readiness: ${report.overallStatus.toUpperCase()} (${report.summary.passed} passed, ${report.summary.failed} failed)\n`);
-  process.stdout.write(`Report: ${rel(abs(args.json))}, ${rel(abs(args.report))}\n`);
+  process.stdout.write(
+    `Release readiness gate: ${overallStatus === 'passed' ? 'PASSED' : 'FAILED'} ` +
+      `(${passed.length} passed, ${failed.length} failed, ${skipped.length} skipped)\n`,
+  );
+  process.stdout.write(`Report: ${path.relative(repoRoot, jsonPath)}, ${path.relative(repoRoot, mdPath)}\n`);
+  process.stdout.write(`Signoff: ${path.relative(repoRoot, signoffPath)}\n`);
   process.stdout.write('='.repeat(72) + '\n');
 
   process.exit(report.overallStatus === 'passed' ? 0 : 1);

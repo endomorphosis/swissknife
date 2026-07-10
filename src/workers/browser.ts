@@ -20,84 +20,30 @@
 // private host-only implementation details per `src/module-ownership.json`
 // and are re-exported only from `./host.ts`. Browser code must never import
 // them directly.
+import type {
+  BrowserWorkerAdapterKind,
+  BrowserWorkerCapabilityGap,
+  BrowserWorkerCapabilityStatus,
+  BrowserWorkerInboundMessage,
+  BrowserWorkerRuntimeReport,
+  BrowserWorkerTaskMessage,
+  BrowserWorkerTaskOptions,
+} from '../shared/service-contracts/index.js';
 
-/** Adapters this runtime can select between. */
-export type BrowserWorkerAdapterKind = 'dedicated-worker' | 'shared-worker';
-
-export type BrowserWorkerCapabilityName =
-  | 'worker'
-  | 'shared-worker'
-  | 'module-worker'
-  | 'transferable-objects'
-  | 'worker-threads'
-  | 'child-process'
-  | 'filesystem';
-
-export interface BrowserWorkerCapabilityStatus {
-  name: BrowserWorkerCapabilityName;
-  /** The adapter this capability maps to, or `host-only` for Node-only capabilities reported for reference. */
-  adapter: BrowserWorkerAdapterKind | 'host-only';
-  supported: boolean;
-  enabled: boolean;
-  reason?: string;
-}
-
-export interface BrowserWorkerCapabilityGap {
-  name: BrowserWorkerCapabilityName;
-  adapter: BrowserWorkerAdapterKind | 'host-only';
-  reason: string;
-}
-
-export interface BrowserWorkerRuntimeReport {
-  runtime: 'browser';
-  browserSafe: true;
-  capabilities: BrowserWorkerCapabilityStatus[];
-  gaps: BrowserWorkerCapabilityGap[];
-  /** Node-only capabilities that are never available in a browser bundle; documented for parity with `./host.ts`. */
-  hostOnly: BrowserWorkerCapabilityStatus[];
-}
-
-/* -------------------------------------------------------------------------
- * Message contracts
- *
- * `data` is intentionally `unknown` so callers can pass transferable payloads
- * (e.g. `ArrayBuffer`, `ImageBitmap`, `MessagePort`) alongside a matching
- * transfer list without this module needing to know their shape.
- * ---------------------------------------------------------------------- */
-
-export interface BrowserWorkerTaskMessage {
-  type: 'task';
-  taskId: string;
-  taskType: string;
-  data: unknown;
-}
-
-export interface BrowserWorkerResponseMessage {
-  type: 'response';
-  taskId: string;
-  result?: unknown;
-  error?: string;
-}
-
-export interface BrowserWorkerStatusMessage {
-  type: 'status';
-  workerId: string;
-  status: 'idle' | 'busy' | 'error' | 'terminated';
-  error?: string;
-}
-
-export interface BrowserWorkerReadyMessage {
-  type: 'ready';
-  workerId: string;
-  capabilities?: Record<string, unknown>;
-}
-
-export type BrowserWorkerOutboundMessage = BrowserWorkerTaskMessage;
-
-export type BrowserWorkerInboundMessage =
-  | BrowserWorkerResponseMessage
-  | BrowserWorkerStatusMessage
-  | BrowserWorkerReadyMessage;
+export type {
+  BrowserWorkerAdapterKind,
+  BrowserWorkerCapabilityGap,
+  BrowserWorkerCapabilityName,
+  BrowserWorkerCapabilityStatus,
+  BrowserWorkerInboundMessage,
+  BrowserWorkerOutboundMessage,
+  BrowserWorkerReadyMessage,
+  BrowserWorkerResponseMessage,
+  BrowserWorkerRuntimeReport,
+  BrowserWorkerStatusMessage,
+  BrowserWorkerTaskMessage,
+  BrowserWorkerTaskOptions,
+} from '../shared/service-contracts/index.js';
 
 /* -------------------------------------------------------------------------
  * Capability detection
@@ -262,13 +208,6 @@ export type BrowserWorkerScriptName = keyof typeof BROWSER_WORKER_SCRIPTS;
 /* -------------------------------------------------------------------------
  * Single worker client
  * ---------------------------------------------------------------------- */
-
-export interface BrowserWorkerTaskOptions {
-  /** Transferable objects (e.g. ArrayBuffer) to move instead of copy with this task's postMessage call. */
-  transfer?: Transferable[];
-  /** Milliseconds before the task promise rejects with a timeout error. */
-  timeoutMs?: number;
-}
 
 export interface BrowserWorkerClientOptions {
   /** URL (or path) to the worker script, e.g. `BROWSER_WORKER_SCRIPTS.compute`. */

@@ -123,26 +123,30 @@ describe('browser libp2p runtime defaults', () => {
       'circuit-relay-v2',
       'gossipsub',
     ]);
+    expect(report.gaps.map(gap => gap.code)).toEqual([
+      'package-unavailable',
+      'package-unavailable',
+      'package-unavailable',
+    ]);
     expect(summarizeBrowserLibp2pGaps(report).join('\n')).toContain('@libp2p/webrtc');
   });
 
-  it('exports dashboard-facing default status with stable capability order and listen addresses', async () => {
+  it('surfaces default-on browser status including the real libp2p core loader', async () => {
     const status = await getBrowserLibp2pDefaultStatus({
       importModule: makeImporter(['@libp2p/gossipsub']),
     });
 
-    expect(BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER).toEqual([
-      'webrtc',
-      'websockets',
-      'circuit-relay-v2',
-      'noise',
-      'yamux',
-      'identify',
-      'gossipsub',
-    ]);
-    expect(status.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(status.defaultEnabled).toBe(true);
+    expect(status.moduleLoader).toBe('literal-browser-imports');
+    expect(status.report.enabled).toBe(true);
     expect(status.listenMultiaddrs).toEqual(['/webrtc']);
-    expect(status.report.capabilities.map(capability => capability.name)).toEqual(BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER);
+    expect(status.report.capabilities.some(capability =>
+      capability.name === 'libp2p' &&
+      capability.packageName === 'libp2p' &&
+      capability.installed &&
+      capability.configured
+    )).toBe(true);
+    expect(status.report.gaps).toEqual([]);
   });
 
   it('creates libp2p with the assembled browser config and reports libp2p itself', async () => {

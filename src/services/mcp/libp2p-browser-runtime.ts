@@ -19,9 +19,15 @@ export type BrowserLibp2pCapabilityName =
 export type BrowserLibp2pImport = (specifier: string) => Promise<Record<string, unknown>>;
 export type BrowserLibp2pTransportMode = 'default' | 'relay-only' | 'websocket-only';
 
+export type BrowserLibp2pCapabilityGapCode =
+  | 'package-unavailable'
+  | 'export-missing'
+  | 'factory-initialization-failed';
+
 export interface BrowserLibp2pCapabilityGap {
   name: BrowserLibp2pCapabilityName;
   packageName: string;
+  code: BrowserLibp2pCapabilityGapCode;
   reason: string;
 }
 
@@ -97,6 +103,13 @@ export interface BrowserLibp2pNodeRuntime extends BrowserLibp2pRuntimeConfig {
   node: unknown;
 }
 
+export interface BrowserLibp2pDefaultStatus extends BrowserLibp2pRuntimeConfig {
+  defaultEnabled: true;
+  generatedAt: string;
+  listenMultiaddrs: string[];
+  moduleLoader: 'literal-browser-imports';
+}
+
 interface OptionalModuleSpec {
   name: BrowserLibp2pCapabilityName;
   packageNames: string[];
@@ -124,6 +137,17 @@ const DEFAULT_BOOTSTRAP_PEERS = [DEFAULT_RELAY_MULTIADDR, DEFAULT_WEBSOCKET_BOOT
  * browser transport/capability status consistently.
  */
 export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
+  'webrtc',
+  'websockets',
+  'circuit-relay-v2',
+  'identify',
+  'noise',
+  'yamux',
+  'gossipsub',
+];
+
+export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
+  'libp2p',
   'webrtc',
   'websockets',
   'circuit-relay-v2',
@@ -177,9 +201,26 @@ const MODULES = {
 } satisfies Record<string, OptionalModuleSpec>;
 
 const defaultImportModule: BrowserLibp2pImport = async specifier => {
-  const loader = BROWSER_LITERAL_LOADERS[specifier];
-  if (loader) return loader();
-  return import(/* @vite-ignore */ specifier) as Promise<Record<string, unknown>>;
+  switch (specifier) {
+    case 'libp2p':
+      return import('libp2p') as Promise<Record<string, unknown>>;
+    case '@libp2p/webrtc':
+      return import('@libp2p/webrtc') as Promise<Record<string, unknown>>;
+    case '@libp2p/websockets':
+      return import('@libp2p/websockets') as Promise<Record<string, unknown>>;
+    case '@libp2p/circuit-relay-v2':
+      return import('@libp2p/circuit-relay-v2') as Promise<Record<string, unknown>>;
+    case '@chainsafe/libp2p-noise':
+      return import('@chainsafe/libp2p-noise') as Promise<Record<string, unknown>>;
+    case '@chainsafe/libp2p-yamux':
+      return import('@chainsafe/libp2p-yamux') as Promise<Record<string, unknown>>;
+    case '@libp2p/identify':
+      return import('@libp2p/identify') as Promise<Record<string, unknown>>;
+    case '@chainsafe/libp2p-gossipsub':
+      return import('@chainsafe/libp2p-gossipsub') as Promise<Record<string, unknown>>;
+    default:
+      throw new Error(`Browser libp2p package is not bundled in this build: ${specifier}`);
+  }
 };
 
 const BROWSER_LITERAL_LOADERS: Record<string, () => Promise<Record<string, unknown>>> = {
@@ -367,7 +408,7 @@ async function loadOptionalModule(
         configured: false,
         reason,
       });
-      gaps.push({ name: spec.name, packageName, reason });
+      gaps.push({ name: spec.name, packageName, code: 'export-missing', reason });
       return null;
     } catch (err) {
       reasons.push(`${packageName}: ${gapReason(err)}`);
@@ -383,7 +424,7 @@ async function loadOptionalModule(
     configured: false,
     reason,
   });
-  gaps.push({ name: spec.name, packageName, reason });
+  gaps.push({ name: spec.name, packageName, code: 'package-unavailable', reason });
   return null;
 }
 
@@ -411,7 +452,12 @@ function addFactory(
     markConfigured(statuses, load);
   } catch (err) {
     const reason = `Failed to initialize ${load.packageName}: ${gapReason(err)}`;
-    gaps.push({ name: load.spec.name, packageName: load.packageName, reason });
+    gaps.push({
+      name: load.spec.name,
+      packageName: load.packageName,
+      code: 'factory-initialization-failed',
+      reason,
+    });
   }
 }
 
@@ -429,7 +475,12 @@ function addServiceFactory(
     markConfigured(statuses, load);
   } catch (err) {
     const reason = `Failed to initialize ${load.packageName}: ${gapReason(err)}`;
-    gaps.push({ name: load.spec.name, packageName: load.packageName, reason });
+    gaps.push({
+      name: load.spec.name,
+      packageName: load.packageName,
+      code: 'factory-initialization-failed',
+      reason,
+    });
   }
 }
 
@@ -557,6 +608,46 @@ export async function createBrowserLibp2pNode(
       gaps,
       bootstrap: runtime.report.bootstrap,
     },
+  };
+}
+
+export async function getBrowserLibp2pDefaultStatus(
+  options: BrowserLibp2pRuntimeOptions = {},
+): Promise<BrowserLibp2pDefaultStatus> {
+  const importModule = options.importModule ?? defaultImportModule;
+  const runtime = await buildBrowserLibp2pConfig({
+    enabled: true,
+    includeWebRTC: true,
+    includeWebSockets: true,
+    includeCircuitRelay: true,
+    includeNoise: true,
+    includeYamux: true,
+    includeIdentify: true,
+    includeGossipSub: true,
+    ...options,
+    importModule,
+  });
+  const statuses = [...runtime.report.capabilities];
+  const gaps = [...runtime.report.gaps];
+  const libp2p = await loadOptionalModule(MODULES.libp2p, importModule, statuses, gaps);
+  if (libp2p) markConfigured(statuses, libp2p);
+
+  const addresses = asRecord(runtime.config.addresses);
+  const listen = Array.isArray(addresses.listen)
+    ? addresses.listen.map(item => String(item))
+    : [...DEFAULT_LISTEN_MULTIADDRS];
+
+  return {
+    config: runtime.config,
+    report: {
+      enabled: runtime.report.enabled,
+      capabilities: statuses,
+      gaps,
+    },
+    defaultEnabled: true,
+    generatedAt: new Date().toISOString(),
+    listenMultiaddrs: listen,
+    moduleLoader: 'literal-browser-imports',
   };
 }
 

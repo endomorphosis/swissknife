@@ -2,7 +2,7 @@
  * zkp-attestation-bridge.ts
  *
  * Bridge adapter that converts formal proof obligations to ZKP attestation
- * views and graph records using a simulated backend.
+ * views and graph records using browser-safe backend identifiers.
  *
  * TypeScript port of ipfs_datasets_py/logic/bridge/zkp_attestation.py
  *
@@ -20,6 +20,12 @@ import {
   BridgeEvaluationReport,
 } from './bridge-types.js';
 import { sha256Hex } from './provers/browser-crypto.js';
+import { BROWSER_SCHNORR_BACKEND_ID } from './zkp-browser-schnorr.js';
+import {
+  TEST_ONLY_SIMULATED_ZKP_SCOPE,
+  assertProductionBrowserZkpBackendId,
+  isSimulatedBrowserZkpIdentifier,
+} from './zkp/browser-zkp-policy.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,13 +51,13 @@ function proofHash(formula: string): string {
 export interface ZkpAttestationRecord {
   /** The formula that was attested. */
   formula: string;
-  /** Simulated proof hash (SHA-256 prefix). */
+  /** Browser-safe attestation hash (SHA-256 prefix). */
   proofHash: string;
-  /** Whether the simulated verification passed. */
+  /** Whether structural attestation verification passed. */
   verified: boolean;
-  /** Backend used (always 'simulated' for this adapter). */
+  /** Browser ZKP backend selected for downstream proof generation. */
   backend: string;
-  /** Simulated public inputs for the proof circuit. */
+  /** Public inputs for the proof circuit. */
   publicInputs: Record<string, unknown>;
   /** Predicates extracted from the formula. */
   predicates: string[];
@@ -90,8 +96,9 @@ function makeAttestationRecord(
 // ---------------------------------------------------------------------------
 
 export interface ZkpAttestationBridgeAdapterOpts {
-  /** Backend to simulate (default: 'simulated'). */
+  /** Browser ZKP backend identifier. Simulated IDs require allowTestOnlySimulation. */
   backend?: string;
+  allowTestOnlySimulation?: boolean;
   enableCaching?: boolean;
   name?: string;
   targetComponent?: string;
@@ -101,7 +108,7 @@ export interface EncodeOpts {
   documentId?: string;
   citation?: string;
   source?: string;
-  /** Optional source text embedding (unused in simulated mode). */
+  /** Optional source text embedding. */
   sourceEmbedding?: number[];
 }
 
@@ -123,7 +130,14 @@ export class ZkpAttestationBridgeAdapter {
   constructor(opts: ZkpAttestationBridgeAdapterOpts = {}) {
     this.name = opts.name ?? 'zkp_attestation';
     this.targetComponent = opts.targetComponent ?? 'zkp.circuits';
-    this.backend = opts.backend ?? 'simulated';
+    this.backend = opts.backend ?? BROWSER_SCHNORR_BACKEND_ID;
+    if (isSimulatedBrowserZkpIdentifier(this.backend)) {
+      if (opts.allowTestOnlySimulation !== true) {
+        throw new Error(`ZKP attestation backend "${this.backend}" is ${TEST_ONLY_SIMULATED_ZKP_SCOPE}; pass allowTestOnlySimulation:true only in explicit fixtures.`);
+      }
+    } else {
+      assertProductionBrowserZkpBackendId(this.backend);
+    }
   }
 
   /**
@@ -203,7 +217,7 @@ export class ZkpAttestationBridgeAdapter {
       details: attestations.map(a => ({ source_id: a.sourceId, verified: a.verified, backend: a.backend })),
     });
 
-    // Metrics (simulated — all losses zero, similarity 1.0)
+    // Metrics are structural for this synchronous bridge adapter.
     const metrics = new RoundTripMetrics({ cosineSimilarity: 1.0 });
 
     // Aggregate public inputs

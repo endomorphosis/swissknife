@@ -19,7 +19,7 @@ import {
   handleProofError, handleParseError, withErrorContext, safeCall, safeCallAsync,
   formatErrorMessage, validateNotNull,
   NLContext, makeTDFOLEntity, ContextResolver,
-} from '../../src/services/cec-sprint63-utils';
+} from '../../src/services/logic-observability-pipeline';
 
 // ---------------------------------------------------------------------------
 // ErgoAI Wrapper

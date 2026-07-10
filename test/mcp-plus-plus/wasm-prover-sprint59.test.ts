@@ -8,7 +8,7 @@ import { NLUCANPolicyCompiler, compileNlToUcanPolicy } from '../../src/services/
 import { LegalVocabulary, MedicalVocabulary, TechnicalVocabulary, DomainVocabularyManager } from '../../src/services/domain-vocabulary';
 import { NaturalLanguageConverter, createEnhancedNlConverter } from '../../src/services/cec-nl-converter';
 import { ShadowProverWrapper, ProverStatus } from '../../src/services/shadow-prover-wrapper';
-import { ZKPToUCANBridge, getZkpUcanBridge } from '../../src/services/zkp-ucan-bridge';
+import { ZKPToUCANBridge, getZkpUcanBridge } from '../../src/services/zkp/zkp-ucan-bridge';
 import { Groth16BackendFallback } from '../../src/services/zkp-backends';
 
 // ---------------------------------------------------------------------------

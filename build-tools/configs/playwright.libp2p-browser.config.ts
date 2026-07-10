@@ -69,6 +69,7 @@ export default defineConfig({
     timeout: 60 * 1000,
     env: {
       SWISSKNIFE_LIBP2P_BROWSER_E2E_PORT: String(harnessPort),
+      CHOKIDAR_USEPOLLING: '1',
     },
   },
 });

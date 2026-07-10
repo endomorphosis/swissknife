@@ -11,6 +11,18 @@ const expectedOutputModules = [
   'commands',
   'entrypoints',
   'components',
+  'service-apps',
+  'service-bridge',
+  'service-deontic',
+  'service-fol',
+  'service-fol-utils',
+  'service-glasses',
+  'service-integrations',
+  'service-ipfs',
+  'service-mcp',
+  'service-provers',
+  'service-zkp',
+  'services',
   'storage',
   'tasks',
   'workers',
@@ -47,6 +59,124 @@ function runSourceModuleAudit() {
   );
 
   return readJson(outputPath);
+}
+
+function writeFixtureFile(fixtureDir, relativePath, content) {
+  const target = path.join(fixtureDir, relativePath);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, content);
+}
+
+function createAuditFixture({ files = {}, manifestPatch = {} } = {}) {
+  const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'swissknife-source-boundary-fixture-'));
+  fs.mkdirSync(path.join(fixtureDir, 'scripts'), { recursive: true });
+  fs.copyFileSync(
+    path.join(rootDir, 'scripts/audit-source-modules.mjs'),
+    path.join(fixtureDir, 'scripts/audit-source-modules.mjs'),
+  );
+
+  const manifest = {
+    schemaVersion: 1,
+    manifestVersion: 'fixture',
+    audit: {
+      ignoredRootFiles: ['src/module-ownership.json'],
+      rootFileOwners: {
+        'src/commands.ts': 'commands',
+      },
+      serviceRootFileOwners: {
+        'src/services/owned-root.ts': 'services',
+      },
+      legacyCompatibilityShims: [],
+      allowedImportExceptions: [],
+      browserSafeSourceGlobs: [
+        'src/components/browser/*.tsx',
+        'src/services/mcp/protocol.ts',
+      ],
+      browserSafeServiceFiles: [
+        'src/services/mcp/protocol.ts',
+      ],
+      ...manifestPatch.audit,
+    },
+    modules: {
+      commands: {
+        owner: 'fixture-commands',
+        path: 'src/commands',
+        runtimeClassification: 'host-only',
+        allowedImports: ['shared', 'utils'],
+        forbiddenImports: ['entrypoints'],
+        publicEntrypoints: ['src/commands.ts'],
+        privateEntrypoints: [],
+      },
+      services: {
+        owner: 'fixture-services',
+        path: 'src/services',
+        rootOnly: true,
+        runtimeClassification: 'split',
+        allowedImports: ['shared', 'utils'],
+        forbiddenImports: ['commands', 'entrypoints'],
+        publicEntrypoints: ['src/services/owned-root.ts'],
+        privateEntrypoints: [],
+      },
+      'service-mcp': {
+        owner: 'fixture-mcp',
+        path: 'src/services/mcp',
+        runtimeClassification: 'split',
+        allowedImports: ['services', 'shared', 'utils'],
+        forbiddenImports: ['commands', 'entrypoints'],
+        publicEntrypoints: ['src/services/mcp/*.ts'],
+        privateEntrypoints: [],
+      },
+      'components-browser': {
+        owner: 'fixture-browser-ui',
+        path: 'src/components/browser',
+        runtimeClassification: 'browser-safe',
+        allowedImports: ['shared', 'utils'],
+        forbiddenImports: ['commands', 'entrypoints', 'services'],
+        publicEntrypoints: ['src/components/browser/*.tsx'],
+        privateEntrypoints: [],
+      },
+      shared: {
+        owner: 'fixture-shared',
+        path: 'src/shared',
+        runtimeClassification: 'universal',
+        allowedImports: ['shared'],
+        forbiddenImports: ['commands', 'entrypoints', 'services', 'utils'],
+        publicEntrypoints: ['src/shared/*.ts'],
+        privateEntrypoints: [],
+      },
+      utils: {
+        owner: 'fixture-utils',
+        path: 'src/utils',
+        runtimeClassification: 'universal',
+        allowedImports: ['shared'],
+        forbiddenImports: ['commands', 'entrypoints', 'services'],
+        publicEntrypoints: ['src/utils/*.ts'],
+        privateEntrypoints: [],
+      },
+      ...manifestPatch.modules,
+    },
+  };
+
+  writeFixtureFile(fixtureDir, 'src/module-ownership.json', `${JSON.stringify(manifest, null, 2)}\n`);
+  writeFixtureFile(fixtureDir, 'src/commands.ts', 'export const commandName = "fixture";\n');
+  writeFixtureFile(fixtureDir, 'src/services/owned-root.ts', 'export const ownedRoot = true;\n');
+  writeFixtureFile(fixtureDir, 'src/services/mcp/protocol.ts', 'export const protocol = true;\n');
+  for (const [relativePath, content] of Object.entries(files)) {
+    writeFixtureFile(fixtureDir, relativePath, content);
+  }
+
+  return fixtureDir;
+}
+
+function runFixtureAudit(fixtureDir, args = ['--fail-on-unknown', '--fail-on-forbidden']) {
+  return childProcess.spawnSync(
+    process.execPath,
+    ['scripts/audit-source-modules.mjs', ...args],
+    {
+      cwd: fixtureDir,
+      encoding: 'utf8',
+    },
+  );
 }
 
 describe('source module boundaries', () => {
@@ -114,15 +244,100 @@ describe('source module boundaries', () => {
       'hooks-browser',
       'screens-browser',
       'service-apps',
+      'service-bridge',
+      'service-deontic',
+      'service-fol',
+      'service-fol-utils',
       'service-glasses',
+      'service-integrations',
       'service-ipfs',
       'service-mcp',
+      'service-provers',
+      'service-zkp',
     ]) {
       expect(auditedModules.get(moduleName)?.fileCount).toBeGreaterThan(0);
     }
 
     expect(audit.summary.unknownFiles).toBe(0);
     expect(audit.summary.forbiddenImports).toBe(0);
+    expect(audit.summary.ownershipConflicts).toBe(0);
+    expect(audit.summary.browserUnsafeImports).toBe(0);
+  });
+
+  it('inventories every current root service source file explicitly', () => {
+    const rootServiceFiles = fs.readdirSync(path.join(rootDir, 'src/services'))
+      .filter(fileName => /\.(?:ts|tsx|js|jsx|mjs|cjs)$/.test(fileName))
+      .map(fileName => `src/services/${fileName}`)
+      .sort();
+    const inventoriedRootServices = Object.keys(manifest.audit.serviceRootFileOwners).sort();
+
+    expect(inventoriedRootServices).toEqual(rootServiceFiles);
+    for (const [filePath, owner] of Object.entries(manifest.audit.serviceRootFileOwners)) {
+      expect(filePath).toMatch(/^src\/services\/[^/]+\.[cm]?[jt]sx?$/);
+      expect(owner).toBe('services');
+    }
+    expect(manifest.modules.services.rootOnly).toBe(true);
+  });
+
+  it('rejects new root service wrappers that are not in the ownership inventory', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/new-root-wrapper.ts': 'export const wrapper = true;\n',
+      },
+    });
+    const result = runFixtureAudit(fixtureDir);
+
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain('root service file is not listed');
+  });
+
+  it('rejects unowned service subdirectories', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/new-family/implementation.ts': 'export const service = true;\n',
+      },
+    });
+    const result = runFixtureAudit(fixtureDir);
+
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain('path is not listed in src/module-ownership.json');
+  });
+
+  it('rejects forbidden imports from service files', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/owned-root.ts': "import '../commands.js';\nexport const ownedRoot = true;\n",
+      },
+    });
+    const result = runFixtureAudit(fixtureDir);
+
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain('services forbids imports from commands');
+  });
+
+  it('rejects browser-unsafe ownership drift in browser-facing service files', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/mcp/protocol.ts': "import fs from 'node:fs';\nexport const protocol = Boolean(fs);\n",
+      },
+    });
+    const result = runFixtureAudit(fixtureDir);
+
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain('browser-safe ownership file imports a host-only Node builtin');
+  });
+
+  it('rejects browser-facing imports of services that are not browser-safe', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/mcp/host-only.ts': 'export const hostOnly = true;\n',
+        'src/components/browser/View.tsx': "import '../../services/mcp/host-only.js';\nexport const View = null;\n",
+      },
+    });
+    const result = runFixtureAudit(fixtureDir);
+
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain('not listed in audit.browserSafeServiceFiles');
   });
 
   it('keeps source boundary documentation aligned with the manifest and lint gate', () => {

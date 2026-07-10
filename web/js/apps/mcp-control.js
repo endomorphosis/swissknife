@@ -3,9 +3,10 @@ import {
     BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
     getBrowserLibp2pDefaultStatus,
     summarizeBrowserLibp2pGaps
-} from '../core/libp2p-browser-runtime-browser.js';
+} from '../libp2p-browser-runtime.js';
 
 const LIBP2P_BROWSER_CAPABILITY_LABELS = {
+    libp2p: 'libp2p Core',
     webrtc: 'WebRTC',
     websockets: 'WebSockets',
     'circuit-relay-v2': 'Circuit Relay v2',
@@ -533,10 +534,11 @@ class MCPControlApp {
                 ? 'Capability check failed'
                 : report?.enabled === false
                     ? 'Disabled'
-                    : `${configuredCount} configured, ${gapCount} gaps`;
+                    : `Enabled by default: ${configuredCount} configured, ${gapCount} gaps`;
         const listen = this.libp2pBrowserDefaults?.listenMultiaddrs?.length
             ? this.libp2pBrowserDefaults.listenMultiaddrs.join(', ')
             : 'not resolved yet';
+        const loader = this.libp2pBrowserDefaults?.moduleLoader || 'pending';
         const updated = this.libp2pBrowserDefaults?.generatedAt
             ? new Date(this.libp2pBrowserDefaults.generatedAt).toLocaleTimeString()
             : 'pending';
@@ -552,6 +554,7 @@ class MCPControlApp {
                 </div>
                 <div class="libp2p-browser-meta">
                     Listen: <code>${this.escapeHtml(listen)}</code><br>
+                    Loader: <code>${this.escapeHtml(loader)}</code><br>
                     Updated: ${this.escapeHtml(updated)}
                 </div>
                 ${this.libp2pBrowserDefaultsError ? `
@@ -568,7 +571,9 @@ class MCPControlApp {
                         const packageName = capability?.packageName || gap?.packageName || 'package check pending';
                         const detail = capability?.configured
                             ? `configured from ${capability.exportName || 'default export'}`
-                            : gap?.reason || (this.libp2pBrowserDefaultsLoading ? 'checking installed package' : 'not configured');
+                            : gap
+                                ? `${gap.code || 'capability-gap'}: ${gap.reason}`
+                                : (this.libp2pBrowserDefaultsLoading ? 'checking installed package' : 'not configured');
                         return `
                             <div class="libp2p-capability ${state}" data-testid="mcp-libp2p-capability-${name}" data-installed="${Boolean(capability?.installed)}" data-configured="${Boolean(capability?.configured)}">
                                 <strong>${this.escapeHtml(LIBP2P_BROWSER_CAPABILITY_LABELS[name] || name)}</strong>

@@ -7,104 +7,39 @@
 //   - IndexedDB (structured key/value storage)
 //   - The Origin Private File System, OPFS (`navigator.storage.getDirectory()`)
 //   - The Cache Storage API (`caches`)
-//   - An explicitly injected IPFS transport (see `../services/ipfs/browser.js`)
+//   - An explicitly injected IPFS transport (see `../shared/service-contracts`)
 //
 // This module never imports Node's `fs`, `path`, `process`, or any other host
 // runtime API. Those live behind `./host.ts`, which is host-only. See
 // `src/module-ownership.json` for the enforced boundary.
 
-import type { BrowserIPFSTransport } from '../services/ipfs/browser.js';
+import type {
+  BrowserIPFSTransport,
+  BrowserStorageAdapterKind,
+  BrowserStorageCapabilityGap,
+  BrowserStorageCapabilityStatus,
+  BrowserStorageContent,
+  BrowserStorageItemMetadata,
+  BrowserStorageListOptions,
+  BrowserStorageProvider,
+  BrowserStoragePutOptions,
+  BrowserStoragePutResult,
+  BrowserStorageRuntimeReport,
+} from '../shared/service-contracts/index.js';
 
-/**
- * Adapters this runtime can select between. `host-only` is used only inside
- * capability reports to describe the Node-side counterparts that are never
- * reachable from browser code.
- */
-export type BrowserStorageAdapterKind = 'indexeddb' | 'opfs' | 'cache-storage' | 'ipfs';
-
-export type BrowserStorageCapabilityName =
-  | 'indexeddb'
-  | 'opfs'
-  | 'cache-storage'
-  | 'ipfs-adapter'
-  | 'filesystem'
-  | 'path'
-  | 'process';
-
-export interface BrowserStorageCapabilityStatus {
-  name: BrowserStorageCapabilityName;
-  adapter: BrowserStorageAdapterKind | 'host-only';
-  supported: boolean;
-  enabled: boolean;
-  reason?: string;
-}
-
-export interface BrowserStorageCapabilityGap {
-  name: BrowserStorageCapabilityName;
-  adapter: BrowserStorageAdapterKind | 'host-only';
-  reason: string;
-}
-
-export interface BrowserStorageRuntimeReport {
-  runtime: 'browser';
-  browserSafe: true;
-  /** The adapter actually selected by `createBrowserStorageProvider`, if any. */
-  activeAdapter?: BrowserStorageAdapterKind;
-  capabilities: BrowserStorageCapabilityStatus[];
-  gaps: BrowserStorageCapabilityGap[];
-  hostOnly: BrowserStorageCapabilityStatus[];
-}
-
-export interface BrowserStorageItemMetadata {
-  /** Content-addressed key: `sha256-<hex>`, a hash fallback, or an IPFS CID. */
-  key: string;
-  size: number;
-  contentType?: string;
-  createdAt: number;
-  updatedAt?: number;
-  tags?: string[];
-  adapter: BrowserStorageAdapterKind;
-}
-
-export interface BrowserStorageListOptions {
-  prefix?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface BrowserStoragePutOptions {
-  contentType?: string;
-  tags?: string[];
-  /** Explicit key override. Skips content hashing (e.g. for named config blobs). */
-  key?: string;
-}
-
-export interface BrowserStoragePutResult {
-  key: string;
-  size: number;
-  adapter: BrowserStorageAdapterKind;
-}
-
-export type BrowserStorageContent = string | Uint8Array | ArrayBuffer | Blob;
-
-/**
- * Browser-safe content-addressed storage provider. Every adapter below
- * (IndexedDB, OPFS, Cache Storage, injected IPFS) implements this same shape
- * so calling code can be written once and remain portable across whichever
- * capability is available in the current browser.
- */
-export interface BrowserStorageProvider {
-  readonly kind: BrowserStorageAdapterKind;
-  readonly report: BrowserStorageRuntimeReport;
-  put(content: BrowserStorageContent, options?: BrowserStoragePutOptions): Promise<BrowserStoragePutResult>;
-  get(key: string): Promise<Uint8Array>;
-  getText(key: string): Promise<string>;
-  has(key: string): Promise<boolean>;
-  delete(key: string): Promise<boolean>;
-  list(options?: BrowserStorageListOptions): Promise<BrowserStorageItemMetadata[]>;
-  getMetadata(key: string): Promise<BrowserStorageItemMetadata | undefined>;
-  clear(): Promise<void>;
-}
+export type {
+  BrowserStorageAdapterKind,
+  BrowserStorageCapabilityGap,
+  BrowserStorageCapabilityName,
+  BrowserStorageCapabilityStatus,
+  BrowserStorageContent,
+  BrowserStorageItemMetadata,
+  BrowserStorageListOptions,
+  BrowserStorageProvider,
+  BrowserStoragePutOptions,
+  BrowserStoragePutResult,
+  BrowserStorageRuntimeReport,
+} from '../shared/service-contracts/index.js';
 
 export interface BrowserStorageIndexedDBOptions {
   enabled?: boolean;
@@ -128,7 +63,7 @@ export interface BrowserStorageCacheOptions {
 
 export interface BrowserStorageIPFSOptions {
   enabled?: boolean;
-  /** Injected browser IPFS transport from `../services/ipfs/browser.js`. */
+  /** Injected browser IPFS transport matching the shared service contract. */
   transport?: BrowserIPFSTransport;
   /** Whether added content should be pinned. Defaults to `true`. */
   pin?: boolean;
@@ -857,4 +792,4 @@ export function createBrowserStorageProvider(options: BrowserStorageProviderOpti
   throw new Error(`No browser storage adapter is available for this environment. Gaps: ${gaps}`);
 }
 
-export type { BrowserIPFSTransport };
+export type { BrowserIPFSTransport } from '../shared/service-contracts/index.js';

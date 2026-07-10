@@ -10,6 +10,9 @@ export * from './events/index.js'
 // Utilities
 export * from './utils/index.js'
 
+// Browser/host service boundary contracts
+export type * from './service-contracts/index.js'
+
 // Constants
 export * from './constants/index.js'
 

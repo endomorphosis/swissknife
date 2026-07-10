@@ -8,6 +8,11 @@ import {
   type BrowserGroth16CircuitId,
   type ResolvedBrowserGroth16Artifacts,
 } from './artifacts/index.js';
+import {
+  BrowserZkpSimulationRejectedError,
+  assertBrowserZkpEnvelopeIsReal,
+  assertProductionBrowserZkpBackendId,
+} from './browser-zkp-policy.js';
 
 export interface ZKPBackendProtocol {
   generateProof(witnessJson: string, seed?: number): Promise<BrowserSnarkjsProof>;
@@ -166,6 +171,12 @@ export class BrowserSnarkjsGroth16Backend implements ZKPBackendProtocol {
     await this.assertAvailable();
     const snarkjs = await this.loadSnarkjs();
     const parsed = normalizeProofEnvelope(JSON.parse(proofJson) as Record<string, unknown>);
+    try {
+      assertBrowserZkpEnvelopeIsReal(parsed);
+    } catch (error) {
+      if (error instanceof BrowserZkpSimulationRejectedError) return false;
+      throw error;
+    }
     const publicSignals = parsed.publicSignals ?? parsed.public_inputs ?? parsed.inputs;
     const proof = parsed.proof ?? parsed.pi_a ?? parsed.proofData;
     if (!publicSignals || !proof) return false;
@@ -302,15 +313,13 @@ export function createBrowserZkpProductionBackend(
 }
 
 export function assertProductionBrowserZkpBackend(backend: string): void {
-  if (backend === 'simulated'
-      || backend === 'simulated-zkp'
-      || backend === 'simulated-zkp-v0.1'
-      || backend === 'test-only-simulated-zkp') {
-    throw new BrowserZkpArtifactUnavailableError(
-      `Browser production ZKP backend "${backend}" is unavailable; simulated ZKP helpers are test-only`,
-    );
-  }
-  if (backend !== BROWSER_SNARKJS_GROTH16_BACKEND_ID && backend !== BROWSER_SNARKJS_GROTH16_LEGACY_BACKEND_ID) {
+  try {
+    assertProductionBrowserZkpBackendId(backend, [
+      BROWSER_SNARKJS_GROTH16_BACKEND_ID,
+      BROWSER_SNARKJS_GROTH16_LEGACY_BACKEND_ID,
+    ]);
+  } catch (error) {
+    if (!(error instanceof BrowserZkpSimulationRejectedError)) throw error;
     throw new BrowserZkpArtifactUnavailableError(
       `Browser production ZKP backend "${backend}" is unavailable; use ${BROWSER_SNARKJS_GROTH16_BACKEND_ID}`,
     );

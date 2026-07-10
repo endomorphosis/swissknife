@@ -2,14 +2,7 @@ import {
   BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
   getBrowserLibp2pDefaultStatus,
   summarizeBrowserLibp2pGaps
-} from '../core/libp2p-browser-runtime-browser.js';
-// SWR-042 / SWR-036-FU-006: statically import the sample CloudFlare worker
-// templates. `src/cloudflare/worker-templates.ts` exports plain string
-// constants (worker source text) with no Node/host dependencies of its own,
-// so it is safe to import directly rather than resolving a computed
-// `/src/cloudflare/worker-templates.ts` path at runtime through a
-// non-literal dynamic import expression guarded by a `@vite-ignore` hint.
-import { getWorkerTemplate } from '../core/cloudflare-worker-templates-browser.js';
+} from '../libp2p-browser-runtime.js';
 
 // P2P Network Manager Application for SwissKnife Virtual Desktop
 // Enhanced with Phase 4: Web Workers & Audio Workers Infrastructure
@@ -18,6 +11,7 @@ import { getWorkerTemplate } from '../core/cloudflare-worker-templates-browser.j
   'use strict';
 
   const LIBP2P_BROWSER_CAPABILITY_LABELS = {
+    libp2p: 'libp2p Core',
     webrtc: 'WebRTC',
     websockets: 'WebSockets',
     'circuit-relay-v2': 'Circuit Relay v2',
@@ -1834,10 +1828,11 @@ import { getWorkerTemplate } from '../core/cloudflare-worker-templates-browser.j
         ? 'Capability check failed'
         : report?.enabled === false
           ? 'Disabled'
-          : `${configuredCount} configured, ${gapCount} gaps`;
+          : `Enabled by default: ${configuredCount} configured, ${gapCount} gaps`;
     const listen = libp2pBrowserDefaults?.listenMultiaddrs?.length
       ? libp2pBrowserDefaults.listenMultiaddrs.join(', ')
       : 'not resolved yet';
+    const loader = libp2pBrowserDefaults?.moduleLoader || 'pending';
     const updated = libp2pBrowserDefaults?.generatedAt
       ? new Date(libp2pBrowserDefaults.generatedAt).toLocaleTimeString()
       : 'pending';
@@ -1857,7 +1852,9 @@ import { getWorkerTemplate } from '../core/cloudflare-worker-templates-browser.j
           </div>
         </div>
         <div class="libp2p-browser-meta">
-          Default listen multiaddrs: <code>${escapeHtml(listen)}</code> · Updated: ${escapeHtml(updated)}
+          Default listen multiaddrs: <code>${escapeHtml(listen)}</code> ·
+          Loader: <code>${escapeHtml(loader)}</code> ·
+          Updated: ${escapeHtml(updated)}
         </div>
         ${libp2pBrowserDefaultsError ? `
           <div class="libp2p-capability gap">
@@ -1873,7 +1870,9 @@ import { getWorkerTemplate } from '../core/cloudflare-worker-templates-browser.j
             const packageName = capability?.packageName || gap?.packageName || 'package check pending';
             const detail = capability?.configured
               ? `configured from ${capability.exportName || 'default export'}`
-              : gap?.reason || (libp2pBrowserDefaultsLoading ? 'checking installed package' : 'not configured');
+              : gap
+                ? `${gap.code || 'capability-gap'}: ${gap.reason}`
+                : (libp2pBrowserDefaultsLoading ? 'checking installed package' : 'not configured');
             return `
               <div class="libp2p-capability ${state}" data-testid="p2p-libp2p-capability-${name}" data-installed="${Boolean(capability?.installed)}" data-configured="${Boolean(capability?.configured)}">
                 <strong>${escapeHtml(LIBP2P_BROWSER_CAPABILITY_LABELS[name] || name)}</strong>

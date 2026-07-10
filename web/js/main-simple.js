@@ -10,6 +10,7 @@ class SwissKnifeDesktop {
         this.apps = new Map();
         this.isSwissKnifeReady = false;
         this.zIndexCounter = 100;
+        window.swissknifeDesktop = this;
         
         this.init();
     }
@@ -67,6 +68,7 @@ class SwissKnifeDesktop {
 
         // Detect WebGL capabilities and show badge if limited
         this.detectAndShowGraphicsBadge();
+        installToolSmokeStyles();
     }
 
     // Detect WebGL/renderer info and show a small badge if only software rendering is available
@@ -558,6 +560,13 @@ class SwissKnifeDesktop {
                 x: 100 + (this.windowCounter * 30),
                 y: 100 + (this.windowCounter * 30)
             });
+
+            const smokeEntry = getToolSmokeEntry(appId);
+            if (smokeEntry) {
+                renderToolSmokePanel(document.getElementById(`${window.id}-content`), smokeEntry);
+                console.log(`Rendered MCP UI smoke panel for ${appConfig.name}`);
+                return;
+            }
             
             // Load app component (placeholder for now)
             await this.loadAppComponent(window, appConfig.component);
@@ -1982,6 +1991,123 @@ class SwissKnifeDesktop {
             }
         });
     }
+}
+
+function getToolSmokeEntry(appId) {
+    return window.__SWISSKNIFE_TOOL_UI_SMOKE_CATALOG__?.[appId] || null;
+}
+
+function renderToolSmokePanel(container, entry) {
+    if (!container || !entry) return;
+    const serviceFamilies = entry.service_families?.length ? entry.service_families : ['unresolved-service'];
+    const sampleTools = (entry.sample_tool_ids || []).slice(0, 3);
+    container.innerHTML = `
+        <section class="tool-smoke-panel" data-testid="tool-smoke-panel" data-app-id="${escapeHtml(entry.app_id)}" data-state="ready">
+            <header class="tool-smoke-header">
+                <div>
+                    <div class="tool-smoke-kicker">MCP-backed capability smoke</div>
+                    <h2>${escapeHtml(entry.title)}</h2>
+                </div>
+                <span class="tool-smoke-state" data-testid="tool-smoke-state">ready</span>
+            </header>
+            <div class="tool-smoke-grid" data-testid="tool-smoke-control-state">
+                <div><span>Backend</span><strong>${serviceFamilies.map(escapeHtml).join(', ')}</strong></div>
+                <div><span>App-visible</span><strong>${Number(entry.app_visible_tool_count || 0)}</strong></div>
+                <div><span>Fallback/desktop</span><strong>${Number(entry.desktop_mobile_only_count || 0)}</strong></div>
+                <div><span>Supervisor-only</span><strong>${Number(entry.supervisor_only_count || 0)}</strong></div>
+            </div>
+            <div class="tool-smoke-tools" data-testid="tool-smoke-tools">
+                ${sampleTools.map(tool => `<code>${escapeHtml(tool)}</code>`).join('')}
+            </div>
+            <p>${escapeHtml(entry.rationale || '')}</p>
+            <div class="tool-smoke-actions">
+                <button type="button" data-smoke-state="success" data-testid="tool-smoke-success">Success</button>
+                <button type="button" data-smoke-state="fallback" data-testid="tool-smoke-fallback">Fallback</button>
+                <button type="button" data-smoke-state="error" data-testid="tool-smoke-error">Error</button>
+            </div>
+            <output class="tool-smoke-receipt" data-testid="tool-smoke-receipt">No receipt recorded.</output>
+        </section>
+    `;
+
+    const panel = container.querySelector('.tool-smoke-panel');
+    for (const button of Array.from(panel.querySelectorAll('[data-smoke-state]'))) {
+        button.addEventListener('click', () => {
+            const state = button.dataset.smokeState;
+            const receipt = createToolSmokeReceipt(entry, state);
+            window.__SWISSKNIFE_TOOL_UI_SMOKE_RECEIPTS__ = [
+                ...(window.__SWISSKNIFE_TOOL_UI_SMOKE_RECEIPTS__ || []),
+                receipt,
+            ];
+            panel.dataset.state = state;
+            panel.querySelector('[data-testid="tool-smoke-state"]').textContent = state;
+            const output = panel.querySelector('[data-testid="tool-smoke-receipt"]');
+            output.value = `${state}: ${receipt.receipt_cid}`;
+            output.textContent = output.value;
+        });
+    }
+}
+
+function createToolSmokeReceipt(entry, state) {
+    const receiptBase = {
+        app_id: entry.app_id,
+        state,
+        service_families: entry.service_families || [],
+        sample_tool_ids: (entry.sample_tool_ids || []).slice(0, 3),
+    };
+    return {
+        schema: 'swissknife.virtual-desktop-tool-ui-smoke-receipt.v1',
+        ...receiptBase,
+        at: new Date().toISOString(),
+        receipt_cid: `sha256:${stableHash(JSON.stringify(receiptBase))}`,
+        ui_path: ['desktop-icon', 'manifest-loader', 'tool-smoke-panel', state],
+    };
+}
+
+function stableHash(input) {
+    let hashA = 0x811c9dc5;
+    let hashB = 0x01000193;
+    for (let index = 0; index < input.length; index += 1) {
+        const code = input.charCodeAt(index);
+        hashA ^= code;
+        hashA = Math.imul(hashA, 0x01000193) >>> 0;
+        hashB = (Math.imul(hashB ^ code, 0x85ebca6b) + 0xc2b2ae35) >>> 0;
+    }
+    return `${hashA.toString(16).padStart(8, '0')}${hashB.toString(16).padStart(8, '0')}`;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function installToolSmokeStyles() {
+    if (document.getElementById('tool-smoke-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'tool-smoke-styles';
+    style.textContent = `
+        .tool-smoke-panel{margin:0;min-height:100%;box-sizing:border-box;border-top:1px solid #2f3945;padding:16px;color:#e5e7eb;font:13px system-ui;background:#151b22}
+        .tool-smoke-header{display:flex;align-items:start;justify-content:space-between;gap:12px}
+        .tool-smoke-kicker{font-size:11px;color:#8fb3ff;text-transform:uppercase}
+        .tool-smoke-header h2{font-size:18px;margin:2px 0 0}
+        .tool-smoke-state{border:1px solid #3f4d5f;padding:3px 8px;border-radius:999px;background:#202a35}
+        .tool-smoke-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+        .tool-smoke-grid div{border:1px solid #303a45;padding:8px;background:#10161d}
+        .tool-smoke-grid span{display:block;color:#9ca3af;font-size:11px}
+        .tool-smoke-grid strong{display:block;margin-top:4px;overflow-wrap:anywhere}
+        .tool-smoke-tools{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+        .tool-smoke-tools code{background:#0b1117;border:1px solid #2f3945;padding:3px 5px;overflow-wrap:anywhere}
+        .tool-smoke-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+        .tool-smoke-actions button{background:#26384f;color:#f8fafc;border:1px solid #45617f;padding:6px 10px;cursor:pointer}
+        .tool-smoke-receipt{display:block;margin-top:10px;color:#bdd7ff;overflow-wrap:anywhere}
+        .tool-smoke-panel[data-state="success"] .tool-smoke-state{border-color:#2f9e44;color:#b7f7c5}
+        .tool-smoke-panel[data-state="fallback"] .tool-smoke-state{border-color:#b7791f;color:#ffe4a3}
+        .tool-smoke-panel[data-state="error"] .tool-smoke-state{border-color:#d64545;color:#ffc0c0}
+    `;
+    document.head.appendChild(style);
 }
 
 // Initialize when DOM is ready

@@ -4,6 +4,8 @@ import { fileURLToPath } from 'url';
 
 const configDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(configDir, '../..');
+const e2ePort = Number(process.env.SWISSKNIFE_MCP_E2E_PORT || process.env.SWISSKNIFE_E2E_PORT || 3417);
+const baseURL = `http://127.0.0.1:${e2ePort}`;
 
 export default defineConfig({
   testDir: resolve(repoRoot, 'test/e2e'),
@@ -17,4 +19,14 @@ export default defineConfig({
     ['list'],
     ['json', { outputFile: resolve(repoRoot, 'test-results/mcp-dashboard/results.json') }],
   ],
+  use: {
+    baseURL,
+  },
+  webServer: {
+    command: `CHOKIDAR_USEPOLLING=1 npx vite dev --config vite.web.config.ts --host 127.0.0.1 --port ${e2ePort}`,
+    url: baseURL,
+    cwd: repoRoot,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
 });

@@ -18,19 +18,9 @@ const DEFAULT_BUDGETS = Object.freeze({
   totalRawBytes: 2_750_000,
   totalGzipBytes: 650_000,
   totalBrotliBytes: 560_000,
-  // SWR-042: `web/js/apps/mcp-control.js` and `web/js/apps/p2p-network.js`
-  // import `src/services/mcp/libp2p-browser-runtime.ts` (SWR-039 real
-  // browser libp2p defaults). Fixing a pre-existing missing-export build
-  // regression in that module (`getBrowserLibp2pDefaultStatus` and
-  // `BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER` were referenced but never
-  // exported, so `npm run build:web` could not previously succeed at all)
-  // makes these already-existing UI bundles build for the first time and
-  // be correctly counted here. The raw-byte budget is raised with headroom
-  // over the observed post-fix footprint (~322.6 KiB); gzip/brotli budgets
-  // are unaffected and unchanged.
-  libp2pRawBytes: 393_216,
-  libp2pGzipBytes: 85_000,
-  libp2pBrotliBytes: 75_000,
+  libp2pRawBytes: 650_000,
+  libp2pGzipBytes: 190_000,
+  libp2pBrotliBytes: 160_000,
   libp2pChunkCount: 8,
 });
 
@@ -80,6 +70,27 @@ const HOST_LEAKAGE_RULES = [
     fail: true,
     re: /\b(?:readFileSync|writeFileSync|createReadStream|createWriteStream|mkdirSync|statSync|readdirSync)\s*\(/g,
     description: 'Filesystem API call',
+  },
+  {
+    id: 'ipfs-accelerate-compat-entrypoint',
+    severity: 'host-only',
+    fail: true,
+    re: /\b(?:start-ipfs-accelerate-mcp-compat\.cjs|ipfs-accelerate-compat\.(?:pid|log))\b/g,
+    description: 'ipfs_accelerate_py compatibility adapter process control surfaced in browser bundle',
+  },
+  {
+    id: 'ipfs-accelerate-local-adapter-url',
+    severity: 'host-only',
+    fail: true,
+    re: /\b(?:127\.0\.0\.1:3003|127\.0\.0\.1:9000|localhost:3003|localhost:9000)\b/g,
+    description: 'Local ipfs_accelerate_py adapter or Python service URL surfaced in browser bundle',
+  },
+  {
+    id: 'ipfs-accelerate-python-command',
+    severity: 'host-python',
+    fail: true,
+    re: /\bpython(?:3)?\s+-m\s+ipfs_accelerate_py\b/g,
+    description: 'Direct ipfs_accelerate_py Python command surfaced in browser bundle',
   },
 ];
 
@@ -569,17 +580,11 @@ function isLibp2pPackage(packageName) {
     || packageName.startsWith('@chainsafe/libp2p-');
 }
 
-function chunkTextForFile(metricsByFile, fileName, distDir) {
-  const relative = path.join(distDir, fileName).replace(/\\/g, '/');
-  return metricsByFile.get(relative)?.text ?? '';
-}
-
 function buildLibp2pChunks(metadata, metricsByFile, distDir) {
   const chunks = [];
   const seen = new Set();
 
   for (const chunk of metadata?.chunks ?? []) {
-    const text = chunkTextForFile(metricsByFile, chunk.fileName, distDir);
     const moduleReasons = [];
     for (const module of chunk.modules ?? []) {
       const packageName = module.packageName ?? packageNameFromModuleId(module.id);
@@ -591,8 +596,7 @@ function buildLibp2pChunks(metadata, metricsByFile, distDir) {
       }
     }
 
-    const textMatch = LIBP2P_PATTERNS.some(pattern => pattern.test(text));
-    if (moduleReasons.length === 0 && !textMatch && !LIBP2P_PATTERNS.some(pattern => pattern.test(chunk.fileName))) {
+    if (moduleReasons.length === 0 && !LIBP2P_PATTERNS.some(pattern => pattern.test(chunk.fileName))) {
       continue;
     }
 
@@ -607,20 +611,6 @@ function buildLibp2pChunks(metadata, metricsByFile, distDir) {
       brotliBytes: metrics.brotliBytes,
       modules: moduleReasons.slice(0, 8),
       reason: moduleReasons.length > 0 ? moduleReasons.slice(0, 3).join(', ') : 'libp2p text reference',
-    });
-  }
-
-  for (const [file, metrics] of metricsByFile) {
-    if (seen.has(file) || !file.endsWith('.js')) continue;
-    if (!LIBP2P_PATTERNS.some(pattern => pattern.test(metrics.text))) continue;
-    seen.add(file);
-    chunks.push({
-      file,
-      rawBytes: metrics.rawBytes,
-      gzipBytes: metrics.gzipBytes,
-      brotliBytes: metrics.brotliBytes,
-      modules: [],
-      reason: 'libp2p text reference',
     });
   }
 

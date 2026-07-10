@@ -9,31 +9,20 @@ import {
   type IPFSClientConfig,
   type IPFSPinStatus,
 } from '../../ipfs/client.js';
+import type {
+  HostIPFSCapabilityStatus,
+  HostIPFSCommandResult,
+  HostIPFSDaemonOptions,
+  HostIPFSRuntimeReport,
+} from '../../shared/service-contracts/index.js';
 
-export type HostIPFSCapabilityName =
-  | 'http-api-read'
-  | 'http-api-write'
-  | 'http-api-pin'
-  | 'daemon'
-  | 'filesystem'
-  | 'python'
-  | 'native-ipfs';
-
-export interface HostIPFSCapabilityStatus {
-  name: HostIPFSCapabilityName;
-  supported: boolean;
-  enabled: boolean;
-  adapter: 'http-api' | 'daemon' | 'filesystem' | 'python' | 'native-ipfs';
-  command?: string;
-  endpoint?: string;
-  reason?: string;
-}
-
-export interface HostIPFSRuntimeReport {
-  runtime: 'host';
-  browserSafe: false;
-  capabilities: HostIPFSCapabilityStatus[];
-}
+export type {
+  HostIPFSCapabilityName,
+  HostIPFSCapabilityStatus,
+  HostIPFSCommandResult,
+  HostIPFSDaemonOptions,
+  HostIPFSRuntimeReport,
+} from '../../shared/service-contracts/index.js';
 
 export interface HostIPFSTransportOptions extends IPFSClientConfig {
   ipfsCommand?: string;
@@ -42,21 +31,6 @@ export interface HostIPFSTransportOptions extends IPFSClientConfig {
   enableFilesystem?: boolean;
   enablePython?: boolean;
   enableNativeIpfs?: boolean;
-}
-
-export interface HostIPFSDaemonOptions {
-  repoPath?: string;
-  profile?: string;
-  args?: string[];
-  env?: Record<string, string>;
-}
-
-export interface HostIPFSCommandResult {
-  command: string;
-  args: string[];
-  exitCode: number;
-  stdout: string;
-  stderr: string;
 }
 
 export interface HostIPFSDaemonController {

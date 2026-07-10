@@ -20,6 +20,16 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile, rm, readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import type {
+  HostStorageAdapterKind,
+  HostStorageCapabilityGap,
+  HostStorageCapabilityStatus,
+  HostStorageItemMetadata,
+  HostStorageListOptions,
+  HostStoragePutOptions,
+  HostStoragePutResult,
+  HostStorageRuntimeReport,
+} from '../shared/service-contracts/index.js';
 
 export type {
   DirEntry,
@@ -31,69 +41,17 @@ export type {
 } from './backend.js';
 export { StorageError, StorageErrorType } from './backend.js';
 
-export type HostStorageAdapterKind = 'filesystem';
-
-export type HostStorageCapabilityName =
-  | 'filesystem'
-  | 'path'
-  | 'process-env'
-  | 'indexeddb'
-  | 'opfs'
-  | 'cache-storage'
-  | 'ipfs-adapter';
-
-export interface HostStorageCapabilityStatus {
-  name: HostStorageCapabilityName;
-  adapter: HostStorageAdapterKind | 'browser-only';
-  supported: boolean;
-  enabled: boolean;
-  reason?: string;
-}
-
-export interface HostStorageCapabilityGap {
-  name: HostStorageCapabilityName;
-  adapter: HostStorageAdapterKind | 'browser-only';
-  reason: string;
-}
-
-export interface HostStorageRuntimeReport {
-  runtime: 'host';
-  browserSafe: false;
-  activeAdapter: HostStorageAdapterKind;
-  capabilities: HostStorageCapabilityStatus[];
-  browserOnly: HostStorageCapabilityStatus[];
-  gaps: HostStorageCapabilityGap[];
-}
-
-export interface HostStorageItemMetadata {
-  /** Content-addressed key: `sha256-<hex>`, or an explicit key override. */
-  key: string;
-  size: number;
-  contentType?: string;
-  createdAt: number;
-  updatedAt?: number;
-  tags?: string[];
-  adapter: HostStorageAdapterKind;
-}
-
-export interface HostStorageListOptions {
-  prefix?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface HostStoragePutOptions {
-  contentType?: string;
-  tags?: string[];
-  /** Explicit key override. Skips content hashing. */
-  key?: string;
-}
-
-export interface HostStoragePutResult {
-  key: string;
-  size: number;
-  adapter: HostStorageAdapterKind;
-}
+export type {
+  HostStorageAdapterKind,
+  HostStorageCapabilityGap,
+  HostStorageCapabilityName,
+  HostStorageCapabilityStatus,
+  HostStorageItemMetadata,
+  HostStorageListOptions,
+  HostStoragePutOptions,
+  HostStoragePutResult,
+  HostStorageRuntimeReport,
+} from '../shared/service-contracts/index.js';
 
 export type HostStorageContent = string | Uint8Array | Buffer;
 

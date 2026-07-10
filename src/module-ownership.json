@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "2026-07-08",
+  "manifestVersion": "2026-07-09",
   "description": "Top-level ownership and dependency manifest for SwissKnife source modules.",
   "classificationValues": {
     "browser-safe": "May be statically imported by browser bundles.",
@@ -45,6 +45,7 @@
     "rootFileOwners": {
       "src/ProjectOnboarding.tsx": "components",
       "src/Tool.ts": "tools",
+      "src/browser.ts": "platform",
       "src/cli-phase1.ts": "entrypoints",
       "src/cli-simple.ts": "entrypoints",
       "src/cli.ts": "entrypoints",
@@ -218,6 +219,280 @@
         "target": "src/query.ts",
         "reason": "Legacy token utility still counts query messages; remove this exception when token counting accepts shared message contracts."
       }
+    ],
+    "serviceRootFileOwners": {
+      "src/services/ambiguity-resolver.ts": "services",
+      "src/services/base-parser.ts": "services",
+      "src/services/base-prover-bridge.ts": "services",
+      "src/services/batch-processor.ts": "services",
+      "src/services/bridge-multiview.ts": "services",
+      "src/services/bridge-registry.ts": "services",
+      "src/services/bridge-types.ts": "services",
+      "src/services/browser-acceleration.ts": "services",
+      "src/services/browserMocks.ts": "services",
+      "src/services/canonicalization.ts": "services",
+      "src/services/caselaw-bulk-processor.ts": "services",
+      "src/services/cec-advanced-inference.ts": "services",
+      "src/services/cec-bridge.ts": "services",
+      "src/services/cec-context-manager.ts": "services",
+      "src/services/cec-dcec-bridge.ts": "services",
+      "src/services/cec-dcec-namespace.ts": "services",
+      "src/services/cec-fluents.ts": "services",
+      "src/services/cec-framework.ts": "services",
+      "src/services/cec-grammar-engine.ts": "services",
+      "src/services/cec-language-detector.ts": "services",
+      "src/services/cec-modal-tableaux.ts": "services",
+      "src/services/cec-modal-temporal-deontic-rules.ts": "services",
+      "src/services/cec-nl-converter.ts": "services",
+      "src/services/cec-proof-cache.ts": "services",
+      "src/services/cec-prover-core.ts": "services",
+      "src/services/cec-prover-manager.ts": "services",
+      "src/services/cec-resolution-rules.ts": "services",
+      "src/services/cec-specialized-rules.ts": "services",
+      "src/services/cec-syntax-tree.ts": "services",
+      "src/services/cec-types.ts": "services",
+      "src/services/cec-zkp-integration.ts": "services",
+      "src/services/claude.ts": "services",
+      "src/services/cognitive-inference-rules.ts": "services",
+      "src/services/compliance-checker.ts": "services",
+      "src/services/cvc5-prover-bridge.ts": "services",
+      "src/services/dcec-cleaning.ts": "services",
+      "src/services/dcec-core-types.ts": "services",
+      "src/services/dcec-english-grammar.ts": "services",
+      "src/services/dcec-error-handling.ts": "services",
+      "src/services/dcec-integration.ts": "services",
+      "src/services/dcec-parsing.ts": "services",
+      "src/services/dcec-prototypes.ts": "services",
+      "src/services/deontic-analyzer.ts": "services",
+      "src/services/deontic-cognitive-logic-types.ts": "services",
+      "src/services/deontic-conflict-detector.ts": "services",
+      "src/services/deontic-exports.ts": "services",
+      "src/services/deontic-formula-builder.ts": "services",
+      "src/services/deontic-inference-rules.ts": "services",
+      "src/services/deontic-legal-text-engine.ts": "services",
+      "src/services/deontic-logic-converter.ts": "services",
+      "src/services/deontic-logic-core.ts": "services",
+      "src/services/deontic-nlp-ontology-types.ts": "services",
+      "src/services/deontic-norms-bridge.ts": "services",
+      "src/services/deontic-query-engine.ts": "services",
+      "src/services/deontological-reasoning.ts": "services",
+      "src/services/deployment-readiness-validator.ts": "services",
+      "src/services/document-consistency-checker.ts": "services",
+      "src/services/domain-vocabulary.ts": "services",
+      "src/services/e2e-validator.ts": "services",
+      "src/services/embedding-prover.ts": "services",
+      "src/services/enhanced-grammar-parser.ts": "services",
+      "src/services/ergoai-wrapper.ts": "services",
+      "src/services/event-calculus.ts": "services",
+      "src/services/event-dag.ts": "services",
+      "src/services/external-prover-wrappers.ts": "services",
+      "src/services/external-provers.ts": "services",
+      "src/services/feature-detection.ts": "services",
+      "src/services/flogic-ergoai-wrapper.ts": "services",
+      "src/services/flogic-proof-cache.ts": "services",
+      "src/services/flogic-semantic-normalizer.ts": "services",
+      "src/services/flogic-zkp-integration.ts": "services",
+      "src/services/fol-bridge-session-types.ts": "services",
+      "src/services/fol-constructor-io-mixin.ts": "services",
+      "src/services/fol-syntax-validator.ts": "services",
+      "src/services/fol-tdfol-bridge.ts": "services",
+      "src/services/formula-analyzer.ts": "services",
+      "src/services/formula-cache.ts": "services",
+      "src/services/formula-dependency-graph.ts": "services",
+      "src/services/french-parser.ts": "services",
+      "src/services/german-parser.ts": "services",
+      "src/services/grammar-loader.ts": "services",
+      "src/services/grammar-nl-policy-compiler.ts": "services",
+      "src/services/groth16-cec-delegation.ts": "services",
+      "src/services/hardware-abstraction.ts": "services",
+      "src/services/hybrid-confidence.ts": "services",
+      "src/services/i18n-conflict-report.ts": "services",
+      "src/services/integration-init.ts": "services",
+      "src/services/interactive-fol-constructor.ts": "services",
+      "src/services/ipld-logic-storage.ts": "services",
+      "src/services/kripke-structure.ts": "services",
+      "src/services/legal-domain-knowledge.ts": "services",
+      "src/services/legal-symbolic-analyzer.ts": "services",
+      "src/services/legal-theorem-semantics.ts": "services",
+      "src/services/lemma-generation.ts": "services",
+      "src/services/llm-circuit-breaker.ts": "services",
+      "src/services/logic-api-remainders.ts": "services",
+      "src/services/logic-audit-log.ts": "services",
+      "src/services/logic-batch-processing.ts": "services",
+      "src/services/logic-config.ts": "services",
+      "src/services/logic-converters.ts": "services",
+      "src/services/logic-errors.ts": "services",
+      "src/services/logic-language-pipeline.ts": "services",
+      "src/services/logic-monitor.ts": "services",
+      "src/services/logic-observability-pipeline.ts": "services",
+      "src/services/logic-proof-storage-parsers.ts": "services",
+      "src/services/logic-public-api.ts": "services",
+      "src/services/logic-translation-core.ts": "services",
+      "src/services/logic-type-modules.ts": "services",
+      "src/services/logic-types.ts": "services",
+      "src/services/logic-validators.ts": "services",
+      "src/services/logic-verification-utilities.ts": "services",
+      "src/services/logic-verifier-backends-mixin.ts": "services",
+      "src/services/logic-verifier.ts": "services",
+      "src/services/mcpClient.ts": "services",
+      "src/services/mcpServerApproval.tsx": "services",
+      "src/services/medical-theorem-framework.ts": "services",
+      "src/services/modal-autoencoder-loop.ts": "services",
+      "src/services/modal-axiom-rules.ts": "services",
+      "src/services/modal-compiler.ts": "services",
+      "src/services/modal-ir-decompiler.ts": "services",
+      "src/services/modal-kg-bridge.ts": "services",
+      "src/services/modal-logic-codec.ts": "services",
+      "src/services/modal-logic-extension.ts": "services",
+      "src/services/modal-synthesis.ts": "services",
+      "src/services/modal-tableaux.ts": "services",
+      "src/services/model-streamer.ts": "services",
+      "src/services/neurosymbolic-api.ts": "services",
+      "src/services/neurosymbolic-graphrag.ts": "services",
+      "src/services/nl-policy-conflict-detector.ts": "services",
+      "src/services/nl-to-dcec-compiler.ts": "services",
+      "src/services/nl-ucan-policy-compiler.ts": "services",
+      "src/services/notifier.ts": "services",
+      "src/services/oauth.ts": "services",
+      "src/services/observability-metrics-prometheus.ts": "services",
+      "src/services/openai.ts": "services",
+      "src/services/otel-integration.ts": "services",
+      "src/services/performance-dashboard.ts": "services",
+      "src/services/performance-profiler.ts": "services",
+      "src/services/policy-audit-log.ts": "services",
+      "src/services/portuguese-parser.ts": "services",
+      "src/services/prometheus-exporter.ts": "services",
+      "src/services/proof-cache-base.ts": "services",
+      "src/services/proof-execution-engine-types.ts": "services",
+      "src/services/proof-execution-engine-utils.ts": "services",
+      "src/services/proof-execution-engine.ts": "services",
+      "src/services/proof-explainer.ts": "services",
+      "src/services/proof-strategies.ts": "services",
+      "src/services/proof-tree.ts": "services",
+      "src/services/prover-backend-mixin.ts": "services",
+      "src/services/prover-installer.ts": "services",
+      "src/services/prover-router.ts": "services",
+      "src/services/prover-strategy-adapters.ts": "services",
+      "src/services/reasoning-coordinator.ts": "services",
+      "src/services/registry.ts": "services",
+      "src/services/resource-pool.ts": "services",
+      "src/services/security-core.ts": "services",
+      "src/services/sentry.ts": "services",
+      "src/services/setup-artifacts.ts": "services",
+      "src/services/shadow-prover-wrapper.ts": "services",
+      "src/services/shadow-prover.ts": "services",
+      "src/services/spanish-parser.ts": "services",
+      "src/services/statsig.ts": "services",
+      "src/services/statsigStorage.ts": "services",
+      "src/services/structured-logging.ts": "services",
+      "src/services/submodule-registry.ts": "services",
+      "src/services/symbolic-fol-bridge.ts": "services",
+      "src/services/symbolic-logic-primitives.ts": "services",
+      "src/services/tdfol-cec-bridge.ts": "services",
+      "src/services/tdfol-core.ts": "services",
+      "src/services/tdfol-dcec-parser.ts": "services",
+      "src/services/tdfol-exceptions.ts": "services",
+      "src/services/tdfol-expansion-rules.ts": "services",
+      "src/services/tdfol-grammar-bridge.ts": "services",
+      "src/services/tdfol-nl-api.ts": "services",
+      "src/services/tdfol-nl-generator.ts": "services",
+      "src/services/tdfol-nl-llm.ts": "services",
+      "src/services/tdfol-nl-patterns.ts": "services",
+      "src/services/tdfol-nl-preprocessor.ts": "services",
+      "src/services/tdfol-nl-utils.ts": "services",
+      "src/services/tdfol-optimization.ts": "services",
+      "src/services/tdfol-parser.ts": "services",
+      "src/services/tdfol-performance-engine.ts": "services",
+      "src/services/tdfol-performance-metrics.ts": "services",
+      "src/services/tdfol-prover.ts": "services",
+      "src/services/tdfol-security-validator.ts": "services",
+      "src/services/tdfol-shadowprover-bridge.ts": "services",
+      "src/services/tdfol-strategy-router.ts": "services",
+      "src/services/tdfol-zkp-integration.ts": "services",
+      "src/services/temporal-deontic-api.ts": "services",
+      "src/services/temporal-deontic-rag-store.ts": "services",
+      "src/services/temporal-inference-rules.ts": "services",
+      "src/services/tptp-problem.ts": "services",
+      "src/services/ucan-policy-bridge.ts": "services",
+      "src/services/utility-monitor.ts": "services",
+      "src/services/vcr.ts": "services",
+      "src/services/vk-registry.ts": "services",
+      "src/services/webgpu-optimizer.ts": "services",
+      "src/services/witness-manager.ts": "services",
+      "src/services/z3-adapter.ts": "services",
+      "src/services/z3-prover-bridge.ts": "services",
+      "src/services/zkp-attestation-bridge.ts": "services",
+      "src/services/zkp-backends.ts": "services",
+      "src/services/zkp-browser-schnorr.ts": "services",
+      "src/services/zkp-canonicalization-security.ts": "services",
+      "src/services/zkp-circuits.ts": "services",
+      "src/services/zkp-eth-integration.ts": "services",
+      "src/services/zkp-form-circuit.ts": "services",
+      "src/services/zkp-onchain-eth-bridge.ts": "services",
+      "src/services/zkp-onchain-pipeline.ts": "services",
+      "src/services/zkp-provekit-artifacts.ts": "services",
+      "src/services/zkp-provekit-cache.ts": "services",
+      "src/services/zkp-provekit-public-inputs.ts": "services",
+      "src/services/zkp-provekit-setup-artifacts.ts": "services",
+      "src/services/zkp-statement.ts": "services",
+      "src/services/zkp-trace.ts": "services",
+      "src/services/zkp-verifier.ts": "services"
+    },
+    "browserSafeSourceGlobs": [
+      "src/components/browser/*.tsx",
+      "src/hooks/browser/*.ts",
+      "src/screens/browser/*.tsx",
+      "src/services/apps/app-manifest.ts",
+      "src/services/apps/app-manifest-registry.ts",
+      "src/services/apps/all-tools-policy-classifier.ts",
+      "src/browser.ts",
+      "src/services/deontic/browser-nlp.ts",
+      "src/services/deontic/deontic-extraction.ts",
+      "src/services/deontic/deontic-text-analyzer.ts",
+      "src/services/ipfs/browser.ts",
+      "src/services/logic-language-pipeline.ts",
+      "src/services/mcp/browser-mcp.ts",
+      "src/services/mcp/libp2p-browser-runtime.ts",
+      "src/services/provers/browser-crypto.ts",
+      "src/services/tdfol-nl-patterns.ts",
+      "src/services/deontic-analyzer.ts",
+      "src/services/zkp/browser-zkp.ts",
+      "src/services/zkp/browser-snarkjs-backend.ts",
+      "src/services/zkp/browser-zkp-policy.ts",
+      "src/services/zkp/artifacts/**/*.ts",
+      "src/services/zkp-browser-schnorr.ts",
+      "src/storage/browser.ts",
+      "src/workers/browser.ts",
+      "web/src/**/*.ts",
+      "web/src/**/*.tsx",
+      "web/js/apps/mcp-control.js",
+      "web/js/apps/p2p-network.js"
+    ],
+    "browserSafeServiceFiles": [
+      "src/services/apps/all-tools-policy-classifier.ts",
+      "src/services/apps/app-manifest.ts",
+      "src/services/apps/app-manifest-registry.ts",
+      "src/services/deontic/browser-nlp.ts",
+      "src/services/deontic/deontic-extraction.ts",
+      "src/services/deontic/deontic-text-analyzer.ts",
+      "src/services/ipfs/browser.ts",
+      "src/services/logic-language-pipeline.ts",
+      "src/services/mcp/browser-mcp.ts",
+      "src/services/mcp/libp2p-browser-runtime.ts",
+      "src/services/provers/browser-crypto.ts",
+      "src/services/tdfol-nl-patterns.ts",
+      "src/services/deontic-analyzer.ts",
+      "src/services/zkp/browser-zkp.ts",
+      "src/services/zkp/browser-snarkjs-backend.ts",
+      "src/services/zkp/browser-zkp-policy.ts",
+      "src/services/zkp/zkp-types.ts",
+      "src/services/zkp/artifacts/index.ts",
+      "src/services/zkp/artifacts/groth16/deontic_discharge_v1/manifest.json",
+      "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1.r1cs",
+      "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1.wasm",
+      "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1_final.zkey",
+      "src/services/zkp/artifacts/groth16/deontic_discharge_v1/verification_key.json",
+      "src/services/zkp-browser-schnorr.ts"
     ]
   },
   "modules": {
@@ -1024,6 +1299,9 @@
         "These components are host terminal UI, not browser UI.",
         "Browser React components live under the separately owned src/components/browser module.",
         "Command-specific presentation should stay here only when reusable across commands or screens."
+      ],
+      "excludedPaths": [
+        "src/components/browser"
       ]
     },
     "components-browser": {
@@ -1082,6 +1360,9 @@
       "notes": [
         "Screens may import command types but should not invoke command handlers directly.",
         "Browser screens live under the separately owned src/screens/browser module."
+      ],
+      "excludedPaths": [
+        "src/screens/browser"
       ]
     },
     "screens-browser": {
@@ -1142,6 +1423,9 @@
       "notes": [
         "Existing hooks read terminal streams and process state, so the directory is host UI by default.",
         "Browser-safe hooks live under the separately owned src/hooks/browser module."
+      ],
+      "excludedPaths": [
+        "src/hooks/browser"
       ]
     },
     "hooks-browser": {
@@ -1200,6 +1484,106 @@
         "App-visible capability policy and manifest shape belongs here; protocol mechanics stay in src/services/mcp."
       ]
     },
+    "service-bridge": {
+      "owner": "service-bridge-runtime",
+      "path": "src/services/bridge",
+      "purpose": "Typed modal/prover bridge adapters that sit below the root service facades.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through explicitly browser-safe bridge contracts",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/bridge/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Bridge implementation files are owned here instead of by the root service inventory."
+      ]
+    },
+    "service-deontic": {
+      "owner": "deontic-service-runtime",
+      "path": "src/services/deontic",
+      "purpose": "Deontic extraction, graph, legal norm, parser quality, and support-map services.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe parser and contract entrypoints",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/deontic/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Root deontic compatibility files remain explicitly inventoried under audit.serviceRootFileOwners."
+      ]
+    },
+    "service-fol": {
+      "owner": "fol-service-runtime",
+      "path": "src/services/fol",
+      "purpose": "First-order logic conversion, export, formatting, and confidence scoring services.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe conversion and formatting contracts",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/fol/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "FOL domain implementation files belong here; root FOL facades are inventoried separately."
+      ]
+    },
+    "service-fol-utils": {
+      "owner": "fol-service-utility-runtime",
+      "path": "src/services/fol-utils",
+      "purpose": "FOL parser/output utility entrypoints shared by root FOL service facades.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through audited parser/formatter contracts",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/fol-utils/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "This is a service-owned utility family, not generic src/utils ownership."
+      ]
+    },
     "service-glasses": {
       "owner": "glasses-surface-runtime",
       "path": "src/services/glasses",
@@ -1223,6 +1607,31 @@
       "privateEntrypoints": [],
       "notes": [
         "Display/orb adapters and glasses-specific fallbacks belong here; app policy source data stays in src/services/apps."
+      ]
+    },
+    "service-integrations": {
+      "owner": "external-integration-service-runtime",
+      "path": "src/services/integrations",
+      "purpose": "External runtime integrations that are isolated from root compatibility files.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe integration adapters",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/integrations/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "New external integration files must land here or in a new named service family."
       ]
     },
     "service-ipfs": {
@@ -1278,10 +1687,62 @@
         "Protocol, transport, mediation, and ORB machinery belongs here; descriptor packs for IPFS-owned apps stay in src/services/ipfs."
       ]
     },
+    "service-provers": {
+      "owner": "prover-service-runtime",
+      "path": "src/services/provers",
+      "purpose": "Browser and host prover bridges, serializers, proof-cache helpers, and prover type contracts.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe prover contracts and WASM/browser adapters",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/provers/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Root prover compatibility files remain in the explicit root service inventory."
+      ]
+    },
+    "service-zkp": {
+      "owner": "zkp-service-runtime",
+      "path": "src/services/zkp",
+      "purpose": "ZKP browser backends, simulated prover quarantine, UCAN bridge, artifacts, and circuits.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through audited browser-safe ZKP backend entrypoints",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/zkp/*.ts",
+        "src/services/zkp/artifacts/**/*.ts",
+        "src/services/zkp/circuits/**/*.circom"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "ZKP artifacts and circuits are service-owned data/code assets and must not be duplicated at src/services root."
+      ]
+    },
     "services": {
       "owner": "domain-service-runtime",
       "path": "src/services",
-      "purpose": "Domain services, protocol adapters, MCP descriptors, logic/prover services, telemetry, and integration facades.",
+      "purpose": "Explicitly inventoried root service facades and compatibility files. New service implementation files must live in a named service family subdirectory.",
       "runtimeClassification": "split",
       "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
       "allowedImports": [
@@ -1302,14 +1763,7 @@
       ],
       "publicEntrypoints": [
         "src/services/logic-public-api.ts",
-        "src/services/browser-acceleration.ts",
-        "src/services/mcp/*.ts",
-        "src/services/provers/*.ts",
-        "src/services/zkp/*.ts",
-        "src/services/apps/*.ts",
-        "src/services/glasses/*.ts",
-        "src/services/integrations/*.ts",
-        "src/services/ipfs/*.ts"
+        "src/services/browser-acceleration.ts"
       ],
       "privateEntrypoints": [
         "src/services/*-wrapper.ts",
@@ -1317,9 +1771,12 @@
         "src/services/*-adapter.ts"
       ],
       "notes": [
-        "Browser-safe service files must not import Node, subprocess, native binary, Python, or remote host bridge dependencies.",
+        "Root-level service source files are compatibility/root facades only and must be listed in audit.serviceRootFileOwners.",
+        "New service implementation files must land under a named service family such as src/services/mcp, src/services/ipfs, src/services/provers, or src/services/zkp.",
+        "Browser-safe service files must be listed in audit.browserSafeServiceFiles before browser-facing code imports them.",
         "Host adapters must be isolated by filename or submodule before they are imported from browser-facing code."
-      ]
+      ],
+      "rootOnly": true
     },
     "storage": {
       "owner": "storage-runtime",
@@ -1565,7 +2022,8 @@
       ],
       "publicEntrypoints": [
         "src/shared/index.ts",
-        "src/shared/*/index.ts"
+        "src/shared/*/index.ts",
+        "src/shared/service-contracts/*.ts"
       ],
       "privateEntrypoints": [],
       "notes": [

@@ -7,21 +7,14 @@ derived from the current state of the source it depends on.
 
 | Evidence | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- |
-| Browser libp2p Playwright evidence (SWR-028) | ❌ stale | 2026-07-08T10:32:40.831Z | npm run evidence:libp2p-browser |
-| Browser bundle budget evidence (SWR-016) | ❌ stale | 2026-07-08T10:59:25.304Z | npm run build:web |
-| Module-boundary / service-boundary audit evidence (SWR-024) | ✅ fresh | 2026-07-10T05:41:55.989Z | npm run services:audit |
-
-## Browser libp2p Playwright evidence (SWR-028)
-
-- Status: **stale**
-- Recorded fingerprint: `e152aebb8f3767ddeedd935e76ab2c4edafdd858acf4d244c7c93efc0e892692`
-- Current fingerprint: `9864bec0dc4fdd34359921aebfb946b5535cf19f04ef4e3955cab206e446d2a3`
-- Regenerate with: `npm run evidence:libp2p-browser`
+| Browser libp2p Playwright evidence (SWR-028) | ✅ fresh | 2026-07-10T06:53:52.786Z | npm run evidence:libp2p-browser |
+| Browser bundle budget evidence (SWR-016) | ❌ stale | 2026-07-10T07:18:16.688Z | npm run build:web |
+| Module-boundary / service-boundary audit evidence (SWR-024) | ✅ fresh | 2026-07-10T07:47:55.234Z | npm run services:audit |
 
 ## Browser bundle budget evidence (SWR-016)
 
 - Status: **stale**
-- Recorded fingerprint: `5ab766b82835913235f15bdedfd6fd671e4fc4919ddeec61577eeeda83af135d`
-- Current fingerprint: `883434d7fca1f1c4d1df821fb71e62c15e0d261c767e26a899b27b0aa1f75895`
+- Recorded fingerprint: `509d2497794ede4163520399f2f43f92b2a4ac3a8440034fa8ee5eb393a5ab33`
+- Current fingerprint: `a9bccf97848b9afb4fa09493b88324b6b25be07ab5abe4616f4748cc9199e47c`
 - Regenerate with: `npm run build:web`
 

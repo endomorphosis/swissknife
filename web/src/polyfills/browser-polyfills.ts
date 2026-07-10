@@ -3,9 +3,9 @@
  */
 
 // Global process polyfill
-const browserGlobal = globalThis as typeof globalThis & {
-  process?: unknown;
-  Buffer?: unknown;
+const browserGlobal = globalThis as unknown as {
+  process?: any;
+  Buffer?: any;
 };
 
 if (typeof window !== 'undefined' && !browserGlobal.process) {

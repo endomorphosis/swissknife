@@ -12,7 +12,7 @@ import {
 import {
   canonicalDcecTypeManifest as sprint66Manifest,
   CanonicalDeonticOperator,
-} from '../../src/services/sprint66-dcec-types';
+} from '../../src/services/deontic-cognitive-logic-types';
 import { TDFOLToZ3Converter } from '../../src/services/z3-prover-bridge';
 import { TDFOLToCVC5Converter } from '../../src/services/cvc5-prover-bridge';
 import { TDFOLToCoqConverter } from '../../src/services/provers/deontic-to-coq';

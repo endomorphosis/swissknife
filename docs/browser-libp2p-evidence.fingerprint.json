@@ -2,23 +2,23 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "libp2p-browser-playwright",
   "label": "Browser libp2p Playwright evidence (SWR-028)",
-  "generatedAt": "2026-07-09T04:51:58.972Z",
+  "generatedAt": "2026-07-10T06:53:52.786Z",
   "evidenceFiles": [
     "docs/browser-libp2p-evidence.md"
   ],
-  "sourceFingerprint": "356e8fc474ef8fb7bbbe49c42695c8a877b147e041a0db82a7c5eaf0ef4d859a",
+  "sourceFingerprint": "25c3d5c506f3af1e5baea11afc482464eb6f369d8f7fbc2c5377439a2a12fc9b",
   "sourceFiles": [
     {
       "path": "build-tools/configs/playwright.libp2p-browser.config.ts",
-      "sha256": "c0083a9de446b7109d4cdf11361cad0aa63548f4480de27f97e4803960ea41f7"
+      "sha256": "551aff6cdcc339f42ec34bea572ed835a84d36680d9f1e48636f9aac534907d6"
     },
     {
       "path": "build-tools/configs/vite.libp2p-browser-harness.config.ts",
-      "sha256": "68fe2661f4bde9bb4273518ae2337fb2db1735d80c4bf4f12fdeaf5d608b274a"
+      "sha256": "18ec0d5600ae17f7c0f18ccda8dcdf1d04f12300fc53776f7d61cae657d8721f"
     },
     {
       "path": "src/services/mcp/libp2p-browser-runtime.ts",
-      "sha256": "d1fd46178c71a186aac0a1d38eebdf0061d3de6190bf1620aacf271b26e28480"
+      "sha256": "3368781fc2aaa860e916c1b40723f4de24948ac3361e22997e091ffa8bdc8ade"
     },
     {
       "path": "src/services/mcp/mcp-discovery.ts",
@@ -30,7 +30,7 @@
     },
     {
       "path": "test/e2e/fixtures/libp2p-browser-harness/harness.ts",
-      "sha256": "eebd920b549d3adf12f6a26495978fcf1b7396f59d4f775ffcb59a2198ba6e4d"
+      "sha256": "1f772fbe77364a570cac116ddb619def94f926b54068c1cdf1db4db8a2f41aa4"
     },
     {
       "path": "test/e2e/fixtures/libp2p-browser-harness/index.html",

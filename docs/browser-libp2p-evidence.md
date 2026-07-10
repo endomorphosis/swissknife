@@ -1,8 +1,10 @@
-# Browser libp2p Playwright Evidence (SWR-028)
+# Browser libp2p Playwright Evidence (SWR-028, SWR-092)
 
 This document records the Playwright evidence gathered for **SWR-028 — Add
-browser libp2p Playwright evidence**, which depends on SWR-015 (browser libp2p
-bootstrap hardening) and SWR-016 (libp2p/browser bundle budget tracking).
+browser libp2p Playwright evidence** and refreshed for **SWR-092 — Keep libp2p
+enabled by default in browser-safe runtime paths**. SWR-092 depends on the
+SWR-091 browser export lock, so the evidence covers both the package export
+path and the virtual desktop apps that import it.
 
 ## What is exercised
 
@@ -12,7 +14,8 @@ production browser modules inside a **real** browser engine (Chromium, via
 Playwright), with real installed npm packages:
 
 - `src/services/mcp/libp2p-browser-runtime.ts` — `buildBrowserLibp2pConfig`,
-  `createBrowserLibp2pNode`, `summarizeBrowserLibp2pGaps`.
+  `createBrowserLibp2pNode`, `getBrowserLibp2pDefaultStatus`,
+  `summarizeBrowserLibp2pGaps`.
 - `src/services/mcp/mcp-p2p-session.ts` — the real `MCPp2pSession` state
   machine (idle → handshaking → open/error/closed), driven through a scripted
   (but real, framed, JSON-RPC) transport stream so the evidence is
@@ -32,18 +35,30 @@ The harness's responsive layout switches from a two-column grid to a
 single-column stack below 600px width; `body[data-layout]` reflects the active
 layout and is asserted directly in the desktop and mobile runs.
 
-### A note on dynamic imports in Vite
+### Production browser loader
 
-`libp2p-browser-runtime.ts`'s default `importModule` resolves optional
-packages with `import(/* @vite-ignore */ specifier)`, where `specifier` is a
-runtime variable. Real browsers cannot resolve bare module specifiers this way
-without an import map, so a literal-string `import('@some/package')` is
-required for Vite to statically resolve and serve an installed package. The
-harness's `importModule` override therefore dispatches known package names to
-literal `import()` calls (so installed packages load for real) and falls back
-to the variable-specifier form only for packages that are genuinely absent or
-deliberately forced "missing" by a scenario — which deterministically
-reproduces the same "package unavailable" signal production code encounters.
+`libp2p-browser-runtime.ts` now keeps browser libp2p enabled by default through
+a production literal-import loader. The default loader dispatches the browser
+runtime package names to literal `import('...')` calls for `libp2p`,
+`@libp2p/webrtc`, `@libp2p/websockets`, `@libp2p/circuit-relay-v2`,
+`@chainsafe/libp2p-noise`, `@chainsafe/libp2p-yamux`, `@libp2p/identify`, and
+`@chainsafe/libp2p-gossipsub`. Vite can therefore resolve the real installed
+browser-capable modules in the production web bundle; the default evidence
+scenario uses this production loader directly.
+
+Missing optional packages are not replaced by local transports. They are
+reported as typed `BrowserLibp2pCapabilityGap` entries with a `code`
+(`package-unavailable`, `export-missing`, or
+`factory-initialization-failed`), the affected package name, and the runtime
+reason. The Playwright harness still injects an `importModule` override only
+for the forced-missing scenarios, so those tests can deterministically prove
+the gap path.
+
+`getBrowserLibp2pDefaultStatus()` is the app-facing evidence API. MCP Control
+and P2P Network render it live, including `defaultEnabled: true`,
+`moduleLoader: "literal-browser-imports"`, default listen multiaddrs, the core
+`libp2p` package status, each configured browser capability, and any typed
+gap rows.
 
 ## Dependency fix required for real evidence
 
@@ -74,7 +89,7 @@ validation commands) green, with the libp2p bundle budget unchanged
 
 | Scenario (`?scenario=`, or dedicated query) | What it proves |
 | --- | --- |
-| `available` (default) | Real `createLibp2p` node construction and `start()` succeed with all 7 optional capabilities (webrtc, websockets, circuit-relay-v2, noise, yamux, identify, gossipsub) installed and configured, with zero capability gaps. A real `peerId` is generated. |
+| `available` (default) | Real `createLibp2p` node construction and `start()` succeed through the production literal-import loader with all 7 optional capabilities (webrtc, websockets, circuit-relay-v2, noise, yamux, identify, gossipsub) installed and configured, with zero capability gaps. A real `peerId` is generated. |
 | `missing-webrtc` | `@libp2p/webrtc` is forced unavailable. The runtime reports a real capability gap (`gap-webrtc`) instead of silently substituting a fake transport; the remaining capabilities stay real, installed, and configured. The default `/webrtc` listen multiaddr then has no matching transport, so the node start attempt fails — a real, deterministic consequence, not a harness bug. |
 | `missing-multiple` | `@libp2p/webrtc`, `@libp2p/circuit-relay-v2`, and gossipsub (both `@libp2p/gossipsub` and its `@chainsafe/libp2p-gossipsub` fallback) are all forced unavailable simultaneously and reported as independent gaps. |
 | `disabled` | `enabled: false` is passed through; the runtime reports `capabilities: []`, `gaps: []`, and no node is constructed at all. |
@@ -83,15 +98,17 @@ validation commands) green, with the libp2p bundle budget unchanged
 | `p2p=success` | A real `MCPp2pSession` completes the MCP `initialize` handshake end-to-end (framing, JSON-RPC correlation, capability negotiation) against a scripted relay peer, reaching `open` state with negotiated `mcp++/*` profiles. |
 | `p2p=error` | The scripted peer returns a JSON-RPC error during handshake; the session reaches `error` state with the real rejection message. |
 | `p2p=timeout` | The scripted peer never responds; the harness's bounded race times out, reaching `error` state with a timeout message — proving the UI does not hang indefinitely on an unreachable relay. |
+| MCP Control / P2P Network default panels | Both browser apps call `getBrowserLibp2pDefaultStatus()` and render live default-on evidence. The panels display `Enabled by default`, the literal browser import loader, default listen multiaddrs, configured package/export rows, and typed gap codes if a package is unavailable. |
 
 ## Running the evidence
 
 ```
 cd swissknife
-node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.libp2p-browser.config.ts
+npm run evidence:libp2p-browser
+npm run audit:bundle-host-leakage
 ```
 
-This starts the dedicated Vite dev server
+The evidence command starts the dedicated Vite dev server
 (`vite.libp2p-browser-harness.config.ts`), runs all scenarios across both
 desktop and mobile projects (24 tests total), and writes:
 
@@ -155,3 +172,7 @@ confirming parity across viewports.
   mirroring the existing meta-glasses port allocation pattern.
 - `package.json` — adds `npm run test:e2e:libp2p-browser` and bumps
   `@libp2p/identify` to `^2.1.5`.
+- `web/js/apps/mcp-control.js` and `web/js/apps/p2p-network.js` — render live
+  `getBrowserLibp2pDefaultStatus()` evidence in the virtual desktop.
+- `scripts/audit-web-bundle.mjs` — records host leakage and default Pyodide
+  exposure; SWR-092 acceptance requires both to remain `0`.

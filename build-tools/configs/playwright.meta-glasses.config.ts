@@ -19,7 +19,10 @@ function resolveMetaGlassesPort(): number {
 
 export default defineConfig({
   testDir: resolve(repoRoot, 'test/e2e'),
-  testMatch: ['**/meta-glasses-virtual-os.spec.ts'],
+  testMatch: [
+    '**/meta-glasses-virtual-os.spec.ts',
+    '**/meta-glasses-simulator-handoff.spec.ts',
+  ],
   timeout: 240 * 1000,
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),

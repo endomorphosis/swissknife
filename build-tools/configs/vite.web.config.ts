@@ -131,6 +131,23 @@ function swissknifeBrowserImportGuardPlugin(): Plugin {
   }
 }
 
+function swissknifeBrowserLibp2pFallbackHygienePlugin(): Plugin {
+  return {
+    name: 'swissknife-browser-libp2p-fallback-hygiene',
+    apply: 'build',
+    transform(code, id) {
+      const normalized = normalizeId(id)
+      if (!normalized.includes('/node_modules/pvtsutils/')) return null
+      if (!code.includes('Buffer.from')) return null
+
+      return {
+        code: code.replace(/\bBuffer\.from\b/g, "globalThis.Buffer?.['from']"),
+        map: null,
+      }
+    },
+  }
+}
+
 function swissknifeBundleAuditPlugin(): Plugin {
   return {
     name: 'swissknife-bundle-audit-metadata',
@@ -187,6 +204,7 @@ export default defineConfig({
   plugins: [
     swissknifeWebDistCleanPlugin(),
     swissknifeBrowserImportGuardPlugin(),
+    swissknifeBrowserLibp2pFallbackHygienePlugin(),
     swissknifeBundleAuditPlugin(),
   ],
   

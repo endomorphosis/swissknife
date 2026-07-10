@@ -137,10 +137,70 @@
     "yoga.wasm",
     "install.sh",
     "src",
-    "web/src",
-    "docs/browser-public-api.md",
-    "scripts/audit-package-browser-exports.mjs"
+    "docs/browser-distribution-policy.md",
+    "docs/browser-python-policy.md",
+    "docs/browser-zkp-artifacts.md",
+    "docs/browser-wasm-zkp-policy.md"
   ],
+  "browser": "./src/browser.ts",
+  "exports": {
+    ".": {
+      "browser": "./src/browser.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./browser": {
+      "browser": "./src/browser.ts",
+      "import": "./src/browser.ts",
+      "default": "./src/browser.ts"
+    },
+    "./mcp": {
+      "browser": "./src/services/mcp/browser-mcp.ts",
+      "import": "./src/services/mcp/browser-mcp.ts",
+      "default": "./src/services/mcp/browser-mcp.ts"
+    },
+    "./mcp/libp2p": {
+      "browser": "./src/services/mcp/libp2p-browser-runtime.ts",
+      "import": "./src/services/mcp/libp2p-browser-runtime.ts",
+      "default": "./src/services/mcp/libp2p-browser-runtime.ts"
+    },
+    "./libp2p": {
+      "browser": "./src/services/mcp/libp2p-browser-runtime.ts",
+      "import": "./src/services/mcp/libp2p-browser-runtime.ts",
+      "default": "./src/services/mcp/libp2p-browser-runtime.ts"
+    },
+    "./ipfs": {
+      "browser": "./src/services/ipfs/browser.ts",
+      "import": "./src/services/ipfs/browser.ts",
+      "default": "./src/services/ipfs/browser.ts"
+    },
+    "./storage": {
+      "browser": "./src/storage/browser.ts",
+      "import": "./src/storage/browser.ts",
+      "default": "./src/storage/browser.ts"
+    },
+    "./workers": {
+      "browser": "./src/workers/browser.ts",
+      "import": "./src/workers/browser.ts",
+      "default": "./src/workers/browser.ts"
+    },
+    "./logic-language": {
+      "browser": "./src/services/logic-language-pipeline.ts",
+      "import": "./src/services/logic-language-pipeline.ts",
+      "default": "./src/services/logic-language-pipeline.ts"
+    },
+    "./deontic-nlp": {
+      "browser": "./src/services/deontic/browser-nlp.ts",
+      "import": "./src/services/deontic/browser-nlp.ts",
+      "default": "./src/services/deontic/browser-nlp.ts"
+    },
+    "./zkp": {
+      "browser": "./src/services/zkp/browser-zkp.ts",
+      "import": "./src/services/zkp/browser-zkp.ts",
+      "default": "./src/services/zkp/browser-zkp.ts"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "dev": "vite dev",
     "build": "npm run build:all",
@@ -173,6 +233,7 @@
     "test:web": "vitest run --workspace web",
     "test:ipfs": "vitest run --workspace ipfs",
     "test:browser": "npm run test:browser-compat:runtime",
+    "browser:compat:inventory": "node scripts/audit-browser-compat.mjs --report docs/browser-compatibility-inventory.md --fail-on-host-imports",
     "test:ai-inference": "vitest run --workspace ipfs --browser",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --config=config/jest/jest.fast.config.cjs --runInBand",
@@ -211,7 +272,7 @@
     "test:unit": "npm run test:fast",
     "test:e2e": "jest --config=config/jest/jest.e2e.config.cjs --runInBand",
     "test:e2e:mcp": "node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.mcp-dashboard.config.ts && node scripts/test-mcp-dashboard-consumer.cjs",
-    "evidence:mcp-glasses": "npm run test:run -- test/mcp-plus-plus/glasses-manifest-coverage.test.ts test/mcp-plus-plus/mobile-orb-edge-all-apps.test.ts",
+    "evidence:mcp-glasses": "node scripts/ensure-mcp-glasses-evidence-prereqs.cjs && npm run test:run -- test/mcp-plus-plus/glasses-manifest-coverage.test.ts test/mcp-plus-plus/mobile-orb-edge-all-apps.test.ts test/mcp-plus-plus/virtual-desktop-tool-ui-smoke-evidence.test.ts test/mcp-plus-plus/meta-glasses-simulator-handoff-evidence.test.ts",
     "evidence:dashboard-consumer": "node scripts/test-mcp-dashboard-consumer.cjs",
     "evidence:libp2p-browser": "npm run test:e2e:libp2p-browser && node scripts/audit-release-evidence-freshness.mjs --update libp2p-browser-playwright --json docs/release-evidence-freshness.json --report docs/release-evidence-freshness.md",
     "evidence:freshness:check": "node scripts/audit-release-evidence-freshness.mjs --fail-on-stale --json docs/release-evidence-freshness.json --report docs/release-evidence-freshness.md",
@@ -329,9 +390,9 @@
         "totalRawBytes": 2750000,
         "totalGzipBytes": 650000,
         "totalBrotliBytes": 560000,
-        "libp2pRawBytes": 262144,
-        "libp2pGzipBytes": 85000,
-        "libp2pBrotliBytes": 75000,
+        "libp2pRawBytes": 650000,
+        "libp2pGzipBytes": 190000,
+        "libp2pBrotliBytes": 160000,
         "libp2pChunkCount": 8
       }
     },

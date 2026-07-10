@@ -9,6 +9,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { base64UrlEncode, sha256Hex } from '../../src/services/provers/browser-crypto';
+import {
+  DEFAULT_BROWSER_ZKP_BACKEND_ID,
+  createDefaultBrowserZkpBackend,
+  generateDefaultBrowserZkpProof,
+  verifyDefaultBrowserZkpProof,
+} from '../../src/services/zkp/browser-zkp';
 
 const ROOT = resolve(__dirname, '../..');
 
@@ -29,7 +35,7 @@ const BROWSER_FACING_PROVER_FILES = [
   'src/services/temporal-deontic-api.ts',
   'src/services/temporal-deontic-rag-store.ts',
   'src/services/flogic-zkp-integration.ts',
-  'src/services/sprint68-eth-bridge.ts',
+  'src/services/zkp-onchain-eth-bridge.ts',
   'src/services/zkp-attestation-bridge.ts',
   'src/services/zkp-circuits.ts',
   'src/services/zkp-onchain-pipeline.ts',
@@ -41,10 +47,11 @@ const BROWSER_FACING_PROVER_FILES = [
   'src/services/provers/lean4-wasm-bridge.ts',
   'src/services/provers/lurk-wasm-bridge.ts',
   'src/services/provers/multi-stark-bridge.ts',
-  'src/services/zkp/zkp-simulated-prover.ts',
   'src/services/zkp/zkp-ucan-bridge.ts',
   'src/services/zkp-browser-schnorr.ts',
   'src/services/zkp/browser-snarkjs-backend.ts',
+  'src/services/zkp/browser-zkp-policy.ts',
+  'src/services/zkp/browser-zkp.ts',
 ];
 
 const UNIQUE_BROWSER_FACING_PROVER_FILES = [...new Set(BROWSER_FACING_PROVER_FILES)];
@@ -66,12 +73,22 @@ const TRANSITIVE_FORBIDDEN_PATTERNS = [
   /\bBuffer\.from\s*\(/,
 ];
 
+const FORBIDDEN_DEFAULT_SIMULATION_PATTERNS = [
+  /from\s+['"][^'"]*zkp-simulated-prover(?:\.js)?['"]/,
+  /new\s+ZkpSimulatedProver\s*\(/,
+  /\bopts\.backend\s*\?\?\s*['"]simulated['"]/,
+  /\bbackend\s*=\s*['"]simulated['"]/,
+];
+
 const STATIC_IMPORT_PATTERNS = [
   /\bimport\s+[^'"]*from\s+['"]([^'"]+)['"]/g,
   /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
 ];
 
 const SERVICES_ROOT = resolve(ROOT, 'src/services');
+const EXPLICIT_SIMULATED_ZKP_FIXTURES = [
+  'test/mcp-plus-plus/fixtures/explicit-simulated-zkp-fixture.ts',
+];
 
 function localServiceImports(source: string): string[] {
   const imports = new Set<string>();
@@ -133,6 +150,46 @@ describe('WASM prover browser purity', () => {
     }
   });
 
+  it.each(UNIQUE_BROWSER_FACING_PROVER_FILES)('%s does not opt into simulated ZKP defaults', file => {
+    const source = readFileSync(resolve(ROOT, file), 'utf8');
+    for (const pattern of FORBIDDEN_DEFAULT_SIMULATION_PATTERNS) {
+      expect(source).not.toMatch(pattern);
+    }
+  });
+
+  it('keeps simulated ZKP helpers out of browser-facing service imports', () => {
+    const files = reachableServiceFiles(UNIQUE_BROWSER_FACING_PROVER_FILES);
+    expect(files.map(file => file.replace(`${ROOT}/`, ''))).not.toContain('src/services/zkp/zkp-simulated-prover.ts');
+
+    for (const fixture of EXPLICIT_SIMULATED_ZKP_FIXTURES) {
+      const source = readFileSync(resolve(ROOT, fixture), 'utf8');
+      expect(source).toMatch(/zkp-simulated-prover/);
+      expect(source).toMatch(/explicit/i);
+    }
+  });
+
+  it('uses the real browser Schnorr/WASM backend by default and rejects simulated proofs', async () => {
+    expect(DEFAULT_BROWSER_ZKP_BACKEND_ID).toBe('browser-schnorr-wasm');
+    expect(createDefaultBrowserZkpBackend().constructor.name).toBe('BrowserSchnorrZkpBackend');
+    expect(() => createDefaultBrowserZkpBackend({ backend: 'simulated' })).toThrow(/test-only|real browser/i);
+
+    const proof = await generateDefaultBrowserZkpProof(JSON.stringify({
+      statement: 'O(log_access)',
+      publicInputs: { policy: 'audit' },
+      privateWitness: { derivation: ['axiom:audit', 'rule:obligation'] },
+    }));
+    const proofDict = proof.toDict();
+    expect(proofDict.metadata).toMatchObject({ backend: 'browser-schnorr-wasm' });
+    await expect(verifyDefaultBrowserZkpProof(JSON.stringify(proofDict))).resolves.toBe(true);
+
+    await expect(verifyDefaultBrowserZkpProof(JSON.stringify({
+      verifier_id: 'simulated-zkp-v0.1',
+      backend: 'simulated',
+      is_simulation: true,
+      proof_b64: 'fixture',
+    }))).resolves.toBe(false);
+  });
+
   it('imports the browser-facing prover modules without host-native runners', async () => {
     await Promise.all([
       import('../../src/services/mcp/mcp-wasm-prover-hub'),
@@ -151,7 +208,7 @@ describe('WASM prover browser purity', () => {
       import('../../src/services/temporal-deontic-api'),
       import('../../src/services/temporal-deontic-rag-store'),
       import('../../src/services/flogic-zkp-integration'),
-      import('../../src/services/sprint68-eth-bridge'),
+      import('../../src/services/zkp-onchain-eth-bridge'),
       import('../../src/services/zkp-attestation-bridge'),
       import('../../src/services/zkp-circuits'),
       import('../../src/services/zkp-onchain-pipeline'),
@@ -163,10 +220,11 @@ describe('WASM prover browser purity', () => {
       import('../../src/services/provers/lean4-wasm-bridge'),
       import('../../src/services/provers/lurk-wasm-bridge'),
       import('../../src/services/provers/multi-stark-bridge'),
-      import('../../src/services/zkp/zkp-simulated-prover'),
       import('../../src/services/zkp/zkp-ucan-bridge'),
       import('../../src/services/zkp-browser-schnorr'),
       import('../../src/services/zkp/browser-snarkjs-backend'),
+      import('../../src/services/zkp/browser-zkp-policy'),
+      import('../../src/services/zkp/browser-zkp'),
     ]);
   });
 

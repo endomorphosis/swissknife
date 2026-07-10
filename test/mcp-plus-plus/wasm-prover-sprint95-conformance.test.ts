@@ -25,7 +25,7 @@ const CONFORMANCE_MODULES: ModuleConformanceCase[] = [
   { modulePath: '../../src/services/tdfol-grammar-bridge', expectedExports: ['TDFOLGrammarBridge', 'NaturalLanguageTDFOLInterface', 'parseNl'] },
   { modulePath: '../../src/services/deontic-norms-bridge', expectedExports: ['DeonticNormsBridgeAdapter'] },
   { modulePath: '../../src/services/zkp-attestation-bridge', expectedExports: ['ZkpAttestationBridgeAdapter'] },
-  { modulePath: '../../src/services/zkp-ucan-bridge', expectedExports: ['ZKPToUCANBridge', 'getZkpUcanBridge'] },
+  { modulePath: '../../src/services/zkp/zkp-ucan-bridge', expectedExports: ['ZKPToUCANBridge', 'getZkpUcanBridge'] },
   { modulePath: '../../src/services/ucan-policy-bridge', expectedExports: ['UCANPolicyBridge', 'BridgeCompileResult', 'BridgeEvaluationResult'] },
   { modulePath: '../../src/services/ipfs/ipfs-proof-cache', expectedExports: ['IPFSCachedProof', 'IPFSProofCache', 'getGlobalIPFSCache'] },
   { modulePath: '../../src/services/proof-cache-base', expectedExports: ['CachedProof', 'ProofCache', 'BoundedCache'] },

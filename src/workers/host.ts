@@ -22,6 +22,13 @@ import { access, constants as fsConstants } from 'node:fs/promises';
 import { resolve as resolvePath } from 'node:path';
 import { fork, type ChildProcess, type ForkOptions } from 'node:child_process';
 import { Worker as NodeWorkerThread } from 'node:worker_threads';
+import type {
+  HostSubprocessInboundMessage,
+  HostSubprocessTaskMessage,
+  HostWorkerCapabilityGap,
+  HostWorkerCapabilityStatus,
+  HostWorkerRuntimeReport,
+} from '../shared/service-contracts/index.js';
 
 export {
   WorkerPool as NodeThreadWorkerPool,
@@ -38,39 +45,16 @@ export {
 
 import { WorkerPool as NodeThreadWorkerPoolClass, type WorkerPoolOptions as NodeThreadWorkerPoolOptionsType } from './worker-pool.js';
 
-export type HostWorkerAdapterKind = 'worker-threads' | 'subprocess';
-
-export type HostWorkerCapabilityName =
-  | 'worker-threads'
-  | 'subprocess'
-  | 'filesystem'
-  | 'shared-array-buffer'
-  | 'worker'
-  | 'shared-worker';
-
-export interface HostWorkerCapabilityStatus {
-  name: HostWorkerCapabilityName;
-  /** The adapter this capability maps to, or `browser-only` for Web Worker capabilities reported for reference. */
-  adapter: HostWorkerAdapterKind | 'browser-only';
-  supported: boolean;
-  enabled: boolean;
-  reason?: string;
-}
-
-export interface HostWorkerCapabilityGap {
-  name: HostWorkerCapabilityName;
-  adapter: HostWorkerAdapterKind | 'browser-only';
-  reason: string;
-}
-
-export interface HostWorkerRuntimeReport {
-  runtime: 'host';
-  browserSafe: false;
-  capabilities: HostWorkerCapabilityStatus[];
-  gaps: HostWorkerCapabilityGap[];
-  /** Browser-only capabilities that are never available in a Node.js process; documented for parity with `./browser.ts`. */
-  browserOnly: HostWorkerCapabilityStatus[];
-}
+export type {
+  HostSubprocessInboundMessage,
+  HostSubprocessResponseMessage,
+  HostSubprocessTaskMessage,
+  HostWorkerAdapterKind,
+  HostWorkerCapabilityGap,
+  HostWorkerCapabilityName,
+  HostWorkerCapabilityStatus,
+  HostWorkerRuntimeReport,
+} from '../shared/service-contracts/index.js';
 
 /* -------------------------------------------------------------------------
  * Capability detection
@@ -208,22 +192,6 @@ export function getHostWorkerPool(): NodeThreadWorkerPoolClass {
  * process IPC channel (`process.send` / `child.send`), never shared memory,
  * so payloads must be structured-cloneable.
  * ---------------------------------------------------------------------- */
-
-export interface HostSubprocessTaskMessage {
-  type: 'task';
-  taskId: string;
-  taskType: string;
-  data: unknown;
-}
-
-export interface HostSubprocessResponseMessage {
-  type: 'response';
-  taskId: string;
-  result?: unknown;
-  error?: string;
-}
-
-export type HostSubprocessInboundMessage = HostSubprocessResponseMessage;
 
 export interface HostSubprocessWorkerOptions {
   /** Path to the Node.js script executed via `child_process.fork`. Must exist on the host filesystem. */

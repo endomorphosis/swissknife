@@ -7,7 +7,7 @@
 import {
   convertToPrologFormat,
   convertToTptpFormat,
-} from './logic-formatter.js';
+} from './fol-output-formatter.js';
 
 export interface FolParsedQuantifier {
   type: 'universal' | 'existential';

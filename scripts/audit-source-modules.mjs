@@ -12,6 +12,47 @@ const manifestPath = 'src/module-ownership.json';
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const DATA_EXTENSIONS = new Set(['.json']);
 const AUDITED_EXTENSIONS = new Set([...SOURCE_EXTENSIONS, ...DATA_EXTENSIONS]);
+const HOST_ONLY_BUILTINS = new Set([
+  'assert',
+  'async_hooks',
+  'buffer',
+  'child_process',
+  'cluster',
+  'console',
+  'constants',
+  'crypto',
+  'dgram',
+  'dns',
+  'domain',
+  'events',
+  'fs',
+  'http',
+  'http2',
+  'https',
+  'inspector',
+  'module',
+  'net',
+  'os',
+  'path',
+  'perf_hooks',
+  'process',
+  'punycode',
+  'querystring',
+  'readline',
+  'repl',
+  'stream',
+  'string_decoder',
+  'timers',
+  'tls',
+  'trace_events',
+  'tty',
+  'url',
+  'util',
+  'v8',
+  'vm',
+  'worker_threads',
+  'zlib',
+]);
 const IGNORED_DIRECTORIES = new Set([
   '.git',
   '.turbo',
@@ -225,14 +266,39 @@ function resolveLocalSpecifier(specifier, importer) {
 }
 
 function globToRegExp(glob) {
-  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`^${escaped.replace(/\*/g, '[^/]*')}$`);
+  let source = '^';
+  for (let i = 0; i < glob.length; i += 1) {
+    const char = glob[i];
+    const next = glob[i + 1];
+    if (char === '*' && next === '*') {
+      const following = glob[i + 2];
+      if (following === '/') {
+        source += '(?:.*/)?';
+        i += 2;
+      } else {
+        source += '.*';
+        i += 1;
+      }
+    } else if (char === '*') {
+      source += '[^/]*';
+    } else if (/[.+^${}()|[\]\\]/.test(char)) {
+      source += `\\${char}`;
+    } else {
+      source += char;
+    }
+  }
+  source += '$';
+  return new RegExp(source);
 }
 
 function buildManifestIndex(manifest) {
   const modules = manifest.modules ?? {};
   const rootFileOwners = new Map(Object.entries(manifest.audit?.rootFileOwners ?? {}));
+  const serviceRootFileOwners = new Map(Object.entries(manifest.audit?.serviceRootFileOwners ?? {}));
   const ignoredRootFiles = new Set(manifest.audit?.ignoredRootFiles ?? []);
+  const browserSafeSourceGlobs = (manifest.audit?.browserSafeSourceGlobs ?? [])
+    .map((pattern) => ({ pattern, re: globToRegExp(pattern) }));
+  const browserSafeServiceFiles = new Set(manifest.audit?.browserSafeServiceFiles ?? []);
   const legacyShims = (manifest.audit?.legacyCompatibilityShims ?? [])
     .map((item) => ({
       path: item.path,
@@ -261,6 +327,8 @@ function buildManifestIndex(manifest) {
       pathOwners.push({
         module: moduleName,
         path: definition.path.replace(/\/+$/, ''),
+        excludedPaths: (definition.excludedPaths ?? []).map((item) => item.replace(/\/+$/, '')),
+        rootOnly: definition.rootOnly === true,
       });
     }
 
@@ -281,6 +349,8 @@ function buildManifestIndex(manifest) {
 
   return {
     entrypointOwners,
+    browserSafeServiceFiles,
+    browserSafeSourceGlobs,
     ignoredRootFiles,
     importExceptions,
     legacyShims,
@@ -288,6 +358,7 @@ function buildManifestIndex(manifest) {
     modules,
     pathOwners,
     rootFileOwners,
+    serviceRootFileOwners,
   };
 }
 
@@ -303,14 +374,20 @@ function moduleForPath(filePath, index) {
   const rest = filePath.slice('src/'.length);
   if (!rest) return null;
 
+  if (isDirectServiceRootFile(filePath)) {
+    return index.serviceRootFileOwners.get(filePath) ?? null;
+  }
+
   if (!rest.includes('/')) {
     if (index.rootFileOwners.has(filePath)) return index.rootFileOwners.get(filePath);
     const entrypointOwner = index.entrypointOwners.find((item) => item.re.test(filePath));
     return entrypointOwner?.module ?? null;
   }
 
-  const owner = index.pathOwners.find((item) => filePath === item.path || filePath.startsWith(`${item.path}/`));
+  const owner = matchingPathOwners(filePath, index)[0];
   if (owner) return owner.module;
+
+  if (filePath.startsWith('src/services/')) return null;
 
   const topLevel = rest.split('/')[0];
   return index.modules[topLevel] ? topLevel : null;
@@ -321,9 +398,29 @@ function boundaryModuleForPath(filePath, index) {
   return index.rootFileOwners.get(filePath) ?? null;
 }
 
+function isDirectServiceRootFile(filePath) {
+  if (!filePath.startsWith('src/services/')) return false;
+  return !filePath.slice('src/services/'.length).includes('/');
+}
+
 function isDirectRootFile(filePath) {
   if (!filePath.startsWith('src/')) return false;
   return !filePath.slice('src/'.length).includes('/');
+}
+
+function pathOwnerMatches(filePath, owner) {
+  if (filePath !== owner.path && !filePath.startsWith(`${owner.path}/`)) return false;
+  if (owner.rootOnly && filePath !== owner.path) {
+    const remainder = filePath.slice(`${owner.path}/`.length);
+    if (remainder.includes('/')) return false;
+  }
+  return !owner.excludedPaths.some((excludedPath) => (
+    filePath === excludedPath || filePath.startsWith(`${excludedPath}/`)
+  ));
+}
+
+function matchingPathOwners(filePath, index) {
+  return index.pathOwners.filter((owner) => pathOwnerMatches(filePath, owner));
 }
 
 function extractImports(filePath) {
@@ -362,9 +459,127 @@ function shouldIncludeModule(moduleName, args) {
   return args.modules.size === 0 || args.modules.has(moduleName);
 }
 
+function collectServiceDuplicateBasenames(files) {
+  const serviceFiles = files.filter((filePath) => filePath.startsWith('src/services/'));
+  const byBasename = new Map();
+  for (const filePath of serviceFiles) {
+    const basename = path.basename(filePath);
+    if (/^index\.[cm]?[jt]sx?$/.test(basename)) continue;
+    const paths = byBasename.get(basename) ?? [];
+    paths.push(filePath);
+    byBasename.set(basename, paths);
+  }
+
+  return [...byBasename.entries()]
+    .filter(([, paths]) => paths.length > 1)
+    .map(([basename, paths]) => ({
+      basename,
+      paths: paths.sort(compareStrings),
+      reason: 'duplicate src/services basename obscures canonical module ownership',
+    }))
+    .sort((a, b) => a.basename.localeCompare(b.basename));
+}
+
+function collectLegacySprintServiceFiles(files) {
+  return files
+    .filter((filePath) => (
+      filePath.startsWith('src/services/')
+      && /(?:^|\/)(?:cec-sprint\d+|sprint\d+[-\w]*)\.[cm]?[jt]sx?$/.test(filePath)
+    ))
+    .map((filePath) => ({
+      path: filePath,
+      module: 'services',
+      reason: 'legacy sprint-named service file should be renamed to the owned domain module',
+    }))
+    .sort(compareByPath);
+}
+
+function collectOwnershipConflicts(files, index) {
+  return files
+    .map((filePath) => {
+      if (!filePath.startsWith('src/')) return null;
+      const owners = new Set();
+      if (isDirectRootFile(filePath) && index.rootFileOwners.has(filePath)) {
+        owners.add(index.rootFileOwners.get(filePath));
+      }
+      if (isDirectServiceRootFile(filePath) && index.serviceRootFileOwners.has(filePath)) {
+        owners.add(index.serviceRootFileOwners.get(filePath));
+      }
+      for (const owner of matchingPathOwners(filePath, index)) {
+        owners.add(owner.module);
+      }
+      for (const entrypointOwner of index.entrypointOwners) {
+        if (entrypointOwner.re.test(filePath)) owners.add(entrypointOwner.module);
+      }
+      return owners.size > 1
+        ? {
+            file: filePath,
+            module: [...owners].sort(compareStrings).join(','),
+            reason: 'file matches more than one ownership family in src/module-ownership.json',
+          }
+        : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.file.localeCompare(b.file));
+}
+
+function matchesAnyGlob(filePath, patterns) {
+  return patterns.some((item) => item.re.test(filePath));
+}
+
+function collectBrowserUnsafeImports(index) {
+  const files = [
+    ...listFiles('src', (relative) => isSourceFile(relative)),
+    ...listFiles('web', (relative) => isSourceFile(relative)),
+  ].filter((filePath) => matchesAnyGlob(filePath, index.browserSafeSourceGlobs));
+  const findings = [];
+
+  for (const filePath of files) {
+    const importerModule = moduleForPath(filePath, index) ?? 'browser';
+    for (const item of extractImports(filePath)) {
+      const bare = stripNodePrefix(item.specifier);
+      if (HOST_ONLY_BUILTINS.has(bare)) {
+        findings.push({
+          file: filePath,
+          kind: item.kind,
+          line: item.line,
+          module: importerModule,
+          specifier: item.specifier,
+          targetModule: 'host-runtime',
+          reason: 'browser-safe ownership file imports a host-only Node builtin',
+        });
+        continue;
+      }
+
+      if (!isLocalSpecifier(item.specifier)) continue;
+      const target = resolveLocalSpecifier(item.specifier, filePath);
+      if (!target || !target.startsWith('src/services/')) continue;
+      if (index.browserSafeServiceFiles.has(target)) continue;
+
+      const targetModule = moduleForPath(target, index) ?? 'unknown-service';
+      findings.push({
+        file: filePath,
+        kind: item.kind,
+        line: item.line,
+        module: importerModule,
+        specifier: item.specifier,
+        target,
+        targetModule,
+        reason: 'browser-safe ownership file imports a service file that is not listed in audit.browserSafeServiceFiles',
+      });
+    }
+  }
+
+  return findings.sort(compareFindings);
+}
+
 function audit(manifest, args) {
   const index = buildManifestIndex(manifest);
   const allFiles = listFiles('src', (relative) => isAuditedFile(relative));
+  const serviceDuplicateBasenames = collectServiceDuplicateBasenames(allFiles);
+  const legacySprintServiceFiles = collectLegacySprintServiceFiles(allFiles);
+  const ownershipConflicts = collectOwnershipConflicts(allFiles, index);
+  const browserUnsafeImports = collectBrowserUnsafeImports(index);
   const moduleNames = Object.keys(index.modules).sort(compareStrings);
   const knownModuleFiles = new Map(moduleNames.map((moduleName) => [moduleName, []]));
   const rootDebt = [];
@@ -387,11 +602,13 @@ function audit(manifest, args) {
     }
 
     if (!owner) {
-      if (!directRoot && isAuditedFile(filePath)) {
+      if (isAuditedFile(filePath) && !index.ignoredRootFiles.has(filePath)) {
         unknownFiles.push({
           file: filePath,
           module: 'unknown',
-          reason: 'top-level path is not listed in src/module-ownership.json',
+          reason: isDirectServiceRootFile(filePath)
+            ? 'root service file is not listed in audit.serviceRootFileOwners'
+            : 'path is not listed in src/module-ownership.json',
         });
       }
       continue;
@@ -484,12 +701,20 @@ function audit(manifest, args) {
       forbiddenImports: forbiddenImports.length,
       legacyCompatibilityShims: scopedLegacyShims.length,
       legacyRootImportSpecifiers: scopedLegacyRootImportSpecifiers.length,
+      ownershipConflicts: ownershipConflicts.length,
+      browserUnsafeImports: browserUnsafeImports.length,
+      serviceDuplicateBasenames: serviceDuplicateBasenames.length,
+      legacySprintServiceFiles: legacySprintServiceFiles.length,
     },
     rootDebt: scopedRootDebt,
     unknownFiles: scopedUnknownFiles,
     forbiddenImports: forbiddenImports.sort(compareFindings),
+    ownershipConflicts,
+    browserUnsafeImports,
     legacyCompatibilityShims: scopedLegacyShims,
     legacyRootImportSpecifiers: scopedLegacyRootImportSpecifiers,
+    serviceDuplicateBasenames,
+    legacySprintServiceFiles,
   };
 }
 
@@ -503,6 +728,10 @@ function formatFindingLine(item) {
 function formatPathLine(item) {
   const replacement = item.replacement ? ` -> ${item.replacement}` : '';
   return `  - ${item.path} [${item.module ?? 'unknown'}]${replacement}: ${item.reason}`;
+}
+
+function formatDuplicateBasenameLine(item) {
+  return `  - ${item.basename}: ${item.reason}; paths=${item.paths.join(', ')}`;
 }
 
 function printSection(title, items, formatter) {
@@ -523,8 +752,12 @@ function printReport(result) {
   console.log(`root files: ${result.summary.rootFiles}`);
   console.log(`unknown files: ${result.summary.unknownFiles}`);
   console.log(`forbidden imports: ${result.summary.forbiddenImports}`);
+  console.log(`ownership conflicts: ${result.summary.ownershipConflicts}`);
+  console.log(`browser unsafe imports: ${result.summary.browserUnsafeImports}`);
   console.log(`legacy compatibility shims: ${result.summary.legacyCompatibilityShims}`);
   console.log(`legacy root import specifiers: ${result.summary.legacyRootImportSpecifiers}`);
+  console.log(`service duplicate basenames: ${result.summary.serviceDuplicateBasenames}`);
+  console.log(`legacy sprint service files: ${result.summary.legacySprintServiceFiles}`);
   console.log('');
   printSection('root files', result.rootDebt, formatFindingLine);
   console.log('');
@@ -532,9 +765,17 @@ function printReport(result) {
   console.log('');
   printSection('forbidden imports', result.forbiddenImports, formatFindingLine);
   console.log('');
+  printSection('ownership conflicts', result.ownershipConflicts, formatFindingLine);
+  console.log('');
+  printSection('browser unsafe imports', result.browserUnsafeImports, formatFindingLine);
+  console.log('');
   printSection('legacy compatibility shims', result.legacyCompatibilityShims, formatPathLine);
   console.log('');
   printSection('legacy root import specifiers', result.legacyRootImportSpecifiers, formatFindingLine);
+  console.log('');
+  printSection('service duplicate basenames', result.serviceDuplicateBasenames, formatDuplicateBasenameLine);
+  console.log('');
+  printSection('legacy sprint service files', result.legacySprintServiceFiles, formatPathLine);
 }
 
 function writeJson(relativeOrAbsolutePath, result) {
@@ -559,13 +800,20 @@ function main() {
 
   const failures = [];
   if (args.failOnUnknown && result.summary.unknownFiles > 0) failures.push('unknown files');
+  if (args.failOnUnknown && result.summary.ownershipConflicts > 0) failures.push('ownership conflicts');
   if (args.failOnForbidden && result.summary.forbiddenImports > 0) failures.push('forbidden imports');
+  if (args.failOnForbidden && result.summary.browserUnsafeImports > 0) failures.push('browser unsafe imports');
   if (args.failOnRootDebt && result.summary.rootFiles > 0) failures.push('root files');
   if (
     args.failOnLegacy
-    && (result.summary.legacyCompatibilityShims > 0 || result.summary.legacyRootImportSpecifiers > 0)
+    && (
+      result.summary.legacyCompatibilityShims > 0
+      || result.summary.legacyRootImportSpecifiers > 0
+      || result.summary.serviceDuplicateBasenames > 0
+      || result.summary.legacySprintServiceFiles > 0
+    )
   ) {
-    failures.push('legacy compatibility shims/imports');
+    failures.push('legacy compatibility shims/imports or duplicate/sprint services');
   }
 
   if (failures.length > 0) {

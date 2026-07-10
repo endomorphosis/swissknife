@@ -30,6 +30,9 @@ export default defineConfig({
     port: resolveLibp2pBrowserHarnessPort(),
     host: '127.0.0.1',
     strictPort: true,
+    watch: {
+      usePolling: true,
+    },
   },
 
   resolve: {

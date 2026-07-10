@@ -68,6 +68,11 @@ subprocess, terminal, native binary, Python, Pyodide, or remote host bridge
 dependencies. Browser-facing code should import only browser-safe service
 entrypoints or data-only descriptors.
 
+Cross-runtime service contracts that are shared by browser and host adapters
+live under `src/shared/service-contracts`. Browser entrypoints may import those
+contracts or explicit browser implementations, but must not import host
+implementations for type reuse.
+
 Host-only adapters belong behind explicit host entrypoints, host platform
 facades, or clearly named host files. A host adapter must not be exported from a
 browser-safe barrel.

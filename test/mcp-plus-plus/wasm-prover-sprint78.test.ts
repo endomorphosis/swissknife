@@ -6,7 +6,7 @@
 import { ProofStatus }               from '../../src/services/tdfol-prover';
 import { ALL_COMPLETENESS_RULES }    from '../../src/services/provers/tdfol-completeness-rules';
 import { isSubtypeOf, makeSort, formatDCECBracket, parseDCECBracket, dcecFormulaEquals, dcecFormulaHash } from '../../src/services/dcec-core-types';
-import { CognitiveOperator }         from '../../src/services/sprint66-dcec-types';
+import { CognitiveOperator }         from '../../src/services/deontic-cognitive-logic-types';
 import { toPropositionField, fromPropositionField } from '../../src/services/deontic-query-engine';
 import { toProofResultWire, fromProofResultWire }    from '../../src/services/logic-verifier';
 import { LegalDomainKind }           from '../../src/services/legal-domain-knowledge';

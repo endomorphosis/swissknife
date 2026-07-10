@@ -48,7 +48,7 @@ const fastTestMatch = [
   '<rootDir>/test/unit/utils/basic-simple.test.ts',
   '<rootDir>/test/unit/utils/comprehensive-utilities.test.ts',
   '<rootDir>/test/architecture/source-module-boundaries.test.js',
-  '<rootDir>/test/mcp-plus-plus/hierarchical-tools-evidence.test.js',
+  '<rootDir>/test/mcp-plus-plus/wasm-prover-browser-purity.test.ts',
 ];
 
 const serviceTestMatch = [

@@ -4,7 +4,7 @@ import {
   extractFolMetadata,
   formatFol,
   parseFolToJson,
-} from '../../src/services/fol-utils/logic-formatter';
+} from '../../src/services/fol-utils/fol-output-formatter';
 import {
   parseFol,
   parseLogicalOperators,

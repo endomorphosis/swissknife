@@ -64,10 +64,9 @@ const KNOWN_LITERAL_LOADERS: Record<string, () => Promise<Record<string, unknown
  * True runtime dynamic import for specifiers that are not statically known
  * above (either genuinely absent from this repo's dependency tree, such as
  * `@libp2p/gossipsub`, `@libp2p/mdns`, and `@libp2p/kad-dht`, or forced
- * "unavailable" by a Playwright scenario). Browsers cannot resolve bare
- * module specifiers without an import map, so this deterministically
- * reproduces the same "package unavailable" signal the production
- * `defaultImportModule` in libp2p-browser-runtime.ts relies on.
+ * "unavailable" by a Playwright scenario). The default evidence scenario does
+ * not use this override; it exercises the production literal-import loader in
+ * libp2p-browser-runtime.ts directly.
  */
 async function dynamicSpecifierImport(specifier: string): Promise<Record<string, unknown>> {
   return import(/* @vite-ignore */ specifier) as Promise<Record<string, unknown>>;
@@ -317,7 +316,9 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
   }
 
   const forcedMissing = new Set(SCENARIO_FORCED_MISSING[config.scenario]);
-  const importModule = buildImportModule(forcedMissing);
+  const runtimeOverrides = forcedMissing.size > 0
+    ? { importModule: buildImportModule(forcedMissing) }
+    : {};
 
   // Capability/gap assembly never requires real network connectivity, so it
   // is always computed and rendered first — independent of whether the
@@ -326,7 +327,8 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
   // scenarios where starting the node legitimately fails (e.g. no reachable
   // circuit-relay bootstrap peer).
   const { report } = await buildBrowserLibp2pConfig({
-    ...buildRuntimeOptions(config, importModule),
+    ...runtimeOverrides,
+    libp2pOptions: { addresses: { listen: config.listenMultiaddrs } },
   });
   renderCapabilities(report);
   renderGaps(report);
@@ -337,7 +339,8 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
     // control and time it explicitly below, independent of whatever
     // `createLibp2p`'s own default auto-start behavior is.
     const runtime = await createBrowserLibp2pNode({
-      ...buildRuntimeOptions(config, importModule, { libp2pOptions: { addresses: { listen: config.listenMultiaddrs }, start: false } }),
+      ...runtimeOverrides,
+      libp2pOptions: { addresses: { listen: config.listenMultiaddrs }, start: false },
     });
 
     const node = runtime.node as {

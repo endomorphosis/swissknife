@@ -2,121 +2,41 @@ import {
   buildBrowserLibp2pConfig,
   createBrowserLibp2pNode,
   summarizeBrowserLibp2pGaps,
-  type BrowserLibp2pRuntimeOptions,
   type BrowserLibp2pRuntimeReport,
 } from '../mcp/libp2p-browser-runtime.js';
+import type {
+  BrowserIPFSAddOptions,
+  BrowserIPFSAddResult,
+  BrowserIPFSApiOptions,
+  BrowserIPFSCapabilityGap,
+  BrowserIPFSCapabilityStatus,
+  BrowserIPFSCatOptions,
+  BrowserIPFSContent,
+  BrowserIPFSPinStatus,
+  BrowserIPFSRuntimeReport,
+  BrowserIPFSTransport,
+  BrowserIPFSTransportOptions,
+} from '../../shared/service-contracts/index.js';
 
-export type BrowserIPFSCapabilityName =
-  | 'gateway-read'
-  | 'http-api-read'
-  | 'http-api-write'
-  | 'http-api-pin'
-  | 'libp2p-runtime'
-  | 'libp2p-content-routing'
-  | 'libp2p-pubsub'
-  | 'daemon'
-  | 'filesystem'
-  | 'python'
-  | 'native-ipfs';
-
-export type BrowserIPFSAdapterKind = 'gateway' | 'http-api' | 'libp2p' | 'host-only';
-
-export interface BrowserIPFSCapabilityStatus {
-  name: BrowserIPFSCapabilityName;
-  adapter: BrowserIPFSAdapterKind;
-  supported: boolean;
-  enabled: boolean;
-  endpoint?: string;
-  reason?: string;
-}
-
-export interface BrowserIPFSCapabilityGap {
-  name: BrowserIPFSCapabilityName;
-  adapter: BrowserIPFSAdapterKind;
-  reason: string;
-}
-
-export interface BrowserIPFSRuntimeReport {
-  runtime: 'browser';
-  browserSafe: true;
-  capabilities: BrowserIPFSCapabilityStatus[];
-  gaps: BrowserIPFSCapabilityGap[];
-  hostOnly: BrowserIPFSCapabilityStatus[];
-  libp2p?: BrowserLibp2pRuntimeReport;
-}
-
-export interface BrowserIPFSGatewayOptions {
-  enabled?: boolean;
-  baseUrl?: string;
-  headers?: Record<string, string>;
-}
-
-export interface BrowserIPFSHttpApiOptions {
-  enabled?: boolean;
-  baseUrl?: string;
-  headers?: Record<string, string>;
-}
-
-export interface BrowserIPFSTransportOptions {
-  gateway?: BrowserIPFSGatewayOptions;
-  httpApi?: BrowserIPFSHttpApiOptions;
-  libp2p?: BrowserLibp2pRuntimeOptions & {
-    enabled?: boolean;
-    contentRouting?: boolean;
-    pubsub?: boolean;
-  };
-  fetch?: typeof globalThis.fetch;
-  requestTimeoutMs?: number;
-}
-
-export interface BrowserIPFSAddOptions {
-  filename?: string;
-  pin?: boolean;
-  wrapWithDirectory?: boolean;
-  cidVersion?: 0 | 1;
-  hashAlg?: string;
-}
-
-export interface BrowserIPFSAddResult {
-  cid: string;
-  size: number;
-  path?: string;
-}
-
-export interface BrowserIPFSPinStatus {
-  cid: string;
-  type: string;
-}
-
-export type BrowserIPFSContent =
-  | string
-  | Blob
-  | ArrayBuffer
-  | Uint8Array
-  | FormData;
-
-export interface BrowserIPFSCatOptions {
-  signal?: AbortSignal;
-  timeoutMs?: number;
-}
-
-export interface BrowserIPFSApiOptions extends BrowserIPFSCatOptions {
-  headers?: Record<string, string>;
-}
-
-export interface BrowserIPFSTransport {
-  readonly report: BrowserIPFSRuntimeReport;
-  cat(cidOrPath: string, options?: BrowserIPFSCatOptions): Promise<Uint8Array>;
-  catText(cidOrPath: string, options?: BrowserIPFSCatOptions): Promise<string>;
-  add(content: BrowserIPFSContent, options?: BrowserIPFSAddOptions & BrowserIPFSApiOptions): Promise<BrowserIPFSAddResult>;
-  pin(cid: string, options?: BrowserIPFSApiOptions & { recursive?: boolean }): Promise<boolean>;
-  unpin(cid: string, options?: BrowserIPFSApiOptions & { recursive?: boolean }): Promise<boolean>;
-  listPins(type?: string, options?: BrowserIPFSApiOptions): Promise<BrowserIPFSPinStatus[]>;
-  id(options?: BrowserIPFSApiOptions): Promise<unknown>;
-  version(options?: BrowserIPFSApiOptions): Promise<unknown>;
-  getLibp2pConfig(): Promise<{ config: Record<string, unknown>; report: BrowserLibp2pRuntimeReport }>;
-  createLibp2pNode(): Promise<{ node: unknown; config: Record<string, unknown>; report: BrowserLibp2pRuntimeReport }>;
-}
+export type {
+  BrowserIPFSAdapterKind,
+  BrowserIPFSAddOptions,
+  BrowserIPFSAddResult,
+  BrowserIPFSApiOptions,
+  BrowserIPFSCapabilityGap,
+  BrowserIPFSCapabilityName,
+  BrowserIPFSCapabilityStatus,
+  BrowserIPFSCatOptions,
+  BrowserIPFSContent,
+  BrowserIPFSGatewayOptions,
+  BrowserIPFSHttpApiOptions,
+  BrowserIPFSLibp2pRuntimeOptions,
+  BrowserIPFSLibp2pRuntimeReport,
+  BrowserIPFSPinStatus,
+  BrowserIPFSRuntimeReport,
+  BrowserIPFSTransport,
+  BrowserIPFSTransportOptions,
+} from '../../shared/service-contracts/index.js';
 
 const DEFAULT_GATEWAY_URL = 'https://ipfs.io';
 const DEFAULT_REQUEST_TIMEOUT_MS = 30000;
@@ -517,6 +437,6 @@ export function createBrowserIPFSTransport(
 export function summarizeBrowserIPFSCapabilityGaps(report: BrowserIPFSRuntimeReport): string[] {
   return [
     ...report.gaps.map(gap => `${gap.name} (${gap.adapter}): ${gap.reason}`),
-    ...(report.libp2p ? summarizeBrowserLibp2pGaps(report.libp2p) : []),
+    ...(report.libp2p ? summarizeBrowserLibp2pGaps(report.libp2p as BrowserLibp2pRuntimeReport) : []),
   ];
 }

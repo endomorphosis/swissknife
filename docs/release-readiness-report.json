@@ -1,90 +1,113 @@
 {
-  "schemaVersion": 2,
-  "taskId": "SWR-044",
-  "generatedAt": "2026-07-10T05:49:13.057Z",
-  "startedAt": "2026-07-10T05:49:12.246Z",
-  "durationMs": 811,
-  "commitSha": "9ea0c8e40e86b1e1822e38658b4dd28420430a30",
-  "overallStatus": "failed",
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-10T07:18:26.977Z",
+  "startedAt": "2026-07-10T07:17:41.094Z",
+  "durationMs": 45883,
+  "commitSha": "8af6e6ac9a0ccd66f320bbf79c9620276c20da76",
+  "overallStatus": "passed",
+  "stoppedEarly": null,
   "summary": {
-    "total": 1,
-    "passed": 0,
-    "failed": 1
-  },
-  "virtualDesktopReleaseEvidence": {
-    "status": "present",
-    "path": "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
-    "generatedAt": "2026-07-10T05:49:08.344Z",
-    "decision": "go",
-    "blockerCount": 0,
-    "warningCount": 1,
-    "representativeDecision": "go",
-    "allToolsDecision": "go",
-    "hierarchicalMcp": {
-      "decision": "go",
-      "evidenceDecision": "go",
-      "serviceCount": 3,
-      "availableServiceCount": 3,
-      "expectedLiveServices": [],
-      "servicesWithFullFacade": 3,
-      "dispatchProbeCount": 3,
-      "dispatchPassCount": 3,
-      "directOnlyDescriptorCount": 232,
-      "unexplainedFlatHierarchyGapCount": 0,
-      "staleLiveServiceEvidence": [],
-      "availabilityMismatches": [],
-      "missingFacadeByService": []
-    },
-    "blockers": [],
-    "warnings": [
-      "232 MCP descriptors remain direct-only and are explicitly accounted for in hierarchical MCP evidence."
-    ]
+    "total": 12,
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0
   },
   "gates": [
     {
+      "id": "browser-service-regression-sentinel",
+      "label": "Browser/service duplicate regression sentinel (SWR-095)",
+      "status": "passed",
+      "durationMs": 88,
+      "tail": [],
+      "findings": []
+    },
+    {
       "id": "services-audit",
       "label": "Service-boundary audit (services:audit)",
-      "status": "failed",
-      "durationMs": 808,
-      "tail": [
-        "> swissknife@0.0.53 services:audit",
-        "> node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden --fail-on-legacy --json docs/service-boundary-audit.json && node scripts/audit-release-evidence-freshness.mjs --update module-boundary-audit --json docs/release-evidence-freshness.json --report docs/release-evidence-freshness.md",
-        "source modules:audit",
-        "manifest: src/module-ownership.json (schema 1, version 2026-07-08)",
-        "modules: 46",
-        "root files: 15",
-        "unknown files: 0",
-        "forbidden imports: 3",
-        "legacy compatibility shims: 0",
-        "legacy root import specifiers: 0",
-        "root files: 15",
-        "  - src/cli-phase1.ts [entrypoints]: root source compatibility file with an explicit owner",
-        "  - src/cli-simple.ts [entrypoints]: root source compatibility file with an explicit owner",
-        "  - src/cli.ts [entrypoints]: root source compatibility file with an explicit owner",
-        "  - src/command-registry.ts [commands]: root source compatibility file with an explicit owner",
-        "  - src/commands.ts [commands]: root source compatibility file with an explicit owner",
-        "  - src/context.ts [commands]: root source compatibility file with an explicit owner",
-        "  - src/cost-tracker.ts [utils]: root source compatibility file with an explicit owner",
-        "  - src/history.ts [commands]: root source compatibility file with an explicit owner",
-        "  - src/index.ts [entrypoints]: root source compatibility file with an explicit owner",
-        "  - src/messages.ts [commands]: root source compatibility file with an explicit owner",
-        "  - src/permissions.ts [utils]: root source compatibility file with an explicit owner",
-        "  - src/ProjectOnboarding.tsx [components]: root source compatibility file with an explicit owner",
-        "  - src/query.ts [commands]: root source compatibility file with an explicit owner",
-        "  - src/Tool.ts [tools]: root source compatibility file with an explicit owner",
-        "  - src/tools.ts [tools]: root source compatibility file with an explicit owner",
-        "unknown files: 0",
-        "  - none",
-        "forbidden imports: 3",
-        "  - src/services/mcp/mcpClient.ts:38 [service-mcp] -> src/commands.ts (static-import \"../../commands.js\"): service-mcp forbids imports from commands",
-        "  - src/services/platform/claude.ts:11 [services] -> src/query.ts (static-import \"../../query.js\"): services forbids imports from commands",
-        "  - src/services/platform/vcr.ts:4 [services] -> src/query.ts (static-import \"../../query.js\"): services forbids imports from commands",
-        "legacy compatibility shims: 0",
-        "  - none",
-        "legacy root import specifiers: 0",
-        "  - none",
-        "source modules:audit failed on forbidden imports"
-      ]
+      "status": "passed",
+      "durationMs": 818,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "module-boundary-audit",
+      "label": "Repository module-boundary audit (audit:module-boundary)",
+      "status": "passed",
+      "durationMs": 773,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "typecheck",
+      "label": "TypeScript project typecheck (typecheck)",
+      "status": "passed",
+      "durationMs": 6771,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "test-fast",
+      "label": "Fast unit test lane (test:fast)",
+      "status": "passed",
+      "durationMs": 5377,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "test-browser-compat",
+      "label": "Browser compatibility lane (test:browser-compat)",
+      "status": "passed",
+      "durationMs": 8614,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "build-web",
+      "label": "Web bundle build + host-leakage/budget audit (build:web)",
+      "status": "passed",
+      "durationMs": 13183,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "bundle-host-leakage",
+      "label": "Web bundle host-leakage re-audit (audit:bundle-host-leakage)",
+      "status": "passed",
+      "durationMs": 6996,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "evidence-freshness",
+      "label": "Browser/libp2p release evidence freshness (evidence:freshness:check)",
+      "status": "passed",
+      "durationMs": 274,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "evidence-mcp-glasses",
+      "label": "MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)",
+      "status": "passed",
+      "durationMs": 2422,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "evidence-dashboard-consumer",
+      "label": "MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer)",
+      "status": "passed",
+      "durationMs": 560,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "skipped-gate-policy",
+      "label": "Skipped gate policy (explicit reason + browser-safety enforcement)",
+      "status": "passed",
+      "durationMs": 0,
+      "tail": [],
+      "findings": []
     }
   ]
 }

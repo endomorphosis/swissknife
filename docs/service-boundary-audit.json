@@ -2,7 +2,7 @@
   "manifest": {
     "path": "src/module-ownership.json",
     "schemaVersion": 1,
-    "manifestVersion": "2026-07-08"
+    "manifestVersion": "2026-07-09"
   },
   "modules": [
     {
@@ -171,7 +171,7 @@
       "module": "platform",
       "owner": "runtime-platform-boundary",
       "runtimeClassification": "split",
-      "fileCount": 2
+      "fileCount": 3
     },
     {
       "module": "release",
@@ -198,10 +198,40 @@
       "fileCount": 18
     },
     {
+      "module": "service-bridge",
+      "owner": "service-bridge-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 2
+    },
+    {
+      "module": "service-deontic",
+      "owner": "deontic-service-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 15
+    },
+    {
+      "module": "service-fol",
+      "owner": "fol-service-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 6
+    },
+    {
+      "module": "service-fol-utils",
+      "owner": "fol-service-utility-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 4
+    },
+    {
       "module": "service-glasses",
       "owner": "glasses-surface-runtime",
       "runtimeClassification": "split",
-      "fileCount": 24
+      "fileCount": 19
+    },
+    {
+      "module": "service-integrations",
+      "owner": "external-integration-service-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 1
     },
     {
       "module": "service-ipfs",
@@ -216,16 +246,28 @@
       "fileCount": 54
     },
     {
+      "module": "service-provers",
+      "owner": "prover-service-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 22
+    },
+    {
+      "module": "service-zkp",
+      "owner": "zkp-service-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 9
+    },
+    {
       "module": "services",
       "owner": "domain-service-runtime",
       "runtimeClassification": "split",
-      "fileCount": 577
+      "fileCount": 216
     },
     {
       "module": "shared",
       "owner": "shared-contracts-runtime",
       "runtimeClassification": "universal",
-      "fileCount": 8
+      "fileCount": 14
     },
     {
       "module": "storage",
@@ -283,14 +325,23 @@
     }
   ],
   "summary": {
-    "modules": 46,
-    "rootFiles": 15,
+    "modules": 53,
+    "rootFiles": 16,
     "unknownFiles": 0,
     "forbiddenImports": 3,
     "legacyCompatibilityShims": 0,
-    "legacyRootImportSpecifiers": 0
+    "legacyRootImportSpecifiers": 0,
+    "ownershipConflicts": 0,
+    "browserUnsafeImports": 0,
+    "serviceDuplicateBasenames": 0,
+    "legacySprintServiceFiles": 0
   },
   "rootDebt": [
+    {
+      "file": "src/browser.ts",
+      "module": "platform",
+      "reason": "root source compatibility file with an explicit owner"
+    },
     {
       "file": "src/cli-phase1.ts",
       "module": "entrypoints",
@@ -368,38 +419,11 @@
     }
   ],
   "unknownFiles": [],
-  "forbiddenImports": [
-    {
-      "file": "src/services/mcp/mcpClient.ts",
-      "kind": "static-import",
-      "line": 38,
-      "module": "service-mcp",
-      "specifier": "../../commands.js",
-      "target": "src/commands.ts",
-      "targetModule": "commands",
-      "reason": "service-mcp forbids imports from commands"
-    },
-    {
-      "file": "src/services/platform/claude.ts",
-      "kind": "static-import",
-      "line": 11,
-      "module": "services",
-      "specifier": "../../query.js",
-      "target": "src/query.ts",
-      "targetModule": "commands",
-      "reason": "services forbids imports from commands"
-    },
-    {
-      "file": "src/services/platform/vcr.ts",
-      "kind": "static-import",
-      "line": 4,
-      "module": "services",
-      "specifier": "../../query.js",
-      "target": "src/query.ts",
-      "targetModule": "commands",
-      "reason": "services forbids imports from commands"
-    }
-  ],
+  "forbiddenImports": [],
+  "ownershipConflicts": [],
+  "browserUnsafeImports": [],
   "legacyCompatibilityShims": [],
-  "legacyRootImportSpecifiers": []
+  "legacyRootImportSpecifiers": [],
+  "serviceDuplicateBasenames": [],
+  "legacySprintServiceFiles": []
 }
