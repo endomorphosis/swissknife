@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-10T05:27:41.861Z",
-  "startedAt": "2026-07-10T05:27:16.314Z",
-  "durationMs": 25547,
+  "generatedAt": "2026-07-10T05:42:20.526Z",
+  "startedAt": "2026-07-10T05:41:55.315Z",
+  "durationMs": 25211,
   "commitSha": "8af6e6ac9a0ccd66f320bbf79c9620276c20da76",
   "overallStatus": "failed",
   "stoppedEarly": "build-web",
@@ -121,42 +121,42 @@
       "id": "package-browser-exports",
       "label": "Package export browser leakage",
       "status": "passed",
-      "durationMs": 768,
+      "durationMs": 696,
       "tail": []
     },
     {
       "id": "browser-dependency-allowlist",
       "label": "Browser dependency allowlist drift",
       "status": "passed",
-      "durationMs": 711,
+      "durationMs": 615,
       "tail": []
     },
     {
       "id": "browser-wasm-integrity",
       "label": "Browser WASM integrity metadata",
       "status": "passed",
-      "durationMs": 5185,
+      "durationMs": 5006,
       "tail": []
     },
     {
       "id": "browser-deployment-policy",
       "label": "Browser deployment policy evidence",
       "status": "passed",
-      "durationMs": 3893,
+      "durationMs": 3958,
       "tail": []
     },
     {
       "id": "browser-smoke-evidence",
       "label": "Browser smoke evidence freshness",
       "status": "passed",
-      "durationMs": 7777,
+      "durationMs": 7697,
       "tail": []
     },
     {
       "id": "build-web",
       "label": "Web bundle build + host-leakage/budget audit (build:web)",
       "status": "failed",
-      "durationMs": 7207,
+      "durationMs": 7233,
       "tail": [
         "../dist/assets/p2p-chat-BKRNT_gM.js                  27.55 kB │ gzip:  6.06 kB",
         "../dist/assets/terminal-DCkEMWWa.js                  27.86 kB │ gzip:  7.56 kB",
@@ -182,20 +182,20 @@
         "../dist/assets/api-keys-BudxLkI9.js                  42.03 kB │ gzip:  8.72 kB",
         "../dist/assets/huggingface-kNxMl9sf.js               42.38 kB │ gzip:  6.54 kB",
         "../dist/assets/calculator-DxXtFSyX.js                43.18 kB │ gzip:  6.58 kB",
-        "../dist/assets/strudel-ai-daw-DRJqdvZl.js            48.67 kB │ gzip: 12.29 kB",
+        "../dist/assets/strudel-ai-daw-B6CQf7mq.js            48.67 kB │ gzip: 12.30 kB",
         "../dist/assets/training-manager-BbPciXRM.js          49.87 kB │ gzip: 10.62 kB",
-        "../dist/assets/index-CzrfZta-.js                     52.50 kB │ gzip: 11.77 kB",
+        "../dist/assets/index-CF9Z65rD.js                     52.50 kB │ gzip: 11.77 kB",
         "../dist/assets/ipfs-explorer-BI78ByE9.js             52.92 kB │ gzip: 11.89 kB",
         "../dist/assets/friends-list-CJhCm1zv.js              53.16 kB │ gzip: 11.62 kB",
         "../dist/assets/neural-photoshop-DFGyHC_i.js          66.89 kB │ gzip: 14.63 kB",
         "../dist/assets/file-manager-vsY99IO3.js              67.50 kB │ gzip: 14.49 kB",
-        "../dist/assets/mcp-control-DvGeqCdr.js               70.81 kB │ gzip: 14.35 kB",
-        "../dist/assets/p2p-network-CoGl4ID_.js               97.03 kB │ gzip: 17.69 kB",
-        "✓ built in 1.80s",
+        "../dist/assets/mcp-control-DBsKWBy7.js               70.81 kB │ gzip: 14.35 kB",
+        "../dist/assets/p2p-network-DhwQmoGt.js               97.03 kB │ gzip: 17.69 kB",
+        "✓ built in 2.03s",
         "> swissknife@0.0.53 bundle:audit:web",
         "> node scripts/audit-web-bundle.mjs --dist dist --report docs/browser-bundle-budget.md --json docs/browser-bundle-budget.json --fail-on-host-leakage --fail-on-default-pyodide && node scripts/audit-release-evidence-freshness.mjs --update browser-bundle-budget --json docs/release-evidence-freshness.json --report docs/release-evidence-freshness.md",
         "Audited 48 web bundle files (1.68 MiB raw, 368.4 KiB gzip).",
-        "libp2p: 8 chunk(s), 328.2 KiB raw.",
+        "libp2p: 8 chunk(s), 328.1 KiB raw.",
         "host leakage: 0; Python/Pyodide exposure: 17; default Pyodide: 0.",
         "FAIL: bundle budgets exceeded: libp2pRawBytes"
       ]

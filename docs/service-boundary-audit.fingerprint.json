@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "module-boundary-audit",
   "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
-  "generatedAt": "2026-07-10T05:28:11.736Z",
+  "generatedAt": "2026-07-10T05:41:55.989Z",
   "evidenceFiles": [
     "docs/service-boundary-audit.json"
   ],

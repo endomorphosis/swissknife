@@ -23,9 +23,9 @@
  *      regenerate on every release candidate (SWR-028 browser libp2p Playwright evidence, SWR-016
  *      bundle budget snapshot, SWR-024 module-boundary audit snapshot). Fails when the recorded
  *      evidence fingerprint no longer matches the current state of the source it depends on.
- *   9. virtual-desktop-release-evidence - aggregate virtual desktop, all-tools, and hierarchical
- *      MCP evidence into the release go/no-go gate.
- *   10. evidence:mcp-glasses       - MCP/glasses manifest + capability coverage evidence
+ *   9. evidence:mcp-glasses       - MCP/glasses manifest + capability coverage evidence
+ *   10. virtual-desktop-release-evidence - virtual desktop go/no-go evidence, including
+ *      hierarchical MCP facade and representative dispatch evidence.
  *   11. evidence:dashboard-consumer (optional, cross-repo) - MCP dashboard catalog/launch-gate
  *      receipt consistency against the live capability registry. Only runs when the sibling
  *      `hallucinate_app` checkout is present (monorepo/local dev); it is skipped, not failed,
@@ -659,6 +659,75 @@ function runNodeScript(scriptPath, extraArgs = []) {
   };
 }
 
+function runNodeScript(scriptPath, args = []) {
+  const startedAt = Date.now();
+  const result = spawnSync('node', [scriptPath, ...args], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    env: process.env,
+  });
+  const durationMs = Date.now() - startedAt;
+  const stdout = result.stdout ?? '';
+  const stderr = result.stderr ?? '';
+  const output = `${stdout}${stderr}`;
+  const tailLines = output.split('\n').filter((line) => line.trim().length > 0).slice(-40);
+
+  return {
+    ok: result.status === 0,
+    status: result.status,
+    durationMs,
+    tail: tailLines,
+  };
+}
+
+function runVirtualDesktopReleaseEvidenceGate() {
+  const capture = runNodeScript('scripts/capture-hierarchical-mcp-tools-evidence.cjs');
+  if (!capture.ok) return capture;
+
+  const build = runNodeScript('scripts/build-virtual-desktop-release-evidence.cjs');
+  const durationMs = capture.durationMs + build.durationMs;
+  const tail = [...capture.tail, ...build.tail].slice(-40);
+  if (!build.ok) {
+    return { ...build, durationMs, tail };
+  }
+
+  const evidencePath = abs('test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json');
+  let evidence;
+  try {
+    evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
+  } catch (error) {
+    return {
+      ok: false,
+      status: 1,
+      durationMs,
+      tail: [...tail, `Failed to read ${path.relative(repoRoot, evidencePath)}: ${error.message}`].slice(-40),
+    };
+  }
+
+  const decision = evidence.go_no_go?.decision ?? evidence.decision;
+  if (decision !== 'go') {
+    const blockers = evidence.go_no_go?.blockers ?? evidence.blockers ?? [];
+    return {
+      ok: false,
+      status: 1,
+      durationMs,
+      tail: [
+        ...tail,
+        `Virtual desktop release evidence decision: ${decision ?? 'unknown'}`,
+        ...blockers.slice(0, 20).map((blocker) => `- ${typeof blocker === 'string' ? blocker : JSON.stringify(blocker)}`),
+      ].slice(-40),
+    };
+  }
+
+  return {
+    ok: true,
+    status: 0,
+    durationMs,
+    tail,
+  };
+}
+
 function gitCommitSha() {
   const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' });
   return result.status === 0 ? result.stdout.trim() : null;
@@ -781,6 +850,11 @@ function main() {
       id: 'evidence-mcp-glasses',
       label: 'MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)',
       run: () => runNpmScript('evidence:mcp-glasses'),
+    },
+    {
+      id: 'virtual-desktop-release-evidence',
+      label: 'Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)',
+      run: () => runVirtualDesktopReleaseEvidenceGate(),
     },
   ];
 
