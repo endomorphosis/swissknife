@@ -539,7 +539,7 @@ const report = {
   exhaustive_all_tools_gate: {
     decision: allToolsDecision,
     blocker_count: allToolsBlockers.length,
-    blockers: allToolsBlockerTexts,
+    blockers: dedupe(allToolsBlockers),
   },
   go_no_go: {
     decision,
@@ -847,6 +847,44 @@ function releaseNextActions({ hierarchicalDecision, representativeDecision, allT
     actions.push('Close exhaustive all-tools release policy blockers and rebuild virtual desktop release evidence.');
   }
   return actions;
+}
+
+function buildSupervisorReleaseFreshness(report) {
+  const artifactEntries = Object.entries(report.artifacts ?? {}).map(([id, artifact]) => ({
+    id,
+    status: artifact.status,
+    required: Boolean(artifact.required),
+    path: artifact.path,
+    schema: artifact.schema ?? null,
+    generated_at: artifact.generated_at ?? null,
+    error: artifact.error ?? null,
+  }));
+  const staleArtifacts = artifactEntries
+    .filter(artifact => artifact.required && artifact.status !== 'present')
+    .map(artifact => artifact.id);
+
+  return {
+    schema: 'swissknife.all_tools_supervisor_release_freshness.v1',
+    generated_at: report.generated_at,
+    source_schema: report.schema,
+    source_report: 'test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json',
+    decision: report.go_no_go?.decision ?? 'unknown',
+    blocker_count: report.go_no_go?.blocker_count ?? 0,
+    warning_count: report.go_no_go?.warning_count ?? 0,
+    stale_artifact_count: staleArtifacts.length,
+    stale_artifacts: staleArtifacts,
+    hierarchical_mcp: {
+      decision: report.hierarchical_mcp?.release_gate_decision ?? report.hierarchical_mcp?.decision ?? 'unknown',
+      generated_at: report.hierarchical_mcp?.generated_at ?? null,
+      direct_only_descriptor_count: report.hierarchical_mcp?.direct_only_descriptor_count ?? null,
+      unexplained_flat_hierarchy_gap_count: report.hierarchical_mcp?.unexplained_flat_hierarchy_gap_count ?? null,
+    },
+    all_tools: {
+      decision: report.exhaustive_all_tools_gate?.decision ?? 'unknown',
+      blocker_count: report.exhaustive_all_tools_gate?.blocker_count ?? 0,
+    },
+    artifacts: artifactEntries,
+  };
 }
 
 function renderMarkdown(report) {

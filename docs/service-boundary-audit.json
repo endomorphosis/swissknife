@@ -195,31 +195,31 @@
       "module": "service-apps",
       "owner": "app-surface-runtime",
       "runtimeClassification": "universal",
-      "fileCount": 11
+      "fileCount": 18
     },
     {
       "module": "service-glasses",
       "owner": "glasses-surface-runtime",
       "runtimeClassification": "split",
-      "fileCount": 18
+      "fileCount": 24
     },
     {
       "module": "service-ipfs",
       "owner": "ipfs-descriptor-runtime",
       "runtimeClassification": "split",
-      "fileCount": 12
+      "fileCount": 14
     },
     {
       "module": "service-mcp",
       "owner": "mcp-protocol-runtime",
       "runtimeClassification": "split",
-      "fileCount": 29
+      "fileCount": 54
     },
     {
       "module": "services",
       "owner": "domain-service-runtime",
       "runtimeClassification": "split",
-      "fileCount": 277
+      "fileCount": 577
     },
     {
       "module": "shared",
@@ -286,7 +286,7 @@
     "modules": 46,
     "rootFiles": 15,
     "unknownFiles": 0,
-    "forbiddenImports": 0,
+    "forbiddenImports": 3,
     "legacyCompatibilityShims": 0,
     "legacyRootImportSpecifiers": 0
   },
@@ -368,7 +368,38 @@
     }
   ],
   "unknownFiles": [],
-  "forbiddenImports": [],
+  "forbiddenImports": [
+    {
+      "file": "src/services/mcp/mcpClient.ts",
+      "kind": "static-import",
+      "line": 38,
+      "module": "service-mcp",
+      "specifier": "../../commands.js",
+      "target": "src/commands.ts",
+      "targetModule": "commands",
+      "reason": "service-mcp forbids imports from commands"
+    },
+    {
+      "file": "src/services/platform/claude.ts",
+      "kind": "static-import",
+      "line": 11,
+      "module": "services",
+      "specifier": "../../query.js",
+      "target": "src/query.ts",
+      "targetModule": "commands",
+      "reason": "services forbids imports from commands"
+    },
+    {
+      "file": "src/services/platform/vcr.ts",
+      "kind": "static-import",
+      "line": 4,
+      "module": "services",
+      "specifier": "../../query.js",
+      "target": "src/query.ts",
+      "targetModule": "commands",
+      "reason": "services forbids imports from commands"
+    }
+  ],
   "legacyCompatibilityShims": [],
   "legacyRootImportSpecifiers": []
 }
