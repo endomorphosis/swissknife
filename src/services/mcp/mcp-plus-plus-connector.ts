@@ -225,6 +225,116 @@ export function splitDottedToolName(
   return { name };
 }
 
+export type HierarchicalToolAliasKind =
+  | 'canonical'
+  | 'dot_qualified'
+  | 'slash_qualified'
+  | 'underscore_qualified'
+  | 'bare';
+
+export interface HierarchicalToolRef {
+  category: string;
+  tool: string;
+  canonicalName: string;
+  requestedName: string;
+  aliasKind: HierarchicalToolAliasKind;
+}
+
+interface HierarchicalToolAliasIndex {
+  categories: string[];
+  toolsByCategory: Map<string, Set<string>>;
+  aliases: Map<string, HierarchicalToolRef>;
+  ambiguousAliases: Set<string>;
+}
+
+/**
+ * Split a user-facing hierarchical tool alias into a `{category, tool}` pair.
+ * Dotted (`category.tool`) and slash (`category/tool`) names are self-describing.
+ * Underscore-qualified names are only split when the category namespace is known,
+ * because dataset categories themselves contain underscores (`bespoke_tools`).
+ */
+export function splitHierarchicalToolAlias(
+  name: string,
+  knownCategories: readonly string[] = [],
+): { category: string; tool: string; aliasKind: HierarchicalToolAliasKind } | { name: string; aliasKind: 'bare' } {
+  const trimmed = name.trim();
+  const slash = trimmed.indexOf('/');
+  if (slash > 0 && slash < trimmed.length - 1) {
+    return { category: trimmed.slice(0, slash), tool: trimmed.slice(slash + 1), aliasKind: 'slash_qualified' };
+  }
+  const dot = trimmed.indexOf('.');
+  if (dot > 0 && dot < trimmed.length - 1) {
+    return { category: trimmed.slice(0, dot), tool: trimmed.slice(dot + 1), aliasKind: 'dot_qualified' };
+  }
+  const categories = [...knownCategories].filter(Boolean).sort((a, b) => b.length - a.length);
+  for (const category of categories) {
+    const prefix = `${category}_`;
+    if (trimmed.startsWith(prefix) && trimmed.length > prefix.length) {
+      return { category, tool: trimmed.slice(prefix.length), aliasKind: 'underscore_qualified' };
+    }
+  }
+  return { name: trimmed, aliasKind: 'bare' };
+}
+
+function extractCategoryNames(payload: any): string[] {
+  const rows = Array.isArray(payload?.categories)
+    ? payload.categories
+    : Array.isArray(payload)
+      ? payload
+      : [];
+  return rows
+    .map((row: any) => typeof row === 'string' ? row : row?.name ?? row?.category ?? row?.id)
+    .filter((name: any): name is string => typeof name === 'string' && name.length > 0);
+}
+
+function extractHierarchicalToolNames(payload: any): string[] {
+  const rows = Array.isArray(payload?.tools)
+    ? payload.tools
+    : Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.result?.tools)
+        ? payload.result.tools
+        : [];
+  return rows
+    .map((row: any) => typeof row === 'string' ? row : row?.name ?? row?.tool ?? row?.id)
+    .filter((name: any): name is string => typeof name === 'string' && name.length > 0);
+}
+
+function addHierarchicalToolAliases(index: HierarchicalToolAliasIndex, category: string, rawTool: string): void {
+  const leaf = rawTool.startsWith(`${category}.`)
+    ? rawTool.slice(category.length + 1)
+    : rawTool.startsWith(`${category}/`)
+      ? rawTool.slice(category.length + 1)
+      : rawTool.startsWith(`${category}_`)
+        ? rawTool.slice(category.length + 1)
+        : rawTool;
+  const ref: HierarchicalToolRef = {
+    category,
+    tool: leaf,
+    canonicalName: `${category}.${leaf}`,
+    requestedName: rawTool,
+    aliasKind: 'canonical',
+  };
+  const aliases: Array<[string, HierarchicalToolAliasKind]> = [
+    [leaf, 'canonical'],
+    [rawTool, rawTool === leaf ? 'canonical' : 'dot_qualified'],
+    [`${category}.${leaf}`, 'dot_qualified'],
+    [`${category}/${leaf}`, 'slash_qualified'],
+    [`${category}_${leaf}`, 'underscore_qualified'],
+  ];
+  for (const [alias, aliasKind] of aliases) {
+    if (!alias || index.ambiguousAliases.has(alias)) continue;
+    const existing = index.aliases.get(alias);
+    if (existing && (existing.category !== ref.category || existing.tool !== ref.tool)) {
+      index.aliases.delete(alias);
+      index.ambiguousAliases.add(alias);
+      continue;
+    }
+    if (existing) continue;
+    index.aliases.set(alias, { ...ref, requestedName: alias, aliasKind });
+  }
+}
+
 // --- Server Connector ---
 
 export class MCPPPServerConnector {
@@ -237,6 +347,7 @@ export class MCPPPServerConnector {
   private session: MCPp2pSession | null = null;
   /** Underlying libp2p transport, owned for teardown on disconnect(). */
   private libp2pTransport: Libp2pTransport | null = null;
+  private hierarchicalAliasIndex: Promise<HierarchicalToolAliasIndex> | null = null;
 
   constructor(config: MCPPPServerConfig) {
     this.config = config;
@@ -458,17 +569,103 @@ export class MCPPPServerConnector {
    * meta-tool requires) or an explicit `{category, tool}` param object.
    */
   async getToolSchema(nameOrParams: string | Record<string, any>): Promise<any> {
-    const params = typeof nameOrParams === 'string' ? splitDottedToolName(nameOrParams) : nameOrParams;
+    const params = typeof nameOrParams === 'string'
+      ? await this.resolveSchemaParams(nameOrParams)
+      : nameOrParams;
     return this.unwrapToolResult(
       await this.callTool('tools_get_schema', params),
     );
   }
 
   /** Dispatch a tool inside a category via the `tools_dispatch` meta-tool. */
-  async dispatch(category: string, tool: string, params: Record<string, any> = {}): Promise<any> {
+  async dispatch(category: string, tool: string, params: Record<string, any> = {}): Promise<any>;
+  async dispatch(name: string, params?: Record<string, any>): Promise<any>;
+  async dispatch(ref: { category: string; tool: string }, params?: Record<string, any>): Promise<any>;
+  async dispatch(
+    categoryOrName: string | { category: string; tool: string },
+    toolOrParams: string | Record<string, any> = {},
+    maybeParams: Record<string, any> = {},
+  ): Promise<any> {
+    if (typeof categoryOrName === 'object') {
+      return this.dispatchResolved(categoryOrName.category, categoryOrName.tool, toolOrParams as Record<string, any>);
+    }
+    if (typeof toolOrParams === 'string') {
+      return this.dispatchResolved(categoryOrName, toolOrParams, maybeParams);
+    }
+    try {
+      const resolved = await this.resolveHierarchicalToolAlias(categoryOrName);
+      if (resolved) return this.dispatchResolved(resolved.category, resolved.tool, toolOrParams);
+    } catch {
+      /* fall through to direct tools/call compatibility */
+    }
+    return this.unwrapToolResult(await this.callTool(categoryOrName, toolOrParams));
+  }
+
+  /** Dispatch a user-facing alias such as `cat.tool`, `cat/tool`, or `cat_tool`. */
+  async dispatchToolName(name: string, params: Record<string, any> = {}): Promise<any> {
+    return this.dispatch(name, params);
+  }
+
+  /**
+   * Resolve a user-facing alias against the live hierarchical facade. Returns
+   * null when the alias is not a listed hierarchy leaf, allowing callers to fall
+   * back to a direct tools/call descriptor when policy permits.
+   */
+  async resolveHierarchicalToolAlias(name: string): Promise<HierarchicalToolRef | null> {
+    const index = await this.getHierarchicalToolAliasIndex();
+    return index.aliases.get(name.trim()) ?? null;
+  }
+
+  private async dispatchResolved(category: string, tool: string, params: Record<string, any> = {}): Promise<any> {
     return this.unwrapToolResult(
       await this.callTool('tools_dispatch', { category, tool, params }),
     );
+  }
+
+  private async resolveSchemaParams(name: string): Promise<{ category: string; tool: string } | { name: string }> {
+    const direct = splitHierarchicalToolAlias(name);
+    if ('category' in direct && direct.aliasKind !== 'underscore_qualified') {
+      return { category: direct.category, tool: direct.tool };
+    }
+    if (direct.aliasKind === 'bare') {
+      const split = splitDottedToolName(name);
+      if ('category' in split) return split;
+    }
+    try {
+      const resolved = await this.resolveHierarchicalToolAlias(name);
+      if (resolved) return { category: resolved.category, tool: resolved.tool };
+    } catch {
+      /* fall through to pre-hierarchical {name} compatibility */
+    }
+    return { name };
+  }
+
+  private async getHierarchicalToolAliasIndex(): Promise<HierarchicalToolAliasIndex> {
+    if (!this.hierarchicalAliasIndex) {
+      this.hierarchicalAliasIndex = this.buildHierarchicalToolAliasIndex();
+    }
+    return this.hierarchicalAliasIndex;
+  }
+
+  private async buildHierarchicalToolAliasIndex(): Promise<HierarchicalToolAliasIndex> {
+    const categoriesPayload = await this.listCategories(true);
+    const categoryNames = extractCategoryNames(categoriesPayload);
+    const index: HierarchicalToolAliasIndex = {
+      categories: categoryNames,
+      toolsByCategory: new Map(),
+      aliases: new Map(),
+      ambiguousAliases: new Set(),
+    };
+
+    for (const category of categoryNames) {
+      const listed = await this.listToolsInCategory(category);
+      const toolNames = extractHierarchicalToolNames(listed);
+      index.toolsByCategory.set(category, new Set(toolNames));
+      for (const rawTool of toolNames) {
+        addHierarchicalToolAliases(index, category, rawTool);
+      }
+    }
+    return index;
   }
 
   /** Unwrap an MCP CallToolResult ({content:[{type:'text',text}]}) to plain data. */

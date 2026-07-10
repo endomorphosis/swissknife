@@ -1,98 +1,204 @@
 {
-  "schemaVersion": 2,
-  "taskId": "SWR-044",
-  "generatedAt": "2026-07-09T05:36:57.586Z",
-  "startedAt": "2026-07-09T05:36:52.417Z",
-  "durationMs": 5169,
-  "commitSha": "3448ace481a21b42a9ddecfb1a79923d834afd03",
-  "overallStatus": "passed",
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-10T05:27:41.861Z",
+  "startedAt": "2026-07-10T05:27:16.314Z",
+  "durationMs": 25547,
+  "commitSha": "8af6e6ac9a0ccd66f320bbf79c9620276c20da76",
+  "overallStatus": "failed",
+  "stoppedEarly": "build-web",
   "summary": {
-    "total": 7,
-    "passed": 7,
-    "failed": 0
+    "total": 6,
+    "passed": 5,
+    "failed": 1,
+    "skipped": 0
+  },
+  "virtualDesktopReleaseEvidence": {
+    "status": "present",
+    "path": "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
+    "generatedAt": "2026-07-10T05:26:24.369Z",
+    "decision": "go",
+    "blockerCount": 0,
+    "warningCount": 3,
+    "representativeDecision": "go",
+    "allToolsDecision": "go",
+    "hierarchicalMcp": {
+      "decision": "go",
+      "evidenceDecision": "go",
+      "serviceCount": 3,
+      "availableServiceCount": 0,
+      "expectedLiveServices": [],
+      "servicesWithFullFacade": 0,
+      "dispatchProbeCount": 0,
+      "dispatchPassCount": 0,
+      "directOnlyDescriptorCount": 0,
+      "unexplainedFlatHierarchyGapCount": 0,
+      "staleLiveServiceEvidence": [
+        {
+          "service": "ipfs_kit_py",
+          "source": "service_health.summary.available",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_datasets_py",
+          "source": "service_health.summary.available",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_accelerate_py",
+          "source": "service_health.summary.available",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_kit_py",
+          "source": "service_health.services",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_datasets_py",
+          "source": "service_health.services",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_accelerate_py",
+          "source": "service_health.services",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_kit_py",
+          "source": "descriptor_discovery.summary.live_discovery_available",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_datasets_py",
+          "source": "descriptor_discovery.summary.live_discovery_available",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_accelerate_py",
+          "source": "descriptor_discovery.summary.live_discovery_available",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_kit_py",
+          "source": "descriptor_discovery.services",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_datasets_py",
+          "source": "descriptor_discovery.services",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        },
+        {
+          "service": "ipfs_accelerate_py",
+          "source": "descriptor_discovery.services",
+          "source_generated_at": "2026-07-10T02:24:26.228Z",
+          "hierarchical_generated_at": "2026-07-10T05:26:24.219Z"
+        }
+      ],
+      "availabilityMismatches": [],
+      "missingFacadeByService": []
+    },
+    "blockers": [],
+    "warnings": [
+      "Ignored 12 stale live-service expectations older than the hierarchical evidence batch: ipfs_kit_py from service_health.summary.available, ipfs_datasets_py from service_health.summary.available, ipfs_accelerate_py from service_health.summary.available, ipfs_kit_py from service_health.services, ipfs_datasets_py from service_health.services, ipfs_accelerate_py from service_health.services.",
+      "Hierarchical MCP evidence warning: Only 0/3 configured MCP services responded; set HIERARCHICAL_MCP_REQUIRE_LIVE=1 to make endpoint availability a hard validation failure.",
+      "Hierarchical MCP evidence observed 0/3 configured services live."
+    ]
   },
   "gates": [
     {
       "id": "package-browser-exports",
       "label": "Package export browser leakage",
       "status": "passed",
-      "durationMs": 13,
-      "detail": [
-        "browser-relevant package targets: 49",
-        "scanned files: web/src/swissknife-browser-core.ts, src/ai/browser.ts, src/components/browser/index.ts, src/hooks/browser/index.ts, src/services/ipfs/browser.ts, src/services/mcp/mcp-dashboard-browser-policy.ts, src/services/mcp/libp2p-browser-runtime.ts, src/models/browser.ts, src/platform/browser.ts, src/screens/browser/index.ts, src/storage/browser.ts, src/workers/browser.ts",
-        "package exports: declared"
-      ],
-      "failures": []
+      "durationMs": 768,
+      "tail": []
     },
     {
       "id": "browser-dependency-allowlist",
       "label": "Browser dependency allowlist drift",
       "status": "passed",
-      "durationMs": 1,
-      "detail": [
-        "allowlisted browser packages: 29",
-        "declared browser-critical packages checked: 29"
-      ],
-      "failures": []
+      "durationMs": 711,
+      "tail": []
     },
     {
       "id": "browser-wasm-integrity",
       "label": "Browser WASM integrity metadata",
       "status": "passed",
-      "durationMs": 2,
-      "detail": [
-        "checked artifacts: 5",
-        "policy docs: docs/browser-zkp-artifacts.md, docs/browser-wasm-asset-policy.md"
-      ],
-      "failures": []
+      "durationMs": 5185,
+      "tail": []
     },
     {
       "id": "browser-deployment-policy",
       "label": "Browser deployment policy evidence",
       "status": "passed",
-      "durationMs": 1,
-      "detail": [
-        "required evidence files: 4",
-        "service worker: present"
-      ],
-      "failures": []
+      "durationMs": 3893,
+      "tail": []
     },
     {
       "id": "browser-smoke-evidence",
       "label": "Browser smoke evidence freshness",
       "status": "passed",
-      "durationMs": 2,
-      "detail": [
-        "required receipts: 9",
-        "max age days: 14",
-        "capturedAt range: 2026-07-09T05:25:25.705Z .. 2026-07-09T05:26:09.566Z"
-      ],
-      "failures": []
+      "durationMs": 7777,
+      "tail": []
     },
     {
-      "id": "bundle-host-pyodide",
-      "label": "Built bundle host leakage and default Pyodide",
-      "status": "passed",
-      "durationMs": 5033,
-      "detail": [
-        "Audited 49 web bundle files (1.68 MiB raw, 368.1 KiB gzip).",
-        "libp2p: 7 chunk(s), 324.5 KiB raw.",
-        "host leakage: 0; Python/Pyodide exposure: 17; default Pyodide: 0."
-      ],
-      "failures": []
-    },
-    {
-      "id": "libp2p-evidence-freshness",
-      "label": "Browser libp2p evidence freshness",
-      "status": "passed",
-      "durationMs": 117,
-      "detail": [
-        "Release evidence freshness:",
-        "  - Browser libp2p Playwright evidence (SWR-028): fresh",
-        "  - Browser bundle budget evidence (SWR-016): fresh",
-        "  - Module-boundary / service-boundary audit evidence (SWR-024): fresh"
-      ],
-      "failures": []
+      "id": "build-web",
+      "label": "Web bundle build + host-leakage/budget audit (build:web)",
+      "status": "failed",
+      "durationMs": 7207,
+      "tail": [
+        "../dist/assets/p2p-chat-BKRNT_gM.js                  27.55 kB │ gzip:  6.06 kB",
+        "../dist/assets/terminal-DCkEMWWa.js                  27.86 kB │ gzip:  7.56 kB",
+        "../dist/assets/strudel-grandma-BLTjt66H.js           28.15 kB │ gzip:  7.06 kB",
+        "../dist/assets/clock-DTEI821Q.js                     29.45 kB │ gzip:  5.84 kB",
+        "../dist/assets/calendar-C9boqXjM.js                  29.49 kB │ gzip:  6.44 kB",
+        "../dist/assets/task-manager-Dw1XCIVR.js              29.97 kB │ gzip:  6.96 kB",
+        "../dist/assets/navi-BzJUTMhn.js                      30.44 kB │ gzip:  8.36 kB",
+        "../dist/assets/openrouter-X6isg24m.js                30.94 kB │ gzip:  6.03 kB",
+        "../dist/assets/neural-network-designer-DbHPmSiZ.js   32.09 kB │ gzip:  7.76 kB",
+        "../dist/assets/oauth-login-BIBz_IGK.js               32.29 kB │ gzip:  7.33 kB",
+        "../dist/assets/media-player-Dog2xcOh.js              32.99 kB │ gzip:  7.45 kB",
+        "../dist/assets/peertube-I9ShmDKZ.js                  33.21 kB │ gzip:  6.79 kB",
+        "../dist/assets/notes-DRk3rS59.js                     33.64 kB │ gzip:  8.05 kB",
+        "../dist/assets/model-browser-QPSo-nha.js             33.69 kB │ gzip:  8.15 kB",
+        "../dist/assets/ai-chat-DIGU9k4f.js                   34.31 kB │ gzip:  7.39 kB",
+        "../dist/assets/device-manager-BNnL1EZ0.js            34.69 kB │ gzip:  7.77 kB",
+        "../dist/assets/music-studio-unified-D96Hde8p.js      35.03 kB │ gzip:  7.29 kB",
+        "../dist/assets/github-C7z4FcBm.js                    35.65 kB │ gzip:  6.69 kB",
+        "../dist/assets/cron-BZ7azz3_.js                      35.75 kB │ gzip:  8.29 kB",
+        "../dist/assets/image-viewer-DBuvJ1x3.js              37.57 kB │ gzip:  7.49 kB",
+        "../dist/assets/system-monitor-DV0YDtb-.js            39.67 kB │ gzip:  8.06 kB",
+        "../dist/assets/api-keys-BudxLkI9.js                  42.03 kB │ gzip:  8.72 kB",
+        "../dist/assets/huggingface-kNxMl9sf.js               42.38 kB │ gzip:  6.54 kB",
+        "../dist/assets/calculator-DxXtFSyX.js                43.18 kB │ gzip:  6.58 kB",
+        "../dist/assets/strudel-ai-daw-DRJqdvZl.js            48.67 kB │ gzip: 12.29 kB",
+        "../dist/assets/training-manager-BbPciXRM.js          49.87 kB │ gzip: 10.62 kB",
+        "../dist/assets/index-CzrfZta-.js                     52.50 kB │ gzip: 11.77 kB",
+        "../dist/assets/ipfs-explorer-BI78ByE9.js             52.92 kB │ gzip: 11.89 kB",
+        "../dist/assets/friends-list-CJhCm1zv.js              53.16 kB │ gzip: 11.62 kB",
+        "../dist/assets/neural-photoshop-DFGyHC_i.js          66.89 kB │ gzip: 14.63 kB",
+        "../dist/assets/file-manager-vsY99IO3.js              67.50 kB │ gzip: 14.49 kB",
+        "../dist/assets/mcp-control-DvGeqCdr.js               70.81 kB │ gzip: 14.35 kB",
+        "../dist/assets/p2p-network-CoGl4ID_.js               97.03 kB │ gzip: 17.69 kB",
+        "✓ built in 1.80s",
+        "> swissknife@0.0.53 bundle:audit:web",
+        "> node scripts/audit-web-bundle.mjs --dist dist --report docs/browser-bundle-budget.md --json docs/browser-bundle-budget.json --fail-on-host-leakage --fail-on-default-pyodide && node scripts/audit-release-evidence-freshness.mjs --update browser-bundle-budget --json docs/release-evidence-freshness.json --report docs/release-evidence-freshness.md",
+        "Audited 48 web bundle files (1.68 MiB raw, 368.4 KiB gzip).",
+        "libp2p: 8 chunk(s), 328.2 KiB raw.",
+        "host leakage: 0; Python/Pyodide exposure: 17; default Pyodide: 0.",
+        "FAIL: bundle budgets exceeded: libp2pRawBytes"
+      ]
     }
   ]
 }

@@ -2,11 +2,43 @@
 /**
  * SWR-044: phase-11 browser hardening release readiness gate.
  *
- * This gate is intentionally explicit about the release blockers added by the
- * browser-hardening phase: browser package export leakage, dependency
- * allowlist drift, WASM integrity metadata, deployment policy evidence, stale
- * browser smoke evidence, built bundle host leakage, default Pyodide exposure,
- * and stale libp2p evidence.
+ * Runs the full set of release-blocking checks for the swissknife package in a
+ * single, deterministic sequence and emits a machine-readable report so CI and
+ * local release workflows fail fast on the first offending gate instead of
+ * silently skipping downstream checks.
+ *
+ * Gates (in order):
+ *   1. services:audit             - service-boundary drift (root/unknown/forbidden/legacy imports)
+ *   2. audit:module-boundary       - SWR-024 repository module-boundary audit (unknown/forbidden
+ *      imports across all top-level `src` modules; deterministic, CI-suitable, independent of the
+ *      `--fail-on-legacy` shim check that `services:audit` also performs).
+ *   3. typecheck                  - browser + host TypeScript project references
+ *   4. test:fast                  - fast unit lane
+ *   5. test:browser-compat        - static + runtime browser-compatibility lanes
+ *   6. build:web                  - production web bundle + bundle budget/host-leakage audit
+ *   7. audit:bundle-host-leakage   - SWR-016/SWR-029 explicit re-audit of the just-built `dist`
+ *      bundle for host-only leakage (Node core imports, subprocess APIs, native module loading,
+ *      filesystem APIs), independent confirmation on top of the audit embedded in `build:web`.
+ *   8. evidence:freshness:check    - SWR-029 staleness gate for evidence that is too expensive to
+ *      regenerate on every release candidate (SWR-028 browser libp2p Playwright evidence, SWR-016
+ *      bundle budget snapshot, SWR-024 module-boundary audit snapshot). Fails when the recorded
+ *      evidence fingerprint no longer matches the current state of the source it depends on.
+ *   9. virtual-desktop-release-evidence - aggregate virtual desktop, all-tools, and hierarchical
+ *      MCP evidence into the release go/no-go gate.
+ *   10. evidence:mcp-glasses       - MCP/glasses manifest + capability coverage evidence
+ *   11. evidence:dashboard-consumer (optional, cross-repo) - MCP dashboard catalog/launch-gate
+ *      receipt consistency against the live capability registry. Only runs when the sibling
+ *      `hallucinate_app` checkout is present (monorepo/local dev); it is skipped, not failed,
+ *      in a standalone `swissknife` checkout where that sibling repo does not exist.
+ *
+ * Usage:
+ *   node scripts/release-readiness-gate.mjs [--skip-build] [--json <path>] [--report <path>]
+ *
+ * Exit code is non-zero when any required gate fails. A JSON report is always
+ * written (default: docs/release-readiness-report.json) so failures/successes
+ * are auditable evidence for the release process, not just console noise.
+ *
+ * See docs/release-browser-gates.md (SWR-029) for the full policy this gate enforces.
  */
 
 import crypto from 'node:crypto';
@@ -605,6 +637,28 @@ function gateLibp2pEvidenceFreshness() {
   };
 }
 
+function runNodeScript(scriptPath, extraArgs = []) {
+  const startedAt = Date.now();
+  const result = spawnSync(process.execPath, [scriptPath, ...extraArgs], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    env: process.env,
+  });
+  const durationMs = Date.now() - startedAt;
+  const stdout = result.stdout ?? '';
+  const stderr = result.stderr ?? '';
+  const output = `${stdout}${stderr}`;
+  const tailLines = output.split('\n').filter((line) => line.trim().length > 0).slice(-40);
+
+  return {
+    ok: result.status === 0,
+    status: result.status,
+    durationMs,
+    tail: tailLines,
+  };
+}
+
 function gitCommitSha() {
   const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' });
   return result.status === 0 ? result.stdout.trim() : null;
@@ -614,76 +668,54 @@ function formatDuration(ms) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function runGate(id, label, fn) {
-  const startedAt = Date.now();
-  process.stdout.write(`\n> ${label}\n`);
-  try {
-    const outcome = fn();
-    const durationMs = outcome.durationMs ?? (Date.now() - startedAt);
-    const status = outcome.failures.length === 0 ? 'passed' : 'failed';
-    process.stdout.write(`  ${status === 'passed' ? 'PASS' : 'FAIL'} in ${formatDuration(durationMs)}\n`);
-    if (outcome.failures.length > 0) {
-      process.stdout.write(`${outcome.failures.join('\n')}\n`);
-    }
+function readVirtualDesktopReleaseEvidence() {
+  const relativePath = 'test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json';
+  const evidencePath = abs(relativePath);
+  if (!fs.existsSync(evidencePath)) {
     return {
-      id,
-      label,
-      status,
-      durationMs,
-      detail: outcome.detail ?? [],
-      failures: outcome.failures,
+      status: 'missing',
+      path: relativePath,
+      error: 'release evidence has not been generated',
+    };
+  }
+
+  try {
+    const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
+    const hierarchical = evidence.hierarchical_mcp ?? {};
+    return {
+      status: 'present',
+      path: relativePath,
+      generatedAt: evidence.generated_at ?? null,
+      decision: evidence.go_no_go?.decision ?? null,
+      blockerCount: evidence.go_no_go?.blocker_count ?? 0,
+      warningCount: evidence.go_no_go?.warning_count ?? 0,
+      representativeDecision: evidence.go_no_go?.representative_decision ?? null,
+      allToolsDecision: evidence.go_no_go?.all_tools_decision ?? null,
+      hierarchicalMcp: {
+        decision: hierarchical.release_gate_decision ?? hierarchical.decision ?? null,
+        evidenceDecision: hierarchical.decision ?? null,
+        serviceCount: hierarchical.service_count ?? null,
+        availableServiceCount: hierarchical.available_service_count ?? null,
+        expectedLiveServices: hierarchical.expected_live_services ?? [],
+        servicesWithFullFacade: hierarchical.services_with_full_facade ?? null,
+        dispatchProbeCount: hierarchical.dispatch_probe_count ?? null,
+        dispatchPassCount: hierarchical.dispatch_pass_count ?? null,
+        directOnlyDescriptorCount: hierarchical.direct_only_descriptor_count ?? null,
+        unexplainedFlatHierarchyGapCount: hierarchical.unexplained_flat_hierarchy_gap_count ?? null,
+        staleLiveServiceEvidence: hierarchical.stale_live_service_evidence ?? [],
+        availabilityMismatches: hierarchical.availability_mismatches ?? [],
+        missingFacadeByService: hierarchical.missing_facade_by_service ?? [],
+      },
+      blockers: evidence.go_no_go?.blockers ?? [],
+      warnings: evidence.go_no_go?.warnings ?? [],
     };
   } catch (error) {
-    const durationMs = Date.now() - startedAt;
-    const message = error instanceof Error ? error.stack ?? error.message : String(error);
-    process.stdout.write(`  FAIL in ${formatDuration(durationMs)}\n${message}\n`);
     return {
-      id,
-      label,
-      status: 'failed',
-      durationMs,
-      detail: [],
-      failures: [message],
+      status: 'invalid',
+      path: relativePath,
+      error: error instanceof Error ? error.message : String(error),
     };
   }
-}
-
-function writeReports(args, report) {
-  const jsonPath = abs(args.json);
-  fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
-  fs.writeFileSync(jsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-
-  const mdLines = [
-    '# Release Readiness Report',
-    '',
-    `Generated: ${report.generatedAt}`,
-    `Commit: ${report.commitSha ?? 'unknown'}`,
-    `Overall status: ${report.overallStatus.toUpperCase()}`,
-    `Duration: ${formatDuration(report.durationMs)}`,
-    '',
-    '| Gate | Status | Duration |',
-    '| --- | --- | --- |',
-    ...report.gates.map((gate) => `| ${gate.label} | ${gate.status.toUpperCase()} | ${formatDuration(gate.durationMs)} |`),
-    '',
-  ];
-
-  for (const gate of report.gates) {
-    mdLines.push(`## ${gate.label}`, '');
-    if (gate.detail.length > 0) {
-      mdLines.push('Detail:', '');
-      for (const line of gate.detail) mdLines.push(`- ${String(line).replace(/\n/g, '<br>')}`);
-      mdLines.push('');
-    }
-    if (gate.failures.length > 0) {
-      mdLines.push('Failures:', '');
-      for (const failure of gate.failures) mdLines.push(`- ${String(failure).replace(/\n/g, '<br>')}`);
-      mdLines.push('');
-    }
-  }
-
-  const mdPath = abs(args.report);
-  fs.mkdirSync(path.dirname(mdPath), { recursive: true });
-  fs.writeFileSync(mdPath, `${mdLines.join('\n')}\n`, 'utf8');
 }
 
 function main() {
@@ -694,18 +726,71 @@ function main() {
   }
 
   const startedAt = new Date();
-  const gates = [
-    runGate('package-browser-exports', 'Package export browser leakage', gatePackageBrowserExports),
-    runGate('browser-dependency-allowlist', 'Browser dependency allowlist drift', gateBrowserDependencyAllowlist),
-    runGate('browser-wasm-integrity', 'Browser WASM integrity metadata', gateWasmIntegrityMetadata),
-    runGate('browser-deployment-policy', 'Browser deployment policy evidence', gateDeploymentPolicyEvidence),
-    runGate('browser-smoke-evidence', 'Browser smoke evidence freshness', () => gateBrowserSmokeEvidence(args)),
-    runGate('bundle-host-pyodide', 'Built bundle host leakage and default Pyodide', gateBundleHostLeakageAndPyodide),
-    runGate('libp2p-evidence-freshness', 'Browser libp2p evidence freshness', gateLibp2pEvidenceFreshness),
+  const gates = [];
+  let stoppedEarly = null;
+
+  const requiredGates = [
+    {
+      id: 'services-audit',
+      label: 'Service-boundary audit (services:audit)',
+      run: () => runNpmScript('services:audit'),
+    },
+    {
+      id: 'module-boundary-audit',
+      label: 'Repository module-boundary audit (audit:module-boundary)',
+      run: () => runNpmScript('audit:module-boundary'),
+    },
+    {
+      id: 'typecheck',
+      label: 'TypeScript project typecheck (typecheck)',
+      run: () => runNpmScript('typecheck'),
+    },
+    {
+      id: 'test-fast',
+      label: 'Fast unit test lane (test:fast)',
+      run: () => runNpmScript('test:fast'),
+    },
+    {
+      id: 'test-browser-compat',
+      label: 'Browser compatibility lane (test:browser-compat)',
+      run: () => runNpmScript('test:browser-compat'),
+    },
+    {
+      id: 'build-web',
+      label: 'Web bundle build + host-leakage/budget audit (build:web)',
+      skip: args.skipBuild,
+      run: () => runNpmScript('build:web'),
+    },
+    {
+      id: 'bundle-host-leakage',
+      label: 'Web bundle host-leakage re-audit (audit:bundle-host-leakage)',
+      skip: args.skipBuild,
+      run: () => runNpmScript('audit:bundle-host-leakage'),
+    },
+    {
+      id: 'evidence-freshness',
+      label: 'Browser/libp2p release evidence freshness (evidence:freshness:check)',
+      run: () => runNpmScript('evidence:freshness:check'),
+    },
+    {
+      id: 'virtual-desktop-release-evidence',
+      label: 'Virtual desktop release evidence gate (build-virtual-desktop-release-evidence)',
+      run: () => runNodeScript('scripts/build-virtual-desktop-release-evidence.cjs'),
+    },
+    {
+      id: 'evidence-mcp-glasses',
+      label: 'MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)',
+      run: () => runNpmScript('evidence:mcp-glasses'),
+    },
   ];
 
   const finishedAt = new Date();
   const failed = gates.filter((gate) => gate.status === 'failed');
+  const passed = gates.filter((gate) => gate.status === 'passed');
+  const skipped = gates.filter((gate) => gate.status === 'skipped');
+  const overallStatus = failed.length > 0 ? 'failed' : 'passed';
+  const virtualDesktopReleaseEvidence = readVirtualDesktopReleaseEvidence();
+
   const report = {
     schemaVersion: 2,
     taskId: 'SWR-044',
@@ -719,10 +804,106 @@ function main() {
       passed: gates.length - failed.length,
       failed: failed.length,
     },
+    virtualDesktopReleaseEvidence,
     gates,
   };
 
-  writeReports(args, report);
+  const jsonPath = abs(args.json);
+  fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
+  fs.writeFileSync(jsonPath, `${JSON.stringify(report, null, 2)}\n`);
+
+  const mdLines = [
+    '# Release Readiness Report',
+    '',
+    `Generated: ${report.generatedAt}`,
+    `Commit: ${report.commitSha ?? 'unknown'}`,
+    `Overall status: ${overallStatus === 'passed' ? '✅ PASSED' : '❌ FAILED'}`,
+    `Duration: ${formatDuration(report.durationMs)}`,
+    '',
+    '| Gate | Status | Duration |',
+    '| --- | --- | --- |',
+    ...gates.map((gate) => {
+      const icon = gate.status === 'passed' ? '✅' : gate.status === 'failed' ? '❌' : '⏭️';
+      return `| ${gate.label} | ${icon} ${gate.status} | ${formatDuration(gate.durationMs)} |`;
+    }),
+    '',
+  ];
+  mdLines.push('## Virtual Desktop Release Evidence', '');
+  if (virtualDesktopReleaseEvidence.status !== 'present') {
+    mdLines.push(
+      `Status: ${virtualDesktopReleaseEvidence.status}`,
+      `Path: \`${virtualDesktopReleaseEvidence.path}\``,
+      `Error: ${virtualDesktopReleaseEvidence.error ?? 'none'}`,
+      '',
+    );
+  } else {
+    const hierarchical = virtualDesktopReleaseEvidence.hierarchicalMcp;
+    mdLines.push(
+      `Path: \`${virtualDesktopReleaseEvidence.path}\``,
+      `Decision: \`${virtualDesktopReleaseEvidence.decision}\``,
+      `Representative decision: \`${virtualDesktopReleaseEvidence.representativeDecision}\``,
+      `All-tools decision: \`${virtualDesktopReleaseEvidence.allToolsDecision}\``,
+      `Blockers: ${virtualDesktopReleaseEvidence.blockerCount}`,
+      `Warnings: ${virtualDesktopReleaseEvidence.warningCount}`,
+      '',
+      '### Hierarchical MCP',
+      '',
+      `Release gate decision: \`${hierarchical.decision}\``,
+      `Evidence decision: \`${hierarchical.evidenceDecision}\``,
+      `Services live: ${hierarchical.availableServiceCount ?? 'unknown'} / ${hierarchical.serviceCount ?? 'unknown'}`,
+      `Expected live services: ${(hierarchical.expectedLiveServices ?? []).join(', ') || 'none'}`,
+      `Full facade services: ${hierarchical.servicesWithFullFacade ?? 'unknown'} / ${hierarchical.serviceCount ?? 'unknown'}`,
+      `Dispatch probes: ${hierarchical.dispatchPassCount ?? 'unknown'} / ${hierarchical.dispatchProbeCount ?? 'unknown'}`,
+      `Direct-only descriptors: ${hierarchical.directOnlyDescriptorCount ?? 'unknown'}`,
+      `Unexplained flat hierarchy gaps: ${hierarchical.unexplainedFlatHierarchyGapCount ?? 'unknown'}`,
+      `Stale live-service expectations ignored: ${(hierarchical.staleLiveServiceEvidence ?? []).length}`,
+      '',
+    );
+    if ((hierarchical.availabilityMismatches ?? []).length > 0) {
+      mdLines.push('Availability mismatches:');
+      for (const mismatch of hierarchical.availabilityMismatches) {
+        mdLines.push(`- \`${mismatch.service}\`: ${mismatch.reason}`);
+      }
+      mdLines.push('');
+    }
+    if ((hierarchical.missingFacadeByService ?? []).length > 0) {
+      mdLines.push('Missing facade meta-tools:');
+      for (const service of hierarchical.missingFacadeByService) {
+        mdLines.push(`- \`${service.service}\`: ${(service.missing_meta_tools ?? []).join(', ')}`);
+      }
+      mdLines.push('');
+    }
+    if ((virtualDesktopReleaseEvidence.blockers ?? []).length > 0) {
+      mdLines.push('Release evidence blockers:');
+      for (const blocker of virtualDesktopReleaseEvidence.blockers.slice(0, 12)) {
+        mdLines.push(`- ${blocker}`);
+      }
+      if (virtualDesktopReleaseEvidence.blockers.length > 12) {
+        mdLines.push(`- ... ${virtualDesktopReleaseEvidence.blockers.length - 12} more`);
+      }
+      mdLines.push('');
+    }
+    if ((virtualDesktopReleaseEvidence.warnings ?? []).length > 0) {
+      mdLines.push('Release evidence warnings:');
+      for (const warning of virtualDesktopReleaseEvidence.warnings.slice(0, 12)) {
+        mdLines.push(`- ${warning}`);
+      }
+      if (virtualDesktopReleaseEvidence.warnings.length > 12) {
+        mdLines.push(`- ... ${virtualDesktopReleaseEvidence.warnings.length - 12} more`);
+      }
+      mdLines.push('');
+    }
+  }
+  if (failed.length > 0) {
+    mdLines.push('## Failure detail', '');
+    for (const gate of failed) {
+      mdLines.push(`### ${gate.label}`, '', '```', ...gate.tail, '```', '');
+    }
+  }
+
+  const mdPath = abs(args.report);
+  fs.mkdirSync(path.dirname(mdPath), { recursive: true });
+  fs.writeFileSync(mdPath, `${mdLines.join('\n')}\n`);
 
   process.stdout.write('\n' + '='.repeat(72) + '\n');
   process.stdout.write(`Release readiness: ${report.overallStatus.toUpperCase()} (${report.summary.passed} passed, ${report.summary.failed} failed)\n`);

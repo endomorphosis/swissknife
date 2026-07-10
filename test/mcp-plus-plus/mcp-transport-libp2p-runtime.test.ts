@@ -2,8 +2,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
   buildBrowserLibp2pConfig,
   createBrowserLibp2pNode,
+  getBrowserLibp2pDefaultStatus,
   summarizeBrowserLibp2pGaps,
   type BrowserLibp2pImport,
 } from '../../src/services/mcp/libp2p-browser-runtime.js';
@@ -122,6 +124,25 @@ describe('browser libp2p runtime defaults', () => {
       'gossipsub',
     ]);
     expect(summarizeBrowserLibp2pGaps(report).join('\n')).toContain('@libp2p/webrtc');
+  });
+
+  it('exports dashboard-facing default status with stable capability order and listen addresses', async () => {
+    const status = await getBrowserLibp2pDefaultStatus({
+      importModule: makeImporter(['@libp2p/gossipsub']),
+    });
+
+    expect(BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER).toEqual([
+      'webrtc',
+      'websockets',
+      'circuit-relay-v2',
+      'noise',
+      'yamux',
+      'identify',
+      'gossipsub',
+    ]);
+    expect(status.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(status.listenMultiaddrs).toEqual(['/webrtc']);
+    expect(status.report.capabilities.map(capability => capability.name)).toEqual(BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER);
   });
 
   it('creates libp2p with the assembled browser config and reports libp2p itself', async () => {

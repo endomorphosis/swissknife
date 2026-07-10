@@ -11,6 +11,7 @@
 import { describe, it, expect } from '@jest/globals';
 import {
   MCPPPServerConnector,
+  splitHierarchicalToolAlias,
   splitDottedToolName,
   type MCPPPServerConfig,
 } from '../../src/services/mcp/mcp-plus-plus-connector';
@@ -37,6 +38,36 @@ describe('splitDottedToolName', () => {
   it('falls back to { name } for malformed edge cases (leading/trailing dot)', () => {
     expect(splitDottedToolName('.foo')).toEqual({ name: '.foo' });
     expect(splitDottedToolName('foo.')).toEqual({ name: 'foo.' });
+  });
+});
+
+describe('splitHierarchicalToolAlias', () => {
+  it('accepts slash-qualified category/tool aliases', () => {
+    expect(splitHierarchicalToolAlias('bespoke_tools/system_status')).toEqual({
+      category: 'bespoke_tools',
+      tool: 'system_status',
+      aliasKind: 'slash_qualified',
+    });
+  });
+
+  it('splits underscore-qualified aliases only with known categories', () => {
+    expect(splitHierarchicalToolAlias('bespoke_tools_system_status', ['bespoke_tools'])).toEqual({
+      category: 'bespoke_tools',
+      tool: 'system_status',
+      aliasKind: 'underscore_qualified',
+    });
+    expect(splitHierarchicalToolAlias('bespoke_tools_system_status')).toEqual({
+      name: 'bespoke_tools_system_status',
+      aliasKind: 'bare',
+    });
+  });
+
+  it('prefers the longest known category for underscore-qualified aliases', () => {
+    expect(splitHierarchicalToolAlias('bespoke_tools_system_status', ['bespoke', 'bespoke_tools'])).toEqual({
+      category: 'bespoke_tools',
+      tool: 'system_status',
+      aliasKind: 'underscore_qualified',
+    });
   });
 });
 
@@ -82,5 +113,72 @@ describe('MCPPPServerConnector.getToolSchema wire shape', () => {
     const { connector } = makeConnector();
     const out = await connector.getToolSchema('core.health_check');
     expect(out).toEqual({ ok: true, echoed: { category: 'core', tool: 'health_check' } });
+  });
+});
+
+describe('MCPPPServerConnector hierarchical alias dispatch', () => {
+  function makeHierarchyConnector(): { connector: MCPPPServerConnector; calls: any[] } {
+    return makeHierarchyConnectorWithRows([{ name: 'bespoke_tools', tools: ['system_status'] }]);
+  }
+
+  function makeHierarchyConnectorWithRows(rows: Array<{ name: string; tools: string[] }>): { connector: MCPPPServerConnector; calls: any[] } {
+    const cfg: MCPPPServerConfig = {
+      name: 'ipfs-datasets',
+      transport: 'http',
+      baseUrl: 'http://127.0.0.1:3002',
+      mcpPath: '/mcp',
+      toolsPath: '/mcp/tools/list',
+      healthPath: '/mcp/tools/list',
+    };
+    const connector = new MCPPPServerConnector(cfg);
+    const calls: any[] = [];
+    (connector as any).callTool = async (name: string, args: any) => {
+      calls.push({ name, args });
+      if (name === 'tools_list_categories') {
+        return { content: [{ type: 'text', text: JSON.stringify({ categories: rows.map(row => ({ name: row.name, tool_count: row.tools.length })) }) }] };
+      }
+      if (name === 'tools_list_tools') {
+        return { content: [{ type: 'text', text: JSON.stringify({ category: args.category, tools: rows.find(row => row.name === args.category)?.tools ?? [] }) }] };
+      }
+      if (name === 'tools_dispatch') {
+        return { content: [{ type: 'text', text: JSON.stringify({ dispatched: `${args.category}.${args.tool}`, params: args.params }) }] };
+      }
+      return { content: [{ type: 'text', text: JSON.stringify({ direct: name, args }) }] };
+    };
+    return { connector, calls };
+  }
+
+  it('validates and dispatches dotted, slash, and underscore aliases through tools_dispatch', async () => {
+    for (const alias of ['bespoke_tools.system_status', 'bespoke_tools/system_status', 'bespoke_tools_system_status']) {
+      const { connector, calls } = makeHierarchyConnector();
+      const out = await connector.dispatch(alias, { verbose: true });
+      expect(out).toEqual({ dispatched: 'bespoke_tools.system_status', params: { verbose: true } });
+      expect(calls.at(-1)).toEqual({
+        name: 'tools_dispatch',
+        args: { category: 'bespoke_tools', tool: 'system_status', params: { verbose: true } },
+      });
+    }
+  });
+
+  it('falls back to direct tools/call for root policy descriptors that are not hierarchy leaves', async () => {
+    const { connector, calls } = makeHierarchyConnector();
+    const out = await connector.dispatch('policy_list', {});
+    expect(out).toEqual({ direct: 'policy_list', args: {} });
+    expect(calls.at(-1)).toEqual({ name: 'policy_list', args: {} });
+  });
+
+  it('does not route ambiguous bare aliases when category-qualified aliases are available', async () => {
+    const { connector, calls } = makeHierarchyConnectorWithRows([
+      { name: 'bespoke_tools', tools: ['status'] },
+      { name: 'monitoring_tools', tools: ['status'] },
+    ]);
+    await expect(connector.resolveHierarchicalToolAlias('status')).resolves.toBeNull();
+    await expect(connector.resolveHierarchicalToolAlias('bespoke_tools/status')).resolves.toMatchObject({
+      category: 'bespoke_tools',
+      tool: 'status',
+    });
+    const out = await connector.dispatch('status', {});
+    expect(out).toEqual({ direct: 'status', args: {} });
+    expect(calls.at(-1)).toEqual({ name: 'status', args: {} });
   });
 });

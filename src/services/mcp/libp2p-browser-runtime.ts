@@ -87,11 +87,9 @@ export interface BrowserLibp2pRuntimeConfig {
   report: BrowserLibp2pRuntimeReport;
 }
 
-export interface BrowserLibp2pDefaultStatus {
-  schema: 'swissknife.browser_libp2p_default_status.v1';
+export interface BrowserLibp2pDefaultStatus extends BrowserLibp2pRuntimeConfig {
   generatedAt: string;
   listenMultiaddrs: string[];
-  report: BrowserLibp2pRuntimeReport;
 }
 
 export interface BrowserLibp2pNodeRuntime extends BrowserLibp2pRuntimeConfig {
@@ -131,6 +129,16 @@ export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityNam
   'identify',
   'noise',
   'yamux',
+  'gossipsub',
+];
+
+export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
+  'webrtc',
+  'websockets',
+  'circuit-relay-v2',
+  'noise',
+  'yamux',
+  'identify',
   'gossipsub',
 ];
 
@@ -529,6 +537,20 @@ export async function getBrowserLibp2pDefaultStatus(
     generatedAt: new Date().toISOString(),
     listenMultiaddrs,
     report: runtime.report,
+  };
+}
+
+export async function getBrowserLibp2pDefaultStatus(
+  options: BrowserLibp2pRuntimeOptions = {},
+): Promise<BrowserLibp2pDefaultStatus> {
+  const runtime = await buildBrowserLibp2pConfig(options);
+  const addresses = asRecord(runtime.config.addresses);
+  return {
+    ...runtime,
+    generatedAt: new Date().toISOString(),
+    listenMultiaddrs: Array.isArray(addresses.listen)
+      ? addresses.listen.map(value => String(value))
+      : [],
   };
 }
 
