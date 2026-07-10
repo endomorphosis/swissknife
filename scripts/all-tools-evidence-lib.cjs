@@ -503,6 +503,13 @@ function extractTools(payload) {
   return [];
 }
 
+function preferredProbeSource(result, probeResults) {
+  for (const [source, candidate] of Object.entries(probeResults)) {
+    if (candidate === result) return source;
+  }
+  return 'unknown';
+}
+
 async function probeService(config) {
   const probes = [];
   const rpc = await fetchText(`${config.endpoint}${config.rpc_path}`, {
