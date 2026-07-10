@@ -599,6 +599,10 @@ function runCommand(command, commandArgs) {
   };
 }
 
+function runNpmScript(scriptName, extraArgs = []) {
+  return runCommand('npm', ['run', scriptName, ...(extraArgs.length ? ['--', ...extraArgs] : [])]);
+}
+
 function gateBundleHostLeakageAndPyodide() {
   if (!exists('dist')) {
     return {
@@ -640,28 +644,6 @@ function gateLibp2pEvidenceFreshness() {
 function runNodeScript(scriptPath, extraArgs = []) {
   const startedAt = Date.now();
   const result = spawnSync(process.execPath, [scriptPath, ...extraArgs], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-    env: process.env,
-  });
-  const durationMs = Date.now() - startedAt;
-  const stdout = result.stdout ?? '';
-  const stderr = result.stderr ?? '';
-  const output = `${stdout}${stderr}`;
-  const tailLines = output.split('\n').filter((line) => line.trim().length > 0).slice(-40);
-
-  return {
-    ok: result.status === 0,
-    status: result.status,
-    durationMs,
-    tail: tailLines,
-  };
-}
-
-function runNodeScript(scriptPath, args = []) {
-  const startedAt = Date.now();
-  const result = spawnSync('node', [scriptPath, ...args], {
     cwd: repoRoot,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
@@ -843,20 +825,41 @@ function main() {
     },
     {
       id: 'virtual-desktop-release-evidence',
-      label: 'Virtual desktop release evidence gate (build-virtual-desktop-release-evidence)',
-      run: () => runNodeScript('scripts/build-virtual-desktop-release-evidence.cjs'),
+      label: 'Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)',
+      run: () => runVirtualDesktopReleaseEvidenceGate(),
     },
     {
       id: 'evidence-mcp-glasses',
       label: 'MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)',
       run: () => runNpmScript('evidence:mcp-glasses'),
     },
-    {
-      id: 'virtual-desktop-release-evidence',
-      label: 'Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)',
-      run: () => runVirtualDesktopReleaseEvidenceGate(),
-    },
   ];
+
+  for (const gate of requiredGates) {
+    if (gate.skip) {
+      gates.push({ id: gate.id, label: gate.label, status: 'skipped', durationMs: 0, tail: [] });
+      continue;
+    }
+
+    process.stdout.write(`\n▶ ${gate.label}\n`);
+    const outcome = gate.run();
+    gates.push({
+      id: gate.id,
+      label: gate.label,
+      status: outcome.ok ? 'passed' : 'failed',
+      durationMs: outcome.durationMs,
+      tail: outcome.ok ? [] : outcome.tail,
+    });
+
+    if (outcome.ok) {
+      process.stdout.write(`  ✓ passed in ${formatDuration(outcome.durationMs)}\n`);
+    } else {
+      process.stdout.write(`  ✗ failed in ${formatDuration(outcome.durationMs)} (exit ${outcome.status})\n`);
+      process.stdout.write(`${outcome.tail.join('\n')}\n`);
+      stoppedEarly = gate.id;
+      break;
+    }
+  }
 
   const finishedAt = new Date();
   const failed = gates.filter((gate) => gate.status === 'failed');
