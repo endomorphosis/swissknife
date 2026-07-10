@@ -23,8 +23,10 @@
  *      regenerate on every release candidate (SWR-028 browser libp2p Playwright evidence, SWR-016
  *      bundle budget snapshot, SWR-024 module-boundary audit snapshot). Fails when the recorded
  *      evidence fingerprint no longer matches the current state of the source it depends on.
- *   9. evidence:mcp-glasses       - MCP/glasses manifest + capability coverage evidence
- *   10. evidence:dashboard-consumer (optional, cross-repo) - MCP dashboard catalog/launch-gate
+ *   9. virtual-desktop-release-evidence - aggregate virtual desktop, all-tools, and hierarchical
+ *      MCP evidence into the release go/no-go gate.
+ *   10. evidence:mcp-glasses       - MCP/glasses manifest + capability coverage evidence
+ *   11. evidence:dashboard-consumer (optional, cross-repo) - MCP dashboard catalog/launch-gate
  *      receipt consistency against the live capability registry. Only runs when the sibling
  *      `hallucinate_app` checkout is present (monorepo/local dev); it is skipped, not failed,
  *      in a standalone `swissknife` checkout where that sibling repo does not exist.
@@ -119,6 +121,28 @@ function runNpmScript(scriptName, extraArgs = []) {
   };
 }
 
+function runNodeScript(scriptPath, extraArgs = []) {
+  const startedAt = Date.now();
+  const result = spawnSync(process.execPath, [scriptPath, ...extraArgs], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    env: process.env,
+  });
+  const durationMs = Date.now() - startedAt;
+  const stdout = result.stdout ?? '';
+  const stderr = result.stderr ?? '';
+  const output = `${stdout}${stderr}`;
+  const tailLines = output.split('\n').filter((line) => line.trim().length > 0).slice(-40);
+
+  return {
+    ok: result.status === 0,
+    status: result.status,
+    durationMs,
+    tail: tailLines,
+  };
+}
+
 function gitCommitSha() {
   const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' });
   if (result.status !== 0) return null;
@@ -127,6 +151,56 @@ function gitCommitSha() {
 
 function formatDuration(ms) {
   return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function readVirtualDesktopReleaseEvidence() {
+  const relativePath = 'test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json';
+  const evidencePath = abs(relativePath);
+  if (!fs.existsSync(evidencePath)) {
+    return {
+      status: 'missing',
+      path: relativePath,
+      error: 'release evidence has not been generated',
+    };
+  }
+
+  try {
+    const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
+    const hierarchical = evidence.hierarchical_mcp ?? {};
+    return {
+      status: 'present',
+      path: relativePath,
+      generatedAt: evidence.generated_at ?? null,
+      decision: evidence.go_no_go?.decision ?? null,
+      blockerCount: evidence.go_no_go?.blocker_count ?? 0,
+      warningCount: evidence.go_no_go?.warning_count ?? 0,
+      representativeDecision: evidence.go_no_go?.representative_decision ?? null,
+      allToolsDecision: evidence.go_no_go?.all_tools_decision ?? null,
+      hierarchicalMcp: {
+        decision: hierarchical.release_gate_decision ?? hierarchical.decision ?? null,
+        evidenceDecision: hierarchical.decision ?? null,
+        serviceCount: hierarchical.service_count ?? null,
+        availableServiceCount: hierarchical.available_service_count ?? null,
+        expectedLiveServices: hierarchical.expected_live_services ?? [],
+        servicesWithFullFacade: hierarchical.services_with_full_facade ?? null,
+        dispatchProbeCount: hierarchical.dispatch_probe_count ?? null,
+        dispatchPassCount: hierarchical.dispatch_pass_count ?? null,
+        directOnlyDescriptorCount: hierarchical.direct_only_descriptor_count ?? null,
+        unexplainedFlatHierarchyGapCount: hierarchical.unexplained_flat_hierarchy_gap_count ?? null,
+        staleLiveServiceEvidence: hierarchical.stale_live_service_evidence ?? [],
+        availabilityMismatches: hierarchical.availability_mismatches ?? [],
+        missingFacadeByService: hierarchical.missing_facade_by_service ?? [],
+      },
+      blockers: evidence.go_no_go?.blockers ?? [],
+      warnings: evidence.go_no_go?.warnings ?? [],
+    };
+  } catch (error) {
+    return {
+      status: 'invalid',
+      path: relativePath,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 function main() {
@@ -182,6 +256,11 @@ function main() {
       id: 'evidence-freshness',
       label: 'Browser/libp2p release evidence freshness (evidence:freshness:check)',
       run: () => runNpmScript('evidence:freshness:check'),
+    },
+    {
+      id: 'virtual-desktop-release-evidence',
+      label: 'Virtual desktop release evidence gate (build-virtual-desktop-release-evidence)',
+      run: () => runNodeScript('scripts/build-virtual-desktop-release-evidence.cjs'),
     },
     {
       id: 'evidence-mcp-glasses',
@@ -261,6 +340,7 @@ function main() {
   const passed = gates.filter((gate) => gate.status === 'passed');
   const skipped = gates.filter((gate) => gate.status === 'skipped');
   const overallStatus = failed.length > 0 ? 'failed' : 'passed';
+  const virtualDesktopReleaseEvidence = readVirtualDesktopReleaseEvidence();
 
   const report = {
     schemaVersion: 1,
@@ -276,6 +356,7 @@ function main() {
       failed: failed.length,
       skipped: skipped.length,
     },
+    virtualDesktopReleaseEvidence,
     gates,
   };
 
@@ -299,6 +380,72 @@ function main() {
     }),
     '',
   ];
+  mdLines.push('## Virtual Desktop Release Evidence', '');
+  if (virtualDesktopReleaseEvidence.status !== 'present') {
+    mdLines.push(
+      `Status: ${virtualDesktopReleaseEvidence.status}`,
+      `Path: \`${virtualDesktopReleaseEvidence.path}\``,
+      `Error: ${virtualDesktopReleaseEvidence.error ?? 'none'}`,
+      '',
+    );
+  } else {
+    const hierarchical = virtualDesktopReleaseEvidence.hierarchicalMcp;
+    mdLines.push(
+      `Path: \`${virtualDesktopReleaseEvidence.path}\``,
+      `Decision: \`${virtualDesktopReleaseEvidence.decision}\``,
+      `Representative decision: \`${virtualDesktopReleaseEvidence.representativeDecision}\``,
+      `All-tools decision: \`${virtualDesktopReleaseEvidence.allToolsDecision}\``,
+      `Blockers: ${virtualDesktopReleaseEvidence.blockerCount}`,
+      `Warnings: ${virtualDesktopReleaseEvidence.warningCount}`,
+      '',
+      '### Hierarchical MCP',
+      '',
+      `Release gate decision: \`${hierarchical.decision}\``,
+      `Evidence decision: \`${hierarchical.evidenceDecision}\``,
+      `Services live: ${hierarchical.availableServiceCount ?? 'unknown'} / ${hierarchical.serviceCount ?? 'unknown'}`,
+      `Expected live services: ${(hierarchical.expectedLiveServices ?? []).join(', ') || 'none'}`,
+      `Full facade services: ${hierarchical.servicesWithFullFacade ?? 'unknown'} / ${hierarchical.serviceCount ?? 'unknown'}`,
+      `Dispatch probes: ${hierarchical.dispatchPassCount ?? 'unknown'} / ${hierarchical.dispatchProbeCount ?? 'unknown'}`,
+      `Direct-only descriptors: ${hierarchical.directOnlyDescriptorCount ?? 'unknown'}`,
+      `Unexplained flat hierarchy gaps: ${hierarchical.unexplainedFlatHierarchyGapCount ?? 'unknown'}`,
+      `Stale live-service expectations ignored: ${(hierarchical.staleLiveServiceEvidence ?? []).length}`,
+      '',
+    );
+    if ((hierarchical.availabilityMismatches ?? []).length > 0) {
+      mdLines.push('Availability mismatches:');
+      for (const mismatch of hierarchical.availabilityMismatches) {
+        mdLines.push(`- \`${mismatch.service}\`: ${mismatch.reason}`);
+      }
+      mdLines.push('');
+    }
+    if ((hierarchical.missingFacadeByService ?? []).length > 0) {
+      mdLines.push('Missing facade meta-tools:');
+      for (const service of hierarchical.missingFacadeByService) {
+        mdLines.push(`- \`${service.service}\`: ${(service.missing_meta_tools ?? []).join(', ')}`);
+      }
+      mdLines.push('');
+    }
+    if ((virtualDesktopReleaseEvidence.blockers ?? []).length > 0) {
+      mdLines.push('Release evidence blockers:');
+      for (const blocker of virtualDesktopReleaseEvidence.blockers.slice(0, 12)) {
+        mdLines.push(`- ${blocker}`);
+      }
+      if (virtualDesktopReleaseEvidence.blockers.length > 12) {
+        mdLines.push(`- ... ${virtualDesktopReleaseEvidence.blockers.length - 12} more`);
+      }
+      mdLines.push('');
+    }
+    if ((virtualDesktopReleaseEvidence.warnings ?? []).length > 0) {
+      mdLines.push('Release evidence warnings:');
+      for (const warning of virtualDesktopReleaseEvidence.warnings.slice(0, 12)) {
+        mdLines.push(`- ${warning}`);
+      }
+      if (virtualDesktopReleaseEvidence.warnings.length > 12) {
+        mdLines.push(`- ... ${virtualDesktopReleaseEvidence.warnings.length - 12} more`);
+      }
+      mdLines.push('');
+    }
+  }
   if (failed.length > 0) {
     mdLines.push('## Failure detail', '');
     for (const gate of failed) {

@@ -173,6 +173,7 @@
     "release:prepare": "npm run release:gate && npm run build:all && npm run security-audit",
     "release:publish": "npm run release:prepare && npm publish",
     "release:gate": "node scripts/release-readiness-gate.mjs",
+    "release:readiness": "npm run release:gate",
     "docker:build": "docker build -t swissknife:latest -f Dockerfile .",
     "docker:run": "docker run -p 3001:3001 swissknife:latest",
     "docker:push": "docker tag swissknife:latest hallucinate-llc/swissknife:latest && docker push hallucinate-llc/swissknife:latest",

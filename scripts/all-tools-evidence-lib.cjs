@@ -948,6 +948,9 @@ async function accelerateCompatTools(upstream) {
   const realTools = extractTools(real.json).map(name => ({ name: toolName(name), description: 'Real local ipfs_accelerate_py tool proxied through SwissKnife adapter.', inputSchema: { type: 'object' } }));
   const aliases = REQUIRED_ACCELERATE_TOOLS.map(name => ({ name, description: 'SwissKnife normalized ipfs_accelerate_py adapter alias.', inputSchema: { type: 'object', additionalProperties: true } }));
   const base = [
+    { name: 'tools_list_categories', description: 'Hierarchical facade: list ipfs_accelerate_py compatibility tool categories.', inputSchema: { type: 'object', properties: { include_count: { type: 'boolean', default: false } } } },
+    { name: 'tools_list_tools', description: 'Hierarchical facade: list ipfs_accelerate_py compatibility tools in a category.', inputSchema: { type: 'object', required: ['category'], properties: { category: { type: 'string' } } } },
+    { name: 'tools_get_schema', description: 'Hierarchical facade: get an ipfs_accelerate_py compatibility tool schema.', inputSchema: { type: 'object', properties: { category: { type: 'string' }, tool: { type: 'string' }, name: { type: 'string' } } } },
     { name: 'tools_dispatch', description: 'Dispatch an ipfs_accelerate_py compatibility tool by category and tool name.', inputSchema: { type: 'object', additionalProperties: true } },
     { name: 'hardware_recommend', description: 'Return local hardware recommendations for an inference workload.', inputSchema: { type: 'object', additionalProperties: true } },
     { name: 'get_hardware_info', description: 'Return local CPU and memory facts used by hardware recommendation.', inputSchema: { type: 'object' } },
@@ -961,6 +964,73 @@ async function accelerateCompatTools(upstream) {
 }
 
 async function callAccelerateCompatTool(upstream, name, args) {
+  if (name === 'tools_list_categories') {
+    const categories = accelerateCompatCategoryRows(await accelerateCompatTools(upstream));
+    return {
+      content: [{
+        type: 'json',
+        json: {
+          categories: categories.map(category => ({
+            name: category.name,
+            description: category.description,
+            tool_count: args?.include_count === false ? undefined : category.tools.length,
+          })),
+        },
+      }],
+      receipt: { adapter: 'swissknife-ipfs-accelerate-compat', upstream, tool: name },
+    };
+  }
+  if (name === 'tools_list_tools') {
+    const categoryName = args?.category ?? args?.name;
+    const category = accelerateCompatCategoryRows(await accelerateCompatTools(upstream))
+      .find(row => row.name === categoryName);
+    return {
+      content: [{
+        type: 'json',
+        json: {
+          category: categoryName,
+          tools: (category?.tools ?? []).map(tool => ({
+            name: tool.name,
+            description: tool.description ?? '',
+            inputSchema: tool.inputSchema ?? { type: 'object', additionalProperties: true },
+          })),
+        },
+      }],
+      receipt: { adapter: 'swissknife-ipfs-accelerate-compat', upstream, tool: name, category: categoryName },
+    };
+  }
+  if (name === 'tools_get_schema') {
+    const toolName = args?.tool ?? args?.name;
+    const tools = await accelerateCompatTools(upstream);
+    const tool = tools.find(candidate => candidate.name === toolName);
+    return {
+      content: [{
+        type: 'json',
+        json: {
+          category: args?.category ?? (tool ? categoryForAccelerateCompatTool(tool.name) : null),
+          tool: toolName,
+          inputSchema: tool?.inputSchema ?? { type: 'object', additionalProperties: true },
+        },
+      }],
+      receipt: { adapter: 'swissknife-ipfs-accelerate-compat', upstream, tool: name, requested_tool: toolName },
+    };
+  }
+  if (name === 'tools_dispatch') {
+    const toolName = args?.tool ?? args?.name;
+    const params = args?.params ?? args?.arguments ?? {};
+    const result = await callAccelerateCompatTool(upstream, toolName, params);
+    return {
+      ...result,
+      receipt: {
+        ...(result.receipt ?? {}),
+        adapter: 'swissknife-ipfs-accelerate-compat',
+        upstream,
+        tool: name,
+        dispatched_tool: toolName,
+        category: args?.category ?? null,
+      },
+    };
+  }
   if (name === 'get_hardware_info' || name === 'hardware_profile' || name === 'HardwareDetector.get_available_hardware') {
     return {
       content: [{ type: 'json', json: localHardwareInfo() }],
@@ -990,6 +1060,41 @@ async function callAccelerateCompatTool(upstream, name, args) {
     content: [{ type: 'json', json: response.json ?? response.body }],
     receipt: { adapter: 'swissknife-ipfs-accelerate-compat', upstream, tool: name, mapped_tool: mapped, upstream_status: response.status },
   };
+}
+
+function accelerateCompatCategoryRows(tools) {
+  const rows = new Map();
+  for (const tool of tools) {
+    if (!tool?.name || tool.name.startsWith('tools_')) continue;
+    const category = categoryForAccelerateCompatTool(tool.name);
+    if (!rows.has(category)) {
+      rows.set(category, {
+        name: category,
+        description: `ipfs_accelerate_py ${category} compatibility tools.`,
+        tools: [],
+      });
+    }
+    rows.get(category).tools.push(tool);
+  }
+  return Array.from(rows.values())
+    .map(row => ({
+      ...row,
+      tools: row.tools.sort((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function categoryForAccelerateCompatTool(name) {
+  const lower = String(name).toLowerCase();
+  if (/(hardware|device|cpu|gpu|cuda|metal|openvino|qualcomm|recommend|detect)/.test(lower)) return 'hardware';
+  if (/(status|health|metric|telemetry|dashboard|cache|performance|profile)/.test(lower)) return 'telemetry';
+  if (/(workflow|pipeline|template)/.test(lower)) return 'workflow';
+  if (/(docker|container|image)/.test(lower)) return 'docker';
+  if (/(task|job|queue|runner|worker|p2p)/.test(lower)) return 'tasks';
+  if (/(model|inference|endpoint|huggingface|hf|download|accelerate)/.test(lower)) return 'model';
+  if (name.includes('.')) return name.split('.')[0];
+  if (name.includes('_')) return name.split('_')[0];
+  return 'general';
 }
 
 function localHardwareInfo() {

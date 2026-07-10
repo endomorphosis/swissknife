@@ -57,6 +57,11 @@ export interface BrowserLibp2pRuntimeConfig {
   report: BrowserLibp2pRuntimeReport;
 }
 
+export interface BrowserLibp2pDefaultStatus extends BrowserLibp2pRuntimeConfig {
+  generatedAt: string;
+  listenMultiaddrs: string[];
+}
+
 export interface BrowserLibp2pNodeRuntime extends BrowserLibp2pRuntimeConfig {
   node: unknown;
 }
@@ -75,6 +80,16 @@ interface OptionalModuleLoad {
 }
 
 const DEFAULT_LISTEN_MULTIADDRS = ['/webrtc'];
+
+export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
+  'webrtc',
+  'websockets',
+  'circuit-relay-v2',
+  'noise',
+  'yamux',
+  'identify',
+  'gossipsub',
+];
 
 const MODULES = {
   libp2p: {
@@ -307,6 +322,20 @@ export async function buildBrowserLibp2pConfig(
   return {
     config,
     report: { enabled: true, capabilities: statuses, gaps },
+  };
+}
+
+export async function getBrowserLibp2pDefaultStatus(
+  options: BrowserLibp2pRuntimeOptions = {},
+): Promise<BrowserLibp2pDefaultStatus> {
+  const runtime = await buildBrowserLibp2pConfig(options);
+  const addresses = asRecord(runtime.config.addresses);
+  return {
+    ...runtime,
+    generatedAt: new Date().toISOString(),
+    listenMultiaddrs: Array.isArray(addresses.listen)
+      ? addresses.listen.map(value => String(value))
+      : [],
   };
 }
 
