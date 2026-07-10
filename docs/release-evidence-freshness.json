@@ -1,29 +1,29 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-10T07:47:55.234Z",
+  "generatedAt": "2026-07-10T11:21:21.777Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
       "label": "Browser libp2p Playwright evidence (SWR-028)",
-      "status": "stale",
+      "status": "fresh",
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-      "recordedFingerprint": "25c3d5c506f3af1e5baea11afc482464eb6f369d8f7fbc2c5377439a2a12fc9b",
-      "currentFingerprint": "25c3d5c506f3af1e5baea11afc482464eb6f369d8f7fbc2c5377439a2a12fc9b",
-      "recordedAt": "2026-07-10T06:53:52.786Z",
+      "recordedFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
+      "currentFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
+      "recordedAt": "2026-07-10T08:30:35.579Z",
       "regenerateHint": "npm run evidence:libp2p-browser"
     },
     {
       "id": "browser-bundle-budget",
       "label": "Browser bundle budget evidence (SWR-016)",
-      "status": "stale",
+      "status": "fresh",
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-      "recordedFingerprint": "509d2497794ede4163520399f2f43f92b2a4ac3a8440034fa8ee5eb393a5ab33",
-      "currentFingerprint": "a9bccf97848b9afb4fa09493b88324b6b25be07ab5abe4616f4748cc9199e47c",
-      "recordedAt": "2026-07-10T07:18:16.688Z",
+      "recordedFingerprint": "20c965bbcedd47d85e0fb8420a56d96670a7f51bf15b7bd3d4b94119ea734186",
+      "currentFingerprint": "20c965bbcedd47d85e0fb8420a56d96670a7f51bf15b7bd3d4b94119ea734186",
+      "recordedAt": "2026-07-10T11:21:12.629Z",
       "regenerateHint": "npm run build:web"
     },
     {
@@ -33,10 +33,22 @@
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-      "recordedFingerprint": "1c4d35b8fe6d3c26a41c979f6f8e4446f2d434e3950489cb757afe38b7b273ff",
-      "currentFingerprint": "1c4d35b8fe6d3c26a41c979f6f8e4446f2d434e3950489cb757afe38b7b273ff",
-      "recordedAt": "2026-07-10T07:47:55.234Z",
+      "recordedFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
+      "currentFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
+      "recordedAt": "2026-07-10T11:20:43.155Z",
       "regenerateHint": "npm run services:audit"
+    },
+    {
+      "id": "virtual-desktop-release-evidence",
+      "label": "Virtual desktop app matrix release evidence (SWR-103)",
+      "status": "fresh",
+      "updated": false,
+      "missingEvidenceFiles": [],
+      "missingSourceFiles": [],
+      "recordedFingerprint": "199654f872ec1e2af31d9402f863ed60d09e32cfe4bf03eab73feb13dbf3ff58",
+      "currentFingerprint": "199654f872ec1e2af31d9402f863ed60d09e32cfe4bf03eab73feb13dbf3ff58",
+      "recordedAt": "2026-07-10T11:21:21.481Z",
+      "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs"
     }
   ]
 }

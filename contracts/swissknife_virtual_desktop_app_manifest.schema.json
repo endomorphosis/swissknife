@@ -33,18 +33,24 @@
       "type": "object",
       "required": [
         "id",
+        "canonical_id",
         "aliases",
         "title",
         "category",
         "owner_module",
+        "launch_owner",
         "launch_kind",
         "capabilities",
         "service_families",
+        "backend_capabilities",
+        "orb_idl_state",
         "glasses_strategy",
+        "ux_scenarios",
         "required_test_coverage"
       ],
       "properties": {
         "id": { "$ref": "#/$defs/kebabId" },
+        "canonical_id": { "$ref": "#/$defs/kebabId" },
         "aliases": {
           "type": "array",
           "items": { "$ref": "#/$defs/kebabId" },
@@ -74,6 +80,7 @@
           "type": "string",
           "enum": ["platform", "mcp", "glasses", "ipfs", "integrations", "shared"]
         },
+        "launch_owner": { "$ref": "#/$defs/launchOwner" },
         "launch_kind": {
           "type": "string",
           "enum": ["static-app", "typescript-runtime", "idl-generated", "service-surface", "legacy-alias"]
@@ -123,7 +130,15 @@
           },
           "uniqueItems": true
         },
+        "backend_capabilities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/backendCapability" },
+          "uniqueItems": true
+        },
+        "local_only_rationale": { "type": "string", "minLength": 1 },
+        "orb_idl_state": { "$ref": "#/$defs/orbIdlState" },
         "glasses_strategy": { "$ref": "#/$defs/glassesStrategy" },
+        "ux_scenarios": { "$ref": "#/$defs/uxScenarios" },
         "required_test_coverage": {
           "type": "array",
           "minItems": 1,
@@ -137,6 +152,106 @@
           "type": "array",
           "items": { "type": "string" }
         }
+      },
+      "additionalProperties": false
+    },
+    "launchOwner": {
+      "type": "object",
+      "required": ["module", "source_sets"],
+      "properties": {
+        "module": {
+          "type": "string",
+          "enum": ["platform", "mcp", "glasses", "ipfs", "integrations", "shared"]
+        },
+        "component": { "type": "string" },
+        "source_sets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "web-index-desktop",
+              "web-index-start-menu",
+              "web-js-main",
+              "web-js-main-simple",
+              "browser-main",
+              "list-all-applications",
+              "batch-test-apps",
+              "docs-applications",
+              "glasses-registry",
+              "idl-generated"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "backendCapability": {
+      "type": "object",
+      "required": [
+        "id",
+        "service",
+        "capability",
+        "mcp_transport",
+        "mcp_plus_plus_transport",
+        "policy_class",
+        "receipt_strategy"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+        },
+        "service": {
+          "type": "string",
+          "enum": ["ipfs_kit_py", "ipfs_datasets_py", "ipfs_accelerate_py"]
+        },
+        "capability": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+        },
+        "mcp_transport": { "$ref": "#/$defs/transportEligibility" },
+        "mcp_plus_plus_transport": { "$ref": "#/$defs/transportEligibility" },
+        "policy_class": {
+          "type": "string",
+          "enum": ["read", "write", "heavy_compute", "credential", "external_network", "media_capture", "destructive"]
+        },
+        "receipt_strategy": {
+          "type": "string",
+          "enum": ["none", "descriptor", "receipt-required", "confirmation-receipt", "event-dag-receipt"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "transportEligibility": {
+      "type": "string",
+      "enum": ["eligible", "required", "not-eligible"]
+    },
+    "orbIdlState": {
+      "type": "object",
+      "required": ["state", "descriptor_owner", "mcp_plus_plus", "receipt_required"],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": ["generated", "manual", "not-required"]
+        },
+        "descriptor_owner": {
+          "type": "string",
+          "enum": ["idl-generated", "manual-registry", "local-only"]
+        },
+        "mcp_plus_plus": { "$ref": "#/$defs/transportEligibility" },
+        "receipt_required": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "uxScenarios": {
+      "type": "object",
+      "required": ["success", "fallback", "error"],
+      "properties": {
+        "success": { "type": "string", "minLength": 1 },
+        "fallback": { "type": "string", "minLength": 1 },
+        "error": { "type": "string", "minLength": 1 }
       },
       "additionalProperties": false
     },

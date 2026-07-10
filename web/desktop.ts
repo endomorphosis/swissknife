@@ -120,7 +120,7 @@ class MiniDesktop {
     const title = result.manifest?.name ?? appId;
     const w = this.makeWindow(title, appId);
     const content = w.querySelector('.window-content') as HTMLElement;
-    renderAppLoadResult(content, result);
+    await renderAppLoadResult(content, result, this);
     return result;
   }
   private makeWindow(title:string, appId = 'unknown'){ const w=document.createElement('div'); w.className='window'; w.dataset.appId=appId; Object.assign(w.style,{position:'absolute',left:'80px',top:'70px',width:'560px',height:'420px',background:'#181818',border:'1px solid #333',display:'flex',flexDirection:'column',zIndex:String(++this.z)}); w.innerHTML=`<div class="titlebar" style="background:#262626;color:#eee;padding:4px 8px;font-size:12px;cursor:move;display:flex;gap:6px;align-items:center"><span>🧪</span><div class="window-title" style="flex:1">${escapeHtml(title)}</div><button data-x style="background:#444;color:#fff;border:none;padding:2px 6px;border-radius:4px;cursor:pointer;font-size:11px">✕</button></div><div class="window-content" style="flex:1;overflow:auto;background:#111"></div>`; this.desktop.appendChild(w); (w.querySelector('[data-x]') as HTMLButtonElement).onclick=()=>w.remove(); return w; }
@@ -133,9 +133,20 @@ class MiniDesktop {
  * and remote-capability apps so the user sees *why*, instead of the app
  * silently failing to load.
  */
-export function renderAppLoadResult(container: HTMLElement, result: AppLoadResult): void {
+export async function renderAppLoadResult(container: HTMLElement, result: AppLoadResult, desktop?: unknown): Promise<void> {
   const smokePanel = renderToolSmokePanel(result.app_id);
   if (result.status === 'loaded') {
+    const moduleRecord = result.module as {
+      mountSwissKnifeApp?: (container: HTMLElement, options?: Record<string, unknown>) => unknown | Promise<unknown>;
+    } | undefined;
+    if (typeof moduleRecord?.mountSwissKnifeApp === 'function') {
+      await moduleRecord.mountSwissKnifeApp(container, { desktop });
+      if (smokePanel) {
+        container.insertAdjacentHTML('beforeend', smokePanel);
+        bindToolSmokePanel(container, result.app_id);
+      }
+      return;
+    }
     container.innerHTML = `<div style="padding:8px;color:#ddd;font:13px system-ui">Loaded app "${escapeHtml(result.app_id)}".</div>${smokePanel}`;
     bindToolSmokePanel(container, result.app_id);
     return;

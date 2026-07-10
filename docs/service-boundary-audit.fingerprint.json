@@ -2,19 +2,19 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "module-boundary-audit",
   "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
-  "generatedAt": "2026-07-10T07:47:55.234Z",
+  "generatedAt": "2026-07-10T11:20:43.155Z",
   "evidenceFiles": [
     "docs/service-boundary-audit.json"
   ],
-  "sourceFingerprint": "1c4d35b8fe6d3c26a41c979f6f8e4446f2d434e3950489cb757afe38b7b273ff",
+  "sourceFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
   "sourceFiles": [
     {
       "path": "scripts/audit-source-modules.mjs",
-      "sha256": "2c2b3edf24287efefb9d4c13e0879e92afa6ae5eb1ce9646563b269897822949"
+      "sha256": "fa828daabd0b0d5536451f403e10cbf9c267db4c7383eb58d111f69fef9341e8"
     },
     {
       "path": "src/module-ownership.json",
-      "sha256": "1ca69edc59b32dbc7494ca5ee2df086216fe7cb1f485e0a7c6867dca6a1dc4b3"
+      "sha256": "02fda8746d9d90e7f9e528ce5b58a34179959d5f4aae9335d156a940beb5d219"
     }
   ]
 }

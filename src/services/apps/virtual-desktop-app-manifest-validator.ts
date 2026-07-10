@@ -97,6 +97,10 @@ function validateAppEntry(
     errors.push(`${label}: id must be kebab-case`);
   }
 
+  if (app.canonical_id !== app.id) {
+    errors.push(`${label}: canonical_id must match id`);
+  }
+
   for (const alias of app.aliases) {
     if (!APP_ID_PATTERN.test(alias)) {
       errors.push(`${label}: alias ${alias} must be kebab-case`);
@@ -110,18 +114,54 @@ function validateAppEntry(
   if (!app.category) errors.push(`${label}: category is required`);
   if (!app.owner_module) errors.push(`${label}: owner_module is required`);
   if (!app.launch_kind) errors.push(`${label}: launch_kind is required`);
+  if (!app.launch_owner?.module) errors.push(`${label}: launch_owner.module is required`);
 
   requireNonEmptyArray(app.capabilities, `${label}: capabilities`, errors);
   requireNonEmptyArray(app.service_families, `${label}: service_families`, errors);
   requireNonEmptyArray(app.source_sets, `${label}: source_sets`, errors);
   requireNonEmptyArray(app.required_test_coverage, `${label}: required_test_coverage`, errors);
 
+  const remoteServices = app.service_families.filter(service =>
+    service === 'ipfs_kit_py' || service === 'ipfs_datasets_py' || service === 'ipfs_accelerate_py',
+  );
+  if (remoteServices.length > 0) {
+    requireNonEmptyArray(app.backend_capabilities, `${label}: backend_capabilities`, errors);
+  } else if (!app.local_only_rationale) {
+    errors.push(`${label}: local_only_rationale is required when no Python MCP backend service is used`);
+  }
+
+  for (const service of remoteServices) {
+    if (!app.backend_capabilities.some(capability => capability.service === service)) {
+      errors.push(`${label}: backend_capabilities must include ${service}`);
+    }
+  }
+
+  for (const capability of app.backend_capabilities ?? []) {
+    if (!capability.id || !capability.capability || !capability.service) {
+      errors.push(`${label}: every backend capability requires id, service, and capability`);
+    }
+    if (!capability.mcp_transport || !capability.mcp_plus_plus_transport) {
+      errors.push(`${label}: backend capability ${capability.id} must declare MCP and MCP++ transport eligibility`);
+    }
+    if (!capability.policy_class || !capability.receipt_strategy) {
+      errors.push(`${label}: backend capability ${capability.id} must declare policy_class and receipt_strategy`);
+    }
+  }
+
   if (!app.required_test_coverage.includes('manifest')) {
     errors.push(`${label}: required_test_coverage must include manifest`);
   }
 
+  if (!app.orb_idl_state?.state || !app.orb_idl_state?.descriptor_owner) {
+    errors.push(`${label}: orb_idl_state.state and orb_idl_state.descriptor_owner are required`);
+  }
+
   if (!app.glasses_strategy || !app.glasses_strategy.kind || !app.glasses_strategy.handoff) {
     errors.push(`${label}: glasses_strategy.kind and glasses_strategy.handoff are required`);
+  }
+
+  if (!app.ux_scenarios?.success || !app.ux_scenarios?.fallback || !app.ux_scenarios?.error) {
+    errors.push(`${label}: ux_scenarios.success, ux_scenarios.fallback, and ux_scenarios.error are required`);
   }
 
   if (app.launch_kind === 'idl-generated' && !app.source_sets.includes('idl-generated')) {

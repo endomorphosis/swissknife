@@ -137,16 +137,6 @@ const DEFAULT_BOOTSTRAP_PEERS = [DEFAULT_RELAY_MULTIADDR, DEFAULT_WEBSOCKET_BOOT
  * browser transport/capability status consistently.
  */
 export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
-  'webrtc',
-  'websockets',
-  'circuit-relay-v2',
-  'identify',
-  'noise',
-  'yamux',
-  'gossipsub',
-];
-
-export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
   'libp2p',
   'webrtc',
   'websockets',
@@ -565,24 +555,6 @@ export async function buildBrowserLibp2pConfig(
   };
 }
 
-export async function getBrowserLibp2pDefaultStatus(
-  options: BrowserLibp2pRuntimeOptions = {},
-): Promise<BrowserLibp2pDefaultStatus> {
-  const runtime = await buildBrowserLibp2pConfig(options);
-  const addresses = asRecord(runtime.config.addresses);
-  const listenMultiaddrs = Array.isArray(addresses.listen)
-    ? addresses.listen.map(value => String(value))
-    : [...DEFAULT_LISTEN_MULTIADDRS];
-
-  return {
-    schema: 'swissknife.browser_libp2p_default_status.v1',
-    generatedAt: new Date().toISOString(),
-    config: runtime.config,
-    listenMultiaddrs,
-    report: runtime.report,
-  };
-}
-
 export async function createBrowserLibp2pNode(
   options: BrowserLibp2pRuntimeOptions = {},
 ): Promise<BrowserLibp2pNodeRuntime> {
@@ -638,11 +610,13 @@ export async function getBrowserLibp2pDefaultStatus(
     : [...DEFAULT_LISTEN_MULTIADDRS];
 
   return {
+    schema: 'swissknife.browser_libp2p_default_status.v1',
     config: runtime.config,
     report: {
       enabled: runtime.report.enabled,
       capabilities: statuses,
       gaps,
+      bootstrap: runtime.report.bootstrap,
     },
     defaultEnabled: true,
     generatedAt: new Date().toISOString(),

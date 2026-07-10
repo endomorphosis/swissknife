@@ -245,6 +245,10 @@ test-results/*
 !test-results/browser-smoke-matrix/
 test-results/browser-smoke-matrix/*
 !test-results/browser-smoke-matrix/*.json
+!test-results/virtual-desktop-ipfs-mcp-orb/
+test-results/virtual-desktop-ipfs-mcp-orb/*
+!test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json
+!test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json
 benchmark-results/
 playwright-report/
 coverage/

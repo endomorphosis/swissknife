@@ -1,0 +1,1389 @@
+const APP_ID = 'agent-supervisor';
+const CONTRACT_SCHEMA = 'swissknife.agent_supervisor_console.v1';
+const CONTRACT_SCHEMA_REF = 'contracts/agent-supervisor-console.schema.json';
+
+const AGENT_SUPERVISOR_CONTRACT = Object.freeze({
+  schema: CONTRACT_SCHEMA,
+  app_id: APP_ID,
+  version: '0.1.0',
+  browser_safe: true,
+  schema_ref: CONTRACT_SCHEMA_REF,
+  owners: Object.freeze([
+    {
+      owner: 'ipfs_accelerate_py',
+      responsibility: 'Supervisor state, queue state, goal/subgoal state, redacted logs, and governed actions.',
+      state_authority: true,
+      evidence_authority: false,
+      search_authority: false,
+      governed_action_authority: true,
+    },
+    {
+      owner: 'ipfs_kit_py',
+      responsibility: 'Immutable evidence and receipt persistence for supervisor reads and governed requests.',
+      state_authority: false,
+      evidence_authority: true,
+      search_authority: false,
+      governed_action_authority: false,
+    },
+    {
+      owner: 'ipfs_datasets_py',
+      responsibility: 'Searchable task, goal, taskboard, and run-history indexes.',
+      state_authority: false,
+      evidence_authority: false,
+      search_authority: true,
+      governed_action_authority: false,
+    },
+  ]),
+  capabilities: Object.freeze([
+    capability('supervisor.health.read', 'Supervisor health', 'read', 'ipfs_accelerate_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.health.read', true),
+    capability('supervisor.queue.read', 'Supervisor queue', 'read', 'ipfs_accelerate_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.queue.read', true),
+    capability('supervisor.goals.read', 'Supervisor goals', 'read', 'ipfs_accelerate_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.goals.read', true),
+    capability('supervisor.subgoals.read', 'Supervisor subgoals', 'read', 'ipfs_accelerate_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.subgoals.read', true),
+    capability('supervisor.taskboard.links.read', 'Taskboard links', 'read', 'ipfs_datasets_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.taskboard.links.read', true),
+    capability('supervisor.logs.read', 'Supervisor logs', 'read', 'ipfs_accelerate_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.logs.read', true),
+    capability('supervisor.receipts.read', 'Supervisor receipts', 'read', 'ipfs_kit_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.receipts.read', false),
+    capability('supervisor.run-history.search', 'Run history search', 'read', 'ipfs_datasets_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.run_history.search', true),
+    capability('supervisor.prompt-steering.request', 'Prompt steering request', 'governed-write', 'ipfs_accelerate_py', 'confirm', ['mcp', 'mcp++'], 'agent_supervisor.prompt_steering.request', true),
+    capability('supervisor.task-control.request', 'Task control request', 'governed-write', 'ipfs_accelerate_py', 'privileged-control', ['mcp', 'mcp++'], 'agent_supervisor.task_control.request', true),
+  ]),
+  unavailable_states: Object.freeze([
+    'server_unavailable',
+    'transport_unavailable',
+    'capability_unavailable',
+    'index_stale',
+    'receipt_unavailable',
+    'not_configured',
+    'timeout',
+  ]),
+  denied_states: Object.freeze([
+    'policy_denied',
+    'confirmation_required',
+    'dependency_blocked',
+    'budget_exceeded',
+    'scope_not_allowed',
+    'invalid_target',
+  ]),
+  forbidden_browser_surfaces: Object.freeze([
+    'host_state_file_read',
+    'host_process_launch',
+    'direct_implementation_supervisor_call',
+    'unmediated_prompt_mutation',
+  ]),
+});
+
+const SAMPLE_SNAPSHOT = Object.freeze({
+  health: {
+    status: 'degraded',
+    active_goal_count: 2,
+    queued_task_count: 4,
+    running_task_count: 1,
+    server_time: '2026-07-10T12:00:00.000Z',
+    backends: [
+      backend('ipfs_accelerate_py', 'degraded', 'mcp++', 'rcpt-health-accelerate'),
+      backend('ipfs_datasets_py', 'available', 'libp2p', 'rcpt-health-datasets'),
+      backend('ipfs_kit_py', 'available', 'mcp', 'rcpt-health-kit'),
+    ],
+  },
+  goals: [
+    goal('SWR-105', 'Build the Agent Supervisor virtual-desktop application', 'running', ['SWR-105-ui', 'SWR-105-contract'], ['SWR-105-1', 'SWR-105-2']),
+    goal('SWR-106', 'Add governed prompt steering for goals, subgoals, and tasks', 'blocked', ['SWR-106-policy'], ['SWR-106-1']),
+  ],
+  subgoals: [
+    subgoal('SWR-105-ui', 'SWR-105', 'Goals tree, queue, active task, and receipt UI', 'running', ['SWR-105-1', 'SWR-105-2']),
+    subgoal('SWR-105-contract', 'SWR-105', 'Browser-safe contract cross-links and health panes', 'ready', ['SWR-105-3']),
+    subgoal('SWR-106-policy', 'SWR-106', 'Confirmation-gated steering request flow', 'blocked', ['SWR-106-1']),
+  ],
+  queue: [
+    queueItem('SWR-105-1', 'Render supervisor goals/subgoals tree', 'running', 'SWR-105', 'SWR-105-ui', []),
+    queueItem('SWR-105-2', 'Wire queue item to taskboard and receipts', 'ready', 'SWR-105', 'SWR-105-ui', ['SWR-105-1']),
+    queueItem('SWR-105-3', 'Publish browser-safe backend contract links', 'waiting', 'SWR-105', 'SWR-105-contract', []),
+    queueItem('SWR-106-1', 'Draft governed prompt steering confirmation flow', 'blocked', 'SWR-106', 'SWR-106-policy', ['SWR-105']),
+  ],
+  taskboardLinks: [
+    taskboardLink('SWR-105-1', 'supervisor', '#task/SWR-105-1', 'Supervisor queue record', 'running'),
+    taskboardLink('SWR-105-2', 'release-evidence', 'docs/agent-supervisor-console-security-model.md#receipts', 'Receipt evidence model', 'ready'),
+    taskboardLink('SWR-105-3', 'github', 'contracts/agent-supervisor-console.schema.json', 'Gateway JSON schema', 'waiting'),
+    taskboardLink('SWR-106-1', 'todo', 'implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#swr-106', 'Backlog dependency', 'blocked'),
+  ],
+  logs: [
+    logEntry('log-1', 'info', 'Queue snapshot loaded through the mediated read surface.', 'supervisor', 'SWR-105', false),
+    logEntry('log-2', 'warn', 'Live transport unavailable; cached index and receipt references are displayed.', 'task', 'SWR-105-2', true),
+    logEntry('log-3', 'info', 'Governed write capabilities are present but require confirmation.', 'goal', 'SWR-106', false),
+  ],
+  receipts: [
+    receipt('rcpt-health-accelerate', 'bafyagenthealthaccelerate', '2026-07-10T12:00:00.000Z'),
+    receipt('rcpt-task-SWR-105-1', 'bafyagenttask1051', '2026-07-10T12:01:00.000Z'),
+    receipt('rcpt-task-SWR-105-2', 'bafyagenttask1052', '2026-07-10T12:02:00.000Z'),
+    receipt('rcpt-run-SWR-105-1', 'bafyagentrun1051', '2026-07-10T12:03:00.000Z'),
+  ],
+  runHistory: [
+    runRecord('run-SWR-105-1', 'SWR-105', 'SWR-105-ui', 'SWR-105-1', 'running', 'rcpt-run-SWR-105-1'),
+    runRecord('run-SWR-105-2', 'SWR-105', 'SWR-105-contract', 'SWR-105-3', 'queued', 'rcpt-task-SWR-105-2'),
+  ],
+});
+
+export class AgentSupervisorApp {
+  constructor(desktop = null, options = {}) {
+    this.desktop = desktop;
+    this.options = options;
+    this.contract = options.contract || AGENT_SUPERVISOR_CONTRACT;
+    this.gateway = options.gateway || resolveBrowserGateway();
+    this.endpoint = options.endpoint || resolveGatewayEndpoint();
+    this.state = {
+      status: 'loading',
+      transportMode: 'fallback',
+      selectedGoalId: 'SWR-105',
+      selectedSubgoalId: 'SWR-105-ui',
+      selectedTaskId: 'SWR-105-1',
+      selectedReceiptId: 'rcpt-task-SWR-105-1',
+      activeTab: 'active',
+      steering: {
+        targetType: 'task',
+        targetId: 'SWR-105-1',
+        prompt: '',
+        confirm: false,
+        submitting: false,
+        result: null,
+        error: null,
+      },
+      snapshot: cloneSnapshot(SAMPLE_SNAPSHOT),
+      results: {},
+      errors: [],
+      lastUpdated: null,
+    };
+    this.container = null;
+  }
+
+  async initialize() {
+    await this.refresh({ silent: true });
+    return true;
+  }
+
+  async render() {
+    return this.renderShell();
+  }
+
+  bind(container) {
+    this.container = container;
+    this.bindEvents();
+    this.update();
+  }
+
+  async refresh({ silent = false } = {}) {
+    if (!silent) {
+      this.state.status = 'loading';
+      this.update();
+      await delay(60);
+    }
+
+    const live = await this.readLiveSnapshot();
+    if (live.ok) {
+      this.state.snapshot = live.snapshot;
+      this.state.results = live.results;
+      this.state.errors = live.errors;
+      this.state.transportMode = live.errors.length ? 'degraded' : 'live';
+      this.state.status = hasContent(live.snapshot) ? 'ready' : 'empty';
+    } else {
+      this.state.snapshot = cloneSnapshot(SAMPLE_SNAPSHOT);
+      this.state.results = live.results || {};
+      this.state.errors = live.errors.length ? live.errors : [{
+        capability_id: 'supervisor.health.read',
+        reason: 'not_configured',
+        message: 'No browser Agent Supervisor gateway transport is configured.',
+      }];
+      this.state.transportMode = 'fallback';
+      this.state.status = 'ready';
+    }
+    this.state.lastUpdated = new Date().toISOString();
+    this.ensureSelection();
+    this.update();
+  }
+
+  showEmptyState() {
+    this.state.status = 'empty';
+    this.state.transportMode = 'empty-fixture';
+    this.state.snapshot = emptySnapshot();
+    this.state.selectedGoalId = '';
+    this.state.selectedSubgoalId = '';
+    this.state.selectedTaskId = '';
+    this.state.selectedReceiptId = '';
+    this.state.steering.targetId = '';
+    this.state.steering.result = null;
+    this.state.steering.error = null;
+    this.state.errors = [];
+    this.state.lastUpdated = new Date().toISOString();
+    this.update();
+  }
+
+  showErrorState() {
+    this.state.status = 'error';
+    this.state.transportMode = 'error-fixture';
+    this.state.errors = [{
+      capability_id: 'supervisor.queue.read',
+      reason: 'transport_unavailable',
+      message: 'The browser gateway returned an unavailable state while preserving the cached contract surface.',
+    }];
+    this.update();
+  }
+
+  async readLiveSnapshot() {
+    const requests = {
+      health: ['supervisor.health.read', {}],
+      queue: ['supervisor.queue.read', { limit: 100 }],
+      goals: ['supervisor.goals.read', { limit: 100 }],
+      subgoals: ['supervisor.subgoals.read', { limit: 200 }],
+      taskboardLinks: ['supervisor.taskboard.links.read', { limit: 200 }],
+      logs: ['supervisor.logs.read', { limit: 50 }],
+      receipts: ['supervisor.receipts.read', { limit: 100 }],
+      runHistory: ['supervisor.run-history.search', { limit: 100 }],
+    };
+
+    const entries = await Promise.all(Object.entries(requests).map(async ([key, [capabilityId, payload]]) => {
+      const result = await this.invokeCapability(capabilityId, payload);
+      return [key, result];
+    }));
+
+    const results = Object.fromEntries(entries);
+    const errors = Object.values(results)
+      .filter(result => !isAvailableResult(result))
+      .map(result => ({
+        capability_id: result.capability_id,
+        reason: result.reason || result.state,
+        message: result.message || 'Capability did not return an available result.',
+      }));
+
+    const availableCount = Object.values(results).filter(isAvailableResult).length;
+    if (availableCount === 0) return { ok: false, results, errors };
+
+    const fallback = cloneSnapshot(SAMPLE_SNAPSHOT);
+    const snapshot = {
+      health: dataOr(results.health, fallback.health),
+      queue: listDataOr(results.queue, fallback.queue),
+      goals: listDataOr(results.goals, fallback.goals),
+      subgoals: listDataOr(results.subgoals, fallback.subgoals),
+      taskboardLinks: listDataOr(results.taskboardLinks, fallback.taskboardLinks),
+      logs: listDataOr(results.logs, fallback.logs),
+      receipts: listDataOr(results.receipts, fallback.receipts),
+      runHistory: listDataOr(results.runHistory, fallback.runHistory),
+    };
+    return { ok: true, snapshot, results, errors };
+  }
+
+  async invokeCapability(capabilityId, payload) {
+    const capability = this.contract.capabilities.find(item => item.id === capabilityId);
+    const invocation = {
+      capability_id: capabilityId,
+      owner: capability?.owner || 'ipfs_accelerate_py',
+      method: capability?.method || capabilityId,
+      access: capability?.access || 'read',
+      policy_class: capability?.policy_class || 'read',
+      payload,
+      correlation_id: `${APP_ID}-${Date.now()}-${capabilityId.replace(/[^a-z0-9]+/gi, '-')}`,
+    };
+
+    try {
+      if (this.gateway && typeof this.gateway.invoke === 'function') {
+        return normalizeGatewayResult(invocation, await this.gateway.invoke(invocation));
+      }
+      if (this.endpoint && typeof fetch === 'function') {
+        const response = await fetch(this.endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(invocation),
+        });
+        if (!response.ok) {
+          return unavailable(invocation, response.status === 408 ? 'timeout' : 'server_unavailable', `Gateway HTTP ${response.status}`);
+        }
+        return normalizeGatewayResult(invocation, await response.json());
+      }
+    } catch (error) {
+      return unavailable(invocation, 'transport_unavailable', error instanceof Error ? error.message : String(error));
+    }
+    if (capabilityId === 'supervisor.prompt-steering.request') {
+      return localPromptSteeringResult(invocation, this.state.snapshot);
+    }
+    return unavailable(invocation, 'not_configured', 'No browser gateway transport is configured.');
+  }
+
+  ensureSelection() {
+    const { snapshot } = this.state;
+    if (!snapshot.goals.some(goal => goal.goal_id === this.state.selectedGoalId)) {
+      this.state.selectedGoalId = snapshot.goals[0]?.goal_id || '';
+    }
+    if (!snapshot.subgoals.some(subgoal => subgoal.subgoal_id === this.state.selectedSubgoalId)) {
+      const selectedGoalSubgoal = snapshot.subgoals.find(item => item.goal_id === this.state.selectedGoalId);
+      this.state.selectedSubgoalId = selectedGoalSubgoal?.subgoal_id || snapshot.subgoals[0]?.subgoal_id || '';
+    }
+    if (!snapshot.queue.some(task => task.task_id === this.state.selectedTaskId)) {
+      this.state.selectedTaskId = snapshot.queue[0]?.task_id || '';
+    }
+    if (!snapshot.receipts.some(item => item.receipt_id === this.state.selectedReceiptId)) {
+      this.state.selectedReceiptId = snapshot.receipts[0]?.receipt_id || '';
+    }
+    if (!this.targetExists(this.state.steering.targetType, this.state.steering.targetId)) {
+      this.setSteeringTarget('task', this.state.selectedTaskId || snapshot.queue[0]?.task_id || '', { update: false });
+    }
+  }
+
+  targetExists(targetType, targetId) {
+    if (!targetId) return false;
+    const { goals, subgoals, queue } = this.state.snapshot;
+    if (targetType === 'goal') return goals.some(item => item.goal_id === targetId);
+    if (targetType === 'subgoal') return subgoals.some(item => item.subgoal_id === targetId);
+    return queue.some(item => item.task_id === targetId);
+  }
+
+  setSteeringTarget(targetType, targetId, { update = true } = {}) {
+    this.state.steering.targetType = targetType;
+    this.state.steering.targetId = targetId;
+    this.state.steering.confirm = false;
+    this.state.steering.result = null;
+    this.state.steering.error = null;
+    if (update) this.update();
+  }
+
+  update() {
+    if (!this.container) return;
+    const root = this.container.querySelector('[data-agent-supervisor-root]');
+    if (!root) return;
+    root.outerHTML = this.renderRoot();
+    this.bindEvents();
+  }
+
+  bindEvents() {
+    if (!this.container) return;
+    this.container.querySelector('[data-action="refresh"]')?.addEventListener('click', () => {
+      this.refresh();
+    });
+    this.container.querySelector('[data-action="empty"]')?.addEventListener('click', () => {
+      this.showEmptyState();
+    });
+    this.container.querySelector('[data-action="error"]')?.addEventListener('click', () => {
+      this.showErrorState();
+    });
+    this.container.querySelectorAll('[data-goal-id]').forEach(button => {
+      button.addEventListener('click', () => {
+        if (button.dataset.subgoalId) return;
+        this.state.selectedGoalId = button.dataset.goalId || '';
+        this.setSteeringTarget('goal', this.state.selectedGoalId, { update: false });
+        this.state.activeTab = 'steering';
+        this.update();
+      });
+    });
+    this.container.querySelectorAll('[data-subgoal-id]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.state.selectedSubgoalId = button.dataset.subgoalId || '';
+        this.state.selectedGoalId = button.dataset.goalId || this.state.selectedGoalId;
+        this.setSteeringTarget('subgoal', this.state.selectedSubgoalId, { update: false });
+        this.state.activeTab = 'steering';
+        this.update();
+      });
+    });
+    this.container.querySelectorAll('[data-task-id]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.state.selectedTaskId = button.dataset.taskId || '';
+        this.setSteeringTarget('task', this.state.selectedTaskId, { update: false });
+        this.state.activeTab = 'active';
+        this.update();
+      });
+    });
+    this.container.querySelectorAll('[data-receipt-id]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.state.selectedReceiptId = button.dataset.receiptId || '';
+        this.state.activeTab = 'receipts';
+        this.update();
+      });
+    });
+    this.container.querySelectorAll('[data-tab]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.state.activeTab = button.dataset.tab || 'active';
+        this.update();
+      });
+    });
+    this.container.querySelector('[data-steering-prompt]')?.addEventListener('input', event => {
+      this.state.steering.prompt = event.target.value.slice(0, 8000);
+      this.state.steering.result = null;
+      this.state.steering.error = null;
+    });
+    this.container.querySelector('[data-steering-confirm]')?.addEventListener('change', event => {
+      this.state.steering.confirm = Boolean(event.target.checked);
+      this.state.steering.result = null;
+      this.state.steering.error = null;
+      this.update();
+    });
+    this.container.querySelector('[data-action="submit-steering"]')?.addEventListener('click', () => {
+      this.submitSteeringPrompt();
+    });
+    this.container.querySelectorAll('[data-supervisor-focusable]').forEach(item => {
+      item.addEventListener('keydown', event => this.handleFocusKey(event));
+    });
+  }
+
+  handleFocusKey(event) {
+    const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+    if (!keys.includes(event.key)) return;
+    const focusables = Array.from(this.container.querySelectorAll('[data-supervisor-focusable]'))
+      .filter(item => !item.hasAttribute('disabled'));
+    const index = focusables.indexOf(event.currentTarget);
+    if (index === -1) return;
+    event.preventDefault();
+    let next = index;
+    if (event.key === 'ArrowDown') next = Math.min(focusables.length - 1, index + 1);
+    if (event.key === 'ArrowUp') next = Math.max(0, index - 1);
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = focusables.length - 1;
+    focusables[next]?.focus();
+  }
+
+  buildSteeringReview() {
+    const { targetType, targetId, prompt } = this.state.steering;
+    const normalizedTarget = `${targetType}:${targetId || 'unselected'}`;
+    const affectedTasks = affectedTaskIds(targetType, targetId, this.state.snapshot);
+    const capability = this.contract.capabilities.find(item => item.id === 'supervisor.prompt-steering.request') || {};
+    return {
+      normalized_target: normalizedTarget,
+      policy_class: capability.policy_class || 'confirm',
+      affected_task_ids: affectedTasks,
+      prompt_char_count: prompt.trim().length,
+      prompt_max_chars: 8000,
+      prompt_log_preview: '[prompt redacted]',
+      planned_mcp_action: {
+        capability_id: 'supervisor.prompt-steering.request',
+        method: capability.method || 'agent_supervisor.prompt_steering.request',
+        owner: capability.owner || 'ipfs_accelerate_py',
+        access: capability.access || 'governed-write',
+        policy_class: capability.policy_class || 'confirm',
+        normalized_target: normalizedTarget,
+        transport_candidates: capability.transports || ['mcp', 'mcp++'],
+        input_mode: 'structured-json-payload',
+        prompt_log_mode: 'redacted',
+        required_policy_checks: [
+          'target_authorization',
+          'task_dependencies',
+          'branch_protection',
+          'confirmation_policy',
+          'execution_budget',
+          'receipt_persistence',
+        ],
+      },
+    };
+  }
+
+  async submitSteeringPrompt() {
+    const review = this.buildSteeringReview();
+    const steering = this.state.steering;
+    const prompt = steering.prompt.trim();
+    if (!steering.targetId || !this.targetExists(steering.targetType, steering.targetId)) {
+      steering.error = { reason: 'invalid_target', message: 'Select a goal, subgoal, or task before submitting steering.' };
+      this.update();
+      return;
+    }
+    if (!prompt || prompt.length > 8000) {
+      steering.error = { reason: 'scope_not_allowed', message: 'Prompt text must be present and no longer than 8000 characters.' };
+      this.update();
+      return;
+    }
+    if (!steering.confirm) {
+      steering.error = { reason: 'confirmation_required', message: 'Explicit confirmation is required before submission.' };
+      this.update();
+      return;
+    }
+
+    const clientRequestId = `steer-${Date.now()}`;
+    const request = {
+      target_type: steering.targetType,
+      target_id: steering.targetId,
+      prompt,
+      dry_run: false,
+      confirmation_token: `confirm-agent-supervisor:${review.normalized_target}:${clientRequestId}`,
+      client_request_id: clientRequestId,
+      expected_normalized_target: review.normalized_target,
+    };
+
+    steering.submitting = true;
+    steering.error = null;
+    steering.result = null;
+    this.update();
+
+    const result = await this.invokeCapability('supervisor.prompt-steering.request', request);
+    steering.submitting = false;
+    if (isAvailableResult(result)) {
+      const data = normalizeSteeringAccepted(result.data, review, result.correlation_id);
+      steering.result = data;
+      steering.confirm = false;
+      if (data.receipt?.receipt_id) {
+        this.state.snapshot.receipts = upsertReceipt(this.state.snapshot.receipts, data.receipt);
+        this.state.selectedReceiptId = data.receipt.receipt_id;
+      }
+    } else {
+      steering.error = {
+        reason: result.reason || result.state,
+        message: result.message || 'Prompt steering request was not accepted.',
+        correlation_id: result.correlation_id,
+      };
+    }
+    this.state.activeTab = 'steering';
+    this.update();
+  }
+
+  renderShell() {
+    return `${this.renderStyles()}${this.renderRoot()}`;
+  }
+
+  renderRoot() {
+    const status = this.state.status;
+    return `
+      <div class="agent-supervisor" data-agent-supervisor-root data-testid="agent-supervisor-app" data-state="${escapeHtml(status)}" data-transport="${escapeHtml(this.state.transportMode)}">
+        ${this.renderHeader()}
+        ${status === 'loading' ? this.renderLoading() : ''}
+        ${status === 'empty' ? this.renderEmpty() : ''}
+        ${status === 'error' ? this.renderError() : ''}
+        ${status !== 'loading' ? this.renderContent() : ''}
+      </div>
+    `;
+  }
+
+  renderHeader() {
+    const { snapshot } = this.state;
+    const health = snapshot.health || {};
+    return `
+      <header class="as-header">
+        <div>
+          <h2>Agent Supervisor</h2>
+          <div class="as-subtitle">Goals, task queue, receipts, and MCP++ health</div>
+        </div>
+        <div class="as-actions" aria-label="Supervisor actions">
+          <a class="as-link" href="${CONTRACT_SCHEMA_REF}" data-testid="contract-link">Contract</a>
+          <a class="as-link" href="docs/agent-supervisor-console-security-model.md" data-testid="security-link">Security</a>
+          <button type="button" data-action="refresh" data-supervisor-focusable>Refresh</button>
+          <button type="button" data-action="empty" data-supervisor-focusable>Empty</button>
+          <button type="button" data-action="error" data-supervisor-focusable>Error</button>
+        </div>
+      </header>
+      <section class="as-health-band" aria-label="Supervisor health" data-testid="supervisor-health">
+        ${metric('Status', health.status || 'unavailable')}
+        ${metric('Active goals', String(health.active_goal_count ?? 0))}
+        ${metric('Queued', String(health.queued_task_count ?? 0))}
+        ${metric('Running', String(health.running_task_count ?? 0))}
+        ${metric('Mode', this.state.transportMode)}
+      </section>
+    `;
+  }
+
+  renderLoading() {
+    return `
+      <section class="as-state as-loading" data-testid="supervisor-loading" aria-live="polite">
+        <div class="as-spinner"></div>
+        <div>
+          <strong>Loading supervisor state</strong>
+          <span>Reading browser-safe MCP, MCP++, and libp2p capabilities.</span>
+        </div>
+      </section>
+    `;
+  }
+
+  renderEmpty() {
+    return `
+      <section class="as-state" data-testid="supervisor-empty">
+        <strong>No supervisor work is queued.</strong>
+        <span>Goals, queue items, receipts, and logs are all empty for this snapshot.</span>
+      </section>
+    `;
+  }
+
+  renderError() {
+    const error = this.state.errors[0] || {};
+    return `
+      <section class="as-state as-error" data-testid="supervisor-error" role="alert">
+        <strong>${escapeHtml(error.reason || 'unavailable')}</strong>
+        <span>${escapeHtml(error.message || 'Supervisor gateway request failed.')}</span>
+      </section>
+    `;
+  }
+
+  renderContent() {
+    const { snapshot } = this.state;
+    return `
+      <main class="as-layout">
+        <section class="as-pane as-goals" aria-label="Goals and subgoals">
+          <div class="as-pane-title">
+            <h3>Goals</h3>
+            <span>${snapshot.goals.length} goals</span>
+          </div>
+          ${this.renderGoalsTree()}
+        </section>
+        <section class="as-pane as-queue" aria-label="Taskboard-linked queue">
+          <div class="as-pane-title">
+            <h3>Queue</h3>
+            <span>${snapshot.queue.length} tasks</span>
+          </div>
+          ${this.renderQueue()}
+        </section>
+        <section class="as-pane as-detail" aria-label="Active task and receipts">
+          ${this.renderTabs()}
+          ${this.state.activeTab === 'active' ? this.renderActiveTask() : ''}
+          ${this.state.activeTab === 'steering' ? this.renderSteering() : ''}
+          ${this.state.activeTab === 'receipts' ? this.renderReceipts() : ''}
+          ${this.state.activeTab === 'health' ? this.renderBackendHealth() : ''}
+          ${this.state.activeTab === 'contract' ? this.renderContract() : ''}
+        </section>
+      </main>
+    `;
+  }
+
+  renderGoalsTree() {
+    const { goals, subgoals } = this.state.snapshot;
+    if (!goals.length) return '<div class="as-list-empty">No goals available.</div>';
+    return `
+      <div class="as-tree" role="tree" data-testid="goals-tree">
+        ${goals.map(goalItem => {
+          const children = subgoals.filter(item => item.goal_id === goalItem.goal_id);
+          return `
+            <div class="as-tree-goal" role="treeitem" aria-expanded="true">
+              <button type="button" class="as-row ${goalItem.goal_id === this.state.selectedGoalId ? 'is-selected' : ''}" data-goal-id="${escapeHtml(goalItem.goal_id)}" data-supervisor-focusable>
+                <span class="as-status ${escapeHtml(goalItem.status)}"></span>
+                <span><strong>${escapeHtml(goalItem.goal_id)}</strong>${escapeHtml(goalItem.title)}</span>
+              </button>
+              <div class="as-tree-children" role="group">
+                ${children.map(child => `
+                  <button type="button" class="as-row as-subgoal ${child.subgoal_id === this.state.selectedSubgoalId ? 'is-selected' : ''}" data-subgoal-id="${escapeHtml(child.subgoal_id)}" data-goal-id="${escapeHtml(child.goal_id)}" data-supervisor-focusable>
+                    <span class="as-status ${escapeHtml(child.status)}"></span>
+                    <span><strong>${escapeHtml(child.subgoal_id)}</strong>${escapeHtml(child.title)}</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  renderQueue() {
+    const { queue, taskboardLinks } = this.state.snapshot;
+    if (!queue.length) return '<div class="as-list-empty">No queue items available.</div>';
+    return `
+      <div class="as-queue-list" role="listbox" data-testid="task-queue">
+        ${queue.map(task => {
+          const link = taskboardLinks.find(item => item.task_id === task.task_id);
+          return `
+            <button type="button" role="option" aria-selected="${task.task_id === this.state.selectedTaskId}" class="as-queue-row ${task.task_id === this.state.selectedTaskId ? 'is-selected' : ''}" data-task-id="${escapeHtml(task.task_id)}" data-supervisor-focusable>
+              <span class="as-status ${escapeHtml(task.status)}"></span>
+              <span class="as-queue-main">
+                <strong>${escapeHtml(task.task_id)}</strong>
+                <span>${escapeHtml(task.title)}</span>
+              </span>
+              <span class="as-queue-meta">${escapeHtml(link?.source || 'supervisor')}</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  renderTabs() {
+    const tabs = [
+      ['active', 'Active task'],
+      ['steering', 'Steering'],
+      ['receipts', 'Receipts'],
+      ['health', 'Health'],
+      ['contract', 'Contract'],
+    ];
+    return `
+      <div class="as-tabs" role="tablist" data-testid="supervisor-tabs">
+        ${tabs.map(([id, label]) => `
+          <button type="button" role="tab" aria-selected="${this.state.activeTab === id}" class="${this.state.activeTab === id ? 'is-selected' : ''}" data-tab="${id}" data-supervisor-focusable>${label}</button>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  renderActiveTask() {
+    const { queue, taskboardLinks, logs, runHistory } = this.state.snapshot;
+    const task = queue.find(item => item.task_id === this.state.selectedTaskId);
+    if (!task) return '<div class="as-list-empty" data-testid="active-task">No active task selected.</div>';
+    const links = taskboardLinks.filter(item => item.task_id === task.task_id);
+    const taskLogs = logs.filter(item => item.target_id === task.task_id || item.target_id === task.goal_id);
+    const runs = runHistory.filter(item => item.task_id === task.task_id);
+    return `
+      <div class="as-detail-body" data-testid="active-task">
+        <div class="as-active-heading">
+          <span class="as-status ${escapeHtml(task.status)}"></span>
+          <div>
+            <h3>${escapeHtml(task.task_id)}</h3>
+            <p>${escapeHtml(task.title)}</p>
+          </div>
+        </div>
+        <div class="as-inline-grid">
+          ${metric('Goal', task.goal_id || 'unlinked')}
+          ${metric('Subgoal', task.subgoal_id || 'unlinked')}
+          ${metric('State', task.status)}
+          ${metric('Deps', task.dependencies.length ? task.dependencies.join(', ') : 'none')}
+        </div>
+        <div class="as-section-line">
+          <h4>Taskboard links</h4>
+          ${links.length ? links.map(link => `<a href="${escapeAttr(link.url)}">${escapeHtml(link.source)}: ${escapeHtml(link.title)}</a>`).join('') : '<span>No taskboard links.</span>'}
+        </div>
+        <div class="as-section-line">
+          <h4>Run history</h4>
+          ${runs.length ? runs.map(run => `<button type="button" data-receipt-id="${escapeHtml(run.receipt?.receipt_id || '')}" data-supervisor-focusable>${escapeHtml(run.run_id)} ${escapeHtml(run.status)}</button>`).join('') : '<span>No run history.</span>'}
+        </div>
+        <div class="as-section-line">
+          <h4>Redacted logs</h4>
+          ${taskLogs.length ? taskLogs.map(log => `<span>${escapeHtml(log.level)}: ${escapeHtml(log.message)}${log.redacted ? ' [redacted]' : ''}</span>`).join('') : '<span>No log entries.</span>'}
+        </div>
+      </div>
+    `;
+  }
+
+  renderSteering() {
+    const steering = this.state.steering;
+    const review = this.buildSteeringReview();
+    const result = steering.result;
+    const error = steering.error;
+    const canSubmit = steering.targetId
+      && steering.prompt.trim().length > 0
+      && steering.prompt.trim().length <= 8000
+      && steering.confirm
+      && !steering.submitting;
+    return `
+      <div class="as-detail-body as-steering" data-testid="steering-panel">
+        <div class="as-active-heading">
+          <span class="as-status ${steering.targetId ? 'ready' : 'blocked'}"></span>
+          <div>
+            <h3>Prompt steering</h3>
+            <p>${escapeHtml(targetLabel(steering.targetType, steering.targetId, this.state.snapshot))}</p>
+          </div>
+        </div>
+        <label class="as-field">
+          <span>Steering prompt</span>
+          <textarea data-steering-prompt maxlength="8000" data-testid="steering-prompt" spellcheck="false">${escapeHtml(steering.prompt)}</textarea>
+        </label>
+        <div class="as-inline-grid as-review-grid" data-testid="steering-review">
+          ${metric('Normalized target', review.normalized_target)}
+          ${metric('Policy class', review.policy_class)}
+          ${metric('Affected tasks', review.affected_task_ids.length ? review.affected_task_ids.join(', ') : 'none')}
+          ${metric('Prompt size', `${review.prompt_char_count}/${review.prompt_max_chars}`)}
+        </div>
+        <div class="as-section-line">
+          <h4>Planned MCP action</h4>
+          <code>${escapeHtml(review.planned_mcp_action.method)}</code>
+          <span>${escapeHtml(review.planned_mcp_action.owner)} via ${escapeHtml(review.planned_mcp_action.transport_candidates.join(', '))}</span>
+          <span>${escapeHtml(review.planned_mcp_action.input_mode)}; logs store ${escapeHtml(review.prompt_log_preview)}</span>
+          <span>${escapeHtml(review.planned_mcp_action.required_policy_checks.join(', '))}</span>
+        </div>
+        <label class="as-confirm-line">
+          <input type="checkbox" data-steering-confirm data-testid="steering-confirm" ${steering.confirm ? 'checked' : ''}>
+          <span>Confirm this governed prompt steering request for the reviewed target.</span>
+        </label>
+        <div class="as-actions as-steering-actions">
+          <button type="button" data-action="submit-steering" data-testid="steering-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}">${steering.submitting ? 'Submitting' : 'Submit'}</button>
+        </div>
+        ${error ? `
+          <div class="as-state as-error" data-testid="steering-error" role="alert">
+            <strong>${escapeHtml(error.reason)}</strong>
+            <span>${escapeHtml(error.message)}${error.correlation_id ? ` ${escapeHtml(error.correlation_id)}` : ''}</span>
+          </div>
+        ` : ''}
+        ${result ? `
+          <div class="as-steering-result" data-testid="steering-result">
+            ${metric('Correlation', result.correlation_id)}
+            ${metric('Receipt', result.receipt?.receipt_id || 'pending')}
+            ${metric('CID', result.receipt?.cid || 'pending')}
+            ${metric('Accepted', String(result.accepted))}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  renderReceipts() {
+    const { receipts } = this.state.snapshot;
+    const selected = receipts.find(item => item.receipt_id === this.state.selectedReceiptId) || receipts[0];
+    return `
+      <div class="as-detail-body" data-testid="receipt-view">
+        <div class="as-receipt-list">
+          ${receipts.length ? receipts.map(item => `
+            <button type="button" class="${selected?.receipt_id === item.receipt_id ? 'is-selected' : ''}" data-receipt-id="${escapeHtml(item.receipt_id)}" data-supervisor-focusable>
+              <strong>${escapeHtml(item.receipt_id)}</strong>
+              <span>${escapeHtml(item.cid || 'pending-cid')}</span>
+            </button>
+          `).join('') : '<div class="as-list-empty">No receipts available.</div>'}
+        </div>
+        ${selected ? `
+          <div class="as-receipt-detail">
+            ${metric('Receipt', selected.receipt_id)}
+            ${metric('CID', selected.cid || 'pending')}
+            ${metric('Owner', selected.owner)}
+            ${metric('Created', selected.created_at || 'unknown')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  renderBackendHealth() {
+    const backends = this.state.snapshot.health?.backends || [];
+    return `
+      <div class="as-detail-body" data-testid="backend-health">
+        <div class="as-backends">
+          ${backends.map(item => `
+            <div class="as-backend-row">
+              <span class="as-status ${escapeHtml(item.status)}"></span>
+              <strong>${escapeHtml(item.owner)}</strong>
+              <span>${escapeHtml(item.transport)}</span>
+              <span>${escapeHtml(item.receipt?.receipt_id || 'no-receipt')}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="as-section-line">
+          <h4>MCP++ / libp2p</h4>
+          <span>Read transports: ${escapeHtml(uniqueTransports(this.contract.capabilities).join(', '))}</span>
+        </div>
+        ${this.renderGatewayEvidence()}
+      </div>
+    `;
+  }
+
+  renderGatewayEvidence() {
+    const results = Object.values(this.state.results || {});
+    const rows = results.length
+      ? results.map(result => {
+        const state = result?.state || 'unavailable';
+        const reason = result?.reason || result?.data?.evidence_path || result?.data?.transport_path?.path || state;
+        const correlation = result?.correlation_id || 'uncorrelated';
+        const receiptId = result?.receipt?.receipt_id || result?.data?.receipt?.receipt_id || 'no-receipt';
+        return `
+          <div class="as-gateway-row">
+            <span class="as-status ${escapeHtml(state === 'available' ? 'available' : 'unavailable')}"></span>
+            <strong>${escapeHtml(result?.capability_id || 'unknown-capability')}</strong>
+            <span>${escapeHtml(result?.owner || 'unknown-owner')}</span>
+            <span>${escapeHtml(state)}</span>
+            <span>${escapeHtml(reason)}</span>
+            <span>${escapeHtml(correlation)}</span>
+            <span>${escapeHtml(receiptId)}</span>
+          </div>
+        `;
+      }).join('')
+      : this.state.errors.map(error => `
+        <div class="as-gateway-row">
+          <span class="as-status unavailable"></span>
+          <strong>${escapeHtml(error.capability_id || 'unknown-capability')}</strong>
+          <span>unknown-owner</span>
+          <span>unavailable</span>
+          <span>${escapeHtml(error.reason || 'not_configured')}</span>
+          <span>uncorrelated</span>
+          <span>no-receipt</span>
+        </div>
+      `).join('');
+
+    return `
+      <div class="as-section-line" data-testid="gateway-evidence">
+        <h4>Gateway evidence</h4>
+        <div class="as-gateway-table">
+          <div class="as-gateway-row as-gateway-head">
+            <span></span>
+            <strong>Capability</strong>
+            <span>Owner</span>
+            <span>State</span>
+            <span>Path</span>
+            <span>Correlation</span>
+            <span>Receipt</span>
+          </div>
+          ${rows || '<span>No gateway evidence recorded.</span>'}
+        </div>
+      </div>
+    `;
+  }
+
+  renderContract() {
+    return `
+      <div class="as-detail-body" data-testid="contract-view">
+        <div class="as-inline-grid">
+          ${metric('Schema', this.contract.schema)}
+          ${metric('Version', this.contract.version)}
+          ${metric('Capabilities', String(this.contract.capabilities.length))}
+          ${metric('Browser safe', String(this.contract.browser_safe))}
+        </div>
+        <div class="as-section-line">
+          <h4>Backend owners</h4>
+          ${this.contract.owners.map(owner => `<span>${escapeHtml(owner.owner)}: ${escapeHtml(owner.responsibility)}</span>`).join('')}
+        </div>
+        <div class="as-section-line">
+          <h4>Forbidden browser surfaces</h4>
+          ${this.contract.forbidden_browser_surfaces.map(surface => `<code>${escapeHtml(surface)}</code>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  renderStyles() {
+    return `
+      <style>
+        .agent-supervisor { height: 100%; min-height: 520px; background: #0e1412; color: #edf7f2; font: 13px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: auto; }
+        .agent-supervisor * { box-sizing: border-box; }
+        .as-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid #263a34; background: #12211d; }
+        .as-header h2, .as-pane-title h3, .as-active-heading h3 { margin: 0; letter-spacing: 0; }
+        .as-subtitle, .as-pane-title span, .as-state span, .as-section-line span, .as-active-heading p { color: #a8bbb2; }
+        .as-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .as-actions button, .as-actions a, .as-tabs button, .as-row, .as-queue-row, .as-receipt-list button, .as-section-line button { border: 1px solid #315248; background: #173029; color: #edf7f2; border-radius: 6px; padding: 7px 10px; min-height: 32px; text-decoration: none; cursor: pointer; }
+        .as-actions button:disabled { color: #7c8f87; border-color: #263a34; background: #121b18; cursor: not-allowed; }
+        .as-actions button[aria-disabled="true"] { color: #9eb2aa; border-color: #315248; }
+        .as-actions button:hover, .as-actions a:hover, .as-tabs button:hover, .as-row:hover, .as-queue-row:hover, .as-receipt-list button:hover, .as-section-line button:hover { border-color: #5fb99d; }
+        .as-actions button:focus-visible, .as-actions a:focus-visible, .as-tabs button:focus-visible, .as-row:focus-visible, .as-queue-row:focus-visible, .as-receipt-list button:focus-visible, .as-section-line button:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
+        .as-health-band, .as-inline-grid { display: grid; grid-template-columns: repeat(5, minmax(96px, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
+        .as-metric { background: #101b18; padding: 10px 12px; min-width: 0; }
+        .as-metric span { display: block; color: #91a79d; font-size: 11px; text-transform: uppercase; }
+        .as-metric strong { display: block; overflow-wrap: anywhere; font-size: 13px; }
+        .as-layout { display: grid; grid-template-columns: minmax(220px, 0.9fr) minmax(260px, 1.1fr) minmax(320px, 1.4fr); gap: 1px; background: #263a34; min-height: 430px; }
+        .as-pane { background: #0e1412; min-width: 0; overflow: auto; }
+        .as-pane-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #263a34; background: #101b18; position: sticky; top: 0; z-index: 1; }
+        .as-tree, .as-queue-list, .as-detail-body, .as-backends { display: grid; gap: 8px; padding: 10px; }
+        .as-detail-body { padding-bottom: 86px; }
+        .as-tree-children { display: grid; gap: 6px; margin: 6px 0 10px 18px; }
+        .as-row, .as-queue-row { width: 100%; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 9px; text-align: left; }
+        .as-subgoal { grid-template-columns: 10px minmax(0, 1fr); background: #101b18; }
+        .as-row strong, .as-queue-main strong { display: block; color: #8bd8bd; font-size: 11px; }
+        .as-row span:last-child, .as-queue-main span { overflow-wrap: anywhere; }
+        .as-queue-main { min-width: 0; }
+        .as-queue-meta { color: #9eb2aa; font-size: 11px; }
+        .is-selected { border-color: #8bd8bd !important; background: #1b3d34 !important; }
+        .as-status { width: 10px; height: 10px; border-radius: 50%; background: #7e8d87; display: inline-block; }
+        .as-status.healthy, .as-status.available, .as-status.ready, .as-status.completed { background: #5ee3a1; }
+        .as-status.running, .as-status.waiting, .as-status.degraded { background: #ffd166; }
+        .as-status.blocked, .as-status.failed, .as-status.unavailable { background: #ff6b6b; }
+        .as-tabs { display: grid; grid-template-columns: repeat(5, minmax(72px, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
+        .as-tabs button { border-radius: 0; border: 0; border-right: 1px solid #263a34; }
+        .as-active-heading { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0 8px; }
+        .as-active-heading p { margin: 4px 0 0; }
+        .as-detail .as-inline-grid { grid-template-columns: repeat(4, minmax(80px, 1fr)); border: 1px solid #263a34; }
+        .as-section-line { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid #263a34; }
+        .as-section-line h4 { margin: 0; }
+        .as-section-line a { color: #8bd8bd; overflow-wrap: anywhere; }
+        .as-section-line code { background: #17241f; border: 1px solid #263a34; border-radius: 4px; padding: 4px 6px; overflow-wrap: anywhere; }
+        .as-field { display: grid; gap: 6px; }
+        .as-field span, .as-confirm-line span { color: #a8bbb2; }
+        .as-field textarea { min-height: 132px; resize: vertical; border: 1px solid #315248; border-radius: 6px; background: #101b18; color: #edf7f2; padding: 10px; font: inherit; width: 100%; }
+        .as-field textarea:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
+        .as-confirm-line { display: flex; align-items: flex-start; gap: 8px; border-top: 1px solid #263a34; padding-top: 10px; }
+        .as-confirm-line input { margin-top: 3px; }
+        .as-steering-actions { justify-content: flex-start; }
+        .as-steering-result { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 1px; background: #263a34; border: 1px solid #263a34; }
+        .as-receipt-list { display: grid; gap: 6px; }
+        .as-receipt-list button { display: grid; gap: 2px; text-align: left; }
+        .as-receipt-list span { color: #9eb2aa; overflow-wrap: anywhere; }
+        .as-receipt-detail { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 1px; background: #263a34; margin-top: 8px; }
+        .as-backend-row { display: grid; grid-template-columns: 10px minmax(150px, 1fr) minmax(70px, auto) minmax(120px, 1fr); gap: 10px; align-items: center; border-bottom: 1px solid #263a34; padding: 8px 0; min-width: 0; }
+        .as-backend-row span:last-child { overflow-wrap: anywhere; color: #9eb2aa; }
+        .as-gateway-table { display: grid; gap: 1px; background: #263a34; border: 1px solid #263a34; overflow-x: auto; }
+        .as-gateway-row { display: grid; grid-template-columns: 10px minmax(190px, 1.2fr) minmax(120px, 0.8fr) minmax(86px, 0.6fr) minmax(130px, 0.8fr) minmax(150px, 1fr) minmax(120px, 0.8fr); gap: 8px; align-items: center; min-width: 860px; background: #101b18; padding: 8px; }
+        .as-gateway-row span, .as-gateway-row strong { overflow-wrap: anywhere; min-width: 0; }
+        .as-gateway-row span { color: #a8bbb2; }
+        .as-gateway-head { background: #17241f; }
+        .as-state { margin: 12px; padding: 12px; border: 1px solid #315248; background: #101b18; border-radius: 6px; display: flex; align-items: center; gap: 10px; }
+        .as-error { border-color: #8c3d3d; background: #231312; }
+        .as-spinner { width: 20px; height: 20px; border: 3px solid #315248; border-top-color: #8bd8bd; border-radius: 50%; animation: as-spin 900ms linear infinite; }
+        .as-list-empty { padding: 12px; color: #a8bbb2; }
+        @keyframes as-spin { to { transform: rotate(360deg); } }
+        @media (max-width: 760px) {
+          .agent-supervisor { min-height: 640px; }
+          .as-header { align-items: flex-start; flex-direction: column; }
+          .as-health-band, .as-inline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .as-layout { grid-template-columns: 1fr; }
+          .as-pane { max-height: none; }
+          .as-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .as-steering-result { grid-template-columns: 1fr; }
+          .as-backend-row { grid-template-columns: 10px minmax(0, 1fr); }
+          .as-backend-row span { overflow-wrap: anywhere; }
+          .as-gateway-row { min-width: 760px; }
+        }
+      </style>
+    `;
+  }
+}
+
+export async function mountSwissKnifeApp(container, options = {}) {
+  const app = new AgentSupervisorApp(options.desktop || null, options);
+  container.innerHTML = app.renderShell();
+  app.bind(container);
+  await app.refresh({ silent: false });
+  window.agentSupervisorApp = app;
+  return app;
+}
+
+export { AGENT_SUPERVISOR_CONTRACT };
+export const AgentSupervisorConsole = AgentSupervisorApp;
+export default AgentSupervisorApp;
+
+function capability(id, title, access, owner, policyClass, transports, method, receiptRequired) {
+  return {
+    id,
+    title,
+    access,
+    owner,
+    policy_class: policyClass,
+    transports,
+    method,
+    input_ref: '#/$defs/listRequest',
+    output_ref: '#/$defs/gatewayResult',
+    receipt_required: receiptRequired,
+    description: `${title} through the browser-safe Agent Supervisor gateway.`,
+  };
+}
+
+function backend(owner, status, transport, receiptId) {
+  return { owner, status, transport, receipt: receipt(receiptId, `bafy${receiptId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) };
+}
+
+function receipt(receiptId, cid, createdAt = '2026-07-10T12:00:00.000Z') {
+  return { receipt_id: receiptId, cid, owner: 'ipfs_kit_py', created_at: createdAt };
+}
+
+function goal(goalId, title, status, subgoalIds, taskIds) {
+  return { goal_id: goalId, title, status, subgoal_ids: subgoalIds, task_ids: taskIds, taskboard_url: `#goal/${goalId}`, receipt: receipt(`rcpt-goal-${goalId}`, `bafygoal${goalId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) };
+}
+
+function subgoal(subgoalId, goalId, title, status, taskIds) {
+  return { subgoal_id: subgoalId, goal_id: goalId, title, status, task_ids: taskIds, taskboard_url: `#subgoal/${subgoalId}`, receipt: receipt(`rcpt-subgoal-${subgoalId}`, `bafysubgoal${subgoalId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) };
+}
+
+function queueItem(taskId, title, status, goalId, subgoalId, dependencies) {
+  return { task_id: taskId, title, status, goal_id: goalId, subgoal_id: subgoalId, taskboard_url: `#task/${taskId}`, dependencies, receipt: receipt(`rcpt-task-${taskId}`, `bafytask${taskId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) };
+}
+
+function taskboardLink(taskId, source, url, title, status) {
+  return { task_id: taskId, source, url, title, status };
+}
+
+function logEntry(logId, level, message, scope, targetId, redacted) {
+  return { log_id: logId, level, message, created_at: '2026-07-10T12:00:00.000Z', scope, target_id: targetId, redacted, receipt: receipt(`rcpt-${logId}`, `bafy${logId}`) };
+}
+
+function runRecord(runId, goalId, subgoalId, taskId, status, receiptId) {
+  return { run_id: runId, goal_id: goalId, subgoal_id: subgoalId, task_id: taskId, status, started_at: '2026-07-10T12:00:00.000Z', receipt: receipt(receiptId, `bafy${receiptId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) };
+}
+
+function metric(label, value) {
+  return `<div class="as-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+}
+
+function resolveBrowserGateway() {
+  if (typeof window === 'undefined') return null;
+  return window.agentSupervisorGateway
+    || window.swissknifeAgentSupervisorGateway
+    || window.__agentSupervisorGateway
+    || null;
+}
+
+function resolveGatewayEndpoint() {
+  if (typeof window === 'undefined') return '';
+  return window.__AGENT_SUPERVISOR_GATEWAY_ENDPOINT__ || '';
+}
+
+function normalizeGatewayResult(invocation, value) {
+  if (value && typeof value === 'object' && value.state === 'available' && 'data' in value) {
+    return {
+      state: 'available',
+      capability_id: invocation.capability_id,
+      owner: invocation.owner,
+      data: value.data,
+      receipt: value.receipt,
+      correlation_id: value.correlation_id || invocation.correlation_id,
+      observed_at: value.observed_at,
+    };
+  }
+  if (value && typeof value === 'object' && value.state === 'denied') {
+    return {
+      state: 'denied',
+      capability_id: invocation.capability_id,
+      owner: invocation.owner,
+      reason: value.reason || 'policy_denied',
+      message: value.message || 'Agent Supervisor request was denied.',
+      policy_class: invocation.policy_class,
+      correlation_id: value.correlation_id || invocation.correlation_id,
+    };
+  }
+  if (value && typeof value === 'object' && value.state === 'unavailable') {
+    return unavailable({
+      ...invocation,
+      correlation_id: value.correlation_id || invocation.correlation_id,
+    }, value.reason || 'capability_unavailable', value.message || 'Agent Supervisor capability is unavailable.');
+  }
+  return unavailable(invocation, 'capability_unavailable', 'Agent Supervisor gateway returned an unsupported response shape.');
+}
+
+function unavailable(invocation, reason, message) {
+  return {
+    state: 'unavailable',
+    capability_id: invocation.capability_id,
+    owner: invocation.owner,
+    reason,
+    message,
+    correlation_id: invocation.correlation_id,
+  };
+}
+
+function localPromptSteeringResult(invocation, snapshot) {
+  const payload = invocation.payload || {};
+  const prompt = String(payload.prompt || '').trim();
+  const targetType = payload.target_type || 'task';
+  const targetId = String(payload.target_id || '').trim();
+  const normalizedTarget = `${targetType}:${targetId}`;
+  if (!targetId || !prompt || prompt.length > 8000) {
+    return {
+      state: 'denied',
+      capability_id: invocation.capability_id,
+      owner: invocation.owner,
+      reason: !targetId ? 'invalid_target' : 'scope_not_allowed',
+      message: !targetId ? 'Prompt steering requires a selected target.' : 'Prompt steering text must be present and no longer than 8000 characters.',
+      policy_class: invocation.policy_class,
+      correlation_id: invocation.correlation_id,
+    };
+  }
+  if (!payload.confirmation_token) {
+    return {
+      state: 'denied',
+      capability_id: invocation.capability_id,
+      owner: invocation.owner,
+      reason: 'confirmation_required',
+      message: 'Prompt steering requires explicit confirmation.',
+      policy_class: invocation.policy_class,
+      required_confirmation: true,
+      correlation_id: invocation.correlation_id,
+    };
+  }
+  if (payload.expected_normalized_target && payload.expected_normalized_target !== normalizedTarget) {
+    return {
+      state: 'denied',
+      capability_id: invocation.capability_id,
+      owner: invocation.owner,
+      reason: 'invalid_target',
+      message: 'Prompt steering target changed after review.',
+      policy_class: invocation.policy_class,
+      correlation_id: invocation.correlation_id,
+    };
+  }
+  const affected = affectedTaskIds(targetType, targetId, snapshot);
+  const unresolved = unresolvedDependencyIds(affected, snapshot);
+  if (unresolved.length && requestsDependencyBypass(prompt)) {
+    return {
+      state: 'denied',
+      capability_id: invocation.capability_id,
+      owner: invocation.owner,
+      reason: 'dependency_blocked',
+      message: `Prompt steering cannot bypass unresolved task dependencies: ${unresolved.join(', ')}.`,
+      policy_class: invocation.policy_class,
+      correlation_id: invocation.correlation_id,
+    };
+  }
+  const review = {
+    normalized_target: normalizedTarget,
+    policy_class: invocation.policy_class,
+    affected_task_ids: affected,
+    prompt_char_count: prompt.length,
+    prompt_max_chars: 8000,
+    prompt_log_preview: '[prompt redacted]',
+    planned_mcp_action: {
+      capability_id: invocation.capability_id,
+      method: invocation.method,
+      owner: invocation.owner,
+      access: invocation.access,
+      policy_class: invocation.policy_class,
+      normalized_target: normalizedTarget,
+      transport_candidates: ['mcp', 'mcp++'],
+      input_mode: 'structured-json-payload',
+      prompt_log_mode: 'redacted',
+      required_policy_checks: [
+        'target_authorization',
+        'task_dependencies',
+        'branch_protection',
+        'confirmation_policy',
+        'execution_budget',
+        'receipt_persistence',
+      ],
+    },
+  };
+  const receipt = buildLocalSteeringReceipt(payload, review, invocation.correlation_id);
+  return {
+    state: 'available',
+    capability_id: invocation.capability_id,
+    owner: invocation.owner,
+    data: {
+      request_id: payload.client_request_id || `steer-${Date.now()}`,
+      correlation_id: invocation.correlation_id,
+      accepted: true,
+      dry_run: Boolean(payload.dry_run),
+      normalized_target: normalizedTarget,
+      policy_class: invocation.policy_class,
+      affected_task_ids: affected,
+      planned_mcp_action: review.planned_mcp_action,
+      receipt,
+    },
+    receipt,
+    correlation_id: invocation.correlation_id,
+    observed_at: new Date().toISOString(),
+  };
+}
+
+function normalizeSteeringAccepted(data, review, correlationId) {
+  const receipt = data?.receipt || buildLocalSteeringReceipt({ client_request_id: data?.request_id }, review, correlationId);
+  return {
+    request_id: data?.request_id || `steer-${Date.now()}`,
+    correlation_id: data?.correlation_id || correlationId,
+    accepted: data?.accepted !== false,
+    dry_run: Boolean(data?.dry_run),
+    normalized_target: data?.normalized_target || review.normalized_target,
+    policy_class: data?.policy_class || review.policy_class,
+    affected_task_ids: Array.isArray(data?.affected_task_ids) ? data.affected_task_ids : review.affected_task_ids,
+    planned_mcp_action: data?.planned_mcp_action || review.planned_mcp_action,
+    receipt,
+  };
+}
+
+function affectedTaskIds(targetType, targetId, snapshot) {
+  if (!targetId) return [];
+  if (targetType === 'task') return [targetId];
+  if (targetType === 'subgoal') {
+    const subgoal = snapshot.subgoals.find(item => item.subgoal_id === targetId);
+    const fromQueue = snapshot.queue.filter(item => item.subgoal_id === targetId).map(item => item.task_id);
+    return uniqueStrings([...(subgoal?.task_ids || []), ...fromQueue]);
+  }
+  const goal = snapshot.goals.find(item => item.goal_id === targetId);
+  const fromSubgoals = snapshot.subgoals.filter(item => item.goal_id === targetId).flatMap(item => item.task_ids || []);
+  const fromQueue = snapshot.queue.filter(item => item.goal_id === targetId).map(item => item.task_id);
+  return uniqueStrings([...(goal?.task_ids || []), ...fromSubgoals, ...fromQueue]);
+}
+
+function unresolvedDependencyIds(taskIds, snapshot) {
+  const taskSet = new Set(taskIds);
+  const unresolved = new Set();
+  snapshot.queue.forEach(task => {
+    if (!taskSet.has(task.task_id)) return;
+    (task.dependencies || []).forEach(dependencyId => {
+      const dependency = snapshot.queue.find(item => item.task_id === dependencyId);
+      if (!dependency || dependency.status !== 'completed') unresolved.add(dependencyId);
+    });
+  });
+  return Array.from(unresolved).sort();
+}
+
+function requestsDependencyBypass(prompt) {
+  return /\b(ignore|skip|bypass|override)\b[\s\S]{0,40}\b(dependenc|blocked|prereq)/i.test(prompt)
+    || /\bforce\b[\s\S]{0,40}\b(run|start|execute)\b/i.test(prompt);
+}
+
+function targetLabel(targetType, targetId, snapshot) {
+  if (!targetId) return 'No target selected';
+  if (targetType === 'goal') {
+    const goalItem = snapshot.goals.find(item => item.goal_id === targetId);
+    return goalItem ? `${goalItem.goal_id} ${goalItem.title}` : `goal ${targetId}`;
+  }
+  if (targetType === 'subgoal') {
+    const subgoalItem = snapshot.subgoals.find(item => item.subgoal_id === targetId);
+    return subgoalItem ? `${subgoalItem.subgoal_id} ${subgoalItem.title}` : `subgoal ${targetId}`;
+  }
+  const task = snapshot.queue.find(item => item.task_id === targetId);
+  return task ? `${task.task_id} ${task.title}` : `task ${targetId}`;
+}
+
+function buildLocalSteeringReceipt(payload, review, correlationId) {
+  const seed = stableStringify({
+    request_id: payload?.client_request_id,
+    correlation_id: correlationId,
+    normalized_target: review.normalized_target,
+    affected_task_ids: review.affected_task_ids,
+    prompt: '[prompt redacted]',
+  });
+  const digest = stableDigest(seed);
+  return {
+    receipt_id: `rcpt-prompt-steering-${digest}`,
+    cid: `bafyagentprompt${digest}`,
+    owner: 'ipfs_kit_py',
+    created_at: new Date().toISOString(),
+  };
+}
+
+function upsertReceipt(receipts, receiptRef) {
+  const next = receipts.filter(item => item.receipt_id !== receiptRef.receipt_id);
+  next.unshift(receiptRef);
+  return next;
+}
+
+function isAvailableResult(result) {
+  return result && result.state === 'available' && 'data' in result;
+}
+
+function dataOr(result, fallback) {
+  return isAvailableResult(result) ? result.data : fallback;
+}
+
+function listDataOr(result, fallback) {
+  const data = dataOr(result, fallback);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.records)) return data.records;
+  return fallback;
+}
+
+function emptySnapshot() {
+  return {
+    health: { status: 'healthy', active_goal_count: 0, queued_task_count: 0, running_task_count: 0, backends: [] },
+    goals: [],
+    subgoals: [],
+    queue: [],
+    taskboardLinks: [],
+    logs: [],
+    receipts: [],
+    runHistory: [],
+  };
+}
+
+function hasContent(snapshot) {
+  return Boolean(snapshot.goals.length || snapshot.queue.length || snapshot.receipts.length || snapshot.logs.length);
+}
+
+function uniqueTransports(capabilities) {
+  return Array.from(new Set(capabilities.flatMap(item => item.transports || []))).sort();
+}
+
+function uniqueStrings(items) {
+  return Array.from(new Set(items.filter(Boolean))).sort();
+}
+
+function stableDigest(seed) {
+  let hash = 2166136261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function stableStringify(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  return `{${Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+}
+
+function cloneSnapshot(snapshot) {
+  return JSON.parse(JSON.stringify(snapshot));
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeAttr(value) {
+  const string = String(value || '#');
+  if (/^(?:https?:\/\/|#|docs\/|contracts\/|implementation_plan\/)/.test(string)) return escapeHtml(string);
+  return '#';
+}

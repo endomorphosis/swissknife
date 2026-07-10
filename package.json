@@ -272,7 +272,7 @@
     "test:unit": "npm run test:fast",
     "test:e2e": "jest --config=config/jest/jest.e2e.config.cjs --runInBand",
     "test:e2e:mcp": "node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.mcp-dashboard.config.ts && node scripts/test-mcp-dashboard-consumer.cjs",
-    "evidence:mcp-glasses": "node scripts/ensure-mcp-glasses-evidence-prereqs.cjs && npm run test:run -- test/mcp-plus-plus/glasses-manifest-coverage.test.ts test/mcp-plus-plus/mobile-orb-edge-all-apps.test.ts test/mcp-plus-plus/virtual-desktop-tool-ui-smoke-evidence.test.ts test/mcp-plus-plus/meta-glasses-simulator-handoff-evidence.test.ts",
+    "evidence:mcp-glasses": "node scripts/ensure-mcp-glasses-evidence-prereqs.cjs && npm run test:run -- test/mcp-plus-plus/glasses-manifest-coverage.test.ts test/mcp-plus-plus/desktop-orb-idl-contract.test.ts test/mcp-plus-plus/mobile-orb-edge-all-apps.test.ts test/mcp-plus-plus/virtual-desktop-tool-ui-smoke-evidence.test.ts test/mcp-plus-plus/agent-supervisor-console-evidence.test.ts test/mcp-plus-plus/meta-glasses-simulator-handoff-evidence.test.ts",
     "evidence:dashboard-consumer": "node scripts/test-mcp-dashboard-consumer.cjs",
     "evidence:libp2p-browser": "npm run test:e2e:libp2p-browser && node scripts/audit-release-evidence-freshness.mjs --update libp2p-browser-playwright --json docs/release-evidence-freshness.json --report docs/release-evidence-freshness.md",
     "evidence:freshness:check": "node scripts/audit-release-evidence-freshness.mjs --fail-on-stale --json docs/release-evidence-freshness.json --report docs/release-evidence-freshness.md",

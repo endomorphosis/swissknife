@@ -8,6 +8,7 @@ const projectRoot = path.resolve(__dirname, '..');
 const evidenceRoot = path.join(projectRoot, 'test-results', 'virtual-desktop-ipfs-mcp-orb');
 const outPath = path.join(evidenceRoot, 'capability-matrix.json');
 const markdownPath = path.join(evidenceRoot, 'capability-matrix.md');
+const appBackendContractPath = path.join(evidenceRoot, 'app-backend-contract.json');
 const docsPath = path.join(projectRoot, 'docs', 'virtual-desktop-all-tools-app-coverage.md');
 
 const artifacts = {
@@ -167,10 +168,12 @@ matrix.matrix_cid = `sha256:${crypto
 
 fs.mkdirSync(evidenceRoot, { recursive: true });
 fs.writeFileSync(outPath, `${JSON.stringify(matrix, null, 2)}\n`);
+const appBackendContract = buildAppBackendContract(matrix);
+fs.writeFileSync(appBackendContractPath, `${JSON.stringify(appBackendContract, null, 2)}\n`);
 const markdown = renderMarkdown(matrix);
 fs.writeFileSync(markdownPath, markdown);
 fs.mkdirSync(path.dirname(docsPath), { recursive: true });
-fs.writeFileSync(docsPath, renderCoverageDoc(matrix));
+fs.writeFileSync(docsPath, renderCoverageDoc(matrix, appBackendContract));
 
 console.log(JSON.stringify({
   schema: matrix.schema,
@@ -183,6 +186,7 @@ console.log(JSON.stringify({
   desktop_mobile_only_tool_count: matrix.desktop_mobile_only_tool_count,
   supervisor_only_tool_count: matrix.supervisor_only_tool_count,
   output: path.relative(projectRoot, outPath),
+  app_backend_contract: path.relative(projectRoot, appBackendContractPath),
   docs: path.relative(projectRoot, docsPath),
 }, null, 2));
 
@@ -231,6 +235,135 @@ function isAdapterRequired(toolId) {
   return artifacts.idl.tool_coverage?.some(row => row.tool_id === toolId && row.adapter_required) ?? false;
 }
 
+function buildAppBackendContract(matrix) {
+  const bindingsByToolId = new Map(bindingRows.map(row => [row.tool_id, row]));
+  const policyById = new Map(policyRules.map(rule => [rule.tool_id, rule]));
+  const idlToolCoverageByToolId = groupBy(artifacts.idl.tool_coverage ?? [], row => row.tool_id);
+  const appInventoryById = new Map((artifacts.appInventory.apps ?? []).map(app => [app.id, app]));
+  const aliases = artifacts.appInventory.aliases ?? {};
+  const apps = matrix.rows.map(row => {
+    const app = appInventoryById.get(row.app_id) ?? {};
+    const appBindings = (bindingsByApp.get(row.app_id) ?? [])
+      .slice()
+      .sort((a, b) => `${a.service_id}:${a.name}`.localeCompare(`${b.service_id}:${b.name}`));
+    const backendCapabilities = appBindings.map(binding => {
+      const policy = policyById.get(binding.tool_id) ?? {};
+      const idlCoverage = idlToolCoverageByToolId.get(binding.tool_id) ?? [];
+      const mcpPlusPlusEligible = idlCoverage.length > 0 || binding.app_visible || row.orb_idl.descriptor_count > 0;
+      return {
+        capability_id: binding.capability_id,
+        tool_id: binding.tool_id,
+        service: binding.service_id,
+        name: binding.name,
+        category: binding.category,
+        source_role: binding.role,
+        visibility: binding.visibility,
+        app_visible: Boolean(binding.app_visible),
+        mcp_transport: binding.role === 'static_descriptor' ? 'eligible' : 'required',
+        mcp_plus_plus_transport: mcpPlusPlusEligible ? 'eligible' : 'not-eligible',
+        policy_class: binding.policy_class ?? policy.policy_class,
+        confirmation_policy: binding.confirmation_policy ?? policy.confirmation_policy ?? 'none',
+        receipt_strategy: receiptStrategyFor(binding, policy),
+        receipt_required: (binding.receipt_policy ?? policy.receipt_policy) !== 'none',
+        result_renderer: binding.result_renderer,
+        glasses_exposure: binding.glasses_exposure,
+        fallback: binding.non_app_reason ?? binding.glasses_fallback ?? policy.fallback ?? 'descriptor preview with receipt link',
+      };
+    });
+    const descriptorState = row.orb_idl.descriptor_count > 0
+      ? app.launch_kind === 'idl-generated' ? 'generated' : 'manual'
+      : 'not-required';
+    const localOnly = backendCapabilities.length === 0;
+    return {
+      canonical_id: row.app_id,
+      aliases: Object.entries(aliases)
+        .filter(([, canonical]) => canonical === row.app_id)
+        .map(([alias]) => alias)
+        .sort(),
+      title: row.title,
+      category: row.category,
+      launch_owner: {
+        owner_module: row.owner_module,
+        launch_kind: row.launch_kind,
+        component: row.component ?? null,
+      },
+      backend_state: row.binding_state,
+      backend_rationale: row.binding_rationale,
+      backend_capability_count: backendCapabilities.length,
+      backend_capabilities: backendCapabilities,
+      local_only_rationale: localOnly ? row.binding_rationale : null,
+      orb_idl_state: {
+        state: descriptorState,
+        descriptor_count: row.orb_idl.descriptor_count,
+        method_count: row.orb_idl.method_count,
+        interface_cids: row.orb_idl.interface_cids,
+        descriptor_ids: row.orb_idl.descriptor_ids,
+        mcp_plus_plus_transport: row.orb_idl.descriptor_count > 0 ? 'eligible' : 'not-eligible',
+        receipt_required: backendCapabilities.some(capability => capability.receipt_required),
+      },
+      glasses_strategy: {
+        handoff: row.glasses.handoff_kind,
+        fallback: row.glasses.fallback,
+        projection_count: row.glasses.projection_count,
+        displayable_projection_count: row.glasses.displayable_projection_count,
+        behavior_counts: row.glasses.behavior_counts,
+      },
+      ux_scenarios: uxScenariosFor(row, backendCapabilities),
+    };
+  });
+  const localOnlyApps = apps.filter(app => app.backend_capability_count === 0);
+  const contract = {
+    schema: 'swissknife.virtual-desktop-app-backend-contract.v1',
+    contract_id: 'org.hallucinate.swissknife.virtual-desktop-app-backend-contract',
+    generated_at: matrix.generated_at,
+    generated_from: matrix.generated_from,
+    app_count: apps.length,
+    canonical_app_count: new Set(apps.map(app => app.canonical_id)).size,
+    alias_count: Object.keys(aliases).length,
+    backend_capability_count: apps.reduce((sum, app) => sum + app.backend_capability_count, 0),
+    local_only_app_count: localOnlyApps.length,
+    service_counts: mergeCounts(apps.map(app => countBy(app.backend_capabilities, capability => capability.service))),
+    policy_class_counts: mergeCounts(apps.map(app => countBy(app.backend_capabilities, capability => capability.policy_class))),
+    receipt_strategy_counts: mergeCounts(apps.map(app => countBy(app.backend_capabilities, capability => capability.receipt_strategy))),
+    coverage: {
+      omitted_app_count: 0,
+      apps_with_launch_owner_count: apps.filter(app => app.launch_owner.owner_module && app.launch_owner.launch_kind).length,
+      apps_with_orb_idl_state_count: apps.filter(app => app.orb_idl_state.state).length,
+      apps_with_glasses_strategy_count: apps.filter(app => app.glasses_strategy.handoff !== undefined).length,
+      apps_with_ux_scenarios_count: apps.filter(app => app.ux_scenarios.success && app.ux_scenarios.fallback && app.ux_scenarios.error).length,
+      local_only_apps_with_rationale_count: localOnlyApps.filter(app => app.local_only_rationale).length,
+    },
+    legacy_aliases: aliases,
+    apps,
+  };
+  contract.contract_cid = `sha256:${crypto
+    .createHash('sha256')
+    .update(JSON.stringify({ ...contract, generated_at: undefined, contract_cid: undefined }))
+    .digest('hex')}`;
+  return contract;
+}
+
+function receiptStrategyFor(binding, policy) {
+  const receiptPolicy = binding.receipt_policy ?? policy.receipt_policy ?? 'none';
+  const confirmationPolicy = binding.confirmation_policy ?? policy.confirmation_policy ?? 'none';
+  if (receiptPolicy === 'none') return 'none';
+  if (confirmationPolicy !== 'none') return 'confirmation-receipt';
+  if (binding.app_visible) return 'event-dag-receipt';
+  return 'receipt-required';
+}
+
+function uxScenariosFor(row, backendCapabilities) {
+  const services = Array.from(new Set(backendCapabilities.map(capability => capability.service))).sort();
+  const serviceLabel = services.length > 0 ? services.join(', ') : 'local browser state';
+  return {
+    success: `${row.app_id} renders the expected result and exposes receipt links for ${serviceLabel}.`,
+    fallback: backendCapabilities.length > 0
+      ? `${row.app_id} shows descriptor, dry-run, mobile confirmation, cached, or audio-summary fallback according to policy.`
+      : `${row.app_id} explains its local-only rationale and continues without remote tool dispatch.`,
+    error: `${row.app_id} shows a policy-aware error with retry, blocked-state, or receipt details.`,
+  };
+}
+
 function renderMarkdown(matrix) {
   const lines = [];
   lines.push('# SwissKnife Virtual Desktop All-Tools Capability Matrix');
@@ -260,7 +393,7 @@ function renderMarkdown(matrix) {
   return `${lines.join('\n')}\n`;
 }
 
-function renderCoverageDoc(matrix) {
+function renderCoverageDoc(matrix, appBackendContract) {
   const lines = [];
   lines.push('# Virtual Desktop All-Tools App Coverage');
   lines.push('');
@@ -277,6 +410,10 @@ function renderCoverageDoc(matrix) {
   lines.push(`- App-visible capabilities: ${matrix.app_visible_tool_count}`);
   lines.push(`- Desktop/mobile-only capabilities: ${matrix.desktop_mobile_only_tool_count}`);
   lines.push(`- Supervisor-only capabilities: ${matrix.supervisor_only_tool_count}`);
+  lines.push(`- Backend contract apps: ${appBackendContract.app_count}`);
+  lines.push(`- Backend contract capabilities: ${appBackendContract.backend_capability_count}`);
+  lines.push(`- Local-only apps with rationale: ${appBackendContract.coverage.local_only_apps_with_rationale_count}/${appBackendContract.local_only_app_count}`);
+  lines.push(`- Contract CID: \`${appBackendContract.contract_cid}\``);
   lines.push('');
   lines.push('## Coverage By App');
   lines.push('');
@@ -292,6 +429,16 @@ function renderCoverageDoc(matrix) {
   lines.push('- `desktop_mobile_only`: capability is intentionally withheld from direct browser app dispatch and must use desktop/mobile confirmation or blocked-state UX.');
   lines.push('- `supervisor_only`: capability remains represented for release evidence and supervisor receipts, but is not directly invokable by a desktop app.');
   lines.push('- `manifest_only` and `not_applicable`: the app is deliberately not backed by `ipfs_kit_py`, `ipfs_datasets_py`, or `ipfs_accelerate_py` for this release.');
+  lines.push('');
+  lines.push('## Frozen Backend Contract');
+  lines.push('');
+  lines.push('`test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json` freezes one canonical record per app, including launch owner, backend capability set, MCP/MCP++ eligibility, policy class, receipt strategy, ORB/IDL state, glasses handoff strategy, and success/fallback/error UX scenarios.');
+  lines.push('');
+  lines.push('| App | Canonical aliases | Backend caps | Local-only rationale | ORB/IDL | UX scenarios |');
+  lines.push('| --- | --- | ---: | --- | --- | --- |');
+  for (const app of appBackendContract.apps) {
+    lines.push(`| ${app.canonical_id} | ${app.aliases.join(', ') || '-'} | ${app.backend_capability_count} | ${app.local_only_rationale ? 'yes' : '-'} | ${app.orb_idl_state.state}:${app.orb_idl_state.descriptor_count} | success/fallback/error |`);
+  }
   lines.push('');
   return `${lines.join('\n')}\n`;
 }

@@ -65,6 +65,61 @@ export type VirtualDesktopRequiredCoverage =
   | 'glasses'
   | 'alias';
 
+export type VirtualDesktopBackendService =
+  | 'ipfs_kit_py'
+  | 'ipfs_datasets_py'
+  | 'ipfs_accelerate_py';
+
+export type VirtualDesktopTransportEligibility =
+  | 'eligible'
+  | 'required'
+  | 'not-eligible';
+
+export type VirtualDesktopPolicyClass =
+  | 'read'
+  | 'write'
+  | 'heavy_compute'
+  | 'credential'
+  | 'external_network'
+  | 'media_capture'
+  | 'destructive';
+
+export type VirtualDesktopReceiptStrategy =
+  | 'none'
+  | 'descriptor'
+  | 'receipt-required'
+  | 'confirmation-receipt'
+  | 'event-dag-receipt';
+
+export interface VirtualDesktopLaunchOwner {
+  module: VirtualDesktopOwnerModule;
+  component?: string;
+  source_sets: readonly VirtualDesktopSourceSet[];
+}
+
+export interface VirtualDesktopBackendCapability {
+  id: string;
+  service: VirtualDesktopBackendService;
+  capability: string;
+  mcp_transport: VirtualDesktopTransportEligibility;
+  mcp_plus_plus_transport: VirtualDesktopTransportEligibility;
+  policy_class: VirtualDesktopPolicyClass;
+  receipt_strategy: VirtualDesktopReceiptStrategy;
+}
+
+export interface VirtualDesktopOrbIdlState {
+  state: 'generated' | 'manual' | 'not-required';
+  descriptor_owner: 'idl-generated' | 'manual-registry' | 'local-only';
+  mcp_plus_plus: VirtualDesktopTransportEligibility;
+  receipt_required: boolean;
+}
+
+export interface VirtualDesktopUxScenarios {
+  success: string;
+  fallback: string;
+  error: string;
+}
+
 export interface VirtualDesktopGlassesStrategy {
   kind:
     | 'manual'
@@ -88,16 +143,22 @@ export interface VirtualDesktopGlassesStrategy {
 
 export interface VirtualDesktopAppManifestEntry {
   id: string;
+  canonical_id: string;
   aliases: readonly string[];
   title: string;
   category: VirtualDesktopAppCategory;
   owner_module: VirtualDesktopOwnerModule;
+  launch_owner: VirtualDesktopLaunchOwner;
   launch_kind: VirtualDesktopLaunchKind;
   component?: string;
   source_sets: readonly VirtualDesktopSourceSet[];
   capabilities: readonly string[];
   service_families: readonly VirtualDesktopServiceFamily[];
+  backend_capabilities: readonly VirtualDesktopBackendCapability[];
+  local_only_rationale?: string;
+  orb_idl_state: VirtualDesktopOrbIdlState;
   glasses_strategy: VirtualDesktopGlassesStrategy;
+  ux_scenarios: VirtualDesktopUxScenarios;
   required_test_coverage: readonly VirtualDesktopRequiredCoverage[];
   notes?: readonly string[];
 }
@@ -153,6 +214,8 @@ const audioFallback = {
   fallback: ['mobile-card', 'notification'],
 } as const satisfies VirtualDesktopGlassesStrategy;
 
+const backendServices = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'] as const;
+
 function manualGlasses(profileId: string): VirtualDesktopGlassesStrategy {
   return {
     kind: 'manual',
@@ -162,8 +225,136 @@ function manualGlasses(profileId: string): VirtualDesktopGlassesStrategy {
   };
 }
 
-function app(entry: VirtualDesktopAppManifestEntry): VirtualDesktopAppManifestEntry {
-  return entry;
+type VirtualDesktopAppManifestEntryInput =
+  Omit<
+    VirtualDesktopAppManifestEntry,
+    | 'canonical_id'
+    | 'launch_owner'
+    | 'backend_capabilities'
+    | 'local_only_rationale'
+    | 'orb_idl_state'
+    | 'ux_scenarios'
+  >
+  & Partial<Pick<
+    VirtualDesktopAppManifestEntry,
+    'canonical_id' | 'launch_owner' | 'backend_capabilities' | 'local_only_rationale' | 'orb_idl_state' | 'ux_scenarios'
+  >>;
+
+function app(entry: VirtualDesktopAppManifestEntryInput): VirtualDesktopAppManifestEntry {
+  const backend_capabilities = entry.backend_capabilities ?? deriveBackendCapabilities(entry);
+  return {
+    ...entry,
+    canonical_id: entry.canonical_id ?? entry.id,
+    launch_owner: entry.launch_owner ?? {
+      module: entry.owner_module,
+      component: entry.component,
+      source_sets: entry.source_sets,
+    },
+    backend_capabilities,
+    local_only_rationale: entry.local_only_rationale ?? (
+      backend_capabilities.length === 0
+        ? `${entry.title} is intentionally local-only in this release; it does not dispatch ipfs_kit_py, ipfs_datasets_py, or ipfs_accelerate_py tools.`
+        : undefined
+    ),
+    orb_idl_state: entry.orb_idl_state ?? deriveOrbIdlState(entry, backend_capabilities),
+    ux_scenarios: entry.ux_scenarios ?? deriveUxScenarios(entry, backend_capabilities),
+  };
+}
+
+function deriveBackendCapabilities(
+  entry: Pick<VirtualDesktopAppManifestEntryInput, 'id' | 'capabilities' | 'service_families' | 'launch_kind'>,
+): readonly VirtualDesktopBackendCapability[] {
+  return backendServices
+    .filter(service => entry.service_families.includes(service))
+    .map(service => {
+      const capability = pickCapabilityForService(entry.capabilities, service);
+      return {
+        id: `${entry.id}.${service}.${capability.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`,
+        service,
+        capability,
+        mcp_transport: 'eligible',
+        mcp_plus_plus_transport: entry.service_families.includes('mcp_plus_plus') || entry.service_families.includes('orb') || entry.launch_kind === 'idl-generated'
+          ? 'eligible'
+          : 'not-eligible',
+        policy_class: inferPolicyClass(capability),
+        receipt_strategy: inferReceiptStrategy(capability),
+      };
+    });
+}
+
+function pickCapabilityForService(
+  capabilities: readonly string[],
+  service: VirtualDesktopBackendService,
+): string {
+  const prefix = service === 'ipfs_kit_py'
+    ? 'ipfs.kit'
+    : service === 'ipfs_datasets_py'
+      ? 'ipfs.datasets'
+      : 'ipfs.accelerate';
+  return capabilities.find(capability => capability.startsWith(prefix))
+    ?? capabilities.find(capability => capability.startsWith('mcp.'))
+    ?? `${service}.tool`;
+}
+
+function inferPolicyClass(capability: string): VirtualDesktopPolicyClass {
+  const value = capability.toLowerCase();
+  if (/(credential|oauth|secret|key|token)/.test(value)) return 'credential';
+  if (/(delete|remove|stop|kill|unpin|purge|destroy)/.test(value)) return 'destructive';
+  if (/(external|github|huggingface|openrouter|peertube)/.test(value)) return 'external_network';
+  if (/(camera|audio|media|image|video|microphone)/.test(value)) return 'media_capture';
+  if (/(accelerate|inference|model|hardware|job|train|compute|supervisor)/.test(value)) return 'heavy_compute';
+  if (/(storage|vfs|dag|pubsub|provenance|receipt|event|gateway|dispatch)/.test(value)) return 'write';
+  return 'read';
+}
+
+function inferReceiptStrategy(capability: string): VirtualDesktopReceiptStrategy {
+  const policy = inferPolicyClass(capability);
+  if (policy === 'read') return 'descriptor';
+  if (policy === 'credential' || policy === 'destructive') return 'confirmation-receipt';
+  if (policy === 'heavy_compute' || policy === 'external_network' || policy === 'write') return 'event-dag-receipt';
+  return 'receipt-required';
+}
+
+function deriveOrbIdlState(
+  entry: Pick<VirtualDesktopAppManifestEntryInput, 'launch_kind' | 'service_families' | 'glasses_strategy'>,
+  backendCapabilities: readonly VirtualDesktopBackendCapability[],
+): VirtualDesktopOrbIdlState {
+  if (entry.launch_kind === 'idl-generated') {
+    return {
+      state: 'generated',
+      descriptor_owner: 'idl-generated',
+      mcp_plus_plus: 'required',
+      receipt_required: backendCapabilities.some(capability => capability.receipt_strategy !== 'none'),
+    };
+  }
+  if (entry.service_families.includes('mcp_plus_plus') || entry.service_families.includes('orb') || entry.glasses_strategy.kind === 'manual') {
+    return {
+      state: 'manual',
+      descriptor_owner: 'manual-registry',
+      mcp_plus_plus: entry.service_families.includes('mcp_plus_plus') || entry.service_families.includes('orb') ? 'eligible' : 'not-eligible',
+      receipt_required: backendCapabilities.some(capability => capability.receipt_strategy !== 'none'),
+    };
+  }
+  return {
+    state: 'not-required',
+    descriptor_owner: 'local-only',
+    mcp_plus_plus: 'not-eligible',
+    receipt_required: false,
+  };
+}
+
+function deriveUxScenarios(
+  entry: Pick<VirtualDesktopAppManifestEntryInput, 'title' | 'glasses_strategy'>,
+  backendCapabilities: readonly VirtualDesktopBackendCapability[],
+): VirtualDesktopUxScenarios {
+  const backendLabel = backendCapabilities.length > 0
+    ? backendCapabilities.map(capability => capability.service).join(', ')
+    : 'local browser state';
+  return {
+    success: `${entry.title} renders the requested result and links any required receipt from ${backendLabel}.`,
+    fallback: `${entry.title} shows descriptor, cached, mobile-card, or audio-summary fallback using ${entry.glasses_strategy.handoff}.`,
+    error: `${entry.title} shows a policy-aware error state with retry, receipt, or local-only rationale.`,
+  };
 }
 
 export const VISIBLE_DESKTOP_APP_IDS = [
@@ -181,6 +372,7 @@ export const VISIBLE_DESKTOP_APP_IDS = [
   'device-manager',
   'settings',
   'mcp-control',
+  'agent-supervisor',
   'api-keys',
   'github',
   'oauth-login',
@@ -776,7 +968,7 @@ export const VIRTUAL_DESKTOP_APP_MANIFEST: VirtualDesktopAppManifest = {
       owner_module: 'mcp',
       launch_kind: 'idl-generated',
       component: 'DescriptorAppComponent',
-      source_sets: ['web-js-main-simple', 'browser-main', 'idl-generated'],
+      source_sets: ['web-index-desktop', 'web-index-start-menu', 'web-js-main-simple', 'browser-main', 'idl-generated'],
       capabilities: ['ipfs.datasets.discovery', 'ipfs.datasets.vector', 'ipfs.datasets.provenance', 'mcp.descriptor'],
       service_families: ['ipfs_datasets_py', 'mcp_plus_plus', 'orb'],
       glasses_strategy: idlFallback,
@@ -790,7 +982,7 @@ export const VIRTUAL_DESKTOP_APP_MANIFEST: VirtualDesktopAppManifest = {
       owner_module: 'mcp',
       launch_kind: 'idl-generated',
       component: 'DescriptorAppComponent',
-      source_sets: ['web-js-main-simple', 'browser-main', 'idl-generated'],
+      source_sets: ['web-index-desktop', 'web-index-start-menu', 'web-js-main-simple', 'browser-main', 'idl-generated'],
       capabilities: ['ipfs.accelerate.models', 'ipfs.accelerate.inference', 'ipfs.accelerate.jobs', 'mcp.descriptor'],
       service_families: ['ipfs_accelerate_py', 'mcp_plus_plus', 'orb'],
       glasses_strategy: idlFallback,
@@ -804,7 +996,7 @@ export const VIRTUAL_DESKTOP_APP_MANIFEST: VirtualDesktopAppManifest = {
       owner_module: 'mcp',
       launch_kind: 'service-surface',
       component: 'IDLExplorerApp',
-      source_sets: ['web-js-main-simple', 'browser-main', 'glasses-registry'],
+      source_sets: ['web-index-desktop', 'web-index-start-menu', 'web-js-main-simple', 'browser-main', 'glasses-registry'],
       capabilities: ['mcp.descriptor', 'mcp.registry', 'orb.dispatch'],
       service_families: ['mcp_plus_plus', 'orb'],
       glasses_strategy: manualGlasses('idl-explorer'),
@@ -818,7 +1010,7 @@ export const VIRTUAL_DESKTOP_APP_MANIFEST: VirtualDesktopAppManifest = {
       owner_module: 'glasses',
       launch_kind: 'service-surface',
       component: 'GlassesPreviewApp',
-      source_sets: ['web-js-main-simple', 'browser-main', 'glasses-registry'],
+      source_sets: ['web-index-desktop', 'web-index-start-menu', 'web-js-main-simple', 'browser-main', 'glasses-registry'],
       capabilities: ['glasses.preview', 'glasses.edge', 'orb.dispatch'],
       service_families: ['meta_glasses', 'orb', 'local'],
       glasses_strategy: manualGlasses('glasses-preview'),
@@ -832,7 +1024,7 @@ export const VIRTUAL_DESKTOP_APP_MANIFEST: VirtualDesktopAppManifest = {
       owner_module: 'glasses',
       launch_kind: 'service-surface',
       component: 'ORBAutoUILauncher',
-      source_sets: ['web-js-main-simple', 'browser-main', 'glasses-registry'],
+      source_sets: ['web-index-desktop', 'web-index-start-menu', 'web-js-main-simple', 'browser-main', 'glasses-registry'],
       capabilities: ['orb.auto_ui', 'mcp.descriptor', 'mcp.gateway'],
       service_families: ['orb', 'mcp_plus_plus', 'ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'],
       glasses_strategy: manualGlasses('orb-auto-ui'),
@@ -846,11 +1038,81 @@ export const VIRTUAL_DESKTOP_APP_MANIFEST: VirtualDesktopAppManifest = {
       owner_module: 'mcp',
       launch_kind: 'service-surface',
       component: 'MCPPlusPlusExplorer',
-      source_sets: ['web-js-main-simple', 'browser-main'],
+      source_sets: ['web-index-desktop', 'web-index-start-menu', 'web-js-main-simple', 'browser-main'],
       capabilities: ['mcp.registry', 'mcp.gateway', 'mcp.receipts', 'mcp.event_dag'],
       service_families: ['mcp_plus_plus', 'ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'],
       glasses_strategy: mobileFallback,
       required_test_coverage: capabilityCoverage,
+    }),
+    app({
+      id: 'agent-supervisor',
+      aliases: [],
+      title: 'Agent Supervisor',
+      category: 'automation',
+      owner_module: 'mcp',
+      launch_kind: 'static-app',
+      component: 'AgentSupervisorConsole',
+      source_sets: [...visibleDesktopSources, 'web-index-start-menu', 'browser-main', 'docs-applications'],
+      capabilities: [
+        'ipfs.accelerate.supervisor',
+        'ipfs.accelerate.jobs',
+        'ipfs.datasets.discovery',
+        'ipfs.datasets.provenance',
+        'ipfs.kit.storage',
+        'mcp.receipts',
+        'mcp.event_dag',
+      ],
+      service_families: ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py', 'mcp_plus_plus', 'policy', 'orb'],
+      backend_capabilities: [
+        {
+          id: 'agent-supervisor.ipfs-accelerate-supervisor',
+          service: 'ipfs_accelerate_py',
+          capability: 'ipfs.accelerate.supervisor',
+          mcp_transport: 'required',
+          mcp_plus_plus_transport: 'eligible',
+          policy_class: 'heavy_compute',
+          receipt_strategy: 'event-dag-receipt',
+        },
+        {
+          id: 'agent-supervisor.ipfs-datasets-task-index',
+          service: 'ipfs_datasets_py',
+          capability: 'ipfs.datasets.discovery',
+          mcp_transport: 'eligible',
+          mcp_plus_plus_transport: 'eligible',
+          policy_class: 'read',
+          receipt_strategy: 'descriptor',
+        },
+        {
+          id: 'agent-supervisor.ipfs-kit-receipt-storage',
+          service: 'ipfs_kit_py',
+          capability: 'ipfs.kit.storage',
+          mcp_transport: 'eligible',
+          mcp_plus_plus_transport: 'eligible',
+          policy_class: 'write',
+          receipt_strategy: 'event-dag-receipt',
+        },
+      ],
+      orb_idl_state: {
+        state: 'manual',
+        descriptor_owner: 'manual-registry',
+        mcp_plus_plus: 'eligible',
+        receipt_required: true,
+      },
+      glasses_strategy: {
+        kind: 'display-webapp',
+        handoff: 'display-webapp',
+        fallback: ['mobile-card', 'audio-summary', 'desktop-only'],
+        rationale: 'Supervisor steering is summarized on glasses, while bounded prompt changes require desktop or mobile confirmation.',
+      },
+      ux_scenarios: {
+        success: 'Shows goals, subgoals, queue state, taskboard links, and immutable run receipts without reading local supervisor files.',
+        fallback: 'Shows cached dataset indexes and receipt links when live supervisor transport is unavailable.',
+        error: 'Blocks unsafe steering, explains the policy class, and links the failed MCP or MCP++ receipt.',
+      },
+      required_test_coverage: glassesCoverage,
+      notes: [
+        'Browser code must use typed MCP/MCP++ capabilities only; it must not import Python, read supervisor state files, or spawn processes.',
+      ],
     }),
   ],
 };

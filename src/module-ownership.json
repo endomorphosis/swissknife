@@ -40,6 +40,7 @@
   "audit": {
     "ignoredRootFiles": [
       "src/module-ownership.json",
+      "src/services/module-ownership.json",
       "src/tsconfig.json"
     ],
     "rootFileOwners": {
@@ -125,6 +126,13 @@
         "reason": "Legacy Claude service still imports command query types; remove this exception when query message contracts move to shared/types."
       },
       {
+        "from": "service-platform",
+        "to": "commands",
+        "importer": "src/services/platform/claude.ts",
+        "target": "src/query.ts",
+        "reason": "Migrated Claude platform adapter still imports command query types until query message contracts move to shared/types."
+      },
+      {
         "from": "services",
         "to": "commands",
         "importer": "src/services/mcpClient.ts",
@@ -132,11 +140,25 @@
         "reason": "Legacy MCP client still imports command definitions; remove this exception when command registration moves behind MCP-safe descriptors."
       },
       {
+        "from": "service-mcp",
+        "to": "commands",
+        "importer": "src/services/mcp/mcpClient.ts",
+        "target": "src/commands.ts",
+        "reason": "Migrated MCP client still imports command definitions through the legacy command registry until command metadata moves behind MCP-safe descriptors."
+      },
+      {
         "from": "services",
         "to": "commands",
         "importer": "src/services/vcr.ts",
         "target": "src/query.ts",
         "reason": "Legacy VCR service still imports command query types; remove this exception when replay message contracts move to shared/types."
+      },
+      {
+        "from": "service-platform",
+        "to": "commands",
+        "importer": "src/services/platform/vcr.ts",
+        "target": "src/query.ts",
+        "reason": "Migrated VCR platform adapter still imports command query types until replay message contracts move to shared/types."
       },
       {
         "from": "types",
@@ -451,6 +473,7 @@
       "src/services/deontic/deontic-text-analyzer.ts",
       "src/services/ipfs/browser.ts",
       "src/services/logic-language-pipeline.ts",
+      "src/services/mcp/agent-supervisor-console-gateway.ts",
       "src/services/mcp/browser-mcp.ts",
       "src/services/mcp/libp2p-browser-runtime.ts",
       "src/services/provers/browser-crypto.ts",
@@ -477,6 +500,7 @@
       "src/services/deontic/deontic-text-analyzer.ts",
       "src/services/ipfs/browser.ts",
       "src/services/logic-language-pipeline.ts",
+      "src/services/mcp/agent-supervisor-console-gateway.ts",
       "src/services/mcp/browser-mcp.ts",
       "src/services/mcp/libp2p-browser-runtime.ts",
       "src/services/provers/browser-crypto.ts",
@@ -1660,6 +1684,33 @@
         "IPFS descriptors and storage integration live here; generic IPFS clients remain under src/ipfs and storage persistence under src/storage/ipfs."
       ]
     },
+    "service-logic": {
+      "owner": "logic-service-runtime",
+      "path": "src/services/logic",
+      "purpose": "Logic calculus, bridge, parser, proof, and policy service implementations migrated under the logic service family.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe logic service entrypoints",
+      "allowedImports": [
+        "services",
+        "service-provers",
+        "service-shared",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/logic/**/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Fine-grained logic-family ownership remains documented in src/services/module-ownership.json."
+      ]
+    },
     "service-mcp": {
       "owner": "mcp-protocol-runtime",
       "path": "src/services/mcp",
@@ -1687,6 +1738,56 @@
         "Protocol, transport, mediation, and ORB machinery belongs here; descriptor packs for IPFS-owned apps stay in src/services/ipfs."
       ]
     },
+    "service-platform": {
+      "owner": "platform-service-runtime",
+      "path": "src/services/platform",
+      "purpose": "Platform service adapters migrated out of the root services namespace.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe platform service adapters",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/platform/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Runtime-wide platform facades remain under src/platform; service-specific platform adapters live here."
+      ]
+    },
+    "service-proof-engine": {
+      "owner": "proof-engine-service-runtime",
+      "path": "src/services/proof-engine",
+      "purpose": "Proof execution, routing, cache, and explanation services.",
+      "runtimeClassification": "split",
+      "browserReachability": "allowed only through browser-safe proof-engine entrypoints",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/proof-engine/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Root proof-engine compatibility files remain in the explicit root service inventory."
+      ]
+    },
     "service-provers": {
       "owner": "prover-service-runtime",
       "path": "src/services/provers",
@@ -1710,6 +1811,30 @@
       "privateEntrypoints": [],
       "notes": [
         "Root prover compatibility files remain in the explicit root service inventory."
+      ]
+    },
+    "service-shared": {
+      "owner": "shared-service-runtime",
+      "path": "src/services/shared",
+      "purpose": "Pure cross-service helpers that are shared by service-family modules without owning runtime state.",
+      "runtimeClassification": "universal",
+      "browserReachability": "allowed for browser-safe pure helpers",
+      "allowedImports": [
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/shared/*.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "Generic application-wide shared contracts remain under src/shared."
       ]
     },
     "service-zkp": {

@@ -225,13 +225,13 @@
       "module": "service-glasses",
       "owner": "glasses-surface-runtime",
       "runtimeClassification": "split",
-      "fileCount": 19
+      "fileCount": 26
     },
     {
       "module": "service-integrations",
       "owner": "external-integration-service-runtime",
       "runtimeClassification": "split",
-      "fileCount": 1
+      "fileCount": 14
     },
     {
       "module": "service-ipfs",
@@ -240,22 +240,46 @@
       "fileCount": 14
     },
     {
+      "module": "service-logic",
+      "owner": "logic-service-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 204
+    },
+    {
       "module": "service-mcp",
       "owner": "mcp-protocol-runtime",
       "runtimeClassification": "split",
-      "fileCount": 54
+      "fileCount": 55
+    },
+    {
+      "module": "service-platform",
+      "owner": "platform-service-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 26
+    },
+    {
+      "module": "service-proof-engine",
+      "owner": "proof-engine-service-runtime",
+      "runtimeClassification": "split",
+      "fileCount": 13
     },
     {
       "module": "service-provers",
       "owner": "prover-service-runtime",
       "runtimeClassification": "split",
-      "fileCount": 22
+      "fileCount": 34
+    },
+    {
+      "module": "service-shared",
+      "owner": "shared-service-runtime",
+      "runtimeClassification": "universal",
+      "fileCount": 5
     },
     {
       "module": "service-zkp",
       "owner": "zkp-service-runtime",
       "runtimeClassification": "split",
-      "fileCount": 9
+      "fileCount": 36
     },
     {
       "module": "services",
@@ -267,7 +291,7 @@
       "module": "shared",
       "owner": "shared-contracts-runtime",
       "runtimeClassification": "universal",
-      "fileCount": 14
+      "fileCount": 15
     },
     {
       "module": "storage",
@@ -325,10 +349,10 @@
     }
   ],
   "summary": {
-    "modules": 53,
+    "modules": 57,
     "rootFiles": 16,
     "unknownFiles": 0,
-    "forbiddenImports": 3,
+    "forbiddenImports": 0,
     "legacyCompatibilityShims": 0,
     "legacyRootImportSpecifiers": 0,
     "ownershipConflicts": 0,

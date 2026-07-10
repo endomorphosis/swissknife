@@ -1,0 +1,538 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hallucinate.app/contracts/agent-supervisor-console.schema.json",
+  "title": "Agent Supervisor Console browser-safe gateway contract",
+  "description": "SWR-104 contract for browser-safe Agent Supervisor read capabilities, governed write requests, typed unavailable/denied states, and backend ownership.",
+  "type": "object",
+  "required": [
+    "schema",
+    "app_id",
+    "version",
+    "browser_safe",
+    "owners",
+    "capabilities",
+    "unavailable_states",
+    "denied_states",
+    "forbidden_browser_surfaces",
+    "schema_ref"
+  ],
+  "properties": {
+    "schema": { "type": "string", "const": "swissknife.agent_supervisor_console.v1" },
+    "app_id": { "type": "string", "const": "agent-supervisor" },
+    "version": { "type": "string" },
+    "browser_safe": { "type": "boolean", "const": true },
+    "schema_ref": { "type": "string", "const": "contracts/agent-supervisor-console.schema.json" },
+    "owners": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/ownerDescriptor" },
+      "contains": {
+        "type": "object",
+        "required": ["owner", "state_authority", "governed_action_authority"],
+        "properties": {
+          "owner": { "const": "ipfs_accelerate_py" },
+          "state_authority": { "const": true },
+          "governed_action_authority": { "const": true }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 10,
+      "items": { "$ref": "#/$defs/capabilityDescriptor" },
+      "allOf": [
+        { "contains": { "type": "object", "required": ["id"], "properties": { "id": { "const": "supervisor.health.read" } } } },
+        { "contains": { "type": "object", "required": ["id"], "properties": { "id": { "const": "supervisor.queue.read" } } } },
+        { "contains": { "type": "object", "required": ["id"], "properties": { "id": { "const": "supervisor.goals.read" } } } },
+        { "contains": { "type": "object", "required": ["id"], "properties": { "id": { "const": "supervisor.subgoals.read" } } } },
+        { "contains": { "type": "object", "required": ["id"], "properties": { "id": { "const": "supervisor.taskboard.links.read" } } } },
+        { "contains": { "type": "object", "required": ["id"], "properties": { "id": { "const": "supervisor.logs.read" } } } },
+        { "contains": { "type": "object", "required": ["id"], "properties": { "id": { "const": "supervisor.receipts.read" } } } },
+        { "contains": { "type": "object", "required": ["id"], "properties": { "id": { "const": "supervisor.run-history.search" } } } },
+        { "contains": { "type": "object", "required": ["id", "access"], "properties": { "id": { "const": "supervisor.prompt-steering.request" }, "access": { "const": "governed-write" } } } },
+        { "contains": { "type": "object", "required": ["id", "access"], "properties": { "id": { "const": "supervisor.task-control.request" }, "access": { "const": "governed-write" } } } }
+      ]
+    },
+    "unavailable_states": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unavailableReason" },
+      "minItems": 7,
+      "uniqueItems": true
+    },
+    "denied_states": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/deniedReason" },
+      "minItems": 6,
+      "uniqueItems": true
+    },
+    "forbidden_browser_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "host_state_file_read",
+          "host_process_launch",
+          "direct_implementation_supervisor_call",
+          "unmediated_prompt_mutation"
+        ]
+      },
+      "minItems": 4,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "backendOwner": {
+      "type": "string",
+      "enum": ["ipfs_accelerate_py", "ipfs_kit_py", "ipfs_datasets_py"]
+    },
+    "transport": {
+      "type": "string",
+      "enum": ["mcp", "mcp++", "libp2p"]
+    },
+    "capabilityId": {
+      "type": "string",
+      "enum": [
+        "supervisor.health.read",
+        "supervisor.queue.read",
+        "supervisor.goals.read",
+        "supervisor.subgoals.read",
+        "supervisor.taskboard.links.read",
+        "supervisor.logs.read",
+        "supervisor.receipts.read",
+        "supervisor.run-history.search",
+        "supervisor.prompt-steering.request",
+        "supervisor.task-control.request"
+      ]
+    },
+    "policyClass": {
+      "type": "string",
+      "enum": ["read", "confirm", "privileged-control"]
+    },
+    "unavailableReason": {
+      "type": "string",
+      "enum": [
+        "server_unavailable",
+        "transport_unavailable",
+        "capability_unavailable",
+        "index_stale",
+        "receipt_unavailable",
+        "not_configured",
+        "timeout"
+      ]
+    },
+    "deniedReason": {
+      "type": "string",
+      "enum": [
+        "policy_denied",
+        "confirmation_required",
+        "dependency_blocked",
+        "budget_exceeded",
+        "scope_not_allowed",
+        "invalid_target"
+      ]
+    },
+    "ownerDescriptor": {
+      "type": "object",
+      "required": [
+        "owner",
+        "responsibility",
+        "state_authority",
+        "evidence_authority",
+        "search_authority",
+        "governed_action_authority"
+      ],
+      "properties": {
+        "owner": { "$ref": "#/$defs/backendOwner" },
+        "responsibility": { "type": "string", "minLength": 1 },
+        "state_authority": { "type": "boolean" },
+        "evidence_authority": { "type": "boolean" },
+        "search_authority": { "type": "boolean" },
+        "governed_action_authority": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "capabilityDescriptor": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "access",
+        "owner",
+        "policy_class",
+        "transports",
+        "method",
+        "input_ref",
+        "output_ref",
+        "receipt_required",
+        "description"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/capabilityId" },
+        "title": { "type": "string", "minLength": 1 },
+        "access": { "type": "string", "enum": ["read", "governed-write"] },
+        "owner": { "$ref": "#/$defs/backendOwner" },
+        "policy_class": { "$ref": "#/$defs/policyClass" },
+        "transports": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/transport" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "method": { "type": "string", "pattern": "^agent_supervisor\\." },
+        "input_ref": { "type": "string", "pattern": "^#\\/\\$defs\\/" },
+        "output_ref": { "type": "string", "pattern": "^#\\/\\$defs\\/" },
+        "receipt_required": { "type": "boolean" },
+        "description": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "receiptRef": {
+      "type": "object",
+      "required": ["receipt_id", "owner"],
+      "properties": {
+        "receipt_id": { "type": "string", "minLength": 1 },
+        "cid": { "type": "string", "minLength": 1 },
+        "owner": { "type": "string", "const": "ipfs_kit_py" },
+        "created_at": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "gatewayInvocation": {
+      "type": "object",
+      "required": ["capability_id", "owner", "method", "access", "policy_class", "payload"],
+      "properties": {
+        "capability_id": { "$ref": "#/$defs/capabilityId" },
+        "owner": { "$ref": "#/$defs/backendOwner" },
+        "method": { "type": "string", "pattern": "^agent_supervisor\\." },
+        "access": { "type": "string", "enum": ["read", "governed-write"] },
+        "policy_class": { "$ref": "#/$defs/policyClass" },
+        "payload": true,
+        "correlation_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "availableResult": {
+      "type": "object",
+      "required": ["state", "capability_id", "owner", "data"],
+      "properties": {
+        "state": { "type": "string", "const": "available" },
+        "capability_id": { "$ref": "#/$defs/capabilityId" },
+        "owner": { "$ref": "#/$defs/backendOwner" },
+        "data": true,
+        "receipt": { "$ref": "#/$defs/receiptRef" },
+        "correlation_id": { "type": "string" },
+        "observed_at": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "unavailableResult": {
+      "type": "object",
+      "required": ["state", "capability_id", "owner", "reason", "message"],
+      "properties": {
+        "state": { "type": "string", "const": "unavailable" },
+        "capability_id": { "$ref": "#/$defs/capabilityId" },
+        "owner": { "$ref": "#/$defs/backendOwner" },
+        "reason": { "$ref": "#/$defs/unavailableReason" },
+        "message": { "type": "string" },
+        "retry_after_ms": { "type": "number", "minimum": 0 },
+        "correlation_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "deniedResult": {
+      "type": "object",
+      "required": ["state", "capability_id", "owner", "reason", "message", "policy_class"],
+      "properties": {
+        "state": { "type": "string", "const": "denied" },
+        "capability_id": { "$ref": "#/$defs/capabilityId" },
+        "owner": { "$ref": "#/$defs/backendOwner" },
+        "reason": { "$ref": "#/$defs/deniedReason" },
+        "message": { "type": "string" },
+        "policy_class": { "$ref": "#/$defs/policyClass" },
+        "decision_id": { "type": "string" },
+        "required_confirmation": { "type": "boolean" },
+        "correlation_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "gatewayResult": {
+      "oneOf": [
+        { "$ref": "#/$defs/availableResult" },
+        { "$ref": "#/$defs/unavailableResult" },
+        { "$ref": "#/$defs/deniedResult" }
+      ]
+    },
+    "listRequest": {
+      "type": "object",
+      "properties": {
+        "limit": { "type": "integer", "minimum": 1, "maximum": 500 },
+        "cursor": { "type": "string" },
+        "status": { "type": "string" },
+        "target_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "healthReadRequest": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "receiptReadRequest": {
+      "type": "object",
+      "properties": {
+        "limit": { "type": "integer", "minimum": 1, "maximum": 500 },
+        "cursor": { "type": "string" },
+        "status": { "type": "string" },
+        "target_id": { "type": "string" },
+        "receipt_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "runHistorySearchRequest": {
+      "type": "object",
+      "properties": {
+        "limit": { "type": "integer", "minimum": 1, "maximum": 500 },
+        "cursor": { "type": "string" },
+        "status": { "type": "string" },
+        "query": { "type": "string" },
+        "goal_id": { "type": "string" },
+        "subgoal_id": { "type": "string" },
+        "task_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "health": {
+      "type": "object",
+      "required": ["status", "active_goal_count", "queued_task_count", "running_task_count", "backends"],
+      "properties": {
+        "status": { "type": "string", "enum": ["healthy", "degraded", "unavailable"] },
+        "active_goal_count": { "type": "integer", "minimum": 0 },
+        "queued_task_count": { "type": "integer", "minimum": 0 },
+        "running_task_count": { "type": "integer", "minimum": 0 },
+        "server_time": { "type": "string" },
+        "backends": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["owner", "status", "transport"],
+            "properties": {
+              "owner": { "$ref": "#/$defs/backendOwner" },
+              "status": { "type": "string", "enum": ["available", "degraded", "unavailable"] },
+              "transport": { "$ref": "#/$defs/transport" },
+              "receipt": { "$ref": "#/$defs/receiptRef" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "queueItemList": { "type": "array", "items": { "$ref": "#/$defs/queueItem" } },
+    "goalList": { "type": "array", "items": { "$ref": "#/$defs/goal" } },
+    "subgoalList": { "type": "array", "items": { "$ref": "#/$defs/subgoal" } },
+    "taskboardLinkList": { "type": "array", "items": { "$ref": "#/$defs/taskboardLink" } },
+    "logEntryList": { "type": "array", "items": { "$ref": "#/$defs/logEntry" } },
+    "receiptRefList": { "type": "array", "items": { "$ref": "#/$defs/receiptRef" } },
+    "runHistoryRecordList": { "type": "array", "items": { "$ref": "#/$defs/runHistoryRecord" } },
+    "queueItem": {
+      "type": "object",
+      "required": ["task_id", "title", "status", "dependencies"],
+      "properties": {
+        "task_id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["ready", "blocked", "running", "waiting", "completed", "failed"] },
+        "goal_id": { "type": "string" },
+        "subgoal_id": { "type": "string" },
+        "taskboard_url": { "type": "string" },
+        "dependencies": { "type": "array", "items": { "type": "string" } },
+        "receipt": { "$ref": "#/$defs/receiptRef" }
+      },
+      "additionalProperties": false
+    },
+    "goal": {
+      "type": "object",
+      "required": ["goal_id", "title", "status", "subgoal_ids", "task_ids"],
+      "properties": {
+        "goal_id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["ready", "blocked", "running", "completed", "failed"] },
+        "subgoal_ids": { "type": "array", "items": { "type": "string" } },
+        "task_ids": { "type": "array", "items": { "type": "string" } },
+        "taskboard_url": { "type": "string" },
+        "receipt": { "$ref": "#/$defs/receiptRef" }
+      },
+      "additionalProperties": false
+    },
+    "subgoal": {
+      "type": "object",
+      "required": ["subgoal_id", "goal_id", "title", "status", "task_ids"],
+      "properties": {
+        "subgoal_id": { "type": "string" },
+        "goal_id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["ready", "blocked", "running", "completed", "failed"] },
+        "task_ids": { "type": "array", "items": { "type": "string" } },
+        "taskboard_url": { "type": "string" },
+        "receipt": { "$ref": "#/$defs/receiptRef" }
+      },
+      "additionalProperties": false
+    },
+    "taskboardLink": {
+      "type": "object",
+      "required": ["task_id", "source", "url", "title"],
+      "properties": {
+        "task_id": { "type": "string" },
+        "source": { "type": "string", "enum": ["todo", "github", "release-evidence", "supervisor"] },
+        "url": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "logEntry": {
+      "type": "object",
+      "required": ["log_id", "level", "message", "created_at", "scope", "redacted"],
+      "properties": {
+        "log_id": { "type": "string" },
+        "level": { "type": "string", "enum": ["debug", "info", "warn", "error"] },
+        "message": { "type": "string" },
+        "created_at": { "type": "string" },
+        "scope": { "type": "string", "enum": ["supervisor", "goal", "subgoal", "task", "receipt"] },
+        "target_id": { "type": "string" },
+        "redacted": { "type": "boolean" },
+        "receipt": { "$ref": "#/$defs/receiptRef" }
+      },
+      "additionalProperties": false
+    },
+    "runHistoryRecord": {
+      "type": "object",
+      "required": ["run_id", "status"],
+      "properties": {
+        "run_id": { "type": "string" },
+        "goal_id": { "type": "string" },
+        "subgoal_id": { "type": "string" },
+        "task_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["queued", "running", "completed", "failed", "cancelled"] },
+        "started_at": { "type": "string" },
+        "completed_at": { "type": "string" },
+        "receipt": { "$ref": "#/$defs/receiptRef" }
+      },
+      "additionalProperties": false
+    },
+    "promptSteeringRequest": {
+      "type": "object",
+      "required": ["target_type", "target_id", "prompt", "dry_run"],
+      "properties": {
+        "target_type": { "type": "string", "enum": ["goal", "subgoal", "task"] },
+        "target_id": { "type": "string", "minLength": 1 },
+        "prompt": { "type": "string", "minLength": 1, "maxLength": 8000 },
+        "dry_run": { "type": "boolean" },
+        "confirmation_token": { "type": "string" },
+        "client_request_id": { "type": "string" },
+        "expected_normalized_target": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "taskControlRequest": {
+      "type": "object",
+      "required": ["task_id", "action", "reason", "dry_run"],
+      "properties": {
+        "task_id": { "type": "string", "minLength": 1 },
+        "action": { "type": "string", "enum": ["pause", "resume", "retry", "cancel", "claim", "release"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "dry_run": { "type": "boolean" },
+        "confirmation_token": { "type": "string" },
+        "client_request_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "governedActionAccepted": {
+      "type": "object",
+      "required": ["request_id", "correlation_id", "accepted", "dry_run", "normalized_target", "policy_class", "affected_task_ids", "planned_mcp_action", "receipt"],
+      "properties": {
+        "request_id": { "type": "string" },
+        "correlation_id": { "type": "string" },
+        "accepted": { "type": "boolean" },
+        "dry_run": { "type": "boolean" },
+        "normalized_target": { "type": "string" },
+        "policy_class": { "$ref": "#/$defs/policyClass" },
+        "affected_task_ids": { "type": "array", "items": { "type": "string" } },
+        "planned_mcp_action": { "$ref": "#/$defs/plannedMcpAction" },
+        "receipt": { "$ref": "#/$defs/receiptRef" }
+      },
+      "additionalProperties": false
+    },
+    "plannedMcpAction": {
+      "type": "object",
+      "required": [
+        "capability_id",
+        "method",
+        "owner",
+        "access",
+        "policy_class",
+        "normalized_target",
+        "transport_candidates",
+        "input_mode",
+        "required_policy_checks"
+      ],
+      "properties": {
+        "capability_id": { "$ref": "#/$defs/capabilityId" },
+        "method": { "type": "string", "pattern": "^agent_supervisor\\." },
+        "owner": { "$ref": "#/$defs/backendOwner" },
+        "access": { "type": "string", "enum": ["read", "governed-write"] },
+        "policy_class": { "$ref": "#/$defs/policyClass" },
+        "normalized_target": { "type": "string", "minLength": 1 },
+        "transport_candidates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/transport" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "input_mode": { "type": "string", "const": "structured-json-payload" },
+        "prompt_log_mode": { "type": "string", "const": "redacted" },
+        "required_policy_checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "target_authorization",
+              "task_dependencies",
+              "branch_protection",
+              "confirmation_policy",
+              "execution_budget",
+              "receipt_persistence"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "promptSteeringReview": {
+      "type": "object",
+      "required": [
+        "normalized_target",
+        "policy_class",
+        "affected_task_ids",
+        "prompt_char_count",
+        "prompt_max_chars",
+        "prompt_log_preview",
+        "planned_mcp_action"
+      ],
+      "properties": {
+        "normalized_target": { "type": "string", "minLength": 1 },
+        "policy_class": { "$ref": "#/$defs/policyClass" },
+        "affected_task_ids": { "type": "array", "items": { "type": "string" } },
+        "prompt_char_count": { "type": "integer", "minimum": 0, "maximum": 8000 },
+        "prompt_max_chars": { "type": "integer", "const": 8000 },
+        "prompt_log_preview": { "type": "string", "const": "[prompt redacted]" },
+        "planned_mcp_action": { "$ref": "#/$defs/plannedMcpAction" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

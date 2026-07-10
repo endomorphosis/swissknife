@@ -14,6 +14,8 @@ describe('MCP browser service entrypoint', () => {
     expect(browserMcp).toHaveProperty('buildReceipt');
     expect(browserMcp).toHaveProperty('computeCID');
     expect(browserMcp).toHaveProperty('WasmProverHub');
+    expect(browserMcp).toHaveProperty('AGENT_SUPERVISOR_CONSOLE_CONTRACT');
+    expect(browserMcp).toHaveProperty('createAgentSupervisorConsoleGateway');
   });
 
   it('does not export host-only or deprecated Python-remote compatibility adapters', () => {

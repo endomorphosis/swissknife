@@ -10,11 +10,11 @@
     "libp2pBrotliBytes": 160000,
     "libp2pChunkCount": 8
   },
-  "fileCount": 49,
+  "fileCount": 51,
   "totals": {
-    "rawBytes": 2369533,
-    "gzipBytes": 554885,
-    "brotliBytes": 465658
+    "rawBytes": 2427511,
+    "gzipBytes": 569696,
+    "brotliBytes": 478581
   },
   "files": [
     {
@@ -30,16 +30,16 @@
       "brotliBytes": 31349
     },
     {
-      "file": "dist/assets/p2p-network-C56U1IZ9.js",
+      "file": "dist/assets/p2p-network-BkFaYVDF.js",
       "rawBytes": 97214,
-      "gzipBytes": 17601,
-      "brotliBytes": 14763
+      "gzipBytes": 17599,
+      "brotliBytes": 14750
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
-      "rawBytes": 71028,
-      "gzipBytes": 14311,
-      "brotliBytes": 12411
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
+      "rawBytes": 71037,
+      "gzipBytes": 14312,
+      "brotliBytes": 12399
     },
     {
       "file": "dist/assets/file-manager-vsY99IO3.js",
@@ -54,10 +54,10 @@
       "brotliBytes": 12235
     },
     {
-      "file": "dist/assets/index-CEEwRsej.js",
-      "rawBytes": 57684,
-      "gzipBytes": 13381,
-      "brotliBytes": 11358
+      "file": "dist/assets/index-m4Z5NRnI.js",
+      "rawBytes": 65417,
+      "gzipBytes": 15634,
+      "brotliBytes": 13271
     },
     {
       "file": "dist/assets/friends-list-CJhCm1zv.js",
@@ -72,16 +72,22 @@
       "brotliBytes": 10036
     },
     {
-      "file": "dist/assets/training-manager-BbPciXRM.js",
-      "rawBytes": 49867,
-      "gzipBytes": 10567,
-      "brotliBytes": 9131
+      "file": "dist/assets/training-manager-Vjh42uH5.js",
+      "rawBytes": 49557,
+      "gzipBytes": 10435,
+      "brotliBytes": 9045
     },
     {
-      "file": "dist/assets/strudel-ai-daw-CzoITj_a.js",
+      "file": "dist/assets/strudel-ai-daw-wlFOOu6h.js",
       "rawBytes": 48666,
       "gzipBytes": 12235,
-      "brotliBytes": 10629
+      "brotliBytes": 10607
+    },
+    {
+      "file": "dist/assets/agent-supervisor-BtLaB4Ip.js",
+      "rawBytes": 47845,
+      "gzipBytes": 12100,
+      "brotliBytes": 10649
     },
     {
       "file": "dist/assets/calculator-DxXtFSyX.js",
@@ -234,6 +240,12 @@
       "brotliBytes": 4322
     },
     {
+      "file": "dist/index.html",
+      "rawBytes": 20430,
+      "gzipBytes": 3719,
+      "brotliBytes": 2996
+    },
+    {
       "file": "dist/assets/p2p-chat-unified-CXzE0BPr.js",
       "rawBytes": 20002,
       "gzipBytes": 4824,
@@ -250,12 +262,6 @@
       "rawBytes": 18502,
       "gzipBytes": 4290,
       "brotliBytes": 3589
-    },
-    {
-      "file": "dist/index.html",
-      "rawBytes": 17507,
-      "gzipBytes": 3085,
-      "brotliBytes": 2462
     },
     {
       "file": "dist/assets/music-studio--P-Otwmv.js",
@@ -282,10 +288,10 @@
       "brotliBytes": 1676
     },
     {
-      "file": "dist/assets/libp2p-browser-runtime-CFfkZFSW.js",
-      "rawBytes": 5112,
-      "gzipBytes": 1598,
-      "brotliBytes": 1434
+      "file": "dist/assets/libp2p-browser-runtime-tV3il_hh.js",
+      "rawBytes": 5099,
+      "gzipBytes": 1604,
+      "brotliBytes": 1441
     },
     {
       "file": "dist/_headers",
@@ -306,6 +312,12 @@
       "brotliBytes": 365
     },
     {
+      "file": "dist/assets/ipfs-accelerate-global-adapter-CBnSSR1i.js",
+      "rawBytes": 104,
+      "gzipBytes": 101,
+      "brotliBytes": 75
+    },
+    {
       "file": "dist/assets/favicon-c6ccp5z9.ico",
       "rawBytes": 5,
       "gzipBytes": 25,
@@ -314,9 +326,9 @@
   ],
   "libp2p": {
     "totals": {
-      "rawBytes": 611043,
-      "gzipBytes": 178256,
-      "brotliBytes": 144559,
+      "rawBytes": 611030,
+      "gzipBytes": 178262,
+      "brotliBytes": 144566,
       "chunkCount": 2
     },
     "chunks": [
@@ -338,14 +350,14 @@
         "reason": "package:@libp2p/interface, package:@libp2p/interface, package:@libp2p/interface"
       },
       {
-        "file": "dist/assets/libp2p-browser-runtime-CFfkZFSW.js",
-        "rawBytes": 5112,
-        "gzipBytes": 1598,
-        "brotliBytes": 1434,
+        "file": "dist/assets/libp2p-browser-runtime-tV3il_hh.js",
+        "rawBytes": 5099,
+        "gzipBytes": 1604,
+        "brotliBytes": 1441,
         "modules": [
-          "module:src/services/mcp/libp2p-browser-runtime.ts"
+          "module:web/js/libp2p-browser-runtime.js"
         ],
-        "reason": "module:src/services/mcp/libp2p-browser-runtime.ts"
+        "reason": "module:web/js/libp2p-browser-runtime.js"
       }
     ],
     "sourcePackages": [
@@ -401,7 +413,16 @@
       "snippet": "<div class=\"example-prompt\">\"Write a Python function to calculate fibonacci...\"</div>"
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/index-m4Z5NRnI.js",
+      "ruleId": "python-command-or-text",
+      "severity": "python-reference",
+      "fail": false,
+      "description": "Python command, language mode, or documentation text",
+      "match": "python",
+      "snippet": "o node builtins</code> <code>no python wrappers</code> <code>no"
+    },
+    {
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -410,7 +431,7 @@
       "snippet": "stCommandInterpreters:Object.freeze([\"python3\",\"python\",\"uvicorn\",\"gunicorn\",\"pip3\",\"pip\",\"node\""
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -419,7 +440,7 @@
       "snippet": "tnet\",\"ruby\",\"php\",\"go\",\"cargo\"])}),I=new Set([\"python\",\"python3\",\"uvicorn\",\"gunicorn\",\"pip\",\"pi"
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -428,7 +449,7 @@
       "snippet": "ss=\"host-daemon-disclaimer${c.isPythonCommand?\" python-command-disclaimer\":\"\"}\">"
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -437,7 +458,7 @@
       "snippet": "ss=\"host-daemon-disclaimer${s.isPythonCommand?\" python-command-disclaimer\":\"\"}\">"
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -446,7 +467,7 @@
       "snippet": "ort:8765},{name:\"example-mcp-server-2\",command:\"python server.py\",status:\"stopped\",port:8766}];f"
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -455,7 +476,7 @@
       "snippet": ".classList.remove(\"hidden\"),t.classList.toggle(\"python-command-disclaimer\",o.isPythonCommand),t."
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -464,7 +485,7 @@
       "snippet": "on) must run it. This example text references a Python interpreter/server; it documents the host"
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -473,7 +494,7 @@
       "snippet": "d is never parsed or executed by any in-browser Python code interpreter.\",hostCommandInterpreter"
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -482,7 +503,7 @@
       "snippet": "n the command references an interpreter such as Python. </p>"
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -491,7 +512,7 @@
       "snippet": "reter.\",hostCommandInterpreters:Object.freeze([\"python3\",\"python\",\"uvicorn\",\"gunicorn\",\"pip3\",\"p"
     },
     {
-      "file": "dist/assets/mcp-control-Nc5-pWpA.js",
+      "file": "dist/assets/mcp-control-CGpfhyw_.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -526,9 +547,9 @@
       "owner": "browser-web-app",
       "classification": "browser-safe",
       "browserReachability": "web build entrypoint",
-      "modules": 55,
-      "renderedBytes": 1875120,
-      "chunks": 39
+      "modules": 58,
+      "renderedBytes": 1956199,
+      "chunks": 42
     },
     {
       "type": "package",
@@ -861,16 +882,6 @@
       "chunks": 1
     },
     {
-      "type": "source",
-      "name": "service-mcp",
-      "owner": "mcp-protocol-runtime",
-      "classification": "split",
-      "browserReachability": "allowed through browser-safe protocol and transport modules",
-      "modules": 1,
-      "renderedBytes": 9306,
-      "chunks": 1
-    },
-    {
       "type": "package",
       "name": "@multiformats/multiaddr-to-uri",
       "owner": "third-party-runtime",
@@ -1108,16 +1119,6 @@
       "purpose": "bundled third-party dependency",
       "modules": 1,
       "renderedBytes": 3597,
-      "chunks": 1
-    },
-    {
-      "type": "source",
-      "name": "service-mcp",
-      "owner": "mcp-protocol-runtime",
-      "classification": "split",
-      "browserReachability": "allowed through browser-safe protocol and transport modules",
-      "modules": 1,
-      "renderedBytes": 6715,
       "chunks": 1
     },
     {
@@ -2246,37 +2247,37 @@
   "budgetResults": [
     {
       "name": "totalRawBytes",
-      "actual": 2369533,
+      "actual": 2427511,
       "budget": 2750000,
       "pass": true
     },
     {
       "name": "totalGzipBytes",
-      "actual": 554885,
+      "actual": 569696,
       "budget": 650000,
       "pass": true
     },
     {
       "name": "totalBrotliBytes",
-      "actual": 465658,
+      "actual": 478581,
       "budget": 560000,
       "pass": true
     },
     {
       "name": "libp2pRawBytes",
-      "actual": 611043,
+      "actual": 611030,
       "budget": 650000,
       "pass": true
     },
     {
       "name": "libp2pGzipBytes",
-      "actual": 178256,
+      "actual": 178262,
       "budget": 190000,
       "pass": true
     },
     {
       "name": "libp2pBrotliBytes",
-      "actual": 144559,
+      "actual": 144566,
       "budget": 160000,
       "pass": true
     },

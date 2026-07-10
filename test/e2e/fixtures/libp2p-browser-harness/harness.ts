@@ -316,9 +316,8 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
   }
 
   const forcedMissing = new Set(SCENARIO_FORCED_MISSING[config.scenario]);
-  const runtimeOverrides = forcedMissing.size > 0
-    ? { importModule: buildImportModule(forcedMissing) }
-    : {};
+  const importModule = forcedMissing.size > 0 ? buildImportModule(forcedMissing) : undefined;
+  const runtimeOptions = buildRuntimeOptions(config, importModule);
 
   // Capability/gap assembly never requires real network connectivity, so it
   // is always computed and rendered first — independent of whether the
@@ -326,10 +325,7 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
   // guarantees "unavailable package reporting" evidence is captured even in
   // scenarios where starting the node legitimately fails (e.g. no reachable
   // circuit-relay bootstrap peer).
-  const { report } = await buildBrowserLibp2pConfig({
-    ...runtimeOverrides,
-    libp2pOptions: { addresses: { listen: config.listenMultiaddrs } },
-  });
+  const { report } = await buildBrowserLibp2pConfig(runtimeOptions);
   renderCapabilities(report);
   renderGaps(report);
   renderBootstrapMatrix(report);
@@ -339,8 +335,8 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
     // control and time it explicitly below, independent of whatever
     // `createLibp2p`'s own default auto-start behavior is.
     const runtime = await createBrowserLibp2pNode({
-      ...runtimeOverrides,
-      libp2pOptions: { addresses: { listen: config.listenMultiaddrs }, start: false },
+      ...runtimeOptions,
+      libp2pOptions: { ...(runtimeOptions.libp2pOptions ?? {}), start: false },
     });
 
     const node = runtime.node as {

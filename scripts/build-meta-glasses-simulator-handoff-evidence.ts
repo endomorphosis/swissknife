@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import {
   buildMetaGlassesSimulatorHandoffEvidence,
@@ -7,18 +7,24 @@ import {
 
 const evidenceRoot = join(process.cwd(), 'test-results', 'virtual-desktop-ipfs-mcp-orb');
 const evidencePath = join(evidenceRoot, 'glasses-simulator-handoff.json');
+const screenshotRelativePath = 'test-results/virtual-desktop-ipfs-mcp-orb/glasses-screenshots/swr-097-glasses-simulator-handoff.png';
 
 async function main(): Promise<void> {
   const evidence = await buildMetaGlassesSimulatorHandoffEvidence({
     generatedAt: '2026-07-10T00:00:00.000Z',
     playwrightProbe: {
       status: 'passed',
+      screenshot: existsSync(join(process.cwd(), screenshotRelativePath))
+        ? screenshotRelativePath
+        : undefined,
       visible_dom_assertions: [
         'display states rendered, updated, focused, activated, cleared',
         'camera permission_denied, fallback, accepted states visible',
-        'microphone and speaker simulator policy states visible',
-        'desktop/mobile handoff paths visible without direct desktop pairing',
-        'ORB/IDL interface CIDs visible',
+        'microphone permission, transcript, and denial states visible',
+        'speaker simulator policy states visible',
+        'touch and voice input mappings visible',
+        'all handoff profiles visible without direct desktop pairing',
+        'ORB/IDL interface CIDs including input visible',
       ],
     },
   });

@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hallucinate.app/contracts/orb_idl_virtual_desktop_contract.schema.json",
+  "title": "SwissKnife virtual desktop ORB/IDL complete coverage contract",
+  "description": "Complete ORB/IDL descriptor coverage for every canonical SwissKnife virtual desktop app and generated service surface, including explicit Meta glasses modality and fallback semantics.",
+  "type": "object",
+  "required": [
+    "schema",
+    "contract_id",
+    "task_id",
+    "generated_from",
+    "validation_commands",
+    "expected_outputs",
+    "app_count",
+    "descriptor_count",
+    "interface_cid_count",
+    "modality_count",
+    "typed_fallback_count",
+    "unsupported_modality_count",
+    "read_only_projection_count",
+    "confirmed_policy_action_count",
+    "supervisor_console",
+    "modality_kinds",
+    "descriptors"
+  ],
+  "properties": {
+    "schema": { "type": "string", "const": "swissknife.virtual_desktop_orb_idl_contract.v1" },
+    "contract_id": { "type": "string", "const": "org.hallucinate.swissknife.virtual-desktop-orb-idl-contract" },
+    "task_id": { "type": "string", "const": "SWR-108" },
+    "generated_at": { "type": "string" },
+    "generated_from": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "validation_commands": {
+      "type": "array",
+      "items": { "type": "string" },
+      "contains": { "const": "npm run evidence:mcp-glasses" }
+    },
+    "expected_outputs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "contains": {
+        "const": "test-results/virtual-desktop-ipfs-mcp-orb/orb-idl-complete-coverage.json"
+      }
+    },
+    "app_count": { "type": "integer", "minimum": 1 },
+    "descriptor_count": { "type": "integer", "minimum": 1 },
+    "interface_cid_count": { "type": "integer", "minimum": 1 },
+    "modality_count": { "type": "integer", "minimum": 5 },
+    "typed_fallback_count": { "type": "integer", "minimum": 5 },
+    "unsupported_modality_count": { "type": "integer", "minimum": 1 },
+    "read_only_projection_count": { "type": "integer", "minimum": 1 },
+    "confirmed_policy_action_count": { "type": "integer", "minimum": 1 },
+    "supervisor_console": {
+      "type": "object",
+      "required": [
+        "app_id",
+        "default_projection",
+        "status_read_only",
+        "receipts_read_only",
+        "steering_requires_confirmation",
+        "policy_path"
+      ],
+      "properties": {
+        "app_id": { "type": "string", "const": "agent-supervisor" },
+        "default_projection": { "type": "string", "const": "read-only" },
+        "status_read_only": { "type": "boolean", "const": true },
+        "receipts_read_only": { "type": "boolean", "const": true },
+        "steering_requires_confirmation": { "type": "boolean", "const": true },
+        "policy_path": { "type": "string", "const": "same-as-desktop-confirmation" }
+      },
+      "additionalProperties": false
+    },
+    "modality_kinds": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/modalityKind" },
+      "uniqueItems": true
+    },
+    "descriptors": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/appDescriptor" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256Cid": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "modalityKind": {
+      "type": "string",
+      "enum": ["display", "camera", "speaker", "microphone", "input"]
+    },
+    "surface": {
+      "type": "string",
+      "enum": [
+        "desktop",
+        "glasses_hud",
+        "display_webapp",
+        "mobile_card",
+        "audio_channel",
+        "notification",
+        "policy_console",
+        "none"
+      ]
+    },
+    "fallbackKind": {
+      "type": "string",
+      "enum": [
+        "native-display",
+        "display-webapp",
+        "mobile-card",
+        "audio-summary",
+        "notification",
+        "desktop-only",
+        "read-only-status",
+        "confirmed-policy-path",
+        "unsupported-modality",
+        "permission-required"
+      ]
+    },
+    "fallback": {
+      "type": "object",
+      "required": ["kind", "target_surface", "typed_reason", "user_visible", "receipt_required", "semantics"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/fallbackKind" },
+        "target_surface": { "$ref": "#/$defs/surface" },
+        "typed_reason": {
+          "type": "string",
+          "enum": [
+            "supported_projection",
+            "hardware_not_declared",
+            "permission_gate",
+            "policy_gate",
+            "read_only_projection",
+            "transport_unavailable",
+            "desktop_only"
+          ]
+        },
+        "user_visible": { "type": "boolean" },
+        "receipt_required": { "type": "boolean" },
+        "semantics": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "modality": {
+      "type": "object",
+      "required": [
+        "kind",
+        "availability",
+        "primary_surface",
+        "hardware_available",
+        "read_only",
+        "fallback",
+        "semantics"
+      ],
+      "properties": {
+        "kind": { "$ref": "#/$defs/modalityKind" },
+        "availability": {
+          "type": "string",
+          "enum": ["available", "fallback_only", "permission_required", "unsupported", "unavailable"]
+        },
+        "primary_surface": { "$ref": "#/$defs/surface" },
+        "hardware_available": { "type": "boolean" },
+        "permission_scope": { "type": "string" },
+        "read_only": { "type": "boolean" },
+        "fallback": { "$ref": "#/$defs/fallback" },
+        "semantics": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "actionPolicy": {
+      "type": "object",
+      "required": [
+        "default_projection",
+        "default_read_only",
+        "desktop_policy_path",
+        "glasses_policy_path",
+        "steering_requires_confirmed_policy_path",
+        "operation_policies"
+      ],
+      "properties": {
+        "default_projection": { "type": "string", "enum": ["read-only", "confirmed-action"] },
+        "default_read_only": { "type": "boolean" },
+        "desktop_policy_path": { "type": "string", "const": "same-as-desktop-confirmation" },
+        "glasses_policy_path": { "type": "string", "enum": ["read-only-status", "same-as-desktop-confirmation"] },
+        "steering_requires_confirmed_policy_path": { "type": "boolean" },
+        "operation_policies": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "method",
+              "policy_class",
+              "confirmation",
+              "read_only",
+              "receipt_required",
+              "allowed_projection_surfaces",
+              "fallback"
+            ],
+            "properties": {
+              "method": { "type": "string", "minLength": 1 },
+              "policy_class": { "type": "string", "minLength": 1 },
+              "confirmation": {
+                "type": "string",
+                "enum": ["none", "required", "required_for_steering", "forbidden"]
+              },
+              "read_only": { "type": "boolean" },
+              "receipt_required": { "type": "boolean" },
+              "allowed_projection_surfaces": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "$ref": "#/$defs/surface" }
+              },
+              "fallback": { "$ref": "#/$defs/fallback" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "appDescriptor": {
+      "type": "object",
+      "required": [
+        "descriptor_id",
+        "app_id",
+        "title",
+        "category",
+        "owner_module",
+        "launch_kind",
+        "interface_cid",
+        "descriptor_cid",
+        "idl_descriptor",
+        "modality_contract",
+        "action_policy",
+        "fallback_semantics",
+        "backend_capability_ids",
+        "glasses_projection"
+      ],
+      "properties": {
+        "descriptor_id": { "type": "string", "minLength": 1 },
+        "app_id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "category": { "type": "string", "minLength": 1 },
+        "owner_module": { "type": "string", "minLength": 1 },
+        "launch_kind": { "type": "string", "minLength": 1 },
+        "interface_cid": { "$ref": "#/$defs/sha256Cid" },
+        "descriptor_cid": { "$ref": "#/$defs/sha256Cid" },
+        "idl_descriptor": {
+          "type": "object",
+          "required": ["name", "namespace", "version", "methods", "errors", "requires", "compatibility"],
+          "additionalProperties": true
+        },
+        "modality_contract": {
+          "type": "object",
+          "required": ["display", "camera", "speaker", "microphone", "input"],
+          "properties": {
+            "display": { "$ref": "#/$defs/modality" },
+            "camera": { "$ref": "#/$defs/modality" },
+            "speaker": { "$ref": "#/$defs/modality" },
+            "microphone": { "$ref": "#/$defs/modality" },
+            "input": { "$ref": "#/$defs/modality" }
+          },
+          "additionalProperties": false
+        },
+        "action_policy": { "$ref": "#/$defs/actionPolicy" },
+        "fallback_semantics": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/fallback" }
+        },
+        "backend_capability_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "glasses_projection": {
+          "type": "object",
+          "required": [
+            "default_mode",
+            "status_read_only",
+            "receipts_read_only",
+            "steering_requires_confirmation",
+            "projected_methods"
+          ],
+          "properties": {
+            "default_mode": { "type": "string", "enum": ["read-only", "confirmed-action"] },
+            "status_read_only": { "type": "boolean" },
+            "receipts_read_only": { "type": "boolean" },
+            "steering_requires_confirmation": { "type": "boolean" },
+            "projected_methods": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

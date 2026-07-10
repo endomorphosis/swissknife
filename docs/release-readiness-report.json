@@ -1,23 +1,133 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-07-10T07:18:26.977Z",
-  "startedAt": "2026-07-10T07:17:41.094Z",
-  "durationMs": 45883,
-  "commitSha": "8af6e6ac9a0ccd66f320bbf79c9620276c20da76",
+  "schemaVersion": 2,
+  "taskId": "SWR-110",
+  "generatedAt": "2026-07-10T11:21:22.261Z",
+  "startedAt": "2026-07-10T11:20:42.295Z",
+  "durationMs": 39966,
+  "commitSha": "3d51edca13e70c3b9062a12f113174d147534c81",
   "overallStatus": "passed",
-  "stoppedEarly": null,
+  "releaseDecision": "GO",
+  "goNoGo": "GO",
   "summary": {
-    "total": 12,
-    "passed": 12,
+    "total": 13,
+    "passed": 13,
     "failed": 0,
-    "skipped": 0
+    "releaseDecision": "GO"
+  },
+  "virtualDesktopReleaseEvidence": {
+    "status": "present",
+    "path": "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
+    "generatedAt": "2026-07-10T11:21:21.232Z",
+    "decision": "go",
+    "blockerCount": 0,
+    "warningCount": 9,
+    "representativeDecision": "go",
+    "allToolsDecision": "go",
+    "hierarchicalMcp": {
+      "decision": "go",
+      "evidenceDecision": "go",
+      "serviceCount": 3,
+      "availableServiceCount": 3,
+      "expectedLiveServices": [],
+      "servicesWithFullFacade": 3,
+      "dispatchProbeCount": 3,
+      "dispatchPassCount": 3,
+      "directOnlyDescriptorCount": 220,
+      "unexplainedFlatHierarchyGapCount": 0,
+      "staleLiveServiceEvidence": [],
+      "availabilityMismatches": [],
+      "missingFacadeByService": []
+    },
+    "appMatrixGate": {
+      "status": "present",
+      "decision": "go",
+      "blockerCount": 0,
+      "appCount": 45,
+      "missingContractAppIds": [],
+      "missingWorkflowAppIds": [],
+      "missingScreenshotAppIds": [],
+      "missingWorkflowStates": [],
+      "missingUxStates": [],
+      "missingLocalOnlyRationaleAppIds": [],
+      "missingBackendCapabilitySetAppIds": [],
+      "malformedBackendCapabilities": [],
+      "missingAppVisibleBindingCapabilityIds": [],
+      "missingOrbIdlAppIds": [],
+      "missingOrbIdlCapabilityIds": [],
+      "missingGlassesProjectionAppIds": [],
+      "missingGlassesProjectionCapabilityIds": [],
+      "missingCatalogToolIds": [],
+      "missingMcpPlusPlusToolIds": [],
+      "serverCatalogGaps": [],
+      "serverFacadeGaps": [],
+      "toolClassCounts": {
+        "heavy_compute": 107,
+        "external_network": 39,
+        "write": 121,
+        "read": 398
+      },
+      "toolClassesWithMissingCoverage": [],
+      "missingSimulatorModalities": [],
+      "missingSimulatorCapabilityModalities": [],
+      "simulatorReplayGaps": []
+    },
+    "swr110ReleaseGate": {
+      "status": "present",
+      "decision": "go",
+      "releaseDecision": "GO",
+      "blockerCount": 0,
+      "representativeBlockerCount": 0,
+      "allToolsBlockerCount": 0,
+      "requiredMcpServers": [
+        "ipfs_accelerate_py",
+        "ipfs_datasets_py",
+        "ipfs_kit_py"
+      ],
+      "requiredOrbModalities": [
+        "display",
+        "camera",
+        "speaker",
+        "microphone",
+        "input"
+      ],
+      "requiredSimulatorCapabilities": [
+        "display.output",
+        "camera.photo_capture",
+        "speaker.output",
+        "microphone.input"
+      ],
+      "requiredSupervisorPaths": [
+        "success",
+        "receipt_resolve",
+        "index_search",
+        "server_unavailable",
+        "denied",
+        "stale_state",
+        "transport_fallback"
+      ],
+      "missingEvidencePaths": [],
+      "representativeBlockers": [],
+      "allToolsBlockers": []
+    },
+    "blockers": [],
+    "warnings": [
+      "Optional release evidence artifact is missing: test-results/virtual-desktop-ipfs-mcp-orb/manifest-drift.json",
+      "Optional release evidence artifact is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-launch-report.json",
+      "Optional release evidence artifact is missing: test-results/virtual-desktop-ipfs-mcp-orb/glasses-handoff-report.json",
+      "Optional release evidence artifact is missing: test-results/virtual-desktop-ipfs-mcp-orb/live-critical-flows.json",
+      "Optional release evidence artifact is missing: test-results/virtual-desktop-ipfs-mcp-orb/receipt-samples.json",
+      "220 MCP descriptors remain direct-only and are explicitly accounted for in hierarchical MCP evidence.",
+      "2 hierarchical MCP alias dispatch probes failed; representative dispatch remains the release-blocking probe.",
+      "12 flat MCP descriptors are excluded from the SwissKnife app-visible ledger and accounted for in hierarchical MCP evidence.",
+      "Hierarchical MCP evidence warning: 2 normalized alias dispatch probes failed for ipfs_accelerate_py."
+    ]
   },
   "gates": [
     {
       "id": "browser-service-regression-sentinel",
       "label": "Browser/service duplicate regression sentinel (SWR-095)",
       "status": "passed",
-      "durationMs": 88,
+      "durationMs": 71,
       "tail": [],
       "findings": []
     },
@@ -25,7 +135,7 @@
       "id": "services-audit",
       "label": "Service-boundary audit (services:audit)",
       "status": "passed",
-      "durationMs": 818,
+      "durationMs": 854,
       "tail": [],
       "findings": []
     },
@@ -33,7 +143,7 @@
       "id": "module-boundary-audit",
       "label": "Repository module-boundary audit (audit:module-boundary)",
       "status": "passed",
-      "durationMs": 773,
+      "durationMs": 726,
       "tail": [],
       "findings": []
     },
@@ -41,7 +151,7 @@
       "id": "typecheck",
       "label": "TypeScript project typecheck (typecheck)",
       "status": "passed",
-      "durationMs": 6771,
+      "durationMs": 5778,
       "tail": [],
       "findings": []
     },
@@ -49,7 +159,7 @@
       "id": "test-fast",
       "label": "Fast unit test lane (test:fast)",
       "status": "passed",
-      "durationMs": 5377,
+      "durationMs": 4545,
       "tail": [],
       "findings": []
     },
@@ -57,7 +167,7 @@
       "id": "test-browser-compat",
       "label": "Browser compatibility lane (test:browser-compat)",
       "status": "passed",
-      "durationMs": 8614,
+      "durationMs": 7601,
       "tail": [],
       "findings": []
     },
@@ -65,7 +175,7 @@
       "id": "build-web",
       "label": "Web bundle build + host-leakage/budget audit (build:web)",
       "status": "passed",
-      "durationMs": 13183,
+      "durationMs": 10836,
       "tail": [],
       "findings": []
     },
@@ -73,15 +183,7 @@
       "id": "bundle-host-leakage",
       "label": "Web bundle host-leakage re-audit (audit:bundle-host-leakage)",
       "status": "passed",
-      "durationMs": 6996,
-      "tail": [],
-      "findings": []
-    },
-    {
-      "id": "evidence-freshness",
-      "label": "Browser/libp2p release evidence freshness (evidence:freshness:check)",
-      "status": "passed",
-      "durationMs": 274,
+      "durationMs": 6045,
       "tail": [],
       "findings": []
     },
@@ -89,7 +191,23 @@
       "id": "evidence-mcp-glasses",
       "label": "MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)",
       "status": "passed",
-      "durationMs": 2422,
+      "durationMs": 2432,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "virtual-desktop-release-evidence",
+      "label": "Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)",
+      "status": "passed",
+      "durationMs": 317,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "evidence-freshness",
+      "label": "Browser/libp2p release evidence freshness (evidence:freshness:check)",
+      "status": "passed",
+      "durationMs": 290,
       "tail": [],
       "findings": []
     },
@@ -97,7 +215,7 @@
       "id": "evidence-dashboard-consumer",
       "label": "MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer)",
       "status": "passed",
-      "durationMs": 560,
+      "durationMs": 465,
       "tail": [],
       "findings": []
     },

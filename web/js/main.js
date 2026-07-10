@@ -311,6 +311,13 @@ class SwissKnifeDesktop {
             singleton: true
         });
 
+        this.apps.set('agent-supervisor', {
+            name: 'Agent Supervisor',
+            icon: 'AS',
+            component: 'AgentSupervisorConsole',
+            singleton: true
+        });
+
         this.apps.set('api-keys', {
             name: 'API Keys',
             icon: '🔑',
@@ -513,6 +520,9 @@ class SwissKnifeDesktop {
 
         const descriptorRegistrations = this.descriptorRuntime.getDesktopRegistrations();
         descriptorRegistrations.forEach((registration) => {
+            if (registration.appId === 'agent-supervisor' && this.apps.has('agent-supervisor')) {
+                return;
+            }
             this.apps.set(registration.appId, {
                 name: registration.name,
                 icon: registration.icon,
@@ -888,6 +898,10 @@ class SwissKnifeDesktop {
                 case 'mcpcontrolapp':
                     // MCP Control Panel
                     this.loadMCPControlApp(contentElement);
+                    break;
+
+                case 'agentsupervisorconsole':
+                    await this.loadAgentSupervisorApp(contentElement);
                     break;
                     
                 case 'taskmanagerapp':
@@ -1560,6 +1574,19 @@ class SwissKnifeDesktop {
             desktop: this,
             contentElement
         });
+    }
+
+    async loadAgentSupervisorApp(contentElement) {
+        const SupervisorModule = await import('./apps/agent-supervisor.js');
+        if (typeof SupervisorModule.mountSwissKnifeApp === 'function') {
+            return SupervisorModule.mountSwissKnifeApp(contentElement, { desktop: this });
+        }
+        const AgentSupervisorConsole = SupervisorModule.AgentSupervisorConsole || SupervisorModule.AgentSupervisorApp || SupervisorModule.default;
+        const appInstance = new AgentSupervisorConsole(this);
+        await appInstance.initialize();
+        contentElement.innerHTML = await appInstance.render();
+        appInstance.bind?.(contentElement);
+        return appInstance;
     }
 
     loadGeneratedMCPApp(contentElement, appConfig) {

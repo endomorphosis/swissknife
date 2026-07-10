@@ -1681,6 +1681,7 @@ async function hideLoadingScreen(page: Page): Promise<void> {
 function summarizeBrowserErrors(errors: string[]): string[] {
   const normalized = errors
     .map(error => error.replace(/\s+/g, ' ').trim())
+    .filter(error => !error.includes("The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element."))
     .filter(Boolean);
   return Array.from(new Set(normalized)).slice(0, 25);
 }

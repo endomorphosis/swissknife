@@ -17,6 +17,9 @@
     "noEmit": true
   },
   "files": [
+    "src/shared/service-contracts/agent-supervisor-console.ts",
+    "src/services/mcp/agent-supervisor-console-gateway.ts",
+    "src/services/glasses/desktop-orb-idl-contract.ts",
     "src/services/mcp/mcp-idl.ts",
     "src/services/mcp/mcp-ui-profile.ts",
     "src/services/mcp/mcp-interface-registry.ts",

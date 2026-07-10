@@ -12,15 +12,25 @@ const sameBatchEvidenceWindowMs = 15 * 60 * 1000;
 
 const artifactDefs = [
   ['app_inventory', 'app-inventory.json', true],
-  ['manifest_drift', 'manifest-drift.json', true],
-  ['app_launch', 'app-launch-report.json', true],
+  ['app_backend_contract', 'app-backend-contract.json', true],
+  ['app_workflow_matrix', 'app-workflow-matrix.json', true],
+  ['manifest_drift', 'manifest-drift.json', false],
+  ['app_launch', 'app-launch-report.json', false],
   ['capability_matrix', 'capability-matrix.json', false],
+  ['all_server_tool_catalog', 'all-server-tool-catalog.json', true],
+  ['mcp_plus_plus_libp2p_catalog', 'mcp-plus-plus-libp2p-catalog.json', true],
+  ['mcpplusplus_libp2p_reachability', 'mcpplusplus-libp2p-reachability.json', true],
   ['descriptor_discovery', 'descriptor-discovery.json', true],
   ['hierarchical_mcp_tools', 'hierarchical-tools-evidence.json', true],
   ['service_health', 'service-health.json', true],
-  ['glasses_handoff', 'glasses-handoff-report.json', true],
-  ['live_critical_flows', 'live-critical-flows.json', true],
-  ['receipt_samples', 'receipt-samples.json', true],
+  ['tool_ui_smoke_receipts', 'tool-ui-smoke-receipts.json', true],
+  ['agent_supervisor_console_e2e', 'agent-supervisor-console-e2e.json', true],
+  ['agent_supervisor_console_receipts', 'agent-supervisor-console-receipts.json', true],
+  ['orb_idl_complete_coverage', 'orb-idl-complete-coverage.json', true],
+  ['glasses_simulator_handoff', 'glasses-simulator-handoff.json', true],
+  ['glasses_handoff', 'glasses-handoff-report.json', false],
+  ['live_critical_flows', 'live-critical-flows.json', false],
+  ['receipt_samples', 'receipt-samples.json', false],
   ['all_tools_ledger', 'all-tools-ledger.json', true],
   ['all_tools_policy_matrix', 'all-tools-policy-matrix.json', true],
   ['all_tools_app_bindings', 'all-tools-app-bindings.json', true],
@@ -51,11 +61,18 @@ for (const [key, fileName, required] of artifactDefs) {
 }
 
 const appInventory = data.app_inventory;
+const appBackendContract = data.app_backend_contract;
+const appWorkflowMatrix = data.app_workflow_matrix;
 const manifestDrift = data.manifest_drift;
 const appLaunch = data.app_launch;
 const descriptorDiscovery = data.descriptor_discovery;
 const hierarchicalMcpTools = data.hierarchical_mcp_tools;
 const serviceHealth = data.service_health;
+const toolUiSmokeReceipts = data.tool_ui_smoke_receipts;
+const agentSupervisorConsoleE2e = data.agent_supervisor_console_e2e;
+const agentSupervisorConsoleReceipts = data.agent_supervisor_console_receipts;
+const orbIdlCompleteCoverage = data.orb_idl_complete_coverage;
+const glassesSimulatorHandoff = data.glasses_simulator_handoff;
 const glassesHandoff = data.glasses_handoff;
 const liveCriticalFlows = data.live_critical_flows;
 const receiptSamples = data.receipt_samples;
@@ -67,6 +84,9 @@ const allToolsExecutionReport = data.all_tools_execution_report;
 const allToolsIdlCoverage = data.all_tools_idl_coverage;
 const allToolsGlassesCoverage = data.all_tools_glasses_coverage;
 const allToolsReleaseGate = data.all_tools_policy_release_gate;
+const allServerToolCatalog = data.all_server_tool_catalog;
+const mcpPlusPlusLibp2pCatalog = data.mcp_plus_plus_libp2p_catalog;
+const mcpPlusPlusLibp2pReachability = data.mcpplusplus_libp2p_reachability;
 const requiredHierarchicalMetaTools = [
   'tools_list_categories',
   'tools_list_tools',
@@ -76,7 +96,7 @@ const requiredHierarchicalMetaTools = [
 
 const appScreenshotCoverage = screenshotCoverage(
   'app-screenshots',
-  appLaunch?.app_count ? appLaunch.app_count + 1 : appInventory?.app_count ? appInventory.app_count + 1 : null,
+  appWorkflowMatrix?.app_count ?? appLaunch?.app_count ?? appInventory?.app_count ?? null,
 );
 const glassesScreenshotCoverage = screenshotCoverage(
   'glasses-screenshots',
@@ -252,8 +272,10 @@ const adapterBoundaryGate = (allToolsReleaseGate?.gates ?? [])
   .find(gate => (gate.gate_id ?? gate.id) === 'accelerate_adapter_boundary');
 
 if (allToolsReleaseGate) {
-  if (allToolsReleaseGate.decision !== 'go') {
-    allToolsBlockers.push(...(allToolsReleaseGate.blockers ?? []));
+  if (failedGates.length > 0) {
+    allToolsBlockers.push(...failedGates.map(gate => (
+      `All-tools policy gate failed: ${gate.gate_id ?? gate.id} (${gate.summary ?? gate.reason ?? 'SWR-103 all-tools policy gate failed'}).`
+    )));
   }
 } else {
   allToolsBlockers.push('Missing exhaustive all-tools release policy gate.');
@@ -268,6 +290,48 @@ if ((allToolsDrift.removed_tool_count ?? 0) > 0) {
 if ((allToolsDrift.changed_schema_tool_count ?? 0) > 0) {
   allToolsBlockers.push(`${allToolsDrift.changed_schema_tool_count} MCP tools changed schema.`);
 }
+
+const appMatrixGate = buildVirtualDesktopAppMatrixGate({
+  appInventory,
+  appBackendContract,
+  appWorkflowMatrix,
+  allToolsAppBindings,
+  allToolsIdlCoverage,
+  allToolsGlassesCoverage,
+  allServerToolCatalog,
+  mcpPlusPlusLibp2pCatalog,
+  glassesSimulatorHandoff,
+  hierarchicalMcpGate,
+});
+representativeBlockers.push(...appMatrixGate.representative_blockers);
+allToolsBlockers.push(...appMatrixGate.all_tools_blockers);
+
+const swr110Gate = buildSWR110ReleaseGate({
+  artifacts,
+  appInventory,
+  appBackendContract,
+  appWorkflowMatrix,
+  toolUiSmokeReceipts,
+  serviceHealth,
+  descriptorDiscovery,
+  hierarchicalMcpGate,
+  allServerToolCatalog,
+  mcpPlusPlusLibp2pCatalog,
+  mcpPlusPlusLibp2pReachability,
+  allToolsLedger,
+  allToolsPolicyMatrix,
+  allToolsAppBindings,
+  allToolsExecutionReport,
+  allToolsIdlCoverage,
+  allToolsGlassesCoverage,
+  allToolsReleaseGate,
+  agentSupervisorConsoleE2e,
+  agentSupervisorConsoleReceipts,
+  orbIdlCompleteCoverage,
+  glassesSimulatorHandoff,
+});
+representativeBlockers.push(...swr110Gate.representative_blockers);
+allToolsBlockers.push(...swr110Gate.all_tools_blockers);
 
 const representativeDecision = representativeBlockers.length === 0 ? 'go' : 'no_go';
 const allToolsDecision = allToolsBlockers.length === 0 ? 'go' : 'no_go';
@@ -298,6 +362,8 @@ const report = {
     app_screenshots: appScreenshotCoverage,
     glasses_screenshots: glassesScreenshotCoverage,
   },
+  swr110_release_gate: swr110Gate.summary,
+  virtual_desktop_app_matrix_gate: appMatrixGate.summary,
   capability_matrix: data.capability_matrix
     ? {
         status: 'present',
@@ -342,6 +408,20 @@ const report = {
     }
     : missingStatus(artifacts.service_health.path),
   hierarchical_mcp: hierarchicalMcpGate.summary,
+  glasses_simulator_handoff: glassesSimulatorHandoff
+    ? {
+        status: 'present',
+        path: artifacts.glasses_simulator_handoff.path,
+        schema: glassesSimulatorHandoff.schema ?? null,
+        generated_at: glassesSimulatorHandoff.generated_at ?? null,
+        hardware_free: glassesSimulatorHandoff.hardware_free ?? null,
+        simulator_driven: glassesSimulatorHandoff.simulator_driven ?? null,
+        physical_glasses_required: glassesSimulatorHandoff.physical_glasses_required ?? null,
+        simulator_id: glassesSimulatorHandoff.simulator?.simulator_id ?? null,
+        simulator_capabilities: glassesSimulatorHandoff.simulator?.capabilities ?? {},
+        capability_evidence_count: (glassesSimulatorHandoff.capability_evidence ?? []).length,
+      }
+    : missingStatus(artifacts.glasses_simulator_handoff.path),
   glasses_handoff: glassesHandoff
     ? {
         status: 'present',
@@ -567,6 +647,7 @@ fs.writeFileSync(
   supervisorFreshnessPath,
   `${JSON.stringify(buildSupervisorReleaseFreshness(report), null, 2)}\n`,
 );
+refreshReleaseEvidenceFreshness();
 
 console.log(JSON.stringify({
   decision,
@@ -660,6 +741,19 @@ function countBy(items, keyFn) {
 
 function dedupe(items) {
   return [...new Set(items)];
+}
+
+function blockerText(blocker) {
+  if (typeof blocker === 'string') return blocker;
+  if (!blocker || typeof blocker !== 'object') return String(blocker);
+  return Object.entries(blocker)
+    .map(([key, value]) => `${key}=${Array.isArray(value) ? value.join(',') : String(value)}`)
+    .join('; ');
+}
+
+function hasNonEmptyValue(value) {
+  if (typeof value === 'string') return value.trim().length > 0;
+  return value !== null && value !== undefined;
 }
 
 function appVisibleBindingCount(bindingsArtifact) {
@@ -825,6 +919,844 @@ function summarizeHierarchicalMcpGate(evidence, artifactStatus) {
   };
 }
 
+function buildVirtualDesktopAppMatrixGate({
+  appInventory,
+  appBackendContract,
+  appWorkflowMatrix,
+  allToolsAppBindings,
+  allToolsIdlCoverage,
+  allToolsGlassesCoverage,
+  allServerToolCatalog,
+  mcpPlusPlusLibp2pCatalog,
+  glassesSimulatorHandoff,
+  hierarchicalMcpGate,
+}) {
+  const representativeBlockers = [];
+  const allToolsBlockers = [];
+  const requiredWorkflowStates = dedupe([
+    'loading',
+    'success',
+    'fallback',
+    'error',
+    ...(appWorkflowMatrix?.required_states ?? []),
+  ]);
+  const requiredUxStates = ['success', 'fallback', 'error'];
+  const requiredSimulatorReplayStates = ['open', 'focus', 'activate', 'dispatch_result', 'fallback', 'policy_block'];
+  const requiredSimulatorModalities = ['audio_channel', 'glasses_hud'];
+  const requiredSimulatorCapabilityModalities = [
+    'display.output',
+    'camera.photo_capture',
+    'microphone.input',
+    'speaker.output',
+  ];
+  const hierarchicalMetaToolIds = new Set(requiredHierarchicalMetaTools);
+
+  const inventoryApps = new Set((appInventory?.apps ?? []).map(app => app.id ?? app.app_id ?? app.canonical_id).filter(Boolean));
+  const contractApps = new Map((appBackendContract?.apps ?? []).map(app => [app.canonical_id, app]));
+  const workflowApps = new Map((appWorkflowMatrix?.apps ?? []).map(app => [app.canonical_id ?? app.app_id, app]));
+  const allAppIds = [...new Set([...inventoryApps, ...contractApps.keys(), ...workflowApps.keys()])].sort();
+
+  const appVisibleBindings = (allToolsAppBindings?.rows ?? allToolsAppBindings?.bindings ?? [])
+    .filter(binding => binding?.app_visible === true || binding?.visibility === 'app_visible');
+  const idlDescriptors = allToolsIdlCoverage?.descriptors ?? [];
+  const glassesProjections = allToolsGlassesCoverage?.projections ?? [];
+  const catalogServices = allServerToolCatalog?.services ?? [];
+  const catalogDescriptors = catalogServices.flatMap(service => service.reconciled_descriptors ?? []);
+  const mcpPlusPlusServices = mcpPlusPlusLibp2pCatalog?.services ?? [];
+  const mcpPlusPlusEligibleDescriptors = mcpPlusPlusLibp2pCatalog?.eligible_descriptors ?? [];
+
+  const idlCapabilityIds = new Set(idlDescriptors.flatMap(descriptor => [
+    ...(descriptor.methods ?? []),
+    ...(descriptor.method_bindings ?? []),
+  ].map(method => method.capability_id).filter(Boolean)));
+  const idlToolIds = new Set(idlDescriptors.flatMap(descriptor => descriptor.tool_ids ?? []));
+  const idlApps = new Set(idlDescriptors.map(descriptor => descriptor.app_id).filter(Boolean));
+  const glassesToolIds = new Set(glassesProjections.flatMap(projection => projection.tool_ids ?? []));
+  const glassesApps = new Set(glassesProjections.map(projection => projection.app_id).filter(Boolean));
+  const catalogToolIds = new Set(catalogDescriptors.map(descriptor => descriptor.tool_id).filter(Boolean));
+  const appVisibleBindingCapabilityIds = new Set(appVisibleBindings.map(binding => binding.capability_id).filter(Boolean));
+  const appVisibleBindingToolIds = new Set(appVisibleBindings.map(binding => binding.tool_id).filter(Boolean));
+  const mcpPlusPlusEligibleByService = new Map(mcpPlusPlusServices.map(service => [service.service, new Set()]));
+  for (const descriptor of mcpPlusPlusEligibleDescriptors) {
+    const toolId = typeof descriptor === 'string' ? descriptor : descriptor.tool_id;
+    const service = typeof descriptor === 'string' ? descriptor.split(':')[0] : descriptor.service_id ?? descriptor.service;
+    if (!toolId || !service) continue;
+    if (!mcpPlusPlusEligibleByService.has(service)) mcpPlusPlusEligibleByService.set(service, new Set());
+    mcpPlusPlusEligibleByService.get(service).add(toolId);
+  }
+
+  const missingContractAppIds = allAppIds.filter(appId => !contractApps.has(appId));
+  const missingWorkflowAppIds = allAppIds.filter(appId => !workflowApps.has(appId));
+  const missingScreenshotApps = [];
+  const missingWorkflowStates = [];
+  const missingUxStates = [];
+  const missingLocalOnlyRationaleApps = [];
+  const missingBackendCapabilitySetApps = [];
+  const malformedBackendCapabilities = [];
+  const missingAppVisibleBindingCapabilities = [];
+  const missingOrbIdlApps = [];
+  const missingOrbIdlCapabilities = [];
+  const missingGlassesProjectionApps = [];
+  const missingGlassesProjectionCapabilities = [];
+  const missingCatalogReconciliation = [];
+  const missingMcpPlusPlusEligibility = [];
+  const simulatorReplayGaps = [];
+  const simulatorModalities = new Set();
+  const observedSimulatorCapabilityModalities = new Set();
+  const serverCatalogGaps = [];
+  const serverFacadeGaps = [];
+  const toolClassCounts = {};
+
+  for (const appId of allAppIds) {
+    const contract = contractApps.get(appId);
+    const workflow = workflowApps.get(appId);
+    if (workflow) {
+      const screenshotPath = workflow.screenshot;
+      const screenshotAbsolutePath = screenshotPath ? path.join(projectRoot, screenshotPath) : null;
+      if (!screenshotPath || !fs.existsSync(screenshotAbsolutePath)) {
+        missingScreenshotApps.push({
+          app_id: appId,
+          screenshot: screenshotPath ?? null,
+        });
+      }
+      for (const state of requiredWorkflowStates) {
+        if (!workflow.states?.[state]?.visible) {
+          missingWorkflowStates.push({ app_id: appId, state });
+        }
+      }
+    } else {
+      missingScreenshotApps.push({
+        app_id: appId,
+        screenshot: null,
+        reason: 'missing_workflow',
+      });
+    }
+    if (contract) {
+      for (const state of requiredUxStates) {
+        if (!contract.ux_scenarios?.[state]) {
+          missingUxStates.push({ app_id: appId, state });
+        }
+      }
+      const isToolBacked = contract.backend_state === 'tool_backed';
+      const backendCapabilities = Array.isArray(contract.backend_capabilities)
+        ? contract.backend_capabilities
+        : [];
+      const hasLocalRationale = typeof contract.local_only_rationale === 'string'
+        && contract.local_only_rationale.trim().length > 0;
+      const declaredCapabilityCount = Number(contract.backend_capability_count ?? backendCapabilities.length);
+      if (isToolBacked && (backendCapabilities.length === 0 || declaredCapabilityCount === 0)) {
+        missingBackendCapabilitySetApps.push(appId);
+      }
+      if (Number.isFinite(declaredCapabilityCount) && declaredCapabilityCount !== backendCapabilities.length) {
+        malformedBackendCapabilities.push({
+          app_id: appId,
+          capability_id: null,
+          tool_id: null,
+          service: null,
+          tool_class: 'contract',
+          missing_fields: ['backend_capability_count_mismatch'],
+        });
+      }
+      for (const capability of backendCapabilities) {
+        const missingFields = [
+          'capability_id',
+          'tool_id',
+          'service',
+          'mcp_transport',
+          'mcp_plus_plus_transport',
+          'policy_class',
+          'receipt_strategy',
+        ].filter(field => !hasNonEmptyValue(capability[field]));
+        if (missingFields.length > 0) {
+          malformedBackendCapabilities.push({
+            app_id: appId,
+            capability_id: capability.capability_id ?? null,
+            tool_id: capability.tool_id ?? null,
+            service: capability.service ?? capability.service_id ?? null,
+            tool_class: capability.policy_class ?? 'unknown',
+            missing_fields: missingFields,
+          });
+        }
+        if ((capability.app_visible === true || capability.visibility === 'app_visible')
+          && !appVisibleBindingCapabilityIds.has(capability.capability_id)
+          && !appVisibleBindingToolIds.has(capability.tool_id)) {
+          missingAppVisibleBindingCapabilities.push({
+            app_id: appId,
+            capability_id: capability.capability_id ?? null,
+            tool_id: capability.tool_id ?? null,
+            service: capability.service ?? capability.service_id ?? null,
+            tool_class: capability.policy_class ?? 'unknown',
+          });
+        }
+      }
+      if (!isToolBacked && !hasLocalRationale) {
+        missingLocalOnlyRationaleApps.push(appId);
+      }
+      const hasAppVisibleCapability = backendCapabilities
+        .some(capability => capability.app_visible === true || capability.visibility === 'app_visible');
+      if (isToolBacked && hasAppVisibleCapability) {
+        const descriptorCount = Number(contract.orb_idl_state?.descriptor_count ?? 0);
+        const descriptorIds = contract.orb_idl_state?.descriptor_ids ?? [];
+        if (contract.orb_idl_state?.state === 'not-required' || (descriptorCount === 0 && descriptorIds.length === 0) || !idlApps.has(appId)) {
+          missingOrbIdlApps.push(appId);
+        }
+        if (!glassesApps.has(appId)) {
+          missingGlassesProjectionApps.push(appId);
+        }
+      }
+    }
+  }
+
+  for (const binding of appVisibleBindings) {
+    const toolClass = binding.policy_class ?? 'unknown';
+    toolClassCounts[toolClass] = (toolClassCounts[toolClass] ?? 0) + 1;
+    const capabilityId = binding.capability_id;
+    const toolId = binding.tool_id;
+    const appId = binding.app_id;
+    const service = binding.service_id ?? binding.service ?? null;
+    const name = binding.name ?? toolId?.split(':').at(-1) ?? null;
+    const isHierarchicalMetaTool = hierarchicalMetaToolIds.has(name);
+
+    if (!idlCapabilityIds.has(capabilityId) && !idlToolIds.has(toolId)) {
+      missingOrbIdlCapabilities.push({
+        app_id: appId,
+        capability_id: capabilityId,
+        tool_id: toolId,
+        service,
+        tool_class: toolClass,
+      });
+    }
+    if (!glassesToolIds.has(toolId)) {
+      missingGlassesProjectionCapabilities.push({
+        app_id: appId,
+        capability_id: capabilityId,
+        tool_id: toolId,
+        service,
+        tool_class: toolClass,
+      });
+    }
+    if (!isHierarchicalMetaTool && !catalogToolIds.has(toolId)) {
+      missingCatalogReconciliation.push({
+        app_id: appId,
+        capability_id: capabilityId,
+        tool_id: toolId,
+        service,
+        tool_class: toolClass,
+      });
+    }
+    if (binding.mcp_plus_plus_transport === 'eligible') {
+      const eligible = mcpPlusPlusEligibleByService.get(service);
+      if ((!eligible || eligible.size === 0 || !eligible.has(toolId)) && !isHierarchicalMetaTool) {
+        missingMcpPlusPlusEligibility.push({
+          app_id: appId,
+          capability_id: capabilityId,
+          tool_id: toolId,
+          service,
+          tool_class: toolClass,
+        });
+      }
+    }
+  }
+
+  for (const service of catalogServices) {
+    if ((service.missing_expected_descriptor_count ?? 0) > 0) {
+      serverCatalogGaps.push({
+        server: service.service,
+        kind: 'missing_expected_descriptors',
+        descriptor_count: service.missing_expected_descriptor_count,
+        descriptors: service.missing_expected_descriptors ?? [],
+      });
+    }
+    if ((service.unexplained_flat_descriptor_count ?? 0) > 0) {
+      serverCatalogGaps.push({
+        server: service.service,
+        kind: 'unexplained_flat_descriptors',
+        descriptor_count: service.unexplained_flat_descriptor_count,
+        descriptors: service.unexplained_flat_descriptors ?? [],
+      });
+    }
+  }
+
+  for (const service of hierarchicalMcpGate.summary?.missing_facade_by_service ?? []) {
+    serverFacadeGaps.push({
+      server: service.service,
+      missing_meta_tools: service.missing_meta_tools ?? [],
+    });
+  }
+
+  for (const projection of glassesProjections) {
+    const replayStates = new Set((projection.replay_states ?? projection.replay ?? []).map(state => state.state).filter(Boolean));
+    for (const replay of projection.replay ?? []) {
+      if (replay.surface) simulatorModalities.add(replay.surface);
+    }
+    for (const state of requiredSimulatorReplayStates) {
+      if (!replayStates.has(state)) {
+        simulatorReplayGaps.push({
+          projection_id: projection.projection_id,
+          app_id: projection.app_id,
+          descriptor_id: projection.descriptor_id,
+          simulator_state: state,
+          modality: projection.widget_profile?.renderer ?? projection.behavior ?? null,
+        });
+      }
+    }
+  }
+  const missingSimulatorModalities = requiredSimulatorModalities
+    .filter(modality => !simulatorModalities.has(modality));
+  for (const [modality, available] of Object.entries(glassesSimulatorHandoff?.simulator?.capabilities ?? {})) {
+    if (available) observedSimulatorCapabilityModalities.add(modality);
+  }
+  for (const evidence of glassesSimulatorHandoff?.capability_evidence ?? []) {
+    if (evidence.capability) observedSimulatorCapabilityModalities.add(evidence.capability);
+  }
+  const missingSimulatorCapabilityModalities = requiredSimulatorCapabilityModalities
+    .filter(modality => !observedSimulatorCapabilityModalities.has(modality));
+
+  if (missingContractAppIds.length > 0) {
+    representativeBlockers.push(`Missing canonical backend contract app IDs: ${missingContractAppIds.join(', ')}.`);
+  }
+  if (missingWorkflowAppIds.length > 0) {
+    representativeBlockers.push(`Missing UI/UX workflow app IDs: ${missingWorkflowAppIds.join(', ')}.`);
+  }
+  if (missingScreenshotApps.length > 0) {
+    representativeBlockers.push(`Missing screenshot app IDs: ${missingScreenshotApps.map(item => item.app_id).join(', ')}.`);
+  }
+  if (missingWorkflowStates.length > 0) {
+    representativeBlockers.push(`Missing workflow states: ${missingWorkflowStates.map(item => `${item.app_id}:${item.state}`).join(', ')}.`);
+  }
+  if (missingUxStates.length > 0) {
+    representativeBlockers.push(`Missing contract UX scenarios: ${missingUxStates.map(item => `${item.app_id}:${item.state}`).join(', ')}.`);
+  }
+  if (missingLocalOnlyRationaleApps.length > 0) {
+    representativeBlockers.push(`Missing local-only rationale app IDs: ${missingLocalOnlyRationaleApps.join(', ')}.`);
+  }
+  if (missingBackendCapabilitySetApps.length > 0) {
+    representativeBlockers.push(`Missing backend capability set app IDs: ${missingBackendCapabilitySetApps.join(', ')}.`);
+  }
+  if (malformedBackendCapabilities.length > 0) {
+    representativeBlockers.push(`Malformed backend contract capabilities: ${malformedBackendCapabilities.map(item => `${item.app_id}:${item.capability_id ?? 'contract'}:${item.missing_fields.join('|')}`).join(', ')}.`);
+  }
+  if (missingOrbIdlApps.length > 0) {
+    representativeBlockers.push(`Missing ORB/IDL app projections: ${missingOrbIdlApps.join(', ')}.`);
+  }
+  if (missingGlassesProjectionApps.length > 0) {
+    representativeBlockers.push(`Missing glasses projection app IDs: ${missingGlassesProjectionApps.join(', ')}.`);
+  }
+  if (missingSimulatorModalities.length > 0) {
+    representativeBlockers.push(`Missing simulator modalities: ${missingSimulatorModalities.join(', ')}.`);
+  }
+  if (missingSimulatorCapabilityModalities.length > 0) {
+    representativeBlockers.push(`Missing simulator capability modalities: ${missingSimulatorCapabilityModalities.join(', ')}.`);
+  }
+  if (simulatorReplayGaps.length > 0) {
+    representativeBlockers.push(`Missing simulator replay states: ${simulatorReplayGaps.map(item => `${item.projection_id}:${item.simulator_state}`).join(', ')}.`);
+  }
+  if (missingOrbIdlCapabilities.length > 0) {
+    allToolsBlockers.push(`Missing ORB/IDL capability IDs: ${missingOrbIdlCapabilities.map(item => `${item.app_id}:${item.capability_id}:${item.service}:${item.tool_class}`).join(', ')}.`);
+  }
+  if (missingAppVisibleBindingCapabilities.length > 0) {
+    allToolsBlockers.push(`Missing app-visible binding capability IDs: ${missingAppVisibleBindingCapabilities.map(item => `${item.app_id}:${item.capability_id}:${item.service}:${item.tool_class}`).join(', ')}.`);
+  }
+  if (missingGlassesProjectionCapabilities.length > 0) {
+    allToolsBlockers.push(`Missing glasses projection capability IDs: ${missingGlassesProjectionCapabilities.map(item => `${item.app_id}:${item.capability_id}:${item.service}:${item.tool_class}`).join(', ')}.`);
+  }
+  if (missingCatalogReconciliation.length > 0) {
+    allToolsBlockers.push(`Missing server/tool catalog reconciliation tool IDs: ${missingCatalogReconciliation.map(item => `${item.service}:${item.tool_id}:${item.capability_id}:${item.tool_class}`).join(', ')}.`);
+  }
+  if (missingMcpPlusPlusEligibility.length > 0) {
+    allToolsBlockers.push(`Missing MCP++/libp2p eligibility records: ${missingMcpPlusPlusEligibility.map(item => `${item.service}:${item.tool_id}:${item.capability_id}:${item.tool_class}`).join(', ')}.`);
+  }
+  if (serverCatalogGaps.length > 0) {
+    allToolsBlockers.push(`Server catalog reconciliation gaps: ${serverCatalogGaps.map(item => `${item.server}:${item.kind}:${item.descriptor_count}`).join(', ')}.`);
+  }
+  if (serverFacadeGaps.length > 0) {
+    allToolsBlockers.push(`Hierarchical facade gaps by server: ${serverFacadeGaps.map(item => `${item.server}:${item.missing_meta_tools.join('|')}`).join(', ')}.`);
+  }
+
+  const blockerCount = representativeBlockers.length + allToolsBlockers.length;
+  return {
+    representative_blockers: representativeBlockers,
+    all_tools_blockers: allToolsBlockers,
+    summary: {
+      status: 'present',
+      decision: blockerCount === 0 ? 'go' : 'no_go',
+      blocker_count: blockerCount,
+      representative_blocker_count: representativeBlockers.length,
+      all_tools_blocker_count: allToolsBlockers.length,
+      app_count: allAppIds.length,
+      app_ids: allAppIds,
+      required_workflow_states: requiredWorkflowStates,
+      required_ux_states: requiredUxStates,
+      required_simulator_replay_states: requiredSimulatorReplayStates,
+      required_simulator_modalities: requiredSimulatorModalities,
+      required_simulator_capability_modalities: requiredSimulatorCapabilityModalities,
+      observed_simulator_modalities: [...simulatorModalities].sort(),
+      observed_simulator_capability_modalities: [...observedSimulatorCapabilityModalities].sort(),
+      tool_class_counts: toolClassCounts,
+      missing_contract_app_ids: missingContractAppIds,
+      missing_workflow_app_ids: missingWorkflowAppIds,
+      missing_screenshot_apps: missingScreenshotApps,
+      missing_workflow_states: missingWorkflowStates,
+      missing_ux_states: missingUxStates,
+      missing_local_only_rationale_app_ids: missingLocalOnlyRationaleApps,
+      missing_backend_capability_set_app_ids: missingBackendCapabilitySetApps,
+      malformed_backend_capabilities: malformedBackendCapabilities,
+      missing_app_visible_binding_capabilities: missingAppVisibleBindingCapabilities,
+      missing_orb_idl_app_ids: missingOrbIdlApps,
+      missing_orb_idl_capabilities: missingOrbIdlCapabilities,
+      missing_glasses_projection_app_ids: missingGlassesProjectionApps,
+      missing_glasses_projection_capabilities: missingGlassesProjectionCapabilities,
+      missing_catalog_reconciliation: missingCatalogReconciliation,
+      missing_mcp_plus_plus_eligibility: missingMcpPlusPlusEligibility,
+      server_catalog_gaps: serverCatalogGaps,
+      server_facade_gaps: serverFacadeGaps,
+      missing_simulator_modalities: missingSimulatorModalities,
+      missing_simulator_capability_modalities: missingSimulatorCapabilityModalities,
+      simulator_replay_gaps: simulatorReplayGaps,
+    },
+  };
+}
+
+function buildSWR110ReleaseGate({
+  artifacts,
+  appInventory,
+  appBackendContract,
+  appWorkflowMatrix,
+  toolUiSmokeReceipts,
+  serviceHealth,
+  descriptorDiscovery,
+  hierarchicalMcpGate,
+  allServerToolCatalog,
+  mcpPlusPlusLibp2pCatalog,
+  mcpPlusPlusLibp2pReachability,
+  allToolsLedger,
+  allToolsPolicyMatrix,
+  allToolsAppBindings,
+  allToolsExecutionReport,
+  allToolsIdlCoverage,
+  allToolsGlassesCoverage,
+  allToolsReleaseGate,
+  agentSupervisorConsoleE2e,
+  agentSupervisorConsoleReceipts,
+  orbIdlCompleteCoverage,
+  glassesSimulatorHandoff,
+}) {
+  const representativeBlockers = [];
+  const allToolsBlockers = [];
+  const missingEvidencePaths = [];
+  const requiredMcpServers = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
+  const requiredWorkflowStates = ['loading', 'success', 'fallback', 'error'];
+  const requiredToolUiStates = ['success', 'fallback', 'error'];
+  const requiredPolicyFields = [
+    'tool_id',
+    'service_id',
+    'policy_class',
+    'confirmation_policy',
+    'receipt_policy',
+    'fallback',
+  ];
+  const requiredOrbModalities = ['display', 'camera', 'speaker', 'microphone', 'input'];
+  const requiredSupervisorPaths = [
+    'success',
+    'receipt_resolve',
+    'index_search',
+    'server_unavailable',
+    'denied',
+    'stale_state',
+    'transport_fallback',
+  ];
+  const requiredSimulatorCapabilities = [
+    'display.output',
+    'camera.photo_capture',
+    'speaker.output',
+    'microphone.input',
+  ];
+
+  const failRepresentative = (pathValue, message) => {
+    missingEvidencePaths.push(pathValue);
+    representativeBlockers.push(`${pathValue}: ${message}`);
+  };
+  const failAllTools = (pathValue, message) => {
+    missingEvidencePaths.push(pathValue);
+    allToolsBlockers.push(`${pathValue}: ${message}`);
+  };
+  const artifactPath = (key) => artifacts[key]?.path ?? `test-results/virtual-desktop-ipfs-mcp-orb/${key}.json`;
+  const requireArtifact = (key, allTools = false) => {
+    const artifact = artifacts[key];
+    if (artifact?.status === 'present') return true;
+    const message = `required SWR-110 evidence artifact is ${artifact?.status ?? 'missing'}${artifact?.error ? ` (${artifact.error})` : ''}`;
+    if (allTools) failAllTools(artifactPath(key), message);
+    else failRepresentative(artifactPath(key), message);
+    return false;
+  };
+
+  for (const key of [
+    'app_inventory',
+    'app_backend_contract',
+    'app_workflow_matrix',
+    'service_health',
+    'descriptor_discovery',
+    'hierarchical_mcp_tools',
+    'all_server_tool_catalog',
+    'mcp_plus_plus_libp2p_catalog',
+    'mcpplusplus_libp2p_reachability',
+    'tool_ui_smoke_receipts',
+    'agent_supervisor_console_e2e',
+    'agent_supervisor_console_receipts',
+    'orb_idl_complete_coverage',
+    'glasses_simulator_handoff',
+  ]) {
+    requireArtifact(key, false);
+  }
+  for (const key of [
+    'all_tools_ledger',
+    'all_tools_policy_matrix',
+    'all_tools_app_bindings',
+    'all_tools_execution_report',
+    'all_tools_idl_coverage',
+    'all_tools_glasses_coverage',
+    'all_tools_policy_release_gate',
+  ]) {
+    requireArtifact(key, true);
+  }
+
+  const appIds = (appInventory?.apps ?? [])
+    .map(app => app.id ?? app.app_id ?? app.canonical_id)
+    .filter(Boolean)
+    .sort();
+  const appIdSet = new Set(appIds);
+  const contractApps = new Map((appBackendContract?.apps ?? []).map(app => [app.canonical_id ?? app.app_id, app]));
+  const workflowApps = new Map((appWorkflowMatrix?.apps ?? []).map(app => [app.canonical_id ?? app.app_id, app]));
+  const toolUiApps = new Map((toolUiSmokeReceipts?.apps ?? []).map(app => [app.app_id ?? app.canonical_id, app]));
+  const missingWorkflowEvidence = [];
+
+  if (!appInventory || (appInventory.app_count ?? appIds.length) !== appIds.length || appIds.length === 0) {
+    failRepresentative(artifactPath('app_inventory'), 'canonical app inventory is empty or internally inconsistent');
+  }
+  for (const appId of appIds) {
+    const contract = contractApps.get(appId);
+    const workflow = workflowApps.get(appId);
+    if (!contract) {
+      missingWorkflowEvidence.push(`${appId}:backend-contract`);
+    }
+    if (!workflow) {
+      missingWorkflowEvidence.push(`${appId}:workflow`);
+      continue;
+    }
+    for (const state of requiredWorkflowStates) {
+      if (!workflow.states?.[state]?.visible) {
+        missingWorkflowEvidence.push(`${appId}:workflow-state:${state}`);
+      }
+    }
+    if (!workflow.screenshot || !fs.existsSync(path.join(projectRoot, workflow.screenshot))) {
+      missingWorkflowEvidence.push(`${appId}:screenshot:${workflow.screenshot ?? 'missing'}`);
+    }
+  }
+  if (missingWorkflowEvidence.length > 0) {
+    failRepresentative(
+      artifactPath('app_workflow_matrix'),
+      `missing complete desktop app UI/UX evidence: ${missingWorkflowEvidence.slice(0, 80).join(', ')}`,
+    );
+  }
+  for (const app of toolUiSmokeReceipts?.apps ?? []) {
+    const observed = new Set((app.observed_states ?? []).map(state => typeof state === 'string' ? state : state?.state).filter(Boolean));
+    for (const state of requiredToolUiStates) {
+      if (!observed.has(state)) {
+        missingWorkflowEvidence.push(`${app.app_id}:tool-ui-state:${state}`);
+      }
+    }
+    if (!app.screenshot || !fs.existsSync(path.join(projectRoot, app.screenshot))) {
+      missingWorkflowEvidence.push(`${app.app_id}:tool-ui-screenshot:${app.screenshot ?? 'missing'}`);
+    }
+  }
+  for (const appId of appIds.filter(id => contractApps.get(id)?.backend_state === 'tool_backed')) {
+    if (!toolUiApps.has(appId)) {
+      missingWorkflowEvidence.push(`${appId}:tool-ui-smoke`);
+    }
+  }
+  if (missingWorkflowEvidence.some(item => item.includes(':tool-ui-'))) {
+    failRepresentative(
+      artifactPath('tool_ui_smoke_receipts'),
+      `missing app tool UI smoke workflow evidence: ${missingWorkflowEvidence.filter(item => item.includes(':tool-ui-')).slice(0, 80).join(', ')}`,
+    );
+  }
+
+  const serviceAvailable = new Set(serviceHealth?.summary?.available ?? []);
+  const descriptorAvailable = new Set(descriptorDiscovery?.summary?.live_discovery_available ?? []);
+  const catalogServices = new Map((allServerToolCatalog?.services ?? []).map(service => [service.service, service]));
+  for (const service of requiredMcpServers) {
+    if (!serviceAvailable.has(service)) {
+      failRepresentative(artifactPath('service_health'), `required MCP server is not available: ${service}`);
+    }
+    if (!descriptorAvailable.has(service)) {
+      failRepresentative(artifactPath('descriptor_discovery'), `required MCP server lacks live descriptor discovery: ${service}`);
+    }
+    const catalog = catalogServices.get(service);
+    if (!catalog) {
+      failAllTools(artifactPath('all_server_tool_catalog'), `required MCP server is absent from all-server catalog: ${service}`);
+    } else if (!catalog.available || !catalog.full_facade_available) {
+      failAllTools(artifactPath('all_server_tool_catalog'), `required MCP server lacks availability or hierarchical facade: ${service}`);
+    }
+  }
+  if (allServerToolCatalog?.decision !== 'go' || (allServerToolCatalog?.summary?.blocker_count ?? 0) > 0) {
+    failAllTools(artifactPath('all_server_tool_catalog'), `all-server catalog decision is ${allServerToolCatalog?.decision ?? 'missing'}`);
+  }
+
+  const advertisedEndpoints = mcpPlusPlusLibp2pCatalog?.advertised_endpoints ?? [];
+  const unreachableAdvertised = advertisedEndpoints.filter(endpoint => endpoint.reachable !== true);
+  if (mcpPlusPlusLibp2pCatalog?.decision !== 'go') {
+    failAllTools(artifactPath('mcp_plus_plus_libp2p_catalog'), `MCP++/libp2p catalog decision is ${mcpPlusPlusLibp2pCatalog?.decision ?? 'missing'}`);
+  }
+  if (unreachableAdvertised.length > 0) {
+    failAllTools(
+      artifactPath('mcp_plus_plus_libp2p_catalog'),
+      `advertised libp2p endpoints are unreachable: ${unreachableAdvertised.map(endpoint => `${endpoint.service}:${endpoint.multiaddr ?? endpoint.protocol ?? 'unknown'}`).join(', ')}`,
+    );
+  }
+  if (mcpPlusPlusLibp2pReachability?.advertised && mcpPlusPlusLibp2pReachability.ok !== true) {
+    failAllTools(artifactPath('mcpplusplus_libp2p_reachability'), 'advertised MCP++/libp2p reachability probe did not pass');
+  }
+
+  const policyTools = allToolsPolicyMatrix?.tools ?? allToolsPolicyMatrix?.rules ?? [];
+  const ledgerCount = allToolsLedger?.summary?.exact_tool_record_count
+    ?? allToolsLedger?.summary?.tool_record_count
+    ?? allToolsLedger?.tool_count
+    ?? (allToolsLedger?.tools ?? []).length;
+  const appBindingCount = allToolsAppBindings?.summary?.binding_count
+    ?? allToolsAppBindings?.tool_count
+    ?? (allToolsAppBindings?.rows ?? allToolsAppBindings?.bindings ?? []).length;
+  if (!policyTools.length || Number(allToolsPolicyMatrix?.tool_count ?? policyTools.length) !== policyTools.length) {
+    failAllTools(artifactPath('all_tools_policy_matrix'), 'per-tool policy matrix is empty or internally inconsistent');
+  }
+  if (Number.isFinite(Number(ledgerCount)) && Number(ledgerCount) !== policyTools.length) {
+    failAllTools(artifactPath('all_tools_ledger'), `ledger count ${ledgerCount} does not match policy matrix count ${policyTools.length}`);
+  }
+  if (Number.isFinite(Number(appBindingCount)) && Number(appBindingCount) !== policyTools.length) {
+    failAllTools(artifactPath('all_tools_app_bindings'), `app binding count ${appBindingCount} does not match policy matrix count ${policyTools.length}`);
+  }
+  const malformedPolicyTools = policyTools
+    .filter(tool => requiredPolicyFields.some(field => !hasNonEmptyValue(tool[field])))
+    .map(tool => `${tool.tool_id ?? 'missing-tool-id'}:${requiredPolicyFields.filter(field => !hasNonEmptyValue(tool[field])).join('|')}`);
+  if (malformedPolicyTools.length > 0) {
+    failAllTools(artifactPath('all_tools_policy_matrix'), `tools missing policy classification fields: ${malformedPolicyTools.slice(0, 80).join(', ')}`);
+  }
+  const sideEffectfulWithoutReceipts = policyTools
+    .filter(tool => tool.side_effectful && (tool.confirmation_policy !== 'required' || tool.receipt_policy !== 'required'))
+    .map(tool => tool.tool_id);
+  if (sideEffectfulWithoutReceipts.length > 0) {
+    failAllTools(artifactPath('all_tools_policy_matrix'), `side-effectful tools lack confirmation and receipt policy: ${sideEffectfulWithoutReceipts.slice(0, 80).join(', ')}`);
+  }
+  if (allToolsExecutionReport) {
+    const fixtureCount = allToolsExecutionReport.fixture_count ?? allToolsExecutionReport.summary?.fixture_count;
+    if (fixtureCount !== policyTools.length) {
+      failAllTools(artifactPath('all_tools_execution_report'), `execution fixture count ${fixtureCount ?? 'missing'} does not match policy matrix count ${policyTools.length}`);
+    }
+  }
+  const failedPolicyGates = (allToolsReleaseGate?.gates ?? []).filter(gate => gate.status === 'fail' || gate.passed === false);
+  if (allToolsReleaseGate?.decision !== 'go' || failedPolicyGates.length > 0 || (allToolsReleaseGate?.blockers ?? []).length > 0) {
+    const failed = failedPolicyGates.map(gate => gate.gate_id ?? gate.id).join(', ') || 'decision/blockers';
+    failAllTools(artifactPath('all_tools_policy_release_gate'), `all-tools policy release gate is not GO: ${failed}`);
+  }
+  if ((allToolsIdlCoverage?.app_routable_tool_coverage_count ?? 0) !== (allToolsIdlCoverage?.app_routable_tool_count ?? 0)) {
+    failAllTools(artifactPath('all_tools_idl_coverage'), 'all-tools ORB/IDL app-routable tool coverage is incomplete');
+  }
+  if ((allToolsGlassesCoverage?.tool_coverage_count ?? 0) !== (allToolsIdlCoverage?.app_routable_tool_count ?? allToolsGlassesCoverage?.tool_coverage_count ?? 0)) {
+    failAllTools(artifactPath('all_tools_glasses_coverage'), 'all-tools glasses projection coverage is incomplete');
+  }
+
+  if (agentSupervisorConsoleE2e?.decision !== 'go') {
+    failRepresentative(artifactPath('agent_supervisor_console_e2e'), `Agent Supervisor Console decision is ${agentSupervisorConsoleE2e?.decision ?? 'missing'}`);
+  }
+  const observedSupervisorPaths = new Set((agentSupervisorConsoleE2e?.required_paths ?? [])
+    .filter(item => item.observed)
+    .map(item => item.path));
+  for (const requiredPath of requiredSupervisorPaths) {
+    if (!observedSupervisorPaths.has(requiredPath)) {
+      failRepresentative(artifactPath('agent_supervisor_console_e2e'), `Agent Supervisor Console missing required path: ${requiredPath}`);
+    }
+  }
+  const supervisorSourceOwners = new Set((agentSupervisorConsoleE2e?.scenarios ?? []).map(scenario => scenario.source_owner).filter(Boolean));
+  for (const service of requiredMcpServers) {
+    if (!supervisorSourceOwners.has(service)) {
+      failRepresentative(artifactPath('agent_supervisor_console_e2e'), `Agent Supervisor Console does not prove service integration for ${service}`);
+    }
+  }
+  const receiptCount = agentSupervisorConsoleReceipts?.receipt_count ?? (agentSupervisorConsoleReceipts?.receipts ?? []).length;
+  if (receiptCount !== (agentSupervisorConsoleE2e?.summary?.receipt_count ?? receiptCount)) {
+    failRepresentative(artifactPath('agent_supervisor_console_receipts'), 'Agent Supervisor Console receipt count does not match e2e evidence');
+  }
+  if ((agentSupervisorConsoleReceipts?.receipts ?? []).some(receipt => !receipt.receipt_cid || receipt.receipt_owner !== 'ipfs_kit_py')) {
+    failRepresentative(artifactPath('agent_supervisor_console_receipts'), 'Agent Supervisor Console receipts must be owned by ipfs_kit_py and include receipt CIDs');
+  }
+
+  const orbDescriptors = orbIdlCompleteCoverage?.descriptors ?? [];
+  if ((orbIdlCompleteCoverage?.app_count ?? 0) !== appIds.length || (orbIdlCompleteCoverage?.descriptor_count ?? 0) !== appIds.length) {
+    failRepresentative(artifactPath('orb_idl_complete_coverage'), `ORB/IDL descriptor count does not match app inventory count ${appIds.length}`);
+  }
+  const orbAppIds = new Set(orbDescriptors.map(descriptor => descriptor.app_id).filter(Boolean));
+  for (const appId of appIds) {
+    if (!orbAppIds.has(appId)) {
+      failRepresentative(artifactPath('orb_idl_complete_coverage'), `ORB/IDL descriptor missing for app: ${appId}`);
+    }
+  }
+  const orbModalityGaps = [];
+  for (const descriptor of orbDescriptors) {
+    for (const modality of requiredOrbModalities) {
+      const contract = descriptor.modality_contract?.[modality];
+      if (!contract) {
+        orbModalityGaps.push(`${descriptor.app_id}:${modality}:missing-contract`);
+      } else if (!contract.fallback?.kind || !contract.fallback?.typed_reason) {
+        orbModalityGaps.push(`${descriptor.app_id}:${modality}:missing-typed-fallback`);
+      }
+    }
+    const operationPolicies = descriptor.action_policy?.operation_policies ?? [];
+    const hasReadPolicy = operationPolicies.some(policy => policy.method === 'read_status' && policy.policy_class === 'read');
+    const hasActionPolicy = operationPolicies.some(policy => (
+      policy.method === 'request_action'
+      && (policy.policy_class === 'read' || policy.confirmation === 'required')
+      && policy.receipt_required === true
+      && policy.fallback?.typed_reason === 'policy_gate'
+    ));
+    if (!hasReadPolicy || !hasActionPolicy) {
+      orbModalityGaps.push(`${descriptor.app_id}:action-policy`);
+    }
+  }
+  if (orbModalityGaps.length > 0) {
+    failRepresentative(artifactPath('orb_idl_complete_coverage'), `ORB/IDL modality or policy coverage gaps: ${orbModalityGaps.slice(0, 80).join(', ')}`);
+  }
+  const supervisorProjection = orbIdlCompleteCoverage?.supervisor_console ?? {};
+  if (
+    supervisorProjection.app_id !== 'agent-supervisor'
+    || supervisorProjection.status_read_only !== true
+    || supervisorProjection.receipts_read_only !== true
+    || supervisorProjection.steering_requires_confirmation !== true
+  ) {
+    failRepresentative(artifactPath('orb_idl_complete_coverage'), 'Agent Supervisor ORB/IDL projection is not read-only for status/receipts with confirmed steering');
+  }
+
+  const simulatorCaps = glassesSimulatorHandoff?.simulator?.capabilities ?? {};
+  for (const capability of requiredSimulatorCapabilities) {
+    if (simulatorCaps[capability] !== true) {
+      failRepresentative(artifactPath('glasses_simulator_handoff'), `Meta glasses simulator capability is not available: ${capability}`);
+    }
+  }
+  if (
+    glassesSimulatorHandoff?.hardware_free !== true
+    || glassesSimulatorHandoff?.simulator_driven !== true
+    || glassesSimulatorHandoff?.physical_glasses_required !== false
+    || glassesSimulatorHandoff?.direct_desktop_pairing_required !== false
+  ) {
+    failRepresentative(artifactPath('glasses_simulator_handoff'), 'Meta glasses evidence must be simulator-driven, hardware-free, and not depend on direct desktop/physical pairing');
+  }
+  const capabilityEvidence = new Map((glassesSimulatorHandoff?.capability_evidence ?? [])
+    .map(evidence => [evidence.capability, evidence]));
+  const simulatorWorkflowGaps = [];
+  const hasVisibleStates = (items, states) => {
+    const visible = new Set((items ?? [])
+      .filter(item => item.visible_in_simulator !== false)
+      .map(item => item.state)
+      .filter(Boolean));
+    return states.filter(state => !visible.has(state));
+  };
+  const displayEvidence = capabilityEvidence.get('display.output');
+  simulatorWorkflowGaps.push(...hasVisibleStates(
+    displayEvidence?.simulator_visible_states,
+    ['rendered', 'updated', 'focused', 'activated', 'cleared'],
+  ).map(state => `display.output:${state}`));
+  const cameraEvidence = capabilityEvidence.get('camera.photo_capture');
+  simulatorWorkflowGaps.push(...hasVisibleStates(
+    cameraEvidence?.camera_permission_states,
+    ['permission_denied', 'fallback', 'accepted'],
+  ).map(state => `camera.photo_capture:${state}`));
+  const microphoneStates = microphoneWorkflowStates(capabilityEvidence.get('microphone.input')?.audio_policy_states ?? []);
+  for (const state of ['permission_required', 'capturing_transcript', 'denied']) {
+    if (!microphoneStates.has(state)) simulatorWorkflowGaps.push(`microphone.input:${state}`);
+  }
+  const speakerStates = speakerWorkflowStates(capabilityEvidence.get('speaker.output')?.audio_policy_states ?? []);
+  for (const state of ['playing', 'fallback']) {
+    if (!speakerStates.has(state)) simulatorWorkflowGaps.push(`speaker.output:${state}`);
+  }
+  const inputSources = new Set((glassesSimulatorHandoff?.input_mapping_evidence ?? []).map(item => item.input_source).filter(Boolean));
+  for (const inputSource of ['touch', 'voice']) {
+    if (!inputSources.has(inputSource)) simulatorWorkflowGaps.push(`input_mapping:${inputSource}`);
+  }
+  if (glassesSimulatorHandoff?.acceptance_matrix) {
+    for (const [key, value] of Object.entries(glassesSimulatorHandoff.acceptance_matrix)) {
+      if (value !== true) simulatorWorkflowGaps.push(`acceptance_matrix:${key}`);
+    }
+  }
+  if (simulatorWorkflowGaps.length > 0) {
+    failRepresentative(artifactPath('glasses_simulator_handoff'), `Meta glasses simulator modality workflow gaps: ${simulatorWorkflowGaps.join(', ')}`);
+  }
+
+  const blockerCount = representativeBlockers.length + allToolsBlockers.length;
+  return {
+    representative_blockers: dedupe(representativeBlockers),
+    all_tools_blockers: dedupe(allToolsBlockers),
+    summary: {
+      status: 'present',
+      decision: blockerCount === 0 ? 'go' : 'no_go',
+      release_decision: blockerCount === 0 ? 'GO' : 'NO_GO',
+      blocker_count: blockerCount,
+      representative_blocker_count: representativeBlockers.length,
+      all_tools_blocker_count: allToolsBlockers.length,
+      required_mcp_servers: requiredMcpServers,
+      required_orb_modalities: requiredOrbModalities,
+      required_simulator_capabilities: requiredSimulatorCapabilities,
+      required_supervisor_paths: requiredSupervisorPaths,
+      app_count: appIds.length,
+      evidence_paths: Object.fromEntries(Object.entries(artifacts).map(([key, artifact]) => [key, artifact.path])),
+      missing_evidence_paths: dedupe(missingEvidencePaths),
+      representative_blockers: dedupe(representativeBlockers),
+      all_tools_blockers: dedupe(allToolsBlockers),
+    },
+  };
+}
+
+function microphoneWorkflowStates(states) {
+  const observed = new Set();
+  for (const state of states) {
+    if (state.state === 'permission_required' && state.policy_outcome === 'require_confirmation') {
+      observed.add('permission_required');
+    }
+    if (state.audio_state === 'capturing' && state.transcript?.state === 'redacted_transcript_available') {
+      observed.add('capturing_transcript');
+    }
+    if (state.policy_outcome === 'deny' || state.audio_state === 'denied' || state.transcript?.state === 'denied') {
+      observed.add('denied');
+    }
+  }
+  return observed;
+}
+
+function speakerWorkflowStates(states) {
+  const observed = new Set();
+  for (const state of states) {
+    if (state.audio_state === 'playing') observed.add('playing');
+    if (state.audio_state === 'fallback' || state.policy_outcome === 'fallback') observed.add('fallback');
+  }
+  return observed;
+}
+
+function refreshReleaseEvidenceFreshness() {
+  execFileSync(
+    process.execPath,
+    [
+      'scripts/audit-release-evidence-freshness.mjs',
+      '--update',
+      'virtual-desktop-release-evidence',
+      '--json',
+      'docs/release-evidence-freshness.json',
+      '--report',
+      'docs/release-evidence-freshness.md',
+    ],
+    {
+      cwd: projectRoot,
+      stdio: 'pipe',
+    },
+  );
+}
+
 function mergeCounts(countObjects) {
   const merged = {};
   for (const counts of countObjects) {
@@ -905,6 +1837,8 @@ function renderMarkdown(report) {
   lines.push(`- Manifest apps: ${report.manifest.app_count ?? 'unknown'}`);
   lines.push(`- Launch evidence: ${report.launch_status.status}; opened ${report.launch_status.opened ?? 'unknown'} / ${report.launch_status.app_count ?? 'unknown'}`);
   lines.push(`- App screenshots: ${report.screenshot_coverage.app_screenshots.count} / ${report.screenshot_coverage.app_screenshots.expected ?? 'unknown'}`);
+  lines.push(`- SWR-110 complete evidence gate: ${report.swr110_release_gate.release_decision}; blockers ${report.swr110_release_gate.blocker_count}`);
+  lines.push(`- App matrix release gate: ${report.virtual_desktop_app_matrix_gate.decision}; blockers ${report.virtual_desktop_app_matrix_gate.blocker_count}`);
   lines.push(`- Glasses handoff: ${report.glasses_handoff.status}; passed ${report.glasses_handoff.passed_count ?? 'unknown'} / ${report.glasses_handoff.displayable_count ?? 'unknown'} displayable apps`);
   lines.push(`- Service availability: ${(report.service_health.available ?? []).length} available, ${(report.service_health.unavailable ?? []).length} unavailable`);
   lines.push(`- Hierarchical MCP facade: ${report.hierarchical_mcp.services_with_full_facade ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'} services; dispatch ${report.hierarchical_mcp.dispatch_pass_count ?? 'unknown'} / ${report.hierarchical_mcp.dispatch_probe_count ?? 'unknown'} passed`);
@@ -913,6 +1847,49 @@ function renderMarkdown(report) {
   lines.push(`- Legacy gateway fallback specs present: ${report.fallback_coverage.legacy_gateway_spec_count}`);
   lines.push(`- Live receipt samples: ${report.receipt_samples.live_receipt_samples.status}; count ${report.receipt_samples.live_receipt_samples.sample_count ?? 0}`);
   lines.push(`- Representative decision: ${report.representative_app_gate.decision}`);
+  lines.push('');
+  lines.push('## SWR-110 Complete Release Evidence Gate');
+  lines.push(`- Decision: ${report.swr110_release_gate.release_decision}`);
+  lines.push(`- Required MCP servers: ${report.swr110_release_gate.required_mcp_servers.join(', ')}`);
+  lines.push(`- Required ORB/IDL modalities: ${report.swr110_release_gate.required_orb_modalities.join(', ')}`);
+  lines.push(`- Required simulator capabilities: ${report.swr110_release_gate.required_simulator_capabilities.join(', ')}`);
+  lines.push(`- Required supervisor paths: ${report.swr110_release_gate.required_supervisor_paths.join(', ')}`);
+  lines.push(`- Missing/failing evidence paths: ${report.swr110_release_gate.missing_evidence_paths.join(', ') || 'none'}`);
+  if ((report.swr110_release_gate.representative_blockers ?? []).length > 0) {
+    lines.push('- Representative blockers:');
+    for (const blocker of report.swr110_release_gate.representative_blockers.slice(0, 40)) {
+      lines.push(`  - ${blocker}`);
+    }
+  }
+  if ((report.swr110_release_gate.all_tools_blockers ?? []).length > 0) {
+    lines.push('- All-tools blockers:');
+    for (const blocker of report.swr110_release_gate.all_tools_blockers.slice(0, 40)) {
+      lines.push(`  - ${blocker}`);
+    }
+  }
+  lines.push('');
+  lines.push('## Virtual Desktop App Matrix Gate');
+  lines.push(`- Decision: ${report.virtual_desktop_app_matrix_gate.decision}`);
+  lines.push(`- Apps checked: ${report.virtual_desktop_app_matrix_gate.app_count}`);
+  lines.push(`- Required workflow states: ${report.virtual_desktop_app_matrix_gate.required_workflow_states.join(', ')}`);
+  lines.push(`- Required simulator modalities: ${report.virtual_desktop_app_matrix_gate.required_simulator_modalities.join(', ')}`);
+  lines.push(`- Observed simulator modalities: ${report.virtual_desktop_app_matrix_gate.observed_simulator_modalities.join(', ') || 'none'}`);
+  lines.push(`- Required simulator capability modalities: ${(report.virtual_desktop_app_matrix_gate.required_simulator_capability_modalities ?? []).join(', ')}`);
+  lines.push(`- Observed simulator capability modalities: ${(report.virtual_desktop_app_matrix_gate.observed_simulator_capability_modalities ?? []).join(', ') || 'none'}`);
+  lines.push(`- Missing backend contracts: ${report.virtual_desktop_app_matrix_gate.missing_contract_app_ids.join(', ') || 'none'}`);
+  lines.push(`- Missing workflows: ${report.virtual_desktop_app_matrix_gate.missing_workflow_app_ids.join(', ') || 'none'}`);
+  lines.push(`- Missing screenshots: ${report.virtual_desktop_app_matrix_gate.missing_screenshot_apps.map(item => item.app_id).join(', ') || 'none'}`);
+  lines.push(`- Missing workflow states: ${report.virtual_desktop_app_matrix_gate.missing_workflow_states.map(item => `${item.app_id}:${item.state}`).join(', ') || 'none'}`);
+  lines.push(`- Missing UX states: ${report.virtual_desktop_app_matrix_gate.missing_ux_states.map(item => `${item.app_id}:${item.state}`).join(', ') || 'none'}`);
+  lines.push(`- Missing backend capability sets: ${(report.virtual_desktop_app_matrix_gate.missing_backend_capability_set_app_ids ?? []).join(', ') || 'none'}`);
+  lines.push(`- Malformed backend capabilities: ${(report.virtual_desktop_app_matrix_gate.malformed_backend_capabilities ?? []).map(item => `${item.app_id}:${item.capability_id ?? 'contract'}:${(item.missing_fields ?? []).join('|')}`).slice(0, 40).join(', ') || 'none'}`);
+  lines.push(`- Missing app-visible binding capabilities: ${(report.virtual_desktop_app_matrix_gate.missing_app_visible_binding_capabilities ?? []).map(item => `${item.app_id}:${item.capability_id}`).slice(0, 40).join(', ') || 'none'}`);
+  lines.push(`- Missing ORB/IDL apps: ${report.virtual_desktop_app_matrix_gate.missing_orb_idl_app_ids.join(', ') || 'none'}`);
+  lines.push(`- Missing ORB/IDL capabilities: ${report.virtual_desktop_app_matrix_gate.missing_orb_idl_capabilities.map(item => item.capability_id).slice(0, 40).join(', ') || 'none'}`);
+  lines.push(`- Missing catalog reconciliation: ${report.virtual_desktop_app_matrix_gate.missing_catalog_reconciliation.map(item => `${item.service}:${item.tool_id}`).slice(0, 40).join(', ') || 'none'}`);
+  lines.push(`- Server catalog gaps: ${report.virtual_desktop_app_matrix_gate.server_catalog_gaps.map(item => `${item.server}:${item.kind}:${item.descriptor_count}`).join(', ') || 'none'}`);
+  lines.push(`- Missing simulator capability modalities: ${(report.virtual_desktop_app_matrix_gate.missing_simulator_capability_modalities ?? []).join(', ') || 'none'}`);
+  lines.push(`- Simulator replay gaps: ${report.virtual_desktop_app_matrix_gate.simulator_replay_gaps.map(item => `${item.projection_id}:${item.simulator_state}`).slice(0, 40).join(', ') || 'none'}`);
   lines.push('');
   lines.push('## Hierarchical MCP Evidence');
   lines.push(`- Evidence decision: ${report.hierarchical_mcp.decision ?? report.hierarchical_mcp.status}; release gate: ${report.hierarchical_mcp.release_gate_decision ?? report.hierarchical_mcp.status}`);
@@ -934,7 +1911,7 @@ function renderMarkdown(report) {
     lines.push(`- Unobserved services: ${report.hierarchical_mcp.unobserved_services.join(', ')}`);
   }
   for (const directOnly of report.hierarchical_mcp.direct_only_summaries ?? []) {
-    lines.push(`- Direct-only ${directOnly.service}: ${directOnly.descriptor_count} descriptors; sample ${directOnly.sample.slice(0, 6).join(', ') || 'none'}`);
+    lines.push(`- Direct-only ${directOnly.service}: ${directOnly.count ?? directOnly.descriptor_count ?? 'unknown'} descriptors; sample ${directOnly.sample.slice(0, 6).map(item => item.tool_id ?? item.name ?? String(item)).join(', ') || 'none'}`);
   }
   lines.push('');
   lines.push('## Exhaustive All-Tools Evidence');

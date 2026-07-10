@@ -47,7 +47,8 @@ const applications = [
   { name: 'idl-explorer', selector: '[data-app="idl-explorer"]', title: 'IDL Explorer' },
   { name: 'glasses-preview', selector: '[data-app="glasses-preview"]', title: 'Glasses Preview' },
   { name: 'orb-auto-ui', selector: '[data-app="orb-auto-ui"]', title: 'ORB Auto-UI' },
-  { name: 'mcp-plus-plus', selector: '[data-app="mcp-plus-plus"]', title: 'MCP++ Explorer' }
+  { name: 'mcp-plus-plus', selector: '[data-app="mcp-plus-plus"]', title: 'MCP++ Explorer' },
+  { name: 'agent-supervisor', selector: '[data-app="agent-supervisor"]', title: 'Agent Supervisor' }
 ];
 
 test.describe('SwissKnife Desktop Application Validation', () => {

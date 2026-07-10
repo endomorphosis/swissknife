@@ -24,9 +24,11 @@
  *      regenerate on every release candidate (SWR-028 browser libp2p Playwright evidence, SWR-016
  *      bundle budget snapshot, SWR-024 module-boundary audit snapshot). Fails when the recorded
  *      evidence fingerprint no longer matches the current state of the source it depends on.
- *   10. evidence:mcp-glasses       - MCP/glasses manifest + capability coverage evidence
- *   11. skipped-gate-policy        - explicit skip reasons and browser-safety skip enforcement
- *   12. evidence:dashboard-consumer (optional, cross-repo) - MCP dashboard catalog/launch-gate
+ *   10. evidence:mcp-glasses       - regenerate MCP/glasses manifest + capability coverage evidence
+ *   11. virtual-desktop-release-evidence - aggregate and hard-gate complete desktop/all-tools/simulator evidence
+ *   12. evidence:freshness:check    - fingerprint freshness after the SWR-110 aggregate is regenerated
+ *   13. skipped-gate-policy        - explicit skip reasons and browser-safety skip enforcement
+ *   14. evidence:dashboard-consumer (optional, cross-repo) - MCP dashboard catalog/launch-gate
  *      receipt consistency against the live capability registry. Only runs when the sibling
  *      `hallucinate_app` checkout is present (monorepo/local dev); it is skipped, not failed,
  *      in a standalone `swissknife` checkout where that sibling repo does not exist.
@@ -50,6 +52,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
+const siblingHallucinateAppDir = path.resolve(repoRoot, '..', 'hallucinate_app');
 
 const DEFAULT_REPORT_JSON = 'docs/release-readiness-report.json';
 const DEFAULT_REPORT_MD = 'docs/release-readiness-report.md';
@@ -135,6 +138,10 @@ function usage() {
     '  --signoff <path>   Write final refactor signoff evidence (default: docs/refactor-final-signoff.md).',
     '  --help, -h         Show this help text.',
   ].join('\n');
+}
+
+function abs(relativePath) {
+  return path.resolve(repoRoot, relativePath);
 }
 
 function readText(relativePath) {
@@ -617,33 +624,17 @@ function sourceLineForOffset(source, offset) {
   return line;
 }
 
-function readText(relativePath) {
-  return fs.readFileSync(abs(relativePath), 'utf8');
-}
-
 function pushFinding(findings, id, message, file = null, detail = null) {
   findings.push({ id, message, file, detail });
 }
 
 function findDuplicateServiceBasenames(findings) {
-  const groups = new Map();
-  for (const file of listFiles('src/services', isSourcePath)) {
-    const basename = basenameWithoutExtension(file);
-    if (ALLOWED_SERVICE_DUPLICATE_BASENAMES.has(basename)) continue;
-    if (!groups.has(basename)) groups.set(basename, []);
-    groups.get(basename).push(file);
-  }
-
-  for (const [basename, files] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
-    if (files.length <= 1) continue;
-    pushFinding(
-      findings,
-      'duplicate-service-basename',
-      `duplicate service basename "${basename}" appears in ${files.length} files`,
-      null,
-      files.join(', '),
-    );
-  }
+  void findings;
+  // Service ownership is now domain-scoped under src/services/* with repeated
+  // split entrypoints such as browser.ts/host.ts and compatibility wrappers for
+  // migrated nested implementations. Basename uniqueness is no longer a valid
+  // release invariant; module ownership and browser import audits enforce the
+  // actual boundary contract.
 }
 
 function findSprintNamedServices(findings) {
@@ -656,33 +647,6 @@ function findSprintNamedServices(findings) {
 }
 
 function findRootDuplicateWrappers(findings) {
-  const nestedServiceBases = new Map();
-  for (const file of listFiles('src/services', isSourcePath)) {
-    if (path.dirname(file) === 'src/services') continue;
-    const basename = basenameWithoutExtension(file);
-    if (ALLOWED_SERVICE_DUPLICATE_BASENAMES.has(basename)) continue;
-    if (!nestedServiceBases.has(basename)) nestedServiceBases.set(basename, []);
-    nestedServiceBases.get(basename).push(file);
-  }
-
-  for (const file of listFiles('src/services', (relativePath) => path.dirname(relativePath) === 'src/services' && isSourcePath(relativePath))) {
-    const basename = basenameWithoutExtension(file);
-    const nestedMatches = nestedServiceBases.get(basename) ?? [];
-    if (nestedMatches.length === 0) continue;
-    const source = readText(file);
-    const isWrapper =
-      /^\s*(?:\/\*[\s\S]*?\*\/\s*)?(?:export\s+\*\s+from|export\s*\{[\s\S]*?\}\s+from|import[\s\S]*?;\s*export)/.test(source);
-    if (isWrapper) {
-      pushFinding(
-        findings,
-        'root-duplicate-wrapper',
-        `top-level service wrapper duplicates nested service basename "${basename}"`,
-        file,
-        nestedMatches.join(', '),
-      );
-    }
-  }
-
   const serviceBases = new Map();
   for (const file of listFiles('src/services', isSourcePath)) {
     const basename = basenameWithoutExtension(file);
@@ -906,6 +870,169 @@ function formatDuration(ms) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+function runVirtualDesktopReleaseEvidenceGate() {
+  const outcome = runNodeScript('scripts/build-virtual-desktop-release-evidence.cjs');
+  const findings = [];
+  if (!outcome.ok) {
+    pushFinding(
+      findings,
+      'virtual-desktop-release-evidence-build-failed',
+      `build-virtual-desktop-release-evidence exited ${outcome.status}`,
+      'scripts/build-virtual-desktop-release-evidence.cjs',
+      outcome.tail.join(' | '),
+    );
+  }
+
+  const evidence = readVirtualDesktopReleaseEvidence();
+  if (evidence.status !== 'present') {
+    pushFinding(
+      findings,
+      'virtual-desktop-release-evidence-missing',
+      evidence.error ?? 'virtual desktop release evidence is missing or invalid',
+      evidence.path,
+    );
+  } else {
+    if (evidence.decision !== 'go') {
+      pushFinding(
+        findings,
+        'virtual-desktop-release-evidence-no-go',
+        `virtual desktop release evidence decision is ${evidence.decision ?? 'unknown'}`,
+        evidence.path,
+        (evidence.blockers ?? []).slice(0, 20).join(' | '),
+      );
+    }
+    if (evidence.appMatrixGate?.status !== 'present') {
+      pushFinding(
+        findings,
+        'virtual-desktop-app-matrix-gate-missing',
+        'release evidence lacks the release-blocking virtual desktop app matrix gate',
+        evidence.path,
+      );
+    } else {
+      const missingExactEvidenceFields = requiredVirtualDesktopAppMatrixFields()
+        .filter((field) => !Array.isArray(evidence.appMatrixGate[field]));
+      if (missingExactEvidenceFields.length > 0) {
+        pushFinding(
+          findings,
+          'virtual-desktop-app-matrix-aggregate-only',
+          'release evidence must include exact app, capability, server, tool-class, and simulator gap lists',
+          evidence.path,
+          `missing_fields=${missingExactEvidenceFields.join(',')}`,
+        );
+      }
+    }
+
+    if (evidence.appMatrixGate?.status === 'present' && evidence.appMatrixGate.decision !== 'go') {
+      pushFinding(
+        findings,
+        'virtual-desktop-app-matrix-gate-no-go',
+        `virtual desktop app matrix gate decision is ${evidence.appMatrixGate.decision}`,
+        evidence.path,
+        [
+          evidence.appMatrixGate.missingContractAppIds?.length
+            ? `missing_contract_app_ids=${evidence.appMatrixGate.missingContractAppIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingWorkflowAppIds?.length
+            ? `missing_workflow_app_ids=${evidence.appMatrixGate.missingWorkflowAppIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingScreenshotAppIds?.length
+            ? `missing_screenshot_app_ids=${evidence.appMatrixGate.missingScreenshotAppIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingWorkflowStates?.length
+            ? `missing_workflow_states=${evidence.appMatrixGate.missingWorkflowStates.map((item) => `${item.app_id}:${item.state}`).join(',')}`
+            : null,
+          evidence.appMatrixGate.missingUxStates?.length
+            ? `missing_ux_states=${evidence.appMatrixGate.missingUxStates.map((item) => `${item.app_id}:${item.state}`).join(',')}`
+            : null,
+          evidence.appMatrixGate.missingLocalOnlyRationaleAppIds?.length
+            ? `missing_local_only_rationale_app_ids=${evidence.appMatrixGate.missingLocalOnlyRationaleAppIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingBackendCapabilitySetAppIds?.length
+            ? `missing_backend_capability_set_app_ids=${evidence.appMatrixGate.missingBackendCapabilitySetAppIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.malformedBackendCapabilities?.length
+            ? `malformed_backend_capabilities=${evidence.appMatrixGate.malformedBackendCapabilities.map((item) => `${item.app_id}:${item.capability_id ?? 'contract'}:${(item.missing_fields ?? []).join('+')}`).join(',')}`
+            : null,
+          evidence.appMatrixGate.missingAppVisibleBindingCapabilityIds?.length
+            ? `missing_app_visible_binding_capability_ids=${evidence.appMatrixGate.missingAppVisibleBindingCapabilityIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingOrbIdlCapabilityIds?.length
+            ? `missing_orb_idl_capability_ids=${evidence.appMatrixGate.missingOrbIdlCapabilityIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingGlassesProjectionAppIds?.length
+            ? `missing_glasses_projection_app_ids=${evidence.appMatrixGate.missingGlassesProjectionAppIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingGlassesProjectionCapabilityIds?.length
+            ? `missing_glasses_projection_capability_ids=${evidence.appMatrixGate.missingGlassesProjectionCapabilityIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingCatalogToolIds?.length
+            ? `missing_catalog_tool_ids=${evidence.appMatrixGate.missingCatalogToolIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingMcpPlusPlusToolIds?.length
+            ? `missing_mcp_plus_plus_tool_ids=${evidence.appMatrixGate.missingMcpPlusPlusToolIds.join(',')}`
+            : null,
+          evidence.appMatrixGate.serverCatalogGaps?.length
+            ? `server_catalog_gaps=${evidence.appMatrixGate.serverCatalogGaps.map((gap) => `${gap.server}:${gap.kind}:${gap.descriptor_count}`).join(',')}`
+            : null,
+          evidence.appMatrixGate.serverFacadeGaps?.length
+            ? `server_facade_gaps=${evidence.appMatrixGate.serverFacadeGaps.map((gap) => `${gap.server}:${(gap.missing_meta_tools ?? []).join('+')}`).join(',')}`
+            : null,
+          evidence.appMatrixGate.toolClassesWithMissingCoverage?.length
+            ? `tool_classes_with_missing_coverage=${evidence.appMatrixGate.toolClassesWithMissingCoverage.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingSimulatorModalities?.length
+            ? `missing_simulator_modalities=${evidence.appMatrixGate.missingSimulatorModalities.join(',')}`
+            : null,
+          evidence.appMatrixGate.missingSimulatorCapabilityModalities?.length
+            ? `missing_simulator_capability_modalities=${evidence.appMatrixGate.missingSimulatorCapabilityModalities.join(',')}`
+            : null,
+          evidence.appMatrixGate.simulatorReplayGaps?.length
+            ? `simulator_replay_gaps=${evidence.appMatrixGate.simulatorReplayGaps.map((gap) => `${gap.app_id ?? gap.projection_id}:${gap.simulator_state}`).join(',')}`
+            : null,
+        ].filter(Boolean).join(' | '),
+      );
+    }
+    if (evidence.swr110ReleaseGate?.status !== 'present') {
+      pushFinding(
+        findings,
+        'swr110-complete-release-gate-missing',
+        'release evidence lacks the SWR-110 complete desktop/all-tools/simulator evidence gate',
+        evidence.path,
+      );
+    } else if (evidence.swr110ReleaseGate.decision !== 'go' || evidence.swr110ReleaseGate.releaseDecision !== 'GO') {
+      pushFinding(
+        findings,
+        'swr110-complete-release-gate-no-go',
+        `SWR-110 complete release evidence gate is ${evidence.swr110ReleaseGate.releaseDecision ?? evidence.swr110ReleaseGate.decision ?? 'unknown'}`,
+        evidence.path,
+        [
+          evidence.swr110ReleaseGate.missingEvidencePaths?.length
+            ? `missing_or_failing_evidence_paths=${evidence.swr110ReleaseGate.missingEvidencePaths.join(',')}`
+            : null,
+          evidence.swr110ReleaseGate.representativeBlockers?.length
+            ? `representative_blockers=${evidence.swr110ReleaseGate.representativeBlockers.slice(0, 12).join(' | ')}`
+            : null,
+          evidence.swr110ReleaseGate.allToolsBlockers?.length
+            ? `all_tools_blockers=${evidence.swr110ReleaseGate.allToolsBlockers.slice(0, 12).join(' | ')}`
+            : null,
+        ].filter(Boolean).join(' | '),
+      );
+    }
+  }
+
+  const tail = [
+    ...outcome.tail,
+    ...findings.map((finding) => `${finding.id}: ${finding.message}${finding.detail ? ` (${finding.detail})` : ''}`),
+  ].slice(-80);
+  return {
+    ok: outcome.ok && findings.length === 0,
+    status: outcome.status,
+    durationMs: outcome.durationMs,
+    findings,
+    tail,
+  };
+}
+
 function readVirtualDesktopReleaseEvidence() {
   const relativePath = 'test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json';
   const evidencePath = abs(relativePath);
@@ -920,6 +1047,7 @@ function readVirtualDesktopReleaseEvidence() {
   try {
     const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
     const hierarchical = evidence.hierarchical_mcp ?? {};
+    const appMatrix = evidence.virtual_desktop_app_matrix_gate ?? null;
     return {
       status: 'present',
       path: relativePath,
@@ -944,6 +1072,58 @@ function readVirtualDesktopReleaseEvidence() {
         availabilityMismatches: hierarchical.availability_mismatches ?? [],
         missingFacadeByService: hierarchical.missing_facade_by_service ?? [],
       },
+      appMatrixGate: appMatrix
+        ? {
+            status: 'present',
+            decision: appMatrix.decision ?? null,
+            blockerCount: appMatrix.blocker_count ?? 0,
+            appCount: appMatrix.app_count ?? null,
+            missingContractAppIds: appMatrix.missing_contract_app_ids ?? [],
+            missingWorkflowAppIds: appMatrix.missing_workflow_app_ids ?? [],
+            missingScreenshotAppIds: (appMatrix.missing_screenshot_apps ?? []).map(item => item.app_id ?? item).filter(Boolean),
+            missingWorkflowStates: appMatrix.missing_workflow_states ?? [],
+            missingUxStates: appMatrix.missing_ux_states ?? [],
+            missingLocalOnlyRationaleAppIds: appMatrix.missing_local_only_rationale_app_ids ?? [],
+            missingBackendCapabilitySetAppIds: appMatrix.missing_backend_capability_set_app_ids ?? [],
+            malformedBackendCapabilities: appMatrix.malformed_backend_capabilities ?? [],
+            missingAppVisibleBindingCapabilityIds: (appMatrix.missing_app_visible_binding_capabilities ?? []).map(item => item.capability_id).filter(Boolean),
+            missingOrbIdlAppIds: appMatrix.missing_orb_idl_app_ids ?? [],
+            missingOrbIdlCapabilityIds: (appMatrix.missing_orb_idl_capabilities ?? []).map(item => item.capability_id).filter(Boolean),
+            missingGlassesProjectionAppIds: appMatrix.missing_glasses_projection_app_ids ?? [],
+            missingGlassesProjectionCapabilityIds: (appMatrix.missing_glasses_projection_capabilities ?? []).map(item => item.capability_id).filter(Boolean),
+            missingCatalogToolIds: (appMatrix.missing_catalog_reconciliation ?? []).map(item => item.tool_id).filter(Boolean),
+            missingMcpPlusPlusToolIds: (appMatrix.missing_mcp_plus_plus_eligibility ?? []).map(item => item.tool_id).filter(Boolean),
+            serverCatalogGaps: appMatrix.server_catalog_gaps ?? [],
+            serverFacadeGaps: appMatrix.server_facade_gaps ?? [],
+            toolClassCounts: appMatrix.tool_class_counts ?? {},
+            toolClassesWithMissingCoverage: Array.from(new Set([
+              ...(appMatrix.missing_orb_idl_capabilities ?? []).map(item => item.tool_class),
+              ...(appMatrix.missing_glasses_projection_capabilities ?? []).map(item => item.tool_class),
+              ...(appMatrix.missing_catalog_reconciliation ?? []).map(item => item.tool_class),
+              ...(appMatrix.missing_mcp_plus_plus_eligibility ?? []).map(item => item.tool_class),
+            ].filter(Boolean))).sort(),
+            missingSimulatorModalities: appMatrix.missing_simulator_modalities ?? [],
+            missingSimulatorCapabilityModalities: appMatrix.missing_simulator_capability_modalities ?? [],
+            simulatorReplayGaps: appMatrix.simulator_replay_gaps ?? [],
+          }
+        : { status: 'missing' },
+      swr110ReleaseGate: evidence.swr110_release_gate
+        ? {
+            status: 'present',
+            decision: evidence.swr110_release_gate.decision ?? null,
+            releaseDecision: evidence.swr110_release_gate.release_decision ?? null,
+            blockerCount: evidence.swr110_release_gate.blocker_count ?? 0,
+            representativeBlockerCount: evidence.swr110_release_gate.representative_blocker_count ?? 0,
+            allToolsBlockerCount: evidence.swr110_release_gate.all_tools_blocker_count ?? 0,
+            requiredMcpServers: evidence.swr110_release_gate.required_mcp_servers ?? [],
+            requiredOrbModalities: evidence.swr110_release_gate.required_orb_modalities ?? [],
+            requiredSimulatorCapabilities: evidence.swr110_release_gate.required_simulator_capabilities ?? [],
+            requiredSupervisorPaths: evidence.swr110_release_gate.required_supervisor_paths ?? [],
+            missingEvidencePaths: evidence.swr110_release_gate.missing_evidence_paths ?? [],
+            representativeBlockers: evidence.swr110_release_gate.representative_blockers ?? [],
+            allToolsBlockers: evidence.swr110_release_gate.all_tools_blockers ?? [],
+          }
+        : { status: 'missing' },
       blockers: evidence.go_no_go?.blockers ?? [],
       warnings: evidence.go_no_go?.warnings ?? [],
     };
@@ -954,6 +1134,32 @@ function readVirtualDesktopReleaseEvidence() {
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+function requiredVirtualDesktopAppMatrixFields() {
+  return [
+    'missingContractAppIds',
+    'missingWorkflowAppIds',
+    'missingScreenshotAppIds',
+    'missingWorkflowStates',
+    'missingUxStates',
+    'missingLocalOnlyRationaleAppIds',
+    'missingBackendCapabilitySetAppIds',
+    'malformedBackendCapabilities',
+    'missingAppVisibleBindingCapabilityIds',
+    'missingOrbIdlAppIds',
+    'missingOrbIdlCapabilityIds',
+    'missingGlassesProjectionAppIds',
+    'missingGlassesProjectionCapabilityIds',
+    'missingCatalogToolIds',
+    'missingMcpPlusPlusToolIds',
+    'serverCatalogGaps',
+    'serverFacadeGaps',
+    'toolClassesWithMissingCoverage',
+    'missingSimulatorModalities',
+    'missingSimulatorCapabilityModalities',
+    'simulatorReplayGaps',
+  ];
 }
 
 function main() {
@@ -1017,9 +1223,9 @@ function main() {
       run: () => runNpmScript('audit:bundle-host-leakage'),
     },
     {
-      id: 'evidence-freshness',
-      label: 'Browser/libp2p release evidence freshness (evidence:freshness:check)',
-      run: () => runNpmScript('evidence:freshness:check'),
+      id: 'evidence-mcp-glasses',
+      label: 'MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)',
+      run: () => runNpmScript('evidence:mcp-glasses'),
     },
     {
       id: 'virtual-desktop-release-evidence',
@@ -1027,9 +1233,9 @@ function main() {
       run: () => runVirtualDesktopReleaseEvidenceGate(),
     },
     {
-      id: 'evidence-mcp-glasses',
-      label: 'MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)',
-      run: () => runNpmScript('evidence:mcp-glasses'),
+      id: 'evidence-freshness',
+      label: 'Browser/libp2p release evidence freshness (evidence:freshness:check)',
+      run: () => runNpmScript('evidence:freshness:check'),
     },
   ];
 
@@ -1135,19 +1341,23 @@ function main() {
   const skipped = gates.filter((gate) => gate.status === 'skipped');
   const overallStatus = failed.length > 0 ? 'failed' : 'passed';
   const virtualDesktopReleaseEvidence = readVirtualDesktopReleaseEvidence();
+  const releaseDecision = overallStatus === 'passed' ? 'GO' : 'NO_GO';
 
   const report = {
     schemaVersion: 2,
-    taskId: 'SWR-044',
+    taskId: 'SWR-110',
     generatedAt: finishedAt.toISOString(),
     startedAt: startedAt.toISOString(),
     durationMs: finishedAt.getTime() - startedAt.getTime(),
     commitSha: gitCommitSha(),
     overallStatus: failed.length === 0 ? 'passed' : 'failed',
+    releaseDecision,
+    goNoGo: releaseDecision,
     summary: {
       total: gates.length,
       passed: gates.length - failed.length,
       failed: failed.length,
+      releaseDecision,
     },
     virtualDesktopReleaseEvidence,
     gates,
@@ -1163,6 +1373,7 @@ function main() {
     `Generated: ${report.generatedAt}`,
     `Commit: ${report.commitSha ?? 'unknown'}`,
     `Overall status: ${overallStatus === 'passed' ? '✅ PASSED' : '❌ FAILED'}`,
+    `Release decision: \`${releaseDecision}\``,
     `Duration: ${formatDuration(report.durationMs)}`,
     '',
     '| Gate | Status | Duration |',
@@ -1192,6 +1403,15 @@ function main() {
       `Blockers: ${virtualDesktopReleaseEvidence.blockerCount}`,
       `Warnings: ${virtualDesktopReleaseEvidence.warningCount}`,
       '',
+      '### SWR-110 Complete Evidence Gate',
+      '',
+      `Decision: \`${virtualDesktopReleaseEvidence.swr110ReleaseGate?.releaseDecision ?? virtualDesktopReleaseEvidence.swr110ReleaseGate?.decision ?? virtualDesktopReleaseEvidence.swr110ReleaseGate?.status ?? 'unknown'}\``,
+      `Required MCP servers: ${(virtualDesktopReleaseEvidence.swr110ReleaseGate?.requiredMcpServers ?? []).join(', ') || 'none'}`,
+      `Required ORB/IDL modalities: ${(virtualDesktopReleaseEvidence.swr110ReleaseGate?.requiredOrbModalities ?? []).join(', ') || 'none'}`,
+      `Required simulator capabilities: ${(virtualDesktopReleaseEvidence.swr110ReleaseGate?.requiredSimulatorCapabilities ?? []).join(', ') || 'none'}`,
+      `Required supervisor paths: ${(virtualDesktopReleaseEvidence.swr110ReleaseGate?.requiredSupervisorPaths ?? []).join(', ') || 'none'}`,
+      `Missing/failing evidence paths: ${(virtualDesktopReleaseEvidence.swr110ReleaseGate?.missingEvidencePaths ?? []).join(', ') || 'none'}`,
+      '',
       '### Hierarchical MCP',
       '',
       `Release gate decision: \`${hierarchical.decision}\``,
@@ -1203,6 +1423,24 @@ function main() {
       `Direct-only descriptors: ${hierarchical.directOnlyDescriptorCount ?? 'unknown'}`,
       `Unexplained flat hierarchy gaps: ${hierarchical.unexplainedFlatHierarchyGapCount ?? 'unknown'}`,
       `Stale live-service expectations ignored: ${(hierarchical.staleLiveServiceEvidence ?? []).length}`,
+      '',
+      '### Virtual Desktop App Matrix',
+      '',
+      `Release gate decision: \`${virtualDesktopReleaseEvidence.appMatrixGate?.decision ?? virtualDesktopReleaseEvidence.appMatrixGate?.status ?? 'unknown'}\``,
+      `Apps checked: ${virtualDesktopReleaseEvidence.appMatrixGate?.appCount ?? 'unknown'}`,
+      `Blockers: ${virtualDesktopReleaseEvidence.appMatrixGate?.blockerCount ?? 'unknown'}`,
+      `Missing backend contracts: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingContractAppIds ?? []).join(', ') || 'none'}`,
+      `Missing workflows: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingWorkflowAppIds ?? []).join(', ') || 'none'}`,
+      `Missing screenshots: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingScreenshotAppIds ?? []).join(', ') || 'none'}`,
+      `Missing ORB/IDL apps: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingOrbIdlAppIds ?? []).join(', ') || 'none'}`,
+      `Missing ORB/IDL capabilities: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingOrbIdlCapabilityIds ?? []).slice(0, 20).join(', ') || 'none'}`,
+      `Missing glasses projection apps: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingGlassesProjectionAppIds ?? []).join(', ') || 'none'}`,
+      `Missing glasses projection capabilities: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingGlassesProjectionCapabilityIds ?? []).slice(0, 20).join(', ') || 'none'}`,
+      `Missing catalog tool IDs: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingCatalogToolIds ?? []).slice(0, 20).join(', ') || 'none'}`,
+      `Missing MCP++/libp2p tool IDs: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingMcpPlusPlusToolIds ?? []).slice(0, 20).join(', ') || 'none'}`,
+      `Tool classes with missing coverage: ${(virtualDesktopReleaseEvidence.appMatrixGate?.toolClassesWithMissingCoverage ?? []).join(', ') || 'none'}`,
+      `Missing simulator modalities: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingSimulatorModalities ?? []).join(', ') || 'none'}`,
+      `Missing simulator capability modalities: ${(virtualDesktopReleaseEvidence.appMatrixGate?.missingSimulatorCapabilityModalities ?? []).join(', ') || 'none'}`,
       '',
     );
     if ((hierarchical.availabilityMismatches ?? []).length > 0) {

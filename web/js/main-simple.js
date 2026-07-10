@@ -454,6 +454,13 @@ class SwissKnifeDesktop {
             component: 'MCPPlusPlusExplorer',
             singleton: true
         });
+
+        this.apps.set('agent-supervisor', {
+            name: 'Agent Supervisor',
+            icon: '◬',
+            component: 'AgentSupervisorConsole',
+            singleton: true
+        });
         
         console.log('📱 Total apps registered:', this.apps.size);
         console.log('📱 Apps list:', Array.from(this.apps.keys()));
@@ -469,12 +476,23 @@ class SwissKnifeDesktop {
         desktopIcons.forEach((icon, index) => {
             const appId = icon.dataset.app;
             console.log(`🔗 Setting up icon ${index + 1}: ${appId}`);
-            
-            icon.addEventListener('click', (e) => {
+
+            icon.tabIndex = icon.tabIndex >= 0 ? icon.tabIndex : 0;
+            icon.setAttribute('role', icon.getAttribute('role') || 'button');
+            icon.setAttribute('aria-label', icon.getAttribute('aria-label') || icon.getAttribute('title') || appId || 'Desktop application');
+
+            const activateIcon = (e) => {
                 e.preventDefault();
                 console.log(`🖱️ Desktop icon clicked: ${appId}`);
                 if (appId) {
                     this.launchApp(appId);
+                }
+            };
+
+            icon.addEventListener('click', activateIcon);
+            icon.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    activateIcon(e);
                 }
             });
         });
@@ -583,6 +601,7 @@ class SwissKnifeDesktop {
         const windowElement = document.createElement('div');
         windowElement.className = 'window window-enter';
         windowElement.id = windowId;
+        windowElement.dataset.appId = options.appId || '';
         windowElement.style.left = options.x + 'px';
         windowElement.style.top = options.y + 'px';
         windowElement.style.width = options.width + 'px';
@@ -716,6 +735,10 @@ class SwissKnifeDesktop {
 
                 case 'MCPPlusPlusExplorer':
                     await this.createGeneratedServiceSurface(contentElement, 'mcp-plus-plus');
+                    break;
+
+                case 'AgentSupervisorConsole':
+                    await this.createAgentSupervisorApp(contentElement);
                     break;
                     
                 case 'APIKeysApp':
@@ -1683,6 +1706,12 @@ class SwissKnifeDesktop {
                 summary: 'Unified view across ipfs_kit_py, ipfs_datasets_py, and ipfs_accelerate_py tools.',
                 primary: 'MCP++ tools',
             },
+            'agent-supervisor': {
+                title: 'Agent Supervisor',
+                service: 'ipfs_accelerate_py',
+                summary: 'Goals, subgoals, queues, taskboard links, run history, bounded steering, and receipts exposed through typed MCP/MCP++ capabilities.',
+                primary: 'Supervisor queue',
+            },
         };
         const profile = profiles[appId] || {
             title: 'Generated Service Surface',
@@ -1721,6 +1750,19 @@ class SwissKnifeDesktop {
                 </div>
             </div>
         `;
+    }
+
+    async createAgentSupervisorApp(contentElement) {
+        const SupervisorModule = await import('./apps/agent-supervisor.js');
+        if (typeof SupervisorModule.mountSwissKnifeApp === 'function') {
+            return SupervisorModule.mountSwissKnifeApp(contentElement, { desktop: this });
+        }
+        const AgentSupervisorConsole = SupervisorModule.AgentSupervisorConsole || SupervisorModule.AgentSupervisorApp || SupervisorModule.default;
+        const app = new AgentSupervisorConsole(this);
+        await app.initialize();
+        contentElement.innerHTML = await app.render();
+        app.bind?.(contentElement);
+        return app;
     }
 
     createPlaceholderApp(contentElement, componentName) {

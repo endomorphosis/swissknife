@@ -9,8 +9,9 @@ const baseURL = `http://127.0.0.1:${e2ePort}`;
 
 export default defineConfig({
   testDir: resolve(repoRoot, 'test/e2e'),
-  testMatch: ['**/mcp-dashboard.spec.ts'],
+  testMatch: ['**/mcp-dashboard.spec.ts', '**/agent-supervisor-console.spec.ts'],
   timeout: 60 * 1000,
+  outputDir: resolve(repoRoot, 'test-results/playwright-mcp-dashboard-artifacts'),
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

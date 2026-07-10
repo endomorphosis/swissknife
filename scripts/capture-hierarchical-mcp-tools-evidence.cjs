@@ -363,7 +363,7 @@ async function probeSchema(endpoint, representative) {
 }
 
 async function probeDispatch(endpoint, representative, kind = 'representative') {
-  const probe = await callTool(endpoint, 'tools_dispatch', {
+  let probe = await callTool(endpoint, 'tools_dispatch', {
     category: representative.category,
     tool: representative.name,
     params: {
@@ -372,8 +372,21 @@ async function probeDispatch(endpoint, representative, kind = 'representative') 
       __swissknife_hierarchical_evidence_probe: true,
     },
   });
+  let mode = 'dry_run';
+  if (probe.status !== 'passed') {
+    const fallback = await callTool(endpoint, 'tools_dispatch', {
+      category: representative.category,
+      tool: representative.name,
+      params: {},
+    });
+    if (fallback.status === 'passed') {
+      probe = fallback;
+      mode = 'empty_params_fallback';
+    }
+  }
   return {
     kind,
+    mode,
     category: representative.category,
     tool: representative.name,
     status: probe.status,
@@ -429,6 +442,20 @@ function extractCategoryTools(payload, category) {
 
 function chooseRepresentativeTool(entries) {
   if (entries.length === 0) return null;
+  const preferredNames = [
+    'get_server_status',
+    'p2p_taskqueue_status',
+    'get_dashboard_system_metrics',
+    'get_dashboard_peer_status',
+    'HealthChecker.check_detailed',
+    'job_status',
+    'runner_get_status',
+    'telemetry',
+  ];
+  for (const preferredName of preferredNames) {
+    const preferred = entries.find(entry => entry.name === preferredName || entry.flat_name === preferredName || entry.flat_name.endsWith(`.${preferredName}`));
+    if (preferred) return preferred;
+  }
   const safe = entries.filter(entry => /(^|[_.-])(status|health|list|get|check|info|version|ping)([_.-]|$)/i.test(entry.name));
   return (safe.length > 0 ? safe : entries).sort((a, b) => {
     const riskA = riskScore(a.name);

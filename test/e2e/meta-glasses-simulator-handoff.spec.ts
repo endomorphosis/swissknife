@@ -13,8 +13,8 @@ const EVIDENCE_ROOT = path.join(
   'virtual-desktop-ipfs-mcp-orb',
 );
 const EVIDENCE_PATH = path.join(EVIDENCE_ROOT, 'glasses-simulator-handoff.json');
-const SCREENSHOT_DIR = path.join(EVIDENCE_ROOT, 'glasses-simulator-screenshots');
-const SCREENSHOT_PATH = path.join(SCREENSHOT_DIR, 'swr-086-simulator-handoff.png');
+const SCREENSHOT_DIR = path.join(EVIDENCE_ROOT, 'glasses-screenshots');
+const SCREENSHOT_PATH = path.join(SCREENSHOT_DIR, 'swr-097-glasses-simulator-handoff.png');
 
 test.describe('Meta glasses simulator ORB/IDL handoff evidence', () => {
   test('renders simulator-visible display, camera, speaker, microphone, and handoff states', async ({ page }) => {
@@ -23,10 +23,12 @@ test.describe('Meta glasses simulator ORB/IDL handoff evidence', () => {
     });
     await openSimulator(page, initialEvidence);
 
-    await expect(page.getByRole('heading', { name: 'SWR-086 Meta Glasses Simulator' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'SWR-097 Meta Glasses Simulator' })).toBeVisible();
     await expect(page.getByTestId('boundary')).toContainText('hardware_free=true');
     await expect(page.getByTestId('boundary')).toContainText('physical_glasses_required=false');
     await expect(page.getByTestId('boundary')).toContainText('direct_desktop_pairing_required=false');
+    await expect(page.getByTestId('simulator-identity')).toContainText('playwright-meta-glasses-simulator');
+    await expect(page.getByTestId('simulator-identity')).toContainText('meta-ray-ban-display-simulator-swr-097');
 
     await expect(page.getByTestId('display-states')).toContainText('rendered');
     await expect(page.getByTestId('display-states')).toContainText('updated');
@@ -42,12 +44,30 @@ test.describe('Meta glasses simulator ORB/IDL handoff evidence', () => {
     await expect(page.getByTestId('audio-states')).toContainText('microphone.input');
     await expect(page.getByTestId('audio-states')).toContainText('speaker.output');
     await expect(page.getByTestId('audio-states')).toContainText('require_confirmation');
+    await expect(page.getByTestId('audio-states')).toContainText('redacted_transcript_available');
+    await expect(page.getByTestId('audio-states')).toContainText('denied');
+    await expect(page.getByTestId('audio-states')).toContainText('playing');
     await expect(page.getByTestId('audio-states')).toContainText('simulator.hardware-free');
+    await expect(page.getByTestId('audio-states')).toContainText('visible_in_simulator=true');
+
+    await expect(page.getByTestId('input-mapping')).toContainText('touch');
+    await expect(page.getByTestId('input-mapping')).toContainText('voice');
+    await expect(page.getByTestId('input-mapping')).toContainText('commands.open_supervisor_receipts');
+    await expect(page.getByTestId('handoff-profiles')).toContainText('display-webapp-handoff');
+    await expect(page.getByTestId('handoff-profiles')).toContainText('mobile-card-fallback');
+    await expect(page.getByTestId('handoff-profiles')).toContainText('audio-summary-handoff');
+    await expect(page.getByTestId('handoff-profiles')).toContainText('supervisor-receipt-handoff');
 
     await expect(page.getByTestId('handoff-paths')).toContainText('desktop_to_mobile_orb_to_simulator');
     await expect(page.getByTestId('handoff-paths')).toContainText('mobile_to_desktop_resume');
     await expect(page.getByTestId('handoff-paths')).toContainText('direct_desktop_pairing=false');
+    await expect(page.getByTestId('physical-degradations')).toContainText('dat_native_display');
+    await expect(page.getByTestId('physical-degradations')).toContainText('dat_native_camera');
+    await expect(page.getByTestId('physical-degradations')).toContainText('bluetooth_microphone_route');
+    await expect(page.getByTestId('physical-degradations')).toContainText('bluetooth_speaker_route');
+    await expect(page.getByTestId('physical-degradations')).toContainText('direct_physical_device_access=false');
     await expect(page.getByTestId('idl-projection')).toContainText('display_interface_cid=sha256:');
+    await expect(page.getByTestId('idl-projection')).toContainText('input_interface_cid=sha256:');
     await expect(page.getByTestId('idl-projection')).toContainText('mobile_orb_interface_cid=sha256:');
 
     await page.getByTestId('handoff-mobile').click();
@@ -70,9 +90,11 @@ test.describe('Meta glasses simulator ORB/IDL handoff evidence', () => {
         visible_dom_assertions: [
           'display states rendered, updated, focused, activated, cleared',
           'camera permission_denied, fallback, accepted states visible',
-          'microphone and speaker simulator policy states visible',
-          'desktop/mobile handoff paths visible without direct desktop pairing',
-          'ORB/IDL interface CIDs visible',
+          'microphone permission, transcript, and denial states visible',
+          'speaker simulator policy states visible',
+          'touch and voice input mappings visible',
+          'all handoff profiles visible without direct desktop pairing',
+          'ORB/IDL interface CIDs including input visible',
         ],
       },
     });
@@ -104,7 +126,7 @@ async function openSimulator(
     function render() {
       root.innerHTML = `
         <main>
-          <h1>SWR-086 Meta Glasses Simulator</h1>
+          <h1>SWR-097 Meta Glasses Simulator</h1>
           <section data-testid="boundary">
             hardware_free=${evidence.hardware_free};
             simulator_driven=${evidence.simulator_driven};
@@ -112,10 +134,17 @@ async function openSimulator(
             direct_desktop_pairing_required=${evidence.direct_desktop_pairing_required};
             paired_physical_glasses=${evidence.simulator.paired_physical_glasses}
           </section>
+          <section data-testid="simulator-identity">
+            simulator_id=${evidence.simulator.simulator_id}
+            simulator_runtime=${evidence.simulator.simulator_runtime}
+            device_profile_id=${evidence.simulator.device_profile_id}
+            device_model=${evidence.simulator.device_model}
+          </section>
           <section data-testid="idl-projection">
             display_interface_cid=${evidence.orb_idl_projection.display_interface_cid}
             camera_interface_cid=${evidence.orb_idl_projection.camera_interface_cid}
             audio_interface_cid=${evidence.orb_idl_projection.audio_interface_cid}
+            input_interface_cid=${evidence.orb_idl_projection.input_interface_cid}
             mobile_orb_interface_cid=${evidence.orb_idl_projection.mobile_orb_interface_cid}
           </section>
           <section data-testid="display-states">
@@ -132,6 +161,7 @@ async function openSimulator(
               item.outcome,
               item.policy_outcome,
               item.selected_surface,
+              `visible_in_simulator=${item.visible_in_simulator}`,
               item.receipt_cids.join(','),
             ].join(' | ')).join('\n')}
           </section>
@@ -143,9 +173,33 @@ async function openSimulator(
               item.capability,
               item.state,
               item.policy_outcome,
+              item.audio_state,
               item.route_provider,
               item.route_bridge,
+              item.transcript?.state ?? 'no_transcript',
+              item.transcript?.command_intent ?? '',
               `raw_audio_redacted=${item.raw_audio_redacted}`,
+              `visible_in_simulator=${item.visible_in_simulator}`,
+            ].join(' | ')).join('\n')}
+          </section>
+          <section data-testid="input-mapping">
+            ${evidence.input_mapping_evidence.map(item => [
+              item.input_source,
+              item.simulator_event,
+              item.mapped_to,
+              item.target_surface,
+              item.route_status,
+              item.receipt_cids.join(','),
+            ].join(' | ')).join('\n')}
+          </section>
+          <section data-testid="handoff-profiles">
+            ${evidence.handoff_profiles.map(item => [
+              item.profile_id,
+              item.scenario,
+              item.launch_state,
+              item.exercised_modalities.join(','),
+              `simulator_visible=${item.simulator_visible}`,
+              item.receipts.join(','),
             ].join(' | ')).join('\n')}
           </section>
           <section data-testid="handoff-paths">
@@ -155,6 +209,17 @@ async function openSimulator(
               `direct_desktop_pairing=${item.direct_desktop_pairing}`,
               `physical_glasses_required=${item.physical_glasses_required}`,
               item.through.join(' > '),
+            ].join(' | ')).join('\n')}
+          </section>
+          <section data-testid="physical-degradations">
+            ${evidence.physical_device_degradations.map(item => [
+              item.capability,
+              item.physical_device_feature,
+              item.simulator_policy_state,
+              item.fallback_surface,
+              `direct_physical_device_access=${item.direct_physical_device_access}`,
+              `physical_glasses_required=${item.physical_glasses_required}`,
+              item.receipt_cids.join(','),
             ].join(' | ')).join('\n')}
           </section>
           <section data-testid="active-route">${state.activeRoute}</section>
@@ -186,7 +251,7 @@ function renderSimulatorHtml(): string {
     <html lang="en">
       <head>
         <meta charset="utf-8" />
-        <title>SWR-086 Meta Glasses Simulator</title>
+        <title>SWR-097 Meta Glasses Simulator</title>
         <style>
           body {
             margin: 0;

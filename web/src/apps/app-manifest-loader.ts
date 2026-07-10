@@ -49,6 +49,7 @@ export interface AppLoadResult {
  */
 const BROWSER_APP_IMPORTERS: Record<string, () => Promise<unknown>> = {
   'ai-chat': () => import('../../js/apps/ai-chat.js'),
+  'agent-supervisor': () => import('../../js/apps/agent-supervisor.js'),
   'api-keys': () => import('../../js/apps/api-keys.js'),
   calculator: () => import('../../js/apps/calculator.js'),
   calendar: () => import('../../js/apps/calendar.js'),
