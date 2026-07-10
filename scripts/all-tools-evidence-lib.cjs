@@ -1221,6 +1221,26 @@ async function callAccelerateCompatTool(upstream, name, args) {
   if (name === 'tools_dispatch') {
     const toolName = args?.tool ?? args?.name;
     const params = args?.params ?? args?.arguments ?? {};
+    if (params?.dry_run || params?.preview || params?.__swissknife_hierarchical_evidence_probe) {
+      return {
+        content: [{
+          type: 'json',
+          json: {
+            ok: true,
+            dry_run: true,
+            category: args?.category ?? null,
+            tool: toolName,
+          },
+        }],
+        receipt: {
+          adapter: 'swissknife-ipfs-accelerate-compat',
+          upstream,
+          tool: name,
+          dispatched_tool: toolName,
+          category: args?.category ?? null,
+        },
+      };
+    }
     const result = await callAccelerateCompatTool(upstream, toolName, params);
     return {
       ...result,

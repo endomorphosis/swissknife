@@ -18,7 +18,6 @@ const artifactDefs = [
   ['descriptor_discovery', 'descriptor-discovery.json', true],
   ['hierarchical_mcp_tools', 'hierarchical-tools-evidence.json', true],
   ['service_health', 'service-health.json', true],
-  ['hierarchical_mcp_tools', 'hierarchical-tools-evidence.json', true],
   ['glasses_handoff', 'glasses-handoff-report.json', true],
   ['live_critical_flows', 'live-critical-flows.json', true],
   ['receipt_samples', 'receipt-samples.json', true],
@@ -57,7 +56,6 @@ const appLaunch = data.app_launch;
 const descriptorDiscovery = data.descriptor_discovery;
 const hierarchicalMcpTools = data.hierarchical_mcp_tools;
 const serviceHealth = data.service_health;
-const hierarchicalMcpTools = data.hierarchical_mcp_tools;
 const glassesHandoff = data.glasses_handoff;
 const liveCriticalFlows = data.live_critical_flows;
 const receiptSamples = data.receipt_samples;
@@ -140,25 +138,18 @@ if (manifestDrift) {
 }
 
 if (serviceHealth) {
-  const unavailable = serviceHealthSummary.unavailable;
+  const unavailable = serviceHealth.summary?.unavailable ?? [];
   if (unavailable.length > 0) {
     representativeBlockers.push(`MCP services unavailable: ${unavailable.join(', ')}.`);
   }
-  const endpointFailures = serviceHealthSummary.endpoint_failures;
+  const endpointFailures = serviceHealth.summary?.endpoint_failures ?? 0;
   if (endpointFailures > 0) {
     warnings.push(`${endpointFailures} MCP endpoint probes failed while service availability remained usable.`);
   }
 }
 
-const hierarchicalMcpGate = summarizeHierarchicalMcpEvidence(hierarchicalMcpTools, artifacts.hierarchical_mcp_tools.path, {
-  descriptorDiscovery,
-  serviceHealth,
-});
-representativeBlockers.push(...hierarchicalMcpGate.blockers);
-warnings.push(...hierarchicalMcpGate.warnings);
-
 if (descriptorDiscovery) {
-  const available = descriptorDiscoverySummary.live_discovery_available;
+  const available = descriptorDiscovery.summary?.live_discovery_available ?? [];
   for (const serviceId of ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py']) {
     if (!available.includes(serviceId)) {
       representativeBlockers.push(`${serviceId} live descriptor discovery is unavailable.`);
@@ -321,10 +312,10 @@ const report = {
           status: 'present',
           path: artifacts.descriptor_discovery.path,
           generated_at: descriptorDiscovery.generated_at,
-          live_discovery_available: descriptorDiscoverySummary.live_discovery_available,
-          static_fallback_used: descriptorDiscoverySummary.static_fallback_used,
-          tool_counts: descriptorDiscoverySummary.tool_counts,
-          interface_counts: descriptorDiscoverySummary.interface_counts,
+          live_discovery_available: descriptorDiscovery.summary?.live_discovery_available ?? [],
+          static_fallback_used: descriptorDiscovery.summary?.static_fallback_used ?? [],
+          tool_counts: descriptorDiscovery.summary?.tool_counts ?? {},
+          interface_counts: descriptorDiscovery.summary?.interface_counts ?? {},
         }
       : missingStatus(artifacts.descriptor_discovery.path),
     manifest_drift: manifestDrift
@@ -338,7 +329,6 @@ const report = {
         }
       : missingStatus(artifacts.manifest_drift.path),
   },
-  hierarchical_mcp: hierarchicalMcpGate.summary,
   service_health: serviceHealth
     ? {
         status: 'present',
@@ -351,7 +341,7 @@ const report = {
         normalized_failure_count: serviceHealth.summary?.normalized_failure_count ?? serviceHealth.summary?.endpoint_failures ?? 0,
     }
     : missingStatus(artifacts.service_health.path),
-  hierarchical_mcp: hierarchicalMcpGate.report,
+  hierarchical_mcp: hierarchicalMcpGate.summary,
   glasses_handoff: glassesHandoff
     ? {
         status: 'present',
@@ -672,9 +662,19 @@ function dedupe(items) {
   return [...new Set(items)];
 }
 
+function appVisibleBindingCount(bindingsArtifact) {
+  if (!bindingsArtifact) return null;
+  if (typeof bindingsArtifact.app_visible_tool_count === 'number') return bindingsArtifact.app_visible_tool_count;
+  if (typeof bindingsArtifact.summary?.app_visible_tool_count === 'number') return bindingsArtifact.summary.app_visible_tool_count;
+  const rows = bindingsArtifact.rows ?? bindingsArtifact.bindings ?? [];
+  if (!Array.isArray(rows)) return null;
+  return rows.filter(row => row?.app_visible === true).length;
+}
+
 function summarizeHierarchicalMcpGate(evidence, artifactStatus) {
   if (!evidence) {
     return {
+      decision: 'no_go',
       summary: missingStatus(artifactStatus.path),
       release_blockers: [`Missing required hierarchical MCP evidence artifact: ${artifactStatus.path}`],
       release_warnings: [],
@@ -778,6 +778,7 @@ function summarizeHierarchicalMcpGate(evidence, artifactStatus) {
 
   const decision = releaseBlockers.length === 0 ? 'go' : 'no_go';
   return {
+    decision,
     summary: {
       status: 'present',
       path: artifactStatus.path,
@@ -832,6 +833,20 @@ function mergeCounts(countObjects) {
     }
   }
   return merged;
+}
+
+function releaseNextActions({ hierarchicalDecision, representativeDecision, allToolsDecision }) {
+  const actions = [];
+  if (hierarchicalDecision !== 'go') {
+    actions.push('Refresh hierarchical MCP evidence and close missing facade meta-tools, failed representative dispatch, or unexplained direct-only descriptor gaps.');
+  }
+  if (representativeDecision !== 'go') {
+    actions.push('Refresh representative virtual desktop evidence and close app launch, screenshot, service, descriptor, handoff, critical-flow, or receipt blockers.');
+  }
+  if (allToolsDecision !== 'go') {
+    actions.push('Close exhaustive all-tools release policy blockers and rebuild virtual desktop release evidence.');
+  }
+  return actions;
 }
 
 function renderMarkdown(report) {

@@ -88,6 +88,7 @@ export interface BrowserLibp2pRuntimeConfig {
 }
 
 export interface BrowserLibp2pDefaultStatus extends BrowserLibp2pRuntimeConfig {
+  schema: 'swissknife.browser_libp2p_default_status.v1';
   generatedAt: string;
   listenMultiaddrs: string[];
 }
@@ -129,26 +130,6 @@ export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityNam
   'identify',
   'noise',
   'yamux',
-  'gossipsub',
-];
-
-export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: BrowserLibp2pCapabilityName[] = [
-  'webrtc',
-  'websockets',
-  'circuit-relay-v2',
-  'noise',
-  'yamux',
-  'identify',
-  'gossipsub',
-];
-
-export const BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER: readonly BrowserLibp2pCapabilityName[] = [
-  'webrtc',
-  'websockets',
-  'circuit-relay-v2',
-  'noise',
-  'yamux',
-  'identify',
   'gossipsub',
 ];
 
@@ -545,22 +526,9 @@ export async function getBrowserLibp2pDefaultStatus(
   return {
     schema: 'swissknife.browser_libp2p_default_status.v1',
     generatedAt: new Date().toISOString(),
+    config: runtime.config,
     listenMultiaddrs,
     report: runtime.report,
-  };
-}
-
-export async function getBrowserLibp2pDefaultStatus(
-  options: BrowserLibp2pRuntimeOptions = {},
-): Promise<BrowserLibp2pDefaultStatus> {
-  const runtime = await buildBrowserLibp2pConfig(options);
-  const addresses = asRecord(runtime.config.addresses);
-  return {
-    ...runtime,
-    generatedAt: new Date().toISOString(),
-    listenMultiaddrs: Array.isArray(addresses.listen)
-      ? addresses.listen.map(value => String(value))
-      : [],
   };
 }
 
@@ -589,18 +557,6 @@ export async function createBrowserLibp2pNode(
       gaps,
       bootstrap: runtime.report.bootstrap,
     },
-  };
-}
-
-export async function getBrowserLibp2pDefaultStatus(
-  options: BrowserLibp2pRuntimeOptions = {},
-): Promise<BrowserLibp2pRuntimeConfig & { generatedAt: string; listenMultiaddrs: string[] }> {
-  const runtime = await buildBrowserLibp2pConfig(options);
-  const addresses = asRecord(runtime.config.addresses);
-  return {
-    ...runtime,
-    generatedAt: new Date().toISOString(),
-    listenMultiaddrs: asArray(addresses.listen).filter((value): value is string => typeof value === 'string'),
   };
 }
 
