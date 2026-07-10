@@ -1,6 +1,6 @@
 # Virtual Desktop Tool UI Smoke Evidence
 
-SWR-085 covers every virtual desktop app whose SWR-084 matrix row is `tool_backed`.
+SWR-096 proves every virtual desktop app whose all-tools matrix row is `tool_backed` keeps a browser-compatible UI path.
 The Playwright smoke opens each app through the desktop icon path, waits for the MCP capability control panel, records success/fallback/error UI receipts, and captures a screenshot for the rendered app window.
 
 ## Evidence Artifacts
@@ -19,6 +19,10 @@ The Playwright smoke opens each app through the desktop icon path, waits for the
 - `success`: the app records an MCP-backed receipt using its intended service family and representative tool ids.
 - `fallback`: the app exposes the degraded or desktop/mobile confirmation path without breaking the window shell.
 - `error`: the app records an error-state receipt while keeping the desktop window interactive.
+
+## Browser Safety Contract
+
+Each receipt is recorded from a Playwright browser page and asserts that no app smoke path requires Node builtins, Python wrappers, host subprocesses, physical glasses, or unavailable native adapters. Optional device, host, and glasses features must appear only as browser fallback, desktop/mobile confirmation, or simulator handoff paths.
 
 ## Current Coverage
 
