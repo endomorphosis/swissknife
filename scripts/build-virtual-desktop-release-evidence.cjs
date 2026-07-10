@@ -13,6 +13,7 @@ const artifactDefs = [
   ['app_launch', 'app-launch-report.json', true],
   ['capability_matrix', 'capability-matrix.json', false],
   ['descriptor_discovery', 'descriptor-discovery.json', true],
+  ['hierarchical_mcp_tools', 'hierarchical-tools-evidence.json', true],
   ['service_health', 'service-health.json', true],
   ['glasses_handoff', 'glasses-handoff-report.json', true],
   ['live_critical_flows', 'live-critical-flows.json', true],
@@ -50,6 +51,7 @@ const appInventory = data.app_inventory;
 const manifestDrift = data.manifest_drift;
 const appLaunch = data.app_launch;
 const descriptorDiscovery = data.descriptor_discovery;
+const hierarchicalMcpTools = data.hierarchical_mcp_tools;
 const serviceHealth = data.service_health;
 const glassesHandoff = data.glasses_handoff;
 const liveCriticalFlows = data.live_critical_flows;
@@ -145,6 +147,13 @@ if (descriptorDiscovery) {
     }
   }
 }
+
+const hierarchicalMcpGate = summarizeHierarchicalMcpGate(
+  hierarchicalMcpTools,
+  artifacts.hierarchical_mcp_tools,
+);
+representativeBlockers.push(...hierarchicalMcpGate.release_blockers);
+warnings.push(...hierarchicalMcpGate.release_warnings);
 
 if (glassesHandoff) {
   if (!glassesHandoff.hardware_free) {
@@ -311,6 +320,7 @@ const report = {
         }
       : missingStatus(artifacts.manifest_drift.path),
   },
+  hierarchical_mcp: hierarchicalMcpGate.summary,
   service_health: serviceHealth
     ? {
         status: 'present',
@@ -588,6 +598,168 @@ function dedupe(items) {
   return [...new Set(items)];
 }
 
+function summarizeHierarchicalMcpGate(evidence, artifactStatus) {
+  if (!evidence) {
+    return {
+      summary: missingStatus(artifactStatus.path),
+      release_blockers: [`Missing required hierarchical MCP evidence artifact: ${artifactStatus.path}`],
+      release_warnings: [],
+    };
+  }
+
+  const services = Array.isArray(evidence.services) ? evidence.services : [];
+  const metaTools = Array.isArray(evidence.meta_tools)
+    ? evidence.meta_tools
+    : ['tools_list_categories', 'tools_list_tools', 'tools_get_schema', 'tools_dispatch'];
+  const liveFleetRequired = Boolean(evidence.live_fleet_required)
+    || process.env.HIERARCHICAL_MCP_REQUIRE_LIVE === '1';
+  const availableServices = services.filter(service => service.available);
+  const servicesMissingFacade = services
+    .filter(service => service.available && !service.full_facade_available)
+    .map(service => ({
+      service: service.service,
+      missing_meta_tools: metaTools.filter(tool => !service.meta_presence?.[tool]),
+    }));
+  const dispatchFailures = services
+    .flatMap(service => [service.dispatch_probe]
+      .filter(probe => probe && probe.status && probe.status !== 'passed')
+      .map(probe => ({
+        service: service.service,
+        category: probe.category ?? null,
+        tool: probe.tool ?? probe.name ?? null,
+        status: probe.status,
+        error: probe.error ?? probe.message ?? null,
+      })));
+  const aliasDispatchFailures = services
+    .flatMap(service => (service.alias_dispatch_probes ?? [])
+      .filter(probe => probe && probe.status && probe.status !== 'passed')
+      .map(probe => ({
+        service: service.service,
+        category: probe.category ?? null,
+        tool: probe.tool ?? probe.name ?? null,
+        status: probe.status,
+        error: probe.error ?? probe.message ?? null,
+      })));
+  const directOnlySummaries = services
+    .filter(service => (service.flat_direct_only_count ?? 0) > 0)
+    .map(service => ({
+      service: service.service,
+      count: service.flat_direct_only_count,
+      policy_counts: service.flat_direct_only_policy_counts ?? {},
+      reason_counts: service.flat_direct_only_reason_counts ?? {},
+      sample: service.flat_direct_only_sample ?? [],
+    }));
+  const removedSummaries = services
+    .filter(service => (service.removed_from_app_visible_ledger_count ?? 0) > 0)
+    .map(service => ({
+      service: service.service,
+      count: service.removed_from_app_visible_ledger_count,
+      sample: service.removed_from_app_visible_ledger_sample ?? [],
+    }));
+
+  const releaseBlockers = [];
+  const releaseWarnings = [];
+  for (const service of servicesMissingFacade) {
+    releaseBlockers.push(
+      `Hierarchical MCP facade missing for ${service.service}: ${service.missing_meta_tools.join(', ') || 'unknown meta-tools'}.`,
+    );
+  }
+  for (const failure of dispatchFailures) {
+    releaseBlockers.push(
+      `Hierarchical MCP representative dispatch failed for ${failure.service}:${failure.category ?? 'unknown'}.${failure.tool ?? 'unknown'} (${failure.status}${failure.error ? `: ${failure.error}` : ''}).`,
+    );
+  }
+  const unexplainedGapCount = evidence.summary?.unexplained_flat_hierarchy_gap_count
+    ?? services.reduce((sum, service) => sum + (service.unexplained_flat_hierarchy_gap_count ?? 0), 0);
+  if (unexplainedGapCount > 0) {
+    releaseBlockers.push(`${unexplainedGapCount} flat MCP descriptors are neither hierarchical, direct-only, nor removed from the app-visible ledger.`);
+  }
+  const directOnlyCount = evidence.summary?.flat_direct_only_count
+    ?? services.reduce((sum, service) => sum + (service.flat_direct_only_count ?? 0), 0);
+  if (directOnlyCount > 0) {
+    releaseWarnings.push(`${directOnlyCount} MCP descriptors remain direct-only and are explicitly accounted for in hierarchical MCP evidence.`);
+  }
+  if (aliasDispatchFailures.length > 0) {
+    releaseWarnings.push(`${aliasDispatchFailures.length} hierarchical MCP alias dispatch probes failed; representative dispatch remains the release-blocking probe.`);
+  }
+  if (removedSummaries.length > 0) {
+    releaseWarnings.push(
+      `${removedSummaries.reduce((sum, service) => sum + service.count, 0)} flat MCP descriptors are excluded from the SwissKnife app-visible ledger and accounted for in hierarchical MCP evidence.`,
+    );
+  }
+  const evidenceBlockers = evidence.blockers ?? [];
+  for (const blocker of evidenceBlockers) {
+    releaseBlockers.push(`Hierarchical MCP evidence blocker: ${blocker}`);
+  }
+  const evidenceWarnings = evidence.warnings ?? [];
+  for (const warning of evidenceWarnings) {
+    releaseWarnings.push(`Hierarchical MCP evidence warning: ${warning}`);
+  }
+  if (liveFleetRequired && availableServices.length !== services.length) {
+    const unavailable = services.filter(service => !service.available).map(service => service.service);
+    releaseBlockers.push(`Hierarchical MCP live fleet required but unavailable services were observed: ${unavailable.join(', ') || 'unknown'}.`);
+  } else if (!liveFleetRequired && availableServices.length !== services.length) {
+    releaseWarnings.push(`Hierarchical MCP evidence observed ${availableServices.length}/${services.length} configured services live.`);
+  }
+
+  const decision = releaseBlockers.length === 0 ? 'go' : 'no_go';
+  return {
+    summary: {
+      status: 'present',
+      path: artifactStatus.path,
+      schema: evidence.schema ?? null,
+      generated_at: evidence.generated_at ?? null,
+      decision: evidence.decision ?? decision,
+      release_gate_decision: decision,
+      live_fleet_required: liveFleetRequired,
+      service_count: services.length,
+      available_service_count: availableServices.length,
+      services_with_full_facade: services.filter(service => service.full_facade_available).length,
+      meta_tools: metaTools,
+      missing_facade_by_service: servicesMissingFacade,
+      unobserved_services: services.filter(service => !service.available).map(service => service.service),
+      dispatch_probe_count: evidence.summary?.dispatch_probe_count
+        ?? services.filter(service => service.dispatch_probe).length,
+      dispatch_pass_count: evidence.summary?.dispatch_pass_count
+        ?? services.filter(service => service.dispatch_probe?.status === 'passed').length,
+      dispatch_failures: dispatchFailures,
+      alias_dispatch_probe_count: evidence.summary?.alias_dispatch_probe_count
+        ?? services.reduce((sum, service) => sum + (service.alias_dispatch_probe_count ?? 0), 0),
+      alias_dispatch_pass_count: evidence.summary?.alias_dispatch_pass_count
+        ?? services.reduce((sum, service) => sum + (service.alias_dispatch_pass_count ?? 0), 0),
+      alias_dispatch_failures: aliasDispatchFailures,
+      direct_only_descriptor_count: directOnlyCount,
+      direct_only_probe_count: evidence.summary?.direct_only_probe_count
+        ?? services.reduce((sum, service) => sum + (service.direct_only_probe_count ?? 0), 0),
+      direct_only_receipt_count: evidence.summary?.direct_only_receipt_count
+        ?? services.reduce((sum, service) => sum + (service.direct_only_receipt_count ?? 0), 0),
+      direct_only_policy_counts: mergeCounts(services.map(service => service.flat_direct_only_policy_counts ?? {})),
+      direct_only_reason_counts: mergeCounts(services.map(service => service.flat_direct_only_reason_counts ?? {})),
+      direct_only_summaries: directOnlySummaries,
+      removed_from_app_visible_ledger_count: evidence.summary?.removed_from_app_visible_ledger_count
+        ?? services.reduce((sum, service) => sum + (service.removed_from_app_visible_ledger_count ?? 0), 0),
+      removed_from_app_visible_ledger_summaries: removedSummaries,
+      unexplained_flat_hierarchy_gap_count: unexplainedGapCount,
+      evidence_blockers: evidenceBlockers,
+      evidence_warnings: evidenceWarnings,
+      release_blockers: dedupe(releaseBlockers),
+      release_warnings: dedupe(releaseWarnings),
+    },
+    release_blockers: dedupe(releaseBlockers),
+    release_warnings: dedupe(releaseWarnings),
+  };
+}
+
+function mergeCounts(countObjects) {
+  const merged = {};
+  for (const counts of countObjects) {
+    for (const [key, value] of Object.entries(counts)) {
+      merged[key] = (merged[key] ?? 0) + Number(value ?? 0);
+    }
+  }
+  return merged;
+}
+
 function renderMarkdown(report) {
   const lines = [];
   lines.push('# SwissKnife Virtual Desktop All-Tools Release Evidence');
@@ -608,6 +780,8 @@ function renderMarkdown(report) {
   lines.push(`- App screenshots: ${report.screenshot_coverage.app_screenshots.count} / ${report.screenshot_coverage.app_screenshots.expected ?? 'unknown'}`);
   lines.push(`- Glasses handoff: ${report.glasses_handoff.status}; passed ${report.glasses_handoff.passed_count ?? 'unknown'} / ${report.glasses_handoff.displayable_count ?? 'unknown'} displayable apps`);
   lines.push(`- Service availability: ${(report.service_health.available ?? []).length} available, ${(report.service_health.unavailable ?? []).length} unavailable`);
+  lines.push(`- Hierarchical MCP facade: ${report.hierarchical_mcp.services_with_full_facade ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'} services; dispatch ${report.hierarchical_mcp.dispatch_pass_count ?? 'unknown'} / ${report.hierarchical_mcp.dispatch_probe_count ?? 'unknown'} passed`);
+  lines.push(`- Hierarchical MCP direct-only descriptors: ${report.hierarchical_mcp.direct_only_descriptor_count ?? 'unknown'}; unexplained gaps ${report.hierarchical_mcp.unexplained_flat_hierarchy_gap_count ?? 'unknown'}`);
   lines.push(`- All-tools fallback states: ${report.fallback_coverage.all_tools_app_family_states.fallback_state_family_count ?? 'unknown'} / ${report.fallback_coverage.all_tools_app_family_states.app_family_count ?? 'unknown'} app families`);
   lines.push(`- Legacy gateway fallback specs present: ${report.fallback_coverage.legacy_gateway_spec_count}`);
   lines.push(`- Live receipt samples: ${report.receipt_samples.live_receipt_samples.status}; count ${report.receipt_samples.live_receipt_samples.sample_count ?? 0}`);
@@ -624,6 +798,22 @@ function renderMarkdown(report) {
   lines.push(`- Tombstones: ${report.all_tools.ledger.tombstone_count ?? 'unknown'}`);
   lines.push(`- New-tool drift: +${report.all_tools.ledger.drift?.added_tool_count ?? 0} / -${report.all_tools.ledger.drift?.removed_tool_count ?? 0} / changed ${report.all_tools.ledger.drift?.changed_schema_tool_count ?? 0}`);
   lines.push(`- Exhaustive all-tools decision: ${report.exhaustive_all_tools_gate.decision}`);
+  lines.push('');
+  lines.push('## Hierarchical MCP Evidence');
+  lines.push(`- Evidence: ${report.hierarchical_mcp.status} (${report.hierarchical_mcp.path})`);
+  lines.push(`- Release gate: ${report.hierarchical_mcp.release_gate_decision ?? 'unknown'}`);
+  lines.push(`- Live services: ${report.hierarchical_mcp.available_service_count ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'}`);
+  lines.push(`- Full facade services: ${report.hierarchical_mcp.services_with_full_facade ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'}`);
+  lines.push(`- Representative dispatch: ${report.hierarchical_mcp.dispatch_pass_count ?? 'unknown'} / ${report.hierarchical_mcp.dispatch_probe_count ?? 'unknown'} passed`);
+  lines.push(`- Direct-only descriptors: ${report.hierarchical_mcp.direct_only_descriptor_count ?? 'unknown'}`);
+  lines.push(`- Removed from app-visible ledger: ${report.hierarchical_mcp.removed_from_app_visible_ledger_count ?? 'unknown'}`);
+  lines.push(`- Unexplained flat/hierarchy gaps: ${report.hierarchical_mcp.unexplained_flat_hierarchy_gap_count ?? 'unknown'}`);
+  for (const failure of report.hierarchical_mcp.dispatch_failures ?? []) {
+    lines.push(`- Dispatch failure ${failure.service}:${failure.category ?? 'unknown'}.${failure.tool ?? 'unknown'} (${failure.status})`);
+  }
+  for (const service of report.hierarchical_mcp.missing_facade_by_service ?? []) {
+    lines.push(`- Missing facade ${service.service}: ${(service.missing_meta_tools ?? []).join(', ') || 'unknown'}`);
+  }
   lines.push('');
   lines.push('## Release Gates');
   const releaseGate = report.all_tools.release_policy_gate;

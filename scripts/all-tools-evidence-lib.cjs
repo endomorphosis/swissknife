@@ -9,6 +9,7 @@ const WORKSPACE_ROOT = path.resolve(REPO_ROOT, '..');
 const OUT_DIR = path.join(REPO_ROOT, 'test-results', 'virtual-desktop-ipfs-mcp-orb');
 const WEB_APPS_DIR = path.join(REPO_ROOT, 'web', 'js', 'apps');
 const SERVICES_DIR = path.join(REPO_ROOT, 'src', 'services');
+const IPFS_SERVICES_DIR = path.join(SERVICES_DIR, 'ipfs');
 
 const CONFIGURED_SERVICES = [
   {
@@ -17,7 +18,7 @@ const CONFIGURED_SERVICES = [
     endpoint: 'http://127.0.0.1:8014',
     rpc_path: '/mcp',
     tools_list_path: '/mcp/tools/list',
-    health_path: '/mcp/health',
+    health_path: '/api/mcp/status',
   },
   {
     service: 'ipfs_datasets_py',
@@ -25,7 +26,7 @@ const CONFIGURED_SERVICES = [
     endpoint: 'http://127.0.0.1:3002',
     rpc_path: '/mcp',
     tools_list_path: '/mcp/tools/list',
-    health_path: '/mcp/health',
+    health_path: '/health',
   },
   {
     service: 'ipfs_accelerate_py',
@@ -174,6 +175,16 @@ async function probeService(config) {
     probes.push({ kind: 'http_tools_list', path: config.tools_list_path, status: toolsList.status, ok: toolsList.ok, error: toolsList.error });
   }
 
+  const toolsListPost = config.tools_list_path
+    ? await fetchText(`${config.endpoint}${config.tools_list_path}`, {
+      method: 'POST',
+      body: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} },
+    })
+    : null;
+  if (toolsListPost) {
+    probes.push({ kind: 'http_tools_list_post', path: config.tools_list_path, status: toolsListPost.status, ok: toolsListPost.ok, error: toolsListPost.error });
+  }
+
   const toolsPath = config.tools_path
     ? await fetchText(`${config.endpoint}${config.tools_path}`)
     : null;
@@ -188,7 +199,7 @@ async function probeService(config) {
     probes.push({ kind: 'health', path: config.health_path, status: health.status, ok: health.ok, error: health.error });
   }
 
-  const toolPayload = [rpc, toolsList, toolsPath]
+  const toolPayload = [rpc, toolsList, toolsListPost, toolsPath]
     .filter(Boolean)
     .map(result => ({ result, tools: extractTools(result.json) }))
     .find(entry => entry.tools.length > 0);
@@ -209,9 +220,17 @@ async function probeService(config) {
     probes,
     health: health?.json ?? null,
     preferred_probe: toolPayload
-      ? { status: toolPayload.result.status, source: toolPayload.result === rpc ? 'json_rpc_tools_list' : 'http_tools' }
+      ? { status: toolPayload.result.status, source: preferredProbeSource(toolPayload.result, { rpc, toolsList, toolsListPost, toolsPath }) }
       : null,
   };
+}
+
+function preferredProbeSource(result, probes) {
+  if (result === probes.rpc) return 'json_rpc_tools_list';
+  if (result === probes.toolsList) return 'http_tools_list';
+  if (result === probes.toolsListPost) return 'http_tools_list_post';
+  if (result === probes.toolsPath) return 'http_tools';
+  return 'unknown';
 }
 
 async function captureServiceEvidence() {
@@ -281,11 +300,11 @@ function readJsonIfExists(filePath) {
 }
 
 function getStaticDescriptorCounts() {
-  const kitManifest = readJsonIfExists(path.join(SERVICES_DIR, 'mcp-ipfs-kit-tools-manifest.json'));
+  const kitManifest = readJsonIfExists(path.join(IPFS_SERVICES_DIR, 'mcp-ipfs-kit-tools-manifest.json'));
   return {
     ipfs_kit_py: Array.isArray(kitManifest?.tools) ? kitManifest.tools.length : 0,
-    ipfs_datasets_py: parseToolFunctions(path.join(SERVICES_DIR, 'mcp-ipfs-datasets-descriptor-pack.ts')).length,
-    ipfs_accelerate_py: parseToolFunctions(path.join(SERVICES_DIR, 'mcp-ipfs-accelerate-descriptor-pack.ts')).length,
+    ipfs_datasets_py: parseToolFunctions(path.join(IPFS_SERVICES_DIR, 'mcp-ipfs-datasets-descriptor-pack.ts')).length,
+    ipfs_accelerate_py: parseToolFunctions(path.join(IPFS_SERVICES_DIR, 'mcp-ipfs-accelerate-descriptor-pack.ts')).length,
   };
 }
 
@@ -301,7 +320,7 @@ function parseToolFunctions(filePath) {
 
 function staticTools() {
   const tools = [];
-  const kitManifest = readJsonIfExists(path.join(SERVICES_DIR, 'mcp-ipfs-kit-tools-manifest.json'));
+  const kitManifest = readJsonIfExists(path.join(IPFS_SERVICES_DIR, 'mcp-ipfs-kit-tools-manifest.json'));
   for (const tool of kitManifest?.tools ?? []) {
     tools.push({
       service: 'ipfs_kit_py',
@@ -312,7 +331,7 @@ function staticTools() {
       inputSchema: tool.inputSchema ?? { type: 'object' },
     });
   }
-  for (const name of parseToolFunctions(path.join(SERVICES_DIR, 'mcp-ipfs-datasets-descriptor-pack.ts'))) {
+  for (const name of parseToolFunctions(path.join(IPFS_SERVICES_DIR, 'mcp-ipfs-datasets-descriptor-pack.ts'))) {
     tools.push({
       service: 'ipfs_datasets_py',
       role: 'static_descriptor',
@@ -322,7 +341,7 @@ function staticTools() {
       inputSchema: { type: 'object' },
     });
   }
-  for (const name of parseToolFunctions(path.join(SERVICES_DIR, 'mcp-ipfs-accelerate-descriptor-pack.ts'))) {
+  for (const name of parseToolFunctions(path.join(IPFS_SERVICES_DIR, 'mcp-ipfs-accelerate-descriptor-pack.ts'))) {
     tools.push({
       service: 'ipfs_accelerate_py',
       role: 'static_descriptor',
