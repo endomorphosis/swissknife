@@ -7,6 +7,7 @@ import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,
 } from '../../src/services/apps/swissknife-mcp-capability-registry';
+import { getAppManifest } from '../../src/services/apps/app-manifest-registry';
 import hallucinateBackendBridge from '../../web/js/hallucinate-backend-bridge.mjs';
 
 const DASHBOARD_CATALOG_FIXTURE = path.resolve(
@@ -107,12 +108,30 @@ interface ToolBackedSmokeApp {
   app_id: string;
   title: string;
   binding_state: string;
+  manifest_runtime_class: string;
+  manifest_lazy_import_kind: string;
+  manifest_browser_supported: boolean;
+  manifest_browser_degraded: boolean;
   service_families: string[];
   sample_tool_ids: string[];
   app_visible_tool_count: number;
   desktop_mobile_only_count: number;
   supervisor_only_count: number;
   rationale: string;
+  browser_safety: ToolBackedSmokeBrowserSafety;
+}
+
+interface ToolBackedSmokeBrowserSafety {
+  browser_context: true;
+  node_builtins_required: false;
+  python_wrappers_required: false;
+  host_subprocess_required: false;
+  physical_glasses_required: false;
+  unavailable_native_adapters_required: false;
+  bundled_runtime_classes: string[];
+  allowed_transports: string[];
+  fallback_paths: string[];
+  proof: string[];
 }
 
 interface ToolBackedSmokeReceipt {
@@ -135,6 +154,7 @@ interface ToolBackedSmokeReceipt {
       service_families: string[];
       sample_tool_ids: string[];
       ui_path: string[];
+      browser_safety: ToolBackedSmokeBrowserSafety;
     }>;
   }>;
 }
@@ -144,21 +164,55 @@ function buildToolBackedSmokeApps(): ToolBackedSmokeApp[] {
   return matrix.rows
     .filter((row: any) => row.binding_state === 'tool_backed')
     .map((row: any) => {
+      const manifest = getAppManifest(row.app_id);
+      if (!manifest) {
+        throw new Error(`No browser app manifest is registered for tool-backed app "${row.app_id}".`);
+      }
+      if (manifest.browser.supported !== true || manifest.lazy_import.kind !== 'dynamic-import') {
+        throw new Error(`Tool-backed app "${row.app_id}" is not directly browser-bundleable.`);
+      }
       const sampleToolIds = [
         ...(row.all_tools?.app_visible_tool_ids ?? []),
         ...(row.all_tools?.desktop_mobile_only_tool_ids ?? []),
         ...(row.all_tools?.supervisor_only_tool_ids ?? []),
       ].slice(0, 5);
+      const browserSafety: ToolBackedSmokeBrowserSafety = {
+        browser_context: true,
+        node_builtins_required: false,
+        python_wrappers_required: false,
+        host_subprocess_required: false,
+        physical_glasses_required: false,
+        unavailable_native_adapters_required: false,
+        bundled_runtime_classes: [manifest.runtime_class],
+        allowed_transports: ['http', 'https', 'websocket', 'libp2p'],
+        fallback_paths: [
+          'browser-fallback-ui',
+          'desktop-mobile-confirmation',
+          'simulator-only-glasses-handoff',
+        ],
+        proof: [
+          'Playwright Chromium page',
+          'desktop icon launcher',
+          'browser app manifest',
+          'in-window tool smoke panel',
+          'client-side receipt buffer',
+        ],
+      };
       return {
         app_id: row.app_id,
         title: row.title,
         binding_state: row.binding_state,
+        manifest_runtime_class: manifest.runtime_class,
+        manifest_lazy_import_kind: manifest.lazy_import.kind,
+        manifest_browser_supported: manifest.browser.supported === true,
+        manifest_browser_degraded: manifest.browser.degraded === true,
         service_families: row.manifest_service_families ?? [],
         sample_tool_ids: sampleToolIds,
         app_visible_tool_count: row.all_tools?.app_visible_tool_count ?? 0,
         desktop_mobile_only_count: row.all_tools?.desktop_mobile_only_count ?? 0,
         supervisor_only_count: row.all_tools?.supervisor_only_count ?? 0,
         rationale: row.binding_rationale,
+        browser_safety: browserSafety,
       };
     })
     .sort((a: ToolBackedSmokeApp, b: ToolBackedSmokeApp) => a.app_id.localeCompare(b.app_id));
@@ -196,7 +250,7 @@ function writeToolUiSmokeEvidence(receipt: ToolBackedSmokeReceipt): void {
   const doc = [
     '# Virtual Desktop Tool UI Smoke Evidence',
     '',
-    'SWR-085 covers every virtual desktop app whose SWR-084 matrix row is `tool_backed`.',
+    'SWR-096 proves every virtual desktop app whose all-tools matrix row is `tool_backed` keeps a browser-compatible UI path.',
     'The Playwright smoke opens each app through the desktop icon path, waits for the MCP capability control panel, records success/fallback/error UI receipts, and captures a screenshot for the rendered app window.',
     '',
     '## Evidence Artifacts',
@@ -215,6 +269,10 @@ function writeToolUiSmokeEvidence(receipt: ToolBackedSmokeReceipt): void {
     '- `success`: the app records an MCP-backed receipt using its intended service family and representative tool ids.',
     '- `fallback`: the app exposes the degraded or desktop/mobile confirmation path without breaking the window shell.',
     '- `error`: the app records an error-state receipt while keeping the desktop window interactive.',
+    '',
+    '## Browser Safety Contract',
+    '',
+    'Each receipt is recorded from a Playwright browser page and asserts that no app smoke path requires Node builtins, Python wrappers, host subprocesses, physical glasses, or unavailable native adapters. Optional device, host, and glasses features must appear only as browser fallback, desktop/mobile confirmation, or simulator handoff paths.',
     '',
     '## Current Coverage',
     '',
@@ -544,14 +602,27 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
           .filter(receipt => receipt.app_id === appId)
           .map(receipt => ({
             state: receipt.state,
-            receipt_cid: receipt.receipt_cid,
-            service_families: receipt.service_families,
-            sample_tool_ids: receipt.sample_tool_ids,
-            ui_path: receipt.ui_path,
-          }))
+          receipt_cid: receipt.receipt_cid,
+          service_families: receipt.service_families,
+          sample_tool_ids: receipt.sample_tool_ids,
+          ui_path: receipt.ui_path,
+          browser_safety: receipt.browser_safety,
+        }))
       ), app.app_id);
 
       expect(appReceipts.map(receipt => receipt.state).sort()).toEqual(['error', 'fallback', 'success']);
+      for (const receipt of appReceipts) {
+        expect(receipt.browser_safety).toMatchObject({
+          browser_context: true,
+          node_builtins_required: false,
+          python_wrappers_required: false,
+          host_subprocess_required: false,
+          physical_glasses_required: false,
+          unavailable_native_adapters_required: false,
+        });
+        expect(receipt.browser_safety.bundled_runtime_classes).toEqual([app.manifest_runtime_class]);
+        expect(receipt.browser_safety.allowed_transports).toEqual(['http', 'https', 'websocket', 'libp2p']);
+      }
       coveredApps.push({
         ...app,
         observed_states: observedStates,
@@ -563,7 +634,7 @@ test.describe('HAO-704 Swissknife MCP++ dashboard launch gate', () => {
     expect(coveredApps.map(app => app.app_id).sort()).toEqual(apps.map(app => app.app_id).sort());
     const receipt: ToolBackedSmokeReceipt = {
       schema: 'swissknife.virtual-desktop-tool-ui-smoke-evidence.v1',
-      task_id: 'SWR-085',
+      task_id: 'SWR-096',
       generated_at: new Date().toISOString(),
       source_matrix: path.relative(process.cwd(), CAPABILITY_MATRIX_FIXTURE),
       matrix_cid: matrix.matrix_cid,

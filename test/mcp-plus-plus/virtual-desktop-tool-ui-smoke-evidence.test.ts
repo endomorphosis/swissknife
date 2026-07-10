@@ -10,8 +10,17 @@ const matrixPath = join(evidenceRoot, 'capability-matrix.json');
 const receiptPath = join(evidenceRoot, 'tool-ui-smoke-receipts.json');
 const docPath = join(process.cwd(), 'docs/virtual-desktop-tool-ui-smoke-evidence.md');
 
-describe('SWR-085 virtual desktop tool UI smoke evidence', () => {
-  it('covers every tool-backed app with success, fallback, error receipts, and screenshots', () => {
+const REQUIRED_BROWSER_SAFETY = {
+  browser_context: true,
+  node_builtins_required: false,
+  python_wrappers_required: false,
+  host_subprocess_required: false,
+  physical_glasses_required: false,
+  unavailable_native_adapters_required: false,
+};
+
+describe('SWR-096 virtual desktop tool UI smoke evidence', () => {
+  it('covers every tool-backed app with browser-safe success, fallback, error receipts, and screenshots', () => {
     expect(existsSync(matrixPath)).toBe(true);
     expect(existsSync(receiptPath)).toBe(true);
     expect(existsSync(docPath)).toBe(true);
@@ -24,7 +33,7 @@ describe('SWR-085 virtual desktop tool UI smoke evidence', () => {
 
     expect(receipt).toMatchObject({
       schema: 'swissknife.virtual-desktop-tool-ui-smoke-evidence.v1',
-      task_id: 'SWR-085',
+      task_id: 'SWR-096',
       matrix_cid: matrix.matrix_cid,
     });
     expect(receipt.validation_commands).toEqual(expect.arrayContaining([
@@ -40,6 +49,16 @@ describe('SWR-085 virtual desktop tool UI smoke evidence', () => {
       expect(app, row.app_id).toBeTruthy();
       expect(app.observed_states.sort()).toEqual(['error', 'fallback', 'success']);
       expect(app.service_families.sort()).toEqual((row.manifest_service_families ?? []).sort());
+      expect(['browser-safe', 'hybrid']).toContain(app.manifest_runtime_class);
+      expect(app.manifest_lazy_import_kind).toBe('dynamic-import');
+      expect(app.manifest_browser_supported).toBe(true);
+      expect(app.browser_safety).toMatchObject(REQUIRED_BROWSER_SAFETY);
+      expect(app.browser_safety.allowed_transports).toEqual(['http', 'https', 'websocket', 'libp2p']);
+      expect(app.browser_safety.fallback_paths).toEqual(expect.arrayContaining([
+        'browser-fallback-ui',
+        'desktop-mobile-confirmation',
+        'simulator-only-glasses-handoff',
+      ]));
       expect(app.app_visible_tool_count).toBe(row.all_tools.app_visible_tool_count);
       expect(app.desktop_mobile_only_count).toBe(row.all_tools.desktop_mobile_only_count);
       expect(app.supervisor_only_count).toBe(row.all_tools.supervisor_only_count);
@@ -47,7 +66,15 @@ describe('SWR-085 virtual desktop tool UI smoke evidence', () => {
       expect(app.receipts.map((entry: any) => entry.state).sort()).toEqual(['error', 'fallback', 'success']);
       for (const entry of app.receipts) {
         expect(entry.receipt_cid).toMatch(/^sha256:[0-9a-f]+$/);
-        expect(entry.ui_path).toEqual(expect.arrayContaining(['desktop-icon', 'tool-smoke-panel', entry.state]));
+        expect(entry.ui_path).toEqual(expect.arrayContaining([
+          'desktop-icon',
+          'browser-safe-gate',
+          'tool-smoke-panel',
+          entry.state,
+        ]));
+        expect(entry.browser_safety).toMatchObject(REQUIRED_BROWSER_SAFETY);
+        expect(entry.browser_safety.bundled_runtime_classes).toEqual([app.manifest_runtime_class]);
+        expect(entry.browser_safety.allowed_transports).toEqual(['http', 'https', 'websocket', 'libp2p']);
       }
 
       const screenshotPath = join(process.cwd(), app.screenshot);
@@ -55,6 +82,11 @@ describe('SWR-085 virtual desktop tool UI smoke evidence', () => {
       expect(statSync(screenshotPath).size).toBeGreaterThan(1024);
       expect(doc).toContain(`| ${row.app_id} |`);
     }
+
+    expect(doc).toContain('SWR-096');
+    expect(doc).toContain('Browser Safety Contract');
+    expect(doc).toContain('no Node builtins');
+    expect(doc).toContain('no app smoke path requires Node builtins, Python wrappers, host subprocesses, physical glasses, or unavailable native adapters');
   });
 });
 

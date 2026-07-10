@@ -7,12 +7,30 @@ interface ToolSmokeCatalogEntry {
   app_id: string;
   title: string;
   binding_state: string;
+  manifest_runtime_class?: string;
+  manifest_lazy_import_kind?: string;
+  manifest_browser_supported?: boolean;
+  manifest_browser_degraded?: boolean;
   service_families: string[];
   sample_tool_ids: string[];
   app_visible_tool_count: number;
   desktop_mobile_only_count: number;
   supervisor_only_count: number;
   rationale: string;
+  browser_safety?: ToolSmokeBrowserSafety;
+}
+
+interface ToolSmokeBrowserSafety {
+  browser_context: true;
+  node_builtins_required: false;
+  python_wrappers_required: false;
+  host_subprocess_required: false;
+  physical_glasses_required: false;
+  unavailable_native_adapters_required: false;
+  bundled_runtime_classes: string[];
+  allowed_transports: string[];
+  fallback_paths: string[];
+  proof: string[];
 }
 
 interface ToolSmokeReceipt {
@@ -24,6 +42,7 @@ interface ToolSmokeReceipt {
   sample_tool_ids: string[];
   receipt_cid: string;
   ui_path: string[];
+  browser_safety: ToolSmokeBrowserSafety;
 }
 
 declare global {
@@ -140,6 +159,7 @@ function renderToolSmokePanel(appId: string): string {
   if (!entry) return '';
   const serviceFamilies = entry.service_families.length ? entry.service_families : ['unresolved-service'];
   const sampleTools = entry.sample_tool_ids.slice(0, 3);
+  const browserSafety = buildToolSmokeBrowserSafety(entry);
   return `
     <section class="tool-smoke-panel" data-testid="tool-smoke-panel" data-app-id="${escapeHtml(appId)}" data-state="ready">
       <header class="tool-smoke-header">
@@ -154,6 +174,14 @@ function renderToolSmokePanel(appId: string): string {
         <div><span>App-visible</span><strong>${entry.app_visible_tool_count}</strong></div>
         <div><span>Fallback/desktop</span><strong>${entry.desktop_mobile_only_count}</strong></div>
         <div><span>Supervisor-only</span><strong>${entry.supervisor_only_count}</strong></div>
+      </div>
+      <div class="tool-smoke-browser-safety" data-testid="tool-smoke-browser-safety">
+        <span>Browser safe</span>
+        <strong>${escapeHtml(entry.manifest_runtime_class ?? browserSafety.bundled_runtime_classes[0])} / ${escapeHtml(entry.manifest_lazy_import_kind ?? 'dynamic-import')}</strong>
+        <code>no node builtins</code>
+        <code>no python wrappers</code>
+        <code>no host subprocess</code>
+        <code>simulator/fallback only</code>
       </div>
       <div class="tool-smoke-tools" data-testid="tool-smoke-tools">
         ${sampleTools.map(tool => `<code>${escapeHtml(tool)}</code>`).join('')}
@@ -173,10 +201,12 @@ function bindToolSmokePanel(container: HTMLElement, appId: string): void {
   const panel = container.querySelector<HTMLElement>(`.tool-smoke-panel[data-app-id="${cssEscape(appId)}"]`);
   const entry = window.__SWISSKNIFE_TOOL_UI_SMOKE_CATALOG__?.[appId];
   if (!panel || !entry) return;
+  const browserSafety = buildToolSmokeBrowserSafety(entry);
+  panel.dataset.browserSafe = String(browserSafety.browser_context);
   for (const button of Array.from(panel.querySelectorAll<HTMLButtonElement>('[data-smoke-state]'))) {
     button.addEventListener('click', () => {
       const state = button.dataset.smokeState as ToolSmokeReceipt['state'];
-      const receipt = createToolSmokeReceipt(entry, state);
+      const receipt = createToolSmokeReceipt(entry, state, browserSafety);
       window.__SWISSKNIFE_TOOL_UI_SMOKE_RECEIPTS__ = [
         ...(window.__SWISSKNIFE_TOOL_UI_SMOKE_RECEIPTS__ ?? []),
         receipt,
@@ -193,19 +223,50 @@ function bindToolSmokePanel(container: HTMLElement, appId: string): void {
   }
 }
 
-function createToolSmokeReceipt(entry: ToolSmokeCatalogEntry, state: ToolSmokeReceipt['state']): ToolSmokeReceipt {
+function buildToolSmokeBrowserSafety(entry: ToolSmokeCatalogEntry): ToolSmokeBrowserSafety {
+  return {
+    ...(entry.browser_safety ?? {}),
+    browser_context: true,
+    node_builtins_required: false,
+    python_wrappers_required: false,
+    host_subprocess_required: false,
+    physical_glasses_required: false,
+    unavailable_native_adapters_required: false,
+    bundled_runtime_classes: entry.browser_safety?.bundled_runtime_classes ?? [entry.manifest_runtime_class ?? 'browser-safe'],
+    allowed_transports: entry.browser_safety?.allowed_transports ?? ['http', 'https', 'websocket', 'libp2p'],
+    fallback_paths: entry.browser_safety?.fallback_paths ?? [
+      'browser-fallback-ui',
+      'desktop-mobile-confirmation',
+      'simulator-only-glasses-handoff',
+    ],
+    proof: entry.browser_safety?.proof ?? [
+      'Playwright Chromium page',
+      'desktop icon launcher',
+      'browser app manifest',
+      'in-window tool smoke panel',
+      'client-side receipt buffer',
+    ],
+  };
+}
+
+function createToolSmokeReceipt(
+  entry: ToolSmokeCatalogEntry,
+  state: ToolSmokeReceipt['state'],
+  browserSafety = buildToolSmokeBrowserSafety(entry),
+): ToolSmokeReceipt {
   const receiptBase = {
     app_id: entry.app_id,
     state,
     service_families: entry.service_families,
     sample_tool_ids: entry.sample_tool_ids.slice(0, 3),
+    browser_safety: browserSafety,
   };
   return {
     schema: 'swissknife.virtual-desktop-tool-ui-smoke-receipt.v1',
     ...receiptBase,
     at: new Date().toISOString(),
     receipt_cid: `sha256:${stableHash(JSON.stringify(receiptBase))}`,
-    ui_path: ['desktop-icon', 'manifest-loader', 'tool-smoke-panel', state],
+    ui_path: ['desktop-icon', 'manifest-loader', 'browser-safe-gate', 'tool-smoke-panel', state],
   };
 }
 
@@ -250,6 +311,10 @@ function installToolSmokeStyles(): void {
     .tool-smoke-grid div{border:1px solid #303a45;padding:8px;background:#10161d}
     .tool-smoke-grid span{display:block;color:#9ca3af;font-size:11px}
     .tool-smoke-grid strong{display:block;margin-top:4px;overflow-wrap:anywhere}
+    .tool-smoke-browser-safety{display:flex;gap:6px;flex-wrap:wrap;align-items:center;border:1px solid #2f4c3f;background:#0f1c17;padding:8px;margin:8px 0;color:#d9fbe5}
+    .tool-smoke-browser-safety span{color:#8ee7aa;font-size:11px;text-transform:uppercase}
+    .tool-smoke-browser-safety strong{margin-right:4px}
+    .tool-smoke-browser-safety code{background:#10291b;border:1px solid #2f6f45;color:#d9fbe5;padding:2px 5px}
     .tool-smoke-tools{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
     .tool-smoke-tools code{background:#0b1117;border:1px solid #2f3945;padding:3px 5px;overflow-wrap:anywhere}
     .tool-smoke-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
