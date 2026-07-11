@@ -2,7 +2,7 @@
  * Phase 5 — Event DAG Provenance tests
  */
 
-import { EventDAG, EventNode } from '../../src/services/event-dag';
+import { EventDAG, EventNode, verifyEventDAGInclusionProof } from '../../src/services/event-dag';
 
 function makeNode(overrides: Partial<EventNode> = {}): EventNode {
   return {
@@ -169,6 +169,34 @@ describe('EventDAG', () => {
       const tips = dag.getTips().map(n => n.cid);
       expect(tips).toContain(child);
       expect(tips).not.toContain(root); // root has a descendant
+    });
+  });
+
+  describe('Profile F archival and compaction', () => {
+    it('compacts old hot events into a verifiable archive without unbounded traversal', () => {
+      const compactingDag = new EventDAG({ hotEventMax: 2, epochSize: 2 });
+      const root = compactingDag.appendEvent(makeNode({ timestamp: '2026-01-01T00:00:00.000Z' }));
+      const child = compactingDag.appendEvent(makeNode({
+        parents: [root],
+        timestamp: '2026-01-01T00:00:01.000Z',
+      }));
+      compactingDag.appendEvent(makeNode({
+        parents: [child],
+        timestamp: '2026-01-01T00:00:02.000Z',
+      }));
+
+      const archive = compactingDag.listArchives()[0];
+      expect(archive.certificate.proof_system).toBe('hash-commitment-v1');
+      expect(archive.certificate.zero_knowledge).toBe(false);
+      expect(compactingDag.verifyCertificate(archive.certificate.certificate_cid)).toBe(true);
+
+      const witness = compactingDag.getInclusionProof(root);
+      expect(witness).not.toBeNull();
+      expect(verifyEventDAGInclusionProof(root, witness!.proof, witness!.merkle_root)).toBe(true);
+
+      const bounded = compactingDag.traverseBounded(root);
+      expect(bounded.events).toEqual([]);
+      expect(bounded.archive_boundaries[0]).toMatchObject({ event_cid: root, archive_cid: archive.archive_cid });
     });
   });
 });

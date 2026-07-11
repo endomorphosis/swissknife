@@ -212,6 +212,7 @@ async function profileEReady(adapter) {
               "mcp++/mcp-idl": true,
               "mcp++/cid-envelope": true,
               "mcp++/ucan": true,
+              "mcp++/event-dag": true,
               "mcp++/p2p-transport": true,
             },
           },
@@ -228,6 +229,7 @@ async function profileEReady(adapter) {
       body?.result?.capabilities?.experimental?.["mcp++/cid-envelope"] ===
         true &&
       body?.result?.capabilities?.experimental?.["mcp++/ucan"] === true &&
+      body?.result?.capabilities?.experimental?.["mcp++/event-dag"] === true &&
       body?.result?.capabilities?.experimental?.["mcp++/p2p-transport"] === true
     );
   } catch (_error) {

@@ -59,6 +59,45 @@ export interface StoredEventNode extends EventNode {
   cid: string;
 }
 
+/** Named MCP++ Profile F contract retained by local TypeScript callers. */
+export const MCPPP_PROFILE_F = {
+  capability: 'mcp++/event-dag',
+  name: 'Profile F: Event DAG Provenance, Archival, and Compaction',
+} as const;
+
+export interface EventDAGRetentionOptions {
+  hotEventMax?: number;
+  epochSize?: number;
+  autoCompact?: boolean;
+}
+
+export interface EventDAGCompactionCertificate {
+  certificate_cid: string;
+  archive_cid: string;
+  merkle_root: string;
+  epoch_id: number;
+  event_count: number;
+  root_cids: string[];
+  frontier_cids: string[];
+  proof_system: 'hash-commitment-v1';
+  zero_knowledge: false;
+  proof: string;
+}
+
+export interface EventDAGArchive {
+  archive_cid: string;
+  event_cids: string[];
+  events: StoredEventNode[];
+  merkle_layers: string[][];
+  certificate: EventDAGCompactionCertificate;
+}
+
+export interface BoundedProvenance {
+  events: StoredEventNode[];
+  archive_boundaries: Array<{ event_cid: string; archive_cid: string; certificate_cid: string }>;
+  truncated: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -87,6 +126,63 @@ function computeCID(data: string | Buffer): string {
   return `sha256:${createHash('sha256').update(input as unknown as BinaryLike).digest('hex')}`;
 }
 
+function positiveInteger(value: number | undefined, fallback: number): number {
+  return Number.isInteger(value) && value! > 0 ? value! : fallback;
+}
+
+function nonNegativeInteger(value: number | undefined, fallback: number): number {
+  return Number.isInteger(value) && value! >= 0 ? value! : fallback;
+}
+
+function hashText(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function buildMerkleTree(cids: string[]): { root: string; layers: string[][] } {
+  if (cids.length === 0) return { root: hashText('empty'), layers: [[]] };
+  let current = cids.map(hashText);
+  const layers = [current];
+  while (current.length > 1) {
+    const next: string[] = [];
+    for (let index = 0; index < current.length; index += 2) {
+      next.push(hashText(`${current[index]}${current[index + 1] ?? current[index]}`));
+    }
+    current = next;
+    layers.push(current);
+  }
+  return { root: current[0], layers };
+}
+
+function merkleProof(eventCid: string, eventCids: string[], layers: string[][]): Array<{ side: 'left' | 'right'; hash: string }> {
+  let index = eventCids.indexOf(eventCid);
+  if (index < 0) return [];
+  const proof: Array<{ side: 'left' | 'right'; hash: string }> = [];
+  for (const layer of layers.slice(0, -1)) {
+    if (index % 2 === 1) {
+      proof.push({ side: 'left', hash: layer[index - 1] });
+    } else {
+      proof.push({ side: 'right', hash: layer[Math.min(index + 1, layer.length - 1)] });
+    }
+    index = Math.floor(index / 2);
+  }
+  return proof;
+}
+
+/** Verify a Profile F Merkle inclusion proof without loading an archive's other events. */
+export function verifyEventDAGInclusionProof(
+  eventCid: string,
+  proof: Array<{ side: 'left' | 'right'; hash: string }>,
+  merkleRoot: string,
+): boolean {
+  let current = hashText(eventCid);
+  for (const step of proof) {
+    current = step.side === 'left'
+      ? hashText(`${step.hash}${current}`)
+      : hashText(`${current}${step.hash}`);
+  }
+  return current === merkleRoot;
+}
+
 // ---------------------------------------------------------------------------
 // EventDAG
 // ---------------------------------------------------------------------------
@@ -102,6 +198,19 @@ export class EventDAG {
   private byArtifact: Map<string, string[]> = new Map();
   /** Most-recently appended event CIDs (tips of the DAG) */
   private tips: Set<string> = new Set();
+  /** Compacted archive records. The Node adapter persists equivalent records to disk/IPFS. */
+  private archives: Map<string, EventDAGArchive> = new Map();
+  /** Archived event CID → archive/certificate boundary. */
+  private archivedEvents: Map<string, { archive_cid: string; certificate_cid: string }> = new Map();
+  private readonly hotEventMax: number;
+  private readonly epochSize: number;
+  private readonly autoCompact: boolean;
+
+  constructor(options: EventDAGRetentionOptions = {}) {
+    this.hotEventMax = positiveInteger(options.hotEventMax, 2000);
+    this.epochSize = positiveInteger(options.epochSize, 1000);
+    this.autoCompact = options.autoCompact !== false;
+  }
 
   // -------------------------------------------------------------------------
   // Append
@@ -142,6 +251,13 @@ export class EventDAG {
     this.tips.add(cid);
     for (const parentCid of node.parents) {
       this.tips.delete(parentCid);
+    }
+
+    if (this.autoCompact && this.byCid.size > this.hotEventMax) {
+      this.compact({
+        maxEvents: this.epochSize,
+        retainRecent: Math.max(0, this.hotEventMax - this.epochSize),
+      });
     }
 
     return cid;
@@ -259,6 +375,162 @@ export class EventDAG {
 
   size(): number {
     return this.byCid.size;
+  }
+
+  /** Profile F metadata for UI and negotiation surfaces. */
+  profileMetadata(): Record<string, unknown> {
+    return {
+      ...MCPPP_PROFILE_F,
+      retention: { hot_event_max: this.hotEventMax, epoch_size: this.epochSize },
+      certificate_policy: {
+        default_proof_system: 'hash-commitment-v1',
+        zero_knowledge: false,
+        note: 'A hash commitment proves archive integrity, not zero knowledge.',
+      },
+    };
+  }
+
+  /** Compact oldest hot events into an archive and Merkle-backed certificate. */
+  compact(options: { maxEvents?: number; retainRecent?: number } = {}): EventDAGArchive | null {
+    const retainRecent = nonNegativeInteger(options.retainRecent, 0);
+    const maxEvents = positiveInteger(options.maxEvents, this.epochSize);
+    const ordered = [...this.byCid.values()].sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+    const eligible = Math.max(0, ordered.length - retainRecent);
+    const events = ordered.slice(0, Math.min(maxEvents, eligible));
+    if (events.length === 0) return null;
+
+    const eventCids = events.map(event => event.cid);
+    const selected = new Set(eventCids);
+    const roots = events
+      .filter(event => !event.parents.some(parent => selected.has(parent)))
+      .map(event => event.cid);
+    const frontier = events
+      .filter(event => ![...this.byCid.values()].some(candidate => selected.has(candidate.cid) && candidate.parents.includes(event.cid)))
+      .map(event => event.cid);
+    const merkle = buildMerkleTree(eventCids);
+    const archivePayload = {
+      schema: 'mcp++/event-dag-archive@1',
+      profile: MCPPP_PROFILE_F.capability,
+      event_cids: eventCids,
+      events,
+      merkle_root: merkle.root,
+      merkle_layers: merkle.layers,
+    };
+    const archiveCid = computeCID(canonicalJSON(archivePayload));
+    const certificateBasis = {
+      schema: 'mcp++/event-dag-compaction-certificate@1',
+      profile: MCPPP_PROFILE_F.capability,
+      profile_name: MCPPP_PROFILE_F.name,
+      archive_cid: archiveCid,
+      merkle_root: merkle.root,
+      epoch_id: this.archives.size,
+      event_count: eventCids.length,
+      root_cids: roots,
+      frontier_cids: frontier,
+      proof_system: 'hash-commitment-v1' as const,
+      zero_knowledge: false as const,
+    };
+    const certificateCid = computeCID(canonicalJSON(certificateBasis));
+    const certificate: EventDAGCompactionCertificate = {
+      ...certificateBasis,
+      certificate_cid: certificateCid,
+      proof: computeCID(canonicalJSON(certificateBasis)),
+    };
+    const archive: EventDAGArchive = {
+      archive_cid: archiveCid,
+      event_cids: eventCids,
+      events,
+      merkle_layers: merkle.layers,
+      certificate,
+    };
+    this.archives.set(archiveCid, archive);
+    for (const cid of eventCids) {
+      this.byCid.delete(cid);
+      this.archivedEvents.set(cid, { archive_cid: archiveCid, certificate_cid: certificateCid });
+    }
+    this.rebuildIndexes();
+    return archive;
+  }
+
+  listArchives(): EventDAGArchive[] {
+    return [...this.archives.values()].sort((left, right) => left.certificate.epoch_id - right.certificate.epoch_id);
+  }
+
+  getCertificate(certificateCid: string): EventDAGCompactionCertificate | null {
+    return this.listArchives().find(archive => archive.certificate.certificate_cid === certificateCid)?.certificate ?? null;
+  }
+
+  verifyCertificate(certificateCid: string): boolean {
+    const archive = this.listArchives().find(item => item.certificate.certificate_cid === certificateCid);
+    if (!archive) return false;
+    const certificate = archive.certificate;
+    const merkle = buildMerkleTree(archive.event_cids);
+    const basis = {
+      schema: 'mcp++/event-dag-compaction-certificate@1',
+      profile: MCPPP_PROFILE_F.capability,
+      profile_name: MCPPP_PROFILE_F.name,
+      archive_cid: archive.archive_cid,
+      merkle_root: certificate.merkle_root,
+      epoch_id: certificate.epoch_id,
+      event_count: certificate.event_count,
+      root_cids: certificate.root_cids,
+      frontier_cids: certificate.frontier_cids,
+      proof_system: certificate.proof_system,
+      zero_knowledge: certificate.zero_knowledge,
+    };
+    return merkle.root === certificate.merkle_root
+      && archive.event_cids.length === certificate.event_count
+      && certificate.proof === computeCID(canonicalJSON(basis));
+  }
+
+  getInclusionProof(eventCid: string): { archive_cid: string; certificate_cid: string; merkle_root: string; proof: Array<{ side: 'left' | 'right'; hash: string }> } | null {
+    const index = this.archivedEvents.get(eventCid);
+    if (!index) return null;
+    const archive = this.archives.get(index.archive_cid);
+    if (!archive) return null;
+    return {
+      archive_cid: index.archive_cid,
+      certificate_cid: index.certificate_cid,
+      merkle_root: archive.certificate.merkle_root,
+      proof: merkleProof(eventCid, archive.event_cids, archive.merkle_layers),
+    };
+  }
+
+  /** Traverse hot history only and return archive boundaries for compacted parents. */
+  traverseBounded(tipCid: string, limit = 100): BoundedProvenance {
+    const queue = [tipCid];
+    const seen = new Set<string>();
+    const events: StoredEventNode[] = [];
+    const archive_boundaries: BoundedProvenance['archive_boundaries'] = [];
+    while (queue.length > 0 && events.length < positiveInteger(limit, 100)) {
+      const cid = queue.shift()!;
+      if (seen.has(cid)) continue;
+      seen.add(cid);
+      const event = this.byCid.get(cid);
+      if (event) {
+        events.push(event);
+        queue.push(...event.parents);
+        continue;
+      }
+      const archived = this.archivedEvents.get(cid);
+      if (archived) archive_boundaries.push({ event_cid: cid, ...archived });
+    }
+    return { events, archive_boundaries, truncated: queue.length > 0 };
+  }
+
+  private rebuildIndexes(): void {
+    this.byOutput.clear();
+    this.byCorrelation.clear();
+    this.byArtifact.clear();
+    this.tips.clear();
+    const events = [...this.byCid.values()];
+    const parents = new Set(events.flatMap(event => event.parents));
+    for (const event of events) {
+      for (const outputCid of event.outputs) appendIndex(this.byOutput, outputCid, event.cid);
+      if (event.correlation_id) appendIndex(this.byCorrelation, event.correlation_id, event.cid);
+      for (const artifactCid of event.artifact_cids ?? []) appendIndex(this.byArtifact, artifactCid, event.cid);
+      if (!parents.has(event.cid)) this.tips.add(event.cid);
+    }
   }
 
   private collectLineage(eventCids: string[]): StoredEventNode[] {

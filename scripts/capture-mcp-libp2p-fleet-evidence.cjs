@@ -202,6 +202,16 @@ async def main():
                 profile_b_retrieved_bytes = b''
                 profile_b_expected_bytes = b''
                 profile_b_retrieval_error = str(exc)
+            dag_history_response = await client.request('mcp++/dag/history', {'limit': 20})
+            dag_history = (dag_history_response.get('result') or {}).get('events') or []
+            profile_f = {
+                'advertised': initialize.get('result', {}).get('capabilities', {}).get('experimental', {}).get('mcp++/event-dag') is True,
+                'history_count': len(dag_history),
+                'execution_event_present': any(
+                    isinstance(event, dict) and event.get('event_cid') == profile_b.get('event_cid')
+                    for event in dag_history
+                ),
+            }
             safe_call = await client.tools_call(safe_tool, {})
             peers = await client.request('mcp++/p2p/peers', {})
             await client.aclose()
@@ -230,6 +240,7 @@ async def main():
                     'experimental_capabilities_present': init.get('capabilities', {}).get('experimental', {}).get('mcp++/p2p-transport') is True,
                     'profile_a_capability_present': init.get('capabilities', {}).get('experimental', {}).get('mcp++/mcp-idl') is True,
                     'profile_b_capability_present': init.get('capabilities', {}).get('experimental', {}).get('mcp++/cid-envelope') is True,
+                    'profile_f_capability_present': init.get('capabilities', {}).get('experimental', {}).get('mcp++/event-dag') is True,
                 },
                 'profile_a': {
                     'advertised': init.get('capabilities', {}).get('experimental', {}).get('mcp++/mcp-idl') is True,
@@ -274,6 +285,7 @@ async def main():
                     'receipt_cid': profile_b_receipt.get('receipt_cid'),
                     'success': profile_b_receipt.get('success') is True,
                 },
+                'profile_f': profile_f,
                 'peer_discovery_returned': isinstance(peer_rows, list) and len(peer_rows) == 1 and peer_rows[0].get('id') == announce.get('peer_id'),
                 'safe_tool': safe_tool,
                 'safe_call_returned': safe_call is not None,
@@ -299,10 +311,12 @@ async def main():
         and row['profile_b']['persisted']
         and row['profile_b']['retrievable']
         and row['profile_b']['success']
+        and row['profile_f']['advertised']
+        and row['profile_f']['execution_event_present']
         for row in rows
     )
     print(json.dumps({
-        'schema': 'swissknife.mcpplusplus_libp2p_fleet_reachability.v1',
+        'schema': 'swissknife.mcpplusplus_libp2p_fleet_reachability.v2',
         'generated_at': __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
         'decision': 'go' if ok else 'no_go',
         'protocol': PROTOCOL_MCP_P2P_V1,
@@ -322,7 +336,7 @@ function writeEvidence(evidence) {
 
 function fail(error) {
   const evidence = {
-    schema: 'swissknife.mcpplusplus_libp2p_fleet_reachability.v1',
+    schema: 'swissknife.mcpplusplus_libp2p_fleet_reachability.v2',
     generated_at: new Date().toISOString(),
     decision: 'no_go',
     service_count: 0,

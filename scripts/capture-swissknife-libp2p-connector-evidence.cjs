@@ -131,6 +131,11 @@ for (const announce of announces) {
     delegation_proof_cid: null,
     delegation_valid: false,
   };
+  let profileF = {
+    advertised: false,
+    history_count: 0,
+    execution_event_present: false,
+  };
   let error = null;
 
   // Do not call through a failed connector: MCPPPServerConnector would then
@@ -207,6 +212,14 @@ for (const announce of announces) {
           ? (await serviceConnector.getArtifact(profileBExecution.envelope.envelope_cid))?.verified === true
           : false,
       };
+      const dagHistory = await serviceConnector.getDAGHistory(20);
+      const eventCid = profileBExecution?.envelope?.event_cid ?? null;
+      profileF = {
+        advertised: (connection?.profiles ?? []).includes('mcp++/event-dag'),
+        history_count: dagHistory.length,
+        execution_event_present: typeof eventCid === 'string'
+          && dagHistory.some(event => event?.event_cid === eventCid),
+      };
     } catch (cause) {
       error = cause instanceof Error ? cause.message : String(cause);
     }
@@ -234,6 +247,7 @@ for (const announce of announces) {
     profile_a: profileA,
     profile_b: profileB,
     profile_c: profileC,
+    profile_f: profileF,
     no_http_fallback: p2pSessionEstablished,
     error,
   });
@@ -269,10 +283,12 @@ const passed = services.every(service =>
   && service.profile_b.success
   && service.profile_b.persisted
   && service.profile_b.artifact_retrievable
+  && service.profile_f.advertised
+  && service.profile_f.execution_event_present
   && service.no_http_fallback
 );
 console.log(JSON.stringify({
-  schema: 'swissknife.libp2p_mcp_connector_profile_abc_reachability.v2',
+  schema: 'swissknife.libp2p_mcp_connector_profile_abcf_reachability.v3',
   generated_at: new Date().toISOString(),
   decision: passed ? 'go' : 'no_go',
   protocol: '/mcp+p2p/1.0.0',
@@ -290,7 +306,7 @@ function writeEvidence(evidence) {
 
 function fail(error) {
   const evidence = {
-    schema: 'swissknife.libp2p_mcp_connector_profile_abc_reachability.v2',
+    schema: 'swissknife.libp2p_mcp_connector_profile_abcf_reachability.v3',
     generated_at: new Date().toISOString(),
     decision: 'no_go',
     protocol: '/mcp+p2p/1.0.0',

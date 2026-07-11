@@ -79,11 +79,12 @@ function readAnnounce(filePath, service) {
     const announce = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     return announce.service === service
       && announce.protocol === '/mcp+p2p/1.0.0'
-      && announce.profile_e_version === '1.8.0'
+      && announce.profile_e_version === '1.9.0'
       && announce.canonical_initialize === true
       && announce.profile_a_mcp_idl === true
       && announce.profile_b_cid_envelope === true
       && announce.profile_c_ucan === true
+      && announce.profile_f_event_dag === true
       && typeof announce.multiaddr === 'string';
   } catch (_error) {
     return false;

@@ -39,7 +39,7 @@ MAX_FRAMES_PER_SESSION = 200
 # 65,535 bytes. Keep framed JSON-RPC writes below that boundary; receivers
 # already reassemble the u32-prefixed frame from arbitrary stream chunks.
 MAX_LIBP2P_WRITE_BYTES = 60 * 1024
-BRIDGE_PROFILE_E_VERSION = "1.8.0"
+BRIDGE_PROFILE_E_VERSION = "1.9.0"
 DEFAULT_ARTIFACT_STORE_DIR = os.path.join(
     os.path.expanduser("~"), ".cache", "swissknife", "mcpplusplus-artifacts"
 )
@@ -824,6 +824,7 @@ async def run_bridge(args: argparse.Namespace) -> None:
             "profile_a_mcp_idl": True,
             "profile_b_cid_envelope": True,
             "profile_c_ucan": True,
+            "profile_f_event_dag": True,
             "peer_id": peer_id,
             "multiaddr": multiaddr,
             "tool_count": len(registry.tools),

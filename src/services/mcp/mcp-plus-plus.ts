@@ -7,7 +7,7 @@
  * - Profile C: Capability Delegation (UCAN chains)
  * - Profile D: Temporal Deontic Policy Evaluation
  * - Profile E: mcp+p2p Transport Binding
- * - Event DAG: Append-only provenance DAG
+ * - Profile F: Event DAG Provenance, Archival, and Compaction
  */
 
 // --- Profile A: MCP-IDL Interface Descriptors ---
@@ -137,6 +137,11 @@ export interface DeonticRule {
 }
 
 // --- Event DAG ---
+
+export const MCPPP_PROFILE_F = {
+  capability: 'mcp++/event-dag',
+  name: 'Profile F: Event DAG Provenance, Archival, and Compaction',
+} as const;
 
 export interface EventNode {
   event_cid: string;
