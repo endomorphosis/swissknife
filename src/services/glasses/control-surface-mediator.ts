@@ -1,1 +1,1 @@
-export * from '../mcp/control-surface-mediator.js';
+export * from '../mcp/mcp-control-surface-mediator.js';

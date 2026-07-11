@@ -26,6 +26,11 @@ import {
 } from './mcp-plus-plus.js';
 import type { MCPp2pSession } from './mcp-p2p-session.js';
 import type { Libp2pTransport } from './mcp-transport.js';
+import { randomBytes } from 'node:crypto';
+import {
+  verifyMCPPPeerIdentity,
+  type MCPPPPeerIdentity,
+} from './mcp-plus-plus-profile-c.js';
 
 // --- Server Connection Config ---
 
@@ -39,6 +44,10 @@ export interface MCPPPServerConfig {
   interfacesPath?: string; // Interface descriptor registry
   delegationPath?: string; // UCAN delegation endpoint
   p2pProtocolId?: string;  // libp2p protocol ID
+  /** Ed25519 did:key DID that verifies Profile C peer identity challenges. */
+  clientDID?: string;
+  /** Profile C service namespace, separate from the display server name. */
+  ucanService?: string;
   /**
    * Transport used to reach this server. `http` (default) speaks JSON-RPC over
    * HTTP; `libp2p` dials the MCP++ Profile E `/mcp+p2p/1.0.0` protocol and speaks
@@ -55,6 +64,9 @@ export const IPFS_KIT_SERVER: MCPPPServerConfig = {
   mcpPath: '/mcp',
   toolsPath: '/mcp/tools/list',
   healthPath: '/mcp/tools/list',
+  dagPath: '/mcp/dag',
+  interfacesPath: '/mcp/interfaces',
+  ucanService: 'ipfs_kit_py',
   p2pProtocolId: '/mcp+p2p/1.0.0',
 };
 
@@ -67,6 +79,7 @@ export const IPFS_DATASETS_SERVER: MCPPPServerConfig = {
   dagPath: '/mcp/dag',
   interfacesPath: '/mcp/interfaces',
   delegationPath: '/mcp/ucan/delegate',
+  ucanService: 'ipfs_datasets_py',
   p2pProtocolId: '/mcp+p2p/1.0.0',
 };
 
@@ -79,10 +92,11 @@ export const IPFS_ACCELERATE_SERVER: MCPPPServerConfig = {
   // port, components}` dict, not a tool list. The real tool catalogue is served
   // (GET + POST) at `/mcp/tools/list`, matching kit's REST surface.
   toolsPath: '/mcp/tools/list',
-  healthPath: '/api/mcp/status',
+  healthPath: '/mcp/health',
   dagPath: '/mcp/dag',
   interfacesPath: '/mcp/interfaces',
   delegationPath: '/mcp/ucan/delegate',
+  ucanService: 'ipfs_accelerate_py',
   p2pProtocolId: '/mcp+p2p/1.0.0',
 };
 
@@ -100,6 +114,75 @@ interface MCPJsonRpcResponse {
   id: string | number;
   result?: any;
   error?: { code: number; message: string; data?: any };
+}
+
+export interface MCPPPArtifactPersistence {
+  profile?: 'A' | 'B';
+  complete?: boolean;
+  artifacts?: Record<string, { cid?: string; backend?: string; persisted?: boolean; verified?: boolean }>;
+}
+
+export type MCPPPProfileBEnvelope = Partial<ExecutionEnvelope> & {
+  envelope_cid?: string;
+  input_cid?: string;
+  intent_cid?: string;
+  output_cid?: string;
+  receipt_artifact?: unknown;
+  event?: unknown;
+  event_cid?: string;
+  artifact_persistence?: MCPPPArtifactPersistence;
+};
+
+export interface MCPPPArtifactReadResult {
+  found: boolean;
+  verified: boolean;
+  cid: string;
+  backend?: string;
+  bytes_base64?: string;
+  error?: string;
+}
+
+/** Profile F archive certificate. `zero_knowledge` is false for hash commitments. */
+export interface MCPPPEventDagCertificate {
+  certificate_cid: string;
+  archive_cid: string;
+  merkle_root: string;
+  epoch_id: number;
+  event_count: number;
+  root_cids: string[];
+  frontier_cids: string[];
+  proof_system: string;
+  zero_knowledge: boolean;
+  proof?: string;
+  verification_key_cid?: string;
+}
+
+export interface MCPPPEventDagArchive {
+  archive_cid: string;
+  certificate_cid: string;
+  epoch_id: number;
+  merkle_root: string;
+  event_count: number;
+  root_cids: string[];
+  frontier_cids: string[];
+}
+
+function dagCid(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    const candidate = value as Record<string, unknown>;
+    const cid = candidate.event_cid ?? candidate.cid;
+    return typeof cid === 'string' ? cid : null;
+  }
+  return null;
+}
+
+function isArtifactReadResult(value: unknown): value is MCPPPArtifactReadResult {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.cid === 'string'
+    && typeof candidate.found === 'boolean'
+    && typeof candidate.verified === 'boolean';
 }
 
 // --- Hierarchical tool counting ---
@@ -149,6 +232,112 @@ export function extractRestToolNames(data: any): string[] {
   return arr
     .map((t: any) => (typeof t === 'string' ? t : t?.name))
     .filter((n: any): n is string => typeof n === 'string' && n.length > 0);
+}
+
+/** Convert a wire-format MCP-IDL descriptor into SwissKnife's local type. */
+function interfaceDescriptorFromPayload(
+  payload: unknown,
+  fallbackCid?: string,
+): MCPPPInterfaceDescriptor | null {
+  const outer = payload && typeof payload === 'object'
+    ? payload as Record<string, unknown>
+    : null;
+  const candidate = outer?.descriptor && typeof outer.descriptor === 'object'
+    ? outer.descriptor as Record<string, unknown>
+    : outer?.canonical_descriptor && typeof outer.canonical_descriptor === 'object'
+      ? outer.canonical_descriptor as Record<string, unknown>
+      : outer;
+  if (!candidate) return null;
+
+  const interfaceCid = candidate.interface_cid ?? outer?.interface_cid ?? fallbackCid;
+  if (
+    typeof interfaceCid !== 'string'
+    || typeof candidate.name !== 'string'
+    || typeof candidate.namespace !== 'string'
+    || typeof candidate.version !== 'string'
+    || !Array.isArray(candidate.methods)
+  ) return null;
+
+  const methods = candidate.methods
+    .filter((method): method is Record<string, unknown> => Boolean(method) && typeof method === 'object')
+    .filter(method => typeof method.name === 'string'
+      && typeof method.input_schema_cid === 'string'
+      && typeof method.output_schema_cid === 'string'
+      && Array.isArray(method.error_schema_cids))
+    .map(method => ({ ...method })) as MCPPPInterfaceDescriptor['methods'];
+  if (methods.length === 0) return null;
+
+  const wireErrors = Array.isArray(candidate.errors) ? candidate.errors : [];
+  const errors = wireErrors
+    .map(error => typeof error === 'string'
+      ? { name: error }
+      : error && typeof error === 'object' && typeof (error as { name?: unknown }).name === 'string'
+        ? error as { name: string; code?: number }
+        : null)
+    .filter((error): error is { name: string; code?: number } => error !== null);
+  const compatibility = candidate.compatibility && typeof candidate.compatibility === 'object'
+    ? candidate.compatibility as Record<string, unknown>
+    : {};
+  const observability = candidate.observability && typeof candidate.observability === 'object'
+    ? candidate.observability as Record<string, unknown>
+    : {};
+
+  return {
+    name: candidate.name,
+    namespace: candidate.namespace,
+    version: candidate.version,
+    interface_cid: interfaceCid,
+    methods,
+    errors,
+    requires: Array.isArray(candidate.requires)
+      ? candidate.requires.filter((requirement): requirement is string => typeof requirement === 'string')
+      : [],
+    compatibility: {
+      compatible_with: Array.isArray(compatibility.compatible_with)
+        ? compatibility.compatible_with.filter((cid): cid is string => typeof cid === 'string')
+        : [],
+      supersedes: Array.isArray(compatibility.supersedes)
+        ? compatibility.supersedes.filter((cid): cid is string => typeof cid === 'string')
+        : [],
+    },
+    semantic_tags: Array.isArray(candidate.semantic_tags)
+      ? candidate.semantic_tags.filter((tag): tag is string => typeof tag === 'string')
+      : [],
+    observability: {
+      trace: observability.trace === true,
+      metrics: observability.metrics === true,
+      events: observability.events === true,
+    },
+  };
+}
+
+function interfaceDescriptorsFromPayload(payload: unknown): MCPPPInterfaceDescriptor[] {
+  const value = payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
+  const rows = Array.isArray(value?.interfaces)
+    ? value.interfaces
+    : Array.isArray(value?.descriptors)
+      ? value.descriptors
+      : value?.descriptor || value?.canonical_descriptor || value?.methods
+        ? [value]
+        : [];
+  return dedupeInterfaces(rows
+    .map(row => interfaceDescriptorFromPayload(row))
+    .filter((descriptor): descriptor is MCPPPInterfaceDescriptor => descriptor !== null));
+}
+
+function interfaceCidsFromPayload(payload: unknown): string[] {
+  const value = payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
+  const candidates = [
+    ...(Array.isArray(value?.interface_cids) ? value.interface_cids : []),
+    ...(Array.isArray(value?.interfaces) ? value.interfaces : []),
+  ];
+  return [...new Set(candidates.filter((cid): cid is string => typeof cid === 'string' && cid.length > 0))].sort();
+}
+
+function dedupeInterfaces(descriptors: MCPPPInterfaceDescriptor[]): MCPPPInterfaceDescriptor[] {
+  const byCid = new Map<string, MCPPPInterfaceDescriptor>();
+  for (const descriptor of descriptors) byCid.set(descriptor.interface_cid, descriptor);
+  return [...byCid.values()].sort((left, right) => left.interface_cid.localeCompare(right.interface_cid));
 }
 
 /**
@@ -348,6 +537,7 @@ export class MCPPPServerConnector {
   /** Underlying libp2p transport, owned for teardown on disconnect(). */
   private libp2pTransport: Libp2pTransport | null = null;
   private hierarchicalAliasIndex: Promise<HierarchicalToolAliasIndex> | null = null;
+  private peerIdentity: MCPPPPeerIdentity | null = null;
 
   constructor(config: MCPPPServerConfig) {
     this.config = config;
@@ -390,7 +580,10 @@ export class MCPPPServerConnector {
           ? hs.capabilities.mcpPlusPlusProfiles
           : ['mcp++/p2p-transport'];
 
+      await this.requireProfileCPeerIdentity();
+
       const tools = await this.discoverTools();
+      if (this.negotiatedProfiles.includes('mcp++/idl')) await this.listInterfaces();
       return { success: true, profiles: this.negotiatedProfiles, tools };
     } catch {
       this.connected = false;
@@ -435,16 +628,17 @@ export class MCPPPServerConnector {
     }
 
     // 3. Discover tools
+    try {
+      await this.requireProfileCPeerIdentity();
+    } catch {
+      this.connected = false;
+      return { success: false, profiles: [], tools: [] };
+    }
     const tools = await this.discoverTools();
 
-    // 4. Discover interface descriptors (Profile A)
-    if (this.config.interfacesPath) {
-      try {
-        const ifacesResp = await this.fetch(this.config.interfacesPath);
-        const ifacesData = await ifacesResp.json();
-        this.serverInterfaces = ifacesData.interfaces || ifacesData || [];
-      } catch {}
-    }
+    // 4. Discover interface descriptors (Profile A) over the same JSON-RPC
+    // boundary used for calls. This keeps HTTP and libp2p discovery identical.
+    if (this.negotiatedProfiles.includes('mcp++/mcp-idl')) await this.listInterfaces();
 
     return { success: this.connected, profiles: this.negotiatedProfiles, tools };
   }
@@ -492,6 +686,7 @@ export class MCPPPServerConnector {
       this.libp2pTransport = null;
     }
     this.session = null;
+    this.peerIdentity = null;
   }
 
   /**
@@ -509,7 +704,9 @@ export class MCPPPServerConnector {
       hs?.capabilities?.mcpPlusPlusProfiles && hs.capabilities.mcpPlusPlusProfiles.length > 0
         ? hs.capabilities.mcpPlusPlusProfiles
         : ['mcp++/p2p-transport'];
+    await this.requireProfileCPeerIdentity();
     const tools = await this.discoverTools();
+    if (this.negotiatedProfiles.includes('mcp++/idl')) await this.listInterfaces();
     return { success: true, profiles: this.negotiatedProfiles, tools };
   }
 
@@ -517,15 +714,75 @@ export class MCPPPServerConnector {
 
   async listInterfaces(): Promise<MCPPPInterfaceDescriptor[]> {
     if (this.serverInterfaces.length > 0) return this.serverInterfaces;
-    if (!this.config.interfacesPath) return [];
-    
+
     try {
-      const resp = await this.fetch(this.config.interfacesPath);
-      const data = await resp.json();
-      this.serverInterfaces = data.interfaces || data || [];
+      const data = await this.jsonRpc('interfaces/list', {});
+      const direct = interfaceDescriptorsFromPayload(data);
+      const cids = interfaceCidsFromPayload(data);
+      const fetched = await Promise.all(cids.map(cid => this.getInterface(cid)));
+      this.serverInterfaces = dedupeInterfaces([
+        ...direct,
+        ...fetched.filter((descriptor): descriptor is MCPPPInterfaceDescriptor => descriptor !== null),
+      ]);
       return this.serverInterfaces;
     } catch {
-      return [];
+      // A legacy REST registry remains a read-only fallback for older servers.
+      if (!this.config.interfacesPath || this.session) return [];
+      try {
+        const resp = await this.fetch(this.config.interfacesPath);
+        const data = await resp.json();
+        this.serverInterfaces = interfaceDescriptorsFromPayload(data);
+        return this.serverInterfaces;
+      } catch {
+        return [];
+      }
+    }
+  }
+
+  async getInterface(interfaceCid: string): Promise<MCPPPInterfaceDescriptor | null> {
+    const cached = this.serverInterfaces.find(descriptor => descriptor.interface_cid === interfaceCid);
+    if (cached) return cached;
+    try {
+      const data = await this.jsonRpc('interfaces/get', { interface_cid: interfaceCid });
+      const descriptor = interfaceDescriptorFromPayload(data, interfaceCid);
+      if (descriptor) this.serverInterfaces = dedupeInterfaces([...this.serverInterfaces, descriptor]);
+      return descriptor;
+    } catch {
+      if (!this.config.interfacesPath || this.session) return null;
+      try {
+        const resp = await this.fetch(`${this.config.interfacesPath}/${encodeURIComponent(interfaceCid)}`);
+        if (!resp.ok) return null;
+        const descriptor = interfaceDescriptorFromPayload(await resp.json(), interfaceCid);
+        if (descriptor) this.serverInterfaces = dedupeInterfaces([...this.serverInterfaces, descriptor]);
+        return descriptor;
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  async checkInterfaceCompatibility(
+    clientCid: string,
+    serverCid: string = clientCid,
+  ): Promise<{ compatible: boolean; reasons: string[]; requires_missing: string[]; suggested_alternatives: string[] }> {
+    try {
+      const result = await this.jsonRpc('interfaces/compat', {
+        client_cid: clientCid,
+        server_cid: serverCid,
+      });
+      return {
+        compatible: result?.compatible === true,
+        reasons: Array.isArray(result?.reasons) ? result.reasons : [],
+        requires_missing: Array.isArray(result?.requires_missing) ? result.requires_missing : [],
+        suggested_alternatives: Array.isArray(result?.suggested_alternatives) ? result.suggested_alternatives : [],
+      };
+    } catch {
+      return {
+        compatible: false,
+        reasons: ['Interface compatibility is unavailable.'],
+        requires_missing: [],
+        suggested_alternatives: [],
+      };
     }
   }
 
@@ -578,7 +835,7 @@ export class MCPPPServerConnector {
   }
 
   /** Dispatch a tool inside a category via the `tools_dispatch` meta-tool. */
-  async dispatch(category: string, tool: string, params: Record<string, any> = {}): Promise<any>;
+  async dispatch(category: string, tool: string, params?: Record<string, any>): Promise<any>;
   async dispatch(name: string, params?: Record<string, any>): Promise<any>;
   async dispatch(ref: { category: string; tool: string }, params?: Record<string, any>): Promise<any>;
   async dispatch(
@@ -685,22 +942,46 @@ export class MCPPPServerConnector {
   async callToolWithEnvelope(
     toolName: string,
     args: Record<string, any>,
-    options?: { proofCid?: string; policyCid?: string }
-  ): Promise<{ result: any; envelope: Partial<ExecutionEnvelope> }> {
+    options?: {
+      interfaceCid?: string;
+      proofCid?: string;
+      ucan?: string;
+      ucanAudience?: string;
+      policyCid?: string;
+      parents?: string[];
+      timestamp?: string | number;
+      correlationId?: string;
+    }
+  ): Promise<{ result: any; envelope: MCPPPProfileBEnvelope }> {
     // If server supports CID envelopes, use the envelope-wrapped call
     if (this.negotiatedProfiles.includes('mcp++/cid-envelope')) {
+      const interfaceCid = options?.interfaceCid ?? (await this.listInterfaces())[0]?.interface_cid;
+      if (!interfaceCid) throw new Error(`Profile B requires a discovered interface for ${this.config.name}`);
       const result = await this.jsonRpc('mcp++/execute', {
+        interface_cid: interfaceCid,
         tool: toolName,
         arguments: args,
         proof_cid: options?.proofCid,
+        ucan: options?.ucan,
+        ucan_audience: options?.ucanAudience ?? this.config.clientDID,
         policy_cid: options?.policyCid,
+        parents: options?.parents ?? [],
+        timestamp: options?.timestamp,
+        correlation_id: options?.correlationId,
       });
       return {
-        result: result.output || result.result,
+        result: result.output ?? result.result,
         envelope: {
+          ...(result.envelope ?? {}),
           envelope_cid: result.envelope_cid,
+          input_cid: result.input_cid,
+          intent_cid: result.intent_cid,
+          output_cid: result.output_cid,
+          receipt_artifact: result.receipt_artifact,
+          event: result.event,
           event_cid: result.event_cid,
           receipt: result.receipt,
+          artifact_persistence: result.artifact_persistence,
         },
       };
     }
@@ -710,53 +991,126 @@ export class MCPPPServerConnector {
     return { result, envelope: {} };
   }
 
+  /** Read and verify a Profile A/B artifact over the active MCP++ transport. */
+  async getArtifact(cid: string): Promise<MCPPPArtifactReadResult | null> {
+    if (!cid) return null;
+    try {
+      if (this.session) {
+        const result = await this.jsonRpc('mcp++/artifacts/get', { cid });
+        return isArtifactReadResult(result) ? result : null;
+      }
+      const response = await this.fetch(`${this.config.baseUrl.replace(/\/$/, '')}/mcp/artifacts/${encodeURIComponent(cid)}`);
+      if (!response.ok) return null;
+      const result = await response.json();
+      return isArtifactReadResult(result) ? result : null;
+    } catch {
+      return null;
+    }
+  }
+
   // --- Profile C: UCAN Delegation ---
 
   async createDelegation(
     audience: string,
     capabilities: { resource: string; ability: string }[],
     expirationHours: number = 24
-  ): Promise<{ proofCid: string; delegation: any }> {
-    if (!this.config.delegationPath) {
-      throw new Error('Server does not expose delegation endpoint');
+  ): Promise<{ proofCid: string; delegation: any; ucan?: string }> {
+    if (!this.negotiatedProfiles.includes('mcp++/ucan')) {
+      throw new Error('Profile C UCAN delegation was not negotiated with this server.');
     }
-
-    const resp = await this.fetch(this.config.delegationPath, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        audience,
-        capabilities,
-        expiration_hours: expirationHours,
-      }),
+    const result = await this.jsonRpc('mcp++/ucan/delegate', {
+      audience,
+      capabilities,
+      lifetime_seconds: Math.max(1, Math.floor(expirationHours * 60 * 60)),
     });
-    return resp.json();
+    return {
+      proofCid: result?.proof_cid ?? result?.proofCid ?? '',
+      delegation: result?.delegation ?? result,
+      ucan: typeof result?.ucan === 'string' ? result.ucan : undefined,
+    };
   }
 
-  async validateDelegation(proofCid: string): Promise<{ valid: boolean; chain: any[] }> {
+  async validateDelegation(
+    proofCid: string,
+    options: { ucan?: string; requiredCapability?: { resource: string; ability: string } } = {},
+  ): Promise<{ valid: boolean; chain: any[]; reason?: string }> {
     try {
-      const result = await this.jsonRpc('mcp++/ucan/validate', { proof_cid: proofCid });
-      return { valid: result.valid ?? false, chain: result.chain || [] };
+      const result = await this.jsonRpc('mcp++/ucan/validate', {
+        proof_cid: proofCid,
+        ucan: options.ucan,
+        required_capability: options.requiredCapability,
+      });
+      return { valid: result.valid ?? false, chain: result.chain || [], reason: result.reason };
     } catch {
       return { valid: false, chain: [] };
     }
   }
 
+  async revokeDelegation(proofCid: string): Promise<{ revoked: boolean; proofCid: string }> {
+    const result = await this.jsonRpc('mcp++/ucan/revoke', { proof_cid: proofCid });
+    return { revoked: result?.revoked === true, proofCid: result?.proof_cid ?? proofCid };
+  }
+
+  async identifyPeer(): Promise<MCPPPPeerIdentity> {
+    if (!this.config.clientDID) throw new Error('A clientDID is required to verify a Profile C peer.');
+    if (!this.negotiatedProfiles.includes('mcp++/ucan')) {
+      throw new Error('Profile C UCAN peer identity was not negotiated with this server.');
+    }
+    const nonce = randomBytes(32).toString('base64url');
+    const transport = this.session ? 'libp2p' : 'http';
+    const response = await this.jsonRpc('mcp++/ucan/identity', {
+      audience: this.config.clientDID,
+      nonce,
+      transport,
+    });
+    const identity = await verifyMCPPPeerIdentity(response, {
+      audience: this.config.clientDID,
+      nonce,
+      service: this.config.ucanService ?? this.config.name,
+      transport,
+    });
+    if (!identity.valid) throw new Error(identity.reason ?? 'Profile C peer identity verification failed.');
+    this.peerIdentity = identity;
+    return identity;
+  }
+
+  private async requireProfileCPeerIdentity(): Promise<void> {
+    if (!this.negotiatedProfiles.includes('mcp++/ucan')) return;
+    if (!this.config.clientDID) return;
+    await this.identifyPeer();
+  }
+
   // --- Event DAG ---
 
   async getDAGFrontier(): Promise<string[]> {
-    if (!this.config.dagPath) return [];
+    try {
+      const data = await this.jsonRpc('mcp++/dag/frontier', {});
+      const frontier = Array.isArray(data?.frontier) ? data.frontier : data;
+      return Array.isArray(frontier)
+        ? frontier.map(dagCid).filter((cid): cid is string => cid !== null)
+        : [];
+    } catch {
+      if (!this.config.dagPath || this.session) return [];
+    }
     try {
       const resp = await this.fetch(`${this.config.dagPath}/frontier`);
       const data = await resp.json();
-      return data.frontier || data || [];
+      const frontier = Array.isArray(data?.frontier) ? data.frontier : data;
+      return Array.isArray(frontier)
+        ? frontier.map(dagCid).filter((cid): cid is string => cid !== null)
+        : [];
     } catch {
       return [];
     }
   }
 
   async getDAGHistory(limit: number = 50): Promise<EventNode[]> {
-    if (!this.config.dagPath) return [];
+    try {
+      const data = await this.jsonRpc('mcp++/dag/history', { limit });
+      return Array.isArray(data?.events) ? data.events : [];
+    } catch {
+      if (!this.config.dagPath || this.session) return [];
+    }
     try {
       const resp = await this.fetch(`${this.config.dagPath}/history?limit=${limit}`);
       const data = await resp.json();
@@ -767,13 +1121,85 @@ export class MCPPPServerConnector {
   }
 
   async traceProvenance(eventCid: string): Promise<EventNode[]> {
-    if (!this.config.dagPath) return [];
+    try {
+      const data = await this.jsonRpc('mcp++/dag/provenance', { event_cid: eventCid });
+      return Array.isArray(data?.chain) ? data.chain : Array.isArray(data?.provenance) ? data.provenance : [];
+    } catch {
+      if (!this.config.dagPath || this.session) return [];
+    }
     try {
       const resp = await this.fetch(`${this.config.dagPath}/provenance/${encodeURIComponent(eventCid)}`);
       const data = await resp.json();
-      return data.chain || data || [];
+      return data.chain || data.provenance || data || [];
     } catch {
       return [];
+    }
+  }
+
+  /** Compact old hot events into a persisted Profile F archive and certificate. */
+  async compactEventDAG(options: { max_events?: number; retain_recent?: number } = {}): Promise<any> {
+    try {
+      return await this.jsonRpc('mcp++/dag/compact', options);
+    } catch {
+      if (!this.config.dagPath || this.session) throw new Error('Profile F Event DAG compaction is unavailable.');
+      const response = await this.fetch(`${this.config.dagPath}/compact`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(options),
+      });
+      if (!response.ok) throw new Error(`Event DAG compaction failed: ${response.status}`);
+      return response.json();
+    }
+  }
+
+  async listDAGArchives(): Promise<MCPPPEventDagArchive[]> {
+    try {
+      const data = await this.jsonRpc('mcp++/dag/archives', {});
+      return Array.isArray(data?.archives) ? data.archives : [];
+    } catch {
+      if (!this.config.dagPath || this.session) return [];
+      try {
+        const response = await this.fetch(`${this.config.dagPath}/archives`);
+        const data = await response.json();
+        return Array.isArray(data?.archives) ? data.archives : [];
+      } catch {
+        return [];
+      }
+    }
+  }
+
+  async getDAGCertificate(certificateCid: string): Promise<MCPPPEventDagCertificate | null> {
+    try {
+      const data = await this.jsonRpc('mcp++/dag/certificate/get', { certificate_cid: certificateCid });
+      return data?.certificate ?? null;
+    } catch {
+      if (!this.config.dagPath || this.session) return null;
+      try {
+        const response = await this.fetch(`${this.config.dagPath}/certificates/${encodeURIComponent(certificateCid)}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data?.certificate ?? null;
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  async verifyDAGCertificate(certificateCid: string): Promise<{ valid: boolean; certificate?: MCPPPEventDagCertificate; proof_system?: string; zero_knowledge?: boolean }> {
+    try {
+      return await this.jsonRpc('mcp++/dag/certificate/verify', { certificate_cid: certificateCid });
+    } catch {
+      if (!this.config.dagPath || this.session) return { valid: false };
+      try {
+        const response = await this.fetch(`${this.config.dagPath}/certificates/verify`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ certificate_cid: certificateCid }),
+        });
+        return response.ok ? response.json() : { valid: false };
+      } catch {
+        return { valid: false };
+      }
     }
   }
 
@@ -857,6 +1283,8 @@ export class MCPPPServerConnector {
   get isConnected(): boolean { return this.connected; }
   get serverName(): string { return this.config.name; }
   get profiles(): string[] { return this.negotiatedProfiles; }
+  get peerDID(): string | null { return this.peerIdentity?.did ?? null; }
+  get verifiedPeerIdentity(): MCPPPPeerIdentity | null { return this.peerIdentity; }
   /** 'libp2p' when connected over MCP+p2p, otherwise 'http'. */
   get transportKind(): 'http' | 'libp2p' { return this.session ? 'libp2p' : (this.config.transport ?? 'http'); }
   get endpoint(): string { return this.config.transport === 'libp2p' ? (this.config.multiaddr ?? '') : this.config.baseUrl; }
@@ -868,12 +1296,18 @@ export class MCPPPMultiServerConnector {
   private connectors: Map<string, MCPPPServerConnector> = new Map();
   private client: MCPPlusPlus;
 
+  private readonly agentDID: string;
+
   constructor(agentDID: string) {
+    this.agentDID = agentDID;
     this.client = createMCPPlusPlusClient(agentDID);
   }
 
   addServer(config: MCPPPServerConfig): void {
-    this.connectors.set(config.name, new MCPPPServerConnector(config));
+    this.connectors.set(config.name, new MCPPPServerConnector({
+      ...config,
+      clientDID: config.clientDID ?? this.agentDID,
+    }));
   }
 
   async connectAll(): Promise<Map<string, { success: boolean; profiles: string[]; tools: string[] }>> {
@@ -913,13 +1347,30 @@ export class MCPPPMultiServerConnector {
     serverName: string,
     toolName: string,
     args: Record<string, any>,
-    options?: { proofCid?: string }
-  ): Promise<{ result: any; envelope: Partial<ExecutionEnvelope> }> {
+    options?: {
+      interfaceCid?: string;
+      proofCid?: string;
+      ucan?: string;
+      ucanAudience?: string;
+      policyCid?: string;
+      parents?: string[];
+      timestamp?: string | number;
+      correlationId?: string;
+    }
+  ): Promise<{ result: any; envelope: MCPPPProfileBEnvelope }> {
     const connector = this.connectors.get(serverName);
     if (!connector || !connector.isConnected) {
       throw new Error(`Server not connected: ${serverName}`);
     }
     return connector.callToolWithEnvelope(toolName, args, options);
+  }
+
+  async getArtifact(serverName: string, cid: string): Promise<MCPPPArtifactReadResult | null> {
+    const connector = this.connectors.get(serverName);
+    if (!connector || !connector.isConnected) {
+      throw new Error(`Server not connected: ${serverName}`);
+    }
+    return connector.getArtifact(cid);
   }
 
   async listAllInterfaces(): Promise<{ server: string; interfaces: MCPPPInterfaceDescriptor[] }[]> {

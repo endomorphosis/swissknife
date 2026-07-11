@@ -21,7 +21,7 @@ import { compileIDLToGlassesDisplay } from '../../src/services/glasses/idl-to-gl
 import { ipfsDatasetsUIProfileDescriptor } from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
 import type { InterfaceDescriptor } from '../../src/services/mcp/mcp-idl';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
-import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/mcp-control-surface-mediator.js';
 
 const DATASET_INTERFACE_CID = 'sha256:dataset-fixture';
 

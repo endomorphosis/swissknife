@@ -9,17 +9,17 @@
 import {
   Z3ProverBridge, TDFOLToZ3Converter, proveWithZ3, ensureZ3Available,
   z3Proved,
-} from '../../src/services/z3-prover-bridge';
+} from '../../src/services/provers/z3-prover-bridge.js';
 
 import {
   CVC5ProverBridge, TDFOLToCVC5Converter, ensureCVC5Available,
   cvc5Proved,
-} from '../../src/services/cvc5-prover-bridge';
+} from '../../src/services/provers/cvc5-prover-bridge.js';
 
 import {
   Groth16Proof, Groth16Backend, Groth16BackendFallback,
   ProveKitFFI, ProveKitFFIError,
-} from '../../src/services/zkp-backends';
+} from '../../src/services/zkp/zkp-backends.js';
 
 // ---------------------------------------------------------------------------
 // TDFOLToZ3Converter tests

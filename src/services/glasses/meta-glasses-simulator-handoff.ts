@@ -45,7 +45,7 @@ import {
   type MetaGlassesMobileORBRegisterResponse,
 } from './meta-glasses-mobile-orb-bridge.js';
 import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
-import type { ControlSurfacePolicyEvaluationRequest } from '../mcp/control-surface-mediator.js';
+import type { ControlSurfacePolicyEvaluationRequest } from '../mcp/mcp-control-surface-mediator.js';
 
 export const META_GLASSES_SIMULATOR_HANDOFF_SCHEMA =
   'swissknife.glasses-simulator-handoff.v1';

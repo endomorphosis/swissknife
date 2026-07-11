@@ -118,7 +118,7 @@ describe('TrafficManager', () => {
       
       // Mock successful connection
       const mockClient = {} as Client;
-      const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
+      const connectToServer = require('../../../../src/services/mcp/host/mcpClient.js').connectToServer;
       connectToServer.mockResolvedValue(mockClient);
       
       // Request client multiple times and count selections
@@ -182,7 +182,7 @@ describe('TrafficManager', () => {
       
       // Mock successful connection
       const mockClient = {} as Client;
-      const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
+      const connectToServer = require('../../../../src/services/mcp/host/mcpClient.js').connectToServer;
       connectToServer.mockResolvedValue(mockClient);
       
       // Request with >=1.5.0 constraint
@@ -217,7 +217,7 @@ describe('TrafficManager', () => {
       
       // Mock successful connection
       const mockClient = {} as Client;
-      const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
+      const connectToServer = require('../../../../src/services/mcp/host/mcpClient.js').connectToServer;
       connectToServer.mockResolvedValue(mockClient);
       
       // First request should create connection

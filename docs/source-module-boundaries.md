@@ -51,8 +51,12 @@ behind host entrypoints or host adapters.
 | `service-glasses` | `split` | Meta glasses display, input, webapp, mobile ORB, and replay adapters. | `src/services/glasses/*.ts` |
 | `service-integrations` | `split` | External service integrations isolated from root compatibility files. | `src/services/integrations/*.ts` |
 | `service-ipfs` | `split` | IPFS MCP/UI descriptors, descriptor packs, proof-cache integration, and browser/host IPFS adapters. | `src/services/ipfs/*.ts` |
+| `service-logic` | `split` | Restored logic service implementation families for API, bridges, CEC, DCEC, deontic, FOL, modal, natural-language, shared logic, and TDFOL behavior. | `src/services/logic/**/*.ts`, `src/services/logic/**/*.js` |
 | `service-mcp` | `split` | MCP/MCP++ protocol, transport, ORB routing, UI profile contracts, mediation, and registry logic. | `src/services/mcp/*.ts`, `src/services/mcp/*.js` |
+| `service-platform` | `split` | Restored service-layer platform adapters for browser/host runtime selection, telemetry, resource pools, feature detection, and acceleration helpers. | `src/services/platform/*.ts`, `src/services/platform/*.js` |
+| `service-proof-engine` | `split` | Restored proof execution, proof cache, proof tree, prover routing, and proof strategy implementations. | `src/services/proof-engine/*.ts`, `src/services/proof-engine/*.js` |
 | `service-provers` | `split` | Browser and host prover bridges, serializers, proof-cache helpers, and prover type contracts. | `src/services/provers/*.ts` |
+| `service-shared` | `universal` | Restored browser-safe and runtime-neutral primitives shared by service families. | `src/services/shared/*.ts`, `src/services/shared/*.js` |
 | `service-zkp` | `split` | ZKP browser backends, simulated prover quarantine, UCAN bridge, artifacts, and circuits. | `src/services/zkp/*.ts`, `src/services/zkp/artifacts/**/*.ts` |
 | `services` | `split` | Explicitly inventoried root service facades and compatibility files. New service implementation files must live in a named service family subdirectory. | `src/services/logic-public-api.ts`, `src/services/browser-acceleration.ts` |
 | `storage` | `split` | Storage providers, registries, virtual filesystem, cache, and IPFS integration. | `src/storage/backend.ts`, `src/storage/browser.ts`, `src/storage/host.ts`, `src/storage/provider.ts`, `src/storage/registry.ts`, `src/storage/service.ts`, `src/storage/storage-service.ts`, `src/storage/virtual-filesystem.ts` |
@@ -95,7 +99,8 @@ shared, and utility modules. The root `services` owner is `rootOnly`; every
 current root service source file must be listed in
 `audit.serviceRootFileOwners`, and new service implementation files must move
 under a named service family such as `service-mcp`, `service-ipfs`,
-`service-provers`, or `service-zkp`.
+`service-logic`, `service-platform`, `service-proof-engine`,
+`service-provers`, `service-shared`, or `service-zkp`.
 
 Service families must not import command or terminal UI modules. Any service
 used by browser code must be listed in `audit.browserSafeServiceFiles` and must
@@ -150,8 +155,11 @@ browser React hooks in `hooks-browser`.
 
 Put protocol, MCP, prover, telemetry, and domain facades in the most specific
 service family. Use `service-mcp` for MCP/MCP++ protocol work, `service-ipfs`
-for IPFS service descriptors and adapters, `service-provers` for prover bridge
-contracts, `service-zkp` for ZKP backends/artifacts, `service-apps` for app
+for IPFS service descriptors and adapters, `service-logic` for restored logic
+subtrees, `service-platform` for service-layer runtime adapters,
+`service-proof-engine` for proof execution internals, `service-provers` for
+prover bridge contracts, `service-shared` for runtime-neutral service
+primitives, `service-zkp` for ZKP backends/artifacts, `service-apps` for app
 manifests and app capability policy, and the other named service families for
 their domain subtrees. Do not add new root `src/services/*.ts` wrappers without
 adding them to `audit.serviceRootFileOwners`; the preferred home is a named

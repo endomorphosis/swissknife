@@ -48,4 +48,8 @@ checked through SHA-256 metadata.
 
 `npm run release:readiness` fails when this policy evidence, built CSP headers,
 worker/storage/offline coverage, or Vite host-import protections are missing.
+<<<<<<< Updated upstream
 The policy-specific audit is `scripts/audit-browser-deployment-policy.mjs`.
+=======
+The generated evidence is maintained by `scripts/audit-browser-deployment-policy.mjs`.
+>>>>>>> Stashed changes

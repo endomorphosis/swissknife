@@ -8,13 +8,13 @@ import {
   DeonticOperator,
   LogicalConnective,
   normalizeDeonticOperator,
-} from '../../src/services/dcec-core-types';
+} from '../../src/services/logic/dcec/dcec-core-types.js';
 import {
   canonicalDcecTypeManifest as sprint66Manifest,
   CanonicalDeonticOperator,
 } from '../../src/services/deontic-cognitive-logic-types';
-import { TDFOLToZ3Converter } from '../../src/services/z3-prover-bridge';
-import { TDFOLToCVC5Converter } from '../../src/services/cvc5-prover-bridge';
+import { TDFOLToZ3Converter } from '../../src/services/provers/z3-prover-bridge.js';
+import { TDFOLToCVC5Converter } from '../../src/services/provers/cvc5-prover-bridge.js';
 import { TDFOLToCoqConverter } from '../../src/services/provers/deontic-to-coq';
 import { TDFOLToLean4Converter } from '../../src/services/provers/deontic-to-lean4';
 import {
@@ -26,7 +26,7 @@ import {
   mkQuantified,
   mkTemporal,
   mkVariable,
-} from '../../src/services/tdfol-core';
+} from '../../src/services/logic/tdfol/tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // PORT-002 — canonical DCEC type module

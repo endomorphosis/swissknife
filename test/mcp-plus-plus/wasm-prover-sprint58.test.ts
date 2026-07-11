@@ -11,18 +11,18 @@ import {
   makeSort, makeVariable, makeFunction, makePredicate, applyOperator,
   SORT_AGENT, SORT_ACTION, SORT_TIME,
   PRED_HAPPENS, PRED_HOLDS_AT,
-} from '../../src/services/dcec-core-types';
+} from '../../src/services/logic/dcec/dcec-core-types.js';
 
 import {
   ProvingMethod, ZKPCECProver, UnifiedCECProofResult,
   createHybridProver,
-} from '../../src/services/cec-zkp-integration';
-import { Groth16BackendFallback } from '../../src/services/zkp-backends';
+} from '../../src/services/logic/cec/cec-zkp-integration.js';
+import { Groth16BackendFallback } from '../../src/services/zkp/zkp-backends.js';
 
 import {
   LegalModalAutoencoderLoop,
   defaultAutoencoderConfig,
-} from '../../src/services/modal-autoencoder-loop';
+} from '../../src/services/logic/modal/modal-autoencoder-loop.js';
 
 // ---------------------------------------------------------------------------
 // DCEC Core Types tests

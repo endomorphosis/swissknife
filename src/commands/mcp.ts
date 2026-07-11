@@ -1,5 +1,5 @@
 import type { LocalCommand } from '../types/command.js';
-import { listMCPServers, getClients } from '../services/mcpClient.js';
+import { listMCPServers, getClients } from '../services/mcp/host/mcpClient.js';
 import { PRODUCT_COMMAND } from '../constants/product.js';
 import chalk from 'chalk';
 import { getTheme } from '../utils/theme.js';

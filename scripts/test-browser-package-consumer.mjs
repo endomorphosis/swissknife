@@ -20,7 +20,7 @@ const REQUIRED_TARBALL_FILES = [
   'src/models/browser.ts',
   'src/storage/browser.ts',
   'src/workers/browser.ts',
-  'src/services/ipfs/browser.ts',
+  'src/services/ipfs/ipfs-browser.ts',
   'src/services/mcp/libp2p-browser-runtime.ts',
   'src/services/mcp/mcp-dashboard-browser-policy.ts',
   'src/components/browser/index.ts',

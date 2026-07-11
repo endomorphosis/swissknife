@@ -10,7 +10,7 @@
  * Only use toPublicMetadata() in external-facing contexts.
  */
 
-import { sha256Hex } from '../shared/browser-crypto.js';
+import { sha256Hex } from '../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Constants

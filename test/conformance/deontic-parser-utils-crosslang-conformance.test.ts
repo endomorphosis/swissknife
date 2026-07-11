@@ -8,7 +8,7 @@ import {
   classifyModal,
   extractActionRecipient,
   normalizePredicate,
-} from '../../src/services/deontic/deontic-parser-utils';
+} from '../../src/services/deontic/deontic-deontic-parser-utils.js';
 
 interface ModalCase {
   id: string;

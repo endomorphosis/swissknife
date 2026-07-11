@@ -8,8 +8,8 @@
  * TypeScript port generates equivalent string representations.
  */
 
-import { PatternMatch, PatternType } from './tdfol-nl-patterns';
-import { PatternMatcher } from './tdfol-nl-patterns';
+import { PatternMatch, PatternType } from './logic-tdfol-tdfol-nl-patterns.js';
+import { PatternMatcher } from './logic-tdfol-tdfol-nl-patterns.js';
 
 // ---------------------------------------------------------------------------
 // GeneratedFormula

@@ -1,16 +1,16 @@
 import {
   getIPFSAccelerateDescriptorPack,
   type IPFSAccelerateDescriptorPack,
-} from '../mcp/mcp-ipfs-accelerate-descriptor-pack.js';
+} from '../ipfs/mcp-ipfs-accelerate-descriptor-pack.js';
 import {
   getIPFSDatasetsDescriptorPack,
   type IPFSDatasetsDescriptorPack,
-} from '../mcp/mcp-ipfs-datasets-descriptor-pack.js';
+} from '../ipfs/mcp-ipfs-datasets-descriptor-pack.js';
 import {
   getIPFSKitDescriptorPack,
   getIPFSKitInterfaceDescriptors,
   type IPFSKitDescriptorPack,
-} from '../mcp/mcp-ipfs-kit-descriptor-pack.js';
+} from '../ipfs/mcp-ipfs-kit-descriptor-pack.js';
 import { generateSchemaDrivenUI } from '../mcp/mcp-schema-ui-generator.js';
 import type {
   GeneratedRendererKind,

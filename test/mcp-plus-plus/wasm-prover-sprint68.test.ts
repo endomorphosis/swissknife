@@ -11,7 +11,7 @@ import {
   EngDCECWrapper,
   DCECStatement, DCECLibraryWrapper,
   ZKPVerifier,
-} from '../../src/services/external-prover-wrappers';
+} from '../../src/services/provers/external-prover-wrappers.js';
 
 import {
   normalizeBytes32Hex, vkHashHexToBytes32, circuitIdTextToBytes32,

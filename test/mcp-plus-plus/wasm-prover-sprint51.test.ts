@@ -15,7 +15,7 @@ import {
   TemporalObligation,
   ALL_ADVANCED_RULES, findApplicableAdvancedRules,
   get_all_advanced_rules, get_combined_rules, get_deontic_rules, get_modal_rules, get_temporal_rules,
-} from '../../src/services/cec-advanced-inference';
+} from '../../src/services/logic/cec/cec-advanced-inference.js';
 
 import {
   DeonticKAxiomRule, DeonticDAxiomRule, ProhibitionEquivalenceRule,
@@ -25,19 +25,19 @@ import {
   ALL_DEONTIC_RULES, findApplicableDeonticRules,
   obligation, permission, prohibition,
   DeonticOp,
-} from '../../src/services/deontic-inference-rules';
-import { atom, binary, unary, LogicOperator } from '../../src/services/temporal-inference-rules';
+} from '../../src/services/logic/deontic/deontic-inference-rules.js';
+import { atom, binary, unary, LogicOperator } from '../../src/services/logic/shared/temporal-inference-rules.js';
 
 import {
   Event, Fluent, TimePoint, EventCalculus,
-} from '../../src/services/event-calculus';
+} from '../../src/services/logic/cec/event-calculus.js';
 
 import {
   FrenchPatternMatcher, FrenchParser,
   getFrenchVerbConjugations, getFrenchArticles,
   getFrenchNegationPatterns, getFrenchDeonticKeywords,
   FR_DEONTIC_OP,
-} from '../../src/services/french-parser';
+} from '../../src/services/logic/nl/french-parser.js';
 
 // ---------------------------------------------------------------------------
 // CEC Advanced Inference Rules tests

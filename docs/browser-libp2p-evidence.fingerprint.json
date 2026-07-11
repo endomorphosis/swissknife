@@ -2,11 +2,19 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "libp2p-browser-playwright",
   "label": "Browser libp2p Playwright evidence (SWR-028)",
+<<<<<<< Updated upstream
   "generatedAt": "2026-07-10T08:30:35.579Z",
   "evidenceFiles": [
     "docs/browser-libp2p-evidence.md"
   ],
   "sourceFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
+=======
+  "generatedAt": "2026-07-11T02:21:52.828Z",
+  "evidenceFiles": [
+    "docs/browser-libp2p-evidence.md"
+  ],
+  "sourceFingerprint": "9af53acf7b5b96d0823d352516a11f82258a43534df6d9b2ec419b0860f5d927",
+>>>>>>> Stashed changes
   "sourceFiles": [
     {
       "path": "build-tools/configs/playwright.libp2p-browser.config.ts",
@@ -18,7 +26,11 @@
     },
     {
       "path": "src/services/mcp/libp2p-browser-runtime.ts",
+<<<<<<< Updated upstream
       "sha256": "b9bc093ab9a8176c7e4bac657390cc493ffd46dd48173d36d3aa7bbf4d295907"
+=======
+      "sha256": "cc8e0b9283192133f7958796a26b1f682a43f9af1dbc4e1dab8ea7f64d685776"
+>>>>>>> Stashed changes
     },
     {
       "path": "src/services/mcp/mcp-discovery.ts",
@@ -26,11 +38,15 @@
     },
     {
       "path": "src/services/mcp/mcp-p2p-session.ts",
-      "sha256": "96118aa4ae869c633b172182f3af7b996c1bc358c6e8bf6f10824c5f708189b2"
+      "sha256": "3e14ca3ee4c254950d667b12195707df5869c60092fd478a2615e1d98ee6d699"
     },
     {
       "path": "test/e2e/fixtures/libp2p-browser-harness/harness.ts",
+<<<<<<< Updated upstream
       "sha256": "5857787bbe9316bf29f7c96a52f7e6bc7a1ad8375f132b36610a3faae0fbd824"
+=======
+      "sha256": "37297d038c127e66a3c93562f8dddafc5a48b73b206f7738118dc72f86b4c1eb"
+>>>>>>> Stashed changes
     },
     {
       "path": "test/e2e/fixtures/libp2p-browser-harness/index.html",

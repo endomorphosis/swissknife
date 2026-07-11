@@ -11,16 +11,16 @@ import {
   SpanishPatternMatcher, SpanishParser,
   getSpanishVerbConjugations, getSpanishArticles, getSpanishDeonticKeywords,
   ES_DEONTIC_OP,
-} from '../../src/services/spanish-parser';
+} from '../../src/services/logic/nl/spanish-parser.js';
 
 import {
   FluentType, PersistenceRule, FluentManager,
-} from '../../src/services/cec-fluents';
-import { TimePoint } from '../../src/services/event-calculus';
+} from '../../src/services/logic/cec/cec-fluents.js';
+import { TimePoint } from '../../src/services/logic/cec/event-calculus.js';
 
 import {
   isFormulaDict, isProofResultDict,
-} from '../../src/services/cec-types';
+} from '../../src/services/logic/cec/cec-types.js';
 
 import {
   TDFOLTraceNotDerivableError, TDFOLTraceBoundExceededError, TDFOLTraceSchemaError,
@@ -29,7 +29,7 @@ import {
   toNoirTraceFieldInputs, toPublicMetadata,
   theoremHashHex,
   MAX_TRACE_STEPS, CIRCUIT_REF, RULESET_ID,
-} from '../../src/services/zkp-trace';
+} from '../../src/services/zkp/zkp-trace.js';
 
 // ---------------------------------------------------------------------------
 // SpanishPatternMatcher tests

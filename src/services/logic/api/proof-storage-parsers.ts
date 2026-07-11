@@ -5,7 +5,7 @@
  *           CEC/native/grammar_loader.py (304L)
  */
 
-import { sha256Hex } from '../../shared/browser-crypto.js';
+import { sha256Hex } from '../../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // T-304a — IPFS Proof Storage (ipfs_proof_storage.py)

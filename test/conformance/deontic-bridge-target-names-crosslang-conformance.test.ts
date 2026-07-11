@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import {
   deonticListOfStrings,
   deonticNormalizedTargetNames,
-} from '../../src/services/deontic-norms-bridge';
+} from '../../src/services/logic/bridges/deontic-norms-bridge.js';
 
 interface Vector {
   id: string;

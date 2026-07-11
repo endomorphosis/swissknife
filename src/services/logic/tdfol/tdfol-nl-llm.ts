@@ -9,7 +9,7 @@
  *  - `LLMResponseCache` — CID-keyed in-memory cache with LRU eviction
  */
 
-import { sha256Hex } from '../../shared/browser-crypto.js';
+import { sha256Hex } from '../../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // System prompt templates

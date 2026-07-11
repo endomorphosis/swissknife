@@ -96,6 +96,7 @@ const CATEGORIES = [
   { name: 'core', tool_count: 2 },
   { name: 'storage', tool_count: 3 },
 ];
+const PROFILE_B_TEST_CID = 'bafkreicecnx2gvntm6fbcrvnc336qze6st5u7qq7457igegamd3bzkx7ri';
 
 /** MCP CallToolResult envelope, as all three servers return from tools/call. */
 function callToolResult(payload: unknown) {
@@ -143,6 +144,37 @@ function mcpJsonRpcDispatch(body: any, captured: CapturedCall[]) {
   if (method === 'ping') return { jsonrpc: '2.0', id, result: {} };
   if (method === 'tools/list') {
     return { jsonrpc: '2.0', id, result: { tools: toolDescriptors() } };
+  }
+  if (method === 'mcp++/execute') {
+    return {
+      jsonrpc: '2.0',
+      id,
+      result: {
+        output: { executed: params.tool, interface_cid: params.interface_cid },
+        envelope: { interface_cid: params.interface_cid, input_cid: PROFILE_B_TEST_CID, parents: [], timestamp: params.timestamp },
+        envelope_cid: PROFILE_B_TEST_CID,
+        input_cid: PROFILE_B_TEST_CID,
+        intent_cid: PROFILE_B_TEST_CID,
+        output_cid: PROFILE_B_TEST_CID,
+        event_cid: PROFILE_B_TEST_CID,
+        receipt_artifact: { success: true },
+        event: { receipt_cid: PROFILE_B_TEST_CID },
+        receipt: { success: true, receipt_cid: PROFILE_B_TEST_CID },
+      },
+    };
+  }
+  if (method === 'mcp++/artifacts/get') {
+    return {
+      jsonrpc: '2.0',
+      id,
+      result: {
+        found: true,
+        verified: true,
+        cid: params.cid,
+        backend: 'disk',
+        bytes_base64: 'e30=',
+      },
+    };
   }
   if (method === 'tools/call') {
     const name = params.name;
@@ -211,6 +243,19 @@ async function startMockServer(restRoutes: Record<string, RestHandler>): Promise
       return;
     }
 
+    if (req.method === 'GET' && path.startsWith('/mcp/artifacts/')) {
+      const cid = decodeURIComponent(path.slice('/mcp/artifacts/'.length));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        found: true,
+        verified: true,
+        cid,
+        backend: 'disk',
+        bytes_base64: 'e30=',
+      }));
+      return;
+    }
+
     const handler = restRoutes[key];
     if (handler) {
       const { status = 200, body } = handler();
@@ -238,8 +283,8 @@ const datasetsRoutes: Record<string, RestHandler> = {
   'GET /tools/list': () => ({ body: { tools: ALL_TOOL_NAMES, count: ALL_TOOL_NAMES.length, categories: ['core', 'storage'] } }),
 };
 const accelerateRoutes: Record<string, RestHandler> = {
-  // accelerate health is the generic /api/mcp/* status dict.
-  'GET /api/mcp/status': () => ({ body: { status: 'running', server: 'IPFS Accelerate MCP', port: 3003, components: ['mcp_server'] } }),
+  // The SwissKnife compatibility adapter owns /mcp/health.
+  'GET /mcp/health': () => ({ body: { status: 'ok', server: 'swissknife-ipfs-accelerate-compat', adapter_version: '0.8.0' } }),
   // The OLD (wrong) toolsPath: a GET here returns the SAME status dict, not tools.
   'GET /api/mcp/tools': () => ({ body: { status: 'running', server: 'IPFS Accelerate MCP', port: 3003, components: ['mcp_server'] } }),
   // The real tool catalogue (JSON-RPC-wrapped), matching kit's REST surface.
@@ -338,6 +383,23 @@ describe('MCPPPServerConnector over HTTP — connect + tool discovery', () => {
 // ---------------------------------------------------------------------------
 
 describe('MCPPPServerConnector over HTTP — tool invocation shapes', () => {
+  it('sends a complete Profile B execution request when cid-envelope is negotiated', async () => {
+    const { connector } = await connectHttp(IPFS_KIT_SERVER, kitRoutes);
+    const result = await connector.callToolWithEnvelope('core.health_check', {}, {
+      interfaceCid: PROFILE_B_TEST_CID,
+      timestamp: '2026-07-10T00:00:00.000Z',
+      correlationId: 'connector-http-profile-b',
+    });
+    expect(result.result).toEqual({ executed: 'core.health_check', interface_cid: PROFILE_B_TEST_CID });
+    expect(result.envelope).toMatchObject({ envelope_cid: PROFILE_B_TEST_CID, receipt: { success: true } });
+    await expect(connector.getArtifact(PROFILE_B_TEST_CID)).resolves.toMatchObject({
+      found: true,
+      verified: true,
+      cid: PROFILE_B_TEST_CID,
+      backend: 'disk',
+    });
+  });
+
   it('invokes a flat tool and returns the CallToolResult envelope', async () => {
     const { connector, captured } = await connectHttp(IPFS_KIT_SERVER, kitRoutes);
     const res = await connector.callTool('core.health_check', { verbose: true });

@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { deonticJsonGuidanceValue } from '../../src/services/deontic-norms-bridge';
+import { deonticJsonGuidanceValue } from '../../src/services/logic/bridges/deontic-norms-bridge.js';
 
 interface Vector {
   id: string;

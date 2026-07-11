@@ -11,7 +11,7 @@
  *   executeProof()         — module-level helper
  */
 
-import { sha256Hex } from '../shared/browser-crypto.js';
+import { sha256Hex } from '../shared/shared-browser-crypto.js';
 import { ProofStatus, ProofResult } from './proof-execution-engine-types.js';
 import { SupportedProver, ProofEngine } from './proof-execution-engine-utils.js';
 

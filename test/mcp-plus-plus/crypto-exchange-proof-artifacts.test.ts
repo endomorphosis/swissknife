@@ -191,7 +191,7 @@ describe('crypto-exchange security proof artifacts', () => {
   });
 
   it('exports through the browser prover barrel', async () => {
-    const browserProvers = await import('../../src/services/provers/browser');
+    const browserProvers = await import('../../src/services/provers/provers-browser.js');
 
     expect(typeof browserProvers.verifyCryptoExchangeProofReceipt).toBe('function');
     expect(typeof browserProvers.createCryptoExchangeProofReceiptFromReport).toBe('function');

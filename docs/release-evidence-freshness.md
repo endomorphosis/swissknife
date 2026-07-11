@@ -8,8 +8,14 @@ current state of the source they depend on.
 
 | Evidence | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- |
+<<<<<<< Updated upstream
 | Browser libp2p Playwright evidence (SWR-028) | ✅ fresh | 2026-07-10T08:30:35.579Z | npm run evidence:libp2p-browser |
 | Browser bundle budget evidence (SWR-016) | ✅ fresh | 2026-07-10T11:21:12.629Z | npm run build:web |
 | Module-boundary / service-boundary audit evidence (SWR-024) | ✅ fresh | 2026-07-10T11:20:43.155Z | npm run services:audit |
 | Virtual desktop app matrix release evidence (SWR-103) | ✅ fresh | 2026-07-10T11:21:21.481Z | node scripts/build-virtual-desktop-release-evidence.cjs |
+=======
+| Browser libp2p Playwright evidence (SWR-028) | ✅ fresh | 2026-07-11T02:21:52.828Z | npm run evidence:libp2p-browser |
+| Browser bundle budget evidence (SWR-016) | ✅ fresh | 2026-07-11T02:31:14.057Z | npm run build:web |
+| Module-boundary / service-boundary audit evidence (SWR-024) | ✅ fresh | 2026-07-11T02:30:39.715Z | npm run services:audit |
+>>>>>>> Stashed changes
 

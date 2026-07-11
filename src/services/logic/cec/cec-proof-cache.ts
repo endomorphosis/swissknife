@@ -3,7 +3,7 @@
  * Port of CEC/native/cec_proof_cache.py (422L)
  */
 
-import { sha256Hex } from '../../shared/browser-crypto.js';
+import { sha256Hex } from '../../shared/shared-browser-crypto.js';
 
 export interface CECCachedProofResult {
   formula:  string;

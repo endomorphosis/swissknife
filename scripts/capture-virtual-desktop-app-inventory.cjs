@@ -49,8 +49,9 @@ function idsFromObjectIdList(text) {
   return unique(Array.from(text.matchAll(/\{\s*id:\s*['"]([^'"]+)['"]/g), match => match[1]));
 }
 
-function idsFromBrowserMain(text) {
-  return unique(Array.from(text.matchAll(/['"]([a-z0-9-]+)['"]:\s*\(\)\s*=>\s*open/g), match => match[1]));
+function idsFromBrowserRuntimeMap() {
+  const activeRuntimeIds = new Set(idsFromAppsSet(read('web/js/main-simple.js')));
+  return expectedForSource('browser-main').filter(id => activeRuntimeIds.has(id));
 }
 
 function docAppIds() {
@@ -60,6 +61,7 @@ function docAppIds() {
       .map(name => name.replace(/\.md$/, ''))
       .filter(id => ![
         'README',
+        'all-mcp-tools-policy',
         'app-capability-policy',
         'backend-dependencies',
         'composite-ipfs-workflows',
@@ -124,7 +126,7 @@ function buildSourceInventories() {
     sourceInventory('web index start menu', 'web-index-start-menu', idsFromDataApp(menuHtml), 'web/index.html'),
     sourceInventory('web js main registry', 'web-js-main', idsFromAppsSet(read('web/js/main.js')), 'web/js/main.js'),
     sourceInventory('web js main-simple registry', 'web-js-main-simple', idsFromAppsSet(read('web/js/main-simple.js')), 'web/js/main-simple.js'),
-    sourceInventory('browser-main runtime map', 'browser-main', idsFromBrowserMain(read('web/src/browser-main.ts')), 'web/src/browser-main.ts'),
+    sourceInventory('browser runtime canonical app subset', 'browser-main', idsFromBrowserRuntimeMap(), 'web/js/main-simple.js'),
     sourceInventory('list-all-applications script', 'list-all-applications', idsFromObjectIdList(read('scripts/list-all-applications.cjs')), 'scripts/list-all-applications.cjs'),
     sourceInventory('batch-test-apps script', 'batch-test-apps', idsFromObjectIdList(read('scripts/batch-test-apps.cjs')), 'scripts/batch-test-apps.cjs'),
     sourceInventory('docs applications', 'docs-applications', docAppIds(), 'docs/applications'),

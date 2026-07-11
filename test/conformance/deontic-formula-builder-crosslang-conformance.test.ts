@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import {
   parserElementToFormula,
   parserElementToFormulaRecord,
-} from '../../src/services/deontic-formula-builder';
+} from '../../src/services/logic/deontic/deontic-formula-builder.js';
 
 interface Vector {
   id: string;

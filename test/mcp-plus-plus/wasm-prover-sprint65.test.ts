@@ -19,7 +19,7 @@ import {
   WitnessManager,
   EProverAdapter, checkEproverInstallation, EProverProofResult, type EProverProcessResult,
 } from '../../src/services/logic-verification-utilities';
-import { Groth16BackendFallback, Groth16Proof } from '../../src/services/zkp-backends';
+import { Groth16BackendFallback, Groth16Proof } from '../../src/services/zkp/zkp-backends.js';
 
 // ---------------------------------------------------------------------------
 // IPFSProofStorage

@@ -12,7 +12,7 @@ import {
   FormulaDependencyGraph,
   type DependencyNode,
   type DependencyEdge,
-} from '../../src/services/formula-dependency-graph';
+} from '../../src/services/logic/shared/formula-dependency-graph.js';
 
 function node(id: string, formulaType: DependencyNode['formulaType'], name?: string): DependencyNode {
   return { id, formula: `${id}_formula`, formulaType, metadata: name ? { name } : {} };

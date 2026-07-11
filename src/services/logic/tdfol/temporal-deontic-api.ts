@@ -3,11 +3,11 @@
  * Port of integration/domain/temporal_deontic_api.py (408L)
  */
 
-import { PatternMatcher, PatternType } from './tdfol-nl-patterns';
+import { PatternMatcher, PatternType } from './logic-tdfol-tdfol-nl-patterns.js';
 import { DeonticOp, makeDeonticFormula } from '../deontic/deontic-query-engine.js';
 import { DocumentConsistencyChecker } from '../deontic/document-consistency-checker.js';
 import { TemporalDeonticRAGStore } from './temporal-deontic-rag-store.js';
-import { sha256Hex } from '../../shared/browser-crypto.js';
+import { sha256Hex } from '../../shared/shared-browser-crypto.js';
 
 export interface TemporalContext {
   raw:      string;

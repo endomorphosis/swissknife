@@ -25,7 +25,7 @@ import {
 } from '../../src/services/provers/prover-types';
 import { ProofCache } from '../../src/services/provers/mcp-proof-cache';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
-import type { Policy } from '../../src/services/mcp/mcp-policy';
+import type { Policy } from '../../src/services/mcp/mcp-mcp-policy.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

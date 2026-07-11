@@ -9,7 +9,7 @@ import {
   BROWSER_SCHNORR_BACKEND_ID,
   type BrowserSchnorrProof,
   BrowserSchnorrZkpBackend,
-} from '../zkp-browser-schnorr.js';
+} from './zkp-browser-schnorr.js';
 import { assertProductionBrowserZkpBackendId } from './browser-zkp-policy.js';
 
 export const DEFAULT_BROWSER_ZKP_BACKEND_ID = BROWSER_SCHNORR_BACKEND_ID;
@@ -109,7 +109,7 @@ export {
   type BrowserSchnorrProofPayload,
   type BrowserSchnorrWasmExports,
   type BrowserSchnorrWitness,
-} from '../zkp-browser-schnorr.js';
+} from './zkp-browser-schnorr.js';
 
 export {
   BrowserZkpSimulationRejectedError,

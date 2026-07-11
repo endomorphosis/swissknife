@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import {
   deonticGuidanceFrameCandidates,
   deonticSelectedFrameFromCompilerGuidance,
-} from '../../src/services/deontic-norms-bridge';
+} from '../../src/services/logic/bridges/deontic-norms-bridge.js';
 
 type VectorKind = 'frame_candidates' | 'selected_frame';
 

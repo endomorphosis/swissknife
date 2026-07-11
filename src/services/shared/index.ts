@@ -1,1 +1,1 @@
-export * from './browser-crypto.js';
+export * from './shared-browser-crypto.js';

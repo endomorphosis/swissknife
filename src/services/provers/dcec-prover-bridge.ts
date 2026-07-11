@@ -33,8 +33,8 @@ import {
   Obligation,
   Permission,
   Prohibition,
-} from './dcec-types.js';
-import { PolicyToDcecTranslator } from './policy-to-dcec.js';
+} from './provers-dcec-types.js';
+import { PolicyToDcecTranslator } from './provers-policy-to-dcec.js';
 
 export const DCEC_PROVER_ID = 'dcec-native' as const;
 

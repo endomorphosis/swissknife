@@ -115,6 +115,17 @@ describe('MCPp2pSession framing (MCP++ §5.1)', () => {
     expect(len).toBe(firstFrame.length - 4);
   });
 
+  it('reassembles a response split across multiple stream chunks', async () => {
+    const response = makeInitResponse();
+    const stream = makeMockStream({
+      inbound: [response.subarray(0, 2), response.subarray(2, 19), response.subarray(19)],
+    });
+    const session = new MCPp2pSession(stream);
+    const handshake = await session.handshake({ name: 'fragment-test', version: '1.0.0' });
+    expect(handshake.serverInfo.name).toBe('test-server');
+    await session.close();
+  });
+
   it('aborts session on oversized incoming frame', done => {
     // Build a frame that claims to be larger than the limit
     const header = Buffer.allocUnsafe(4);
@@ -390,6 +401,31 @@ describe('negotiateCapabilities (MCP++ §3.2)', () => {
     expect(downgradeEvents).toHaveLength(1);
     const ev = downgradeEvents[0] as { unsupported: string[] };
     expect(ev.unsupported.length).toBeGreaterThan(0);
+    await session.close();
+  });
+
+  it('negotiates Profile E from canonical experimental capabilities', async () => {
+    const response = buildLengthPrefixedFrame({
+      jsonrpc: '2.0',
+      id: 1,
+      result: {
+        protocolVersion: '2024-11-05',
+        serverInfo: { name: 'profile-e-peer', version: '1.0.0' },
+        capabilities: {
+          tools: { listChanged: true },
+          experimental: { 'mcp++/p2p-transport': true },
+        },
+      },
+    });
+    const stream = makeMockStream({ inbound: [response] });
+    const session = new MCPp2pSession(stream);
+
+    const handshake = await session.handshake({ name: 'swissknife-test', version: '1.0.0' });
+    expect(handshake.capabilities.mcpPlusPlusProfiles).toEqual(['mcp++/p2p-transport']);
+
+    const sent = JSON.parse(stream.written[0].subarray(4).toString('utf8'));
+    expect(sent.params.capabilities.experimental['mcp++/p2p-transport']).toBe(true);
+    expect(sent.params.capabilities.experimental['mcp++/mcp-idl']).toBe(true);
     await session.close();
   });
 });

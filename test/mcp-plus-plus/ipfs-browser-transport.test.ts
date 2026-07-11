@@ -5,8 +5,8 @@ import {
   createBrowserIPFSTransport,
   detectBrowserIPFSCapabilities,
   summarizeBrowserIPFSCapabilityGaps,
-} from '../../src/services/ipfs/browser.js';
-import { createHostIPFSTransport } from '../../src/services/ipfs/host.js';
+} from '../../src/services/ipfs/ipfs-browser.js';
+import { createHostIPFSTransport } from '../../src/services/ipfs/ipfs-host.js';
 
 const ROOT = resolve(__dirname, '../..');
 
@@ -74,7 +74,7 @@ describe('IPFS browser transport strategy', () => {
   });
 
   it('keeps host-only operations behind the host entrypoint', async () => {
-    const browserSource = readFileSync(resolve(ROOT, 'src/services/ipfs/browser.ts'), 'utf8');
+    const browserSource = readFileSync(resolve(ROOT, 'src/services/ipfs/ipfs-browser.ts'), 'utf8');
     expect(browserSource).not.toMatch(/from ['"]node:/);
     expect(browserSource).not.toMatch(/from ['"](?:fs|child_process|stream|..\/..\/ipfs\/client)/);
 

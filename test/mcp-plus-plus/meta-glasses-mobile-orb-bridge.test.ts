@@ -12,7 +12,7 @@ import {
   type MetaGlassesMobileORBRegisterResponse,
   type MetaGlassesMobileORBSubscribeServiceUpdatesResponse,
 } from '../../src/services/glasses/meta-glasses-mobile-orb-bridge';
-import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/mcp-control-surface-mediator.js';
 
 jest.mock('crypto', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports

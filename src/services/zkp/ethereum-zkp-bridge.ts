@@ -6,7 +6,7 @@
  *           zkp/evm_public_inputs.py (106L)
  */
 
-import { bytesToHex, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
+import { bytesToHex, sha256Hex, utf8Bytes } from '../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // T-315a — ETH VK Registry Payloads (eth_vk_registry_payloads.py)

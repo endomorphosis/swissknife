@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-import { parseErgoOutputBindings } from '../../src/services/flogic-ergoai-wrapper';
+import { parseErgoOutputBindings } from '../../src/services/integrations/flogic-ergoai-wrapper.js';
 
 interface ErgoCorpusVector {
   id: string;

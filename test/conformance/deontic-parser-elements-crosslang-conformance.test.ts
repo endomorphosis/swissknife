@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import {
   extractNormativeElements,
   migrateParserElement,
-} from '../../src/services/deontic-legal-text-engine';
+} from '../../src/services/logic/deontic/deontic-legal-text-engine.js';
 
 interface ExpectedFirst {
   norm_type: string;

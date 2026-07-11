@@ -7,14 +7,14 @@
 import {
   SYMBOLIC_AI_AVAILABLE, enableSymbolicAI, resetSymbolicAI,
   DEFAULT_CAPABILITIES, getIntegrationStatus, hasCapability,
-} from '../../src/services/integration-init.js';
+} from '../../src/services/integrations/integration-init.js';
 import {
   FOLConstructorIOMixin, IFOLSession, ExportedStatement,
-} from '../../src/services/fol-constructor-io-mixin.js';
+} from '../../src/services/logic/fol/fol-constructor-io-mixin.js';
 import {
   detectPlatformInstallProfile, installComponent, installComponents,
   listKnownComponents,
-} from '../../src/services/prover-installer.js';
+} from '../../src/services/provers/prover-installer.js';
 
 // ---------------------------------------------------------------------------
 // Integration Init

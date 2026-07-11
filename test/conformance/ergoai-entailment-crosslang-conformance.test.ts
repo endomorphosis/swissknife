@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-import { FLogicProvingMethod, ZKPFLogicProver } from '../../src/services/flogic-ergoai-wrapper';
+import { FLogicProvingMethod, ZKPFLogicProver } from '../../src/services/integrations/flogic-ergoai-wrapper.js';
 
 interface EntailmentVector {
   id: string;

@@ -11,7 +11,7 @@ import type {
   AllToolsLedger,
   AllToolsLedgerTool,
 } from '../apps/all-tools-policy-classifier.js';
-import { createDefaultControlSurfaceContract } from './control-surface-mediator.js';
+import { createDefaultControlSurfaceContract } from './mcp-control-surface-mediator.js';
 import {
   computeCID,
   computeInterfaceCID,

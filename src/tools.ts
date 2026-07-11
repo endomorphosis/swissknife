@@ -13,7 +13,7 @@ import { MemoryWriteTool } from './tools/MemoryWriteTool/MemoryWriteTool.js'
 import { NotebookEditTool } from './tools/NotebookEditTool/NotebookEditTool.js'
 import { NotebookReadTool } from './tools/NotebookReadTool/NotebookReadTool.js'
 import { ThinkTool } from './tools/ThinkTool/ThinkTool.js'
-import { getMCPTools } from './services/mcpClient.js'
+import { getMCPTools } from './services/mcp/host/mcpClient.js'
 import { memoize } from 'lodash-es.js'
 
 const ANT_ONLY_TOOLS = [MemoryReadTool, MemoryWriteTool]

@@ -12,20 +12,20 @@ import {
   modalFormulaToText,
   targetFamilyDistributionForModalIr,
   targetFamilyForModalIr,
-} from '../../src/services/modal-logic-codec';
+} from '../../src/services/logic/modal/modal-logic-codec.js';
 import {
   CircuitBreakerState,
   PrometheusMetricsCollector,
   getPrometheusCollector,
-} from '../../src/services/observability-metrics-prometheus';
+} from '../../src/services/platform/observability-metrics-prometheus.js';
 import {
   ensureCoq,
   ensureCvc5,
   ensureErgoai,
   ensureLean,
   ensureSymbolicai,
-} from '../../src/services/prover-installer';
-import { resolveErgoBinary } from '../../src/services/ergoai-wrapper';
+} from '../../src/services/provers/prover-installer.js';
+import { resolveErgoBinary } from '../../src/services/integrations/ergoai-wrapper.js';
 
 describe('PORT-233 modal codec decode and target-family helpers', () => {
   const modalIr = {

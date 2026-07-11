@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
+<<<<<<< Updated upstream
   "generatedAt": "2026-07-10T11:21:21.777Z",
+=======
+  "generatedAt": "2026-07-11T02:31:21.517Z",
+>>>>>>> Stashed changes
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -9,9 +13,15 @@
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
+<<<<<<< Updated upstream
       "recordedFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
       "currentFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
       "recordedAt": "2026-07-10T08:30:35.579Z",
+=======
+      "recordedFingerprint": "9af53acf7b5b96d0823d352516a11f82258a43534df6d9b2ec419b0860f5d927",
+      "currentFingerprint": "9af53acf7b5b96d0823d352516a11f82258a43534df6d9b2ec419b0860f5d927",
+      "recordedAt": "2026-07-11T02:21:52.828Z",
+>>>>>>> Stashed changes
       "regenerateHint": "npm run evidence:libp2p-browser"
     },
     {
@@ -21,9 +31,15 @@
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
+<<<<<<< Updated upstream
       "recordedFingerprint": "20c965bbcedd47d85e0fb8420a56d96670a7f51bf15b7bd3d4b94119ea734186",
       "currentFingerprint": "20c965bbcedd47d85e0fb8420a56d96670a7f51bf15b7bd3d4b94119ea734186",
       "recordedAt": "2026-07-10T11:21:12.629Z",
+=======
+      "recordedFingerprint": "87b800f5434b507ac70d721e3c84ca99373757e285789729173b2e088bee86eb",
+      "currentFingerprint": "87b800f5434b507ac70d721e3c84ca99373757e285789729173b2e088bee86eb",
+      "recordedAt": "2026-07-11T02:31:14.057Z",
+>>>>>>> Stashed changes
       "regenerateHint": "npm run build:web"
     },
     {
@@ -33,9 +49,15 @@
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
+<<<<<<< Updated upstream
       "recordedFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
       "currentFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
       "recordedAt": "2026-07-10T11:20:43.155Z",
+=======
+      "recordedFingerprint": "cb799cfa2a1a6af15b270efef7628e61c3eedebb77403b9a3218b528d52fd89e",
+      "currentFingerprint": "cb799cfa2a1a6af15b270efef7628e61c3eedebb77403b9a3218b528d52fd89e",
+      "recordedAt": "2026-07-11T02:30:39.715Z",
+>>>>>>> Stashed changes
       "regenerateHint": "npm run services:audit"
     },
     {

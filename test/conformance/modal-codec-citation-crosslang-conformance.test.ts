@@ -12,7 +12,7 @@ import {
   inferredCitationsFromSourceIds,
   sourceIdInferredCitation,
   titleSectionCoordinate,
-} from '../../src/services/modal-logic-codec';
+} from '../../src/services/logic/modal/modal-logic-codec.js';
 
 interface CitationResult {
   canonical: string;

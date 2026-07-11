@@ -5,7 +5,7 @@ import {
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
   validateMCPUIProfileDescriptor,
 } from '../../src/services/mcp/mcp-ui-profile';
-import { createDefaultControlSurfaceContract } from '../../src/services/mcp/control-surface-mediator';
+import { createDefaultControlSurfaceContract } from '../../src/services/mcp/mcp-control-surface-mediator.js';
 import {
   META_GLASSES_DISPLAY_ERROR_CODES,
   META_GLASSES_DISPLAY_PROFILE,

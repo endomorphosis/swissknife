@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { canonicalModalFamilyToken } from '../../src/services/modal-compiler';
+import { canonicalModalFamilyToken } from '../../src/services/logic/modal/modal-compiler.js';
 
 interface Vector {
   id: string;

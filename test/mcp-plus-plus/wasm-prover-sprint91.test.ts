@@ -8,13 +8,13 @@ import {
   FOLConversionMonitor,
   extractPredicates,
   extractSemanticRoles,
-} from '../../src/services/fol/enhanced-fol-converter';
+} from '../../src/services/fol/fol-enhanced-fol-converter.js';
 import {
   extractDeonticStatements,
   extractPredicatesFromText,
   parseDeonticFormula,
   serializeDeonticAst,
-} from '../../src/services/deontic/deontic-extraction';
+} from '../../src/services/deontic/deontic-deontic-extraction.js';
 
 describe('PORT-187 EnhancedFOLConverter', () => {
   it('adds predicate extraction and confidence scoring to FOL conversion', () => {

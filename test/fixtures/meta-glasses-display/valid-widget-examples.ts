@@ -2,7 +2,7 @@ import {
   SWISSKNIFE_MCP_UI_PROFILE,
   SWISSKNIFE_MCP_UI_PROFILE_VERSION,
 } from '../../../src/services/mcp/mcp-ui-profile';
-import { createDefaultControlSurfaceContract } from '../../../src/services/mcp/control-surface-mediator';
+import { createDefaultControlSurfaceContract } from '../../../src/services/mcp/mcp-control-surface-mediator.js';
 import {
   META_GLASSES_DISPLAY_PROFILE,
   META_GLASSES_DISPLAY_PROFILE_PROPERTY,

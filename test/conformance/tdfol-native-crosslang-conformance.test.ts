@@ -14,7 +14,7 @@ import {
   Permission,
   Prohibition,
   type DCECFormula,
-} from '../../src/services/provers/dcec-types';
+} from '../../src/services/provers/provers-dcec-types.js';
 import {
   Always,
   Eventually,
@@ -23,7 +23,7 @@ import {
   Since,
   type TdfolFormula,
   Until,
-} from '../../src/services/provers/tdfol-types';
+} from '../../src/services/provers/provers-tdfol-types.js';
 
 interface Vector {
   id: string;

@@ -238,6 +238,7 @@ class WebSocketTransport extends BaseTransport {
 
 export class Libp2pTransport extends BaseTransport {
   private session: import('./mcp-p2p-session.js').MCPp2pSession | null = null;
+  private node: { stop(): void | Promise<void> } | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectBaseDelayMs = 1000;
@@ -252,6 +253,7 @@ export class Libp2pTransport extends BaseTransport {
       // optional transport sub-packages are not installed.
       // @ts-ignore optional runtime dependency
       const { createLibp2p } = await import('libp2p');
+      const { multiaddr } = await import('@multiformats/multiaddr');
       const { MCP_P2P_PROTOCOL_ID, MCPp2pSession } = await import(
         './mcp-p2p-session.js'
       );
@@ -260,13 +262,22 @@ export class Libp2pTransport extends BaseTransport {
         ...(this.options.libp2pOptions ?? {}),
       };
 
+      // The Profile E peers are announced as TCP multiaddrs. The generic
+      // libp2p factory has no Node transport by default, so configure TCP
+      // explicitly rather than creating a node that cannot dial its endpoint.
+      if (!Array.isArray(libp2pOptions.transports) || libp2pOptions.transports.length === 0) {
+        // @ts-ignore optional host-only runtime dependency
+        const { tcp } = await import('@libp2p/tcp');
+        libp2pOptions.transports = [tcp()];
+      }
+
       // Try to load noise + yamux if available (graceful degradation)
       try {
         // @ts-ignore optional runtime dependency
         const { noise } = await import('@chainsafe/libp2p-noise');
         // @ts-ignore optional runtime dependency
         const { yamux } = await import('@chainsafe/libp2p-yamux');
-        libp2pOptions.connectionEncrypters = [noise()];
+        libp2pOptions.connectionEncryption = [noise()];
         libp2pOptions.streamMuxers = [yamux()];
       } catch {
         // Transport sub-packages not installed; proceed without encryption layer
@@ -274,10 +285,12 @@ export class Libp2pTransport extends BaseTransport {
       }
 
       const node = await createLibp2p(libp2pOptions as Parameters<typeof createLibp2p>[0]);
+      this.node = node;
       await node.start();
 
       const endpoint = this.options.endpoint;
-      const stream = await node.dialProtocol(endpoint, MCP_P2P_PROTOCOL_ID) as unknown as import('./mcp-p2p-session.js').P2PStream;
+      const rawStream = await node.dialProtocol(multiaddr(endpoint), MCP_P2P_PROTOCOL_ID);
+      const stream = adaptLibp2pStream(rawStream);
 
       this.session = new MCPp2pSession(stream, {
         maxFrameBytes:
@@ -309,6 +322,11 @@ export class Libp2pTransport extends BaseTransport {
       return true;
     } catch (err) {
       console.error('[Libp2pTransport] connect() failed:', err);
+      if (this.node) {
+        try { await this.node.stop(); } catch {}
+        this.node = null;
+      }
+      this.session = null;
       return false;
     }
   }
@@ -318,6 +336,10 @@ export class Libp2pTransport extends BaseTransport {
     if (this.session) {
       await this.session.close();
       this.session = null;
+    }
+    if (this.node) {
+      try { await this.node.stop(); } catch {}
+      this.node = null;
     }
     this.emit('disconnect');
   }
@@ -353,6 +375,65 @@ export class Libp2pTransport extends BaseTransport {
     await new Promise(resolve => setTimeout(resolve, delay));
     await this.connect();
   }
+}
+
+type Libp2pDuplexStream = {
+  source: AsyncIterable<Uint8Array | { subarray(start?: number, end?: number): Uint8Array }>;
+  sink(source: AsyncIterable<Uint8Array>): Promise<void>;
+  close?(): Promise<void>;
+  abort?(err: Error): void;
+};
+
+/**
+ * Modern js-libp2p exposes streams as `{ source, sink }`, while the MCP++
+ * session uses a minimal write/async-iterator contract. Keep one sink open for
+ * the session lifetime and bridge writes through a small async queue.
+ */
+function adaptLibp2pStream(rawStream: Libp2pDuplexStream): import('./mcp-p2p-session.js').P2PStream {
+  const queued: Uint8Array[] = [];
+  let closed = false;
+  let sinkError: unknown = null;
+  let wakeWriter: (() => void) | null = null;
+
+  const outbound = (async function* (): AsyncGenerator<Uint8Array> {
+    while (!closed || queued.length > 0) {
+      const chunk = queued.shift();
+      if (chunk) {
+        yield chunk;
+        continue;
+      }
+      await new Promise<void>(resolve => { wakeWriter = resolve; });
+      wakeWriter = null;
+    }
+  })();
+  const sinkComplete = rawStream.sink(outbound).catch(error => {
+    sinkError = error;
+  });
+
+  return {
+    async write(chunk: Uint8Array): Promise<void> {
+      if (closed) throw new Error('libp2p stream is closed');
+      if (sinkError) throw sinkError;
+      queued.push(chunk);
+      wakeWriter?.();
+    },
+    async *[Symbol.asyncIterator](): AsyncIterableIterator<Uint8Array> {
+      for await (const chunk of rawStream.source) {
+        yield chunk instanceof Uint8Array ? chunk : chunk.subarray();
+      }
+    },
+    async close(): Promise<void> {
+      closed = true;
+      wakeWriter?.();
+      await sinkComplete;
+      await rawStream.close?.();
+    },
+    abort(error?: Error): void {
+      closed = true;
+      wakeWriter?.();
+      rawStream.abort?.(error ?? new Error('MCP++ session aborted'));
+    },
+  };
 }
 
 /**

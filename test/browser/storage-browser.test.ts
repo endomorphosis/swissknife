@@ -17,7 +17,7 @@ import {
   summarizeBrowserStorageCapabilityGaps,
   type BrowserStorageProvider,
 } from '../../src/storage/browser.js';
-import type { BrowserIPFSTransport } from '../../src/services/ipfs/browser.js';
+import type { BrowserIPFSTransport } from '../../src/services/ipfs/ipfs-browser.js';
 import {
   installFakeCacheStorage,
   installFakeIndexedDB,

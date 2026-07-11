@@ -14,8 +14,8 @@ import {
   LegalConceptType,
   LegalDomainKind,
   LegalDomainKnowledge,
-} from '../../src/services/legal-domain-knowledge';
-import { LegalSymbolicAnalyzer } from '../../src/services/legal-symbolic-analyzer';
+} from '../../src/services/logic/shared/legal-domain-knowledge.js';
+import { LegalSymbolicAnalyzer } from '../../src/services/logic/shared/legal-symbolic-analyzer.js';
 
 describe('§12.13 legal-domain port — enum parity with Python', () => {
   it('PORT-130: LegalDomainKind covers all 12 Python LegalDomain values', () => {

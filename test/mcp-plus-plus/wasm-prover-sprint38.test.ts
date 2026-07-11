@@ -6,14 +6,14 @@
 
 import {
   PipelineResult, NeurosymbolicGraphRAG,
-} from '../../src/services/neurosymbolic-graphrag.js';
+} from '../../src/services/integrations/neurosymbolic-graphrag.js';
 import {
   ConfidenceSource, ConfidenceBreakdown, HybridConfidenceScorer,
-} from '../../src/services/hybrid-confidence.js';
+} from '../../src/services/logic/shared/hybrid-confidence.js';
 import {
   BridgeCapability, BridgeRegistry,
   BaseProverBridge, getBridgeRegistry, resetBridgeRegistry, StubProverBridge,
-} from '../../src/services/base-prover-bridge.js';
+} from '../../src/services/proof-engine/base-prover-bridge.js';
 
 const LEGAL_TEXT =
   'The contractor shall deliver the goods within 30 days. ' +

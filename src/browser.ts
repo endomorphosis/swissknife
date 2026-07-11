@@ -6,7 +6,7 @@ export * from './ai/browser.js';
 export * from './models/browser.js';
 export * from './services/mcp/browser-mcp.js';
 export * from './services/mcp/libp2p-browser-runtime.js';
-export * from './services/ipfs/browser.js';
+export * from './services/ipfs/ipfs-browser.js';
 export * from './storage/browser.js';
 export * from './workers/browser.js';
 export * from './services/logic-language-pipeline.js';

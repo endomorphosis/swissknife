@@ -16,11 +16,11 @@ import {
   NamespaceError,
   ParsingError,
   ProvingError,
-} from '../../src/services/logic-errors';
+} from '../../src/services/logic/shared/logic-errors.js';
 import {
   AuditLogger,
   resetAuditLogger,
-} from '../../src/services/logic-audit-log';
+} from '../../src/services/logic/shared/logic-audit-log.js';
 import {
   ProveKitArtifactManifest,
   buildProveKitArtifactManifest,
@@ -29,17 +29,17 @@ import {
   saveProveKitArtifactManifest,
   sha256Directory,
   sha256File,
-} from '../../src/services/zkp-provekit-artifacts';
+} from '../../src/services/zkp/zkp-provekit-artifacts.js';
 import {
   buildProveKitIpfsPayload,
   buildProveKitProofCacheKey,
   buildProveKitProofCacheKeyFromProof,
   provekitIpfsPayloadIsPublicOnly,
-} from '../../src/services/zkp-provekit-cache';
+} from '../../src/services/zkp/zkp-provekit-cache.js';
 import {
   Groth16SetupArtifacts,
   storeGroth16SetupArtifactsInIpfs,
-} from '../../src/services/zkp-provekit-setup-artifacts';
+} from '../../src/services/zkp/zkp-provekit-setup-artifacts.js';
 
 describe('PORT-225 CEC native exception taxonomy', () => {
   it('renders context and suggestions with the Python CECError format', () => {

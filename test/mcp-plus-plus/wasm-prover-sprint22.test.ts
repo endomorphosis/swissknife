@@ -15,14 +15,14 @@ import {
   ZKPProofError, ConversionError, InferenceError, NLProcessingError,
   PatternMatchError, CacheError,
   isTDFOLError, isProofError, isParseError,
-} from '../../src/services/tdfol-exceptions.js';
+} from '../../src/services/logic/tdfol/tdfol-exceptions.js';
 import {
   IndexedKB, OptimizedProver, createOptimizedProver,
-} from '../../src/services/tdfol-optimization.js';
+} from '../../src/services/logic/tdfol/tdfol-optimization.js';
 import {
   SecurityValidator, createValidator, validateFormula,
-} from '../../src/services/tdfol-security-validator.js';
-import { Atom, Obligation, Permission } from '../../src/services/provers/dcec-types.js';
+} from '../../src/services/logic/tdfol/tdfol-security-validator.js';
+import { Atom, Obligation, Permission } from '../../src/services/provers/provers-dcec-types.js';
 
 // ---------------------------------------------------------------------------
 // T-112: TDFOL Exception Hierarchy

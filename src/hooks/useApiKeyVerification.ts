@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react.js'
-import { verifyApiKey } from '../services/claude.js'
+import { verifyApiKey } from '../services/platform/claude.js'
 import { getAnthropicApiKey, isDefaultApiKey } from '../utils/config.js'
 
 export type VerificationStatus =

@@ -37,7 +37,7 @@ jest.mock('../../../../src/utils/log', () => ({
 }));
 
 // Import the classes we need to test (after mocks)
-import { TrafficManager } from '../../../../src/services/mcp/mcp-traffic-manager.js';
+import { TrafficManager } from '../../../../src/services/mcp/mcp-mcp-traffic-manager.js';
 import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry.js';
 
 
@@ -110,7 +110,7 @@ describe('TrafficManager', () => {
 
             // Mock successful connection
             const mockClient = {};
-            const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
+            const connectToServer = require('../../../../src/services/mcp/host/mcpClient.js').connectToServer;
             connectToServer.mockResolvedValue(mockClient);
 
             // Request client multiple times and count selections
@@ -171,7 +171,7 @@ describe('TrafficManager', () => {
 
             // Mock successful connection
             const mockClient = {};
-            const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
+            const connectToServer = require('../../../../src/services/mcp/host/mcpClient.js').connectToServer;
             connectToServer.mockResolvedValue(mockClient);
 
             // Request with >=1.5.0 constraint
@@ -204,7 +204,7 @@ describe('TrafficManager', () => {
 
             // Mock successful connection
             const mockClient = {};
-            const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
+            const connectToServer = require('../../../../src/services/mcp/host/mcpClient.js').connectToServer;
             connectToServer.mockResolvedValue(mockClient);
 
             // First request should create connection

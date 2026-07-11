@@ -95,19 +95,14 @@ export interface BrowserLibp2pRuntimeConfig {
 
 export interface BrowserLibp2pDefaultStatus extends BrowserLibp2pRuntimeConfig {
   schema: 'swissknife.browser_libp2p_default_status.v1';
-  generatedAt: string;
-  listenMultiaddrs: string[];
-}
-
-export interface BrowserLibp2pNodeRuntime extends BrowserLibp2pRuntimeConfig {
-  node: unknown;
-}
-
-export interface BrowserLibp2pDefaultStatus extends BrowserLibp2pRuntimeConfig {
   defaultEnabled: true;
   generatedAt: string;
   listenMultiaddrs: string[];
   moduleLoader: 'literal-browser-imports';
+}
+
+export interface BrowserLibp2pNodeRuntime extends BrowserLibp2pRuntimeConfig {
+  node: unknown;
 }
 
 interface OptionalModuleSpec {

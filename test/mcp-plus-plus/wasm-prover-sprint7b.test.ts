@@ -13,7 +13,7 @@ import {
   ixBuildInstructions,
   proveWithIx,
 } from '../../src/services/provers/lean4-wasm-bridge';
-import { PolicyAuditLog } from '../../src/services/policy-audit-log';
+import { PolicyAuditLog } from '../../src/services/mcp/policy-audit-log.js';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
 
 const IX_AVAILABLE = findIxCli() !== null;

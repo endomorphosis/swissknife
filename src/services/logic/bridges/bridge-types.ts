@@ -1,1 +1,1 @@
-export * from '../shared/bridge-types.js';
+export * from '../shared/logic-shared-bridge-types.js';

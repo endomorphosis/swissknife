@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { FLogicProvingMethod, ZKPFLogicProver } from '../../src/services/flogic-ergoai-wrapper';
+import { FLogicProvingMethod, ZKPFLogicProver } from '../../src/services/integrations/flogic-ergoai-wrapper.js';
 
 interface EntailmentVector {
   id: string;

@@ -81,8 +81,8 @@ browser-safe barrel.
 
 The current manifest permits these service entrypoint patterns:
 
-- `src/services/logic-public-api.ts`
-- `src/services/browser-acceleration.ts`
+- `src/services/logic/api/logic-public-api.ts`
+- `src/services/platform/browser-acceleration.ts`
 - `src/services/mcp/*.ts`
 - `src/services/provers/*.ts`
 - `src/services/zkp/*.ts`

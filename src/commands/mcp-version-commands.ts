@@ -16,7 +16,7 @@ import {
   ensureConfigScope, 
   listMCPServers,
   McpServerConfig
-} from '../services/mcpClient.js';
+} from '../services/mcp/host/mcpClient.js';
 import { Command, LocalCommand } from '../types/command.js';
 import { logEvent } from '../utils/log.js';
 import chalk from 'chalk.js';

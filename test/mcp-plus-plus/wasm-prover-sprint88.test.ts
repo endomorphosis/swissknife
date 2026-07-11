@@ -3,7 +3,7 @@
  * Tests for §12.20 TDFOL performance engine residual closure.
  */
 
-import { TDFOLPerformanceEngine } from '../../src/services/tdfol-performance-engine';
+import { TDFOLPerformanceEngine } from '../../src/services/logic/tdfol/tdfol-performance-engine.js';
 
 describe('PORT-184 TDFOLPerformanceEngine', () => {
   it('aggregates per-strategy timings, success rates, and percentiles', () => {

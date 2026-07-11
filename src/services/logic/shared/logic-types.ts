@@ -13,7 +13,7 @@
  * Reference: ipfs_datasets_py/logic/types/
  */
 
-import { md5Hex } from '../../shared/browser-crypto.js';
+import { md5Hex } from '../../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Operator enumerations

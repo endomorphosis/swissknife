@@ -8,7 +8,7 @@ import {
   makeAmbiguity,
   modalCompilerConfigToPythonDict,
   pythonDefaultModalCompilerConfig,
-} from '../../src/services/modal-compiler';
+} from '../../src/services/logic/modal/modal-compiler.js';
 
 interface AmbiguityVector {
   id: string;

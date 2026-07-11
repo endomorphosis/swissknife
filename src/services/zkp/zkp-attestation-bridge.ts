@@ -2,7 +2,7 @@
  * zkp-attestation-bridge.ts
  *
  * Bridge adapter that converts formal proof obligations to ZKP attestation
- * views and graph records using a simulated backend.
+ * views and graph records using the browser ZKP backend by default.
  *
  * TypeScript port of ipfs_datasets_py/logic/bridge/zkp_attestation.py
  *
@@ -18,8 +18,8 @@ import {
   ProofGateResult,
   GraphProjectionResult,
   BridgeEvaluationReport,
-} from '../logic/shared/bridge-types.js';
-import { sha256Hex } from '../shared/browser-crypto.js';
+} from '../logic/shared/logic-shared-bridge-types.js';
+import { sha256Hex } from '../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -90,7 +90,7 @@ function makeAttestationRecord(
 // ---------------------------------------------------------------------------
 
 export interface ZkpAttestationBridgeAdapterOpts {
-  /** Backend to simulate (default: 'simulated'). */
+  /** Backend identifier used for attestation records. */
   backend?: string;
   enableCaching?: boolean;
   name?: string;
@@ -123,7 +123,7 @@ export class ZkpAttestationBridgeAdapter {
   constructor(opts: ZkpAttestationBridgeAdapterOpts = {}) {
     this.name = opts.name ?? 'zkp_attestation';
     this.targetComponent = opts.targetComponent ?? 'zkp.circuits';
-    this.backend = opts.backend ?? 'simulated';
+    this.backend = opts.backend ?? 'browser-schnorr-wasm';
   }
 
   /**

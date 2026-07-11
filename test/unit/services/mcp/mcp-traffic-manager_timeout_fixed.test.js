@@ -32,7 +32,7 @@ jest.mock('../../../../src/utils/log', () => ({
 }));
 
 // Import the classes we need to test (after mocks)
-import { TrafficManager } from '../../../../src/services/mcp/mcp-traffic-manager.js';
+import { TrafficManager } from '../../../../src/services/mcp/mcp-mcp-traffic-manager.js';
 import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry.js';
 
 const connectToServer = jest.fn();
@@ -101,7 +101,7 @@ describe('TrafficManager', () => {
             mockRegistry.getActiveServerVersions.mockReturnValue(mockServers);
             // Mock successful connection
             const mockClient = {};
-            const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
+            const connectToServer = require('../../../../src/services/mcp/host/mcpClient.js').connectToServer;
             connectToServer.mockResolvedValue(mockClient);
             // Request client multiple times and count selections
             const selections = { '1.0.0': 0, '2.0.0': 0 };
@@ -157,7 +157,7 @@ describe('TrafficManager', () => {
             mockRegistry.getActiveServerVersions.mockReturnValue(mockServers);
             // Mock successful connection
             const mockClient = {};
-            const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
+            const connectToServer = require('../../../../src/services/mcp/host/mcpClient.js').connectToServer;
             connectToServer.mockResolvedValue(mockClient);
             // Request with >=1.5.0 constraint
             await trafficManager.getClientForRequest('test-server', '>=1.5.0');
@@ -186,7 +186,7 @@ describe('TrafficManager', () => {
             mockRegistry.getActiveServerVersions.mockReturnValue([mockServer]);
             // Mock successful connection
             const mockClient = {};
-            const connectToServer = require('../../../../src/services/mcpClient').connectToServer;
+            const connectToServer = require('../../../../src/services/mcp/host/mcpClient.js').connectToServer;
             connectToServer.mockResolvedValue(mockClient);
             // First request should create connection
             const client1 = await trafficManager.getClientForRequest('test-server');

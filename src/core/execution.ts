@@ -4,7 +4,7 @@
  */
 
 import type { HardwareBackend } from '../types/hardware.js';
-import type { WebGPUOptimizer } from '../services/webgpu-optimizer.js';
+import type { WebGPUOptimizer } from '../services/platform/webgpu-optimizer.js';
 
 /** Minimal model-data contract. Extend per backend as needed. */
 export interface ModelData {

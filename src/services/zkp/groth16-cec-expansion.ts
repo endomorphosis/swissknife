@@ -4,7 +4,7 @@
  *           TDFOL/strategies/cec_delegate.py (216L),
  *           TDFOL/expansion_rules.py (209L)
  */
-import { base64Encode, bytesToHex } from '../shared/browser-crypto.js';
+import { base64Encode, bytesToHex } from '../shared/shared-browser-crypto.js';
 import { createTptpProblem, parseSzsStatus } from '../provers/tptp-problem.js';
 
 // ---------------------------------------------------------------------------

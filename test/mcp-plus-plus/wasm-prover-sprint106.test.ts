@@ -66,7 +66,7 @@ import {
   summarizeProverSyntaxTargetCoverage,
   validateDocumentExportTables,
   validateParserElement,
-} from '../../src/services/deontic-legal-text-engine';
+} from '../../src/services/logic/deontic/deontic-legal-text-engine.js';
 
 describe('PORT-227 deontic legal-text engine compatibility layer', () => {
   it('segments text and extracts normative elements with parser fields', () => {

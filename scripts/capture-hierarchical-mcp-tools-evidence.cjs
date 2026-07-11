@@ -14,6 +14,13 @@ const META_TOOLS = [
   'tools_get_schema',
   'tools_dispatch',
 ];
+const PREFERRED_REPRESENTATIVE_TOOLS = [
+  'get_server_status',
+  'healthchecker_check_detailed',
+  'hardware_get_info',
+  'get_hardware_info',
+  'get_dashboard_system_metrics',
+];
 const EXPECTED_MINIMUM_FLAT_TOOLS = {
   ipfs_kit_py: 80,
   ipfs_datasets_py: 300,
@@ -366,11 +373,9 @@ async function probeDispatch(endpoint, representative, kind = 'representative') 
   let probe = await callTool(endpoint, 'tools_dispatch', {
     category: representative.category,
     tool: representative.name,
-    params: {
-      dry_run: true,
-      preview: true,
-      __swissknife_hierarchical_evidence_probe: true,
-    },
+    // Representative tools are selected from known read-only status surfaces.
+    // Do not add probe-only fields because upstream MCP tools reject unknown args.
+    params: {},
   });
   let mode = 'dry_run';
   if (probe.status !== 'passed') {
@@ -442,6 +447,7 @@ function extractCategoryTools(payload, category) {
 
 function chooseRepresentativeTool(entries) {
   if (entries.length === 0) return null;
+<<<<<<< Updated upstream
   const preferredNames = [
     'get_server_status',
     'p2p_taskqueue_status',
@@ -456,8 +462,14 @@ function chooseRepresentativeTool(entries) {
     const preferred = entries.find(entry => entry.name === preferredName || entry.flat_name === preferredName || entry.flat_name.endsWith(`.${preferredName}`));
     if (preferred) return preferred;
   }
+=======
+  const preferred = entries.filter(entry => PREFERRED_REPRESENTATIVE_TOOLS.includes(entry.name));
+>>>>>>> Stashed changes
   const safe = entries.filter(entry => /(^|[_.-])(status|health|list|get|check|info|version|ping)([_.-]|$)/i.test(entry.name));
-  return (safe.length > 0 ? safe : entries).sort((a, b) => {
+  return (preferred.length > 0 ? preferred : safe.length > 0 ? safe : entries).sort((a, b) => {
+    const preferredIndexA = PREFERRED_REPRESENTATIVE_TOOLS.indexOf(a.name);
+    const preferredIndexB = PREFERRED_REPRESENTATIVE_TOOLS.indexOf(b.name);
+    if (preferredIndexA !== preferredIndexB) return preferredIndexA - preferredIndexB;
     const riskA = riskScore(a.name);
     const riskB = riskScore(b.name);
     if (riskA !== riskB) return riskA - riskB;

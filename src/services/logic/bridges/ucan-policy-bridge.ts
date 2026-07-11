@@ -12,7 +12,7 @@
  *   compileAndEvaluate()     — convenience wrapper
  */
 
-import { sha256Hex } from '../../shared/browser-crypto.js';
+import { sha256Hex } from '../../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // DelegationToken (minimal stub)

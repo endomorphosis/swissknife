@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { mergeMultiviewDocuments } from '../../src/services/bridge-multiview';
+import { mergeMultiviewDocuments } from '../../src/services/logic/bridges/bridge-multiview.js';
 import {
   BridgeEvaluationReport,
   GraphProjectionResult,
@@ -11,7 +11,7 @@ import {
   LogicIRView,
   ProofGateResult,
   RoundTripMetrics,
-} from '../../src/services/bridge-types';
+} from '../../src/services/logic/bridges/bridge-types.js';
 
 interface ViewPayload {
   format?: string;

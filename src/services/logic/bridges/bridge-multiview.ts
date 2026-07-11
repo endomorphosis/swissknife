@@ -16,7 +16,7 @@ import {
   LegalIRDocument, LegalIRDocumentInit, LogicIRView,
   BridgeEvaluationReport, RoundTripMetrics,
 } from './bridge-types.js';
-import { sha256Hex } from '../../shared/browser-crypto.js';
+import { sha256Hex } from '../../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Adapter interface

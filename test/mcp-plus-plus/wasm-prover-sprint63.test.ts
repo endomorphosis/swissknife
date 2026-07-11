@@ -6,8 +6,8 @@
 import {
   ErgoAIWrapper, defaultErgoAIConfig, findErgoBinary, lazyInstallErgo,
   ZKPFLogicProver, FLogicProvingMethod, parseErgoOutputBindings,
-} from '../../src/services/flogic-ergoai-wrapper';
-import { Groth16BackendFallback } from '../../src/services/zkp-backends';
+} from '../../src/services/integrations/flogic-ergoai-wrapper.js';
+import { Groth16BackendFallback } from '../../src/services/zkp/zkp-backends.js';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';

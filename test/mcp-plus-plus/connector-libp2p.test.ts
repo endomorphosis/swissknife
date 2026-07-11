@@ -120,6 +120,41 @@ const CATEGORIES = [
   { name: 'core', count: 3 },
   { name: 'storage', count: 5 },
 ];
+const KIT_INTERFACE_CID = 'sha256:kit-interface-descriptor';
+const PROFILE_B_TEST_CID = 'bafkreicecnx2gvntm6fbcrvnc336qze6st5u7qq7457igegamd3bzkx7ri';
+const KIT_INTERFACE_DESCRIPTOR = {
+  name: 'ipfs_kit_py.mcp-tools',
+  namespace: 'org.hallucinate.swissknife.mcp.ipfs_kit_py',
+  version: '1.0.0',
+  interface_cid: KIT_INTERFACE_CID,
+  methods: [
+    {
+      name: 'tools_list_categories',
+      input_schema: { type: 'object' },
+      output_schema: { type: 'object' },
+      input_schema_cid: 'sha256:in-categories',
+      output_schema_cid: 'sha256:out-categories',
+      error_schema_cids: [],
+      errors: ['MCPError'],
+      streaming: false,
+    },
+    {
+      name: 'core.health_check',
+      input_schema: { type: 'object' },
+      output_schema: { type: 'object' },
+      input_schema_cid: 'sha256:in-health',
+      output_schema_cid: 'sha256:out-health',
+      error_schema_cids: [],
+      errors: ['MCPError'],
+      streaming: false,
+    },
+  ],
+  errors: ['MCPError'],
+  requires: [],
+  compatibility: { compatible_with: [], supersedes: [] },
+  semantic_tags: ['mcp', 'mcp-idl'],
+  observability: { trace: true, provenance: true },
+};
 
 function kitHandler(method: string, params: any): any {
   switch (method) {
@@ -129,7 +164,12 @@ function kitHandler(method: string, params: any): any {
         serverInfo: { name: 'ipfs-kit-mcp', version: '0.1.0' },
         capabilities: {
           tools: true,
-          mcpPlusPlusProfiles: ['mcp++/idl', 'mcp++/event-dag', 'mcp++/p2p-transport'],
+          mcpPlusPlusProfiles: ['mcp++/idl', 'mcp++/cid-envelope', 'mcp++/event-dag', 'mcp++/p2p-transport'],
+          experimental: {
+            'mcp++/mcp-idl': true,
+            'mcp++/cid-envelope': true,
+            'mcp++/p2p-transport': true,
+          },
         },
       };
     case 'tools/list':
@@ -142,6 +182,45 @@ function kitHandler(method: string, params: any): any {
           { name: 'core.health_check' },
           { name: 'storage.ipfs_add' },
         ],
+      };
+    case 'interfaces/list':
+      return { interfaces: [KIT_INTERFACE_CID], interface_cids: [KIT_INTERFACE_CID] };
+    case 'interfaces/get':
+      if (params.interface_cid !== KIT_INTERFACE_CID) throw new Error('unknown interface CID');
+      return {
+        interface_cid: KIT_INTERFACE_CID,
+        descriptor: KIT_INTERFACE_DESCRIPTOR,
+        canonical_descriptor: { ...KIT_INTERFACE_DESCRIPTOR, interface_cid: undefined },
+        canonical_bytes_base64: 'e30=',
+      };
+    case 'interfaces/compat':
+      return {
+        compatible: params.client_cid === KIT_INTERFACE_CID && params.server_cid === KIT_INTERFACE_CID,
+        reasons: [],
+        requires_missing: [],
+        suggested_alternatives: [],
+      };
+    case 'mcp++/execute':
+      if (params.interface_cid !== KIT_INTERFACE_CID) throw new Error('unknown interface CID');
+      return {
+        output: { executed: params.tool },
+        envelope: { interface_cid: params.interface_cid, input_cid: PROFILE_B_TEST_CID, parents: [], timestamp: params.timestamp },
+        envelope_cid: PROFILE_B_TEST_CID,
+        input_cid: PROFILE_B_TEST_CID,
+        intent_cid: PROFILE_B_TEST_CID,
+        output_cid: PROFILE_B_TEST_CID,
+        event_cid: PROFILE_B_TEST_CID,
+        receipt_artifact: { success: true },
+        event: { receipt_cid: PROFILE_B_TEST_CID },
+        receipt: { success: true, receipt_cid: PROFILE_B_TEST_CID },
+      };
+    case 'mcp++/artifacts/get':
+      return {
+        found: true,
+        verified: true,
+        cid: params.cid,
+        backend: 'disk',
+        bytes_base64: 'e30=',
       };
     case 'tools/call': {
       const { name, arguments: args } = params;
@@ -189,6 +268,38 @@ describe('MCPPPServerConnector over libp2p (MCP+p2p Profile E)', () => {
     expect(result.tools).toContain('tools_list_categories');
     expect(result.tools).toContain('core.health_check');
     expect(result.tools.length).toBe(6);
+    await session.close();
+  });
+
+  it('discovers, fetches, and checks a Profile A descriptor over libp2p', async () => {
+    const { connector, session, result } = await connectorOverSession();
+    expect(result.profiles).toContain('mcp++/idl');
+    const interfaces = await connector.listInterfaces();
+    expect(interfaces).toHaveLength(1);
+    expect(interfaces[0].interface_cid).toBe(KIT_INTERFACE_CID);
+    expect(interfaces[0].methods.map(method => method.name)).toContain('core.health_check');
+    const fetched = await connector.getInterface(KIT_INTERFACE_CID);
+    expect(fetched?.name).toBe('ipfs_kit_py.mcp-tools');
+    await expect(connector.checkInterfaceCompatibility(KIT_INTERFACE_CID)).resolves.toMatchObject({ compatible: true });
+    await session.close();
+  });
+
+  it('executes a Profile B envelope over libp2p', async () => {
+    const { connector, session, result } = await connectorOverSession();
+    expect(result.profiles).toContain('mcp++/cid-envelope');
+    const execution = await connector.callToolWithEnvelope('core.health_check', {}, {
+      interfaceCid: KIT_INTERFACE_CID,
+      timestamp: '2026-07-10T00:00:00.000Z',
+      correlationId: 'connector-libp2p-profile-b',
+    });
+    expect(execution.result).toEqual({ executed: 'core.health_check' });
+    expect(execution.envelope).toMatchObject({ envelope_cid: PROFILE_B_TEST_CID, receipt: { success: true } });
+    await expect(connector.getArtifact(PROFILE_B_TEST_CID)).resolves.toMatchObject({
+      found: true,
+      verified: true,
+      cid: PROFILE_B_TEST_CID,
+      backend: 'disk',
+    });
     await session.close();
   });
 

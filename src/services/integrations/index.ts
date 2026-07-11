@@ -6,6 +6,6 @@ export * from './flogic-zkp-integration.js';
 export * from './integration-init.js';
 export * from './neurosymbolic-api.js';
 export * from './neurosymbolic-graphrag.js';
-export * from './shadow-prover.js';
+export * from './integrations-shadow-prover.js';
 export * from './shadow-prover-wrapper.js';
 export * from './spacy-wasm-nlp.js';

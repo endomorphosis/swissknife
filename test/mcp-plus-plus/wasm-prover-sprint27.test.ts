@@ -4,10 +4,10 @@
  * Sprint 27: FOL/TDFOL Bridge + Deontic Norms Bridge + CEC/DCEC Bridge
  */
 
-import { FolTdfolBridgeAdapter } from '../../src/services/fol-tdfol-bridge.js';
-import { DeonticNormsBridgeAdapter } from '../../src/services/deontic-norms-bridge.js';
-import { CecDcecBridgeAdapter } from '../../src/services/cec-dcec-bridge.js';
-import { LegalIRDocument, BridgeEvaluationReport } from '../../src/services/bridge-types.js';
+import { FolTdfolBridgeAdapter } from '../../src/services/logic/bridges/fol-tdfol-bridge.js';
+import { DeonticNormsBridgeAdapter } from '../../src/services/logic/bridges/deontic-norms-bridge.js';
+import { CecDcecBridgeAdapter } from '../../src/services/logic/bridges/cec-dcec-bridge.js';
+import { LegalIRDocument, BridgeEvaluationReport } from '../../src/services/logic/bridges/bridge-types.js';
 
 const LEGAL_TEXT =
   'No person shall be deprived of liberty without due process. ' +

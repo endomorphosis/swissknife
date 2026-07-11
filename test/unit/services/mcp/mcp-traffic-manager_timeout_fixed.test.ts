@@ -1,7 +1,7 @@
-import { TrafficManager } from '../../../../src/services/mcp/mcp-traffic-manager';
+import { TrafficManager } from '../../../../src/services/mcp/mcp-mcp-traffic-manager.js';
 import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry';
 import { VersionedServerConfig } from '../../../../src/types/mcp'; // Assuming this type exists
-import { connectToServer } from '../../../../src/services/mcpClient'; // Assuming this function exists
+import { connectToServer } from '../../../../src/services/mcp/host/mcpClient.js'; // Assuming this function exists
 
 const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

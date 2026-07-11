@@ -9,13 +9,13 @@
 import {
   PatternType,
   PatternMatcher,
-} from '../../src/services/tdfol-nl-patterns';
+} from '../../src/services/logic/shared/tdfol-nl-patterns.js';
 
 import {
   NLPolicyConflictDetector,
   detectConflicts,
   PolicyClause,
-} from '../../src/services/nl-policy-conflict-detector';
+} from '../../src/services/logic/nl/nl-policy-conflict-detector.js';
 
 import {
   buildConversionPrompt,
@@ -24,7 +24,7 @@ import {
   getOperatorHintsForText,
   LLMResponseCache,
   makeLLMParseResult,
-} from '../../src/services/tdfol-nl-llm';
+} from '../../src/services/logic/tdfol/tdfol-nl-llm.js';
 
 // ---------------------------------------------------------------------------
 // PatternMatcher tests

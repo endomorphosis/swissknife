@@ -1,1 +1,1 @@
-export * from './host.js';
+export * from './platform-host.js';

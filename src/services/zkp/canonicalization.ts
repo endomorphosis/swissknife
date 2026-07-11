@@ -12,7 +12,7 @@
  *   deriveCircuitV2Inputs()        — full circuit_v2 input derivation
  */
 
-import { bytesToHex, hexToBytes, sha256Hex } from '../shared/browser-crypto.js';
+import { bytesToHex, hexToBytes, sha256Hex } from '../shared/shared-browser-crypto.js';
 import {
   buildTdfolV1TraceWitness,
   theoremHashHex,

@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import {
   DeterministicModalLogicCodec,
   stableMockEmbedding,
-} from '../../src/services/modal-logic-codec';
+} from '../../src/services/logic/modal/modal-logic-codec.js';
 
 interface Vector {
   id: string;

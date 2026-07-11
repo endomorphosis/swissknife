@@ -40,6 +40,7 @@
         "owner_module",
         "launch_owner",
         "launch_kind",
+        "source_sets",
         "capabilities",
         "service_families",
         "backend_capabilities",

@@ -9,7 +9,7 @@ import {
   deonticGuidanceComponentGaps,
   deonticGuidanceGapQualityGatePasses,
   deonticGuidanceUnderrepresentedComponents,
-} from '../../src/services/deontic-norms-bridge';
+} from '../../src/services/logic/bridges/deontic-norms-bridge.js';
 
 type VectorKind =
   | 'canonical_target_view'

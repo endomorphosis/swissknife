@@ -31,7 +31,7 @@
  */
 
 import type { InterfaceDescriptor, MethodSignature } from '../mcp/mcp-idl.js';
-import type { Policy, ActiveObligation, PolicyEngine } from '../mcp/mcp-policy.js';
+import type { Policy, ActiveObligation, PolicyEngine } from '../mcp/mcp-mcp-policy.js';
 import {
   buildConstrainedInterfaceModel,
   type ConstrainedInterfaceModel,

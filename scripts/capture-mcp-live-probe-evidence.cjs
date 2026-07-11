@@ -48,6 +48,7 @@ main().catch(error => {
 
 async function main() {
   fs.mkdirSync(evidenceRoot, { recursive: true });
+<<<<<<< Updated upstream
 
   const ledger = await captureAllToolsLedger();
   const appBindings = readRequiredJson(path.join(evidenceRoot, 'all-tools-app-bindings.json'), 'all-tools-app-bindings.json');
@@ -86,6 +87,21 @@ async function main() {
     live_dispatch_receipt_count: allServerCatalog.summary.live_dispatch_receipt_count,
     policy_gated_evidence_count: allServerCatalog.summary.policy_gated_evidence_count,
     libp2p_decision: libp2pCatalog.decision,
+=======
+  const hierarchical = await captureHierarchicalFacadeEvidence();
+  const libp2p = captureLibp2pReachabilityEvidence();
+  const mcpFleetToolCount = hierarchical.probes.reduce((total, probe) => total + (probe.tool_count ?? 0), 0);
+  const mcpFleetToolCounts = Object.fromEntries(hierarchical.probes.map(probe => [probe.service, probe.tool_count ?? 0]));
+  writeJson('mcp-hierarchical-facade-live-probes.json', hierarchical);
+  writeJson('mcpplusplus-libp2p-reachability.json', libp2p);
+  console.log(JSON.stringify({
+    hierarchical_decision: hierarchical.decision,
+    hierarchical_probe_count: hierarchical.probes.length,
+    mcp_fleet_tool_count: mcpFleetToolCount,
+    mcp_fleet_tool_counts: mcpFleetToolCounts,
+    libp2p_ok: libp2p.ok,
+    libp2p_accelerate_tool_count: libp2p.tool_count ?? 0,
+>>>>>>> Stashed changes
     outputs: [
       'test-results/virtual-desktop-ipfs-mcp-orb/all-server-tool-catalog.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/mcp-plus-plus-libp2p-catalog.json',

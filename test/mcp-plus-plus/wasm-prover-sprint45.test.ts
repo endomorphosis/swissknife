@@ -11,17 +11,17 @@ import {
   StatisticalSummary,
   getGlobalCollector,
   resetGlobalCollector,
-} from '../../src/services/tdfol-performance-metrics';
+} from '../../src/services/logic/tdfol/tdfol-performance-metrics.js';
 
 import {
   FormulaAnalyzer,
   FormulaType,
   FormulaComplexity,
-} from '../../src/services/formula-analyzer';
+} from '../../src/services/logic/shared/formula-analyzer.js';
 
 import {
   ZKPTDFOLProver,
-} from '../../src/services/tdfol-zkp-integration';
+} from '../../src/services/logic/tdfol/tdfol-zkp-integration.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -18,6 +18,7 @@ function main() {
   const generatedAt = new Date().toISOString();
   const appInventory = requiredJson('app-inventory.json');
   const apps = appInventory.apps ?? [];
+  const manifestDrift = requiredJson('manifest-drift.json');
   const serviceHealth = optionalJson('service-health.json');
   const descriptorDiscovery = optionalJson('descriptor-discovery.json');
   const adapterCoverage = optionalJson('ipfs-accelerate-adapter-coverage.json');
@@ -26,7 +27,6 @@ function main() {
   const toolUiSmoke = optionalJson('tool-ui-smoke-receipts.json');
   const allToolsGlasses = optionalJson('all-tools-glasses-coverage.json');
 
-  const manifestDrift = buildManifestDrift(generatedAt, appInventory, apps);
   const appLaunch = buildAppLaunchReport(generatedAt, appInventory, apps, toolUiSmoke);
   const glassesHandoff = buildGlassesHandoffReport(generatedAt, appInventory, apps, allToolsGlasses);
   const liveCriticalFlows = buildLiveCriticalFlows(generatedAt, {
@@ -40,7 +40,6 @@ function main() {
   });
   const receiptSamples = buildReceiptSamples(generatedAt, toolUiSmoke, glassesHandoff, libp2pReachability);
 
-  writeJson('manifest-drift.json', manifestDrift);
   writeJson('app-launch-report.json', appLaunch);
   writeJson('glasses-handoff-report.json', glassesHandoff);
   writeJson('live-critical-flows.json', liveCriticalFlows);

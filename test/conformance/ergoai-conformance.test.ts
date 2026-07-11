@@ -6,7 +6,7 @@ import {
   ErgoAIWrapper,
   type ErgoAIConfig,
   type ErgoAIProcessRunner,
-} from '../../src/services/flogic-ergoai-wrapper';
+} from '../../src/services/integrations/flogic-ergoai-wrapper.js';
 
 interface ErgoCorpusVector {
   id: string;

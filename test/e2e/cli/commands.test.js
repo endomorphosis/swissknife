@@ -138,7 +138,7 @@ describe('CLI Core Commands (E2E with Mocks)', () => {
      configManagerInstance.list.mockClear();
      configManagerInstance.save.mockClear();
 
-     const serviceRegistryInstance = require('../../../src/services/registry').ServiceRegistry.getInstance();
+     const serviceRegistryInstance = require('../../../src/services/platform/registry.js').ServiceRegistry.getInstance();
      serviceRegistryInstance.getService.mockClear();
      const modelService = serviceRegistryInstance.getService('modelExecution');
      if (modelService?.execute) {
@@ -201,7 +201,7 @@ describe('CLI Core Commands (E2E with Mocks)', () => {
       '--', // Separator for positional prompt argument
       prompt
     ];
-    const modelService = require('../../../src/services/registry').ServiceRegistry.getInstance().getService('modelExecution');
+    const modelService = require('../../../src/services/platform/registry.js').ServiceRegistry.getInstance().getService('modelExecution');
 
 
     // Act

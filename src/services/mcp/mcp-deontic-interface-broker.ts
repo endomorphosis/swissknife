@@ -39,7 +39,7 @@ import {
   type Prohibition,
   type Obligation,
   type ActiveObligation,
-} from './mcp-policy.js';
+} from './mcp-mcp-policy.js';
 import type { GeneratedUIPolicyDecision } from './mcp-schema-ui-generator.js';
 import type {
   IDLProfileDescriptor,

@@ -11,7 +11,7 @@ import {
   makeParseScore,
   resolveAmbiguity,
   type ParseScore,
-} from '../../src/services/ambiguity-resolver';
+} from '../../src/services/logic/modal/ambiguity-resolver.js';
 import {
   checkParens,
   cleanDcecFormula,
@@ -21,7 +21,7 @@ import {
   splitTopLevelArgs,
   stripComments,
   stripWhitespace,
-} from '../../src/services/dcec-cleaning';
+} from '../../src/services/logic/dcec/dcec-cleaning.js';
 import {
   DCECErrorCode,
   DCECHandledError,
@@ -30,12 +30,12 @@ import {
   safeDcecCallAsync,
   throwParseError,
   withDcecErrorHandling,
-} from '../../src/services/dcec-error-handling';
+} from '../../src/services/logic/dcec/dcec-error-handling.js';
 import {
   GrammarLoader,
   getGrammarLoader,
   parseGrammarRule,
-} from '../../src/services/grammar-loader';
+} from '../../src/services/logic/nl/grammar-loader.js';
 import {
   AndExpansionRule,
   ImpliesExpansionRule,
@@ -45,7 +45,7 @@ import {
   expandFormula,
   getAllExpansionRules,
   selectExpansionRule,
-} from '../../src/services/tdfol-expansion-rules';
+} from '../../src/services/logic/tdfol/tdfol-expansion-rules.js';
 
 // ---------------------------------------------------------------------------
 // PORT-174 — parse ambiguity resolution

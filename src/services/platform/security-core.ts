@@ -5,7 +5,7 @@
  * append-only audit log for logic services.
  */
 
-import { sha256Hex } from '../shared/browser-crypto.js';
+import { sha256Hex } from '../shared/shared-browser-crypto.js';
 
 export interface SecurityValidationResult {
   valid: boolean;

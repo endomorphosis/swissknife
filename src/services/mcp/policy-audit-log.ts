@@ -10,7 +10,7 @@
  * (Phase 8 Observability).
  */
 
-import { sha256Hex } from '../shared/browser-crypto.js';
+import { sha256Hex } from '../shared/shared-browser-crypto.js';
 
 const nodeFs = (globalThis.process as unknown as {
   getBuiltinModule?: (specifier: string) => unknown;

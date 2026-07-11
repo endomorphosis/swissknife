@@ -12,7 +12,7 @@ const appBackendContractPath = path.join(evidenceRoot, 'app-backend-contract.jso
 const docsPath = path.join(projectRoot, 'docs', 'virtual-desktop-all-tools-app-coverage.md');
 
 const artifacts = {
-  appInventory: readJson('app-inventory.json'),
+  appInventory: readJson('all-tools-app-inventory.json'),
   bindings: readJson('all-tools-app-bindings.json'),
   policy: readJson('all-tools-policy-matrix.json'),
   execution: readJson('all-tools-execution-report.json'),
@@ -125,7 +125,7 @@ const matrix = {
   schema: 'swissknife.virtual-desktop-all-tools-capability-matrix.v1',
   generated_at: new Date().toISOString(),
   generated_from: [
-    'app-inventory.json',
+    'all-tools-app-inventory.json',
     'all-tools-app-bindings.json',
     'all-tools-policy-matrix.json',
     'all-tools-execution-report.json',

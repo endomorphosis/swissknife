@@ -1,4 +1,4 @@
-export * from './bridge-types.js';
+export * from './logic-shared-bridge-types.js';
 export * from './cognitive-inference-rules.js';
 export * from './domain-vocabulary.js';
 export * from './embedding-prover.js';

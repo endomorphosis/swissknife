@@ -1,14 +1,22 @@
 # Release Readiness Report
 
+<<<<<<< Updated upstream
 Generated: 2026-07-10T11:21:22.261Z
 Commit: 3d51edca13e70c3b9062a12f113174d147534c81
 Overall status: ✅ PASSED
 Release decision: `GO`
 Duration: 40.0s
+=======
+Generated: 2026-07-11T02:32:06.309Z
+Commit: 3d51edca13e70c3b9062a12f113174d147534c81
+Overall status: ✅ PASSED
+Duration: 88.0s
+>>>>>>> Stashed changes
 
 | Gate | Status | Duration |
 | --- | --- | --- |
 | Browser/service duplicate regression sentinel (SWR-095) | ✅ passed | 0.1s |
+<<<<<<< Updated upstream
 | Service-boundary audit (services:audit) | ✅ passed | 0.9s |
 | Repository module-boundary audit (audit:module-boundary) | ✅ passed | 0.7s |
 | TypeScript project typecheck (typecheck) | ✅ passed | 5.8s |
@@ -20,6 +28,19 @@ Duration: 40.0s
 | Virtual desktop release evidence aggregation (hierarchical MCP + all-tools) | ✅ passed | 0.3s |
 | Browser/libp2p release evidence freshness (evidence:freshness:check) | ✅ passed | 0.3s |
 | MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer) | ✅ passed | 0.5s |
+=======
+| Service-boundary audit (services:audit) | ✅ passed | 1.3s |
+| Repository module-boundary audit (audit:module-boundary) | ✅ passed | 1.2s |
+| TypeScript project typecheck (typecheck) | ✅ passed | 6.1s |
+| Fast unit test lane (test:fast) | ✅ passed | 7.0s |
+| Browser compatibility lane (test:browser-compat) | ✅ passed | 8.0s |
+| Web bundle build + host-leakage/budget audit (build:web) | ✅ passed | 12.0s |
+| Web bundle host-leakage re-audit (audit:bundle-host-leakage) | ✅ passed | 7.1s |
+| Browser/libp2p release evidence freshness (evidence:freshness:check) | ✅ passed | 0.3s |
+| Virtual desktop release evidence aggregation (hierarchical MCP + all-tools) | ✅ passed | 41.7s |
+| MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses) | ✅ passed | 2.5s |
+| MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer) | ✅ passed | 0.6s |
+>>>>>>> Stashed changes
 | Skipped gate policy (explicit reason + browser-safety enforcement) | ✅ passed | 0.0s |
 
 ## Virtual Desktop Release Evidence
@@ -29,6 +50,7 @@ Decision: `go`
 Representative decision: `go`
 All-tools decision: `go`
 Blockers: 0
+<<<<<<< Updated upstream
 Warnings: 9
 
 ### SWR-110 Complete Evidence Gate
@@ -39,6 +61,9 @@ Required ORB/IDL modalities: display, camera, speaker, microphone, input
 Required simulator capabilities: display.output, camera.photo_capture, speaker.output, microphone.input
 Required supervisor paths: success, receipt_resolve, index_search, server_unavailable, denied, stale_state, transport_fallback
 Missing/failing evidence paths: none
+=======
+Warnings: 3
+>>>>>>> Stashed changes
 
 ### Hierarchical MCP
 
@@ -48,6 +73,7 @@ Services live: 3 / 3
 Expected live services: none
 Full facade services: 3 / 3
 Dispatch probes: 3 / 3
+<<<<<<< Updated upstream
 Direct-only descriptors: 220
 Unexplained flat hierarchy gaps: 0
 Stale live-service expectations ignored: 0
@@ -118,3 +144,14 @@ direct-only, two `ipfs_accelerate_py` alias probes remain non-blocking because
 representative dispatch passes, 12 flat descriptors are intentionally excluded
 from the app-visible ledger, and the active supervisor should perform the final
 SWR-099 status update rather than a manual metadata flip.
+=======
+Direct-only descriptors: 0
+Unexplained flat hierarchy gaps: 0
+Stale live-service expectations ignored: 0
+
+Release evidence warnings:
+- App backend contract warning: p2p-chat-unified: tool-backed state has no binding rows
+- App backend contract warning: friends-list: tool-backed state has no binding rows
+- App backend contract warning: p2p-chat: tool-backed state has no binding rows
+
+>>>>>>> Stashed changes

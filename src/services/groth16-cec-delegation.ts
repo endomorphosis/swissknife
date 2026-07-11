@@ -5,7 +5,7 @@
  *           TDFOL/expansion_rules.py (209L)
  */
 import { spawnSync } from 'node:child_process';
-import { createTptpProblem, parseSzsStatus } from './tptp-problem';
+import { createTptpProblem, parseSzsStatus } from './provers/tptp-problem.js';
 
 // ---------------------------------------------------------------------------
 // T-310a — Groth16 Backup Backend (groth16_backup.py)

@@ -12,22 +12,22 @@ import {
   GrammarNLPolicyCompiler, GrammarCompilationResult,
   grammarCompileNlToPolicy,
   CLAUSE_TYPE_OBLIGATION, CLAUSE_TYPE_PERMISSION, CLAUSE_TYPE_PROHIBITION,
-} from '../../src/services/grammar-nl-policy-compiler';
+} from '../../src/services/logic/nl/grammar-nl-policy-compiler.js';
 
 import {
   FormulaGenerator,
-} from '../../src/services/tdfol-nl-generator';
-import { PatternMatcher } from '../../src/services/tdfol-nl-patterns';
+} from '../../src/services/logic/tdfol/tdfol-nl-generator.js';
+import { PatternMatcher } from '../../src/services/logic/shared/tdfol-nl-patterns.js';
 
 import {
   ParseToken,
   removeComments, functorizeSymbols, replaceSynonyms,
   prefixLogicalFunctions, prefixEmdas, parseDcecExpression,
-} from '../../src/services/dcec-parsing';
+} from '../../src/services/logic/dcec/dcec-parsing.js';
 
 import {
   FormCompletionCircuit, generateFormCertificate, verifyFormCertificate,
-} from '../../src/services/zkp-form-circuit';
+} from '../../src/services/zkp/zkp-form-circuit.js';
 
 // ---------------------------------------------------------------------------
 // GrammarNLPolicyCompiler tests

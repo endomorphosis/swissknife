@@ -10,18 +10,30 @@ const evidenceRoot = path.join(projectRoot, 'test-results', 'virtual-desktop-ipf
 const evidenceRootRelative = path.relative(projectRoot, evidenceRoot);
 const sameBatchEvidenceWindowMs = 15 * 60 * 1000;
 
+refreshRepresentativeReleaseEvidence();
+refreshAppContractEvidence();
+
 const artifactDefs = [
   ['app_inventory', 'app-inventory.json', true],
+<<<<<<< Updated upstream
   ['app_backend_contract', 'app-backend-contract.json', true],
   ['app_workflow_matrix', 'app-workflow-matrix.json', true],
   ['manifest_drift', 'manifest-drift.json', false],
   ['app_launch', 'app-launch-report.json', false],
+=======
+  ['manifest_drift', 'manifest-drift.json', true],
+  ['app_launch', 'app-launch-report.json', true],
+  ['app_backend_contract', 'app-backend-contract.json', true],
+  ['app_workflow_matrix', 'app-workflow-matrix.json', true],
+>>>>>>> Stashed changes
   ['capability_matrix', 'capability-matrix.json', false],
   ['all_server_tool_catalog', 'all-server-tool-catalog.json', true],
   ['mcp_plus_plus_libp2p_catalog', 'mcp-plus-plus-libp2p-catalog.json', true],
   ['mcpplusplus_libp2p_reachability', 'mcpplusplus-libp2p-reachability.json', true],
   ['descriptor_discovery', 'descriptor-discovery.json', true],
   ['hierarchical_mcp_tools', 'hierarchical-tools-evidence.json', true],
+  ['mcpplusplus_libp2p_fleet', 'mcpplusplus-libp2p-fleet-reachability.json', true],
+  ['swissknife_libp2p_connector', 'swissknife-libp2p-connector-reachability.json', true],
   ['service_health', 'service-health.json', true],
   ['tool_ui_smoke_receipts', 'tool-ui-smoke-receipts.json', true],
   ['agent_supervisor_console_e2e', 'agent-supervisor-console-e2e.json', true],
@@ -65,8 +77,12 @@ const appBackendContract = data.app_backend_contract;
 const appWorkflowMatrix = data.app_workflow_matrix;
 const manifestDrift = data.manifest_drift;
 const appLaunch = data.app_launch;
+const appBackendContract = data.app_backend_contract;
+const appWorkflowMatrix = data.app_workflow_matrix;
 const descriptorDiscovery = data.descriptor_discovery;
 const hierarchicalMcpTools = data.hierarchical_mcp_tools;
+const mcpPlusPlusLibp2pFleet = data.mcpplusplus_libp2p_fleet;
+const swissknifeLibp2pConnector = data.swissknife_libp2p_connector;
 const serviceHealth = data.service_health;
 const toolUiSmokeReceipts = data.tool_ui_smoke_receipts;
 const agentSupervisorConsoleE2e = data.agent_supervisor_console_e2e;
@@ -141,6 +157,16 @@ if (appLaunch) {
   }
 }
 
+const appContractGate = summarizeAppContractGate(
+  appBackendContract,
+  appWorkflowMatrix,
+  artifacts.app_backend_contract,
+  artifacts.app_workflow_matrix,
+  appInventory?.app_count ?? null,
+);
+representativeBlockers.push(...appContractGate.release_blockers);
+warnings.push(...appContractGate.release_warnings);
+
 if (appScreenshotCoverage.expected !== null && appScreenshotCoverage.count < appScreenshotCoverage.expected) {
   representativeBlockers.push(`App screenshot coverage is ${appScreenshotCoverage.count}/${appScreenshotCoverage.expected}.`);
 }
@@ -183,6 +209,18 @@ const hierarchicalMcpGate = summarizeHierarchicalMcpGate(
 );
 representativeBlockers.push(...hierarchicalMcpGate.release_blockers);
 warnings.push(...hierarchicalMcpGate.release_warnings);
+
+const libp2pFleetGate = summarizeLibp2pFleetGate(
+  mcpPlusPlusLibp2pFleet,
+  artifacts.mcpplusplus_libp2p_fleet,
+);
+representativeBlockers.push(...libp2pFleetGate.release_blockers);
+
+const swissknifeLibp2pConnectorGate = summarizeSwissknifeLibp2pConnectorGate(
+  swissknifeLibp2pConnector,
+  artifacts.swissknife_libp2p_connector,
+);
+representativeBlockers.push(...swissknifeLibp2pConnectorGate.release_blockers);
 
 if (glassesHandoff) {
   if (!glassesHandoff.hardware_free) {
@@ -357,6 +395,7 @@ const report = {
   },
   artifacts,
   app_inventory: appInventorySummary,
+  app_contract_reconciliation: appContractGate.summary,
   launch_status: launchStatus,
   screenshot_coverage: {
     app_screenshots: appScreenshotCoverage,
@@ -408,6 +447,7 @@ const report = {
     }
     : missingStatus(artifacts.service_health.path),
   hierarchical_mcp: hierarchicalMcpGate.summary,
+<<<<<<< Updated upstream
   glasses_simulator_handoff: glassesSimulatorHandoff
     ? {
         status: 'present',
@@ -422,6 +462,10 @@ const report = {
         capability_evidence_count: (glassesSimulatorHandoff.capability_evidence ?? []).length,
       }
     : missingStatus(artifacts.glasses_simulator_handoff.path),
+=======
+  mcpplusplus_libp2p_fleet: libp2pFleetGate.summary,
+  swissknife_libp2p_connector: swissknifeLibp2pConnectorGate.summary,
+>>>>>>> Stashed changes
   glasses_handoff: glassesHandoff
     ? {
         status: 'present',
@@ -663,6 +707,50 @@ if (decision !== 'go') {
   process.exitCode = 1;
 }
 
+function refreshRepresentativeReleaseEvidence() {
+  for (const scriptName of [
+    'ensure-ipfs-mcp-compat-adapters.cjs',
+    'capture-virtual-desktop-app-inventory.cjs',
+    'validate-virtual-desktop-manifest.cjs',
+    'capture-ipfs-accelerate-adapter-coverage.cjs',
+    // The policy gate reads adapter coverage. Rebuild it after the adapter probe so
+    // the release decision cannot inherit a stale pre-refresh adapter result.
+    'capture-ipfs-mcp-all-tools-ledger.cjs',
+    'build-all-tools-composite-workflows.cjs',
+    'build-all-tools-capability-matrix.cjs',
+    'capture-hierarchical-mcp-tools-evidence.cjs',
+    'capture-mcp-live-probe-evidence.cjs',
+    'capture-mcp-libp2p-fleet-evidence.cjs',
+    'capture-swissknife-libp2p-connector-evidence.cjs',
+    'capture-virtual-desktop-release-artifacts.cjs',
+  ]) {
+    runEvidenceScript(scriptName);
+  }
+}
+
+function refreshAppContractEvidence() {
+  runEvidenceScript('build-virtual-desktop-app-contract-evidence.cjs', {
+    SWISSKNIFE_APP_CONTRACT_NO_FAIL: '1',
+  });
+}
+
+function runEvidenceScript(scriptName, extraEnv = {}) {
+  const scriptPath = path.join(projectRoot, 'scripts', scriptName);
+  if (!fs.existsSync(scriptPath)) return;
+  try {
+    execFileSync(process.execPath, [scriptPath], {
+      cwd: projectRoot,
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        ...extraEnv,
+      },
+    });
+  } catch (error) {
+    console.warn(`${scriptName} refresh failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 function readArtifact(fileName, required) {
   const absolutePath = path.join(evidenceRoot, fileName);
   const relativePath = path.join(evidenceRootRelative, fileName);
@@ -745,6 +833,7 @@ function dedupe(items) {
 
 function blockerText(blocker) {
   if (typeof blocker === 'string') return blocker;
+<<<<<<< Updated upstream
   if (!blocker || typeof blocker !== 'object') return String(blocker);
   return Object.entries(blocker)
     .map(([key, value]) => `${key}=${Array.isArray(value) ? value.join(',') : String(value)}`)
@@ -754,6 +843,14 @@ function blockerText(blocker) {
 function hasNonEmptyValue(value) {
   if (typeof value === 'string') return value.trim().length > 0;
   return value !== null && value !== undefined;
+=======
+  if (blocker === null || blocker === undefined) return String(blocker);
+  if (typeof blocker === 'object') {
+    const message = blocker.message ?? blocker.reason ?? blocker.error ?? blocker.id;
+    return typeof message === 'string' ? message : JSON.stringify(blocker);
+  }
+  return String(blocker);
+>>>>>>> Stashed changes
 }
 
 function appVisibleBindingCount(bindingsArtifact) {
@@ -763,6 +860,257 @@ function appVisibleBindingCount(bindingsArtifact) {
   const rows = bindingsArtifact.rows ?? bindingsArtifact.bindings ?? [];
   if (!Array.isArray(rows)) return null;
   return rows.filter(row => row?.app_visible === true).length;
+}
+
+function summarizeAppContractGate(backendContract, workflowMatrix, backendStatus, workflowStatus, expectedAppCount) {
+  const releaseBlockers = [];
+  const releaseWarnings = [];
+
+  if (!backendContract) {
+    releaseBlockers.push(`Missing required app backend contract artifact: ${backendStatus.path}`);
+  }
+  if (!workflowMatrix) {
+    releaseBlockers.push(`Missing required app workflow matrix artifact: ${workflowStatus.path}`);
+  }
+
+  const backendApps = Array.isArray(backendContract?.apps) ? backendContract.apps : [];
+  const workflowApps = Array.isArray(workflowMatrix?.apps) ? workflowMatrix.apps : [];
+  const expected = expectedAppCount ?? backendContract?.app_count ?? workflowMatrix?.app_count ?? null;
+  const backendIds = new Set(backendApps.map(app => app.app_id));
+  const workflowIds = new Set(workflowApps.map(app => app.app_id));
+  const backendValidationErrors = backendContract?.validation?.errors ?? [];
+  const workflowValidationErrors = workflowMatrix?.validation?.errors ?? [];
+  const requiredStates = workflowMatrix?.required_states ?? ['success', 'fallback', 'error', 'denied'];
+  const pythonBackends = ['ipfs_accelerate_py', 'ipfs_kit_py', 'ipfs_datasets_py'];
+
+  if (backendContract) {
+    if (backendContract.schema !== 'swissknife.virtual-desktop-app-backend-contract.v1') {
+      releaseBlockers.push(`App backend contract schema is ${backendContract.schema ?? 'unknown'}.`);
+    }
+    if (expected !== null && backendApps.length !== expected) {
+      releaseBlockers.push(`App backend contract materialized ${backendApps.length}/${expected} canonical app records.`);
+    }
+    for (const error of backendValidationErrors) {
+      releaseBlockers.push(`App backend contract validation: ${blockerText(error)}`);
+    }
+    for (const warning of backendContract.validation?.warnings ?? []) {
+      releaseWarnings.push(`App backend contract warning: ${blockerText(warning)}`);
+    }
+    for (const record of backendApps) {
+      for (const serviceId of pythonBackends) {
+        if (!record.assigned_backend_capabilities?.[serviceId]) {
+          releaseBlockers.push(`${record.app_id} lacks ${serviceId} backend capability assignment.`);
+        }
+      }
+      if (!record.materialized) {
+        releaseBlockers.push(`${record.app_id} backend contract is not materialized.`);
+      }
+      if (!record.orb_idl?.status) {
+        releaseBlockers.push(`${record.app_id} lacks ORB/IDL backend descriptor disposition.`);
+      }
+      if (!record.glasses_strategy?.kind || !record.glasses_strategy?.handoff) {
+        releaseBlockers.push(`${record.app_id} lacks glasses strategy.`);
+      }
+    }
+  }
+
+  if (workflowMatrix) {
+    if (workflowMatrix.schema !== 'swissknife.virtual-desktop-app-workflow-matrix.v1') {
+      releaseBlockers.push(`App workflow matrix schema is ${workflowMatrix.schema ?? 'unknown'}.`);
+    }
+    if (expected !== null && workflowApps.length !== expected) {
+      releaseBlockers.push(`App workflow matrix materialized ${workflowApps.length}/${expected} canonical behavior records.`);
+    }
+    for (const error of workflowValidationErrors) {
+      releaseBlockers.push(`App workflow matrix validation: ${blockerText(error)}`);
+    }
+    for (const warning of workflowMatrix.validation?.warnings ?? []) {
+      releaseWarnings.push(`App workflow matrix warning: ${blockerText(warning)}`);
+    }
+    for (const record of workflowApps) {
+      if (!backendIds.has(record.app_id)) {
+        releaseBlockers.push(`${record.app_id} has behavior evidence without a backend-contract record.`);
+      }
+      if (!record.primary_action && !record.local_only_rationale) {
+        releaseBlockers.push(`${record.app_id} lacks primary action or local-only rationale.`);
+      }
+      for (const state of requiredStates) {
+        if (!record.states?.[state]?.covered) {
+          releaseBlockers.push(`${record.app_id} lacks ${state} behavior-state coverage.`);
+        }
+      }
+      if (!record.keyboard_checks?.covered || !record.pointer_checks?.covered) {
+        releaseBlockers.push(`${record.app_id} lacks keyboard or pointer behavior checks.`);
+      }
+      if (!record.receipt_or_fixture?.present) {
+        releaseBlockers.push(`${record.app_id} lacks receipt or fixture evidence.`);
+      }
+      if (!record.orb_idl_descriptor?.status) {
+        releaseBlockers.push(`${record.app_id} lacks ORB/IDL descriptor evidence.`);
+      }
+      if (!record.glasses_strategy?.kind || !record.glasses_strategy?.handoff) {
+        releaseBlockers.push(`${record.app_id} lacks glasses behavior strategy.`);
+      }
+      if (record.evidence_quality?.screenshot_only) {
+        releaseBlockers.push(`${record.app_id} is represented only by screenshot evidence.`);
+      }
+    }
+  }
+
+  for (const record of backendApps) {
+    if (!workflowIds.has(record.app_id)) {
+      releaseBlockers.push(`${record.app_id} has backend contract without behavior evidence.`);
+    }
+  }
+
+  const decision = releaseBlockers.length === 0 ? 'go' : 'no_go';
+  return {
+    decision,
+    summary: {
+      status: backendContract && workflowMatrix ? 'present' : 'missing',
+      decision,
+      backend_contract: backendContract
+        ? {
+            status: 'present',
+            path: backendStatus.path,
+            generated_at: backendContract.generated_at,
+            schema: backendContract.schema,
+            app_count: backendApps.length,
+            validation_error_count: backendValidationErrors.length,
+            validation_warning_count: (backendContract.validation?.warnings ?? []).length,
+            declared_python_backend_app_counts: backendContract.summary?.declared_python_backend_app_counts ?? {},
+            covered_python_backend_app_counts: backendContract.summary?.covered_python_backend_app_counts ?? {},
+          }
+        : missingStatus(backendStatus.path),
+      workflow_matrix: workflowMatrix
+        ? {
+            status: 'present',
+            path: workflowStatus.path,
+            generated_at: workflowMatrix.generated_at,
+            schema: workflowMatrix.schema,
+            app_count: workflowApps.length,
+            validation_error_count: workflowValidationErrors.length,
+            validation_warning_count: (workflowMatrix.validation?.warnings ?? []).length,
+            required_states: requiredStates,
+            state_counts: workflowMatrix.summary?.state_counts ?? {},
+            screenshot_only_count: workflowMatrix.summary?.screenshot_only_count ?? null,
+            receipt_or_fixture_count: workflowMatrix.summary?.receipt_or_fixture_count ?? null,
+            keyboard_check_count: workflowMatrix.summary?.keyboard_check_count ?? null,
+            pointer_check_count: workflowMatrix.summary?.pointer_check_count ?? null,
+          }
+        : missingStatus(workflowStatus.path),
+      missing_backend_record_count: workflowApps.filter(record => !backendIds.has(record.app_id)).length,
+      missing_workflow_record_count: backendApps.filter(record => !workflowIds.has(record.app_id)).length,
+      release_blockers: dedupe(releaseBlockers),
+      release_warnings: dedupe(releaseWarnings),
+    },
+    release_blockers: dedupe(releaseBlockers),
+    release_warnings: dedupe(releaseWarnings),
+  };
+}
+
+function summarizeLibp2pFleetGate(evidence, artifactStatus) {
+  const expectedServices = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
+  const blockers = [];
+  if (!evidence) {
+    blockers.push(`Missing MCP++ libp2p fleet evidence: ${artifactStatus.path}`);
+  } else {
+    if (evidence.decision !== 'go') {
+      blockers.push(`MCP++ libp2p fleet evidence decision is ${evidence.decision ?? 'unknown'}.`);
+    }
+    const services = Array.isArray(evidence.services) ? evidence.services : [];
+    for (const serviceId of expectedServices) {
+      const service = services.find(candidate => candidate.service === serviceId);
+      if (!service) {
+        blockers.push(`MCP++ libp2p evidence is missing ${serviceId}.`);
+        continue;
+      }
+      if (service.protocol !== '/mcp+p2p/1.0.0' || !service.initialize_ok) {
+        blockers.push(`${serviceId} did not complete a MCP++ Profile E libp2p initialize handshake.`);
+      }
+      if (!service.tool_count_matches_announce || service.listed_tool_count !== service.unique_tool_name_count) {
+        blockers.push(`${serviceId} MCP++ libp2p tool enumeration does not match its announced unique tool set.`);
+      }
+      if (!service.safe_call_returned) {
+        blockers.push(`${serviceId} MCP++ libp2p safe tool call did not return a result.`);
+      }
+    }
+  }
+  return {
+    summary: evidence
+      ? {
+          status: 'present',
+          path: artifactStatus.path,
+          generated_at: evidence.generated_at,
+          decision: evidence.decision,
+          protocol: evidence.protocol,
+          service_count: evidence.service_count,
+          total_unique_callable_tools: evidence.total_unique_callable_tools,
+          services: (evidence.services ?? []).map(service => ({
+            service: service.service,
+            multiaddr: service.multiaddr,
+            listed_tool_count: service.listed_tool_count,
+            safe_tool: service.safe_tool,
+            safe_call_returned: service.safe_call_returned,
+          })),
+        }
+      : missingStatus(artifactStatus.path),
+    release_blockers: dedupe(blockers),
+  };
+}
+
+function summarizeSwissknifeLibp2pConnectorGate(evidence, artifactStatus) {
+  const expectedServices = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
+  const blockers = [];
+  if (!evidence) {
+    blockers.push(`Missing SwissKnife libp2p connector evidence: ${artifactStatus.path}`);
+  } else {
+    if (evidence.decision !== 'go') {
+      blockers.push(`SwissKnife libp2p connector evidence decision is ${evidence.decision ?? 'unknown'}.`);
+    }
+    for (const serviceId of expectedServices) {
+      const service = (evidence.services ?? []).find(candidate => candidate.service === serviceId);
+      if (!service) {
+        blockers.push(`SwissKnife libp2p connector evidence is missing ${serviceId}.`);
+        continue;
+      }
+      if (!service.connect_success || service.transport !== 'libp2p' || !service.p2p_session_established) {
+        blockers.push(`${serviceId} was not connected through a SwissKnife MCP++ Profile E libp2p session.`);
+      }
+      if (!Array.isArray(service.profiles) || !service.profiles.includes('mcp++/p2p-transport')) {
+        blockers.push(`${serviceId} did not negotiate SwissKnife MCP++ Profile E transport.`);
+      }
+      if (!service.tool_count_matches_announce || service.listed_tool_count !== service.unique_tool_name_count) {
+        blockers.push(`${serviceId} SwissKnife libp2p tool enumeration does not match its announced unique tool set.`);
+      }
+      if (!service.safe_call_returned || !service.no_http_fallback) {
+        blockers.push(`${serviceId} SwissKnife libp2p safe tool call did not complete without HTTP fallback.`);
+      }
+    }
+  }
+  return {
+    summary: evidence
+      ? {
+          status: 'present',
+          path: artifactStatus.path,
+          generated_at: evidence.generated_at,
+          decision: evidence.decision,
+          protocol: evidence.protocol,
+          service_count: evidence.service_count,
+          total_unique_callable_tools: evidence.total_unique_callable_tools,
+          services: (evidence.services ?? []).map(service => ({
+            service: service.service,
+            multiaddr: service.multiaddr,
+            transport: service.transport,
+            listed_tool_count: service.listed_tool_count,
+            safe_tool: service.safe_tool,
+            safe_call_returned: service.safe_call_returned,
+            no_http_fallback: service.no_http_fallback,
+          })),
+        }
+      : missingStatus(artifactStatus.path),
+    release_blockers: dedupe(blockers),
+  };
 }
 
 function summarizeHierarchicalMcpGate(evidence, artifactStatus) {
@@ -1835,6 +2183,8 @@ function renderMarkdown(report) {
   lines.push('');
   lines.push('## Representative App Evidence');
   lines.push(`- Manifest apps: ${report.manifest.app_count ?? 'unknown'}`);
+  lines.push(`- App backend contract: ${report.app_contract_reconciliation.backend_contract.status}; records ${report.app_contract_reconciliation.backend_contract.app_count ?? 'unknown'}`);
+  lines.push(`- App workflow matrix: ${report.app_contract_reconciliation.workflow_matrix.status}; records ${report.app_contract_reconciliation.workflow_matrix.app_count ?? 'unknown'}; screenshot-only ${report.app_contract_reconciliation.workflow_matrix.screenshot_only_count ?? 'unknown'}`);
   lines.push(`- Launch evidence: ${report.launch_status.status}; opened ${report.launch_status.opened ?? 'unknown'} / ${report.launch_status.app_count ?? 'unknown'}`);
   lines.push(`- App screenshots: ${report.screenshot_coverage.app_screenshots.count} / ${report.screenshot_coverage.app_screenshots.expected ?? 'unknown'}`);
   lines.push(`- SWR-110 complete evidence gate: ${report.swr110_release_gate.release_decision}; blockers ${report.swr110_release_gate.blocker_count}`);
@@ -1842,6 +2192,7 @@ function renderMarkdown(report) {
   lines.push(`- Glasses handoff: ${report.glasses_handoff.status}; passed ${report.glasses_handoff.passed_count ?? 'unknown'} / ${report.glasses_handoff.displayable_count ?? 'unknown'} displayable apps`);
   lines.push(`- Service availability: ${(report.service_health.available ?? []).length} available, ${(report.service_health.unavailable ?? []).length} unavailable`);
   lines.push(`- Hierarchical MCP facade: ${report.hierarchical_mcp.services_with_full_facade ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'} services; dispatch ${report.hierarchical_mcp.dispatch_pass_count ?? 'unknown'} / ${report.hierarchical_mcp.dispatch_probe_count ?? 'unknown'} passed`);
+  lines.push(`- MCP++ libp2p fleet: ${report.mcpplusplus_libp2p_fleet.decision ?? report.mcpplusplus_libp2p_fleet.status}; ${report.mcpplusplus_libp2p_fleet.service_count ?? 'unknown'} services; ${report.mcpplusplus_libp2p_fleet.total_unique_callable_tools ?? 'unknown'} unique callable tools`);
   lines.push(`- Hierarchical MCP direct-only descriptors: ${report.hierarchical_mcp.direct_only_descriptor_count ?? 'unknown'}; unexplained gaps ${report.hierarchical_mcp.unexplained_flat_hierarchy_gap_count ?? 'unknown'}`);
   lines.push(`- All-tools fallback states: ${report.fallback_coverage.all_tools_app_family_states.fallback_state_family_count ?? 'unknown'} / ${report.fallback_coverage.all_tools_app_family_states.app_family_count ?? 'unknown'} app families`);
   lines.push(`- Legacy gateway fallback specs present: ${report.fallback_coverage.legacy_gateway_spec_count}`);

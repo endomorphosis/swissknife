@@ -316,8 +316,15 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
   }
 
   const forcedMissing = new Set(SCENARIO_FORCED_MISSING[config.scenario]);
+<<<<<<< Updated upstream
   const importModule = forcedMissing.size > 0 ? buildImportModule(forcedMissing) : undefined;
   const runtimeOptions = buildRuntimeOptions(config, importModule);
+=======
+  const runtimeOverrides = forcedMissing.size > 0
+    ? { importModule: buildImportModule(forcedMissing) }
+    : {};
+  const runtimeOptions = buildRuntimeOptions(config, runtimeOverrides.importModule);
+>>>>>>> Stashed changes
 
   // Capability/gap assembly never requires real network connectivity, so it
   // is always computed and rendered first — independent of whether the
@@ -336,7 +343,14 @@ async function runInitialization(config: HarnessConfig): Promise<void> {
     // `createLibp2p`'s own default auto-start behavior is.
     const runtime = await createBrowserLibp2pNode({
       ...runtimeOptions,
+<<<<<<< Updated upstream
       libp2pOptions: { ...(runtimeOptions.libp2pOptions ?? {}), start: false },
+=======
+      libp2pOptions: {
+        ...(runtimeOptions.libp2pOptions ?? {}),
+        start: false,
+      },
+>>>>>>> Stashed changes
     });
 
     const node = runtime.node as {

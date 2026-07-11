@@ -8,7 +8,7 @@ import {
   type MetaGlassesDisplayORBOperation,
   type MetaGlassesDisplayORBOperationOutput,
 } from '../../src/services/glasses/meta-glasses-display-orb-adapter';
-import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/mcp-control-surface-mediator.js';
 import type { MetaGlassesWidgetDescriptor } from '../../src/services/glasses/meta-glasses-display-profile';
 
 const FIXTURE_PATH = join(

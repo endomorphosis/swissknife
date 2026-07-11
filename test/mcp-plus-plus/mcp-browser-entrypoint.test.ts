@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import * as browserMcp from '../../src/services/mcp/browser';
+import * as browserMcp from '../../src/services/mcp/mcp-browser.js';
 
 describe('MCP browser service entrypoint', () => {
   it('exports browser-safe MCP and libp2p runtime modules', () => {

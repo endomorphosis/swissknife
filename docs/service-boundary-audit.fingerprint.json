@@ -2,6 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "module-boundary-audit",
   "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
+<<<<<<< Updated upstream
   "generatedAt": "2026-07-10T11:20:43.155Z",
   "evidenceFiles": [
     "docs/service-boundary-audit.json"
@@ -15,6 +16,21 @@
     {
       "path": "src/module-ownership.json",
       "sha256": "02fda8746d9d90e7f9e528ce5b58a34179959d5f4aae9335d156a940beb5d219"
+=======
+  "generatedAt": "2026-07-11T02:30:39.715Z",
+  "evidenceFiles": [
+    "docs/service-boundary-audit.json"
+  ],
+  "sourceFingerprint": "cb799cfa2a1a6af15b270efef7628e61c3eedebb77403b9a3218b528d52fd89e",
+  "sourceFiles": [
+    {
+      "path": "scripts/audit-source-modules.mjs",
+      "sha256": "410f729fa767947210fdcd019794f6233310cc47ebc7d17d62f25bf48a37ebfa"
+    },
+    {
+      "path": "src/module-ownership.json",
+      "sha256": "896887b498a59b70598f02cdadf20f214907369eabda4e3605ef9ce1accd30cc"
+>>>>>>> Stashed changes
     }
   ]
 }

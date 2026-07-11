@@ -165,6 +165,25 @@ export const MCP_PLUS_PLUS_PROFILES = [
 
 export type MCPPlusPlusProfile = typeof MCP_PLUS_PLUS_PROFILES[number];
 
+/** Draft Profile capability keys used in canonical MCP InitializeResult values. */
+export const MCP_PLUS_PLUS_EXPERIMENTAL_CAPABILITIES: Record<MCPPlusPlusProfile, string> = {
+  'mcp++/cid-envelope': 'mcp++/cid-envelope',
+  'mcp++/ucan': 'mcp++/ucan',
+  'mcp++/idl': 'mcp++/mcp-idl',
+  'mcp++/event-dag': 'mcp++/event-dag',
+  'mcp++/policy-d': 'mcp++/deontic-policy',
+  'mcp++/pubsub-bus': 'mcp++/pubsub-bus',
+  'mcp++/p2p-transport': 'mcp++/p2p-transport',
+};
+
+function profilesFromExperimentalCapabilities(experimental: unknown): string[] {
+  if (!experimental || typeof experimental !== 'object') return [];
+  const advertised = experimental as Record<string, unknown>;
+  return MCP_PLUS_PLUS_PROFILES.filter(profile =>
+    advertised[MCP_PLUS_PLUS_EXPERIMENTAL_CAPABILITIES[profile]] === true,
+  );
+}
+
 /**
  * Negotiate capabilities: intersect client profiles with server-advertised ones.
  * Returns the subset of profiles both sides support, plus a
@@ -201,11 +220,13 @@ export interface P2PStream {
 }
 
 export interface MCPCapabilities {
-  tools?: boolean;
+  tools?: boolean | Record<string, unknown>;
   resources?: boolean;
   prompts?: boolean;
   /** MCP++ extension profiles advertised */
   mcpPlusPlusProfiles?: string[];
+  /** Canonical MCP extension negotiation surface used by the MCP++ draft. */
+  experimental?: Record<string, unknown>;
 }
 
 export interface MCPHandshakeResult {
@@ -276,6 +297,8 @@ export class MCPp2pSession extends EventEmitter {
     { resolve: (r: JsonRpcResponse) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
   > = new Map();
   private nextId = 1;
+  /** Serialize framed writes while allowing concurrent requests to remain in flight. */
+  private writeQueue: Promise<void> = Promise.resolve();
   private _handshakeResult: MCPHandshakeResult | null = null;
   private _closed = false;
   private _readBuf = Buffer.alloc(0);
@@ -327,6 +350,9 @@ export class MCPp2pSession extends EventEmitter {
         capabilities: {
           tools: {},
           mcpPlusPlusProfiles: [...MCP_PLUS_PLUS_PROFILES],
+          experimental: Object.fromEntries(
+            MCP_PLUS_PLUS_PROFILES.map(profile => [MCP_PLUS_PLUS_EXPERIMENTAL_CAPABILITIES[profile], true]),
+          ),
         },
         clientInfo,
       },
@@ -353,8 +379,26 @@ export class MCPp2pSession extends EventEmitter {
       capabilities: MCPCapabilities;
     };
 
+    if (
+      typeof r.protocolVersion !== 'string'
+      || !r.serverInfo
+      || typeof r.serverInfo.name !== 'string'
+      || typeof r.serverInfo.version !== 'string'
+      || !r.capabilities
+      || typeof r.capabilities !== 'object'
+    ) {
+      this._setState('error');
+      throw new SessionError(
+        SessionErrorCode.PROTOCOL_HANDSHAKE_INVALID,
+        'Handshake response is not a canonical MCP InitializeResult',
+      );
+    }
+
     // Capability negotiation — downgrade to the profiles both sides support.
-    const serverProfiles = r.capabilities?.mcpPlusPlusProfiles ?? [];
+    const serverProfiles = Array.from(new Set([
+      ...(r.capabilities?.mcpPlusPlusProfiles ?? []),
+      ...profilesFromExperimentalCapabilities(r.capabilities?.experimental),
+    ]));
     const { negotiated, downgraded, unsupported } = negotiateCapabilities(
       MCP_PLUS_PLUS_PROFILES,
       serverProfiles,
@@ -469,7 +513,12 @@ export class MCPp2pSession extends EventEmitter {
       header as unknown as Uint8Array,
       body as unknown as Uint8Array,
     ]);
-    await this.stream.write(frame as unknown as Uint8Array);
+    const write = this.writeQueue.then(async () => {
+      await this.stream.write(frame as unknown as Uint8Array);
+    });
+    // A failed write must not poison the queue for a later close/error path.
+    this.writeQueue = write.catch(() => undefined);
+    await write;
   }
 
   // -------------------------------------------------------------------------

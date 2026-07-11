@@ -11,7 +11,7 @@ import {
   policyObligationsToMultiStarkInputs,
 } from '../../src/services/provers/multi-stark-bridge';
 import { computeZKProofArtifactCid, type ZKProofArtifact } from '../../src/services/provers/lurk-wasm-bridge';
-import type { Policy } from '../../src/services/mcp/mcp-policy';
+import type { Policy } from '../../src/services/mcp/mcp-mcp-policy.js';
 
 function multiObligationPolicy(): Policy {
   return {

@@ -555,7 +555,7 @@ export const mcpppCommand: PublicCommand = {
 
       case 'deontic': {
         // mcp++ deontic [analyze <text>|fol <text>|stats]
-        const { DeonticTextAnalyzer } = await import('../services/deontic/deontic-text-analyzer.js');
+        const { DeonticTextAnalyzer } = await import('../services/deontic/deontic-deontic-text-analyzer.js');
         const analyzer = new DeonticTextAnalyzer();
         const sub = args[1] as string | undefined;
         const text = args.slice(2).join(' ') || (sub !== 'stats' && sub !== 'fol' ? sub : '');
@@ -565,7 +565,7 @@ export const mcpppCommand: PublicCommand = {
           if (!folText) {
             return { output: 'Usage: mcp++ deontic fol <text>\n\nConverts natural language to a FOL formula.\n\nExample:\n  mcp++ deontic fol "All users are accountable."' };
           }
-          const { FolTextConverter } = await import('../services/fol/fol-text-converter.js');
+          const { FolTextConverter } = await import('../services/fol/fol-fol-text-converter.js');
           const converter = new FolTextConverter();
           const result = converter.convert(folText);
           return {

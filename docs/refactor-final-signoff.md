@@ -1,8 +1,14 @@
 # Refactor Final Signoff
 
+<<<<<<< Updated upstream
 Generated: 2026-07-10
 Primary closeout: SWR-111, Phase 17 supervisor closeout and operational handoff
 Release status: `GO`
+=======
+Generated: 2026-07-11T02:32:06.309Z
+Commit: 3d51edca13e70c3b9062a12f113174d147534c81
+Release readiness: PASSED
+>>>>>>> Stashed changes
 
 ## Phase 17 Closeout
 
@@ -47,6 +53,7 @@ Supervisor state at closeout records `active_task_id: SWR-111`,
 
 | Task | Status | Evidence |
 | --- | --- | --- |
+<<<<<<< Updated upstream
 | SWR-100 | completed | `app-backend-contract.json` records 45 canonical apps and service counts of 238 `ipfs_accelerate_py`, 236 `ipfs_kit_py`, and 348 `ipfs_datasets_py` capabilities; `all-tools-app-bindings.json` records 822 bindings. |
 | SWR-101 | completed | `all-server-tool-catalog.json`, `mcp-plus-plus-libp2p-catalog.json`, `hierarchical-tools-evidence.json`, and `mcpplusplus-libp2p-reachability.json` prove three-server MCP catalog reachability and advertised MCP++/libp2p availability. |
 | SWR-102 | completed | `app-workflow-matrix.json` records 45/45 pointer launches, 45/45 keyboard launches, 45/45 screenshots, 45/45 receipt-or-fixture paths, and 45/45 apps with loading/success/fallback/error states. |
@@ -59,6 +66,21 @@ Supervisor state at closeout records `active_task_id: SWR-111`,
 | SWR-109 | completed | `glasses-simulator-handoff.json` records a hardware-free simulator session with display, camera, microphone, speaker, touch, voice, four handoff profiles, three handoff paths, and four physical-device degradation receipts. |
 | SWR-110 | completed | `release-readiness-report.json` and `.md` record 13/13 release gates passed, 0 failed gates, 0 blockers, and final release decision `GO`. |
 | SWR-111 | active | This closeout records the operational handoff, active supervisor paths, residual prerequisites, and daemon-owned final status rule. |
+=======
+| browser-service-regression-sentinel | passed |  |
+| services-audit | passed |  |
+| module-boundary-audit | passed |  |
+| typecheck | passed |  |
+| test-fast | passed |  |
+| test-browser-compat | passed |  |
+| build-web | passed |  |
+| bundle-host-leakage | passed |  |
+| evidence-freshness | passed |  |
+| virtual-desktop-release-evidence | passed |  |
+| evidence-mcp-glasses | passed |  |
+| evidence-dashboard-consumer | passed |  |
+| skipped-gate-policy | passed |  |
+>>>>>>> Stashed changes
 
 ## All-App Workflow Status
 

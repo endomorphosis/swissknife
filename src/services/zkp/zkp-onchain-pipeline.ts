@@ -13,7 +13,7 @@ import {
   packPublicInputsForEvm,
   vkHashHexToBytes32,
 } from './ethereum-zkp-bridge.js';
-import { bytesToHex, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
+import { bytesToHex, sha256Hex, utf8Bytes } from '../shared/shared-browser-crypto.js';
 
 export interface EvmSubmissionClient {
   submitTransaction(calldata: string, opts?: { to?: string; gasLimit?: bigint }): Promise<string>;

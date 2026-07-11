@@ -42,7 +42,7 @@ import {
   type Permission,
   type Prohibition,
   type Obligation,
-} from './mcp-policy';
+} from './mcp-mcp-policy.js';
 import {
   checkPolicyConsistency,
   createDeonticORBEvaluator,

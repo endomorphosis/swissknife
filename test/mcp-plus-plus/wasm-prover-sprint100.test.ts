@@ -10,16 +10,16 @@ import {
   ProverConfig,
   SecurityConfig,
   loadConfig,
-} from '../../src/services/logic-config';
+} from '../../src/services/logic/shared/logic-config.js';
 import {
   BridgeError,
   ConfigurationError,
   LogicError,
   ModalError,
   TemporalError,
-} from '../../src/services/logic-errors';
-import { TDFOLError } from '../../src/services/tdfol-exceptions';
-import { DCECHandledError } from '../../src/services/dcec-error-handling';
+} from '../../src/services/logic/shared/logic-errors.js';
+import { TDFOLError } from '../../src/services/logic/tdfol/tdfol-exceptions.js';
+import { DCECHandledError } from '../../src/services/logic/dcec/dcec-error-handling.js';
 import {
   ProofStatement,
   Statement,
@@ -27,7 +27,7 @@ import {
   formatCircuitRef,
   parseCircuitRef,
   parseCircuitRefLenient,
-} from '../../src/services/zkp-statement';
+} from '../../src/services/zkp/zkp-statement.js';
 import {
   DEFAULT_PROVEKIT_CIRCUIT_ID,
   PROVEKIT_PUBLIC_INPUT_SCHEMA_VERSION,
@@ -35,7 +35,7 @@ import {
   buildProveKitPublicInputRecord,
   fieldElementFromHexDigest,
   fieldElementFromText,
-} from '../../src/services/zkp-provekit-public-inputs';
+} from '../../src/services/zkp/zkp-provekit-public-inputs.js';
 
 describe('PORT-220 logic config', () => {
   it('mirrors Python config dataclasses and toDict shape', () => {

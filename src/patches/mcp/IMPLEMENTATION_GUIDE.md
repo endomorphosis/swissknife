@@ -28,7 +28,7 @@ Copy the contents of `src/patches/mcp/fix-mcp-entrypoint.ts` to `src/entrypoints
 
 ### 4. Update MCP Client
 
-Copy the contents of `src/patches/mcp/fix-mcp-client.ts` to `src/services/mcpClient.ts`.
+Copy the contents of `src/patches/mcp/fix-mcp-client.ts` to `src/services/mcp/host/mcpClient.ts`.
 
 ### 5. Update MCP Transport
 

@@ -13,7 +13,7 @@ import {
 } from '../src/utils/messages.tsx';
 
 // Import NO_CONTENT_MESSAGE from the correct location
-import { NO_CONTENT_MESSAGE } from '../src/services/claude.js';
+import { NO_CONTENT_MESSAGE } from '../src/services/platform/claude.js';
 
 // Import mocked dependencies (using relative path)
 import { getCommand, hasCommand } from '../src/commands.js';

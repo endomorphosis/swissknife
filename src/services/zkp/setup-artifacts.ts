@@ -11,7 +11,7 @@
  *   runTrustedSetup()  — simulated trusted setup for a circuit
  */
 
-import { sha256Hex } from '../shared/browser-crypto.js';
+import { sha256Hex } from '../shared/shared-browser-crypto.js';
 import type { VerificationKey } from './zkp-verifier.js';
 
 // ---------------------------------------------------------------------------

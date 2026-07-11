@@ -14,7 +14,7 @@
 
 import type { Policy } from '../mcp-policy.js';
 import type { PolicyFormulaSet } from '../mcp-remote-deontic-engine.js';
-import type { Formula, SortKind, Term } from '../tdfol-core.js';
+import type { Formula, SortKind, Term } from '../logic/tdfol/tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // DeonticToCoqTranslator

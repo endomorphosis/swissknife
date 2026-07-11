@@ -29,8 +29,8 @@ jest.mock('fs', () => ({
     writeFileSync: jest.fn(),
 }));
 
-import { MCPClient } from '../../../src/services/mcp/mcpClient.ts';
-import { parseEnvVars, ensureConfigScope, getMcprcServerStatus, getMcpServer, listMCPServers } from '../../../src/services/mcp/mcpClient.ts';
+import { MCPClient } from '../../../src/services/mcp/mcp-mcpClient.ts';
+import { parseEnvVars, ensureConfigScope, getMcprcServerStatus, getMcpServer, listMCPServers } from '../../../src/services/mcp/mcp-mcpClient.ts';
 
 // Mock config modules
 jest.mock('../../../../src/utils/config', () => {

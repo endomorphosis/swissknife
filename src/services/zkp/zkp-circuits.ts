@@ -13,7 +13,7 @@
  *   compilerGuidanceRefFromMetadata() — extract compiler guidance ref
  */
 
-import { bytesToHex, hexToBytes, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
+import { bytesToHex, hexToBytes, sha256Hex, utf8Bytes } from '../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // SIMZKP/1 layout constants (mirrors Python)

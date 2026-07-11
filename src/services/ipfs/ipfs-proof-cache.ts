@@ -12,7 +12,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { ProofCacheBase } from '../proof-cache-base.js';
+import { ProofCacheBase } from '../proof-engine/proof-cache-base.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

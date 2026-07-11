@@ -42,7 +42,7 @@
     "src/storage/browser.ts",
     "src/workers/browser.ts",
     "src/services/deontic/browser-nlp.ts",
-    "src/services/ipfs/browser.ts",
+    "src/services/ipfs/ipfs-browser.ts",
     "src/services/logic-language-pipeline.ts",
     "src/services/mcp/browser-mcp.ts",
     "src/services/mcp/libp2p-browser-runtime.ts",

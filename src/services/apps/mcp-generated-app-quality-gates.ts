@@ -4,7 +4,7 @@ import {
 import type {
   ControlSurfacePolicyEvaluationRequest,
   ControlSurfacePolicyEvaluator,
-} from '../mcp/control-surface-mediator.js';
+} from '../mcp/mcp-control-surface-mediator.js';
 import {
   LocalMCPInterfaceRegistryBackend,
   MCPInterfaceDiscoveryRegistry,

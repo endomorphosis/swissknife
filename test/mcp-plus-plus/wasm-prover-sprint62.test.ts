@@ -4,7 +4,7 @@
  *                   Proof Optimization, Resolution Rules
  */
 
-import { EnhancedGrammarParser, ParseTree, Category } from '../../src/services/enhanced-grammar-parser';
+import { EnhancedGrammarParser, ParseTree, Category } from '../../src/services/logic/nl/enhanced-grammar-parser.js';
 import {
   TemporalDeonticAPI,
   addTheoremFromParameters,
@@ -15,21 +15,21 @@ import {
   demoRagRetrieval,
   printDebugReport,
   queryTheoremsFromParameters,
-} from '../../src/services/temporal-deontic-api';
+} from '../../src/services/logic/tdfol/temporal-deontic-api.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/fol-utils/nlp-predicate-extractor';
+import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/fol-utils/fol-utils-nlp-predicate-extractor.js';
 import {
   FormulaProfiler, BottleneckAnalyzer, ProfilingReporter,
-} from '../../src/services/cec-resolution-rules';
+} from '../../src/services/logic/cec/cec-resolution-rules.js';
 import {
   PruningStrategy, makeProofNode, ProofTreePruner, RedundancyEliminator,
   ResolutionRule, UnitResolutionRule, FactoringRule,
   SubsumptionRule, CaseAnalysisRule, ProofByContradictionRule,
   ALL_RESOLUTION_RULES,
   FormulaProfiler as FP2, BottleneckAnalyzer as BA2, ProfilingReporter as PR2,
-} from '../../src/services/cec-resolution-rules';
+} from '../../src/services/logic/cec/cec-resolution-rules.js';
 
 // ---------------------------------------------------------------------------
 // EnhancedGrammarParser

@@ -12,7 +12,7 @@ import {
   decompilerInferredCitationsFromSourceIds,
   decompilerSourceIdInferredCitation,
   decompilerTitleSectionCoordinate,
-} from '../../src/services/modal-ir-decompiler';
+} from '../../src/services/logic/modal/modal-ir-decompiler.js';
 
 interface CitationResult {
   canonical: string;

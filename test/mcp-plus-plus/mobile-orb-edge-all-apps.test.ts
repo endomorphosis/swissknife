@@ -16,7 +16,7 @@ import {
   ipfsDatasetsUIProfileDescriptor,
 } from '../../src/services/ipfs/mcp-ipfs-ui-descriptors';
 import type { MCPUIProfileDescriptor } from '../../src/services/mcp/mcp-ui-profile';
-import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/control-surface-mediator';
+import type { ControlSurfacePolicyEvaluationRequest } from '../../src/services/mcp/mcp-control-surface-mediator.js';
 
 function allowControlSurfaceEvaluation(request: ControlSurfacePolicyEvaluationRequest) {
   return {

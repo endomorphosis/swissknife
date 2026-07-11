@@ -7,7 +7,7 @@ import {
   deonticFloat,
   deonticRate,
   deonticRecordValidationRate,
-} from '../../src/services/deontic-norms-bridge';
+} from '../../src/services/logic/bridges/deontic-norms-bridge.js';
 
 type VectorKind = 'float' | 'rate' | 'record_validation_rate';
 

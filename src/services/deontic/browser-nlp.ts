@@ -8,7 +8,7 @@ export {
   type DeonticOperator,
   type ExtractedDeonticStatement,
   type ExtractedPredicate,
-} from './deontic-extraction.js';
+} from './deontic-deontic-extraction.js';
 
 export {
   DeonticTextAnalyzer,
@@ -21,4 +21,4 @@ export {
   type DeonticStatement,
   type DeonticStatistics,
   type EntitySummary,
-} from './deontic-text-analyzer.js';
+} from './deontic-deontic-text-analyzer.js';

@@ -44,8 +44,8 @@ describe('SWR-006 glasses manifest ownership and coverage', () => {
         'meta-glasses-widget-compiler.ts',
       ],
       ipfs: [
-        'browser.ts',
-        'host.ts',
+        'ipfs-browser.ts',
+        'ipfs-host.ts',
         'ipfs-idl-descriptors.ts',
         'ipfs-interface-registry.ts',
         'ipfs-orb-profiles.ts',
@@ -55,7 +55,7 @@ describe('SWR-006 glasses manifest ownership and coverage', () => {
       ],
       mcp: [
         'all-tools-idl-generator.ts',
-        'control-surface-mediator.ts',
+        'mcp-control-surface-mediator.ts',
         'libp2p-browser-runtime.ts',
         'mcp-idl.ts',
         'mcp-interface-registry.ts',

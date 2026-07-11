@@ -7,7 +7,7 @@ import {
   deonticCopySlotValue,
   deonticFillEmptyField,
   deonticValueIsPresent,
-} from '../../src/services/deontic-norms-bridge';
+} from '../../src/services/logic/bridges/deontic-norms-bridge.js';
 
 type VectorKind = 'value_is_present' | 'copy_slot_value' | 'fill_empty_field';
 

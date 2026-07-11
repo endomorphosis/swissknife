@@ -10,7 +10,7 @@
  * References: docs/spec/event-dag-ordering.md in endomorphosis/Mcp-Plus-Plus
  */
 
-import { sha256Hex } from '../shared/browser-crypto.js';
+import { sha256Hex } from '../shared/shared-browser-crypto.js';
 
 // ---------------------------------------------------------------------------
 // Types

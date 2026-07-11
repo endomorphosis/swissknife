@@ -10,11 +10,11 @@
  *   PORT-161  ProofCache.formulaHash() includes axioms + prover identity
  */
 
-import { DeonticTextAnalyzer } from '../../src/services/deontic/deontic-text-analyzer';
-import { ModalTableaux, ModalLogicType } from '../../src/services/modal-tableaux';
+import { DeonticTextAnalyzer } from '../../src/services/deontic/deontic-deontic-text-analyzer.js';
+import { ModalTableaux, ModalLogicType } from '../../src/services/logic/modal/modal-tableaux.js';
 import { ProofCache }                    from '../../src/services/provers/mcp-proof-cache';
-import { DCECTemporalOperator }          from '../../src/services/dcec-core-types';
-import { TDFOLTemporalOp, mkPredicate, mkBinary, mkUnary, mkTemporal } from '../../src/services/tdfol-core';
+import { DCECTemporalOperator }          from '../../src/services/logic/dcec/dcec-core-types.js';
+import { TDFOLTemporalOp, mkPredicate, mkBinary, mkUnary, mkTemporal } from '../../src/services/logic/tdfol/tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // PORT-096 — EVENTUALLY codepoint is ◊ (U+25CA) not ◇ (U+25C7)

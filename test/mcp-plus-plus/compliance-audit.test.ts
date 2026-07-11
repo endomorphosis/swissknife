@@ -10,13 +10,13 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { PolicyAuditLog, type AuditEntry } from '../../src/services/policy-audit-log';
+import { PolicyAuditLog, type AuditEntry } from '../../src/services/mcp/policy-audit-log.js';
 import {
   ComplianceChecker,
   addMCPPPBaseRules,
   type ComplianceResult,
   type MCPPPComplianceContext,
-} from '../../src/services/compliance-checker';
+} from '../../src/services/logic/deontic/compliance-checker.js';
 
 // ---------------------------------------------------------------------------
 // PolicyAuditLog

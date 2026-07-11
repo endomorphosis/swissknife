@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,6 +13,17 @@ const manifestPath = 'src/module-ownership.json';
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const DATA_EXTENSIONS = new Set(['.json']);
 const AUDITED_EXTENSIONS = new Set([...SOURCE_EXTENSIONS, ...DATA_EXTENSIONS]);
+const DEFAULT_RESTORED_SERVICE_DUPLICATE_POLICY = {
+  indexBasenamesIgnored: true,
+  broadExemptionsAllowed: false,
+  nonIndexBasenameDuplicatesAreFailuresByDefault: true,
+  approvedMultiEntrypoints: [],
+  approvedContentHashes: [],
+};
+const DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_JSON =
+  'docs/restored-service-duplicate-inventory.json';
+const DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_MARKDOWN =
+  'docs/restored-service-duplicate-inventory.md';
 const HOST_ONLY_BUILTINS = new Set([
   'assert',
   'async_hooks',
@@ -83,6 +95,8 @@ function parseArgs(argv) {
     help: false,
     json: null,
     modules: new Set(),
+    restoredServiceDuplicateInventoryJson: null,
+    restoredServiceDuplicateInventoryMarkdown: null,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -98,6 +112,16 @@ function parseArgs(argv) {
     } else if (arg === '--json') {
       args.json = argv[++i];
       if (!args.json) throw new Error('--json requires an output path');
+    } else if (arg === '--restored-service-duplicate-inventory-json') {
+      args.restoredServiceDuplicateInventoryJson = argv[++i];
+      if (!args.restoredServiceDuplicateInventoryJson) {
+        throw new Error('--restored-service-duplicate-inventory-json requires an output path');
+      }
+    } else if (arg === '--restored-service-duplicate-inventory-md') {
+      args.restoredServiceDuplicateInventoryMarkdown = argv[++i];
+      if (!args.restoredServiceDuplicateInventoryMarkdown) {
+        throw new Error('--restored-service-duplicate-inventory-md requires an output path');
+      }
     } else if (arg === '--module') {
       const moduleName = argv[++i];
       if (!moduleName) throw new Error('--module requires a module name');
@@ -123,6 +147,10 @@ function usage() {
     '  --fail-on-legacy       Exit non-zero when legacy compatibility shims/import specifiers are present.',
     '  --module <name>        Limit file and import checks to one source module. Can be repeated.',
     '  --json <path>          Write the deterministic audit payload as JSON.',
+    '  --restored-service-duplicate-inventory-json <path>',
+    `                         Write restored service duplicate inventory JSON. Defaults to ${DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_JSON} with --json.`,
+    '  --restored-service-duplicate-inventory-md <path>',
+    `                         Write restored service duplicate inventory Markdown. Defaults to ${DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_MARKDOWN} with --json.`,
     '  --help, -h             Show this help text.',
   ].join('\n');
 }
@@ -211,6 +239,14 @@ function isSourceFile(filePath) {
   return SOURCE_EXTENSIONS.has(path.extname(filePath));
 }
 
+function isServiceSourceFile(filePath) {
+  return filePath.startsWith('src/services/') && isSourceFile(filePath);
+}
+
+function isServiceIndexFile(filePath) {
+  return isServiceSourceFile(filePath) && /^index\.[cm]?[jt]sx?$/.test(path.basename(filePath));
+}
+
 function candidatePaths(base) {
   const candidates = [];
   const ext = path.extname(base);
@@ -293,6 +329,7 @@ function globToRegExp(glob) {
 
 function buildManifestIndex(manifest) {
   const modules = manifest.modules ?? {};
+  const restoredServiceDuplicatePolicy = normalizeRestoredServiceDuplicatePolicy(manifest);
   const rootFileOwners = new Map(Object.entries(manifest.audit?.rootFileOwners ?? {}));
   const serviceRootFileOwners = new Map(Object.entries(manifest.audit?.serviceRootFileOwners ?? {}));
   const ignoredRootFiles = new Set(manifest.audit?.ignoredRootFiles ?? []);
@@ -357,9 +394,197 @@ function buildManifestIndex(manifest) {
     legacyShimPaths,
     modules,
     pathOwners,
+    restoredServiceDuplicatePolicy,
     rootFileOwners,
     serviceRootFileOwners,
   };
+}
+
+function normalizeRestoredServiceDuplicatePolicy(manifest) {
+  const policy = {
+    ...DEFAULT_RESTORED_SERVICE_DUPLICATE_POLICY,
+    ...(manifest.audit?.restoredServiceDuplicatePolicy ?? {}),
+  };
+  return {
+    indexBasenamesIgnored: policy.indexBasenamesIgnored !== false,
+    broadExemptionsAllowed: policy.broadExemptionsAllowed === true,
+    nonIndexBasenameDuplicatesAreFailuresByDefault: (
+      policy.nonIndexBasenameDuplicatesAreFailuresByDefault !== false
+    ),
+    approvedMultiEntrypoints: (policy.approvedMultiEntrypoints ?? [])
+      .map((item) => ({
+        basename: item.basename ?? null,
+        paths: Array.isArray(item.paths) ? [...item.paths].sort(compareStrings) : [],
+        reason: item.reason ?? null,
+        owner: item.owner ?? null,
+      }))
+      .sort((a, b) => (
+        (a.basename ?? '').localeCompare(b.basename ?? '')
+        || a.paths.join('\0').localeCompare(b.paths.join('\0'))
+      )),
+    approvedContentHashes: (policy.approvedContentHashes ?? [])
+      .map((item) => ({
+        sha256: item.sha256 ?? null,
+        canonicalPath: item.canonicalPath ?? null,
+        paths: Array.isArray(item.paths) ? [...item.paths].sort(compareStrings) : [],
+        reason: item.reason ?? null,
+        owner: item.owner ?? null,
+      }))
+      .sort((a, b) => (
+        (a.sha256 ?? '').localeCompare(b.sha256 ?? '')
+        || (a.canonicalPath ?? '').localeCompare(b.canonicalPath ?? '')
+        || a.paths.join('\0').localeCompare(b.paths.join('\0'))
+      )),
+  };
+}
+
+function hasGlobSyntax(value) {
+  return /[*?[\]{}]/.test(value);
+}
+
+function isSha256(value) {
+  return /^[a-f0-9]{64}$/.test(value ?? '');
+}
+
+function collectRestoredServiceDuplicatePolicyViolations(policy, modules = {}) {
+  const findings = [];
+  if (!policy.indexBasenamesIgnored) {
+    findings.push({
+      policy: 'audit.restoredServiceDuplicatePolicy.indexBasenamesIgnored',
+      module: 'services',
+      reason: 'index basenames must remain the only ignored service basename duplicate class',
+    });
+  }
+  if (policy.broadExemptionsAllowed) {
+    findings.push({
+      policy: 'audit.restoredServiceDuplicatePolicy.broadExemptionsAllowed',
+      module: 'services',
+      reason: 'broad restored service duplicate exemptions are not allowed',
+    });
+  }
+  if (!policy.nonIndexBasenameDuplicatesAreFailuresByDefault) {
+    findings.push({
+      policy: 'audit.restoredServiceDuplicatePolicy.nonIndexBasenameDuplicatesAreFailuresByDefault',
+      module: 'services',
+      reason: 'non-index service basename duplicates must fail by default',
+    });
+  }
+
+  for (const [index, approval] of policy.approvedMultiEntrypoints.entries()) {
+    const location = `audit.restoredServiceDuplicatePolicy.approvedMultiEntrypoints[${index}]`;
+    if (!approval.basename || hasGlobSyntax(approval.basename) || approval.basename.includes('/')) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved multi-entrypoint must name one exact duplicate basename',
+      });
+    }
+    if (approval.paths.length < 2) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved multi-entrypoint must list every exact duplicate path',
+      });
+    }
+    if (!approval.owner || hasGlobSyntax(approval.owner) || !modules[approval.owner]) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved multi-entrypoint must name the exact canonical module owner',
+      });
+    }
+    if (!approval.reason) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved multi-entrypoint must include an explicit rationale',
+      });
+    }
+    for (const approvedPath of approval.paths) {
+      if (
+        !approvedPath.startsWith('src/services/')
+        || hasGlobSyntax(approvedPath)
+        || path.basename(approvedPath) !== approval.basename
+      ) {
+        findings.push({
+          policy: location,
+          module: 'services',
+          path: approvedPath,
+          reason: 'approved multi-entrypoint paths must be exact src/services paths matching the basename',
+        });
+      }
+    }
+  }
+
+  for (const [index, approval] of policy.approvedContentHashes.entries()) {
+    const location = `audit.restoredServiceDuplicatePolicy.approvedContentHashes[${index}]`;
+    if (!isSha256(approval.sha256)) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved content hash must name one exact SHA-256 digest',
+      });
+    }
+    if (
+      !approval.canonicalPath
+      || !approval.canonicalPath.startsWith('src/services/')
+      || hasGlobSyntax(approval.canonicalPath)
+    ) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved content hash must name the exact canonical src/services path',
+      });
+    }
+    if (approval.paths.length < 2) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved content hash must list every exact duplicate path',
+      });
+    }
+    if (!approval.owner || hasGlobSyntax(approval.owner) || !modules[approval.owner]) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved content hash must name the exact canonical module owner',
+      });
+    }
+    if (!approval.reason) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved content hash must include an explicit rationale',
+      });
+    }
+    if (approval.canonicalPath && approval.paths.length > 0 && !approval.paths.includes(approval.canonicalPath)) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        path: approval.canonicalPath,
+        reason: 'approved content hash canonical path must be one of the exact duplicate paths',
+      });
+    }
+    for (const approvedPath of approval.paths) {
+      if (
+        !approvedPath.startsWith('src/services/')
+        || hasGlobSyntax(approvedPath)
+      ) {
+        findings.push({
+          policy: location,
+          module: 'services',
+          path: approvedPath,
+          reason: 'approved content hash paths must be exact src/services paths',
+        });
+      }
+    }
+  }
+
+  return findings.sort((a, b) => (
+    a.policy.localeCompare(b.policy)
+    || (a.path ?? '').localeCompare(b.path ?? '')
+    || a.reason.localeCompare(b.reason)
+  ));
 }
 
 function moduleForTopLevelPath(filePath, modules) {
@@ -468,6 +693,483 @@ function collectServiceDuplicateBasenames(files) {
   return [];
 }
 
+function stripSourceComments(text) {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+function isIndexBarrelSource(text) {
+  const source = stripSourceComments(text);
+  let remaining = source.trim();
+  if (!remaining) return true;
+
+  const barrelStatement = /^(?:export\s+(?:type\s+)?\*\s+from\s+["'][^"']+["']|export\s+\*\s+as\s+[A-Za-z_$][\w$]*\s+from\s+["'][^"']+["']|export\s+(?:type\s+)?\{[\s\S]*?\}\s+from\s+["'][^"']+["']|import\s+type\s+[\s\S]*?\s+from\s+["'][^"']+["'])\s*;?/;
+  while (remaining) {
+    const match = remaining.match(barrelStatement);
+    if (!match) return false;
+    remaining = remaining.slice(match[0].length).trim();
+  }
+  return true;
+}
+
+function serviceSourceContentKind(filePath) {
+  if (!isServiceIndexFile(filePath)) return 'service-implementation';
+  return isIndexBarrelSource(fs.readFileSync(abs(filePath), 'utf8'))
+    ? 'approved-index-barrel'
+    : 'index-implementation-entrypoint';
+}
+
+function sha256ForFile(filePath) {
+  return crypto
+    .createHash('sha256')
+    .update(fs.readFileSync(abs(filePath)))
+    .digest('hex');
+}
+
+function contentHashRecord(filePath) {
+  return {
+    algorithm: 'sha256',
+    value: sha256ForFile(filePath),
+  };
+}
+
+function shortHash(value) {
+  return value.slice(0, 12);
+}
+
+function currentUtcDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function relativeDepth(filePath) {
+  return filePath.split('/').length;
+}
+
+function ownerRecordForPath(filePath, index) {
+  const moduleName = moduleForPath(filePath, index);
+  const definition = moduleName ? index.modules[moduleName] : null;
+  let browserClassification = 'not-browser-approved';
+  if (index.browserSafeServiceFiles.has(filePath)) {
+    browserClassification = 'browser-safe-service-file';
+  } else if (matchesAnyGlob(filePath, index.browserSafeSourceGlobs)) {
+    browserClassification = 'browser-facing-source-glob';
+  } else if (definition?.runtimeClassification === 'browser-safe') {
+    browserClassification = 'browser-safe-module';
+  } else if (definition?.runtimeClassification === 'universal') {
+    browserClassification = 'runtime-neutral-module';
+  } else if (definition?.runtimeClassification === 'host-only') {
+    browserClassification = 'host-only';
+  } else if (definition?.runtimeClassification === 'split') {
+    browserClassification = 'split-runtime-requires-entrypoint-review';
+  } else if (!definition) {
+    browserClassification = 'unknown-owner';
+  }
+
+  return {
+    module: moduleName ?? 'unknown-service',
+    owner: definition?.owner ?? null,
+    runtimeClassification: definition?.runtimeClassification ?? 'unknown',
+    browserReachability: definition?.browserReachability ?? 'requires ownership classification',
+    browserClassification,
+  };
+}
+
+function collectLocalImporters(files) {
+  const importersByTarget = new Map();
+  const sourceFiles = files.filter((filePath) => isSourceFile(filePath));
+
+  for (const filePath of sourceFiles) {
+    for (const item of extractImports(filePath)) {
+      if (!isLocalSpecifier(item.specifier)) continue;
+      const target = resolveLocalSpecifier(item.specifier, filePath);
+      if (!target) continue;
+      const importers = importersByTarget.get(target) ?? [];
+      importers.push({
+        file: filePath,
+        line: item.line,
+        kind: item.kind,
+        specifier: item.specifier,
+      });
+      importersByTarget.set(target, importers);
+    }
+  }
+
+  for (const importers of importersByTarget.values()) {
+    importers.sort((a, b) => (
+      a.file.localeCompare(b.file)
+      || a.line - b.line
+      || a.kind.localeCompare(b.kind)
+      || a.specifier.localeCompare(b.specifier)
+    ));
+  }
+
+  return importersByTarget;
+}
+
+function selectCanonicalDuplicatePath(paths, index) {
+  const annotated = paths
+    .map((filePath) => ({
+      path: filePath,
+      owner: ownerRecordForPath(filePath, index),
+      directServiceRoot: isDirectServiceRootFile(filePath),
+      depth: relativeDepth(filePath),
+    }))
+    .sort((a, b) => (
+      Number(a.directServiceRoot) - Number(b.directServiceRoot)
+      || Number(a.owner.module === 'unknown-service') - Number(b.owner.module === 'unknown-service')
+      || b.depth - a.depth
+      || a.path.localeCompare(b.path)
+    ));
+  return annotated[0]?.path ?? paths[0];
+}
+
+function exactPathSetMatches(left, right) {
+  if (left.length !== right.length) return false;
+  const sortedLeft = [...left].sort(compareStrings);
+  const sortedRight = [...right].sort(compareStrings);
+  return sortedLeft.every((item, index) => item === sortedRight[index]);
+}
+
+function approvedMultiEntrypointForDuplicate(duplicate, policy, canonicalOwner) {
+  return policy.approvedMultiEntrypoints.find((approval) => (
+    approval.basename === duplicate.basename
+    && approval.owner === canonicalOwner.module
+    && exactPathSetMatches(approval.paths, duplicate.paths)
+  )) ?? null;
+}
+
+function approvedContentHashForDuplicate(duplicate, policy, canonicalOwner) {
+  return policy.approvedContentHashes.find((approval) => (
+    approval.sha256 === duplicate.sha256
+    && approval.owner === canonicalOwner.module
+    && approval.canonicalPath === duplicate.canonicalPath
+    && exactPathSetMatches(approval.paths, duplicate.paths.map((item) => item.path))
+  )) ?? null;
+}
+
+function collectServiceIndexClassifications(files, index) {
+  const approvedIndexBarrels = [];
+  const indexImplementationEntrypoints = [];
+  const indexShadowCopies = [];
+
+  for (const filePath of files.filter(isServiceIndexFile).sort(compareStrings)) {
+    const owner = ownerRecordForPath(filePath, index);
+    const contentHash = contentHashRecord(filePath);
+    const record = {
+      path: filePath,
+      sha256: contentHash.value,
+      contentHash,
+      module: owner.module,
+      owner: owner.owner,
+      runtimeClassification: owner.runtimeClassification,
+      browserClassification: owner.browserClassification,
+    };
+    const contentKind = serviceSourceContentKind(filePath);
+    if (contentKind === 'approved-index-barrel') {
+      approvedIndexBarrels.push({
+        ...record,
+        contentKind,
+        reason: 'index file contains only type imports and export-from barrel statements',
+      });
+    } else if (isDirectServiceRootFile(filePath)) {
+      indexShadowCopies.push({
+        ...record,
+        contentKind: 'index-shadow-copy',
+        reason: 'root service index contains implementation content instead of an approved barrel',
+      });
+    } else {
+      indexImplementationEntrypoints.push({
+        ...record,
+        contentKind,
+        reason: 'nested index entrypoint contains implementation content and is tracked by content hash',
+      });
+    }
+  }
+
+  return {
+    approvedIndexBarrels,
+    indexImplementationEntrypoints,
+    indexShadowCopies,
+  };
+}
+
+function collectServiceDuplicateContentHashes(files, index) {
+  const byHash = new Map();
+  for (const filePath of files.filter(isServiceSourceFile).sort(compareStrings)) {
+    const contentKind = serviceSourceContentKind(filePath);
+    if (contentKind === 'approved-index-barrel') continue;
+    const contentHash = contentHashRecord(filePath);
+    const paths = byHash.get(contentHash.value) ?? [];
+    paths.push(filePath);
+    byHash.set(contentHash.value, paths);
+  }
+
+  return [...byHash.entries()]
+    .filter(([, paths]) => paths.length > 1)
+    .map(([sha256, paths]) => {
+      const sortedPaths = paths.sort(compareStrings);
+      const canonicalPath = selectCanonicalDuplicatePath(sortedPaths, index);
+      const canonicalOwner = ownerRecordForPath(canonicalPath, index);
+      const pathRecords = sortedPaths.map((filePath) => {
+        const owner = ownerRecordForPath(filePath, index);
+        const contentKind = serviceSourceContentKind(filePath);
+        return {
+          path: filePath,
+          sha256,
+          contentHash: {
+            algorithm: 'sha256',
+            value: sha256,
+          },
+          contentKind,
+          canonical: filePath === canonicalPath,
+          restoredRootCopy: isDirectServiceRootFile(filePath),
+          module: owner.module,
+          owner: owner.owner,
+          runtimeClassification: owner.runtimeClassification,
+          browserClassification: owner.browserClassification,
+        };
+      });
+      const restoredRootCopies = pathRecords
+        .filter((entry) => entry.restoredRootCopy)
+        .map((entry) => entry.path);
+      const approvalProbe = {
+        sha256,
+        canonicalPath,
+        paths: pathRecords,
+      };
+      const approvedContentHash = approvedContentHashForDuplicate(
+        approvalProbe,
+        index.restoredServiceDuplicatePolicy,
+        canonicalOwner,
+      );
+      return {
+        sha256,
+        contentHash: {
+          algorithm: 'sha256',
+          value: sha256,
+        },
+        canonicalPath,
+        canonicalModuleOwner: canonicalOwner,
+        paths: pathRecords,
+        restoredRootCopies,
+        approvedContentHash: approvedContentHash
+          ? {
+              owner: approvedContentHash.owner,
+              canonicalPath: approvedContentHash.canonicalPath,
+              reason: approvedContentHash.reason,
+            }
+          : null,
+        unapproved: !approvedContentHash,
+        disposition: approvedContentHash
+          ? 'explicitly-approved-content-hash'
+          : (restoredRootCopies.length > 0 ? 'remove-restored-copy' : 'content-shadow-review'),
+        reason: approvedContentHash
+          ? approvedContentHash.reason
+          : (
+              restoredRootCopies.length > 0
+                ? 'byte-identical restored root service implementation shadows a canonical module-owned file'
+                : 'byte-identical service implementations require exact content-hash ownership approval'
+            ),
+      };
+    })
+    .sort((a, b) => (
+      Number(b.unapproved) - Number(a.unapproved)
+      || a.canonicalPath.localeCompare(b.canonicalPath)
+      || a.sha256.localeCompare(b.sha256)
+    ));
+}
+
+function collectRestoredServiceDuplicateInventory({
+  duplicateContentHashes,
+  importersByTarget,
+  index,
+  serviceIndexClassifications,
+  policyViolations,
+  serviceDuplicateBasenames,
+}) {
+  const duplicatePathSet = new Set(serviceDuplicateBasenames.flatMap((item) => item.paths));
+  const duplicateEntries = serviceDuplicateBasenames.map((item) => {
+    const hasDirectRootCopy = item.paths.some((filePath) => isDirectServiceRootFile(filePath));
+    const canonicalPath = selectCanonicalDuplicatePath(item.paths, index);
+    const canonicalOwner = ownerRecordForPath(canonicalPath, index);
+    const canonicalContentHash = contentHashRecord(canonicalPath);
+    const approvedMultiEntrypoint = approvedMultiEntrypointForDuplicate(
+      item,
+      index.restoredServiceDuplicatePolicy,
+      canonicalOwner,
+    );
+    const disposition = approvedMultiEntrypoint
+      ? 'explicitly-approved-multi-entrypoint'
+      : (hasDirectRootCopy ? 'remove-restored-copy' : 'move-and-retarget');
+    const paths = item.paths.map((filePath) => {
+      const stats = fs.statSync(abs(filePath));
+      const owner = ownerRecordForPath(filePath, index);
+      const directServiceRoot = isDirectServiceRootFile(filePath);
+      const contentHash = contentHashRecord(filePath);
+      const contentKind = serviceSourceContentKind(filePath);
+      return {
+        path: filePath,
+        sha256: contentHash.value,
+        contentHash,
+        contentKind,
+        sizeBytes: stats.size,
+        importers: importersByTarget.get(filePath) ?? [],
+        importerCount: importersByTarget.get(filePath)?.length ?? 0,
+        canonical: filePath === canonicalPath,
+        canonicalPath,
+        canonicalModuleOwner: canonicalOwner,
+        canonicalContentHash,
+        disposition,
+        restoredRootCopy: directServiceRoot,
+        restoredAfterPhase16Cleanup: directServiceRoot && hasDirectRootCopy,
+        phase16RestorationClassification: directServiceRoot && hasDirectRootCopy
+          ? 'restored-root-copy-after-phase-16-cleanup'
+          : 'not-a-restored-root-copy',
+        module: owner.module,
+        owner: owner.owner,
+        runtimeClassification: owner.runtimeClassification,
+        browserReachability: owner.browserReachability,
+        browserClassification: owner.browserClassification,
+      };
+    });
+    const runtimeClassificationCounts = {};
+    const browserClassificationCounts = {};
+    for (const pathRecord of paths) {
+      runtimeClassificationCounts[pathRecord.runtimeClassification] = (
+        runtimeClassificationCounts[pathRecord.runtimeClassification] ?? 0
+      ) + 1;
+      browserClassificationCounts[pathRecord.browserClassification] = (
+        browserClassificationCounts[pathRecord.browserClassification] ?? 0
+      ) + 1;
+    }
+
+    return {
+      basename: item.basename,
+      reason: item.reason,
+      disposition,
+      duplicateClass: 'non-index-service-basename',
+      approvedMultiEntrypoint: approvedMultiEntrypoint
+        ? {
+            owner: approvedMultiEntrypoint.owner,
+            reason: approvedMultiEntrypoint.reason,
+          }
+        : null,
+      canonicalPath,
+      canonicalModuleOwner: canonicalOwner,
+      canonicalContentHash,
+      canonicalSha256: canonicalContentHash.value,
+      runtimeClassification: canonicalOwner.runtimeClassification,
+      browserClassification: canonicalOwner.browserClassification,
+      runtimeClassificationCounts,
+      browserClassificationCounts,
+      importers: paths.flatMap((pathRecord) => (
+        pathRecord.importers.map((importer) => ({
+          ...importer,
+          target: pathRecord.path,
+        }))
+      )),
+      importerCount: paths.reduce((total, pathRecord) => total + pathRecord.importerCount, 0),
+      restoredRootCopies: paths.filter((entry) => entry.restoredRootCopy).map((entry) => entry.path),
+      paths,
+    };
+  });
+
+  const restoredRootFiles = duplicateEntries
+    .flatMap((entry) => entry.paths.filter((item) => item.restoredRootCopy).map((item) => ({
+      basename: entry.basename,
+      path: item.path,
+      sha256: item.sha256,
+      contentHash: item.contentHash,
+      importerCount: item.importerCount,
+      canonicalPath: entry.canonicalPath,
+      canonicalModuleOwner: entry.canonicalModuleOwner,
+      canonicalContentHash: entry.canonicalContentHash,
+      disposition: entry.disposition,
+      phase16RestorationClassification: item.phase16RestorationClassification,
+      module: item.module,
+      owner: item.owner,
+      runtimeClassification: item.runtimeClassification,
+      browserClassification: item.browserClassification,
+    })))
+    .sort((a, b) => a.path.localeCompare(b.path));
+
+  const duplicatePaths = [...duplicatePathSet].sort(compareStrings);
+  const allDuplicatePathRecords = duplicateEntries.flatMap((entry) => entry.paths);
+  const unapprovedDuplicateEntries = duplicateEntries
+    .filter((entry) => entry.disposition !== 'explicitly-approved-multi-entrypoint');
+  const dispositionCounts = {};
+  for (const entry of duplicateEntries) {
+    dispositionCounts[entry.disposition] = (dispositionCounts[entry.disposition] ?? 0) + 1;
+  }
+  const runtimeClassificationCounts = {};
+  const browserClassificationCounts = {};
+  for (const entry of allDuplicatePathRecords) {
+    runtimeClassificationCounts[entry.runtimeClassification] = (
+      runtimeClassificationCounts[entry.runtimeClassification] ?? 0
+    ) + 1;
+    browserClassificationCounts[entry.browserClassification] = (
+      browserClassificationCounts[entry.browserClassification] ?? 0
+    ) + 1;
+  }
+
+  return {
+    schemaVersion: 1,
+    generatedDate: currentUtcDate(),
+    taskId: 'SWR-118',
+    source: {
+      manifestPath,
+      serviceRoot: 'src/services',
+      auditScript: 'scripts/audit-source-modules.mjs',
+      phase16CleanupEvidence: 'implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16',
+    },
+    policy: {
+      indexBasenamesIgnored: index.restoredServiceDuplicatePolicy.indexBasenamesIgnored,
+      broadExemptionsAllowed: index.restoredServiceDuplicatePolicy.broadExemptionsAllowed,
+      nonIndexBasenameDuplicatesAreFailuresByDefault: (
+        index.restoredServiceDuplicatePolicy.nonIndexBasenameDuplicatesAreFailuresByDefault
+      ),
+      approvedMultiEntrypoints: index.restoredServiceDuplicatePolicy.approvedMultiEntrypoints,
+      approvedContentHashes: index.restoredServiceDuplicatePolicy.approvedContentHashes,
+      policyViolations,
+      allowedDispositions: [
+        'remove-restored-copy',
+        'move-and-retarget',
+        'explicitly-approved-multi-entrypoint',
+        'explicitly-approved-content-hash',
+        'content-shadow-review',
+      ],
+    },
+    summary: {
+      duplicateBasenames: duplicateEntries.length,
+      unapprovedDuplicateBasenames: unapprovedDuplicateEntries.length,
+      duplicatePaths: duplicatePaths.length,
+      restoredRootFilesAfterPhase16Cleanup: restoredRootFiles.length,
+      duplicateBasenamesWithRestoredRootCopies: duplicateEntries
+        .filter((entry) => entry.restoredRootCopies.length > 0).length,
+      duplicateBasenamesWithoutRestoredRootCopies: duplicateEntries
+        .filter((entry) => entry.restoredRootCopies.length === 0).length,
+      dispositionCounts,
+      runtimeClassificationCounts,
+      browserClassificationCounts,
+      restoredServiceDuplicatePolicyViolations: policyViolations.length,
+      approvedIndexBarrels: serviceIndexClassifications.approvedIndexBarrels.length,
+      indexImplementationEntrypoints: serviceIndexClassifications.indexImplementationEntrypoints.length,
+      indexShadowCopies: serviceIndexClassifications.indexShadowCopies.length,
+      duplicateContentHashes: duplicateContentHashes.length,
+      unapprovedDuplicateContentHashes: duplicateContentHashes.filter((entry) => entry.unapproved).length,
+      totalImporters: allDuplicatePathRecords.reduce((total, entry) => total + entry.importerCount, 0),
+      uniqueImporterFiles: new Set(allDuplicatePathRecords.flatMap((entry) => (
+        entry.importers.map((importer) => importer.file)
+      ))).size,
+    },
+    serviceIndexClassifications,
+    duplicateContentHashes,
+    restoredRootFiles,
+    duplicates: duplicateEntries,
+  };
+}
+
 function collectLegacySprintServiceFiles(files) {
   return files
     .filter((filePath) => (
@@ -565,6 +1267,24 @@ function audit(manifest, args) {
   const index = buildManifestIndex(manifest);
   const allFiles = listFiles('src', (relative) => isAuditedFile(relative));
   const serviceDuplicateBasenames = collectServiceDuplicateBasenames(allFiles);
+  const serviceIndexClassifications = collectServiceIndexClassifications(allFiles, index);
+  const serviceDuplicateContentHashes = collectServiceDuplicateContentHashes(allFiles, index);
+  const restoredServiceDuplicatePolicyViolations = collectRestoredServiceDuplicatePolicyViolations(
+    index.restoredServiceDuplicatePolicy,
+    index.modules,
+  );
+  const importersByTarget = collectLocalImporters([
+    ...allFiles,
+    ...listFiles('web', (relative) => isAuditedFile(relative)),
+  ]);
+  const restoredServiceDuplicateInventory = collectRestoredServiceDuplicateInventory({
+    duplicateContentHashes: serviceDuplicateContentHashes,
+    importersByTarget,
+    index,
+    serviceIndexClassifications,
+    policyViolations: restoredServiceDuplicatePolicyViolations,
+    serviceDuplicateBasenames,
+  });
   const legacySprintServiceFiles = collectLegacySprintServiceFiles(allFiles);
   const ownershipConflicts = collectOwnershipConflicts(allFiles, index);
   const browserUnsafeImports = collectBrowserUnsafeImports(index);
@@ -692,6 +1412,14 @@ function audit(manifest, args) {
       ownershipConflicts: ownershipConflicts.length,
       browserUnsafeImports: browserUnsafeImports.length,
       serviceDuplicateBasenames: serviceDuplicateBasenames.length,
+      unapprovedServiceDuplicateBasenames: restoredServiceDuplicateInventory.summary.unapprovedDuplicateBasenames,
+      serviceDuplicateContentHashes: serviceDuplicateContentHashes.length,
+      unapprovedServiceDuplicateContentHashes: serviceDuplicateContentHashes
+        .filter((entry) => entry.unapproved).length,
+      approvedServiceIndexBarrels: serviceIndexClassifications.approvedIndexBarrels.length,
+      serviceIndexImplementationEntrypoints: serviceIndexClassifications.indexImplementationEntrypoints.length,
+      serviceIndexShadowCopies: serviceIndexClassifications.indexShadowCopies.length,
+      restoredServiceDuplicatePolicyViolations: restoredServiceDuplicatePolicyViolations.length,
       legacySprintServiceFiles: legacySprintServiceFiles.length,
     },
     rootDebt: scopedRootDebt,
@@ -699,9 +1427,14 @@ function audit(manifest, args) {
     forbiddenImports: forbiddenImports.sort(compareFindings),
     ownershipConflicts,
     browserUnsafeImports,
+    restoredServiceDuplicatePolicyViolations,
+    restoredServiceDuplicateInventory,
+    serviceIndexClassifications,
+    serviceDuplicateContentHashDetails: serviceDuplicateContentHashes,
     legacyCompatibilityShims: scopedLegacyShims,
     legacyRootImportSpecifiers: scopedLegacyRootImportSpecifiers,
-    serviceDuplicateBasenames,
+    serviceDuplicateBasenames: serviceDuplicateBasenames.length,
+    serviceDuplicateBasenameDetails: serviceDuplicateBasenames,
     legacySprintServiceFiles,
   };
 }
@@ -720,6 +1453,39 @@ function formatPathLine(item) {
 
 function formatDuplicateBasenameLine(item) {
   return `  - ${item.basename}: ${item.reason}; paths=${item.paths.join(', ')}`;
+}
+
+function formatRestoredDuplicateImplementationLine(entry) {
+  const shadows = entry.paths
+    .filter((item) => !item.canonical)
+    .map((item) => `${item.path} [${item.module}, ${item.contentKind}, sha256 ${shortHash(item.sha256)}, importers ${item.importerCount}]`)
+    .join('; ');
+  const restoredAction = entry.restoredRootCopies.length > 0
+    ? `remove restored root copy ${entry.restoredRootCopies.join(', ')}`
+    : 'move or retarget non-canonical implementation paths';
+  return [
+    `  - ${entry.basename}: ${restoredAction}`,
+    `canonical ${entry.canonicalPath} [${entry.canonicalModuleOwner.module}, sha256 ${shortHash(entry.canonicalSha256)}]`,
+    `shadows ${shadows || 'none'}`,
+  ].join('; ');
+}
+
+function formatContentDuplicateLine(entry) {
+  return [
+    `  - sha256 ${shortHash(entry.sha256)}: ${entry.reason}`,
+    `canonical ${entry.canonicalPath} [${entry.canonicalModuleOwner.module}]`,
+    `disposition ${entry.disposition}`,
+    `paths=${entry.paths.map((item) => `${item.path} [${item.module}, ${item.contentKind}]`).join(', ')}`,
+  ].join('; ');
+}
+
+function formatIndexClassificationLine(item) {
+  return `  - ${item.path} [${item.module}, sha256 ${shortHash(item.sha256)}]: ${item.reason}`;
+}
+
+function formatPolicyViolationLine(item) {
+  const target = item.path ? ` (${item.path})` : '';
+  return `  - ${item.policy}${target} [${item.module}]: ${item.reason}`;
 }
 
 function printSection(title, items, formatter) {
@@ -742,10 +1508,36 @@ function printReport(result) {
   console.log(`forbidden imports: ${result.summary.forbiddenImports}`);
   console.log(`ownership conflicts: ${result.summary.ownershipConflicts}`);
   console.log(`browser unsafe imports: ${result.summary.browserUnsafeImports}`);
+  console.log(`restored service duplicate policy violations: ${result.summary.restoredServiceDuplicatePolicyViolations}`);
   console.log(`legacy compatibility shims: ${result.summary.legacyCompatibilityShims}`);
   console.log(`legacy root import specifiers: ${result.summary.legacyRootImportSpecifiers}`);
   console.log(`service duplicate basenames: ${result.summary.serviceDuplicateBasenames}`);
+  console.log(`unapproved service duplicate basenames: ${result.summary.unapprovedServiceDuplicateBasenames}`);
+  console.log(`service duplicate content hashes: ${result.summary.serviceDuplicateContentHashes}`);
+  console.log(`unapproved service duplicate content hashes: ${result.summary.unapprovedServiceDuplicateContentHashes}`);
+  console.log(`approved service index barrels: ${result.summary.approvedServiceIndexBarrels}`);
+  console.log(`service index implementation entrypoints: ${result.summary.serviceIndexImplementationEntrypoints}`);
+  console.log(`service index shadow copies: ${result.summary.serviceIndexShadowCopies}`);
   console.log(`legacy sprint service files: ${result.summary.legacySprintServiceFiles}`);
+  console.log('');
+  printSection(
+    'restored service duplicate implementations',
+    result.restoredServiceDuplicateInventory.duplicates
+      .filter((entry) => entry.disposition !== 'explicitly-approved-multi-entrypoint'),
+    formatRestoredDuplicateImplementationLine,
+  );
+  console.log('');
+  printSection(
+    'unapproved service duplicate content hashes',
+    result.serviceDuplicateContentHashDetails.filter((entry) => entry.unapproved),
+    formatContentDuplicateLine,
+  );
+  console.log('');
+  printSection(
+    'service index shadow copies',
+    result.serviceIndexClassifications.indexShadowCopies,
+    formatIndexClassificationLine,
+  );
   console.log('');
   printSection('root files', result.rootDebt, formatFindingLine);
   console.log('');
@@ -757,11 +1549,13 @@ function printReport(result) {
   console.log('');
   printSection('browser unsafe imports', result.browserUnsafeImports, formatFindingLine);
   console.log('');
+  printSection('restored service duplicate policy violations', result.restoredServiceDuplicatePolicyViolations, formatPolicyViolationLine);
+  console.log('');
   printSection('legacy compatibility shims', result.legacyCompatibilityShims, formatPathLine);
   console.log('');
   printSection('legacy root import specifiers', result.legacyRootImportSpecifiers, formatFindingLine);
   console.log('');
-  printSection('service duplicate basenames', result.serviceDuplicateBasenames, formatDuplicateBasenameLine);
+  printSection('service duplicate basenames', result.serviceDuplicateBasenameDetails, formatDuplicateBasenameLine);
   console.log('');
   printSection('legacy sprint service files', result.legacySprintServiceFiles, formatPathLine);
 }
@@ -772,6 +1566,193 @@ function writeJson(relativeOrAbsolutePath, result) {
     : abs(relativeOrAbsolutePath);
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`);
+}
+
+function markdownTableRow(cells) {
+  return `| ${cells.map((cell) => String(cell).replace(/\n/g, '<br>')).join(' | ')} |`;
+}
+
+function formatCountMap(counts) {
+  return Object.entries(counts)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([name, count]) => `${name}: ${count}`)
+    .join(', ');
+}
+
+function writeRestoredServiceDuplicateInventoryMarkdown(relativeOrAbsolutePath, inventory) {
+  const outputPath = path.isAbsolute(relativeOrAbsolutePath)
+    ? relativeOrAbsolutePath
+    : abs(relativeOrAbsolutePath);
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+
+  const lines = [
+    '# Restored Service Duplicate Inventory',
+    '',
+    `Task: ${inventory.taskId}`,
+    '',
+    'This report inventories every non-index duplicate basename currently present under `src/services`.',
+    'Index barrels are ignored; broad exemptions are not allowed. Every listed duplicate remains service ownership debt until it is removed, moved, or explicitly promoted to an approved multi-entrypoint in a future task.',
+    '',
+    '## Summary',
+    '',
+    markdownTableRow(['Metric', 'Value']),
+    markdownTableRow(['---', '---']),
+    markdownTableRow(['Duplicate basenames', inventory.summary.duplicateBasenames]),
+    markdownTableRow(['Unapproved duplicate basenames', inventory.summary.unapprovedDuplicateBasenames]),
+    markdownTableRow(['Duplicate paths', inventory.summary.duplicatePaths]),
+    markdownTableRow(['Restored root files after Phase 16 cleanup', inventory.summary.restoredRootFilesAfterPhase16Cleanup]),
+    markdownTableRow(['Duplicate basenames with restored root copies', inventory.summary.duplicateBasenamesWithRestoredRootCopies]),
+    markdownTableRow(['Duplicate basenames without restored root copies', inventory.summary.duplicateBasenamesWithoutRestoredRootCopies]),
+    markdownTableRow(['Disposition counts', formatCountMap(inventory.summary.dispositionCounts)]),
+    markdownTableRow(['Runtime classifications', formatCountMap(inventory.summary.runtimeClassificationCounts)]),
+    markdownTableRow(['Browser classifications', formatCountMap(inventory.summary.browserClassificationCounts)]),
+    markdownTableRow(['Restored duplicate policy violations', inventory.summary.restoredServiceDuplicatePolicyViolations]),
+    markdownTableRow(['Approved index barrels', inventory.summary.approvedIndexBarrels]),
+    markdownTableRow(['Index implementation entrypoints', inventory.summary.indexImplementationEntrypoints]),
+    markdownTableRow(['Index shadow copies', inventory.summary.indexShadowCopies]),
+    markdownTableRow(['Duplicate content hashes', inventory.summary.duplicateContentHashes]),
+    markdownTableRow(['Unapproved duplicate content hashes', inventory.summary.unapprovedDuplicateContentHashes]),
+    markdownTableRow(['Total import specifiers targeting duplicate paths', inventory.summary.totalImporters]),
+    markdownTableRow(['Unique importer files', inventory.summary.uniqueImporterFiles]),
+    '',
+    '## Policy',
+    '',
+    markdownTableRow(['Policy', 'Value']),
+    markdownTableRow(['---', '---']),
+    markdownTableRow(['Ignore index basenames', inventory.policy.indexBasenamesIgnored]),
+    markdownTableRow(['Broad exemptions allowed', inventory.policy.broadExemptionsAllowed]),
+    markdownTableRow(['Non-index basename duplicates fail by default', inventory.policy.nonIndexBasenameDuplicatesAreFailuresByDefault]),
+    markdownTableRow(['Approved multi-entrypoints', inventory.policy.approvedMultiEntrypoints.length]),
+    markdownTableRow(['Approved content hashes', inventory.policy.approvedContentHashes.length]),
+    markdownTableRow(['Policy violations', inventory.policy.policyViolations.length]),
+  ];
+
+  if (inventory.policy.policyViolations.length > 0) {
+    lines.push('', 'Policy violations:', '');
+    for (const item of inventory.policy.policyViolations) {
+      const target = item.path ? ` \`${item.path}\`` : '';
+      lines.push(`- \`${item.policy}\`${target}: ${item.reason}`);
+    }
+  }
+
+  lines.push(
+    '',
+    '## Restored Root Files',
+    '',
+    markdownTableRow(['Path', 'Basename', 'Canonical path', 'Canonical owner', 'Disposition', 'Runtime', 'Browser classification', 'Importers', 'SHA-256']),
+    markdownTableRow(['---', '---', '---', '---', '---', '---', '---', '---', '---']),
+  );
+
+  for (const item of inventory.restoredRootFiles) {
+    lines.push(markdownTableRow([
+      `\`${item.path}\``,
+      `\`${item.basename}\``,
+      `\`${item.canonicalPath}\``,
+      `\`${item.canonicalModuleOwner.module}\``,
+      `\`${item.disposition}\``,
+      `\`${item.runtimeClassification}\``,
+      `\`${item.browserClassification}\``,
+      item.importerCount,
+      `\`${item.sha256}\``,
+    ]));
+  }
+
+  lines.push(
+    '',
+    '## Service Index Classification',
+    '',
+    markdownTableRow(['Path', 'Classification', 'Module', 'Runtime', 'Browser classification', 'SHA-256', 'Reason']),
+    markdownTableRow(['---', '---', '---', '---', '---', '---', '---']),
+  );
+
+  for (const item of [
+    ...inventory.serviceIndexClassifications.approvedIndexBarrels,
+    ...inventory.serviceIndexClassifications.indexImplementationEntrypoints,
+    ...inventory.serviceIndexClassifications.indexShadowCopies,
+  ]) {
+    lines.push(markdownTableRow([
+      `\`${item.path}\``,
+      `\`${item.contentKind}\``,
+      `\`${item.module}\``,
+      `\`${item.runtimeClassification}\``,
+      `\`${item.browserClassification}\``,
+      `\`${item.sha256}\``,
+      item.reason,
+    ]));
+  }
+
+  lines.push(
+    '',
+    '## Duplicate Content Hashes',
+    '',
+    markdownTableRow(['SHA-256', 'Canonical path', 'Canonical owner', 'Restored root copies', 'Disposition', 'Paths']),
+    markdownTableRow(['---', '---', '---', '---', '---', '---']),
+  );
+
+  for (const entry of inventory.duplicateContentHashes) {
+    lines.push(markdownTableRow([
+      `\`${entry.sha256}\``,
+      `\`${entry.canonicalPath}\``,
+      `\`${entry.canonicalModuleOwner.module}\``,
+      entry.restoredRootCopies.map((item) => `\`${item}\``).join('<br>') || 'none',
+      `\`${entry.disposition}\``,
+      entry.paths.map((item) => `\`${item.path}\` (${item.module}, ${item.contentKind})`).join('<br>'),
+    ]));
+  }
+
+  lines.push('', '## Duplicate Basenames', '');
+
+  for (const entry of inventory.duplicates) {
+    lines.push(
+      `### ${entry.basename}`,
+      '',
+      `Disposition: \`${entry.disposition}\``,
+      '',
+      `Approved multi-entrypoint: ${entry.approvedMultiEntrypoint ? 'yes' : 'no'}`,
+      '',
+      `Canonical path: \`${entry.canonicalPath}\``,
+      '',
+      `Canonical module owner: \`${entry.canonicalModuleOwner.module}\` (${entry.canonicalModuleOwner.owner ?? 'unowned'}), runtime \`${entry.canonicalModuleOwner.runtimeClassification}\`, browser classification \`${entry.canonicalModuleOwner.browserClassification}\`.`,
+      '',
+      `Duplicate classification: runtime \`${entry.runtimeClassification}\`, browser \`${entry.browserClassification}\`; import specifiers targeting this basename: ${entry.importerCount}.`,
+      '',
+      `Path runtime classifications: ${formatCountMap(entry.runtimeClassificationCounts)}.`,
+      '',
+      `Path browser classifications: ${formatCountMap(entry.browserClassificationCounts)}.`,
+      '',
+      markdownTableRow(['Path', 'Canonical', 'Disposition', 'Restored root copy', 'Module', 'Canonical owner', 'Runtime', 'Browser classification', 'Importers', 'SHA-256']),
+      markdownTableRow(['---', '---', '---', '---', '---', '---', '---', '---', '---', '---']),
+    );
+    for (const item of entry.paths) {
+      lines.push(markdownTableRow([
+        `\`${item.path}\``,
+        item.canonical ? 'yes' : 'no',
+        `\`${item.disposition}\``,
+        item.restoredRootCopy ? 'yes' : 'no',
+        `\`${item.module}\``,
+        `\`${item.canonicalModuleOwner.module}\``,
+        `\`${item.runtimeClassification}\``,
+        `\`${item.browserClassification}\``,
+        item.importerCount,
+        `\`${item.sha256}\``,
+      ]));
+    }
+
+    const importers = entry.paths.flatMap((item) => (
+      item.importers.map((importer) => ({ ...importer, target: item.path }))
+    ));
+    if (importers.length > 0) {
+      lines.push('', 'Importers:', '');
+      for (const importer of importers) {
+        lines.push(`- \`${importer.file}:${importer.line}\` -> \`${importer.target}\` (${importer.kind} \`${importer.specifier}\`)`);
+      }
+    } else {
+      lines.push('', 'Importers: none');
+    }
+    lines.push('');
+  }
+
+  fs.writeFileSync(outputPath, `${lines.join('\n')}\n`);
 }
 
 function main() {
@@ -785,6 +1766,19 @@ function main() {
   const result = audit(manifest, args);
   printReport(result);
   if (args.json) writeJson(args.json, result);
+  const restoredInventoryJsonPath = args.restoredServiceDuplicateInventoryJson
+    ?? (args.json ? DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_JSON : null);
+  const restoredInventoryMarkdownPath = args.restoredServiceDuplicateInventoryMarkdown
+    ?? (args.json ? DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_MARKDOWN : null);
+  if (restoredInventoryJsonPath) {
+    writeJson(restoredInventoryJsonPath, result.restoredServiceDuplicateInventory);
+  }
+  if (restoredInventoryMarkdownPath) {
+    writeRestoredServiceDuplicateInventoryMarkdown(
+      restoredInventoryMarkdownPath,
+      result.restoredServiceDuplicateInventory,
+    );
+  }
 
   const failures = [];
   if (args.failOnUnknown && result.summary.unknownFiles > 0) failures.push('unknown files');
@@ -797,7 +1791,10 @@ function main() {
     && (
       result.summary.legacyCompatibilityShims > 0
       || result.summary.legacyRootImportSpecifiers > 0
-      || result.summary.serviceDuplicateBasenames > 0
+      || result.summary.unapprovedServiceDuplicateBasenames > 0
+      || result.summary.unapprovedServiceDuplicateContentHashes > 0
+      || result.summary.serviceIndexShadowCopies > 0
+      || result.summary.restoredServiceDuplicatePolicyViolations > 0
       || result.summary.legacySprintServiceFiles > 0
     )
   ) {

@@ -53,6 +53,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const siblingHallucinateAppDir = path.resolve(repoRoot, '..', 'hallucinate_app');
+<<<<<<< Updated upstream
+=======
+
+function abs(relativePath) {
+  return path.resolve(repoRoot, relativePath);
+}
+>>>>>>> Stashed changes
 
 const DEFAULT_REPORT_JSON = 'docs/release-readiness-report.json';
 const DEFAULT_REPORT_MD = 'docs/release-readiness-report.md';
@@ -354,7 +361,7 @@ function gateWasmIntegrityMetadata() {
   }
 
   const schnorrPath = 'src/services/zkp/artifacts/schnorr-field.wasm.b64';
-  const schnorrSource = 'src/services/zkp-browser-schnorr.ts';
+  const schnorrSource = 'src/services/zkp/zkp-browser-schnorr.ts';
   if (!exists(schnorrPath)) {
     failures.push(`missing ${schnorrPath}`);
   } else {
@@ -729,7 +736,7 @@ function findDefaultPyodideSourceExposure(findings) {
 
 function findBrowserZkpSimulationDrift(findings) {
   const zkpBrowserFiles = [
-    'src/services/zkp-browser-schnorr.ts',
+    'src/services/zkp/zkp-browser-schnorr.ts',
     'src/services/zkp/browser-snarkjs-backend.ts',
     'src/services/zkp/browser-zkp-policy.ts',
     'src/services/zkp/browser-zkp.ts',
@@ -871,6 +878,7 @@ function formatDuration(ms) {
 }
 
 function runVirtualDesktopReleaseEvidenceGate() {
+<<<<<<< Updated upstream
   const outcome = runNodeScript('scripts/build-virtual-desktop-release-evidence.cjs');
   const findings = [];
   if (!outcome.ok) {
@@ -1030,6 +1038,42 @@ function runVirtualDesktopReleaseEvidenceGate() {
     durationMs: outcome.durationMs,
     findings,
     tail,
+=======
+  const startedAt = Date.now();
+  const buildOutcome = runCommand('node', ['scripts/build-virtual-desktop-release-evidence.cjs']);
+  const evidence = readVirtualDesktopReleaseEvidence();
+  const failures = [];
+
+  if (!buildOutcome.ok) {
+    failures.push(`build-virtual-desktop-release-evidence failed with exit ${buildOutcome.status}`);
+    failures.push(...buildOutcome.tail);
+  }
+
+  if (evidence.status !== 'present') {
+    failures.push(`virtual desktop release evidence is ${evidence.status}: ${evidence.error ?? 'unknown error'}`);
+  } else {
+    if (evidence.decision !== 'go') {
+      failures.push(`virtual desktop release evidence decision is ${evidence.decision ?? 'unknown'}`);
+    }
+    if ((evidence.blockerCount ?? 0) > 0) {
+      failures.push(`virtual desktop release evidence has ${evidence.blockerCount} blocker(s)`);
+      failures.push(...(evidence.blockers ?? []).slice(0, 20));
+      if ((evidence.blockers ?? []).length > 20) {
+        failures.push(`... ${(evidence.blockers ?? []).length - 20} more blocker(s)`);
+      }
+    }
+    const hierarchicalDecision = evidence.hierarchicalMcp?.decision;
+    if (hierarchicalDecision && !['go', 'pass', 'passed'].includes(String(hierarchicalDecision).toLowerCase())) {
+      failures.push(`hierarchical MCP release decision is ${hierarchicalDecision}`);
+    }
+  }
+
+  return {
+    ok: failures.length === 0,
+    status: failures.length === 0 ? 0 : 1,
+    durationMs: Date.now() - startedAt,
+    tail: failures.length > 0 ? failures.slice(-40) : buildOutcome.tail,
+>>>>>>> Stashed changes
   };
 }
 

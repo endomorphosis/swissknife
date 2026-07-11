@@ -16,7 +16,7 @@ import {
   prioritySignalFreeAdaptiveAmbiguityTargets,
   signalFreeAdaptiveAmbiguityTargets,
   supportsSignalFreeAdaptiveAmbiguityPair,
-} from '../../src/services/modal-compiler';
+} from '../../src/services/logic/modal/modal-compiler.js';
 
 interface Vector {
   id: string;

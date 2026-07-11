@@ -11,7 +11,7 @@ import {
   modalIrFormulaToText,
   modalTextTokenSimilarity,
   type ModalIRDocument,
-} from '../../src/services/modal-ir-decompiler';
+} from '../../src/services/logic/modal/modal-ir-decompiler.js';
 
 interface SimilarityCase {
   id: string;

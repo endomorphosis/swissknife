@@ -11,7 +11,7 @@ import {
   compilerGuidanceImpliesNeo4jProjectionTarget,
   compilerGuidanceRouteFeatures,
   compilerGuidanceViewGapFeatures,
-} from '../../src/services/modal-logic-codec';
+} from '../../src/services/logic/modal/modal-logic-codec.js';
 
 interface GuidanceResult {
   routeFeatures: string[];

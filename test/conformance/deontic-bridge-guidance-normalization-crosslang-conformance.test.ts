@@ -7,7 +7,7 @@ import {
   deonticCanonicalFrameSymbol,
   deonticGuidanceTargetView,
   deonticNormalizedGuidanceText,
-} from '../../src/services/deontic-norms-bridge';
+} from '../../src/services/logic/bridges/deontic-norms-bridge.js';
 
 type VectorKind = 'target_view' | 'canonical_frame_symbol' | 'normalized_guidance_text';
 

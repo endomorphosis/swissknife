@@ -11,7 +11,7 @@
 import { SMT2Serializer } from '../../src/services/provers/smt2-serializer';
 import { Cvc5WasmBridge } from '../../src/services/provers/cvc5-wasm-bridge';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub';
-import type { Policy } from '../../src/services/mcp/mcp-policy';
+import type { Policy } from '../../src/services/mcp/mcp-mcp-policy.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -6,11 +6,11 @@ import { tmpdir } from 'node:os';
 import {
   dcecFrameLogicTriplesFromRecords,
   dcecGraphDataFromFrameTriples,
-} from '../../src/services/cec-dcec-bridge';
+} from '../../src/services/logic/bridges/cec-dcec-bridge.js';
 import {
   tdfolFrameLogicTriplesFromRecords,
   tdfolGraphDataFromFrameTriples,
-} from '../../src/services/fol-tdfol-bridge';
+} from '../../src/services/logic/bridges/fol-tdfol-bridge.js';
 
 interface Vector {
   id: string;

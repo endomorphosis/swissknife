@@ -1,4 +1,4 @@
-import { queryHaiku } from '../services/claude.js'
+import { queryHaiku } from '../services/platform/claude.js'
 import { safeParseJSON } from './json.js'
 import { logError } from './log.js'
 

@@ -5,7 +5,7 @@ export * from './glasses-app-control-plane.js';
 export * from './glasses-enhanced-control-plane.js';
 export * from './idl-to-glasses-compiler.js';
 export * from './ipfs-glasses-widgets.js';
-export * from './meta-glasses-app-capability-registry.js';
+export * from '../apps/meta-glasses-app-capability-registry.js';
 export * from './meta-glasses-audio-adapter.js';
 export * from './meta-glasses-camera-adapter.js';
 export * from './meta-glasses-control-plane-router.js';

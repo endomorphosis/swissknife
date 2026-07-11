@@ -4,7 +4,7 @@
  * TypeScript port of ipfs_datasets_py/logic/zkp/provekit/cache.py.
  */
 
-import { base64Encode, sha256Hex, utf8Bytes } from '../shared/browser-crypto.js';
+import { base64Encode, sha256Hex, utf8Bytes } from '../shared/shared-browser-crypto.js';
 
 export const PROVEKIT_CACHE_KEY_SCHEMA = 'provekit-cache-key-v1';
 export const PROVEKIT_IPFS_PAYLOAD_SCHEMA = 'provekit-ipfs-payload-v1';

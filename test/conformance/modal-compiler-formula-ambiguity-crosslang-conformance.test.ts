@@ -8,7 +8,7 @@ import {
   modalCompilerFormulaAmbiguities,
   modalCompilerRankingShare,
   type ModalCompilerFormulaLike,
-} from '../../src/services/modal-compiler';
+} from '../../src/services/logic/modal/modal-compiler.js';
 
 interface FormulaDocumentVector {
   id: string;

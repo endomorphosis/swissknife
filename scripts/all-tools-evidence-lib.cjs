@@ -4,6 +4,21 @@ const crypto = require('node:crypto');
 const http = require('node:http');
 const os = require('node:os');
 const childProcess = require('node:child_process');
+const { profileEInitializeResult, profileEPeersResult } = require('./mcpplusplus-profile-e-http.cjs');
+const {
+  buildProfileAInterface,
+  profileAListResult,
+  profileAGetResult,
+  profileACompatResult,
+  profileASelectResult,
+} = require('./mcpplusplus-profile-a.cjs');
+const { executeProfileB, ProfileBRequestError } = require('./mcpplusplus-profile-b.cjs');
+const { createArtifactStore, decodeBase64 } = require('./mcpplusplus-artifact-store.cjs');
+const {
+  getProfileCService,
+  validateProfileCInvocation,
+} = require('./mcpplusplus-profile-c.cjs');
+const { getEventDagService } = require('./mcpplusplus-event-dag.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const WORKSPACE_ROOT = path.resolve(REPO_ROOT, '..');
@@ -12,7 +27,7 @@ const WEB_APPS_DIR = path.join(REPO_ROOT, 'web', 'js', 'apps');
 const SERVICES_DIR = path.join(REPO_ROOT, 'src', 'services');
 const IPFS_SERVICES_DIR = path.join(SERVICES_DIR, 'ipfs');
 const ACCELERATE_COMPAT_NAME = 'swissknife-ipfs-accelerate-compat';
-const ACCELERATE_COMPAT_VERSION = '0.4.0';
+const ACCELERATE_COMPAT_VERSION = '1.0.0';
 const ACCELERATE_COMPAT_SCRIPT = path.join(REPO_ROOT, 'scripts', 'start-ipfs-accelerate-mcp-compat.cjs');
 const ACCELERATE_COMPAT_PID_FILE = path.join(OUT_DIR, 'ipfs-accelerate-compat.pid');
 const ACCELERATE_COMPAT_LOG_FILE = path.join(OUT_DIR, 'ipfs-accelerate-compat.log');
@@ -957,7 +972,7 @@ function glassesExposureFor(policyClass) {
 function buildDerivedArtifacts(ledger) {
   const generatedAt = nowIso();
   const inventory = buildAppInventoryArtifact(generatedAt);
-  writeJson('app-inventory.json', inventory);
+  writeJson('all-tools-app-inventory.json', inventory);
 
   const policies = ledger.records.map(record => {
     const policy_class = classifyTool(record);
@@ -1921,10 +1936,45 @@ function startAccelerateCompatServer(options = {}) {
   const host = options.host ?? '127.0.0.1';
   const port = Number(options.port ?? 3003);
   const upstream = options.upstream ?? 'http://127.0.0.1:9000';
+  const artifactStore = createArtifactStore({ service: 'ipfs_accelerate_py' });
+  const profileCService = getProfileCService('ipfs_accelerate_py');
+  const eventDag = getEventDagService('ipfs_accelerate_py');
+  const profileAPersistence = new Map();
+
+  async function profileCResult(operation, params) {
+    const profileC = await profileCService;
+    switch (operation) {
+      case 'identity': return profileC.identity(params);
+      case 'delegate': return profileC.delegate(params);
+      case 'validate': return profileC.validate(params);
+      case 'revoke': return profileC.revoke(params);
+      default: throw new Error(`Unsupported Profile C operation: ${operation}`);
+    }
+  }
+
+  async function persistedProfileA() {
+    const catalog = await accelerateProfileA(upstream);
+    if (!profileAPersistence.has(catalog.interface_cid)) {
+      profileAPersistence.set(catalog.interface_cid, artifactStore.persistProfileA(catalog).catch(error => ({
+        profile: 'A',
+        complete: false,
+        error: error instanceof Error ? error.message : String(error),
+      })));
+    }
+    return { catalog, persistence: await profileAPersistence.get(catalog.interface_cid) };
+  }
+
+  async function profileAResult(interfaceCid) {
+    const { catalog, persistence } = await persistedProfileA();
+    const result = profileAGetResult(catalog, interfaceCid);
+    return result ? { ...result, artifact_persistence: persistence } : null;
+  }
 
   const server = http.createServer(async (req, res) => {
+    let url;
+    let rpcRequestId = null;
     try {
-      const url = new URL(req.url, `http://${host}:${port}`);
+      url = new URL(req.url, `http://${host}:${port}`);
       if (req.method === 'GET' && (url.pathname === '/mcp/tools/list' || url.pathname === '/mcp/tools')) {
         const tools = await accelerateCompatTools(upstream);
         return sendJson(res, 200, { tools });
@@ -1947,10 +1997,133 @@ function startAccelerateCompatServer(options = {}) {
           alias_mappings: manifest.alias_mappings,
         });
       }
+      if (req.method === 'GET' && url.pathname === '/mcp/p2p/peers') {
+        return sendJson(res, 200, profileEPeersResult('ipfs_accelerate_py'));
+      }
+      if (req.method === 'GET' && url.pathname === '/mcp/dag/frontier') {
+        return sendJson(res, 200, eventDag.frontier());
+      }
+      if (req.method === 'GET' && url.pathname === '/mcp/dag/history') {
+        return sendJson(res, 200, eventDag.history(url.searchParams.get('limit')));
+      }
+      if (req.method === 'GET' && url.pathname.startsWith('/mcp/dag/provenance/')) {
+        return sendJson(res, 200, eventDag.provenance(
+          decodeURIComponent(url.pathname.slice('/mcp/dag/provenance/'.length)),
+          url.searchParams.get('limit'),
+        ));
+      }
+      if (req.method === 'GET' && url.pathname === '/mcp/dag/archives') {
+        return sendJson(res, 200, eventDag.archives());
+      }
+      if (req.method === 'GET' && url.pathname.startsWith('/mcp/dag/certificates/')) {
+        const result = eventDag.certificate(decodeURIComponent(url.pathname.slice('/mcp/dag/certificates/'.length)));
+        return result ? sendJson(res, 200, result) : sendJson(res, 404, { error: 'certificate_not_found' });
+      }
+      if (req.method === 'GET' && url.pathname.startsWith('/mcp/dag/inclusion/')) {
+        const result = eventDag.inclusion(decodeURIComponent(url.pathname.slice('/mcp/dag/inclusion/'.length)));
+        return result ? sendJson(res, 200, result) : sendJson(res, 404, { error: 'event_not_archived' });
+      }
+      if (req.method === 'POST' && (url.pathname === '/mcp/dag/compact' || url.pathname === '/mcp/dag/archive')) {
+        return sendJson(res, 200, eventDag.compact(await readRequestJson(req)));
+      }
+      if (req.method === 'POST' && url.pathname === '/mcp/dag/append') {
+        const body = await readRequestJson(req);
+        return sendJson(res, 200, eventDag.record(body.event ?? body));
+      }
+      if (req.method === 'POST' && url.pathname === '/mcp/dag/certificates/verify') {
+        const body = await readRequestJson(req);
+        return sendJson(res, 200, eventDag.verify(body.certificate_cid ?? body.certificate ?? body));
+      }
+      if (req.method === 'GET' && url.pathname === '/mcp/interfaces') {
+        const { catalog } = await persistedProfileA();
+        return sendJson(res, 200, profileAListResult(catalog));
+      }
+      if (req.method === 'GET' && url.pathname.startsWith('/mcp/interfaces/')) {
+        const interfaceCid = decodeURIComponent(url.pathname.slice('/mcp/interfaces/'.length));
+        const result = await profileAResult(interfaceCid);
+        return result
+          ? sendJson(res, 200, result)
+          : sendJson(res, 404, { error: 'interface_not_found', interface_cid: interfaceCid });
+      }
+      if (req.method === 'POST' && url.pathname === '/mcp/interfaces/compat') {
+        return sendJson(res, 200, profileACompatResult(await accelerateProfileA(upstream), await readRequestJson(req)));
+      }
+      if (req.method === 'POST' && url.pathname === '/mcp/interfaces/select') {
+        return sendJson(res, 200, profileASelectResult(await accelerateProfileA(upstream), await readRequestJson(req)));
+      }
+      if (req.method === 'POST' && url.pathname.startsWith('/mcp/ucan/')) {
+        return sendJson(res, 200, await profileCResult(
+          url.pathname.slice('/mcp/ucan/'.length),
+          await readRequestJson(req),
+        ));
+      }
+      if (req.method === 'POST' && url.pathname === '/mcp/execute') {
+        return sendJson(res, 200, await executeAccelerateProfileB(upstream, await readRequestJson(req), artifactStore, profileCService, eventDag));
+      }
+      if (req.method === 'POST' && url.pathname === '/mcp/artifacts/put') {
+        return sendJson(res, 200, await persistArtifactRequest(artifactStore, await readRequestJson(req)));
+      }
+      if (req.method === 'GET' && url.pathname.startsWith('/mcp/artifacts/')) {
+        return sendJson(res, 200, await getArtifactResponse(artifactStore, decodeURIComponent(url.pathname.slice('/mcp/artifacts/'.length))));
+      }
       if (req.method === 'POST' && url.pathname === '/mcp') {
         const payload = await readRequestJson(req);
+        rpcRequestId = payload.id ?? null;
         if (payload.method === 'initialize') {
-          return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: { protocolVersion: '2024-11-05', serverInfo: { name: ACCELERATE_COMPAT_NAME, version: ACCELERATE_COMPAT_VERSION } } });
+          return sendJson(res, 200, {
+            jsonrpc: '2.0',
+            id: payload.id ?? null,
+            result: profileEInitializeResult({
+              name: ACCELERATE_COMPAT_NAME,
+              version: ACCELERATE_COMPAT_VERSION,
+              request: payload.params,
+              supportsMcpIdl: true,
+              supportsCidEnvelope: true,
+              supportsUcan: true,
+              supportsEventDag: true,
+            }),
+          });
+        }
+        if (payload.method === 'interfaces/list') {
+          const { catalog } = await persistedProfileA();
+          return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: profileAListResult(catalog) });
+        }
+        if (payload.method === 'interfaces/get') {
+          const interfaceCid = String(payload.params?.interface_cid ?? '');
+          const result = await profileAResult(interfaceCid);
+          return result
+            ? sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result })
+            : sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, error: { code: -32602, message: 'Unknown interface_cid' } });
+        }
+        if (payload.method === 'interfaces/compat') {
+          return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: profileACompatResult(await accelerateProfileA(upstream), payload.params) });
+        }
+        if (payload.method === 'interfaces/select') {
+          return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: profileASelectResult(await accelerateProfileA(upstream), payload.params) });
+        }
+        if (payload.method === 'mcp++/p2p/peers') {
+          return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: profileEPeersResult('ipfs_accelerate_py') });
+        }
+        if (payload.method.startsWith('mcp++/dag/')) {
+          return sendJson(res, 200, {
+            jsonrpc: '2.0',
+            id: payload.id ?? null,
+            result: eventDagResult(eventDag, payload.method.slice('mcp++/dag/'.length), payload.params ?? {}),
+          });
+        }
+        if (payload.method.startsWith('mcp++/ucan/')) {
+          return sendJson(res, 200, {
+            jsonrpc: '2.0',
+            id: payload.id ?? null,
+            result: await profileCResult(payload.method.slice('mcp++/ucan/'.length), payload.params ?? {}),
+          });
+        }
+        if (payload.method === 'mcp++/execute') {
+          return sendJson(res, 200, {
+            jsonrpc: '2.0',
+            id: payload.id ?? null,
+            result: await executeAccelerateProfileB(upstream, payload.params ?? {}, artifactStore, profileCService, eventDag),
+          });
         }
         if (payload.method === 'tools/list') {
           return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: { tools: await accelerateCompatTools(upstream) } });
@@ -1966,7 +2139,20 @@ function startAccelerateCompatServer(options = {}) {
       }
       return sendJson(res, 404, { error: 'not_found' });
     } catch (error) {
-      return sendJson(res, 500, { error: error.message });
+      if (url?.pathname === '/mcp') {
+        return sendJson(res, 200, {
+          jsonrpc: '2.0',
+          id: rpcRequestId,
+          error: {
+            code: error instanceof ProfileBRequestError ? error.code : -32603,
+            message: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+      return sendJson(res, 500, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error instanceof ProfileBRequestError ? error.code : -32603,
+      });
     }
   });
 
@@ -1979,6 +2165,66 @@ function startAccelerateCompatServer(options = {}) {
 
 async function accelerateCompatTools(upstream) {
   return (await accelerateCompatCatalog(upstream)).tools;
+}
+
+async function accelerateProfileA(upstream) {
+  return buildProfileAInterface('ipfs_accelerate_py', await accelerateCompatTools(upstream));
+}
+
+async function executeAccelerateProfileB(upstream, params, artifactStore, profileCService, eventDag) {
+  const result = await executeProfileB({
+    catalog: await accelerateProfileA(upstream),
+    params,
+    invoke: (tool, args) => callAccelerateCompatTool(upstream, tool, args),
+    artifactStore,
+    authorize: async (request) => {
+      const profileC = await profileCService;
+      const authorization = await validateProfileCInvocation(profileC, 'ipfs_accelerate_py', params, request.tool);
+      if (!authorization.valid) throw new ProfileBRequestError(authorization.reason || 'Profile C UCAN authorization failed.');
+    },
+  });
+  if (eventDag) result.event_dag = eventDag.record(result.event);
+  return result;
+}
+
+function eventDagResult(eventDag, operation, params) {
+  switch (operation) {
+    case 'frontier': return eventDag.frontier();
+    case 'history': return eventDag.history(params.limit);
+    case 'provenance': return eventDag.provenance(String(params.event_cid ?? params.cid ?? ''), params.limit);
+    case 'append': return eventDag.record(params.event ?? params);
+    case 'compact':
+    case 'archive': return eventDag.compact(params);
+    case 'archives': return eventDag.archives();
+    case 'certificate/get': return eventDag.certificate(String(params.certificate_cid ?? '')) ?? { found: false };
+    case 'certificate/verify': return eventDag.verify(params.certificate_cid ?? params.certificate ?? params);
+    case 'inclusion': return eventDag.inclusion(String(params.event_cid ?? params.cid ?? '')) ?? { found: false };
+    default: throw new Error(`Unsupported Event DAG operation: ${operation}`);
+  }
+}
+
+async function persistArtifactRequest(artifactStore, payload) {
+  return artifactStore.persistBytes({
+    cid: String(payload?.cid ?? ''),
+    bytes: decodeBase64(payload?.bytes_base64),
+    profile: String(payload?.profile ?? 'unknown'),
+    kind: String(payload?.kind ?? 'artifact'),
+    service: String(payload?.service ?? 'ipfs_accelerate_py'),
+    pin: payload?.pin !== false,
+  });
+}
+
+async function getArtifactResponse(artifactStore, cid) {
+  const result = await artifactStore.getArtifact(cid);
+  if (!result.found) return { ...result, error: result.error ?? 'artifact_not_found' };
+  return {
+    found: true,
+    verified: result.verified,
+    backend: result.backend,
+    cid: result.cid,
+    bytes_base64: result.bytes.toString('base64'),
+    metadata: result.metadata,
+  };
 }
 
 async function accelerateCompatManifest(upstream) {
@@ -2105,7 +2351,12 @@ async function callAccelerateCompatTool(upstream, name, args) {
     };
   }
   if (name === 'tools_dispatch') {
-    const dispatchName = args?.name ?? args?.tool ?? args?.tool_name;
+    const requestedDispatchName = args?.name ?? args?.tool ?? args?.tool_name;
+    const dispatchCategory = args?.category;
+    const dispatchName = dispatchCategory && typeof requestedDispatchName === 'string'
+      && (requestedDispatchName.startsWith(`${dispatchCategory}.`) || requestedDispatchName.startsWith(`${dispatchCategory}/`))
+      ? requestedDispatchName.slice(dispatchCategory.length + 1)
+      : requestedDispatchName;
     const dispatchArgs = args?.arguments ?? args?.params ?? {};
     if (!dispatchName || dispatchName === 'tools_dispatch') {
       return {

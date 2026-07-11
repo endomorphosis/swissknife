@@ -2,16 +2,28 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "browser-bundle-budget",
   "label": "Browser bundle budget evidence (SWR-016)",
+<<<<<<< Updated upstream
   "generatedAt": "2026-07-10T11:21:12.629Z",
+=======
+  "generatedAt": "2026-07-11T02:31:14.057Z",
+>>>>>>> Stashed changes
   "evidenceFiles": [
     "docs/browser-bundle-budget.md",
     "docs/browser-bundle-budget.json"
   ],
+<<<<<<< Updated upstream
   "sourceFingerprint": "20c965bbcedd47d85e0fb8420a56d96670a7f51bf15b7bd3d4b94119ea734186",
   "sourceFiles": [
     {
       "path": "package.json",
       "sha256": "6ca892c9fcc338d198767dddb91ec279eeff59a494a0ec9b15a5b6f77a7d3910"
+=======
+  "sourceFingerprint": "87b800f5434b507ac70d721e3c84ca99373757e285789729173b2e088bee86eb",
+  "sourceFiles": [
+    {
+      "path": "package.json",
+      "sha256": "c6a8ecef80df0f283390d0dde9a9532b75fb80e08e612356b9b3a92dfcd02390"
+>>>>>>> Stashed changes
     },
     {
       "path": "scripts/audit-web-bundle.mjs",
@@ -19,7 +31,11 @@
     },
     {
       "path": "src/module-ownership.json",
+<<<<<<< Updated upstream
       "sha256": "02fda8746d9d90e7f9e528ce5b58a34179959d5f4aae9335d156a940beb5d219"
+=======
+      "sha256": "896887b498a59b70598f02cdadf20f214907369eabda4e3605ef9ce1accd30cc"
+>>>>>>> Stashed changes
     },
     {
       "path": "vite.web.config.ts",

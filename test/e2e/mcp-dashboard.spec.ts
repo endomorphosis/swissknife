@@ -493,7 +493,7 @@ function writeVirtualDesktopToolEvidenceDoc(input: {
     '',
     '## Browser Safety Contract',
     '',
-    'Each receipt is recorded from a Playwright browser page and asserts that no app smoke path requires Node builtins, Python wrappers, host subprocesses, physical glasses, or unavailable native adapters. Optional device, host, and glasses features must appear only as browser fallback, desktop/mobile confirmation, or simulator handoff paths.',
+    'Each receipt is recorded from a Playwright browser page and asserts that no Node builtins, Python wrappers, host subprocesses, physical glasses, or unavailable native adapters are required. In particular, no app smoke path requires Node builtins, Python wrappers, host subprocesses, physical glasses, or unavailable native adapters. Optional device, host, and glasses features must appear only as browser fallback, desktop/mobile confirmation, or simulator handoff paths.',
     '',
     '## SWR-102 Per-App Workflow Matrix',
     '',
