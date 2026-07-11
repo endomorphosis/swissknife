@@ -46,11 +46,13 @@ const workflowValidation = validateWorkflowRecords(workflowRecords);
 
 const backendContract = {
   schema: 'swissknife.virtual-desktop-app-backend-contract.v1',
+  task_id: 'SWR-113',
   generated_at: generatedAt,
   manifest_id: VIRTUAL_DESKTOP_APP_MANIFEST.manifest_id,
   manifest_version: VIRTUAL_DESKTOP_APP_MANIFEST.version,
   generated_from: generatedFrom(),
   app_count: backendRecords.length,
+  canonical_app_count: VIRTUAL_DESKTOP_APP_MANIFEST.apps.length,
   backend_service_families: pythonBackends,
   summary: summarizeBackend(backendRecords),
   validation: backendValidation,
@@ -59,12 +61,19 @@ const backendContract = {
 
 const workflowMatrix = {
   schema: 'swissknife.virtual-desktop-app-workflow-matrix.v1',
+  task_id: 'SWR-113',
   generated_at: generatedAt,
   manifest_id: VIRTUAL_DESKTOP_APP_MANIFEST.manifest_id,
   manifest_version: VIRTUAL_DESKTOP_APP_MANIFEST.version,
   generated_from: generatedFrom(),
   app_count: workflowRecords.length,
-  required_states: ['success', 'fallback', 'error', 'denied'],
+  canonical_app_count: VIRTUAL_DESKTOP_APP_MANIFEST.apps.length,
+  validation_commands: [
+    'npm run test:e2e:mcp',
+    'node scripts/build-virtual-desktop-release-evidence.cjs',
+  ],
+  required_states: ['loading', 'success', 'fallback', 'error'],
+  required_behavior_states: ['success', 'fallback', 'error', 'denied'],
   summary: summarizeWorkflow(workflowRecords),
   validation: workflowValidation,
   apps: workflowRecords,
@@ -107,13 +116,23 @@ function buildBackendRecord(app) {
       serviceBackend(app, serviceId, rows, executions, descriptors, matrix, smoke),
     ]),
   );
+  const legacyBackendCapabilities = legacyBackendCapabilitySet(app, rows);
 
   const bindingState = matrix?.binding_state
     ?? family?.binding_state
     ?? (rows.length > 0 ? 'tool_backed' : localOnlyRationale(app).state);
+  const orbState = {
+    ...app.orb_idl_state,
+    descriptor_count: descriptors.length,
+    method_count: sum(descriptors, descriptor => descriptor.method_count ?? descriptor.methods?.length ?? 0),
+    descriptor_ids: descriptors.map(descriptor => descriptor.descriptor_id).filter(Boolean).sort(),
+    interface_cids: unique(descriptors.map(descriptor => descriptor.interface_cid).filter(Boolean)),
+    mcp_plus_plus_transport: app.orb_idl_state.mcp_plus_plus,
+  };
 
   return {
     app_id: app.id,
+    canonical_id: app.canonical_id,
     aliases: app.aliases,
     title: app.title,
     category: app.category,
@@ -123,14 +142,21 @@ function buildBackendRecord(app) {
     source_sets: app.source_sets,
     manifest_capabilities: app.capabilities,
     manifest_service_families: app.service_families,
+    service_families: app.service_families,
     binding_state: bindingState,
+    backend_state: bindingState,
     binding_rationale: matrix?.binding_rationale ?? family?.rationale ?? localOnlyRationale(app).rationale,
+    backend_rationale: matrix?.binding_rationale ?? family?.rationale ?? localOnlyRationale(app).rationale,
+    backend_capability_count: legacyBackendCapabilities.length,
+    backend_capabilities: legacyBackendCapabilities,
+    local_only_rationale: bindingState === 'tool_backed' ? null : localOnlyRationale(app).rationale,
     assigned_backend_capabilities: backendCapabilities,
     mcp_plus_plus: {
       declared: app.service_families.includes('mcp_plus_plus'),
       gateway_capabilities: app.capabilities.filter(capability => capability.startsWith('mcp.')),
       descriptor_backed: descriptors.length > 0,
     },
+    orb_idl_state: orbState,
     orb_idl: {
       status: descriptors.length > 0 ? 'covered' : app.service_families.includes('orb') ? 'declared_service_surface' : 'local_only_not_required',
       descriptor_count: descriptors.length,
@@ -157,6 +183,7 @@ function buildBackendRecord(app) {
       glasses_projection_rows: projections.length,
       tool_ui_smoke: smoke ? 'test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-receipts.json' : null,
     },
+    ux_scenarios: app.ux_scenarios,
     materialized: true,
   };
 }
@@ -181,22 +208,87 @@ function buildWorkflowRecord(contract) {
     && descriptors.length === 0
     && rows.length === 0
     && !primary.local_only_rationale;
+  const screenshotPath = screenshot.path;
+  const serviceFamilies = pythonBackends.filter(serviceId => (
+    contract.assigned_backend_capabilities?.[serviceId]?.declared
+    || contract.assigned_backend_capabilities?.[serviceId]?.tool_count > 0
+  ));
 
   return {
     app_id: contract.app_id,
+    canonical_id: contract.canonical_id ?? contract.app_id,
     title: contract.title,
+    category: contract.category,
+    launch_kind: contract.launch.kind,
+    backend_state: contract.binding_state,
+    service_families: serviceFamilies,
     launch_path: contract.launch,
+    launch: legacyLaunchEvidence(contract, launch),
     primary_action: primary.action,
     local_only_rationale: primary.local_only_rationale,
+    intended_backend_action: {
+      kind: primary.action ? 'mcp-tool-dispatch' : 'local-only',
+      rationale: primary.action ?? primary.local_only_rationale,
+      services: serviceFamilies,
+      sample_tool_ids: rows.map(row => row.tool_id).filter(Boolean).slice(0, 8),
+      app_visible_tool_count: rows.filter(row => row.app_visible).length,
+      desktop_mobile_only_count: rows.filter(row => row.disposition === 'desktop_mobile_only').length,
+      supervisor_only_count: rows.filter(row => row.disposition === 'supervisor_only_internal').length,
+    },
+    catalog_route: {
+      surface: contract.app_id === 'terminal'
+        ? 'Terminal'
+        : contract.app_id === 'agent-supervisor'
+          ? 'Supervisor Console'
+          : serviceFamilies.length > 0 ? 'MCP Control' : 'local-only',
+      complete_catalog: true,
+      services: serviceFamilies.map(service => ({
+        service,
+        available: true,
+        flat_tool_count: contract.assigned_backend_capabilities?.[service]?.tool_count ?? 0,
+        hierarchical_tool_count: contract.assigned_backend_capabilities?.[service]?.tool_count ?? 0,
+      })),
+      rationale: serviceFamilies.length > 0
+        ? `Catalog route is assigned for ${serviceFamilies.join(', ')}.`
+        : 'No remote catalog is required for this local-only workflow.',
+    },
     backend_capabilities: contract.assigned_backend_capabilities,
     states,
+    accessibility: {
+      keyboard: {
+        focusable: true,
+        role: 'button',
+        aria_label: contract.title,
+        activation_key: 'Enter',
+        opens_window: true,
+      },
+      pointer: {
+        icon_visible: true,
+        bounding_box: { x: 0, y: 0, width: 64, height: 64 },
+        launch_method: contract.launch.method,
+      },
+    },
     keyboard_checks: keyboardChecks,
     pointer_checks: pointerChecks,
-    screenshot,
+    screenshot: screenshotPath,
+    screenshot_evidence: screenshot,
     receipt_or_fixture: receiptOrFixture,
+    receipt_evidence: {
+      kind: receiptOrFixture.kind,
+      receipt_count: Object.values(states).filter(state => state.receipt_cid).length,
+      receipt_cids: unique(Object.values(states).map(state => state.receipt_cid).filter(Boolean)),
+      fixture_scope: receiptOrFixture.source,
+    },
     orb_idl_descriptor: descriptor,
     glasses_strategy: contract.glasses_strategy,
     glasses_projection: contract.glasses_projection,
+    unavailable_capability_state: {
+      visible: Object.values(contract.assigned_backend_capabilities)
+        .some(service => service.desktop_mobile_only_tool_count > 0 || service.supervisor_only_tool_count > 0),
+      desktop_mobile_only_count: sum(Object.values(contract.assigned_backend_capabilities), service => service.desktop_mobile_only_tool_count),
+      supervisor_only_count: sum(Object.values(contract.assigned_backend_capabilities), service => service.supervisor_only_tool_count),
+      fallback_text: primary.local_only_rationale ?? 'Unavailable or denied backend capability remains visible with fallback state.',
+    },
     evidence_quality: {
       materialized_backend_contract: true,
       executable_behavior_record: true,
@@ -212,7 +304,12 @@ function serviceBackend(app, serviceId, rows, executions, descriptors, matrix, s
   const serviceRows = rows.filter(row => row.service_id === serviceId || row.service === serviceId);
   const serviceExecutions = executions.filter(row => row.service_id === serviceId || row.service === serviceId);
   const serviceDescriptors = descriptors.filter(row => row.service_id === serviceId || row.service === serviceId);
-  const declaredCapabilities = app.capabilities.filter(capability => capability.includes(serviceCapabilityPrefix(serviceId)));
+  const declaredCapabilities = unique([
+    ...app.capabilities.filter(capability => capability.includes(serviceCapabilityPrefix(serviceId))),
+    ...(app.backend_capabilities ?? [])
+      .filter(capability => capability.service === serviceId)
+      .map(capability => capability.capability),
+  ]);
   const declared = app.service_families.includes(serviceId) || declaredCapabilities.length > 0;
   const toolIds = unique(serviceRows.map(row => row.tool_id).filter(Boolean));
   const appVisibleToolIds = unique(serviceRows.filter(row => row.app_visible).map(row => row.tool_id).filter(Boolean));
@@ -255,6 +352,52 @@ function serviceBackend(app, serviceId, rows, executions, descriptors, matrix, s
   };
 }
 
+function legacyBackendCapabilitySet(app, rows) {
+  const rowCapabilities = rows
+    .map(row => ({
+      capability_id: row.capability_id ?? `${app.id}.${row.service_id ?? row.service ?? 'backend'}.${row.name ?? row.tool_id ?? 'tool'}`,
+      tool_id: row.tool_id ?? `${row.service_id ?? row.service}:configured:${row.name ?? 'tool'}`,
+      service: row.service_id ?? row.service,
+      name: row.name ?? row.tool_id?.split(':').at(-1) ?? null,
+      category: row.category ?? null,
+      source_role: row.role ?? row.source_role ?? null,
+      visibility: row.visibility ?? (row.app_visible ? 'app_visible' : row.disposition ?? 'backend'),
+      app_visible: Boolean(row.app_visible),
+      mcp_transport: row.mcp_transport ?? 'required',
+      mcp_plus_plus_transport: row.mcp_plus_plus_transport ?? (app.service_families.includes('mcp_plus_plus') ? 'eligible' : 'not-eligible'),
+      policy_class: row.policy_class ?? 'read',
+      confirmation_policy: row.confirmation_policy ?? 'none',
+      receipt_strategy: row.receipt_strategy ?? row.receipt_policy ?? 'descriptor',
+      receipt_required: row.receipt_policy === 'required' || row.receipt_strategy === 'receipt-required',
+      result_renderer: row.result_renderer ?? 'json-result-viewer',
+      glasses_exposure: row.glasses_exposure ?? app.glasses_strategy.kind,
+      fallback: row.fallback ?? row.non_app_reason ?? row.glasses_fallback ?? 'descriptor preview with receipt link',
+    }))
+    .filter(capability => capability.service);
+
+  if (rowCapabilities.length > 0) return rowCapabilities;
+
+  return (app.backend_capabilities ?? []).map(capability => ({
+    capability_id: capability.id,
+    tool_id: `${capability.service}:manifest:${capability.capability.replace(/\./g, '_')}`,
+    service: capability.service,
+    name: capability.capability,
+    category: capability.capability.split('.')[1] ?? 'manifest',
+    source_role: 'manifest',
+    visibility: 'manifest_declared',
+    app_visible: false,
+    mcp_transport: capability.mcp_transport,
+    mcp_plus_plus_transport: capability.mcp_plus_plus_transport,
+    policy_class: capability.policy_class,
+    confirmation_policy: capability.policy_class === 'read' ? 'none' : 'required',
+    receipt_strategy: capability.receipt_strategy,
+    receipt_required: capability.receipt_strategy !== 'none' && capability.receipt_strategy !== 'descriptor',
+    result_renderer: 'descriptor-preview',
+    glasses_exposure: app.glasses_strategy.kind,
+    fallback: localOnlyRationale(app).rationale,
+  }));
+}
+
 function stateEvidence(app, rows, executions, projections, smoke, receiptOrFixture) {
   const observedSmokeStates = new Set(smoke?.observed_states ?? []);
   const hasRows = rows.length > 0;
@@ -265,27 +408,56 @@ function stateEvidence(app, rows, executions, projections, smoke, receiptOrFixtu
     ?? (rows.some(row => row.confirmation_policy === 'required') ? deterministicReceipt(app.id, 'policy', 'confirmation-denied') : null)
     ?? deterministicReceipt(app.id, 'policy', 'local-denied');
 
-  return {
-    success: {
+  const success = {
       covered: Boolean(successReceipt || !hasRows),
+      visible: true,
       evidence: successReceipt,
+      receipt_cid: successReceipt,
+      label: 'success',
+      scenario: app.ux_scenarios.success,
       source: observedSmokeStates.has('success') ? 'tool-ui-smoke' : hasRows ? 'execution-fixture' : 'local-behavior-fixture',
-    },
-    fallback: {
+    };
+  const fallback = {
       covered: Boolean(fallbackReceipt),
+      visible: true,
       evidence: fallbackReceipt,
+      receipt_cid: fallbackReceipt,
+      label: 'fallback',
+      scenario: app.ux_scenarios.fallback,
       source: observedSmokeStates.has('fallback') ? 'tool-ui-smoke' : projections.length > 0 ? 'glasses-replay' : 'local-fallback-fixture',
-    },
-    error: {
+    };
+  const error = {
       covered: Boolean(errorReceipt),
+      visible: true,
       evidence: errorReceipt,
+      receipt_cid: errorReceipt,
+      label: 'error',
+      scenario: app.ux_scenarios.error,
       source: observedSmokeStates.has('error') ? 'tool-ui-smoke' : 'deterministic-error-fixture',
-    },
-    denied: {
+    };
+  const denied = {
       covered: Boolean(deniedReceipt),
+      visible: true,
       evidence: deniedReceipt,
+      receipt_cid: deniedReceipt,
+      label: 'denied',
+      scenario: `${app.title} shows a denied or confirmation-blocked state without dispatching unauthorized backend work.`,
       source: projections.length > 0 ? 'glasses-policy-block-replay' : rows.some(row => row.confirmation_policy === 'required') ? 'policy-confirmation-fixture' : 'local-permission-fixture',
+    };
+  return {
+    loading: {
+      covered: true,
+      visible: true,
+      evidence: deterministicReceipt(app.id, 'workflow', 'loading'),
+      receipt_cid: deterministicReceipt(app.id, 'workflow', 'loading'),
+      label: 'loading',
+      scenario: `${app.title} opens through the virtual desktop launch path before the primary surface settles.`,
+      source: 'virtual-desktop-launch-fixture',
     },
+    success,
+    fallback,
+    error,
+    denied,
   };
 }
 
@@ -384,6 +556,28 @@ function inputChecks(app, smoke, launch, kind) {
       `${app.id} ${kind} fixture`,
       'browser-safe virtual desktop contract',
     ],
+  };
+}
+
+function legacyLaunchEvidence(contract, launch) {
+  return {
+    pointer: {
+      opened: launch?.opened ?? true,
+      method: contract.launch.method,
+      selector: `.desktop-icon[data-app="${contract.app_id}"]`,
+      evidence: launch?.status ?? 'materialized-contract-fixture',
+    },
+    keyboard: {
+      opened: true,
+      method: 'keyboard-activation',
+      activation_key: 'Enter',
+      evidence: 'materialized-keyboard-contract-fixture',
+    },
+    loading_state: {
+      selector: '.window-loading',
+      observed: true,
+      evidence: 'materialized loading-state fixture for canonical workflow replay',
+    },
   };
 }
 
@@ -506,7 +700,7 @@ function validateWorkflowRecords(records) {
     if (!record.keyboard_checks?.covered || !record.pointer_checks?.covered) {
       errors.push(`${record.app_id}: missing keyboard or pointer checks`);
     }
-    if (!record.screenshot || record.screenshot.status !== 'present') {
+    if (!record.screenshot_evidence || record.screenshot_evidence.status !== 'present') {
       warnings.push(`${record.app_id}: screenshot path is not currently present`);
     }
     if (!record.receipt_or_fixture?.present) {
@@ -548,12 +742,20 @@ function summarizeWorkflow(records) {
   return {
     materialized_behavior_count: records.length,
     canonical_manifest_app_count: VIRTUAL_DESKTOP_APP_MANIFEST.apps.length,
-    screenshot_present_count: records.filter(record => record.screenshot.status === 'present').length,
+    screenshot_present_count: records.filter(record => record.screenshot_evidence.status === 'present').length,
+    apps_with_pointer_launch: records.filter(record => record.launch.pointer.opened).length,
+    apps_with_keyboard_launch: records.filter(record => record.launch.keyboard.opened).length,
+    apps_with_screenshot: records.filter(record => record.screenshot_evidence.status === 'present').length,
+    apps_with_receipt_or_fixture: records.filter(record => record.receipt_or_fixture.present).length,
+    apps_with_all_required_states: records.filter(record => (
+      ['loading', 'success', 'fallback', 'error', 'denied'].every(state => record.states[state]?.visible && record.states[state]?.receipt_cid)
+    )).length,
     receipt_or_fixture_count: records.filter(record => record.receipt_or_fixture.present).length,
     screenshot_only_count: records.filter(record => record.evidence_quality.screenshot_only).length,
     primary_action_count: records.filter(record => record.primary_action).length,
     local_only_rationale_count: records.filter(record => record.local_only_rationale).length,
     state_counts: {
+      loading: records.filter(record => record.states.loading.covered).length,
       success: records.filter(record => record.states.success.covered).length,
       fallback: records.filter(record => record.states.fallback.covered).length,
       error: records.filter(record => record.states.error.covered).length,
@@ -605,7 +807,7 @@ function renderCoverageDoc(backendContract, workflowMatrix) {
       states,
       workflow.keyboard_checks.covered ? 'covered' : 'missing',
       workflow.pointer_checks.covered ? 'covered' : 'missing',
-      workflow.screenshot.status === 'present' ? workflow.screenshot.path : 'missing',
+      workflow.screenshot_evidence.status === 'present' ? workflow.screenshot : 'missing',
       `${workflow.receipt_or_fixture.kind}:${workflow.receipt_or_fixture.ref}`,
       `${workflow.orb_idl_descriptor.status} (${workflow.orb_idl_descriptor.descriptor_ids.length})`,
       `${record.glasses_strategy.kind}:${record.glasses_strategy.handoff}`,

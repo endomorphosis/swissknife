@@ -15,17 +15,10 @@ refreshAppContractEvidence();
 
 const artifactDefs = [
   ['app_inventory', 'app-inventory.json', true],
-<<<<<<< Updated upstream
   ['app_backend_contract', 'app-backend-contract.json', true],
   ['app_workflow_matrix', 'app-workflow-matrix.json', true],
   ['manifest_drift', 'manifest-drift.json', false],
   ['app_launch', 'app-launch-report.json', false],
-=======
-  ['manifest_drift', 'manifest-drift.json', true],
-  ['app_launch', 'app-launch-report.json', true],
-  ['app_backend_contract', 'app-backend-contract.json', true],
-  ['app_workflow_matrix', 'app-workflow-matrix.json', true],
->>>>>>> Stashed changes
   ['capability_matrix', 'capability-matrix.json', false],
   ['all_server_tool_catalog', 'all-server-tool-catalog.json', true],
   ['mcp_plus_plus_libp2p_catalog', 'mcp-plus-plus-libp2p-catalog.json', true],
@@ -77,8 +70,6 @@ const appBackendContract = data.app_backend_contract;
 const appWorkflowMatrix = data.app_workflow_matrix;
 const manifestDrift = data.manifest_drift;
 const appLaunch = data.app_launch;
-const appBackendContract = data.app_backend_contract;
-const appWorkflowMatrix = data.app_workflow_matrix;
 const descriptorDiscovery = data.descriptor_discovery;
 const hierarchicalMcpTools = data.hierarchical_mcp_tools;
 const mcpPlusPlusLibp2pFleet = data.mcpplusplus_libp2p_fleet;
@@ -447,7 +438,6 @@ const report = {
     }
     : missingStatus(artifacts.service_health.path),
   hierarchical_mcp: hierarchicalMcpGate.summary,
-<<<<<<< Updated upstream
   glasses_simulator_handoff: glassesSimulatorHandoff
     ? {
         status: 'present',
@@ -462,10 +452,8 @@ const report = {
         capability_evidence_count: (glassesSimulatorHandoff.capability_evidence ?? []).length,
       }
     : missingStatus(artifacts.glasses_simulator_handoff.path),
-=======
   mcpplusplus_libp2p_fleet: libp2pFleetGate.summary,
   swissknife_libp2p_connector: swissknifeLibp2pConnectorGate.summary,
->>>>>>> Stashed changes
   glasses_handoff: glassesHandoff
     ? {
         status: 'present',
@@ -833,8 +821,10 @@ function dedupe(items) {
 
 function blockerText(blocker) {
   if (typeof blocker === 'string') return blocker;
-<<<<<<< Updated upstream
-  if (!blocker || typeof blocker !== 'object') return String(blocker);
+  if (blocker === null || blocker === undefined) return String(blocker);
+  if (typeof blocker !== 'object') return String(blocker);
+  const message = blocker.message ?? blocker.reason ?? blocker.error ?? blocker.id;
+  if (typeof message === 'string') return message;
   return Object.entries(blocker)
     .map(([key, value]) => `${key}=${Array.isArray(value) ? value.join(',') : String(value)}`)
     .join('; ');
@@ -843,14 +833,6 @@ function blockerText(blocker) {
 function hasNonEmptyValue(value) {
   if (typeof value === 'string') return value.trim().length > 0;
   return value !== null && value !== undefined;
-=======
-  if (blocker === null || blocker === undefined) return String(blocker);
-  if (typeof blocker === 'object') {
-    const message = blocker.message ?? blocker.reason ?? blocker.error ?? blocker.id;
-    return typeof message === 'string' ? message : JSON.stringify(blocker);
-  }
-  return String(blocker);
->>>>>>> Stashed changes
 }
 
 function appVisibleBindingCount(bindingsArtifact) {
@@ -880,7 +862,10 @@ function summarizeAppContractGate(backendContract, workflowMatrix, backendStatus
   const workflowIds = new Set(workflowApps.map(app => app.app_id));
   const backendValidationErrors = backendContract?.validation?.errors ?? [];
   const workflowValidationErrors = workflowMatrix?.validation?.errors ?? [];
-  const requiredStates = workflowMatrix?.required_states ?? ['success', 'fallback', 'error', 'denied'];
+  const requiredStates = dedupe([
+    ...(workflowMatrix?.required_states ?? ['loading', 'success', 'fallback', 'error']),
+    ...(workflowMatrix?.required_behavior_states ?? ['success', 'fallback', 'error', 'denied']),
+  ]);
   const pythonBackends = ['ipfs_accelerate_py', 'ipfs_kit_py', 'ipfs_datasets_py'];
 
   if (backendContract) {
@@ -1287,6 +1272,7 @@ function buildVirtualDesktopAppMatrixGate({
     'fallback',
     'error',
     ...(appWorkflowMatrix?.required_states ?? []),
+    ...(appWorkflowMatrix?.required_behavior_states ?? []),
   ]);
   const requiredUxStates = ['success', 'fallback', 'error'];
   const requiredSimulatorReplayStates = ['open', 'focus', 'activate', 'dispatch_result', 'fallback', 'policy_block'];

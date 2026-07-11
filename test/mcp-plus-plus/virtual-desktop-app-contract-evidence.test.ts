@@ -56,6 +56,9 @@ describe('SWR-113 virtual desktop app contract evidence', () => {
       }
       expect(record.keyboard_checks.covered, app.id).toBe(true);
       expect(record.pointer_checks.covered, app.id).toBe(true);
+      expect(typeof record.screenshot, app.id).toBe('string');
+      expect(record.screenshot.length, app.id).toBeGreaterThan(0);
+      expect(record.screenshot_evidence.status, app.id).toBe('present');
       expect(record.receipt_or_fixture.present, app.id).toBe(true);
       expect(record.orb_idl_descriptor.status, app.id).toBeTruthy();
       expect(record.glasses_strategy.kind, app.id).toBeTruthy();
