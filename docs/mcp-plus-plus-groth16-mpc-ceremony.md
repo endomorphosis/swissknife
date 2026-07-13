@@ -48,7 +48,7 @@ node scripts/zkp-mpc-ceremony.mjs finalize \
 ```
 
 The common protocol and conformance fixture live in
-[the MCP++ draft](../../Mcp-Plus-Plus/docs/spec/groth16-mpc-ceremony.md).
+[the MCP++ draft](api/variables/groth16.html).
 `ipfs_datasets_py` can admit an externally generated Arkworks ceremony for
 proof use only when a deployment enables `IPFS_DATASETS_REQUIRE_MPC_CEREMONY`
 and supplies a manifest declaring `keyFormat: "arkworks-canonical"`,
