@@ -100,6 +100,14 @@ export const IPFS_ACCELERATE_SERVER: MCPPPServerConfig = {
   p2pProtocolId: '/mcp+p2p/1.0.0',
 };
 
+export const MCPPP_PROFILE_H_CAPABILITY = 'mcp++/x402-payments' as const;
+export const MCPPP_PROFILE_H_METHODS = [
+  'mcp++/payments/profile', 'mcp++/payments/catalog', 'mcp++/payments/quote',
+  'mcp++/payments/verify', 'mcp++/payments/settle', 'mcp++/payments/receipt/get',
+  'mcp++/payments/entitlement/get', 'mcp++/payments/usage/get',
+  'mcp++/payments/refund/request', 'mcp++/payments/reconcile',
+] as const;
+
 // --- MCP++ JSON-RPC Protocol Types ---
 
 interface MCPJsonRpcRequest {
@@ -614,6 +622,7 @@ export class MCPPPServerConnector {
             'mcp++/deontic-policy': true,
             'mcp++/event-dag': true,
             'mcp++/p2p-transport': true,
+            [MCPPP_PROFILE_H_CAPABILITY]: true,
           },
         },
         clientInfo: { name: 'swissknife-mcppp', version: '1.0.0' },
@@ -1228,6 +1237,28 @@ export class MCPPPServerConnector {
     }
   }
 
+  // --- Profile H: x402 paid capability control plane ---
+
+  async getPaymentProfile(): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/profile', {}); }
+  async getPaymentCatalog(): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/catalog', {}); }
+  async quotePayment(request: Record<string, unknown>): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/quote', request); }
+  async verifyPayment(request: Record<string, unknown>): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/verify', request); }
+  async settlePayment(request: Record<string, unknown>): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/settle', request); }
+  async getPaymentReceipt(receiptCid: string, context: Record<string, unknown> = {}): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/receipt/get', { ...context, receipt_cid: requiredProfileHCid(receiptCid, 'receipt') }); }
+  async getPaymentEntitlement(entitlementCid: string, context: Record<string, unknown> = {}): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/entitlement/get', { ...context, entitlement_cid: requiredProfileHCid(entitlementCid, 'entitlement') }); }
+  async getPaymentUsage(usageCid: string, context: Record<string, unknown> = {}): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/usage/get', { ...context, usage_cid: requiredProfileHCid(usageCid, 'usage') }); }
+  async requestPaymentRefund(request: Record<string, unknown>): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/refund/request', request); }
+  async reconcilePayments(request: Record<string, unknown> = {}): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/reconcile', request); }
+
+  private async profileHRequest(method: typeof MCPPP_PROFILE_H_METHODS[number], params: Record<string, unknown>): Promise<Record<string, unknown>> {
+    if (!this.connected || !this.negotiatedProfiles.includes(MCPPP_PROFILE_H_CAPABILITY)) {
+      throw new Error('MCP++ Profile H x402 payments was not negotiated with this server.');
+    }
+    const result = await this.jsonRpc(method, params);
+    if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error(`Profile H returned an invalid response for ${method}.`);
+    return result as Record<string, unknown>;
+  }
+
   // --- Utility ---
 
   private async jsonRpc(method: string, params: any): Promise<any> {
@@ -1277,6 +1308,7 @@ export class MCPPPServerConnector {
     if (caps['mcp++/deontic-policy']) profiles.push('mcp++/deontic-policy');
     if (caps['mcp++/event-dag']) profiles.push('mcp++/event-dag');
     if (caps['mcp++/p2p-transport']) profiles.push('mcp++/p2p-transport');
+    if (caps[MCPPP_PROFILE_H_CAPABILITY]) profiles.push(MCPPP_PROFILE_H_CAPABILITY);
     return profiles.length > 0 ? profiles : ['mcp++/basic'];
   }
 
@@ -1288,6 +1320,11 @@ export class MCPPPServerConnector {
   /** 'libp2p' when connected over MCP+p2p, otherwise 'http'. */
   get transportKind(): 'http' | 'libp2p' { return this.session ? 'libp2p' : (this.config.transport ?? 'http'); }
   get endpoint(): string { return this.config.transport === 'libp2p' ? (this.config.multiaddr ?? '') : this.config.baseUrl; }
+}
+
+function requiredProfileHCid(value: string, label: string): string {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`Profile H ${label} CID is required.`);
+  return value;
 }
 
 // --- Unified Multi-Server Connector ---
