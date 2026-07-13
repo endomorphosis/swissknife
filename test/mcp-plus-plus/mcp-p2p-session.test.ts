@@ -4,8 +4,6 @@
  * principle that peer identity ≠ execution authority.
  */
 
-import { describe, expect, it } from 'vitest';
-
 import {
   MCPp2pSession,
   P2PStream,
@@ -128,7 +126,7 @@ describe('MCPp2pSession framing (MCP++ §5.1)', () => {
     await session.close();
   });
 
-  it('aborts session on oversized incoming frame', async () => {
+  it('aborts session on oversized incoming frame', done => {
     // Build a frame that claims to be larger than the limit
     const header = Buffer.allocUnsafe(4);
     header.writeUInt32BE(DEFAULT_MAX_FRAME_BYTES + 1, 0);
@@ -136,10 +134,11 @@ describe('MCPp2pSession framing (MCP++ §5.1)', () => {
     const stream = makeMockStream({ inbound: [header] });
     const session = new MCPp2pSession(stream);
 
-    await new Promise<void>(resolve => {
-      session.once('error', () => resolve());
-      session.once('close', () => resolve());
+    session.on('error', _err => {
+      // Session should emit an error and close
+      done();
     });
+    session.on('close', () => done());
   });
 });
 
@@ -198,7 +197,7 @@ describe('MCPp2pSession request correlation (MCP++ §9.2)', () => {
 });
 
 describe('MCPp2pSession rate limiting (MCP++ §9.3)', () => {
-  it('emits error when rate limit is exceeded', async () => {
+  it('emits error when rate limit is exceeded', done => {
     // Set a very small window limit
     const frames: Buffer[] = [];
     for (let i = 0; i < 5; i++) {
@@ -213,9 +212,10 @@ describe('MCPp2pSession rate limiting (MCP++ §9.3)', () => {
       rateLimitWindowMs: 10_000, // long window so all 5 are in the same window
     });
 
-    await new Promise<void>(resolve => {
-      // Keep the listener installed while all over-limit frames drain.
-      session.on('error', () => resolve());
+    let errorCount = 0;
+    session.on('error', () => {
+      errorCount++;
+      if (errorCount >= 1) done();
     });
     session.on('message', () => {
       // Some messages will get through (first 2 within limit)
