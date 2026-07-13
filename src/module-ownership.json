@@ -177,29 +177,9 @@
       {
         "from": "service-mcp",
         "to": "commands",
-<<<<<<< Updated upstream
         "importer": "src/services/mcp/mcpClient.ts",
         "target": "src/commands.ts",
         "reason": "Migrated MCP client still imports command definitions through the legacy command registry until command metadata moves behind MCP-safe descriptors."
-=======
-        "importer": "src/services/mcp/mcp-mcpClient.ts",
-        "target": "src/commands.ts",
-        "reason": "Restored MCP duplicate still imports command definitions; SWR-119 must remove or retarget the restored copy instead of widening this exception."
-      },
-      {
-        "from": "service-platform",
-        "to": "commands",
-        "importer": "src/services/platform/claude.ts",
-        "target": "src/query.ts",
-        "reason": "Restored platform duplicate still imports command query types; SWR-119 must remove or retarget the restored copy instead of widening this exception."
-      },
-      {
-        "from": "service-platform",
-        "to": "commands",
-        "importer": "src/services/platform/vcr.ts",
-        "target": "src/query.ts",
-        "reason": "Restored platform duplicate still imports command query types; SWR-119 must remove or retarget the restored copy instead of widening this exception."
->>>>>>> Stashed changes
       },
       {
         "from": "services",
@@ -1540,7 +1520,6 @@
     "service-logic": {
       "owner": "logic-service-runtime",
       "path": "src/services/logic",
-<<<<<<< Updated upstream
       "purpose": "Logic calculus, bridge, parser, proof, and policy service implementations migrated under the logic service family.",
       "runtimeClassification": "split",
       "browserReachability": "allowed only through browser-safe logic service entrypoints",
@@ -1548,13 +1527,6 @@
         "services",
         "service-provers",
         "service-shared",
-=======
-      "purpose": "Restored logic service implementation families for API, bridges, CEC, DCEC, deontic, FOL, modal, natural-language, shared logic, and TDFOL behavior.",
-      "runtimeClassification": "split",
-      "browserReachability": "allowed only through audited browser-safe logic entrypoints",
-      "allowedImports": [
-        "services",
->>>>>>> Stashed changes
         "shared",
         "utils"
       ],
@@ -1565,21 +1537,11 @@
         "screens"
       ],
       "publicEntrypoints": [
-<<<<<<< Updated upstream
         "src/services/logic/**/*.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "Fine-grained logic-family ownership remains documented in src/services/module-ownership.json."
-=======
-        "src/services/logic/**/*.ts",
-        "src/services/logic/**/*.js"
-      ],
-      "privateEntrypoints": [],
-      "notes": [
-        "This owner classifies restored duplicate implementations for SWR-118 inventory only.",
-        "Duplicate non-index basenames under this tree remain failures until SWR-119 removes or retargets them."
->>>>>>> Stashed changes
       ]
     },
     "service-mcp": {
@@ -1610,19 +1572,11 @@
       ]
     },
     "service-platform": {
-<<<<<<< Updated upstream
       "owner": "platform-service-runtime",
       "path": "src/services/platform",
       "purpose": "Platform service adapters migrated out of the root services namespace.",
       "runtimeClassification": "split",
       "browserReachability": "allowed only through browser-safe platform service adapters",
-=======
-      "owner": "service-platform-runtime",
-      "path": "src/services/platform",
-      "purpose": "Restored service-layer platform adapters for browser/host runtime selection, telemetry, resource pools, feature detection, and acceleration helpers.",
-      "runtimeClassification": "split",
-      "browserReachability": "allowed only through audited browser-safe platform service entrypoints",
->>>>>>> Stashed changes
       "allowedImports": [
         "services",
         "shared",
@@ -1635,34 +1589,19 @@
         "screens"
       ],
       "publicEntrypoints": [
-<<<<<<< Updated upstream
         "src/services/platform/*.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "Runtime-wide platform facades remain under src/platform; service-specific platform adapters live here."
-=======
-        "src/services/platform/*.ts",
-        "src/services/platform/*.js"
-      ],
-      "privateEntrypoints": [],
-      "notes": [
-        "This owner exists to classify restored service duplicate files; it does not make same-basename platform files an approved multi-entrypoint."
->>>>>>> Stashed changes
       ]
     },
     "service-proof-engine": {
       "owner": "proof-engine-service-runtime",
       "path": "src/services/proof-engine",
-<<<<<<< Updated upstream
       "purpose": "Proof execution, routing, cache, and explanation services.",
       "runtimeClassification": "split",
       "browserReachability": "allowed only through browser-safe proof-engine entrypoints",
-=======
-      "purpose": "Restored proof execution, proof cache, proof tree, prover routing, and proof strategy implementations.",
-      "runtimeClassification": "split",
-      "browserReachability": "allowed only through audited browser-safe proof-engine entrypoints",
->>>>>>> Stashed changes
       "allowedImports": [
         "services",
         "shared",
@@ -1675,20 +1614,11 @@
         "screens"
       ],
       "publicEntrypoints": [
-<<<<<<< Updated upstream
         "src/services/proof-engine/*.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "Root proof-engine compatibility files remain in the explicit root service inventory."
-=======
-        "src/services/proof-engine/*.ts",
-        "src/services/proof-engine/*.js"
-      ],
-      "privateEntrypoints": [],
-      "notes": [
-        "This owner classifies restored duplicate implementations for inventory and later retargeting."
->>>>>>> Stashed changes
       ]
     },
     "service-provers": {
@@ -1717,19 +1647,11 @@
       ]
     },
     "service-shared": {
-<<<<<<< Updated upstream
       "owner": "shared-service-runtime",
       "path": "src/services/shared",
       "purpose": "Pure cross-service helpers that are shared by service-family modules without owning runtime state.",
       "runtimeClassification": "universal",
       "browserReachability": "allowed for browser-safe pure helpers",
-=======
-      "owner": "service-shared-runtime",
-      "path": "src/services/shared",
-      "purpose": "Restored browser-safe and runtime-neutral primitives shared by service families.",
-      "runtimeClassification": "universal",
-      "browserReachability": "allowed for runtime-neutral service primitives",
->>>>>>> Stashed changes
       "allowedImports": [
         "shared",
         "utils"
@@ -1738,7 +1660,6 @@
         "commands",
         "entrypoints",
         "hooks",
-<<<<<<< Updated upstream
         "screens"
       ],
       "publicEntrypoints": [
@@ -1747,18 +1668,6 @@
       "privateEntrypoints": [],
       "notes": [
         "Generic application-wide shared contracts remain under src/shared."
-=======
-        "screens",
-        "services"
-      ],
-      "publicEntrypoints": [
-        "src/services/shared/*.ts",
-        "src/services/shared/*.js"
-      ],
-      "privateEntrypoints": [],
-      "notes": [
-        "Service-shared primitives are not an exemption for duplicate basenames; duplicate files still require removal or retargeting."
->>>>>>> Stashed changes
       ]
     },
     "service-zkp": {

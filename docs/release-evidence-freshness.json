@@ -1,76 +1,80 @@
 {
   "schemaVersion": 1,
-<<<<<<< Updated upstream
   "generatedAt": "2026-07-10T11:21:21.777Z",
-=======
-  "generatedAt": "2026-07-11T02:31:21.517Z",
->>>>>>> Stashed changes
   "results": [
     {
       "id": "libp2p-browser-playwright",
       "label": "Browser libp2p Playwright evidence (SWR-028)",
-      "status": "fresh",
+      "status": "invalid",
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-<<<<<<< Updated upstream
       "recordedFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
       "currentFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
       "recordedAt": "2026-07-10T08:30:35.579Z",
-=======
-      "recordedFingerprint": "9af53acf7b5b96d0823d352516a11f82258a43534df6d9b2ec419b0860f5d927",
-      "currentFingerprint": "9af53acf7b5b96d0823d352516a11f82258a43534df6d9b2ec419b0860f5d927",
-      "recordedAt": "2026-07-11T02:21:52.828Z",
->>>>>>> Stashed changes
-      "regenerateHint": "npm run evidence:libp2p-browser"
+      "regenerateHint": "npm run evidence:libp2p-browser",
+      "invalidReason": "Recorded fingerprint was produced for historical source and was not recomputed from the reconciled checkout."
     },
     {
       "id": "browser-bundle-budget",
       "label": "Browser bundle budget evidence (SWR-016)",
-      "status": "fresh",
+      "status": "invalid",
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-<<<<<<< Updated upstream
       "recordedFingerprint": "20c965bbcedd47d85e0fb8420a56d96670a7f51bf15b7bd3d4b94119ea734186",
       "currentFingerprint": "20c965bbcedd47d85e0fb8420a56d96670a7f51bf15b7bd3d4b94119ea734186",
       "recordedAt": "2026-07-10T11:21:12.629Z",
-=======
-      "recordedFingerprint": "87b800f5434b507ac70d721e3c84ca99373757e285789729173b2e088bee86eb",
-      "currentFingerprint": "87b800f5434b507ac70d721e3c84ca99373757e285789729173b2e088bee86eb",
-      "recordedAt": "2026-07-11T02:31:14.057Z",
->>>>>>> Stashed changes
-      "regenerateHint": "npm run build:web"
+      "regenerateHint": "npm run build:web",
+      "invalidReason": "Recorded fingerprint was produced for historical source and was not recomputed from the reconciled checkout."
     },
     {
       "id": "module-boundary-audit",
       "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
-      "status": "fresh",
+      "status": "invalid",
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-<<<<<<< Updated upstream
       "recordedFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
       "currentFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
       "recordedAt": "2026-07-10T11:20:43.155Z",
-=======
-      "recordedFingerprint": "cb799cfa2a1a6af15b270efef7628e61c3eedebb77403b9a3218b528d52fd89e",
-      "currentFingerprint": "cb799cfa2a1a6af15b270efef7628e61c3eedebb77403b9a3218b528d52fd89e",
-      "recordedAt": "2026-07-11T02:30:39.715Z",
->>>>>>> Stashed changes
-      "regenerateHint": "npm run services:audit"
+      "regenerateHint": "npm run services:audit",
+      "invalidReason": "Recorded fingerprint was produced for historical source and was not recomputed from the reconciled checkout."
     },
     {
       "id": "virtual-desktop-release-evidence",
       "label": "Virtual desktop app matrix release evidence (SWR-103)",
-      "status": "fresh",
+      "status": "invalid",
       "updated": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
       "recordedFingerprint": "199654f872ec1e2af31d9402f863ed60d09e32cfe4bf03eab73feb13dbf3ff58",
       "currentFingerprint": "199654f872ec1e2af31d9402f863ed60d09e32cfe4bf03eab73feb13dbf3ff58",
       "recordedAt": "2026-07-10T11:21:21.481Z",
-      "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs"
+      "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs",
+      "invalidReason": "Recorded fingerprint was produced for historical source and was not recomputed from the reconciled checkout."
     }
-  ]
+  ],
+  "taskId": "SWR-134",
+  "decision": "NO_GO",
+  "summary": {
+    "total": 4,
+    "fresh": 0,
+    "invalid": 4,
+    "validForCurrentCheckout": false
+  },
+  "sourceIntegrity": {
+    "status": "invalid",
+    "conflictPathCount": 16,
+    "baselineHead": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c"
+  },
+  "reconciliation": {
+    "taskId": "SWR-134",
+    "reconciledAt": "2026-07-13T14:54:14-07:00",
+    "baselineHead": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c",
+    "status": "invalid_for_current_checkout",
+    "reason": "This artifact was recovered only to restore parseability. Its generator and other prerequisite paths still contain committed conflict blocks, so historical counts and receipts are not current-source proof.",
+    "authoritativeEvidence": "docs/phase-21-checkout-reconciliation.json",
+    "recoveryTask": "SWR-136"
+  }
 }
