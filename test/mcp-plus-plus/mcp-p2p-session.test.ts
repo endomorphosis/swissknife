@@ -126,7 +126,7 @@ describe('MCPp2pSession framing (MCP++ §5.1)', () => {
     await session.close();
   });
 
-  it('aborts session on oversized incoming frame', done => {
+  it('aborts session on oversized incoming frame', async () => {
     // Build a frame that claims to be larger than the limit
     const header = Buffer.allocUnsafe(4);
     header.writeUInt32BE(DEFAULT_MAX_FRAME_BYTES + 1, 0);
@@ -134,11 +134,10 @@ describe('MCPp2pSession framing (MCP++ §5.1)', () => {
     const stream = makeMockStream({ inbound: [header] });
     const session = new MCPp2pSession(stream);
 
-    session.on('error', _err => {
-      // Session should emit an error and close
-      done();
+    await new Promise<void>(resolve => {
+      session.once('error', () => resolve());
+      session.once('close', () => resolve());
     });
-    session.on('close', () => done());
   });
 });
 
@@ -197,7 +196,7 @@ describe('MCPp2pSession request correlation (MCP++ §9.2)', () => {
 });
 
 describe('MCPp2pSession rate limiting (MCP++ §9.3)', () => {
-  it('emits error when rate limit is exceeded', done => {
+  it('emits error when rate limit is exceeded', async () => {
     // Set a very small window limit
     const frames: Buffer[] = [];
     for (let i = 0; i < 5; i++) {
@@ -212,10 +211,9 @@ describe('MCPp2pSession rate limiting (MCP++ §9.3)', () => {
       rateLimitWindowMs: 10_000, // long window so all 5 are in the same window
     });
 
-    let errorCount = 0;
-    session.on('error', () => {
-      errorCount++;
-      if (errorCount >= 1) done();
+    await new Promise<void>(resolve => {
+      // Keep the listener installed while all over-limit frames drain.
+      session.on('error', () => resolve());
     });
     session.on('message', () => {
       // Some messages will get through (first 2 within limit)
@@ -387,7 +385,8 @@ describe('negotiateCapabilities (MCP++ §3.2)', () => {
 
   it('MCP_PLUS_PLUS_PROFILES includes all current profiles', () => {
     expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/cid-envelope');
-    expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/policy-d');
+    expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/deontic-policy');
+    expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/x402-payments');
     expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/pubsub-bus');
     expect(MCP_PLUS_PLUS_PROFILES).toContain('mcp++/p2p-transport');
     expect(MCP_PLUS_PLUS_PROFILES.length).toBeGreaterThanOrEqual(7);
@@ -426,6 +425,20 @@ describe('negotiateCapabilities (MCP++ §3.2)', () => {
     const sent = JSON.parse(stream.written[0].subarray(4).toString('utf8'));
     expect(sent.params.capabilities.experimental['mcp++/p2p-transport']).toBe(true);
     expect(sent.params.capabilities.experimental['mcp++/mcp-idl']).toBe(true);
+    await session.close();
+  });
+
+  it('requests and negotiates Profile H from canonical experimental capabilities', async () => {
+    const response = buildLengthPrefixedFrame({ jsonrpc: '2.0', id: 1, result: {
+      protocolVersion: '2024-11-05', serverInfo: { name: 'seller', version: '1.0.0' },
+      capabilities: { experimental: { 'mcp++/p2p-transport': true, 'mcp++/x402-payments': true } },
+    } });
+    const stream = makeMockStream({ inbound: [response] });
+    const session = new MCPp2pSession(stream);
+    const handshake = await session.handshake({ name: 'buyer', version: '1.0.0' });
+    expect(handshake.capabilities.mcpPlusPlusProfiles).toContain('mcp++/x402-payments');
+    const sent = JSON.parse(stream.written[0].subarray(4).toString('utf8'));
+    expect(sent.params.capabilities.experimental['mcp++/x402-payments']).toBe(true);
     await session.close();
   });
 });

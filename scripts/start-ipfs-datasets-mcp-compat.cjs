@@ -28,6 +28,7 @@ const {
   validateProfileCInvocation,
 } = require("./mcpplusplus-profile-c.cjs");
 const { getEventDagService } = require("./mcpplusplus-event-dag.cjs");
+const { PROFILE_H_METHODS, ProfileHAdapterError, createProfileHAdapter } = require("./mcpplusplus-profile-h-adapter.cjs");
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 3002;
@@ -51,6 +52,7 @@ const profileA = buildProfileAInterface("ipfs_datasets_py", tools);
 const artifactStore = createArtifactStore({ service: "ipfs_datasets_py" });
 const profileCService = getProfileCService("ipfs_datasets_py");
 const eventDag = getEventDagService("ipfs_datasets_py");
+const profileH = createProfileHAdapter({ service: "ipfs_datasets_py" });
 let profileAPersistence;
 
 const server = http.createServer(async (req, res) => {
@@ -108,6 +110,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && url.pathname === "/mcp/p2p/peers") {
       return sendJson(res, 200, profileEPeersResult("ipfs_datasets_py"));
+    }
+    if (url.pathname.startsWith("/mcp/payments/")) {
+      const result = await profileH.handleHttp({ method: req.method, path: url.pathname, search: url.search,
+        body: req.method === "GET" || req.method === "HEAD" ? undefined : await readRequestJson(req), headers: req.headers });
+      return sendJson(res, result.status, result.body, result.headers);
     }
     if (req.method === "GET" && url.pathname === "/mcp/interfaces") {
       await persistProfileA();
@@ -208,6 +215,7 @@ const server = http.createServer(async (req, res) => {
             supportsCidEnvelope: true,
             supportsUcan: true,
             supportsEventDag: true,
+            supportsX402Payments: await profileH.isAvailable(),
           }),
         });
       }
@@ -254,6 +262,10 @@ const server = http.createServer(async (req, res) => {
           id: payload.id ?? null,
           result: profileEPeersResult("ipfs_datasets_py"),
         });
+      }
+      if (PROFILE_H_METHODS.has(payload.method)) {
+        try { return sendJson(res, 200, { jsonrpc: "2.0", id: payload.id ?? null, result: await profileH.call(payload.method, payload.params ?? {}) }); }
+        catch (error) { return sendJson(res, 200, { jsonrpc: "2.0", id: payload.id ?? null, error: { code: error instanceof ProfileHAdapterError ? error.code : -32603, message: error instanceof Error ? error.message : String(error), data: error instanceof ProfileHAdapterError ? error.data : {} } }); }
       }
       if (payload.method.startsWith("mcp++/dag/")) {
         return sendJson(res, 200, {
@@ -690,9 +702,10 @@ function parseJson(text) {
   }
 }
 
-function sendJson(res, status, payload) {
+function sendJson(res, status, payload, headers = {}) {
   const body = JSON.stringify(payload);
   res.writeHead(status, {
+    ...headers,
     "content-type": "application/json",
     "content-length": Buffer.byteLength(body),
   });

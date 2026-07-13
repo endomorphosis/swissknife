@@ -10,6 +10,7 @@ const PROFILE_A_CAPABILITY = 'mcp++/mcp-idl';
 const PROFILE_B_CAPABILITY = 'mcp++/cid-envelope';
 const PROFILE_C_CAPABILITY = 'mcp++/ucan';
 const PROFILE_F_CAPABILITY = 'mcp++/event-dag';
+const PROFILE_H_CAPABILITY = 'mcp++/x402-payments';
 const ANNOUNCE_FILES = {
   ipfs_kit_py: 'ipfs-kit-mcp-p2p-announce.json',
   ipfs_datasets_py: 'ipfs-datasets-mcp-p2p-announce.json',
@@ -24,6 +25,7 @@ function profileEInitializeResult({
   supportsCidEnvelope = false,
   supportsUcan = false,
   supportsEventDag = false,
+  supportsX402Payments = false,
 }) {
   const requested = request?.capabilities?.experimental ?? {};
   const experimental = {};
@@ -32,6 +34,7 @@ function profileEInitializeResult({
   if (supportsCidEnvelope && requested[PROFILE_B_CAPABILITY] === true) experimental[PROFILE_B_CAPABILITY] = true;
   if (supportsUcan && requested[PROFILE_C_CAPABILITY] === true) experimental[PROFILE_C_CAPABILITY] = true;
   if (supportsEventDag && requested[PROFILE_F_CAPABILITY] === true) experimental[PROFILE_F_CAPABILITY] = true;
+  if (supportsX402Payments && requested[PROFILE_H_CAPABILITY] === true) experimental[PROFILE_H_CAPABILITY] = true;
   return {
     protocolVersion: MCP_PROTOCOL_VERSION,
     serverInfo: { name, version },
@@ -80,6 +83,7 @@ module.exports = {
   PROFILE_B_CAPABILITY,
   PROFILE_C_CAPABILITY,
   PROFILE_F_CAPABILITY,
+  PROFILE_H_CAPABILITY,
   profileEInitializeResult,
   profileEPeersResult,
 };

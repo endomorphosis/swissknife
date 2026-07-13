@@ -33,6 +33,14 @@ PROFILE_A_CAPABILITY = "mcp++/mcp-idl"
 PROFILE_B_CAPABILITY = "mcp++/cid-envelope"
 PROFILE_C_CAPABILITY = "mcp++/ucan"
 PROFILE_F_CAPABILITY = "mcp++/event-dag"
+PROFILE_H_CAPABILITY = "mcp++/x402-payments"
+PROFILE_H_VERSION = "1.0"
+PROFILE_H_METHODS = {
+    "mcp++/payments/profile", "mcp++/payments/catalog", "mcp++/payments/quote",
+    "mcp++/payments/verify", "mcp++/payments/settle", "mcp++/payments/receipt/get",
+    "mcp++/payments/entitlement/get", "mcp++/payments/usage/get",
+    "mcp++/payments/refund/request", "mcp++/payments/reconcile",
+}
 MAX_FRAME_BYTES = 16 * 1024 * 1024
 MAX_FRAMES_PER_SESSION = 200
 # py-libp2p's Noise implementation accepts plaintext writes no larger than
@@ -44,6 +52,31 @@ DEFAULT_ARTIFACT_STORE_DIR = os.path.join(
     os.path.expanduser("~"), ".cache", "swissknife", "mcpplusplus-artifacts"
 )
 DEFAULT_IPFS_KIT_ARTIFACT_ENDPOINT = "http://127.0.0.1:8014/mcp/artifacts"
+
+class ProfileHRemoteError(RuntimeError):
+    """A seller JSON-RPC error that must survive the HTTP/libp2p boundary."""
+    def __init__(self, code: int, message: str, data: Any = None) -> None:
+        super().__init__(message)
+        self.code, self.data = code, data
+
+
+def is_ready_profile_h(profile: Any) -> bool:
+    """Accept only a complete, durable, explicitly labelled Profile H seller."""
+    if not isinstance(profile, dict) or profile.get("profile") != PROFILE_H_CAPABILITY \
+            or profile.get("version") != PROFILE_H_VERSION or profile.get("ready") is not True \
+            or not isinstance(profile.get("sellerDid"), str) or not profile.get("sellerDid") \
+            or not isinstance(profile.get("catalogCid"), str) or not profile.get("catalogCid"):
+        return False
+    methods, transports = profile.get("methods"), profile.get("transports")
+    durability, facilitator = profile.get("durability"), profile.get("facilitator")
+    if not isinstance(methods, list) or not PROFILE_H_METHODS.issubset(set(methods)) \
+            or not isinstance(transports, list) or not {"http", "libp2p"}.issubset(set(transports)) \
+            or not isinstance(durability, dict) or durability.get("ledger") != "durable" \
+            or durability.get("artifactStore") != "content-addressed" or durability.get("reconciliation") is not True \
+            or not isinstance(facilitator, dict) or facilitator.get("ready") is not True:
+        return False
+    mode, upstream = profile.get("mode"), profile.get("upstreamX402HttpConformance")
+    return (mode == "local-test" and upstream is False) or (mode == "facilitator" and upstream is True)
 
 
 async def write_chunked_jsonrpc_frame(stream: Any, message: dict[str, Any]) -> None:
@@ -64,6 +97,8 @@ class HttpMcpRegistry:
         self.service = service
         self.endpoint = endpoint.rstrip("/")
         self.tools: dict[str, dict[str, Any]] = {}
+        self.profile_h_profile: dict[str, Any] | None = None
+        self.profile_h_profile: dict[str, Any] | None = None
 
     async def refresh(self) -> None:
         response = await self._rpc("tools/list", {})
@@ -82,6 +117,15 @@ class HttpMcpRegistry:
         }
         if not self.tools:
             raise RuntimeError(f"{self.service} returned no named tools from {self.endpoint}")
+        self.profile_h_profile = None
+        try:
+            profile_response = await self._rpc("mcp++/payments/profile", {})
+            profile = profile_response.get("result") if isinstance(profile_response, dict) else None
+            if is_ready_profile_h(profile):
+                self.profile_h_profile = profile
+        except Exception:
+            # Profile H is optional; ordinary MCP tools remain available.
+            self.profile_h_profile = None
 
     async def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> Any:
         if tool_name not in self.tools:
@@ -105,6 +149,20 @@ class HttpMcpRegistry:
         response = await self._rpc(method, params)
         if response.get("error"):
             raise RuntimeError(str(response["error"].get("message") or "remote Event DAG error"))
+        return response.get("result", response)
+
+    async def profile_h(self, method: str, params: dict[str, Any]) -> Any:
+        """Forward Profile H without changing payment proofs or seller artifacts."""
+        if method not in PROFILE_H_METHODS:
+            raise ValueError(f"unsupported Profile H method: {method}")
+        if self.profile_h_profile is None:
+            raise ProfileHRemoteError(-32070, "MCP++ Profile H is unavailable for this seller.",
+                                      {"code": "H_PROFILE_UNAVAILABLE", "service": self.service})
+        response = await self._rpc(method, params)
+        error = response.get("error") if isinstance(response, dict) else None
+        if isinstance(error, dict):
+            code = error.get("code") if isinstance(error.get("code"), int) else -32070
+            raise ProfileHRemoteError(code, str(error.get("message") or "remote Profile H error"), error.get("data"))
         return response.get("result", response)
 
     async def authorize_profile_c_execution(self, params: dict[str, Any], tool: str) -> None:
@@ -519,6 +577,7 @@ async def handle_profile_e_stream(
     """
 
     initialized = False
+    profile_h_negotiated = False
     frame_count = 0
     write_lock = trio.Lock()
 
@@ -598,6 +657,8 @@ async def handle_profile_e_stream(
                         continue
                     initialized = True
                     requested_experimental = params.get("capabilities", {}).get("experimental", {})
+                    if not isinstance(requested_experimental, dict):
+                        requested_experimental = {}
                     experimental = {PROFILE_E_CAPABILITY: True}
                     if requested_experimental.get(PROFILE_A_CAPABILITY) is True:
                         experimental[PROFILE_A_CAPABILITY] = True
@@ -607,6 +668,10 @@ async def handle_profile_e_stream(
                         experimental[PROFILE_C_CAPABILITY] = True
                     if requested_experimental.get(PROFILE_F_CAPABILITY) is True:
                         experimental[PROFILE_F_CAPABILITY] = True
+                    profile_h_negotiated = bool(registry.profile_h_profile is not None
+                                                and requested_experimental.get(PROFILE_H_CAPABILITY) is True)
+                    if profile_h_negotiated:
+                        experimental[PROFILE_H_CAPABILITY] = True
                     await reply({
                         "jsonrpc": "2.0",
                         "id": request_id,
@@ -708,6 +773,26 @@ async def handle_profile_e_stream(
                             "protocol": PROTOCOL_MCP_P2P_V1,
                         },
                     })
+                    continue
+                if method in PROFILE_H_METHODS:
+                    if not profile_h_negotiated:
+                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {
+                            "code": -32040, "message": "MCP++ Profile H was not negotiated for this session.",
+                            "data": {"code": "H_CAPABILITY_NOT_NEGOTIATED"},
+                        }})
+                        continue
+                    try:
+                        result = await registry.profile_h(method, params)
+                        await reply({"jsonrpc": "2.0", "id": request_id, "result": result})
+                    except ProfileHRemoteError as exc:
+                        error: dict[str, Any] = {"code": exc.code, "message": str(exc)}
+                        if exc.data is not None:
+                            error["data"] = exc.data
+                        await reply({"jsonrpc": "2.0", "id": request_id, "error": error})
+                    except Exception as exc:
+                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {
+                            "code": -32603, "message": f"Profile H request failed: {exc}",
+                        }})
                     continue
                 if method in {
                     "mcp++/ucan/identity",
@@ -824,6 +909,7 @@ async def run_bridge(args: argparse.Namespace) -> None:
             "profile_a_mcp_idl": True,
             "profile_b_cid_envelope": True,
             "profile_c_ucan": True,
+            "profile_h_x402_payments": registry.profile_h_profile is not None,
             "peer_id": peer_id,
             "multiaddr": multiaddr,
             "tool_count": len(registry.tools),
