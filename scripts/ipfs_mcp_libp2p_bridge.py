@@ -20,7 +20,10 @@ from typing import Any
 
 import trio
 from libp2p import new_host
-from libp2p.tools.async_service import background_trio_service
+try:  # py-libp2p <= 0.2 compatibility
+    from libp2p.tools.async_service import background_trio_service
+except ImportError:  # py-libp2p >= 0.3 moved service contexts to the anyio package
+    from libp2p.tools.anyio_service.context import background_trio_service
 from multiaddr import Multiaddr
 
 from ipfs_accelerate_py.p2p_tasks.mcp_p2p import read_u32_framed_json
@@ -98,7 +101,8 @@ class HttpMcpRegistry:
         self.endpoint = endpoint.rstrip("/")
         self.tools: dict[str, dict[str, Any]] = {}
         self.profile_h_profile: dict[str, Any] | None = None
-        self.profile_h_profile: dict[str, Any] | None = None
+        self._profile_h_checked_at = 0.0
+        self._profile_h_probe_ttl = 1.0
 
     async def refresh(self) -> None:
         response = await self._rpc("tools/list", {})
@@ -117,6 +121,13 @@ class HttpMcpRegistry:
         }
         if not self.tools:
             raise RuntimeError(f"{self.service} returned no named tools from {self.endpoint}")
+        await self.refresh_profile_h(force=True)
+
+    async def refresh_profile_h(self, *, force: bool = False) -> bool:
+        """Probe the seller authority and retain Profile H only while it is ready."""
+        checked_at = time.monotonic()
+        if not force and checked_at - self._profile_h_checked_at < self._profile_h_probe_ttl:
+            return self.profile_h_profile is not None
         self.profile_h_profile = None
         try:
             profile_response = await self._rpc("mcp++/payments/profile", {})
@@ -126,6 +137,9 @@ class HttpMcpRegistry:
         except Exception:
             # Profile H is optional; ordinary MCP tools remain available.
             self.profile_h_profile = None
+        finally:
+            self._profile_h_checked_at = time.monotonic()
+        return self.profile_h_profile is not None
 
     async def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> Any:
         if tool_name not in self.tools:
@@ -155,7 +169,7 @@ class HttpMcpRegistry:
         """Forward Profile H without changing payment proofs or seller artifacts."""
         if method not in PROFILE_H_METHODS:
             raise ValueError(f"unsupported Profile H method: {method}")
-        if self.profile_h_profile is None:
+        if not await self.refresh_profile_h():
             raise ProfileHRemoteError(-32070, "MCP++ Profile H is unavailable for this seller.",
                                       {"code": "H_PROFILE_UNAVAILABLE", "service": self.service})
         response = await self._rpc(method, params)
@@ -578,6 +592,7 @@ async def handle_profile_e_stream(
 
     initialized = False
     profile_h_negotiated = False
+    profile_h_requested = False
     frame_count = 0
     write_lock = trio.Lock()
 
@@ -655,7 +670,6 @@ async def handle_profile_e_stream(
                             "error": {"code": -32602, "message": f"unsupported protocol version: {params.get('protocolVersion')}"},
                         })
                         continue
-                    initialized = True
                     requested_experimental = params.get("capabilities", {}).get("experimental", {})
                     if not isinstance(requested_experimental, dict):
                         requested_experimental = {}
@@ -668,10 +682,12 @@ async def handle_profile_e_stream(
                         experimental[PROFILE_C_CAPABILITY] = True
                     if requested_experimental.get(PROFILE_F_CAPABILITY) is True:
                         experimental[PROFILE_F_CAPABILITY] = True
-                    profile_h_negotiated = bool(registry.profile_h_profile is not None
-                                                and requested_experimental.get(PROFILE_H_CAPABILITY) is True)
+                    profile_h_requested = requested_experimental.get(PROFILE_H_CAPABILITY) is True
+                    profile_h_ready = await registry.refresh_profile_h(force=True) if profile_h_requested else False
+                    profile_h_negotiated = bool(profile_h_ready and profile_h_requested)
                     if profile_h_negotiated:
                         experimental[PROFILE_H_CAPABILITY] = True
+                    initialized = True
                     await reply({
                         "jsonrpc": "2.0",
                         "id": request_id,
@@ -776,9 +792,12 @@ async def handle_profile_e_stream(
                     continue
                 if method in PROFILE_H_METHODS:
                     if not profile_h_negotiated:
+                        unavailable = profile_h_requested and registry.profile_h_profile is None
                         await reply({"jsonrpc": "2.0", "id": request_id, "error": {
-                            "code": -32040, "message": "MCP++ Profile H was not negotiated for this session.",
-                            "data": {"code": "H_CAPABILITY_NOT_NEGOTIATED"},
+                            "code": -32070 if unavailable else -32040,
+                            "message": "MCP++ Profile H is unavailable for this seller." if unavailable else "MCP++ Profile H was not negotiated for this session.",
+                            "data": {"code": "H_PROFILE_UNAVAILABLE" if unavailable else "H_CAPABILITY_NOT_NEGOTIATED",
+                                     "service": registry.service},
                         }})
                         continue
                     try:

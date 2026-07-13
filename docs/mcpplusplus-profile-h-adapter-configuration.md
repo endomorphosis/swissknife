@@ -18,7 +18,8 @@ content-addressed artifacts, reconciliation, and a ready facilitator. A normal
 facilitator reports `upstreamX402HttpConformance: true`; an in-process verifier
 must be visibly labelled `mode: local-test` and report it as false.
 
-Unset, unreachable, incomplete, and fixture-only sellers are omitted from MCP
+Readiness is re-probed at Profile E session initialization and periodically
+during an active session. Unset, unreachable, incomplete, and fixture-only sellers are omitted from MCP
 Initialize. Their REST routes return `503 H_PROFILE_UNAVAILABLE` and JSON-RPC
 returns typed `-32070`; ordinary MCP tools remain available.
 
