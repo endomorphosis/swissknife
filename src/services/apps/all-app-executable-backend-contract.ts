@@ -13,6 +13,7 @@ export const ALL_APP_EXECUTABLE_BACKEND_CONTRACT_ID =
 export const ALL_APP_EXECUTABLE_BACKEND_CONTRACT_SCHEMA =
   'swissknife.all-app-executable-backend-contract.v1';
 export const ALL_APP_EXECUTABLE_BACKEND_CONTRACT_VERSION = '1.0.0';
+export const EXECUTABLE_BACKEND_GATEWAY_ROUTE = '/mcp/tools/call';
 
 export const EXECUTABLE_BACKEND_OWNERS = [
   'ipfs_kit_py',
@@ -35,12 +36,22 @@ export type BackendFailureCode =
   | 'invalid_output'
   | 'receipt_missing';
 
+export type MediatedPolicyOutcome = 'allow' | 'deny' | 'require_confirmation';
+
 export interface JsonObjectContract {
   schema_id: string;
   type: 'object';
   required: readonly string[];
   properties: Readonly<Record<string, unknown>>;
   additionalProperties: boolean;
+  dynamic_schema_bindings?: readonly DynamicSchemaBinding[];
+}
+
+export interface DynamicSchemaBinding {
+  property: string;
+  schema_source: 'selected_tool.input_schema';
+  validation: 'required_before_dispatch';
+  on_error: 'invalid_input';
 }
 
 export interface MediatedBackendIntent {
@@ -63,7 +74,7 @@ export interface BackendToolSelectionRule {
 }
 
 export interface BackendTransportPolicy {
-  gateway_route: '/api/mcp/tools/call';
+  gateway_route: typeof EXECUTABLE_BACKEND_GATEWAY_ROUTE;
   browser_boundary: 'mediated_gateway_only';
   allowed_transports: readonly MediatedTransport[];
   preferred_transport: MediatedTransport;
@@ -115,6 +126,7 @@ export interface BackendUiControl {
 
 export interface ExecutableBackendBinding {
   binding_id: string;
+  capability_id: string;
   owner: ExecutableBackendOwner;
   mediated_intent: MediatedBackendIntent;
   tool_selection: BackendToolSelectionRule;
@@ -182,7 +194,12 @@ export interface MediatedInvocationRequest {
   owner?: ExecutableBackendOwner;
   correlation_id: string;
   payload: Readonly<Record<string, unknown>>;
-  consent: 'granted' | 'not_required';
+  consent: 'granted' | 'denied' | 'not_required';
+  policy_decision: {
+    decision_id: string;
+    outcome: MediatedPolicyOutcome;
+    reason: string;
+  };
   dry_run: boolean;
   discovered_tools: readonly DiscoveredBackendTool[];
   available_transports: readonly MediatedTransport[];
@@ -190,7 +207,7 @@ export interface MediatedInvocationRequest {
 
 export interface MediatedInvocationPlan {
   ok: true;
-  gateway_route: '/api/mcp/tools/call';
+  gateway_route: typeof EXECUTABLE_BACKEND_GATEWAY_ROUTE;
   app_id: string;
   binding_id: string;
   intent_id: string;
@@ -201,8 +218,15 @@ export interface MediatedInvocationPlan {
   input: {
     correlation_id: string;
     payload: Readonly<Record<string, unknown>>;
-    policy: { consent: 'granted' | 'not_required'; dry_run: boolean };
+    policy: {
+      decision_id: string;
+      outcome: 'allow' | 'require_confirmation';
+      reason: string;
+      consent: 'granted' | 'not_required';
+      dry_run: boolean;
+    };
   };
+  output_contract: JsonObjectContract;
   receipt_requirement: BackendReceiptRequirement;
   ui_control: BackendUiControl;
 }
@@ -219,21 +243,34 @@ export interface MediatedInvocationFailure {
 
 export type MediatedInvocationResolution = MediatedInvocationPlan | MediatedInvocationFailure;
 
+export interface MediatedOutputValidationResult {
+  valid: boolean;
+  error: 'invalid_output' | 'receipt_missing' | null;
+  errors: string[];
+  recovery: BackendRecoveryRoute | null;
+}
+
 const POLICY_BLOCKED_APP_IDS = new Set(['api-keys']);
 const EXTERNAL_PROVIDER_APP_IDS = new Set(['oauth-login']);
 
-const TOOL_PREFERENCES: Readonly<Record<ExecutableBackendOwner, Readonly<Record<string, readonly string[]>>>> = {
+const TOOL_PREFERENCES: Readonly<
+  Record<ExecutableBackendOwner, Readonly<Partial<Record<string, readonly string[]>>>>
+> = {
   ipfs_kit_py: {
     storage: ['ipfs_cat', 'ipfs_ls', 'ipfs_add'],
     vfs: ['files_ls', 'files_read', 'files_write'],
     dag: ['dag_get', 'dag_put'],
     swarm: ['swarm_peers', 'node_id'],
-    pubsub: ['pubsub_ls', 'swarm_peers'],
+    pubsub: ['swarm_peers'],
+    registry: ['node_id'],
+    descriptor: ['node_id'],
   },
   ipfs_datasets_py: {
     discovery: ['load_dataset', 'get_from_ipfs'],
     vector: ['load_index', 'load_dataset'],
     provenance: ['record_provenance', 'save_dataset'],
+    registry: ['get_task_status'],
+    descriptor: ['get_task_status'],
   },
   ipfs_accelerate_py: {
     models: ['get_task', 'detect_hardware'],
@@ -242,6 +279,8 @@ const TOOL_PREFERENCES: Readonly<Record<ExecutableBackendOwner, Readonly<Record<
     hardware: ['detect_hardware', 'HardwareDetector.get_available_hardware'],
     telemetry: ['PrometheusMetrics.generate_metrics', 'HealthChecker.check_detailed'],
     supervisor: ['get_task', 'WorkflowCoordinator.submit_task'],
+    registry: ['HealthChecker.check_detailed'],
+    descriptor: ['HealthChecker.check_detailed'],
   },
 };
 
@@ -260,6 +299,8 @@ const OPERATION_BY_CAPABILITY_TOKEN: Readonly<Record<string, string>> = {
   hardware: 'inspect_hardware',
   telemetry: 'inspect_telemetry',
   supervisor: 'supervise_agent_work',
+  registry: 'inspect_tool_registry',
+  descriptor: 'inspect_tool_descriptor',
 };
 
 function capabilityToken(capability: string): string {
@@ -291,8 +332,11 @@ function buildInputContract(appId: string, bindingId: string): JsonObjectContrac
       payload: { type: 'object', additionalProperties: true },
       policy: {
         type: 'object',
-        required: ['consent', 'dry_run'],
+        required: ['decision_id', 'outcome', 'reason', 'consent', 'dry_run'],
         properties: {
+          decision_id: { type: 'string', minLength: 1 },
+          outcome: { type: 'string', enum: ['allow', 'require_confirmation'] },
+          reason: { type: 'string', minLength: 1 },
           consent: { type: 'string', enum: ['granted', 'not_required'] },
           dry_run: { type: 'boolean' },
         },
@@ -300,6 +344,12 @@ function buildInputContract(appId: string, bindingId: string): JsonObjectContrac
       },
     },
     additionalProperties: false,
+    dynamic_schema_bindings: [{
+      property: 'payload',
+      schema_source: 'selected_tool.input_schema',
+      validation: 'required_before_dispatch',
+      on_error: 'invalid_input',
+    }],
   };
 }
 
@@ -316,7 +366,20 @@ function buildOutputContract(appId: string, bindingId: string): JsonObjectContra
       correlation_id: { type: 'string', minLength: 1 },
       outcome: { type: 'string', enum: ['executed', 'denied', 'unsupported', 'unreachable', 'failed'] },
       result: {},
-      receipt: { type: ['object', 'null'] },
+      receipt: {
+        type: 'object',
+        required: ['receipt_id', 'correlation_id', 'owner', 'tool_id', 'transport', 'policy_outcome', 'outcome'],
+        properties: {
+          receipt_id: { type: 'string', minLength: 1 },
+          correlation_id: { type: 'string', minLength: 1 },
+          owner: { type: 'string', enum: EXECUTABLE_BACKEND_OWNERS },
+          tool_id: { type: 'string', minLength: 1 },
+          transport: { type: 'string', enum: ['http', 'libp2p'] },
+          policy_outcome: { type: 'string', enum: ['allow', 'deny', 'require_confirmation'] },
+          outcome: { type: 'string', enum: ['executed', 'denied', 'unsupported', 'unreachable', 'failed'] },
+        },
+        additionalProperties: true,
+      },
     },
     additionalProperties: false,
   };
@@ -396,15 +459,28 @@ function buildBinding(
   const token = capabilityToken(capability.capability);
   const operation = operationFor(capability.capability);
   const bindingId = `${app.id}.${owner}.${operation}`;
+  const supportsHttp = capability.mcp_transport !== 'not-eligible';
   const supportsLibp2p = capability.mcp_plus_plus_transport !== 'not-eligible';
-  const allowedTransports: readonly MediatedTransport[] = supportsLibp2p ? ['http', 'libp2p'] : ['http'];
-  const preferredTools = TOOL_PREFERENCES[owner][token] ?? [`${token}`];
+  const allowedTransports: readonly MediatedTransport[] = [
+    ...(supportsHttp ? ['http' as const] : []),
+    ...(supportsLibp2p ? ['libp2p' as const] : []),
+  ];
+  if (allowedTransports.length === 0) {
+    throw new Error(`No mediated transport for ${app.id}/${owner}/${capability.capability}`);
+  }
+  const preferredTransport = supportsHttp ? 'http' : 'libp2p';
+  const fallbackTransport = supportsHttp && supportsLibp2p ? 'libp2p' : null;
+  const preferredTools = TOOL_PREFERENCES[owner][token];
+  if (!preferredTools?.length) {
+    throw new Error(`No exact tool selection rule for ${app.id}/${owner}/${capability.capability}`);
+  }
 
   return {
     binding_id: bindingId,
+    capability_id: capability.id,
     owner,
     mediated_intent: {
-      intent_id: `${app.id}.${operation}`,
+      intent_id: `${app.id}.${owner}.${operation}`,
       operation,
       description: `${app.title} uses ${owner} to ${operation.replaceAll('_', ' ')} through the browser-safe MCP gateway.`,
       capability: capability.capability,
@@ -421,11 +497,11 @@ function buildBinding(
       on_no_match: 'tool_unsupported',
     },
     transport_policy: {
-      gateway_route: '/api/mcp/tools/call',
+      gateway_route: EXECUTABLE_BACKEND_GATEWAY_ROUTE,
       browser_boundary: 'mediated_gateway_only',
       allowed_transports: allowedTransports,
-      preferred_transport: 'http',
-      fallback_transport: supportsLibp2p ? 'libp2p' : null,
+      preferred_transport: preferredTransport,
+      fallback_transport: fallbackTransport,
       direct_backend_access: false,
       require_correlation_id: true,
       require_policy_decision: true,
@@ -435,7 +511,7 @@ function buildBinding(
     output_contract: buildOutputContract(app.id, bindingId),
     receipt_requirement: buildReceiptRequirement(capability),
     error_recovery: {
-      routes: recoveryRoutes(supportsLibp2p),
+      routes: recoveryRoutes(fallbackTransport !== null),
       terminal_action: 'surface_error_with_retry',
       never_silently_fallback: true,
     },
@@ -443,7 +519,7 @@ function buildBinding(
       surface: `virtual-desktop://apps/${app.id}`,
       control_id: `${app.id}--${owner}--${operation}`,
       label: `${app.title}: ${operation.replaceAll('_', ' ')}`,
-      event: `backend-intent:${app.id}.${operation}`,
+      event: `backend-intent:${app.id}.${owner}.${operation}`,
       confirmation: confirmationFor(capability.policy_class),
       states: ['idle', 'pending', 'success', 'denied', 'unavailable', 'error'],
       displays: ['owner', 'tool_id', 'transport', 'correlation_id', 'policy_outcome', 'outcome', 'receipt_id'],
@@ -568,14 +644,14 @@ export function selectBackendTool(
   rule: BackendToolSelectionRule,
   discoveredTools: readonly DiscoveredBackendTool[],
 ): DiscoveredBackendTool | null {
-  const owned = discoveredTools.filter(tool => tool.owner === rule.owner);
+  const owned = discoveredTools.filter(tool => tool.owner === rule.owner && tool.tool_id.trim().length > 0);
   for (const preferredId of rule.preferred_tool_ids) {
     const exact = owned.find(tool => tool.tool_id === preferredId);
     if (exact) return exact;
   }
   const capabilityMatches = owned
     .filter(tool => tool.capabilities?.includes(rule.required_capability))
-    .sort((left, right) => left.tool_id.localeCompare(right.tool_id));
+    .sort((left, right) => left.tool_id < right.tool_id ? -1 : left.tool_id > right.tool_id ? 1 : 0);
   return capabilityMatches[0] ?? null;
 }
 
@@ -643,10 +719,20 @@ export function resolveMediatedInvocation(
     );
   }
   const binding = matches[0];
-  if (!request.correlation_id || typeof request.payload !== 'object' || request.payload === null) {
+  if (!request.correlation_id.trim() || !isRecord(request.payload)) {
     return failure(request, binding, 'invalid_input');
   }
-  if (binding.ui_control.confirmation === 'always' && request.consent !== 'granted') {
+  const policy = request.policy_decision;
+  if (!policy
+    || !policy.decision_id?.trim()
+    || !policy.reason?.trim()
+    || !['allow', 'deny', 'require_confirmation'].includes(policy.outcome)) {
+    return failure(request, binding, 'invalid_input', 'A complete policy decision is required before tool selection.');
+  }
+  if (request.consent === 'denied'
+    || policy.outcome === 'deny'
+    || (policy.outcome === 'require_confirmation' && request.consent !== 'granted')
+    || (binding.ui_control.confirmation === 'always' && request.consent !== 'granted')) {
     return failure(request, binding, 'policy_denied');
   }
   const tool = selectBackendTool(binding.tool_selection, request.discovered_tools);
@@ -667,11 +753,104 @@ export function resolveMediatedInvocation(
     input: {
       correlation_id: request.correlation_id,
       payload: request.payload,
-      policy: { consent: request.consent, dry_run: request.dry_run },
+      policy: {
+        decision_id: policy.decision_id,
+        outcome: policy.outcome,
+        reason: policy.reason,
+        consent: request.consent,
+        dry_run: request.dry_run,
+      },
     },
+    output_contract: binding.output_contract,
     receipt_requirement: binding.receipt_requirement,
     ui_control: binding.ui_control,
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Validates the mediated gateway result against the selected plan. This keeps a
+ * backend from substituting an owner, tool, transport, or correlation ID after
+ * policy and discovery have completed, and treats a missing receipt separately
+ * so the UI can take the declared persistence recovery route.
+ */
+export function validateMediatedInvocationOutput(
+  plan: MediatedInvocationPlan,
+  candidate: unknown,
+): MediatedOutputValidationResult {
+  const errors: string[] = [];
+  if (!isRecord(candidate)) {
+    return outputValidationFailure(plan, 'invalid_output', ['output must be an object']);
+  }
+  if (!isRecord(candidate.receipt)) {
+    return outputValidationFailure(plan, 'receipt_missing', ['output receipt must be an object']);
+  }
+
+  const required = plan.output_contract.required;
+  for (const field of required) {
+    if (!Object.hasOwn(candidate, field)) errors.push(`output is missing ${field}`);
+  }
+  const allowedFields = new Set(Object.keys(plan.output_contract.properties));
+  if (plan.output_contract.additionalProperties === false) {
+    for (const field of Object.keys(candidate)) {
+      if (!allowedFields.has(field)) errors.push(`output contains unexpected field ${field}`);
+    }
+  }
+  if (candidate.owner !== plan.owner) errors.push('output owner does not match the invocation plan');
+  if (candidate.tool_id !== plan.tool_id) errors.push('output tool_id does not match the invocation plan');
+  if (candidate.transport !== plan.transport) errors.push('output transport does not match the invocation plan');
+  if (candidate.correlation_id !== plan.correlation_id) errors.push('output correlation_id does not match the invocation plan');
+  const outcomes = ['executed', 'denied', 'unsupported', 'unreachable', 'failed'];
+  if (!outcomes.includes(String(candidate.outcome))) errors.push('output outcome is invalid');
+  if (typeof candidate.ok !== 'boolean') errors.push('output ok must be boolean');
+  if (candidate.ok === true && candidate.outcome !== 'executed') {
+    errors.push('only an executed outcome may set ok=true');
+  }
+  if (candidate.ok === false && candidate.outcome === 'executed') {
+    errors.push('an executed outcome must set ok=true');
+  }
+  if (errors.length > 0) return outputValidationFailure(plan, 'invalid_output', errors);
+
+  for (const field of plan.receipt_requirement.required_fields) {
+    const value = candidate.receipt[field];
+    if (value === undefined || value === null || value === '') errors.push(`receipt is missing ${field}`);
+  }
+  for (const field of ['owner', 'tool_id', 'transport', 'correlation_id', 'outcome'] as const) {
+    if (candidate.receipt[field] !== candidate[field]) {
+      errors.push(`receipt ${field} does not match output ${field}`);
+    }
+  }
+  if (candidate.receipt.policy_outcome !== 'allow'
+    && candidate.receipt.policy_outcome !== 'deny'
+    && candidate.receipt.policy_outcome !== 'require_confirmation') {
+    errors.push('receipt policy_outcome is invalid');
+  }
+  if (errors.length > 0) return outputValidationFailure(plan, 'receipt_missing', errors);
+  return { valid: true, error: null, errors: [], recovery: null };
+}
+
+function outputValidationFailure(
+  plan: MediatedInvocationPlan,
+  error: 'invalid_output' | 'receipt_missing',
+  errors: string[],
+): MediatedOutputValidationResult {
+  const app = getExecutableAppBackendDisposition(plan.app_id);
+  const binding = app?.backend_bindings.find(candidate => candidate.binding_id === plan.binding_id) ?? null;
+  return {
+    valid: false,
+    error,
+    errors,
+    recovery: binding ? resolveBackendRecovery(binding, error) : null,
+  };
+}
+
+function sameStringSet(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length
+    && new Set(left).size === left.length
+    && left.every(value => right.includes(value));
 }
 
 export function validateAllAppExecutableBackendContract(
@@ -682,6 +861,7 @@ export function validateAllAppExecutableBackendContract(
   if (contract.schema !== ALL_APP_EXECUTABLE_BACKEND_CONTRACT_SCHEMA) errors.push('invalid contract schema');
   if (contract.contract_id !== ALL_APP_EXECUTABLE_BACKEND_CONTRACT_ID) errors.push('invalid contract_id');
   if (!/^\d+\.\d+\.\d+$/.test(contract.version)) errors.push('version must be semantic versioning');
+  if (contract.version !== ALL_APP_EXECUTABLE_BACKEND_CONTRACT_VERSION) errors.push('unsupported contract version');
   if (contract.manifest.manifest_id !== VIRTUAL_DESKTOP_APP_MANIFEST.manifest_id
     || contract.manifest.manifest_version !== VIRTUAL_DESKTOP_APP_MANIFEST.version) {
     errors.push('manifest identity or version does not match the canonical manifest');
@@ -690,18 +870,51 @@ export function validateAllAppExecutableBackendContract(
     || EXECUTABLE_BACKEND_OWNERS.some(owner => !contract.backend_owners.includes(owner))) {
     errors.push('backend_owners must contain each required owner exactly once');
   }
+  if (contract.selection_semantics.candidate_identity !== 'owner_and_tool_id'
+    || contract.selection_semantics.capability_matching !== 'exact_only'
+    || contract.selection_semantics.ambiguous_match !== 'preferred_order_then_lexical_tool_id'
+    || contract.selection_semantics.missing_match !== 'tool_unsupported') {
+    errors.push('selection_semantics must preserve deterministic fail-closed selection');
+  }
+  if (contract.apps.length !== VIRTUAL_DESKTOP_APP_MANIFEST.apps.length) {
+    errors.push('app disposition count does not match the canonical manifest');
+  }
 
   const expectedIds = new Set(VIRTUAL_DESKTOP_APP_MANIFEST.apps.map(app => app.id));
   const seenIds = new Set<string>();
+  const seenAliases = new Set<string>();
+  const seenBindingIds = new Set<string>();
+  const seenIntentIds = new Set<string>();
+  const seenControlIds = new Set<string>();
   for (const appContract of contract.apps) {
     const manifestApp = getVirtualDesktopApp(appContract.app_id);
     if (!manifestApp || manifestApp.id !== appContract.app_id) errors.push(`${appContract.app_id}: not a canonical app id`);
     if (seenIds.has(appContract.app_id)) errors.push(`${appContract.app_id}: duplicate app disposition`);
     seenIds.add(appContract.app_id);
     if (appContract.disposition_version !== contract.version) errors.push(`${appContract.app_id}: disposition version mismatch`);
-    if (!appContract.rationale.trim()) errors.push(`${appContract.app_id}: missing deterministic rationale`);
+    if (appContract.rationale.trim().length < 20) errors.push(`${appContract.app_id}: missing deterministic rationale`);
     if (!appContract.user_visible_proof?.message || !appContract.user_visible_proof?.deterministic_check) {
       errors.push(`${appContract.app_id}: missing user-visible proof`);
+    }
+    if (manifestApp && !sameStringSet(appContract.aliases, manifestApp.aliases)) {
+      errors.push(`${appContract.app_id}: aliases do not match the canonical manifest`);
+    }
+    for (const alias of appContract.aliases) {
+      if (seenAliases.has(alias) || expectedIds.has(alias)) errors.push(`${appContract.app_id}: alias ${alias} is not unique`);
+      seenAliases.add(alias);
+    }
+    const expectedProofKind: Record<AppBackendDisposition, UserVisibleDispositionProof['proof_kind']> = {
+      tool_backed: 'mediated_receipt',
+      browser_local: 'browser_runtime',
+      external_provider: 'provider_handoff',
+      policy_blocked: 'policy_denial',
+    };
+    const proof = appContract.user_visible_proof;
+    if (proof.proof_kind !== expectedProofKind[appContract.disposition]
+      || proof.surface !== `virtual-desktop://apps/${appContract.app_id}`
+      || !proof.control_id
+      || !sameStringSet(proof.visible_fields, ['disposition', 'rationale', 'proof_id'])) {
+      errors.push(`${appContract.app_id}: user-visible proof does not match its disposition`);
     }
     if (manifestApp && appContract.disposition !== dispositionFor(manifestApp)) {
       errors.push(`${appContract.app_id}: disposition does not match its canonical backend declaration`);
@@ -715,22 +928,54 @@ export function validateAllAppExecutableBackendContract(
       errors.push(`${appContract.app_id}: backend binding count does not match declared capabilities`);
     }
     const bindingIds = new Set<string>();
+    const matchedCapabilities = new Set<string>();
     for (const binding of appContract.backend_bindings) {
       if (bindingIds.has(binding.binding_id)) errors.push(`${appContract.app_id}: duplicate binding ${binding.binding_id}`);
       bindingIds.add(binding.binding_id);
+      if (seenBindingIds.has(binding.binding_id)) errors.push(`${binding.binding_id}: binding ID is not globally unique`);
+      if (seenIntentIds.has(binding.mediated_intent.intent_id)) errors.push(`${binding.binding_id}: intent ID is not globally unique`);
+      if (seenControlIds.has(binding.ui_control.control_id)) errors.push(`${binding.binding_id}: UI control ID is not globally unique`);
+      seenBindingIds.add(binding.binding_id);
+      seenIntentIds.add(binding.mediated_intent.intent_id);
+      seenControlIds.add(binding.ui_control.control_id);
+      const declaredCapability = manifestApp.backend_capabilities.find(capability =>
+        capability.id === binding.capability_id
+        && capability.service === binding.owner
+        && capability.capability === binding.mediated_intent.capability,
+      );
       const declared = manifestApp.backend_capabilities.some(capability =>
         capability.service === binding.owner
         && capability.capability === binding.mediated_intent.capability,
       );
       if (!declared) errors.push(`${binding.binding_id}: binding is not declared by the canonical manifest`);
+      if (!declaredCapability) errors.push(`${binding.binding_id}: capability_id does not identify its canonical declaration`);
+      else if (matchedCapabilities.has(declaredCapability.id)) errors.push(`${binding.binding_id}: canonical capability is bound more than once`);
+      else matchedCapabilities.add(declaredCapability.id);
       if (binding.tool_selection.owner !== binding.owner) errors.push(`${binding.binding_id}: tool selector owner mismatch`);
+      if (binding.tool_selection.required_capability !== binding.mediated_intent.capability) {
+        errors.push(`${binding.binding_id}: tool selector capability mismatch`);
+      }
       if (binding.tool_selection.preferred_tool_ids.length === 0) errors.push(`${binding.binding_id}: no preferred exact tool IDs`);
+      if (new Set(binding.tool_selection.preferred_tool_ids).size !== binding.tool_selection.preferred_tool_ids.length
+        || binding.tool_selection.preferred_tool_ids.some(toolId => !toolId.trim())) {
+        errors.push(`${binding.binding_id}: preferred exact tool IDs must be unique and non-empty`);
+      }
       if (binding.transport_policy.direct_backend_access !== false
-        || binding.transport_policy.browser_boundary !== 'mediated_gateway_only') {
+        || binding.transport_policy.browser_boundary !== 'mediated_gateway_only'
+        || binding.transport_policy.gateway_route !== EXECUTABLE_BACKEND_GATEWAY_ROUTE) {
         errors.push(`${binding.binding_id}: browser access must be gateway mediated`);
       }
       if (binding.input_contract.required.length === 0 || binding.output_contract.required.length === 0) {
         errors.push(`${binding.binding_id}: input/output contracts must be executable`);
+      }
+      if (!sameStringSet(binding.input_contract.required, ['correlation_id', 'payload', 'policy'])
+        || binding.input_contract.dynamic_schema_bindings?.length !== 1
+        || binding.input_contract.dynamic_schema_bindings[0]?.property !== 'payload') {
+        errors.push(`${binding.binding_id}: input contract must validate the selected tool payload before dispatch`);
+      }
+      if (!['ok', 'owner', 'tool_id', 'transport', 'correlation_id', 'outcome', 'result', 'receipt']
+        .every(field => binding.output_contract.required.includes(field))) {
+        errors.push(`${binding.binding_id}: output contract is missing mediated result fields`);
       }
       if (!binding.transport_policy.allowed_transports.includes(binding.transport_policy.preferred_transport)) {
         errors.push(`${binding.binding_id}: preferred transport is not allowed`);
@@ -739,11 +984,46 @@ export function validateAllAppExecutableBackendContract(
         && !binding.transport_policy.allowed_transports.includes(binding.transport_policy.fallback_transport)) {
         errors.push(`${binding.binding_id}: fallback transport is not allowed`);
       }
+      if (declaredCapability) {
+        const expectedTransports: MediatedTransport[] = [
+          ...(declaredCapability.mcp_transport !== 'not-eligible' ? ['http' as const] : []),
+          ...(declaredCapability.mcp_plus_plus_transport !== 'not-eligible' ? ['libp2p' as const] : []),
+        ];
+        const expectedPreferred = expectedTransports.includes('http') ? 'http' : 'libp2p';
+        const expectedFallback = expectedTransports.length > 1 ? 'libp2p' : null;
+        if (!sameStringSet(binding.transport_policy.allowed_transports, expectedTransports)
+          || binding.transport_policy.preferred_transport !== expectedPreferred
+          || binding.transport_policy.fallback_transport !== expectedFallback) {
+          errors.push(`${binding.binding_id}: transport policy does not match the canonical declaration`);
+        }
+      }
       if (!binding.receipt_requirement.required) errors.push(`${binding.binding_id}: invocation receipt is required`);
+      if (declaredCapability && binding.receipt_requirement.manifest_strategy !== declaredCapability.receipt_strategy) {
+        errors.push(`${binding.binding_id}: receipt strategy does not match the canonical declaration`);
+      }
+      for (const field of ['receipt_id', 'correlation_id', 'owner', 'tool_id', 'transport', 'policy_outcome', 'outcome']) {
+        if (!binding.receipt_requirement.required_fields.includes(field)) {
+          errors.push(`${binding.binding_id}: receipt requirement is missing ${field}`);
+        }
+      }
+      const recoveryCodes = binding.error_recovery.routes.map(route => route.error);
+      if (new Set(recoveryCodes).size !== recoveryCodes.length) errors.push(`${binding.binding_id}: duplicate recovery route`);
       for (const code of ['policy_denied', 'owner_unreachable', 'tool_unsupported', 'invalid_input', 'invalid_output', 'receipt_missing'] as const) {
         if (!resolveBackendRecovery(binding, code)) errors.push(`${binding.binding_id}: missing ${code} recovery route`);
       }
-      if (!binding.ui_control.control_id || !binding.ui_control.event) errors.push(`${binding.binding_id}: missing UI control`);
+      if (!binding.ui_control.control_id
+        || binding.ui_control.surface !== `virtual-desktop://apps/${appContract.app_id}`
+        || binding.ui_control.event !== `backend-intent:${binding.mediated_intent.intent_id}`
+        || !sameStringSet(binding.ui_control.states, ['idle', 'pending', 'success', 'denied', 'unavailable', 'error'])
+        || !['owner', 'tool_id', 'transport', 'correlation_id', 'policy_outcome', 'outcome', 'receipt_id']
+          .every(field => binding.ui_control.displays.includes(field))) {
+        errors.push(`${binding.binding_id}: missing or incomplete UI control`);
+      }
+    }
+    for (const capability of manifestApp.backend_capabilities) {
+      if (!matchedCapabilities.has(capability.id)) {
+        errors.push(`${appContract.app_id}: missing binding for canonical capability ${capability.id}`);
+      }
     }
   }
   for (const expectedId of expectedIds) {
@@ -755,6 +1035,9 @@ export function validateAllAppExecutableBackendContract(
 
   const supervisor = contract.apps.find(app => app.app_id === 'agent-supervisor');
   const supervisorOwners = new Set(supervisor?.backend_bindings.map(binding => binding.owner) ?? []);
+  if (supervisor?.backend_bindings.length !== EXECUTABLE_BACKEND_OWNERS.length) {
+    errors.push('agent-supervisor: requires exactly one binding for each backend owner');
+  }
   for (const owner of EXECUTABLE_BACKEND_OWNERS) {
     if (!supervisorOwners.has(owner)) errors.push(`agent-supervisor: missing required owner ${owner}`);
   }
