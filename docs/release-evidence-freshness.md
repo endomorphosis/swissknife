@@ -11,7 +11,7 @@ is the active default release-blocking group.
 | Evidence | Default scope | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- | --- |
 | Browser libp2p Playwright evidence (SWR-028) | historical | ⚠️ never-certified | never | npm run evidence:libp2p-browser |
-| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-14T10:51:25.176Z | npm run build:web |
+| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-14T10:59:17.031Z | npm run build:web |
 | Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-14T10:15:21.340Z | npm run services:audit |
 | Virtual desktop all-tools release evidence (SVD-101) | active | ❌ missing-evidence | 2026-07-14T07:47:06.844Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 

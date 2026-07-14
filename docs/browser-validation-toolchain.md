@@ -42,7 +42,17 @@ npm run test:browser-compat
 ```
 
 Both npm commands have a `pre` hook that runs the same verifier. This protects
-direct developer and CI use in addition to supervisor lane startup.
+direct developer and CI use in addition to supervisor lane startup. The same
+`pre` hook pattern covers every other Vite build target
+(`build:cli`, `build:ipfs`, `build:collaborative`, `build:workers`) and every
+other browser-proof command (`test:browser`, `test:ai-inference`,
+`browser:compat:inventory`). `scripts/run_playwright_test.mjs` — the shared
+launcher behind `test:e2e:mcp`, `test:e2e:meta-glasses`, and
+`test:e2e:libp2p-browser` — verifies the toolchain against
+`process.execPath` before it ever spawns the Playwright CLI, and
+`test:e2e:playwright` carries the equivalent `pretest:e2e:playwright` hook.
+No Vite, Playwright, or libp2p browser command in this repository can start
+without first resolving and verifying a supported Node runtime.
 
 ## Supervisor and clean-checkout resolution
 
