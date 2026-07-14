@@ -21,8 +21,7 @@
       "const": "org.hallucinate.swissknife.all-app-executable-backend-contract"
     },
     "version": {
-      "type": "string",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      "const": "1.0.0"
     },
     "manifest": {
       "type": "object",
@@ -58,7 +57,9 @@
     },
     "apps": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 45,
+      "maxItems": 45,
+      "uniqueItems": true,
       "items": { "$ref": "#/$defs/appDisposition" }
     }
   },
@@ -84,21 +85,68 @@
         "user_visible_proof"
       ],
       "properties": {
-        "app_id": { "$ref": "#/$defs/kebabId" },
+        "app_id": {
+          "enum": [
+            "terminal",
+            "vibecode",
+            "music-studio-unified",
+            "ai-chat",
+            "file-manager",
+            "task-manager",
+            "todo",
+            "model-browser",
+            "huggingface",
+            "openrouter",
+            "ipfs-explorer",
+            "device-manager",
+            "settings",
+            "mcp-control",
+            "api-keys",
+            "github",
+            "oauth-login",
+            "cron",
+            "navi",
+            "p2p-network",
+            "p2p-chat-unified",
+            "neural-network-designer",
+            "training-manager",
+            "calculator",
+            "clock",
+            "calendar",
+            "peertube",
+            "friends-list",
+            "image-viewer",
+            "notes",
+            "media-player",
+            "system-monitor",
+            "neural-photoshop",
+            "cinema",
+            "strudel",
+            "strudel-ai-daw",
+            "music-studio",
+            "p2p-chat",
+            "datasets-browser",
+            "accelerate-panel",
+            "idl-explorer",
+            "glasses-preview",
+            "orb-auto-ui",
+            "mcp-plus-plus",
+            "agent-supervisor"
+          ]
+        },
         "aliases": {
           "type": "array",
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/kebabId" }
         },
         "disposition_version": {
-          "type": "string",
-          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+          "const": "1.0.0"
         },
         "disposition": {
           "type": "string",
           "enum": ["tool_backed", "browser_local", "external_provider", "policy_blocked"]
         },
-        "rationale": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 20 },
         "backend_bindings": {
           "type": "array",
           "items": { "$ref": "#/$defs/backendBinding" }
@@ -161,6 +209,7 @@
       "type": "object",
       "required": [
         "binding_id",
+        "capability_id",
         "owner",
         "mediated_intent",
         "tool_selection",
@@ -173,6 +222,7 @@
       ],
       "properties": {
         "binding_id": { "type": "string", "minLength": 1 },
+        "capability_id": { "type": "string", "minLength": 1 },
         "owner": { "$ref": "#/$defs/backendOwner" },
         "mediated_intent": { "$ref": "#/$defs/mediatedIntent" },
         "tool_selection": { "$ref": "#/$defs/toolSelection" },
@@ -242,7 +292,7 @@
         "require_owner_identity"
       ],
       "properties": {
-        "gateway_route": { "const": "/api/mcp/tools/call" },
+        "gateway_route": { "const": "/mcp/tools/call" },
         "browser_boundary": { "const": "mediated_gateway_only" },
         "allowed_transports": {
           "type": "array",
@@ -272,7 +322,25 @@
           "items": { "type": "string", "minLength": 1 }
         },
         "properties": { "type": "object" },
-        "additionalProperties": { "type": "boolean" }
+        "additionalProperties": { "type": "boolean" },
+        "dynamic_schema_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/dynamicSchemaBinding" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "dynamicSchemaBinding": {
+      "type": "object",
+      "required": ["property", "schema_source", "validation", "on_error"],
+      "properties": {
+        "property": { "const": "payload" },
+        "schema_source": { "const": "selected_tool.input_schema" },
+        "validation": { "const": "required_before_dispatch" },
+        "on_error": { "const": "invalid_input" }
       },
       "additionalProperties": false
     },
@@ -303,7 +371,17 @@
         "routes": {
           "type": "array",
           "minItems": 6,
-          "items": { "$ref": "#/$defs/recoveryRoute" }
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/recoveryRoute" },
+          "allOf": [
+            { "contains": { "type": "object", "properties": { "error": { "const": "policy_denied" } }, "required": ["error"] } },
+            { "contains": { "type": "object", "properties": { "error": { "const": "owner_unreachable" } }, "required": ["error"] } },
+            { "contains": { "type": "object", "properties": { "error": { "const": "tool_unsupported" } }, "required": ["error"] } },
+            { "contains": { "type": "object", "properties": { "error": { "const": "invalid_input" } }, "required": ["error"] } },
+            { "contains": { "type": "object", "properties": { "error": { "const": "invalid_output" } }, "required": ["error"] } },
+            { "contains": { "type": "object", "properties": { "error": { "const": "receipt_missing" } }, "required": ["error"] } }
+          ]
         },
         "terminal_action": { "const": "surface_error_with_retry" },
         "never_silently_fallback": { "const": true }
@@ -348,8 +426,17 @@
         "states": {
           "type": "array",
           "minItems": 6,
+          "maxItems": 6,
           "uniqueItems": true,
-          "items": { "enum": ["idle", "pending", "success", "denied", "unavailable", "error"] }
+          "items": { "enum": ["idle", "pending", "success", "denied", "unavailable", "error"] },
+          "allOf": [
+            { "contains": { "const": "idle" } },
+            { "contains": { "const": "pending" } },
+            { "contains": { "const": "success" } },
+            { "contains": { "const": "denied" } },
+            { "contains": { "const": "unavailable" } },
+            { "contains": { "const": "error" } }
+          ]
         },
         "displays": {
           "type": "array",
