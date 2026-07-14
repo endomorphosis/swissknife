@@ -43,6 +43,28 @@ interface SimulatorModalityFlow {
   event_dag_refs: string[];
 }
 
+interface VisibleTextEvidence {
+  text: string;
+  rendered: boolean;
+  fully_visible: boolean;
+}
+
+interface PermissionReplayEvidence {
+  declared_state: string;
+  declared_policy_class: string;
+  activation_decision: string;
+  prompt_required: boolean;
+  prompt_replayed: boolean;
+  packet_denial_replayed: boolean;
+  packet_approval_replayed: boolean;
+  policy_resolution_replayed: boolean;
+  denial_rollback_visible: boolean;
+  denial_fallback_visible: boolean;
+  modality_denial_replayed: boolean;
+  receipts_preserved: boolean;
+  decisions: VisibleTextEvidence[];
+}
+
 interface SimulatorSnapshot {
   packet_id: string;
   app_id: string;
@@ -76,10 +98,12 @@ interface PacketReplayResult {
   interface_cid: string;
   focus_activation: {
     focus_visible: boolean;
+    focused_action_text_fully_visible: boolean;
     focus_control_received_dom_focus: boolean;
     final_control_received_dom_focus: boolean;
     final_focus_ring_visible: boolean;
     activated_method: string;
+    activation_text_fully_visible: boolean;
     activation_decision: string;
   };
   layout: {
@@ -92,6 +116,7 @@ interface PacketReplayResult {
   };
   modality_results: Record<Modality, string>;
   modality_replays: Record<Modality, ModalityReplayEvidence>;
+  permission_replay: PermissionReplayEvidence;
   operator_decisions: string[];
   rollback: {
     expected_mode: string;
@@ -102,6 +127,7 @@ interface PacketReplayResult {
     packet_target: string;
     observed_surface: string;
     user_visible: boolean;
+    observed_text_fully_visible: boolean;
   };
   receipt_preservation: {
     before: string[];
@@ -164,6 +190,7 @@ interface AppReplayCoverage {
   flow_count: number;
   bounded_layouts: boolean;
   focus_and_activation_visible: boolean;
+  permission_and_denial_replayed: boolean;
   receipts_preserved: boolean;
   operator_decisions_visible: boolean;
   rollback_visible: boolean;
@@ -229,23 +256,52 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       );
       expect(focusControlReceivedDomFocus).toBe(true);
       await expect(page.getByTestId('focused-action')).toContainText(packet.method_id);
+      const focusedActionPresentation = await readVisibleTextEvidence(page, 'focused-action');
+      expect(focusedActionPresentation).toMatchObject({
+        text: packet.method_id,
+        rendered: true,
+        fully_visible: true,
+      });
       await page.getByTestId('activate').click();
+
+      const activationSnapshot = await snapshot(page);
+      const permissionDecisions: VisibleTextEvidence[] = [
+        await readVisibleTextEvidence(page, 'operator-decision'),
+      ];
+      let denialSnapshot: SimulatorSnapshot | undefined;
+      let approvalSnapshot: SimulatorSnapshot | undefined;
+      let denialRollbackFullyVisible = false;
+      let denialFallbackFullyVisible = false;
 
       if (packet.permission.state === 'confirmation_required') {
         await expect(page.getByTestId('operator-decision')).toContainText('awaiting_operator_confirmation');
         await page.getByTestId('operator-deny').click();
         await expect(page.getByTestId('operator-decision')).toContainText('operator_denied');
         await expect(page.getByTestId('rollback-state')).toContainText(packet.rollback_behavior.mode);
+        denialSnapshot = await snapshot(page);
+        permissionDecisions.push(await readVisibleTextEvidence(page, 'operator-decision'));
+        denialRollbackFullyVisible = (await readVisibleTextEvidence(page, 'rollback-state')).fully_visible;
+        denialFallbackFullyVisible = (await readVisibleTextEvidence(page, 'fallback-state')).fully_visible;
+        expect(denialRollbackFullyVisible).toBe(true);
+        expect(denialFallbackFullyVisible).toBe(true);
         await page.getByTestId('operator-allow').click();
         await expect(page.getByTestId('operator-decision')).toContainText('operator_approved');
+        approvalSnapshot = await snapshot(page);
+        permissionDecisions.push(await readVisibleTextEvidence(page, 'operator-decision'));
       } else if (packet.permission.state === 'permitted') {
         await expect(page.getByTestId('operator-decision')).toContainText('policy_allowed');
       } else {
         await expect(page.getByTestId('operator-decision')).toContainText('policy_denied');
         await expect(page.getByTestId('fallback-state')).toContainText(packet.fallback_selection.target_surface);
       }
-      const activationSnapshot = await snapshot(page);
       await expect(page.getByTestId('activation-state')).toContainText(packet.method_id);
+      const activationPresentation = await readVisibleTextEvidence(page, 'activation-state');
+      expect(activationPresentation).toMatchObject({
+        text: packet.method_id,
+        rendered: true,
+        fully_visible: true,
+      });
+      expect(permissionDecisions.every(decision => decision.fully_visible)).toBe(true);
 
       for (const modality of MODALITIES) {
         for (const scenario of REPLAY_SCENARIOS) {
@@ -286,6 +342,8 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       await expect(page.getByTestId('rollback-state')).toContainText(packet.rollback_behavior.mode);
       await page.getByTestId('select-fallback').click();
       await expect(page.getByTestId('fallback-state')).toContainText(packet.fallback_selection.target_surface);
+      const fallbackPresentation = await readVisibleTextEvidence(page, 'fallback-state');
+      expect(fallbackPresentation).toMatchObject({ rendered: true, fully_visible: true });
       const finalFocus = await readFocusState(page, 'select-fallback');
       expect(finalFocus).toEqual({ received_dom_focus: true, focus_ring_visible: true });
 
@@ -324,15 +382,28 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
         interface_cid: packet.interface_cid,
         focus_activation: {
           focus_visible: receiptAfter.focused_action === packet.method_id,
+          focused_action_text_fully_visible: focusedActionPresentation.fully_visible,
           focus_control_received_dom_focus: focusControlReceivedDomFocus,
           final_control_received_dom_focus: finalFocus.received_dom_focus,
           final_focus_ring_visible: finalFocus.focus_ring_visible,
           activated_method: receiptAfter.activation,
+          activation_text_fully_visible: activationPresentation.fully_visible,
           activation_decision: activationSnapshot.decision,
         },
         layout,
         modality_results: receiptAfter.modality_results,
         modality_replays: buildModalityReplayEvidence(packet, receiptAfter),
+        permission_replay: buildPermissionReplayEvidence(
+          packet,
+          receiptBefore,
+          receiptAfter,
+          activationSnapshot,
+          denialSnapshot,
+          approvalSnapshot,
+          denialRollbackFullyVisible,
+          denialFallbackFullyVisible,
+          permissionDecisions,
+        ),
         operator_decisions: receiptAfter.decision_history,
         rollback: {
           expected_mode: packet.rollback_behavior.mode,
@@ -343,6 +414,7 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
           packet_target: packet.fallback_selection.target_surface,
           observed_surface: receiptAfter.fallback_surface,
           user_visible: packet.fallback_selection.user_visible,
+          observed_text_fully_visible: fallbackPresentation.fully_visible,
         },
         receipt_preservation: {
           before: receiptBefore.receipt_refs,
@@ -414,14 +486,30 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
         bounded_layouts: results.every(result => result.layout.bounded),
         no_control_overlap: results.every(result => !result.layout.controls_overlap),
         focus_and_activation_visible: results.every(result => result.focus_activation.focus_visible
+          && result.focus_activation.focused_action_text_fully_visible
           && result.focus_activation.focus_control_received_dom_focus
           && result.focus_activation.final_control_received_dom_focus
           && result.focus_activation.final_focus_ring_visible
+          && result.focus_activation.activation_text_fully_visible
           && Boolean(result.focus_activation.activated_method)),
+        permission_and_denial_flows_replayed: results.every(result => (
+          result.permission_replay.modality_denial_replayed
+          && result.permission_replay.receipts_preserved
+          && result.permission_replay.decisions.every(decision => decision.fully_visible)
+          && (result.permission_replay.prompt_required
+            ? result.permission_replay.prompt_replayed
+              && result.permission_replay.packet_denial_replayed
+              && result.permission_replay.packet_approval_replayed
+              && result.permission_replay.denial_rollback_visible
+              && result.permission_replay.denial_fallback_visible
+            : result.permission_replay.policy_resolution_replayed)
+        )),
         receipts_preserved: results.every(result => result.receipt_preservation.preserved),
         operator_decisions_visible: results.every(result => result.operator_decisions.length > 0),
         rollback_replayed: results.every(result => result.rollback.observed_state.includes(result.rollback.expected_mode)),
-        all_packet_fallbacks_visible: results.every(result => Boolean(result.fallback.observed_surface)),
+        all_packet_fallbacks_visible: results.every(result => (
+          Boolean(result.fallback.observed_surface) && result.fallback.observed_text_fully_visible
+        )),
         audio_and_mobile_fallback_replayed: results.some(result => (
           result.modality_replays.speaker.fallback.target_surface === 'audio_channel'
         )) && results.some(result => MODALITIES.some(modality => (
@@ -611,6 +699,60 @@ function buildModalityReplayEvidence(
   return Object.fromEntries(entries) as Record<Modality, ModalityReplayEvidence>;
 }
 
+function buildPermissionReplayEvidence(
+  packet: AllAppLiveOrbIdlHandoffPacket,
+  before: SimulatorSnapshot,
+  after: SimulatorSnapshot,
+  activation: SimulatorSnapshot,
+  denial: SimulatorSnapshot | undefined,
+  approval: SimulatorSnapshot | undefined,
+  denialRollbackFullyVisible: boolean,
+  denialFallbackFullyVisible: boolean,
+  decisions: VisibleTextEvidence[],
+): PermissionReplayEvidence {
+  const promptRequired = packet.permission.state === 'confirmation_required';
+  const expectedPolicyDecision = packet.permission.state === 'permitted'
+    ? 'policy_allowed'
+    : packet.permission.state === 'denied'
+      ? 'policy_denied'
+      : 'awaiting_operator_confirmation';
+  const modalityDenialReplayed = MODALITIES.every(modality => (
+    after.modality_history[modality].some(flow => (
+      flow.scenario === 'permission_denied'
+      && flow.decision === `modality_${modality}_operator_denied`
+      && flow.operator_decision_visible
+      && flow.fallback_user_visible
+      && flow.rollback_state.includes(packet.rollback_behavior.mode)
+    ))
+  ));
+  const receiptsPreserved = [activation, denial, approval, after]
+    .filter((snapshot): snapshot is SimulatorSnapshot => Boolean(snapshot))
+    .every(snapshot => (
+      sameValues(snapshot.receipt_refs, before.receipt_refs)
+      && sameValues(snapshot.event_dag_refs, before.event_dag_refs)
+    ));
+
+  return {
+    declared_state: packet.permission.state,
+    declared_policy_class: packet.permission.policy_class,
+    activation_decision: activation.decision,
+    prompt_required: promptRequired,
+    prompt_replayed: promptRequired
+      ? activation.decision === 'awaiting_operator_confirmation'
+      : false,
+    packet_denial_replayed: denial?.decision === 'operator_denied',
+    packet_approval_replayed: approval?.decision === 'operator_approved',
+    policy_resolution_replayed: !promptRequired && activation.decision === expectedPolicyDecision,
+    denial_rollback_visible: denialRollbackFullyVisible
+      && (denial?.rollback_state.includes(packet.rollback_behavior.mode) ?? false),
+    denial_fallback_visible: denialFallbackFullyVisible
+      && denial?.fallback_surface === packet.fallback_selection.target_surface,
+    modality_denial_replayed: modalityDenialReplayed,
+    receipts_preserved: receiptsPreserved,
+    decisions,
+  };
+}
+
 function buildAppReplayCoverage(results: readonly PacketReplayResult[]): AppReplayCoverage[] {
   const titleByApp = new Map(VIRTUAL_DESKTOP_APP_MANIFEST.apps.map(app => [app.id, app.title]));
   const packetsByApp = new Map<string, PacketReplayResult[]>();
@@ -639,10 +781,24 @@ function buildAppReplayCoverage(results: readonly PacketReplayResult[]): AppRepl
       bounded_layouts: packets.every(packet => packet.layout.bounded && !packet.layout.controls_overlap),
       focus_and_activation_visible: packets.every(packet => (
         packet.focus_activation.focus_visible
+        && packet.focus_activation.focused_action_text_fully_visible
         && packet.focus_activation.focus_control_received_dom_focus
         && packet.focus_activation.final_control_received_dom_focus
         && packet.focus_activation.final_focus_ring_visible
+        && packet.focus_activation.activation_text_fully_visible
         && Boolean(packet.focus_activation.activated_method)
+      )),
+      permission_and_denial_replayed: packets.every(packet => (
+        packet.permission_replay.modality_denial_replayed
+        && packet.permission_replay.receipts_preserved
+        && packet.permission_replay.decisions.every(decision => decision.fully_visible)
+        && (packet.permission_replay.prompt_required
+          ? packet.permission_replay.prompt_replayed
+            && packet.permission_replay.packet_denial_replayed
+            && packet.permission_replay.packet_approval_replayed
+            && packet.permission_replay.denial_rollback_visible
+            && packet.permission_replay.denial_fallback_visible
+          : packet.permission_replay.policy_resolution_replayed)
       )),
       receipts_preserved: packets.every(packet => packet.receipt_preservation.preserved)
         && flows.every(flow => flow.receipt_refs_preserved),
@@ -655,6 +811,7 @@ function buildAppReplayCoverage(results: readonly PacketReplayResult[]): AppRepl
     expect([
       coverage.bounded_layouts,
       coverage.focus_and_activation_visible,
+      coverage.permission_and_denial_replayed,
       coverage.receipts_preserved,
       coverage.operator_decisions_visible,
       coverage.rollback_visible,
@@ -722,6 +879,34 @@ async function readFocusState(
       focus_ring_visible: style.outlineStyle !== 'none'
         && style.outlineWidth !== '0px'
         && style.outlineColor !== 'transparent',
+    };
+  });
+}
+
+async function readVisibleTextEvidence(page: Page, testId: string): Promise<VisibleTextEvidence> {
+  return page.getByTestId(testId).evaluate(element => {
+    const viewport = element.closest('[data-testid="device-viewport"]') as HTMLElement | null;
+    const node = element as HTMLElement;
+    const style = window.getComputedStyle(node);
+    const bounds = node.getBoundingClientRect();
+    const viewportBounds = viewport?.getBoundingClientRect();
+    const rendered = style.display !== 'none'
+      && style.visibility !== 'hidden'
+      && Number(style.opacity) > 0
+      && bounds.width > 0
+      && bounds.height > 0;
+    const insideViewport = Boolean(viewportBounds)
+      && bounds.left >= viewportBounds!.left - 1
+      && bounds.right <= viewportBounds!.right + 1
+      && bounds.top >= viewportBounds!.top - 1
+      && bounds.bottom <= viewportBounds!.bottom + 1;
+    return {
+      text: node.textContent?.trim() ?? '',
+      rendered,
+      fully_visible: rendered
+        && insideViewport
+        && node.scrollWidth <= node.clientWidth + 1
+        && node.scrollHeight <= node.clientHeight + 1,
     };
   });
 }
@@ -803,6 +988,7 @@ function renderSimulatorHtml(): string {
     .panel { min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #294b42; border-radius: 10px; padding: 9px; background: #0b1a17; }
     .label { color: #76bca8; font-size: 10px; text-transform: uppercase; letter-spacing: .09em; }
     .value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 11px/1.55 ui-monospace, monospace; }
+    [data-testid="focused-action"], [data-testid="activation-state"] { min-height: 21px; max-height: 21px; white-space: normal; overflow-wrap: anywhere; text-overflow: clip; font-size: 9px; line-height: 1.15; }
     .modalities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 8px; }
     .controls { display: flex; flex-wrap: nowrap; gap: 6px; overflow: hidden; }
     button { min-width: 0; min-height: 30px; padding: 5px 8px; border-radius: 8px; border: 1px solid #4e8274; background: #173c33; color: #f2fff9; font-size: 10px; white-space: nowrap; }
@@ -900,6 +1086,25 @@ function renderSimulatorHtml(): string {
           '<button data-testid="select-fallback">Fallback</button>',
           '</div>',
         ].join('');
+      }
+
+      function textFullyVisible(testId, expectedText) {
+        const element = viewport.querySelector('[data-testid="' + testId + '"]');
+        if (!element || !element.textContent.includes(expectedText)) return false;
+        const style = window.getComputedStyle(element);
+        const bounds = element.getBoundingClientRect();
+        const viewportBounds = viewport.getBoundingClientRect();
+        return style.display !== 'none'
+          && style.visibility !== 'hidden'
+          && Number(style.opacity) > 0
+          && bounds.width > 0
+          && bounds.height > 0
+          && bounds.left >= viewportBounds.left - 1
+          && bounds.right <= viewportBounds.right + 1
+          && bounds.top >= viewportBounds.top - 1
+          && bounds.bottom <= viewportBounds.bottom + 1
+          && element.scrollWidth <= element.clientWidth + 1
+          && element.scrollHeight <= element.clientHeight + 1;
       }
 
       viewport.addEventListener('click', event => {
@@ -1012,19 +1217,25 @@ function renderSimulatorHtml(): string {
               ? item.read_only ? 'focus_read_only' : 'focus_activation_ready'
               : 'input_' + scenario + '_' + fallbackSurface + '_fallback';
           }
-          state.modality_history[kind].push({
+          const fallbackExpected = scenario !== 'primary' || !primaryAllowed;
+          const flow = {
             scenario,
             result: state.modality_results[kind],
             decision: state.decision,
             fallback_surface: scenario === 'primary' && primaryAllowed ? item.primary_surface : fallbackSurface,
-            fallback_user_visible: scenario !== 'primary' || !primaryAllowed,
+            fallback_user_visible: false,
             rollback_state: state.rollback_state,
-            operator_decision_visible: true,
+            operator_decision_visible: false,
             raw_payload_captured: false,
             receipt_refs: [...state.receipt_refs],
             event_dag_refs: [...state.event_dag_refs],
-          });
+          };
+          state.modality_history[kind].push(flow);
           render();
+          flow.operator_decision_visible = textFullyVisible('operator-decision', flow.decision);
+          flow.fallback_user_visible = fallbackExpected
+            ? textFullyVisible('fallback-state', fallbackSurface)
+            : false;
         },
         snapshot() {
           return JSON.parse(JSON.stringify({
