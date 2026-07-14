@@ -113,6 +113,9 @@ build/Release
 # Dependency directories
 
 node_modules/
+# `node_modules/` does not match a symlinked dependency install in Git's
+# ignore matcher. Supervisor worktrees use those links to share dependencies.
+node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)

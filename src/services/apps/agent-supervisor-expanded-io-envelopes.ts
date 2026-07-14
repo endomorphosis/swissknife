@@ -8,7 +8,7 @@ import {
   type ExpandedIOModalityContract,
   type ExpandedIOPermissionScope,
   type ExpandedIORedactionPolicy,
-} from '../glasses/agent-supervisor-expanded-io-map.js';
+} from '../glasses/index.js';
 import { computeCID } from '../mcp/mcp-idl.js';
 
 export const AGENT_SUPERVISOR_EXPANDED_IO_ENVELOPE_SCHEMA =

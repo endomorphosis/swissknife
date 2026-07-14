@@ -360,6 +360,29 @@ function buildManifestIndex(manifest) {
   const browserSafeSourceGlobs = (manifest.audit?.browserSafeSourceGlobs ?? [])
     .map((pattern) => ({ pattern, re: globToRegExp(pattern) }));
   const browserSafeServiceFiles = new Set(manifest.audit?.browserSafeServiceFiles ?? []);
+  const browserHostOnlyPackages = new Set(manifest.audit?.browserHostOnlyPackages ?? []);
+  const browserPublicEntrypoints = (manifest.audit?.browserPublicEntrypoints ?? [])
+    .map((item) => ({
+      exportName: item.exportName ?? null,
+      path: item.path ?? null,
+      owner: item.owner ?? null,
+      publicContract: item.publicContract ?? null,
+    }))
+    .sort((a, b) => (
+      (a.exportName ?? '').localeCompare(b.exportName ?? '')
+      || (a.path ?? '').localeCompare(b.path ?? '')
+    ));
+  const documentedServiceDeepImports = (manifest.audit?.documentedServiceDeepImports ?? [])
+    .map((item) => ({
+      importer: item.importer ?? null,
+      target: item.target ?? null,
+      owner: item.owner ?? null,
+      reason: item.reason ?? null,
+    }))
+    .sort((a, b) => (
+      (a.importer ?? '').localeCompare(b.importer ?? '')
+      || (a.target ?? '').localeCompare(b.target ?? '')
+    ));
   const legacyShims = (manifest.audit?.legacyCompatibilityShims ?? [])
     .map((item) => ({
       path: item.path,
@@ -410,6 +433,8 @@ function buildManifestIndex(manifest) {
 
   return {
     entrypointOwners,
+    browserHostOnlyPackages,
+    browserPublicEntrypoints,
     browserSafeServiceFiles,
     browserSafeSourceGlobs,
     ignoredRootFiles,
@@ -417,6 +442,7 @@ function buildManifestIndex(manifest) {
     legacyShims,
     legacyShimPaths,
     modules,
+    documentedServiceDeepImports,
     pathOwners,
     restoredServiceDuplicatePolicy,
     rootFileOwners,
@@ -1963,36 +1989,167 @@ function matchesAnyGlob(filePath, patterns) {
   return patterns.some((item) => item.re.test(filePath));
 }
 
-function collectBrowserUnsafeImports(index) {
-  const files = [
-    ...listFiles('src', (relative) => isSourceFile(relative)),
-    ...listFiles('web', (relative) => isSourceFile(relative)),
-  ].filter((filePath) => matchesAnyGlob(filePath, index.browserSafeSourceGlobs));
+function packageBrowserEntrypoints() {
+  const packageJson = fs.existsSync(abs('package.json')) ? readJson('package.json') : {};
+  return Object.entries(packageJson.exports ?? {})
+    .flatMap(([exportName, value]) => {
+      const leaves = flattenPackageExportTargets(value, exportName);
+      const explicitBrowserLeaves = leaves.filter((entry) => entry.conditions.includes('browser'));
+      const selected = explicitBrowserLeaves.length > 0
+        ? explicitBrowserLeaves
+        : leaves.filter((entry) => (
+            !entry.conditions.some((condition) => ['node', 'host', 'require'].includes(condition))
+            && (
+              entry.conditions.length === 0
+              || entry.conditions.some((condition) => ['import', 'module', 'default'].includes(condition))
+            )
+          ));
+      return selected.map((entry) => ({
+        exportName: entry.name,
+        path: entry.target,
+      }));
+    })
+    .filter((entry) => isSourceFile(entry.path))
+    .sort((a, b) => a.exportName.localeCompare(b.exportName) || a.path.localeCompare(b.path));
+}
+
+function isDeclaredPublicEntrypoint(filePath, moduleName, index) {
+  return (index.modules[moduleName]?.publicEntrypoints ?? [])
+    .some((pattern) => globToRegExp(pattern).test(filePath));
+}
+
+function collectBrowserEntrypointPolicyViolations(index, serviceFileInventory) {
   const findings = [];
+  const actual = packageBrowserEntrypoints();
+  const actualKeys = new Set(actual.map((entry) => `${entry.exportName}\0${entry.path}`));
+  const approvalKeys = new Set();
+  const publicContracts = new Set();
 
-  for (const filePath of files) {
-    const importerModule = moduleForPath(filePath, index) ?? 'browser';
+  for (const [approvalIndex, approval] of index.browserPublicEntrypoints.entries()) {
+    const policy = `audit.browserPublicEntrypoints[${approvalIndex}]`;
+    const key = `${approval.exportName}\0${approval.path}`;
+    if (approvalKeys.has(key)) {
+      findings.push({
+        file: approval.path ?? manifestPath,
+        module: approval.owner ?? 'unknown',
+        policy,
+        reason: 'browser public entrypoint approvals must not duplicate an exact export and path',
+      });
+    }
+    approvalKeys.add(key);
+    const targetOwner = approval.path ? moduleForPath(approval.path, index) : null;
+    if (
+      !approval.exportName
+      || !approval.exportName.startsWith('.')
+      || hasGlobSyntax(approval.exportName)
+      || !approval.path
+      || !approval.path.startsWith('src/')
+      || hasGlobSyntax(approval.path)
+    ) {
+      findings.push({
+        file: approval.path ?? manifestPath,
+        module: approval.owner ?? 'unknown',
+        policy,
+        reason: 'browser public entrypoint approval must name one exact package export and source path',
+      });
+    }
+    if (!approval.owner || !index.modules[approval.owner] || targetOwner !== approval.owner) {
+      findings.push({
+        file: approval.path ?? manifestPath,
+        module: approval.owner ?? 'unknown',
+        policy,
+        reason: 'browser public entrypoint approval must name the exact owning source module',
+      });
+    }
+    if (!approval.publicContract?.trim()) {
+      findings.push({
+        file: approval.path ?? manifestPath,
+        module: approval.owner ?? 'unknown',
+        policy,
+        reason: 'browser public entrypoint approval must document its supported public contract',
+      });
+    } else if (publicContracts.has(approval.publicContract.trim())) {
+      findings.push({
+        file: approval.path ?? manifestPath,
+        module: approval.owner ?? 'unknown',
+        policy,
+        reason: 'browser public entrypoint approvals must name distinct supported public contracts',
+      });
+    } else {
+      publicContracts.add(approval.publicContract.trim());
+    }
+    if (approval.path && approval.owner && !isDeclaredPublicEntrypoint(approval.path, approval.owner, index)) {
+      findings.push({
+        file: approval.path,
+        module: approval.owner,
+        policy,
+        reason: 'browser public entrypoint path is not a declared module public entrypoint',
+      });
+    }
+    if (!actualKeys.has(key)) {
+      findings.push({
+        file: approval.path ?? manifestPath,
+        module: approval.owner ?? 'unknown',
+        policy,
+        reason: 'browser public entrypoint approval is stale or does not match package.json exports',
+      });
+    }
+  }
+
+  for (const entry of actual) {
+    if (approvalKeys.has(`${entry.exportName}\0${entry.path}`)) continue;
+    findings.push({
+      file: entry.path,
+      module: moduleForPath(entry.path, index) ?? 'unknown',
+      exportName: entry.exportName,
+      reason: 'browser public entrypoint is not declared in audit.browserPublicEntrypoints',
+    });
+  }
+
+  const behaviorGroupsByPath = new Map();
+  for (const group of serviceFileInventory.behavioralEquivalenceGroups) {
+    for (const filePath of group.paths) behaviorGroupsByPath.set(filePath, group);
+  }
+  for (const entry of actual) {
+    const group = behaviorGroupsByPath.get(entry.path);
+    if (!group || group.classified) continue;
+    findings.push({
+      file: entry.path,
+      module: moduleForPath(entry.path, index) ?? 'unknown',
+      exportName: entry.exportName,
+      collisionId: group.id,
+      equivalentPaths: group.paths,
+      reason: 'browser public entrypoint is behavior-equivalent to another service module without exact duplicate-policy approval',
+    });
+  }
+
+  return findings.sort(compareFindings);
+}
+
+function collectUndocumentedServiceDeepImports(files, index) {
+  const findings = [];
+  const observedApprovals = new Set();
+  for (const filePath of files.filter(isSourceFile)) {
+    const importerModule = moduleForPath(filePath, index)
+      ?? (filePath.startsWith('web/') ? 'browser' : null);
+    if (!importerModule) continue;
     for (const item of extractImports(filePath)) {
-      const bare = stripNodePrefix(item.specifier);
-      if (HOST_ONLY_BUILTINS.has(bare)) {
-        findings.push({
-          file: filePath,
-          kind: item.kind,
-          line: item.line,
-          module: importerModule,
-          specifier: item.specifier,
-          targetModule: 'host-runtime',
-          reason: 'browser-safe ownership file imports a host-only Node builtin',
-        });
-        continue;
-      }
-
       if (!isLocalSpecifier(item.specifier)) continue;
       const target = resolveLocalSpecifier(item.specifier, filePath);
-      if (!target || !target.startsWith('src/services/')) continue;
-      if (index.browserSafeServiceFiles.has(target)) continue;
-
-      const targetModule = moduleForPath(target, index) ?? 'unknown-service';
+      if (!target?.startsWith('src/services/')) continue;
+      const targetModule = moduleForPath(target, index);
+      if (!targetModule || targetModule === importerModule) continue;
+      if (isDeclaredPublicEntrypoint(target, targetModule, index)) continue;
+      const approval = index.documentedServiceDeepImports.find((entry) => (
+        entry.importer === filePath
+        && entry.target === target
+        && entry.owner === targetModule
+        && entry.reason?.trim()
+      ));
+      if (approval) {
+        observedApprovals.add(`${approval.importer}\0${approval.target}\0${approval.owner}`);
+        continue;
+      }
       findings.push({
         file: filePath,
         kind: item.kind,
@@ -2001,8 +2158,155 @@ function collectBrowserUnsafeImports(index) {
         specifier: item.specifier,
         target,
         targetModule,
-        reason: 'browser-safe ownership file imports a service file that is not listed in audit.browserSafeServiceFiles',
+        reason: 'cross-family service import targets an undocumented private implementation path',
       });
+    }
+  }
+
+  for (const entry of index.documentedServiceDeepImports) {
+    const key = `${entry.importer}\0${entry.target}\0${entry.owner}`;
+    if (observedApprovals.has(key)) continue;
+    findings.push({
+      file: entry.importer ?? manifestPath,
+      module: entry.owner ?? 'unknown',
+      target: entry.target,
+      targetModule: entry.owner,
+      reason: !entry.reason?.trim()
+        ? 'documented service deep import requires a non-empty rationale'
+        : 'documented service deep import is stale or no longer targets a private cross-family implementation',
+    });
+  }
+  return findings.sort(compareFindings);
+}
+
+function builtinPackageName(specifier) {
+  return stripNodePrefix(specifier).split('/')[0];
+}
+
+function externalPackageName(specifier) {
+  if (specifier.startsWith('@')) return specifier.split('/').slice(0, 2).join('/');
+  return specifier.split('/')[0];
+}
+
+function collectBrowserUnsafeImports(index) {
+  const browserOwnedFiles = [
+    ...listFiles('src', (relative) => isSourceFile(relative)),
+    ...listFiles('web', (relative) => isSourceFile(relative)),
+  ].filter((filePath) => matchesAnyGlob(filePath, index.browserSafeSourceGlobs));
+  const packageRoots = packageBrowserEntrypoints().map((entry) => ({
+    file: entry.path,
+    rootEntrypoint: entry.path,
+    exportName: entry.exportName,
+    chain: [entry.path],
+  }));
+  const packageRootPaths = new Set(packageRoots.map((entry) => entry.file));
+  const queue = [
+    ...packageRoots,
+    ...browserOwnedFiles
+      .filter((filePath) => !packageRootPaths.has(filePath))
+      .map((filePath) => ({ file: filePath, rootEntrypoint: filePath, exportName: null, chain: [filePath] })),
+  ];
+  const visited = new Set();
+  const findings = [];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const filePath = current.file;
+    if (visited.has(filePath) || !fs.existsSync(abs(filePath)) || !isSourceFile(filePath)) continue;
+    visited.add(filePath);
+    const importerModule = moduleForPath(filePath, index) ?? 'browser';
+    for (const item of extractImports(filePath)) {
+      const builtin = builtinPackageName(item.specifier);
+      if (HOST_ONLY_BUILTINS.has(builtin)) {
+        const transitive = current.chain.length > 1;
+        findings.push({
+          file: filePath,
+          kind: item.kind,
+          line: item.line,
+          module: importerModule,
+          specifier: item.specifier,
+          targetModule: 'host-runtime',
+          rootEntrypoint: current.rootEntrypoint,
+          exportName: current.exportName,
+          importChain: current.chain,
+          reason: transitive
+            ? 'browser public entrypoint transitively reaches a host-only Node builtin'
+            : 'browser-safe ownership file imports a host-only Node builtin',
+        });
+        continue;
+      }
+
+      if (!isLocalSpecifier(item.specifier)) {
+        const packageName = externalPackageName(item.specifier);
+        if (index.browserHostOnlyPackages.has(packageName)) {
+          findings.push({
+            file: filePath,
+            kind: item.kind,
+            line: item.line,
+            module: importerModule,
+            specifier: item.specifier,
+            targetModule: 'host-runtime',
+            rootEntrypoint: current.rootEntrypoint,
+            exportName: current.exportName,
+            importChain: current.chain,
+            reason: 'browser public entrypoint reaches a package classified as host-only',
+          });
+        }
+        continue;
+      }
+
+      const target = resolveLocalSpecifier(item.specifier, filePath);
+      if (!target) continue;
+      const targetModule = moduleForPath(target, index);
+      const targetDefinition = targetModule ? index.modules[targetModule] : null;
+      if (
+        targetDefinition
+        && (
+          ['host-only', 'host-ui'].includes(targetDefinition.runtimeClassification)
+          || targetDefinition.browserReachability === 'forbidden'
+        )
+      ) {
+        findings.push({
+          file: filePath,
+          kind: item.kind,
+          line: item.line,
+          module: importerModule,
+          specifier: item.specifier,
+          target,
+          targetModule,
+          rootEntrypoint: current.rootEntrypoint,
+          exportName: current.exportName,
+          importChain: [...current.chain, target],
+          reason: 'browser public entrypoint transitively reaches a host-only owned module',
+        });
+        continue;
+      }
+
+      if (target.startsWith('src/services/') && !index.browserSafeServiceFiles.has(target)) {
+        findings.push({
+          file: filePath,
+          kind: item.kind,
+          line: item.line,
+          module: importerModule,
+          specifier: item.specifier,
+          target,
+          targetModule: targetModule ?? 'unknown-service',
+          rootEntrypoint: current.rootEntrypoint,
+          exportName: current.exportName,
+          importChain: [...current.chain, target],
+          reason: 'browser-safe ownership file imports a service file that is not listed in audit.browserSafeServiceFiles',
+        });
+        continue;
+      }
+
+      if (isSourceFile(target) && !visited.has(target)) {
+        queue.push({
+          file: target,
+          rootEntrypoint: current.rootEntrypoint,
+          exportName: current.exportName,
+          chain: [...current.chain, target],
+        });
+      }
     }
   }
 
@@ -2038,6 +2342,14 @@ function audit(manifest, args) {
   const legacySprintServiceFiles = collectLegacySprintServiceFiles(allFiles);
   const ownershipConflicts = collectOwnershipConflicts(allFiles, index);
   const browserUnsafeImports = collectBrowserUnsafeImports(index);
+  const browserEntrypointPolicyViolations = collectBrowserEntrypointPolicyViolations(
+    index,
+    serviceFileInventory,
+  );
+  const undocumentedServiceDeepImports = collectUndocumentedServiceDeepImports([
+    ...allFiles,
+    ...listFiles('web', (relative) => isSourceFile(relative)),
+  ], index);
   const unresolvedMergeMarkers = collectUnresolvedMergeMarkers(allFiles, index)
     .filter((item) => shouldIncludeModule(item.module, args));
   const moduleNames = Object.keys(index.modules).sort(compareStrings);
@@ -2163,6 +2475,8 @@ function audit(manifest, args) {
       legacyRootImportSpecifiers: scopedLegacyRootImportSpecifiers.length,
       ownershipConflicts: ownershipConflicts.length,
       browserUnsafeImports: browserUnsafeImports.length,
+      browserEntrypointPolicyViolations: browserEntrypointPolicyViolations.length,
+      undocumentedServiceDeepImports: undocumentedServiceDeepImports.length,
       unresolvedMergeMarkers: unresolvedMergeMarkers.length,
       serviceDuplicateBasenames: serviceDuplicateBasenames.length,
       unapprovedServiceDuplicateBasenames: restoredServiceDuplicateInventory.summary.unapprovedDuplicateBasenames,
@@ -2189,6 +2503,8 @@ function audit(manifest, args) {
     forbiddenImports: forbiddenImports.sort(compareFindings),
     ownershipConflicts,
     browserUnsafeImports,
+    browserEntrypointPolicyViolations,
+    undocumentedServiceDeepImports,
     unresolvedMergeMarkers,
     restoredServiceDuplicatePolicyViolations,
     restoredServiceDuplicateInventory,
@@ -2273,6 +2589,8 @@ function printReport(result) {
   console.log(`forbidden imports: ${result.summary.forbiddenImports}`);
   console.log(`ownership conflicts: ${result.summary.ownershipConflicts}`);
   console.log(`browser unsafe imports: ${result.summary.browserUnsafeImports}`);
+  console.log(`browser entrypoint policy violations: ${result.summary.browserEntrypointPolicyViolations}`);
+  console.log(`undocumented service deep imports: ${result.summary.undocumentedServiceDeepImports}`);
   console.log(`unresolved merge markers: ${result.summary.unresolvedMergeMarkers}`);
   console.log(`restored service duplicate policy violations: ${result.summary.restoredServiceDuplicatePolicyViolations}`);
   console.log(`legacy compatibility shims: ${result.summary.legacyCompatibilityShims}`);
@@ -2320,6 +2638,10 @@ function printReport(result) {
   printSection('ownership conflicts', result.ownershipConflicts, formatFindingLine);
   console.log('');
   printSection('browser unsafe imports', result.browserUnsafeImports, formatFindingLine);
+  console.log('');
+  printSection('browser entrypoint policy violations', result.browserEntrypointPolicyViolations, formatFindingLine);
+  console.log('');
+  printSection('undocumented service deep imports', result.undocumentedServiceDeepImports, formatFindingLine);
   console.log('');
   printSection('unresolved merge markers', result.unresolvedMergeMarkers, formatFindingLine);
   console.log('');
@@ -2758,6 +3080,14 @@ function main() {
   if (args.failOnUnknown && result.summary.ownershipConflicts > 0) failures.push('ownership conflicts');
   if (args.failOnForbidden && result.summary.forbiddenImports > 0) failures.push('forbidden imports');
   if (args.failOnForbidden && result.summary.browserUnsafeImports > 0) failures.push('browser unsafe imports');
+  if (
+    args.failOnForbidden
+    && result.summary.browserEntrypointPolicyViolations > 0
+  ) failures.push('browser entrypoint policy violations');
+  if (
+    args.failOnForbidden
+    && result.summary.undocumentedServiceDeepImports > 0
+  ) failures.push('undocumented service deep imports');
   if (args.failOnRootDebt && result.summary.rootFiles > 0) failures.push('root files');
   if (
     args.failOnLegacy

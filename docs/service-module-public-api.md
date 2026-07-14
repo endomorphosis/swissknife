@@ -1,6 +1,6 @@
 # Service Module Public API
 
-Generated from `src/module-ownership.json` manifest `2026-07-14-swr-144` by `npm run services:audit`.
+Generated from `src/module-ownership.json` manifest `2026-07-14-swr-145` by `npm run services:audit`.
 
 Service implementations have exactly one owning family. Cross-family consumers must import a declared public entrypoint, and compatibility is limited to export-only barrels: a removed shadow must never be replaced with executable forwarding code.
 
@@ -385,8 +385,8 @@ The legacy files below were executable shadow copies and are deleted. Import the
 | --- | --- | --- |
 | `swissknife/deontic-nlp` | `./src/services/logic/deontic/browser-nlp.ts` | `./src/services/logic/deontic/browser-nlp.ts` |
 | `swissknife/logic-language` | `./src/services/logic/api/reasoning-normalization-pipeline.ts` | `./src/services/logic/api/reasoning-normalization-pipeline.ts` |
-| `swissknife/proof-engine` | `./src/services/proof-engine/proof-engine-browser.ts` | `./src/services/proof-engine/proof-engine-host.ts` |
-| `swissknife/provers` | `./src/services/provers/provers-browser.ts` | `./src/services/provers/provers-host.ts` |
+| `swissknife/proof-engine` | `[object Object]` | `./src/services/proof-engine/proof-engine-host.ts` |
+| `swissknife/provers` | `[object Object]` | `./src/services/provers/provers-host.ts` |
 
 ## Behavioral Reconciliation
 

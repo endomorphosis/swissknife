@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-14T20:31:54.778Z",
+  "generatedAt": "2026-07-14T22:32:32.709Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -22,8 +22,8 @@
     {
       "id": "browser-bundle-budget",
       "label": "Browser bundle budget evidence (SWR-016)",
-      "status": "stale",
-      "updated": false,
+      "status": "fresh",
+      "updated": true,
       "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
@@ -35,9 +35,9 @@
         "docs/browser-bundle-budget.md": "6850a8fc5a10ee74981221c65976e4f9ca7f4e8ae2828d6d50dd3b9ea8fb9bff",
         "docs/browser-bundle-budget.json": "fef14f1f00a7ab0675f8fe2ab6f3bd1458e420040671ec50e3b661d3edc5dc53"
       },
-      "recordedFingerprint": "8414916267cfaec2f3ae0c954b1ca10944c94721d3c84e9c4dd5028a6616415b",
-      "currentFingerprint": "74d56a352819a8df775996a7328994ccd493a526dc1777846c3d57b7323e425d",
-      "recordedAt": "2026-07-14T11:02:04.179Z",
+      "recordedFingerprint": "cb41c8c24ce2ab0fdb8d1d3f6a31ed82e62ebbf27347a3dca4c368d0c9c1c2e8",
+      "currentFingerprint": "cb41c8c24ce2ab0fdb8d1d3f6a31ed82e62ebbf27347a3dca4c368d0c9c1c2e8",
+      "recordedAt": "2026-07-14T22:32:32.691Z",
       "regenerateHint": "npm run build:web"
     },
     {
@@ -49,23 +49,25 @@
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
       "recordedEvidenceHashes": {
-        "docs/service-boundary-audit.json": "11a3ebfcc1890baabf9630a6ee09fe88388a6dc007c2f87568116af81dc3a0ce"
+        "docs/service-boundary-audit.json": "6db2701ab527d8d63f93ef044de65c5bdf07f5ddf0db79757c6f5e271df44d54"
       },
       "currentEvidenceHashes": {
-        "docs/service-boundary-audit.json": "11a3ebfcc1890baabf9630a6ee09fe88388a6dc007c2f87568116af81dc3a0ce"
+        "docs/service-boundary-audit.json": "6db2701ab527d8d63f93ef044de65c5bdf07f5ddf0db79757c6f5e271df44d54"
       },
-      "recordedFingerprint": "b516497df3b7d8cb3670d9f29073d398be2f5b009bd67857dad8fb6b0adef79a",
-      "currentFingerprint": "b516497df3b7d8cb3670d9f29073d398be2f5b009bd67857dad8fb6b0adef79a",
-      "recordedAt": "2026-07-14T18:25:06.135Z",
+      "recordedFingerprint": "255a7715fdc000a47ee7ad4f45f05627351efb4d1a9bc2cae5901c45532efddd",
+      "currentFingerprint": "255a7715fdc000a47ee7ad4f45f05627351efb4d1a9bc2cae5901c45532efddd",
+      "recordedAt": "2026-07-14T22:31:52.730Z",
       "regenerateHint": "npm run services:audit"
     },
     {
       "id": "virtual-desktop-release-evidence",
       "label": "Virtual desktop all-tools release evidence (SVD-101)",
-      "status": "fresh",
-      "updated": true,
+      "status": "missing-evidence",
+      "updated": false,
       "releaseBlocking": true,
-      "missingEvidenceFiles": [],
+      "missingEvidenceFiles": [
+        "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
+      ],
       "missingSourceFiles": [
         "scripts/capture-all-profile-service-matrix.cjs",
         "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json",
@@ -96,10 +98,10 @@
         "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "466438ca19a3ad71a3d6c0abc50f76befe4243d87c653dfb9e45329b4eaf7e7c"
       },
       "currentEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "1fa533c883cc1774dd56dd0f87b7043b24cb44c5f84e1bcd5f21b3f92b1a4380",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "9d2b3ddb5d724588607cbaa5060173971e1c61d39e75ca679ea6858fb70911d0",
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "05ce3317384db67ef23174670f4690951090d19e4daeb5cf9ae978031fca7b56",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "d2c8cb294d38a428a642993effb5a7c721c9238f426b9e32df290d2cfd249718",
         "docs/refactor-final-signoff.md": "0c8f4c76f22d1a130466c26add03b9a545706189169515dda76597f9e9ab6ad2",
-        "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "466438ca19a3ad71a3d6c0abc50f76befe4243d87c653dfb9e45329b4eaf7e7c"
+        "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "MISSING"
       },
       "recordedFingerprint": "aa58d1ed979b3182ff9d87882ed5e4d7f57d4f1a1156c6365a43526c104ae302",
       "currentFingerprint": "aa58d1ed979b3182ff9d87882ed5e4d7f57d4f1a1156c6365a43526c104ae302",
