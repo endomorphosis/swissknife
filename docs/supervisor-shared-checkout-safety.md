@@ -48,6 +48,10 @@ The owner record is published atomically and records at least:
   supervisor command;
 - acquisition time and heartbeat.
 
+Lease v1 deliberately requires Linux procfs. It refuses to run on a platform
+where PID start ticks, boot identity, PID namespace, and protected process-group
+membership cannot all be verified.
+
 An active owner wins regardless of lease age or heartbeat age. `--check` is
 read-only and succeeds for either an available lease or a structurally valid,
 identity-verified active lease. It refuses malformed, foreign, or unverifiable
@@ -60,15 +64,16 @@ recorded identity is compared with the operating system:
 
 - the recorded PID is absent; or
 - the machine boot ID changed; or
-- the PID namespace changed; or
 - the same numeric PID has different process start ticks.
 
 If the wrapper is gone but its recorded protected child still has the exact
 identity, the lease remains active. This prevents a killed Node wrapper from
 allowing a second lane to start while its supervisor child is still running.
 Different hostname, unreadable `/proc`, permission errors, missing identity,
-truncated JSON, unknown schema, and namespace mismatch are **unverifiable**,
-not stale, and fail closed.
+truncated JSON, unknown schema, and Git or PID namespace mismatch are
+**unverifiable**, not stale, and fail closed. In particular, a different PID
+namespace may hide a still-live process with the same namespace-local PID; it
+is never proof of death.
 
 Verified-stale metadata is moved to a unique audit directory before the atomic
 acquisition retry. There is no age timeout and no force-release option. The
@@ -115,7 +120,7 @@ node swissknife/scripts/swissknife-checkout-lease.mjs \
   --lane all-tools \
   --board implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md \
   -- \
-  python -u -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor \
+  python3 scripts/swissknife_leased_implementation_supervisor.py \
   --todo-path implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md \
   --state-dir tmp/swissknife_all_tools_supervisor/state \
   --task-prefix '## SVD-' \
@@ -136,7 +141,7 @@ node swissknife/scripts/swissknife-checkout-lease.mjs \
   --lane refactor \
   --board implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md \
   -- \
-  python -u -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor \
+  python3 scripts/swissknife_leased_implementation_supervisor.py \
   --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md \
   --state-dir tmp/swissknife_refactor_supervisor/state \
   --task-prefix '## SWR-' \
@@ -148,12 +153,46 @@ node swissknife/scripts/swissknife-checkout-lease.mjs \
 
 The inventory provides the same outer wrapper for every inactive or legacy
 writer. Those lanes are not exempt: implementation through an old direct
-wrapper is denied until it is routed through this lease.
+wrapper is denied until it is routed through this lease. Each inventory command
+is an audited exact argv contract: the lease rejects changed child arguments,
+missing board/state identity, missing safety flags, or a command that does not
+match its registered lane. The canonical direct-board wrapper and the VAI, MGW,
+and HAO Python entrypoints also verify the live lease UUID, owner file,
+wrapper/child start identities, and protected process group before honoring
+`--implement`; observation-only launches remain available without a writer
+lease.
+
+`scripts/run_vai_mgw_hao_supervisors.py` cannot represent single ownership
+while starting three detached writer lanes. Its launch entrypoint therefore
+exits with a configuration error; run one of the three exact inventory commands
+at a time instead.
 
 The existing `tmp/swissknife_lane_worktrees/integration-merge.lock` serializes
 some merge operations but neither records a board/PID identity nor excludes
 implementation. It is not a substitute. An integration apply that can mutate
 SwissKnife must itself be the foreground command of the same checkout lease.
+Direct `scripts/swissknife_lane_worktrees.py merge --apply` now fails closed.
+For example, a refactor integration runs from the parent root as:
+
+```bash
+IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS=0 \
+node swissknife/scripts/swissknife-checkout-lease.mjs \
+  --run \
+  --lane refactor-integration \
+  --board implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md \
+  -- \
+  python3 scripts/swissknife_lane_worktrees.py merge \
+  --lane refactor \
+  --validation-command 'cd swissknife && node scripts/swissknife-checkout-lease.mjs --check' \
+  --apply
+```
+
+The integration lanes use an audited command-prefix policy so the required
+validation string may vary; the executable, coordinator subcommand, and source
+lane may not. The wrapper still rejects any validation argv containing a
+prohibited destructive Git recovery command. The coordinator independently
+requires the matching live lease token before `--apply` and refuses to update
+an already-dirty SwissKnife lane checkout during initialization.
 
 ## Observation mode
 
