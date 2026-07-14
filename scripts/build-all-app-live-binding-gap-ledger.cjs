@@ -28,6 +28,7 @@ const appContractPath = path.join(evidenceRoot, 'app-backend-contract.json');
 const bindingMatrixPath = path.join(evidenceRoot, 'all-tools-app-bindings.json');
 const manifestPath = path.join(projectRoot, 'src', 'services', 'apps', 'virtual-desktop-app-manifest.ts');
 const maxEvidenceAgeMs = positiveNumber(process.env.SVD_102_MAX_EVIDENCE_AGE_MS, 24 * 60 * 60 * 1000);
+const clockSkewToleranceMs = positiveNumber(process.env.SVD_102_CLOCK_SKEW_TOLERANCE_MS, 60 * 1000);
 
 const owners = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
 const gapStates = ['stale', 'missing', 'static-only', 'denied', 'unsupported', 'unreachable'];
@@ -66,12 +67,24 @@ async function main() {
   const peerInput = readEvidence(peerEvidencePath, [
     path.join(projectRoot, 'scripts', 'capture-swissknife-all-tools-peer-evidence.cjs'),
     ...owners.map(owner => path.join(projectRoot, serviceConfigs[owner].descriptor)),
-  ], now);
-  const contractInput = readEvidence(appContractPath, [manifestPath], now);
+  ], now, {
+    schema: 'swissknife.all_tools_peer_interoperability_evidence.v1',
+    validate: data => Array.isArray(data?.services) && Array.isArray(data?.tools),
+    shape: 'services[] and tools[]',
+  });
+  const contractInput = readEvidence(appContractPath, [manifestPath], now, {
+    schema: 'swissknife.virtual-desktop-app-backend-contract.v1',
+    validate: data => Array.isArray(data?.apps),
+    shape: 'apps[]',
+  });
   const bindingInput = readEvidence(bindingMatrixPath, [
     manifestPath,
     path.join(projectRoot, 'src', 'services', 'apps', 'all-tools-app-binding-matrix.ts'),
-  ], now);
+  ], now, {
+    schema: 'swissknife.all_tools_app_bindings.v2',
+    validate: data => Array.isArray(data?.rows) || Array.isArray(data?.bindings),
+    shape: 'rows[] or bindings[]',
+  });
 
   const bindingRows = explicitRows(bindingInput.data);
   const peerTools = normalizePeerTools(peerInput.data);
@@ -91,7 +104,7 @@ async function main() {
   });
   const applications = buildApplicationLedger(assignments, contractInput);
   const gaps = buildGaps(applications, assignments, tools, peerInput, contractInput, bindingInput);
-  const validation = validateLedger(applications, assignments, tools, descriptorCatalog, directDiscovery);
+  const validation = validateLedger(applications, assignments, tools, descriptorCatalog, directDiscovery, peerTools);
 
   const ledger = {
     schema: 'swissknife.all-app-live-binding-gap-ledger.v1',
@@ -109,17 +122,18 @@ async function main() {
     },
     evidence_policy: {
       maximum_age_ms: maxEvidenceAgeMs,
-      freshness_rule: 'Evidence is fresh only when it has a valid generated_at, is within maximum_age_ms, and is not future-dated. Local source hashes and mtimes are recorded as provenance; checkout mtimes are not treated as proof of semantic staleness.',
+      clock_skew_tolerance_ms: clockSkewToleranceMs,
+      freshness_rule: 'Evidence is fresh only when it is readable, has its expected schema and name-level shape, has a valid generated_at within maximum_age_ms, and is not future-dated beyond clock_skew_tolerance_ms. Current source hashes are recorded; source alignment is verified only when an input publishes comparable source hashes, and checkout mtimes alone never prove semantic staleness.',
       success_rule: 'executed requires an exact tool name with an explicit successful invocation observation. Manifest declarations, descriptor presence, binding rows, and counts are never execution evidence.',
       count_only_inference_forbidden: true,
       declaration_is_not_binding: true,
       descriptor_is_not_live_discovery: true,
       binding_is_not_execution: true,
       states: {
-        stale: 'The supporting artifact is too old, future-dated, or predates one of its source files.',
+        stale: 'The supporting artifact is too old, future-dated beyond allowed skew, or publishes a source fingerprint that differs from the current source snapshot.',
         missing: 'Required name-level binding or execution evidence is absent or unreadable.',
         'static-only': 'The exact tool exists in a local descriptor but has no current live name-level discovery observation.',
-        denied: 'The exact discovered tool was not invoked because policy or the approved fixture allowlist denied the attempt.',
+        denied: 'The exact discovered tool was not invoked because policy/allowlist withheld it, or it has only a governed non-app association rather than an app-visible binding.',
         unsupported: 'The owner was reachable but did not advertise/describe the exact tool, or an attempted invocation did not satisfy its contract.',
         unreachable: 'A selected owner/transport could not be reached; no fallback is credited.',
         executed: 'The exact discovered and descriptor-backed tool has an explicit successful invocation observation.',
@@ -153,8 +167,8 @@ async function main() {
 
   fs.mkdirSync(evidenceRoot, { recursive: true });
   fs.mkdirSync(path.dirname(documentationPath), { recursive: true });
-  fs.writeFileSync(outputPath, `${JSON.stringify(ledger, null, 2)}\n`, 'utf8');
-  fs.writeFileSync(documentationPath, renderMarkdown(ledger), 'utf8');
+  writeFileAtomic(outputPath, `${JSON.stringify(ledger, null, 2)}\n`);
+  writeFileAtomic(documentationPath, renderMarkdown(ledger));
 
   console.log(JSON.stringify({
     decision: ledger.decision,
@@ -187,12 +201,22 @@ function readDescriptorCatalog() {
         descriptor_location: `${config.descriptor}#tools[name=${tool.name}]`,
       }));
     } else {
-      records = Array.from(source.matchAll(/tool_function:\s*(['"])([^'"]+)\1/g), match => ({
-        name: match[2],
-        description: null,
+      const descriptorModule = require(filePath);
+      const bindings = Object.entries(descriptorModule)
+        .filter(([name, value]) => /BackendBindings$/.test(name) && Array.isArray(value))
+        .flatMap(([, value]) => value);
+      records = bindings.map((binding, index) => ({
+        name: binding.tool_function,
+        description: binding.notes ?? binding.backend_contract ?? null,
         input_schema: null,
-        descriptor_location: `${config.descriptor}:${lineNumber(source, match.index)}`,
+        descriptor_location: `${config.descriptor}#backend_bindings/${index}`,
+        descriptor_contract: binding.backend_contract ?? null,
+        surface: binding.surface ?? null,
+        operation: binding.operation ?? null,
       }));
+    }
+    if (records.some(record => typeof record.name !== 'string' || record.name.length === 0)) {
+      throw new Error(`Descriptor ${config.descriptor} contains a tool without a non-empty exact name.`);
     }
     result[owner] = dedupeByName(records).sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -338,10 +362,14 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
     .sort((a, b) => `${a.owner}:${a.name}`.localeCompare(`${b.owner}:${b.name}`))
     .map(candidate => {
       const rows = bindingRows.filter(row => rowOwner(row) === candidate.owner && rowName(row) === candidate.name);
+      const appVisibleRows = rows.filter(row => row.app_visible === true);
+      const governedRows = rows.filter(row => row.app_visible !== true);
       const claimedPeerState = normalizeState(candidate.peer?.disposition);
-      const observedState = crediblePeerState(candidate.peer);
+      const peerAssessment = assessPeerTool(candidate.peer);
+      const observedState = peerAssessment.state;
       const directState = candidate.direct ? 'live-discovered' : directDiscovery[candidate.owner].state;
-      const stale = Boolean(candidate.peer) && peerInput.freshness.state !== 'fresh';
+      const stale = (Boolean(candidate.peer) && peerInput.freshness.state !== 'fresh')
+        || (rows.length > 0 && bindingInput.freshness.state === 'stale');
       let currentState;
       if (observedState && !stale) currentState = observedState;
       else if (candidate.direct) currentState = 'missing';
@@ -350,10 +378,10 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
 
       const states = stateFlags({
         stale,
-        missing: currentState === 'missing' || bindingInput.freshness.state === 'missing',
+        missing: currentState === 'missing' || rows.length === 0 || bindingInput.freshness.state === 'missing',
         'static-only': Boolean(candidate.local) && !candidate.direct
           && (!peerWasDiscovered(candidate.peer) || peerInput.freshness.state !== 'fresh'),
-        denied: observedState === 'denied',
+        denied: observedState === 'denied' || (rows.length > 0 && appVisibleRows.length === 0),
         unsupported: observedState === 'unsupported',
         unreachable: directDiscovery[candidate.owner].state === 'unreachable'
           || currentState === 'unreachable' || observedState === 'unreachable',
@@ -367,6 +395,7 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
         release_state: stale ? 'stale' : currentState,
         peer_claimed_state: claimedPeerState ?? 'missing',
         observed_execution_state: observedState ?? 'missing',
+        peer_observation_assessment: peerAssessment,
         discovery_state: directState,
         states,
         local_descriptor: candidate.local ? {
@@ -375,6 +404,9 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
           description: candidate.local.description,
           input_schema_present: Boolean(candidate.local.input_schema),
           input_schema_sha256: candidate.local.input_schema ? sha256(stableJson(candidate.local.input_schema)) : null,
+          descriptor_contract: candidate.local.descriptor_contract ?? null,
+          surface: candidate.local.surface ?? null,
+          operation: candidate.local.operation ?? null,
         } : { present: false },
         live_discovery: {
           directly_discovered: Boolean(candidate.direct),
@@ -387,11 +419,17 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
         },
         binding: {
           explicit_row_count: rows.length,
+          app_visible_row_count: appVisibleRows.length,
+          governed_non_app_row_count: governedRows.length,
           rows: rows.map(bindingRowProvenance),
-          state: rows.length > 0 ? 'materialized-unproven' : 'missing',
+          state: appVisibleRows.length > 0
+            ? 'app-visible-materialized-unproven'
+            : rows.length > 0 ? 'governed-non-app-association' : 'missing',
           count_only_inference_used: false,
         },
-        current_binding_state: rows.length > 0 ? 'materialized-unproven' : 'missing',
+        current_binding_state: appVisibleRows.length > 0
+          ? 'app-visible-materialized-unproven'
+          : rows.length > 0 ? 'governed-non-app-association' : 'missing',
         evidence_freshness: {
           direct_discovery: {
             state: candidate.direct ? 'fresh' : directDiscovery[candidate.owner].state,
@@ -418,28 +456,37 @@ function buildAssignmentLedger({ contractInput, bindingInput, bindingRows, tools
     .filter(capability => owners.includes(capability.service))
     .map(capability => {
       const rows = bindingRows.filter(row => row.app_id === app.id && rowOwner(row) === capability.service);
+      const appVisibleRows = rows.filter(row => row.app_visible === true);
+      const governedRows = rows.filter(row => row.app_visible !== true);
       const contractService = contractApps.get(app.id)?.assigned_backend_capabilities?.[capability.service] ?? null;
-      const boundTools = rows.map(row => tools.find(tool => tool.owner === capability.service && (
+      const associatedTools = rows.map(row => tools.find(tool => tool.owner === capability.service && (
+        tool.name === rowName(row) || tool.tool_id === row.tool_id
+      ))).filter(Boolean);
+      const boundTools = appVisibleRows.map(row => tools.find(tool => tool.owner === capability.service && (
         tool.name === rowName(row) || tool.tool_id === row.tool_id
       ))).filter(Boolean);
       let currentState = 'missing';
-      if (rows.length > 0 && boundTools.length > 0) {
+      if (appVisibleRows.length > 0 && boundTools.length > 0) {
         currentState = selectState(boundTools.map(tool => tool.release_state));
-      } else if (rows.length > 0) {
+      } else if (appVisibleRows.length > 0) {
         currentState = 'unsupported';
+      } else if (rows.length > 0) {
+        currentState = 'denied';
       }
       const stale = contractInput.freshness.state === 'stale' || bindingInput.freshness.state === 'stale';
       const states = stateFlags({
         stale,
         missing: rows.length === 0 || bindingInput.freshness.state === 'missing',
         'static-only': boundTools.length > 0 && boundTools.every(tool => tool.states['static-only']),
-        denied: boundTools.some(tool => tool.states.denied),
+        denied: currentState === 'denied' || boundTools.some(tool => tool.states.denied),
         unsupported: currentState === 'unsupported' || boundTools.some(tool => tool.states.unsupported),
         unreachable: boundTools.some(tool => tool.states.unreachable),
         executed: currentState === 'executed' && !stale,
       });
       const reasons = [];
       if (rows.length === 0) reasons.push('No explicit app/tool binding row exists; the manifest assignment is declaration only.');
+      if (rows.length > 0 && appVisibleRows.length === 0) reasons.push('Binding rows exist only as governed non-app associations; none exposes a mediated application operation.');
+      if (appVisibleRows.length > boundTools.length) reasons.push('At least one app-visible binding row names no inventoried exact tool for this owner.');
       if (contractService?.coverage_status === 'declared_no_tool_binding') reasons.push('The app backend contract explicitly reports declared_no_tool_binding.');
       if (stale) reasons.push('At least one binding projection artifact is stale.');
       if (currentState === 'executed') reasons.push('An exact bound tool has fresh explicit execution evidence.');
@@ -460,7 +507,10 @@ function buildAssignmentLedger({ contractInput, bindingInput, bindingRows, tools
         release_state: stale && currentState !== 'missing' ? 'stale' : currentState,
         states,
         explicit_binding_rows: rows.map(bindingRowProvenance),
-        exact_bound_tool_ids: boundTools.map(tool => tool.tool_id),
+        app_visible_binding_rows: appVisibleRows.map(bindingRowProvenance),
+        governed_non_app_rows: governedRows.map(bindingRowProvenance),
+        exact_associated_tool_ids: unique(associatedTools.map(tool => tool.tool_id)),
+        exact_bound_tool_ids: unique(boundTools.map(tool => tool.tool_id)),
         contract_observation: contractService ? {
           coverage_status: contractService.coverage_status ?? null,
           explicit_tool_ids: Array.isArray(contractService.tool_ids) ? contractService.tool_ids : [],
@@ -474,7 +524,11 @@ function buildAssignmentLedger({ contractInput, bindingInput, bindingRows, tools
         provenance: [
           { kind: 'canonical-manifest-backend-capability', ref: `${rel(manifestPath)}#${capability.id}` },
           ...(contractService ? [{ kind: 'app-contract-observation', ref: `${rel(appContractPath)}#apps/${app.id}/${capability.service}` }] : []),
-          ...rows.map(row => ({ kind: 'explicit-binding-row', ref: rel(bindingMatrixPath), tool_id: row.tool_id ?? null })),
+          ...rows.map(row => ({
+            kind: row.app_visible === true ? 'app-visible-binding-row' : 'governed-non-app-association',
+            ref: rel(bindingMatrixPath),
+            tool_id: row.tool_id ?? null,
+          })),
         ],
         success_inferred_from_manifest: false,
         success_inferred_from_count: false,
@@ -584,11 +638,12 @@ function summarize(applications, assignments, tools, gaps, peerInput, contractIn
   };
 }
 
-function validateLedger(applications, assignments, tools, descriptorCatalog, directDiscovery) {
+function validateLedger(applications, assignments, tools, descriptorCatalog, directDiscovery, peerTools = []) {
   const errors = [];
   const expectedApps = VIRTUAL_DESKTOP_APP_MANIFEST.apps.map(app => app.id).sort();
   const actualApps = applications.map(app => app.app_id).sort();
   if (stableJson(expectedApps) !== stableJson(actualApps)) errors.push('Application rows do not exactly match the canonical manifest IDs.');
+  if (new Set(actualApps).size !== actualApps.length) errors.push('Duplicate canonical application rows are present.');
   const expectedAssignments = VIRTUAL_DESKTOP_APP_MANIFEST.apps.reduce((sum, app) => sum
     + app.backend_capabilities.filter(capability => owners.includes(capability.service)).length, 0);
   if (assignments.length !== expectedAssignments) errors.push(`Expected ${expectedAssignments} declared assignments; found ${assignments.length}.`);
@@ -603,14 +658,21 @@ function validateLedger(applications, assignments, tools, descriptorCatalog, dir
     const expectedNames = unique([
       ...descriptorCatalog[owner].map(tool => tool.name),
       ...directDiscovery[owner].tools.map(tool => tool.name),
+      ...peerTools.filter(tool => tool.service === owner).map(tool => tool.name),
     ]);
     const actualNames = tools.filter(tool => tool.owner === owner).map(tool => tool.name);
     for (const name of expectedNames) if (!actualNames.includes(name)) errors.push(`Missing exact tool row ${owner}:${name}.`);
   }
   if (new Set(tools.map(tool => tool.tool_id)).size !== tools.length) errors.push('Duplicate exact tool IDs are present.');
+  if (new Set(assignments.map(row => row.assignment_id)).size !== assignments.length) errors.push('Duplicate declared assignment IDs are present.');
   if (assignments.some(row => row.states.executed && row.exact_bound_tool_ids.length === 0)) errors.push('An assignment was marked executed without an exact bound tool.');
+  if (assignments.some(row => row.states.executed && row.app_visible_binding_rows.length === 0)) errors.push('An assignment was marked executed without an app-visible binding row.');
   if (tools.some(tool => tool.states.executed && (tool.observed_execution_state !== 'executed'
+    || !tool.live_discovery.peer_http?.discovered
+    || !tool.live_discovery.peer_http?.descriptor_method
     || !tool.live_discovery.peer_http?.invocation_succeeded
+    || !tool.live_discovery.peer_libp2p?.discovered
+    || !tool.live_discovery.peer_libp2p?.descriptor_method
     || !tool.live_discovery.peer_libp2p?.invocation_succeeded))) {
     errors.push('A tool was marked executed without exact successful HTTP and libp2p invocation observations.');
   }
@@ -619,6 +681,12 @@ function validateLedger(applications, assignments, tools, descriptorCatalog, dir
   }
   if (assignments.some(row => row.success_inferred_from_manifest || row.success_inferred_from_count)) {
     errors.push('An assignment inferred success from a manifest declaration or count.');
+  }
+  if (tools.some(tool => terminalStates.some(state => typeof tool.states[state] !== 'boolean'))) {
+    errors.push('A tool row is missing an explicit boolean terminal-state flag.');
+  }
+  if (assignments.some(row => terminalStates.some(state => typeof row.states[state] !== 'boolean'))) {
+    errors.push('An assignment row is missing an explicit boolean terminal-state flag.');
   }
   return { valid: errors.length === 0, errors };
 }
@@ -636,6 +704,22 @@ function renderMarkdown(ledger) {
     ledger.evidence_policy.success_rule,
     '',
     `Freshness window: ${ledger.evidence_policy.maximum_age_ms} ms. Peer evidence is **${ledger.summary.peer_evidence_freshness}**; app-contract evidence is **${ledger.summary.app_contract_evidence_freshness}**; binding evidence is **${ledger.summary.binding_evidence_freshness}**.`,
+    '',
+    '### Evidence inputs',
+    '',
+    '| Input | Present | Freshness | Generated at | Source alignment |',
+    '| --- | --- | --- | --- | --- |',
+    ...[
+      ['SVD-100 peer evidence', ledger.provenance.peer_evidence],
+      ['Application contract', ledger.provenance.app_contract],
+      ['Binding matrix', ledger.provenance.binding_matrix],
+    ].map(([label, input]) => `| ${label} | ${input.present ? 'yes' : 'no'} | ${escapeCell(input.freshness.state)} | ${escapeCell(input.freshness.generated_at ?? 'none')} | ${escapeCell(input.freshness.source_alignment ?? 'not-assessed')} |`),
+    '',
+    '### Backend discovery',
+    '',
+    '| Owner | Direct state | Direct names | Local descriptor names | Error |',
+    '| --- | --- | ---: | ---: | --- |',
+    ...ledger.backend_owners.map(owner => `| ${escapeCell(owner.owner)} | ${escapeCell(owner.direct_discovery_state)} | ${owner.direct_discovered_tool_names.length} | ${owner.descriptor_discovered_tool_names.length} | ${escapeCell(owner.direct_discovery_error ?? '')} |`),
     '',
     '## Summary',
     '',
@@ -666,15 +750,15 @@ function renderMarkdown(ledger) {
     '',
     '## Declared application/backend assignments',
     '',
-    '| Application | Backend owner | Capability | Binding state | Freshness/gap flags |',
-    '| --- | --- | --- | --- | --- |',
-    ...ledger.application_backend_assignments.map(row => `| ${escapeCell(row.app_id)} | ${escapeCell(row.backend_owner)} | ${escapeCell(row.capability)} | ${escapeCell(row.current_binding_state)} | ${escapeCell(activeStates(row.states).join(', ') || 'none')} |`),
+    '| Application | Backend owner | Capability | App-visible rows | Exact bound tools | Binding state | Freshness/gap flags |',
+    '| --- | --- | --- | ---: | ---: | --- | --- |',
+    ...ledger.application_backend_assignments.map(row => `| ${escapeCell(row.app_id)} | ${escapeCell(row.backend_owner)} | ${escapeCell(row.capability)} | ${row.app_visible_binding_rows.length} | ${row.exact_bound_tool_ids.length} | ${escapeCell(row.current_binding_state)} | ${escapeCell(activeStates(row.states).join(', ') || 'none')} |`),
     '',
     '## Exact-name tool inventory',
     '',
-    '| Owner | Tool | Discovery | Current state | Binding | Flags |',
-    '| --- | --- | --- | --- | --- | --- |',
-    ...ledger.tools.map(tool => `| ${escapeCell(tool.owner)} | ${escapeCell(tool.name)} | ${escapeCell(tool.discovery_state)} | ${escapeCell(tool.release_state)} | ${escapeCell(tool.binding.state)} | ${escapeCell(activeStates(tool.states).join(', ') || 'none')} |`),
+    '| Owner | Tool | Local descriptor | Direct discovery | Peer observation | Release state | Binding | Flags |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- |',
+    ...ledger.tools.map(tool => `| ${escapeCell(tool.owner)} | ${escapeCell(tool.name)} | ${tool.local_descriptor.present ? 'yes' : 'no'} | ${escapeCell(tool.discovery_state)} | ${escapeCell(tool.observed_execution_state)} | ${escapeCell(tool.release_state)} | ${escapeCell(tool.binding.state)} | ${escapeCell(activeStates(tool.states).join(', ') || 'none')} |`),
     '',
     '## Named gap roll-up',
     '',
@@ -682,41 +766,73 @@ function renderMarkdown(ledger) {
     '| --- | ---: |',
     ...gapStates.map(state => `| ${state} | ${ledger.summary.gap_counts[state] ?? 0} |`),
     '',
-    'The JSON artifact contains the complete per-row provenance, transport observations, freshness reasons, and named gap records. Refresh SVD-100 evidence with `node scripts/capture-swissknife-all-tools-peer-evidence.cjs`, then rebuild this ledger; the builder also performs a bounded read-only HTTP `tools/list` discovery so newly advertised exact names cannot disappear behind an old catalog count.',
+    '## Named gaps',
+    '',
+    '| Gap ID | Kind | State | Reason |',
+    '| --- | --- | --- | --- |',
+    ...ledger.gaps.map(gap => `| ${escapeCell(gap.gap_id)} | ${escapeCell(gap.kind)} | ${escapeCell(gap.state)} | ${escapeCell(gap.reason)} |`),
+    '',
+    'The JSON artifact contains the complete per-row provenance, transport observations, freshness reasons, and machine-readable named gap records. Refresh SVD-100 evidence with `node scripts/capture-swissknife-all-tools-peer-evidence.cjs`, then rebuild this ledger; the builder also performs a bounded read-only HTTP `tools/list` discovery so newly advertised exact names cannot disappear behind an old catalog count.',
     '',
   ];
   return lines.join('\n');
 }
 
-function readEvidence(filePath, sourcePaths, now) {
+function readEvidence(filePath, sourcePaths, now, expectation = {}) {
   let data = null;
   let error = null;
   try {
     data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    if (expectation.schema && data?.schema !== expectation.schema) {
+      error = `Expected schema ${expectation.schema}; found ${JSON.stringify(data?.schema ?? null)}.`;
+    } else if (expectation.validate && !expectation.validate(data)) {
+      error = `Evidence does not contain the required name-level shape (${expectation.shape ?? 'invalid shape'}).`;
+    }
   } catch (readError) {
     error = fs.existsSync(filePath) ? `Invalid JSON: ${errorMessage(readError)}` : 'Evidence artifact does not exist.';
   }
-  return { filePath, data, freshness: assessFreshness(filePath, data, sourcePaths, now, error) };
+  return {
+    filePath,
+    data: error ? null : data,
+    freshness: assessFreshness(filePath, data, sourcePaths, now, error),
+  };
 }
 
 function assessFreshness(filePath, data, sourcePaths, now, readError) {
-  if (readError) return { state: 'missing', generated_at: null, age_ms: null, reason: readError };
+  if (readError) return {
+    state: 'missing', generated_at: null, age_ms: null,
+    source_alignment: 'not-assessed', reason: readError,
+  };
   const timestamp = Date.parse(data?.generated_at ?? '');
-  if (!Number.isFinite(timestamp)) return { state: 'stale', generated_at: data?.generated_at ?? null, age_ms: null, reason: 'Evidence has no valid generated_at timestamp.' };
+  if (!Number.isFinite(timestamp)) return {
+    state: 'stale', generated_at: data?.generated_at ?? null, age_ms: null,
+    source_alignment: 'not-assessed', reason: 'Evidence has no valid generated_at timestamp.',
+  };
   const age = now.getTime() - timestamp;
   const existingSources = sourcePaths.filter(fs.existsSync);
   const newestSource = Math.max(...existingSources.map(source => fs.statSync(source).mtimeMs), 0);
-  const sourceFingerprint = sha256(existingSources.sort().map(source => `${rel(source)}:${sha256(fs.readFileSync(source))}`).join('\n'));
+  const sourceFiles = existingSources.sort().map(source => ({
+    path: rel(source),
+    sha256: sha256(fs.readFileSync(source)),
+  }));
+  const sourceFingerprint = sha256(sourceFiles.map(source => `${source.path}:${source.sha256}`).join('\n'));
+  const recordedFingerprint = evidenceSourceFingerprint(data);
+  const sourceAlignment = recordedFingerprint === null
+    ? 'unverifiable-input-does-not-publish-source-fingerprint'
+    : recordedFingerprint === sourceFingerprint ? 'verified' : 'mismatch';
   const reasons = [];
-  if (age < -60_000) reasons.push('Evidence timestamp is in the future.');
+  if (age < -clockSkewToleranceMs) reasons.push('Evidence timestamp is in the future beyond the allowed clock skew.');
   if (age > maxEvidenceAgeMs) reasons.push(`Evidence age ${age} ms exceeds ${maxEvidenceAgeMs} ms.`);
+  if (sourceAlignment === 'mismatch') reasons.push('Evidence source fingerprint does not match the current source snapshot.');
   return {
     state: reasons.length > 0 ? 'stale' : 'fresh',
     generated_at: new Date(timestamp).toISOString(),
     age_ms: age,
     newest_source_mtime: newestSource ? new Date(newestSource).toISOString() : null,
     current_source_fingerprint: sourceFingerprint,
-    source_fingerprint_comparison: 'not-available-in-input-artifact',
+    current_source_files: sourceFiles,
+    recorded_source_fingerprint: recordedFingerprint,
+    source_alignment: sourceAlignment,
     reason: reasons.join(' ') || 'Evidence is within the freshness window and is not future-dated.',
   };
 }
@@ -776,13 +892,62 @@ function peerWasDiscovered(peer) {
   return Boolean(peer?.observations?.http?.discovered || peer?.observations?.libp2p?.discovered);
 }
 
-function crediblePeerState(peer) {
-  const state = normalizeState(peer?.disposition);
-  if (state !== 'executed') return state;
-  return peer?.observations?.http?.invocation_succeeded === true
-    && peer?.observations?.libp2p?.invocation_succeeded === true
-    ? 'executed'
-    : null;
+/** Derive the state from exact transport observations; disposition is only a claim. */
+function assessPeerTool(peer) {
+  if (!peer) return { state: null, credible: false, reason: 'No SVD-100 exact-name peer observation exists.' };
+  const http = peer?.observations?.http;
+  const libp2p = peer?.observations?.libp2p;
+  if (!http || !libp2p) return {
+    state: null,
+    credible: false,
+    reason: 'Peer row lacks separate HTTP and libp2p exact-name observations.',
+  };
+  const observations = [http, libp2p];
+  if (observations.some(item => item.connected !== true || item.status === 'unreachable')) return {
+    state: 'unreachable',
+    credible: true,
+    reason: 'At least one required transport has an explicit unreachable observation.',
+  };
+  if (observations.every(item => item.discovered === true
+      && item.descriptor_method === true
+      && item.invocation_succeeded === true
+      && item.status === 'executed')) return {
+    state: 'executed',
+    credible: true,
+    reason: 'Both transports explicitly discovered, described, and successfully invoked the exact name.',
+  };
+  if (observations.some(item => item.discovered !== true
+      || item.descriptor_method !== true
+      || item.status === 'unsupported')) return {
+    state: peer.static_descriptor_present === true
+        && observations.every(item => item.discovered !== true)
+      ? 'static-only'
+      : 'unsupported',
+    credible: true,
+    reason: 'At least one reachable transport did not both discover and describe the exact name.',
+  };
+  if (observations.every(item => item.status === 'denied'
+      && item.invocation_attempted !== true
+      && item.invocation_succeeded !== true)) return {
+    state: 'denied',
+    credible: true,
+    reason: 'Both transports discovered and described the exact name but explicitly withheld invocation.',
+  };
+  return {
+    state: 'unsupported',
+    credible: true,
+    reason: 'Transport observations do not satisfy a recognized exact-name execution or governed-denial contract.',
+  };
+}
+
+function evidenceSourceFingerprint(data) {
+  const candidates = [
+    data?.source_fingerprint,
+    data?.provenance?.source_fingerprint,
+    data?.generated_from?.source_fingerprint,
+    data?.source_snapshot?.fingerprint,
+  ];
+  return candidates.find(value => typeof value === 'string' && value.startsWith('sha256:')) ?? null;
 }
 
 function bindingRowProvenance(row) {
@@ -830,7 +995,10 @@ function toolGapReason(tool, state) {
   if (state === 'missing') return 'No fresh exact-name execution and/or binding row proves this discovered tool is executable from an application.';
   if (state === 'static-only') return 'The exact name is present only in a local descriptor, not a current live discovery.';
   if (state === 'unreachable') return `The ${tool.owner} direct discovery or recorded transport was unreachable.`;
-  if (state === 'stale') return 'The exact-name peer observation is stale.';
+  if (state === 'stale') return 'The exact-name peer execution observation and/or its explicit binding row is stale.';
+  if (state === 'denied' && tool.binding.explicit_row_count > 0 && tool.binding.app_visible_row_count === 0) {
+    return 'The tool has governed ownership associations but no app-visible binding; it is withheld from application invocation by policy.';
+  }
   if (state === 'denied') return 'The recorded exact-name invocation was denied or intentionally withheld by policy.';
   return 'The reachable backend did not support the exact advertised/descriptor/invocation contract.';
 }
@@ -856,10 +1024,6 @@ function unique(values) {
 
 function compact(values) {
   return values.filter(Boolean);
-}
-
-function lineNumber(source, offset) {
-  return source.slice(0, offset ?? 0).split('\n').length;
 }
 
 function stableJson(value) {
@@ -891,6 +1055,16 @@ function errorMessage(error) {
   return cause ? `${error.message}: ${cause}` : error.message;
 }
 
+function writeFileAtomic(filePath, contents) {
+  const temporaryPath = `${filePath}.${process.pid}.tmp`;
+  try {
+    fs.writeFileSync(temporaryPath, contents, 'utf8');
+    fs.renameSync(temporaryPath, filePath);
+  } finally {
+    try { fs.unlinkSync(temporaryPath); } catch {}
+  }
+}
+
 module.exports = {
   main,
   assessFreshness,
@@ -898,4 +1072,5 @@ module.exports = {
   readDescriptorCatalog,
   normalizePeerTools,
   requestToolList,
+  assessPeerTool,
 };
