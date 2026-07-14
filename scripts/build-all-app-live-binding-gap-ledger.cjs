@@ -124,7 +124,8 @@ async function main() {
       maximum_age_ms: maxEvidenceAgeMs,
       clock_skew_tolerance_ms: clockSkewToleranceMs,
       freshness_rule: 'Evidence is fresh only when it is readable, has its expected schema and name-level shape, has a valid generated_at within maximum_age_ms, and is not future-dated beyond clock_skew_tolerance_ms. Current source hashes are recorded; source alignment is verified only when an input publishes comparable source hashes, and checkout mtimes alone never prove semantic staleness.',
-      success_rule: 'executed requires an exact tool name with an explicit successful invocation observation. Manifest declarations, descriptor presence, binding rows, and counts are never execution evidence.',
+      success_rule: 'A tool is executed only with an exact-name successful invocation observation. An application/backend assignment additionally requires an application-originated invocation observation; SVD-100 connector execution does not prove the app route. Manifest declarations, descriptor presence, static binding rows, fixtures, and counts are never execution evidence.',
+      application_binding_execution_input: 'none; the current inputs contain static app-route declarations but no application-originated invocation observations',
       count_only_inference_forbidden: true,
       declaration_is_not_binding: true,
       descriptor_is_not_live_discovery: true,
@@ -132,11 +133,11 @@ async function main() {
       states: {
         stale: 'The supporting artifact is too old, future-dated beyond allowed skew, or publishes a source fingerprint that differs from the current source snapshot.',
         missing: 'Required name-level binding or execution evidence is absent or unreadable.',
-        'static-only': 'The exact tool exists in a local descriptor but has no current live name-level discovery observation.',
+        'static-only': 'A tool exists only in a local descriptor, or an application assignment has only a static app/tool route without an application-originated invocation observation.',
         denied: 'The exact discovered tool was not invoked because policy/allowlist withheld it, or it has only a governed non-app association rather than an app-visible binding.',
         unsupported: 'The owner was reachable but did not advertise/describe the exact tool, or an attempted invocation did not satisfy its contract.',
         unreachable: 'A selected owner/transport could not be reached; no fallback is credited.',
-        executed: 'The exact discovered and descriptor-backed tool has an explicit successful invocation observation.',
+        executed: 'The exact discovered and descriptor-backed tool has an explicit successful invocation observation. Application assignments require separate application-originated proof.',
       },
     },
     provenance: {
@@ -371,9 +372,13 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
       const stale = (Boolean(candidate.peer) && peerInput.freshness.state !== 'fresh')
         || (rows.length > 0 && bindingInput.freshness.state === 'stale');
       let currentState;
-      if (observedState && !stale) currentState = observedState;
+      // A current failed discovery is stronger evidence about present reachability
+      // than a previously successful (but still fresh) SVD-100 observation. Keep
+      // the historical execution flag below, but never label the current release
+      // state executed while the owner cannot be reached now.
+      if (directDiscovery[candidate.owner].state === 'unreachable') currentState = 'unreachable';
+      else if (observedState && !stale) currentState = observedState;
       else if (candidate.direct) currentState = 'missing';
-      else if (directDiscovery[candidate.owner].state === 'unreachable') currentState = 'unreachable';
       else currentState = 'static-only';
 
       const states = stateFlags({
@@ -423,17 +428,28 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
           governed_non_app_row_count: governedRows.length,
           rows: rows.map(bindingRowProvenance),
           state: appVisibleRows.length > 0
-            ? 'app-visible-materialized-unproven'
+            ? 'static-app-route-declared-unproven'
             : rows.length > 0 ? 'governed-non-app-association' : 'missing',
           count_only_inference_used: false,
         },
         current_binding_state: appVisibleRows.length > 0
-          ? 'app-visible-materialized-unproven'
+          ? 'static-app-route-declared-unproven'
           : rows.length > 0 ? 'governed-non-app-association' : 'missing',
         evidence_freshness: {
           direct_discovery: {
-            state: candidate.direct ? 'fresh' : directDiscovery[candidate.owner].state,
+            state: directDiscovery[candidate.owner].state === 'reachable' ? 'fresh' : 'missing',
+            observation_state: directDiscovery[candidate.owner].state,
+            exact_name_observed: Boolean(candidate.direct),
             observed_at: directDiscovery[candidate.owner].observed_at,
+            reason: directDiscovery[candidate.owner].state === 'reachable'
+              ? candidate.direct
+                ? 'The exact name was observed by this ledger run.'
+                : 'The owner was queried by this ledger run, but did not advertise the exact name.'
+              : directDiscovery[candidate.owner].error,
+          },
+          local_descriptor: {
+            state: candidate.local ? 'fresh' : 'missing',
+            source: candidate.local?.descriptor_location ?? null,
           },
           peer: peerInput.freshness,
           binding: bindingInput.freshness,
@@ -467,7 +483,14 @@ function buildAssignmentLedger({ contractInput, bindingInput, bindingRows, tools
       ))).filter(Boolean);
       let currentState = 'missing';
       if (appVisibleRows.length > 0 && boundTools.length > 0) {
-        currentState = selectState(boundTools.map(tool => tool.release_state));
+        const observedToolFailure = selectState(boundTools
+          .map(tool => tool.release_state)
+          .filter(state => ['stale', 'unreachable', 'unsupported', 'denied'].includes(state)));
+        // all-tools-app-bindings.json is a static route catalog. Even when its
+        // exact tool was executed by SVD-100, that invocation originated in the
+        // connector probe rather than this application. Therefore the strongest
+        // assignment state available from these inputs is static-only.
+        currentState = observedToolFailure === 'missing' ? 'static-only' : observedToolFailure;
       } else if (appVisibleRows.length > 0) {
         currentState = 'unsupported';
       } else if (rows.length > 0) {
@@ -477,19 +500,19 @@ function buildAssignmentLedger({ contractInput, bindingInput, bindingRows, tools
       const states = stateFlags({
         stale,
         missing: rows.length === 0 || bindingInput.freshness.state === 'missing',
-        'static-only': boundTools.length > 0 && boundTools.every(tool => tool.states['static-only']),
+        'static-only': currentState === 'static-only',
         denied: currentState === 'denied' || boundTools.some(tool => tool.states.denied),
         unsupported: currentState === 'unsupported' || boundTools.some(tool => tool.states.unsupported),
         unreachable: boundTools.some(tool => tool.states.unreachable),
-        executed: currentState === 'executed' && !stale,
+        executed: false,
       });
       const reasons = [];
       if (rows.length === 0) reasons.push('No explicit app/tool binding row exists; the manifest assignment is declaration only.');
       if (rows.length > 0 && appVisibleRows.length === 0) reasons.push('Binding rows exist only as governed non-app associations; none exposes a mediated application operation.');
       if (appVisibleRows.length > boundTools.length) reasons.push('At least one app-visible binding row names no inventoried exact tool for this owner.');
       if (contractService?.coverage_status === 'declared_no_tool_binding') reasons.push('The app backend contract explicitly reports declared_no_tool_binding.');
-      if (stale) reasons.push('At least one binding projection artifact is stale.');
-      if (currentState === 'executed') reasons.push('An exact bound tool has fresh explicit execution evidence.');
+      if (stale) reasons.push('At least one supporting contract or binding projection artifact is stale.');
+      if (currentState === 'static-only') reasons.push('Exact static app/tool routes exist, but no application-originated invocation observation proves a live binding. SVD-100 tool execution is not application-binding execution.');
       return {
         assignment_id: `${app.id}:${capability.service}:${capability.id}`,
         app_id: app.id,
@@ -504,6 +527,9 @@ function buildAssignmentLedger({ contractInput, bindingInput, bindingRows, tools
         policy_class: capability.policy_class,
         receipt_strategy: capability.receipt_strategy,
         current_binding_state: currentState,
+        binding_materialization_state: appVisibleRows.length > 0
+          ? 'static-app-route-declared-unproven'
+          : rows.length > 0 ? 'governed-non-app-association' : 'missing',
         release_state: stale && currentState !== 'missing' ? 'stale' : currentState,
         states,
         explicit_binding_rows: rows.map(bindingRowProvenance),
@@ -644,9 +670,13 @@ function validateLedger(applications, assignments, tools, descriptorCatalog, dir
   const actualApps = applications.map(app => app.app_id).sort();
   if (stableJson(expectedApps) !== stableJson(actualApps)) errors.push('Application rows do not exactly match the canonical manifest IDs.');
   if (new Set(actualApps).size !== actualApps.length) errors.push('Duplicate canonical application rows are present.');
-  const expectedAssignments = VIRTUAL_DESKTOP_APP_MANIFEST.apps.reduce((sum, app) => sum
-    + app.backend_capabilities.filter(capability => owners.includes(capability.service)).length, 0);
-  if (assignments.length !== expectedAssignments) errors.push(`Expected ${expectedAssignments} declared assignments; found ${assignments.length}.`);
+  const expectedAssignmentIds = VIRTUAL_DESKTOP_APP_MANIFEST.apps.flatMap(app => app.backend_capabilities
+    .filter(capability => owners.includes(capability.service))
+    .map(capability => `${app.id}:${capability.service}:${capability.id}`)).sort();
+  const actualAssignmentIds = assignments.map(row => row.assignment_id).sort();
+  if (stableJson(expectedAssignmentIds) !== stableJson(actualAssignmentIds)) {
+    errors.push('Declared assignment rows do not exactly match every canonical manifest app/backend capability assignment.');
+  }
   for (const owner of owners) {
     const manifestOwner = VIRTUAL_DESKTOP_APP_MANIFEST.apps.flatMap(app => app.backend_capabilities
       .filter(capability => capability.service === owner)
@@ -660,13 +690,20 @@ function validateLedger(applications, assignments, tools, descriptorCatalog, dir
       ...directDiscovery[owner].tools.map(tool => tool.name),
       ...peerTools.filter(tool => tool.service === owner).map(tool => tool.name),
     ]);
-    const actualNames = tools.filter(tool => tool.owner === owner).map(tool => tool.name);
-    for (const name of expectedNames) if (!actualNames.includes(name)) errors.push(`Missing exact tool row ${owner}:${name}.`);
+    const actualNames = tools.filter(tool => tool.owner === owner).map(tool => tool.name).sort();
+    if (stableJson(expectedNames) !== stableJson(actualNames)) {
+      const missing = expectedNames.filter(name => !actualNames.includes(name));
+      const unexpected = actualNames.filter(name => !expectedNames.includes(name));
+      errors.push(`${owner} exact tool rows do not match the descriptor/live/peer union (missing: ${missing.join(', ') || 'none'}; unexpected: ${unexpected.join(', ') || 'none'}).`);
+    }
   }
   if (new Set(tools.map(tool => tool.tool_id)).size !== tools.length) errors.push('Duplicate exact tool IDs are present.');
   if (new Set(assignments.map(row => row.assignment_id)).size !== assignments.length) errors.push('Duplicate declared assignment IDs are present.');
   if (assignments.some(row => row.states.executed && row.exact_bound_tool_ids.length === 0)) errors.push('An assignment was marked executed without an exact bound tool.');
   if (assignments.some(row => row.states.executed && row.app_visible_binding_rows.length === 0)) errors.push('An assignment was marked executed without an app-visible binding row.');
+  if (assignments.some(row => row.states.executed)) {
+    errors.push('An assignment was marked executed even though this ledger has no application-originated live invocation evidence input.');
+  }
   if (tools.some(tool => tool.states.executed && (tool.observed_execution_state !== 'executed'
     || !tool.live_discovery.peer_http?.discovered
     || !tool.live_discovery.peer_http?.descriptor_method
@@ -687,6 +724,15 @@ function validateLedger(applications, assignments, tools, descriptorCatalog, dir
   }
   if (assignments.some(row => terminalStates.some(state => typeof row.states[state] !== 'boolean'))) {
     errors.push('An assignment row is missing an explicit boolean terminal-state flag.');
+  }
+  if (applications.some(app => terminalStates.some(state => typeof app.states[state] !== 'boolean'))) {
+    errors.push('An application row is missing an explicit boolean terminal-state flag.');
+  }
+  if (tools.some(tool => !Array.isArray(tool.provenance) || tool.provenance.length === 0)) {
+    errors.push('A tool row has no name-level provenance.');
+  }
+  if (assignments.some(row => !Array.isArray(row.provenance) || row.provenance.length === 0)) {
+    errors.push('An assignment row has no name-level provenance.');
   }
   return { valid: errors.length === 0, errors };
 }
@@ -870,7 +916,10 @@ function normalizePeerTools(data) {
 
 function explicitRows(data) {
   const rows = Array.isArray(data?.rows) ? data.rows : Array.isArray(data?.bindings) ? data.bindings : [];
-  return rows.filter(row => row && typeof row === 'object' && typeof row.app_id === 'string' && rowOwner(row));
+  // Non-app dispositions may intentionally omit app_id. Retain them so a
+  // denied, diagnostic, or server-only tool cannot disappear from the tool
+  // ledger. Application assignment joins still require an exact app_id.
+  return rows.filter(row => row && typeof row === 'object' && rowOwner(row) && rowName(row));
 }
 
 function inputProvenance(input) {
