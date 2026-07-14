@@ -8,7 +8,7 @@ Service implementations have exactly one owning family. Cross-family consumers m
 
 | Family | Owner | Runtime | Browser-safe entrypoint | Public entrypoints |
 | --- | --- | --- | --- | --- |
-| `service-apps` | app-surface-runtime | `universal` | `src/services/apps/app-manifest.ts` | 11 |
+| `service-apps` | app-surface-runtime | `universal` | `src/services/apps/app-manifest.ts` | 12 |
 | `service-glasses` | glasses-surface-runtime | `split` | none | 7 |
 | `service-integrations` | external-integration-service-runtime | `split` | none | 4 |
 | `service-ipfs` | ipfs-descriptor-runtime | `split` | `src/services/ipfs/ipfs-browser.ts` | 9 |
@@ -38,6 +38,7 @@ Public entrypoints:
 - `src/services/apps/mcp-generated-app-quality-gates.ts`
 - `src/services/apps/mcp-generated-app-state.ts`
 - `src/services/apps/meta-glasses-app-capability-registry.ts`
+- `src/services/apps/mcp-deontic-ui-manifest.ts`
 - `src/services/apps/swissknife-mcp-capability-registry.ts`
 - `src/services/apps/virtual-desktop-app-manifest.ts`
 
@@ -366,6 +367,7 @@ The legacy files below were executable shadow copies and are deleted. Import the
 | `src/services/logic-observability-pipeline.ts` | `src/services/logic/cec/cec-runtime-context-utils.ts` | `src/services/logic/cec/cec-runtime-context-utils.ts` | removed; import the canonical family API |
 | `src/services/logic-verification-utilities.ts` | `src/services/logic/api/logic-verification-toolkit.ts` | `src/services/logic/api/logic-verification-toolkit.ts` | removed; import the canonical family API |
 | `src/services/logic/fol/nlp-predicate-extractor.ts` | `src/services/logic/fol/fol-nlp-extraction.ts` | `src/services/logic/fol/fol-nlp-extraction.ts` | removed; import the canonical family API |
+| `src/services/mcp/mcp-mcp-deontic-ui-manifest.ts` | `src/services/apps/mcp-deontic-ui-manifest.ts` | `src/services/apps/mcp-deontic-ui-manifest.ts` | removed; import the canonical family API |
 | `src/services/mcp/mcp-mcp-traffic-manager.ts` | `src/services/mcp/host/mcp-traffic-manager.ts` | `src/services/mcp/host/mcp-traffic-manager.ts` | removed; import the canonical family API |
 | `src/services/mcp/mcp-mcp-versioned-client.ts` | `src/services/mcp/host/mcp-versioned-client.ts` | `src/services/mcp/host/mcp-versioned-client.ts` | removed; import the canonical family API |
 | `src/services/mcp/mcp-swissknife-mcp-capability-registry.ts` | `src/services/apps/swissknife-mcp-capability-registry.ts` | `src/services/apps/swissknife-mcp-capability-registry.ts` | removed; import the canonical family API |

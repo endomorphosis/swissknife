@@ -1,7 +1,6 @@
 export * from './mcp-control-surface-mediator.js';
 export * from './libp2p-browser-runtime.js';
 export * from './mcp-deontic-interface-broker.js';
-export * from './mcp-mcp-deontic-ui-manifest.js';
 export * from './mcp-descriptor-inspector.js';
 export * from './mcp-descriptor-trust.js';
 export * from './mcp-discovery.js';

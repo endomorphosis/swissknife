@@ -225,7 +225,7 @@
       "module": "service-mcp",
       "owner": "mcp-protocol-runtime",
       "runtimeClassification": "split",
-      "fileCount": 48
+      "fileCount": 47
     },
     {
       "module": "service-platform",
@@ -333,6 +333,7 @@
     "legacyRootImportSpecifiers": 0,
     "ownershipConflicts": 0,
     "browserUnsafeImports": 0,
+    "unresolvedMergeMarkers": 0,
     "serviceDuplicateBasenames": 0,
     "unapprovedServiceDuplicateBasenames": 0,
     "serviceDuplicateContentHashes": 1,
@@ -341,7 +342,7 @@
     "serviceIndexImplementationEntrypoints": 1,
     "serviceIndexShadowCopies": 0,
     "restoredServiceDuplicatePolicyViolations": 0,
-    "serviceExecutableFiles": 436,
+    "serviceExecutableFiles": 435,
     "serviceNormalizedContentCollisions": 1,
     "unclassifiedServiceNormalizedContentCollisions": 0,
     "serviceBehavioralEquivalenceGroups": 0,
@@ -435,6 +436,7 @@
   "forbiddenImports": [],
   "ownershipConflicts": [],
   "browserUnsafeImports": [],
+  "unresolvedMergeMarkers": [],
   "restoredServiceDuplicatePolicyViolations": [],
   "restoredServiceDuplicateInventory": {
     "schemaVersion": 2,
@@ -769,7 +771,7 @@
       "indexShadowCopies": 0,
       "duplicateContentHashes": 1,
       "unapprovedDuplicateContentHashes": 0,
-      "executableServiceFiles": 436,
+      "executableServiceFiles": 435,
       "basenameCollisions": 1,
       "indexEntrypointBasenameCollisions": 1,
       "unclassifiedBasenameCollisions": 0,
@@ -777,8 +779,8 @@
       "unclassifiedNormalizedContentCollisions": 0,
       "behavioralEquivalenceGroups": 0,
       "unclassifiedBehavioralEquivalenceGroups": 0,
-      "totalImporters": 1831,
-      "uniqueImporterFiles": 583
+      "totalImporters": 1827,
+      "uniqueImporterFiles": 582
     },
     "serviceFiles": [
       {
@@ -1614,30 +1616,30 @@
         "path": "src/services/apps/index.ts",
         "basename": "index.ts",
         "extension": ".ts",
-        "sizeBytes": 126,
-        "lineCount": 4,
+        "sizeBytes": 172,
+        "lineCount": 5,
         "contentKind": "approved-index-barrel",
-        "sha256": "2bacde34991d73fa492487ebf2a9b04afdf54846b89bdf8e7a5536662b932bd1",
+        "sha256": "b6cb712b3c80aaaca77e87a507b0ad361caa6d787c1fd3f524d131a44cce1bd4",
         "contentHash": {
           "algorithm": "sha256",
-          "value": "2bacde34991d73fa492487ebf2a9b04afdf54846b89bdf8e7a5536662b932bd1"
+          "value": "b6cb712b3c80aaaca77e87a507b0ad361caa6d787c1fd3f524d131a44cce1bd4"
         },
         "normalizedContentHash": {
           "algorithm": "sha256",
           "normalization": "lexical-v1-comments-and-trivia-elided",
-          "value": "56954183760c73a258d03145bdd732e32056f0556c91cb13c57aa0e31b71b589",
-          "tokenCount": 5
+          "value": "3c963a6118bcab4f5be4bb077293c98d3bb32354f3f250a3adc76b903a12a6ea",
+          "tokenCount": 10
         },
         "behaviorHash": {
           "algorithm": "sha256",
           "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-          "value": "b579d9bb48d092d7f05b15469ce96e023e4f44f70a598ad49f84ceced9648854",
-          "tokenCount": 5
+          "value": "5aa72c52dc22714ab8d75eee29705d0904de612310d090bff1652bc0f4aceef7",
+          "tokenCount": 10
         },
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 25,
+            "line": 24,
             "kind": "export-from",
             "specifier": "../apps/index.js"
           },
@@ -1787,14 +1789,27 @@
         },
         "importers": [
           {
+            "file": "src/services/apps/index.ts",
+            "line": 4,
+            "kind": "export-from",
+            "specifier": "./mcp-deontic-ui-manifest.js"
+          },
+          {
             "file": "test/mcp-plus-plus/mcp-deontic-ui-manifest.test.ts",
             "line": 8,
             "kind": "static-import",
             "specifier": "../../src/services/apps/mcp-deontic-ui-manifest"
           }
         ],
-        "importerCount": 1,
-        "publicEntrypoints": [],
+        "importerCount": 2,
+        "publicEntrypoints": [
+          {
+            "kind": "module-manifest",
+            "name": "src/services/apps/mcp-deontic-ui-manifest.ts",
+            "conditions": [],
+            "target": "src/services/apps/mcp-deontic-ui-manifest.ts"
+          }
+        ],
         "runtimeClass": "universal",
         "runtimeClassification": "universal",
         "browserClassification": "runtime-neutral-module",
@@ -1844,7 +1859,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 10,
+            "line": 9,
             "kind": "export-from",
             "specifier": "../apps/mcp-generated-app-quality-gates.js"
           },
@@ -1931,7 +1946,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 11,
+            "line": 10,
             "kind": "export-from",
             "specifier": "../apps/mcp-generated-app-state.js"
           },
@@ -6507,7 +6522,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 14,
+            "line": 13,
             "kind": "export-from",
             "specifier": "../ipfs/mcp-ipfs-ui-descriptors.js"
           },
@@ -22866,25 +22881,25 @@
         "path": "src/services/mcp/mcp-browser.ts",
         "basename": "mcp-browser.ts",
         "extension": ".ts",
-        "sizeBytes": 1063,
-        "lineCount": 26,
+        "sizeBytes": 1013,
+        "lineCount": 25,
         "contentKind": "service-implementation",
-        "sha256": "8596f452e23b6dc1e5673e9b077d594d4cddc1269ec75ac24748e8addc755d6a",
+        "sha256": "9a3f8bd76a679d99af89a3660dd18af307ec7f987411ccc5b9b4fd2760996a44",
         "contentHash": {
           "algorithm": "sha256",
-          "value": "8596f452e23b6dc1e5673e9b077d594d4cddc1269ec75ac24748e8addc755d6a"
+          "value": "9a3f8bd76a679d99af89a3660dd18af307ec7f987411ccc5b9b4fd2760996a44"
         },
         "normalizedContentHash": {
           "algorithm": "sha256",
           "normalization": "lexical-v1-comments-and-trivia-elided",
-          "value": "84582cd893f2e53065b77ed0db4a9e2c60e466467c401a748a19222c0104e92b",
-          "tokenCount": 125
+          "value": "669666379aa55b9bd98349ab3aa7c179d400a7fdc8556e409bc8f9bc13250553",
+          "tokenCount": 120
         },
         "behaviorHash": {
           "algorithm": "sha256",
           "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-          "value": "37fefc84300c801a4a20f01dedd06563b0da1412eba98da7e4392bee86fdbd45",
-          "tokenCount": 125
+          "value": "50337ee0876e9336896e5123d01441093adb1799bb2d6618608a57f7bac0c7cc",
+          "tokenCount": 120
         },
         "importers": [
           {
@@ -23190,12 +23205,6 @@
             "specifier": "./mcp-deontic-interface-broker.js"
           },
           {
-            "file": "src/services/mcp/mcp-mcp-deontic-ui-manifest.ts",
-            "line": 35,
-            "kind": "static-import",
-            "specifier": "./mcp-deontic-interface-broker.js"
-          },
-          {
             "file": "src/services/mcp/mcp-remote-deontic-engine.ts",
             "line": 46,
             "kind": "static-import",
@@ -23214,7 +23223,7 @@
             "specifier": "../../src/services/mcp/mcp-deontic-interface-broker"
           }
         ],
-        "importerCount": 7,
+        "importerCount": 6,
         "publicEntrypoints": [
           {
             "kind": "module-manifest",
@@ -23346,7 +23355,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 5,
+            "line": 4,
             "kind": "export-from",
             "specifier": "./mcp-descriptor-inspector.js"
           },
@@ -23414,7 +23423,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 6,
+            "line": 5,
             "kind": "export-from",
             "specifier": "./mcp-descriptor-trust.js"
           },
@@ -23488,7 +23497,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 7,
+            "line": 6,
             "kind": "export-from",
             "specifier": "./mcp-discovery.js"
           },
@@ -23580,7 +23589,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 8,
+            "line": 7,
             "kind": "export-from",
             "specifier": "./mcp-envelope.js"
           },
@@ -23703,7 +23712,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 9,
+            "line": 8,
             "kind": "export-from",
             "specifier": "./mcp-event-dag.js"
           },
@@ -24003,7 +24012,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 12,
+            "line": 11,
             "kind": "export-from",
             "specifier": "./mcp-idl.js"
           },
@@ -24036,12 +24045,6 @@
             "line": 1,
             "kind": "static-import",
             "specifier": "./mcp-idl.js"
-          },
-          {
-            "file": "src/services/mcp/mcp-mcp-deontic-ui-manifest.ts",
-            "line": 33,
-            "kind": "static-import",
-            "specifier": "../mcp/mcp-idl.js"
           },
           {
             "file": "src/services/mcp/mcp-mcpClient.ts",
@@ -24212,7 +24215,7 @@
             "specifier": "../../src/services/mcp/mcp-idl"
           }
         ],
-        "importerCount": 60,
+        "importerCount": 59,
         "publicEntrypoints": [
           {
             "kind": "module-manifest",
@@ -24276,7 +24279,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 13,
+            "line": 12,
             "kind": "export-from",
             "specifier": "./mcp-interface-registry.js"
           },
@@ -24349,62 +24352,6 @@
         "collisionIds": []
       },
       {
-        "path": "src/services/mcp/mcp-mcp-deontic-ui-manifest.ts",
-        "basename": "mcp-mcp-deontic-ui-manifest.ts",
-        "extension": ".ts",
-        "sizeBytes": 18179,
-        "lineCount": 487,
-        "contentKind": "service-implementation",
-        "sha256": "22310cf4c35da29cca8c6fef47c7b8daa260665b50ad684d8ea379bdc6dd499a",
-        "contentHash": {
-          "algorithm": "sha256",
-          "value": "22310cf4c35da29cca8c6fef47c7b8daa260665b50ad684d8ea379bdc6dd499a"
-        },
-        "normalizedContentHash": {
-          "algorithm": "sha256",
-          "normalization": "lexical-v1-comments-and-trivia-elided",
-          "value": "568c878415c93d50bfcf837b71ebbef873eebb17a7ed519d18a39c2fe6471b37",
-          "tokenCount": 2357
-        },
-        "behaviorHash": {
-          "algorithm": "sha256",
-          "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-          "value": "79daa28f3b0b59aa5312c63ed506dda02ef101376ecfab496de7c0c733683a88",
-          "tokenCount": 2357
-        },
-        "importers": [
-          {
-            "file": "src/services/mcp/mcp-browser.ts",
-            "line": 4,
-            "kind": "export-from",
-            "specifier": "./mcp-mcp-deontic-ui-manifest.js"
-          }
-        ],
-        "importerCount": 1,
-        "publicEntrypoints": [],
-        "runtimeClass": "split",
-        "runtimeClassification": "split",
-        "browserClassification": "split-runtime-requires-entrypoint-review",
-        "declaredOwner": {
-          "module": "service-mcp",
-          "owner": "mcp-protocol-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed through browser-safe protocol and transport modules",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "canonicalOwner": {
-          "module": "service-mcp",
-          "owner": "mcp-protocol-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed through browser-safe protocol and transport modules",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "module": "service-mcp",
-        "owner": "mcp-protocol-runtime",
-        "disposition": "canonical-implementation",
-        "collisionIds": []
-      },
-      {
         "path": "src/services/mcp/mcp-mcp-policy.ts",
         "basename": "mcp-mcp-policy.ts",
         "extension": ".ts",
@@ -24437,19 +24384,13 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 17,
+            "line": 16,
             "kind": "export-from",
             "specifier": "./mcp-mcp-policy.js"
           },
           {
             "file": "src/services/mcp/mcp-deontic-interface-broker.ts",
             "line": 35,
-            "kind": "static-import",
-            "specifier": "./mcp-mcp-policy.js"
-          },
-          {
-            "file": "src/services/mcp/mcp-mcp-deontic-ui-manifest.ts",
-            "line": 34,
             "kind": "static-import",
             "specifier": "./mcp-mcp-policy.js"
           },
@@ -24538,7 +24479,7 @@
             "specifier": "../../src/services/mcp/mcp-mcp-policy.js"
           }
         ],
-        "importerCount": 18,
+        "importerCount": 17,
         "publicEntrypoints": [
           {
             "kind": "module-manifest",
@@ -24682,7 +24623,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 15,
+            "line": 14,
             "kind": "export-from",
             "specifier": "./mcp-orb-capability-router.js"
           },
@@ -24775,7 +24716,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 16,
+            "line": 15,
             "kind": "export-from",
             "specifier": "./mcp-p2p-session.js"
           },
@@ -25266,7 +25207,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 18,
+            "line": 17,
             "kind": "export-from",
             "specifier": "./mcp-pubsub-bus.js"
           },
@@ -25455,12 +25396,6 @@
             "specifier": "./mcp-remote-deontic-engine.js"
           },
           {
-            "file": "src/services/mcp/mcp-mcp-deontic-ui-manifest.ts",
-            "line": 50,
-            "kind": "static-import",
-            "specifier": "../mcp/mcp-remote-deontic-engine.js"
-          },
-          {
             "file": "test/mcp-plus-plus/mcp-deontic-ui-manifest.test.ts",
             "line": 16,
             "kind": "static-import",
@@ -25533,7 +25468,7 @@
             "specifier": "../../src/services/mcp/mcp-remote-deontic-engine"
           }
         ],
-        "importerCount": 15,
+        "importerCount": 14,
         "publicEntrypoints": [
           {
             "kind": "module-manifest",
@@ -25591,7 +25526,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 20,
+            "line": 19,
             "kind": "export-from",
             "specifier": "./mcp-scheduler.js"
           },
@@ -25683,7 +25618,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 19,
+            "line": 18,
             "kind": "export-from",
             "specifier": "./mcp-schema-ui-generator.js"
           },
@@ -25794,7 +25729,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 21,
+            "line": 20,
             "kind": "export-from",
             "specifier": "./mcp-transport.js"
           },
@@ -26068,7 +26003,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 22,
+            "line": 21,
             "kind": "export-from",
             "specifier": "./mcp-ui-profile.js"
           },
@@ -26257,7 +26192,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 23,
+            "line": 22,
             "kind": "export-from",
             "specifier": "./mcp-wasm-prover-hub.js"
           },
@@ -26540,7 +26475,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 24,
+            "line": 23,
             "kind": "export-from",
             "specifier": "./policy-audit-log.js"
           },
@@ -35542,10 +35477,10 @@
       "approvedIndexBarrels": [
         {
           "path": "src/services/apps/index.ts",
-          "sha256": "2bacde34991d73fa492487ebf2a9b04afdf54846b89bdf8e7a5536662b932bd1",
+          "sha256": "b6cb712b3c80aaaca77e87a507b0ad361caa6d787c1fd3f524d131a44cce1bd4",
           "contentHash": {
             "algorithm": "sha256",
-            "value": "2bacde34991d73fa492487ebf2a9b04afdf54846b89bdf8e7a5536662b932bd1"
+            "value": "b6cb712b3c80aaaca77e87a507b0ad361caa6d787c1fd3f524d131a44cce1bd4"
           },
           "module": "service-apps",
           "owner": "app-surface-runtime",
@@ -36051,10 +35986,10 @@
     "approvedIndexBarrels": [
       {
         "path": "src/services/apps/index.ts",
-        "sha256": "2bacde34991d73fa492487ebf2a9b04afdf54846b89bdf8e7a5536662b932bd1",
+        "sha256": "b6cb712b3c80aaaca77e87a507b0ad361caa6d787c1fd3f524d131a44cce1bd4",
         "contentHash": {
           "algorithm": "sha256",
-          "value": "2bacde34991d73fa492487ebf2a9b04afdf54846b89bdf8e7a5536662b932bd1"
+          "value": "b6cb712b3c80aaaca77e87a507b0ad361caa6d787c1fd3f524d131a44cce1bd4"
         },
         "module": "service-apps",
         "owner": "app-surface-runtime",

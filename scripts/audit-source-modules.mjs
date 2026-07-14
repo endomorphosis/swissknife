@@ -220,6 +220,24 @@ function lineNumberForOffset(text, offset) {
   return line;
 }
 
+function collectUnresolvedMergeMarkers(filePaths, index) {
+  const findings = [];
+  const marker = /^(?:<{7,}|>{7,})(?:\s.*)?$/gm;
+  for (const filePath of filePaths) {
+    if (!isSourceFile(filePath)) continue;
+    const source = fs.readFileSync(abs(filePath), 'utf8');
+    for (const match of source.matchAll(marker)) {
+      findings.push({
+        file: filePath,
+        line: lineNumberForOffset(source, match.index ?? 0),
+        module: moduleForPath(filePath, index) ?? 'unknown',
+        reason: 'source file contains an unresolved merge-conflict marker',
+      });
+    }
+  }
+  return findings.sort(compareFindings);
+}
+
 function normalizeSpecifier(specifier) {
   return specifier.replace(/[?#].*$/, '');
 }
@@ -2020,6 +2038,8 @@ function audit(manifest, args) {
   const legacySprintServiceFiles = collectLegacySprintServiceFiles(allFiles);
   const ownershipConflicts = collectOwnershipConflicts(allFiles, index);
   const browserUnsafeImports = collectBrowserUnsafeImports(index);
+  const unresolvedMergeMarkers = collectUnresolvedMergeMarkers(allFiles, index)
+    .filter((item) => shouldIncludeModule(item.module, args));
   const moduleNames = Object.keys(index.modules).sort(compareStrings);
   const knownModuleFiles = new Map(moduleNames.map((moduleName) => [moduleName, []]));
   const rootDebt = [];
@@ -2143,6 +2163,7 @@ function audit(manifest, args) {
       legacyRootImportSpecifiers: scopedLegacyRootImportSpecifiers.length,
       ownershipConflicts: ownershipConflicts.length,
       browserUnsafeImports: browserUnsafeImports.length,
+      unresolvedMergeMarkers: unresolvedMergeMarkers.length,
       serviceDuplicateBasenames: serviceDuplicateBasenames.length,
       unapprovedServiceDuplicateBasenames: restoredServiceDuplicateInventory.summary.unapprovedDuplicateBasenames,
       serviceDuplicateContentHashes: serviceDuplicateContentHashes.length,
@@ -2168,6 +2189,7 @@ function audit(manifest, args) {
     forbiddenImports: forbiddenImports.sort(compareFindings),
     ownershipConflicts,
     browserUnsafeImports,
+    unresolvedMergeMarkers,
     restoredServiceDuplicatePolicyViolations,
     restoredServiceDuplicateInventory,
     serviceIndexClassifications,
@@ -2251,6 +2273,7 @@ function printReport(result) {
   console.log(`forbidden imports: ${result.summary.forbiddenImports}`);
   console.log(`ownership conflicts: ${result.summary.ownershipConflicts}`);
   console.log(`browser unsafe imports: ${result.summary.browserUnsafeImports}`);
+  console.log(`unresolved merge markers: ${result.summary.unresolvedMergeMarkers}`);
   console.log(`restored service duplicate policy violations: ${result.summary.restoredServiceDuplicatePolicyViolations}`);
   console.log(`legacy compatibility shims: ${result.summary.legacyCompatibilityShims}`);
   console.log(`legacy root import specifiers: ${result.summary.legacyRootImportSpecifiers}`);
@@ -2297,6 +2320,8 @@ function printReport(result) {
   printSection('ownership conflicts', result.ownershipConflicts, formatFindingLine);
   console.log('');
   printSection('browser unsafe imports', result.browserUnsafeImports, formatFindingLine);
+  console.log('');
+  printSection('unresolved merge markers', result.unresolvedMergeMarkers, formatFindingLine);
   console.log('');
   printSection('restored service duplicate policy violations', result.restoredServiceDuplicatePolicyViolations, formatPolicyViolationLine);
   console.log('');
@@ -2747,6 +2772,7 @@ function main() {
       || result.summary.serviceIndexShadowCopies > 0
       || result.summary.restoredServiceDuplicatePolicyViolations > 0
       || result.summary.legacySprintServiceFiles > 0
+      || result.summary.unresolvedMergeMarkers > 0
     )
   ) {
     failures.push('legacy compatibility shims/imports or duplicate/sprint services');

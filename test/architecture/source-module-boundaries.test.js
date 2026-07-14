@@ -375,6 +375,7 @@ describe('source module boundaries', () => {
     expect(inventory.summary.unapprovedDuplicateBasenames).toBe(0);
     expect(inventory.summary.unclassifiedNormalizedContentCollisions).toBe(0);
     expect(inventory.summary.unclassifiedBehavioralEquivalenceGroups).toBe(0);
+    expect(audit.summary.unresolvedMergeMarkers).toBe(0);
     expect(inventory.policy.approvedContentHashes).not.toContainEqual(expect.objectContaining({
       disposition: 'canonicalize-restored-shadow',
     }));

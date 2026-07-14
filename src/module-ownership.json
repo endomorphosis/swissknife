@@ -232,6 +232,12 @@
         "compatibility": "removed; import the canonical family API"
       },
       {
+        "legacyPath": "src/services/mcp/mcp-mcp-deontic-ui-manifest.ts",
+        "canonicalImplementation": "src/services/apps/mcp-deontic-ui-manifest.ts",
+        "publicEntrypoint": "src/services/apps/mcp-deontic-ui-manifest.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
         "legacyPath": "src/services/mcp/mcp-mcp-traffic-manager.ts",
         "canonicalImplementation": "src/services/mcp/host/mcp-traffic-manager.ts",
         "publicEntrypoint": "src/services/mcp/host/mcp-traffic-manager.ts",
@@ -1860,6 +1866,7 @@
         "src/services/apps/mcp-generated-app-quality-gates.ts",
         "src/services/apps/mcp-generated-app-state.ts",
         "src/services/apps/meta-glasses-app-capability-registry.ts",
+        "src/services/apps/mcp-deontic-ui-manifest.ts",
         "src/services/apps/swissknife-mcp-capability-registry.ts",
         "src/services/apps/virtual-desktop-app-manifest.ts"
       ],
