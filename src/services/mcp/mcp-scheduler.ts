@@ -10,7 +10,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { EventDAG, StoredEventNode } from '../event-dag.js';
+import { EventDAG, StoredEventNode } from './mcp-event-dag.js';
 
 // ---------------------------------------------------------------------------
 // Risk Scoring

@@ -85,9 +85,7 @@ function createAuditFixture({ files = {}, manifestPatch = {} } = {}) {
       rootFileOwners: {
         'src/commands.ts': 'commands',
       },
-      serviceRootFileOwners: {
-        'src/services/owned-root.ts': 'services',
-      },
+      serviceRootFileOwners: {},
       legacyCompatibilityShims: [],
       allowedImportExceptions: [],
       browserSafeSourceGlobs: [
@@ -185,7 +183,6 @@ function createAuditFixture({ files = {}, manifestPatch = {} } = {}) {
 
   writeFixtureFile(fixtureDir, 'src/module-ownership.json', `${JSON.stringify(manifest, null, 2)}\n`);
   writeFixtureFile(fixtureDir, 'src/commands.ts', 'export const commandName = "fixture";\n');
-  writeFixtureFile(fixtureDir, 'src/services/owned-root.ts', 'export const ownedRoot = "fixture-root";\n');
   writeFixtureFile(fixtureDir, 'src/services/mcp/protocol.ts', 'export const protocol = { version: 1 };\n');
   writeFixtureFile(
     fixtureDir,
@@ -293,6 +290,55 @@ describe('source module boundaries', () => {
     expect(audit.summary.forbiddenImports).toBe(0);
     expect(audit.summary.ownershipConflicts).toBe(0);
     expect(audit.summary.browserUnsafeImports).toBe(0);
+    expect(audit.summary.rootServiceImplementationViolations).toBe(0);
+  });
+
+  it('records SWR-137 source and recovery provenance without fabricating recovery evidence', () => {
+    const audit = runSourceModuleAudit();
+
+    expect(audit.provenance).toEqual(expect.objectContaining({
+      taskId: 'SWR-137',
+      sourceRevision: expect.stringMatching(/^[a-f0-9]{40}$/),
+      recoveryProvenance: expect.objectContaining({
+        path: 'docs/phase-21-recovery-provenance.json',
+        available: expect.any(Boolean),
+      }),
+    }));
+    expect(audit.restoredServiceDuplicateInventory).toEqual(expect.objectContaining({
+      taskId: 'SWR-137',
+      source: expect.objectContaining({
+        sourceRevision: audit.provenance.sourceRevision,
+        recoveryProvenance: audit.provenance.recoveryProvenance,
+      }),
+    }));
+  });
+
+  it('allows a revalidation manifest to name its exact recovery provenance input', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'docs/recovered-baseline.json': '{"source":"fixture"}\n',
+      },
+      manifestPatch: {
+        audit: {
+          revalidationProvenance: {
+            taskId: 'SWR-137-fixture',
+            recoveryProvenancePath: 'docs/recovered-baseline.json',
+          },
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--json', 'audit.json']);
+
+    expect(result.status).toBe(0);
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.provenance).toEqual(expect.objectContaining({
+      taskId: 'SWR-137-fixture',
+      sourceRevision: null,
+      recoveryProvenance: {
+        path: 'docs/recovered-baseline.json',
+        available: true,
+      },
+    }));
   });
 
   it('inventories every current root service source file explicitly', () => {
@@ -326,7 +372,7 @@ describe('source module boundaries', () => {
     visit(path.join(rootDir, 'src/services'));
     executableFiles.sort();
 
-    expect(inventory.taskId).toBe('SWR-143');
+    expect(inventory.taskId).toBe('SWR-137');
     expect(inventory.schemaVersion).toBeGreaterThanOrEqual(2);
     expect(inventory.serviceFiles.map(item => item.path)).toEqual(executableFiles);
     expect(inventory.summary.executableServiceFiles).toBe(executableFiles.length);
@@ -460,7 +506,7 @@ describe('source module boundaries', () => {
     }));
   });
 
-  it('rejects a root service implementation without an explicit owner', () => {
+  it('rejects a root service implementation even when it has an explicit owner', () => {
     const fixtureDir = createAuditFixture({
       files: {
         'src/services/restored-root-implementation.ts': [
@@ -470,21 +516,28 @@ describe('source module boundaries', () => {
           '',
         ].join('\n'),
       },
+      manifestPatch: {
+        audit: {
+          serviceRootFileOwners: {
+            'src/services/restored-root-implementation.ts': 'services',
+          },
+        },
+      },
     });
     const result = runFixtureAudit(fixtureDir, [
-      '--fail-on-unknown',
-      '--fail-on-forbidden',
+      '--fail-on-legacy',
       '--json',
       'audit.json',
     ]);
 
     expect(result.status).not.toBe(0);
-    expect(`${result.stdout}\n${result.stderr}`).toContain('root service file is not listed');
+    expect(`${result.stdout}\n${result.stderr}`).toContain('root service implementation violations: 1');
     const audit = readJson(path.join(fixtureDir, 'audit.json'));
-    expect(audit.unknownFiles).toContainEqual(expect.objectContaining({
+    expect(audit.summary.unknownFiles).toBe(0);
+    expect(audit.summary.rootServiceImplementationViolations).toBeGreaterThan(0);
+    expect(audit.rootServiceImplementationViolations).toContainEqual(expect.objectContaining({
       file: 'src/services/restored-root-implementation.ts',
-      module: 'unknown',
-      reason: expect.stringMatching(/root service file.*not listed/i),
+      reason: expect.stringMatching(/executable service implementation.*src\/services/i),
     }));
   });
 

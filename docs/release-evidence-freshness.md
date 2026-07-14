@@ -11,9 +11,9 @@ is the active default release-blocking group.
 | Evidence | Default scope | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- | --- |
 | Browser libp2p Playwright evidence (SWR-028) | historical | ⚠️ never-certified | never | npm run evidence:libp2p-browser |
-| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-14T22:32:32.691Z | npm run build:web |
-| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-14T22:31:52.730Z | npm run services:audit |
-| Virtual desktop all-tools release evidence (SVD-101) | active | ❌ missing-evidence | 2026-07-14T20:31:54.777Z | node scripts/build-virtual-desktop-release-evidence.cjs |
+| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-14T22:47:11.066Z | npm run build:web |
+| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-14T22:46:45.501Z | npm run services:audit |
+| Virtual desktop all-tools release evidence (SVD-101) | active | ❌ evidence-modified | 2026-07-14T20:31:54.777Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 
 ## Browser libp2p Playwright evidence (SWR-028)
 
@@ -24,8 +24,8 @@ is the active default release-blocking group.
 
 ## Virtual desktop all-tools release evidence (SVD-101)
 
-- Status: **missing-evidence**
-- Missing evidence file(s): ../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md
-
+- Status: **evidence-modified**
+- Recorded fingerprint: `aa58d1ed979b3182ff9d87882ed5e4d7f57d4f1a1156c6365a43526c104ae302`
+- Current fingerprint: `aa58d1ed979b3182ff9d87882ed5e4d7f57d4f1a1156c6365a43526c104ae302`
 - Regenerate with: `node scripts/build-virtual-desktop-release-evidence.cjs`
 

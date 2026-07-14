@@ -162,7 +162,7 @@
     "pretest:browser": "npm run browser:toolchain:verify",
     "test:browser": "npm run test:browser-compat:runtime",
     "prebrowser:compat:inventory": "npm run browser:toolchain:verify",
-    "browser:compat:inventory": "node scripts/audit-browser-compat.mjs --report docs/browser-compatibility-inventory.md --fail-on-host-imports",
+    "browser:compat:inventory": "node scripts/audit-browser-compat.mjs --report docs/browser-compatibility-inventory.md --json docs/browser-compatibility-inventory.json --fail-on-host-imports",
     "pretest:ai-inference": "npm run browser:toolchain:verify",
     "test:ai-inference": "vitest run --workspace ipfs --browser",
     "test:watch": "jest --watch",

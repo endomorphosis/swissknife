@@ -2,7 +2,7 @@
  * Phase 5 — Event DAG Provenance tests
  */
 
-import { EventDAG, EventNode, verifyEventDAGInclusionProof } from '../../src/services/event-dag';
+import { EventDAG, EventNode, verifyEventDAGInclusionProof } from '../../src/services/mcp/mcp-event-dag';
 
 function makeNode(overrides: Partial<EventNode> = {}): EventNode {
   return {

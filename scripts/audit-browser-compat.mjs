@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -189,13 +190,13 @@ const FINDING_RULES = [
   },
   {
     category: 'pyodide',
-    severity: 'browser-safe',
+    severity: 'host-only',
     re: /\b(?:loadPyodide|pyodide|runPythonAsync|runPython)\b/g,
-    message: 'Pyodide or in-browser Python runtime',
+    message: 'Python/Pyodide execution runtime',
   },
   {
     category: 'python',
-    severity: 'unknown',
+    severity: 'host-only',
     re: /\b(?:swissknife\.python|python\.execute|Python runtime|python subprocess)\b/gi,
     message: 'Python execution wrapper',
   },
@@ -487,23 +488,7 @@ function extractImports(filePath, text) {
   return dedupeBy(imports, (item) => `${item.kind}:${item.specifier}:${item.line}`);
 }
 
-function analyzeFile(filePath) {
-  const absolute = abs(filePath);
-  if (!exists(absolute)) {
-    return {
-      path: filePath,
-      imports: [],
-      findings: [{
-        category: 'missing-file',
-        severity: 'unknown',
-        file: filePath,
-        line: 1,
-        message: 'inventory root is missing',
-      }],
-    };
-  }
-
-  const text = readText(absolute);
+function analyzeSourceText(filePath, text) {
   const imports = extractImports(filePath, text);
   const findings = [];
 
@@ -561,6 +546,25 @@ function analyzeFile(filePath) {
     imports,
     findings: dedupeBy(findings, (finding) => `${finding.category}:${finding.severity}:${finding.file}:${finding.line}:${finding.message}`),
   };
+}
+
+function analyzeFile(filePath) {
+  const absolute = abs(filePath);
+  if (!exists(absolute)) {
+    return {
+      path: filePath,
+      imports: [],
+      findings: [{
+        category: 'missing-file',
+        severity: 'unknown',
+        file: filePath,
+        line: 1,
+        message: 'inventory root is missing',
+      }],
+    };
+  }
+
+  return analyzeSourceText(filePath, readText(absolute));
 }
 
 function buildGraph() {
@@ -1051,10 +1055,7 @@ function buildCanonicalBrowserPublicApiAudit(graphData) {
 }
 
 function renderReport(results, graphData, publicApiAudit) {
-  const counts = new Map();
-  for (const result of results) {
-    counts.set(result.classification, (counts.get(result.classification) ?? 0) + 1);
-  }
+  const summary = summarizeInventory(results, graphData, publicApiAudit);
 
   const activeBuildRoots = results.filter((result) => (
     result.path === 'web/index.html' || result.path === 'web/src/browser-main-working.ts'
@@ -1075,15 +1076,25 @@ function renderReport(results, graphData, publicApiAudit) {
   lines.push('');
   lines.push('## Summary');
   lines.push('');
-  lines.push(`- Inventory items: ${results.length}`);
-  lines.push(`- Browser-safe: ${counts.get('browser-safe') ?? 0}`);
-  lines.push(`- Host-only: ${counts.get('host-only') ?? 0}`);
-  lines.push(`- Simulated/test-only: ${counts.get('simulated/test-only') ?? 0}`);
-  lines.push(`- Unknown: ${counts.get('unknown') ?? 0}`);
-  lines.push(`- Source files indexed: ${graphData.analyses.size}`);
+  lines.push(`- Inventory items: ${summary.inventoryItems}`);
+  lines.push(`- Browser-safe: ${summary.classifications.browserSafe}`);
+  lines.push(`- Host-only: ${summary.classifications.hostOnly}`);
+  lines.push(`- Simulated/test-only: ${summary.classifications.simulatedTestOnly}`);
+  lines.push(`- Unknown: ${summary.classifications.unknown}`);
+  lines.push(`- Browser-reachable host-only imports: ${summary.browserReachableHostOnlyImports}`);
+  lines.push(`- Unknown executable browser paths: ${summary.unknownExecutableBrowserPaths}`);
+  lines.push(`- Source files indexed: ${summary.sourceFilesIndexed}`);
   lines.push(`- Current web/dist artifacts observed: ${distArtifacts.length}`);
   lines.push(`- Canonical package browser exports checked: ${publicApiAudit.rows.length}`);
   lines.push(`- Canonical package browser export violations: ${publicApiAudit.violations.length}`);
+  lines.push('');
+
+  lines.push('## SWR-137 Closure Gate');
+  lines.push('');
+  lines.push(`- Status: ${summary.gatePassed ? 'pass' : 'fail'}`);
+  lines.push('- The gate rejects every non-test browser root that reaches a Node host module, subprocess/filesystem/native execution edge, or Python/Pyodide execution runtime.');
+  lines.push('- Non-test browser roots with unresolved local imports or non-literal dynamic imports are unknown executable paths and fail closed.');
+  lines.push('- Fixture coverage verifies that Node and Python execution edges fail this gate; remote services remain valid only through typed browser capability boundaries, not executable browser imports.');
   lines.push('');
 
   if (distArtifacts.length > 0) {
@@ -1232,6 +1243,85 @@ function buildModuleInventory(moduleNames) {
   return { graphData, results };
 }
 
+function browserExecutableResults(results) {
+  return results.filter((result) => !/simulated-test-html/.test(result.kind));
+}
+
+function browserGateFailures(results) {
+  return browserExecutableResults(results).filter((result) => (
+    result.classification === 'host-only' || result.classification === 'unknown'
+  ));
+}
+
+function summarizeInventory(results, graphData, publicApiAudit) {
+  const classifications = {
+    browserSafe: 0,
+    hostOnly: 0,
+    simulatedTestOnly: 0,
+    unknown: 0,
+  };
+  for (const result of results) {
+    if (result.classification === 'browser-safe') classifications.browserSafe += 1;
+    else if (result.classification === 'host-only') classifications.hostOnly += 1;
+    else if (result.classification === 'simulated/test-only') classifications.simulatedTestOnly += 1;
+    else if (result.classification === 'unknown') classifications.unknown += 1;
+  }
+
+  const gateFailures = browserGateFailures(results);
+  const browserReachableHostOnlyImports = browserExecutableResults(results)
+    .filter((result) => result.classification === 'host-only').length;
+  const unknownExecutableBrowserPaths = browserExecutableResults(results)
+    .filter((result) => result.classification === 'unknown').length;
+
+  return {
+    inventoryItems: results.length,
+    classifications,
+    browserReachableHostOnlyImports,
+    unknownExecutableBrowserPaths,
+    sourceFilesIndexed: graphData.analyses.size,
+    canonicalBrowserPublicApiViolations: publicApiAudit.violations.length,
+    gatePassed: gateFailures.length === 0 && publicApiAudit.violations.length === 0,
+  };
+}
+
+function sourceCommit() {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return 'unavailable';
+  }
+}
+
+function buildJsonInventory(results, graphData, publicApiAudit) {
+  return {
+    schema: 'swissknife.browser_compatibility_inventory.v2',
+    taskId: 'SWR-137',
+    provenance: {
+      sourceCommit: sourceCommit(),
+      generator: 'scripts/audit-browser-compat.mjs',
+      mode: 'current-source-graph',
+      roots: {
+        activeBuildInputs: ['web/index.html', 'web/src/browser-main-working.ts'],
+        indexedSourceRoots: ['web', 'src', 'ipfs_accelerate_js/src'],
+      },
+    },
+    summary: summarizeInventory(results, graphData, publicApiAudit),
+    canonicalBrowserPublicApi: publicApiAudit,
+    results: results.map((result) => ({
+      path: result.path,
+      kind: result.kind,
+      reason: result.reason,
+      classification: result.classification,
+      reachable: result.reachable,
+      findings: result.findings,
+    })),
+  };
+}
+
 function writeOrCheckReport(reportPath, contents, check) {
   const absoluteReportPath = abs(reportPath);
   if (check) {
@@ -1255,21 +1345,20 @@ Options:
   --module <name>  Audit source files for one module. Can be repeated.
   --check          Verify --report output is already up to date.
   --fail-on-host-imports
-                  Exit non-zero when a browser inventory root can reach host-only code.
+                  Exit non-zero when an executable browser root can reach host-only code,
+                  has an unknown executable path, or violates a public browser API contract.
   -h, --help       Show this help.
 `);
 }
 
 function browserHostImportFailures(results) {
-  return results
-    .filter((result) => result.classification === 'host-only')
-    .filter((result) => !/simulated-test-html/.test(result.kind));
+  return browserGateFailures(results);
 }
 
 function moduleBrowserHostFailures(results) {
   return results
     .filter((result) => /browser-entrypoint/.test(result.kind))
-    .filter((result) => result.classification === 'host-only');
+    .filter((result) => result.classification === 'host-only' || result.classification === 'unknown');
 }
 
 async function main() {
@@ -1295,27 +1384,14 @@ async function main() {
   if (args.json) {
     const jsonPath = abs(args.json);
     fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
-    fs.writeFileSync(jsonPath, JSON.stringify({
-      canonicalBrowserPublicApi: publicApiAudit,
-      results: results.map((result) => ({
-        path: result.path,
-        kind: result.kind,
-        reason: result.reason,
-        classification: result.classification,
-        reachable: result.reachable,
-        findings: result.findings,
-      })),
-    }, null, 2), 'utf8');
+    fs.writeFileSync(jsonPath, `${JSON.stringify(buildJsonInventory(results, graphData, publicApiAudit), null, 2)}\n`, 'utf8');
   }
 
-  const counts = results.reduce((acc, result) => {
-    acc[result.classification] = (acc[result.classification] ?? 0) + 1;
-    return acc;
-  }, {});
+  const summary = summarizeInventory(results, graphData, publicApiAudit);
   const summaryPrefix = moduleMode
     ? `Browser compatibility module inventory (${[...args.modules].join(', ')})`
     : 'Browser compatibility inventory';
-  console.log(`${summaryPrefix}: ${results.length} items (${Object.entries(counts).map(([key, value]) => `${key}=${value}`).join(', ')})`);
+  console.log(`${summaryPrefix}: ${results.length} items (browser-safe=${summary.classifications.browserSafe}, host-only=${summary.classifications.hostOnly}, simulated/test-only=${summary.classifications.simulatedTestOnly}, unknown=${summary.classifications.unknown}; browser-reachable-host-only-imports=${summary.browserReachableHostOnlyImports}, unknown-executable-browser-paths=${summary.unknownExecutableBrowserPaths})`);
 
   const failures = moduleMode
     ? moduleBrowserHostFailures(results)
@@ -1330,10 +1406,10 @@ async function main() {
   }
   if (failures.length > 0) {
     console.error('');
-    console.error(`Host-only imports are reachable from ${failures.length} browser inventory item(s):`);
+    console.error(`Browser closure gate failed for ${failures.length} executable browser inventory item(s):`);
     for (const result of failures) {
-      const first = result.findings.find((finding) => finding.severity === 'host-only');
-      console.error(`- ${result.path}: ${first ? formatFinding(first).replace(/^- /, '') : 'host-only classification'}`);
+      const first = result.findings.find((finding) => finding.severity === 'host-only' || finding.severity === 'unknown');
+      console.error(`- ${result.path}: ${first ? formatFinding(first).replace(/^- /, '') : `${result.classification} classification`}`);
     }
     process.exitCode = 1;
   }
@@ -1358,4 +1434,12 @@ if (isDirectCliInvocation) {
   });
 }
 
-export { findNonLiteralDynamicImportLines, extractImports, analyzeFile };
+export {
+  analyzeFile,
+  analyzeSourceText,
+  browserGateFailures,
+  buildJsonInventory,
+  extractImports,
+  findNonLiteralDynamicImportLines,
+  summarizeInventory,
+};

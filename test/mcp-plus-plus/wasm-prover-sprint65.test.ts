@@ -9,7 +9,7 @@ import {
   IPFSProofStorage, getDefaultProofStorage,
   TPTPParser, ProblemParser, parseProblemFile,
   GrammarLoader, getGrammarLoader,
-} from '../../src/services/logic-proof-storage-parsers';
+} from '../../src/services/logic/api/proof-storage-parsers';
 
 import {
   getBasicAxioms, getBasicProofRules, validateFormulaSyntax,

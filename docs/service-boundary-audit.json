@@ -4,6 +4,14 @@
     "schemaVersion": 1,
     "manifestVersion": "2026-07-14-swr-145"
   },
+  "provenance": {
+    "taskId": "SWR-137",
+    "sourceRevision": "56a7ed5c9b170e832b832ec3d650ecb58f68f1f1",
+    "recoveryProvenance": {
+      "path": "docs/phase-21-recovery-provenance.json",
+      "available": false
+    }
+  },
   "modules": [
     {
       "module": "__mocks__",
@@ -261,7 +269,7 @@
       "module": "services",
       "owner": "domain-service-runtime",
       "runtimeClassification": "split",
-      "fileCount": 4
+      "fileCount": 0
     },
     {
       "module": "shared",
@@ -327,6 +335,7 @@
   "summary": {
     "modules": 53,
     "rootFiles": 16,
+    "rootServiceImplementationViolations": 0,
     "unknownFiles": 0,
     "forbiddenImports": 0,
     "legacyCompatibilityShims": 0,
@@ -344,7 +353,7 @@
     "serviceIndexImplementationEntrypoints": 1,
     "serviceIndexShadowCopies": 0,
     "restoredServiceDuplicatePolicyViolations": 0,
-    "serviceExecutableFiles": 438,
+    "serviceExecutableFiles": 434,
     "serviceNormalizedContentCollisions": 1,
     "unclassifiedServiceNormalizedContentCollisions": 0,
     "serviceBehavioralEquivalenceGroups": 0,
@@ -434,6 +443,7 @@
       "reason": "root source compatibility file with an explicit owner"
     }
   ],
+  "rootServiceImplementationViolations": [],
   "unknownFiles": [],
   "forbiddenImports": [],
   "ownershipConflicts": [],
@@ -445,12 +455,17 @@
   "restoredServiceDuplicateInventory": {
     "schemaVersion": 2,
     "generatedDate": "2026-07-14",
-    "taskId": "SWR-143",
+    "taskId": "SWR-137",
     "source": {
       "manifestPath": "src/module-ownership.json",
       "serviceRoot": "src/services",
       "auditScript": "scripts/audit-source-modules.mjs",
-      "phase16CleanupEvidence": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16"
+      "phase16CleanupEvidence": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16",
+      "sourceRevision": "56a7ed5c9b170e832b832ec3d650ecb58f68f1f1",
+      "recoveryProvenance": {
+        "path": "docs/phase-21-recovery-provenance.json",
+        "available": false
+      }
     },
     "policy": {
       "indexBasenamesIgnored": false,
@@ -775,7 +790,7 @@
       "indexShadowCopies": 0,
       "duplicateContentHashes": 1,
       "unapprovedDuplicateContentHashes": 0,
-      "executableServiceFiles": 438,
+      "executableServiceFiles": 434,
       "basenameCollisions": 1,
       "indexEntrypointBasenameCollisions": 1,
       "unclassifiedBasenameCollisions": 0,
@@ -783,8 +798,8 @@
       "unclassifiedNormalizedContentCollisions": 0,
       "behavioralEquivalenceGroups": 0,
       "unclassifiedBehavioralEquivalenceGroups": 0,
-      "totalImporters": 1844,
-      "uniqueImporterFiles": 588
+      "totalImporters": 1843,
+      "uniqueImporterFiles": 587
     },
     "serviceFiles": [
       {
@@ -2550,93 +2565,6 @@
         },
         "module": "service-apps",
         "owner": "app-surface-runtime",
-        "disposition": "canonical-implementation",
-        "collisionIds": []
-      },
-      {
-        "path": "src/services/event-dag.ts",
-        "basename": "event-dag.ts",
-        "extension": ".ts",
-        "sizeBytes": 20303,
-        "lineCount": 569,
-        "contentKind": "service-implementation",
-        "sha256": "36ed214a31217ce044394ab62d9e735edd3796abaaec697ab6acd02155d52a91",
-        "contentHash": {
-          "algorithm": "sha256",
-          "value": "36ed214a31217ce044394ab62d9e735edd3796abaaec697ab6acd02155d52a91"
-        },
-        "normalizedContentHash": {
-          "algorithm": "sha256",
-          "normalization": "lexical-v1-comments-and-trivia-elided",
-          "value": "fa2c13a7e0e4976ae4f3256c806fd31a71f5ee377ad3bd3aef1f7ceddcc87d8a",
-          "tokenCount": 3258
-        },
-        "behaviorHash": {
-          "algorithm": "sha256",
-          "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-          "value": "ce994280a198a6c187ef55e6a38ed382827427e61a6a5a33666510eb4a5d6a00",
-          "tokenCount": 3258
-        },
-        "importers": [
-          {
-            "file": "src/commands/mcp-plus-plus.ts",
-            "line": 13,
-            "kind": "static-import",
-            "specifier": "../services/event-dag.js"
-          },
-          {
-            "file": "src/services/mcp/mcp-scheduler.ts",
-            "line": 13,
-            "kind": "static-import",
-            "specifier": "../event-dag.js"
-          },
-          {
-            "file": "test/mcp-plus-plus/event-dag.test.ts",
-            "line": 5,
-            "kind": "static-import",
-            "specifier": "../../src/services/event-dag"
-          },
-          {
-            "file": "test/mcp-plus-plus/integration-pipeline.test.ts",
-            "line": 122,
-            "kind": "static-import",
-            "specifier": "../../src/services/event-dag.js"
-          },
-          {
-            "file": "test/mcp-plus-plus/policy-and-scheduler.test.ts",
-            "line": 8,
-            "kind": "static-import",
-            "specifier": "../../src/services/event-dag"
-          }
-        ],
-        "importerCount": 5,
-        "publicEntrypoints": [
-          {
-            "kind": "module-manifest",
-            "name": "src/services/event-dag.ts",
-            "conditions": [],
-            "target": "src/services/event-dag.ts"
-          }
-        ],
-        "runtimeClass": "split",
-        "runtimeClassification": "split",
-        "browserClassification": "split-runtime-requires-entrypoint-review",
-        "declaredOwner": {
-          "module": "services",
-          "owner": "domain-service-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "canonicalOwner": {
-          "module": "services",
-          "owner": "domain-service-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "module": "services",
-        "owner": "domain-service-runtime",
         "disposition": "canonical-implementation",
         "collisionIds": []
       },
@@ -4835,69 +4763,6 @@
         "collisionIds": []
       },
       {
-        "path": "src/services/groth16-cec-delegation.ts",
-        "basename": "groth16-cec-delegation.ts",
-        "extension": ".ts",
-        "sizeBytes": 9046,
-        "lineCount": 258,
-        "contentKind": "service-implementation",
-        "sha256": "f3b157fdd39ef7dff01ed044e36e8591661d30975dd38e0089722d41c273ac38",
-        "contentHash": {
-          "algorithm": "sha256",
-          "value": "f3b157fdd39ef7dff01ed044e36e8591661d30975dd38e0089722d41c273ac38"
-        },
-        "normalizedContentHash": {
-          "algorithm": "sha256",
-          "normalization": "lexical-v1-comments-and-trivia-elided",
-          "value": "f742be8adb09ee9bf9f1c498aa9d352288ef86ab0b488948a0535121f985ff98",
-          "tokenCount": 1839
-        },
-        "behaviorHash": {
-          "algorithm": "sha256",
-          "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-          "value": "d985f2918e197c769da4d55b25c46a4e01ab23eb1f6c2d44b9aa0832e978aafb",
-          "tokenCount": 1839
-        },
-        "importers": [
-          {
-            "file": "test/mcp-plus-plus/wasm-prover-sprint67.test.ts",
-            "line": 9,
-            "kind": "static-import",
-            "specifier": "../../src/services/groth16-cec-delegation"
-          }
-        ],
-        "importerCount": 1,
-        "publicEntrypoints": [
-          {
-            "kind": "module-manifest",
-            "name": "src/services/groth16-cec-delegation.ts",
-            "conditions": [],
-            "target": "src/services/groth16-cec-delegation.ts"
-          }
-        ],
-        "runtimeClass": "split",
-        "runtimeClassification": "split",
-        "browserClassification": "split-runtime-requires-entrypoint-review",
-        "declaredOwner": {
-          "module": "services",
-          "owner": "domain-service-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "canonicalOwner": {
-          "module": "services",
-          "owner": "domain-service-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "module": "services",
-        "owner": "domain-service-runtime",
-        "disposition": "canonical-implementation",
-        "collisionIds": []
-      },
-      {
         "path": "src/services/integrations/ergoai-wrapper.ts",
         "basename": "ergoai-wrapper.ts",
         "extension": ".ts",
@@ -6877,69 +6742,6 @@
         "collisionIds": []
       },
       {
-        "path": "src/services/logic-proof-storage-parsers.ts",
-        "basename": "logic-proof-storage-parsers.ts",
-        "extension": ".ts",
-        "sizeBytes": 5361,
-        "lineCount": 153,
-        "contentKind": "service-implementation",
-        "sha256": "dad822a36a25ddf1caa16131079ade6f09e18ef49bf7fcbead0360e90ac5c71d",
-        "contentHash": {
-          "algorithm": "sha256",
-          "value": "dad822a36a25ddf1caa16131079ade6f09e18ef49bf7fcbead0360e90ac5c71d"
-        },
-        "normalizedContentHash": {
-          "algorithm": "sha256",
-          "normalization": "lexical-v1-comments-and-trivia-elided",
-          "value": "b5a4289c585033364249eaf26458b705c3c666da82a14f5d787fdfb4deb20431",
-          "tokenCount": 1079
-        },
-        "behaviorHash": {
-          "algorithm": "sha256",
-          "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-          "value": "02b545759b9722b73ec11bc93ea0f0b26aa5d0bef564c1c302d3751ccce333ff",
-          "tokenCount": 1079
-        },
-        "importers": [
-          {
-            "file": "test/mcp-plus-plus/wasm-prover-sprint65.test.ts",
-            "line": 8,
-            "kind": "static-import",
-            "specifier": "../../src/services/logic-proof-storage-parsers"
-          }
-        ],
-        "importerCount": 1,
-        "publicEntrypoints": [
-          {
-            "kind": "module-manifest",
-            "name": "src/services/logic-proof-storage-parsers.ts",
-            "conditions": [],
-            "target": "src/services/logic-proof-storage-parsers.ts"
-          }
-        ],
-        "runtimeClass": "split",
-        "runtimeClassification": "split",
-        "browserClassification": "split-runtime-requires-entrypoint-review",
-        "declaredOwner": {
-          "module": "services",
-          "owner": "domain-service-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "canonicalOwner": {
-          "module": "services",
-          "owner": "domain-service-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "module": "services",
-        "owner": "domain-service-runtime",
-        "disposition": "canonical-implementation",
-        "collisionIds": []
-      },
-      {
         "path": "src/services/logic/api/batch-processor.ts",
         "basename": "batch-processor.ts",
         "extension": ".ts",
@@ -7579,10 +7381,23 @@
             "line": 6,
             "kind": "export-from",
             "specifier": "./proof-storage-parsers.js"
+          },
+          {
+            "file": "test/mcp-plus-plus/wasm-prover-sprint65.test.ts",
+            "line": 8,
+            "kind": "static-import",
+            "specifier": "../../src/services/logic/api/proof-storage-parsers"
           }
         ],
-        "importerCount": 1,
-        "publicEntrypoints": [],
+        "importerCount": 2,
+        "publicEntrypoints": [
+          {
+            "kind": "module-manifest",
+            "name": "src/services/logic/api/proof-storage-parsers.ts",
+            "conditions": [],
+            "target": "src/services/logic/api/proof-storage-parsers.ts"
+          }
+        ],
         "runtimeClass": "split",
         "runtimeClassification": "split",
         "browserClassification": "split-runtime-requires-entrypoint-review",
@@ -23979,6 +23794,12 @@
         },
         "importers": [
           {
+            "file": "src/commands/mcp-plus-plus.ts",
+            "line": 13,
+            "kind": "static-import",
+            "specifier": "../services/mcp/mcp-event-dag.js"
+          },
+          {
             "file": "src/services/mcp/host/mcpClient.ts",
             "line": 80,
             "kind": "dynamic-import",
@@ -24031,9 +23852,33 @@
             "line": 60,
             "kind": "dynamic-import",
             "specifier": "./mcp-event-dag.js"
+          },
+          {
+            "file": "src/services/mcp/mcp-scheduler.ts",
+            "line": 13,
+            "kind": "static-import",
+            "specifier": "./mcp-event-dag.js"
+          },
+          {
+            "file": "test/mcp-plus-plus/event-dag.test.ts",
+            "line": 5,
+            "kind": "static-import",
+            "specifier": "../../src/services/mcp/mcp-event-dag"
+          },
+          {
+            "file": "test/mcp-plus-plus/integration-pipeline.test.ts",
+            "line": 122,
+            "kind": "static-import",
+            "specifier": "../../src/services/mcp/mcp-event-dag.js"
+          },
+          {
+            "file": "test/mcp-plus-plus/policy-and-scheduler.test.ts",
+            "line": 8,
+            "kind": "static-import",
+            "specifier": "../../src/services/mcp/mcp-event-dag"
           }
         ],
-        "importerCount": 9,
+        "importerCount": 14,
         "publicEntrypoints": [
           {
             "kind": "module-manifest",
@@ -25807,18 +25652,18 @@
         "path": "src/services/mcp/mcp-scheduler.ts",
         "basename": "mcp-scheduler.ts",
         "extension": ".ts",
-        "sizeBytes": 9120,
+        "sizeBytes": 9123,
         "lineCount": 306,
         "contentKind": "service-implementation",
-        "sha256": "8640a52d3303684b8e59af3f0001f8fbe624cf95ab4a6a97eaccacc9948887b1",
+        "sha256": "9fb5e2504d6b6b4d6a6f2950bb6e249c93bbeb015d696acaf84af0e3b27b7671",
         "contentHash": {
           "algorithm": "sha256",
-          "value": "8640a52d3303684b8e59af3f0001f8fbe624cf95ab4a6a97eaccacc9948887b1"
+          "value": "9fb5e2504d6b6b4d6a6f2950bb6e249c93bbeb015d696acaf84af0e3b27b7671"
         },
         "normalizedContentHash": {
           "algorithm": "sha256",
           "normalization": "lexical-v1-comments-and-trivia-elided",
-          "value": "f20590cde856f3bfc05d8a62cb2d9d353dba017267a9ce4d96b521801ccd0e35",
+          "value": "9bc4de400c6aaeea6e0d0d90fcc7324daa9099c99d05429e61094fdd20ba023f",
           "tokenCount": 1437
         },
         "behaviorHash": {
@@ -31801,12 +31646,6 @@
         },
         "importers": [
           {
-            "file": "src/services/groth16-cec-delegation.ts",
-            "line": 8,
-            "kind": "static-import",
-            "specifier": "./provers/tptp-problem.js"
-          },
-          {
             "file": "src/services/logic/api/logic-verification-toolkit.ts",
             "line": 11,
             "kind": "static-import",
@@ -31849,7 +31688,7 @@
             "specifier": "../../src/services/provers/tptp-problem.js"
           }
         ],
-        "importerCount": 8,
+        "importerCount": 7,
         "publicEntrypoints": [
           {
             "kind": "module-manifest",
@@ -32699,69 +32538,6 @@
         "collisionIds": []
       },
       {
-        "path": "src/services/zkp-canonicalization-security.ts",
-        "basename": "zkp-canonicalization-security.ts",
-        "extension": ".ts",
-        "sizeBytes": 9222,
-        "lineCount": 261,
-        "contentKind": "service-implementation",
-        "sha256": "e2c41c861d460078f2f643ec53b4ff4bfb81a6201e91ede9821c9b3c54e08b66",
-        "contentHash": {
-          "algorithm": "sha256",
-          "value": "e2c41c861d460078f2f643ec53b4ff4bfb81a6201e91ede9821c9b3c54e08b66"
-        },
-        "normalizedContentHash": {
-          "algorithm": "sha256",
-          "normalization": "lexical-v1-comments-and-trivia-elided",
-          "value": "f72237ceb7dd62bbebd0444f716b69323753486860b509ac94e80c32ebb4e112",
-          "tokenCount": 1786
-        },
-        "behaviorHash": {
-          "algorithm": "sha256",
-          "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-          "value": "ade6396512e615e94adf6cd2de3f5495f80141bb3a5753fbea9cca83ffb75dbe",
-          "tokenCount": 1786
-        },
-        "importers": [
-          {
-            "file": "test/mcp-plus-plus/wasm-prover-sprint67.test.ts",
-            "line": 22,
-            "kind": "static-import",
-            "specifier": "../../src/services/zkp-canonicalization-security"
-          }
-        ],
-        "importerCount": 1,
-        "publicEntrypoints": [
-          {
-            "kind": "module-manifest",
-            "name": "src/services/zkp-canonicalization-security.ts",
-            "conditions": [],
-            "target": "src/services/zkp-canonicalization-security.ts"
-          }
-        ],
-        "runtimeClass": "split",
-        "runtimeClassification": "split",
-        "browserClassification": "split-runtime-requires-entrypoint-review",
-        "declaredOwner": {
-          "module": "services",
-          "owner": "domain-service-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "canonicalOwner": {
-          "module": "services",
-          "owner": "domain-service-runtime",
-          "runtimeClassification": "split",
-          "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
-        },
-        "module": "services",
-        "owner": "domain-service-runtime",
-        "disposition": "canonical-implementation",
-        "collisionIds": []
-      },
-      {
         "path": "src/services/zkp/artifacts/index.ts",
         "basename": "index.ts",
         "extension": ".ts",
@@ -33347,10 +33123,23 @@
             "line": 12,
             "kind": "export-from",
             "specifier": "./groth16-cec-expansion.js"
+          },
+          {
+            "file": "test/mcp-plus-plus/wasm-prover-sprint67.test.ts",
+            "line": 9,
+            "kind": "static-import",
+            "specifier": "../../src/services/zkp/groth16-cec-expansion"
           }
         ],
-        "importerCount": 1,
-        "publicEntrypoints": [],
+        "importerCount": 2,
+        "publicEntrypoints": [
+          {
+            "kind": "module-manifest",
+            "name": "src/services/zkp/groth16-cec-expansion.ts",
+            "conditions": [],
+            "target": "src/services/zkp/groth16-cec-expansion.ts"
+          }
+        ],
         "runtimeClass": "split",
         "runtimeClassification": "split",
         "browserClassification": "split-runtime-requires-entrypoint-review",
@@ -34154,10 +33943,23 @@
             "line": 19,
             "kind": "export-from",
             "specifier": "./zkp-canonicalization-runtime.js"
+          },
+          {
+            "file": "test/mcp-plus-plus/wasm-prover-sprint67.test.ts",
+            "line": 22,
+            "kind": "static-import",
+            "specifier": "../../src/services/zkp/zkp-canonicalization-runtime"
           }
         ],
-        "importerCount": 1,
-        "publicEntrypoints": [],
+        "importerCount": 2,
+        "publicEntrypoints": [
+          {
+            "kind": "module-manifest",
+            "name": "src/services/zkp/zkp-canonicalization-runtime.ts",
+            "conditions": [],
+            "target": "src/services/zkp/zkp-canonicalization-runtime.ts"
+          }
+        ],
         "runtimeClass": "split",
         "runtimeClassification": "split",
         "browserClassification": "split-runtime-requires-entrypoint-review",

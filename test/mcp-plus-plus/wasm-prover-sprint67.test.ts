@@ -11,7 +11,7 @@ import {
   CECDelegateStrategy, createCECDelegate,
   AndExpansionRule, OrExpansionRule, ImpliesExpansionRule, IffExpansionRule, NotExpansionRule,
   getAllExpansionRules, selectExpansionRule,
-} from '../../src/services/groth16-cec-delegation';
+} from '../../src/services/zkp/groth16-cec-expansion';
 
 import {
   getPortugueseDeonticKeywords, PortugueseParser,
@@ -25,7 +25,7 @@ import {
   RateLimiter, RateLimitExceeded, getRateLimiter, rateLimit,
   VKRegistry, computeVkHash,
   HornAxiom, parseTdfolV1Axiom, parseTdfolV1Theorem, evaluateTdfolV1Holds, deriveTdfolV1Trace, LegalTheoremSyntaxError,
-} from '../../src/services/zkp-canonicalization-security';
+} from '../../src/services/zkp/zkp-canonicalization-runtime';
 
 // ---------------------------------------------------------------------------
 // Groth16BackupBackend

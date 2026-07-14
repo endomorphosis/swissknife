@@ -31,7 +31,7 @@
     "src/services/mcp/mcp-p2p-session.ts",
     "src/services/mcp/mcp-mcp-policy.ts",
     "src/services/mcp/mcp-scheduler.ts",
-    "src/services/event-dag.ts",
+    "src/services/mcp/mcp-event-dag.ts",
     "src/services/mcp/mcp-descriptor-inspector.ts",
     "src/services/ipfs/mcp-ipfs-datasets-descriptor-pack.ts",
     "src/services/ipfs/mcp-ipfs-accelerate-descriptor-pack.ts",

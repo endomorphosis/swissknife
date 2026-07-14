@@ -10,7 +10,7 @@
 import type { LocalCommand } from '../types/command.js';
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js';
 import { InterfaceRepository } from '../services/mcp-idl.js';
-import { EventDAG } from '../services/event-dag.js';
+import { EventDAG } from '../services/mcp/mcp-event-dag.js';
 import chalk from 'chalk';
 
 /** Number of CID characters to display in listings (truncated for readability). */
