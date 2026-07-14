@@ -22,7 +22,7 @@ import {
 import {
   SecurityValidator, createValidator, validateFormula,
 } from '../../src/services/logic/tdfol/tdfol-security-validator.js';
-import { Atom, Obligation, Permission } from '../../src/services/provers/provers-dcec-types.js';
+import { Atom, Obligation, Permission } from '../../src/services/logic/dcec/dcec-types.js';
 
 // ---------------------------------------------------------------------------
 // T-112: TDFOL Exception Hierarchy

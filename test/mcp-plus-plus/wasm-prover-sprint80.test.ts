@@ -12,7 +12,7 @@ import { withFLogicOptimizer } from '../../src/services/logic/modal/modal-logic-
 import { getFreeVariables, mkConstant, mkDeontic, mkFuncApp, mkPredicate, mkQuantified, mkTemporal, mkVariable, substitute } from '../../src/services/logic/tdfol/tdfol-core.js';
 import { naryAnd, naryOr } from '../../src/services/logic/dcec/dcec-core-types.js';
 import { DcecProverBridge } from '../../src/services/provers/dcec-prover-bridge';
-import { Atom, Conjunction, Implies, Negation, Obligation, Permission, Prohibition } from '../../src/services/provers/provers-dcec-types.js';
+import { Atom, Conjunction, Implies, Negation, Obligation, Permission, Prohibition } from '../../src/services/logic/dcec/dcec-types.js';
 
 // ---------------------------------------------------------------------------
 // PORT-003 / PORT-051 / PORT-052 / PORT-053 / PORT-094 — Type-system closure

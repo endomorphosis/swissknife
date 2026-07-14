@@ -23,15 +23,15 @@ import {
   type LtlUnaryFormula,
   serializeTdfol,
   Always, Eventually, Next,
-} from './provers-tdfol-types.js';
+} from '../logic/tdfol/tdfol-types.js';
 import {
   type DCECFormula,
   type DeonticFormula,
   type ConnectiveFormula,
   Negation, Obligation, Permission, Prohibition, Implies,
-} from './provers-dcec-types.js';
+} from '../logic/dcec/dcec-types.js';
 import { TdfolProverBridge, TDFOL_PROVER_ID } from './tdfol-prover-bridge.js';
-import { PolicyToTdfolTranslator } from './provers-policy-to-tdfol.js';
+import { PolicyToTdfolTranslator } from '../logic/tdfol/policy-to-tdfol.js';
 
 // ---------------------------------------------------------------------------
 // Rule interface (mirrors TdfolRule from tdfol-prover-bridge.ts)

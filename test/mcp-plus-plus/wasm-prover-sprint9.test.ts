@@ -17,9 +17,9 @@ import {
   Obligation, Permission, Prohibition,
   Negation, Conjunction, Implies, HoldsAt, Belief, ForAll,
   serializeFormula, serializeTerm,
-} from '../../src/services/provers/provers-dcec-types.js';
+} from '../../src/services/logic/dcec/dcec-types.js';
 import { DcecProverBridge } from '../../src/services/provers/dcec-prover-bridge.js';
-import { PolicyToDcecTranslator } from '../../src/services/provers/provers-policy-to-dcec.js';
+import { PolicyToDcecTranslator } from '../../src/services/logic/deontic/policy-to-dcec.js';
 import { WasmProverHub } from '../../src/services/mcp/mcp-wasm-prover-hub.js';
 import type { Policy } from '../../src/services/mcp/mcp-mcp-policy.js';
 

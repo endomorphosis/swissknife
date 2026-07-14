@@ -17,7 +17,7 @@ import {
   convertFolToTptpCnf,
   exportFolFormula,
   toPrefixNotation,
-} from '../../src/services/fol/fol-fol-exporters.js';
+} from '../../src/services/logic/fol/fol-exporters.js';
 
 // ---------------------------------------------------------------------------
 // PORT-172 — TPTP emit/parse

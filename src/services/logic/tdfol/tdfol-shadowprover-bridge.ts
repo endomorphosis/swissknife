@@ -12,7 +12,7 @@
  *   createModalAwareProver() — factory
  */
 
-import { BaseProverBridge, BridgeCapability, BridgeMetadata, BridgeProofResult } from '../../proof-engine/base-prover-bridge.js';
+import { BaseProverBridge, BridgeCapability, BridgeMetadata, BridgeProofResult } from '../../proof-engine/index.js';
 
 // ---------------------------------------------------------------------------
 // ModalLogicType

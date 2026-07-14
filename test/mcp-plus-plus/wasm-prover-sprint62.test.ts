@@ -19,7 +19,7 @@ import {
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/fol-utils/fol-utils-nlp-predicate-extractor.js';
+import { extractPredicatesNlp, normalisePredicate, extractSemanticRoles } from '../../src/services/logic/fol/fol-nlp-extraction.js';
 import {
   FormulaProfiler, BottleneckAnalyzer, ProfilingReporter,
 } from '../../src/services/logic/cec/cec-resolution-rules.js';
