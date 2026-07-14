@@ -53,19 +53,29 @@
       "default": "./src/workers/browser.ts"
     },
     "./logic-language": {
-      "browser": "./src/services/logic-language-pipeline.ts",
-      "import": "./src/services/logic-language-pipeline.ts",
-      "default": "./src/services/logic-language-pipeline.ts"
+      "browser": "./src/services/logic/api/reasoning-normalization-pipeline.ts",
+      "import": "./src/services/logic/api/reasoning-normalization-pipeline.ts",
+      "default": "./src/services/logic/api/reasoning-normalization-pipeline.ts"
     },
     "./deontic-nlp": {
-      "browser": "./src/services/deontic/browser-nlp.ts",
-      "import": "./src/services/deontic/browser-nlp.ts",
-      "default": "./src/services/deontic/browser-nlp.ts"
+      "browser": "./src/services/logic/deontic/browser-nlp.ts",
+      "import": "./src/services/logic/deontic/browser-nlp.ts",
+      "default": "./src/services/logic/deontic/browser-nlp.ts"
     },
     "./zkp": {
       "browser": "./src/services/zkp/browser-zkp.ts",
       "import": "./src/services/zkp/browser-zkp.ts",
       "default": "./src/services/zkp/browser-zkp.ts"
+    },
+    "./proof-engine": {
+      "browser": "./src/services/proof-engine/proof-engine-browser.ts",
+      "import": "./src/services/proof-engine/proof-engine-host.ts",
+      "default": "./src/services/proof-engine/proof-engine-host.ts"
+    },
+    "./provers": {
+      "browser": "./src/services/provers/provers-browser.ts",
+      "import": "./src/services/provers/provers-host.ts",
+      "default": "./src/services/provers/provers-host.ts"
     },
     "./package.json": "./package.json"
   },
@@ -124,6 +134,7 @@
     "test:browser-compat": "npm run test:browser-compat:static && npm run test:browser-compat:runtime",
     "test:browser-compat:static": "jest --config=config/jest/jest.browser-compat.config.cjs --runInBand",
     "test:browser-compat:runtime": "vitest run --config build-tools/configs/vitest.browser-compat.config.ts",
+    "test:browser-proof-runtime": "vitest run --config build-tools/configs/vitest.browser-proof-runtime.config.ts",
     "test:release": "npm run test:fast && npm run test:service && npm run test:browser-compat && npm run test:e2e:mcp",
     "test:run": "vitest run --config build-tools/configs/vitest.config.ts",
     "test:cli": "vitest run --workspace cli",

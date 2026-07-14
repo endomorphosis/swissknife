@@ -1,7 +1,6 @@
 export * from './mcp-control-surface-mediator.js';
 export * from './libp2p-browser-runtime.js';
 export * from './mcp-deontic-interface-broker.js';
-export * from './mcp-mcp-deontic-ui-manifest.js';
 export * from './mcp-descriptor-inspector.js';
 export * from './mcp-descriptor-trust.js';
 export * from './mcp-discovery.js';
@@ -22,4 +21,4 @@ export * from './mcp-transport.js';
 export * from './mcp-ui-profile.js';
 export * from './mcp-wasm-prover-hub.js';
 export * from './policy-audit-log.js';
-export * from './mcp-swissknife-mcp-capability-registry.js';
+export * from '../apps/index.js';

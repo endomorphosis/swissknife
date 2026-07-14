@@ -1,0 +1,15 @@
+{
+  "schema": "swissknife-browser-theorem-fixtures-v1",
+  "valid": {
+    "id": "modus-ponens-tautology",
+    "formula": "((p && (p -> q)) -> q)"
+  },
+  "refuted": {
+    "id": "affirming-the-consequent",
+    "formula": "((p -> q) -> (q -> p))"
+  },
+  "malformed": {
+    "id": "unclosed-group",
+    "formula": "(p &&"
+  }
+}

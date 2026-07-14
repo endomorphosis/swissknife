@@ -3,7 +3,7 @@
  * Port of flogic/flogic_proof_cache.py (447L)
  */
 
-import { ProofCacheBase } from '../proof-engine/proof-cache-base.js';
+import { ProofCacheBase } from '../proof-engine/index.js';
 import { sha256Hex } from '../shared/shared-browser-crypto.js';
 
 export interface FLogicCachedQueryResult {

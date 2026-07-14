@@ -11,14 +11,14 @@ import {
   makeVariable, makeFunction, makePredicate,
   formulaToTPTP, createTPTPProblem, TPTPConverter,
   DCECToUCANMapping, DCECToUCANBridge,
-} from '../../src/services/deontic-cognitive-logic-types';
+} from '../../src/services/logic/dcec/dcec-ucan-tptp-types.js';
 
 import {
   StrategySelector,
   VampireAdapter, checkVampireInstallation, type VampireProcessResult,
   UtilityMonitor, trackPerformance, withCaching, getGlobalStats, clearGlobalCache, resetGlobalStats,
   normalizeProverName, findExecutable, isLazyInstallEnabled, lazyInstallProver,
-} from '../../src/services/prover-strategy-adapters';
+} from '../../src/services/provers/prover-strategy-runtime.js';
 
 // ---------------------------------------------------------------------------
 // DCEC Enums

@@ -7,16 +7,13 @@ const path = require('node:path');
 const rootDir = path.resolve(__dirname, '../..');
 const manifestPath = path.join(rootDir, 'src/module-ownership.json');
 const docsPath = path.join(rootDir, 'docs/source-module-boundaries.md');
+const servicePublicApiDocsPath = path.join(rootDir, 'docs/service-module-public-api.md');
 
 const expectedOutputModules = [
   'commands',
   'entrypoints',
   'components',
   'service-apps',
-  'service-bridge',
-  'service-deontic',
-  'service-fol',
-  'service-fol-utils',
   'service-glasses',
   'service-integrations',
   'service-ipfs',
@@ -254,10 +251,6 @@ describe('source module boundaries', () => {
       'hooks-browser',
       'screens-browser',
       'service-apps',
-      'service-bridge',
-      'service-deontic',
-      'service-fol',
-      'service-fol-utils',
       'service-glasses',
       'service-integrations',
       'service-ipfs',
@@ -366,6 +359,75 @@ describe('source module boundaries', () => {
       .toBe(barrelGroup.paths.length);
     const records = inventory.serviceFiles.filter(item => barrelGroup.paths.includes(item.path));
     expect(new Set(records.map(item => item.behaviorHash.value)).size).toBe(records.length);
+  });
+
+  it('canonicalizes restored service shadows and preserves explicit public migration paths', () => {
+    const audit = runSourceModuleAudit();
+    const inventory = audit.restoredServiceDuplicateInventory;
+    const migrations = manifest.audit.servicePublicApiMigrations;
+    const publicEntrypoints = new Set(
+      Object.values(manifest.modules).flatMap(definition => definition.publicEntrypoints ?? []),
+    );
+    const publicApiDocs = fs.readFileSync(servicePublicApiDocsPath, 'utf8');
+
+    expect(migrations.length).toBeGreaterThan(0);
+    expect(new Set(migrations.map(item => item.legacyPath)).size).toBe(migrations.length);
+    expect(inventory.summary.unapprovedDuplicateBasenames).toBe(0);
+    expect(inventory.summary.unclassifiedNormalizedContentCollisions).toBe(0);
+    expect(inventory.summary.unclassifiedBehavioralEquivalenceGroups).toBe(0);
+    expect(audit.summary.unresolvedMergeMarkers).toBe(0);
+    expect(inventory.policy.approvedContentHashes).not.toContainEqual(expect.objectContaining({
+      disposition: 'canonicalize-restored-shadow',
+    }));
+    expect(inventory.policy.classifiedCollisions).not.toContainEqual(expect.objectContaining({
+      disposition: 'canonicalize-restored-shadow',
+    }));
+
+    for (const migration of migrations) {
+      expect(migration.publicEntrypoint).toBe(migration.canonicalImplementation);
+      expect(fs.existsSync(path.join(rootDir, migration.legacyPath))).toBe(false);
+      expect(fs.statSync(path.join(rootDir, migration.canonicalImplementation)).isFile()).toBe(true);
+      expect(fs.statSync(path.join(rootDir, migration.publicEntrypoint)).isFile()).toBe(true);
+      expect(publicEntrypoints).toContain(migration.publicEntrypoint);
+      expect(migration.compatibility).toBe('removed; import the canonical family API');
+      expect(publicApiDocs).toContain(`\`${migration.legacyPath}\``);
+      expect(publicApiDocs).toContain(`\`${migration.publicEntrypoint}\``);
+    }
+
+    for (const barrelPath of [
+      'src/services/apps/index.ts',
+      'src/services/logic/deontic/browser-nlp.ts',
+    ]) {
+      const source = readProjectFile(barrelPath)
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+      expect(source).toMatch(/\bexport\b/);
+      expect(source).not.toMatch(/\b(?:class|function|const|let|var|new)\b|=>/);
+    }
+
+    const proofBrowser = inventory.serviceFiles.find(
+      item => item.path === 'src/services/proof-engine/proof-engine-browser.ts',
+    );
+    const proofIndex = inventory.serviceFiles.find(
+      item => item.path === 'src/services/proof-engine/index.ts',
+    );
+    expect(proofBrowser.behaviorHash.value).not.toBe(proofIndex.behaviorHash.value);
+    expect(readProjectFile(proofBrowser.path)).toContain('class BrowserProofEngine');
+    expect(manifest.modules['service-proof-engine'].browserSafeEntrypoint).toBe(proofBrowser.path);
+    expect(manifest.modules['service-provers'].browserSafeEntrypoint)
+      .toBe('src/services/provers/provers-browser.ts');
+
+    const packageJson = readJson(path.join(rootDir, 'package.json'));
+    expect(packageJson.exports['./proof-engine']).toEqual(expect.objectContaining({
+      browser: './src/services/proof-engine/proof-engine-browser.ts',
+      import: './src/services/proof-engine/proof-engine-host.ts',
+      default: './src/services/proof-engine/proof-engine-host.ts',
+    }));
+    expect(packageJson.exports['./provers']).toEqual(expect.objectContaining({
+      browser: './src/services/provers/provers-browser.ts',
+      import: './src/services/provers/provers-host.ts',
+      default: './src/services/provers/provers-host.ts',
+    }));
   });
 
   it('rejects new root service wrappers that are not in the ownership inventory', () => {
@@ -521,6 +583,7 @@ describe('source module boundaries', () => {
     expect(result.status).toBe(0);
     expect(fs.existsSync(path.join(fixtureDir, 'docs/restored-service-duplicate-inventory.json'))).toBe(true);
     expect(fs.existsSync(path.join(fixtureDir, 'docs/restored-service-duplicate-inventory.md'))).toBe(true);
+    expect(fs.existsSync(path.join(fixtureDir, 'docs/service-module-public-api.md'))).toBe(true);
 
     const inventory = readJson(path.join(fixtureDir, 'docs/restored-service-duplicate-inventory.json'));
     expect(inventory.summary.duplicateBasenames).toBe(1);

@@ -17,7 +17,7 @@ import {
   getPortugueseDeonticKeywords, PortugueseParser,
   DeonticModality, ConflictType, detectConflict,
   FLogicStatus, makeFrame, makeOntology,
-} from '../../src/services/deontic-nlp-ontology-types';
+} from '../../src/services/logic/nl/portuguese-deontic-flogic-types.js';
 
 import {
   normalizeText, canonicalizeTheorem, canonicalizeAxioms, theoremHashHex, axiomsCommitmentHex, tdfolV1AxiomsCommitmentHexV2,

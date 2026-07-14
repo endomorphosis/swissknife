@@ -1,4 +1,4 @@
-import { TrafficManager } from '../../../../src/services/mcp/mcp-mcp-traffic-manager.js';
+import { TrafficManager } from '../../../../src/services/mcp/host/mcp-traffic-manager.js';
 import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry';
 import { VersionedServerConfig } from '../../../../src/types/mcp'; // Assuming this type exists
 import { connectToServer } from '../../../../src/services/mcp/host/mcpClient.js'; // Assuming this function exists

@@ -18,14 +18,14 @@ import {
   ALL_PROVER_TARGETS,
   ProverSyntaxBuilder,
   ProverSyntaxValidator,
-} from '../../src/services/deontic/deontic-prover-syntax-builder.js';
-import { decodeLegalNormIR } from '../../src/services/deontic/deontic-legal-norm-decoder.js';
+} from '../../src/services/logic/deontic/prover-syntax-builder.js';
+import { decodeLegalNormIR } from '../../src/services/logic/deontic/legal-norm-decoder.js';
 import {
   buildLegalNormIR,
   emptyQuality,
   parserWarningsRequireDecoderValidation,
   parser_warnings_require_decoder_validation,
-} from '../../src/services/deontic/deontic-legal-norm-ir.js';
+} from '../../src/services/logic/deontic/legal-norm-ir.js';
 import {
   activeRepairDetailsFromParserElements,
   buildDeterministicParserCapabilityProfileRecord,

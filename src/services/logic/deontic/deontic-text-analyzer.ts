@@ -454,7 +454,7 @@ export function generateEntityReports(
 
   const reports: EntityConflictReport[] = [];
   for (const [entity, stmts] of byEntity) {
-    const entityConflicts = conflicts.filter(c => c.entity === entity);
+    const entityConflicts = conflicts.filter(c => c.entities.includes(entity));
     const modCounts: Record<string, number> = {};
     for (const s of stmts) modCounts[s.modality] = (modCounts[s.modality] ?? 0) + 1;
     const dominant = Object.entries(modCounts).sort(([,a],[,b]) => b-a)[0]?.[0] as DeonticModality | undefined;

@@ -4,12 +4,13 @@
  */
 
 import { ProofStatus }               from '../../src/services/logic/tdfol/tdfol-prover.js';
-import { ALL_COMPLETENESS_RULES }    from '../../src/services/provers/provers-tdfol-completeness-rules.js';
+import { ALL_COMPLETENESS_RULES }    from '../../src/services/logic/tdfol/tdfol-completeness-rules.js';
 import { isSubtypeOf, makeSort, formatDCECBracket, parseDCECBracket, dcecFormulaEquals, dcecFormulaHash } from '../../src/services/logic/dcec/dcec-core-types.js';
-import { CognitiveOperator }         from '../../src/services/deontic-cognitive-logic-types';
+import { CognitiveOperator }         from '../../src/services/logic/dcec/dcec-ucan-tptp-types.js';
 import { toPropositionField, fromPropositionField } from '../../src/services/logic/deontic/deontic-query-engine.js';
 import { toProofResultWire, fromProofResultWire }    from '../../src/services/logic/shared/logic-verifier.js';
 import { LegalDomainKind }           from '../../src/services/logic/shared/legal-domain-knowledge.js';
+import { mkBinary, mkPredicate, mkUnary } from '../../src/services/logic/tdfol/tdfol-core.js';
 
 // ---------------------------------------------------------------------------
 // PORT-010: 'failed' ProofReason
@@ -72,7 +73,6 @@ describe('PORT-060..066 ALL_COMPLETENESS_RULES', () => {
   });
 
   it('ConjunctionEliminationLeft extracts left conjunct', () => {
-    const { mkBinary, mkPredicate } = require('../../src/services/logic/tdfol/tdfol-core.js');
     const p = mkPredicate('p');
     const q = mkPredicate('q');
     const pAndQ = mkBinary('∧', p, q);
@@ -83,7 +83,6 @@ describe('PORT-060..066 ALL_COMPLETENESS_RULES', () => {
   });
 
   it('ConjunctionEliminationRight extracts right conjunct', () => {
-    const { mkBinary, mkPredicate } = require('../../src/services/logic/tdfol/tdfol-core.js');
     const p = mkPredicate('p');
     const q = mkPredicate('q');
     const pAndQ = mkBinary('∧', p, q);
@@ -93,7 +92,6 @@ describe('PORT-060..066 ALL_COMPLETENESS_RULES', () => {
   });
 
   it('DeMorganAnd derives ¬A ∨ ¬B from ¬(A ∧ B)', () => {
-    const { mkBinary, mkPredicate, mkUnary } = require('../../src/services/logic/tdfol/tdfol-core.js');
     const p = mkPredicate('p');
     const q = mkPredicate('q');
     const negAndPQ = mkUnary(mkBinary('∧', p, q));
@@ -103,7 +101,6 @@ describe('PORT-060..066 ALL_COMPLETENESS_RULES', () => {
   });
 
   it('UntilInductionStep unfolds φ U ψ', () => {
-    const { mkBinary, mkPredicate } = require('../../src/services/logic/tdfol/tdfol-core.js');
     const p = mkPredicate('p');
     const q = mkPredicate('q');
     const until = mkBinary('U', p, q);
@@ -192,7 +189,7 @@ describe('PORT-095 CognitiveOperator.GOAL', () => {
 // ---------------------------------------------------------------------------
 describe('PORT-111 hierarchical ConflictType', () => {
   it("'hierarchical' is valid ConflictType literal", () => {
-    const t: import('../../src/services/deontic/deontic-deontic-text-analyzer.js').ConflictType = 'hierarchical';
+    const t: import('../../src/services/logic/deontic/deontic-text-analyzer.js').ConflictType = 'hierarchical';
     expect(t).toBe('hierarchical');
   });
 });

@@ -43,22 +43,18 @@ behind host entrypoints or host adapters.
 | `hooks` | `host-ui` | React and Ink hooks for terminal interaction, excluding browser hooks under `src/hooks/browser`. | `src/hooks/*.ts` |
 | `hooks-browser` | `browser-safe` | Browser-safe React hooks for web/runtime surfaces. | `src/hooks/browser/index.ts`, `src/hooks/browser/*.ts` |
 | `platform` | `split` | Browser and host runtime facades. | `src/platform/browser.ts`, `src/platform/host.ts` |
-| `service-apps` | `universal` | App manifests, app-state contracts, all-tools app bindings, and app capability policy gates. | `src/services/apps/*.ts` |
-| `service-bridge` | `split` | Modal/prover bridge adapters below root service facades. | `src/services/bridge/*.ts` |
-| `service-deontic` | `split` | Deontic extraction, graph, legal norm, parser quality, and support-map services. | `src/services/deontic/*.ts` |
-| `service-fol` | `split` | First-order logic conversion, export, formatting, and confidence scoring services. | `src/services/fol/*.ts` |
-| `service-fol-utils` | `split` | FOL parser/output utility entrypoints owned by the service layer. | `src/services/fol-utils/*.ts` |
+| `service-apps` | `universal` | App manifests, app-state contracts, all-tools app bindings, and app capability policy gates. | `src/services/apps/index.ts` and curated manifest entries |
 | `service-glasses` | `split` | Meta glasses display, input, webapp, mobile ORB, and replay adapters. | `src/services/glasses/*.ts` |
 | `service-integrations` | `split` | External service integrations isolated from root compatibility files. | `src/services/integrations/*.ts` |
 | `service-ipfs` | `split` | IPFS MCP/UI descriptors, descriptor packs, proof-cache integration, and browser/host IPFS adapters. | `src/services/ipfs/*.ts` |
-| `service-logic` | `split` | Restored logic service implementation families for API, bridges, CEC, DCEC, deontic, FOL, modal, natural-language, shared logic, and TDFOL behavior. | `src/services/logic/**/*.ts`, `src/services/logic/**/*.js` |
+| `service-logic` | `split` | Canonical API, bridge, CEC, DCEC, deontic, FOL, modal, natural-language, shared logic, and TDFOL implementations. | Subfamily `index.ts`, browser/host barrels, and curated manifest entries |
 | `service-mcp` | `split` | MCP/MCP++ protocol, transport, ORB routing, UI profile contracts, mediation, and registry logic. | `src/services/mcp/*.ts`, `src/services/mcp/*.js` |
 | `service-platform` | `split` | Restored service-layer platform adapters for browser/host runtime selection, telemetry, resource pools, feature detection, and acceleration helpers. | `src/services/platform/*.ts`, `src/services/platform/*.js` |
 | `service-proof-engine` | `split` | Restored proof execution, proof cache, proof tree, prover routing, and proof strategy implementations. | `src/services/proof-engine/*.ts`, `src/services/proof-engine/*.js` |
 | `service-provers` | `split` | Browser and host prover bridges, serializers, proof-cache helpers, and prover type contracts. | `src/services/provers/*.ts` |
 | `service-shared` | `universal` | Restored browser-safe and runtime-neutral primitives shared by service families. | `src/services/shared/*.ts`, `src/services/shared/*.js` |
 | `service-zkp` | `split` | ZKP browser backends, simulated prover quarantine, UCAN bridge, artifacts, and circuits. | `src/services/zkp/*.ts`, `src/services/zkp/artifacts/**/*.ts` |
-| `services` | `split` | Explicitly inventoried root service facades and compatibility files. New service implementation files must live in a named service family subdirectory. | `src/services/logic-public-api.ts`, `src/services/browser-acceleration.ts` |
+| `services` | `split` | Explicitly inventoried exceptional root services. Restored shadows and compatibility implementations are forbidden. | Exact paths in `audit.serviceRootFileOwners` |
 | `storage` | `split` | Storage providers, registries, virtual filesystem, cache, and IPFS integration. | `src/storage/backend.ts`, `src/storage/browser.ts`, `src/storage/host.ts`, `src/storage/provider.ts`, `src/storage/registry.ts`, `src/storage/service.ts`, `src/storage/storage-service.ts`, `src/storage/virtual-filesystem.ts` |
 | `tasks` | `split` | Task graph, scheduling, decomposition, delegation, and coordination. | `src/tasks/manager.ts`, `src/tasks/registry.ts`, `src/tasks/scheduler.ts`, `src/tasks/graph/*.ts`, `src/tasks/scheduler/*.ts` |
 | `workers` | `split` | Worker pool and execution isolation. | `src/workers/pool.ts`, `src/workers/worker-pool.ts`, `src/workers/worker-thread.ts` |

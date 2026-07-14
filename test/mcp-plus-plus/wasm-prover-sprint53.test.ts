@@ -22,7 +22,7 @@ import {
 import {
   StrategyType, ForwardChainingStrategy, BackwardChainingStrategy,
   BidirectionalStrategy, HybridStrategy, getStrategy,
-} from '../../src/services/proof-engine/proof-strategies.js';
+} from '../../src/services/proof-engine/index.js';
 
 import {
   CircuitState, LLMCircuitBreaker, CircuitBreakerOpenError,

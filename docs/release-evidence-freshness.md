@@ -11,8 +11,8 @@ is the active default release-blocking group.
 | Evidence | Default scope | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- | --- |
 | Browser libp2p Playwright evidence (SWR-028) | historical | ⚠️ never-certified | never | npm run evidence:libp2p-browser |
-| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-14T11:02:04.179Z | npm run build:web |
-| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-14T11:21:28.844Z | npm run services:audit |
+| Browser bundle budget evidence (SWR-016) | historical | ❌ stale | 2026-07-14T11:02:04.179Z | npm run build:web |
+| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-14T18:15:36.724Z | npm run services:audit |
 | Virtual desktop all-tools release evidence (SVD-101) | active | ❌ missing-evidence | 2026-07-14T07:47:06.844Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 
 ## Browser libp2p Playwright evidence (SWR-028)
@@ -21,6 +21,13 @@ is the active default release-blocking group.
 - Recorded fingerprint: `none`
 - Current fingerprint: `949df6231225a332ed1b049788126aedd499e133a0a9ca91a3722f6d0e5d3554`
 - Regenerate with: `npm run evidence:libp2p-browser`
+
+## Browser bundle budget evidence (SWR-016)
+
+- Status: **stale**
+- Recorded fingerprint: `8414916267cfaec2f3ae0c954b1ca10944c94721d3c84e9c4dd5028a6616415b`
+- Current fingerprint: `74d56a352819a8df775996a7328994ccd493a526dc1777846c3d57b7323e425d`
+- Regenerate with: `npm run build:web`
 
 ## Virtual desktop all-tools release evidence (SVD-101)
 

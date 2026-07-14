@@ -250,12 +250,12 @@ describe('PORT-195 VKRegistry', () => {
 
 import {
   ProofExecutionEngine,
-  ProofCache,
+  ExecutionProofCache as ProofCache,
   executeProof,
   proveStatement,
   resetProofExecutionEngine,
-} from '../../src/services/proof-engine/proof-execution-engine.js';
-import { ProofStatus } from '../../src/services/proof-engine/proof-execution-engine-types.js';
+} from '../../src/services/proof-engine/index.js';
+import { ProofStatus } from '../../src/services/proof-engine/index.js';
 
 describe('PORT-201 ProofCache', () => {
   it('caches and retrieves results', () => {
