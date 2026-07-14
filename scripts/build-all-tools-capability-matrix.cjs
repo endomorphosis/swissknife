@@ -10,6 +10,7 @@ const outPath = path.join(evidenceRoot, 'capability-matrix.json');
 const markdownPath = path.join(evidenceRoot, 'capability-matrix.md');
 const appBackendContractPath = path.join(evidenceRoot, 'app-backend-contract.json');
 const docsPath = path.join(projectRoot, 'docs', 'virtual-desktop-all-tools-app-coverage.md');
+const inputProblems = [];
 
 const artifacts = {
   appInventory: readJson('all-tools-app-inventory.json'),
@@ -124,6 +125,13 @@ const boundRows = rows.filter(row => row.all_tools.bound_tool_count > 0);
 const matrix = {
   schema: 'swissknife.virtual-desktop-all-tools-capability-matrix.v1',
   generated_at: new Date().toISOString(),
+  status: inputProblems.length === 0 ? 'complete' : 'incomplete',
+  decision: inputProblems.length === 0 ? 'go' : 'no_go',
+  input_evidence: {
+    required_count: 7,
+    available_count: 7 - inputProblems.length,
+    problems: inputProblems,
+  },
   generated_from: [
     'all-tools-app-inventory.json',
     'all-tools-app-bindings.json',
@@ -168,12 +176,19 @@ matrix.matrix_cid = `sha256:${crypto
 
 fs.mkdirSync(evidenceRoot, { recursive: true });
 fs.writeFileSync(outPath, `${JSON.stringify(matrix, null, 2)}\n`);
-const appBackendContract = buildAppBackendContract(matrix);
-fs.writeFileSync(appBackendContractPath, `${JSON.stringify(appBackendContract, null, 2)}\n`);
 const markdown = renderMarkdown(matrix);
 fs.writeFileSync(markdownPath, markdown);
-fs.mkdirSync(path.dirname(docsPath), { recursive: true });
-fs.writeFileSync(docsPath, renderCoverageDoc(matrix, appBackendContract));
+// The capability matrix is diagnostic when historical generated inputs have
+// not been restored.  Do not replace a valid, tracked backend contract with
+// an empty projection in that case; the release aggregator will fail closed
+// and name the missing evidence instead.
+let appBackendContract = null;
+if (matrix.status === 'complete') {
+  appBackendContract = buildAppBackendContract(matrix);
+  fs.writeFileSync(appBackendContractPath, `${JSON.stringify(appBackendContract, null, 2)}\n`);
+  fs.mkdirSync(path.dirname(docsPath), { recursive: true });
+  fs.writeFileSync(docsPath, renderCoverageDoc(matrix, appBackendContract));
+}
 
 console.log(JSON.stringify({
   schema: matrix.schema,
@@ -183,15 +198,69 @@ console.log(JSON.stringify({
   adapter_required_tool_count: matrix.adapter_required_tool_count,
   descriptor_count: matrix.descriptor_count,
   projection_count: matrix.projection_count,
+  decision: matrix.decision,
+  input_problem_count: inputProblems.length,
   desktop_mobile_only_tool_count: matrix.desktop_mobile_only_tool_count,
   supervisor_only_tool_count: matrix.supervisor_only_tool_count,
   output: path.relative(projectRoot, outPath),
   app_backend_contract: path.relative(projectRoot, appBackendContractPath),
+  app_backend_contract_updated: matrix.status === 'complete',
   docs: path.relative(projectRoot, docsPath),
+  docs_updated: matrix.status === 'complete',
 }, null, 2));
 
 function readJson(fileName) {
-  return JSON.parse(fs.readFileSync(path.join(evidenceRoot, fileName), 'utf8'));
+  const filePath = path.join(evidenceRoot, fileName);
+  if (!fs.existsSync(filePath)) {
+    inputProblems.push({
+      file: fileName,
+      code: 'missing',
+      reason: `Required capability-matrix input is missing: ${path.relative(projectRoot, filePath)}.`,
+    });
+    return emptyArtifact(fileName);
+  }
+  try {
+    const value = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    if (!hasRequiredShape(fileName, value)) {
+      inputProblems.push({
+        file: fileName,
+        code: 'invalid_shape',
+        reason: `Required capability-matrix input has no usable row collection: ${path.relative(projectRoot, filePath)}.`,
+      });
+      return emptyArtifact(fileName);
+    }
+    return value;
+  } catch (error) {
+    inputProblems.push({
+      file: fileName,
+      code: 'invalid_json',
+      reason: `Required capability-matrix input is invalid JSON: ${error instanceof Error ? error.message : String(error)}.`,
+    });
+    return emptyArtifact(fileName);
+  }
+}
+
+function hasRequiredShape(fileName, value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (fileName === 'all-tools-app-inventory.json') return Array.isArray(value.apps);
+  if (fileName === 'all-tools-app-bindings.json') return Array.isArray(value.rows) || Array.isArray(value.bindings);
+  if (fileName === 'all-tools-policy-matrix.json') return Array.isArray(value.rules) || Array.isArray(value.tools);
+  if (fileName === 'all-tools-execution-report.json') return Array.isArray(value.fixtures);
+  if (fileName === 'all-tools-idl-coverage.json') return Array.isArray(value.descriptors);
+  if (fileName === 'all-tools-glasses-coverage.json') return Array.isArray(value.projections);
+  if (fileName === 'all-tools-app-family-coverage.json') return Array.isArray(value.app_families);
+  return true;
+}
+
+function emptyArtifact(fileName) {
+  if (fileName === 'all-tools-app-inventory.json') return { apps: [], aliases: {} };
+  if (fileName === 'all-tools-app-bindings.json') return { rows: [], bindings: [], app_binding_states: [] };
+  if (fileName === 'all-tools-policy-matrix.json') return { rules: [], tools: [] };
+  if (fileName === 'all-tools-execution-report.json') return { fixtures: [] };
+  if (fileName === 'all-tools-idl-coverage.json') return { descriptors: [], tool_coverage: [] };
+  if (fileName === 'all-tools-glasses-coverage.json') return { projections: [] };
+  if (fileName === 'all-tools-app-family-coverage.json') return { app_families: [] };
+  return {};
 }
 
 function groupBy(items, keyFn) {
@@ -370,7 +439,16 @@ function renderMarkdown(matrix) {
   lines.push('');
   lines.push(`Generated: ${matrix.generated_at}`);
   lines.push(`Matrix CID: \`${matrix.matrix_cid}\``);
+  lines.push(`Decision: **${matrix.decision.toUpperCase().replace('_', '-')}**`);
   lines.push('');
+  if (matrix.input_evidence.problems.length > 0) {
+    lines.push('## Input blockers');
+    lines.push('');
+    for (const problem of matrix.input_evidence.problems) {
+      lines.push(`- \`${problem.file}\` (${problem.code}): ${problem.reason}`);
+    }
+    lines.push('');
+  }
   lines.push('## Summary');
   lines.push(`- Apps: ${matrix.app_count}`);
   lines.push(`- Apps with all-tools bindings: ${matrix.app_with_bound_tool_count}`);

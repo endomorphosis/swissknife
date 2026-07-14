@@ -8,11 +8,13 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const projectRoot = path.resolve(__dirname, '..');
+const workspaceRoot = path.resolve(projectRoot, '..');
 const evidenceRoot = path.join(projectRoot, 'test-results', 'virtual-desktop-ipfs-mcp-orb');
 const outputPaths = {
   json: path.join(evidenceRoot, 'release-evidence.json'),
   markdown: path.join(evidenceRoot, 'all-tools-release-evidence.md'),
   signoff: path.join(projectRoot, 'docs', 'refactor-final-signoff.md'),
+  discovery: path.join(workspaceRoot, 'data', 'swissknife_virtual_desktop', 'discovery', 'all-tools-no-new-unknowns.md'),
 };
 const REQUIRED_SERVICES = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
 const REQUIRED_PROFILES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
@@ -117,6 +119,8 @@ function main() {
   const sourceRevision = gitRevision();
   const records = evidenceDefinitions.map(loadEvidence);
   const gaps = records.flatMap(record => record.gaps);
+  const phaseFourCloseout = buildPhaseFourCloseout(records);
+  gaps.push(...phaseFourCloseout.gaps);
   const dispositions = collectDispositions(records);
 
   for (const disposition of dispositions.rejected) {
@@ -131,6 +135,7 @@ function main() {
 
   const blockerGaps = dedupeGaps(gaps.filter(item => !isClosedByDisposition(item, dispositions.approved)));
   const decision = blockerGaps.length === 0 ? 'GO' : 'NO_GO';
+  const unknownTaskClassGaps = blockerGaps.filter(item => !/^SVD-\d+$/.test(item.task_id ?? ''));
   const artifactMap = Object.fromEntries(records.map(record => [record.id, artifactSummary(record)]));
   const appBehavior = records.find(record => record.id === 'app_backend_behavior');
   const supervisor = records.find(record => record.id === 'supervisor_console');
@@ -160,7 +165,7 @@ function main() {
       generated_output_is_not_behavior_proof: true,
     },
     release_policy: {
-      go_rule: 'Every required app, tool, service/profile/transport cell, Supervisor path, ORB/IDL packet, and simulator modality needs a current passing proof or an approved non-release disposition.',
+      go_rule: 'Every required app, tool, service/profile/transport cell, Supervisor path, ORB/IDL packet, simulator modality, and SVD-047 phase-four closeout gate needs a current passing proof or an approved non-release disposition.',
       counts_do_not_prove_availability: true,
       missing_or_failed_proof_defaults_to_no_go: true,
       required_services: REQUIRED_SERVICES,
@@ -170,6 +175,15 @@ function main() {
       required_replay_scenarios: REQUIRED_REPLAY_SCENARIOS,
     },
     artifacts: artifactMap,
+    phase_four_closeout: phaseFourCloseout.summary,
+    unknown_task_class_audit: {
+      status: unknownTaskClassGaps.length === 0 ? 'no_new_unknowns' : 'unknown_task_classes_present',
+      unknown_task_class_count: unknownTaskClassGaps.length,
+      unknown_task_class_gaps: unknownTaskClassGaps,
+      statement: unknownTaskClassGaps.length === 0
+        ? 'Every open release gap is assigned to an existing SVD task class; no new unknown task class was introduced.'
+        : 'One or more release gaps are not assigned to an existing SVD task class.',
+    },
     app_behavior_matrix: appMatrix,
     service_profile_transport_matrix: serviceMatrix,
     tool_behavior_matrix: toolMatrix,
@@ -198,6 +212,7 @@ function main() {
   atomicWriteJson(outputPaths.json, report);
   atomicWrite(outputPaths.markdown, renderMarkdown(report));
   atomicWrite(outputPaths.signoff, renderSignoff(report));
+  atomicWrite(outputPaths.discovery, renderNoNewUnknowns(report));
   certifyAggregateFreshness();
 
   console.log(JSON.stringify({
@@ -449,6 +464,250 @@ function validatePeerEvidence(record) {
         tool.disposition_reason, record.path));
     }
   }
+}
+
+/**
+ * Preserve the SVD-047 closeout contract after the release aggregate moved on
+ * to the broader SVD-101 evidence model.  These gates deliberately accept a
+ * newer, stronger proof where one exists, but never infer success from counts
+ * or from the aggregate report being generated successfully.
+ */
+function buildPhaseFourCloseout(records) {
+  const current = Object.fromEntries(records.map(record => [record.id, record]));
+  const policy = readPhaseFourArtifact('all-tools-policy-release-gate.json');
+  const adapter = readPhaseFourArtifact('ipfs-accelerate-adapter-coverage.json');
+  const smoke = readPhaseFourArtifact('all-tools-app-smoke-coverage.json');
+  const browser = readPhaseFourArtifact('browser-all-app-compatibility.json');
+  const legacyMeta = readPhaseFourArtifact('meta-glasses-device-simulator-validation.json');
+
+  const smokeChecks = validatePhaseFourSmoke(smoke);
+  const policyChecks = validatePhaseFourPolicy(policy);
+  const adapterChecks = validatePhaseFourAdapter(adapter, policy);
+  const browserChecks = validatePhaseFourBrowser(browser, smoke);
+  const legacyMetaChecks = validatePhaseFourMeta(legacyMeta);
+
+  const representativeSatisfied = current.app_backend_behavior?.status === 'passed'
+    || smokeChecks.every(item => item.passed);
+  const exhaustiveSatisfied = current.peer_interoperability?.status === 'passed'
+    || policyChecks.every(item => item.passed);
+  const metaSatisfied = current.meta_device_simulator?.status === 'passed'
+    || legacyMetaChecks.every(item => item.passed);
+
+  const gates = [
+    phaseFourGate(
+      'representative_app_gate',
+      'SVD-047',
+      'Representative virtual-desktop app behavior',
+      representativeSatisfied,
+      representativeSatisfied
+        ? []
+        : unique([
+            ...failedReasons(smokeChecks),
+            ...recordFailureReasons(current.app_backend_behavior),
+          ]),
+      [artifactReference(smoke), recordReference(current.app_backend_behavior)],
+    ),
+    phaseFourGate(
+      'exhaustive_all_tools_gate',
+      'SVD-057',
+      'Exhaustive all-tools policy and behavior coverage',
+      exhaustiveSatisfied,
+      exhaustiveSatisfied
+        ? []
+        : unique([
+            ...failedReasons(policyChecks),
+            ...recordFailureReasons(current.peer_interoperability),
+          ]),
+      [artifactReference(policy), recordReference(current.peer_interoperability)],
+    ),
+    phaseFourGate(
+      'accelerate_adapter_boundary',
+      'SVD-044',
+      'Configured ipfs_accelerate_py adapter boundary',
+      adapterChecks.every(item => item.passed),
+      failedReasons(adapterChecks),
+      [artifactReference(adapter), artifactReference(policy)],
+    ),
+    phaseFourGate(
+      'browser_compatible_app_smoke',
+      'SVD-058',
+      'Browser-compatible all-app smoke evidence',
+      browserChecks.every(item => item.passed) && smokeChecks.every(item => item.passed),
+      unique([...failedReasons(browserChecks), ...failedReasons(smokeChecks)]),
+      [artifactReference(browser), artifactReference(smoke)],
+    ),
+    phaseFourGate(
+      'meta_glasses_simulator',
+      'SVD-046',
+      'Hardware-free Meta glasses simulator evidence',
+      metaSatisfied,
+      metaSatisfied
+        ? []
+        : unique([
+            ...failedReasons(legacyMetaChecks),
+            ...recordFailureReasons(current.meta_device_simulator),
+          ]),
+      [artifactReference(legacyMeta), recordReference(current.meta_device_simulator)],
+    ),
+  ];
+
+  const gaps = gates.filter(item => !item.passed).map(item => gap(
+    item.task_id,
+    `phase_four_${item.gate_id}`,
+    item.gate_id,
+    `${item.label} is not satisfied: ${item.blockers.join('; ') || 'no passing evidence was supplied'}.`,
+    item.evidence.map(source => source.path).filter(Boolean).join(', ') || null,
+  ));
+  return {
+    gaps,
+    summary: {
+      schema: 'swissknife.svd-047-phase-four-closeout.v1',
+      required_gate_count: gates.length,
+      passed_gate_count: gates.filter(item => item.passed).length,
+      failed_gate_count: gates.filter(item => !item.passed).length,
+      decision: gates.every(item => item.passed) ? 'go' : 'no_go',
+      unknown_task_class_count: gates.filter(item => !/^SVD-\d+$/.test(item.task_id)).length,
+      gates,
+    },
+  };
+}
+
+function readPhaseFourArtifact(fileName) {
+  const filePath = path.join(evidenceRoot, fileName);
+  const record = {
+    path: relative(filePath),
+    status: 'missing',
+    data: null,
+    sha256: null,
+    error: null,
+  };
+  if (!fs.existsSync(filePath)) return record;
+  try {
+    const bytes = fs.readFileSync(filePath);
+    record.data = JSON.parse(bytes.toString('utf8'));
+    record.sha256 = sha256(bytes);
+    record.status = 'present';
+  } catch (error) {
+    record.status = 'invalid';
+    record.error = errorMessage(error);
+  }
+  return record;
+}
+
+function validatePhaseFourSmoke(record) {
+  const data = record.data;
+  const appCount = data?.app_count;
+  const routed = data?.app_with_dispatch_count;
+  const unrouted = data?.app_without_dispatch_count;
+  return [
+    phaseCheck(record.status === 'present', `${record.path} is missing or invalid${record.error ? `: ${record.error}` : ''}`),
+    phaseCheck(data?.schema === 'swissknife.all-tools-virtual-desktop-app-smoke-coverage.v1', `${record.path} has an unexpected schema.`),
+    phaseCheck(Number.isInteger(appCount) && appCount > 0, `${record.path} has no positive app count.`),
+    phaseCheck(Array.isArray(data?.apps) && data.apps.length === appCount, `${record.path} app rows do not match its app count.`),
+    phaseCheck(Number.isInteger(routed) && Number.isInteger(unrouted) && routed + unrouted === appCount, `${record.path} does not account for every app route.`),
+    phaseCheck((data?.app_routable_tool_count ?? 0) > 0, `${record.path} has no app-routable tools.`),
+    phaseCheck((data?.call_envelope_count ?? 0) >= (data?.app_routable_tool_count ?? 1), `${record.path} call envelopes do not cover all app-routable tools.`),
+    phaseCheck(data?.layout_overflow_count === 0, `${record.path} reports layout overflow.`),
+    phaseCheck((data?.screenshot_count ?? 0) > 0, `${record.path} has no browser screenshot evidence.`),
+    ...['confirmation_blocked', 'confirmation_approved', 'success_rendered', 'error_rendered', 'receipt_rendered']
+      .map(state => phaseCheck(data?.dispatch_state_counts?.[state] === routed, `${record.path} does not cover ${state} for every routed app.`)),
+  ];
+}
+
+function validatePhaseFourPolicy(record) {
+  const gates = Array.isArray(record.data?.gates) ? record.data.gates : [];
+  return [
+    phaseCheck(record.status === 'present', `${record.path} is missing or invalid${record.error ? `: ${record.error}` : ''}`),
+    phaseCheck(isPassingDecision(record.data?.decision), `${record.path} decision is ${record.data?.decision ?? 'missing'}.`),
+    phaseCheck(gates.length > 0, `${record.path} declares no exhaustive gates.`),
+    phaseCheck(gates.length > 0 && gates.every(item => item.passed === true || String(item.status).toLowerCase() === 'pass'), `${record.path} has a failed or unproved gate.`),
+    phaseCheck((record.data?.blockers ?? []).length === 0, `${record.path} declares blockers.`),
+  ];
+}
+
+function validatePhaseFourAdapter(adapter, policy) {
+  const data = adapter.data;
+  const summary = data?.summary ?? data ?? {};
+  const policyBoundary = (policy.data?.gates ?? []).find(item => (item.gate_id ?? item.id) === 'accelerate_adapter_boundary');
+  const requiredCount = summary.required_count ?? summary.required_tool_count;
+  const configuredCount = summary.configured_required_count;
+  return [
+    phaseCheck(adapter.status === 'present', `${adapter.path} is missing or invalid${adapter.error ? `: ${adapter.error}` : ''}`),
+    phaseCheck(isPassingDecision(summary.decision ?? data?.decision), `${adapter.path} decision is ${summary.decision ?? data?.decision ?? 'missing'}.`),
+    phaseCheck(Number.isInteger(requiredCount) && requiredCount > 0, `${adapter.path} has no required adapter-tool count.`),
+    phaseCheck(configuredCount === requiredCount, `${adapter.path} configured adapter coverage is ${configuredCount ?? 'missing'}/${requiredCount ?? 'missing'}.`),
+    phaseCheck(summary.missing_configured_required_count === 0, `${adapter.path} still has missing configured adapter tools.`),
+    phaseCheck((data?.blockers ?? []).length === 0, `${adapter.path} declares adapter blockers.`),
+    phaseCheck(policy.status === 'present', `${policy.path} is missing or invalid.`),
+    phaseCheck(Boolean(policyBoundary), `${policy.path} has no accelerate_adapter_boundary gate.`),
+    phaseCheck(policyBoundary?.passed === true || String(policyBoundary?.status).toLowerCase() === 'pass', `${policy.path} accelerate_adapter_boundary did not pass.`),
+  ];
+}
+
+function validatePhaseFourBrowser(browser, smoke) {
+  const data = browser.data;
+  return [
+    phaseCheck(browser.status === 'present', `${browser.path} is missing or invalid${browser.error ? `: ${browser.error}` : ''}`),
+    phaseCheck(data?.schema === 'swissknife.browser-all-app-compatibility.v1', `${browser.path} has an unexpected schema.`),
+    phaseCheck(isPassingDecision(data?.decision), `${browser.path} decision is ${data?.decision ?? 'missing'}.`),
+    phaseCheck(data?.browser_audit?.ok === true, `${browser.path} browser audit did not pass.`),
+    phaseCheck(data?.browser_audit?.fail_count === 0, `${browser.path} has browser audit failures.`),
+    phaseCheck(data?.browser_audit?.host_only_match_count === 0, `${browser.path} has unguarded host-only matches.`),
+    phaseCheck(data?.all_app_smoke?.layout_overflow_count === 0, `${browser.path} reports app layout overflow.`),
+    phaseCheck(data?.all_app_smoke?.app_count === smoke.data?.app_count && (data?.all_app_smoke?.app_count ?? 0) > 0, `${browser.path} does not match the all-app smoke count.`),
+    phaseCheck((data?.blockers ?? []).length === 0, `${browser.path} declares blockers.`),
+  ];
+}
+
+function validatePhaseFourMeta(record) {
+  const data = record.data;
+  const summary = data?.summary ?? {};
+  const explicitPass = isPassingDecision(data?.decision ?? data?.status)
+    || data?.passed === true
+    || data?.valid === true;
+  const blockerCount = data?.blocker_count ?? summary.blocker_count ?? (data?.blockers ?? []).length;
+  const failureCounts = [
+    data?.open_failure_count, data?.template_failure_count, data?.browser_error_count,
+    summary.open_failure_count, summary.template_failure_count, summary.browser_error_count,
+    summary.open_failures, summary.template_failures, summary.browser_errors,
+  ].filter(value => value !== undefined && value !== null);
+  return [
+    phaseCheck(record.status === 'present', `${record.path} is missing or invalid${record.error ? `: ${record.error}` : ''}`),
+    phaseCheck(explicitPass, `${record.path} does not declare a passing simulator result.`),
+    phaseCheck(blockerCount === 0, `${record.path} declares simulator blockers.`),
+    phaseCheck(failureCounts.every(value => value === 0), `${record.path} reports simulator failures or browser errors.`),
+    phaseCheck(data?.physical_hardware_required !== true && data?.hardware_pairing_required !== true, `${record.path} is not a hardware-free simulator proof.`),
+  ];
+}
+
+function phaseCheck(passed, reason) { return { passed: Boolean(passed), reason }; }
+function failedReasons(checks) {
+  const failed = checks.filter(item => !item.passed).map(item => item.reason);
+  const unavailable = failed.filter(reason => /is missing or invalid/.test(reason));
+  return unavailable.length > 0 ? unavailable : failed;
+}
+function isPassingDecision(value) { return ['GO', 'PASS', 'PASSED'].includes(String(value ?? '').toUpperCase().replace(/[-_]/g, '')); }
+function artifactReference(record) { return { path: record.path, status: record.status, sha256: record.sha256 }; }
+function recordReference(record) {
+  if (!record) return { path: null, status: 'missing', sha256: null };
+  return { path: record.path, status: record.status, sha256: record.sha256 };
+}
+function recordFailureReasons(record) {
+  if (!record) return ['No compatible current evidence record exists.'];
+  if (record.status === 'passed') return [];
+  if (record.gaps?.length > 0) return record.gaps.map(item => item.reason);
+  return [`${record.path} status is ${record.status}.`];
+}
+function phaseFourGate(gateId, taskId, label, passed, blockers, evidence) {
+  return {
+    gate_id: gateId,
+    task_id: taskId,
+    label,
+    passed: Boolean(passed),
+    status: passed ? 'passed' : 'blocked',
+    blockers: passed ? [] : unique(blockers),
+    evidence: evidence.filter(Boolean),
+  };
 }
 
 function check(record, passed, id, message, scope = null) {
@@ -854,12 +1113,24 @@ function compatibilityCompleteGate(decision, records, blockers) {
 }
 
 function renderMarkdown(report) {
+  const displayDecision = report.decision.status.replace(/_/g, '-');
   const lines = [
     '# SwissKnife Virtual Desktop All-Tools Release Evidence', '',
     `Generated: ${report.generated_at}`, `Source revision: \`${report.source_revision}\``,
-    `Decision: **${report.decision.status}**`, '',
-    '## Named release gaps', '',
+    `Decision: **${displayDecision}**`, '',
+    '## SVD-047 phase-four closeout gates', '',
+    '| Required gate | Owner | Status | Evidence |',
+    '| --- | --- | --- | --- |',
   ];
+  for (const gate of report.phase_four_closeout.gates) {
+    const evidence = gate.evidence.map(item => `\`${item.path ?? 'missing'}\` (${item.status})`).join('<br>');
+    lines.push(`| ${escapeMd(gate.label)} | ${gate.task_id} | ${gate.status} | ${evidence || 'missing'} |`);
+  }
+  lines.push('', `Phase-four gates passed: ${report.phase_four_closeout.passed_gate_count}/${report.phase_four_closeout.required_gate_count}.`, '');
+  for (const gate of report.phase_four_closeout.gates.filter(item => !item.passed)) {
+    lines.push(`- **${gate.gate_id}**: ${gate.blockers.map(escapeMd).join('; ') || 'No passing evidence was supplied.'}`);
+  }
+  lines.push('', '## Blockers', '');
   if (report.named_gaps.length === 0) lines.push('- None.');
   else for (const item of report.named_gaps) lines.push(`- **${item.task_id}** — \`${escapeMd(item.scope)}\` / \`${item.code}\`: ${escapeMd(item.reason)}`);
   lines.push('', '## Evidence freshness and status', '', '| Evidence | Task | Status | Generated | SHA-256 |', '| --- | --- | --- | --- | --- |');
@@ -899,9 +1170,41 @@ function renderMarkdown(report) {
   lines.push('', '## Approved non-release dispositions', '');
   for (const item of report.non_release_dispositions.approved) lines.push(`- \`${escapeMd(item.scope)}\` — ${escapeMd(item.disposition)}; ${escapeMd(item.rationale)} (${item.approved_by}, ${item.approval_task_id})`);
   if (report.non_release_dispositions.approved.length === 0) lines.push('- None.');
-  lines.push('', '## Decision', '', report.decision.status === 'GO'
+  lines.push('', '## No new unknowns', '',
+    `- Status: **${report.unknown_task_class_audit.status}**`,
+    `- Unknown task classes: ${report.unknown_task_class_audit.unknown_task_class_count}`,
+    `- ${report.unknown_task_class_audit.statement}`,
+    '', '## Decision', '', report.decision.status === 'GO'
     ? 'Every required surface has a current passing proof or an approved non-release disposition.'
-    : `Release remains **NO_GO**. Close only the named task gaps: ${report.decision.blocker_task_ids.join(', ') || 'none'}.`, '');
+    : `Release remains **NO-GO**. Close only the named task gaps: ${report.decision.blocker_task_ids.join(', ') || 'none'}.`, '');
+  return `${lines.join('\n')}\n`;
+}
+
+function renderNoNewUnknowns(report) {
+  const lines = [
+    '# All-Tools Closeout: No New Unknowns', '',
+    `Generated: ${report.generated_at}`,
+    `Source revision: \`${report.source_revision}\``,
+    `Decision: **${report.decision.status.replace(/_/g, '-')}**`, '',
+    '## No new unknowns', '',
+    report.unknown_task_class_audit.unknown_task_class_count === 0
+      ? '**No new unknowns.** Every blocker is assigned to an existing SVD task class.'
+      : `**Unknown task classes remain:** ${report.unknown_task_class_audit.unknown_task_class_count}.`, '',
+    '## Phase-four gate accounting', '',
+    '| Gate | Owner task | Status |',
+    '| --- | --- | --- |',
+  ];
+  for (const gate of report.phase_four_closeout.gates) {
+    lines.push(`| \`${gate.gate_id}\` | ${gate.task_id} | ${gate.status} |`);
+  }
+  lines.push('', '## Blockers', '');
+  if (report.named_gaps.length === 0) lines.push('- None.');
+  else for (const item of report.named_gaps) {
+    lines.push(`- **${item.task_id}** — \`${escapeMd(item.scope)}\`: ${escapeMd(item.reason)}`);
+  }
+  lines.push('', '## Task-class conclusion', '',
+    report.unknown_task_class_audit.statement,
+    'This ledger does not create follow-up task classes; it records only the existing owner task for each unsatisfied gate.', '');
   return `${lines.join('\n')}\n`;
 }
 
@@ -911,7 +1214,7 @@ function renderSignoff(report) {
     'Task: SVD-101 — Aggregate freshness-aware release evidence and close only named gaps', '',
     `Observed: ${report.generated_at}`,
     `SwissKnife revision: \`${report.source_revision}\``,
-    `Release decision: **${report.decision.status}**`, '',
+    `Release decision: **${report.decision.status.replace(/_/g, '-')}**`, '',
     'This signoff is generated from `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`.',
     'It does not convert missing, stale, blocked, denied, unsupported, or static-only evidence into success.', '',
     '## Decision basis', '',
@@ -935,7 +1238,7 @@ function renderSignoff(report) {
     '- Freshness receipt: `docs/virtual-desktop-release-evidence.fingerprint.json`', '',
     report.decision.status === 'GO'
       ? 'The SVD-101 release scope is approved.'
-      : `The release remains **NO_GO** until the named ${report.decision.blocker_task_ids.join(', ')} gaps are refreshed or consciously dispositioned.`,
+      : `The release remains **NO-GO** until the named ${report.decision.blocker_task_ids.join(', ')} gaps are refreshed or consciously dispositioned.`,
   );
   return `${lines.join('\n')}\n`;
 }
