@@ -1,3 +1,5 @@
+/** Browser-safe public API for deontic NLP extraction and analysis. */
+
 export {
   extractDeonticStatements,
   extractPredicatesFromText,
@@ -8,7 +10,7 @@ export {
   type DeonticOperator,
   type ExtractedDeonticStatement,
   type ExtractedPredicate,
-} from './deontic-deontic-extraction.js';
+} from './deontic-extraction.js';
 
 export {
   DeonticTextAnalyzer,
@@ -21,4 +23,4 @@ export {
   type DeonticStatement,
   type DeonticStatistics,
   type EntitySummary,
-} from './deontic-deontic-text-analyzer.js';
+} from './deontic-text-analyzer.js';

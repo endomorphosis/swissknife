@@ -26,7 +26,7 @@ import {
   explainZkpProof,
   proofStepNL,
   proofExplanationToString,
-} from '../../src/services/proof-engine/proof-explainer.js';
+} from '../../src/services/proof-engine/index.js';
 
 import {
   DeonticAnalyzer,

@@ -4,20 +4,20 @@ import {
   extractFolMetadata,
   formatFol,
   parseFolToJson,
-} from '../../src/services/fol-utils/fol-output-formatter';
+} from '../../src/services/logic/fol/fol-output-formatters.js';
 import {
   parseFol,
   parseLogicalOperators,
   parseQuantifiers,
   validateFolSyntax,
-} from '../../src/services/fol-utils/fol-parser';
+} from '../../src/services/logic/fol/fol-text-parser.js';
 import {
   extractLogicalRelationsNlp,
   extractPredicatesNlp,
   extractSemanticRoles,
   getExtractionStats,
   getSpacyModel,
-} from '../../src/services/fol-utils/fol-utils-nlp-predicate-extractor.js';
+} from '../../src/services/logic/fol/fol-nlp-extraction.js';
 import {
   ChunkedBatchProcessor,
   FOLBatchProcessor,
@@ -91,9 +91,17 @@ describe('PORT-226 FOL text utilities', () => {
     expect(extractLogicalRelationsNlp('If a person files then the clerk records.')).toEqual([
       { type: 'implication', premise: 'a person files', conclusion: 'the clerk records' },
     ]);
-    expect(extractSemanticRoles('Alice must file Report.')).toEqual([
-      { agent: 'Alice', action: 'file', patient: 'Report', location: null, time: null },
-    ]);
+    expect(extractSemanticRoles('Alice must file Report.')).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        agent: 'Alice',
+        action: 'file',
+        patient: 'Report',
+        location: null,
+        time: null,
+        role: 'AGENT',
+      }),
+      expect.objectContaining({ role: 'ACTION', filler: 'file' }),
+    ]));
   });
 });
 

@@ -22,4 +22,4 @@ export * from './mcp-transport.js';
 export * from './mcp-ui-profile.js';
 export * from './mcp-wasm-prover-hub.js';
 export * from './policy-audit-log.js';
-export * from './mcp-swissknife-mcp-capability-registry.js';
+export * from '../apps/index.js';

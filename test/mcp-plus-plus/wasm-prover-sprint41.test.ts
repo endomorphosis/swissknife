@@ -13,7 +13,7 @@ import {
 import {
   ProofEngine, createProofEngine, proveFormula, proveWithAllProvers,
   checkConsistency, getLeanTemplate,
-} from '../../src/services/proof-engine/proof-execution-engine-utils.js';
+} from '../../src/services/proof-engine/index.js';
 
 // ---------------------------------------------------------------------------
 // ModalLogicType

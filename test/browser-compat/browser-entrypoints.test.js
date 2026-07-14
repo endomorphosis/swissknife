@@ -14,11 +14,13 @@ const browserEntrypoints = [
   'src/ai/browser.ts',
   'src/models/browser.ts',
   'src/platform/browser.ts',
-  'src/services/deontic/browser-nlp.ts',
+  'src/services/logic/deontic/browser-nlp.ts',
   'src/services/ipfs/ipfs-browser.ts',
   'src/services/mcp/browser-mcp.ts',
   'src/services/mcp/libp2p-browser-runtime.ts',
+  'src/services/proof-engine/proof-engine-browser.ts',
   'src/services/provers/browser-crypto.ts',
+  'src/services/provers/provers-browser.ts',
   'src/services/zkp/zkp-browser-schnorr.ts',
   'src/services/zkp/browser-zkp.ts',
   'src/services/zkp/browser-snarkjs-backend.ts',
@@ -59,9 +61,11 @@ const expectedPackageBrowserExports = {
   './ipfs': './src/services/ipfs/ipfs-browser.ts',
   './storage': './src/storage/browser.ts',
   './workers': './src/workers/browser.ts',
-  './logic-language': './src/services/logic-language-pipeline.ts',
-  './deontic-nlp': './src/services/deontic/browser-nlp.ts',
+  './logic-language': './src/services/logic/api/reasoning-normalization-pipeline.ts',
+  './deontic-nlp': './src/services/logic/deontic/browser-nlp.ts',
   './zkp': './src/services/zkp/browser-zkp.ts',
+  './proof-engine': './src/services/proof-engine/proof-engine-browser.ts',
+  './provers': './src/services/provers/provers-browser.ts',
 };
 
 const forbiddenBrowserExportPathPatterns = [
@@ -76,6 +80,9 @@ const forbiddenBrowserExportPathPatterns = [
   /(?:^|\/)src\/services\/external-provers\.ts$/,
   /(?:^|\/)src\/services\/prover-installer\.ts$/,
   /(?:^|\/)src\/services\/zkp-provekit-/,
+  /(?:^|\/)src\/services\/proof-engine\/proof-engine-host\.ts$/,
+  /(?:^|\/)src\/services\/provers\/(?:external-prover-wrappers|external-provers|prover-installer|provers-host)\.ts$/,
+  /(?:^|\/)src\/services\/zkp\/(?:zkp-backends|zkp-host|zkp-simulated-prover|zkp-provekit-[^/]+)\.ts$/,
 ];
 
 const forbiddenBrowserExportSpecifiers = [

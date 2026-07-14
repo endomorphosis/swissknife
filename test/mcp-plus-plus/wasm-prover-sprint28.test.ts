@@ -17,7 +17,7 @@ import {
 import { FolTdfolBridgeAdapter } from '../../src/services/logic/bridges/fol-tdfol-bridge.js';
 import { DeonticNormsBridgeAdapter } from '../../src/services/logic/bridges/deontic-norms-bridge.js';
 import { LegalIRDocument } from '../../src/services/logic/bridges/bridge-types.js';
-import { buildLegalNormIR } from '../../src/services/deontic/deontic-legal-norm-ir.js';
+import { buildLegalNormIR } from '../../src/services/logic/deontic/legal-norm-ir.js';
 
 const LEGAL_TEXT =
   'No person shall be deprived of liberty without due process. ' +

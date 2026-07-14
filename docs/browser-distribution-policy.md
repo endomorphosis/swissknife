@@ -27,8 +27,10 @@ The browser subpaths are:
 | `swissknife/ipfs` | `src/services/ipfs/browser.ts` | Browser IPFS gateway, HTTP API, and libp2p transport adapter. |
 | `swissknife/storage` | `src/storage/browser.ts` | IndexedDB, OPFS, Cache Storage, and injected browser-IPFS storage provider. |
 | `swissknife/workers` | `src/workers/browser.ts` | Web Worker client and pool APIs. |
-| `swissknife/logic-language` | `src/services/logic-language-pipeline.ts` | Browser-safe logic language preprocessing, normalization, and conversion helpers. |
-| `swissknife/deontic-nlp` | `src/services/deontic/browser-nlp.ts` | Regex/deontic natural-language extraction and conflict analysis. |
+| `swissknife/logic-language` | `src/services/logic/api/reasoning-normalization-pipeline.ts` | Browser-safe logic language preprocessing, normalization, and conversion helpers. |
+| `swissknife/deontic-nlp` | `src/services/logic/deontic/browser-nlp.ts` | Regex/deontic natural-language extraction and conflict analysis. |
+| `swissknife/proof-engine` | `src/services/proof-engine/proof-engine-browser.ts` | Browser proof facade and worker-verifier orchestration. |
+| `swissknife/provers` | `src/services/provers/provers-browser.ts` | Bounded browser-safe TypeScript theorem prover. |
 | `swissknife/zkp` | `src/services/zkp/browser-zkp.ts` | Browser Groth16 artifact metadata/backend, default Schnorr/WASM backend, and browser crypto helpers. See `docs/browser-wasm-zkp-policy.md`. |
 
 Browser-facing adapters share contract types through

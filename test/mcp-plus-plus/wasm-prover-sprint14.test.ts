@@ -20,8 +20,8 @@ import {
   formatAsTptp,
   normalizePredicate,
   FolTextConverter,
-} from '../../src/services/fol/fol-fol-text-converter.js';
-import { ModalFrameBridge } from '../../src/services/bridge/bridge-modal-frame-bridge.js';
+} from '../../src/services/logic/fol/fol-text-converter.js';
+import { ModalFrameBridge } from '../../src/services/logic/bridges/modal-frame-bridge.js';
 
 // ---------------------------------------------------------------------------
 // T-80: extractPredicates

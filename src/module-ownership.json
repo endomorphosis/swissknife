@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "2026-07-14",
+  "manifestVersion": "2026-07-14-swr-144",
   "description": "Top-level ownership and dependency manifest for SwissKnife source modules.",
   "classificationValues": {
     "browser-safe": "May be statically imported by browser bundles.",
@@ -38,6 +38,260 @@
     "New public imports should be added to publicEntrypoints before other modules depend on them."
   ],
   "audit": {
+    "servicePublicApiMigrations": [
+      {
+        "legacyPath": "src/services/bridge/bridge-modal-frame-bridge.ts",
+        "canonicalImplementation": "src/services/logic/bridges/modal-frame-bridge.ts",
+        "publicEntrypoint": "src/services/logic/bridges/modal-frame-bridge.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/bridge/bridge-prover-router-bridge.ts",
+        "canonicalImplementation": "src/services/logic/bridges/prover-router-bridge.ts",
+        "publicEntrypoint": "src/services/logic/bridges/prover-router-bridge.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic-cognitive-logic-types.ts",
+        "canonicalImplementation": "src/services/logic/dcec/dcec-ucan-tptp-types.ts",
+        "publicEntrypoint": "src/services/logic/dcec/dcec-ucan-tptp-types.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic-nlp-ontology-types.ts",
+        "canonicalImplementation": "src/services/logic/nl/portuguese-deontic-flogic-types.ts",
+        "publicEntrypoint": "src/services/logic/nl/portuguese-deontic-flogic-types.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/browser-nlp.ts",
+        "canonicalImplementation": "src/services/logic/deontic/browser-nlp.ts",
+        "publicEntrypoint": "src/services/logic/deontic/browser-nlp.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-deontic-extraction.ts",
+        "canonicalImplementation": "src/services/logic/deontic/deontic-extraction.ts",
+        "publicEntrypoint": "src/services/logic/deontic/deontic-extraction.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-deontic-graph-builder.ts",
+        "canonicalImplementation": "src/services/logic/deontic/deontic-graph-builder.ts",
+        "publicEntrypoint": "src/services/logic/deontic/deontic-graph-builder.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-deontic-graph.ts",
+        "canonicalImplementation": "src/services/logic/deontic/deontic-graph.ts",
+        "publicEntrypoint": "src/services/logic/deontic/deontic-graph.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-deontic-knowledge-base.ts",
+        "canonicalImplementation": "src/services/logic/deontic/deontic-knowledge-base.ts",
+        "publicEntrypoint": "src/services/logic/deontic/deontic-knowledge-base.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-deontic-parser-utils.ts",
+        "canonicalImplementation": "src/services/logic/deontic/deontic-parser-utils.ts",
+        "publicEntrypoint": "src/services/logic/deontic/deontic-parser-utils.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-deontic-text-analyzer.ts",
+        "canonicalImplementation": "src/services/logic/deontic/deontic-text-analyzer.ts",
+        "publicEntrypoint": "src/services/logic/deontic/deontic-text-analyzer.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-legal-norm-builder.ts",
+        "canonicalImplementation": "src/services/logic/deontic/legal-norm-builder.ts",
+        "publicEntrypoint": "src/services/logic/deontic/legal-norm-builder.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-legal-norm-decoder.ts",
+        "canonicalImplementation": "src/services/logic/deontic/legal-norm-decoder.ts",
+        "publicEntrypoint": "src/services/logic/deontic/legal-norm-decoder.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-legal-norm-ir.ts",
+        "canonicalImplementation": "src/services/logic/deontic/legal-norm-ir.ts",
+        "publicEntrypoint": "src/services/logic/deontic/legal-norm-ir.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-normative-conflict-detector.ts",
+        "canonicalImplementation": "src/services/logic/deontic/normative-conflict-detector.ts",
+        "publicEntrypoint": "src/services/logic/deontic/normative-conflict-detector.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-prover-syntax-builder.ts",
+        "canonicalImplementation": "src/services/logic/deontic/prover-syntax-builder.ts",
+        "publicEntrypoint": "src/services/logic/deontic/prover-syntax-builder.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/deontic/deontic-support-map.ts",
+        "canonicalImplementation": "src/services/logic/deontic/support-map.ts",
+        "publicEntrypoint": "src/services/logic/deontic/support-map.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol-bridge-session-types.ts",
+        "canonicalImplementation": "src/services/logic/api/session-translation-types.ts",
+        "publicEntrypoint": "src/services/logic/api/session-translation-types.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol-utils/fol-output-formatter.ts",
+        "canonicalImplementation": "src/services/logic/fol/fol-output-formatters.ts",
+        "publicEntrypoint": "src/services/logic/fol/fol-output-formatters.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol-utils/fol-parser.ts",
+        "canonicalImplementation": "src/services/logic/fol/fol-text-parser.ts",
+        "publicEntrypoint": "src/services/logic/fol/fol-text-parser.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol-utils/fol-utils-nlp-predicate-extractor.ts",
+        "canonicalImplementation": "src/services/logic/fol/fol-nlp-extraction.ts",
+        "publicEntrypoint": "src/services/logic/fol/fol-nlp-extraction.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol-utils/index.ts",
+        "canonicalImplementation": "src/services/logic/fol/index.ts",
+        "publicEntrypoint": "src/services/logic/fol/index.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol/fol-enhanced-fol-converter.ts",
+        "canonicalImplementation": "src/services/logic/fol/enhanced-fol-converter.ts",
+        "publicEntrypoint": "src/services/logic/fol/enhanced-fol-converter.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol/fol-flogic-semantic-optimizer.ts",
+        "canonicalImplementation": "src/services/logic/fol/flogic-semantic-optimizer.ts",
+        "publicEntrypoint": "src/services/logic/fol/flogic-semantic-optimizer.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol/fol-fol-exporters.ts",
+        "canonicalImplementation": "src/services/logic/fol/fol-exporters.ts",
+        "publicEntrypoint": "src/services/logic/fol/fol-exporters.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol/fol-fol-text-converter.ts",
+        "canonicalImplementation": "src/services/logic/fol/fol-text-converter.ts",
+        "publicEntrypoint": "src/services/logic/fol/fol-text-converter.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol/fol-logic-formatter.ts",
+        "canonicalImplementation": "src/services/logic/fol/logic-formatter.ts",
+        "publicEntrypoint": "src/services/logic/fol/logic-formatter.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/fol/fol-ml-confidence-scorer.ts",
+        "canonicalImplementation": "src/services/logic/fol/ml-confidence-scorer.ts",
+        "publicEntrypoint": "src/services/logic/fol/ml-confidence-scorer.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/logic-language-pipeline.ts",
+        "canonicalImplementation": "src/services/logic/api/reasoning-normalization-pipeline.ts",
+        "publicEntrypoint": "src/services/logic/api/reasoning-normalization-pipeline.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/logic-observability-pipeline.ts",
+        "canonicalImplementation": "src/services/logic/cec/cec-runtime-context-utils.ts",
+        "publicEntrypoint": "src/services/logic/cec/cec-runtime-context-utils.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/logic-verification-utilities.ts",
+        "canonicalImplementation": "src/services/logic/api/logic-verification-toolkit.ts",
+        "publicEntrypoint": "src/services/logic/api/logic-verification-toolkit.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/logic/fol/nlp-predicate-extractor.ts",
+        "canonicalImplementation": "src/services/logic/fol/fol-nlp-extraction.ts",
+        "publicEntrypoint": "src/services/logic/fol/fol-nlp-extraction.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/mcp/mcp-mcp-traffic-manager.ts",
+        "canonicalImplementation": "src/services/mcp/host/mcp-traffic-manager.ts",
+        "publicEntrypoint": "src/services/mcp/host/mcp-traffic-manager.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/mcp/mcp-mcp-versioned-client.ts",
+        "canonicalImplementation": "src/services/mcp/host/mcp-versioned-client.ts",
+        "publicEntrypoint": "src/services/mcp/host/mcp-versioned-client.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/mcp/mcp-swissknife-mcp-capability-registry.ts",
+        "canonicalImplementation": "src/services/apps/swissknife-mcp-capability-registry.ts",
+        "publicEntrypoint": "src/services/apps/swissknife-mcp-capability-registry.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/prover-strategy-adapters.ts",
+        "canonicalImplementation": "src/services/provers/prover-strategy-runtime.ts",
+        "publicEntrypoint": "src/services/provers/prover-strategy-runtime.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/provers/provers-dcec-types.ts",
+        "canonicalImplementation": "src/services/logic/dcec/dcec-types.ts",
+        "publicEntrypoint": "src/services/logic/dcec/dcec-types.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/provers/provers-policy-to-dcec.ts",
+        "canonicalImplementation": "src/services/logic/deontic/policy-to-dcec.ts",
+        "publicEntrypoint": "src/services/logic/deontic/policy-to-dcec.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/provers/provers-policy-to-tdfol.ts",
+        "canonicalImplementation": "src/services/logic/tdfol/policy-to-tdfol.ts",
+        "publicEntrypoint": "src/services/logic/tdfol/policy-to-tdfol.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/provers/provers-tdfol-completeness-rules.ts",
+        "canonicalImplementation": "src/services/logic/tdfol/tdfol-completeness-rules.ts",
+        "publicEntrypoint": "src/services/logic/tdfol/tdfol-completeness-rules.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/provers/provers-tdfol-types.ts",
+        "canonicalImplementation": "src/services/logic/tdfol/tdfol-types.ts",
+        "publicEntrypoint": "src/services/logic/tdfol/tdfol-types.ts",
+        "compatibility": "removed; import the canonical family API"
+      },
+      {
+        "legacyPath": "src/services/zkp-onchain-eth-bridge.ts",
+        "canonicalImplementation": "src/services/zkp/ethereum-zkp-bridge.ts",
+        "publicEntrypoint": "src/services/zkp/ethereum-zkp-bridge.ts",
+        "compatibility": "removed; import the canonical family API"
+      }
+    ],
     "ignoredRootFiles": [
       "src/module-ownership.json",
       "src/services/module-ownership.json",
@@ -48,27 +302,174 @@
       "broadExemptionsAllowed": false,
       "nonIndexBasenameDuplicatesAreFailuresByDefault": true,
       "approvedIndexEntrypoints": [
-        { "path": "src/services/fol-utils/index.ts", "owner": "service-fol-utils", "publicContract": "FOL utility service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/glasses/index.ts", "owner": "service-glasses", "publicContract": "glasses service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/integrations/index.ts", "owner": "service-integrations", "publicContract": "external integrations service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/ipfs/index.ts", "owner": "service-ipfs", "publicContract": "IPFS service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/api/index.ts", "owner": "service-logic", "publicContract": "logic API service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/bridges/index.ts", "owner": "service-logic", "publicContract": "logic bridge service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/cec/index.ts", "owner": "service-logic", "publicContract": "CEC logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/dcec/index.ts", "owner": "service-logic", "publicContract": "DCEC logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/deontic/index.ts", "owner": "service-logic", "publicContract": "deontic logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/fol/index.ts", "owner": "service-logic", "publicContract": "FOL logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/modal/index.ts", "owner": "service-logic", "publicContract": "modal logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/nl/index.ts", "owner": "service-logic", "publicContract": "natural-language logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/shared/index.ts", "owner": "service-logic", "publicContract": "shared logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/logic/tdfol/index.ts", "owner": "service-logic", "publicContract": "TDFOL logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/mcp/index.ts", "owner": "service-mcp", "publicContract": "MCP service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/platform/index.ts", "owner": "service-platform", "publicContract": "platform service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/proof-engine/index.ts", "owner": "service-proof-engine", "publicContract": "proof engine service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/provers/index.ts", "owner": "service-provers", "publicContract": "prover service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/shared/index.ts", "owner": "service-shared", "publicContract": "shared service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/zkp/artifacts/index.ts", "owner": "service-zkp", "publicContract": "ZKP artifact service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
-        { "path": "src/services/zkp/index.ts", "owner": "service-zkp", "publicContract": "ZKP service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] }
+        {
+          "path": "src/services/apps/index.ts",
+          "owner": "service-apps",
+          "publicContract": "application service public API",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/glasses/index.ts",
+          "owner": "service-glasses",
+          "publicContract": "glasses service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/integrations/index.ts",
+          "owner": "service-integrations",
+          "publicContract": "external integrations service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/ipfs/index.ts",
+          "owner": "service-ipfs",
+          "publicContract": "IPFS service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/api/index.ts",
+          "owner": "service-logic",
+          "publicContract": "logic API service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/bridges/index.ts",
+          "owner": "service-logic",
+          "publicContract": "logic bridge service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/cec/index.ts",
+          "owner": "service-logic",
+          "publicContract": "CEC logic service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/dcec/index.ts",
+          "owner": "service-logic",
+          "publicContract": "DCEC logic service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/deontic/index.ts",
+          "owner": "service-logic",
+          "publicContract": "deontic logic service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/fol/index.ts",
+          "owner": "service-logic",
+          "publicContract": "FOL logic service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/modal/index.ts",
+          "owner": "service-logic",
+          "publicContract": "modal logic service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/nl/index.ts",
+          "owner": "service-logic",
+          "publicContract": "natural-language logic service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/shared/index.ts",
+          "owner": "service-logic",
+          "publicContract": "shared logic service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/logic/tdfol/index.ts",
+          "owner": "service-logic",
+          "publicContract": "TDFOL logic service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/mcp/index.ts",
+          "owner": "service-mcp",
+          "publicContract": "MCP service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/platform/index.ts",
+          "owner": "service-platform",
+          "publicContract": "platform service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/proof-engine/index.ts",
+          "owner": "service-proof-engine",
+          "publicContract": "proof engine service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/provers/index.ts",
+          "owner": "service-provers",
+          "publicContract": "prover service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/shared/index.ts",
+          "owner": "service-shared",
+          "publicContract": "shared service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/zkp/artifacts/index.ts",
+          "owner": "service-zkp",
+          "publicContract": "ZKP artifact service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "path": "src/services/zkp/index.ts",
+          "owner": "service-zkp",
+          "publicContract": "ZKP service entrypoint",
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        }
       ],
       "approvedMultiEntrypoints": [],
       "approvedContentHashes": [
@@ -89,598 +490,50 @@
             "src/services/logic/shared/logic-shared-browser.ts"
           ],
           "publicContracts": [
-            { "path": "src/services/glasses/glasses-browser.ts", "contract": "glasses browser surface" },
-            { "path": "src/services/integrations/integrations-host.ts", "contract": "host integration surface" },
-            { "path": "src/services/logic/bridges/logic-bridges-browser.ts", "contract": "logic bridge browser surface" },
-            { "path": "src/services/logic/dcec/logic-dcec-browser.ts", "contract": "DCEC browser surface" },
-            { "path": "src/services/logic/deontic/logic-deontic-browser.ts", "contract": "deontic browser surface" },
-            { "path": "src/services/logic/fol/logic-fol-browser.ts", "contract": "FOL browser surface" },
-            { "path": "src/services/logic/modal/logic-modal-browser.ts", "contract": "modal logic browser surface" },
-            { "path": "src/services/logic/nl/logic-nl-browser.ts", "contract": "natural-language logic browser surface" },
-            { "path": "src/services/logic/shared/logic-shared-browser.ts", "contract": "shared logic browser surface" }
+            {
+              "path": "src/services/glasses/glasses-browser.ts",
+              "contract": "glasses browser surface"
+            },
+            {
+              "path": "src/services/integrations/integrations-host.ts",
+              "contract": "host integration surface"
+            },
+            {
+              "path": "src/services/logic/bridges/logic-bridges-browser.ts",
+              "contract": "logic bridge browser surface"
+            },
+            {
+              "path": "src/services/logic/dcec/logic-dcec-browser.ts",
+              "contract": "DCEC browser surface"
+            },
+            {
+              "path": "src/services/logic/deontic/logic-deontic-browser.ts",
+              "contract": "deontic browser surface"
+            },
+            {
+              "path": "src/services/logic/fol/logic-fol-browser.ts",
+              "contract": "FOL browser surface"
+            },
+            {
+              "path": "src/services/logic/modal/logic-modal-browser.ts",
+              "contract": "modal logic browser surface"
+            },
+            {
+              "path": "src/services/logic/nl/logic-nl-browser.ts",
+              "contract": "natural-language logic browser surface"
+            },
+            {
+              "path": "src/services/logic/shared/logic-shared-browser.ts",
+              "contract": "shared logic browser surface"
+            }
           ],
           "regressionTests": [
             "test/architecture/source-module-boundaries.test.js"
           ],
           "reason": "SWR-120 approved exact one-line browser/host barrel shims after SWR-119 service moves; any content or path drift must be reviewed."
-        },
-        {
-          "sha256": "4b3f5b62cf7fb461477447ef6c2b8aa27cb238d303b25d6e542ec31ce13e584d",
-          "canonicalPath": "src/services/logic/fol/fol-output-formatters.ts",
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "paths": [
-            "src/services/fol-utils/fol-output-formatter.ts",
-            "src/services/logic/fol/fol-output-formatters.ts"
-          ],
-          "reason": "SWR-143 classifies the FOL utility formatter as a restored implementation shadow; retain the logic-owned formatter and retarget the utility importer in SWR-144."
         }
       ],
       "classifiedCollisions": [
-        {
-          "kind": "behavior",
-          "fingerprint": "227f1812bb2176720747c681f5d52974ae007786a404b8d882e20392cffc515e",
-          "canonicalPath": "src/services/logic/deontic/legal-norm-decoder.ts",
-          "paths": [
-            "src/services/deontic/deontic-legal-norm-decoder.ts",
-            "src/services/logic/deontic/legal-norm-decoder.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 identifies the relocated deontic decoder as behaviorally equivalent after dependency-only import normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "c03f76481c5ac229dd0f1a63ef65826a1e49d659c652d124a253024aa8ccee90",
-          "canonicalPath": "src/services/logic/deontic/policy-to-dcec.ts",
-          "paths": [
-            "src/services/logic/deontic/policy-to-dcec.ts",
-            "src/services/provers/provers-policy-to-dcec.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 identifies the relocated policy-to-DCEC adapter as behaviorally equivalent after dependency relocation normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "5cdcdc8273f77b4812c0c58c80fc54e59f9e2b3734dbd165a8a23d32643ae2bc",
-          "canonicalPath": "src/services/logic/deontic/prover-syntax-builder.ts",
-          "paths": [
-            "src/services/deontic/deontic-prover-syntax-builder.ts",
-            "src/services/logic/deontic/prover-syntax-builder.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 identifies the relocated deontic prover syntax builder as behaviorally equivalent after dependency-only import normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "93ce7a9ec5487463c41bd4bd27c2fba668b279b186e99263cf4e9bebf5be589c",
-          "canonicalPath": "src/services/logic/tdfol/policy-to-tdfol.ts",
-          "paths": [
-            "src/services/logic/tdfol/policy-to-tdfol.ts",
-            "src/services/provers/provers-policy-to-tdfol.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 identifies the relocated policy-to-TDFOL adapter as behaviorally equivalent after dependency relocation normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "be374419b991147d3dda37962491c4517899a51d3ce1118247fcf3e1daf94b48",
-          "canonicalPath": "src/services/logic/tdfol/tdfol-completeness-rules.ts",
-          "paths": [
-            "src/services/logic/tdfol/tdfol-completeness-rules.ts",
-            "src/services/provers/provers-tdfol-completeness-rules.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 identifies the relocated TDFOL completeness rule set as behaviorally equivalent after dependency relocation normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "02dde02b8ad5c8f192d864081fcc3bfb9ad249796aa80afefaad5729071e4413",
-          "canonicalPath": "src/services/mcp/host/mcp-traffic-manager.ts",
-          "paths": [
-            "src/services/mcp/host/mcp-traffic-manager.ts",
-            "src/services/mcp/mcp-mcp-traffic-manager.ts"
-          ],
-          "owner": "service-mcp",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 identifies the restored MCP traffic manager as behaviorally equivalent after dependency-only import normalization; retain the host-owned implementation and canonicalize the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "d95abe63744309883b2efbfd2fe5fa6178cd0b46790be2da54e566946a427fee",
-          "canonicalPath": "src/services/mcp/host/mcp-versioned-client.ts",
-          "paths": [
-            "src/services/mcp/host/mcp-versioned-client.ts",
-            "src/services/mcp/mcp-mcp-versioned-client.ts"
-          ],
-          "owner": "service-mcp",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 identifies the restored MCP versioned client as behaviorally equivalent after dependency relocation and generated bare-import suffix normalization; retain the host-owned implementation and canonicalize the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "00c35507f1fd78817072719d4ad3e53fb31300eda6c701200bdb3d044efa5bf6",
-          "canonicalPath": "src/services/provers/prover-strategy-runtime.ts",
-          "paths": [
-            "src/services/prover-strategy-adapters.ts",
-            "src/services/provers/prover-strategy-runtime.ts"
-          ],
-          "owner": "service-provers",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "01f4b37ea5be7aba6126ed3a30a87e9df0c5dbb3851f19fb48bd1f1bf8891cae",
-          "canonicalPath": "src/services/logic/deontic/legal-norm-builder.ts",
-          "paths": [
-            "src/services/deontic/deontic-legal-norm-builder.ts",
-            "src/services/logic/deontic/legal-norm-builder.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "099eaefd989151f52b97c6f9d73792d66ab19a614505fd05ab1b99341662e9ab",
-          "canonicalPath": "src/services/logic/api/logic-verification-toolkit.ts",
-          "paths": [
-            "src/services/logic-verification-utilities.ts",
-            "src/services/logic/api/logic-verification-toolkit.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "0dc11f5a0e184118da3c56ae9bf907d55d51b7c7e28b78c3d5a28ca55869aaaa",
-          "canonicalPath": "src/services/logic/fol/flogic-semantic-optimizer.ts",
-          "paths": [
-            "src/services/fol/fol-flogic-semantic-optimizer.ts",
-            "src/services/logic/fol/flogic-semantic-optimizer.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "0f4e35b0a37dfbfe8df0877c9d83dabd5e01d45ee64afa6644ad08cca20df859",
-          "canonicalPath": "src/services/logic/api/reasoning-normalization-pipeline.ts",
-          "paths": [
-            "src/services/logic-language-pipeline.ts",
-            "src/services/logic/api/reasoning-normalization-pipeline.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "13ac4724695136411da6047bacbbe53f3cfea42ca089ae2166151c4f2cdd40a8",
-          "canonicalPath": "src/services/logic/bridges/prover-router-bridge.ts",
-          "paths": [
-            "src/services/bridge/bridge-prover-router-bridge.ts",
-            "src/services/logic/bridges/prover-router-bridge.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "1ab0101bf491d742c764380bf659f32e546fe99dd59803024cc7b75af085e73c",
-          "canonicalPath": "src/services/logic/api/session-translation-types.ts",
-          "paths": [
-            "src/services/fol-bridge-session-types.ts",
-            "src/services/logic/api/session-translation-types.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "26ed07c8a63dc14ccd2c09f5d8d70de0b6a129a2214de01b1dd980a1e1b6389a",
-          "canonicalPath": "src/services/logic/fol/logic-formatter.ts",
-          "paths": [
-            "src/services/fol/fol-logic-formatter.ts",
-            "src/services/logic/fol/logic-formatter.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "2a755bd2852c1bcabbc4b5f1f483e26d59d01bdbd1bad2617cf273ee0439c11b",
-          "canonicalPath": "src/services/logic/fol/fol-exporters.ts",
-          "paths": [
-            "src/services/fol/fol-fol-exporters.ts",
-            "src/services/logic/fol/fol-exporters.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "326086cf2aa9db97ddc8c80e8e25ae45753541e17d529f6fc3671c44d8f2af52",
-          "canonicalPath": "src/services/logic/deontic/deontic-graph.ts",
-          "paths": [
-            "src/services/deontic/deontic-deontic-graph.ts",
-            "src/services/logic/deontic/deontic-graph.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "327102f4e5610d1a775bde8125e4f0466a906255c7b0b5075f963f7c92a91da2",
-          "canonicalPath": "src/services/logic/bridges/modal-frame-bridge.ts",
-          "paths": [
-            "src/services/bridge/bridge-modal-frame-bridge.ts",
-            "src/services/logic/bridges/modal-frame-bridge.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "41d50bb4b3d38612e653f507f6e77ba6acdec8139e576130dffb0c72ae9b6b7e",
-          "canonicalPath": "src/services/logic/deontic/deontic-extraction.ts",
-          "paths": [
-            "src/services/deontic/deontic-deontic-extraction.ts",
-            "src/services/logic/deontic/deontic-extraction.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "428c7dc9b1801d6f62e1d0a66a07fd2c0e9e8f9e8e3ef5ad085c654d94eafab3",
-          "canonicalPath": "src/services/logic/dcec/dcec-ucan-tptp-types.ts",
-          "paths": [
-            "src/services/deontic-cognitive-logic-types.ts",
-            "src/services/logic/dcec/dcec-ucan-tptp-types.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "44398959dea62a9376bec2ef87115be5d4de4a574a987fc48c39e34b2879dfde",
-          "canonicalPath": "src/services/logic/dcec/dcec-types.ts",
-          "paths": [
-            "src/services/logic/dcec/dcec-types.ts",
-            "src/services/provers/provers-dcec-types.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "63784bb8dc118e1c8487a5cdd73ab6d00acdba20568dcfa19a28aa2f402c0f42",
-          "canonicalPath": "src/services/logic/deontic/deontic-parser-utils.ts",
-          "paths": [
-            "src/services/deontic/deontic-deontic-parser-utils.ts",
-            "src/services/logic/deontic/deontic-parser-utils.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "647bbbc2ab2872c22e146bf75f74fa54a1e8cada2cbfe73578dd362d2d6232db",
-          "canonicalPath": "src/services/logic/fol/fol-text-parser.ts",
-          "paths": [
-            "src/services/fol-utils/fol-parser.ts",
-            "src/services/logic/fol/fol-text-parser.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "80e92ff56a914941d4df8546cc6c53b881811c3bc2d8e964b6fe78d7f9fe6426",
-          "canonicalPath": "src/services/logic/cec/cec-runtime-context-utils.ts",
-          "paths": [
-            "src/services/logic-observability-pipeline.ts",
-            "src/services/logic/cec/cec-runtime-context-utils.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "91e4f18da8b49831f747f0b88c8155614eee2fa50a54bbffc479f1f6e80bc1e9",
-          "canonicalPath": "src/services/logic/fol/fol-text-converter.ts",
-          "paths": [
-            "src/services/fol/fol-fol-text-converter.ts",
-            "src/services/logic/fol/fol-text-converter.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "9371948c38a26c94239b43a2db724cd13f529b25a02d90b064970964048ce2ad",
-          "canonicalPath": "src/services/proof-engine/index.ts",
-          "paths": [
-            "src/services/proof-engine/index.ts",
-            "src/services/proof-engine/proof-engine-browser.ts"
-          ],
-          "owner": "service-proof-engine",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "9c015c42d79558c9c5bfb38672c01fade8f921f02e296c9f60b427d1515523e6",
-          "canonicalPath": "src/services/logic/nl/portuguese-deontic-flogic-types.ts",
-          "paths": [
-            "src/services/deontic-nlp-ontology-types.ts",
-            "src/services/logic/nl/portuguese-deontic-flogic-types.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "baec28b13f99899131dd409f716d3946c4e8d4897ce2def804129459c52b2f45",
-          "canonicalPath": "src/services/logic/tdfol/tdfol-types.ts",
-          "paths": [
-            "src/services/logic/tdfol/tdfol-types.ts",
-            "src/services/provers/provers-tdfol-types.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "cea5a52aaaaaa2c0430754e2c0c53c8166fe13899e5d5ea5c9cef257980f6f7d",
-          "canonicalPath": "src/services/logic/deontic/normative-conflict-detector.ts",
-          "paths": [
-            "src/services/deontic/deontic-normative-conflict-detector.ts",
-            "src/services/logic/deontic/normative-conflict-detector.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "d21c062f38971b6e220824efd180fff01537f4c96cfe92e313eccf1e27e2d2be",
-          "canonicalPath": "src/services/logic/deontic/support-map.ts",
-          "paths": [
-            "src/services/deontic/deontic-support-map.ts",
-            "src/services/logic/deontic/support-map.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "d7fe2ce23778ba2ebebff91beeb1770b77779da198171bf825206dd553769f70",
-          "canonicalPath": "src/services/apps/swissknife-mcp-capability-registry.ts",
-          "paths": [
-            "src/services/apps/swissknife-mcp-capability-registry.ts",
-            "src/services/mcp/mcp-swissknife-mcp-capability-registry.ts"
-          ],
-          "owner": "service-apps",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "e46d1d6c7231ad79b492a9b1b0fdbc50a8dc033ad5e0bc0ba7ec25fc3c974da4",
-          "canonicalPath": "src/services/logic/fol/enhanced-fol-converter.ts",
-          "paths": [
-            "src/services/fol/fol-enhanced-fol-converter.ts",
-            "src/services/logic/fol/enhanced-fol-converter.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "e5dd3791aa50141d2aa4009ea4c49c3cb1aeba6d2af56127207eaf59ed2d0b0c",
-          "canonicalPath": "src/services/zkp/ethereum-zkp-bridge.ts",
-          "paths": [
-            "src/services/zkp-onchain-eth-bridge.ts",
-            "src/services/zkp/ethereum-zkp-bridge.ts"
-          ],
-          "owner": "service-zkp",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "e8b89807cba507104f25b613f1c430f198675a057867324598bc5e06af3abb00",
-          "canonicalPath": "src/services/logic/fol/fol-output-formatters.ts",
-          "paths": [
-            "src/services/fol-utils/fol-output-formatter.ts",
-            "src/services/logic/fol/fol-output-formatters.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "ea8fc3f8b91fec5f41fc6f5c825a709a4a4bd092811472fb52149cd1ced19e18",
-          "canonicalPath": "src/services/logic/deontic/legal-norm-ir.ts",
-          "paths": [
-            "src/services/deontic/deontic-legal-norm-ir.ts",
-            "src/services/logic/deontic/legal-norm-ir.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "eedd829dd6fdcbfb7121678ec42bcb1890b573f20748b739c5f3ee46aff50c29",
-          "canonicalPath": "src/services/logic/deontic/deontic-graph-builder.ts",
-          "paths": [
-            "src/services/deontic/deontic-deontic-graph-builder.ts",
-            "src/services/logic/deontic/deontic-graph-builder.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "f21e30fb62224f14678d030a63ef5240b7f42c3c4542c0a18bc270dbdd7888c2",
-          "canonicalPath": "src/services/logic/deontic/deontic-knowledge-base.ts",
-          "paths": [
-            "src/services/deontic/deontic-deontic-knowledge-base.ts",
-            "src/services/logic/deontic/deontic-knowledge-base.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "behavior",
-          "fingerprint": "f9f8c7f23b47cd820edaf3399c5198dabe6db38188b8027993d0ae41ebd74521",
-          "canonicalPath": "src/services/logic/fol/ml-confidence-scorer.ts",
-          "paths": [
-            "src/services/fol/fol-ml-confidence-scorer.ts",
-            "src/services/logic/fol/ml-confidence-scorer.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "0e8dd8394d0e38dc22c10ca7f3185be3d847fc3bfa297224859c4c470ad46cae",
-          "canonicalPath": "src/services/logic/deontic/legal-norm-ir.ts",
-          "paths": [
-            "src/services/deontic/deontic-legal-norm-ir.ts",
-            "src/services/logic/deontic/legal-norm-ir.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "26d8035a78fd811131381d1286e66948024b77741234ee3b2b3de37bff5419e3",
-          "canonicalPath": "src/services/logic/api/session-translation-types.ts",
-          "paths": [
-            "src/services/fol-bridge-session-types.ts",
-            "src/services/logic/api/session-translation-types.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "673842c5971df0230f3074b8531a271c8bfe92d68bfcc457996f39759a164416",
-          "canonicalPath": "src/services/logic/deontic/deontic-graph.ts",
-          "paths": [
-            "src/services/deontic/deontic-deontic-graph.ts",
-            "src/services/logic/deontic/deontic-graph.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "8e073b59e1051b4b54d497705b74da01b3bc60778d3c58e947c3edeb0f8c0f0c",
-          "canonicalPath": "src/services/logic/fol/flogic-semantic-optimizer.ts",
-          "paths": [
-            "src/services/fol/fol-flogic-semantic-optimizer.ts",
-            "src/services/logic/fol/flogic-semantic-optimizer.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "9c563e4211f8e8f759fba9af4f0f6e333e401d9d1458ad2f03826ec4d4e14085",
-          "canonicalPath": "src/services/logic/fol/logic-formatter.ts",
-          "paths": [
-            "src/services/fol/fol-logic-formatter.ts",
-            "src/services/logic/fol/logic-formatter.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "b44af5ce35195b6e777b0580e2ae5717cd3c1b93f3db806073c81b6611007d4e",
-          "canonicalPath": "src/services/logic/deontic/normative-conflict-detector.ts",
-          "paths": [
-            "src/services/deontic/deontic-normative-conflict-detector.ts",
-            "src/services/logic/deontic/normative-conflict-detector.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "cb94d990d606a3ec0937209ab4dc7b86d55f02ff20ee8912b555fea0584ae067",
-          "canonicalPath": "src/services/logic/deontic/deontic-extraction.ts",
-          "paths": [
-            "src/services/deontic/deontic-deontic-extraction.ts",
-            "src/services/logic/deontic/deontic-extraction.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "d5b609cbb91e1d62a3fac5995ce3ba953761e8fe8a39dafe29e9dc4ba5c42c5a",
-          "canonicalPath": "src/services/logic/deontic/deontic-parser-utils.ts",
-          "paths": [
-            "src/services/deontic/deontic-deontic-parser-utils.ts",
-            "src/services/logic/deontic/deontic-parser-utils.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "dbc42e56be73017ae0cc52fc6d386c59970fc55641a8f846c603ce7986f20e80",
-          "canonicalPath": "src/services/logic/dcec/dcec-types.ts",
-          "paths": [
-            "src/services/logic/dcec/dcec-types.ts",
-            "src/services/provers/provers-dcec-types.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
         {
           "kind": "normalized-content",
           "fingerprint": "de6603bdc815b29da7b133f19d71216c7a5483e082f31cde8d36d5c87ac989c8",
@@ -740,54 +593,6 @@
           "regressionTests": [
             "test/architecture/source-module-boundaries.test.js"
           ]
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "e36fda5f37bf1e6b6ab96c7372615c0c2e59668d2fea0180978d17203a6ac5c2",
-          "canonicalPath": "src/services/proof-engine/index.ts",
-          "paths": [
-            "src/services/proof-engine/index.ts",
-            "src/services/proof-engine/proof-engine-browser.ts"
-          ],
-          "owner": "service-proof-engine",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "e7a6f57bc6d1e35f682b452116edebaa043953c5b75c1c098046968ca1f367c1",
-          "canonicalPath": "src/services/logic/deontic/deontic-knowledge-base.ts",
-          "paths": [
-            "src/services/deontic/deontic-deontic-knowledge-base.ts",
-            "src/services/logic/deontic/deontic-knowledge-base.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "f1c622be17a395088867d5aa4c7f5ceca95874f61343be0bbb2f45091654fb69",
-          "canonicalPath": "src/services/logic/nl/portuguese-deontic-flogic-types.ts",
-          "paths": [
-            "src/services/deontic-nlp-ontology-types.ts",
-            "src/services/logic/nl/portuguese-deontic-flogic-types.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
-        },
-        {
-          "kind": "normalized-content",
-          "fingerprint": "f29c36015120ae3f3d5e65365e33f5702e316c24a3d8a21e8b115f33638f0617",
-          "canonicalPath": "src/services/logic/fol/fol-output-formatters.ts",
-          "paths": [
-            "src/services/fol-utils/fol-output-formatter.ts",
-            "src/services/logic/fol/fol-output-formatters.ts"
-          ],
-          "owner": "service-logic",
-          "disposition": "canonicalize-restored-shadow",
-          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
         }
       ]
     },
@@ -895,13 +700,6 @@
         "reason": "Migrated MCP client still imports command definitions through the legacy command registry until command metadata moves behind MCP-safe descriptors."
       },
       {
-        "from": "service-mcp",
-        "to": "commands",
-        "importer": "src/services/mcp/mcp-mcpClient.ts",
-        "target": "src/commands.ts",
-        "reason": "Restored MCP client variant still imports the same legacy command registry; SWR-143 inventories it explicitly and SWR-144 will reconcile the divergent client implementations."
-      },
-      {
         "from": "services",
         "to": "commands",
         "importer": "src/services/platform/vcr.ts",
@@ -995,81 +793,80 @@
         "importer": "src/utils/tokens.ts",
         "target": "src/query.ts",
         "reason": "Legacy token utility still counts query messages; remove this exception when token counting accepts shared message contracts."
+      },
+      {
+        "from": "service-mcp",
+        "to": "commands",
+        "importer": "src/services/mcp/mcp-mcpClient.ts",
+        "target": "src/commands.ts",
+        "reason": "Restored MCP client variant still imports the same legacy command registry; SWR-143 inventories it explicitly and SWR-144 will reconcile the divergent client implementations."
       }
     ],
     "serviceRootFileOwners": {
-      "src/services/deontic-cognitive-logic-types.ts": "services",
-      "src/services/deontic-nlp-ontology-types.ts": "services",
       "src/services/event-dag.ts": "services",
-      "src/services/fol-bridge-session-types.ts": "services",
       "src/services/groth16-cec-delegation.ts": "services",
-      "src/services/logic-language-pipeline.ts": "services",
-      "src/services/logic-observability-pipeline.ts": "services",
       "src/services/logic-proof-storage-parsers.ts": "services",
-      "src/services/logic-verification-utilities.ts": "services",
-      "src/services/prover-strategy-adapters.ts": "services",
-      "src/services/zkp-canonicalization-security.ts": "services",
-      "src/services/zkp-onchain-eth-bridge.ts": "services"
+      "src/services/zkp-canonicalization-security.ts": "services"
     },
     "browserSafeSourceGlobs": [
+      "src/browser.ts",
       "src/components/browser/*.tsx",
       "src/hooks/browser/*.ts",
       "src/screens/browser/*.tsx",
-      "src/services/apps/app-manifest.ts",
-      "src/services/apps/app-manifest-registry.ts",
       "src/services/apps/all-tools-policy-classifier.ts",
-      "src/browser.ts",
-      "src/services/deontic/browser-nlp.ts",
-      "src/services/deontic/deontic-deontic-extraction.ts",
-      "src/services/deontic/deontic-deontic-text-analyzer.ts",
+      "src/services/apps/app-manifest-registry.ts",
+      "src/services/apps/app-manifest.ts",
       "src/services/ipfs/ipfs-browser.ts",
-      "src/services/logic-language-pipeline.ts",
+      "src/services/logic/api/reasoning-normalization-pipeline.ts",
+      "src/services/logic/deontic/browser-nlp.ts",
+      "src/services/logic/deontic/deontic-analyzer.ts",
+      "src/services/logic/deontic/deontic-extraction.ts",
+      "src/services/logic/deontic/deontic-text-analyzer.ts",
+      "src/services/logic/shared/tdfol-nl-patterns.ts",
       "src/services/mcp/agent-supervisor-console-gateway.ts",
       "src/services/mcp/browser-mcp.ts",
       "src/services/mcp/libp2p-browser-runtime.ts",
       "src/services/provers/browser-crypto.ts",
       "src/services/shared/shared-browser-crypto.ts",
-      "src/services/logic/shared/tdfol-nl-patterns.ts",
-      "src/services/logic/deontic/deontic-analyzer.ts",
-      "src/services/zkp/browser-zkp.ts",
+      "src/services/zkp/artifacts/**/*.ts",
       "src/services/zkp/browser-snarkjs-backend.ts",
       "src/services/zkp/browser-zkp-policy.ts",
-      "src/services/zkp/artifacts/**/*.ts",
+      "src/services/zkp/browser-zkp.ts",
       "src/services/zkp/zkp-browser-schnorr.ts",
       "src/storage/browser.ts",
       "src/workers/browser.ts",
-      "web/src/**/*.ts",
-      "web/src/**/*.tsx",
       "web/js/apps/mcp-control.js",
-      "web/js/apps/p2p-network.js"
+      "web/js/apps/p2p-network.js",
+      "web/src/**/*.ts",
+      "web/src/**/*.tsx"
     ],
     "browserSafeServiceFiles": [
       "src/services/apps/all-tools-policy-classifier.ts",
-      "src/services/apps/app-manifest.ts",
       "src/services/apps/app-manifest-registry.ts",
-      "src/services/deontic/browser-nlp.ts",
-      "src/services/deontic/deontic-deontic-extraction.ts",
-      "src/services/deontic/deontic-deontic-text-analyzer.ts",
+      "src/services/apps/app-manifest.ts",
       "src/services/ipfs/ipfs-browser.ts",
-      "src/services/logic-language-pipeline.ts",
+      "src/services/logic/api/reasoning-normalization-pipeline.ts",
+      "src/services/logic/deontic/browser-nlp.ts",
+      "src/services/logic/deontic/deontic-analyzer.ts",
+      "src/services/logic/deontic/deontic-extraction.ts",
+      "src/services/logic/deontic/deontic-text-analyzer.ts",
+      "src/services/logic/shared/tdfol-nl-patterns.ts",
       "src/services/mcp/agent-supervisor-console-gateway.ts",
       "src/services/mcp/browser-mcp.ts",
       "src/services/mcp/libp2p-browser-runtime.ts",
       "src/services/provers/browser-crypto.ts",
       "src/services/shared/shared-browser-crypto.ts",
-      "src/services/logic/shared/tdfol-nl-patterns.ts",
-      "src/services/logic/deontic/deontic-analyzer.ts",
-      "src/services/zkp/browser-zkp.ts",
-      "src/services/zkp/browser-snarkjs-backend.ts",
-      "src/services/zkp/browser-zkp-policy.ts",
-      "src/services/zkp/zkp-types.ts",
-      "src/services/zkp/artifacts/index.ts",
-      "src/services/zkp/artifacts/groth16/deontic_discharge_v1/manifest.json",
       "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1.r1cs",
       "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1.wasm",
       "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1_final.zkey",
+      "src/services/zkp/artifacts/groth16/deontic_discharge_v1/manifest.json",
       "src/services/zkp/artifacts/groth16/deontic_discharge_v1/verification_key.json",
-      "src/services/zkp/zkp-browser-schnorr.ts"
+      "src/services/zkp/artifacts/index.ts",
+      "src/services/zkp/browser-snarkjs-backend.ts",
+      "src/services/zkp/browser-zkp-policy.ts",
+      "src/services/zkp/browser-zkp.ts",
+      "src/services/zkp/zkp-browser-schnorr.ts",
+      "src/services/zkp/zkp-types.ts"
     ]
   },
   "modules": {
@@ -2054,112 +1851,26 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/apps/*.ts"
+        "src/services/apps/all-tools-app-binding-matrix.ts",
+        "src/services/apps/all-tools-composite-workflows.ts",
+        "src/services/apps/all-tools-policy-classifier.ts",
+        "src/services/apps/app-manifest-registry.ts",
+        "src/services/apps/app-manifest.ts",
+        "src/services/apps/index.ts",
+        "src/services/apps/mcp-generated-app-quality-gates.ts",
+        "src/services/apps/mcp-generated-app-state.ts",
+        "src/services/apps/meta-glasses-app-capability-registry.ts",
+        "src/services/apps/swissknife-mcp-capability-registry.ts",
+        "src/services/apps/virtual-desktop-app-manifest.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "App-visible capability policy and manifest shape belongs here; protocol mechanics stay in src/services/mcp."
-      ]
-    },
-    "service-bridge": {
-      "owner": "service-bridge-runtime",
-      "path": "src/services/bridge",
-      "purpose": "Typed modal/prover bridge adapters that sit below the root service facades.",
-      "runtimeClassification": "split",
-      "browserReachability": "allowed only through explicitly browser-safe bridge contracts",
-      "allowedImports": [
-        "services",
-        "shared",
-        "utils"
       ],
-      "forbiddenImports": [
-        "commands",
-        "entrypoints",
-        "hooks",
-        "screens"
+      "privateImplementationPaths": [
+        "src/services/apps/**/*"
       ],
-      "publicEntrypoints": [
-        "src/services/bridge/*.ts"
-      ],
-      "privateEntrypoints": [],
-      "notes": [
-        "Bridge implementation files are owned here instead of by the root service inventory."
-      ]
-    },
-    "service-deontic": {
-      "owner": "deontic-service-runtime",
-      "path": "src/services/deontic",
-      "purpose": "Deontic extraction, graph, legal norm, parser quality, and support-map services.",
-      "runtimeClassification": "split",
-      "browserReachability": "allowed only through browser-safe parser and contract entrypoints",
-      "allowedImports": [
-        "services",
-        "shared",
-        "utils"
-      ],
-      "forbiddenImports": [
-        "commands",
-        "entrypoints",
-        "hooks",
-        "screens"
-      ],
-      "publicEntrypoints": [
-        "src/services/deontic/*.ts"
-      ],
-      "privateEntrypoints": [],
-      "notes": [
-        "Root deontic compatibility files remain explicitly inventoried under audit.serviceRootFileOwners."
-      ]
-    },
-    "service-fol": {
-      "owner": "fol-service-runtime",
-      "path": "src/services/fol",
-      "purpose": "First-order logic conversion, export, formatting, and confidence scoring services.",
-      "runtimeClassification": "split",
-      "browserReachability": "allowed only through browser-safe conversion and formatting contracts",
-      "allowedImports": [
-        "services",
-        "shared",
-        "utils"
-      ],
-      "forbiddenImports": [
-        "commands",
-        "entrypoints",
-        "hooks",
-        "screens"
-      ],
-      "publicEntrypoints": [
-        "src/services/fol/*.ts"
-      ],
-      "privateEntrypoints": [],
-      "notes": [
-        "FOL domain implementation files belong here; root FOL facades are inventoried separately."
-      ]
-    },
-    "service-fol-utils": {
-      "owner": "fol-service-utility-runtime",
-      "path": "src/services/fol-utils",
-      "purpose": "FOL parser/output utility entrypoints shared by root FOL service facades.",
-      "runtimeClassification": "split",
-      "browserReachability": "allowed only through audited parser/formatter contracts",
-      "allowedImports": [
-        "services",
-        "shared",
-        "utils"
-      ],
-      "forbiddenImports": [
-        "commands",
-        "entrypoints",
-        "hooks",
-        "screens"
-      ],
-      "publicEntrypoints": [
-        "src/services/fol-utils/*.ts"
-      ],
-      "privateEntrypoints": [],
-      "notes": [
-        "This is a service-owned utility family, not generic src/utils ownership."
-      ]
+      "browserSafeEntrypoint": "src/services/apps/app-manifest.ts"
     },
     "service-glasses": {
       "owner": "glasses-surface-runtime",
@@ -2179,12 +1890,22 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/glasses/*.ts"
+        "src/services/glasses/all-tools-glasses-projection.ts",
+        "src/services/glasses/glasses-browser.ts",
+        "src/services/glasses/glasses-host.ts",
+        "src/services/glasses/idl-to-glasses-compiler.ts",
+        "src/services/glasses/index.ts",
+        "src/services/glasses/ipfs-glasses-widgets.ts",
+        "src/services/glasses/meta-glasses-io-profile.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "Display/orb adapters and glasses-specific fallbacks belong here; app policy source data stays in src/services/apps."
-      ]
+      ],
+      "privateImplementationPaths": [
+        "src/services/glasses/**/*"
+      ],
+      "browserSafeEntrypoint": null
     },
     "service-integrations": {
       "owner": "external-integration-service-runtime",
@@ -2204,12 +1925,19 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/integrations/*.ts"
+        "src/services/integrations/index.ts",
+        "src/services/integrations/integrations-browser.ts",
+        "src/services/integrations/integrations-host.ts",
+        "src/services/integrations/spacy-wasm-nlp.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "New external integration files must land here or in a new named service family."
-      ]
+      ],
+      "privateImplementationPaths": [
+        "src/services/integrations/**/*"
+      ],
+      "browserSafeEntrypoint": null
     },
     "service-ipfs": {
       "owner": "ipfs-descriptor-runtime",
@@ -2230,12 +1958,24 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/ipfs/*.ts"
+        "src/services/ipfs/index.ts",
+        "src/services/ipfs/ipfs-browser.ts",
+        "src/services/ipfs/ipfs-host.ts",
+        "src/services/ipfs/ipfs-ui-profiles.ts",
+        "src/services/ipfs/mcp-ipfs-accelerate-descriptor-pack.ts",
+        "src/services/ipfs/mcp-ipfs-datasets-descriptor-pack.ts",
+        "src/services/ipfs/mcp-ipfs-kit-descriptor-pack.ts",
+        "src/services/ipfs/mcp-ipfs-kit-tools-manifest.json",
+        "src/services/ipfs/mcp-ipfs-ui-descriptors.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "IPFS descriptors and storage integration live here; generic IPFS clients remain under src/ipfs and storage persistence under src/storage/ipfs."
-      ]
+      ],
+      "privateImplementationPaths": [
+        "src/services/ipfs/**/*"
+      ],
+      "browserSafeEntrypoint": "src/services/ipfs/ipfs-browser.ts"
     },
     "service-logic": {
       "owner": "logic-service-runtime",
@@ -2257,12 +1997,86 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/logic/**/*.ts"
+        "src/services/logic/api/index.ts",
+        "src/services/logic/api/logic-api-remainders.ts",
+        "src/services/logic/api/logic-batch-processing.ts",
+        "src/services/logic/api/logic-verification-toolkit.ts",
+        "src/services/logic/api/reasoning-normalization-pipeline.ts",
+        "src/services/logic/api/session-translation-types.ts",
+        "src/services/logic/bridges/index.ts",
+        "src/services/logic/bridges/logic-bridges-browser.ts",
+        "src/services/logic/bridges/logic-bridges-host.ts",
+        "src/services/logic/bridges/modal-frame-bridge.ts",
+        "src/services/logic/bridges/prover-router-bridge.ts",
+        "src/services/logic/cec/cec-runtime-context-utils.ts",
+        "src/services/logic/cec/index.ts",
+        "src/services/logic/cec/logic-cec-browser.ts",
+        "src/services/logic/cec/logic-cec-host.ts",
+        "src/services/logic/dcec/dcec-types.ts",
+        "src/services/logic/dcec/dcec-ucan-tptp-types.ts",
+        "src/services/logic/dcec/index.ts",
+        "src/services/logic/dcec/logic-dcec-browser.ts",
+        "src/services/logic/dcec/logic-dcec-host.ts",
+        "src/services/logic/deontic/browser-nlp.ts",
+        "src/services/logic/deontic/deontic-extraction.ts",
+        "src/services/logic/deontic/deontic-graph-builder.ts",
+        "src/services/logic/deontic/deontic-graph.ts",
+        "src/services/logic/deontic/deontic-knowledge-base.ts",
+        "src/services/logic/deontic/deontic-parser-utils.ts",
+        "src/services/logic/deontic/deontic-text-analyzer.ts",
+        "src/services/logic/deontic/index.ts",
+        "src/services/logic/deontic/legal-norm-builder.ts",
+        "src/services/logic/deontic/legal-norm-decoder.ts",
+        "src/services/logic/deontic/legal-norm-ir.ts",
+        "src/services/logic/deontic/logic-deontic-browser.ts",
+        "src/services/logic/deontic/logic-deontic-host.ts",
+        "src/services/logic/deontic/normative-conflict-detector.ts",
+        "src/services/logic/deontic/policy-to-dcec.ts",
+        "src/services/logic/deontic/prover-syntax-builder.ts",
+        "src/services/logic/deontic/support-map.ts",
+        "src/services/logic/fol/enhanced-fol-converter.ts",
+        "src/services/logic/fol/flogic-semantic-optimizer.ts",
+        "src/services/logic/fol/fol-exporters.ts",
+        "src/services/logic/fol/fol-nlp-extraction.ts",
+        "src/services/logic/fol/fol-output-formatters.ts",
+        "src/services/logic/fol/fol-text-converter.ts",
+        "src/services/logic/fol/fol-text-parser.ts",
+        "src/services/logic/fol/index.ts",
+        "src/services/logic/fol/logic-formatter.ts",
+        "src/services/logic/fol/logic-fol-browser.ts",
+        "src/services/logic/fol/logic-fol-host.ts",
+        "src/services/logic/fol/ml-confidence-scorer.ts",
+        "src/services/logic/modal/index.ts",
+        "src/services/logic/modal/logic-modal-browser.ts",
+        "src/services/logic/modal/logic-modal-host.ts",
+        "src/services/logic/modal/shadow-prover.ts",
+        "src/services/logic/nl/index.ts",
+        "src/services/logic/nl/logic-nl-browser.ts",
+        "src/services/logic/nl/logic-nl-host.ts",
+        "src/services/logic/nl/portuguese-deontic-flogic-types.ts",
+        "src/services/logic/shared/embedding-prover.ts",
+        "src/services/logic/shared/formula-analyzer.ts",
+        "src/services/logic/shared/index.ts",
+        "src/services/logic/shared/logic-converters.ts",
+        "src/services/logic/shared/logic-shared-bridge-types.ts",
+        "src/services/logic/shared/logic-shared-browser.ts",
+        "src/services/logic/shared/logic-shared-host.ts",
+        "src/services/logic/tdfol/index.ts",
+        "src/services/logic/tdfol/logic-tdfol-browser.ts",
+        "src/services/logic/tdfol/logic-tdfol-host.ts",
+        "src/services/logic/tdfol/policy-to-tdfol.ts",
+        "src/services/logic/tdfol/tdfol-completeness-rules.ts",
+        "src/services/logic/tdfol/tdfol-core.ts",
+        "src/services/logic/tdfol/tdfol-types.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "Fine-grained logic-family ownership remains documented in src/services/module-ownership.json."
-      ]
+      ],
+      "privateImplementationPaths": [
+        "src/services/logic/**/*"
+      ],
+      "browserSafeEntrypoint": "src/services/logic/api/reasoning-normalization-pipeline.ts"
     },
     "service-mcp": {
       "owner": "mcp-protocol-runtime",
@@ -2283,13 +2097,39 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/mcp/*.ts",
-        "src/services/mcp/*.js"
+        "src/services/mcp/agent-supervisor-console-gateway.ts",
+        "src/services/mcp/all-tools-idl-generator.ts",
+        "src/services/mcp/browser-mcp.ts",
+        "src/services/mcp/host/mcpClient.ts",
+        "src/services/mcp/host/mcp-traffic-manager.ts",
+        "src/services/mcp/host/mcp-versioned-client.ts",
+        "src/services/mcp/index.ts",
+        "src/services/mcp/libp2p-browser-runtime.ts",
+        "src/services/mcp/mcp-browser.ts",
+        "src/services/mcp/mcp-control-surface-mediator.ts",
+        "src/services/mcp/mcp-deontic-interface-broker.ts",
+        "src/services/mcp/mcp-envelope.ts",
+        "src/services/mcp/mcp-event-dag.ts",
+        "src/services/mcp/mcp-host.ts",
+        "src/services/mcp/mcp-idl.ts",
+        "src/services/mcp/mcp-interface-registry.ts",
+        "src/services/mcp/mcp-mcp-policy.ts",
+        "src/services/mcp/mcp-orb-capability-router.ts",
+        "src/services/mcp/mcp-plus-plus-connector.ts",
+        "src/services/mcp/mcp-plus-plus.ts",
+        "src/services/mcp/mcp-remote-deontic-engine.ts",
+        "src/services/mcp/mcp-schema-ui-generator.ts",
+        "src/services/mcp/mcp-ui-profile.ts",
+        "src/services/mcp/mcp-wasm-prover-hub.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "Protocol, transport, mediation, and ORB machinery belongs here; descriptor packs for IPFS-owned apps stay in src/services/ipfs."
-      ]
+      ],
+      "privateImplementationPaths": [
+        "src/services/mcp/**/*"
+      ],
+      "browserSafeEntrypoint": "src/services/mcp/browser-mcp.ts"
     },
     "service-platform": {
       "owner": "platform-service-runtime",
@@ -2309,12 +2149,23 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/platform/*.ts"
+        "src/services/platform/claude.ts",
+        "src/services/platform/index.ts",
+        "src/services/platform/notifier.ts",
+        "src/services/platform/platform-browser.ts",
+        "src/services/platform/platform-host.ts",
+        "src/services/platform/sentry.ts",
+        "src/services/platform/statsig.ts",
+        "src/services/platform/webgpu-optimizer.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "Runtime-wide platform facades remain under src/platform; service-specific platform adapters live here."
-      ]
+      ],
+      "privateImplementationPaths": [
+        "src/services/platform/**/*"
+      ],
+      "browserSafeEntrypoint": null
     },
     "service-proof-engine": {
       "owner": "proof-engine-service-runtime",
@@ -2334,12 +2185,18 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/proof-engine/*.ts"
+        "src/services/proof-engine/index.ts",
+        "src/services/proof-engine/proof-engine-browser.ts",
+        "src/services/proof-engine/proof-engine-host.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
-        "Root proof-engine compatibility files remain in the explicit root service inventory."
-      ]
+        "The family index is the host-neutral API; browser and host entrypoints select their runtime without executable compatibility shadows."
+      ],
+      "privateImplementationPaths": [
+        "src/services/proof-engine/**/*"
+      ],
+      "browserSafeEntrypoint": "src/services/proof-engine/proof-engine-browser.ts"
     },
     "service-provers": {
       "owner": "prover-service-runtime",
@@ -2359,12 +2216,34 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/provers/*.ts"
+        "src/services/provers/browser-crypto.ts",
+        "src/services/provers/coq-jscoq-bridge.ts",
+        "src/services/provers/cvc5-wasm-bridge.ts",
+        "src/services/provers/dcec-prover-bridge.ts",
+        "src/services/provers/external-provers.ts",
+        "src/services/provers/formula-classifier.ts",
+        "src/services/provers/index.ts",
+        "src/services/provers/lean4-wasm-bridge.ts",
+        "src/services/provers/lurk-wasm-bridge.ts",
+        "src/services/provers/mcp-proof-cache.ts",
+        "src/services/provers/neural-prover-bridge.ts",
+        "src/services/provers/prover-types.ts",
+        "src/services/provers/prover-strategy-runtime.ts",
+        "src/services/provers/provers-browser.ts",
+        "src/services/provers/provers-host.ts",
+        "src/services/provers/tdfol-extended-rules.ts",
+        "src/services/provers/tdfol-prover-bridge.ts",
+        "src/services/provers/tptp-problem.ts",
+        "src/services/provers/z3-wasm-bridge.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "Root prover compatibility files remain in the explicit root service inventory."
-      ]
+      ],
+      "privateImplementationPaths": [
+        "src/services/provers/**/*"
+      ],
+      "browserSafeEntrypoint": "src/services/provers/provers-browser.ts"
     },
     "service-shared": {
       "owner": "shared-service-runtime",
@@ -2383,12 +2262,18 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/shared/*.ts"
+        "src/services/shared/browser-event-emitter.ts",
+        "src/services/shared/index.ts",
+        "src/services/shared/shared-browser-crypto.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "Generic application-wide shared contracts remain under src/shared."
-      ]
+      ],
+      "privateImplementationPaths": [
+        "src/services/shared/**/*"
+      ],
+      "browserSafeEntrypoint": "src/services/shared/shared-browser-crypto.ts"
     },
     "service-zkp": {
       "owner": "zkp-service-runtime",
@@ -2408,14 +2293,25 @@
         "screens"
       ],
       "publicEntrypoints": [
-        "src/services/zkp/*.ts",
-        "src/services/zkp/artifacts/**/*.ts",
-        "src/services/zkp/circuits/**/*.circom"
+        "src/services/zkp/artifacts/index.ts",
+        "src/services/zkp/browser-snarkjs-backend.ts",
+        "src/services/zkp/browser-zkp-policy.ts",
+        "src/services/zkp/browser-zkp.ts",
+        "src/services/zkp/ethereum-zkp-bridge.ts",
+        "src/services/zkp/index.ts",
+        "src/services/zkp/zkp-backends.ts",
+        "src/services/zkp/zkp-browser-schnorr.ts",
+        "src/services/zkp/zkp-browser.ts",
+        "src/services/zkp/zkp-host.ts"
       ],
       "privateEntrypoints": [],
       "notes": [
         "ZKP artifacts and circuits are service-owned data/code assets and must not be duplicated at src/services root."
-      ]
+      ],
+      "privateImplementationPaths": [
+        "src/services/zkp/**/*"
+      ],
+      "browserSafeEntrypoint": "src/services/zkp/browser-zkp.ts"
     },
     "services": {
       "owner": "domain-service-runtime",
@@ -2440,18 +2336,10 @@
         "hooks"
       ],
       "publicEntrypoints": [
-        "src/services/deontic-cognitive-logic-types.ts",
-        "src/services/deontic-nlp-ontology-types.ts",
         "src/services/event-dag.ts",
-        "src/services/fol-bridge-session-types.ts",
         "src/services/groth16-cec-delegation.ts",
-        "src/services/logic-language-pipeline.ts",
-        "src/services/logic-observability-pipeline.ts",
         "src/services/logic-proof-storage-parsers.ts",
-        "src/services/logic-verification-utilities.ts",
-        "src/services/prover-strategy-adapters.ts",
-        "src/services/zkp-canonicalization-security.ts",
-        "src/services/zkp-onchain-eth-bridge.ts"
+        "src/services/zkp-canonicalization-security.ts"
       ],
       "privateEntrypoints": [
         "src/services/*-wrapper.ts",
@@ -2459,12 +2347,15 @@
         "src/services/*-adapter.ts"
       ],
       "notes": [
-        "Root-level service source files are compatibility/root facades only and must be listed in audit.serviceRootFileOwners.",
-        "New service implementation files must land under a named service family such as src/services/mcp, src/services/ipfs, src/services/provers, or src/services/zkp.",
-        "Browser-safe service files must be listed in audit.browserSafeServiceFiles before browser-facing code imports them.",
-        "Host adapters must be isolated by filename or submodule before they are imported from browser-facing code."
+        "Root service source files are exceptional standalone implementations and must be listed in audit.serviceRootFileOwners.",
+        "Restored compatibility and shadow implementations are forbidden at src/services root; public migrations resolve to named service-family APIs.",
+        "New implementations must land under a named owned service family."
       ],
-      "rootOnly": true
+      "rootOnly": true,
+      "privateImplementationPaths": [
+        "src/services/**/*"
+      ],
+      "browserSafeEntrypoint": null
     },
     "storage": {
       "owner": "storage-runtime",

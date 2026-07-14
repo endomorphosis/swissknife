@@ -30,7 +30,7 @@ import {
   BoundedCache,
   ProofCache,
   getUnifiedCacheStats,
-} from '../../src/services/proof-engine/proof-cache-base.js';
+} from '../../src/services/proof-engine/index.js';
 import { FLogicProofCache } from '../../src/services/integrations/flogic-proof-cache.js';
 import { IPFSProofCache } from '../../src/services/ipfs/ipfs-proof-cache';
 

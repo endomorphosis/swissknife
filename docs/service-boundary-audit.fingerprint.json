@@ -2,22 +2,22 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "module-boundary-audit",
   "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
-  "generatedAt": "2026-07-14T11:21:28.844Z",
+  "generatedAt": "2026-07-14T17:38:06.200Z",
   "evidenceFiles": [
     "docs/service-boundary-audit.json"
   ],
   "evidenceHashes": {
-    "docs/service-boundary-audit.json": "a3b389dc7f98985043da85c8f821b8be8a101527e5ad0a66e0411d88bd4212df"
+    "docs/service-boundary-audit.json": "aa494531de2328cd9e255069e13ba22f43838bb61e1409567eb96bfa2cb7c5af"
   },
-  "sourceFingerprint": "927f8e3b52dc71437d3f361fc5e5799f5842000d128f710896fdaac4b063ff2d",
+  "sourceFingerprint": "222ea3a62c33865ef7c381a95581c0140bcfe2ec0c88293a045cdfcf7342912b",
   "sourceFiles": [
     {
       "path": "scripts/audit-source-modules.mjs",
-      "sha256": "70338139d5d7dbe0ff1418ee27c79cdd19ca2542dc434dad7b34fcb8980be929"
+      "sha256": "a48b99bf90171eebed7e4c6839226c4ea5e4cc186835bdc29ef5a795b1e12cc8"
     },
     {
       "path": "src/module-ownership.json",
-      "sha256": "1e56023079ae736c9b4542ec2ee759c566f89110448664f5fd2d9d7a278638c1"
+      "sha256": "683a3d3e913ae44793fddc1606d4c1e69729baefc3e721963216bb45268a9500"
     }
   ]
 }

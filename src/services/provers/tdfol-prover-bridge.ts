@@ -35,7 +35,7 @@ import {
   Permission,
   Prohibition,
   Implies,
-} from './provers-dcec-types.js';
+} from '../logic/dcec/dcec-types.js';
 import {
   type TdfolFormula,
   type LtlUnaryFormula,
@@ -47,8 +47,8 @@ import {
   Until,
   Disjunction as TdfolDisjunction,
   Conjunction as TdfolConjunction,
-} from './provers-tdfol-types.js';
-import { PolicyToTdfolTranslator } from './provers-policy-to-tdfol.js';
+} from '../logic/tdfol/tdfol-types.js';
+import { PolicyToTdfolTranslator } from '../logic/tdfol/policy-to-tdfol.js';
 
 export const TDFOL_PROVER_ID = 'tdfol-native' as const;
 

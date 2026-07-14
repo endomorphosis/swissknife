@@ -27,6 +27,8 @@ const DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_JSON =
   'docs/restored-service-duplicate-inventory.json';
 const DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_MARKDOWN =
   'docs/restored-service-duplicate-inventory.md';
+const DEFAULT_SERVICE_MODULE_PUBLIC_API_MARKDOWN =
+  'docs/service-module-public-api.md';
 const HOST_ONLY_BUILTINS = new Set([
   'assert',
   'async_hooks',
@@ -2578,6 +2580,126 @@ function writeRestoredServiceDuplicateInventoryMarkdown(relativeOrAbsolutePath, 
   fs.writeFileSync(outputPath, `${lines.join('\n')}\n`);
 }
 
+function writeServiceModulePublicApiMarkdown(relativeOrAbsolutePath, manifest) {
+  const outputPath = path.isAbsolute(relativeOrAbsolutePath)
+    ? relativeOrAbsolutePath
+    : abs(relativeOrAbsolutePath);
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+
+  const serviceModules = Object.entries(manifest.modules)
+    .filter(([name]) => name === 'services' || name.startsWith('service-'))
+    .sort(([left], [right]) => left.localeCompare(right));
+  const migrations = [...(manifest.audit?.servicePublicApiMigrations ?? [])]
+    .sort((left, right) => left.legacyPath.localeCompare(right.legacyPath));
+  const packageJson = fs.existsSync(abs('package.json'))
+    ? readJson('package.json')
+    : { name: 'fixture', exports: {} };
+  const packageEntrypoints = Object.entries(packageJson.exports ?? {})
+    .filter(([name]) => ['./logic-language', './deontic-nlp', './proof-engine', './provers'].includes(name))
+    .sort(([left], [right]) => left.localeCompare(right));
+
+  const lines = [
+    '# Service Module Public API',
+    '',
+    `Generated from \`src/module-ownership.json\` manifest \`${manifest.manifestVersion}\` by \`npm run services:audit\`.`,
+    '',
+    'Service implementations have exactly one owning family. Cross-family consumers must import a declared public entrypoint, and compatibility is limited to export-only barrels: a removed shadow must never be replaced with executable forwarding code.',
+    '',
+    '## Family Summary',
+    '',
+    markdownTableRow(['Family', 'Owner', 'Runtime', 'Browser-safe entrypoint', 'Public entrypoints']),
+    markdownTableRow(['---', '---', '---', '---', '---']),
+  ];
+
+  for (const [name, definition] of serviceModules) {
+    lines.push(markdownTableRow([
+      `\`${name}\``,
+      definition.owner ?? 'unowned',
+      `\`${definition.runtimeClassification ?? 'unknown'}\``,
+      definition.browserSafeEntrypoint ? `\`${definition.browserSafeEntrypoint}\`` : 'none',
+      (definition.publicEntrypoints ?? []).length,
+    ]));
+  }
+
+  lines.push('', '## Canonical Family APIs', '');
+  for (const [name, definition] of serviceModules) {
+    lines.push(
+      `### ${name}`,
+      '',
+      `Owner: ${definition.owner ?? 'unowned'}. Runtime: \`${definition.runtimeClassification ?? 'unknown'}\`.`,
+      '',
+      'Public entrypoints:',
+      '',
+    );
+    for (const entrypoint of definition.publicEntrypoints ?? []) {
+      lines.push(`- \`${entrypoint}\``);
+    }
+    if ((definition.publicEntrypoints ?? []).length === 0) lines.push('- None; this is an ownership aggregate only.');
+    lines.push('', 'Private implementation patterns (declared public entrypoints are excluded):', '');
+    for (const privatePath of definition.privateImplementationPaths ?? []) {
+      lines.push(`- \`${privatePath}\``);
+    }
+    if ((definition.privateImplementationPaths ?? []).length === 0) lines.push('- None declared.');
+    lines.push('');
+  }
+
+  lines.push(
+    '## Migration Paths',
+    '',
+    'The legacy files below were executable shadow copies and are deleted. Import the public family API shown; no compatibility implementation remains at the old path.',
+    '',
+    markdownTableRow(['Removed legacy path', 'Canonical implementation', 'Public family API', 'Compatibility']),
+    markdownTableRow(['---', '---', '---', '---']),
+  );
+  for (const migration of migrations) {
+    lines.push(markdownTableRow([
+      `\`${migration.legacyPath}\``,
+      `\`${migration.canonicalImplementation}\``,
+      `\`${migration.publicEntrypoint}\``,
+      migration.compatibility,
+    ]));
+  }
+
+  lines.push(
+    '',
+    '## Package Subpath Migrations',
+    '',
+    markdownTableRow(['Package subpath', 'Browser target', 'Import/default target']),
+    markdownTableRow(['---', '---', '---']),
+  );
+  for (const [name, definition] of packageEntrypoints) {
+    const browserTarget = typeof definition === 'string'
+      ? definition
+      : definition.browser ?? definition.import ?? definition.default;
+    const hostTarget = typeof definition === 'string'
+      ? definition
+      : definition.import ?? definition.default ?? definition.browser;
+    lines.push(markdownTableRow([
+      `\`${packageJson.name}${name.slice(1)}\``,
+      `\`${browserTarget}\``,
+      `\`${hostTarget}\``,
+    ]));
+  }
+
+  lines.push(
+    '',
+    '## Behavioral Reconciliation',
+    '',
+    '- Deontic conflict reports use conflict entity membership, so one detected conflict is reported for every entity it names.',
+    '- FOL NLP extraction keeps the Python-shaped predicate/statistics contract and the richer unary, binary, ternary, and semantic-role classification in one implementation; `normalisePredicate` retains lower snake-case behavior while `normalizePredicate` retains formula-symbol casing.',
+    '- Logic API remainder helpers now live as executable canonical code in the logic API family instead of forwarding to a deleted root shadow.',
+    '- `proof-engine-browser.ts` and `provers-browser.ts` are browser-specific runtime implementations, not index shadows. The browser proof facade delegates to a worker verifier, and the bounded prover executes its TypeScript truth-table runtime.',
+    '- The proof-engine index resolves legacy star-export collisions explicitly: `ProofCache` is the persistent cache, `ExecutionProofCache` is the execution-local cache, `ProofResult` is the canonical result class, and `UtilityProofResult` is the lightweight utility result shape.',
+    '- Cross-family proof-engine consumers import `src/services/proof-engine/index.ts`; runtime package consumers select `proof-engine-browser.ts` or `proof-engine-host.ts` through package export conditions.',
+    '',
+    '## Compatibility Barrels',
+    '',
+    'The canonical convenience entrypoints `src/services/apps/index.ts` and `src/services/logic/deontic/browser-nlp.ts` contain exports only. Other approved service `index.ts` files are classified individually by the duplicate inventory; executable index entrypoints remain implementations only when explicitly declared by policy.',
+  );
+
+  fs.writeFileSync(outputPath, `${lines.join('\n')}\n`);
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -2601,6 +2723,9 @@ function main() {
       restoredInventoryMarkdownPath,
       result.restoredServiceDuplicateInventory,
     );
+  }
+  if (args.json) {
+    writeServiceModulePublicApiMarkdown(DEFAULT_SERVICE_MODULE_PUBLIC_API_MARKDOWN, manifest);
   }
 
   const failures = [];
