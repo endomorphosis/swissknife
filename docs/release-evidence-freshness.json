@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-14T10:59:17.043Z",
+  "generatedAt": "2026-07-14T11:02:04.194Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -37,7 +37,7 @@
       },
       "recordedFingerprint": "8414916267cfaec2f3ae0c954b1ca10944c94721d3c84e9c4dd5028a6616415b",
       "currentFingerprint": "8414916267cfaec2f3ae0c954b1ca10944c94721d3c84e9c4dd5028a6616415b",
-      "recordedAt": "2026-07-14T10:59:17.031Z",
+      "recordedAt": "2026-07-14T11:02:04.179Z",
       "regenerateHint": "npm run build:web"
     },
     {
