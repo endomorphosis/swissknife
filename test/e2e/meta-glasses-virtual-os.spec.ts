@@ -43,6 +43,7 @@ const MGW_556_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   'fixtures',
   'mgw-556-daemon-launch-health-gate.json',
 );
+const HALLUCINATE_APP_FIXTURE_ROOT = path.dirname(MGW_556_DAEMON_LAUNCH_GATE_FIXTURE);
 const HAO_725_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   process.cwd(),
   '..',
@@ -322,6 +323,14 @@ const VAI_660_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   'fixtures',
   'vai-660-daemon-launch-health-gate.json',
 );
+
+test.beforeEach(({ browserName: _browserName }, testInfo) => {
+  test.skip(
+    testInfo.title.includes('daemon launch gate fixture')
+      && !fs.existsSync(HALLUCINATE_APP_FIXTURE_ROOT),
+    'Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.',
+  );
+});
 
 test.setTimeout(240_000);
 test.describe.configure({ mode: 'serial' });

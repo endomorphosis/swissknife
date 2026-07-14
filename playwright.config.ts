@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './test/e2e',
   testMatch: [
+    '**/all-app-meta-device-simulator.spec.ts',
     '**/meta-glasses-io-apps.spec.ts',
     '**/meta-glasses-expanded-io.spec.ts',
     '**/all-tools-virtual-desktop-app-smoke.spec.ts',

@@ -20,6 +20,7 @@ function resolveMetaGlassesPort(): number {
 export default defineConfig({
   testDir: resolve(repoRoot, 'test/e2e'),
   testMatch: [
+    '**/all-app-meta-device-simulator.spec.ts',
     '**/meta-glasses-virtual-os.spec.ts',
     '**/meta-glasses-simulator-handoff.spec.ts',
   ],
@@ -32,6 +33,7 @@ export default defineConfig({
     ['list'],
     ['json', { outputFile: resolve(repoRoot, 'test-results/meta-glasses-virtual-os/results.json') }],
   ],
+  outputDir: resolve(repoRoot, 'test-results/playwright-artifacts/meta-glasses-virtual-os'),
   use: {
     baseURL,
     trace: 'retain-on-failure',
