@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "taskId": "SWR-135",
-  "generatedAt": "2026-07-13T17:23:30-07:00",
+  "generatedAt": "2026-07-13T17:41:00-07:00",
   "authority": "scripts/swissknife_lane_worktrees.py plus configured supervisor wrappers that declare swissknife as a mutable submodule",
   "leaseNamespace": {
     "name": "swissknife-supervisor-checkout-lease-v1",
@@ -12,21 +12,23 @@
       "git -C swissknife rev-parse --show-superproject-working-tree",
       "git -C $SUPERPROJECT_WORKTREE rev-parse --path-format=absolute --git-common-dir"
     ],
-    "reclamationPolicy": "never age-based; only absent PID, changed boot identity, changed PID namespace, or reused PID after exact recorded process identity verification",
+    "reclamationPolicy": "never age-based; only absent PID, changed boot identity, or reused PID after exact recorded process identity verification; a PID namespace mismatch is unverifiable and fails closed",
     "unverifiablePolicy": "fail_closed_and_refuse_implementation"
   },
   "canonicalLaneIds": ["all-tools", "refactor"],
   "lanes": [
     {
       "id": "all-tools",
+      "kind": "implementation-supervisor",
       "classification": "canonical_active_lane",
       "board": "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
       "taskPrefix": "## SVD-",
       "statePrefix": "swissknife_all_tools",
       "stateDirectory": "tmp/swissknife_all_tools_supervisor/state",
-      "implementationSurface": "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+      "implementationSurface": "scripts/swissknife_leased_implementation_supervisor.py",
       "leaseRequiredForImplementation": true,
       "launch": {
+        "commandPolicy": "exact",
         "environment": {
           "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
         },
@@ -43,10 +45,8 @@
           "--board",
           "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
           "--",
-          "python",
-          "-u",
-          "-m",
-          "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+          "python3",
+          "scripts/swissknife_leased_implementation_supervisor.py",
           "--todo-path",
           "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
           "--state-dir",
@@ -63,14 +63,16 @@
     },
     {
       "id": "refactor",
+      "kind": "implementation-supervisor",
       "classification": "canonical_active_lane",
       "board": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
       "taskPrefix": "## SWR-",
       "statePrefix": "swissknife_refactor",
       "stateDirectory": "tmp/swissknife_refactor_supervisor/state",
-      "implementationSurface": "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+      "implementationSurface": "scripts/swissknife_leased_implementation_supervisor.py",
       "leaseRequiredForImplementation": true,
       "launch": {
+        "commandPolicy": "exact",
         "environment": {
           "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
         },
@@ -87,10 +89,8 @@
           "--board",
           "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
           "--",
-          "python",
-          "-u",
-          "-m",
-          "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+          "python3",
+          "scripts/swissknife_leased_implementation_supervisor.py",
           "--todo-path",
           "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
           "--state-dir",
@@ -107,6 +107,7 @@
     },
     {
       "id": "swissknife-virtual-desktop-legacy",
+      "kind": "implementation-supervisor",
       "classification": "legacy_alias_of_all-tools",
       "board": "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
       "taskPrefix": "## SVD-",
@@ -115,6 +116,7 @@
       "implementationSurface": "scripts/virtual_ai_os_todo_supervisor.py with SVD overrides",
       "leaseRequiredForImplementation": true,
       "launch": {
+        "commandPolicy": "exact",
         "environment": {
           "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
         },
@@ -128,6 +130,8 @@
           "--run",
           "--lane",
           "swissknife-virtual-desktop-legacy",
+          "--board",
+          "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
           "--",
           "python3",
           "scripts/virtual_ai_os_todo_supervisor.py",
@@ -137,6 +141,8 @@
           "## SVD-",
           "--state-prefix",
           "swissknife_virtual_desktop",
+          "--state-dir",
+          "data/virtual_ai_os/state",
           "--implement",
           "--no-ephemeral-worktree",
           "--no-worktree-reconciliation"
@@ -145,14 +151,16 @@
     },
     {
       "id": "mcpplusplus-profile-g",
+      "kind": "implementation-supervisor",
       "classification": "inactive_historical_swissknife_writer",
       "board": "implementation_plan/docs/38-mcpplusplus-risk-consensus-scheduling-p2p-plan-2026-07-12.md",
       "taskPrefix": "## SVD-",
       "statePrefix": "mcpplusplus_profile_g",
       "stateDirectory": "tmp/mcpplusplus_profile_g_supervisor/state",
-      "implementationSurface": "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+      "implementationSurface": "scripts/swissknife_leased_implementation_supervisor.py",
       "leaseRequiredForImplementation": true,
       "launch": {
+        "commandPolicy": "exact",
         "environment": {
           "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
         },
@@ -166,11 +174,11 @@
           "--run",
           "--lane",
           "mcpplusplus-profile-g",
+          "--board",
+          "implementation_plan/docs/38-mcpplusplus-risk-consensus-scheduling-p2p-plan-2026-07-12.md",
           "--",
-          "python",
-          "-u",
-          "-m",
-          "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+          "python3",
+          "scripts/swissknife_leased_implementation_supervisor.py",
           "--todo-path",
           "implementation_plan/docs/38-mcpplusplus-risk-consensus-scheduling-p2p-plan-2026-07-12.md",
           "--state-dir",
@@ -187,14 +195,16 @@
     },
     {
       "id": "mcpplusplus-profile-h",
+      "kind": "implementation-supervisor",
       "classification": "inactive_historical_swissknife_writer",
       "board": "implementation_plan/docs/41-mcpplusplus-profile-h-x402-payments-plan-2026-07-12.todo.md",
       "taskPrefix": "## XPH-",
       "statePrefix": "mcpplusplus_profile_h",
       "stateDirectory": "tmp/mcpplusplus_profile_h_supervisor/state",
-      "implementationSurface": "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+      "implementationSurface": "scripts/swissknife_leased_implementation_supervisor.py",
       "leaseRequiredForImplementation": true,
       "launch": {
+        "commandPolicy": "exact",
         "environment": {
           "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
         },
@@ -208,11 +218,11 @@
           "--run",
           "--lane",
           "mcpplusplus-profile-h",
+          "--board",
+          "implementation_plan/docs/41-mcpplusplus-profile-h-x402-payments-plan-2026-07-12.todo.md",
           "--",
-          "python",
-          "-u",
-          "-m",
-          "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+          "python3",
+          "scripts/swissknife_leased_implementation_supervisor.py",
           "--todo-path",
           "implementation_plan/docs/41-mcpplusplus-profile-h-x402-payments-plan-2026-07-12.todo.md",
           "--state-dir",
@@ -229,6 +239,7 @@
     },
     {
       "id": "virtual-ai-os",
+      "kind": "implementation-supervisor",
       "classification": "configured_inactive_swissknife_writer",
       "board": "implementation_plan/docs/19-virtual-ai-os-submodule-integration.todo.md",
       "taskPrefix": "## VAI-",
@@ -237,6 +248,7 @@
       "implementationSurface": "scripts/virtual_ai_os_todo_supervisor.py",
       "leaseRequiredForImplementation": true,
       "launch": {
+        "commandPolicy": "exact",
         "environment": {
           "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
         },
@@ -250,9 +262,19 @@
           "--run",
           "--lane",
           "virtual-ai-os",
+          "--board",
+          "implementation_plan/docs/19-virtual-ai-os-submodule-integration.todo.md",
           "--",
           "python3",
           "scripts/virtual_ai_os_todo_supervisor.py",
+          "--todo-path",
+          "implementation_plan/docs/19-virtual-ai-os-submodule-integration.todo.md",
+          "--state-dir",
+          "data/virtual_ai_os/state",
+          "--task-prefix",
+          "## VAI-",
+          "--state-prefix",
+          "virtual_ai_os",
           "--implement",
           "--no-ephemeral-worktree",
           "--no-worktree-reconciliation"
@@ -261,6 +283,7 @@
     },
     {
       "id": "meta-glasses-display",
+      "kind": "implementation-supervisor",
       "classification": "configured_inactive_swissknife_writer",
       "board": "implementation_plan/docs/18-swissknife-meta-glasses-display-widgets.todo.md",
       "taskPrefix": "## MGW-",
@@ -269,6 +292,7 @@
       "implementationSurface": "scripts/meta_glasses_display_todo_supervisor.py",
       "leaseRequiredForImplementation": true,
       "launch": {
+        "commandPolicy": "exact",
         "environment": {
           "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
         },
@@ -282,9 +306,19 @@
           "--run",
           "--lane",
           "meta-glasses-display",
+          "--board",
+          "implementation_plan/docs/18-swissknife-meta-glasses-display-widgets.todo.md",
           "--",
           "python3",
           "scripts/meta_glasses_display_todo_supervisor.py",
+          "--todo-path",
+          "implementation_plan/docs/18-swissknife-meta-glasses-display-widgets.todo.md",
+          "--state-dir",
+          "data/meta_glasses_display_widgets/state",
+          "--task-prefix",
+          "## MGW-",
+          "--state-prefix",
+          "meta_glasses_display",
           "--implement",
           "--no-ephemeral-worktree",
           "--no-worktree-reconciliation"
@@ -293,6 +327,7 @@
     },
     {
       "id": "hallucinate-multimodal-control",
+      "kind": "implementation-supervisor",
       "classification": "configured_inactive_swissknife_writer",
       "board": "hallucinate_app/docs/MULTIMODAL_CONTROL_SURFACE_LOGIC_IDL.todo.md",
       "taskPrefix": "## HAO-",
@@ -301,6 +336,7 @@
       "implementationSurface": "scripts/hallucinate_multimodal_control_todo_supervisor.py",
       "leaseRequiredForImplementation": true,
       "launch": {
+        "commandPolicy": "exact",
         "environment": {
           "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
         },
@@ -314,12 +350,88 @@
           "--run",
           "--lane",
           "hallucinate-multimodal-control",
+          "--board",
+          "hallucinate_app/docs/MULTIMODAL_CONTROL_SURFACE_LOGIC_IDL.todo.md",
           "--",
           "python3",
           "scripts/hallucinate_multimodal_control_todo_supervisor.py",
+          "--todo-path",
+          "hallucinate_app/docs/MULTIMODAL_CONTROL_SURFACE_LOGIC_IDL.todo.md",
+          "--state-dir",
+          "data/hallucinate_multimodal_control/state",
+          "--task-prefix",
+          "## HAO-",
+          "--state-prefix",
+          "hallucinate_multimodal_control",
           "--implement",
           "--no-ephemeral-worktree",
           "--no-worktree-reconciliation"
+        ]
+      }
+    },
+    {
+      "id": "all-tools-integration",
+      "kind": "integration",
+      "classification": "canonical_integration_lane",
+      "board": "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
+      "taskPrefix": "## SVD-",
+      "statePrefix": "swissknife_all_tools_integration",
+      "stateDirectory": "tmp/swissknife_lane_worktrees",
+      "implementationSurface": "scripts/swissknife_lane_worktrees.py merge --lane all-tools --apply",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "commandPolicy": "prefix",
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "all-tools-integration",
+          "--board",
+          "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
+          "--",
+          "python3",
+          "scripts/swissknife_lane_worktrees.py",
+          "merge",
+          "--lane",
+          "all-tools"
+        ]
+      }
+    },
+    {
+      "id": "refactor-integration",
+      "kind": "integration",
+      "classification": "canonical_integration_lane",
+      "board": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
+      "taskPrefix": "## SWR-",
+      "statePrefix": "swissknife_refactor_integration",
+      "stateDirectory": "tmp/swissknife_lane_worktrees",
+      "implementationSurface": "scripts/swissknife_lane_worktrees.py merge --lane refactor --apply",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "commandPolicy": "prefix",
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "refactor-integration",
+          "--board",
+          "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
+          "--",
+          "python3",
+          "scripts/swissknife_lane_worktrees.py",
+          "merge",
+          "--lane",
+          "refactor"
         ]
       }
     }

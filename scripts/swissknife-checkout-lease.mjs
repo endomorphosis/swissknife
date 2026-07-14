@@ -86,7 +86,10 @@ async function readJson(file) {
 
 async function atomicWriteJson(file, value) {
   const directory = path.dirname(file);
-  await mkdir(directory, { recursive: true });
+  // The lease directory is itself the atomic ownership primitive.  Never
+  // recreate it from a heartbeat: release may already have moved it aside, or
+  // a successor may have acquired the canonical name.
+  await stat(directory);
   const temporary = path.join(
     directory,
     `.${path.basename(file)}.${process.pid}.${randomUUID()}.tmp`,
@@ -127,6 +130,12 @@ function gitOutput(checkout, args) {
 }
 
 export async function resolveCheckout(checkout = DEFAULT_CHECKOUT) {
+  if (platform() !== "linux") {
+    throw new LeaseError(
+      "SwissKnife checkout lease v1 requires Linux procfs process identity verification",
+      { code: "unsupported_platform", exitCode: EXIT_CONTRACT },
+    );
+  }
   const canonicalPath = await realpath(path.resolve(checkout));
   const repositoryRoot = await realpath(
     gitOutput(canonicalPath, ["rev-parse", "--show-toplevel"]),
@@ -367,7 +376,10 @@ async function compareProcessIdentity(recorded, pid) {
     }
     if (recorded.pidNamespace !== current.pidNamespace) {
       return {
-        state: "stale_verified",
+        // A different PID namespace can expose the same numeric PID while the
+        // recorded process remains alive outside our current /proc view.  This
+        // is identity verification, but it is not proof of process death.
+        state: "unverifiable",
         reason: "pid_namespace_changed",
         currentIdentity: current,
       };
@@ -798,6 +810,11 @@ function repositoryRootFromCheckout(checkout) {
   return path.dirname(checkout);
 }
 
+function optionValue(command, option) {
+  const index = command.indexOf(option);
+  return index >= 0 ? command[index + 1] : undefined;
+}
+
 function validateInventory(inventory) {
   const problems = [];
   if (inventory?.schemaVersion !== CONTRACT_VERSION)
@@ -814,6 +831,12 @@ function validateInventory(inventory) {
   }
   if (!Array.isArray(inventory?.lanes) || inventory.lanes.length === 0)
     problems.push("lanes must be non-empty");
+  if (
+    !Array.isArray(inventory?.canonicalLaneIds) ||
+    inventory.canonicalLaneIds.length === 0
+  ) {
+    problems.push("canonicalLaneIds must be non-empty");
+  }
   const ids = new Set();
   for (const [index, lane] of (inventory?.lanes || []).entries()) {
     const label = `lanes[${index}]`;
@@ -821,6 +844,7 @@ function validateInventory(inventory) {
       problems.push(`${label}.id must be present and unique`);
     ids.add(lane?.id);
     for (const key of [
+      "kind",
       "board",
       "taskPrefix",
       "statePrefix",
@@ -831,6 +855,10 @@ function validateInventory(inventory) {
     }
     if (lane?.leaseRequiredForImplementation !== true)
       problems.push(`${label}.leaseRequiredForImplementation must be true`);
+    if (!["implementation-supervisor", "integration"].includes(lane?.kind))
+      problems.push(
+        `${label}.kind must be implementation-supervisor or integration`,
+      );
     if (
       lane?.launch?.environment?.IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS !==
       REQUIRED_DIRTY_ATTEMPTS
@@ -840,14 +868,67 @@ function validateInventory(inventory) {
       );
     }
     const required = lane?.launch?.requiredArguments || [];
-    if (!required.includes("--no-worktree-reconciliation"))
-      problems.push(`${label} must require --no-worktree-reconciliation`);
-    if (
-      !Array.isArray(lane?.launch?.command) ||
-      !lane.launch.command.includes("--run")
-    ) {
-      problems.push(`${label}.launch.command must use the lease --run wrapper`);
+    if (lane.kind === "implementation-supervisor") {
+      if (!required.includes("--no-ephemeral-worktree"))
+        problems.push(`${label} must require --no-ephemeral-worktree`);
+      if (!required.includes("--no-worktree-reconciliation"))
+        problems.push(`${label} must require --no-worktree-reconciliation`);
     }
+    if (!["exact", "prefix"].includes(lane?.launch?.commandPolicy))
+      problems.push(`${label}.launch.commandPolicy must be exact or prefix`);
+    if (
+      lane.kind === "implementation-supervisor" &&
+      lane.launch.commandPolicy !== "exact"
+    )
+      problems.push(`${label} implementation command policy must be exact`);
+    const command = lane?.launch?.command;
+    if (!Array.isArray(command)) {
+      problems.push(`${label}.launch.command must be an array`);
+      continue;
+    }
+    const separator = command.indexOf("--");
+    const wrapper = separator >= 0 ? command.slice(0, separator) : command;
+    const child = separator >= 0 ? command.slice(separator + 1) : [];
+    if (
+      wrapper[0] !== "node" ||
+      wrapper[1] !== "swissknife/scripts/swissknife-checkout-lease.mjs" ||
+      !wrapper.includes("--run")
+    ) {
+      problems.push(
+        `${label}.launch.command must start with the repository lease --run wrapper`,
+      );
+    }
+    if (optionValue(wrapper, "--lane") !== lane.id)
+      problems.push(`${label}.launch.command --lane must match id`);
+    if (optionValue(wrapper, "--board") !== lane.board)
+      problems.push(`${label}.launch.command --board must match board`);
+    if (child.length === 0)
+      problems.push(`${label}.launch.command must include a foreground child`);
+    for (const requiredArgument of required) {
+      if (!child.includes(requiredArgument))
+        problems.push(
+          `${label}.launch.command child must include ${requiredArgument}`,
+        );
+    }
+    if (lane.kind === "implementation-supervisor") {
+      if (!child.includes("--implement"))
+        problems.push(`${label}.launch.command child must include --implement`);
+      for (const [option, expected] of [
+        ["--todo-path", lane.board],
+        ["--task-prefix", lane.taskPrefix],
+        ["--state-prefix", lane.statePrefix],
+        ["--state-dir", lane.stateDirectory],
+      ]) {
+        if (optionValue(child, option) !== expected)
+          problems.push(
+            `${label}.launch.command ${option} must match lane metadata`,
+          );
+      }
+    }
+  }
+  for (const canonicalId of inventory?.canonicalLaneIds || []) {
+    if (!ids.has(canonicalId))
+      problems.push(`canonicalLaneIds references unknown lane ${canonicalId}`);
   }
   if (problems.length) {
     throw new LeaseError(
@@ -864,6 +945,42 @@ function validateInventory(inventory) {
 
 async function loadInventory(file) {
   return validateInventory(await readJson(file));
+}
+
+function validateOwnerRegistration(inspection, inventory) {
+  if (!inspection.owner) return;
+  const recorded = inspection.owner.lane;
+  const lane = inventory.lanes.find(
+    (candidate) => candidate.id === recorded.id,
+  );
+  if (!lane) {
+    throw new LeaseError(
+      `Lease owner lane ${recorded.id} is not registered in the audited inventory`,
+      {
+        code: "owner_lane_unregistered",
+        details: { ownerLane: recorded.id },
+      },
+    );
+  }
+  const mismatches = [];
+  for (const [ownerKey, laneKey] of [
+    ["board", "board"],
+    ["taskPrefix", "taskPrefix"],
+    ["statePrefix", "statePrefix"],
+    ["stateDirectory", "stateDirectory"],
+  ]) {
+    if (recorded[ownerKey] !== lane[laneKey])
+      mismatches.push(`${ownerKey}: ${recorded[ownerKey]} != ${lane[laneKey]}`);
+  }
+  if (mismatches.length) {
+    throw new LeaseError(
+      `Lease owner metadata does not match registered lane ${lane.id}: ${mismatches.join(", ")}`,
+      {
+        code: "owner_lane_metadata_mismatch",
+        details: { mismatches, ownerLane: recorded, registeredLane: lane },
+      },
+    );
+  }
 }
 
 async function resolveLane({ inventory, laneId, board, checkout }) {
@@ -927,11 +1044,14 @@ function validateImplementationCommand(command, lane) {
   }
   const joined = command.join(" ");
   const destructiveGit = [
-    /(?:^|\s)git(?:\s+-C\s+\S+)?\s+checkout\s+(?:[^\s]+\s+)*(?:--force|-f)(?:\s|$)/,
-    /(?:^|\s)git(?:\s+-C\s+\S+)?\s+reset(?:\s|$)/,
-    /(?:^|\s)git(?:\s+-C\s+\S+)?\s+stash(?:\s|$)/,
-    /(?:^|\s)git(?:\s+-C\s+\S+)?\s+clean(?:\s|$)/,
-    /(?:^|\s)git(?:\s+-C\s+\S+)?\s+submodule\s+update(?:\s|$)/,
+    /(?:^|[;&|]\s*|\s)git\b[^;&|\n]*\bcheckout\b[^;&|\n]*(?:--force|(?:^|\s)-f)(?:\s|$)/,
+    /(?:^|[;&|]\s*|\s)git\b[^;&|\n]*\bswitch\b[^;&|\n]*(?:--force|(?:^|\s)-f)(?:\s|$)/,
+    /(?:^|[;&|]\s*|\s)git\b[^;&|\n]*\breset\b/,
+    /(?:^|[;&|]\s*|\s)git\b[^;&|\n]*\brestore\b/,
+    /(?:^|[;&|]\s*|\s)git\b[^;&|\n]*\bstash\b/,
+    /(?:^|[;&|]\s*|\s)git\b[^;&|\n]*\bclean\b/,
+    /(?:^|[;&|]\s*|\s)git\b[^;&|\n]*\bsubmodule\s+update\b/,
+    /(?:^|[;&|]\s*|\s)git\b[^;&|\n]*\bworktree\s+remove\b[^;&|\n]*(?:--force|(?:^|\s)-f)(?:\s|$)/,
   ];
   if (destructiveGit.some((pattern) => pattern.test(joined))) {
     throw new LeaseError(
@@ -942,18 +1062,35 @@ function validateImplementationCommand(command, lane) {
       },
     );
   }
-  if (command.some((item) => item.includes("implementation_supervisor"))) {
-    for (const required of lane.launch.requiredArguments) {
-      if (!command.includes(required)) {
-        throw new LeaseError(
-          `Supervisor command for lane ${lane.id} is missing required safety argument ${required}`,
-          {
-            code: "required_argument_missing",
-            exitCode: EXIT_CONTRACT,
-          },
-        );
-      }
+  for (const required of lane.launch.requiredArguments) {
+    if (!command.includes(required)) {
+      throw new LeaseError(
+        `Supervisor command for lane ${lane.id} is missing required safety argument ${required}`,
+        {
+          code: "required_argument_missing",
+          exitCode: EXIT_CONTRACT,
+        },
+      );
     }
+  }
+  const recordedSeparator = lane.launch.command.indexOf("--");
+  const recordedChild = lane.launch.command.slice(recordedSeparator + 1);
+  const commandMatches =
+    recordedSeparator >= 0 &&
+    (lane.launch.commandPolicy === "prefix"
+      ? command.length >= recordedChild.length &&
+        recordedChild.every((argument, index) => command[index] === argument)
+      : command.length === recordedChild.length &&
+        command.every((argument, index) => argument === recordedChild[index]));
+  if (!commandMatches) {
+    throw new LeaseError(
+      `Command for lane ${lane.id} does not match its audited inventory ${lane.launch.commandPolicy} policy`,
+      {
+        code: "command_inventory_mismatch",
+        exitCode: EXIT_CONTRACT,
+        details: { expected: recordedChild, received: command },
+      },
+    );
   }
 }
 
@@ -1076,6 +1213,13 @@ child.on('exit', (code, signal) => {
     env: {
       ...process.env,
       IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS: REQUIRED_DIRTY_ATTEMPTS,
+      SWISSKNIFE_CHECKOUT_LEASE_ID: owner.leaseId,
+      SWISSKNIFE_CHECKOUT_LEASE_LANE: owner.lane.id,
+      SWISSKNIFE_CHECKOUT_LEASE_BOARD: owner.lane.board,
+      SWISSKNIFE_CHECKOUT_LEASE_OWNER_FILE: path.join(
+        context.leaseDirectory,
+        OWNER_FILE_NAME,
+      ),
       SWISSKNIFE_LEASE_CHILD_COMMAND: JSON.stringify(command),
     },
     stdio: "inherit",
@@ -1117,15 +1261,20 @@ child.on('exit', (code, signal) => {
     heartbeatAt: new Date().toISOString(),
   });
   if (platform() !== "win32") child.kill("SIGCONT");
+  let heartbeatUpdate = Promise.resolve();
   const heartbeat = setInterval(() => {
-    updateOwnedLease(context, owner.leaseId, {
-      heartbeatAt: new Date().toISOString(),
-      childPid: child.pid,
-    }).catch((error) => {
-      process.stderr.write(
-        `SwissKnife lease heartbeat failed: ${error.message}\n`,
-      );
-    });
+    heartbeatUpdate = heartbeatUpdate
+      .then(() =>
+        updateOwnedLease(context, owner.leaseId, {
+          heartbeatAt: new Date().toISOString(),
+          childPid: child.pid,
+        }),
+      )
+      .catch((error) => {
+        process.stderr.write(
+          `SwissKnife lease heartbeat failed: ${error.message}\n`,
+        );
+      });
   }, HEARTBEAT_INTERVAL_MS);
   heartbeat.unref();
 
@@ -1150,6 +1299,10 @@ child.on('exit', (code, signal) => {
     clearInterval(heartbeat);
     for (const [signal, handler] of signalHandlers)
       process.removeListener(signal, handler);
+    // A timer callback may already be updating owner.json.  Let it finish
+    // before moving the lease directory so it can never recreate or overwrite
+    // a successor's owner record after release.
+    await heartbeatUpdate;
     await releaseLease(context, owner.leaseId);
   }
   if (json) {
@@ -1194,6 +1347,7 @@ export async function main(argv = process.argv.slice(2)) {
     options.inventory = path.resolve(process.cwd(), options.inventory);
   const inventory = await loadInventory(options.inventory);
   const inspection = await inspectLease(context);
+  validateOwnerRegistration(inspection, inventory);
 
   if (options.mode === "--check" || options.mode === "--status") {
     const result = publicInspection(context, inspection);

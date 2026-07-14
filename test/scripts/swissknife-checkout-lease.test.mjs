@@ -45,7 +45,7 @@ function git(cwd, ...args) {
   }).trim();
 }
 
-async function fixture() {
+async function fixture({ childSource = "process.exit(23)" } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "swissknife-lease-test-"));
   const source = path.join(root, "source");
   const parent = path.join(root, "parent");
@@ -72,23 +72,56 @@ async function fixture() {
   git(parent, "commit", "-qam", "add submodule");
   const checkout = path.join(parent, "swissknife");
   const inventoryPath = path.join(root, "inventory.json");
+  const childCommand = [
+    process.execPath,
+    "-e",
+    childSource,
+    "--",
+    "--todo-path",
+    "board.md",
+    "--state-dir",
+    "tmp/test-lane/state",
+    "--task-prefix",
+    "## TEST-",
+    "--state-prefix",
+    "test_lane",
+    "--implement",
+    "--no-ephemeral-worktree",
+    "--no-worktree-reconciliation",
+  ];
   const lane = {
     id: "test-lane",
+    kind: "implementation-supervisor",
     board: "board.md",
     taskPrefix: "## TEST-",
     statePrefix: "test_lane",
     stateDirectory: "tmp/test-lane/state",
     leaseRequiredForImplementation: true,
     launch: {
+      commandPolicy: "exact",
       environment: { IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS: "0" },
-      requiredArguments: ["--no-worktree-reconciliation"],
-      command: ["node", "scripts/swissknife-checkout-lease.mjs", "--run"],
+      requiredArguments: [
+        "--no-ephemeral-worktree",
+        "--no-worktree-reconciliation",
+      ],
+      command: [
+        "node",
+        "swissknife/scripts/swissknife-checkout-lease.mjs",
+        "--run",
+        "--lane",
+        "test-lane",
+        "--board",
+        "board.md",
+        "--",
+        ...childCommand,
+      ],
     },
   };
   await writeFile(
     inventoryPath,
     `${JSON.stringify({
       schemaVersion: 1,
+      canonicalLaneIds: ["test-lane"],
       leaseNamespace: {
         name: NAMESPACE_NAME,
         directory: "$SUPERPROJECT_COMMON_GIT_DIR/swissknife-checkout-lease-v1",
@@ -96,7 +129,7 @@ async function fixture() {
       lanes: [lane],
     })}\n`,
   );
-  return { root, parent, checkout, inventoryPath, lane };
+  return { root, parent, checkout, inventoryPath, lane, childCommand };
 }
 
 test("acquires atomically, records lane/board/PID, refuses a second writer, and releases by identity", async (t) => {
@@ -178,9 +211,7 @@ test("CLI refuses unsafe environment and mirrors a safe child nonzero exit", asy
     "--lane",
     item.lane.id,
     "--",
-    process.execPath,
-    "-e",
-    "process.exit(23)",
+    ...item.childCommand,
   ];
   const unsafe = await new Promise((resolve) => {
     const child = spawn(process.execPath, args, {
@@ -209,7 +240,7 @@ test("CLI refuses unsafe environment and mirrors a safe child nonzero exit", asy
 });
 
 test("a killed outer wrapper cannot be reclaimed while its protected child group is alive", async (t) => {
-  const item = await fixture();
+  const item = await fixture({ childSource: "setTimeout(() => {}, 700)" });
   t.after(() => rm(item.root, { recursive: true, force: true }));
   const context = await resolveCheckout(item.checkout);
   const wrapper = spawn(
@@ -224,9 +255,7 @@ test("a killed outer wrapper cannot be reclaimed while its protected child group
       "--lane",
       item.lane.id,
       "--",
-      process.execPath,
-      "-e",
-      "setTimeout(() => {}, 700)",
+      ...item.childCommand,
     ],
     {
       env: { ...process.env, IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS: "0" },
@@ -333,4 +362,171 @@ test("check fails closed and leaves corrupt owner bytes untouched", async (t) =>
   assert.equal(result.code, 78);
   assert.match(result.stderr, /Invalid JSON/);
   assert.equal(await readFile(ownerPath, "utf8"), "{broken");
+});
+
+test("parent worktrees contend through one common Git-directory namespace", async (t) => {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const sibling = path.join(item.root, "parent-sibling");
+  git(item.parent, "worktree", "add", "-q", "--detach", sibling, "HEAD");
+  git(
+    sibling,
+    "-c",
+    "protocol.file.allow=always",
+    "submodule",
+    "update",
+    "--init",
+    "-q",
+    "swissknife",
+  );
+
+  const first = await resolveCheckout(item.checkout);
+  const second = await resolveCheckout(path.join(sibling, "swissknife"));
+  assert.equal(first.commonDirectory, second.commonDirectory);
+  assert.equal(first.leaseDirectory, second.leaseDirectory);
+  assert.equal(first.namespaceId, second.namespaceId);
+
+  const owner = await acquireLease(first, item.lane, item.childCommand);
+  await assert.rejects(
+    acquireLease(second, item.lane, item.childCommand),
+    (error) => error.code === "lease_held",
+  );
+  await releaseLease(first, owner.leaseId);
+});
+
+test("inventory validation rejects missing safety controls and incoherent lane metadata", async (t) => {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const inventory = JSON.parse(await readFile(item.inventoryPath, "utf8"));
+  inventory.lanes[0].launch.requiredArguments = [
+    "--no-worktree-reconciliation",
+  ];
+  inventory.lanes[0].launch.command[
+    inventory.lanes[0].launch.command.indexOf("--state-prefix") + 1
+  ] = "wrong_state";
+  await writeFile(item.inventoryPath, `${JSON.stringify(inventory)}\n`);
+
+  const result = await new Promise((resolve) => {
+    const child = spawn(
+      process.execPath,
+      [
+        SCRIPT,
+        "--checkout",
+        item.checkout,
+        "--inventory",
+        item.inventoryPath,
+        "--check",
+      ],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("exit", (code) => resolve({ code, stderr }));
+  });
+  assert.equal(result.code, 78);
+  assert.match(result.stderr, /no-ephemeral-worktree/);
+  assert.match(result.stderr, /state-prefix/);
+});
+
+test("run refuses a command that differs from the audited lane command", async (t) => {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const differentCommand = [...item.childCommand];
+  differentCommand[2] = "process.exit(0)";
+  const result = await new Promise((resolve) => {
+    const child = spawn(
+      process.execPath,
+      [
+        SCRIPT,
+        "--checkout",
+        item.checkout,
+        "--inventory",
+        item.inventoryPath,
+        "--run",
+        "--lane",
+        item.lane.id,
+        "--",
+        ...differentCommand,
+      ],
+      {
+        env: { ...process.env, IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS: "0" },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("exit", (code) => resolve({ code, stderr }));
+  });
+  assert.equal(result.code, 78);
+  assert.match(
+    result.stderr,
+    /does not match its audited inventory exact policy/,
+  );
+});
+
+test("run publishes a verifiable lease token to the foreground child", async (t) => {
+  const childSource = String.raw`
+const fs = require('node:fs');
+const owner = JSON.parse(fs.readFileSync(process.env.SWISSKNIFE_CHECKOUT_LEASE_OWNER_FILE, 'utf8'));
+if (owner.leaseId !== process.env.SWISSKNIFE_CHECKOUT_LEASE_ID) process.exit(31);
+if (owner.lane.id !== process.env.SWISSKNIFE_CHECKOUT_LEASE_LANE) process.exit(32);
+if (owner.lane.board !== process.env.SWISSKNIFE_CHECKOUT_LEASE_BOARD) process.exit(33);
+process.exit(0);
+`;
+  const item = await fixture({ childSource });
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const code = await new Promise((resolve) => {
+    const child = spawn(
+      process.execPath,
+      [
+        SCRIPT,
+        "--checkout",
+        item.checkout,
+        "--inventory",
+        item.inventoryPath,
+        "--run",
+        "--lane",
+        item.lane.id,
+        "--",
+        ...item.childCommand,
+      ],
+      {
+        env: { ...process.env, IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS: "0" },
+        stdio: "ignore",
+      },
+    );
+    child.on("exit", resolve);
+  });
+  assert.equal(code, 0);
+  assert.equal(
+    (await inspectLease(await resolveCheckout(item.checkout))).state,
+    "available",
+  );
+});
+
+test("a changed PID namespace fails closed instead of proving staleness", async () => {
+  const identity = await readProcessIdentity(process.pid);
+  if (identity.method !== "linux-procfs-starttime-v1") return;
+  const owner = {
+    schemaVersion: 1,
+    leaseId: "00000000-0000-4000-8000-000000000000",
+    namespace: {
+      name: NAMESPACE_NAME,
+      id: "test-namespace",
+      commonDirectory: "/test/common",
+    },
+    owner: {
+      pid: process.pid,
+      hostname: (await import("node:os")).hostname(),
+      processIdentity: { ...identity, pidNamespace: "pid:[different]" },
+    },
+    lane: { id: "test", board: "board.md" },
+  };
+  const result = await verifyOwnerIdentity(owner);
+  assert.equal(result.state, "unverifiable");
+  assert.equal(result.reason, "pid_namespace_changed");
 });
