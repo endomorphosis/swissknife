@@ -97,6 +97,8 @@ function createAuditFixture({ files = {}, manifestPatch = {} } = {}) {
       browserSafeServiceFiles: [
         'src/services/mcp/protocol.ts',
       ],
+      documentedServiceDeepImports: [],
+      browserPublicEntrypoints: [],
       ...manifestPatch.audit,
     },
     modules: {
@@ -126,6 +128,28 @@ function createAuditFixture({ files = {}, manifestPatch = {} } = {}) {
         allowedImports: ['services', 'shared', 'utils'],
         forbiddenImports: ['commands', 'entrypoints'],
         publicEntrypoints: ['src/services/mcp/*.ts'],
+        privateEntrypoints: [],
+      },
+      'service-logic': {
+        owner: 'fixture-logic',
+        path: 'src/services/logic',
+        runtimeClassification: 'universal',
+        allowedImports: ['services', 'shared', 'utils'],
+        forbiddenImports: ['commands', 'entrypoints'],
+        publicEntrypoints: [
+          'src/services/logic/deontic/*.ts',
+          'src/services/logic/fol/*.ts',
+          'src/services/logic/dcec/*.ts',
+        ],
+        privateEntrypoints: [],
+      },
+      'service-proof-engine': {
+        owner: 'fixture-proof-engine',
+        path: 'src/services/proof-engine',
+        runtimeClassification: 'split',
+        allowedImports: ['services', 'shared', 'utils'],
+        forbiddenImports: ['commands', 'entrypoints'],
+        publicEntrypoints: ['src/services/proof-engine/*.ts'],
         privateEntrypoints: [],
       },
       'components-browser': {
@@ -419,27 +443,122 @@ describe('source module boundaries', () => {
 
     const packageJson = readJson(path.join(rootDir, 'package.json'));
     expect(packageJson.exports['./proof-engine']).toEqual(expect.objectContaining({
-      browser: './src/services/proof-engine/proof-engine-browser.ts',
+      browser: {
+        types: './src/services/proof-engine/proof-engine-browser.ts',
+        default: './src/services/proof-engine/proof-engine-browser.ts',
+      },
       import: './src/services/proof-engine/proof-engine-host.ts',
       default: './src/services/proof-engine/proof-engine-host.ts',
     }));
     expect(packageJson.exports['./provers']).toEqual(expect.objectContaining({
-      browser: './src/services/provers/provers-browser.ts',
+      browser: {
+        types: './src/services/provers/provers-browser.ts',
+        default: './src/services/provers/provers-browser.ts',
+      },
       import: './src/services/provers/provers-host.ts',
       default: './src/services/provers/provers-host.ts',
     }));
   });
 
-  it('rejects new root service wrappers that are not in the ownership inventory', () => {
+  it('rejects a root service implementation without an explicit owner', () => {
     const fixtureDir = createAuditFixture({
       files: {
-        'src/services/new-root-wrapper.ts': 'export const wrapper = true;\n',
+        'src/services/restored-root-implementation.ts': [
+          'export function executeRestoredService(input) {',
+          '  return { accepted: Boolean(input), executed: true };',
+          '}',
+          '',
+        ].join('\n'),
       },
     });
-    const result = runFixtureAudit(fixtureDir);
+    const result = runFixtureAudit(fixtureDir, [
+      '--fail-on-unknown',
+      '--fail-on-forbidden',
+      '--json',
+      'audit.json',
+    ]);
 
     expect(result.status).not.toBe(0);
     expect(`${result.stdout}\n${result.stderr}`).toContain('root service file is not listed');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.unknownFiles).toContainEqual(expect.objectContaining({
+      file: 'src/services/restored-root-implementation.ts',
+      module: 'unknown',
+      reason: expect.stringMatching(/root service file.*not listed/i),
+    }));
+  });
+
+  it('rejects an undocumented cross-family deep import of a private service implementation', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/logic/internal/private-normalizer.ts': [
+          'export function privateNormalize(value) {',
+          '  return String(value).trim().toLowerCase();',
+          '}',
+          '',
+        ].join('\n'),
+        'src/services/mcp/deep-import-consumer.ts': [
+          "import { privateNormalize } from '../logic/internal/private-normalizer.js';",
+          'export const normalizedCapability = privateNormalize(" CAPABILITY ");',
+          '',
+        ].join('\n'),
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, [
+      '--fail-on-unknown',
+      '--fail-on-forbidden',
+      '--json',
+      'audit.json',
+    ]);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toMatch(/cross-family service import.*undocumented private implementation path/i);
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.summary.undocumentedServiceDeepImports).toBeGreaterThan(0);
+    expect(audit.undocumentedServiceDeepImports).toContainEqual(expect.objectContaining({
+      file: 'src/services/mcp/deep-import-consumer.ts',
+      target: 'src/services/logic/internal/private-normalizer.ts',
+      module: 'service-mcp',
+      targetModule: 'service-logic',
+      reason: expect.stringMatching(/undocumented private implementation path/i),
+    }));
+  });
+
+  it('allows an exact, owned, and justified cross-family deep import declaration', () => {
+    const importer = 'src/services/mcp/deep-import-consumer.ts';
+    const target = 'src/services/logic/internal/private-normalizer.ts';
+    const fixtureDir = createAuditFixture({
+      files: {
+        [target]: 'export const privateNormalize = value => String(value).trim();\n',
+        [importer]: [
+          "import { privateNormalize } from '../logic/internal/private-normalizer.js';",
+          'export const normalizedCapability = privateNormalize(" capability ");',
+          '',
+        ].join('\n'),
+      },
+      manifestPatch: {
+        audit: {
+          documentedServiceDeepImports: [{
+            importer,
+            target,
+            owner: 'service-logic',
+            reason: 'Fixture MCP adapter consumes the private normalizer through an explicitly reviewed boundary.',
+          }],
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, [
+      '--fail-on-unknown',
+      '--fail-on-forbidden',
+      '--json',
+      'audit.json',
+    ]);
+
+    expect(result.status).toBe(0);
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.summary.undocumentedServiceDeepImports).toBe(0);
+    expect(audit.undocumentedServiceDeepImports).toEqual([]);
   });
 
   it('rejects unowned service subdirectories', () => {
@@ -891,6 +1010,69 @@ describe('source module boundaries', () => {
     }));
   });
 
+  it.each([
+    {
+      family: 'deontic',
+      canonicalPath: 'src/services/logic/deontic/canonical-policy-check.ts',
+      restoredPath: 'src/services/logic/deontic/restored-norm-check.ts',
+      canonicalSource: "export function isObligatory(policy) { return policy.mode === 'obligatory'; }\n",
+      restoredSource: "export function hasDuty(rule) { return rule.mode === 'obligatory'; }\n",
+    },
+    {
+      family: 'FOL',
+      canonicalPath: 'src/services/logic/fol/canonical-term-counter.ts',
+      restoredPath: 'src/services/logic/fol/renamed-formula-counter.ts',
+      canonicalSource: "export function countTerms(formula) { return formula.split(' & ').length; }\n",
+      restoredSource: "export function measureAtoms(source) { return source.split(' & ').length; }\n",
+    },
+    {
+      family: 'DCEC',
+      canonicalPath: 'src/services/logic/dcec/canonical-event-clock.ts',
+      restoredPath: 'src/services/logic/dcec/restored-temporal-clock.ts',
+      canonicalSource: 'export function nextEventTime(eventTime) { return eventTime + 17; }\n',
+      restoredSource: 'export function advanceClock(timestamp) { return timestamp + 17; }\n',
+    },
+    {
+      family: 'proof-engine',
+      canonicalPath: 'src/services/proof-engine/canonical-proof-selector.ts',
+      restoredPath: 'src/services/proof-engine/renamed-backend-selector.ts',
+      canonicalSource: "export function selectProof(runtime) { return runtime === 'wasm' ? 'groth16' : 'typescript'; }\n",
+      restoredSource: "export function chooseBackend(engine) { return engine === 'wasm' ? 'groth16' : 'typescript'; }\n",
+    },
+    {
+      family: 'browser runtime',
+      canonicalPath: 'src/services/mcp/canonical-browser-transport.ts',
+      restoredPath: 'src/services/mcp/renamed-browser-network.ts',
+      canonicalSource: 'export function browserTransport(enabled) { return enabled !== false ? 443 : 0; }\n',
+      restoredSource: 'export function networkPort(configured) { return configured !== false ? 443 : 0; }\n',
+    },
+  ])('rejects a behaviorally equivalent renamed executable in the $family family', ({
+    canonicalPath,
+    restoredPath,
+    canonicalSource,
+    restoredSource,
+  }) => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        [canonicalPath]: canonicalSource,
+        [restoredPath]: restoredSource,
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-legacy', '--json', 'audit.json']);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toContain('unclassified service behavioral-equivalence groups: 1');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.summary.unclassifiedServiceBehavioralEquivalenceGroups).toBe(1);
+    expect(audit.serviceBehavioralEquivalenceDetails).toContainEqual(expect.objectContaining({
+      kind: 'behavior',
+      disposition: 'unclassified-copy',
+      classified: false,
+      paths: [canonicalPath, restoredPath].sort(),
+    }));
+  });
+
   it('keeps runtime strings out of dependency relocation normalization', () => {
     const fixtureDir = createAuditFixture({
       files: {
@@ -1338,6 +1520,157 @@ describe('source module boundaries', () => {
 
     expect(result.status).not.toBe(0);
     expect(`${result.stdout}\n${result.stderr}`).toContain('not listed in audit.browserSafeServiceFiles');
+  });
+
+  it('rejects a package browser export that transitively reaches a host-only dependency', () => {
+    const browserEntrypoint = 'src/services/mcp/browser-network-entry.ts';
+    const fixtureDir = createAuditFixture({
+      files: {
+        'package.json': `${JSON.stringify({
+          name: 'source-boundary-fixture',
+          exports: {
+            './browser/network': {
+              browser: `./${browserEntrypoint}`,
+              default: `./${browserEntrypoint}`,
+            },
+          },
+        }, null, 2)}\n`,
+        [browserEntrypoint]: [
+          "export { readHostNetworkState } from './host-network-state.js';",
+          '',
+        ].join('\n'),
+        'src/services/mcp/host-network-state.ts': [
+          "import fs from 'node:fs';",
+          'export const readHostNetworkState = path => fs.readFileSync(path, "utf8");',
+          '',
+        ].join('\n'),
+      },
+      manifestPatch: {
+        audit: {
+          browserSafeSourceGlobs: [browserEntrypoint],
+          browserSafeServiceFiles: [
+            browserEntrypoint,
+            'src/services/mcp/host-network-state.ts',
+          ],
+          browserPublicEntrypoints: [{
+            exportName: './browser/network',
+            path: browserEntrypoint,
+            owner: 'service-mcp',
+            publicContract: 'Fixture browser network capability',
+          }],
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, [
+      '--fail-on-unknown',
+      '--fail-on-forbidden',
+      '--json',
+      'audit.json',
+    ]);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toMatch(/browser public entrypoint.*transitively reaches.*host-only Node builtin/i);
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.summary.browserUnsafeImports).toBeGreaterThan(0);
+    expect(audit.browserUnsafeImports).toContainEqual(expect.objectContaining({
+      rootEntrypoint: browserEntrypoint,
+      file: 'src/services/mcp/host-network-state.ts',
+      specifier: 'node:fs',
+      reason: expect.stringMatching(/transitively reaches.*host-only Node builtin/i),
+    }));
+  });
+
+  it('rejects a package browser export missing an exact public-entrypoint declaration', () => {
+    const browserEntrypoint = 'src/services/mcp/undeclared-browser-entry.ts';
+    const fixtureDir = createAuditFixture({
+      files: {
+        'package.json': `${JSON.stringify({
+          name: 'source-boundary-fixture',
+          exports: {
+            './browser/undeclared': {
+              browser: `./${browserEntrypoint}`,
+              default: `./${browserEntrypoint}`,
+            },
+          },
+        }, null, 2)}\n`,
+        [browserEntrypoint]: 'export const browserCapability = "real-browser-capability";\n',
+      },
+      manifestPatch: {
+        audit: {
+          browserSafeSourceGlobs: [browserEntrypoint],
+          browserSafeServiceFiles: [browserEntrypoint],
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, [
+      '--fail-on-unknown',
+      '--fail-on-forbidden',
+      '--json',
+      'audit.json',
+    ]);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toMatch(/browser public entrypoint.*not declared/i);
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.summary.browserEntrypointPolicyViolations).toBeGreaterThan(0);
+    expect(audit.browserEntrypointPolicyViolations).toContainEqual(expect.objectContaining({
+      exportName: './browser/undeclared',
+      file: browserEntrypoint,
+      reason: expect.stringMatching(/not declared in audit\.browserPublicEntrypoints/i),
+    }));
+  });
+
+  it('rejects a declared browser entrypoint behavior-equivalent to an unapproved service module', () => {
+    const browserEntrypoint = 'src/services/mcp/browser-capability-entry.ts';
+    const equivalentModule = 'src/services/mcp/renamed-browser-capability.ts';
+    const fixtureDir = createAuditFixture({
+      files: {
+        'package.json': `${JSON.stringify({
+          name: 'source-boundary-fixture',
+          exports: {
+            './browser/capability': {
+              browser: `./${browserEntrypoint}`,
+              default: `./${browserEntrypoint}`,
+            },
+          },
+        }, null, 2)}\n`,
+        [browserEntrypoint]: 'export function browserCapability(input) { return input !== false ? 731 : 0; }\n',
+        [equivalentModule]: 'export function renamedCapability(enabled) { return enabled !== false ? 731 : 0; }\n',
+      },
+      manifestPatch: {
+        audit: {
+          browserSafeSourceGlobs: [browserEntrypoint],
+          browserSafeServiceFiles: [browserEntrypoint],
+          browserPublicEntrypoints: [{
+            exportName: './browser/capability',
+            path: browserEntrypoint,
+            owner: 'service-mcp',
+            publicContract: 'Fixture browser capability API',
+          }],
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, [
+      '--fail-on-unknown',
+      '--fail-on-forbidden',
+      '--fail-on-legacy',
+      '--json',
+      'audit.json',
+    ]);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toMatch(/browser public entrypoint.*behavior-equivalent.*without exact duplicate-policy approval/i);
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.summary.browserEntrypointPolicyViolations).toBeGreaterThan(0);
+    expect(audit.browserEntrypointPolicyViolations).toContainEqual(expect.objectContaining({
+      exportName: './browser/capability',
+      file: browserEntrypoint,
+      reason: expect.stringMatching(/behavior-equivalent.*without exact duplicate-policy approval/i),
+      equivalentPaths: expect.arrayContaining([browserEntrypoint, equivalentModule]),
+    }));
   });
 
   it('keeps source boundary documentation aligned with the manifest and lint gate', () => {

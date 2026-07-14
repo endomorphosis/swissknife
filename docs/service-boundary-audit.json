@@ -2,7 +2,7 @@
   "manifest": {
     "path": "src/module-ownership.json",
     "schemaVersion": 1,
-    "manifestVersion": "2026-07-14-swr-144"
+    "manifestVersion": "2026-07-14-swr-145"
   },
   "modules": [
     {
@@ -333,6 +333,8 @@
     "legacyRootImportSpecifiers": 0,
     "ownershipConflicts": 0,
     "browserUnsafeImports": 0,
+    "browserEntrypointPolicyViolations": 0,
+    "undocumentedServiceDeepImports": 0,
     "unresolvedMergeMarkers": 0,
     "serviceDuplicateBasenames": 0,
     "unapprovedServiceDuplicateBasenames": 0,
@@ -436,6 +438,8 @@
   "forbiddenImports": [],
   "ownershipConflicts": [],
   "browserUnsafeImports": [],
+  "browserEntrypointPolicyViolations": [],
+  "undocumentedServiceDeepImports": [],
   "unresolvedMergeMarkers": [],
   "restoredServiceDuplicatePolicyViolations": [],
   "restoredServiceDuplicateInventory": {
@@ -779,7 +783,7 @@
       "unclassifiedNormalizedContentCollisions": 0,
       "behavioralEquivalenceGroups": 0,
       "unclassifiedBehavioralEquivalenceGroups": 0,
-      "totalImporters": 1827,
+      "totalImporters": 1828,
       "uniqueImporterFiles": 582
     },
     "serviceFiles": [
@@ -1639,7 +1643,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 24,
+            "line": 25,
             "kind": "export-from",
             "specifier": "../apps/index.js"
           },
@@ -1859,7 +1863,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 9,
+            "line": 10,
             "kind": "export-from",
             "specifier": "../apps/mcp-generated-app-quality-gates.js"
           },
@@ -1946,7 +1950,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 10,
+            "line": 11,
             "kind": "export-from",
             "specifier": "../apps/mcp-generated-app-state.js"
           },
@@ -5786,6 +5790,14 @@
               "import"
             ],
             "target": "src/services/ipfs/ipfs-browser.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./ipfs",
+            "conditions": [
+              "types"
+            ],
+            "target": "src/services/ipfs/ipfs-browser.ts"
           }
         ],
         "runtimeClass": "split",
@@ -6522,7 +6534,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 13,
+            "line": 14,
             "kind": "export-from",
             "specifier": "../ipfs/mcp-ipfs-ui-descriptors.js"
           },
@@ -7432,6 +7444,14 @@
             "name": "./logic-language",
             "conditions": [
               "import"
+            ],
+            "target": "src/services/logic/api/reasoning-normalization-pipeline.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./logic-language",
+            "conditions": [
+              "types"
             ],
             "target": "src/services/logic/api/reasoning-normalization-pipeline.ts"
           }
@@ -11338,6 +11358,14 @@
             "name": "./deontic-nlp",
             "conditions": [
               "import"
+            ],
+            "target": "src/services/logic/deontic/browser-nlp.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./deontic-nlp",
+            "conditions": [
+              "types"
             ],
             "target": "src/services/logic/deontic/browser-nlp.ts"
           }
@@ -21913,6 +21941,12 @@
             "specifier": "./agent-supervisor-console-gateway.js"
           },
           {
+            "file": "src/services/mcp/mcp-browser.ts",
+            "line": 1,
+            "kind": "export-from",
+            "specifier": "./agent-supervisor-console-gateway.js"
+          },
+          {
             "file": "test/mcp-plus-plus/agent-supervisor-prompt-steering.test.ts",
             "line": 1,
             "kind": "static-import",
@@ -21925,7 +21959,7 @@
             "specifier": "../../src/services/mcp/agent-supervisor-console-gateway"
           }
         ],
-        "importerCount": 4,
+        "importerCount": 5,
         "publicEntrypoints": [
           {
             "kind": "module-manifest",
@@ -22116,6 +22150,14 @@
             "name": "./mcp",
             "conditions": [
               "import"
+            ],
+            "target": "src/services/mcp/browser-mcp.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./mcp",
+            "conditions": [
+              "types"
             ],
             "target": "src/services/mcp/browser-mcp.ts"
           }
@@ -22775,7 +22817,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 2,
+            "line": 3,
             "kind": "export-from",
             "specifier": "./libp2p-browser-runtime.js"
           },
@@ -22832,6 +22874,14 @@
           },
           {
             "kind": "package-export",
+            "name": "./libp2p",
+            "conditions": [
+              "types"
+            ],
+            "target": "src/services/mcp/libp2p-browser-runtime.ts"
+          },
+          {
+            "kind": "package-export",
             "name": "./mcp/libp2p",
             "conditions": [
               "browser"
@@ -22851,6 +22901,14 @@
             "name": "./mcp/libp2p",
             "conditions": [
               "import"
+            ],
+            "target": "src/services/mcp/libp2p-browser-runtime.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./mcp/libp2p",
+            "conditions": [
+              "types"
             ],
             "target": "src/services/mcp/libp2p-browser-runtime.ts"
           }
@@ -22881,25 +22939,25 @@
         "path": "src/services/mcp/mcp-browser.ts",
         "basename": "mcp-browser.ts",
         "extension": ".ts",
-        "sizeBytes": 1013,
-        "lineCount": 25,
+        "sizeBytes": 1068,
+        "lineCount": 26,
         "contentKind": "service-implementation",
-        "sha256": "9a3f8bd76a679d99af89a3660dd18af307ec7f987411ccc5b9b4fd2760996a44",
+        "sha256": "80390e79ee6ef4c7459b5f2df090d76ffb609d49cae304bb8ea6617504a0a07b",
         "contentHash": {
           "algorithm": "sha256",
-          "value": "9a3f8bd76a679d99af89a3660dd18af307ec7f987411ccc5b9b4fd2760996a44"
+          "value": "80390e79ee6ef4c7459b5f2df090d76ffb609d49cae304bb8ea6617504a0a07b"
         },
         "normalizedContentHash": {
           "algorithm": "sha256",
           "normalization": "lexical-v1-comments-and-trivia-elided",
-          "value": "669666379aa55b9bd98349ab3aa7c179d400a7fdc8556e409bc8f9bc13250553",
-          "tokenCount": 120
+          "value": "de018bb8fc124f27507f0e172128435a8136de48060f07101e3eb34a43ece073",
+          "tokenCount": 125
         },
         "behaviorHash": {
           "algorithm": "sha256",
           "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-          "value": "50337ee0876e9336896e5123d01441093adb1799bb2d6618608a57f7bac0c7cc",
-          "tokenCount": 120
+          "value": "e58f2a48d9305e88924dc21bd0d59e76673cd3cdeb038f388fa93f697a819e50",
+          "tokenCount": 125
         },
         "importers": [
           {
@@ -23015,7 +23073,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 1,
+            "line": 2,
             "kind": "export-from",
             "specifier": "./mcp-control-surface-mediator.js"
           },
@@ -23194,7 +23252,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 3,
+            "line": 4,
             "kind": "export-from",
             "specifier": "./mcp-deontic-interface-broker.js"
           },
@@ -23355,7 +23413,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 4,
+            "line": 5,
             "kind": "export-from",
             "specifier": "./mcp-descriptor-inspector.js"
           },
@@ -23423,7 +23481,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 5,
+            "line": 6,
             "kind": "export-from",
             "specifier": "./mcp-descriptor-trust.js"
           },
@@ -23497,7 +23555,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 6,
+            "line": 7,
             "kind": "export-from",
             "specifier": "./mcp-discovery.js"
           },
@@ -23589,7 +23647,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 7,
+            "line": 8,
             "kind": "export-from",
             "specifier": "./mcp-envelope.js"
           },
@@ -23712,7 +23770,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 8,
+            "line": 9,
             "kind": "export-from",
             "specifier": "./mcp-event-dag.js"
           },
@@ -24012,7 +24070,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 11,
+            "line": 12,
             "kind": "export-from",
             "specifier": "./mcp-idl.js"
           },
@@ -24279,7 +24337,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 12,
+            "line": 13,
             "kind": "export-from",
             "specifier": "./mcp-interface-registry.js"
           },
@@ -24384,7 +24442,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 16,
+            "line": 17,
             "kind": "export-from",
             "specifier": "./mcp-mcp-policy.js"
           },
@@ -24623,7 +24681,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 14,
+            "line": 15,
             "kind": "export-from",
             "specifier": "./mcp-orb-capability-router.js"
           },
@@ -24716,7 +24774,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 15,
+            "line": 16,
             "kind": "export-from",
             "specifier": "./mcp-p2p-session.js"
           },
@@ -25207,7 +25265,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 17,
+            "line": 18,
             "kind": "export-from",
             "specifier": "./mcp-pubsub-bus.js"
           },
@@ -25526,7 +25584,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 19,
+            "line": 20,
             "kind": "export-from",
             "specifier": "./mcp-scheduler.js"
           },
@@ -25618,7 +25676,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 18,
+            "line": 19,
             "kind": "export-from",
             "specifier": "./mcp-schema-ui-generator.js"
           },
@@ -25729,7 +25787,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 20,
+            "line": 21,
             "kind": "export-from",
             "specifier": "./mcp-transport.js"
           },
@@ -26003,7 +26061,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 21,
+            "line": 22,
             "kind": "export-from",
             "specifier": "./mcp-ui-profile.js"
           },
@@ -26192,7 +26250,7 @@
           },
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 22,
+            "line": 23,
             "kind": "export-from",
             "specifier": "./mcp-wasm-prover-hub.js"
           },
@@ -26475,7 +26533,7 @@
         "importers": [
           {
             "file": "src/services/mcp/mcp-browser.ts",
-            "line": 23,
+            "line": 24,
             "kind": "export-from",
             "specifier": "./policy-audit-log.js"
           },
@@ -28750,27 +28808,37 @@
             "kind": "package-export",
             "name": "./proof-engine",
             "conditions": [
-              "browser"
+              "browser",
+              "default"
+            ],
+            "target": "src/services/proof-engine/proof-engine-browser.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./proof-engine",
+            "conditions": [
+              "browser",
+              "types"
             ],
             "target": "src/services/proof-engine/proof-engine-browser.ts"
           }
         ],
         "runtimeClass": "split",
         "runtimeClassification": "split",
-        "browserClassification": "split-runtime-requires-entrypoint-review",
+        "browserClassification": "browser-safe-service-file",
         "declaredOwner": {
           "module": "service-proof-engine",
           "owner": "proof-engine-service-runtime",
           "runtimeClassification": "split",
           "browserReachability": "allowed only through browser-safe proof-engine entrypoints",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
+          "browserClassification": "browser-safe-service-file"
         },
         "canonicalOwner": {
           "module": "service-proof-engine",
           "owner": "proof-engine-service-runtime",
           "runtimeClassification": "split",
           "browserReachability": "allowed only through browser-safe proof-engine entrypoints",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
+          "browserClassification": "browser-safe-service-file"
         },
         "module": "service-proof-engine",
         "owner": "proof-engine-service-runtime",
@@ -28823,6 +28891,14 @@
             "name": "./proof-engine",
             "conditions": [
               "import"
+            ],
+            "target": "src/services/proof-engine/proof-engine-host.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./proof-engine",
+            "conditions": [
+              "types"
             ],
             "target": "src/services/proof-engine/proof-engine-host.ts"
           }
@@ -29573,20 +29649,20 @@
         "publicEntrypoints": [],
         "runtimeClass": "split",
         "runtimeClassification": "split",
-        "browserClassification": "split-runtime-requires-entrypoint-review",
+        "browserClassification": "browser-safe-service-file",
         "declaredOwner": {
           "module": "service-provers",
           "owner": "prover-service-runtime",
           "runtimeClassification": "split",
           "browserReachability": "allowed only through browser-safe prover contracts and WASM/browser adapters",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
+          "browserClassification": "browser-safe-service-file"
         },
         "canonicalOwner": {
           "module": "service-provers",
           "owner": "prover-service-runtime",
           "runtimeClassification": "split",
           "browserReachability": "allowed only through browser-safe prover contracts and WASM/browser adapters",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
+          "browserClassification": "browser-safe-service-file"
         },
         "module": "service-provers",
         "owner": "prover-service-runtime",
@@ -31093,27 +31169,37 @@
             "kind": "package-export",
             "name": "./provers",
             "conditions": [
-              "browser"
+              "browser",
+              "default"
+            ],
+            "target": "src/services/provers/provers-browser.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./provers",
+            "conditions": [
+              "browser",
+              "types"
             ],
             "target": "src/services/provers/provers-browser.ts"
           }
         ],
         "runtimeClass": "split",
         "runtimeClassification": "split",
-        "browserClassification": "split-runtime-requires-entrypoint-review",
+        "browserClassification": "browser-safe-service-file",
         "declaredOwner": {
           "module": "service-provers",
           "owner": "prover-service-runtime",
           "runtimeClassification": "split",
           "browserReachability": "allowed only through browser-safe prover contracts and WASM/browser adapters",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
+          "browserClassification": "browser-safe-service-file"
         },
         "canonicalOwner": {
           "module": "service-provers",
           "owner": "prover-service-runtime",
           "runtimeClassification": "split",
           "browserReachability": "allowed only through browser-safe prover contracts and WASM/browser adapters",
-          "browserClassification": "split-runtime-requires-entrypoint-review"
+          "browserClassification": "browser-safe-service-file"
         },
         "module": "service-provers",
         "owner": "prover-service-runtime",
@@ -31173,6 +31259,14 @@
             "name": "./provers",
             "conditions": [
               "import"
+            ],
+            "target": "src/services/provers/provers-host.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./provers",
+            "conditions": [
+              "types"
             ],
             "target": "src/services/provers/provers-host.ts"
           }
@@ -32739,6 +32833,14 @@
             "name": "./zkp",
             "conditions": [
               "import"
+            ],
+            "target": "src/services/zkp/browser-zkp.ts"
+          },
+          {
+            "kind": "package-export",
+            "name": "./zkp",
+            "conditions": [
+              "types"
             ],
             "target": "src/services/zkp/browser-zkp.ts"
           }

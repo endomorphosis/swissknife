@@ -9,71 +9,90 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "type": "module",
-  "types": "./web/src/swissknife-browser-core.ts",
+  "types": "./src/index.ts",
   "browser": "./src/browser.ts",
   "exports": {
     ".": {
       "browser": "./src/browser.ts",
+      "types": "./src/index.ts",
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
     "./browser": {
+      "types": "./src/browser.ts",
       "browser": "./src/browser.ts",
       "import": "./src/browser.ts",
       "default": "./src/browser.ts"
     },
     "./mcp": {
+      "types": "./src/services/mcp/browser-mcp.ts",
       "browser": "./src/services/mcp/browser-mcp.ts",
       "import": "./src/services/mcp/browser-mcp.ts",
       "default": "./src/services/mcp/browser-mcp.ts"
     },
     "./mcp/libp2p": {
+      "types": "./src/services/mcp/libp2p-browser-runtime.ts",
       "browser": "./src/services/mcp/libp2p-browser-runtime.ts",
       "import": "./src/services/mcp/libp2p-browser-runtime.ts",
       "default": "./src/services/mcp/libp2p-browser-runtime.ts"
     },
     "./libp2p": {
+      "types": "./src/services/mcp/libp2p-browser-runtime.ts",
       "browser": "./src/services/mcp/libp2p-browser-runtime.ts",
       "import": "./src/services/mcp/libp2p-browser-runtime.ts",
       "default": "./src/services/mcp/libp2p-browser-runtime.ts"
     },
     "./ipfs": {
+      "types": "./src/services/ipfs/ipfs-browser.ts",
       "browser": "./src/services/ipfs/ipfs-browser.ts",
       "import": "./src/services/ipfs/ipfs-browser.ts",
       "default": "./src/services/ipfs/ipfs-browser.ts"
     },
     "./storage": {
+      "types": "./src/storage/browser.ts",
       "browser": "./src/storage/browser.ts",
       "import": "./src/storage/browser.ts",
       "default": "./src/storage/browser.ts"
     },
     "./workers": {
+      "types": "./src/workers/browser.ts",
       "browser": "./src/workers/browser.ts",
       "import": "./src/workers/browser.ts",
       "default": "./src/workers/browser.ts"
     },
     "./logic-language": {
+      "types": "./src/services/logic/api/reasoning-normalization-pipeline.ts",
       "browser": "./src/services/logic/api/reasoning-normalization-pipeline.ts",
       "import": "./src/services/logic/api/reasoning-normalization-pipeline.ts",
       "default": "./src/services/logic/api/reasoning-normalization-pipeline.ts"
     },
     "./deontic-nlp": {
+      "types": "./src/services/logic/deontic/browser-nlp.ts",
       "browser": "./src/services/logic/deontic/browser-nlp.ts",
       "import": "./src/services/logic/deontic/browser-nlp.ts",
       "default": "./src/services/logic/deontic/browser-nlp.ts"
     },
     "./zkp": {
+      "types": "./src/services/zkp/browser-zkp.ts",
       "browser": "./src/services/zkp/browser-zkp.ts",
       "import": "./src/services/zkp/browser-zkp.ts",
       "default": "./src/services/zkp/browser-zkp.ts"
     },
     "./proof-engine": {
-      "browser": "./src/services/proof-engine/proof-engine-browser.ts",
+      "browser": {
+        "types": "./src/services/proof-engine/proof-engine-browser.ts",
+        "default": "./src/services/proof-engine/proof-engine-browser.ts"
+      },
+      "types": "./src/services/proof-engine/proof-engine-host.ts",
       "import": "./src/services/proof-engine/proof-engine-host.ts",
       "default": "./src/services/proof-engine/proof-engine-host.ts"
     },
     "./provers": {
-      "browser": "./src/services/provers/provers-browser.ts",
+      "browser": {
+        "types": "./src/services/provers/provers-browser.ts",
+        "default": "./src/services/provers/provers-browser.ts"
+      },
+      "types": "./src/services/provers/provers-host.ts",
       "import": "./src/services/provers/provers-host.ts",
       "default": "./src/services/provers/provers-host.ts"
     },

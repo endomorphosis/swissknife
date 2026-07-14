@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "2026-07-14-swr-144",
+  "manifestVersion": "2026-07-14-swr-145",
   "description": "Top-level ownership and dependency manifest for SwissKnife source modules.",
   "classificationValues": {
     "browser-safe": "May be statically imported by browser bundles.",
@@ -38,6 +38,91 @@
     "New public imports should be added to publicEntrypoints before other modules depend on them."
   ],
   "audit": {
+    "browserPublicEntrypoints": [
+      {
+        "exportName": ".",
+        "path": "src/browser.ts",
+        "owner": "platform",
+        "publicContract": "primary browser runtime facade"
+      },
+      {
+        "exportName": "./browser",
+        "path": "src/browser.ts",
+        "owner": "platform",
+        "publicContract": "explicit browser runtime facade"
+      },
+      {
+        "exportName": "./deontic-nlp",
+        "path": "src/services/logic/deontic/browser-nlp.ts",
+        "owner": "service-logic",
+        "publicContract": "browser deontic natural-language analysis API"
+      },
+      {
+        "exportName": "./ipfs",
+        "path": "src/services/ipfs/ipfs-browser.ts",
+        "owner": "service-ipfs",
+        "publicContract": "browser IPFS transport API"
+      },
+      {
+        "exportName": "./libp2p",
+        "path": "src/services/mcp/libp2p-browser-runtime.ts",
+        "owner": "service-mcp",
+        "publicContract": "browser libp2p runtime API"
+      },
+      {
+        "exportName": "./logic-language",
+        "path": "src/services/logic/api/reasoning-normalization-pipeline.ts",
+        "owner": "service-logic",
+        "publicContract": "browser reasoning normalization API"
+      },
+      {
+        "exportName": "./mcp",
+        "path": "src/services/mcp/browser-mcp.ts",
+        "owner": "service-mcp",
+        "publicContract": "typed remote browser MCP capability API"
+      },
+      {
+        "exportName": "./mcp/libp2p",
+        "path": "src/services/mcp/libp2p-browser-runtime.ts",
+        "owner": "service-mcp",
+        "publicContract": "MCP browser libp2p transport API"
+      },
+      {
+        "exportName": "./proof-engine",
+        "path": "src/services/proof-engine/proof-engine-browser.ts",
+        "owner": "service-proof-engine",
+        "publicContract": "browser TypeScript and WebAssembly proof engine API"
+      },
+      {
+        "exportName": "./provers",
+        "path": "src/services/provers/provers-browser.ts",
+        "owner": "service-provers",
+        "publicContract": "browser TypeScript and WebAssembly prover API"
+      },
+      {
+        "exportName": "./storage",
+        "path": "src/storage/browser.ts",
+        "owner": "storage",
+        "publicContract": "browser storage provider API"
+      },
+      {
+        "exportName": "./workers",
+        "path": "src/workers/browser.ts",
+        "owner": "workers",
+        "publicContract": "browser Web Worker API"
+      },
+      {
+        "exportName": "./zkp",
+        "path": "src/services/zkp/browser-zkp.ts",
+        "owner": "service-zkp",
+        "publicContract": "browser WebAssembly zero-knowledge proof API"
+      }
+    ],
+    "browserHostOnlyPackages": [
+      "node-gyp-build",
+      "python-shell"
+    ],
+    "documentedServiceDeepImports": [],
     "servicePublicApiMigrations": [
       {
         "legacyPath": "src/services/bridge/bridge-modal-frame-bridge.ts",
@@ -832,7 +917,10 @@
       "src/services/mcp/agent-supervisor-console-gateway.ts",
       "src/services/mcp/browser-mcp.ts",
       "src/services/mcp/libp2p-browser-runtime.ts",
+      "src/services/proof-engine/proof-engine-browser.ts",
       "src/services/provers/browser-crypto.ts",
+      "src/services/provers/crypto-exchange-proof-artifacts.ts",
+      "src/services/provers/provers-browser.ts",
       "src/services/shared/shared-browser-crypto.ts",
       "src/services/zkp/artifacts/**/*.ts",
       "src/services/zkp/browser-snarkjs-backend.ts",
@@ -860,7 +948,10 @@
       "src/services/mcp/agent-supervisor-console-gateway.ts",
       "src/services/mcp/browser-mcp.ts",
       "src/services/mcp/libp2p-browser-runtime.ts",
+      "src/services/proof-engine/proof-engine-browser.ts",
       "src/services/provers/browser-crypto.ts",
+      "src/services/provers/crypto-exchange-proof-artifacts.ts",
+      "src/services/provers/provers-browser.ts",
       "src/services/shared/shared-browser-crypto.ts",
       "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1.r1cs",
       "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1.wasm",
@@ -1368,6 +1459,7 @@
         "screens"
       ],
       "publicEntrypoints": [
+        "src/browser.ts",
         "src/platform/browser.ts",
         "src/platform/host.ts"
       ],

@@ -114,6 +114,30 @@ const EXTERNAL_BROWSER_PACKAGES = new Set([
   'zod',
 ]);
 
+// This map is deliberately contract-level evidence rather than another broad
+// path inventory. Each target is the browser-safe public entrypoint owned by
+// its service family in src/module-ownership.json. Compatibility aliases may
+// share a target, but may not introduce a second implementation.
+const CANONICAL_BROWSER_PACKAGE_EXPORTS = Object.freeze({
+  '.': 'src/browser.ts',
+  './browser': 'src/browser.ts',
+  './mcp': 'src/services/mcp/browser-mcp.ts',
+  './mcp/libp2p': 'src/services/mcp/libp2p-browser-runtime.ts',
+  './libp2p': 'src/services/mcp/libp2p-browser-runtime.ts',
+  './ipfs': 'src/services/ipfs/ipfs-browser.ts',
+  './storage': 'src/storage/browser.ts',
+  './workers': 'src/workers/browser.ts',
+  './logic-language': 'src/services/logic/api/reasoning-normalization-pipeline.ts',
+  './deontic-nlp': 'src/services/logic/deontic/browser-nlp.ts',
+  './zkp': 'src/services/zkp/browser-zkp.ts',
+  './proof-engine': 'src/services/proof-engine/proof-engine-browser.ts',
+  './provers': 'src/services/provers/provers-browser.ts',
+});
+
+const BROWSER_PACKAGE_COMPATIBILITY_ALIASES = Object.freeze([
+  ['./libp2p', './mcp/libp2p'],
+]);
+
 const ROOT_PATTERNS = [
   { path: 'web/index.html', kind: 'vite-html-entry', reason: 'Vite web build input from vite.web.config.ts' },
   { path: 'web/index.vite.html', kind: 'alternate-web-app', reason: 'Alternate Vite desktop shell kept in web root' },
@@ -897,7 +921,136 @@ function formatFinding(finding) {
   return `- ${finding.severity} / ${finding.category}: ${formatChain(finding.chain)} -> ${finding.file}:${finding.line} - ${finding.message}`;
 }
 
-function renderReport(results, graphData) {
+function resolveConditionalTarget(value, condition) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (Object.hasOwn(value, condition)) {
+    return resolveConditionalTarget(value[condition], 'default');
+  }
+  if (Object.hasOwn(value, 'default')) {
+    return resolveConditionalTarget(value.default, 'default');
+  }
+  return null;
+}
+
+function sourceContractCheck(id, file, description, predicate) {
+  const source = exists(abs(file)) ? readText(abs(file)) : '';
+  return {
+    id,
+    file,
+    description,
+    passed: Boolean(source) && predicate(source),
+  };
+}
+
+function buildCanonicalBrowserPublicApiAudit(graphData) {
+  const pkg = JSON.parse(readText(abs('package.json')));
+  const rows = [];
+  const violations = [];
+
+  for (const [subpath, expectedTarget] of Object.entries(CANONICAL_BROWSER_PACKAGE_EXPORTS)) {
+    const declared = resolveConditionalTarget(pkg.exports?.[subpath], 'browser');
+    const normalized = typeof declared === 'string' ? declared.replace(/^\.\//, '') : null;
+    if (normalized !== expectedTarget) {
+      violations.push(`${subpath} browser condition resolves to ${String(declared)}; expected ./${expectedTarget}`);
+    }
+
+    let graph = null;
+    if (normalized && graphData.analyses.has(normalized)) {
+      graph = analyzeRoot({
+        path: normalized,
+        kinds: new Set(['package-browser-public-entrypoint']),
+        reasons: new Set([`package.json exports[${JSON.stringify(subpath)}].browser`]),
+      }, graphData);
+      if (graph.classification !== 'browser-safe') {
+        const first = graph.findings.find(finding => finding.severity !== 'browser-safe');
+        violations.push(`${subpath} reaches ${graph.classification} code${first ? ` at ${first.file}:${first.line}` : ''}`);
+      }
+    } else if (normalized) {
+      violations.push(`${subpath} browser target is missing from the source graph: ${normalized}`);
+    }
+
+    rows.push({
+      subpath,
+      expectedTarget,
+      declaredTarget: normalized,
+      classification: graph?.classification ?? 'missing',
+      reachableFiles: graph?.reachable.length ?? 0,
+      hostFindings: graph?.findings.filter(finding => finding.severity === 'host-only').length ?? 0,
+    });
+  }
+
+  for (const [alias, canonical] of BROWSER_PACKAGE_COMPATIBILITY_ALIASES) {
+    const aliasTarget = resolveConditionalTarget(pkg.exports?.[alias], 'browser');
+    const canonicalTarget = resolveConditionalTarget(pkg.exports?.[canonical], 'browser');
+    if (!aliasTarget || aliasTarget !== canonicalTarget) {
+      violations.push(`${alias} must remain an export-only compatibility alias of ${canonical}`);
+    }
+  }
+
+  const semanticChecks = [
+    sourceContractCheck(
+      'libp2p-default-enabled',
+      'src/services/mcp/libp2p-browser-runtime.ts',
+      'libp2p is enabled unless explicitly disabled and its status receipt records defaultEnabled: true',
+      source => /return value !== false/.test(source)
+        && /enabled:\s*true/.test(source)
+        && /defaultEnabled:\s*true/.test(source),
+    ),
+    sourceContractCheck(
+      'libp2p-real-browser-transports',
+      'src/services/mcp/libp2p-browser-runtime.ts',
+      'literal browser imports configure WebRTC, WebSockets, circuit relay, Noise, and Yamux without synthetic transports',
+      source => [
+        "import('@libp2p/webrtc')",
+        "import('@libp2p/websockets')",
+        "import('@libp2p/circuit-relay-v2')",
+        "import('@chainsafe/libp2p-noise')",
+        "import('@chainsafe/libp2p-yamux')",
+        'simulatedTransports: false',
+      ].every(token => source.includes(token)),
+    ),
+    sourceContractCheck(
+      'typed-remote-mcp-boundary',
+      'src/services/mcp/agent-supervisor-console-gateway.ts',
+      'remote Python-owned capabilities cross a typed MCP/MCP++/libp2p transport and default to a typed unavailable result',
+      source => source.includes('AgentSupervisorGatewayTransport')
+        && source.includes("const READ_TRANSPORTS = ['mcp', 'mcp++', 'libp2p']")
+        && source.includes('createUnavailableAgentSupervisorTransport()')
+        && source.includes("'transport_unavailable'"),
+    ),
+    sourceContractCheck(
+      'typescript-theorem-default',
+      'src/services/provers/provers-browser.ts',
+      'the browser theorem default is real TypeScript execution and unsupported/native backends return typed unavailability',
+      source => source.includes("DEFAULT_BROWSER_PROVER_BACKEND = 'typescript-truth-table'")
+        && source.includes("execution: 'typescript'")
+        && source.includes("code: 'BROWSER_PROVER_BACKEND_UNAVAILABLE'"),
+    ),
+    sourceContractCheck(
+      'wasm-zkp-default',
+      'src/services/zkp/browser-zkp.ts',
+      'the browser ZKP default is the audited Schnorr WebAssembly backend and production selection rejects simulated identifiers',
+      source => source.includes('DEFAULT_BROWSER_ZKP_BACKEND_ID = BROWSER_SCHNORR_BACKEND_ID')
+        && source.includes('assertProductionBrowserZkpBackendId'),
+    ),
+    sourceContractCheck(
+      'wasm-zkp-instantiation',
+      'src/services/zkp/zkp-browser-schnorr.ts',
+      'the default ZKP backend instantiates checked-in WebAssembly bytes',
+      source => source.includes('WebAssembly.instantiate(BROWSER_SCHNORR_WASM_BYTES)')
+        && source.includes('Schnorr WASM arithmetic helper failed its self-test'),
+    ),
+  ];
+
+  for (const check of semanticChecks) {
+    if (!check.passed) violations.push(`${check.id} failed in ${check.file}`);
+  }
+
+  return { rows, semanticChecks, violations };
+}
+
+function renderReport(results, graphData, publicApiAudit) {
   const counts = new Map();
   for (const result of results) {
     counts.set(result.classification, (counts.get(result.classification) ?? 0) + 1);
@@ -929,6 +1082,8 @@ function renderReport(results, graphData) {
   lines.push(`- Unknown: ${counts.get('unknown') ?? 0}`);
   lines.push(`- Source files indexed: ${graphData.analyses.size}`);
   lines.push(`- Current web/dist artifacts observed: ${distArtifacts.length}`);
+  lines.push(`- Canonical package browser exports checked: ${publicApiAudit.rows.length}`);
+  lines.push(`- Canonical package browser export violations: ${publicApiAudit.violations.length}`);
   lines.push('');
 
   if (distArtifacts.length > 0) {
@@ -940,6 +1095,36 @@ function renderReport(results, graphData) {
     if (distArtifacts.length > 80) {
       lines.push(`- ... ${distArtifacts.length - 80} additional artifacts omitted from this summary`);
     }
+    lines.push('');
+  }
+
+  lines.push('## Canonical Browser Public API Closure');
+  lines.push('');
+  lines.push('This is a live source-and-graph check, not a historical evidence claim or a path-only inventory. The generator resolves each `package.json` `browser` condition, walks its current transitive local import graph, and evaluates the runtime contracts below from current source. Node `import`/`default` conditions remain host APIs and are outside this browser-condition matrix.');
+  lines.push('');
+  lines.push('| Package export | Canonical owned target | Browser target | Graph classification | Reachable files | Host findings |');
+  lines.push('| --- | --- | --- | --- | ---: | ---: |');
+  for (const row of publicApiAudit.rows) {
+    lines.push(`| \`${escapeTable(row.subpath)}\` | \`${escapeTable(row.expectedTarget)}\` | \`${escapeTable(row.declaredTarget ?? 'missing')}\` | ${row.classification} | ${row.reachableFiles} | ${row.hostFindings} |`);
+  }
+  lines.push('');
+  lines.push('- `./libp2p` is a documented compatibility alias of canonical `./mcp/libp2p`; both resolve to the same owned implementation and do not create an equivalent second module.');
+  lines.push('- Browser consumers use package subpaths above. Source paths are implementation evidence, not supported deep-import specifiers.');
+  lines.push('');
+  lines.push('### Runtime Contract Checks');
+  lines.push('');
+  lines.push('| Contract | Current source | Result | Live assertion |');
+  lines.push('| --- | --- | --- | --- |');
+  for (const check of publicApiAudit.semanticChecks) {
+    lines.push(`| \`${escapeTable(check.id)}\` | \`${escapeTable(check.file)}\` | ${check.passed ? 'pass' : 'fail'} | ${escapeTable(check.description)} |`);
+  }
+  lines.push('');
+  lines.push('The remote MCP check distinguishes provider labels such as `ipfs_accelerate_py` from browser-local Python execution: the browser invokes a typed capability contract, and an absent transport returns `transport_unavailable`. The proof checks permit the TypeScript truth-table runtime and audited WebAssembly backends only; native, Python, neural, mock, or simulated selection cannot become a browser default.');
+  lines.push('');
+  if (publicApiAudit.violations.length > 0) {
+    lines.push('### Public API Violations');
+    lines.push('');
+    for (const violation of publicApiAudit.violations) lines.push(`- ${violation}`);
     lines.push('');
   }
 
@@ -1098,7 +1283,8 @@ async function main() {
   const { graphData, results } = moduleMode
     ? buildModuleInventory([...args.modules])
     : buildInventory();
-  const report = renderReport(results, graphData);
+  const publicApiAudit = buildCanonicalBrowserPublicApiAudit(graphData);
+  const report = renderReport(results, graphData, publicApiAudit);
 
   if (args.report) {
     writeOrCheckReport(args.report, report, args.check);
@@ -1110,6 +1296,7 @@ async function main() {
     const jsonPath = abs(args.json);
     fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
     fs.writeFileSync(jsonPath, JSON.stringify({
+      canonicalBrowserPublicApi: publicApiAudit,
       results: results.map((result) => ({
         path: result.path,
         kind: result.kind,
@@ -1135,6 +1322,12 @@ async function main() {
     : args.failOnHostImports
       ? browserHostImportFailures(results)
       : [];
+  if (args.failOnHostImports && publicApiAudit.violations.length > 0) {
+    console.error('');
+    console.error(`Canonical browser public API audit found ${publicApiAudit.violations.length} violation(s):`);
+    for (const violation of publicApiAudit.violations) console.error(`- ${violation}`);
+    process.exitCode = 1;
+  }
   if (failures.length > 0) {
     console.error('');
     console.error(`Host-only imports are reachable from ${failures.length} browser inventory item(s):`);

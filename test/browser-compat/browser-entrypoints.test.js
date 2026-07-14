@@ -294,6 +294,13 @@ describe('browser compatibility lane', () => {
       expect({ subpath, actualTarget }).toEqual({ subpath, actualTarget: expectedTarget });
       expect(fs.existsSync(path.join(rootDir, normalizePackageTarget(actualTarget)))).toBe(true);
     }
+
+    // Both spellings predate the family ownership manifest. They are public
+    // compatibility aliases, not two browser libp2p implementations.
+    expect(resolveBrowserExportTarget(pkg.exports['./libp2p']))
+      .toBe(resolveBrowserExportTarget(pkg.exports['./mcp/libp2p']));
+    expect(pkg.exports['./browser'].types).toBe('./src/browser.ts');
+    expect(pkg.exports['./mcp'].types).toBe('./src/services/mcp/browser-mcp.ts');
   });
 
   it('keeps package browser export graphs free of host-only modules and quarantined adapters', () => {
@@ -317,5 +324,49 @@ describe('browser compatibility lane', () => {
         );
       }
     }
+  });
+
+  it('preserves real default libp2p, typed remote MCP, and TS/WASM-only proof selection', () => {
+    const libp2p = readProjectFile('src/services/mcp/libp2p-browser-runtime.ts');
+    expect(libp2p).toMatch(/return value !== false/);
+    expect(libp2p).toMatch(/defaultEnabled:\s*true/);
+    expect(libp2p).toMatch(/simulatedTransports:\s*false/);
+    for (const packageName of [
+      '@libp2p/webrtc',
+      '@libp2p/websockets',
+      '@libp2p/circuit-relay-v2',
+      '@chainsafe/libp2p-noise',
+      '@chainsafe/libp2p-yamux',
+    ]) {
+      expect(libp2p).toContain(`import('${packageName}')`);
+    }
+
+    const remoteGateway = readProjectFile('src/services/mcp/agent-supervisor-console-gateway.ts');
+    expect(remoteGateway).toContain('interface AgentSupervisorGatewayTransport');
+    expect(remoteGateway).toContain("const READ_TRANSPORTS = ['mcp', 'mcp++', 'libp2p']");
+    expect(remoteGateway).toContain('createUnavailableAgentSupervisorTransport()');
+    expect(remoteGateway).toContain("'transport_unavailable'");
+    expect(remoteGateway).not.toMatch(/(?:child_process|spawn\s*\(|execFile\s*\(|python(?:3)?\s+-m)/i);
+
+    const theorem = readProjectFile('src/services/provers/provers-browser.ts');
+    expect(theorem).toContain("DEFAULT_BROWSER_PROVER_BACKEND = 'typescript-truth-table'");
+    expect(theorem).toContain("execution: 'typescript'");
+    expect(theorem).toContain("code: 'BROWSER_PROVER_BACKEND_UNAVAILABLE'");
+
+    const zkp = readProjectFile('src/services/zkp/browser-zkp.ts');
+    const schnorr = readProjectFile('src/services/zkp/zkp-browser-schnorr.ts');
+    expect(zkp).toContain('DEFAULT_BROWSER_ZKP_BACKEND_ID = BROWSER_SCHNORR_BACKEND_ID');
+    expect(zkp).toContain('assertProductionBrowserZkpBackendId');
+    expect(schnorr).toContain('WebAssembly.instantiate(BROWSER_SCHNORR_WASM_BYTES)');
+  });
+
+  it('records live canonical browser closure evidence rather than a path-only inventory', () => {
+    const inventory = readProjectFile('docs/browser-compatibility-inventory.md');
+    expect(inventory).toContain('## Canonical Browser Public API Closure');
+    expect(inventory).toContain('This is a live source-and-graph check');
+    expect(inventory).toContain('`typed-remote-mcp-boundary`');
+    expect(inventory).toContain('`typescript-theorem-default`');
+    expect(inventory).toContain('`wasm-zkp-instantiation`');
+    expect(inventory).toContain('Canonical package browser export violations: 0');
   });
 });
