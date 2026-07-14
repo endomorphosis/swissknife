@@ -35,6 +35,9 @@ interface SimulatorModalityFlow {
   result: string;
   decision: string;
   fallback_surface: string;
+  fallback_user_visible: boolean;
+  rollback_state: string;
+  operator_decision_visible: boolean;
   raw_payload_captured: false;
   receipt_refs: string[];
   event_dag_refs: string[];
@@ -74,6 +77,8 @@ interface PacketReplayResult {
   focus_activation: {
     focus_visible: boolean;
     focus_control_received_dom_focus: boolean;
+    final_control_received_dom_focus: boolean;
+    final_focus_ring_visible: boolean;
     activated_method: string;
     activation_decision: string;
   };
@@ -148,6 +153,24 @@ interface BrowserFailure {
   message: string;
 }
 
+interface AppReplayCoverage {
+  app_id: string;
+  app_title: string;
+  packet_ids: string[];
+  requested_modalities: string[];
+  replayed_modalities: Modality[];
+  replayed_scenarios: ReplayScenario[];
+  packet_count: number;
+  flow_count: number;
+  bounded_layouts: boolean;
+  focus_and_activation_visible: boolean;
+  receipts_preserved: boolean;
+  operator_decisions_visible: boolean;
+  rollback_visible: boolean;
+  fallback_visible: boolean;
+  status: 'passed';
+}
+
 interface DeviceSimulatorApi {
   loadPacket: (packet: AllAppLiveOrbIdlHandoffPacket & { app_title: string }) => void;
   replayModality: (modality: Modality, scenario: ReplayScenario) => void;
@@ -176,7 +199,7 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
     });
     page.on('pageerror', error => browserFailures.push({ kind: 'pageerror', message: error.message }));
 
-    fs.mkdirSync(SCREENSHOT_ROOT, { recursive: true });
+    prepareScreenshotRoot();
     await page.setViewportSize({ width: 1180, height: 780 });
     await page.setContent(renderSimulatorHtml());
 
@@ -240,9 +263,22 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
           );
           const replaySnapshot = await snapshot(page);
           const observedFlow = replaySnapshot.modality_history[modality].at(-1);
-          expect(observedFlow).toMatchObject({ scenario, raw_payload_captured: false });
+          expect(observedFlow).toMatchObject({
+            scenario,
+            raw_payload_captured: false,
+            operator_decision_visible: true,
+          });
           expect(sameValues(observedFlow?.receipt_refs ?? [], receiptBefore.receipt_refs)).toBe(true);
           expect(sameValues(observedFlow?.event_dag_refs ?? [], receiptBefore.event_dag_refs)).toBe(true);
+          await expect(page.getByTestId('decision-history')).toContainText(observedFlow?.decision ?? '');
+          await expect(page.getByTestId('operator-decision')).toBeVisible();
+          if (observedFlow?.fallback_user_visible) {
+            await expect(page.getByTestId('fallback-state')).toContainText(observedFlow.fallback_surface);
+          }
+          if (scenario !== 'primary') {
+            expect(observedFlow?.fallback_user_visible).toBe(true);
+            await expect(page.getByTestId('rollback-state')).toContainText(packet.rollback_behavior.mode);
+          }
         }
       }
 
@@ -250,6 +286,8 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       await expect(page.getByTestId('rollback-state')).toContainText(packet.rollback_behavior.mode);
       await page.getByTestId('select-fallback').click();
       await expect(page.getByTestId('fallback-state')).toContainText(packet.fallback_selection.target_surface);
+      const finalFocus = await readFocusState(page, 'select-fallback');
+      expect(finalFocus).toEqual({ received_dom_focus: true, focus_ring_visible: true });
 
       const layout = await readLayout(page);
       expect(layout.bounded, `${packet.packet_id} escaped the 640x360 simulated display`).toBe(true);
@@ -287,6 +325,8 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
         focus_activation: {
           focus_visible: receiptAfter.focused_action === packet.method_id,
           focus_control_received_dom_focus: focusControlReceivedDomFocus,
+          final_control_received_dom_focus: finalFocus.received_dom_focus,
+          final_focus_ring_visible: finalFocus.focus_ring_visible,
           activated_method: receiptAfter.activation,
           activation_decision: activationSnapshot.decision,
         },
@@ -326,11 +366,20 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
     expect(results.every(result => result.receipt_preservation.preserved)).toBe(true);
     expect(results.every(result => result.fallback.user_visible)).toBe(true);
     expect(browserFailures).toEqual([]);
+    const appCoverage = buildAppReplayCoverage(results);
+    expect(appCoverage.map(app => app.app_id).sort()).toEqual(
+      VIRTUAL_DESKTOP_APP_MANIFEST.apps.map(app => app.id).sort(),
+    );
+    expect(appCoverage.every(app => app.status === 'passed')).toBe(true);
     const declaredScreenshots = [safetyProbes.screenshot, ...results.map(result => result.screenshot)];
     const screenshotsCreated = declaredScreenshots.every(relativePath => {
       const absolutePath = path.resolve(process.cwd(), relativePath);
       return fs.existsSync(absolutePath) && fs.statSync(absolutePath).size > 0;
     });
+    const screenshotsOnDisk = fs.readdirSync(SCREENSHOT_ROOT)
+      .filter(fileName => fileName.endsWith('.png'))
+      .map(fileName => path.relative(process.cwd(), path.join(SCREENSHOT_ROOT, fileName)))
+      .sort();
 
     const report = {
       schema: REPORT_SCHEMA,
@@ -349,6 +398,7 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       source_app_count: catalog.app_count,
       replayed_packet_count: results.length,
       replayed_app_count: new Set(results.map(result => result.app_id)).size,
+      replay_scenarios: REPLAY_SCENARIOS,
       status: 'passed',
       boundary: {
         simulator_only: true,
@@ -365,6 +415,8 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
         no_control_overlap: results.every(result => !result.layout.controls_overlap),
         focus_and_activation_visible: results.every(result => result.focus_activation.focus_visible
           && result.focus_activation.focus_control_received_dom_focus
+          && result.focus_activation.final_control_received_dom_focus
+          && result.focus_activation.final_focus_ring_visible
           && Boolean(result.focus_activation.activated_method)),
         receipts_preserved: results.every(result => result.receipt_preservation.preserved),
         operator_decisions_visible: results.every(result => result.operator_decisions.length > 0),
@@ -401,11 +453,26 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
         receipts_preserved_across_every_modality_flow: results.every(result => MODALITIES.every(modality => (
           result.modality_replays[modality].flows.every(flow => flow.receipt_refs_preserved)
         ))),
+        rollback_visible_across_denial_and_unavailable_flows: results.every(result => MODALITIES.every(modality => (
+          result.modality_replays[modality].flows
+            .filter(flow => flow.scenario !== 'primary')
+            .every(flow => flow.rollback_state.includes(result.rollback.expected_mode))
+        ))),
+        operator_decisions_visible_across_every_modality_flow: results.every(result => MODALITIES.every(modality => (
+          result.modality_replays[modality].flows.every(flow => flow.operator_decision_visible)
+        ))),
+        typed_fallback_visible_across_denial_and_unavailable_flows: results.every(result => MODALITIES.every(modality => (
+          result.modality_replays[modality].flows
+            .filter(flow => flow.scenario !== 'primary')
+            .every(flow => flow.fallback_user_visible && Boolean(flow.fallback_surface))
+        ))),
         raw_media_suppressed_across_every_modality_flow: results.every(result => MODALITIES.every(modality => (
           result.modality_replays[modality].flows.every(flow => !flow.raw_payload_captured)
         ))),
         report_and_screenshots_created: screenshotsCreated
-          && declaredScreenshots.length === catalog.packet_count + 1,
+          && declaredScreenshots.length === catalog.packet_count + 1
+          && sameValues(screenshotsOnDisk, declaredScreenshots),
+        every_app_has_complete_replay_evidence: appCoverage.every(app => app.status === 'passed'),
         zero_browser_errors: browserFailures.length === 0,
       },
       modality_summary: Object.fromEntries(MODALITIES.map(modality => [
@@ -415,6 +482,7 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       permission_summary: countBy(results, result => result.permission_state),
       fallback_summary: countBy(results, result => result.fallback.observed_surface),
       platform_safety_probes: safetyProbes,
+      applications: appCoverage,
       browser_failures: browserFailures,
       screenshot_root: path.relative(process.cwd(), SCREENSHOT_ROOT),
       output_manifest: {
@@ -543,6 +611,67 @@ function buildModalityReplayEvidence(
   return Object.fromEntries(entries) as Record<Modality, ModalityReplayEvidence>;
 }
 
+function buildAppReplayCoverage(results: readonly PacketReplayResult[]): AppReplayCoverage[] {
+  const titleByApp = new Map(VIRTUAL_DESKTOP_APP_MANIFEST.apps.map(app => [app.id, app.title]));
+  const packetsByApp = new Map<string, PacketReplayResult[]>();
+  for (const result of results) {
+    const appPackets = packetsByApp.get(result.app_id) ?? [];
+    appPackets.push(result);
+    packetsByApp.set(result.app_id, appPackets);
+  }
+
+  return VIRTUAL_DESKTOP_APP_MANIFEST.apps.map(app => {
+    const packets = packetsByApp.get(app.id) ?? [];
+    expect(packets.length, `${app.id} has no SVD-098 packet to replay`).toBeGreaterThan(0);
+    const flows = packets.flatMap(packet => MODALITIES.flatMap(modality => (
+      packet.modality_replays[modality].flows
+    )));
+    const nonPrimaryFlows = flows.filter(flow => flow.scenario !== 'primary');
+    const coverage: AppReplayCoverage = {
+      app_id: app.id,
+      app_title: titleByApp.get(app.id) ?? app.id,
+      packet_ids: packets.map(packet => packet.packet_id).sort(),
+      requested_modalities: [...new Set(packets.map(packet => packet.requested_modality))].sort(),
+      replayed_modalities: [...MODALITIES],
+      replayed_scenarios: [...REPLAY_SCENARIOS],
+      packet_count: packets.length,
+      flow_count: flows.length,
+      bounded_layouts: packets.every(packet => packet.layout.bounded && !packet.layout.controls_overlap),
+      focus_and_activation_visible: packets.every(packet => (
+        packet.focus_activation.focus_visible
+        && packet.focus_activation.focus_control_received_dom_focus
+        && packet.focus_activation.final_control_received_dom_focus
+        && packet.focus_activation.final_focus_ring_visible
+        && Boolean(packet.focus_activation.activated_method)
+      )),
+      receipts_preserved: packets.every(packet => packet.receipt_preservation.preserved)
+        && flows.every(flow => flow.receipt_refs_preserved),
+      operator_decisions_visible: flows.every(flow => flow.operator_decision_visible),
+      rollback_visible: nonPrimaryFlows.every(flow => Boolean(flow.rollback_state)),
+      fallback_visible: nonPrimaryFlows.every(flow => flow.fallback_user_visible && Boolean(flow.fallback_surface)),
+      status: 'passed',
+    };
+    expect(coverage.flow_count).toBe(coverage.packet_count * MODALITIES.length * REPLAY_SCENARIOS.length);
+    expect([
+      coverage.bounded_layouts,
+      coverage.focus_and_activation_visible,
+      coverage.receipts_preserved,
+      coverage.operator_decisions_visible,
+      coverage.rollback_visible,
+      coverage.fallback_visible,
+    ].every(Boolean), `${app.id} has incomplete simulator evidence`).toBe(true);
+    return coverage;
+  });
+}
+
+function prepareScreenshotRoot(): void {
+  fs.mkdirSync(SCREENSHOT_ROOT, { recursive: true });
+  for (const fileName of fs.readdirSync(SCREENSHOT_ROOT)) {
+    const filePath = path.join(SCREENSHOT_ROOT, fileName);
+    if (fileName.endsWith('.png') && fs.statSync(filePath).isFile()) fs.rmSync(filePath);
+  }
+}
+
 async function replayPlatformSafetyProbes(page: Page): Promise<PlatformSafetyProbeResult> {
   await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('camera', 'allow'));
   await expect(page.getByTestId('probe-log')).toContainText('camera:operator_approved:metadata_ref_only');
@@ -580,6 +709,21 @@ async function replayPlatformSafetyProbes(page: Page): Promise<PlatformSafetyPro
 
 async function snapshot(page: Page): Promise<SimulatorSnapshot> {
   return page.evaluate(() => window.metaDeviceSimulator.snapshot());
+}
+
+async function readFocusState(
+  page: Page,
+  testId: string,
+): Promise<{ received_dom_focus: boolean; focus_ring_visible: boolean }> {
+  return page.getByTestId(testId).evaluate(element => {
+    const style = window.getComputedStyle(element);
+    return {
+      received_dom_focus: element === document.activeElement,
+      focus_ring_visible: style.outlineStyle !== 'none'
+        && style.outlineWidth !== '0px'
+        && style.outlineColor !== 'transparent',
+    };
+  });
 }
 
 async function readLayout(page: Page): Promise<PacketReplayResult['layout']> {
@@ -691,6 +835,7 @@ function renderSimulatorHtml(): string {
       function emptyState() {
         return {
           phase: 'idle', focused_action: '', activation: '', decision: 'none', decision_history: [],
+          policy_authorized: false,
           modality_results: { display: '', camera: '', microphone: '', speaker: '', input: '' },
           modality_scenarios: { display: '', camera: '', microphone: '', speaker: '', input: '' },
           modality_history: { display: [], camera: [], microphone: [], speaker: [], input: [] },
@@ -730,6 +875,7 @@ function renderSimulatorHtml(): string {
           '<div class="grid"><section class="panel">',
           '<div class="label">Operator decision</div>',
           '<div class="value" data-testid="operator-decision">' + escape(state.decision) + '</div>',
+          '<div class="value" data-testid="decision-history">history: ' + escape(state.decision_history.join(' → ')) + '</div>',
           '<div class="label">Focused action</div>',
           '<div class="value" data-testid="focused-action">' + escape(state.focused_action || 'not focused') + '</div>',
           '<div class="label">Activation</div>',
@@ -768,18 +914,22 @@ function renderSimulatorHtml(): string {
             decide('awaiting_operator_confirmation');
             state.phase = 'confirmation_required';
           } else if (packet.permission.state === 'permitted') {
+            state.policy_authorized = true;
             decide('policy_allowed');
             state.phase = 'activated_safe_projection';
           } else {
+            state.policy_authorized = false;
             decide('policy_denied');
             state.rollback_state = 'projection_preserved:' + packet.rollback_behavior.mode;
             applyFallback(packet.fallback_selection.target_surface);
           }
         } else if (id === 'operator-deny') {
+          state.policy_authorized = false;
           decide('operator_denied');
           state.rollback_state = 'operator_denial:' + packet.rollback_behavior.mode;
           applyFallback(packet.fallback_selection.target_surface);
         } else if (id === 'operator-allow') {
+          state.policy_authorized = packet.permission.state === 'confirmation_required';
           decide('operator_approved');
           state.phase = 'activated_after_confirmation';
         } else if (id === 'simulate-failure') {
@@ -790,9 +940,7 @@ function renderSimulatorHtml(): string {
           applyFallback(packet.fallback_selection.target_surface);
         }
         render();
-        if (id === 'focus-next') {
-          viewport.querySelector('[data-testid="focus-next"]')?.focus();
-        }
+        viewport.querySelector('[data-testid="' + id + '"]')?.focus();
       });
 
       window.metaDeviceSimulator = {
@@ -800,6 +948,7 @@ function renderSimulatorHtml(): string {
           packet = input;
           state = emptyState();
           state.phase = 'packet_loaded_safe';
+          state.policy_authorized = packet.permission.state === 'permitted';
           state.receipt_refs = packet.receipt_refs.map(item => item.cid);
           state.event_dag_refs = packet.event_dag_refs.map(item => item.cid);
           render();
@@ -807,17 +956,26 @@ function renderSimulatorHtml(): string {
         replayModality(kind, scenario) {
           const item = constraint(kind);
           const fallbackSurface = item.fallback_surface || packet.fallback_selection.target_surface;
-          const primaryAllowed = item.allowed && item.availability === 'available';
+          const primaryAllowed = item.availability === 'available'
+            && (item.allowed || (
+              kind === packet.requested_modality
+              && packet.permission.state === 'confirmation_required'
+              && state.policy_authorized
+            ));
           state.modality_scenarios[kind] = scenario;
           if (scenario === 'primary') {
             decide('modality_' + kind + '_policy_' + (primaryAllowed ? 'allowed' : 'degraded'));
+            state.rollback_state = 'not_required';
+            if (!primaryAllowed) applyFallback(fallbackSurface);
             state.phase = primaryAllowed ? 'safe_modality_primary_visible' : 'safe_modality_fallback_visible';
           } else if (scenario === 'permission_denied') {
             decide('modality_' + kind + '_operator_denied');
+            state.rollback_state = 'operator_denial:' + packet.rollback_behavior.mode;
             applyFallback(fallbackSurface);
             state.phase = 'modality_denied_fallback_visible';
           } else {
             decide('modality_' + kind + '_route_unavailable');
+            state.rollback_state = 'route_unavailable:' + packet.rollback_behavior.mode;
             applyFallback(fallbackSurface);
             state.phase = 'modality_unavailable_fallback_visible';
           }
@@ -859,6 +1017,9 @@ function renderSimulatorHtml(): string {
             result: state.modality_results[kind],
             decision: state.decision,
             fallback_surface: scenario === 'primary' && primaryAllowed ? item.primary_surface : fallbackSurface,
+            fallback_user_visible: scenario !== 'primary' || !primaryAllowed,
+            rollback_state: state.rollback_state,
+            operator_decision_visible: true,
             raw_payload_captured: false,
             receipt_refs: [...state.receipt_refs],
             event_dag_refs: [...state.event_dag_refs],
