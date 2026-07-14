@@ -9,10 +9,180 @@
     "phase16CleanupEvidence": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16"
   },
   "policy": {
-    "indexBasenamesIgnored": true,
+    "indexBasenamesIgnored": false,
     "broadExemptionsAllowed": false,
     "nonIndexBasenameDuplicatesAreFailuresByDefault": true,
     "approvedMultiEntrypoints": [],
+    "approvedIndexEntrypoints": [
+      {
+        "path": "src/services/fol-utils/index.ts",
+        "owner": "service-fol-utils",
+        "publicContract": "FOL utility service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/glasses/index.ts",
+        "owner": "service-glasses",
+        "publicContract": "glasses service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/integrations/index.ts",
+        "owner": "service-integrations",
+        "publicContract": "external integrations service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/ipfs/index.ts",
+        "owner": "service-ipfs",
+        "publicContract": "IPFS service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/api/index.ts",
+        "owner": "service-logic",
+        "publicContract": "logic API service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/bridges/index.ts",
+        "owner": "service-logic",
+        "publicContract": "logic bridge service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/cec/index.ts",
+        "owner": "service-logic",
+        "publicContract": "CEC logic service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/dcec/index.ts",
+        "owner": "service-logic",
+        "publicContract": "DCEC logic service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/deontic/index.ts",
+        "owner": "service-logic",
+        "publicContract": "deontic logic service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/fol/index.ts",
+        "owner": "service-logic",
+        "publicContract": "FOL logic service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/modal/index.ts",
+        "owner": "service-logic",
+        "publicContract": "modal logic service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/nl/index.ts",
+        "owner": "service-logic",
+        "publicContract": "natural-language logic service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/shared/index.ts",
+        "owner": "service-logic",
+        "publicContract": "shared logic service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/logic/tdfol/index.ts",
+        "owner": "service-logic",
+        "publicContract": "TDFOL logic service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/mcp/index.ts",
+        "owner": "service-mcp",
+        "publicContract": "MCP service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/platform/index.ts",
+        "owner": "service-platform",
+        "publicContract": "platform service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/proof-engine/index.ts",
+        "owner": "service-proof-engine",
+        "publicContract": "proof engine service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/provers/index.ts",
+        "owner": "service-provers",
+        "publicContract": "prover service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/shared/index.ts",
+        "owner": "service-shared",
+        "publicContract": "shared service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/zkp/artifacts/index.ts",
+        "owner": "service-zkp",
+        "publicContract": "ZKP artifact service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      },
+      {
+        "path": "src/services/zkp/index.ts",
+        "owner": "service-zkp",
+        "publicContract": "ZKP service entrypoint",
+        "regressionTests": [
+          "test/architecture/source-module-boundaries.test.js"
+        ]
+      }
+    ],
     "approvedContentHashes": [
       {
         "sha256": "4b3f5b62cf7fb461477447ef6c2b8aa27cb238d303b25d6e542ec31ce13e584d",
@@ -790,15 +960,16 @@
     "indexShadowCopies": 0,
     "duplicateContentHashes": 2,
     "unapprovedDuplicateContentHashes": 0,
-    "executableServiceFiles": 475,
+    "executableServiceFiles": 476,
     "basenameCollisions": 1,
     "indexEntrypointBasenameCollisions": 1,
+    "unclassifiedBasenameCollisions": 0,
     "normalizedContentCollisions": 14,
     "unclassifiedNormalizedContentCollisions": 0,
     "behavioralEquivalenceGroups": 31,
     "unclassifiedBehavioralEquivalenceGroups": 0,
-    "totalImporters": 1904,
-    "uniqueImporterFiles": 606
+    "totalImporters": 1906,
+    "uniqueImporterFiles": 608
   },
   "serviceFiles": [
     {
@@ -28225,6 +28396,18 @@
       },
       "importers": [
         {
+          "file": "scripts/capture-profile-d-transport-evidence-probe.mts",
+          "line": 12,
+          "kind": "static-import",
+          "specifier": "../src/services/mcp/mcp-plus-plus-connector.ts"
+        },
+        {
+          "file": "scripts/capture-profile-f-transport-evidence-probe.mts",
+          "line": 12,
+          "kind": "static-import",
+          "specifier": "../src/services/mcp/mcp-plus-plus-connector.ts"
+        },
+        {
           "file": "src/services/mcp/mcp-host.ts",
           "line": 17,
           "kind": "export-from",
@@ -28279,7 +28462,7 @@
           "specifier": "../../src/services/mcp/mcp-plus-plus-connector"
         }
       ],
-      "importerCount": 9,
+      "importerCount": 11,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -37395,6 +37578,62 @@
       "collisionIds": []
     },
     {
+      "path": "src/services/zkp/circuits/deontic_discharge_v1.circom",
+      "basename": "deontic_discharge_v1.circom",
+      "extension": ".circom",
+      "sizeBytes": 622,
+      "lineCount": 20,
+      "contentKind": "service-implementation",
+      "sha256": "e7392dbccb9be352c61795c64b567f62038046c5d5123574e58569a3881c3321",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "e7392dbccb9be352c61795c64b567f62038046c5d5123574e58569a3881c3321"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "f29d999d5d2bf61277c4d29870856184bf00f7acff134fe948f44a86fae4421d",
+        "tokenCount": 97
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v1-local-identifiers-canonicalized-and-imports-resolved",
+        "value": "5a9433931538688907646172528194bc255fa6d095ea85aa1b2afb46f1ec89bd",
+        "tokenCount": 97
+      },
+      "importers": [],
+      "importerCount": 0,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/zkp/circuits/**/*.circom",
+          "conditions": [],
+          "target": "src/services/zkp/circuits/deontic_discharge_v1.circom"
+        }
+      ],
+      "runtimeClass": "split",
+      "runtimeClassification": "split",
+      "browserClassification": "split-runtime-requires-entrypoint-review",
+      "declaredOwner": {
+        "module": "service-zkp",
+        "owner": "zkp-service-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed only through audited browser-safe ZKP backend entrypoints",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "canonicalOwner": {
+        "module": "service-zkp",
+        "owner": "zkp-service-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed only through audited browser-safe ZKP backend entrypoints",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "module": "service-zkp",
+      "owner": "zkp-service-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
       "path": "src/services/zkp/ethereum-zkp-bridge.ts",
       "basename": "ethereum-zkp-bridge.ts",
       "extension": ".ts",
@@ -39630,7 +39869,7 @@
       },
       "disposition": "module-scoped-index-entrypoints",
       "classified": true,
-      "reason": "module-scoped index entrypoints have named owners and distinct path contracts; content and behavior gates still apply independently",
+      "reason": "module-scoped index entrypoints have exact named owners, distinct supported contracts, and executable regression evidence; content and behavior gates still apply independently",
       "regressionTests": [
         "test/architecture/source-module-boundaries.test.js"
       ],
@@ -39644,7 +39883,7 @@
             "browserReachability": "allowed only through audited parser/formatter contracts",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-fol-utils:src/services/fol-utils/index.ts",
+          "publicContract": "FOL utility service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39664,7 +39903,7 @@
             "browserReachability": "allowed through display, widget, and mobile ORB browser-safe adapters",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-glasses:src/services/glasses/index.ts",
+          "publicContract": "glasses service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39684,7 +39923,7 @@
             "browserReachability": "allowed only through browser-safe integration adapters",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-integrations:src/services/integrations/index.ts",
+          "publicContract": "external integrations service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39704,7 +39943,7 @@
             "browserReachability": "allowed through browser-safe descriptor and transport modules",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-ipfs:src/services/ipfs/index.ts",
+          "publicContract": "IPFS service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39724,7 +39963,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/api/index.ts",
+          "publicContract": "logic API service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39744,7 +39983,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/bridges/index.ts",
+          "publicContract": "logic bridge service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39764,7 +40003,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/cec/index.ts",
+          "publicContract": "CEC logic service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39784,7 +40023,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/dcec/index.ts",
+          "publicContract": "DCEC logic service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39804,7 +40043,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/deontic/index.ts",
+          "publicContract": "deontic logic service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39824,7 +40063,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/fol/index.ts",
+          "publicContract": "FOL logic service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39844,7 +40083,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/modal/index.ts",
+          "publicContract": "modal logic service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39864,7 +40103,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/nl/index.ts",
+          "publicContract": "natural-language logic service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39884,7 +40123,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/shared/index.ts",
+          "publicContract": "shared logic service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39904,7 +40143,7 @@
             "browserReachability": "allowed only through browser-safe logic service entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-logic:src/services/logic/tdfol/index.ts",
+          "publicContract": "TDFOL logic service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39924,7 +40163,7 @@
             "browserReachability": "allowed through browser-safe protocol and transport modules",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-mcp:src/services/mcp/index.ts",
+          "publicContract": "MCP service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39944,7 +40183,7 @@
             "browserReachability": "allowed only through browser-safe platform service adapters",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-platform:src/services/platform/index.ts",
+          "publicContract": "platform service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39964,7 +40203,7 @@
             "browserReachability": "allowed only through browser-safe proof-engine entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-proof-engine:src/services/proof-engine/index.ts",
+          "publicContract": "proof engine service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -39984,7 +40223,7 @@
             "browserReachability": "allowed only through browser-safe prover contracts and WASM/browser adapters",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-provers:src/services/provers/index.ts",
+          "publicContract": "prover service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -40004,7 +40243,7 @@
             "browserReachability": "allowed for browser-safe pure helpers",
             "browserClassification": "runtime-neutral-module"
           },
-          "publicContract": "service-shared:src/services/shared/index.ts",
+          "publicContract": "shared service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -40024,7 +40263,7 @@
             "browserReachability": "allowed only through audited browser-safe ZKP backend entrypoints",
             "browserClassification": "browser-safe-service-file"
           },
-          "publicContract": "service-zkp:src/services/zkp/artifacts/index.ts",
+          "publicContract": "ZKP artifact service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",
@@ -40044,7 +40283,7 @@
             "browserReachability": "allowed only through audited browser-safe ZKP backend entrypoints",
             "browserClassification": "split-runtime-requires-entrypoint-review"
           },
-          "publicContract": "service-zkp:src/services/zkp/index.ts",
+          "publicContract": "ZKP service entrypoint",
           "publicEntrypoints": [
             {
               "kind": "module-manifest",

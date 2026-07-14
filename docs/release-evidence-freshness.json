@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-14T09:49:05.645Z",
+  "generatedAt": "2026-07-14T10:01:50.836Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -33,7 +33,7 @@
         "docs/browser-bundle-budget.json": "e1c812aa7a6d5b6ffc1a2581a8d8ab0fa93af2b5c3ead89672d871f29b54974d"
       },
       "recordedFingerprint": null,
-      "currentFingerprint": "f4dc7f762b0de2725af31b4cf7e77da47c31510560a455565f28e458968b6de7",
+      "currentFingerprint": "69305364fb6e89d053b96f1ab8218e08a53f181b49bd98aee10d102403ddcc3d",
       "recordedAt": null,
       "regenerateHint": "npm run build:web"
     },
@@ -46,14 +46,14 @@
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
       "recordedEvidenceHashes": {
-        "docs/service-boundary-audit.json": "610397aedecf544c47a06d9b23e7a29f2687d88420530a42fe755e7a5a2f835f"
+        "docs/service-boundary-audit.json": "f5a24669054b5b8b5d9e19db54c9cbf64746a7580e6257b7f1aeb9226ff9ef57"
       },
       "currentEvidenceHashes": {
-        "docs/service-boundary-audit.json": "610397aedecf544c47a06d9b23e7a29f2687d88420530a42fe755e7a5a2f835f"
+        "docs/service-boundary-audit.json": "f5a24669054b5b8b5d9e19db54c9cbf64746a7580e6257b7f1aeb9226ff9ef57"
       },
-      "recordedFingerprint": "adfa41483a2b7d1c92ffaafb4609634ce2749b47df3a12f683cf9a98dbdd9f54",
-      "currentFingerprint": "adfa41483a2b7d1c92ffaafb4609634ce2749b47df3a12f683cf9a98dbdd9f54",
-      "recordedAt": "2026-07-14T09:49:05.640Z",
+      "recordedFingerprint": "5a4329b4ee6d94251ccd2eaaddc84381a3aeca7b805cdfa9cf5340f8a6fdc351",
+      "currentFingerprint": "5a4329b4ee6d94251ccd2eaaddc84381a3aeca7b805cdfa9cf5340f8a6fdc351",
+      "recordedAt": "2026-07-14T10:01:50.825Z",
       "regenerateHint": "npm run services:audit"
     },
     {

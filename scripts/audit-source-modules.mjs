@@ -10,13 +10,15 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const manifestPath = 'src/module-ownership.json';
 
-const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
+const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']);
+const SERVICE_EXECUTABLE_SOURCE_EXTENSIONS = new Set([...SOURCE_EXTENSIONS, '.circom']);
 const DATA_EXTENSIONS = new Set(['.json']);
-const AUDITED_EXTENSIONS = new Set([...SOURCE_EXTENSIONS, ...DATA_EXTENSIONS]);
+const AUDITED_EXTENSIONS = new Set([...SERVICE_EXECUTABLE_SOURCE_EXTENSIONS, ...DATA_EXTENSIONS]);
 const DEFAULT_RESTORED_SERVICE_DUPLICATE_POLICY = {
-  indexBasenamesIgnored: true,
+  indexBasenamesIgnored: false,
   broadExemptionsAllowed: false,
   nonIndexBasenameDuplicatesAreFailuresByDefault: true,
+  approvedIndexEntrypoints: [],
   approvedMultiEntrypoints: [],
   approvedContentHashes: [],
   classifiedCollisions: [],
@@ -241,7 +243,8 @@ function isSourceFile(filePath) {
 }
 
 function isServiceSourceFile(filePath) {
-  return filePath.startsWith('src/services/') && isSourceFile(filePath);
+  return filePath.startsWith('src/services/')
+    && SERVICE_EXECUTABLE_SOURCE_EXTENSIONS.has(path.extname(filePath));
 }
 
 function isServiceIndexFile(filePath) {
@@ -407,11 +410,21 @@ function normalizeRestoredServiceDuplicatePolicy(manifest) {
     ...(manifest.audit?.restoredServiceDuplicatePolicy ?? {}),
   };
   return {
-    indexBasenamesIgnored: policy.indexBasenamesIgnored !== false,
+    indexBasenamesIgnored: policy.indexBasenamesIgnored === true,
     broadExemptionsAllowed: policy.broadExemptionsAllowed === true,
     nonIndexBasenameDuplicatesAreFailuresByDefault: (
       policy.nonIndexBasenameDuplicatesAreFailuresByDefault !== false
     ),
+    approvedIndexEntrypoints: (policy.approvedIndexEntrypoints ?? [])
+      .map((item) => ({
+        path: item.path ?? null,
+        owner: item.owner ?? null,
+        publicContract: item.publicContract ?? null,
+        regressionTests: Array.isArray(item.regressionTests)
+          ? [...item.regressionTests].sort(compareStrings)
+          : [],
+      }))
+      .sort((a, b) => (a.path ?? '').localeCompare(b.path ?? '')),
     approvedMultiEntrypoints: (policy.approvedMultiEntrypoints ?? [])
       .map((item) => ({
         basename: item.basename ?? null,
@@ -489,11 +502,11 @@ function isSha256(value) {
 
 function collectRestoredServiceDuplicatePolicyViolations(policy, modules = {}) {
   const findings = [];
-  if (!policy.indexBasenamesIgnored) {
+  if (policy.indexBasenamesIgnored) {
     findings.push({
       policy: 'audit.restoredServiceDuplicatePolicy.indexBasenamesIgnored',
       module: 'services',
-      reason: 'index basenames must remain the only ignored service basename duplicate class',
+      reason: 'index basename collisions require exact entrypoint evidence and cannot use a blanket exemption',
     });
   }
   if (policy.broadExemptionsAllowed) {
@@ -509,6 +522,37 @@ function collectRestoredServiceDuplicatePolicyViolations(policy, modules = {}) {
       module: 'services',
       reason: 'non-index service basename duplicates must fail by default',
     });
+  }
+
+  for (const [index, approval] of policy.approvedIndexEntrypoints.entries()) {
+    const location = `audit.restoredServiceDuplicatePolicy.approvedIndexEntrypoints[${index}]`;
+    if (
+      !approval.path
+      || !approval.path.startsWith('src/services/')
+      || !/^index\.[cm]?[jt]sx?$/.test(path.basename(approval.path))
+      || hasGlobSyntax(approval.path)
+    ) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved index entrypoint must name one exact src/services index source path',
+      });
+    }
+    if (!approval.owner || hasGlobSyntax(approval.owner) || !modules[approval.owner]) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved index entrypoint must name its exact existing module owner',
+      });
+    }
+    if (!approval.publicContract || !approval.publicContract.trim()) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved index entrypoint must name a supported public contract',
+      });
+    }
+    collectRegressionTestEvidenceViolations(approval.regressionTests, location, findings);
   }
 
   for (const [index, approval] of policy.approvedMultiEntrypoints.entries()) {
@@ -672,11 +716,11 @@ function collectRestoredServiceDuplicatePolicyViolations(policy, modules = {}) {
 function collectIntentionalEntrypointEvidenceViolations(approval, location, modules, findings) {
   const contracts = approval.publicContracts ?? [];
   const contractPaths = contracts.map((item) => item.path);
-  const contractNames = contracts.map((item) => item.contract).filter(Boolean);
+  const contractNames = contracts.map((item) => item.contract?.trim()).filter(Boolean);
   if (
     contracts.length !== approval.paths.length
     || !exactPathSetMatches(contractPaths, approval.paths)
-    || contracts.some((item) => !item.contract)
+    || contracts.some((item) => !item.contract?.trim())
     || new Set(contractNames).size !== contractNames.length
   ) {
     findings.push({
@@ -701,19 +745,24 @@ function collectIntentionalEntrypointEvidenceViolations(approval, location, modu
     }
   }
 
-  if ((approval.regressionTests ?? []).length === 0) {
+  collectRegressionTestEvidenceViolations(approval.regressionTests, location, findings);
+}
+
+function collectRegressionTestEvidenceViolations(regressionTests, location, findings) {
+  if ((regressionTests ?? []).length === 0) {
     findings.push({
       policy: location,
       module: 'services',
       reason: 'intentional multi-entrypoints require at least one executable regression test',
     });
   }
-  for (const testPath of approval.regressionTests ?? []) {
+  for (const testPath of regressionTests ?? []) {
+    const testExists = fs.existsSync(abs(testPath));
     if (
       !testPath.startsWith('test/')
       || hasGlobSyntax(testPath)
       || !isSourceFile(testPath)
-      || !fs.existsSync(abs(testPath))
+      || !testExists
     ) {
       findings.push({
         policy: location,
@@ -721,8 +770,30 @@ function collectIntentionalEntrypointEvidenceViolations(approval, location, modu
         path: testPath,
         reason: 'intentional multi-entrypoint regression test must be an existing exact executable path under test/',
       });
+      continue;
+    }
+
+    const testSource = fs.readFileSync(abs(testPath), 'utf8');
+    if (!containsExecutableTestDeclaration(testSource)) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        path: testPath,
+        reason: 'intentional multi-entrypoint regression test must contain an executable test declaration',
+      });
     }
   }
+}
+
+function containsExecutableTestDeclaration(source) {
+  const tokens = tokenizeSource(source);
+  return tokens.some((token, index) => {
+    if (token.kind !== 'identifier' || (token.text !== 'it' && token.text !== 'test')) return false;
+    if (tokens[index + 1]?.text === '(') return true;
+    return tokens[index + 1]?.text === '.'
+      && ['concurrent', 'each', 'only', 'skip', 'todo'].includes(tokens[index + 2]?.text)
+      && tokens[index + 3]?.text === '(';
+  });
 }
 
 function moduleForTopLevelPath(filePath, modules) {
@@ -1140,6 +1211,29 @@ function classifiedCollisionForGroup(kind, fingerprint, canonicalPath, paths, po
   )) ?? null;
 }
 
+function approvedContentHashForCollisionGroup(paths, canonicalPath, recordsByPath, policy, canonicalOwner) {
+  const contentHashes = new Set(paths.map((filePath) => recordsByPath.get(filePath)?.contentHash.value));
+  if (contentHashes.size !== 1 || contentHashes.has(undefined)) return null;
+  const [sha256] = contentHashes;
+  return policy.approvedContentHashes.find((approval) => (
+    approval.sha256 === sha256
+    && approval.canonicalPath === canonicalPath
+    && approval.owner === canonicalOwner.module
+    && exactPathSetMatches(approval.paths, paths)
+  )) ?? null;
+}
+
+function approvedMultiEntrypointForCollisionGroup(paths, policy, canonicalOwner) {
+  const basenames = new Set(paths.map((filePath) => path.basename(filePath)));
+  if (basenames.size !== 1) return null;
+  const [basename] = basenames;
+  return policy.approvedMultiEntrypoints.find((approval) => (
+    approval.basename === basename
+    && approval.owner === canonicalOwner.module
+    && exactPathSetMatches(approval.paths, paths)
+  )) ?? null;
+}
+
 function flattenPackageExportTargets(value, exportName, conditions = [], records = []) {
   if (typeof value === 'string') {
     records.push({
@@ -1182,6 +1276,7 @@ function collisionGroupId(kind, fingerprint) {
 }
 
 function buildCollisionGroups(serviceFiles, kind, fingerprintSelector, index) {
+  const recordsByPath = new Map(serviceFiles.map((record) => [record.path, record]));
   const byFingerprint = new Map();
   for (const record of serviceFiles) {
     const fingerprint = fingerprintSelector(record);
@@ -1203,12 +1298,18 @@ function buildCollisionGroups(serviceFiles, kind, fingerprintSelector, index) {
         index.restoredServiceDuplicatePolicy,
         canonicalModuleOwner,
       );
-      const exactContentApproval = index.restoredServiceDuplicatePolicy.approvedContentHashes.find(
-        (approval) => exactPathSetMatches(approval.paths, paths),
-      ) ?? null;
-      const exactMultiEntrypointApproval = index.restoredServiceDuplicatePolicy.approvedMultiEntrypoints.find(
-        (approval) => exactPathSetMatches(approval.paths, paths),
-      ) ?? null;
+      const exactContentApproval = approvedContentHashForCollisionGroup(
+        paths,
+        canonicalPath,
+        recordsByPath,
+        index.restoredServiceDuplicatePolicy,
+        canonicalModuleOwner,
+      );
+      const exactMultiEntrypointApproval = approvedMultiEntrypointForCollisionGroup(
+        paths,
+        index.restoredServiceDuplicatePolicy,
+        canonicalModuleOwner,
+      );
       const disposition = classification?.disposition
         ?? exactContentApproval?.disposition
         ?? (exactMultiEntrypointApproval ? 'intentional-multi-entrypoint' : null)
@@ -1304,26 +1405,63 @@ function collectServiceFileInventory(files, importersByTarget, index) {
       const paths = unsortedPaths.sort(compareStrings);
       const indexEntrypoints = /^index\.[cm]?[jt]sx?$/.test(basename);
       const canonicalPath = selectCanonicalDuplicatePath(paths, index);
+      const canonicalModuleOwner = ownerRecordForPath(canonicalPath, index);
+      const approvedMultiEntrypoint = indexEntrypoints ? null : approvedMultiEntrypointForDuplicate(
+        { basename, paths },
+        index.restoredServiceDuplicatePolicy,
+        canonicalModuleOwner,
+      );
+      const pathApprovals = indexEntrypoints
+        ? paths.map((filePath) => index.restoredServiceDuplicatePolicy.approvedIndexEntrypoints.find(
+            (approval) => approval.path === filePath,
+          ) ?? null)
+        : [];
+      const exactIndexEntrypoints = indexEntrypoints && paths.every((filePath, pathIndex) => {
+        const record = recordsByPath.get(filePath);
+        const approval = pathApprovals[pathIndex];
+        return Boolean(
+          approval
+          && approval.owner === record.module
+          && approval.publicContract?.trim()
+          && approval.regressionTests.length > 0
+          && record.publicEntrypoints.length > 0,
+        );
+      });
+      const distinctIndexContracts = exactIndexEntrypoints
+        && new Set(pathApprovals.map((approval) => approval.publicContract.trim())).size === paths.length;
+      const indexCollisionClassified = exactIndexEntrypoints && distinctIndexContracts;
+      const collisionClassified = indexEntrypoints
+        ? indexCollisionClassified
+        : Boolean(approvedMultiEntrypoint);
       return {
         id: `basename:${basename}`,
         kind: indexEntrypoints ? 'index-entrypoint-basename' : 'non-index-service-basename',
         basename,
         canonicalPath,
-        canonicalModuleOwner: ownerRecordForPath(canonicalPath, index),
-        disposition: indexEntrypoints ? 'module-scoped-index-entrypoints' : 'unclassified-copy',
-        classified: indexEntrypoints,
+        canonicalModuleOwner,
+        disposition: indexCollisionClassified
+          ? 'module-scoped-index-entrypoints'
+          : (approvedMultiEntrypoint ? 'intentional-multi-entrypoint' : 'unclassified-copy'),
+        classified: collisionClassified,
         reason: indexEntrypoints
-          ? 'module-scoped index entrypoints have named owners and distinct path contracts; content and behavior gates still apply independently'
-          : 'non-index executable service files share the same basename',
-        regressionTests: indexEntrypoints
-          ? ['test/architecture/source-module-boundaries.test.js']
-          : [],
+          ? (indexCollisionClassified
+              ? 'module-scoped index entrypoints have exact named owners, distinct supported contracts, and executable regression evidence; content and behavior gates still apply independently'
+              : 'index basename collision lacks exact ownership, distinct supported contracts, or executable regression evidence')
+          : (approvedMultiEntrypoint?.reason ?? 'non-index executable service files share the same basename'),
+        regressionTests: indexCollisionClassified
+          ? [...new Set(pathApprovals.flatMap((approval) => approval.regressionTests))].sort(compareStrings)
+          : (approvedMultiEntrypoint?.regressionTests ?? []),
         paths: paths.map((filePath) => {
           const record = recordsByPath.get(filePath);
+          const approval = index.restoredServiceDuplicatePolicy.approvedIndexEntrypoints.find(
+            (candidate) => candidate.path === filePath,
+          );
           return {
             path: filePath,
             canonicalOwner: record.canonicalOwner,
-            publicContract: `${record.module}:${filePath}`,
+            publicContract: approval?.publicContract
+              ?? approvedMultiEntrypoint?.publicContracts.find((contract) => contract.path === filePath)?.contract
+              ?? null,
             publicEntrypoints: record.publicEntrypoints,
             contentKind: record.contentKind,
           };
@@ -1662,6 +1800,7 @@ function collectRestoredServiceDuplicateInventory({
         index.restoredServiceDuplicatePolicy.nonIndexBasenameDuplicatesAreFailuresByDefault
       ),
       approvedMultiEntrypoints: index.restoredServiceDuplicatePolicy.approvedMultiEntrypoints,
+      approvedIndexEntrypoints: index.restoredServiceDuplicatePolicy.approvedIndexEntrypoints,
       approvedContentHashes: index.restoredServiceDuplicatePolicy.approvedContentHashes,
       classifiedCollisions: index.restoredServiceDuplicatePolicy.classifiedCollisions,
       policyViolations,
@@ -1695,6 +1834,8 @@ function collectRestoredServiceDuplicateInventory({
       basenameCollisions: serviceFileInventory.basenameCollisions.length,
       indexEntrypointBasenameCollisions: serviceFileInventory.basenameCollisions
         .filter((entry) => entry.kind === 'index-entrypoint-basename').length,
+      unclassifiedBasenameCollisions: serviceFileInventory.basenameCollisions
+        .filter((entry) => !entry.classified).length,
       normalizedContentCollisions: serviceFileInventory.normalizedContentCollisions.length,
       unclassifiedNormalizedContentCollisions: serviceFileInventory.normalizedContentCollisions
         .filter((entry) => !entry.classified).length,
@@ -1976,6 +2117,8 @@ function audit(manifest, args) {
       unclassifiedServiceBehavioralEquivalenceGroups: serviceFileInventory.behavioralEquivalenceGroups
         .filter((entry) => !entry.classified).length,
       legacySprintServiceFiles: legacySprintServiceFiles.length,
+      unclassifiedServiceBasenameCollisions: serviceFileInventory.basenameCollisions
+        .filter((entry) => !entry.classified).length,
     },
     rootDebt: scopedRootDebt,
     unknownFiles: scopedUnknownFiles,
@@ -2073,6 +2216,7 @@ function printReport(result) {
   console.log(`service duplicate content hashes: ${result.summary.serviceDuplicateContentHashes}`);
   console.log(`unapproved service duplicate content hashes: ${result.summary.unapprovedServiceDuplicateContentHashes}`);
   console.log(`service executable files inventoried: ${result.summary.serviceExecutableFiles}`);
+  console.log(`unclassified service basename collisions: ${result.summary.unclassifiedServiceBasenameCollisions}`);
   console.log(`service normalized-content collisions: ${result.summary.serviceNormalizedContentCollisions}`);
   console.log(`unclassified service normalized-content collisions: ${result.summary.unclassifiedServiceNormalizedContentCollisions}`);
   console.log(`service behavioral-equivalence groups: ${result.summary.serviceBehavioralEquivalenceGroups}`);
@@ -2177,6 +2321,7 @@ function writeRestoredServiceDuplicateInventoryMarkdown(relativeOrAbsolutePath, 
     markdownTableRow(['Executable service files', inventory.summary.executableServiceFiles]),
     markdownTableRow(['All basename collision groups', inventory.summary.basenameCollisions]),
     markdownTableRow(['Module-scoped index basename groups', inventory.summary.indexEntrypointBasenameCollisions]),
+    markdownTableRow(['Unclassified basename collisions', inventory.summary.unclassifiedBasenameCollisions]),
     markdownTableRow(['Normalized-content collisions', inventory.summary.normalizedContentCollisions]),
     markdownTableRow(['Unclassified normalized-content collisions', inventory.summary.unclassifiedNormalizedContentCollisions]),
     markdownTableRow(['Behavioral-equivalence groups', inventory.summary.behavioralEquivalenceGroups]),
@@ -2191,6 +2336,7 @@ function writeRestoredServiceDuplicateInventoryMarkdown(relativeOrAbsolutePath, 
     markdownTableRow(['Ignore index basenames', inventory.policy.indexBasenamesIgnored]),
     markdownTableRow(['Broad exemptions allowed', inventory.policy.broadExemptionsAllowed]),
     markdownTableRow(['Non-index basename duplicates fail by default', inventory.policy.nonIndexBasenameDuplicatesAreFailuresByDefault]),
+    markdownTableRow(['Exact approved index entrypoints', inventory.policy.approvedIndexEntrypoints.length]),
     markdownTableRow(['Approved multi-entrypoints', inventory.policy.approvedMultiEntrypoints.length]),
     markdownTableRow(['Approved content hashes', inventory.policy.approvedContentHashes.length]),
     markdownTableRow(['Exact classified collisions', inventory.policy.classifiedCollisions.length]),
@@ -2429,6 +2575,7 @@ function main() {
       || result.summary.legacyRootImportSpecifiers > 0
       || result.summary.unapprovedServiceDuplicateBasenames > 0
       || result.summary.unapprovedServiceDuplicateContentHashes > 0
+      || result.summary.unclassifiedServiceBasenameCollisions > 0
       || result.summary.unclassifiedServiceNormalizedContentCollisions > 0
       || result.summary.unclassifiedServiceBehavioralEquivalenceGroups > 0
       || result.summary.serviceIndexShadowCopies > 0
