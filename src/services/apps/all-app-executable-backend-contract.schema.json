@@ -1,0 +1,383 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hallucinate.app/contracts/all-app-executable-backend-contract.schema.json",
+  "title": "SwissKnife all-app executable backend disposition contract",
+  "description": "Versioned, fail-closed backend disposition and mediated invocation contract for every canonical virtual-desktop application.",
+  "type": "object",
+  "required": [
+    "schema",
+    "contract_id",
+    "version",
+    "manifest",
+    "backend_owners",
+    "selection_semantics",
+    "apps"
+  ],
+  "properties": {
+    "schema": {
+      "const": "swissknife.all-app-executable-backend-contract.v1"
+    },
+    "contract_id": {
+      "const": "org.hallucinate.swissknife.all-app-executable-backend-contract"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "manifest": {
+      "type": "object",
+      "required": ["manifest_id", "manifest_version"],
+      "properties": {
+        "manifest_id": { "type": "string", "minLength": 1 },
+        "manifest_version": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "backend_owners": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/backendOwner" },
+      "allOf": [
+        { "contains": { "const": "ipfs_kit_py" } },
+        { "contains": { "const": "ipfs_datasets_py" } },
+        { "contains": { "const": "ipfs_accelerate_py" } }
+      ]
+    },
+    "selection_semantics": {
+      "type": "object",
+      "required": ["candidate_identity", "capability_matching", "ambiguous_match", "missing_match"],
+      "properties": {
+        "candidate_identity": { "const": "owner_and_tool_id" },
+        "capability_matching": { "const": "exact_only" },
+        "ambiguous_match": { "const": "preferred_order_then_lexical_tool_id" },
+        "missing_match": { "const": "tool_unsupported" }
+      },
+      "additionalProperties": false
+    },
+    "apps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/appDisposition" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "backendOwner": {
+      "type": "string",
+      "enum": ["ipfs_kit_py", "ipfs_datasets_py", "ipfs_accelerate_py"]
+    },
+    "kebabId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "appDisposition": {
+      "type": "object",
+      "required": [
+        "app_id",
+        "aliases",
+        "disposition_version",
+        "disposition",
+        "rationale",
+        "backend_bindings",
+        "user_visible_proof"
+      ],
+      "properties": {
+        "app_id": { "$ref": "#/$defs/kebabId" },
+        "aliases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/kebabId" }
+        },
+        "disposition_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "disposition": {
+          "type": "string",
+          "enum": ["tool_backed", "browser_local", "external_provider", "policy_blocked"]
+        },
+        "rationale": { "type": "string", "minLength": 1 },
+        "backend_bindings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/backendBinding" }
+        },
+        "user_visible_proof": { "$ref": "#/$defs/userVisibleProof" }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "disposition": { "const": "tool_backed" } }, "required": ["disposition"] },
+          "then": {
+            "properties": {
+              "backend_bindings": { "type": "array", "minItems": 1 },
+              "user_visible_proof": {
+                "type": "object",
+                "properties": { "proof_kind": { "const": "mediated_receipt" } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "disposition": { "const": "browser_local" } }, "required": ["disposition"] },
+          "then": {
+            "properties": {
+              "backend_bindings": { "type": "array", "maxItems": 0 },
+              "user_visible_proof": {
+                "type": "object",
+                "properties": { "proof_kind": { "const": "browser_runtime" } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "disposition": { "const": "external_provider" } }, "required": ["disposition"] },
+          "then": {
+            "properties": {
+              "backend_bindings": { "type": "array", "maxItems": 0 },
+              "user_visible_proof": {
+                "type": "object",
+                "properties": { "proof_kind": { "const": "provider_handoff" } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "disposition": { "const": "policy_blocked" } }, "required": ["disposition"] },
+          "then": {
+            "properties": {
+              "backend_bindings": { "type": "array", "maxItems": 0 },
+              "user_visible_proof": {
+                "type": "object",
+                "properties": { "proof_kind": { "const": "policy_denial" } }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "backendBinding": {
+      "type": "object",
+      "required": [
+        "binding_id",
+        "owner",
+        "mediated_intent",
+        "tool_selection",
+        "transport_policy",
+        "input_contract",
+        "output_contract",
+        "receipt_requirement",
+        "error_recovery",
+        "ui_control"
+      ],
+      "properties": {
+        "binding_id": { "type": "string", "minLength": 1 },
+        "owner": { "$ref": "#/$defs/backendOwner" },
+        "mediated_intent": { "$ref": "#/$defs/mediatedIntent" },
+        "tool_selection": { "$ref": "#/$defs/toolSelection" },
+        "transport_policy": { "$ref": "#/$defs/transportPolicy" },
+        "input_contract": { "$ref": "#/$defs/jsonObjectContract" },
+        "output_contract": { "$ref": "#/$defs/jsonObjectContract" },
+        "receipt_requirement": { "$ref": "#/$defs/receiptRequirement" },
+        "error_recovery": { "$ref": "#/$defs/errorRecovery" },
+        "ui_control": { "$ref": "#/$defs/uiControl" }
+      },
+      "additionalProperties": false
+    },
+    "mediatedIntent": {
+      "type": "object",
+      "required": ["intent_id", "operation", "description", "capability", "policy_class", "mutates_remote_state"],
+      "properties": {
+        "intent_id": { "type": "string", "minLength": 1 },
+        "operation": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+        "description": { "type": "string", "minLength": 1 },
+        "capability": { "type": "string", "minLength": 1 },
+        "policy_class": {
+          "type": "string",
+          "enum": ["read", "write", "heavy_compute", "credential", "external_network", "media_capture", "destructive"]
+        },
+        "mutates_remote_state": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "toolSelection": {
+      "type": "object",
+      "required": [
+        "strategy",
+        "owner",
+        "preferred_tool_ids",
+        "required_capability",
+        "capability_match",
+        "tie_breaker",
+        "on_no_match"
+      ],
+      "properties": {
+        "strategy": { "const": "ordered_exact_then_capability" },
+        "owner": { "$ref": "#/$defs/backendOwner" },
+        "preferred_tool_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "required_capability": { "type": "string", "minLength": 1 },
+        "capability_match": { "const": "exact" },
+        "tie_breaker": { "const": "preferred_order_then_lexical_tool_id" },
+        "on_no_match": { "const": "tool_unsupported" }
+      },
+      "additionalProperties": false
+    },
+    "transportPolicy": {
+      "type": "object",
+      "required": [
+        "gateway_route",
+        "browser_boundary",
+        "allowed_transports",
+        "preferred_transport",
+        "fallback_transport",
+        "direct_backend_access",
+        "require_correlation_id",
+        "require_policy_decision",
+        "require_owner_identity"
+      ],
+      "properties": {
+        "gateway_route": { "const": "/api/mcp/tools/call" },
+        "browser_boundary": { "const": "mediated_gateway_only" },
+        "allowed_transports": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["http", "libp2p"] }
+        },
+        "preferred_transport": { "enum": ["http", "libp2p"] },
+        "fallback_transport": { "type": ["string", "null"], "enum": ["http", "libp2p", null] },
+        "direct_backend_access": { "const": false },
+        "require_correlation_id": { "const": true },
+        "require_policy_decision": { "const": true },
+        "require_owner_identity": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "jsonObjectContract": {
+      "type": "object",
+      "required": ["schema_id", "type", "required", "properties", "additionalProperties"],
+      "properties": {
+        "schema_id": { "type": "string", "minLength": 1 },
+        "type": { "const": "object" },
+        "required": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "properties": { "type": "object" },
+        "additionalProperties": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "receiptRequirement": {
+      "type": "object",
+      "required": ["required", "manifest_strategy", "receipt_kind", "persistence", "required_fields", "on_missing"],
+      "properties": {
+        "required": { "const": true },
+        "manifest_strategy": {
+          "enum": ["none", "descriptor", "receipt-required", "confirmation-receipt", "event-dag-receipt"]
+        },
+        "receipt_kind": { "enum": ["invocation", "confirmation", "event_dag"] },
+        "persistence": { "const": "ipfs_kit_py_or_browser_helia" },
+        "required_fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "on_missing": { "const": "receipt_missing" }
+      },
+      "additionalProperties": false
+    },
+    "errorRecovery": {
+      "type": "object",
+      "required": ["routes", "terminal_action", "never_silently_fallback"],
+      "properties": {
+        "routes": {
+          "type": "array",
+          "minItems": 6,
+          "items": { "$ref": "#/$defs/recoveryRoute" }
+        },
+        "terminal_action": { "const": "surface_error_with_retry" },
+        "never_silently_fallback": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "recoveryRoute": {
+      "type": "object",
+      "required": ["error", "action", "next_error", "user_message", "preserves_correlation_id"],
+      "properties": {
+        "error": {
+          "enum": ["policy_denied", "owner_unreachable", "tool_unsupported", "invalid_input", "invalid_output", "receipt_missing"]
+        },
+        "action": {
+          "enum": [
+            "request_confirmation",
+            "try_fallback_transport",
+            "refresh_descriptor",
+            "correct_input",
+            "quarantine_response",
+            "persist_browser_receipt"
+          ]
+        },
+        "next_error": {
+          "type": ["string", "null"],
+          "enum": ["policy_denied", "owner_unreachable", "tool_unsupported", "invalid_input", "invalid_output", "receipt_missing", null]
+        },
+        "user_message": { "type": "string", "minLength": 1 },
+        "preserves_correlation_id": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "uiControl": {
+      "type": "object",
+      "required": ["surface", "control_id", "label", "event", "confirmation", "states", "displays"],
+      "properties": {
+        "surface": { "type": "string", "pattern": "^virtual-desktop://apps/" },
+        "control_id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "event": { "type": "string", "minLength": 1 },
+        "confirmation": { "enum": ["none", "policy", "always"] },
+        "states": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": { "enum": ["idle", "pending", "success", "denied", "unavailable", "error"] }
+        },
+        "displays": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "userVisibleProof": {
+      "type": "object",
+      "required": ["proof_id", "surface", "control_id", "proof_kind", "message", "deterministic_check", "visible_fields"],
+      "properties": {
+        "proof_id": { "type": "string", "minLength": 1 },
+        "surface": { "type": "string", "pattern": "^virtual-desktop://apps/" },
+        "control_id": { "type": "string", "minLength": 1 },
+        "proof_kind": { "enum": ["mediated_receipt", "browser_runtime", "provider_handoff", "policy_denial"] },
+        "message": { "type": "string", "minLength": 1 },
+        "deterministic_check": { "type": "string", "minLength": 1 },
+        "visible_fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
