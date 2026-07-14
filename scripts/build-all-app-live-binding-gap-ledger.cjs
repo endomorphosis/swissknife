@@ -90,7 +90,7 @@ async function main() {
     tools,
   });
   const applications = buildApplicationLedger(assignments, contractInput);
-  const gaps = buildGaps(applications, assignments, tools, peerInput, bindingInput);
+  const gaps = buildGaps(applications, assignments, tools, peerInput, contractInput, bindingInput);
   const validation = validateLedger(applications, assignments, tools, descriptorCatalog, directDiscovery);
 
   const ledger = {
@@ -143,7 +143,7 @@ async function main() {
       peer_evidence_freshness: peerInput.freshness,
       counts_are_indexes_only: true,
     })),
-    summary: summarize(applications, assignments, tools, gaps, peerInput, bindingInput),
+    summary: summarize(applications, assignments, tools, gaps, peerInput, contractInput, bindingInput),
     validation,
     applications,
     application_backend_assignments: assignments,
@@ -209,9 +209,8 @@ async function discoverOwner(owner, observedAt) {
   const started = Date.now();
   try {
     const discovery = await requestToolList(endpoint);
-    const payload = discovery.payload;
     const method = discovery.method;
-    const tools = dedupeByName((toolArray(payload) ?? []).map(tool => ({
+    const tools = dedupeByName(discovery.tools.map(tool => ({
       name: tool.name,
       description: tool.description ?? null,
       input_schema: tool.inputSchema ?? tool.input_schema ?? null,
@@ -227,6 +226,7 @@ async function discoverOwner(owner, observedAt) {
         kind: 'direct-name-level-http-discovery',
         endpoint,
         method,
+        page_count: discovery.pageCount,
         observed_at: observedAt,
         duration_ms: Date.now() - started,
         tool_names: tools.map(tool => tool.name),
@@ -256,35 +256,69 @@ async function discoverOwner(owner, observedAt) {
 async function requestToolList(endpoint) {
   const errors = [];
   try {
-    const response = await fetch(endpoint.replace(/\/$/, '') + '/tools/list', {
-      headers: { accept: 'application/json' },
-      signal: AbortSignal.timeout(4000),
-    });
-    if (response.ok) {
-      const payload = await response.json();
-      if (toolArray(payload)) return { payload, method: 'GET /mcp/tools/list' };
-      errors.push('GET response did not contain a tools array');
-    } else {
-      errors.push(`GET returned HTTP ${response.status}`);
-    }
+    return await paginatedToolList({ endpoint, method: 'GET' });
   } catch (error) {
     errors.push(`GET failed: ${errorMessage(error)}`);
   }
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { accept: 'application/json', 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 'svd-102-tools-list', method: 'tools/list', params: {} }),
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    if (!toolArray(payload)) throw new Error('response did not contain a tools array');
-    return { payload, method: 'POST tools/list' };
+    return await paginatedToolList({ endpoint, method: 'POST' });
   } catch (error) {
     errors.push(`POST failed: ${errorMessage(error)}`);
   }
   throw new Error(errors.join('; '));
+}
+
+async function paginatedToolList({ endpoint, method }) {
+  const tools = [];
+  const seenCursors = new Set();
+  let cursor = null;
+  let pageCount = 0;
+  do {
+    if (pageCount >= 100) throw new Error('tools/list exceeded the 100-page safety limit');
+    const response = method === 'GET'
+      ? await fetch(toolListGetUrl(endpoint, cursor), {
+        headers: { accept: 'application/json' },
+        signal: AbortSignal.timeout(4000),
+      })
+      : await fetch(endpoint, {
+        method: 'POST',
+        headers: { accept: 'application/json', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: `svd-102-tools-list-${pageCount + 1}`,
+          method: 'tools/list',
+          params: cursor === null ? {} : { cursor },
+        }),
+        signal: AbortSignal.timeout(4000),
+      });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const pageTools = toolArray(payload);
+    if (!pageTools) throw new Error('response did not contain a tools array');
+    tools.push(...pageTools);
+    pageCount += 1;
+    cursor = toolListCursor(payload);
+    if (cursor !== null) {
+      if (seenCursors.has(cursor)) throw new Error(`tools/list repeated cursor ${JSON.stringify(cursor)}`);
+      seenCursors.add(cursor);
+    }
+  } while (cursor !== null);
+  return {
+    tools,
+    method: method === 'GET' ? 'GET /mcp/tools/list' : 'POST tools/list',
+    pageCount,
+  };
+}
+
+function toolListGetUrl(endpoint, cursor) {
+  const url = new URL(endpoint.replace(/\/$/, '') + '/tools/list');
+  if (cursor !== null) url.searchParams.set('cursor', cursor);
+  return url;
+}
+
+function toolListCursor(payload) {
+  const cursor = payload?.nextCursor ?? payload?.result?.nextCursor ?? payload?.data?.nextCursor;
+  return typeof cursor === 'string' && cursor.length > 0 ? cursor : null;
 }
 
 function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerInput, bindingInput, bindingRows }) {
@@ -304,7 +338,8 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
     .sort((a, b) => `${a.owner}:${a.name}`.localeCompare(`${b.owner}:${b.name}`))
     .map(candidate => {
       const rows = bindingRows.filter(row => rowOwner(row) === candidate.owner && rowName(row) === candidate.name);
-      const observedState = normalizeState(candidate.peer?.disposition);
+      const claimedPeerState = normalizeState(candidate.peer?.disposition);
+      const observedState = crediblePeerState(candidate.peer);
       const directState = candidate.direct ? 'live-discovered' : directDiscovery[candidate.owner].state;
       const stale = Boolean(candidate.peer) && peerInput.freshness.state !== 'fresh';
       let currentState;
@@ -316,10 +351,12 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
       const states = stateFlags({
         stale,
         missing: currentState === 'missing' || bindingInput.freshness.state === 'missing',
-        'static-only': Boolean(candidate.local) && !candidate.direct && !peerWasDiscovered(candidate.peer),
+        'static-only': Boolean(candidate.local) && !candidate.direct
+          && (!peerWasDiscovered(candidate.peer) || peerInput.freshness.state !== 'fresh'),
         denied: observedState === 'denied',
         unsupported: observedState === 'unsupported',
-        unreachable: currentState === 'unreachable' || observedState === 'unreachable',
+        unreachable: directDiscovery[candidate.owner].state === 'unreachable'
+          || currentState === 'unreachable' || observedState === 'unreachable',
         executed: observedState === 'executed' && !stale,
       });
       return {
@@ -328,6 +365,7 @@ function buildToolLedger({ descriptorCatalog, directDiscovery, peerTools, peerIn
         name: candidate.name,
         current_state: currentState,
         release_state: stale ? 'stale' : currentState,
+        peer_claimed_state: claimedPeerState ?? 'missing',
         observed_execution_state: observedState ?? 'missing',
         discovery_state: directState,
         states,
@@ -474,7 +512,7 @@ function buildApplicationLedger(assignments, contractInput) {
   });
 }
 
-function buildGaps(applications, assignments, tools, peerInput, bindingInput) {
+function buildGaps(applications, assignments, tools, peerInput, contractInput, bindingInput) {
   const gaps = [];
   if (peerInput.freshness.state !== 'fresh') gaps.push({
     gap_id: `evidence:svd-100:${peerInput.freshness.state}`,
@@ -485,6 +523,11 @@ function buildGaps(applications, assignments, tools, peerInput, bindingInput) {
     gap_id: `evidence:binding-matrix:${bindingInput.freshness.state}`,
     kind: 'evidence', state: bindingInput.freshness.state, owner: 'SVD-104',
     reason: bindingInput.freshness.reason,
+  });
+  if (contractInput.freshness.state !== 'fresh') gaps.push({
+    gap_id: `evidence:app-contract:${contractInput.freshness.state}`,
+    kind: 'evidence', state: contractInput.freshness.state, owner: 'SVD-103',
+    reason: contractInput.freshness.reason,
   });
   for (const row of assignments) {
     for (const state of gapStates.filter(state => row.states[state])) gaps.push({
@@ -508,7 +551,7 @@ function buildGaps(applications, assignments, tools, peerInput, bindingInput) {
   return gaps.sort((a, b) => a.gap_id.localeCompare(b.gap_id));
 }
 
-function summarize(applications, assignments, tools, gaps, peerInput, bindingInput) {
+function summarize(applications, assignments, tools, gaps, peerInput, contractInput, bindingInput) {
   return {
     canonical_application_count: applications.length,
     declared_application_backend_assignment_count: assignments.length,
@@ -535,6 +578,7 @@ function summarize(applications, assignments, tools, gaps, peerInput, bindingInp
     gap_count: gaps.length,
     gap_counts: countBy(gaps, gap => gap.state),
     peer_evidence_freshness: peerInput.freshness.state,
+    app_contract_evidence_freshness: contractInput.freshness.state,
     binding_evidence_freshness: bindingInput.freshness.state,
     counts_are_indexes_only: true,
   };
@@ -555,6 +599,7 @@ function validateLedger(applications, assignments, tools, descriptorCatalog, dir
     const familyOwner = VIRTUAL_DESKTOP_APP_MANIFEST.apps.flatMap(app => app.service_families.includes(owner) ? [app.id] : []);
     const capabilityApps = new Set(manifestOwner.map(value => value.split(':')[0]));
     for (const appId of familyOwner) if (!capabilityApps.has(appId)) errors.push(`Manifest app ${appId} declares ${owner} without a backend_capability assignment.`);
+    for (const appId of capabilityApps) if (!familyOwner.includes(appId)) errors.push(`Manifest app ${appId} has a ${owner} backend_capability without declaring the service family.`);
     const expectedNames = unique([
       ...descriptorCatalog[owner].map(tool => tool.name),
       ...directDiscovery[owner].tools.map(tool => tool.name),
@@ -564,7 +609,17 @@ function validateLedger(applications, assignments, tools, descriptorCatalog, dir
   }
   if (new Set(tools.map(tool => tool.tool_id)).size !== tools.length) errors.push('Duplicate exact tool IDs are present.');
   if (assignments.some(row => row.states.executed && row.exact_bound_tool_ids.length === 0)) errors.push('An assignment was marked executed without an exact bound tool.');
-  if (tools.some(tool => tool.states.executed && tool.observed_execution_state !== 'executed')) errors.push('A tool was marked executed without explicit execution evidence.');
+  if (tools.some(tool => tool.states.executed && (tool.observed_execution_state !== 'executed'
+    || !tool.live_discovery.peer_http?.invocation_succeeded
+    || !tool.live_discovery.peer_libp2p?.invocation_succeeded))) {
+    errors.push('A tool was marked executed without exact successful HTTP and libp2p invocation observations.');
+  }
+  if (tools.some(tool => tool.availability_inferred_from_count || tool.success_inferred_from_declaration)) {
+    errors.push('A tool row inferred availability or success from a count/declaration.');
+  }
+  if (assignments.some(row => row.success_inferred_from_manifest || row.success_inferred_from_count)) {
+    errors.push('An assignment inferred success from a manifest declaration or count.');
+  }
   return { valid: errors.length === 0, errors };
 }
 
@@ -580,7 +635,7 @@ function renderMarkdown(ledger) {
     '',
     ledger.evidence_policy.success_rule,
     '',
-    `Freshness window: ${ledger.evidence_policy.maximum_age_ms} ms. Peer evidence is **${ledger.summary.peer_evidence_freshness}**; binding evidence is **${ledger.summary.binding_evidence_freshness}**.`,
+    `Freshness window: ${ledger.evidence_policy.maximum_age_ms} ms. Peer evidence is **${ledger.summary.peer_evidence_freshness}**; app-contract evidence is **${ledger.summary.app_contract_evidence_freshness}**; binding evidence is **${ledger.summary.binding_evidence_freshness}**.`,
     '',
     '## Summary',
     '',
@@ -667,9 +722,19 @@ function assessFreshness(filePath, data, sourcePaths, now, readError) {
 }
 
 function normalizePeerTools(data) {
-  if (!Array.isArray(data?.tools)) return [];
-  const serviceByOwner = new Map((data.services ?? []).map(service => [service.service, service]));
-  return data.tools
+  const services = Array.isArray(data?.services) ? data.services : [];
+  const serviceByOwner = new Map(services.map(service => [service.service, service]));
+  const candidates = [
+    ...(Array.isArray(data?.tools) ? data.tools : []),
+    ...services.flatMap(service => (Array.isArray(service?.tools) ? service.tools : [])
+      .map(tool => ({ service: service.service, ...tool }))),
+  ];
+  const toolsById = new Map();
+  for (const tool of candidates) {
+    if (!owners.includes(tool?.service) || typeof tool?.name !== 'string') continue;
+    toolsById.set(`${tool.service}:${tool.name}`, tool);
+  }
+  return [...toolsById.values()]
     .filter(tool => owners.includes(tool.service) && typeof tool.name === 'string')
     .map(tool => {
       const service = serviceByOwner.get(tool.service);
@@ -709,6 +774,15 @@ function toolArray(payload) {
 
 function peerWasDiscovered(peer) {
   return Boolean(peer?.observations?.http?.discovered || peer?.observations?.libp2p?.discovered);
+}
+
+function crediblePeerState(peer) {
+  const state = normalizeState(peer?.disposition);
+  if (state !== 'executed') return state;
+  return peer?.observations?.http?.invocation_succeeded === true
+    && peer?.observations?.libp2p?.invocation_succeeded === true
+    ? 'executed'
+    : null;
 }
 
 function bindingRowProvenance(row) {
@@ -822,4 +896,6 @@ module.exports = {
   assessFreshness,
   validateLedger,
   readDescriptorCatalog,
+  normalizePeerTools,
+  requestToolList,
 };
