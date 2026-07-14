@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Virtual desktop all-tools release evidence (SVD-101)",
-  "generatedAt": "2026-07-14T20:16:19.100Z",
+  "generatedAt": "2026-07-14T20:31:54.777Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,20 +10,20 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "05ce3317384db67ef23174670f4690951090d19e4daeb5cf9ae978031fca7b56",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "d2c8cb294d38a428a642993effb5a7c721c9238f426b9e32df290d2cfd249718",
-    "docs/refactor-final-signoff.md": "c80b3f419d99c851c1b4bc00f3742a8b84aca4b1a2172ba615faa984ec26c2bd",
-    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "49a253f075a4023161c493649bb7f5a194a1bed9ca99e41ef816c31ab362d733"
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "1fa533c883cc1774dd56dd0f87b7043b24cb44c5f84e1bcd5f21b3f92b1a4380",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "9d2b3ddb5d724588607cbaa5060173971e1c61d39e75ca679ea6858fb70911d0",
+    "docs/refactor-final-signoff.md": "0c8f4c76f22d1a130466c26add03b9a545706189169515dda76597f9e9ab6ad2",
+    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "466438ca19a3ad71a3d6c0abc50f76befe4243d87c653dfb9e45329b4eaf7e7c"
   },
-  "sourceFingerprint": "ffaa29cb1864f067ea271ff43f0f64c109283ec26a8833b14e4843c93a0e4eaa",
+  "sourceFingerprint": "aa58d1ed979b3182ff9d87882ed5e4d7f57d4f1a1156c6365a43526c104ae302",
   "sourceFiles": [
     {
       "path": "scripts/audit-release-evidence-freshness.mjs",
-      "sha256": "f7a1ade8a46f242a1571429f871297d18691784eca780ff50f907c5de15a1531"
+      "sha256": "3c0c337c6093b19bda744adabba2b6d304ada1ac3b41bae92bea52d81a2dbf99"
     },
     {
       "path": "scripts/build-virtual-desktop-release-evidence.cjs",
-      "sha256": "79c9811aa0f9a6700b55a4e5e35cb017f70b54fd237ab842ca252ce048123855"
+      "sha256": "e3e5cdbe3ca803e91d147d27e406544233c6f8d8114f39aa3e3b4f39ffecf783"
     },
     {
       "path": "scripts/capture-all-profile-service-matrix.cjs",
@@ -74,11 +74,35 @@
       "sha256": "MISSING"
     },
     {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-route-coverage.json",
+      "sha256": "MISSING"
+    },
+    {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json",
       "sha256": "MISSING"
     },
     {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-call-envelope-fixtures.json",
+      "sha256": "MISSING"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-control-plane-handoff.json",
+      "sha256": "MISSING"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-handoff-packets.json",
+      "sha256": "MISSING"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-handoff-replay-bundles.json",
+      "sha256": "MISSING"
+    },
+    {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json",
+      "sha256": "MISSING"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-supervisor-release-freshness.json",
       "sha256": "MISSING"
     },
     {

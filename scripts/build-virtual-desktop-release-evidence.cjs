@@ -10,11 +10,20 @@ const { execFileSync } = require('node:child_process');
 const projectRoot = path.resolve(__dirname, '..');
 const workspaceRoot = path.resolve(projectRoot, '..');
 const evidenceRoot = path.join(projectRoot, 'test-results', 'virtual-desktop-ipfs-mcp-orb');
+const canonicalAppContractPath = path.join(evidenceRoot, 'app-backend-contract.json');
+const freshnessReceiptPath = path.join(projectRoot, 'docs', 'virtual-desktop-release-evidence.fingerprint.json');
+const supervisorQueuePath = path.join(workspaceRoot, 'data', 'swissknife_virtual_desktop', 'all_tools_supervisor_queue.json');
+const CLOSEOUT_TASK_ID = 'SVD-060';
+let taskOwnerCache;
 const outputPaths = {
   json: path.join(evidenceRoot, 'release-evidence.json'),
   markdown: path.join(evidenceRoot, 'all-tools-release-evidence.md'),
   signoff: path.join(projectRoot, 'docs', 'refactor-final-signoff.md'),
   discovery: path.join(workspaceRoot, 'data', 'swissknife_virtual_desktop', 'discovery', 'all-tools-no-new-unknowns.md'),
+  // The backlog validation runs after `cd swissknife` but names the
+  // workspace-relative data path. Keep a generated mirror so that historical
+  // command remains executable while the workspace-level file stays canonical.
+  discoveryValidationMirror: path.join(projectRoot, 'data', 'swissknife_virtual_desktop', 'discovery', 'all-tools-no-new-unknowns.md'),
 };
 const REQUIRED_SERVICES = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
 const REQUIRED_PROFILES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
@@ -111,21 +120,26 @@ const evidenceDefinitions = [
   },
 ];
 
-main();
+if (require.main === module) main();
 
 function main() {
   fs.mkdirSync(evidenceRoot, { recursive: true });
   const generatedAt = new Date().toISOString();
   const sourceRevision = gitRevision();
-  const records = evidenceDefinitions.map(loadEvidence);
-  const gaps = records.flatMap(record => record.gaps);
+  const releaseInventory = loadReleaseInventory();
+  const priorFreshnessReceipt = readJson(freshnessReceiptPath);
+  const records = evidenceDefinitions.map(definition => loadEvidence(definition, {
+    releaseInventory,
+    priorFreshnessReceipt,
+  }));
+  const gaps = [...releaseInventory.gaps, ...records.flatMap(record => record.gaps)];
   const phaseFourCloseout = buildPhaseFourCloseout(records);
   gaps.push(...phaseFourCloseout.gaps);
   const dispositions = collectDispositions(records);
 
   for (const disposition of dispositions.rejected) {
     gaps.push(gap(
-      disposition.task_id || 'SVD-101',
+      disposition.task_id || CLOSEOUT_TASK_ID,
       'unapproved_non_release_disposition',
       disposition.scope || disposition.id || 'unknown',
       disposition.rejection_reason,
@@ -135,7 +149,7 @@ function main() {
 
   const blockerGaps = dedupeGaps(gaps.filter(item => !isClosedByDisposition(item, dispositions.approved)));
   const decision = blockerGaps.length === 0 ? 'GO' : 'NO_GO';
-  const unknownTaskClassGaps = blockerGaps.filter(item => !/^SVD-\d+$/.test(item.task_id ?? ''));
+  const unknownTaskClassGaps = blockerGaps.filter(item => !/^SVD-\d+$/.test(item.task_id ?? '') || !nonEmpty(item.owner));
   const artifactMap = Object.fromEntries(records.map(record => [record.id, artifactSummary(record)]));
   const appBehavior = records.find(record => record.id === 'app_backend_behavior');
   const supervisor = records.find(record => record.id === 'supervisor_console');
@@ -144,7 +158,7 @@ function main() {
   const peer = records.find(record => record.id === 'peer_interoperability');
   const profile = records.find(record => record.id === 'service_profile_matrix');
 
-  const appMatrix = buildAppMatrix(appBehavior, orb, meta);
+  const appMatrix = buildAppMatrix(appBehavior, orb, meta, releaseInventory);
   const serviceMatrix = buildServiceMatrix(profile, peer, dispositions.approved);
   const toolMatrix = buildToolMatrix(peer, dispositions.approved);
   const modalityMatrix = buildModalityMatrix(meta, dispositions.approved);
@@ -153,7 +167,8 @@ function main() {
 
   const report = {
     schema: 'swissknife.virtual-desktop-release-evidence.v2',
-    task_id: 'SVD-101',
+    task_id: CLOSEOUT_TASK_ID,
+    aggregation_revision_task_id: 'SVD-101',
     generated_at: generatedAt,
     source_revision: sourceRevision,
     release_scope: 'SwissKnife virtual desktop, all backend tools, Supervisor Console, ORB/IDL, and Meta simulator',
@@ -174,6 +189,7 @@ function main() {
       required_modalities: REQUIRED_MODALITIES,
       required_replay_scenarios: REQUIRED_REPLAY_SCENARIOS,
     },
+    release_inventory: releaseInventory.summary,
     artifacts: artifactMap,
     phase_four_closeout: phaseFourCloseout.summary,
     unknown_task_class_audit: {
@@ -181,8 +197,8 @@ function main() {
       unknown_task_class_count: unknownTaskClassGaps.length,
       unknown_task_class_gaps: unknownTaskClassGaps,
       statement: unknownTaskClassGaps.length === 0
-        ? 'Every open release gap is assigned to an existing SVD task class; no new unknown task class was introduced.'
-        : 'One or more release gaps are not assigned to an existing SVD task class.',
+        ? 'Every open release gap is assigned to an existing SVD task class and named queue owner; no new unknown task class was introduced.'
+        : 'One or more release gaps lack an existing SVD task class or named queue owner.',
     },
     app_behavior_matrix: appMatrix,
     service_profile_transport_matrix: serviceMatrix,
@@ -212,7 +228,9 @@ function main() {
   atomicWriteJson(outputPaths.json, report);
   atomicWrite(outputPaths.markdown, renderMarkdown(report));
   atomicWrite(outputPaths.signoff, renderSignoff(report));
-  atomicWrite(outputPaths.discovery, renderNoNewUnknowns(report));
+  const discoveryReport = renderNoNewUnknowns(report);
+  atomicWrite(outputPaths.discovery, discoveryReport);
+  atomicWrite(outputPaths.discoveryValidationMirror, discoveryReport);
   certifyAggregateFreshness();
 
   console.log(JSON.stringify({
@@ -225,7 +243,7 @@ function main() {
   }, null, 2));
 }
 
-function loadEvidence(definition) {
+function loadEvidence(definition, context) {
   const absolutePath = path.join(evidenceRoot, definition.file);
   const record = {
     ...definition,
@@ -265,10 +283,145 @@ function loadEvidence(definition) {
   check(record, record.data.task_id === definition.taskId, 'task_provenance',
     `Expected task_id ${definition.taskId}; observed ${record.data.task_id ?? 'missing'}.`);
   check(record, isIsoDate(record.generated_at), 'generated_at', 'Evidence has no valid generated_at timestamp.');
-  definition.validate(record);
+  check(record, !isIsoDate(record.generated_at) || Date.parse(record.generated_at) <= Date.now() + 5 * 60 * 1000,
+    'generated_at_in_future', `Evidence timestamp ${record.generated_at ?? 'missing'} is implausibly in the future.`);
+  for (const source of record.source_fingerprint.files.filter(file => !file.exists)) {
+    check(record, false, `missing_evidence_source_${source.path}`, `Evidence source dependency is missing: ${source.path}.`);
+  }
+  validateDependencyFreshness(record, context.priorFreshnessReceipt);
+  definition.validate(record, context);
   if (record.gaps.length === 0) record.status = 'passed';
   else record.status = 'failed';
   return record;
+}
+
+function loadReleaseInventory() {
+  const relativePath = relative(canonicalAppContractPath);
+  const result = {
+    appIds: [],
+    gaps: [],
+    summary: {
+      path: relativePath,
+      status: 'missing',
+      schema: null,
+      generated_at: null,
+      sha256: null,
+      canonical_app_count: 0,
+      app_ids: [],
+    },
+  };
+  if (!fs.existsSync(canonicalAppContractPath)) {
+    result.gaps.push(gap('SVD-096', 'missing_canonical_app_inventory', 'canonical-app-inventory',
+      `Canonical app inventory is missing: ${relativePath}.`, relativePath));
+    return result;
+  }
+  const data = readJson(canonicalAppContractPath);
+  if (!data) {
+    result.summary.status = 'invalid';
+    result.gaps.push(gap('SVD-096', 'invalid_canonical_app_inventory', 'canonical-app-inventory',
+      `Canonical app inventory is not valid JSON: ${relativePath}.`, relativePath));
+    return result;
+  }
+  const appIds = (Array.isArray(data.apps) ? data.apps : []).map(app => app.app_id).filter(nonEmpty);
+  const uniqueAppIds = unique(appIds);
+  result.appIds = uniqueAppIds;
+  result.summary = {
+    path: relativePath,
+    status: 'present',
+    schema: data.schema ?? null,
+    generated_at: data.generated_at ?? null,
+    sha256: sha256(fs.readFileSync(canonicalAppContractPath)),
+    canonical_app_count: uniqueAppIds.length,
+    app_ids: uniqueAppIds,
+  };
+  const valid = data.schema === 'swissknife.virtual-desktop-app-backend-contract.v1'
+    && data.validation?.valid === true
+    && uniqueAppIds.length > 0
+    && uniqueAppIds.length === appIds.length
+    && data.app_count === uniqueAppIds.length
+    && data.canonical_app_count === uniqueAppIds.length;
+  if (!valid) {
+    result.summary.status = 'invalid';
+    result.gaps.push(gap('SVD-096', 'invalid_canonical_app_inventory', 'canonical-app-inventory',
+      'Canonical app inventory schema, validation, counts, or unique app IDs are inconsistent.', relativePath));
+  } else {
+    result.summary.status = 'passed';
+  }
+  return result;
+}
+
+function validateDependencyFreshness(record, priorReceipt) {
+  const receiptValid = priorReceipt?.schema === 'swr_029_evidence_freshness_receipt_v1'
+    && priorReceipt.id === 'virtual-desktop-release-evidence'
+    && Array.isArray(priorReceipt.sourceFiles)
+    && isIsoDate(priorReceipt.generatedAt);
+  const current = record.source_fingerprint.files;
+  const prior = new Map((receiptValid ? priorReceipt.sourceFiles : []).map(file => [file.path, file.sha256]));
+  const currentPaths = new Set(current.map(file => file.path));
+  const changed = current.filter(file => prior.has(file.path) && prior.get(file.path) !== file.sha256).map(file => file.path);
+  const added = current.filter(file => receiptValid && !prior.has(file.path)).map(file => file.path);
+  const removed = receiptValid ? [...prior.keys()].filter(filePath => !currentPaths.has(filePath)
+    && record.sourcePaths.some(sourcePath => pathIsWithinSource(filePath, sourcePath))) : [];
+  const dependencyChanges = unique([...changed, ...added, ...removed]);
+  const regeneratedAfterBaseline = receiptValid && isIsoDate(record.generated_at)
+    && Date.parse(record.generated_at) > Date.parse(priorReceipt.generatedAt);
+  record.dependency_freshness = {
+    policy: 'prior-certified-source-fingerprint-or-newer-capture',
+    prior_receipt_present: Boolean(receiptValid),
+    prior_receipt_generated_at: receiptValid ? priorReceipt.generatedAt : null,
+    dependency_change_count: dependencyChanges.length,
+    changed_dependency_paths: dependencyChanges,
+    regenerated_after_dependency_baseline: regeneratedAfterBaseline,
+    status: !receiptValid ? 'first_certification'
+      : dependencyChanges.length === 0 ? 'current'
+        : regeneratedAfterBaseline ? 'refreshed_after_change' : 'stale',
+  };
+  if (receiptValid && dependencyChanges.length > 0 && !regeneratedAfterBaseline) {
+    record.gaps.push(gap(record.taskId, 'stale_dependency_fingerprint', record.id,
+      `Evidence predates changed dependency paths: ${dependencyChanges.join(', ')}. Regenerate ${record.path}.`, record.path));
+  }
+}
+
+function validateCanonicalCoverage(record, observedIds, canonicalIds, label) {
+  const observed = observedIds.filter(nonEmpty);
+  const duplicates = observed.filter((id, index) => observed.indexOf(id) !== index);
+  check(record, canonicalIds.length > 0, `${label}_canonical_inventory`,
+    `Cannot validate ${label} without a canonical application inventory.`);
+  check(record, duplicates.length === 0, `${label}_duplicates`,
+    `${label} contains duplicate app IDs: ${unique(duplicates).join(', ')}.`);
+  check(record, sameSet(observed, canonicalIds), `${label}_coverage`,
+    `${label} does not exactly cover canonical apps; missing=${canonicalIds.filter(id => !observed.includes(id)).join(', ') || 'none'}; unexpected=${observed.filter(id => !canonicalIds.includes(id)).join(', ') || 'none'}.`);
+}
+
+function validateMetaReplayPacket(record, packet) {
+  const id = packet.packet_id ?? 'unknown-packet';
+  for (const key of ['packet_id', 'app_id', 'correlation_id', 'interface_cid']) {
+    check(record, nonEmpty(packet[key]), `${id}_${key}`, `${id} has no ${key}.`, id);
+  }
+  check(record, packet.status === 'passed', `${id}_status`, `${id} replay did not pass.`, id);
+  check(record, packet.layout?.bounded === true && packet.layout?.controls_overlap === false,
+    `${id}_layout`, `${id} layout is unbounded or has overlapping controls.`, id);
+  check(record, packet.receipt_preservation?.preserved === true,
+    `${id}_receipt_preservation`, `${id} did not preserve receipt and event-DAG references.`, id);
+  check(record, nonEmpty(packet.rollback?.expected_mode)
+    && String(packet.rollback?.observed_state ?? '').includes(packet.rollback.expected_mode),
+  `${id}_rollback`, `${id} did not visibly replay its rollback mode.`, id);
+  check(record, packet.fallback?.user_visible === true && nonEmpty(packet.fallback?.observed_surface),
+    `${id}_fallback`, `${id} has no visible typed fallback.`, id);
+  check(record, Array.isArray(packet.operator_decisions) && packet.operator_decisions.length > 0,
+    `${id}_operator_decision`, `${id} has no visible operator decision.`, id);
+  for (const modality of REQUIRED_MODALITIES) {
+    const replay = packet.modality_replays?.[modality];
+    check(record, replay?.modality === modality, `${id}_${modality}`, `${id} has no ${modality} replay.`, id);
+    if (!replay) continue;
+    check(record, replay.raw_payload_captured === false, `${id}_${modality}_privacy`,
+      `${id}/${modality} captured a raw media payload.`, id);
+    check(record, sameSet((replay.flows ?? []).map(flow => flow.scenario), REQUIRED_REPLAY_SCENARIOS),
+      `${id}_${modality}_scenarios`, `${id}/${modality} does not cover all replay scenarios.`, id);
+    check(record, (replay.flows ?? []).every(flow => flow.receipt_refs_preserved === true
+      && flow.operator_decision_visible === true), `${id}_${modality}_provenance`,
+    `${id}/${modality} has a flow without preserved receipts or a visible operator decision.`, id);
+  }
 }
 
 function validateProfileMatrix(record) {
@@ -286,8 +439,17 @@ function validateProfileMatrix(record) {
     for (const service of REQUIRED_SERVICES) {
       const cell = row?.services?.find(item => item.service === service);
       check(record, Boolean(cell), `profile_${profile}_${service}`, `${service}/Profile ${profile} has no evidence cell.`, `${service}:${profile}`);
-      if (cell) check(record, cell.capability_state === 'supported', `profile_${profile}_${service}_${cell.capability_state ?? 'unknown'}`,
-        `${service}/Profile ${profile} is ${cell.capability_state ?? 'unknown'}; supported proof or an approved non-release disposition is required.`, `${service}:${profile}`);
+      if (cell) {
+        check(record, cell.capability_state === 'supported', `profile_${profile}_${service}_${cell.capability_state ?? 'unknown'}`,
+          `${service}/Profile ${profile} is ${cell.capability_state ?? 'unknown'}; supported proof or an approved non-release disposition is required.`, `${service}:${profile}`);
+        for (const transport of REQUIRED_TRANSPORTS) {
+          const state = cell[`${transport}_state`] ?? cell.transport_states?.[transport];
+          check(record, state === 'supported', `profile_${profile}_${service}_${transport}_${state ?? 'unknown'}`,
+            `${service}/Profile ${profile}/${transport} is ${state ?? 'unobserved'}; an independent supported proof or approved disposition is required.`, `${service}:${profile}:${transport}`);
+        }
+        check(record, nonEmpty(cell.fallback?.decision) && nonEmpty(cell.fallback?.reason),
+          `profile_${profile}_${service}_fallback`, `${service}/Profile ${profile} has no explicit transport selection/fallback decision.`, `${service}:${profile}`);
+      }
     }
   }
   for (const serviceId of REQUIRED_SERVICES) {
@@ -298,12 +460,13 @@ function validateProfileMatrix(record) {
   }
 }
 
-function validateAppBehavior(record) {
+function validateAppBehavior(record, { releaseInventory }) {
   const data = record.data;
   const apps = Array.isArray(data.apps) ? data.apps : [];
   check(record, data.status === 'passed', 'status', `All-app behavior status is ${data.status ?? 'missing'}.`);
   check(record, Number.isInteger(data.app_count) && data.app_count > 0 && data.app_count === apps.length,
     'app_count', `App count ${data.app_count ?? 'missing'} does not match ${apps.length} app rows.`);
+  validateCanonicalCoverage(record, apps.map(app => app.app_id), releaseInventory.appIds, 'app behavior');
   for (const key of ['failed', 'unexpected_browser_console_error_count', 'unexpected_failed_request_count']) {
     check(record, data.summary?.[key] === 0, `summary_${key}`, `App behavior summary ${key} is ${data.summary?.[key] ?? 'missing'}, expected 0.`);
   }
@@ -338,6 +501,10 @@ function validateSupervisor(record) {
   check(record, normalizeDecision(data.decision) === 'GO', 'decision', `Supervisor decision is ${data.decision ?? 'missing'}.`);
   check(record, sameSet(data.live_state?.owners ?? [], REQUIRED_SERVICES), 'owners',
     `Supervisor owners are ${(data.live_state?.owners ?? []).join(', ') || 'missing'}; all three are required.`);
+  for (const owner of REQUIRED_SERVICES) {
+    check(record, nonEmpty(data.live_state?.transport_by_owner?.[owner]), `owner_transport_${owner}`,
+      `Supervisor owner ${owner} has no observed transport.`, owner);
+  }
   check(record, data.task_graph?.linked === true, 'task_graph_linked', 'Supervisor goals/subgoals/tasks are not linked to the taskboard.');
   const steeringModes = (data.prompt_steering ?? []).map(item => item.mode);
   check(record, steeringModes.includes('dry-run') && steeringModes.includes('confirmed'), 'steering_modes',
@@ -354,22 +521,41 @@ function validateSupervisor(record) {
     check(record, data.ui_validation?.[key] === 0, `ui_${key}`, `Supervisor UI ${key} is ${data.ui_validation?.[key] ?? 'missing'}, expected 0.`);
   }
   const outcomes = data.outcomes ?? [];
+  check(record, Array.isArray(outcomes) && outcomes.length >= EXPECTED_SUPERVISOR_CAPABILITIES.length,
+    'outcome_count', `Supervisor recorded ${outcomes.length} outcomes; at least ${EXPECTED_SUPERVISOR_CAPABILITIES.length} named outcomes are required.`);
   for (const capability of EXPECTED_SUPERVISOR_CAPABILITIES) {
-    check(record, outcomes.some(item => item.capability_id === capability), `capability_${capability}`,
+    const capabilityOutcomes = outcomes.filter(item => item.capability_id === capability);
+    check(record, capabilityOutcomes.length > 0, `capability_${capability}`,
       `Supervisor capability ${capability} has no current outcome.`, capability);
+    for (const outcome of capabilityOutcomes) {
+      check(record, outcome.state === 'available' && outcome.reported_in_ui === true,
+        `capability_${capability}_outcome`, `Supervisor capability ${capability} was not available and visibly reported.`, capability);
+      check(record, REQUIRED_SERVICES.includes(outcome.owner), `capability_${capability}_owner`,
+        `Supervisor capability ${capability} has invalid owner ${outcome.owner ?? 'missing'}.`, capability);
+      check(record, nonEmpty(outcome.correlation_id), `capability_${capability}_correlation`,
+        `Supervisor capability ${capability} has no correlation ID.`, capability);
+      check(record, nonEmpty(outcome.receipt_cid), `capability_${capability}_receipt`,
+        `Supervisor capability ${capability} has no receipt CID.`, capability);
+    }
   }
   const governed = outcomes.filter(item => ['supervisor.prompt-steering.request', 'supervisor.task-control.request'].includes(item.capability_id));
-  check(record, governed.every(item => nonEmpty(item.receipt_cid) && nonEmpty(item.event_dag_cid)), 'governed_provenance',
+  check(record, governed.length >= 3 && governed.every(item => nonEmpty(item.receipt_cid) && nonEmpty(item.event_dag_cid)), 'governed_provenance',
     'A governed Supervisor outcome is missing its receipt or event-DAG CID.');
   record.screenshots.push(...validateScreenshots(record, data.screenshots, 'agent-supervisor'));
 }
 
-function validateOrbIdl(record) {
+function validateOrbIdl(record, { releaseInventory }) {
   const data = record.data;
   const packets = Array.isArray(data.packets) ? data.packets : [];
   check(record, data.packet_count === packets.length && packets.length > 0, 'packet_count',
     `ORB/IDL packet count ${data.packet_count ?? 'missing'} does not match ${packets.length} rows.`);
   check(record, data.app_count > 0, 'app_count', 'ORB/IDL handoff contains no applications.');
+  validateCanonicalCoverage(record, unique(packets.filter(packet => packet.route_id?.startsWith('app:')).map(packet => packet.app_id)),
+    releaseInventory.appIds, 'ORB/IDL app packets');
+  check(record, new Set(packets.map(packet => packet.packet_id)).size === packets.length,
+    'packet_id_uniqueness', 'ORB/IDL packet IDs are not unique.');
+  check(record, new Set(packets.map(packet => packet.packet_cid)).size === packets.length,
+    'packet_cid_uniqueness', 'ORB/IDL packet CIDs are not unique.');
   for (const packet of packets) {
     const id = packet.packet_id ?? packet.route_id ?? 'unknown-packet';
     for (const [key, value] of Object.entries({
@@ -381,6 +567,8 @@ function validateOrbIdl(record) {
       correlation_id: packet.correlation_id,
       capability_profile_id: packet.capability_profile_id,
     })) check(record, nonEmpty(value), `${id}_${key}`, `${id} has no ${key}.`, id);
+    check(record, /^sha256:[0-9a-f]{64}$/.test(packet.packet_cid ?? ''), `${id}_packet_cid_format`,
+      `${id} packet CID is not a deterministic sha256 CID.`, id);
     check(record, nonEmpty(packet.permission?.state), `${id}_permission`, `${id} has no permission state.`, id);
     check(record, (packet.receipt_refs ?? []).some(ref => nonEmpty(ref.cid)), `${id}_receipt`, `${id} has no receipt reference.`, id);
     check(record, (packet.event_dag_refs ?? []).some(ref => nonEmpty(ref.cid)), `${id}_event`, `${id} has no event-DAG reference.`, id);
@@ -395,7 +583,7 @@ function validateOrbIdl(record) {
   }
 }
 
-function validateMetaSimulator(record) {
+function validateMetaSimulator(record, { releaseInventory }) {
   const data = record.data;
   const packets = Array.isArray(data.packets) ? data.packets : [];
   check(record, data.status === 'passed', 'status', `Meta simulator status is ${data.status ?? 'missing'}.`);
@@ -403,7 +591,9 @@ function validateMetaSimulator(record) {
     'simulator_boundary', 'Meta evidence is not explicitly simulator-only and hardware-free.');
   check(record, data.boundary?.hardware_pairing_required === false && data.boundary?.physical_hardware_claimed === false,
     'hardware_claim', 'Meta evidence requires or claims physical hardware.');
-  for (const [name, passed] of Object.entries(data.acceptance ?? {})) {
+  const acceptanceEntries = Object.entries(data.acceptance ?? {});
+  check(record, acceptanceEntries.length > 0, 'acceptance_present', 'Meta evidence has no named acceptance checks.');
+  for (const [name, passed] of acceptanceEntries) {
     check(record, passed === true, `acceptance_${name}`, `Meta acceptance check ${name} failed.`);
   }
   check(record, data.source_packet_count === data.replayed_packet_count && packets.length === data.replayed_packet_count,
@@ -416,6 +606,10 @@ function validateMetaSimulator(record) {
   }
   check(record, (data.applications ?? []).every(app => app.status === 'passed'), 'applications',
     'At least one application lacks complete Meta replay evidence.');
+  validateCanonicalCoverage(record, (data.applications ?? []).map(app => app.app_id), releaseInventory.appIds,
+    'Meta simulator applications');
+  check(record, packets.length > 0, 'packet_rows', 'Meta simulator has no replay packet rows.');
+  for (const packet of packets) validateMetaReplayPacket(record, packet);
   record.screenshots.push(...validateScreenshots(record, data.output_manifest?.screenshots, 'meta-device-simulator'));
 }
 
@@ -432,12 +626,20 @@ function validatePeerEvidence(record) {
     'count_policy', 'Peer evidence does not forbid count-only availability inference.');
   check(record, services.length === REQUIRED_SERVICES.length, 'service_count',
     `Expected ${REQUIRED_SERVICES.length} peer services; observed ${services.length}.`);
+  check(record, tools.length > 0, 'tool_inventory', 'Peer interoperability evidence has no exact per-tool rows.');
+  check(record, data.summary?.explicitly_observed_tool_count === tools.length, 'tool_count',
+    `Peer tool summary ${data.summary?.explicitly_observed_tool_count ?? 'missing'} does not match ${tools.length} exact rows.`);
+  const flattenedTools = services.flatMap(service => (service.tools ?? []).map(tool => `${service.service}:${tool.name}`));
+  check(record, sameSet(flattenedTools, tools.map(tool => `${tool.service}:${tool.name}`)), 'tool_reconciliation',
+    'Top-level peer tool inventory does not match the exact per-service tool inventories.');
   for (const serviceId of REQUIRED_SERVICES) {
     const service = services.find(item => item.service === serviceId);
     check(record, Boolean(service), `service_${serviceId}`, `${serviceId} has no peer evidence.`, serviceId);
     if (!service) continue;
     check(record, normalizeDecision(service?.decision) === 'GO', `${serviceId}_decision`, `${serviceId} peer decision is ${service?.decision ?? 'missing'}.`, serviceId);
     check(record, (service?.gates ?? []).every(item => item.passed === true), `${serviceId}_gates`, `${serviceId} has failed peer gates.`, serviceId);
+    check(record, Array.isArray(service.tools) && service.tools.length > 0, `${serviceId}_tools`,
+      `${serviceId} has no exact discovered tool rows.`, serviceId);
     for (const transport of REQUIRED_TRANSPORTS) {
       const observed = service?.transports?.[transport];
       check(record, observed?.connected === true && observed?.no_transport_fallback === true,
@@ -455,10 +657,27 @@ function validatePeerEvidence(record) {
   }
   for (const tool of tools) {
     const scope = `${tool.service ?? 'unknown'}:${tool.name ?? 'unknown'}`;
+    check(record, REQUIRED_SERVICES.includes(tool.service) && nonEmpty(tool.name), `tool_${scope}_identity`,
+      `${scope} lacks a valid service and exact tool name.`, scope);
     check(record, ALLOWED_TOOL_DISPOSITIONS.has(tool.disposition), `tool_${scope}_disposition`,
       `${scope} has invalid disposition ${tool.disposition ?? 'missing'}.`, scope);
     check(record, nonEmpty(tool.disposition_reason), `tool_${scope}_reason`, `${scope} has no disposition reason.`, scope);
     check(record, tool.availability_inferred_from_count === false, `tool_${scope}_count`, `${scope} availability was inferred from a count.`, scope);
+    for (const transport of REQUIRED_TRANSPORTS) {
+      const observation = tool.observations?.[transport];
+      check(record, Boolean(observation), `tool_${scope}_${transport}_observation`,
+        `${scope} has no ${transport} name-level observation.`, scope);
+      if (!observation) continue;
+      if (tool.disposition === 'executed') {
+        check(record, observation.status === 'executed' && observation.invocation_attempted === true
+          && observation.invocation_succeeded === true && observation.discovered === true && observation.descriptor_method === true,
+        `tool_${scope}_${transport}_executed`, `${scope}/${transport} lacks complete execution, discovery, and descriptor proof.`, scope);
+      } else if (tool.disposition === 'denied') {
+        check(record, observation.status === 'denied' && observation.invocation_attempted === false
+          && observation.discovered === true && observation.descriptor_method === true,
+        `tool_${scope}_${transport}_denied`, `${scope}/${transport} denial is not backed by discovery, descriptor, and non-invocation proof.`, scope);
+      }
+    }
     if (['unreachable', 'unsupported', 'static-only'].includes(tool.disposition)) {
       record.gaps.push(gap('SVD-100', `tool_${tool.disposition}`, scope,
         tool.disposition_reason, record.path));
@@ -479,12 +698,18 @@ function buildPhaseFourCloseout(records) {
   const smoke = readPhaseFourArtifact('all-tools-app-smoke-coverage.json');
   const browser = readPhaseFourArtifact('browser-all-app-compatibility.json');
   const legacyMeta = readPhaseFourArtifact('meta-glasses-device-simulator-validation.json');
+  const routes = readPhaseFourArtifact('all-tools-app-route-coverage.json');
+  const calls = readPhaseFourArtifact('all-tools-call-envelope-fixtures.json');
+  const packets = readPhaseFourArtifact('all-tools-glasses-handoff-packets.json');
+  const replay = readPhaseFourArtifact('all-tools-glasses-handoff-replay-bundles.json');
+  const controlPlane = readPhaseFourArtifact('all-tools-glasses-control-plane-handoff.json');
 
   const smokeChecks = validatePhaseFourSmoke(smoke);
   const policyChecks = validatePhaseFourPolicy(policy);
   const adapterChecks = validatePhaseFourAdapter(adapter, policy);
   const browserChecks = validatePhaseFourBrowser(browser, smoke);
   const legacyMetaChecks = validatePhaseFourMeta(legacyMeta);
+  const routeOrbGlassesChecks = validateRouteOrbGlassesArtifacts(routes, calls, packets, replay, controlPlane);
 
   const representativeSatisfied = current.app_backend_behavior?.status === 'passed'
     || smokeChecks.every(item => item.passed);
@@ -521,6 +746,14 @@ function buildPhaseFourCloseout(records) {
       [artifactReference(policy), recordReference(current.peer_interoperability)],
     ),
     phaseFourGate(
+      'all_tools_route_orb_glasses',
+      'SVD-047',
+      'Every tool app-route, MCP++ call, ORB/IDL packet, and glasses handoff artifact',
+      routeOrbGlassesChecks.every(item => item.passed),
+      failedReasons(routeOrbGlassesChecks),
+      [routes, calls, packets, replay, controlPlane].map(artifactReference),
+    ),
+    phaseFourGate(
       'accelerate_adapter_boundary',
       'SVD-044',
       'Configured ipfs_accelerate_py adapter boundary',
@@ -538,7 +771,7 @@ function buildPhaseFourCloseout(records) {
     ),
     phaseFourGate(
       'meta_glasses_simulator',
-      'SVD-046',
+      'SVD-059',
       'Hardware-free Meta glasses simulator evidence',
       metaSatisfied,
       metaSatisfied
@@ -566,7 +799,7 @@ function buildPhaseFourCloseout(records) {
       passed_gate_count: gates.filter(item => item.passed).length,
       failed_gate_count: gates.filter(item => !item.passed).length,
       decision: gates.every(item => item.passed) ? 'go' : 'no_go',
-      unknown_task_class_count: gates.filter(item => !/^SVD-\d+$/.test(item.task_id)).length,
+      unknown_task_class_count: gates.filter(item => !/^SVD-\d+$/.test(item.task_id) || !nonEmpty(item.owner)).length,
       gates,
     },
   };
@@ -579,6 +812,8 @@ function readPhaseFourArtifact(fileName) {
     status: 'missing',
     data: null,
     sha256: null,
+    generated_at: null,
+    freshness_status: 'missing',
     error: null,
   };
   if (!fs.existsSync(filePath)) return record;
@@ -586,12 +821,72 @@ function readPhaseFourArtifact(fileName) {
     const bytes = fs.readFileSync(filePath);
     record.data = JSON.parse(bytes.toString('utf8'));
     record.sha256 = sha256(bytes);
+    record.generated_at = record.data.generated_at ?? record.data.generatedAt ?? null;
     record.status = 'present';
+    evaluatePhaseArtifactFreshness(record);
   } catch (error) {
     record.status = 'invalid';
     record.error = errorMessage(error);
   }
   return record;
+}
+
+function evaluatePhaseArtifactFreshness(record) {
+  const receipt = readJson(freshnessReceiptPath);
+  const relativePath = record.path;
+  const previous = receipt?.sourceFiles?.find(file => file.path === relativePath);
+  if (!previous) {
+    record.freshness_status = 'first_observation';
+    return;
+  }
+  if (previous.sha256 === record.sha256) {
+    record.freshness_status = 'current';
+    return;
+  }
+  const regeneratedAfterBaseline = isIsoDate(record.generated_at) && isIsoDate(receipt.generatedAt)
+    && Date.parse(record.generated_at) > Date.parse(receipt.generatedAt);
+  record.freshness_status = regeneratedAfterBaseline ? 'refreshed_after_change' : 'stale';
+}
+
+function phaseArtifactChecks(record, expectedSchema) {
+  return [
+    phaseCheck(record.status === 'present', `${record.path} is missing or invalid${record.error ? `: ${record.error}` : ''}`),
+    phaseCheck(record.data?.schema === expectedSchema, `${record.path} has an unexpected schema.`),
+    phaseCheck(isIsoDate(record.generated_at), `${record.path} has no valid generated_at timestamp.`),
+    phaseCheck(record.freshness_status !== 'stale', `${record.path} changed after the last certification but was not regenerated afterward.`),
+  ];
+}
+
+function validateRouteOrbGlassesArtifacts(routes, calls, packets, replay, controlPlane) {
+  const routeCount = routes.data?.app_routable_tool_count;
+  const packetCount = packets.data?.packet_count;
+  const checks = [
+    ...phaseArtifactChecks(routes, 'swissknife.all-tools-app-route-coverage.v1'),
+    ...phaseArtifactChecks(calls, 'swissknife.all-tools-call-envelope-fixtures.v1'),
+    ...phaseArtifactChecks(packets, 'swissknife.all-tools-glasses-handoff-packets.v1'),
+    ...phaseArtifactChecks(replay, 'swissknife.all-tools-glasses-handoff-replay-bundles.v1'),
+    ...phaseArtifactChecks(controlPlane, 'swissknife.all-tools-glasses-control-plane-handoff.v1'),
+    phaseCheck((routes.data?.ledger_tool_count ?? 0) > 0, `${routes.path} has no exact ledger tools.`),
+    phaseCheck(routes.data?.configured_live_tool_count + routes.data?.real_local_accelerate_tool_count === routes.data?.ledger_tool_count,
+      `${routes.path} does not reconcile configured and real-local tools to the exact ledger.`),
+    phaseCheck(routeCount + routes.data?.non_app_disposition_count === routes.data?.ledger_tool_count,
+      `${routes.path} does not account for every tool with an app route or deliberate disposition.`),
+    phaseCheck(routes.data?.missing_binding_count === 0 && routes.data?.missing_policy_count === 0 && routes.data?.metadata_gap_count === 0,
+      `${routes.path} declares binding, policy, or route metadata gaps.`),
+    phaseCheck(calls.data?.envelope_count === routeCount && calls.data?.app_routable_tool_count === routeCount,
+      `${calls.path} does not cover every app-routable tool.`),
+    phaseCheck(packetCount > 0 && packets.data?.packets?.length === packetCount,
+      `${packets.path} packet rows do not match its packet count.`),
+    phaseCheck(replay.data?.bundle_count === packetCount && replay.data?.bundles?.length === packetCount,
+      `${replay.path} does not compile every ORB/IDL packet.`),
+    phaseCheck(controlPlane.data?.route_count === replay.data?.bundle_count
+      && controlPlane.data?.accepted_count === controlPlane.data?.route_count,
+    `${controlPlane.path} did not accept every glasses replay bundle.`),
+    phaseCheck(controlPlane.data?.receipt_preserved_count === controlPlane.data?.route_count
+      && controlPlane.data?.event_dag_preserved_count === controlPlane.data?.route_count,
+    `${controlPlane.path} did not preserve every receipt/event-DAG route.`),
+  ];
+  return checks;
 }
 
 function validatePhaseFourSmoke(record) {
@@ -600,8 +895,7 @@ function validatePhaseFourSmoke(record) {
   const routed = data?.app_with_dispatch_count;
   const unrouted = data?.app_without_dispatch_count;
   return [
-    phaseCheck(record.status === 'present', `${record.path} is missing or invalid${record.error ? `: ${record.error}` : ''}`),
-    phaseCheck(data?.schema === 'swissknife.all-tools-virtual-desktop-app-smoke-coverage.v1', `${record.path} has an unexpected schema.`),
+    ...phaseArtifactChecks(record, 'swissknife.all-tools-virtual-desktop-app-smoke-coverage.v1'),
     phaseCheck(Number.isInteger(appCount) && appCount > 0, `${record.path} has no positive app count.`),
     phaseCheck(Array.isArray(data?.apps) && data.apps.length === appCount, `${record.path} app rows do not match its app count.`),
     phaseCheck(Number.isInteger(routed) && Number.isInteger(unrouted) && routed + unrouted === appCount, `${record.path} does not account for every app route.`),
@@ -618,6 +912,8 @@ function validatePhaseFourPolicy(record) {
   const gates = Array.isArray(record.data?.gates) ? record.data.gates : [];
   return [
     phaseCheck(record.status === 'present', `${record.path} is missing or invalid${record.error ? `: ${record.error}` : ''}`),
+    phaseCheck(isIsoDate(record.generated_at), `${record.path} has no valid generated_at timestamp.`),
+    phaseCheck(record.freshness_status !== 'stale', `${record.path} changed after the last certification but was not regenerated afterward.`),
     phaseCheck(isPassingDecision(record.data?.decision), `${record.path} decision is ${record.data?.decision ?? 'missing'}.`),
     phaseCheck(gates.length > 0, `${record.path} declares no exhaustive gates.`),
     phaseCheck(gates.length > 0 && gates.every(item => item.passed === true || String(item.status).toLowerCase() === 'pass'), `${record.path} has a failed or unproved gate.`),
@@ -633,6 +929,8 @@ function validatePhaseFourAdapter(adapter, policy) {
   const configuredCount = summary.configured_required_count;
   return [
     phaseCheck(adapter.status === 'present', `${adapter.path} is missing or invalid${adapter.error ? `: ${adapter.error}` : ''}`),
+    phaseCheck(isIsoDate(adapter.generated_at), `${adapter.path} has no valid generated_at timestamp.`),
+    phaseCheck(adapter.freshness_status !== 'stale', `${adapter.path} changed after the last certification but was not regenerated afterward.`),
     phaseCheck(isPassingDecision(summary.decision ?? data?.decision), `${adapter.path} decision is ${summary.decision ?? data?.decision ?? 'missing'}.`),
     phaseCheck(Number.isInteger(requiredCount) && requiredCount > 0, `${adapter.path} has no required adapter-tool count.`),
     phaseCheck(configuredCount === requiredCount, `${adapter.path} configured adapter coverage is ${configuredCount ?? 'missing'}/${requiredCount ?? 'missing'}.`),
@@ -647,8 +945,7 @@ function validatePhaseFourAdapter(adapter, policy) {
 function validatePhaseFourBrowser(browser, smoke) {
   const data = browser.data;
   return [
-    phaseCheck(browser.status === 'present', `${browser.path} is missing or invalid${browser.error ? `: ${browser.error}` : ''}`),
-    phaseCheck(data?.schema === 'swissknife.browser-all-app-compatibility.v1', `${browser.path} has an unexpected schema.`),
+    ...phaseArtifactChecks(browser, 'swissknife.browser-all-app-compatibility.v1'),
     phaseCheck(isPassingDecision(data?.decision), `${browser.path} decision is ${data?.decision ?? 'missing'}.`),
     phaseCheck(data?.browser_audit?.ok === true, `${browser.path} browser audit did not pass.`),
     phaseCheck(data?.browser_audit?.fail_count === 0, `${browser.path} has browser audit failures.`),
@@ -673,6 +970,8 @@ function validatePhaseFourMeta(record) {
   ].filter(value => value !== undefined && value !== null);
   return [
     phaseCheck(record.status === 'present', `${record.path} is missing or invalid${record.error ? `: ${record.error}` : ''}`),
+    phaseCheck(isIsoDate(record.generated_at), `${record.path} has no valid generated_at timestamp.`),
+    phaseCheck(record.freshness_status !== 'stale', `${record.path} changed after the last certification but was not regenerated afterward.`),
     phaseCheck(explicitPass, `${record.path} does not declare a passing simulator result.`),
     phaseCheck(blockerCount === 0, `${record.path} declares simulator blockers.`),
     phaseCheck(failureCounts.every(value => value === 0), `${record.path} reports simulator failures or browser errors.`),
@@ -687,7 +986,15 @@ function failedReasons(checks) {
   return unavailable.length > 0 ? unavailable : failed;
 }
 function isPassingDecision(value) { return ['GO', 'PASS', 'PASSED'].includes(String(value ?? '').toUpperCase().replace(/[-_]/g, '')); }
-function artifactReference(record) { return { path: record.path, status: record.status, sha256: record.sha256 }; }
+function artifactReference(record) {
+  return {
+    path: record.path,
+    status: record.status,
+    generated_at: record.generated_at ?? null,
+    freshness_status: record.freshness_status ?? null,
+    sha256: record.sha256,
+  };
+}
 function recordReference(record) {
   if (!record) return { path: null, status: 'missing', sha256: null };
   return { path: record.path, status: record.status, sha256: record.sha256 };
@@ -702,6 +1009,7 @@ function phaseFourGate(gateId, taskId, label, passed, blockers, evidence) {
   return {
     gate_id: gateId,
     task_id: taskId,
+    owner: ownerForTask(taskId),
     label,
     passed: Boolean(passed),
     status: passed ? 'passed' : 'blocked',
@@ -718,6 +1026,8 @@ function check(record, passed, id, message, scope = null) {
 function gap(taskId, code, scope, reason, evidencePath) {
   return {
     task_id: taskId,
+    owner_task_id: taskId,
+    owner: ownerForTask(taskId),
     code,
     scope: String(scope ?? 'unknown'),
     reason,
@@ -726,15 +1036,23 @@ function gap(taskId, code, scope, reason, evidencePath) {
   };
 }
 
+function ownerForTask(taskId) {
+  if (!taskOwnerCache) {
+    const queue = readJson(supervisorQueuePath);
+    taskOwnerCache = new Map(Object.entries(queue?.tasks ?? {}).map(([id, task]) => [id, task.owner]));
+  }
+  return taskOwnerCache.get(taskId) ?? null;
+}
+
 function collectDispositions(records) {
   const approved = [{
     id: 'meta-physical-hardware',
-    task_id: 'SVD-099',
+    task_id: 'SVD-059',
     scope: 'meta:physical-hardware-pairing',
     disposition: 'simulator-only',
-    rationale: 'SVD-099 explicitly validates the simulator without requiring or claiming physical hardware pairing.',
-    approved_by: 'SVD-099 acceptance policy',
-    approval_task_id: 'SVD-099',
+    rationale: 'SVD-059 explicitly validates the simulator without requiring or claiming physical hardware pairing; SVD-099 may provide a newer compatible proof.',
+    approved_by: 'SVD-059 acceptance policy',
+    approval_task_id: 'SVD-059',
     source_path: records.find(record => record.id === 'meta_device_simulator')?.path ?? null,
   }];
   const rejected = [];
@@ -791,17 +1109,20 @@ function collectDispositions(records) {
 
 function isClosedByDisposition(item, approved) {
   return approved.some(disposition => {
-    if (disposition.scope !== item.scope && disposition.scope !== '*') return false;
+    // A wildcard may describe a reporting category, but it cannot silently
+    // waive a named release gap. Every closeout disposition is scope-exact.
+    if (disposition.scope !== item.scope) return false;
     if (disposition.closes_gap_code) return disposition.closes_gap_code === item.code;
     return /(denied|unavailable|unsupported|static.only|skip)/i.test(item.code);
   });
 }
 
-function buildAppMatrix(appBehavior, orb, meta) {
+function buildAppMatrix(appBehavior, orb, meta, releaseInventory) {
   const behaviorApps = appBehavior?.data?.apps ?? [];
   const orbPackets = orb?.data?.packets ?? [];
   const metaApps = meta?.data?.applications ?? [];
   const appIds = unique([
+    ...releaseInventory.appIds,
     ...behaviorApps.map(app => app.app_id),
     ...orbPackets.map(packet => packet.app_id),
     ...metaApps.map(app => app.app_id),
@@ -827,8 +1148,10 @@ function buildAppMatrix(appBehavior, orb, meta) {
     };
   });
   return {
-    required_app_count: appBehavior?.data?.app_count ?? orb?.data?.app_count ?? null,
-    observed_app_count: rows.length,
+    canonical_inventory_status: releaseInventory.summary.status,
+    required_app_count: releaseInventory.appIds.length,
+    matrix_row_count: rows.length,
+    observed_app_count: behaviorApps.length,
     passing_app_count: rows.filter(row => row.passing).length,
     rows,
   };
@@ -836,20 +1159,32 @@ function buildAppMatrix(appBehavior, orb, meta) {
 
 function buildServiceMatrix(profile, peer, approved) {
   const profileRows = profile?.data?.profile_matrix ?? [];
+  const profileServices = profile?.data?.services ?? [];
   const peerServices = peer?.data?.services ?? [];
   const cells = REQUIRED_SERVICES.flatMap(service => REQUIRED_PROFILES.map(profileId => {
     const profileCell = profileRows.find(row => row.profile === profileId)?.services?.find(item => item.service === service);
+    const profileService = profileServices.find(item => item.service === service);
     const peerService = peerServices.find(item => item.service === service);
-    const passing = profileCell?.capability_state === 'supported';
-    const approvedNonRelease = approved.some(item => item.scope === `${service}:${profileId}`);
+    const transportStates = Object.fromEntries(REQUIRED_TRANSPORTS.map(transport => [
+      transport,
+      profileCell?.[`${transport}_state`] ?? profileCell?.transport_states?.[transport] ?? 'unobserved',
+    ]));
+    const passing = profileCell?.capability_state === 'supported'
+      && REQUIRED_TRANSPORTS.every(transport => transportStates[transport] === 'supported');
+    const cellDispositionApproved = approved.some(item => item.scope === `${service}:${profileId}`);
+    const capabilitySatisfied = profileCell?.capability_state === 'supported' || cellDispositionApproved;
+    const transportsSatisfied = REQUIRED_TRANSPORTS.every(transport => transportStates[transport] === 'supported'
+      || cellDispositionApproved || approved.some(item => item.scope === `${service}:${profileId}:${transport}`));
+    const approvedNonRelease = !passing && capabilitySatisfied && transportsSatisfied;
     return {
       service,
       profile: profileId,
       capability_state: profileCell?.capability_state ?? 'unobserved',
-      http_state: profileCell?.http_state ?? transportState(peerService, 'http'),
-      libp2p_state: profileCell?.libp2p_state ?? transportState(peerService, 'libp2p'),
-      selected_transport: profileCell?.transport_fallback?.selected_transport ?? null,
-      fallback_decision: profileCell?.transport_fallback?.decision ?? null,
+      http_state: transportStates.http === 'unobserved' ? transportState(peerService, 'http') : transportStates.http,
+      libp2p_state: transportStates.libp2p === 'unobserved' ? transportState(peerService, 'libp2p') : transportStates.libp2p,
+      selected_transport: profileCell?.fallback?.selected_transport ?? profileCell?.transport_fallback?.selected_transport ?? null,
+      fallback_decision: profileCell?.fallback?.decision ?? profileCell?.transport_fallback?.decision ?? null,
+      fallback_reason: profileCell?.fallback?.reason ?? profileCell?.transport_fallback?.reason ?? null,
       passing,
       approved_non_release: approvedNonRelease,
       release_satisfied: passing || approvedNonRelease,
@@ -861,7 +1196,37 @@ function buildServiceMatrix(profile, peer, approved) {
     release_satisfied_cell_count: cells.filter(cell => cell.release_satisfied).length,
     unavailable_surfaces: profile?.data?.unavailable_surfaces ?? [],
     denied_surfaces: profile?.data?.denied_surfaces ?? [],
+    services: REQUIRED_SERVICES.map(serviceId => {
+      const service = profileServices.find(item => item.service === serviceId);
+      const peerService = peerServices.find(item => item.service === serviceId);
+      return {
+        service: serviceId,
+        owner: service?.owner ?? null,
+        live_on_both_transports: service?.live_on_both_transports ?? false,
+        http: summarizeServiceTransport(service?.http, peerService?.transports?.http),
+        libp2p: summarizeServiceTransport(service?.libp2p, peerService?.transports?.libp2p),
+        transport_parity: service?.transport_parity ?? peerService?.parity ?? null,
+      };
+    }),
     cells,
+  };
+}
+
+function summarizeServiceTransport(serviceTransport, peerTransport) {
+  return {
+    live: serviceTransport?.live ?? peerTransport?.connected ?? false,
+    endpoint: serviceTransport?.endpoint ?? peerTransport?.endpoint ?? null,
+    no_transport_fallback: peerTransport?.no_transport_fallback ?? null,
+    remote_ucan_did: peerTransport?.identity?.remote_did ?? serviceTransport?.identity?.remote_did ?? null,
+    identity_verified: peerTransport?.identity?.verified ?? null,
+    descriptor_cids: peerTransport?.descriptor?.cids ?? serviceTransport?.descriptor_cids ?? [],
+    descriptor_cid_retrieval_complete: peerTransport?.descriptor?.cid_retrieval_complete ?? null,
+    tool_count: serviceTransport?.tool_catalog?.tool_count ?? peerTransport?.discovered_tool_names?.length ?? 0,
+    tool_names: serviceTransport?.tool_catalog?.tool_names ?? peerTransport?.discovered_tool_names ?? [],
+    schema_cids: serviceTransport?.tool_catalog?.schema_cids ?? [],
+    negotiated_profiles: peerTransport?.normalized_negotiated_profiles ?? [],
+    fixture_status: peerTransport?.fixture?.status ?? null,
+    event_dag_visible: peerTransport?.fixture?.event_dag?.execution_event_present ?? null,
   };
 }
 
@@ -878,7 +1243,9 @@ function buildToolMatrix(peer, approved) {
       || (tool.disposition === 'denied' && approved.some(item => item.scope === `tool:${tool.service}:${tool.name}`)),
   }));
   return {
-    count_only_inference_forbidden: peer?.data?.availability_evidence_policy?.count_only_inference_forbidden ?? true,
+    evidence_status: peer?.status ?? 'missing',
+    inventory_complete: peer?.status === 'passed' && rows.length > 0,
+    count_only_inference_forbidden: peer?.data?.availability_evidence_policy?.count_only_inference_forbidden ?? false,
     tool_count: rows.length,
     executed_count: rows.filter(row => row.disposition === 'executed').length,
     approved_non_release_count: rows.filter(row => row.approved_non_release).length,
@@ -902,6 +1269,16 @@ function buildModalityMatrix(meta, approved) {
     physical_hardware_claimed: meta?.data?.boundary?.physical_hardware_claimed ?? null,
     hardware_non_release_disposition: approved.find(item => item.scope === 'meta:physical-hardware-pairing') ?? null,
     passing_modality_count: rows.filter(row => row.passing).length,
+    replay_packet_count: meta?.data?.packets?.length ?? 0,
+    replay_packets: (meta?.data?.packets ?? []).map(packet => ({
+      packet_id: packet.packet_id ?? null,
+      app_id: packet.app_id ?? null,
+      correlation_id: packet.correlation_id ?? null,
+      status: packet.status ?? null,
+      rollback: packet.rollback ?? null,
+      fallback: packet.fallback ?? null,
+      receipt_preservation: packet.receipt_preservation ?? null,
+    })),
     rows,
   };
 }
@@ -1031,6 +1408,7 @@ function artifactSummary(record) {
     sha256: record.sha256,
     source_fingerprint: record.source_fingerprint.combined_sha256,
     source_files: record.source_fingerprint.files,
+    dependency_freshness: record.dependency_freshness ?? null,
     passed_check_count: record.checks.filter(item => item.passed).length,
     failed_check_count: record.checks.filter(item => !item.passed).length,
     failed_checks: record.checks.filter(item => !item.passed),
@@ -1132,7 +1510,7 @@ function renderMarkdown(report) {
   }
   lines.push('', '## Blockers', '');
   if (report.named_gaps.length === 0) lines.push('- None.');
-  else for (const item of report.named_gaps) lines.push(`- **${item.task_id}** — \`${escapeMd(item.scope)}\` / \`${item.code}\`: ${escapeMd(item.reason)}`);
+  else for (const item of report.named_gaps) lines.push(`- **${item.task_id}** (owner: \`${escapeMd(item.owner ?? 'unassigned')}\`) — \`${escapeMd(item.scope)}\` / \`${item.code}\`: ${escapeMd(item.reason)}`);
   lines.push('', '## Evidence freshness and status', '', '| Evidence | Task | Status | Generated | SHA-256 |', '| --- | --- | --- | --- | --- |');
   for (const [id, artifact] of Object.entries(report.artifacts)) lines.push(`| \`${id}\` | ${artifact.task_id} | ${artifact.status} | ${artifact.generated_at ?? 'missing'} | \`${artifact.sha256?.slice(0, 12) ?? 'missing'}\` |`);
   lines.push('', '## App behavior', '', `Passing complete app rows: ${report.app_behavior_matrix.passing_app_count}/${report.app_behavior_matrix.required_app_count ?? report.app_behavior_matrix.observed_app_count}.`, '',
@@ -1141,7 +1519,15 @@ function renderMarkdown(report) {
   lines.push('', '## Service / profile / transport matrix', '', `Passing proof cells: ${report.service_profile_transport_matrix.passing_cell_count}/${report.service_profile_transport_matrix.required_cell_count}; release-satisfied cells: ${report.service_profile_transport_matrix.release_satisfied_cell_count}/${report.service_profile_transport_matrix.required_cell_count}.`, '',
     '| Service | Profile | Capability | HTTP | libp2p | Selection |', '| --- | --- | --- | --- | --- | --- |');
   for (const cell of report.service_profile_transport_matrix.cells) lines.push(`| \`${cell.service}\` | ${cell.profile} | ${cell.capability_state} | ${cell.http_state} | ${cell.libp2p_state} | ${cell.fallback_decision ?? 'unobserved'} → ${cell.selected_transport ?? 'none'} |`);
-  lines.push('', '## Supervisor Console', '',
+  lines.push('', '## Exact tool accounting', '',
+    `- Evidence status: ${report.tool_behavior_matrix.evidence_status}`,
+    `- Inventory complete: ${report.tool_behavior_matrix.inventory_complete}`,
+    `- Name-level tool rows: ${report.tool_behavior_matrix.tool_count}`,
+    `- Executed rows: ${report.tool_behavior_matrix.executed_count}`,
+    `- Approved non-release rows: ${report.tool_behavior_matrix.approved_non_release_count}`,
+    `- Unsatisfied rows: ${report.tool_behavior_matrix.unsatisfied_count}`,
+    `- Count-only availability inference forbidden by evidence: ${report.tool_behavior_matrix.count_only_inference_forbidden}`, '',
+    '## Supervisor Console', '',
     `- Evidence status: ${report.supervisor_console.status}`,
     `- Owners: ${report.supervisor_console.owners.join(', ') || 'none'}`,
     `- Task graph linked: ${report.supervisor_console.task_graph?.linked ?? false}`,
@@ -1200,7 +1586,7 @@ function renderNoNewUnknowns(report) {
   lines.push('', '## Blockers', '');
   if (report.named_gaps.length === 0) lines.push('- None.');
   else for (const item of report.named_gaps) {
-    lines.push(`- **${item.task_id}** — \`${escapeMd(item.scope)}\`: ${escapeMd(item.reason)}`);
+    lines.push(`- **${item.task_id}** (owner: \`${escapeMd(item.owner ?? 'unassigned')}\`) — \`${escapeMd(item.scope)}\`: ${escapeMd(item.reason)}`);
   }
   lines.push('', '## Task-class conclusion', '',
     report.unknown_task_class_audit.statement,
@@ -1211,7 +1597,7 @@ function renderNoNewUnknowns(report) {
 function renderSignoff(report) {
   const lines = [
     '# Refactor Final Signoff', '',
-    'Task: SVD-101 — Aggregate freshness-aware release evidence and close only named gaps', '',
+    'Task: SVD-060 — Final all-tools ORB/IDL Meta glasses release closeout', '',
     `Observed: ${report.generated_at}`,
     `SwissKnife revision: \`${report.source_revision}\``,
     `Release decision: **${report.decision.status.replace(/_/g, '-')}**`, '',
@@ -1227,9 +1613,9 @@ function renderSignoff(report) {
     '## Named blockers', '',
   ];
   if (report.named_gaps.length === 0) lines.push('- None.');
-  else for (const item of report.named_gaps) lines.push(`- **${item.task_id}** — \`${escapeMd(item.scope)}\`: ${escapeMd(item.reason)}`);
+  else for (const item of report.named_gaps) lines.push(`- **${item.task_id}** (owner: \`${escapeMd(item.owner ?? 'unassigned')}\`) — \`${escapeMd(item.scope)}\`: ${escapeMd(item.reason)}`);
   lines.push('', '## Non-release boundary', '',
-    '- Physical Meta hardware pairing is not required, was not tested, and is not claimed. SVD-099 simulator evidence is the approved release scope.',
+    '- Physical Meta hardware pairing is not required, was not tested, and is not claimed. SVD-059 simulator evidence is the approved release scope.',
     '- Denied non-mutating peer tools are accepted only when SVD-100 records exact name-level discovery, a typed denial reason, and no count-based inference.',
     '- Any other unavailable, unsupported, static-only, missing, or failed case remains a named blocker unless an explicit approved disposition is added to its source artifact.', '',
     '## Evidence', '',
@@ -1237,7 +1623,7 @@ function renderSignoff(report) {
     '- Readable report: `test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md`',
     '- Freshness receipt: `docs/virtual-desktop-release-evidence.fingerprint.json`', '',
     report.decision.status === 'GO'
-      ? 'The SVD-101 release scope is approved.'
+      ? 'The SVD-060 release scope is approved.'
       : `The release remains **NO-GO** until the named ${report.decision.blocker_task_ids.join(', ')} gaps are refreshed or consciously dispositioned.`,
   );
   return `${lines.join('\n')}\n`;
@@ -1297,12 +1683,21 @@ function atomicWrite(filePath, value) {
   fs.writeFileSync(temporaryPath, value, 'utf8');
   fs.renameSync(temporaryPath, filePath);
 }
+function readJson(filePath) {
+  try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+  catch { return null; }
+}
 function gitRevision() {
   try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim(); }
   catch { return 'unknown'; }
 }
 function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 function normalizePath(value) { return value.split(path.sep).join('/'); }
+function pathIsWithinSource(filePath, sourcePath) {
+  const normalizedFile = normalizePath(filePath);
+  const normalizedSource = normalizePath(sourcePath).replace(/\/$/, '');
+  return normalizedFile === normalizedSource || normalizedFile.startsWith(`${normalizedSource}/`);
+}
 function relative(value) { return normalizePath(path.relative(projectRoot, value)); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim().length > 0; }
 function isIsoDate(value) { return nonEmpty(value) && Number.isFinite(Date.parse(value)); }
@@ -1316,3 +1711,17 @@ function formatCounts(counts) { return Object.entries(counts ?? {}).map(([key, v
 function transportState(service, transport) { return service?.transports?.[transport]?.connected ? 'live' : 'unobserved'; }
 function escapeMd(value) { return String(value ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' '); }
 function errorMessage(error) { return error instanceof Error ? error.message : String(error); }
+
+module.exports = {
+  _test: {
+    buildAppMatrix,
+    isClosedByDisposition,
+    loadReleaseInventory,
+    phaseArtifactChecks,
+    validateCanonicalCoverage,
+    validateDependencyFreshness,
+    validateMetaReplayPacket,
+    validatePeerEvidence,
+    validateRouteOrbGlassesArtifacts,
+  },
+};
