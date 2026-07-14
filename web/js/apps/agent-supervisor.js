@@ -141,6 +141,14 @@ export class AgentSupervisorApp {
         targetType: 'task',
         targetId: 'SWR-105-1',
         prompt: '',
+        dryRun: false,
+        confirm: false,
+        submitting: false,
+        result: null,
+        error: null,
+      },
+      dispatch: {
+        reason: 'Dispatch the reviewed task through the governed supervisor queue.',
         confirm: false,
         submitting: false,
         result: null,
@@ -342,6 +350,12 @@ export class AgentSupervisorApp {
     if (update) this.update();
   }
 
+  resetDispatchReview() {
+    this.state.dispatch.confirm = false;
+    this.state.dispatch.result = null;
+    this.state.dispatch.error = null;
+  }
+
   update() {
     if (!this.container) return;
     const root = this.container.querySelector('[data-agent-supervisor-root]');
@@ -383,6 +397,7 @@ export class AgentSupervisorApp {
       button.addEventListener('click', () => {
         this.state.selectedTaskId = button.dataset.taskId || '';
         this.setSteeringTarget('task', this.state.selectedTaskId, { update: false });
+        this.resetDispatchReview();
         this.state.activeTab = 'active';
         this.update();
       });
@@ -411,8 +426,29 @@ export class AgentSupervisorApp {
       this.state.steering.error = null;
       this.update();
     });
+    this.container.querySelector('[data-steering-dry-run]')?.addEventListener('change', event => {
+      this.state.steering.dryRun = Boolean(event.target.checked);
+      this.state.steering.confirm = false;
+      this.state.steering.result = null;
+      this.state.steering.error = null;
+      this.update();
+    });
     this.container.querySelector('[data-action="submit-steering"]')?.addEventListener('click', () => {
       this.submitSteeringPrompt();
+    });
+    this.container.querySelector('[data-dispatch-reason]')?.addEventListener('input', event => {
+      this.state.dispatch.reason = event.target.value.slice(0, 1000);
+      this.state.dispatch.result = null;
+      this.state.dispatch.error = null;
+    });
+    this.container.querySelector('[data-dispatch-confirm]')?.addEventListener('change', event => {
+      this.state.dispatch.confirm = Boolean(event.target.checked);
+      this.state.dispatch.result = null;
+      this.state.dispatch.error = null;
+      this.update();
+    });
+    this.container.querySelector('[data-action="submit-dispatch"]')?.addEventListener('click', () => {
+      this.submitTaskDispatch();
     });
     this.container.querySelectorAll('[data-supervisor-focusable]').forEach(item => {
       item.addEventListener('keydown', event => this.handleFocusKey(event));
@@ -483,7 +519,7 @@ export class AgentSupervisorApp {
       this.update();
       return;
     }
-    if (!steering.confirm) {
+    if (!steering.dryRun && !steering.confirm) {
       steering.error = { reason: 'confirmation_required', message: 'Explicit confirmation is required before submission.' };
       this.update();
       return;
@@ -494,8 +530,10 @@ export class AgentSupervisorApp {
       target_type: steering.targetType,
       target_id: steering.targetId,
       prompt,
-      dry_run: false,
-      confirmation_token: `confirm-agent-supervisor:${review.normalized_target}:${clientRequestId}`,
+      dry_run: steering.dryRun,
+      confirmation_token: steering.dryRun
+        ? undefined
+        : `confirm-agent-supervisor:${review.normalized_target}:${clientRequestId}`,
       client_request_id: clientRequestId,
       expected_normalized_target: review.normalized_target,
     };
@@ -523,6 +561,60 @@ export class AgentSupervisorApp {
       };
     }
     this.state.activeTab = 'steering';
+    this.update();
+  }
+
+  async submitTaskDispatch() {
+    const dispatch = this.state.dispatch;
+    const task = this.state.snapshot.queue.find(item => item.task_id === this.state.selectedTaskId);
+    const reason = dispatch.reason.trim();
+    if (!task) {
+      dispatch.error = { reason: 'invalid_target', message: 'Select a task before dispatching work.' };
+      this.update();
+      return;
+    }
+    if (!reason) {
+      dispatch.error = { reason: 'scope_not_allowed', message: 'A dispatch reason is required.' };
+      this.update();
+      return;
+    }
+    if (!dispatch.confirm) {
+      dispatch.error = { reason: 'confirmation_required', message: 'Explicit confirmation is required before dispatch.' };
+      this.update();
+      return;
+    }
+
+    const clientRequestId = `dispatch-${Date.now()}`;
+    dispatch.submitting = true;
+    dispatch.result = null;
+    dispatch.error = null;
+    this.update();
+    const result = await this.invokeCapability('supervisor.task-control.request', {
+      task_id: task.task_id,
+      action: 'claim',
+      reason,
+      dry_run: false,
+      confirmation_token: `confirm-agent-supervisor:task:${task.task_id}:${clientRequestId}`,
+      client_request_id: clientRequestId,
+    });
+    dispatch.submitting = false;
+    if (isAvailableResult(result)) {
+      const review = buildTaskDispatchReview(task, this.contract);
+      dispatch.result = normalizeSteeringAccepted(result.data, review, result.correlation_id);
+      dispatch.confirm = false;
+      task.status = 'running';
+      if (dispatch.result.receipt?.receipt_id) {
+        this.state.snapshot.receipts = upsertReceipt(this.state.snapshot.receipts, dispatch.result.receipt);
+        this.state.selectedReceiptId = dispatch.result.receipt.receipt_id;
+      }
+    } else {
+      dispatch.error = {
+        reason: result.reason || result.state,
+        message: result.message || 'Task dispatch was not accepted.',
+        correlation_id: result.correlation_id,
+      };
+    }
+    this.state.activeTab = 'dispatch';
     this.update();
   }
 
@@ -622,6 +714,7 @@ export class AgentSupervisorApp {
         <section class="as-pane as-detail" aria-label="Active task and receipts">
           ${this.renderTabs()}
           ${this.state.activeTab === 'active' ? this.renderActiveTask() : ''}
+          ${this.state.activeTab === 'dispatch' ? this.renderDispatch() : ''}
           ${this.state.activeTab === 'steering' ? this.renderSteering() : ''}
           ${this.state.activeTab === 'receipts' ? this.renderReceipts() : ''}
           ${this.state.activeTab === 'health' ? this.renderBackendHealth() : ''}
@@ -684,6 +777,7 @@ export class AgentSupervisorApp {
   renderTabs() {
     const tabs = [
       ['active', 'Active task'],
+      ['dispatch', 'Dispatch'],
       ['steering', 'Steering'],
       ['receipts', 'Receipts'],
       ['health', 'Health'],
@@ -744,7 +838,7 @@ export class AgentSupervisorApp {
     const canSubmit = steering.targetId
       && steering.prompt.trim().length > 0
       && steering.prompt.trim().length <= 8000
-      && steering.confirm
+      && (steering.dryRun || steering.confirm)
       && !steering.submitting;
     return `
       <div class="as-detail-body as-steering" data-testid="steering-panel">
@@ -773,7 +867,11 @@ export class AgentSupervisorApp {
           <span>${escapeHtml(review.planned_mcp_action.required_policy_checks.join(', '))}</span>
         </div>
         <label class="as-confirm-line">
-          <input type="checkbox" data-steering-confirm data-testid="steering-confirm" ${steering.confirm ? 'checked' : ''}>
+          <input type="checkbox" data-steering-dry-run data-testid="steering-dry-run" ${steering.dryRun ? 'checked' : ''}>
+          <span>Dry run: review policy, receipt, and event-DAG output without mutating supervisor state.</span>
+        </label>
+        <label class="as-confirm-line">
+          <input type="checkbox" data-steering-confirm data-testid="steering-confirm" ${steering.confirm ? 'checked' : ''} ${steering.dryRun ? 'disabled' : ''}>
           <span>Confirm this governed prompt steering request for the reviewed target.</span>
         </label>
         <div class="as-actions as-steering-actions">
@@ -791,6 +889,70 @@ export class AgentSupervisorApp {
             ${metric('Receipt', result.receipt?.receipt_id || 'pending')}
             ${metric('CID', result.receipt?.cid || 'pending')}
             ${metric('Accepted', String(result.accepted))}
+            ${metric('Mode', result.dry_run ? 'dry-run' : 'confirmed')}
+            ${metric('Policy', result.policy_class || 'unknown')}
+            ${metric('Event DAG', result.event_dag?.cid || 'pending')}
+            ${metric('Event', result.event_dag?.event_type || 'governed-action')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  renderDispatch() {
+    const task = this.state.snapshot.queue.find(item => item.task_id === this.state.selectedTaskId);
+    const dispatch = this.state.dispatch;
+    const result = dispatch.result;
+    const error = dispatch.error;
+    const canSubmit = task && dispatch.reason.trim() && dispatch.confirm && !dispatch.submitting;
+    return `
+      <div class="as-detail-body as-dispatch" data-testid="dispatch-panel">
+        <div class="as-active-heading">
+          <span class="as-status ${task ? task.status : 'blocked'}"></span>
+          <div>
+            <h3>Governed task dispatch</h3>
+            <p>${escapeHtml(task ? `${task.task_id} ${task.title}` : 'No task selected')}</p>
+          </div>
+        </div>
+        <div class="as-inline-grid" data-testid="dispatch-review">
+          ${metric('Action', 'claim')}
+          ${metric('Policy class', 'privileged-control')}
+          ${metric('Owner', 'ipfs_accelerate_py')}
+          ${metric('Target', task ? `task:${task.task_id}` : 'unselected')}
+        </div>
+        <div class="as-section-line">
+          <h4>Planned MCP action</h4>
+          <code>agent_supervisor.task_control.request</code>
+          <span>Structured browser-safe request; no direct file or process access.</span>
+          <span>Checks target authorization, dependencies, confirmation, execution budget, receipt persistence, and event-DAG append.</span>
+        </div>
+        <label class="as-field">
+          <span>Dispatch reason</span>
+          <textarea data-dispatch-reason data-testid="dispatch-reason" maxlength="1000" spellcheck="false">${escapeHtml(dispatch.reason)}</textarea>
+        </label>
+        <label class="as-confirm-line">
+          <input type="checkbox" data-dispatch-confirm data-testid="dispatch-confirm" ${dispatch.confirm ? 'checked' : ''}>
+          <span>Confirm this governed task dispatch for the reviewed task and policy.</span>
+        </label>
+        <div class="as-actions as-steering-actions">
+          <button type="button" data-action="submit-dispatch" data-testid="dispatch-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}">${dispatch.submitting ? 'Dispatching' : 'Dispatch task'}</button>
+        </div>
+        ${error ? `
+          <div class="as-state as-error" data-testid="dispatch-error" role="alert">
+            <strong>${escapeHtml(error.reason)}</strong>
+            <span>${escapeHtml(error.message)}${error.correlation_id ? ` ${escapeHtml(error.correlation_id)}` : ''}</span>
+          </div>
+        ` : ''}
+        ${result ? `
+          <div class="as-steering-result" data-testid="dispatch-result">
+            ${metric('Correlation', result.correlation_id)}
+            ${metric('Receipt', result.receipt?.receipt_id || 'pending')}
+            ${metric('CID', result.receipt?.cid || 'pending')}
+            ${metric('Accepted', String(result.accepted))}
+            ${metric('Policy', result.policy_class || 'privileged-control')}
+            ${metric('Event DAG', result.event_dag?.cid || 'pending')}
+            ${metric('Event', result.event_dag?.event_type || 'task-dispatched')}
+            ${metric('State', task?.status || 'unknown')}
           </div>
         ` : ''}
       </div>
@@ -952,7 +1114,7 @@ export class AgentSupervisorApp {
         .as-status.healthy, .as-status.available, .as-status.ready, .as-status.completed { background: #5ee3a1; }
         .as-status.running, .as-status.waiting, .as-status.degraded { background: #ffd166; }
         .as-status.blocked, .as-status.failed, .as-status.unavailable { background: #ff6b6b; }
-        .as-tabs { display: grid; grid-template-columns: repeat(5, minmax(72px, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
+        .as-tabs { display: grid; grid-template-columns: repeat(6, minmax(66px, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
         .as-tabs button { border-radius: 0; border: 0; border-right: 1px solid #263a34; }
         .as-active-heading { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0 8px; }
         .as-active-heading p { margin: 4px 0 0; }
@@ -1140,7 +1302,7 @@ function localPromptSteeringResult(invocation, snapshot) {
       correlation_id: invocation.correlation_id,
     };
   }
-  if (!payload.confirmation_token) {
+  if (!payload.dry_run && !payload.confirmation_token) {
     return {
       state: 'denied',
       capability_id: invocation.capability_id,
@@ -1204,6 +1366,7 @@ function localPromptSteeringResult(invocation, snapshot) {
     },
   };
   const receipt = buildLocalSteeringReceipt(payload, review, invocation.correlation_id);
+  const eventDag = buildLocalEventDag(receipt, invocation.correlation_id, payload.dry_run ? 'prompt-steering-reviewed' : 'prompt-steering-confirmed');
   return {
     state: 'available',
     capability_id: invocation.capability_id,
@@ -1218,6 +1381,7 @@ function localPromptSteeringResult(invocation, snapshot) {
       affected_task_ids: affected,
       planned_mcp_action: review.planned_mcp_action,
       receipt,
+      event_dag: eventDag,
     },
     receipt,
     correlation_id: invocation.correlation_id,
@@ -1237,6 +1401,33 @@ function normalizeSteeringAccepted(data, review, correlationId) {
     affected_task_ids: Array.isArray(data?.affected_task_ids) ? data.affected_task_ids : review.affected_task_ids,
     planned_mcp_action: data?.planned_mcp_action || review.planned_mcp_action,
     receipt,
+    event_dag: data?.event_dag || null,
+  };
+}
+
+function buildTaskDispatchReview(task, contract) {
+  const capability = contract.capabilities.find(item => item.id === 'supervisor.task-control.request') || {};
+  return {
+    normalized_target: `task:${task.task_id}`,
+    policy_class: capability.policy_class || 'privileged-control',
+    affected_task_ids: [task.task_id],
+    planned_mcp_action: {
+      capability_id: 'supervisor.task-control.request',
+      method: capability.method || 'agent_supervisor.task_control.request',
+      owner: capability.owner || 'ipfs_accelerate_py',
+      access: capability.access || 'governed-write',
+      policy_class: capability.policy_class || 'privileged-control',
+      normalized_target: `task:${task.task_id}`,
+      transport_candidates: capability.transports || ['mcp', 'mcp++'],
+      input_mode: 'structured-json-payload',
+      required_policy_checks: [
+        'target_authorization',
+        'task_dependencies',
+        'confirmation_policy',
+        'execution_budget',
+        'receipt_persistence',
+      ],
+    },
   };
 }
 
@@ -1299,6 +1490,18 @@ function buildLocalSteeringReceipt(payload, review, correlationId) {
     receipt_id: `rcpt-prompt-steering-${digest}`,
     cid: `bafyagentprompt${digest}`,
     owner: 'ipfs_kit_py',
+    created_at: new Date().toISOString(),
+  };
+}
+
+function buildLocalEventDag(receiptRef, correlationId, eventType) {
+  const digest = stableDigest(stableStringify({ receipt_cid: receiptRef.cid, correlation_id: correlationId, event_type: eventType }));
+  return {
+    event_id: `evt-agent-supervisor-${digest}`,
+    cid: `bafyagentevent${digest}`,
+    receipt_cid: receiptRef.cid,
+    owner: 'ipfs_kit_py',
+    event_type: eventType,
     created_at: new Date().toISOString(),
   };
 }

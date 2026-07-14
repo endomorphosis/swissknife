@@ -50,6 +50,15 @@ export interface AgentSupervisorReceiptRef {
   created_at?: string;
 }
 
+export interface AgentSupervisorEventDagRef {
+  event_id: string;
+  cid: string;
+  receipt_cid: string;
+  owner: 'ipfs_kit_py';
+  event_type: string;
+  created_at?: string;
+}
+
 export interface AgentSupervisorCapabilityDescriptor {
   id: AgentSupervisorCapabilityId;
   title: string;
@@ -267,4 +276,5 @@ export interface AgentSupervisorGovernedActionAccepted {
   affected_task_ids: readonly string[];
   planned_mcp_action: AgentSupervisorPlannedMCPAction;
   receipt: AgentSupervisorReceiptRef;
+  event_dag?: AgentSupervisorEventDagRef;
 }

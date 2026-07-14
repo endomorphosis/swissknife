@@ -198,6 +198,19 @@
       },
       "additionalProperties": false
     },
+    "eventDagRef": {
+      "type": "object",
+      "required": ["event_id", "cid", "receipt_cid", "owner", "event_type"],
+      "properties": {
+        "event_id": { "type": "string", "minLength": 1 },
+        "cid": { "type": "string", "minLength": 1 },
+        "receipt_cid": { "type": "string", "minLength": 1 },
+        "owner": { "type": "string", "const": "ipfs_kit_py" },
+        "event_type": { "type": "string", "minLength": 1 },
+        "created_at": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "gatewayInvocation": {
       "type": "object",
       "required": ["capability_id", "owner", "method", "access", "policy_class", "payload"],
@@ -461,7 +474,8 @@
         "policy_class": { "$ref": "#/$defs/policyClass" },
         "affected_task_ids": { "type": "array", "items": { "type": "string" } },
         "planned_mcp_action": { "$ref": "#/$defs/plannedMcpAction" },
-        "receipt": { "$ref": "#/$defs/receiptRef" }
+        "receipt": { "$ref": "#/$defs/receiptRef" },
+        "event_dag": { "$ref": "#/$defs/eventDagRef" }
       },
       "additionalProperties": false
     },

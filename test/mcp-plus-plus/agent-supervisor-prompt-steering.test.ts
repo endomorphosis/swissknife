@@ -145,6 +145,11 @@ describe('Agent Supervisor governed prompt steering', () => {
       expect(result.data.normalized_target).toBe('subgoal:SWR-106-policy');
       expect(result.data.affected_task_ids).toEqual(['SWR-106-1', 'SWR-106-2']);
       expect(result.data.receipt.owner).toBe('ipfs_kit_py');
+      expect(result.data.event_dag).toMatchObject({
+        owner: 'ipfs_kit_py',
+        receipt_cid: result.data.receipt.cid,
+        event_type: 'prompt-steering-confirmed',
+      });
       expect(result.data.planned_mcp_action.input_mode).toBe('structured-json-payload');
       expect(JSON.stringify(result.data)).not.toContain('Preserve confirmation policy');
     }
