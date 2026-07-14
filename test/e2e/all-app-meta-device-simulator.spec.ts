@@ -21,12 +21,24 @@ const CONTRACT_PATH = path.join(EVIDENCE_ROOT, 'app-backend-contract.json');
 const UPSTREAM_HANDOFF_PATH = path.join(EVIDENCE_ROOT, 'all-app-live-orb-idl-handoff.json');
 const SCREENSHOT_ROOT = path.join(EVIDENCE_ROOT, 'app-screenshots', 'meta-device-simulator');
 const MODALITIES = ['display', 'camera', 'microphone', 'speaker', 'input'] as const;
+const REPLAY_SCENARIOS = ['primary', 'permission_denied', 'route_unavailable'] as const;
 const VALIDATION_COMMANDS = [
   'node scripts/run_playwright_test.mjs test -c playwright.config.ts test/e2e/all-app-meta-device-simulator.spec.ts --reporter=line',
   'npm run test:e2e:meta-glasses -- --reporter=line',
 ] as const;
 
 type Modality = typeof MODALITIES[number];
+type ReplayScenario = typeof REPLAY_SCENARIOS[number];
+
+interface SimulatorModalityFlow {
+  scenario: ReplayScenario;
+  result: string;
+  decision: string;
+  fallback_surface: string;
+  raw_payload_captured: false;
+  receipt_refs: string[];
+  event_dag_refs: string[];
+}
 
 interface SimulatorSnapshot {
   packet_id: string;
@@ -37,6 +49,8 @@ interface SimulatorSnapshot {
   decision: string;
   decision_history: string[];
   modality_results: Record<Modality, string>;
+  modality_scenarios: Record<Modality, ReplayScenario | ''>;
+  modality_history: Record<Modality, SimulatorModalityFlow[]>;
   fallback_surface: string;
   rollback_state: string;
   receipt_refs: string[];
@@ -125,6 +139,7 @@ interface ModalityReplayEvidence {
     user_visible: boolean;
   };
   states_replayed: string[];
+  flows: Array<SimulatorModalityFlow & { receipt_refs_preserved: boolean }>;
   receipt_refs_preserved: boolean;
 }
 
@@ -135,7 +150,7 @@ interface BrowserFailure {
 
 interface DeviceSimulatorApi {
   loadPacket: (packet: AllAppLiveOrbIdlHandoffPacket & { app_title: string }) => void;
-  replayModality: (modality: Modality) => void;
+  replayModality: (modality: Modality, scenario: ReplayScenario) => void;
   snapshot: () => SimulatorSnapshot;
   runSafetyProbe: (kind: 'camera' | 'microphone' | 'speaker', decision: 'allow' | 'deny' | 'fallback') => void;
 }
@@ -210,8 +225,25 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       await expect(page.getByTestId('activation-state')).toContainText(packet.method_id);
 
       for (const modality of MODALITIES) {
-        await page.evaluate(value => window.metaDeviceSimulator.replayModality(value), modality);
-        await expect(page.getByTestId(`modality-${modality}`)).not.toBeEmpty();
+        for (const scenario of REPLAY_SCENARIOS) {
+          await page.evaluate(
+            input => window.metaDeviceSimulator.replayModality(input.modality, input.scenario),
+            { modality, scenario },
+          );
+          await expect(page.getByTestId(`modality-${modality}`)).toContainText(`${scenario}:`);
+          await expect(page.getByTestId('operator-decision')).toContainText(
+            scenario === 'primary'
+              ? `modality_${modality}_policy_`
+              : scenario === 'permission_denied'
+                ? `modality_${modality}_operator_denied`
+                : `modality_${modality}_route_unavailable`,
+          );
+          const replaySnapshot = await snapshot(page);
+          const observedFlow = replaySnapshot.modality_history[modality].at(-1);
+          expect(observedFlow).toMatchObject({ scenario, raw_payload_captured: false });
+          expect(sameValues(observedFlow?.receipt_refs ?? [], receiptBefore.receipt_refs)).toBe(true);
+          expect(sameValues(observedFlow?.event_dag_refs ?? [], receiptBefore.event_dag_refs)).toBe(true);
+        }
       }
 
       await page.getByTestId('simulate-failure').click();
@@ -237,6 +269,9 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       expect(receiptAfter.modality_results.camera).toMatch(/^camera_(?:metadata_ref|unavailable_[a-z_]+_fallback)$/);
       expect(receiptAfter.modality_results.microphone).toMatch(/^(?:redacted_transcript|microphone_unavailable_[a-z_]+_transcription_fallback)$/);
       expect(receiptAfter.modality_results.speaker).toMatch(/^(?:audio_summary_headphone_fallback|speaker_unavailable_[a-z_]+_audio_fallback)$/);
+      for (const modality of MODALITIES) {
+        expect(receiptAfter.modality_history[modality].map(flow => flow.scenario)).toEqual(REPLAY_SCENARIOS);
+      }
 
       results.push({
         packet_id: packet.packet_id,
@@ -291,6 +326,11 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
     expect(results.every(result => result.receipt_preservation.preserved)).toBe(true);
     expect(results.every(result => result.fallback.user_visible)).toBe(true);
     expect(browserFailures).toEqual([]);
+    const declaredScreenshots = [safetyProbes.screenshot, ...results.map(result => result.screenshot)];
+    const screenshotsCreated = declaredScreenshots.every(relativePath => {
+      const absolutePath = path.resolve(process.cwd(), relativePath);
+      return fs.existsSync(absolutePath) && fs.statSync(absolutePath).size > 0;
+    });
 
     const report = {
       schema: REPORT_SCHEMA,
@@ -352,6 +392,20 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
           result.modality_replays[modality].modality === modality
           && result.modality_replays[modality].receipt_refs_preserved
         ))),
+        primary_denial_and_unavailable_flows_replayed: results.every(result => MODALITIES.every(modality => (
+          sameValues(
+            result.modality_replays[modality].flows.map(flow => flow.scenario),
+            REPLAY_SCENARIOS,
+          )
+        ))),
+        receipts_preserved_across_every_modality_flow: results.every(result => MODALITIES.every(modality => (
+          result.modality_replays[modality].flows.every(flow => flow.receipt_refs_preserved)
+        ))),
+        raw_media_suppressed_across_every_modality_flow: results.every(result => MODALITIES.every(modality => (
+          result.modality_replays[modality].flows.every(flow => !flow.raw_payload_captured)
+        ))),
+        report_and_screenshots_created: screenshotsCreated
+          && declaredScreenshots.length === catalog.packet_count + 1,
         zero_browser_errors: browserFailures.length === 0,
       },
       modality_summary: Object.fromEntries(MODALITIES.map(modality => [
@@ -363,12 +417,19 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       platform_safety_probes: safetyProbes,
       browser_failures: browserFailures,
       screenshot_root: path.relative(process.cwd(), SCREENSHOT_ROOT),
+      output_manifest: {
+        report: path.relative(process.cwd(), REPORT_PATH),
+        screenshot_count: declaredScreenshots.length,
+        screenshots: declaredScreenshots,
+      },
       packets: results,
     };
 
     expect(Object.values(report.acceptance).every(Boolean)).toBe(true);
     fs.mkdirSync(EVIDENCE_ROOT, { recursive: true });
     fs.writeFileSync(REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+    expect(fs.statSync(REPORT_PATH).size).toBeGreaterThan(0);
+    expect(JSON.parse(fs.readFileSync(REPORT_PATH, 'utf8'))).toEqual(report);
   });
 });
 
@@ -446,6 +507,16 @@ function buildModalityReplayEvidence(
           : modality === 'speaker'
             ? replay.audio_route
             : replay.focused_action;
+    const flows = replay.modality_history[modality].map(flow => ({
+      ...flow,
+      receipt_refs_preserved: sameValues(
+        flow.receipt_refs,
+        packet.receipt_refs.map(reference => reference.cid),
+      ) && sameValues(
+        flow.event_dag_refs,
+        packet.event_dag_refs.map(reference => reference.cid),
+      ),
+    }));
     const evidence: ModalityReplayEvidence = {
       modality,
       availability: constraint.availability,
@@ -464,7 +535,8 @@ function buildModalityReplayEvidence(
         user_visible: constraint.fallback_surface !== 'none',
       },
       states_replayed: statesReplayed,
-      receipt_refs_preserved: receiptRefsPreserved,
+      flows,
+      receipt_refs_preserved: receiptRefsPreserved && flows.every(flow => flow.receipt_refs_preserved),
     };
     return [modality, evidence] as const;
   });
@@ -492,7 +564,7 @@ async function replayPlatformSafetyProbes(page: Page): Promise<PlatformSafetyPro
   await expect(page.getByTestId('probe-log')).toContainText('speaker:route_unavailable:mobile_audio_fallback');
 
   const screenshotPath = path.join(SCREENSHOT_ROOT, '00-platform-safety-probes.png');
-  await page.getByTestId('device-shell').screenshot({ path: screenshotPath });
+  await page.locator('main').screenshot({ path: screenshotPath });
   return {
     status: 'passed',
     camera: ['permission_granted_metadata_ref_only', 'permission_denied_mobile_fallback', 'route_unavailable_mobile_fallback'],
@@ -620,6 +692,8 @@ function renderSimulatorHtml(): string {
         return {
           phase: 'idle', focused_action: '', activation: '', decision: 'none', decision_history: [],
           modality_results: { display: '', camera: '', microphone: '', speaker: '', input: '' },
+          modality_scenarios: { display: '', camera: '', microphone: '', speaker: '', input: '' },
+          modality_history: { display: [], camera: [], microphone: [], speaker: [], input: [] },
           fallback_surface: '', rollback_state: '', receipt_refs: [], event_dag_refs: [],
           camera_ref: '', transcript: '', audio_route: '',
         };
@@ -647,6 +721,7 @@ function renderSimulatorHtml(): string {
         if (!packet) return;
         const modalityHtml = ['display', 'camera', 'microphone', 'speaker', 'input'].map(kind =>
           '<div class="value" data-testid="modality-' + kind + '">' + escape(kind) + ': '
+            + escape(state.modality_scenarios[kind] || 'pending') + ': '
             + escape(state.modality_results[kind] || 'pending') + '</div>',
         ).join('');
         viewport.innerHTML = [
@@ -729,39 +804,65 @@ function renderSimulatorHtml(): string {
           state.event_dag_refs = packet.event_dag_refs.map(item => item.cid);
           render();
         },
-        replayModality(kind) {
+        replayModality(kind, scenario) {
           const item = constraint(kind);
+          const fallbackSurface = item.fallback_surface || packet.fallback_selection.target_surface;
+          const primaryAllowed = item.allowed && item.availability === 'available';
+          state.modality_scenarios[kind] = scenario;
+          if (scenario === 'primary') {
+            decide('modality_' + kind + '_policy_' + (primaryAllowed ? 'allowed' : 'degraded'));
+            state.phase = primaryAllowed ? 'safe_modality_primary_visible' : 'safe_modality_fallback_visible';
+          } else if (scenario === 'permission_denied') {
+            decide('modality_' + kind + '_operator_denied');
+            applyFallback(fallbackSurface);
+            state.phase = 'modality_denied_fallback_visible';
+          } else {
+            decide('modality_' + kind + '_route_unavailable');
+            applyFallback(fallbackSurface);
+            state.phase = 'modality_unavailable_fallback_visible';
+          }
           if (kind === 'display') {
-            state.modality_results.display = item.allowed
+            state.modality_results.display = scenario === 'primary' && primaryAllowed
               ? 'safe_display_direct_projection'
               : 'safe_display_fallback_projection';
           } else if (kind === 'camera') {
-            if (item.availability === 'unsupported') {
-              state.modality_results.camera = 'camera_unavailable_' + item.fallback_surface + '_fallback';
+            if (scenario !== 'primary' || !primaryAllowed) {
+              state.modality_results.camera = 'camera_unavailable_' + fallbackSurface + '_fallback';
               state.camera_ref = 'none_raw_pixels_redacted';
             } else {
               state.modality_results.camera = 'camera_metadata_ref';
               state.camera_ref = 'ipfs://simulator/camera-metadata-ref';
             }
           } else if (kind === 'microphone') {
-            if (item.availability === 'unsupported') {
-              state.modality_results.microphone = 'microphone_unavailable_' + item.fallback_surface + '_transcription_fallback';
-              state.transcript = item.fallback_surface + '_transcription_fallback_raw_audio_redacted';
+            if (scenario !== 'primary' || !primaryAllowed) {
+              state.modality_results.microphone = 'microphone_unavailable_' + fallbackSurface + '_transcription_fallback';
+              state.transcript = fallbackSurface + '_transcription_fallback_raw_audio_redacted';
             } else {
               state.modality_results.microphone = 'redacted_transcript';
               state.transcript = 'redacted_transcript_available';
             }
           } else if (kind === 'speaker') {
-            if (item.availability === 'fallback_only') {
+            if (scenario === 'primary' && item.availability === 'fallback_only') {
               state.modality_results.speaker = 'audio_summary_headphone_fallback';
               state.audio_route = 'simulator_headphones_or_mobile_audio';
             } else {
-              state.modality_results.speaker = 'speaker_unavailable_' + item.fallback_surface + '_audio_fallback';
-              state.audio_route = item.fallback_surface + '_audio_fallback';
+              state.modality_results.speaker = 'speaker_unavailable_' + fallbackSurface + '_audio_fallback';
+              state.audio_route = fallbackSurface + '_audio_fallback';
             }
           } else {
-            state.modality_results.input = item.read_only ? 'focus_read_only' : 'focus_activation_ready';
+            state.modality_results.input = scenario === 'primary'
+              ? item.read_only ? 'focus_read_only' : 'focus_activation_ready'
+              : 'input_' + scenario + '_' + fallbackSurface + '_fallback';
           }
+          state.modality_history[kind].push({
+            scenario,
+            result: state.modality_results[kind],
+            decision: state.decision,
+            fallback_surface: scenario === 'primary' && primaryAllowed ? item.primary_surface : fallbackSurface,
+            raw_payload_captured: false,
+            receipt_refs: [...state.receipt_refs],
+            event_dag_refs: [...state.event_dag_refs],
+          });
           render();
         },
         snapshot() {
