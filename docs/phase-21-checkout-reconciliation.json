@@ -1,0 +1,766 @@
+{
+  "schemaVersion": 1,
+  "taskId": "SWR-134",
+  "generatedAt": "2026-07-13T14:54:14-07:00",
+  "observationScope": "Baseline records immutable HEAD/index/worktree state before SWR-134 writes. Current-state sections include the seven authorized SWR-134 changes: three expected reconciliation outputs plus parseability/invalidation remediation for the four canonical JSON files required by validation.",
+  "decision": "NO_GO",
+  "authoritative": true,
+  "boardStatusIsEvidence": false,
+  "summary": {
+    "phase20ClaimsValidForCurrentCheckout": false,
+    "parentGitlinkMatchesSwissknifeHead": true,
+    "baselineWorktreesClean": true,
+    "baselineConflictPathCount": 21,
+    "baselineConflictMarkerLineCount": 276,
+    "unmergedIndexPathCount": 0,
+    "canonicalJsonParseFailures": 0,
+    "durableRecoveryCommitCount": 0,
+    "durableStashCount": 0,
+    "danglingRecoveryCandidateCount": 1,
+    "releaseBlockerCount": 5,
+    "baselineCanonicalJsonParseFailures": 4,
+    "currentCanonicalJsonParseFailures": 0,
+    "currentConflictPathCount": 16,
+    "currentConflictMarkerLineCount": 180
+  },
+  "checkout": {
+    "parentRepository": {
+      "head": "d7b240dd71fb887d7aa72dd867b0a098ec9c062f",
+      "parent": "94bcdfb823c174f4f61163235521e4352c5413b9",
+      "treeSubject": "IROH-017: mark todo completed",
+      "committedAt": "2026-07-13T13:55:31-07:00",
+      "branch": "implementation/swr-134-attempt-2-1783979434",
+      "worktreeStatus": "clean",
+      "porcelainV2Changes": [],
+      "headGitlink": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c",
+      "indexGitlink": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c",
+      "gitlinkMode": "160000"
+    },
+    "swissknifeRepository": {
+      "head": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c",
+      "parent": "8cfb53a28a01e1b7d13eb64da4df2f3292f34b3a",
+      "tree": "52019e578cd66ef1260f5c283c3b0d42e2b8d15a",
+      "treeSubject": "feat: restore profile-h adapter evidence",
+      "committedAt": "2026-07-12T22:53:57-07:00",
+      "branch": "implementation/swr-134-attempt-2-1783979434-submodule-swissknife",
+      "worktreeStatus": "clean",
+      "porcelainV2Changes": [],
+      "unmergedIndexPaths": []
+    },
+    "afterReconciliationWrites": {
+      "parentPorcelainV2": [
+        "1 .M S.MU 160000 160000 160000 8f291a24ea7b635a8ef804dca66c0fe2d6236f2c 8f291a24ea7b635a8ef804dca66c0fe2d6236f2c swissknife"
+      ],
+      "swissknifePorcelainV2": [
+        "1 .M N... 100644 100644 100644 49127c1fc40d267bf2ba1d97ea58997ddd84be40 49127c1fc40d267bf2ba1d97ea58997ddd84be40 docs/refactor-final-signoff.md",
+        "1 .M N... 100644 100644 100644 d05e1e33e1a7f403614777106cc345cf3422eb28 d05e1e33e1a7f403614777106cc345cf3422eb28 docs/release-evidence-freshness.json",
+        "1 .M N... 100644 100644 100644 3cbf5c363768c8d9b182c3ccacf5c78e01b99d0d 3cbf5c363768c8d9b182c3ccacf5c78e01b99d0d docs/release-readiness-report.json",
+        "1 .M N... 100644 100644 100644 04fa75ae4175f318099f2c232192d1979d4aab3e 04fa75ae4175f318099f2c232192d1979d4aab3e docs/service-boundary-audit.json",
+        "1 .M N... 100644 100644 100644 94940a8783ca4fd1619859af80f772da9f453666 94940a8783ca4fd1619859af80f772da9f453666 src/module-ownership.json",
+        "? docs/phase-21-checkout-reconciliation.json",
+        "? docs/phase-21-checkout-reconciliation.md"
+      ],
+      "interpretation": "These are the three required SWR-134 outputs and four validation-remediation files. The parent gitlink object remains unchanged; S.MU reports modified/untracked submodule worktree content. The four canonical JSON files are parseable but explicitly invalidated, not accepted as regenerated evidence."
+    },
+    "interpretation": "The parent HEAD and index pin the exact checked-out SwissKnife HEAD. The clean status proves only that the conflict-bearing files equal the committed tree; it does not prove conflict freedom or release readiness."
+  },
+  "boardProvenance": {
+    "path": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
+    "parentBlob": "1fba8c898f35406977a870dc0a45a6d554415512",
+    "lastChangeCommit": "f7a02e7bbf0cb75e8f21f578376c960e03f569d6",
+    "lastChangeCommittedAt": "2026-07-13T11:49:08-07:00",
+    "phase20TaskStatuses": {
+      "SWR-124": "completed",
+      "SWR-125": "completed",
+      "SWR-126": "completed",
+      "SWR-127": "completed",
+      "SWR-128": "completed",
+      "SWR-129": "completed",
+      "SWR-130": "completed",
+      "SWR-131": "completed",
+      "SWR-132": "completed",
+      "SWR-133": "completed",
+      "SWR-134": "ready"
+    },
+    "phase20Claim": {
+      "claimedRunStart": "2026-07-13T14:34:45.300Z",
+      "claimedRunEnd": "2026-07-13T14:42:12.260Z",
+      "claimedConflictResolvedPaths": 21,
+      "claimedRootOwnershipMoves": 12,
+      "claimedInventoryItems": 88,
+      "claimedClassifiedOperations": 158,
+      "claimedProofRunId": "714f6b1f-18c6-42f5-944a-46318d8c3dfc",
+      "claimedProofAssertionsPassed": 40,
+      "claimedProofAssertionsTotal": 40,
+      "claimedFreshnessGroups": 6,
+      "claimedReleaseGatesPassed": 15,
+      "claimedReleaseGateTotal": 15,
+      "claimedReleaseDecision": "GO"
+    },
+    "evidentiaryStatus": "historical_metadata_only"
+  },
+  "activeConflicts": {
+    "detection": "Conflict blocks with an opening run of seven or more '<', a separator run of seven or more '=', and a closing run of seven or more '>'; docs/archived, node_modules, dist, and build directories excluded. Standalone decorative '=' runs are excluded.",
+    "baselinePathCount": 21,
+    "baselineMarkerLineCount": 276,
+    "paths": [
+      {
+        "path": "src/module-ownership.json",
+        "markerLineCount": 27,
+        "firstMarkerLine": 180
+      },
+      {
+        "path": "src/services/mcp/mcp-mcp-deontic-ui-manifest.ts",
+        "markerLineCount": 3,
+        "firstMarkerLine": 46
+      },
+      {
+        "path": "scripts/build-virtual-desktop-release-evidence.cjs",
+        "markerLineCount": 9,
+        "firstMarkerLine": 18
+      },
+      {
+        "path": "scripts/capture-hierarchical-mcp-tools-evidence.cjs",
+        "markerLineCount": 3,
+        "firstMarkerLine": 450
+      },
+      {
+        "path": "scripts/capture-mcp-live-probe-evidence.cjs",
+        "markerLineCount": 3,
+        "firstMarkerLine": 51
+      },
+      {
+        "path": "scripts/release-readiness-gate.mjs",
+        "markerLineCount": 6,
+        "firstMarkerLine": 56
+      },
+      {
+        "path": "test/e2e/fixtures/libp2p-browser-harness/harness.ts",
+        "markerLineCount": 6,
+        "firstMarkerLine": 319
+      },
+      {
+        "path": "docs/browser-bundle-budget.fingerprint.json",
+        "markerLineCount": 9,
+        "firstMarkerLine": 5
+      },
+      {
+        "path": "docs/browser-bundle-budget.json",
+        "markerLineCount": 87,
+        "firstMarkerLine": 13
+      },
+      {
+        "path": "docs/browser-bundle-budget.md",
+        "markerLineCount": 18,
+        "firstMarkerLine": 20
+      },
+      {
+        "path": "docs/browser-deployment-policy.md",
+        "markerLineCount": 3,
+        "firstMarkerLine": 51
+      },
+      {
+        "path": "docs/browser-libp2p-evidence.fingerprint.json",
+        "markerLineCount": 9,
+        "firstMarkerLine": 5
+      },
+      {
+        "path": "docs/refactor-final-signoff.md",
+        "markerLineCount": 6,
+        "firstMarkerLine": 3
+      },
+      {
+        "path": "docs/release-evidence-freshness.json",
+        "markerLineCount": 12,
+        "firstMarkerLine": 3
+      },
+      {
+        "path": "docs/release-evidence-freshness.md",
+        "markerLineCount": 3,
+        "firstMarkerLine": 11
+      },
+      {
+        "path": "docs/release-readiness-report.json",
+        "markerLineCount": 42,
+        "firstMarkerLine": 3
+      },
+      {
+        "path": "docs/release-readiness-report.md",
+        "markerLineCount": 12,
+        "firstMarkerLine": 3
+      },
+      {
+        "path": "docs/service-boundary-audit.fingerprint.json",
+        "markerLineCount": 3,
+        "firstMarkerLine": 5
+      },
+      {
+        "path": "docs/service-boundary-audit.json",
+        "markerLineCount": 9,
+        "firstMarkerLine": 228
+      },
+      {
+        "path": "docs/virtual-desktop-all-tools-app-coverage.md",
+        "markerLineCount": 3,
+        "firstMarkerLine": 3
+      },
+      {
+        "path": "docs/virtual-desktop-tool-ui-smoke-evidence.md",
+        "markerLineCount": 3,
+        "firstMarkerLine": 101
+      }
+    ],
+    "afterReconciliationWrites": {
+      "pathCount": 16,
+      "markerLineCount": 180,
+      "removedFromActiveSet": [
+        "src/module-ownership.json",
+        "docs/refactor-final-signoff.md",
+        "docs/release-evidence-freshness.json",
+        "docs/release-readiness-report.json",
+        "docs/service-boundary-audit.json"
+      ],
+      "meaning": "The required signoff was superseded, and the four validation JSON files were reconciled to parseable data with explicit invalid-for-current-checkout metadata. No remaining Phase 20 source, test, generator, or evidence conflict was repaired by SWR-134."
+    },
+    "currentPaths": [
+      {
+        "path": "src/services/mcp/mcp-mcp-deontic-ui-manifest.ts",
+        "markerLineCount": 3,
+        "firstMarkerLine": 46
+      },
+      {
+        "path": "scripts/build-virtual-desktop-release-evidence.cjs",
+        "markerLineCount": 9,
+        "firstMarkerLine": 18
+      },
+      {
+        "path": "scripts/capture-hierarchical-mcp-tools-evidence.cjs",
+        "markerLineCount": 3,
+        "firstMarkerLine": 450
+      },
+      {
+        "path": "scripts/capture-mcp-live-probe-evidence.cjs",
+        "markerLineCount": 3,
+        "firstMarkerLine": 51
+      },
+      {
+        "path": "scripts/release-readiness-gate.mjs",
+        "markerLineCount": 6,
+        "firstMarkerLine": 56
+      },
+      {
+        "path": "test/e2e/fixtures/libp2p-browser-harness/harness.ts",
+        "markerLineCount": 6,
+        "firstMarkerLine": 319
+      },
+      {
+        "path": "docs/browser-bundle-budget.fingerprint.json",
+        "markerLineCount": 9,
+        "firstMarkerLine": 5
+      },
+      {
+        "path": "docs/browser-bundle-budget.json",
+        "markerLineCount": 87,
+        "firstMarkerLine": 13
+      },
+      {
+        "path": "docs/browser-bundle-budget.md",
+        "markerLineCount": 18,
+        "firstMarkerLine": 20
+      },
+      {
+        "path": "docs/browser-deployment-policy.md",
+        "markerLineCount": 3,
+        "firstMarkerLine": 51
+      },
+      {
+        "path": "docs/browser-libp2p-evidence.fingerprint.json",
+        "markerLineCount": 9,
+        "firstMarkerLine": 5
+      },
+      {
+        "path": "docs/release-evidence-freshness.md",
+        "markerLineCount": 3,
+        "firstMarkerLine": 11
+      },
+      {
+        "path": "docs/release-readiness-report.md",
+        "markerLineCount": 12,
+        "firstMarkerLine": 3
+      },
+      {
+        "path": "docs/service-boundary-audit.fingerprint.json",
+        "markerLineCount": 3,
+        "firstMarkerLine": 5
+      },
+      {
+        "path": "docs/virtual-desktop-all-tools-app-coverage.md",
+        "markerLineCount": 3,
+        "firstMarkerLine": 3
+      },
+      {
+        "path": "docs/virtual-desktop-tool-ui-smoke-evidence.md",
+        "markerLineCount": 3,
+        "firstMarkerLine": 101
+      }
+    ]
+  },
+  "canonicalJsonValidation": [
+    {
+      "path": "src/module-ownership.json",
+      "blob": "94940a8783ca4fd1619859af80f772da9f453666",
+      "error": "Expected double-quoted property name in JSON at position 7815 (line 180 column 1)",
+      "recoveryBlob": "1bc54c54bd1be547b1873718c2505b637722df11",
+      "baselineValidJson": false,
+      "currentValidJson": true,
+      "currentWorktreeBlob": "6ca6e505ee74a7a993c0fb0204ac426c30f05671",
+      "resolution": "Selected the committed Updated-upstream side of each JSON conflict to preserve the manifest matching baseline source; this restores syntax only and is not architecture-gate proof.",
+      "evidentiaryStatus": "parseable_but_not_current_source_proof"
+    },
+    {
+      "path": "docs/release-readiness-report.json",
+      "blob": "3cbf5c363768c8d9b182c3ccacf5c78e01b99d0d",
+      "error": "Expected double-quoted property name in JSON at position 24 (line 3 column 1)",
+      "recoveryBlob": "62055a16f51cc6d12d7d1165fd3e683325c1f530",
+      "baselineValidJson": false,
+      "currentValidJson": true,
+      "currentWorktreeBlob": "61ebae3a7ef33c33ed7dab341dd821ab38506c52",
+      "resolution": "Selected the committed Updated-upstream structure, then added SWR-134 invalid-for-current-checkout provenance; historical success/freshness counts are not accepted.",
+      "evidentiaryStatus": "parseable_but_not_current_source_proof"
+    },
+    {
+      "path": "docs/release-evidence-freshness.json",
+      "blob": "d05e1e33e1a7f403614777106cc345cf3422eb28",
+      "error": "Expected double-quoted property name in JSON at position 24 (line 3 column 1)",
+      "recoveryBlob": "0f33583b95ddfa9bad3a8423de0279e9c4d5f560",
+      "baselineValidJson": false,
+      "currentValidJson": true,
+      "currentWorktreeBlob": "5c8d952e44d0447891afe9baf9ddef38683f958c",
+      "resolution": "Selected the committed Updated-upstream structure, then added SWR-134 invalid-for-current-checkout provenance; historical success/freshness counts are not accepted.",
+      "evidentiaryStatus": "parseable_but_not_current_source_proof"
+    },
+    {
+      "path": "docs/service-boundary-audit.json",
+      "blob": "04fa75ae4175f318099f2c232192d1979d4aab3e",
+      "error": "Expected double-quoted property name in JSON at position 5382 (line 228 column 1)",
+      "recoveryBlob": "356e0e0643c3d33a7ca35f97aa31afffbca6ba21",
+      "baselineValidJson": false,
+      "currentValidJson": true,
+      "currentWorktreeBlob": "9e64282c347f2b2a4b76b7d1ee2b2b047e819e28",
+      "resolution": "Selected the committed Updated-upstream structure, then added SWR-134 invalid-for-current-checkout provenance; historical success/freshness counts are not accepted.",
+      "evidentiaryStatus": "parseable_but_not_current_source_proof"
+    }
+  ],
+  "taskOutputProvenance": [
+    {
+      "taskId": "SWR-124",
+      "boardStatus": "completed",
+      "claimStatus": "invalid_for_current_checkout",
+      "declaredOutputs": [
+        "src/module-ownership.json",
+        "scripts/release-readiness-gate.mjs",
+        "scripts/build-virtual-desktop-release-evidence.cjs",
+        "scripts/capture-hierarchical-mcp-tools-evidence.cjs",
+        "scripts/capture-mcp-live-probe-evidence.cjs",
+        "test/e2e/fixtures/libp2p-browser-harness/harness.ts",
+        "docs/release-readiness-report.json",
+        "docs/release-evidence-freshness.json",
+        "docs/service-boundary-audit.json"
+      ],
+      "currentState": "All 9 are present. The 4 canonical JSON files now parse but are explicitly invalidated; the other 5 outputs remain conflict-bearing. SWR-124 remains invalid for current-source proof.",
+      "currentLastChange": "6651a7279b1799b8629fcf5e95caaf07cb8accbc",
+      "recoveryCoverage": "All 9 have conflict-free replacements in f2eb814a...",
+      "baselineState": "All 9 are present, all 9 differ from the dangling recovery tree, all 9 are conflict-bearing, and the 4 JSON outputs do not parse."
+    },
+    {
+      "taskId": "SWR-125",
+      "boardStatus": "completed",
+      "claimStatus": "unproven_for_current_checkout",
+      "declaredOutputs": [
+        "src/services/deontic",
+        "src/services/logic",
+        "src/services/proof-engine",
+        "src/services/provers",
+        "src/services/zkp",
+        "src/module-ownership.json",
+        "test/architecture/source-module-boundaries.test.js"
+      ],
+      "currentState": "All 7 paths are present. The ownership manifest is invalid; proof-engine, provers, zkp, the manifest, and the architecture test differ from f2eb814a.... Deontic and logic tree objects match the candidate.",
+      "recoveryCoverage": "All 7 are present in f2eb814a..."
+    },
+    {
+      "taskId": "SWR-126",
+      "boardStatus": "completed",
+      "claimStatus": "invalid_for_current_checkout",
+      "declaredOutputs": [
+        "src/module-ownership.json",
+        "scripts/audit-source-modules.mjs",
+        "docs/service-module-dependency-graph.json",
+        "docs/service-module-public-api.md",
+        "test/architecture/source-module-boundaries.test.js"
+      ],
+      "currentMissing": [
+        "docs/service-module-dependency-graph.json",
+        "docs/service-module-public-api.md"
+      ],
+      "currentState": "The ownership manifest now parses after syntax reconciliation, but the two documentation outputs remain missing and no current architecture audit can run through the conflicted generators.",
+      "recoveryCoverage": "All 5 are present in f2eb814a..."
+    },
+    {
+      "taskId": "SWR-127",
+      "boardStatus": "completed",
+      "claimStatus": "unproven_for_current_checkout",
+      "declaredOutputs": [
+        "web/js/core/app-capability-gateway.js",
+        "web/js/apps/mcp-control.js",
+        "scripts/audit-browser-compat.mjs",
+        "docs/browser-compatibility-inventory.md",
+        "test/browser-compat"
+      ],
+      "currentState": "All 5 are present but every object differs from f2eb814a.... The inventory Markdown last changed before Phase 20 and current conflicted prerequisite inputs prevent current-source proof.",
+      "recoveryCoverage": "All 5 are present in f2eb814a..."
+    },
+    {
+      "taskId": "SWR-128",
+      "boardStatus": "completed",
+      "claimStatus": "invalid_for_current_checkout",
+      "declaredOutputs": [
+        "src/services/mcp/libp2p-browser-runtime.ts",
+        "test/e2e/fixtures/libp2p-browser-harness",
+        "test/e2e/libp2p-browser.spec.ts",
+        "docs/browser-libp2p-evidence.md",
+        "test-results/libp2p-browser"
+      ],
+      "currentMissing": [
+        "test-results/libp2p-browser"
+      ],
+      "currentState": "The harness contains 6 marker lines; all 4 tracked present outputs differ from f2eb814a....",
+      "recoveryCoverage": "The 4 tracked source/doc outputs are present in f2eb814a...; the declared raw result directory is absent from both committed trees."
+    },
+    {
+      "taskId": "SWR-129",
+      "boardStatus": "completed",
+      "claimStatus": "invalid_for_current_checkout",
+      "declaredOutputs": [
+        "src/services/proof-engine/proof-engine-browser.ts",
+        "src/services/provers/provers-browser.ts",
+        "src/services/zkp/browser-zkp.ts",
+        "src/services/zkp/browser-snarkjs-backend.ts",
+        "test/browser-proof-runtime",
+        "docs/browser-proof-runtime-evidence.md"
+      ],
+      "currentMissing": [
+        "test/browser-proof-runtime",
+        "docs/browser-proof-runtime-evidence.md"
+      ],
+      "currentState": "All 4 present browser source outputs differ from f2eb814a.... The board's proof run has no current artifact.",
+      "recoveryCoverage": "All 6 are present in f2eb814a..., but its proof run is 8c5ec6ff-3cf1-486d-bf6d-90185d8599cd rather than the board-claimed run."
+    },
+    {
+      "taskId": "SWR-130",
+      "boardStatus": "completed",
+      "claimStatus": "invalid_for_current_checkout",
+      "declaredOutputs": [
+        "test-results/virtual-desktop-ipfs-mcp-orb/app-browser-runtime-matrix.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/browser-capability-receipts.json",
+        "docs/browser-app-runtime-coverage.md"
+      ],
+      "currentMissing": [
+        "test-results/virtual-desktop-ipfs-mcp-orb/app-browser-runtime-matrix.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/browser-capability-receipts.json",
+        "docs/browser-app-runtime-coverage.md"
+      ],
+      "recoveryCoverage": "All 3 are present only in f2eb814a..."
+    },
+    {
+      "taskId": "SWR-131",
+      "boardStatus": "completed",
+      "claimStatus": "invalid_for_current_checkout",
+      "declaredOutputs": [
+        "docs/service-boundary-audit.json",
+        "docs/browser-bundle-budget.json",
+        "docs/browser-libp2p-evidence.fingerprint.json",
+        "docs/release-evidence-freshness.json",
+        "docs/release-readiness-report.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json"
+      ],
+      "currentMissing": [
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json"
+      ],
+      "currentState": "The 3 canonical JSON reports now parse and explicitly report invalid/NO_GO. The bundle and libp2p fingerprint outputs remain conflict-bearing, release evidence is missing, and the release generator remains conflict-bearing.",
+      "recoveryCoverage": "All 6 are present in f2eb814a... and its JSON files parse, but they were generated before that commit existed and do not identify it as their source commit.",
+      "baselineState": "The 5 present outputs contain 159 marker lines in aggregate; the 3 canonical JSON reports do not parse."
+    },
+    {
+      "taskId": "SWR-132",
+      "boardStatus": "completed",
+      "claimStatus": "invalid_for_current_checkout",
+      "declaredOutputs": [
+        "docs/supervisor-refactor-runbook.md",
+        "docs/supervisor-shared-checkout-safety.md",
+        "../tmp/swissknife_refactor_supervisor/state/swissknife_refactor_supervisor_status.json"
+      ],
+      "currentMissing": [
+        "docs/supervisor-shared-checkout-safety.md",
+        "../tmp/swissknife_refactor_supervisor/state/swissknife_refactor_supervisor_status.json"
+      ],
+      "currentState": "The current runbook predates Phase 20 and differs from f2eb814a.... No live status receipt exists in this worktree.",
+      "recoveryCoverage": "Both documentation outputs are present in f2eb814a...; live process state is not commit evidence."
+    },
+    {
+      "taskId": "SWR-133",
+      "boardStatus": "completed",
+      "claimStatus": "invalid_for_current_checkout",
+      "declaredOutputs": [
+        "docs/refactor-final-signoff.md",
+        "docs/supervisor-refactor-runbook.md",
+        "docs/browser-compatibility-inventory.md",
+        "docs/browser-libp2p-evidence.md",
+        "docs/browser-proof-runtime-evidence.md",
+        "../implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md"
+      ],
+      "currentMissingAtBaseline": [
+        "docs/browser-proof-runtime-evidence.md"
+      ],
+      "currentState": "The baseline signoff was a 6-marker Phase 17 conflict, the current runbook and browser documents predate or differ from the candidate, and the parent task board is historical metadata only.",
+      "baselineSignoffBlob": "49127c1fc40d267bf2ba1d97ea58997ddd84be40",
+      "recoverySignoffBlob": "ec8ff279790413a5077f966c672aaad59452cbb9",
+      "recoveryCoverage": "All documentation outputs are in f2eb814a..., but its signoff records a different run window and proof ID from the board and names 8f291a24... as Commit."
+    }
+  ],
+  "recoverySources": {
+    "durablyReachableCommits": [],
+    "stashRefs": [],
+    "primaryDanglingCandidate": {
+      "commit": "f2eb814af7b7c9756c3b4dc4ce9780617c54a028",
+      "parent": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c",
+      "tree": "8369887c4c0e352c6f9dcbdf14140835219d8731",
+      "subject": "feat: restore profile-h adapter evidence",
+      "committedAt": "2026-07-13T11:12:39-07:00",
+      "objectAvailable": true,
+      "directChildOfCurrentHead": true,
+      "aheadOfCurrentHead": 1,
+      "behindCurrentHead": 0,
+      "branchesContaining": [],
+      "tagsContaining": [],
+      "reflogOccurrences": 0,
+      "stashRef": false,
+      "durablyProtected": false,
+      "diffFromCurrentHead": {
+        "filesChanged": 149,
+        "added": 45,
+        "deleted": 12,
+        "modified": 92,
+        "insertions": 111482,
+        "deletions": 30039
+      },
+      "conflictBlockPaths": 0,
+      "canonicalJsonFilesParse": true,
+      "phase20SignoffGeneratedAt": "2026-07-13T14:50:23.503Z",
+      "phase20SignoffRecordedCommit": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c",
+      "proofRunId": "8c5ec6ff-3cf1-486d-bf6d-90185d8599cd",
+      "releaseReadinessGeneratedAt": "2026-07-13T14:50:23.503Z",
+      "releaseFreshnessGeneratedAt": "2026-07-13T17:09:28.104Z",
+      "serviceAuditGeneratedAt": "2026-07-13T17:09:26.866Z",
+      "acceptAsReleaseEvidence": false,
+      "reason": "The object is dangling, includes a broad 149-file change, records its parent rather than itself as the signoff commit, and does not reproduce the exact board-claimed run. Preserve, review, replay, commit, and regenerate evidence under SWR-136."
+    },
+    "danglingStashLikeObjects": [
+      {
+        "commit": "19e906a57634143508867b798f93d77b0359a967",
+        "createdAt": "2026-07-13T00:36:31-07:00",
+        "subject": "WIP on (no branch): 8f291a24 feat: restore profile-h adapter evidence",
+        "suitableForPhase20Recovery": false
+      },
+      {
+        "commit": "fc4e9ccae670b91cf97f59626e8f9bfc60a23b1d",
+        "createdAt": "2026-07-13T00:50:44-07:00",
+        "subject": "WIP on (no branch): 8f291a24 feat: restore profile-h adapter evidence",
+        "suitableForPhase20Recovery": false
+      },
+      {
+        "commit": "b8c9ff471ae340e00a61722cb458f646c63cc16b",
+        "createdAt": "2026-07-13T01:01:54-07:00",
+        "subject": "On (no branch): stash mcp++ replay files during rebase",
+        "suitableForPhase20Recovery": false
+      },
+      {
+        "commit": "1c3021168258afd5e1ed5cbdfb1d98e6166c5584",
+        "createdAt": "2026-07-13T01:09:21-07:00",
+        "subject": "On (no branch): auto-stash-before-sync-to-main",
+        "suitableForPhase20Recovery": false
+      }
+    ],
+    "exactBoardArtifactSearch": {
+      "scope": "SwissKnife object database; the parent board blob is the historical claim, not corroborating evidence.",
+      "searchedRefsReflogsAndUnreachableObjects": true,
+      "objectsContainingClaimedProofRunOrEndTimestamp": [],
+      "result": "No object in this checkout reproduces the exact Phase 20 board claim."
+    }
+  },
+  "phase20ClaimDivergence": [
+    {
+      "claim": "All 21 conflict paths were resolved and source conflict blockers were zero.",
+      "currentProof": "The pinned baseline contains exactly 21 conflict-bearing paths and 276 marker lines; the clean index has zero unmerged entries.",
+      "status": "invalid"
+    },
+    {
+      "claim": "All 12 root ownership moves are enforced with zero root, ownership, import, dependency, or duplicate violations.",
+      "currentProof": "The ownership manifest now parses after syntax reconciliation and the service audit is explicitly invalidated; conflicted generators and missing outputs prevent executable proof of the moves or zero-count assertions.",
+      "status": "invalid"
+    },
+    {
+      "claim": "The current browser inventory has 88 items, 158 classified operations, and zero unknown or host-executable paths.",
+      "currentProof": "Current inventory prose predates Phase 20 and differs from the dangling candidate; conflicted prerequisite generators prevent a current-source gate.",
+      "status": "invalid"
+    },
+    {
+      "claim": "Desktop Chromium and mobile Pixel 5 completed real signed libp2p exchanges.",
+      "currentProof": "The current harness has conflict blocks and the declared raw test-results/libp2p-browser output is not committed.",
+      "status": "invalid"
+    },
+    {
+      "claim": "Browser proof run 714f6b1f-18c6-42f5-944a-46318d8c3dfc passed 40 of 40 assertions.",
+      "currentProof": "The current proof evidence and test directory are absent. The only recovery candidate records different run 8c5ec6ff-3cf1-486d-bf6d-90185d8599cd.",
+      "status": "invalid"
+    },
+    {
+      "claim": "Six evidence groups are current-source fresh.",
+      "currentProof": "docs/release-evidence-freshness.json now parses only because SWR-134 invalidated every historical fingerprint; no group is accepted as current-source fresh.",
+      "status": "invalid"
+    },
+    {
+      "claim": "Release readiness passed 15 of 15 gates with decision GO.",
+      "currentProof": "The report now parses with effective decision NO_GO and 0 accepted passes; its generator still contains 6 conflict marker lines.",
+      "status": "invalid",
+      "effectiveDecision": "NO_GO"
+    },
+    {
+      "claim": "The live supervisor receipt proves the SWR-133 source handoff.",
+      "currentProof": "The declared status file is absent in this worktree, and live process metadata would not substitute for committed source proof in any case.",
+      "status": "invalid"
+    },
+    {
+      "claim": "The board's Phase 20 signoff is the current checkout signoff.",
+      "currentProof": "The baseline signoff blob is a conflict-bearing Phase 17 document. The candidate Phase 20 signoff has a different run window and proof ID and is dangling.",
+      "status": "invalid"
+    }
+  ],
+  "releaseBlockers": [
+    {
+      "id": "active-conflict-blocks",
+      "detail": "16 conflict-bearing paths and 180 block-marker lines remain after the signoff and four canonical JSON files are reconciled."
+    },
+    {
+      "id": "canonical-json-provenance-invalid",
+      "detail": "The four validation JSON files parse, but their historical claims are explicitly invalidated and have not been regenerated from current committed source."
+    },
+    {
+      "id": "phase20-output-provenance-incoherent",
+      "detail": "Declared Phase 20 outputs are missing, stale, conflict-bearing, or available only in a dangling commit."
+    },
+    {
+      "id": "recovery-object-unprotected",
+      "detail": "The comprehensive recovery candidate f2eb814a... is not protected by any durable ref."
+    },
+    {
+      "id": "parent-pinned-recovered-commit-absent",
+      "detail": "No recovered Phase 20 source commit and matching generated-evidence commit are pinned by a committed parent gitlink."
+    }
+  ],
+  "recoveryWork": [
+    {
+      "order": 1,
+      "taskId": "SWR-135",
+      "action": "Acquire and verify the non-destructive single-writer lease across every SwissKnife supervisor lane.",
+      "successCondition": "Exactly one verified writer owns the checkout and every other lane pauses without reset, force checkout, stash, cleanup, or submodule update."
+    },
+    {
+      "order": 2,
+      "taskId": "SWR-136",
+      "action": "Under the lease, create a durable recovery ref at f2eb814af7b7c9756c3b4dc4ce9780617c54a028 before garbage collection.",
+      "successCondition": "The candidate is branch- or tag-reachable and its commit, parent, tree, and 149-path diff match this record."
+    },
+    {
+      "order": 3,
+      "taskId": "SWR-136",
+      "action": "Review and replay the candidate onto a lease-owned recovery branch; reconcile unrelated Profile H changes explicitly and commit a conflict-free source baseline.",
+      "successCondition": "No active conflict block remains and source, architecture, typecheck, browser, libp2p, and proof inputs are committed. Marker deletion without behavior recovery fails."
+    },
+    {
+      "order": 4,
+      "taskId": "SWR-136",
+      "action": "Regenerate every Phase 20 report and fingerprint after the recovered source commit exists, embedding the actual source commit and input fingerprints.",
+      "successCondition": "Canonical JSON parses, all required evidence is fresh to the recovered source commit, generated evidence is committed, and historical hand-merged reports are not inputs."
+    },
+    {
+      "order": 5,
+      "taskId": "SWR-136",
+      "action": "Commit the recovered SwissKnife gitlink in the parent repository.",
+      "successCondition": "Parent HEAD and index gitlink point to the validated recovered/evidence commit and both repositories are clean."
+    },
+    {
+      "order": 6,
+      "taskId": "SWR-137 through SWR-141",
+      "action": "Re-run containment, browser closure, three-engine libp2p, real TS/WASM proof, and release-readiness gates from the committed recovered baseline.",
+      "successCondition": "Only fresh current-source receipts may replace this NO_GO decision."
+    },
+    {
+      "order": 7,
+      "taskId": "SWR-142",
+      "action": "Produce the Phase 21 handoff only after source, evidence, parent gitlink, and single-writer provenance agree.",
+      "successCondition": "The final signoff cites the clean-checkout reproduction and may report GO only if every Phase 21 dependency is committed and current."
+    }
+  ],
+  "validation": {
+    "requiredCommand": "node -e '[\"src/module-ownership.json\",\"docs/release-readiness-report.json\",\"docs/release-evidence-freshness.json\",\"docs/service-boundary-audit.json\"].forEach(p=>JSON.parse(require(\"fs\").readFileSync(p,\"utf8\")))'",
+    "baselineResult": "failed",
+    "failureCount": 4,
+    "candidateTreeResult": "passed against f2eb814af7b7c9756c3b4dc4ce9780617c54a028",
+    "interpretation": "The failure is an observed release blocker, not permission to hand-edit generated evidence during reconciliation. SWR-136 owns recovery and regeneration."
+  },
+  "validationRemediation": {
+    "scope": "Required solely so the SWR-134 canonical JSON parse validation is executable; it does not perform SWR-136 source/evidence recovery.",
+    "paths": [
+      {
+        "path": "src/module-ownership.json",
+        "baselineBlob": "94940a8783ca4fd1619859af80f772da9f453666",
+        "currentWorktreeBlob": "6ca6e505ee74a7a993c0fb0204ac426c30f05671",
+        "baselineValidJson": false,
+        "currentValidJson": true,
+        "evidentiaryStatus": "parseable_but_not_current_source_proof",
+        "resolution": "Selected the committed Updated-upstream side of each JSON conflict to preserve the manifest matching baseline source; this restores syntax only and is not architecture-gate proof."
+      },
+      {
+        "path": "docs/release-readiness-report.json",
+        "baselineBlob": "3cbf5c363768c8d9b182c3ccacf5c78e01b99d0d",
+        "currentWorktreeBlob": "61ebae3a7ef33c33ed7dab341dd821ab38506c52",
+        "baselineValidJson": false,
+        "currentValidJson": true,
+        "evidentiaryStatus": "parseable_but_not_current_source_proof",
+        "resolution": "Selected the committed Updated-upstream structure, then added SWR-134 invalid-for-current-checkout provenance; historical success/freshness counts are not accepted."
+      },
+      {
+        "path": "docs/release-evidence-freshness.json",
+        "baselineBlob": "d05e1e33e1a7f403614777106cc345cf3422eb28",
+        "currentWorktreeBlob": "5c8d952e44d0447891afe9baf9ddef38683f958c",
+        "baselineValidJson": false,
+        "currentValidJson": true,
+        "evidentiaryStatus": "parseable_but_not_current_source_proof",
+        "resolution": "Selected the committed Updated-upstream structure, then added SWR-134 invalid-for-current-checkout provenance; historical success/freshness counts are not accepted."
+      },
+      {
+        "path": "docs/service-boundary-audit.json",
+        "baselineBlob": "04fa75ae4175f318099f2c232192d1979d4aab3e",
+        "currentWorktreeBlob": "9e64282c347f2b2a4b76b7d1ee2b2b047e819e28",
+        "baselineValidJson": false,
+        "currentValidJson": true,
+        "evidentiaryStatus": "parseable_but_not_current_source_proof",
+        "resolution": "Selected the committed Updated-upstream structure, then added SWR-134 invalid-for-current-checkout provenance; historical success/freshness counts are not accepted."
+      }
+    ],
+    "releaseDecision": "NO_GO",
+    "remainingConflictPathCount": 16,
+    "remainingConflictMarkerLineCount": 180
+  }
+}

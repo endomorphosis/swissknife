@@ -1,48 +1,29 @@
 {
   "schemaVersion": 2,
-<<<<<<< Updated upstream
   "taskId": "SWR-110",
   "generatedAt": "2026-07-10T11:21:22.261Z",
   "startedAt": "2026-07-10T11:20:42.295Z",
   "durationMs": 39966,
   "commitSha": "3d51edca13e70c3b9062a12f113174d147534c81",
-  "overallStatus": "passed",
-  "releaseDecision": "GO",
-  "goNoGo": "GO",
+  "overallStatus": "failed",
+  "releaseDecision": "NO_GO",
+  "goNoGo": "NO_GO",
   "summary": {
     "total": 13,
-    "passed": 13,
-    "failed": 0,
-    "releaseDecision": "GO"
-=======
-  "taskId": "SWR-044",
-  "generatedAt": "2026-07-11T02:32:06.309Z",
-  "startedAt": "2026-07-11T02:30:38.293Z",
-  "durationMs": 88016,
-  "commitSha": "3d51edca13e70c3b9062a12f113174d147534c81",
-  "overallStatus": "passed",
-  "summary": {
-    "total": 13,
-    "passed": 13,
-    "failed": 0
->>>>>>> Stashed changes
+    "passed": 0,
+    "failed": 13,
+    "releaseDecision": "NO_GO",
+    "validForCurrentCheckout": false
   },
   "virtualDesktopReleaseEvidence": {
-    "status": "present",
+    "status": "invalidated",
     "path": "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
-<<<<<<< Updated upstream
     "generatedAt": "2026-07-10T11:21:21.232Z",
-    "decision": "go",
+    "decision": "no_go",
     "blockerCount": 0,
     "warningCount": 9,
-=======
-    "generatedAt": "2026-07-11T02:32:03.094Z",
-    "decision": "go",
-    "blockerCount": 0,
-    "warningCount": 3,
->>>>>>> Stashed changes
-    "representativeDecision": "go",
-    "allToolsDecision": "go",
+    "representativeDecision": "invalidated",
+    "allToolsDecision": "invalidated",
     "hierarchicalMcp": {
       "decision": "go",
       "evidenceDecision": "go",
@@ -52,17 +33,12 @@
       "servicesWithFullFacade": 3,
       "dispatchProbeCount": 3,
       "dispatchPassCount": 3,
-<<<<<<< Updated upstream
       "directOnlyDescriptorCount": 220,
-=======
-      "directOnlyDescriptorCount": 0,
->>>>>>> Stashed changes
       "unexplainedFlatHierarchyGapCount": 0,
       "staleLiveServiceEvidence": [],
       "availabilityMismatches": [],
       "missingFacadeByService": []
     },
-<<<<<<< Updated upstream
     "appMatrixGate": {
       "status": "present",
       "decision": "go",
@@ -145,175 +121,159 @@
       "2 hierarchical MCP alias dispatch probes failed; representative dispatch remains the release-blocking probe.",
       "12 flat MCP descriptors are excluded from the SwissKnife app-visible ledger and accounted for in hierarchical MCP evidence.",
       "Hierarchical MCP evidence warning: 2 normalized alias dispatch probes failed for ipfs_accelerate_py."
-=======
-    "blockers": [],
-    "warnings": [
-      "App backend contract warning: p2p-chat-unified: tool-backed state has no binding rows",
-      "App backend contract warning: friends-list: tool-backed state has no binding rows",
-      "App backend contract warning: p2p-chat: tool-backed state has no binding rows"
->>>>>>> Stashed changes
     ]
   },
   "gates": [
     {
       "id": "browser-service-regression-sentinel",
       "label": "Browser/service duplicate regression sentinel (SWR-095)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 71,
-=======
-      "durationMs": 102,
->>>>>>> Stashed changes
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "services-audit",
       "label": "Service-boundary audit (services:audit)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 854,
-=======
-      "durationMs": 1344,
->>>>>>> Stashed changes
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "module-boundary-audit",
       "label": "Repository module-boundary audit (audit:module-boundary)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 726,
-=======
-      "durationMs": 1245,
->>>>>>> Stashed changes
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "typecheck",
       "label": "TypeScript project typecheck (typecheck)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 5778,
-=======
-      "durationMs": 6146,
->>>>>>> Stashed changes
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "test-fast",
       "label": "Fast unit test lane (test:fast)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 4545,
-=======
-      "durationMs": 7001,
->>>>>>> Stashed changes
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "test-browser-compat",
       "label": "Browser compatibility lane (test:browser-compat)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 7601,
-=======
-      "durationMs": 7980,
->>>>>>> Stashed changes
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "build-web",
       "label": "Web bundle build + host-leakage/budget audit (build:web)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 10836,
-=======
-      "durationMs": 11984,
->>>>>>> Stashed changes
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "bundle-host-leakage",
       "label": "Web bundle host-leakage re-audit (audit:bundle-host-leakage)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 6045,
-=======
-      "durationMs": 7138,
       "tail": [],
-      "findings": []
-    },
-    {
-      "id": "evidence-freshness",
-      "label": "Browser/libp2p release evidence freshness (evidence:freshness:check)",
-      "status": "passed",
-      "durationMs": 301,
-      "tail": [],
-      "findings": []
-    },
-    {
-      "id": "virtual-desktop-release-evidence",
-      "label": "Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)",
-      "status": "passed",
-      "durationMs": 41669,
->>>>>>> Stashed changes
-      "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "evidence-mcp-glasses",
       "label": "MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 2432,
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "virtual-desktop-release-evidence",
       "label": "Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)",
-      "status": "passed",
+      "status": "invalidated",
       "durationMs": 317,
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "evidence-freshness",
       "label": "Browser/libp2p release evidence freshness (evidence:freshness:check)",
-      "status": "passed",
+      "status": "invalidated",
       "durationMs": 290,
-=======
-      "durationMs": 2506,
->>>>>>> Stashed changes
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "evidence-dashboard-consumer",
       "label": "MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer)",
-      "status": "passed",
-<<<<<<< Updated upstream
+      "status": "invalidated",
       "durationMs": 465,
-=======
-      "durationMs": 593,
->>>>>>> Stashed changes
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     },
     {
       "id": "skipped-gate-policy",
       "label": "Skipped gate policy (explicit reason + browser-safety enforcement)",
-      "status": "passed",
+      "status": "invalidated",
       "durationMs": 0,
       "tail": [],
-      "findings": []
+      "findings": [
+        "Invalidated by SWR-134 checkout reconciliation; rerun after SWR-136 recovery."
+      ]
     }
-  ]
+  ],
+  "blockers": [
+    {
+      "id": "phase-21-checkout-reconciliation",
+      "path": "docs/phase-21-checkout-reconciliation.json",
+      "detail": "Current checkout contains committed conflict blocks and does not reproduce the Phase 20 evidence run."
+    },
+    {
+      "id": "release-readiness-generator-conflict",
+      "path": "scripts/release-readiness-gate.mjs",
+      "detail": "The generator contains active conflict blocks; this historical report cannot be regenerated from current source."
+    }
+  ],
+  "reconciliation": {
+    "taskId": "SWR-134",
+    "reconciledAt": "2026-07-13T14:54:14-07:00",
+    "baselineHead": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c",
+    "status": "invalid_for_current_checkout",
+    "reason": "This artifact was recovered only to restore parseability. Its generator and other prerequisite paths still contain committed conflict blocks, so historical counts and receipts are not current-source proof.",
+    "authoritativeEvidence": "docs/phase-21-checkout-reconciliation.json",
+    "recoveryTask": "SWR-136"
+  }
 }

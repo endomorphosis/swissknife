@@ -225,11 +225,7 @@
       "module": "service-glasses",
       "owner": "glasses-surface-runtime",
       "runtimeClassification": "split",
-<<<<<<< Updated upstream
       "fileCount": 26
-=======
-      "fileCount": 24
->>>>>>> Stashed changes
     },
     {
       "module": "service-integrations",
@@ -253,19 +249,11 @@
       "module": "service-mcp",
       "owner": "mcp-protocol-runtime",
       "runtimeClassification": "split",
-<<<<<<< Updated upstream
       "fileCount": 55
     },
     {
       "module": "service-platform",
       "owner": "platform-service-runtime",
-=======
-      "fileCount": 47
-    },
-    {
-      "module": "service-platform",
-      "owner": "service-platform-runtime",
->>>>>>> Stashed changes
       "runtimeClassification": "split",
       "fileCount": 26
     },
@@ -283,11 +271,7 @@
     },
     {
       "module": "service-shared",
-<<<<<<< Updated upstream
       "owner": "shared-service-runtime",
-=======
-      "owner": "service-shared-runtime",
->>>>>>> Stashed changes
       "runtimeClassification": "universal",
       "fileCount": 5
     },
@@ -381,7 +365,9 @@
     "serviceIndexImplementationEntrypoints": 1,
     "serviceIndexShadowCopies": 0,
     "restoredServiceDuplicatePolicyViolations": 0,
-    "legacySprintServiceFiles": 0
+    "legacySprintServiceFiles": 0,
+    "validForCurrentCheckout": false,
+    "activeConflictPathCount": 16
   },
   "rootDebt": [
     {
@@ -1589,5 +1575,14 @@
   "legacyRootImportSpecifiers": [],
   "serviceDuplicateBasenames": 0,
   "serviceDuplicateBasenameDetails": [],
-  "legacySprintServiceFiles": []
+  "legacySprintServiceFiles": [],
+  "reconciliation": {
+    "taskId": "SWR-134",
+    "reconciledAt": "2026-07-13T14:54:14-07:00",
+    "baselineHead": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c",
+    "status": "invalid_for_current_checkout",
+    "reason": "This artifact was recovered only to restore parseability. Its generator and other prerequisite paths still contain committed conflict blocks, so historical counts and receipts are not current-source proof.",
+    "authoritativeEvidence": "docs/phase-21-checkout-reconciliation.json",
+    "recoveryTask": "SWR-136"
+  }
 }

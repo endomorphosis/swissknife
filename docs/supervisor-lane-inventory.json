@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "taskId": "SWR-135",
+  "generatedAt": "2026-07-13T17:23:30-07:00",
+  "authority": "scripts/swissknife_lane_worktrees.py plus configured supervisor wrappers that declare swissknife as a mutable submodule",
+  "leaseNamespace": {
+    "name": "swissknife-supervisor-checkout-lease-v1",
+    "scope": "all SwissKnife-writing supervisors in every worktree of the parent repository",
+    "directory": "$SUPERPROJECT_COMMON_GIT_DIR/swissknife-checkout-lease-v1",
+    "ownerFile": "owner.json",
+    "derivation": [
+      "git -C swissknife rev-parse --show-superproject-working-tree",
+      "git -C $SUPERPROJECT_WORKTREE rev-parse --path-format=absolute --git-common-dir"
+    ],
+    "reclamationPolicy": "never age-based; only absent PID, changed boot identity, changed PID namespace, or reused PID after exact recorded process identity verification",
+    "unverifiablePolicy": "fail_closed_and_refuse_implementation"
+  },
+  "canonicalLaneIds": ["all-tools", "refactor"],
+  "lanes": [
+    {
+      "id": "all-tools",
+      "classification": "canonical_active_lane",
+      "board": "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
+      "taskPrefix": "## SVD-",
+      "statePrefix": "swissknife_all_tools",
+      "stateDirectory": "tmp/swissknife_all_tools_supervisor/state",
+      "implementationSurface": "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "all-tools",
+          "--board",
+          "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
+          "--",
+          "python",
+          "-u",
+          "-m",
+          "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+          "--todo-path",
+          "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
+          "--state-dir",
+          "tmp/swissknife_all_tools_supervisor/state",
+          "--task-prefix",
+          "## SVD-",
+          "--state-prefix",
+          "swissknife_all_tools",
+          "--implement",
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ]
+      }
+    },
+    {
+      "id": "refactor",
+      "classification": "canonical_active_lane",
+      "board": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
+      "taskPrefix": "## SWR-",
+      "statePrefix": "swissknife_refactor",
+      "stateDirectory": "tmp/swissknife_refactor_supervisor/state",
+      "implementationSurface": "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "refactor",
+          "--board",
+          "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
+          "--",
+          "python",
+          "-u",
+          "-m",
+          "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+          "--todo-path",
+          "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
+          "--state-dir",
+          "tmp/swissknife_refactor_supervisor/state",
+          "--task-prefix",
+          "## SWR-",
+          "--state-prefix",
+          "swissknife_refactor",
+          "--implement",
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ]
+      }
+    },
+    {
+      "id": "swissknife-virtual-desktop-legacy",
+      "classification": "legacy_alias_of_all-tools",
+      "board": "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
+      "taskPrefix": "## SVD-",
+      "statePrefix": "swissknife_virtual_desktop",
+      "stateDirectory": "data/virtual_ai_os/state",
+      "implementationSurface": "scripts/virtual_ai_os_todo_supervisor.py with SVD overrides",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "swissknife-virtual-desktop-legacy",
+          "--",
+          "python3",
+          "scripts/virtual_ai_os_todo_supervisor.py",
+          "--todo-path",
+          "implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md",
+          "--task-prefix",
+          "## SVD-",
+          "--state-prefix",
+          "swissknife_virtual_desktop",
+          "--implement",
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ]
+      }
+    },
+    {
+      "id": "mcpplusplus-profile-g",
+      "classification": "inactive_historical_swissknife_writer",
+      "board": "implementation_plan/docs/38-mcpplusplus-risk-consensus-scheduling-p2p-plan-2026-07-12.md",
+      "taskPrefix": "## SVD-",
+      "statePrefix": "mcpplusplus_profile_g",
+      "stateDirectory": "tmp/mcpplusplus_profile_g_supervisor/state",
+      "implementationSurface": "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "mcpplusplus-profile-g",
+          "--",
+          "python",
+          "-u",
+          "-m",
+          "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+          "--todo-path",
+          "implementation_plan/docs/38-mcpplusplus-risk-consensus-scheduling-p2p-plan-2026-07-12.md",
+          "--state-dir",
+          "tmp/mcpplusplus_profile_g_supervisor/state",
+          "--task-prefix",
+          "## SVD-",
+          "--state-prefix",
+          "mcpplusplus_profile_g",
+          "--implement",
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ]
+      }
+    },
+    {
+      "id": "mcpplusplus-profile-h",
+      "classification": "inactive_historical_swissknife_writer",
+      "board": "implementation_plan/docs/41-mcpplusplus-profile-h-x402-payments-plan-2026-07-12.todo.md",
+      "taskPrefix": "## XPH-",
+      "statePrefix": "mcpplusplus_profile_h",
+      "stateDirectory": "tmp/mcpplusplus_profile_h_supervisor/state",
+      "implementationSurface": "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "mcpplusplus-profile-h",
+          "--",
+          "python",
+          "-u",
+          "-m",
+          "ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor",
+          "--todo-path",
+          "implementation_plan/docs/41-mcpplusplus-profile-h-x402-payments-plan-2026-07-12.todo.md",
+          "--state-dir",
+          "tmp/mcpplusplus_profile_h_supervisor/state",
+          "--task-prefix",
+          "## XPH-",
+          "--state-prefix",
+          "mcpplusplus_profile_h",
+          "--implement",
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ]
+      }
+    },
+    {
+      "id": "virtual-ai-os",
+      "classification": "configured_inactive_swissknife_writer",
+      "board": "implementation_plan/docs/19-virtual-ai-os-submodule-integration.todo.md",
+      "taskPrefix": "## VAI-",
+      "statePrefix": "virtual_ai_os",
+      "stateDirectory": "data/virtual_ai_os/state",
+      "implementationSurface": "scripts/virtual_ai_os_todo_supervisor.py",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "virtual-ai-os",
+          "--",
+          "python3",
+          "scripts/virtual_ai_os_todo_supervisor.py",
+          "--implement",
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ]
+      }
+    },
+    {
+      "id": "meta-glasses-display",
+      "classification": "configured_inactive_swissknife_writer",
+      "board": "implementation_plan/docs/18-swissknife-meta-glasses-display-widgets.todo.md",
+      "taskPrefix": "## MGW-",
+      "statePrefix": "meta_glasses_display",
+      "stateDirectory": "data/meta_glasses_display_widgets/state",
+      "implementationSurface": "scripts/meta_glasses_display_todo_supervisor.py",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "meta-glasses-display",
+          "--",
+          "python3",
+          "scripts/meta_glasses_display_todo_supervisor.py",
+          "--implement",
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ]
+      }
+    },
+    {
+      "id": "hallucinate-multimodal-control",
+      "classification": "configured_inactive_swissknife_writer",
+      "board": "hallucinate_app/docs/MULTIMODAL_CONTROL_SURFACE_LOGIC_IDL.todo.md",
+      "taskPrefix": "## HAO-",
+      "statePrefix": "hallucinate_multimodal_control",
+      "stateDirectory": "data/hallucinate_multimodal_control/state",
+      "implementationSurface": "scripts/hallucinate_multimodal_control_todo_supervisor.py",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "hallucinate-multimodal-control",
+          "--",
+          "python3",
+          "scripts/hallucinate_multimodal_control_todo_supervisor.py",
+          "--implement",
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ]
+      }
+    }
+  ],
+  "integrationCoordinator": {
+    "path": "scripts/swissknife_lane_worktrees.py",
+    "existingMergeLock": "tmp/swissknife_lane_worktrees/integration-merge.lock",
+    "policy": "The merge lock is not an implementation lease. Any integration apply that can mutate SwissKnife must run as the lease-owning foreground command in the same namespace."
+  },
+  "observedMigrationState": {
+    "observedAt": "2026-07-13T17:13:00-07:00",
+    "allTools": "live pre-SWR-135 process observed without IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS=0 and without a lease; must be gracefully stopped and relaunched, never force-repaired",
+    "refactor": "live pre-SWR-135 process observed with IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS=0 but without a lease; must be gracefully stopped and relaunched to become compliant",
+    "retroactiveComplianceClaimed": false
+  }
+}
