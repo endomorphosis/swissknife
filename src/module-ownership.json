@@ -119,6 +119,90 @@
       "classifiedCollisions": [
         {
           "kind": "behavior",
+          "fingerprint": "227f1812bb2176720747c681f5d52974ae007786a404b8d882e20392cffc515e",
+          "canonicalPath": "src/services/logic/deontic/legal-norm-decoder.ts",
+          "paths": [
+            "src/services/deontic/deontic-legal-norm-decoder.ts",
+            "src/services/logic/deontic/legal-norm-decoder.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 identifies the relocated deontic decoder as behaviorally equivalent after dependency-only import normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "c03f76481c5ac229dd0f1a63ef65826a1e49d659c652d124a253024aa8ccee90",
+          "canonicalPath": "src/services/logic/deontic/policy-to-dcec.ts",
+          "paths": [
+            "src/services/logic/deontic/policy-to-dcec.ts",
+            "src/services/provers/provers-policy-to-dcec.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 identifies the relocated policy-to-DCEC adapter as behaviorally equivalent after dependency relocation normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "5cdcdc8273f77b4812c0c58c80fc54e59f9e2b3734dbd165a8a23d32643ae2bc",
+          "canonicalPath": "src/services/logic/deontic/prover-syntax-builder.ts",
+          "paths": [
+            "src/services/deontic/deontic-prover-syntax-builder.ts",
+            "src/services/logic/deontic/prover-syntax-builder.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 identifies the relocated deontic prover syntax builder as behaviorally equivalent after dependency-only import normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "93ce7a9ec5487463c41bd4bd27c2fba668b279b186e99263cf4e9bebf5be589c",
+          "canonicalPath": "src/services/logic/tdfol/policy-to-tdfol.ts",
+          "paths": [
+            "src/services/logic/tdfol/policy-to-tdfol.ts",
+            "src/services/provers/provers-policy-to-tdfol.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 identifies the relocated policy-to-TDFOL adapter as behaviorally equivalent after dependency relocation normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "be374419b991147d3dda37962491c4517899a51d3ce1118247fcf3e1daf94b48",
+          "canonicalPath": "src/services/logic/tdfol/tdfol-completeness-rules.ts",
+          "paths": [
+            "src/services/logic/tdfol/tdfol-completeness-rules.ts",
+            "src/services/provers/provers-tdfol-completeness-rules.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 identifies the relocated TDFOL completeness rule set as behaviorally equivalent after dependency relocation normalization; retain the logic-owned implementation and canonicalize the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "02dde02b8ad5c8f192d864081fcc3bfb9ad249796aa80afefaad5729071e4413",
+          "canonicalPath": "src/services/mcp/host/mcp-traffic-manager.ts",
+          "paths": [
+            "src/services/mcp/host/mcp-traffic-manager.ts",
+            "src/services/mcp/mcp-mcp-traffic-manager.ts"
+          ],
+          "owner": "service-mcp",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 identifies the restored MCP traffic manager as behaviorally equivalent after dependency-only import normalization; retain the host-owned implementation and canonicalize the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "d95abe63744309883b2efbfd2fe5fa6178cd0b46790be2da54e566946a427fee",
+          "canonicalPath": "src/services/mcp/host/mcp-versioned-client.ts",
+          "paths": [
+            "src/services/mcp/host/mcp-versioned-client.ts",
+            "src/services/mcp/mcp-mcp-versioned-client.ts"
+          ],
+          "owner": "service-mcp",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 identifies the restored MCP versioned client as behaviorally equivalent after dependency relocation and generated bare-import suffix normalization; retain the host-owned implementation and canonicalize the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
           "fingerprint": "00c35507f1fd78817072719d4ad3e53fb31300eda6c701200bdb3d044efa5bf6",
           "canonicalPath": "src/services/provers/prover-strategy-runtime.ts",
           "paths": [
