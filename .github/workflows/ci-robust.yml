@@ -14,7 +14,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: ['20.19.0', '22.12.0']
     
     steps:
     - uses: actions/checkout@v4
@@ -24,6 +24,9 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+
+    - name: Verify browser-validation toolchain
+      run: node scripts/verify-browser-toolchain.mjs --receipt "${{ runner.temp }}/swissknife-browser-toolchain-robust-core-${{ matrix.node-version }}.json"
     
     - name: Install dependencies
       run: npm ci --legacy-peer-deps
@@ -53,11 +56,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Use Node.js 20.x
+    - name: Use pinned Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20.x
+        node-version-file: '.nvmrc'
         cache: 'npm'
+
+    - name: Verify browser-validation toolchain
+      run: node scripts/verify-browser-toolchain.mjs --receipt "${{ runner.temp }}/swissknife-browser-toolchain-robust-extended.json"
     
     - name: Install dependencies
       run: npm ci --legacy-peer-deps
@@ -103,11 +109,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Use Node.js 20.x
+    - name: Use pinned Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20.x
+        node-version-file: '.nvmrc'
         cache: 'npm'
+
+    - name: Verify browser-validation toolchain
+      run: node scripts/verify-browser-toolchain.mjs --receipt "${{ runner.temp }}/swissknife-browser-toolchain-robust-build.json"
     
     - name: Install dependencies
       run: npm ci --legacy-peer-deps

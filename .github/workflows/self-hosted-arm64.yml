@@ -25,6 +25,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup pinned Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          architecture: 'arm64'
+
+      - name: Verify browser-validation toolchain
+        run: node scripts/verify-browser-toolchain.mjs --receipt "${{ runner.temp }}/swissknife-browser-toolchain-self-hosted-arm64.json"
+
       - name: Display system information
         run: |
           echo "OS: $(uname -s)"
@@ -35,24 +45,14 @@ jobs:
           echo "Docker version: $(docker --version || echo 'Docker not found')"
           echo "Platform: linux/arm64 (self-hosted)"
 
-      - name: Setup Node.js 20
-        run: |
-          # Check if Node 20 is available, if not skip (requires pre-installed Node 20 or passwordless sudo)
-          if ! node --version | grep -q "v20"; then
-            echo "⚠️ Node.js 20 not found. Current version: $(node --version)"
-            echo "Note: This runner has Node $(node --version). Node 20+ is recommended but not required."
-          fi
-          echo "Node version: $(node --version)"
-          echo "NPM version: $(npm --version)"
-
       - name: Clean npm cache and node_modules
         run: |
           npm cache clean --force || true
-          rm -rf node_modules package-lock.json || true
+          rm -rf node_modules || true
 
       - name: Install dependencies
         run: |
-          npm install --legacy-peer-deps --no-audit
+          npm ci --legacy-peer-deps --no-audit
         env:
           NODE_ENV: development
 

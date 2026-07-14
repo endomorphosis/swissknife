@@ -110,7 +110,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version-file: '.nvmrc'
+
+      - name: Verify browser-validation toolchain
+        run: node scripts/verify-browser-toolchain.mjs --receipt "${{ runner.temp }}/swissknife-browser-toolchain-auto-heal.json"
       
       - name: Install GitHub CLI
         run: |

@@ -28,12 +28,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version-file: '.nvmrc'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: latest
+      - name: Verify browser-validation toolchain
+        run: node scripts/verify-browser-toolchain.mjs --receipt "${{ runner.temp }}/swissknife-browser-toolchain-version-bump.json"
 
       - name: Configure Git
         run: |
@@ -64,4 +62,4 @@ jobs:
       - name: Create and push tag
         run: |
           git tag -a v${{ steps.bump_version.outputs.new_version }} -m "Release v${{ steps.bump_version.outputs.new_version }}"
-          git push origin --tags 
+          git push origin --tags

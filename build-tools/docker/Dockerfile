@@ -1,7 +1,8 @@
 # Multi-stage Dockerfile for SwissKnife Production Deployment
 # Supports multi-architecture builds: linux/amd64, linux/arm64
 # Stage 1: Build environment
-FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
+ARG NODE_VERSION=20.19.0
+FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-alpine AS builder
 
 # Build arguments for cross-compilation
 ARG TARGETPLATFORM
@@ -19,10 +20,13 @@ RUN echo "Building for platform: $TARGETPLATFORM" && \
 
 # Copy package files
 COPY package*.json ./
+COPY .nvmrc ./
+COPY scripts/verify-browser-toolchain.mjs ./scripts/verify-browser-toolchain.mjs
 COPY yarn.lock* pnpm-lock.yaml* ./
 
 # Install ALL dependencies (including devDependencies) needed for build
 # Use legacy-peer-deps flag for compatibility
+RUN node scripts/verify-browser-toolchain.mjs --receipt /tmp/browser-toolchain-builder.json
 RUN npm ci --legacy-peer-deps --no-audit --no-fund
 
 # Copy source code
@@ -32,7 +36,7 @@ COPY . .
 RUN npm run build:all
 
 # Stage 2: Production runtime
-FROM --platform=$TARGETPLATFORM node:20-alpine AS production
+FROM --platform=$TARGETPLATFORM node:${NODE_VERSION}-alpine AS production
 
 # Build arguments for runtime
 ARG TARGETPLATFORM
@@ -50,6 +54,9 @@ RUN echo "Runtime platform: $TARGETPLATFORM" && \
 
 # Install production dependencies only
 COPY package*.json ./
+COPY .nvmrc ./
+COPY scripts/verify-browser-toolchain.mjs ./scripts/verify-browser-toolchain.mjs
+RUN node scripts/verify-browser-toolchain.mjs --receipt /tmp/browser-toolchain-production.json
 RUN npm ci --legacy-peer-deps --only=production --no-audit --no-fund && npm cache clean --force
 
 # Copy built artifacts from builder stage

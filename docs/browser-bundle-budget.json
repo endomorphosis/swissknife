@@ -10,26 +10,18 @@
     "libp2pBrotliBytes": 160000,
     "libp2pChunkCount": 8
   },
-<<<<<<< Updated upstream
   "fileCount": 51,
   "totals": {
-    "rawBytes": 2427511,
-    "gzipBytes": 569696,
-    "brotliBytes": 478581
-=======
-  "fileCount": 50,
-  "totals": {
-    "rawBytes": 2368421,
-    "gzipBytes": 553919,
-    "brotliBytes": 464869
->>>>>>> Stashed changes
+    "rawBytes": 2444856,
+    "gzipBytes": 574628,
+    "brotliBytes": 479895
   },
   "files": [
     {
-      "file": "dist/assets/vendor-libp2p-FD8qR1bO.js",
-      "rawBytes": 597739,
-      "gzipBytes": 173565,
-      "brotliBytes": 140585
+      "file": "dist/assets/vendor-libp2p-BWo2oUv2.js",
+      "rawBytes": 616255,
+      "gzipBytes": 180322,
+      "brotliBytes": 143510
     },
     {
       "file": "dist/assets/index-Ccg8_Iox.css",
@@ -38,29 +30,16 @@
       "brotliBytes": 31352
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/p2p-network-BkFaYVDF.js",
-      "rawBytes": 97214,
-      "gzipBytes": 17599,
-      "brotliBytes": 14750
-    },
-    {
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-      "rawBytes": 71037,
-      "gzipBytes": 14312,
-      "brotliBytes": 12399
-=======
-      "file": "dist/assets/p2p-network-CxCVA3lK.js",
+      "file": "dist/assets/p2p-network-RD7TkVAW.js",
       "rawBytes": 97214,
       "gzipBytes": 17600,
-      "brotliBytes": 14747
+      "brotliBytes": 14767
     },
     {
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "rawBytes": 71037,
       "gzipBytes": 14312,
-      "brotliBytes": 12390
->>>>>>> Stashed changes
+      "brotliBytes": 12407
     },
     {
       "file": "dist/assets/file-manager-vsY99IO3.js",
@@ -75,17 +54,16 @@
       "brotliBytes": 12235
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/index-m4Z5NRnI.js",
+      "file": "dist/assets/index-BGT_R7cE.js",
       "rawBytes": 65417,
-      "gzipBytes": 15634,
-      "brotliBytes": 13271
-=======
-      "file": "dist/assets/index-CBWkeSsX.js",
-      "rawBytes": 64312,
-      "gzipBytes": 15302,
-      "brotliBytes": 12940
->>>>>>> Stashed changes
+      "gzipBytes": 15643,
+      "brotliBytes": 13207
+    },
+    {
+      "file": "dist/assets/agent-supervisor-C5cG1evZ.js",
+      "rawBytes": 54780,
+      "gzipBytes": 13346,
+      "brotliBytes": 11596
     },
     {
       "file": "dist/assets/friends-list-C50UOwyX.js",
@@ -106,23 +84,10 @@
       "brotliBytes": 9045
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/strudel-ai-daw-wlFOOu6h.js",
+      "file": "dist/assets/strudel-ai-daw-CAZ34dgO.js",
       "rawBytes": 48666,
-      "gzipBytes": 12235,
-      "brotliBytes": 10607
-    },
-    {
-      "file": "dist/assets/agent-supervisor-BtLaB4Ip.js",
-      "rawBytes": 47845,
-      "gzipBytes": 12100,
-      "brotliBytes": 10649
-=======
-      "file": "dist/assets/strudel-ai-daw-BaGB4Dw2.js",
-      "rawBytes": 48666,
-      "gzipBytes": 12235,
-      "brotliBytes": 10626
->>>>>>> Stashed changes
+      "gzipBytes": 12236,
+      "brotliBytes": 10606
     },
     {
       "file": "dist/assets/calculator-DxXtFSyX.js",
@@ -276,9 +241,9 @@
     },
     {
       "file": "dist/index.html",
-      "rawBytes": 20430,
-      "gzipBytes": 3719,
-      "brotliBytes": 2996
+      "rawBytes": 20406,
+      "gzipBytes": 3708,
+      "brotliBytes": 2993
     },
     {
       "file": "dist/assets/p2p-chat-unified-CXzE0BPr.js",
@@ -299,15 +264,6 @@
       "brotliBytes": 3589
     },
     {
-<<<<<<< Updated upstream
-=======
-      "file": "dist/index.html",
-      "rawBytes": 18372,
-      "gzipBytes": 3445,
-      "brotliBytes": 2771
-    },
-    {
->>>>>>> Stashed changes
       "file": "dist/assets/music-studio--P-Otwmv.js",
       "rawBytes": 13776,
       "gzipBytes": 3846,
@@ -332,17 +288,10 @@
       "brotliBytes": 1676
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/libp2p-browser-runtime-tV3il_hh.js",
+      "file": "dist/assets/libp2p-browser-runtime-Doubh1Bz.js",
       "rawBytes": 5099,
-      "gzipBytes": 1604,
-      "brotliBytes": 1441
-=======
-      "file": "dist/assets/libp2p-browser-runtime-Pz6ufhxs.js",
-      "rawBytes": 5099,
-      "gzipBytes": 1602,
-      "brotliBytes": 1450
->>>>>>> Stashed changes
+      "gzipBytes": 1603,
+      "brotliBytes": 1449
     },
     {
       "file": "dist/_headers",
@@ -377,23 +326,17 @@
   ],
   "libp2p": {
     "totals": {
-<<<<<<< Updated upstream
-      "rawBytes": 611030,
-      "gzipBytes": 178262,
-      "brotliBytes": 144566,
-=======
-      "rawBytes": 602838,
-      "gzipBytes": 175167,
-      "brotliBytes": 142035,
->>>>>>> Stashed changes
+      "rawBytes": 621354,
+      "gzipBytes": 181925,
+      "brotliBytes": 144959,
       "chunkCount": 2
     },
     "chunks": [
       {
-        "file": "dist/assets/vendor-libp2p-FD8qR1bO.js",
-        "rawBytes": 597739,
-        "gzipBytes": 173565,
-        "brotliBytes": 140585,
+        "file": "dist/assets/vendor-libp2p-BWo2oUv2.js",
+        "rawBytes": 616255,
+        "gzipBytes": 180322,
+        "brotliBytes": 143510,
         "modules": [
           "package:@libp2p/interface",
           "package:@libp2p/interface",
@@ -407,17 +350,10 @@
         "reason": "package:@libp2p/interface, package:@libp2p/interface, package:@libp2p/interface"
       },
       {
-<<<<<<< Updated upstream
-        "file": "dist/assets/libp2p-browser-runtime-tV3il_hh.js",
+        "file": "dist/assets/libp2p-browser-runtime-Doubh1Bz.js",
         "rawBytes": 5099,
-        "gzipBytes": 1604,
-        "brotliBytes": 1441,
-=======
-        "file": "dist/assets/libp2p-browser-runtime-Pz6ufhxs.js",
-        "rawBytes": 5099,
-        "gzipBytes": 1602,
-        "brotliBytes": 1450,
->>>>>>> Stashed changes
+        "gzipBytes": 1603,
+        "brotliBytes": 1449,
         "modules": [
           "module:web/js/libp2p-browser-runtime.js"
         ],
@@ -477,11 +413,7 @@
       "snippet": "<div class=\"example-prompt\">\"Write a Python function to calculate fibonacci...\"</div>"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/index-m4Z5NRnI.js",
-=======
-      "file": "dist/assets/index-CBWkeSsX.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/index-BGT_R7cE.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -490,11 +422,7 @@
       "snippet": "o node builtins</code> <code>no python wrappers</code> <code>no"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -503,11 +431,7 @@
       "snippet": "stCommandInterpreters:Object.freeze([\"python3\",\"python\",\"uvicorn\",\"gunicorn\",\"pip3\",\"pip\",\"node\""
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -516,11 +440,7 @@
       "snippet": "tnet\",\"ruby\",\"php\",\"go\",\"cargo\"])}),I=new Set([\"python\",\"python3\",\"uvicorn\",\"gunicorn\",\"pip\",\"pi"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -529,11 +449,7 @@
       "snippet": "ss=\"host-daemon-disclaimer${c.isPythonCommand?\" python-command-disclaimer\":\"\"}\">"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -542,11 +458,7 @@
       "snippet": "ss=\"host-daemon-disclaimer${s.isPythonCommand?\" python-command-disclaimer\":\"\"}\">"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -555,11 +467,7 @@
       "snippet": "ort:8765},{name:\"example-mcp-server-2\",command:\"python server.py\",status:\"stopped\",port:8766}];f"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -568,11 +476,7 @@
       "snippet": ".classList.remove(\"hidden\"),t.classList.toggle(\"python-command-disclaimer\",o.isPythonCommand),t."
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -581,11 +485,7 @@
       "snippet": "on) must run it. This example text references a Python interpreter/server; it documents the host"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -594,11 +494,7 @@
       "snippet": "d is never parsed or executed by any in-browser Python code interpreter.\",hostCommandInterpreter"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -607,11 +503,7 @@
       "snippet": "n the command references an interpreter such as Python. </p>"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -620,11 +512,7 @@
       "snippet": "reter.\",hostCommandInterpreters:Object.freeze([\"python3\",\"python\",\"uvicorn\",\"gunicorn\",\"pip3\",\"p"
     },
     {
-<<<<<<< Updated upstream
-      "file": "dist/assets/mcp-control-CGpfhyw_.js",
-=======
-      "file": "dist/assets/mcp-control-BX1dKaQm.js",
->>>>>>> Stashed changes
+      "file": "dist/assets/mcp-control-CNmfq9SR.js",
       "ruleId": "python-command-or-text",
       "severity": "python-reference",
       "fail": false,
@@ -659,15 +547,9 @@
       "owner": "browser-web-app",
       "classification": "browser-safe",
       "browserReachability": "web build entrypoint",
-<<<<<<< Updated upstream
       "modules": 58,
-      "renderedBytes": 1956199,
+      "renderedBytes": 1965399,
       "chunks": 42
-=======
-      "modules": 57,
-      "renderedBytes": 1891410,
-      "chunks": 41
->>>>>>> Stashed changes
     },
     {
       "type": "package",
@@ -676,7 +558,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 27,
-      "renderedBytes": 212715,
+      "renderedBytes": 212723,
       "chunks": 1
     },
     {
@@ -686,7 +568,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 25,
-      "renderedBytes": 140664,
+      "renderedBytes": 140670,
       "chunks": 1
     },
     {
@@ -706,7 +588,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 1,
-      "renderedBytes": 95654,
+      "renderedBytes": 97916,
       "chunks": 1
     },
     {
@@ -716,7 +598,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 18,
-      "renderedBytes": 76656,
+      "renderedBytes": 76662,
       "chunks": 1
     },
     {
@@ -736,7 +618,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 24,
-      "renderedBytes": 61301,
+      "renderedBytes": 61317,
       "chunks": 1
     },
     {
@@ -746,7 +628,17 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 26,
-      "renderedBytes": 57618,
+      "renderedBytes": 57636,
+      "chunks": 1
+    },
+    {
+      "type": "package",
+      "name": "multiformats",
+      "owner": "third-party-runtime",
+      "classification": "third-party",
+      "purpose": "bundled third-party dependency",
+      "modules": 60,
+      "renderedBytes": 57425,
       "chunks": 1
     },
     {
@@ -766,7 +658,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 13,
-      "renderedBytes": 38405,
+      "renderedBytes": 38437,
       "chunks": 1
     },
     {
@@ -776,17 +668,17 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 22,
-      "renderedBytes": 37958,
+      "renderedBytes": 38014,
       "chunks": 1
     },
     {
       "type": "package",
-      "name": "multiformats",
+      "name": "p-queue",
       "owner": "third-party-runtime",
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
-      "modules": 30,
-      "renderedBytes": 36973,
+      "modules": 3,
+      "renderedBytes": 33970,
       "chunks": 1
     },
     {
@@ -806,7 +698,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 16,
-      "renderedBytes": 32809,
+      "renderedBytes": 32835,
       "chunks": 1
     },
     {
@@ -816,7 +708,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 8,
-      "renderedBytes": 30454,
+      "renderedBytes": 30456,
       "chunks": 1
     },
     {
@@ -836,7 +728,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 6,
-      "renderedBytes": 22210,
+      "renderedBytes": 22226,
       "chunks": 1
     },
     {
@@ -846,7 +738,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 1,
-      "renderedBytes": 19310,
+      "renderedBytes": 19314,
       "chunks": 1
     },
     {
@@ -856,7 +748,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 5,
-      "renderedBytes": 16673,
+      "renderedBytes": 16701,
       "chunks": 1
     },
     {
@@ -866,7 +758,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 2,
-      "renderedBytes": 15598,
+      "renderedBytes": 15618,
       "chunks": 1
     },
     {
@@ -881,22 +773,12 @@
     },
     {
       "type": "package",
-      "name": "p-queue",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 3,
-      "renderedBytes": 14135,
-      "chunks": 1
-    },
-    {
-      "type": "package",
       "name": "@libp2p/peer-record",
       "owner": "mcp-protocol-runtime",
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 7,
-      "renderedBytes": 13695,
+      "renderedBytes": 13697,
       "chunks": 1
     },
     {
@@ -926,7 +808,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 3,
-      "renderedBytes": 12671,
+      "renderedBytes": 12772,
       "chunks": 1
     },
     {
@@ -945,8 +827,8 @@
       "owner": "third-party-runtime",
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
-      "modules": 7,
-      "renderedBytes": 11010,
+      "modules": 8,
+      "renderedBytes": 11690,
       "chunks": 1
     },
     {
@@ -966,7 +848,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 1,
-      "renderedBytes": 10307,
+      "renderedBytes": 10311,
       "chunks": 1
     },
     {
@@ -986,11 +868,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 5,
-<<<<<<< Updated upstream
-      "renderedBytes": 9860,
-=======
       "renderedBytes": 9858,
->>>>>>> Stashed changes
       "chunks": 1
     },
     {
@@ -1020,7 +898,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 2,
-      "renderedBytes": 8288,
+      "renderedBytes": 8300,
       "chunks": 1
     },
     {
@@ -1040,7 +918,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 7,
-      "renderedBytes": 7917,
+      "renderedBytes": 7919,
       "chunks": 1
     },
     {
@@ -1050,7 +928,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 1,
-      "renderedBytes": 7772,
+      "renderedBytes": 7786,
       "chunks": 1
     },
     {
@@ -1080,7 +958,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 5,
-      "renderedBytes": 6733,
+      "renderedBytes": 6735,
       "chunks": 1
     },
     {
@@ -1105,6 +983,16 @@
     },
     {
       "type": "package",
+      "name": "uint8arrays",
+      "owner": "third-party-runtime",
+      "classification": "third-party",
+      "purpose": "bundled third-party dependency",
+      "modules": 13,
+      "renderedBytes": 5236,
+      "chunks": 1
+    },
+    {
+      "type": "package",
       "name": "@libp2p/peer-collections",
       "owner": "mcp-protocol-runtime",
       "classification": "third-party",
@@ -1120,7 +1008,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 1,
-      "renderedBytes": 5203,
+      "renderedBytes": 5205,
       "chunks": 1
     },
     {
@@ -1145,6 +1033,16 @@
     },
     {
       "type": "package",
+      "name": "p-timeout",
+      "owner": "third-party-runtime",
+      "classification": "third-party",
+      "purpose": "bundled third-party dependency",
+      "modules": 2,
+      "renderedBytes": 4993,
+      "chunks": 1
+    },
+    {
+      "type": "package",
       "name": "pvutils",
       "owner": "third-party-runtime",
       "classification": "third-party",
@@ -1160,7 +1058,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 2,
-      "renderedBytes": 4236,
+      "renderedBytes": 4258,
       "chunks": 1
     },
     {
@@ -1200,22 +1098,17 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 2,
-      "renderedBytes": 3378,
+      "renderedBytes": 3683,
       "chunks": 1
     },
     {
       "type": "package",
-      "name": "uint8arrays",
+      "name": "ms",
       "owner": "third-party-runtime",
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
-<<<<<<< Updated upstream
       "modules": 1,
       "renderedBytes": 3597,
-=======
-      "modules": 10,
-      "renderedBytes": 3365,
->>>>>>> Stashed changes
       "chunks": 1
     },
     {
@@ -1235,7 +1128,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 2,
-      "renderedBytes": 3252,
+      "renderedBytes": 3258,
       "chunks": 1
     },
     {
@@ -1245,7 +1138,7 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 1,
-      "renderedBytes": 2755,
+      "renderedBytes": 2907,
       "chunks": 1
     },
     {
@@ -1256,16 +1149,6 @@
       "purpose": "bundled third-party dependency",
       "modules": 1,
       "renderedBytes": 2647,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "p-timeout",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 2592,
       "chunks": 1
     },
     {
@@ -1316,16 +1199,6 @@
       "purpose": "bundled third-party dependency",
       "modules": 1,
       "renderedBytes": 2122,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "ms",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 1955,
       "chunks": 1
     },
     {
@@ -1455,7 +1328,17 @@
       "classification": "third-party",
       "purpose": "bundled third-party dependency",
       "modules": 1,
-      "renderedBytes": 942,
+      "renderedBytes": 938,
+      "chunks": 1
+    },
+    {
+      "type": "package",
+      "name": "any-signal",
+      "owner": "third-party-runtime",
+      "classification": "third-party",
+      "purpose": "bundled third-party dependency",
+      "modules": 1,
+      "renderedBytes": 861,
       "chunks": 1
     },
     {
@@ -1466,16 +1349,6 @@
       "purpose": "bundled third-party dependency",
       "modules": 2,
       "renderedBytes": 783,
-      "chunks": 1
-    },
-    {
-      "type": "package",
-      "name": "any-signal",
-      "owner": "third-party-runtime",
-      "classification": "third-party",
-      "purpose": "bundled third-party dependency",
-      "modules": 1,
-      "renderedBytes": 764,
       "chunks": 1
     },
     {
@@ -1525,7 +1398,7 @@
       "classification": "third-party",
       "purpose": "browser libp2p transport and peer addressing",
       "modules": 2,
-      "renderedBytes": 328,
+      "renderedBytes": 330,
       "chunks": 1
     },
     {
@@ -1576,7 +1449,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 27,
-      "renderedBytes": 212715
+      "renderedBytes": 212723
     },
     {
       "packageName": "@chainsafe/libp2p-noise",
@@ -1585,7 +1458,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 16,
-      "renderedBytes": 32809
+      "renderedBytes": 32835
     },
     {
       "packageName": "@chainsafe/libp2p-yamux",
@@ -1621,7 +1494,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 22,
-      "renderedBytes": 37958
+      "renderedBytes": 38014
     },
     {
       "packageName": "@libp2p/gossipsub",
@@ -1639,7 +1512,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 6,
-      "renderedBytes": 22210
+      "renderedBytes": 22226
     },
     {
       "packageName": "@libp2p/interface",
@@ -1666,7 +1539,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 2,
-      "renderedBytes": 3252
+      "renderedBytes": 3258
     },
     {
       "packageName": "@libp2p/mdns",
@@ -1684,7 +1557,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 5,
-      "renderedBytes": 16673
+      "renderedBytes": 16701
     },
     {
       "packageName": "@libp2p/peer-collections",
@@ -1702,7 +1575,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 1,
-      "renderedBytes": 7772
+      "renderedBytes": 7786
     },
     {
       "packageName": "@libp2p/peer-id-factory",
@@ -1720,7 +1593,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 7,
-      "renderedBytes": 13695
+      "renderedBytes": 13697
     },
     {
       "packageName": "@libp2p/peer-store",
@@ -1729,7 +1602,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 8,
-      "renderedBytes": 30454
+      "renderedBytes": 30456
     },
     {
       "packageName": "@libp2p/pubsub",
@@ -1738,7 +1611,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 2,
-      "renderedBytes": 328
+      "renderedBytes": 330
     },
     {
       "packageName": "@libp2p/utils",
@@ -1747,7 +1620,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 26,
-      "renderedBytes": 57618
+      "renderedBytes": 57636
     },
     {
       "packageName": "@libp2p/webrtc",
@@ -1756,7 +1629,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 18,
-      "renderedBytes": 76656
+      "renderedBytes": 76662
     },
     {
       "packageName": "@libp2p/websockets",
@@ -1773,8 +1646,8 @@
       "version": null,
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
-      "bundledModules": 7,
-      "renderedBytes": 11010
+      "bundledModules": 8,
+      "renderedBytes": 11690
     },
     {
       "packageName": "@multiformats/mafmt",
@@ -1792,7 +1665,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 13,
-      "renderedBytes": 38405
+      "renderedBytes": 38437
     },
     {
       "packageName": "@multiformats/multiaddr-matcher",
@@ -1801,7 +1674,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 2,
-      "renderedBytes": 15598
+      "renderedBytes": 15618
     },
     {
       "packageName": "@multiformats/multiaddr-to-uri",
@@ -1855,7 +1728,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 1,
-      "renderedBytes": 942
+      "renderedBytes": 938
     },
     {
       "packageName": "any-signal",
@@ -1864,7 +1737,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 1,
-      "renderedBytes": 764
+      "renderedBytes": 861
     },
     {
       "packageName": "asn1js",
@@ -1873,7 +1746,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 1,
-      "renderedBytes": 95654
+      "renderedBytes": 97916
     },
     {
       "packageName": "datastore-core",
@@ -1963,7 +1836,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 1,
-      "renderedBytes": 10307
+      "renderedBytes": 10311
     },
     {
       "packageName": "is-electron",
@@ -1999,7 +1872,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 2,
-      "renderedBytes": 4236
+      "renderedBytes": 4258
     },
     {
       "packageName": "it-drain",
@@ -2035,7 +1908,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 5,
-      "renderedBytes": 6733
+      "renderedBytes": 6735
     },
     {
       "packageName": "it-length-prefixed-stream",
@@ -2071,7 +1944,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 1,
-      "renderedBytes": 2755
+      "renderedBytes": 2907
     },
     {
       "packageName": "it-peekable",
@@ -2107,7 +1980,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 2,
-      "renderedBytes": 8288
+      "renderedBytes": 8300
     },
     {
       "packageName": "it-queue",
@@ -2152,7 +2025,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 7,
-      "renderedBytes": 7917
+      "renderedBytes": 7919
     },
     {
       "packageName": "libp2p",
@@ -2161,7 +2034,7 @@
       "owner": "mcp-protocol-runtime",
       "purpose": "browser libp2p transport and peer addressing",
       "bundledModules": 25,
-      "renderedBytes": 140664
+      "renderedBytes": 140670
     },
     {
       "packageName": "main-event",
@@ -2170,7 +2043,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 2,
-      "renderedBytes": 3378
+      "renderedBytes": 3683
     },
     {
       "packageName": "merge-options",
@@ -2197,7 +2070,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 1,
-      "renderedBytes": 1955
+      "renderedBytes": 3597
     },
     {
       "packageName": "multiformats",
@@ -2205,8 +2078,8 @@
       "version": null,
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
-      "bundledModules": 30,
-      "renderedBytes": 36973
+      "bundledModules": 60,
+      "renderedBytes": 57425
     },
     {
       "packageName": "murmurhash3js-revisited",
@@ -2251,7 +2124,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 3,
-      "renderedBytes": 14135
+      "renderedBytes": 33970
     },
     {
       "packageName": "p-timeout",
@@ -2259,8 +2132,8 @@
       "version": null,
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
-      "bundledModules": 1,
-      "renderedBytes": 2592
+      "bundledModules": 2,
+      "renderedBytes": 4993
     },
     {
       "packageName": "progress-events",
@@ -2278,7 +2151,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 24,
-      "renderedBytes": 61301
+      "renderedBytes": 61317
     },
     {
       "packageName": "pvtsutils",
@@ -2332,7 +2205,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 1,
-      "renderedBytes": 5203
+      "renderedBytes": 5205
     },
     {
       "packageName": "uint8arraylist",
@@ -2341,7 +2214,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 1,
-      "renderedBytes": 19310
+      "renderedBytes": 19314
     },
     {
       "packageName": "uint8arrays",
@@ -2349,8 +2222,8 @@
       "version": null,
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
-      "bundledModules": 10,
-      "renderedBytes": 3365
+      "bundledModules": 13,
+      "renderedBytes": 5236
     },
     {
       "packageName": "weald",
@@ -2359,7 +2232,7 @@
       "owner": "third-party-runtime",
       "purpose": "bundled third-party dependency",
       "bundledModules": 3,
-      "renderedBytes": 12671
+      "renderedBytes": 12772
     },
     {
       "packageName": "wherearewe",
@@ -2374,61 +2247,37 @@
   "budgetResults": [
     {
       "name": "totalRawBytes",
-<<<<<<< Updated upstream
-      "actual": 2427511,
-=======
-      "actual": 2368421,
->>>>>>> Stashed changes
+      "actual": 2444856,
       "budget": 2750000,
       "pass": true
     },
     {
       "name": "totalGzipBytes",
-<<<<<<< Updated upstream
-      "actual": 569696,
-=======
-      "actual": 553919,
->>>>>>> Stashed changes
+      "actual": 574628,
       "budget": 650000,
       "pass": true
     },
     {
       "name": "totalBrotliBytes",
-<<<<<<< Updated upstream
-      "actual": 478581,
-=======
-      "actual": 464869,
->>>>>>> Stashed changes
+      "actual": 479895,
       "budget": 560000,
       "pass": true
     },
     {
       "name": "libp2pRawBytes",
-<<<<<<< Updated upstream
-      "actual": 611030,
-=======
-      "actual": 602838,
->>>>>>> Stashed changes
+      "actual": 621354,
       "budget": 650000,
       "pass": true
     },
     {
       "name": "libp2pGzipBytes",
-<<<<<<< Updated upstream
-      "actual": 178262,
-=======
-      "actual": 175167,
->>>>>>> Stashed changes
+      "actual": 181925,
       "budget": 190000,
       "pass": true
     },
     {
       "name": "libp2pBrotliBytes",
-<<<<<<< Updated upstream
-      "actual": 144566,
-=======
-      "actual": 142035,
->>>>>>> Stashed changes
+      "actual": 144959,
       "budget": 160000,
       "pass": true
     },

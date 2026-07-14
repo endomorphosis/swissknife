@@ -28,31 +28,31 @@ jobs:
           # x86_64 builds
           - os: ubuntu-latest
             arch: x86_64
-            node-version: '20.x'
+            node-version: '20.19.0'
             platform: linux/amd64
           - os: ubuntu-latest
             arch: x86_64
-            node-version: '18.x'
+            node-version: '22.12.0'
             platform: linux/amd64
           # ARM64 builds (experimental - emulation has limitations)
           - os: ubuntu-latest
             arch: arm64
-            node-version: '20.x'
+            node-version: '20.19.0'
             platform: linux/arm64
             experimental: true
           - os: ubuntu-latest
             arch: arm64
-            node-version: '18.x'
+            node-version: '22.12.0'
             platform: linux/arm64
             experimental: true
           # macOS builds (x86_64 and ARM64)
           - os: macos-13
             arch: x86_64
-            node-version: '20.x'
+            node-version: '20.19.0'
             platform: darwin/amd64
           - os: macos-14
             arch: arm64
-            node-version: '20.x'
+            node-version: '20.19.0'
             platform: darwin/arm64
 
     steps:
@@ -73,6 +73,10 @@ jobs:
           cache: 'npm'
           architecture: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
         continue-on-error: ${{ matrix.experimental || false }}
+
+      - name: Verify browser-validation toolchain
+        if: steps.setup-node.outcome == 'success'
+        run: node scripts/verify-browser-toolchain.mjs --receipt "${{ runner.temp }}/swissknife-browser-toolchain-multiarch-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.node-version }}.json"
 
       - name: Display system information
         if: steps.setup-node.outcome == 'success'
@@ -166,7 +170,7 @@ jobs:
           echo "✅ CLI tests passed on ${{ matrix.platform }}"
 
       - name: Run unit tests (safe subset)
-        if: matrix.node-version == '20.x' && steps.setup-node.outcome == 'success' && steps.build.outcome == 'success'
+        if: matrix.node-version == '20.19.0' && steps.setup-node.outcome == 'success' && steps.build.outcome == 'success'
         run: |
           echo "Running tests on ${{ matrix.platform }}..."
           npm run test:working 2>&1 | tee test-output.log || echo "⚠️ Some tests failed (non-blocking)"
@@ -270,7 +274,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NODE_VERSION=20
+            NODE_VERSION=20.19.0
 
       - name: Docker build summary
         run: |
@@ -315,29 +319,29 @@ jobs:
           mkdir -p release-packages
           
           # Package x86_64 builds
-          if [ -d "artifacts/build-ubuntu-latest-x86_64-node20.x" ]; then
-            cd artifacts/build-ubuntu-latest-x86_64-node20.x
+          if [ -d "artifacts/build-ubuntu-latest-x86_64-node20.19.0" ]; then
+            cd artifacts/build-ubuntu-latest-x86_64-node20.19.0
             tar -czf ../../release-packages/swissknife-linux-x86_64.tar.gz cli.mjs dist/ 2>/dev/null || true
             cd ../..
           fi
           
           # Package ARM64 builds
-          if [ -d "artifacts/build-ubuntu-latest-arm64-node20.x" ]; then
-            cd artifacts/build-ubuntu-latest-arm64-node20.x
+          if [ -d "artifacts/build-ubuntu-latest-arm64-node20.19.0" ]; then
+            cd artifacts/build-ubuntu-latest-arm64-node20.19.0
             tar -czf ../../release-packages/swissknife-linux-arm64.tar.gz cli.mjs dist/ 2>/dev/null || true
             cd ../..
           fi
           
           # Package macOS x86_64 builds
-          if [ -d "artifacts/build-macos-13-x86_64-node20.x" ]; then
-            cd artifacts/build-macos-13-x86_64-node20.x
+          if [ -d "artifacts/build-macos-13-x86_64-node20.19.0" ]; then
+            cd artifacts/build-macos-13-x86_64-node20.19.0
             tar -czf ../../release-packages/swissknife-macos-x86_64.tar.gz cli.mjs dist/ 2>/dev/null || true
             cd ../..
           fi
           
           # Package macOS ARM64 builds
-          if [ -d "artifacts/build-macos-14-arm64-node20.x" ]; then
-            cd artifacts/build-macos-14-arm64-node20.x
+          if [ -d "artifacts/build-macos-14-arm64-node20.19.0" ]; then
+            cd artifacts/build-macos-14-arm64-node20.19.0
             tar -czf ../../release-packages/swissknife-macos-arm64.tar.gz cli.mjs dist/ 2>/dev/null || true
             cd ../..
           fi
@@ -396,8 +400,8 @@ jobs:
           echo "- ✅ macOS ARM64 (Apple Silicon)" >> final-summary.md
           echo "" >> final-summary.md
           echo "## Node.js Versions Tested" >> final-summary.md
-          echo "- Node.js 18.x" >> final-summary.md
-          echo "- Node.js 20.x" >> final-summary.md
+          echo "- Node.js 20.19.0" >> final-summary.md
+          echo "- Node.js 22.12.0" >> final-summary.md
           
           cat final-summary.md
 
