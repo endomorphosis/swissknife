@@ -13,7 +13,7 @@ is the active default release-blocking group.
 | Browser libp2p Playwright evidence (SWR-028) | historical | ⚠️ never-certified | never | npm run evidence:libp2p-browser |
 | Browser bundle budget evidence (SWR-016) | historical | ⚠️ never-certified | never | npm run build:web |
 | Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-14T10:15:21.340Z | npm run services:audit |
-| Virtual desktop all-tools release evidence (SVD-101) | active | ❌ missing-evidence | 2026-07-14T07:47:06.844Z | node scripts/build-virtual-desktop-release-evidence.cjs |
+| Virtual desktop all-tools release evidence (SVD-101) | active | ✅ fresh | 2026-07-14T10:38:00.649Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 
 ## Browser libp2p Playwright evidence (SWR-028)
 
@@ -28,11 +28,4 @@ is the active default release-blocking group.
 - Recorded fingerprint: `none`
 - Current fingerprint: `f49bf69e627959138aeccd9a01679029ca2cb719414508a2f55190d22bbe1894`
 - Regenerate with: `npm run build:web`
-
-## Virtual desktop all-tools release evidence (SVD-101)
-
-- Status: **missing-evidence**
-- Missing evidence file(s): test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json, test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md
-
-- Regenerate with: `node scripts/build-virtual-desktop-release-evidence.cjs`
 

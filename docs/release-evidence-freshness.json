@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-14T10:15:21.344Z",
+  "generatedAt": "2026-07-14T10:38:00.649Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -41,7 +41,7 @@
       "id": "module-boundary-audit",
       "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
       "status": "fresh",
-      "updated": true,
+      "updated": false,
       "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
@@ -59,13 +59,10 @@
     {
       "id": "virtual-desktop-release-evidence",
       "label": "Virtual desktop all-tools release evidence (SVD-101)",
-      "status": "missing-evidence",
-      "updated": false,
+      "status": "fresh",
+      "updated": true,
       "releaseBlocking": true,
-      "missingEvidenceFiles": [
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md"
-      ],
+      "missingEvidenceFiles": [],
       "missingSourceFiles": [
         "scripts/capture-all-profile-service-matrix.cjs",
         "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json",
@@ -73,24 +70,31 @@
         "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json",
         "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json",
         "test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json",
         "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor",
         "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend",
         "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator",
+        "test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json",
         "test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json"
       ],
       "recordedEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "0d0f68f7c0aad540812e79966b03dfd3c595f22bc171526ec743b7d78fd3c5f5",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "5db6820d8dfeb98e7c11def11dbb8cac0f05b2138dd4dab4687bb4f81e971e81",
-        "docs/refactor-final-signoff.md": "cbdee3a8ebb5fd0d48870256961249c679736cf330b18411cb18bf319a17d219"
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "51a1a24573f1f1e572e2e36b4992cc7cfc2c59d177d776f3a2186dd8ad18bddb",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "ab6be93c1dab1a9ee4229cf66924013874046fc2c21879f4ea45bcf33cadd0ff",
+        "docs/refactor-final-signoff.md": "ce7414692e60051aab990dfb7ecd1d4aae096acca06c4fe695d24deefa711ba2",
+        "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "e7dec042e99d668cb5b81a2a4858eafb2f6fdbef5847084db2ec2c9bbc5f47b0"
       },
       "currentEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "MISSING",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "MISSING",
-        "docs/refactor-final-signoff.md": "cbdee3a8ebb5fd0d48870256961249c679736cf330b18411cb18bf319a17d219"
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "51a1a24573f1f1e572e2e36b4992cc7cfc2c59d177d776f3a2186dd8ad18bddb",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "ab6be93c1dab1a9ee4229cf66924013874046fc2c21879f4ea45bcf33cadd0ff",
+        "docs/refactor-final-signoff.md": "ce7414692e60051aab990dfb7ecd1d4aae096acca06c4fe695d24deefa711ba2",
+        "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "e7dec042e99d668cb5b81a2a4858eafb2f6fdbef5847084db2ec2c9bbc5f47b0"
       },
-      "recordedFingerprint": "106ebb6d73d08707b4ad404b8595da2b26736e39b3870f5136753bcaecabb644",
-      "currentFingerprint": "3504994434dcfcf9ca6adf092c96002ba2f7a71f3782710940a3e0d5664f7941",
-      "recordedAt": "2026-07-14T07:47:06.844Z",
+      "recordedFingerprint": "8682aa8861e9246b4b7971af3e904d4a284c9d840e934bc0e68a190f661dd46e",
+      "currentFingerprint": "8682aa8861e9246b4b7971af3e904d4a284c9d840e934bc0e68a190f661dd46e",
+      "recordedAt": "2026-07-14T10:38:00.649Z",
       "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs"
     }
   ]
