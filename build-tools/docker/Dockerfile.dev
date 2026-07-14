@@ -1,5 +1,6 @@
 # Development Dockerfile for SwissKnife
-FROM node:20-alpine
+ARG NODE_VERSION=20.19.0
+FROM node:${NODE_VERSION}-alpine
 
 WORKDIR /app
 
@@ -16,9 +17,12 @@ RUN apk add --no-cache \
 
 # Copy package files
 COPY package*.json ./
+COPY .nvmrc ./
+COPY scripts/verify-browser-toolchain.mjs ./scripts/verify-browser-toolchain.mjs
 COPY yarn.lock* pnpm-lock.yaml* ./
 
 # Install dependencies with dev dependencies
+RUN node scripts/verify-browser-toolchain.mjs --receipt /tmp/browser-toolchain-development.json
 RUN npm ci --legacy-peer-deps --no-audit
 
 # Copy source code

@@ -6,7 +6,7 @@
     "kode": "cli.mjs"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "type": "module",
   "types": "./web/src/swissknife-browser-core.ts",
@@ -86,14 +86,17 @@
     "install.sh",
     "src",
     "docs/browser-distribution-policy.md",
+    "docs/browser-validation-toolchain.md",
     "docs/browser-python-policy.md",
     "docs/browser-zkp-artifacts.md",
     "docs/browser-wasm-zkp-policy.md"
   ],
   "scripts": {
+    "browser:toolchain:verify": "node scripts/verify-browser-toolchain.mjs",
     "dev": "vite dev",
     "build": "npm run build:all",
     "build:cli": "vite build --config build-tools/configs/vite.cli.config.ts",
+    "prebuild:web": "npm run browser:toolchain:verify",
     "build:web": "vite build --config vite.web.config.ts && npm run bundle:audit:web",
     "build:ipfs": "vite build --config build-tools/configs/vite.ipfs.config.ts",
     "build:collaborative": "vite build --config vite.web.config.ts --mode collaborative",
@@ -113,6 +116,7 @@
     "test": "npm run test:fast",
     "test:fast": "jest --config=config/jest/jest.fast.config.cjs --runInBand",
     "test:service": "jest --config=config/jest/jest.service.config.cjs --runInBand",
+    "pretest:browser-compat": "npm run browser:toolchain:verify",
     "test:browser-compat": "npm run test:browser-compat:static && npm run test:browser-compat:runtime",
     "test:browser-compat:static": "jest --config=config/jest/jest.browser-compat.config.cjs --runInBand",
     "test:browser-compat:runtime": "vitest run --config build-tools/configs/vitest.browser-compat.config.ts",
@@ -515,5 +519,5 @@
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.2.1"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "npm@10.8.2"
 }

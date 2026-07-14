@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-14T10:15:21.344Z",
+  "generatedAt": "2026-07-14T10:42:24.061Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -22,26 +22,29 @@
     {
       "id": "browser-bundle-budget",
       "label": "Browser bundle budget evidence (SWR-016)",
-      "status": "never-certified",
-      "updated": false,
+      "status": "fresh",
+      "updated": true,
       "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-      "recordedEvidenceHashes": null,
-      "currentEvidenceHashes": {
-        "docs/browser-bundle-budget.md": "3741f868e7279f6441dd6c702a3cc0fa036fd2b45a166cc6f0d4ceda57125ee8",
-        "docs/browser-bundle-budget.json": "e1c812aa7a6d5b6ffc1a2581a8d8ab0fa93af2b5c3ead89672d871f29b54974d"
+      "recordedEvidenceHashes": {
+        "docs/browser-bundle-budget.md": "6850a8fc5a10ee74981221c65976e4f9ca7f4e8ae2828d6d50dd3b9ea8fb9bff",
+        "docs/browser-bundle-budget.json": "fef14f1f00a7ab0675f8fe2ab6f3bd1458e420040671ec50e3b661d3edc5dc53"
       },
-      "recordedFingerprint": null,
-      "currentFingerprint": "f49bf69e627959138aeccd9a01679029ca2cb719414508a2f55190d22bbe1894",
-      "recordedAt": null,
+      "currentEvidenceHashes": {
+        "docs/browser-bundle-budget.md": "6850a8fc5a10ee74981221c65976e4f9ca7f4e8ae2828d6d50dd3b9ea8fb9bff",
+        "docs/browser-bundle-budget.json": "fef14f1f00a7ab0675f8fe2ab6f3bd1458e420040671ec50e3b661d3edc5dc53"
+      },
+      "recordedFingerprint": "6a902af1172caca484528737980ba1bde21297aa91b6744c52797b9461eb6146",
+      "currentFingerprint": "6a902af1172caca484528737980ba1bde21297aa91b6744c52797b9461eb6146",
+      "recordedAt": "2026-07-14T10:42:24.050Z",
       "regenerateHint": "npm run build:web"
     },
     {
       "id": "module-boundary-audit",
       "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
       "status": "fresh",
-      "updated": true,
+      "updated": false,
       "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],

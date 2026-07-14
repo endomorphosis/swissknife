@@ -53,8 +53,11 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version-file: '.nvmrc'
           cache: 'npm'
+
+      - name: Verify browser-validation toolchain
+        run: node scripts/verify-browser-toolchain.mjs --receipt "${{ runner.temp }}/swissknife-browser-toolchain-documentation.json"
 
       - name: 📦 Install Dependencies
         id: install-deps
