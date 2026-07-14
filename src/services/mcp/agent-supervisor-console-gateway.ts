@@ -4,6 +4,7 @@ import type {
   AgentSupervisorCapabilityId,
   AgentSupervisorConsoleContract,
   AgentSupervisorDeniedReason,
+  AgentSupervisorEventDagRef,
   AgentSupervisorGatewayInvocation,
   AgentSupervisorGatewayResult,
   AgentSupervisorGoal,
@@ -509,6 +510,11 @@ export function createAgentSupervisorGovernedPolicyTransport(
 
       const correlationId = invocation.correlation_id ?? decision.request.client_request_id ?? makeStableId('corr');
       const receipt = buildPromptSteeringReceipt(decision.request, decision.review, correlationId, context);
+      const eventDag = buildAgentSupervisorEventDag(
+        receipt,
+        correlationId,
+        decision.request.dry_run ? 'prompt-steering-reviewed' : 'prompt-steering-confirmed',
+      );
       const data: AgentSupervisorGovernedActionAccepted = {
         request_id: decision.request.client_request_id ?? makeStableId('prompt-steering'),
         correlation_id: correlationId,
@@ -519,6 +525,7 @@ export function createAgentSupervisorGovernedPolicyTransport(
         affected_task_ids: decision.review.affected_task_ids,
         planned_mcp_action: decision.review.planned_mcp_action,
         receipt,
+        event_dag: eventDag,
       };
       return {
         state: 'available',
@@ -990,6 +997,7 @@ function normalizeGovernedActionAccepted(
     affected_task_ids: arrayOfStrings(value.affected_task_ids),
     planned_mcp_action: plannedAction,
     receipt,
+    event_dag: normalizeEventDagRef(value.event_dag, receipt),
   };
 }
 
@@ -1062,6 +1070,46 @@ function buildPromptSteeringReceipt(
     cid: `bafy${makeStableId('agentprompt', canonical).replace(/-/g, '')}`,
     owner: 'ipfs_kit_py',
     created_at: now,
+  };
+}
+
+function buildAgentSupervisorEventDag(
+  receipt: AgentSupervisorReceiptRef,
+  correlationId: string,
+  eventType: string,
+): AgentSupervisorEventDagRef | undefined {
+  if (!receipt.cid) return undefined;
+  const canonical = stableStringify({
+    correlation_id: correlationId,
+    event_type: eventType,
+    receipt_cid: receipt.cid,
+  });
+  return {
+    event_id: `evt-${makeStableId('agent-supervisor', canonical)}`,
+    cid: `bafy${makeStableId('agentevent', canonical).replace(/-/g, '')}`,
+    receipt_cid: receipt.cid,
+    owner: 'ipfs_kit_py',
+    event_type: eventType,
+    created_at: receipt.created_at,
+  };
+}
+
+function normalizeEventDagRef(
+  value: unknown,
+  receipt: AgentSupervisorReceiptRef,
+): AgentSupervisorEventDagRef | undefined {
+  if (!isObject(value)) return undefined;
+  const receiptCid = stringOrUndefined(value.receipt_cid) ?? receipt.cid;
+  const cid = stringOrUndefined(value.cid);
+  if (!receiptCid || !cid) return undefined;
+  if (receipt.cid && receiptCid !== receipt.cid) return undefined;
+  return {
+    event_id: stringOrUndefined(value.event_id) ?? makeStableId('agent-supervisor-event'),
+    cid,
+    receipt_cid: receiptCid,
+    owner: 'ipfs_kit_py',
+    event_type: stringOrUndefined(value.event_type) ?? 'governed-action-accepted',
+    created_at: stringOrUndefined(value.created_at) ?? receipt.created_at,
   };
 }
 

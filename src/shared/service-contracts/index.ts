@@ -8,6 +8,7 @@ export type {
   AgentSupervisorConsoleContractSchema,
   AgentSupervisorDeniedReason,
   AgentSupervisorDeniedResult,
+  AgentSupervisorEventDagRef,
   AgentSupervisorGatewayInvocation,
   AgentSupervisorGatewayResult,
   AgentSupervisorGoal,
