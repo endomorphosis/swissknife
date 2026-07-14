@@ -74,6 +74,7 @@ async function main() {
     encoding: 'utf8',
     timeout: 180000,
     maxBuffer: 64 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'inherit'],
   });
   const evidence = parseTrailingJson(result.stdout);
   if (result.error || result.status !== 0 || !evidence) {
@@ -306,9 +307,15 @@ const multiaddrs = Object.fromEntries(serviceConfigs.map(config => [
 ]));
 const agentKey = await ucans.EdKeypair.create({ exportable: true });
 const agentDid = agentKey.did();
+const startedAt = Date.now();
+const mark = stage => console.error('[SVD-100 +' + (Date.now() - startedAt) + 'ms] ' + stage);
 
-const http = await captureTransport('http');
-const libp2p = await captureTransport('libp2p');
+mark('starting independent HTTP and libp2p sessions');
+const [http, libp2p] = await Promise.all([
+  captureTransport('http'),
+  captureTransport('libp2p'),
+]);
+mark('both transport captures complete');
 const services = serviceConfigs.map(config => reconcileService(
   config,
   http.get(config.service),
@@ -366,12 +373,15 @@ console.log(JSON.stringify({
 }));
 
 async function captureTransport(transport) {
+  mark(transport + ': connecting all peers');
   const connector = createMultiServerConnector(agentDid, transport === 'libp2p' ? { libp2p: multiaddrs } : {});
   const connections = await connector.connectAll();
+  mark(transport + ': peer connections complete');
   const rows = new Map();
-  for (const config of serviceConfigs) {
+  await Promise.all(serviceConfigs.map(async config => {
     const connection = connections.get(config.server);
     const serviceConnector = connector.getConnector(config.server);
+    mark(transport + '/' + config.service + ': observation starting');
     rows.set(config.service, await observeServiceTransport(
       transport,
       config,
@@ -379,8 +389,11 @@ async function captureTransport(transport) {
       serviceConnector,
       announceByService.get(config.service),
     ));
-  }
+    mark(transport + '/' + config.service + ': observation complete');
+  }));
+  mark(transport + ': disconnecting peers');
   await Promise.allSettled(serviceConfigs.map(config => connector.getConnector(config.server)?.disconnect()));
+  mark(transport + ': disconnected');
   return rows;
 }
 
@@ -496,19 +509,18 @@ async function executeApprovedFixture(connector, config, observation) {
       receipt: envelope.receipt?.receipt_cid,
       event: envelope.event_cid,
     });
-    const reads = [];
-    for (const entry of cidEntries) {
+    const reads = await Promise.all(cidEntries.map(async entry => {
       const read = await connector.getArtifact(entry.cid);
-      reads.push({
+      return {
         kind: entry.kind,
         cid: entry.cid,
         found: read?.found === true,
         verified: read?.verified === true,
         returned_cid_matches: read?.cid === entry.cid,
         backend: read?.backend ?? null,
-      });
-    }
-    const history = await connector.getDAGHistory(200);
+      };
+    }));
+    const history = await connector.getDAGHistory(50);
     const provenance = typeof envelope.event_cid === 'string'
       ? await connector.traceProvenance(envelope.event_cid)
       : [];
@@ -596,7 +608,7 @@ function reconcileService(config, http, libp2p, announce) {
     matches: http.fixture.plain_call.semantic_fingerprint === libp2p.fixture.plain_call.semantic_fingerprint
       && http.fixture.envelope.result_semantic_fingerprint === libp2p.fixture.envelope.result_semantic_fingerprint,
     required: false,
-    rationale: 'Live status payload values may change between sequential transports; outcome and response-contract parity are release gates.',
+    rationale: 'Live status payload values may change between independent transport requests; outcome and response-contract parity are release gates.',
   };
   parity.passed = [
     parity.protocol_matches,
