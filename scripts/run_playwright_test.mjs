@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
 const playwrightCli = path.join(projectRoot, 'node_modules', '@playwright', 'test', 'cli.js');
+const toolchainVerifier = path.join(projectRoot, 'scripts', 'verify-browser-toolchain.mjs');
 const commandArgs = process.argv.slice(2);
 const args = commandArgs.length > 0 ? commandArgs : ['test'];
 const CHROMIUM_UNSAFE_PORTS = new Set([
@@ -20,8 +21,26 @@ const CHROMIUM_UNSAFE_PORTS = new Set([
   10080,
 ]);
 
+verifyBrowserToolchain();
 ensureE2EDependencies();
 runPlaywright(args);
+
+function verifyBrowserToolchain() {
+  // Playwright drives real browser engines against libp2p and other browser
+  // proof surfaces, so it must run on the same verified, supported Node
+  // release as every other lane/browser-validation command. This uses the
+  // process that launched this runner (never re-resolved from a possibly
+  // stale PATH) so a mismatched PATH entry cannot slip past the check.
+  const status = run(process.execPath, [
+    toolchainVerifier,
+    '--check-node-executable',
+    process.execPath,
+  ]);
+  if (status !== 0) {
+    console.error('Browser toolchain verification failed; refusing to launch Playwright.');
+    process.exit(status);
+  }
+}
 
 function ensureE2EDependencies() {
   if (hasE2EDependencies()) {
