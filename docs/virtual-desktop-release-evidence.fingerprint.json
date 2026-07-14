@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Virtual desktop all-tools release evidence (SVD-101)",
-  "generatedAt": "2026-07-14T10:38:00.649Z",
+  "generatedAt": "2026-07-14T20:16:19.100Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,12 +10,12 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "51a1a24573f1f1e572e2e36b4992cc7cfc2c59d177d776f3a2186dd8ad18bddb",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "ab6be93c1dab1a9ee4229cf66924013874046fc2c21879f4ea45bcf33cadd0ff",
-    "docs/refactor-final-signoff.md": "ce7414692e60051aab990dfb7ecd1d4aae096acca06c4fe695d24deefa711ba2",
-    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "e7dec042e99d668cb5b81a2a4858eafb2f6fdbef5847084db2ec2c9bbc5f47b0"
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "05ce3317384db67ef23174670f4690951090d19e4daeb5cf9ae978031fca7b56",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "d2c8cb294d38a428a642993effb5a7c721c9238f426b9e32df290d2cfd249718",
+    "docs/refactor-final-signoff.md": "c80b3f419d99c851c1b4bc00f3742a8b84aca4b1a2172ba615faa984ec26c2bd",
+    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "49a253f075a4023161c493649bb7f5a194a1bed9ca99e41ef816c31ab362d733"
   },
-  "sourceFingerprint": "8682aa8861e9246b4b7971af3e904d4a284c9d840e934bc0e68a190f661dd46e",
+  "sourceFingerprint": "ffaa29cb1864f067ea271ff43f0f64c109283ec26a8833b14e4843c93a0e4eaa",
   "sourceFiles": [
     {
       "path": "scripts/audit-release-evidence-freshness.mjs",
@@ -23,7 +23,7 @@
     },
     {
       "path": "scripts/build-virtual-desktop-release-evidence.cjs",
-      "sha256": "afb167df96bb54ce9320e1cd5c6f2209342a62162bc875104acd558a0f62eb12"
+      "sha256": "79c9811aa0f9a6700b55a4e5e35cb017f70b54fd237ab842ca252ce048123855"
     },
     {
       "path": "scripts/capture-all-profile-service-matrix.cjs",

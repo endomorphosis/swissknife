@@ -1204,7 +1204,7 @@ function renderNoNewUnknowns(report) {
   }
   lines.push('', '## Task-class conclusion', '',
     report.unknown_task_class_audit.statement,
-    'This ledger does not create follow-up task classes; it records only the existing owner task for each unsatisfied gate.', '');
+    'This ledger does not create follow-up task classes; it records only the existing owner task for each unsatisfied gate.');
   return `${lines.join('\n')}\n`;
 }
 

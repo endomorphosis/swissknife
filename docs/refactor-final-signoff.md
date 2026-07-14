@@ -2,8 +2,8 @@
 
 Task: SVD-101 — Aggregate freshness-aware release evidence and close only named gaps
 
-Observed: 2026-07-14T10:38:00.336Z
-SwissKnife revision: `76ecc861b0c87444b5aaf6ef47eb6e0483240d59`
+Observed: 2026-07-14T20:16:18.994Z
+SwissKnife revision: `7fc14db1b7f5fe1aa5419f4b8ce2b9823ae653d3`
 Release decision: **NO-GO**
 
 This signoff is generated from `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`.
