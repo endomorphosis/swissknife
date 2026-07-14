@@ -1,0 +1,336 @@
+import assert from "node:assert/strict";
+import { execFileSync, spawn } from "node:child_process";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import process from "node:process";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+import {
+  NAMESPACE_NAME,
+  acquireLease,
+  inspectLease,
+  readProcessIdentity,
+  releaseLease,
+  resolveCheckout,
+  verifyOwnerIdentity,
+} from "../../scripts/swissknife-checkout-lease.mjs";
+
+const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT = path.resolve(
+  TEST_DIR,
+  "../../scripts/swissknife-checkout-lease.mjs",
+);
+
+function git(cwd, ...args) {
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "Lease Test",
+      GIT_AUTHOR_EMAIL: "lease@example.invalid",
+      GIT_COMMITTER_NAME: "Lease Test",
+      GIT_COMMITTER_EMAIL: "lease@example.invalid",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+}
+
+async function fixture() {
+  const root = await mkdtemp(path.join(tmpdir(), "swissknife-lease-test-"));
+  const source = path.join(root, "source");
+  const parent = path.join(root, "parent");
+  await mkdir(source);
+  git(source, "init", "-q");
+  await writeFile(path.join(source, "README.md"), "fixture\n");
+  git(source, "add", "README.md");
+  git(source, "commit", "-qm", "fixture");
+  await mkdir(parent);
+  git(parent, "init", "-q");
+  await writeFile(path.join(parent, "board.md"), "# Board\n");
+  git(parent, "add", "board.md");
+  git(parent, "commit", "-qm", "parent");
+  git(
+    parent,
+    "-c",
+    "protocol.file.allow=always",
+    "submodule",
+    "add",
+    "-q",
+    source,
+    "swissknife",
+  );
+  git(parent, "commit", "-qam", "add submodule");
+  const checkout = path.join(parent, "swissknife");
+  const inventoryPath = path.join(root, "inventory.json");
+  const lane = {
+    id: "test-lane",
+    board: "board.md",
+    taskPrefix: "## TEST-",
+    statePrefix: "test_lane",
+    stateDirectory: "tmp/test-lane/state",
+    leaseRequiredForImplementation: true,
+    launch: {
+      environment: { IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS: "0" },
+      requiredArguments: ["--no-worktree-reconciliation"],
+      command: ["node", "scripts/swissknife-checkout-lease.mjs", "--run"],
+    },
+  };
+  await writeFile(
+    inventoryPath,
+    `${JSON.stringify({
+      schemaVersion: 1,
+      leaseNamespace: {
+        name: NAMESPACE_NAME,
+        directory: "$SUPERPROJECT_COMMON_GIT_DIR/swissknife-checkout-lease-v1",
+      },
+      lanes: [lane],
+    })}\n`,
+  );
+  return { root, parent, checkout, inventoryPath, lane };
+}
+
+test("acquires atomically, records lane/board/PID, refuses a second writer, and releases by identity", async (t) => {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const context = await resolveCheckout(item.checkout);
+  assert.equal(context.commonDirectory, path.join(item.parent, ".git"));
+
+  const owner = await acquireLease(context, item.lane, [
+    "node",
+    "-e",
+    "process.exit(0)",
+  ]);
+  assert.equal(owner.owner.pid, process.pid);
+  assert.equal(owner.lane.board, "board.md");
+  assert.equal((await inspectLease(context)).state, "active");
+
+  await assert.rejects(
+    acquireLease(context, item.lane, ["node", "-e", "process.exit(0)"]),
+    (error) => error.code === "lease_held",
+  );
+  assert.equal(await releaseLease(context, owner.leaseId), true);
+  assert.equal((await inspectLease(context)).state, "available");
+});
+
+test("staleness is proven from boot/PID start identity, never lease age", async (t) => {
+  const child = spawn(
+    process.execPath,
+    ["-e", "setTimeout(() => {}, 10_000)"],
+    { stdio: "ignore" },
+  );
+  t.after(() => {
+    if (child.exitCode === null && child.signalCode === null)
+      child.kill("SIGKILL");
+  });
+  await new Promise((resolve, reject) => {
+    child.once("spawn", resolve);
+    child.once("error", reject);
+  });
+  const identity = await readProcessIdentity(child.pid);
+  const owner = {
+    schemaVersion: 1,
+    leaseId: "00000000-0000-4000-8000-000000000000",
+    namespace: {
+      name: NAMESPACE_NAME,
+      id: "test-namespace",
+      commonDirectory: "/test/common",
+    },
+    owner: {
+      pid: child.pid,
+      hostname: (await import("node:os")).hostname(),
+      processIdentity: identity,
+    },
+    lane: { id: "test", board: "board.md" },
+    acquiredAt: "2000-01-01T00:00:00.000Z",
+  };
+  assert.equal(
+    (await verifyOwnerIdentity(owner)).state,
+    "active",
+    "old timestamps do not expire a live identity",
+  );
+  child.kill("SIGKILL");
+  await new Promise((resolve) => child.once("exit", resolve));
+  const stale = await verifyOwnerIdentity(owner);
+  assert.equal(stale.state, "stale_verified");
+  assert.match(stale.reason, /pid_absent|pid_reused/);
+});
+
+test("CLI refuses unsafe environment and mirrors a safe child nonzero exit", async (t) => {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const args = [
+    SCRIPT,
+    "--checkout",
+    item.checkout,
+    "--inventory",
+    item.inventoryPath,
+    "--run",
+    "--lane",
+    item.lane.id,
+    "--",
+    process.execPath,
+    "-e",
+    "process.exit(23)",
+  ];
+  const unsafe = await new Promise((resolve) => {
+    const child = spawn(process.execPath, args, {
+      env: { ...process.env, IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS: "1" },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("exit", (code) => resolve({ code, stderr }));
+  });
+  assert.equal(unsafe.code, 78);
+  assert.match(unsafe.stderr, /must be exactly 0/);
+
+  const safe = await new Promise((resolve) => {
+    const child = spawn(process.execPath, args, {
+      env: { ...process.env, IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS: "0" },
+      stdio: "ignore",
+    });
+    child.on("exit", (code) => resolve(code));
+  });
+  assert.equal(safe, 23);
+  const context = await resolveCheckout(item.checkout);
+  assert.equal((await inspectLease(context)).state, "available");
+});
+
+test("a killed outer wrapper cannot be reclaimed while its protected child group is alive", async (t) => {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const context = await resolveCheckout(item.checkout);
+  const wrapper = spawn(
+    process.execPath,
+    [
+      SCRIPT,
+      "--checkout",
+      item.checkout,
+      "--inventory",
+      item.inventoryPath,
+      "--run",
+      "--lane",
+      item.lane.id,
+      "--",
+      process.execPath,
+      "-e",
+      "setTimeout(() => {}, 700)",
+    ],
+    {
+      env: { ...process.env, IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS: "0" },
+      stdio: "ignore",
+    },
+  );
+  t.after(() => {
+    if (wrapper.exitCode === null && wrapper.signalCode === null)
+      wrapper.kill("SIGKILL");
+  });
+
+  let owner;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      owner = JSON.parse(
+        await readFile(path.join(context.leaseDirectory, "owner.json"), "utf8"),
+      );
+      if (owner.childProcessIdentity) break;
+    } catch {
+      // The atomic lease or protected-child update has not been published yet.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.ok(
+    owner?.childProcessIdentity,
+    "protected child identity was published before command launch",
+  );
+  t.after(() => {
+    if (owner?.childProcessGroupId) {
+      try {
+        process.kill(-owner.childProcessGroupId, "SIGKILL");
+      } catch {
+        // The protected process group already ended.
+      }
+    }
+  });
+
+  wrapper.kill("SIGKILL");
+  await new Promise((resolve) => wrapper.once("exit", resolve));
+  const protectedInspection = await inspectLease(context);
+  assert.equal(protectedInspection.state, "active");
+  assert.match(
+    protectedInspection.reason,
+    /protected_(child_identity_matches|process_group_member_alive)/,
+  );
+
+  let staleInspection;
+  for (let attempt = 0; attempt < 150; attempt += 1) {
+    staleInspection = await inspectLease(context);
+    if (staleInspection.state === "stale_verified") break;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.equal(staleInspection.state, "stale_verified");
+  const reclaim = execFileSync(
+    process.execPath,
+    [
+      SCRIPT,
+      "--checkout",
+      item.checkout,
+      "--inventory",
+      item.inventoryPath,
+      "--reclaim",
+      "--json",
+    ],
+    { encoding: "utf8" },
+  );
+  assert.equal(JSON.parse(reclaim).state, "available");
+  assert.equal((await inspectLease(context)).state, "available");
+  assert.ok(
+    (await readdir(context.commonDirectory)).some((name) =>
+      name.startsWith("swissknife-checkout-lease-v1.reclaimed-"),
+    ),
+    "verified-stale owner metadata is retained as an audit receipt",
+  );
+});
+
+test("check fails closed and leaves corrupt owner bytes untouched", async (t) => {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const context = await resolveCheckout(item.checkout);
+  await mkdir(context.leaseDirectory, { mode: 0o700 });
+  const ownerPath = path.join(context.leaseDirectory, "owner.json");
+  await writeFile(ownerPath, "{broken", { mode: 0o600 });
+
+  const result = await new Promise((resolve) => {
+    const child = spawn(
+      process.execPath,
+      [
+        SCRIPT,
+        "--checkout",
+        item.checkout,
+        "--inventory",
+        item.inventoryPath,
+        "--check",
+      ],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("exit", (code) => resolve({ code, stderr }));
+  });
+  assert.equal(result.code, 78);
+  assert.match(result.stderr, /Invalid JSON/);
+  assert.equal(await readFile(ownerPath, "utf8"), "{broken");
+});

@@ -225,12 +225,24 @@ operator intentionally wants autonomous task execution. Keep the same
 `--todo-path`, `--task-prefix`, `--state-prefix`, and `--state-dir` values so
 the implementation daemon uses the same task namespace and state history.
 
+SWR-135 supersedes every historical direct implementation launch: an
+implementation supervisor that can write SwissKnife must be the foreground
+child of `scripts/swissknife-checkout-lease.mjs --run`, using the registered
+lane and board from `docs/supervisor-lane-inventory.json`. The outermost launch
+must set `IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS=0`; both
+`--no-ephemeral-worktree` and `--no-worktree-reconciliation` are mandatory.
+The exact refactor and all-tools commands, stale-process identity rules, and
+dirty-checkout prohibitions are normative in
+[`supervisor-shared-checkout-safety.md`](supervisor-shared-checkout-safety.md).
+Do not use a separate acquire command, a lane-local lock, or the integration
+merge lock as a substitute for the process-lifetime lease.
+
 Recommended implementation guardrails for this backlog:
 
-- Keep `--no-ephemeral-worktree` when the current SwissKnife checkout is the
-  intended integration target.
-- Keep `--no-worktree-reconciliation` unless reconciling stale implementation
-  worktrees is the specific maintenance objective.
+- Keep `--no-ephemeral-worktree`; a different checkout strategy requires a
+  separate operator-owned workflow, not an implementation-lane fallback.
+- Keep `--no-worktree-reconciliation`; dirty reconciliation is never an
+  implementation-lane recovery action.
 - Use bounded restart and timeout settings for unattended runs.
 - Stop or wait for an active `--implement` supervisor before running a bounded
   check against the same state directory unless the check is being used only to
