@@ -13,8 +13,11 @@ const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: resolve(repoRoot, 'test/e2e'),
-  testMatch: ['**/agent-supervisor-all-app-validation.spec.ts'],
-  timeout: 180_000,
+  testMatch: [
+    '**/agent-supervisor-all-app-validation.spec.ts',
+    '**/agent-supervisor-expanded-meta-io.spec.ts',
+  ],
+  timeout: 600_000,
   outputDir: resolve(repoRoot, 'playwright-report/agent-supervisor-artifacts'),
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
