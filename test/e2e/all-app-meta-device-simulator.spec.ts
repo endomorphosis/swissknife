@@ -18,8 +18,13 @@ const GENERATED_AT = '2026-07-13T00:00:00.000Z';
 const EVIDENCE_ROOT = path.join(process.cwd(), 'test-results', 'virtual-desktop-ipfs-mcp-orb');
 const REPORT_PATH = path.join(EVIDENCE_ROOT, 'all-app-meta-device-simulator.json');
 const CONTRACT_PATH = path.join(EVIDENCE_ROOT, 'app-backend-contract.json');
+const UPSTREAM_HANDOFF_PATH = path.join(EVIDENCE_ROOT, 'all-app-live-orb-idl-handoff.json');
 const SCREENSHOT_ROOT = path.join(EVIDENCE_ROOT, 'app-screenshots', 'meta-device-simulator');
 const MODALITIES = ['display', 'camera', 'microphone', 'speaker', 'input'] as const;
+const VALIDATION_COMMANDS = [
+  'node scripts/run_playwright_test.mjs test -c playwright.config.ts test/e2e/all-app-meta-device-simulator.spec.ts --reporter=line',
+  'npm run test:e2e:meta-glasses -- --reporter=line',
+] as const;
 
 type Modality = typeof MODALITIES[number];
 
@@ -54,16 +59,20 @@ interface PacketReplayResult {
   interface_cid: string;
   focus_activation: {
     focus_visible: boolean;
+    focus_control_received_dom_focus: boolean;
     activated_method: string;
+    activation_decision: string;
   };
   layout: {
     viewport_width: number;
     viewport_height: number;
     scroll_width: number;
     scroll_height: number;
+    controls_overlap: boolean;
     bounded: boolean;
   };
   modality_results: Record<Modality, string>;
+  modality_replays: Record<Modality, ModalityReplayEvidence>;
   operator_decisions: string[];
   rollback: {
     expected_mode: string;
@@ -93,7 +102,35 @@ interface PlatformSafetyProbeResult {
   speaker_headphone: string[];
   raw_camera_pixels_preserved: false;
   raw_microphone_audio_preserved: false;
+  raw_camera_pixels_captured: false;
+  raw_microphone_audio_captured: false;
   screenshot: string;
+}
+
+interface ModalityReplayEvidence {
+  modality: Modality;
+  availability: string;
+  primary_surface: string;
+  permission_scope: string | null;
+  allowed: boolean;
+  hardware_available: boolean;
+  read_only: boolean;
+  result: string;
+  safe_payload: string;
+  raw_payload_captured: false;
+  fallback: {
+    kind: string;
+    target_surface: string;
+    reason: string;
+    user_visible: boolean;
+  };
+  states_replayed: string[];
+  receipt_refs_preserved: boolean;
+}
+
+interface BrowserFailure {
+  kind: 'console' | 'pageerror';
+  message: string;
 }
 
 interface DeviceSimulatorApi {
@@ -115,6 +152,14 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
     const catalog = buildPacketCatalog();
     const titleByApp = new Map(VIRTUAL_DESKTOP_APP_MANIFEST.apps.map(app => [app.id, app.title]));
     const results: PacketReplayResult[] = [];
+    const browserFailures: BrowserFailure[] = [];
+
+    assertCatalogIntegrity(catalog);
+    const upstreamCatalogVerified = verifyUpstreamCatalogIfPresent(catalog);
+    page.on('console', message => {
+      if (message.type() === 'error') browserFailures.push({ kind: 'console', message: message.text() });
+    });
+    page.on('pageerror', error => browserFailures.push({ kind: 'pageerror', message: error.message }));
 
     fs.mkdirSync(SCREENSHOT_ROOT, { recursive: true });
     await page.setViewportSize({ width: 1180, height: 780 });
@@ -141,6 +186,10 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
 
       const receiptBefore = await snapshot(page);
       await page.getByTestId('focus-next').click();
+      const focusControlReceivedDomFocus = await page.getByTestId('focus-next').evaluate(
+        element => element === document.activeElement,
+      );
+      expect(focusControlReceivedDomFocus).toBe(true);
       await expect(page.getByTestId('focused-action')).toContainText(packet.method_id);
       await page.getByTestId('activate').click();
 
@@ -157,6 +206,8 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
         await expect(page.getByTestId('operator-decision')).toContainText('policy_denied');
         await expect(page.getByTestId('fallback-state')).toContainText(packet.fallback_selection.target_surface);
       }
+      const activationSnapshot = await snapshot(page);
+      await expect(page.getByTestId('activation-state')).toContainText(packet.method_id);
 
       for (const modality of MODALITIES) {
         await page.evaluate(value => window.metaDeviceSimulator.replayModality(value), modality);
@@ -178,12 +229,14 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       await page.getByTestId('device-viewport').screenshot({ path: screenshotPath });
 
       const receiptAfter = await snapshot(page);
-      expect(receiptAfter.receipt_refs).toEqual(receiptBefore.receipt_refs);
-      expect(receiptAfter.event_dag_refs).toEqual(receiptBefore.event_dag_refs);
-      expect(receiptAfter.modality_results.display).toBe('safe_display_projection');
-      expect(receiptAfter.modality_results.camera).toMatch(/camera_(?:metadata_ref|unavailable_mobile_fallback)/);
-      expect(receiptAfter.modality_results.microphone).toMatch(/(?:redacted_transcript|microphone_unavailable_mobile_transcription)/);
-      expect(receiptAfter.modality_results.speaker).toMatch(/(?:audio_summary_headphone_fallback|speaker_unavailable_mobile_audio)/);
+      const receiptRefsPreserved = sameValues(receiptAfter.receipt_refs, receiptBefore.receipt_refs);
+      const eventDagRefsPreserved = sameValues(receiptAfter.event_dag_refs, receiptBefore.event_dag_refs);
+      expect(receiptRefsPreserved).toBe(true);
+      expect(eventDagRefsPreserved).toBe(true);
+      expect(receiptAfter.modality_results.display).toMatch(/^safe_display_(?:direct|fallback)_projection$/);
+      expect(receiptAfter.modality_results.camera).toMatch(/^camera_(?:metadata_ref|unavailable_[a-z_]+_fallback)$/);
+      expect(receiptAfter.modality_results.microphone).toMatch(/^(?:redacted_transcript|microphone_unavailable_[a-z_]+_transcription_fallback)$/);
+      expect(receiptAfter.modality_results.speaker).toMatch(/^(?:audio_summary_headphone_fallback|speaker_unavailable_[a-z_]+_audio_fallback)$/);
 
       results.push({
         packet_id: packet.packet_id,
@@ -198,10 +251,13 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
         interface_cid: packet.interface_cid,
         focus_activation: {
           focus_visible: receiptAfter.focused_action === packet.method_id,
+          focus_control_received_dom_focus: focusControlReceivedDomFocus,
           activated_method: receiptAfter.activation,
+          activation_decision: activationSnapshot.decision,
         },
         layout,
         modality_results: receiptAfter.modality_results,
+        modality_replays: buildModalityReplayEvidence(packet, receiptAfter),
         operator_decisions: receiptAfter.decision_history,
         rollback: {
           expected_mode: packet.rollback_behavior.mode,
@@ -218,7 +274,7 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
           after: receiptAfter.receipt_refs,
           event_dag_before: receiptBefore.event_dag_refs,
           event_dag_after: receiptAfter.event_dag_refs,
-          preserved: true,
+          preserved: receiptRefsPreserved && eventDagRefsPreserved,
         },
         screenshot: path.relative(process.cwd(), screenshotPath),
         status: 'passed',
@@ -234,13 +290,21 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
     expect(results.every(result => result.layout.bounded)).toBe(true);
     expect(results.every(result => result.receipt_preservation.preserved)).toBe(true);
     expect(results.every(result => result.fallback.user_visible)).toBe(true);
+    expect(browserFailures).toEqual([]);
 
     const report = {
       schema: REPORT_SCHEMA,
       task_id: TASK_ID,
       generated_at: GENERATED_AT,
+      validation_commands: VALIDATION_COMMANDS,
       source_packet_schema: catalog.schema,
       source_task_id: catalog.task_id,
+      upstream_handoff: {
+        path: path.relative(process.cwd(), UPSTREAM_HANDOFF_PATH),
+        present: fs.existsSync(UPSTREAM_HANDOFF_PATH),
+        verified_when_present: upstreamCatalogVerified,
+        source_mode: fs.existsSync(UPSTREAM_HANDOFF_PATH) ? 'verified_svd_098_artifact' : 'recompiled_from_svd_098_live_sources',
+      },
       source_packet_count: catalog.packet_count,
       source_app_count: catalog.app_count,
       replayed_packet_count: results.length,
@@ -258,11 +322,37 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
         all_source_packets_replayed: results.length === catalog.packet_count,
         all_applications_covered: new Set(results.map(result => result.app_id)).size === catalog.app_count,
         bounded_layouts: results.every(result => result.layout.bounded),
-        focus_and_activation_visible: results.every(result => result.focus_activation.focus_visible),
+        no_control_overlap: results.every(result => !result.layout.controls_overlap),
+        focus_and_activation_visible: results.every(result => result.focus_activation.focus_visible
+          && result.focus_activation.focus_control_received_dom_focus
+          && Boolean(result.focus_activation.activated_method)),
         receipts_preserved: results.every(result => result.receipt_preservation.preserved),
         operator_decisions_visible: results.every(result => result.operator_decisions.length > 0),
         rollback_replayed: results.every(result => result.rollback.observed_state.includes(result.rollback.expected_mode)),
-        audio_and_mobile_fallback_replayed: results.every(result => Boolean(result.fallback.observed_surface)),
+        all_packet_fallbacks_visible: results.every(result => Boolean(result.fallback.observed_surface)),
+        audio_and_mobile_fallback_replayed: results.some(result => (
+          result.modality_replays.speaker.fallback.target_surface === 'audio_channel'
+        )) && results.some(result => MODALITIES.some(modality => (
+          result.modality_replays[modality].fallback.target_surface === 'mobile_card'
+        ))),
+        safe_camera_and_microphone_payloads: results.every(result => (
+          !result.modality_replays.camera.raw_payload_captured
+          && Boolean(result.modality_replays.camera.safe_payload)
+          && !result.modality_replays.microphone.raw_payload_captured
+          && Boolean(result.modality_replays.microphone.safe_payload)
+        )),
+        speaker_headphone_fallback_visible: results.every(result => (
+          result.modality_replays.speaker.states_replayed.includes('audio_mobile_fallback_visible')
+          && result.modality_replays.speaker.fallback.user_visible
+        )),
+        no_hardware_availability_claimed: results.every(result => MODALITIES.every(modality => (
+          !result.modality_replays[modality].hardware_available
+        ))),
+        packet_modality_constraints_preserved: results.every(result => MODALITIES.every(modality => (
+          result.modality_replays[modality].modality === modality
+          && result.modality_replays[modality].receipt_refs_preserved
+        ))),
+        zero_browser_errors: browserFailures.length === 0,
       },
       modality_summary: Object.fromEntries(MODALITIES.map(modality => [
         modality,
@@ -271,6 +361,7 @@ test.describe('SVD-099 all-app Meta device simulator packet replay', () => {
       permission_summary: countBy(results, result => result.permission_state),
       fallback_summary: countBy(results, result => result.fallback.observed_surface),
       platform_safety_probes: safetyProbes,
+      browser_failures: browserFailures,
       screenshot_root: path.relative(process.cwd(), SCREENSHOT_ROOT),
       packets: results,
     };
@@ -298,17 +389,105 @@ function buildPacketCatalog(): AllAppLiveOrbIdlHandoffCatalog {
   });
 }
 
+function assertCatalogIntegrity(catalog: AllAppLiveOrbIdlHandoffCatalog): void {
+  const manifestAppIds = VIRTUAL_DESKTOP_APP_MANIFEST.apps.map(app => app.id).sort();
+  expect(catalog.schema).toBe('swissknife.all-app-live-orb-idl-handoff.v1');
+  expect(catalog.task_id).toBe('SVD-098');
+  expect(catalog.packet_count).toBe(catalog.packets.length);
+  expect(catalog.app_count).toBe(manifestAppIds.length);
+  expect(new Set(catalog.packets.map(packet => packet.packet_id)).size).toBe(catalog.packet_count);
+  expect(new Set(catalog.packets.map(packet => packet.packet_cid)).size).toBe(catalog.packet_count);
+  expect([...new Set(catalog.packets.map(packet => packet.app_id))].sort()).toEqual(manifestAppIds);
+  for (const packet of catalog.packets) {
+    expect(packet.packet_cid).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(packet.interface_cid).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(packet.modality_constraints.map(item => item.modality).sort()).toEqual([...MODALITIES].sort());
+    expect(packet.receipt_refs.length).toBeGreaterThan(0);
+    expect(packet.event_dag_refs.length).toBeGreaterThan(0);
+  }
+}
+
+function verifyUpstreamCatalogIfPresent(catalog: AllAppLiveOrbIdlHandoffCatalog): boolean {
+  if (!fs.existsSync(UPSTREAM_HANDOFF_PATH)) return true;
+  const upstream = JSON.parse(fs.readFileSync(UPSTREAM_HANDOFF_PATH, 'utf8')) as AllAppLiveOrbIdlHandoffCatalog;
+  expect(upstream).toEqual(catalog);
+  return true;
+}
+
+function buildModalityReplayEvidence(
+  packet: AllAppLiveOrbIdlHandoffPacket,
+  replay: SimulatorSnapshot,
+): Record<Modality, ModalityReplayEvidence> {
+  const receiptRefsPreserved = sameValues(
+    replay.receipt_refs,
+    packet.receipt_refs.map(reference => reference.cid),
+  ) && sameValues(
+    replay.event_dag_refs,
+    packet.event_dag_refs.map(reference => reference.cid),
+  );
+  const entries = MODALITIES.map(modality => {
+    const constraint = packet.modality_constraints.find(item => item.modality === modality);
+    if (!constraint) throw new Error(`${packet.packet_id}: missing ${modality} constraint`);
+    const statesReplayed = modality === 'display'
+      ? ['projection_requested', 'safe_projection_rendered', 'bounded_layout_verified']
+      : modality === 'camera'
+        ? ['availability_checked', 'raw_pixels_suppressed', 'typed_fallback_visible']
+        : modality === 'microphone'
+          ? ['availability_checked', 'raw_audio_suppressed', 'redacted_transcript_or_fallback_visible']
+          : modality === 'speaker'
+            ? ['speaker_headphone_route_checked', 'physical_playback_not_claimed', 'audio_mobile_fallback_visible']
+            : ['focus_visible', constraint.read_only ? 'read_only_activation_checked' : 'activation_checked', 'fallback_visible'];
+    const safePayload = modality === 'display'
+      ? `simulator://display/${packet.packet_cid}`
+      : modality === 'camera'
+        ? replay.camera_ref
+        : modality === 'microphone'
+          ? replay.transcript
+          : modality === 'speaker'
+            ? replay.audio_route
+            : replay.focused_action;
+    const evidence: ModalityReplayEvidence = {
+      modality,
+      availability: constraint.availability,
+      primary_surface: constraint.primary_surface,
+      permission_scope: constraint.permission_scope ?? null,
+      allowed: constraint.allowed,
+      hardware_available: constraint.hardware_available,
+      read_only: constraint.read_only,
+      result: replay.modality_results[modality],
+      safe_payload: safePayload,
+      raw_payload_captured: false,
+      fallback: {
+        kind: constraint.fallback_kind,
+        target_surface: constraint.fallback_surface,
+        reason: constraint.fallback_reason,
+        user_visible: constraint.fallback_surface !== 'none',
+      },
+      states_replayed: statesReplayed,
+      receipt_refs_preserved: receiptRefsPreserved,
+    };
+    return [modality, evidence] as const;
+  });
+  return Object.fromEntries(entries) as Record<Modality, ModalityReplayEvidence>;
+}
+
 async function replayPlatformSafetyProbes(page: Page): Promise<PlatformSafetyProbeResult> {
   await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('camera', 'allow'));
   await expect(page.getByTestId('probe-log')).toContainText('camera:operator_approved:metadata_ref_only');
   await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('camera', 'deny'));
   await expect(page.getByTestId('probe-log')).toContainText('camera:operator_denied:mobile_camera_fallback');
+  await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('camera', 'fallback'));
+  await expect(page.getByTestId('probe-log')).toContainText('camera:route_unavailable:mobile_camera_fallback');
   await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('microphone', 'allow'));
   await expect(page.getByTestId('probe-log')).toContainText('microphone:operator_approved:redacted_transcript_available');
   await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('microphone', 'deny'));
   await expect(page.getByTestId('probe-log')).toContainText('microphone:operator_denied:mobile_transcription_fallback');
+  await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('microphone', 'fallback'));
+  await expect(page.getByTestId('probe-log')).toContainText('microphone:route_unavailable:mobile_transcription_fallback');
   await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('speaker', 'allow'));
   await expect(page.getByTestId('probe-log')).toContainText('speaker:operator_approved:simulator_headphones');
+  await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('speaker', 'deny'));
+  await expect(page.getByTestId('probe-log')).toContainText('speaker:operator_denied:mobile_audio_fallback');
   await page.evaluate(() => window.metaDeviceSimulator.runSafetyProbe('speaker', 'fallback'));
   await expect(page.getByTestId('probe-log')).toContainText('speaker:route_unavailable:mobile_audio_fallback');
 
@@ -316,11 +495,13 @@ async function replayPlatformSafetyProbes(page: Page): Promise<PlatformSafetyPro
   await page.getByTestId('device-shell').screenshot({ path: screenshotPath });
   return {
     status: 'passed',
-    camera: ['permission_granted_metadata_ref_only', 'permission_denied_mobile_fallback'],
-    microphone: ['permission_granted_redacted_transcript', 'permission_denied_mobile_transcription'],
-    speaker_headphone: ['simulator_headphones', 'mobile_audio_fallback'],
+    camera: ['permission_granted_metadata_ref_only', 'permission_denied_mobile_fallback', 'route_unavailable_mobile_fallback'],
+    microphone: ['permission_granted_redacted_transcript', 'permission_denied_mobile_transcription', 'route_unavailable_mobile_transcription'],
+    speaker_headphone: ['simulator_headphones', 'permission_denied_mobile_audio', 'route_unavailable_mobile_audio'],
     raw_camera_pixels_preserved: false,
     raw_microphone_audio_preserved: false,
+    raw_camera_pixels_captured: false,
+    raw_microphone_audio_captured: false,
     screenshot: path.relative(process.cwd(), screenshotPath),
   };
 }
@@ -334,6 +515,7 @@ async function readLayout(page: Page): Promise<PacketReplayResult['layout']> {
     const viewport = element as HTMLElement;
     const outer = viewport.getBoundingClientRect();
     const descendants = [...viewport.querySelectorAll<HTMLElement>('*')];
+    const controls = [...viewport.querySelectorAll<HTMLElement>('button')];
     const childrenBounded = descendants.every(child => {
       const rect = child.getBoundingClientRect();
       return rect.left >= outer.left - 1
@@ -341,16 +523,34 @@ async function readLayout(page: Page): Promise<PacketReplayResult['layout']> {
         && rect.top >= outer.top - 1
         && rect.bottom <= outer.bottom + 1;
     });
+    const controlsOverlap = controls.some((control, index) => {
+      const left = control.getBoundingClientRect();
+      return controls.slice(index + 1).some(candidate => {
+        const right = candidate.getBoundingClientRect();
+        return left.left < right.right - 1
+          && left.right > right.left + 1
+          && left.top < right.bottom - 1
+          && left.bottom > right.top + 1;
+      });
+    });
     return {
       viewport_width: Math.round(outer.width),
       viewport_height: Math.round(outer.height),
       scroll_width: viewport.scrollWidth,
       scroll_height: viewport.scrollHeight,
+      controls_overlap: controlsOverlap,
       bounded: childrenBounded
+        && !controlsOverlap
         && viewport.scrollWidth <= viewport.clientWidth
         && viewport.scrollHeight <= viewport.clientHeight,
     };
   });
+}
+
+function sameValues(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false;
+  const sortedRight = [...right].sort();
+  return [...left].sort().every((value, index) => value === sortedRight[index]);
 }
 
 function safeFilePart(value: string): string {
@@ -515,6 +715,9 @@ function renderSimulatorHtml(): string {
           applyFallback(packet.fallback_selection.target_surface);
         }
         render();
+        if (id === 'focus-next') {
+          viewport.querySelector('[data-testid="focus-next"]')?.focus();
+        }
       });
 
       window.metaDeviceSimulator = {
@@ -529,10 +732,12 @@ function renderSimulatorHtml(): string {
         replayModality(kind) {
           const item = constraint(kind);
           if (kind === 'display') {
-            state.modality_results.display = 'safe_display_projection';
+            state.modality_results.display = item.allowed
+              ? 'safe_display_direct_projection'
+              : 'safe_display_fallback_projection';
           } else if (kind === 'camera') {
             if (item.availability === 'unsupported') {
-              state.modality_results.camera = 'camera_unavailable_mobile_fallback';
+              state.modality_results.camera = 'camera_unavailable_' + item.fallback_surface + '_fallback';
               state.camera_ref = 'none_raw_pixels_redacted';
             } else {
               state.modality_results.camera = 'camera_metadata_ref';
@@ -540,8 +745,8 @@ function renderSimulatorHtml(): string {
             }
           } else if (kind === 'microphone') {
             if (item.availability === 'unsupported') {
-              state.modality_results.microphone = 'microphone_unavailable_mobile_transcription';
-              state.transcript = 'mobile_transcription_fallback_raw_audio_redacted';
+              state.modality_results.microphone = 'microphone_unavailable_' + item.fallback_surface + '_transcription_fallback';
+              state.transcript = item.fallback_surface + '_transcription_fallback_raw_audio_redacted';
             } else {
               state.modality_results.microphone = 'redacted_transcript';
               state.transcript = 'redacted_transcript_available';
@@ -551,8 +756,8 @@ function renderSimulatorHtml(): string {
               state.modality_results.speaker = 'audio_summary_headphone_fallback';
               state.audio_route = 'simulator_headphones_or_mobile_audio';
             } else {
-              state.modality_results.speaker = 'speaker_unavailable_mobile_audio';
-              state.audio_route = 'mobile_audio_fallback';
+              state.modality_results.speaker = 'speaker_unavailable_' + item.fallback_surface + '_audio_fallback';
+              state.audio_route = item.fallback_surface + '_audio_fallback';
             }
           } else {
             state.modality_results.input = item.read_only ? 'focus_read_only' : 'focus_activation_ready';
@@ -568,10 +773,22 @@ function renderSimulatorHtml(): string {
         },
         runSafetyProbe(kind, decision) {
           const outcome = kind === 'camera'
-            ? decision === 'allow' ? 'operator_approved:metadata_ref_only' : 'operator_denied:mobile_camera_fallback'
+            ? decision === 'allow'
+              ? 'operator_approved:metadata_ref_only'
+              : decision === 'deny'
+                ? 'operator_denied:mobile_camera_fallback'
+                : 'route_unavailable:mobile_camera_fallback'
             : kind === 'microphone'
-              ? decision === 'allow' ? 'operator_approved:redacted_transcript_available' : 'operator_denied:mobile_transcription_fallback'
-              : decision === 'allow' ? 'operator_approved:simulator_headphones' : 'route_unavailable:mobile_audio_fallback';
+              ? decision === 'allow'
+                ? 'operator_approved:redacted_transcript_available'
+                : decision === 'deny'
+                  ? 'operator_denied:mobile_transcription_fallback'
+                  : 'route_unavailable:mobile_transcription_fallback'
+              : decision === 'allow'
+                ? 'operator_approved:simulator_headphones'
+                : decision === 'deny'
+                  ? 'operator_denied:mobile_audio_fallback'
+                  : 'route_unavailable:mobile_audio_fallback';
           probeEvents.push(kind + ':' + outcome);
           probeLog.textContent = 'platform safety probes\n' + probeEvents.join('\n') + '\nraw_pixels=false\nraw_audio=false\nhardware_pairing=false';
         },
