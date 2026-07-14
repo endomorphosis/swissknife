@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-14T11:02:04.194Z",
+  "generatedAt": "2026-07-14T11:21:28.850Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -23,7 +23,7 @@
       "id": "browser-bundle-budget",
       "label": "Browser bundle budget evidence (SWR-016)",
       "status": "fresh",
-      "updated": true,
+      "updated": false,
       "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
@@ -44,7 +44,7 @@
       "id": "module-boundary-audit",
       "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
       "status": "fresh",
-      "updated": false,
+      "updated": true,
       "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
@@ -56,7 +56,7 @@
       },
       "recordedFingerprint": "927f8e3b52dc71437d3f361fc5e5799f5842000d128f710896fdaac4b063ff2d",
       "currentFingerprint": "927f8e3b52dc71437d3f361fc5e5799f5842000d128f710896fdaac4b063ff2d",
-      "recordedAt": "2026-07-14T10:15:21.340Z",
+      "recordedAt": "2026-07-14T11:21:28.844Z",
       "regenerateHint": "npm run services:audit"
     },
     {
