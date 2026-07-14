@@ -2,35 +2,22 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "module-boundary-audit",
   "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
-<<<<<<< Updated upstream
-  "generatedAt": "2026-07-10T11:20:43.155Z",
+  "generatedAt": "2026-07-14T09:49:05.640Z",
   "evidenceFiles": [
     "docs/service-boundary-audit.json"
   ],
-  "sourceFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
+  "evidenceHashes": {
+    "docs/service-boundary-audit.json": "610397aedecf544c47a06d9b23e7a29f2687d88420530a42fe755e7a5a2f835f"
+  },
+  "sourceFingerprint": "adfa41483a2b7d1c92ffaafb4609634ce2749b47df3a12f683cf9a98dbdd9f54",
   "sourceFiles": [
     {
       "path": "scripts/audit-source-modules.mjs",
-      "sha256": "fa828daabd0b0d5536451f403e10cbf9c267db4c7383eb58d111f69fef9341e8"
+      "sha256": "bffb47370a486526db308c63d1d7503014593f388a4c172fed70293f0ac18ba6"
     },
     {
       "path": "src/module-ownership.json",
-      "sha256": "02fda8746d9d90e7f9e528ce5b58a34179959d5f4aae9335d156a940beb5d219"
-=======
-  "generatedAt": "2026-07-11T02:30:39.715Z",
-  "evidenceFiles": [
-    "docs/service-boundary-audit.json"
-  ],
-  "sourceFingerprint": "cb799cfa2a1a6af15b270efef7628e61c3eedebb77403b9a3218b528d52fd89e",
-  "sourceFiles": [
-    {
-      "path": "scripts/audit-source-modules.mjs",
-      "sha256": "410f729fa767947210fdcd019794f6233310cc47ebc7d17d62f25bf48a37ebfa"
-    },
-    {
-      "path": "src/module-ownership.json",
-      "sha256": "896887b498a59b70598f02cdadf20f214907369eabda4e3605ef9ce1accd30cc"
->>>>>>> Stashed changes
+      "sha256": "59cf5b44ede13d2b526833fbe0244c7ad4ddd4e1841d3be41479fc341783f684"
     }
   ]
 }

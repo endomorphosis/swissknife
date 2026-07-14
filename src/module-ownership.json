@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "2026-07-10",
+  "manifestVersion": "2026-07-14",
   "description": "Top-level ownership and dependency manifest for SwissKnife source modules.",
   "classificationValues": {
     "browser-safe": "May be statically imported by browser bundles.",
@@ -53,6 +53,7 @@
           "sha256": "a7661d2413b60a722b7d7ff8e52dd3efad86600553eba1c88c990a0b2c11870b",
           "canonicalPath": "src/services/logic/bridges/logic-bridges-browser.ts",
           "owner": "service-logic",
+          "disposition": "intentional-multi-entrypoint",
           "paths": [
             "src/services/glasses/glasses-browser.ts",
             "src/services/integrations/integrations-host.ts",
@@ -64,17 +65,622 @@
             "src/services/logic/nl/logic-nl-browser.ts",
             "src/services/logic/shared/logic-shared-browser.ts"
           ],
+          "publicContracts": [
+            { "path": "src/services/glasses/glasses-browser.ts", "contract": "glasses browser surface" },
+            { "path": "src/services/integrations/integrations-host.ts", "contract": "host integration surface" },
+            { "path": "src/services/logic/bridges/logic-bridges-browser.ts", "contract": "logic bridge browser surface" },
+            { "path": "src/services/logic/dcec/logic-dcec-browser.ts", "contract": "DCEC browser surface" },
+            { "path": "src/services/logic/deontic/logic-deontic-browser.ts", "contract": "deontic browser surface" },
+            { "path": "src/services/logic/fol/logic-fol-browser.ts", "contract": "FOL browser surface" },
+            { "path": "src/services/logic/modal/logic-modal-browser.ts", "contract": "modal logic browser surface" },
+            { "path": "src/services/logic/nl/logic-nl-browser.ts", "contract": "natural-language logic browser surface" },
+            { "path": "src/services/logic/shared/logic-shared-browser.ts", "contract": "shared logic browser surface" }
+          ],
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ],
           "reason": "SWR-120 approved exact one-line browser/host barrel shims after SWR-119 service moves; any content or path drift must be reviewed."
         },
         {
           "sha256": "4b3f5b62cf7fb461477447ef6c2b8aa27cb238d303b25d6e542ec31ce13e584d",
           "canonicalPath": "src/services/logic/fol/fol-output-formatters.ts",
           "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
           "paths": [
             "src/services/fol-utils/fol-output-formatter.ts",
             "src/services/logic/fol/fol-output-formatters.ts"
           ],
-          "reason": "SWR-120 approved the current FOL formatter dual entrypoint by exact content hash; any restored root copy or divergent implementation must fail the audit."
+          "reason": "SWR-143 classifies the FOL utility formatter as a restored implementation shadow; retain the logic-owned formatter and retarget the utility importer in SWR-144."
+        }
+      ],
+      "classifiedCollisions": [
+        {
+          "kind": "behavior",
+          "fingerprint": "00c35507f1fd78817072719d4ad3e53fb31300eda6c701200bdb3d044efa5bf6",
+          "canonicalPath": "src/services/provers/prover-strategy-runtime.ts",
+          "paths": [
+            "src/services/prover-strategy-adapters.ts",
+            "src/services/provers/prover-strategy-runtime.ts"
+          ],
+          "owner": "service-provers",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "01f4b37ea5be7aba6126ed3a30a87e9df0c5dbb3851f19fb48bd1f1bf8891cae",
+          "canonicalPath": "src/services/logic/deontic/legal-norm-builder.ts",
+          "paths": [
+            "src/services/deontic/deontic-legal-norm-builder.ts",
+            "src/services/logic/deontic/legal-norm-builder.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "099eaefd989151f52b97c6f9d73792d66ab19a614505fd05ab1b99341662e9ab",
+          "canonicalPath": "src/services/logic/api/logic-verification-toolkit.ts",
+          "paths": [
+            "src/services/logic-verification-utilities.ts",
+            "src/services/logic/api/logic-verification-toolkit.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "0dc11f5a0e184118da3c56ae9bf907d55d51b7c7e28b78c3d5a28ca55869aaaa",
+          "canonicalPath": "src/services/logic/fol/flogic-semantic-optimizer.ts",
+          "paths": [
+            "src/services/fol/fol-flogic-semantic-optimizer.ts",
+            "src/services/logic/fol/flogic-semantic-optimizer.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "0f4e35b0a37dfbfe8df0877c9d83dabd5e01d45ee64afa6644ad08cca20df859",
+          "canonicalPath": "src/services/logic/api/reasoning-normalization-pipeline.ts",
+          "paths": [
+            "src/services/logic-language-pipeline.ts",
+            "src/services/logic/api/reasoning-normalization-pipeline.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "13ac4724695136411da6047bacbbe53f3cfea42ca089ae2166151c4f2cdd40a8",
+          "canonicalPath": "src/services/logic/bridges/prover-router-bridge.ts",
+          "paths": [
+            "src/services/bridge/bridge-prover-router-bridge.ts",
+            "src/services/logic/bridges/prover-router-bridge.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "1ab0101bf491d742c764380bf659f32e546fe99dd59803024cc7b75af085e73c",
+          "canonicalPath": "src/services/logic/api/session-translation-types.ts",
+          "paths": [
+            "src/services/fol-bridge-session-types.ts",
+            "src/services/logic/api/session-translation-types.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "26ed07c8a63dc14ccd2c09f5d8d70de0b6a129a2214de01b1dd980a1e1b6389a",
+          "canonicalPath": "src/services/logic/fol/logic-formatter.ts",
+          "paths": [
+            "src/services/fol/fol-logic-formatter.ts",
+            "src/services/logic/fol/logic-formatter.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "2a755bd2852c1bcabbc4b5f1f483e26d59d01bdbd1bad2617cf273ee0439c11b",
+          "canonicalPath": "src/services/logic/fol/fol-exporters.ts",
+          "paths": [
+            "src/services/fol/fol-fol-exporters.ts",
+            "src/services/logic/fol/fol-exporters.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "326086cf2aa9db97ddc8c80e8e25ae45753541e17d529f6fc3671c44d8f2af52",
+          "canonicalPath": "src/services/logic/deontic/deontic-graph.ts",
+          "paths": [
+            "src/services/deontic/deontic-deontic-graph.ts",
+            "src/services/logic/deontic/deontic-graph.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "327102f4e5610d1a775bde8125e4f0466a906255c7b0b5075f963f7c92a91da2",
+          "canonicalPath": "src/services/logic/bridges/modal-frame-bridge.ts",
+          "paths": [
+            "src/services/bridge/bridge-modal-frame-bridge.ts",
+            "src/services/logic/bridges/modal-frame-bridge.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "41d50bb4b3d38612e653f507f6e77ba6acdec8139e576130dffb0c72ae9b6b7e",
+          "canonicalPath": "src/services/logic/deontic/deontic-extraction.ts",
+          "paths": [
+            "src/services/deontic/deontic-deontic-extraction.ts",
+            "src/services/logic/deontic/deontic-extraction.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "428c7dc9b1801d6f62e1d0a66a07fd2c0e9e8f9e8e3ef5ad085c654d94eafab3",
+          "canonicalPath": "src/services/logic/dcec/dcec-ucan-tptp-types.ts",
+          "paths": [
+            "src/services/deontic-cognitive-logic-types.ts",
+            "src/services/logic/dcec/dcec-ucan-tptp-types.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "44398959dea62a9376bec2ef87115be5d4de4a574a987fc48c39e34b2879dfde",
+          "canonicalPath": "src/services/logic/dcec/dcec-types.ts",
+          "paths": [
+            "src/services/logic/dcec/dcec-types.ts",
+            "src/services/provers/provers-dcec-types.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "63784bb8dc118e1c8487a5cdd73ab6d00acdba20568dcfa19a28aa2f402c0f42",
+          "canonicalPath": "src/services/logic/deontic/deontic-parser-utils.ts",
+          "paths": [
+            "src/services/deontic/deontic-deontic-parser-utils.ts",
+            "src/services/logic/deontic/deontic-parser-utils.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "647bbbc2ab2872c22e146bf75f74fa54a1e8cada2cbfe73578dd362d2d6232db",
+          "canonicalPath": "src/services/logic/fol/fol-text-parser.ts",
+          "paths": [
+            "src/services/fol-utils/fol-parser.ts",
+            "src/services/logic/fol/fol-text-parser.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "80e92ff56a914941d4df8546cc6c53b881811c3bc2d8e964b6fe78d7f9fe6426",
+          "canonicalPath": "src/services/logic/cec/cec-runtime-context-utils.ts",
+          "paths": [
+            "src/services/logic-observability-pipeline.ts",
+            "src/services/logic/cec/cec-runtime-context-utils.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "91e4f18da8b49831f747f0b88c8155614eee2fa50a54bbffc479f1f6e80bc1e9",
+          "canonicalPath": "src/services/logic/fol/fol-text-converter.ts",
+          "paths": [
+            "src/services/fol/fol-fol-text-converter.ts",
+            "src/services/logic/fol/fol-text-converter.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "9371948c38a26c94239b43a2db724cd13f529b25a02d90b064970964048ce2ad",
+          "canonicalPath": "src/services/proof-engine/index.ts",
+          "paths": [
+            "src/services/proof-engine/index.ts",
+            "src/services/proof-engine/proof-engine-browser.ts"
+          ],
+          "owner": "service-proof-engine",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "9c015c42d79558c9c5bfb38672c01fade8f921f02e296c9f60b427d1515523e6",
+          "canonicalPath": "src/services/logic/nl/portuguese-deontic-flogic-types.ts",
+          "paths": [
+            "src/services/deontic-nlp-ontology-types.ts",
+            "src/services/logic/nl/portuguese-deontic-flogic-types.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "baec28b13f99899131dd409f716d3946c4e8d4897ce2def804129459c52b2f45",
+          "canonicalPath": "src/services/logic/tdfol/tdfol-types.ts",
+          "paths": [
+            "src/services/logic/tdfol/tdfol-types.ts",
+            "src/services/provers/provers-tdfol-types.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "cea5a52aaaaaa2c0430754e2c0c53c8166fe13899e5d5ea5c9cef257980f6f7d",
+          "canonicalPath": "src/services/logic/deontic/normative-conflict-detector.ts",
+          "paths": [
+            "src/services/deontic/deontic-normative-conflict-detector.ts",
+            "src/services/logic/deontic/normative-conflict-detector.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "d21c062f38971b6e220824efd180fff01537f4c96cfe92e313eccf1e27e2d2be",
+          "canonicalPath": "src/services/logic/deontic/support-map.ts",
+          "paths": [
+            "src/services/deontic/deontic-support-map.ts",
+            "src/services/logic/deontic/support-map.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "d7fe2ce23778ba2ebebff91beeb1770b77779da198171bf825206dd553769f70",
+          "canonicalPath": "src/services/apps/swissknife-mcp-capability-registry.ts",
+          "paths": [
+            "src/services/apps/swissknife-mcp-capability-registry.ts",
+            "src/services/mcp/mcp-swissknife-mcp-capability-registry.ts"
+          ],
+          "owner": "service-apps",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "e46d1d6c7231ad79b492a9b1b0fdbc50a8dc033ad5e0bc0ba7ec25fc3c974da4",
+          "canonicalPath": "src/services/logic/fol/enhanced-fol-converter.ts",
+          "paths": [
+            "src/services/fol/fol-enhanced-fol-converter.ts",
+            "src/services/logic/fol/enhanced-fol-converter.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "e5dd3791aa50141d2aa4009ea4c49c3cb1aeba6d2af56127207eaf59ed2d0b0c",
+          "canonicalPath": "src/services/zkp/ethereum-zkp-bridge.ts",
+          "paths": [
+            "src/services/zkp-onchain-eth-bridge.ts",
+            "src/services/zkp/ethereum-zkp-bridge.ts"
+          ],
+          "owner": "service-zkp",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "e8b89807cba507104f25b613f1c430f198675a057867324598bc5e06af3abb00",
+          "canonicalPath": "src/services/logic/fol/fol-output-formatters.ts",
+          "paths": [
+            "src/services/fol-utils/fol-output-formatter.ts",
+            "src/services/logic/fol/fol-output-formatters.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "ea8fc3f8b91fec5f41fc6f5c825a709a4a4bd092811472fb52149cd1ced19e18",
+          "canonicalPath": "src/services/logic/deontic/legal-norm-ir.ts",
+          "paths": [
+            "src/services/deontic/deontic-legal-norm-ir.ts",
+            "src/services/logic/deontic/legal-norm-ir.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "eedd829dd6fdcbfb7121678ec42bcb1890b573f20748b739c5f3ee46aff50c29",
+          "canonicalPath": "src/services/logic/deontic/deontic-graph-builder.ts",
+          "paths": [
+            "src/services/deontic/deontic-deontic-graph-builder.ts",
+            "src/services/logic/deontic/deontic-graph-builder.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "f21e30fb62224f14678d030a63ef5240b7f42c3c4542c0a18bc270dbdd7888c2",
+          "canonicalPath": "src/services/logic/deontic/deontic-knowledge-base.ts",
+          "paths": [
+            "src/services/deontic/deontic-deontic-knowledge-base.ts",
+            "src/services/logic/deontic/deontic-knowledge-base.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "behavior",
+          "fingerprint": "f9f8c7f23b47cd820edaf3399c5198dabe6db38188b8027993d0ae41ebd74521",
+          "canonicalPath": "src/services/logic/fol/ml-confidence-scorer.ts",
+          "paths": [
+            "src/services/fol/fol-ml-confidence-scorer.ts",
+            "src/services/logic/fol/ml-confidence-scorer.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified static behavioral equivalence after identifier and relocation normalization; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "0e8dd8394d0e38dc22c10ca7f3185be3d847fc3bfa297224859c4c470ad46cae",
+          "canonicalPath": "src/services/logic/deontic/legal-norm-ir.ts",
+          "paths": [
+            "src/services/deontic/deontic-legal-norm-ir.ts",
+            "src/services/logic/deontic/legal-norm-ir.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "26d8035a78fd811131381d1286e66948024b77741234ee3b2b3de37bff5419e3",
+          "canonicalPath": "src/services/logic/api/session-translation-types.ts",
+          "paths": [
+            "src/services/fol-bridge-session-types.ts",
+            "src/services/logic/api/session-translation-types.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "673842c5971df0230f3074b8531a271c8bfe92d68bfcc457996f39759a164416",
+          "canonicalPath": "src/services/logic/deontic/deontic-graph.ts",
+          "paths": [
+            "src/services/deontic/deontic-deontic-graph.ts",
+            "src/services/logic/deontic/deontic-graph.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "8e073b59e1051b4b54d497705b74da01b3bc60778d3c58e947c3edeb0f8c0f0c",
+          "canonicalPath": "src/services/logic/fol/flogic-semantic-optimizer.ts",
+          "paths": [
+            "src/services/fol/fol-flogic-semantic-optimizer.ts",
+            "src/services/logic/fol/flogic-semantic-optimizer.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "9c563e4211f8e8f759fba9af4f0f6e333e401d9d1458ad2f03826ec4d4e14085",
+          "canonicalPath": "src/services/logic/fol/logic-formatter.ts",
+          "paths": [
+            "src/services/fol/fol-logic-formatter.ts",
+            "src/services/logic/fol/logic-formatter.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "b44af5ce35195b6e777b0580e2ae5717cd3c1b93f3db806073c81b6611007d4e",
+          "canonicalPath": "src/services/logic/deontic/normative-conflict-detector.ts",
+          "paths": [
+            "src/services/deontic/deontic-normative-conflict-detector.ts",
+            "src/services/logic/deontic/normative-conflict-detector.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "cb94d990d606a3ec0937209ab4dc7b86d55f02ff20ee8912b555fea0584ae067",
+          "canonicalPath": "src/services/logic/deontic/deontic-extraction.ts",
+          "paths": [
+            "src/services/deontic/deontic-deontic-extraction.ts",
+            "src/services/logic/deontic/deontic-extraction.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "d5b609cbb91e1d62a3fac5995ce3ba953761e8fe8a39dafe29e9dc4ba5c42c5a",
+          "canonicalPath": "src/services/logic/deontic/deontic-parser-utils.ts",
+          "paths": [
+            "src/services/deontic/deontic-deontic-parser-utils.ts",
+            "src/services/logic/deontic/deontic-parser-utils.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "dbc42e56be73017ae0cc52fc6d386c59970fc55641a8f846c603ce7986f20e80",
+          "canonicalPath": "src/services/logic/dcec/dcec-types.ts",
+          "paths": [
+            "src/services/logic/dcec/dcec-types.ts",
+            "src/services/provers/provers-dcec-types.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "de6603bdc815b29da7b133f19d71216c7a5483e082f31cde8d36d5c87ac989c8",
+          "canonicalPath": "src/services/logic/bridges/logic-bridges-browser.ts",
+          "paths": [
+            "src/services/glasses/glasses-browser.ts",
+            "src/services/integrations/integrations-host.ts",
+            "src/services/logic/bridges/logic-bridges-browser.ts",
+            "src/services/logic/dcec/logic-dcec-browser.ts",
+            "src/services/logic/deontic/logic-deontic-browser.ts",
+            "src/services/logic/fol/logic-fol-browser.ts",
+            "src/services/logic/modal/logic-modal-browser.ts",
+            "src/services/logic/nl/logic-nl-browser.ts",
+            "src/services/logic/shared/logic-shared-browser.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "intentional-multi-entrypoint",
+          "reason": "These source-equal barrels resolve ./index.js relative to nine different owned families and therefore expose distinct supported contracts; the architecture regression verifies their resolved targets remain behavior-distinct.",
+          "publicContracts": [
+            {
+              "path": "src/services/glasses/glasses-browser.ts",
+              "contract": "glasses browser surface"
+            },
+            {
+              "path": "src/services/integrations/integrations-host.ts",
+              "contract": "host integration surface"
+            },
+            {
+              "path": "src/services/logic/bridges/logic-bridges-browser.ts",
+              "contract": "logic bridge browser surface"
+            },
+            {
+              "path": "src/services/logic/dcec/logic-dcec-browser.ts",
+              "contract": "DCEC browser surface"
+            },
+            {
+              "path": "src/services/logic/deontic/logic-deontic-browser.ts",
+              "contract": "deontic browser surface"
+            },
+            {
+              "path": "src/services/logic/fol/logic-fol-browser.ts",
+              "contract": "FOL browser surface"
+            },
+            {
+              "path": "src/services/logic/modal/logic-modal-browser.ts",
+              "contract": "modal logic browser surface"
+            },
+            {
+              "path": "src/services/logic/nl/logic-nl-browser.ts",
+              "contract": "natural-language logic browser surface"
+            },
+            {
+              "path": "src/services/logic/shared/logic-shared-browser.ts",
+              "contract": "shared logic browser surface"
+            }
+          ],
+          "regressionTests": [
+            "test/architecture/source-module-boundaries.test.js"
+          ]
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "e36fda5f37bf1e6b6ab96c7372615c0c2e59668d2fea0180978d17203a6ac5c2",
+          "canonicalPath": "src/services/proof-engine/index.ts",
+          "paths": [
+            "src/services/proof-engine/index.ts",
+            "src/services/proof-engine/proof-engine-browser.ts"
+          ],
+          "owner": "service-proof-engine",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "e7a6f57bc6d1e35f682b452116edebaa043953c5b75c1c098046968ca1f367c1",
+          "canonicalPath": "src/services/logic/deontic/deontic-knowledge-base.ts",
+          "paths": [
+            "src/services/deontic/deontic-deontic-knowledge-base.ts",
+            "src/services/logic/deontic/deontic-knowledge-base.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "f1c622be17a395088867d5aa4c7f5ceca95874f61343be0bbb2f45091654fb69",
+          "canonicalPath": "src/services/logic/nl/portuguese-deontic-flogic-types.ts",
+          "paths": [
+            "src/services/deontic-nlp-ontology-types.ts",
+            "src/services/logic/nl/portuguese-deontic-flogic-types.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
+        },
+        {
+          "kind": "normalized-content",
+          "fingerprint": "f29c36015120ae3f3d5e65365e33f5702e316c24a3d8a21e8b115f33638f0617",
+          "canonicalPath": "src/services/logic/fol/fol-output-formatters.ts",
+          "paths": [
+            "src/services/fol-utils/fol-output-formatter.ts",
+            "src/services/logic/fol/fol-output-formatters.ts"
+          ],
+          "owner": "service-logic",
+          "disposition": "canonicalize-restored-shadow",
+          "reason": "SWR-143 classified an exact trivia-normalized restored collision; retain the named canonical owner and remove or retarget the shadow in SWR-144."
         }
       ]
     },
@@ -180,6 +786,13 @@
         "importer": "src/services/mcp/mcpClient.ts",
         "target": "src/commands.ts",
         "reason": "Migrated MCP client still imports command definitions through the legacy command registry until command metadata moves behind MCP-safe descriptors."
+      },
+      {
+        "from": "service-mcp",
+        "to": "commands",
+        "importer": "src/services/mcp/mcp-mcpClient.ts",
+        "target": "src/commands.ts",
+        "reason": "Restored MCP client variant still imports the same legacy command registry; SWR-143 inventories it explicitly and SWR-144 will reconcile the divergent client implementations."
       },
       {
         "from": "services",

@@ -172,7 +172,8 @@ export const MCP_PLUS_PLUS_PROFILE_NAMES: Record<MCPPlusPlusProfile, string> = {
   'mcp++/ucan': 'Profile C: Capability Delegation (UCAN)',
   'mcp++/idl': 'Profile A: MCP-IDL (CID-Addressed Interface Contracts)',
   'mcp++/event-dag': 'Profile F: Event DAG Provenance, Archival, and Compaction',
-  'mcp++/policy-d': 'Profile D: Temporal Deontic Policy Evaluation',
+  'mcp++/deontic-policy': 'Profile D: Temporal Deontic Policy Evaluation',
+  'mcp++/x402-payments': 'MCP++ x402 Payments',
   'mcp++/pubsub-bus': 'MCP++ PubSub Bus',
   'mcp++/p2p-transport': 'Profile E: mcp+p2p Transport Binding',
 };

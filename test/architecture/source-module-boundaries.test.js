@@ -119,7 +119,7 @@ function createAuditFixture({ files = {}, manifestPatch = {} } = {}) {
         runtimeClassification: 'split',
         allowedImports: ['shared', 'utils'],
         forbiddenImports: ['commands', 'entrypoints'],
-        publicEntrypoints: ['src/services/owned-root.ts'],
+        publicEntrypoints: ['src/services/*.ts'],
         privateEntrypoints: [],
       },
       'service-mcp': {
@@ -164,8 +164,13 @@ function createAuditFixture({ files = {}, manifestPatch = {} } = {}) {
 
   writeFixtureFile(fixtureDir, 'src/module-ownership.json', `${JSON.stringify(manifest, null, 2)}\n`);
   writeFixtureFile(fixtureDir, 'src/commands.ts', 'export const commandName = "fixture";\n');
-  writeFixtureFile(fixtureDir, 'src/services/owned-root.ts', 'export const ownedRoot = true;\n');
-  writeFixtureFile(fixtureDir, 'src/services/mcp/protocol.ts', 'export const protocol = true;\n');
+  writeFixtureFile(fixtureDir, 'src/services/owned-root.ts', 'export const ownedRoot = "fixture-root";\n');
+  writeFixtureFile(fixtureDir, 'src/services/mcp/protocol.ts', 'export const protocol = { version: 1 };\n');
+  writeFixtureFile(
+    fixtureDir,
+    'test/architecture/intentional-entrypoints.test.js',
+    'test("fixture intentional entrypoints", () => expect(true).toBe(true));\n',
+  );
   for (const [relativePath, content] of Object.entries(files)) {
     writeFixtureFile(fixtureDir, relativePath, content);
   }
@@ -286,6 +291,79 @@ describe('source module boundaries', () => {
       expect(owner).toBe('services');
     }
     expect(manifest.modules.services.rootOnly).toBe(true);
+  });
+
+  it('inventories every executable service file with hashes, ownership, importers, entrypoints, and disposition', () => {
+    const audit = runSourceModuleAudit();
+    const inventory = audit.restoredServiceDuplicateInventory;
+    const executableFiles = [];
+    const visit = directory => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const target = path.join(directory, entry.name);
+        if (entry.isDirectory()) visit(target);
+        else if (/\.(?:ts|tsx|js|jsx|mjs|cjs)$/.test(entry.name)) {
+          executableFiles.push(path.relative(rootDir, target).split(path.sep).join('/'));
+        }
+      }
+    };
+    visit(path.join(rootDir, 'src/services'));
+    executableFiles.sort();
+
+    expect(inventory.taskId).toBe('SWR-143');
+    expect(inventory.schemaVersion).toBeGreaterThanOrEqual(2);
+    expect(inventory.serviceFiles.map(item => item.path)).toEqual(executableFiles);
+    expect(inventory.summary.executableServiceFiles).toBe(executableFiles.length);
+    for (const item of inventory.serviceFiles) {
+      expect(item.contentHash.value).toMatch(/^[a-f0-9]{64}$/);
+      expect(item.normalizedContentHash.value).toMatch(/^[a-f0-9]{64}$/);
+      expect(item.behaviorHash.value).toMatch(/^[a-f0-9]{64}$/);
+      expect(item.importers).toEqual(expect.any(Array));
+      expect(item.publicEntrypoints).toEqual(expect.any(Array));
+      expect(item.runtimeClass).not.toBe('unknown');
+      expect(item.declaredOwner.owner).toEqual(expect.any(String));
+      expect(item.canonicalOwner).toEqual(expect.objectContaining({
+        module: expect.stringMatching(/^service|^services$/),
+        owner: expect.any(String),
+      }));
+      expect(item.disposition).toEqual(expect.any(String));
+      expect(item.collisionIds).toEqual(expect.any(Array));
+    }
+
+    const indexGroup = inventory.basenameCollisions.find(item => item.basename === 'index.ts');
+    const indexFiles = executableFiles.filter(item => item.endsWith('/index.ts'));
+    expect(indexGroup).toEqual(expect.objectContaining({
+      kind: 'index-entrypoint-basename',
+      disposition: 'module-scoped-index-entrypoints',
+      classified: true,
+      regressionTests: ['test/architecture/source-module-boundaries.test.js'],
+    }));
+    expect(indexGroup.paths.map(item => item.path)).toEqual(indexFiles);
+    expect(new Set(indexGroup.paths.map(item => item.publicContract)).size).toBe(indexFiles.length);
+    for (const item of indexGroup.paths) {
+      expect(item.canonicalOwner.owner).toEqual(expect.any(String));
+      expect(item.publicEntrypoints.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps source-equal relative barrels behavior-distinct behind named public contracts and a regression test', () => {
+    const audit = runSourceModuleAudit();
+    const inventory = audit.restoredServiceDuplicateInventory;
+    const barrelGroup = inventory.normalizedContentCollisions.find(
+      item => item.paths.includes('src/services/glasses/glasses-browser.ts'),
+    );
+    expect(barrelGroup).toEqual(expect.objectContaining({
+      disposition: 'intentional-multi-entrypoint',
+      classified: true,
+      classification: expect.objectContaining({
+        publicContracts: expect.any(Array),
+        regressionTests: ['test/architecture/source-module-boundaries.test.js'],
+      }),
+    }));
+    expect(barrelGroup.classification.publicContracts).toHaveLength(barrelGroup.paths.length);
+    expect(new Set(barrelGroup.classification.publicContracts.map(item => item.contract)).size)
+      .toBe(barrelGroup.paths.length);
+    const records = inventory.serviceFiles.filter(item => barrelGroup.paths.includes(item.path));
+    expect(new Set(records.map(item => item.behaviorHash.value)).size).toBe(records.length);
   });
 
   it('rejects new root service wrappers that are not in the ownership inventory', () => {
@@ -529,6 +607,17 @@ describe('source module boundaries', () => {
                   'src/services/restored-copy.ts',
                 ],
                 owner: 'service-mcp',
+                publicContracts: [
+                  {
+                    path: 'src/services/mcp/restored-copy.ts',
+                    contract: 'fixture MCP restored-copy contract',
+                  },
+                  {
+                    path: 'src/services/restored-copy.ts',
+                    contract: 'fixture root restored-copy compatibility contract',
+                  },
+                ],
+                regressionTests: ['test/architecture/intentional-entrypoints.test.js'],
                 reason: 'Fixture-only proof that exact multi-entrypoints can be approved without broad duplicate exemptions.',
               },
             ],
@@ -687,6 +776,111 @@ describe('source module boundaries', () => {
     }));
   });
 
+  it('rejects a renamed copy whose comments and formatting evade raw-content hashing', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/mcp/canonical-normalized.ts': 'export const normalizedValue = { answer: 42 };\n',
+        'src/services/mcp/renamed-normalized-shadow.ts': '// restored copy\nexport   const normalizedValue={answer:42};\n',
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-legacy', '--json', 'audit.json']);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toContain('service duplicate content hashes: 0');
+    expect(output).toContain('service normalized-content collisions: 1');
+    expect(output).toContain('unclassified service normalized-content collisions: 1');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.serviceNormalizedContentCollisionDetails[0]).toEqual(expect.objectContaining({
+      kind: 'normalized-content',
+      disposition: 'unclassified-copy',
+      paths: [
+        'src/services/mcp/canonical-normalized.ts',
+        'src/services/mcp/renamed-normalized-shadow.ts',
+      ],
+    }));
+  });
+
+  it('rejects behaviorally equivalent renamed implementations with renamed local identifiers', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/mcp/canonical-behavior.ts': 'export function original(input) { return input + 1; }\n',
+        'src/services/mcp/renamed-behavior-shadow.ts': 'export function renamed(value) { return value + 1; }\n',
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-legacy', '--json', 'audit.json']);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toContain('service normalized-content collisions: 0');
+    expect(output).toContain('service behavioral-equivalence groups: 1');
+    expect(output).toContain('unclassified service behavioral-equivalence groups: 1');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.serviceBehavioralEquivalenceDetails[0]).toEqual(expect.objectContaining({
+      kind: 'behavior',
+      disposition: 'unclassified-copy',
+      paths: [
+        'src/services/mcp/canonical-behavior.ts',
+        'src/services/mcp/renamed-behavior-shadow.ts',
+      ],
+    }));
+  });
+
+  it('distinguishes normalized-equal barrels when their relative targets have different behavior', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/mcp/first/browser.ts': "export * from './index.js';\n",
+        'src/services/mcp/first/index.ts': 'export const firstContract = true;\n',
+        'src/services/mcp/second/host.ts': "export * from './index.js';\n",
+        'src/services/mcp/second/index.ts': 'export const secondContract = true;\n',
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--json', 'audit.json']);
+    expect(result.status).toBe(0);
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    const first = audit.restoredServiceDuplicateInventory.serviceFiles.find(
+      item => item.path === 'src/services/mcp/first/browser.ts',
+    );
+    const second = audit.restoredServiceDuplicateInventory.serviceFiles.find(
+      item => item.path === 'src/services/mcp/second/host.ts',
+    );
+    expect(first.normalizedContentHash.value).toBe(second.normalizedContentHash.value);
+    expect(first.behaviorHash.value).not.toBe(second.behaviorHash.value);
+  });
+
+  it('rejects intentional multi-entrypoint approvals without distinct contracts and regression tests', () => {
+    const implementation = 'export const intentionalCopy = true;\n';
+    const sha256 = crypto.createHash('sha256').update(implementation).digest('hex');
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/mcp/intentional-a.ts': implementation,
+        'src/services/mcp/intentional-b.ts': implementation,
+      },
+      manifestPatch: {
+        audit: {
+          restoredServiceDuplicatePolicy: {
+            approvedContentHashes: [{
+              sha256,
+              canonicalPath: 'src/services/mcp/intentional-a.ts',
+              paths: [
+                'src/services/mcp/intentional-a.ts',
+                'src/services/mcp/intentional-b.ts',
+              ],
+              owner: 'service-mcp',
+              reason: 'An explanation alone is not contract or test evidence.',
+            }],
+          },
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-legacy']);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toContain('one distinct supported public contract for every exact path');
+    expect(output).toContain('at least one executable regression test');
+  });
+
   it('allows only exact approved service duplicate content hashes', () => {
     const copiedImplementation = 'export const copiedImplementation = "approved same bytes under a different basename";\n';
     const sha256 = crypto
@@ -706,6 +900,7 @@ describe('source module boundaries', () => {
                 sha256,
                 canonicalPath: 'src/services/mcp/copied-implementation.ts',
                 owner: 'service-mcp',
+                disposition: 'canonicalize-restored-shadow',
                 paths: [
                   'src/services/mcp/copied-implementation.ts',
                   'src/services/mcp/restored-under-new-name.ts',
@@ -730,7 +925,7 @@ describe('source module boundaries', () => {
       unapprovedServiceDuplicateContentHashes: 0,
     }));
     expect(audit.serviceDuplicateContentHashDetails[0]).toEqual(expect.objectContaining({
-      disposition: 'explicitly-approved-content-hash',
+      disposition: 'canonicalize-restored-shadow',
       approvedContentHash: expect.objectContaining({
         owner: 'service-mcp',
         canonicalPath: 'src/services/mcp/copied-implementation.ts',

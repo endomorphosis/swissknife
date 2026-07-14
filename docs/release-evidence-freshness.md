@@ -12,27 +12,27 @@ is the active default release-blocking group.
 | --- | --- | --- | --- | --- |
 | Browser libp2p Playwright evidence (SWR-028) | historical | ⚠️ never-certified | never | npm run evidence:libp2p-browser |
 | Browser bundle budget evidence (SWR-016) | historical | ⚠️ never-certified | never | npm run build:web |
-| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ⚠️ never-certified | never | npm run services:audit |
-| Virtual desktop all-tools release evidence (SVD-101) | active | ✅ fresh | 2026-07-14T07:47:06.844Z | node scripts/build-virtual-desktop-release-evidence.cjs |
+| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-14T09:49:05.640Z | npm run services:audit |
+| Virtual desktop all-tools release evidence (SVD-101) | active | ❌ missing-evidence | 2026-07-14T07:47:06.844Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 
 ## Browser libp2p Playwright evidence (SWR-028)
 
 - Status: **never-certified**
 - Recorded fingerprint: `none`
-- Current fingerprint: `f44a53ca2faa1f2b69ab0203430a7ae6a7a3cab962ce0451d86fe40c0337bae4`
+- Current fingerprint: `949df6231225a332ed1b049788126aedd499e133a0a9ca91a3722f6d0e5d3554`
 - Regenerate with: `npm run evidence:libp2p-browser`
 
 ## Browser bundle budget evidence (SWR-016)
 
 - Status: **never-certified**
 - Recorded fingerprint: `none`
-- Current fingerprint: `bde58fd9cf8f0db8ba60e120df7033f293ab16e4479d8afb4e266d0ace6179cf`
+- Current fingerprint: `f4dc7f762b0de2725af31b4cf7e77da47c31510560a455565f28e458968b6de7`
 - Regenerate with: `npm run build:web`
 
-## Module-boundary / service-boundary audit evidence (SWR-024)
+## Virtual desktop all-tools release evidence (SVD-101)
 
-- Status: **never-certified**
-- Recorded fingerprint: `none`
-- Current fingerprint: `b3682aa5c1ec24bed49c81a580222d63c6f16208d74e316825a32075cef36948`
-- Regenerate with: `npm run services:audit`
+- Status: **missing-evidence**
+- Missing evidence file(s): test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json, test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md
+
+- Regenerate with: `node scripts/build-virtual-desktop-release-evidence.cjs`
 

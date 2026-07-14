@@ -19,6 +19,7 @@ const DEFAULT_RESTORED_SERVICE_DUPLICATE_POLICY = {
   nonIndexBasenameDuplicatesAreFailuresByDefault: true,
   approvedMultiEntrypoints: [],
   approvedContentHashes: [],
+  classifiedCollisions: [],
 };
 const DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_JSON =
   'docs/restored-service-duplicate-inventory.json';
@@ -181,7 +182,7 @@ function listFiles(relativeDir, predicate, acc = []) {
     if (entry.isDirectory()) {
       if (IGNORED_DIRECTORIES.has(entry.name)) continue;
       listFiles(relative, predicate, acc);
-    } else if (predicate(relative, absolute)) {
+    } else if (!entry.isSymbolicLink() && predicate(relative, absolute)) {
       acc.push(relative);
     }
   }
@@ -417,6 +418,10 @@ function normalizeRestoredServiceDuplicatePolicy(manifest) {
         paths: Array.isArray(item.paths) ? [...item.paths].sort(compareStrings) : [],
         reason: item.reason ?? null,
         owner: item.owner ?? null,
+        publicContracts: normalizePublicContracts(item.publicContracts),
+        regressionTests: Array.isArray(item.regressionTests)
+          ? [...item.regressionTests].sort(compareStrings)
+          : [],
       }))
       .sort((a, b) => (
         (a.basename ?? '').localeCompare(b.basename ?? '')
@@ -429,13 +434,49 @@ function normalizeRestoredServiceDuplicatePolicy(manifest) {
         paths: Array.isArray(item.paths) ? [...item.paths].sort(compareStrings) : [],
         reason: item.reason ?? null,
         owner: item.owner ?? null,
+        disposition: item.disposition ?? 'intentional-multi-entrypoint',
+        publicContracts: normalizePublicContracts(item.publicContracts),
+        regressionTests: Array.isArray(item.regressionTests)
+          ? [...item.regressionTests].sort(compareStrings)
+          : [],
       }))
       .sort((a, b) => (
         (a.sha256 ?? '').localeCompare(b.sha256 ?? '')
         || (a.canonicalPath ?? '').localeCompare(b.canonicalPath ?? '')
         || a.paths.join('\0').localeCompare(b.paths.join('\0'))
       )),
+    classifiedCollisions: (policy.classifiedCollisions ?? [])
+      .map((item) => ({
+        kind: item.kind ?? null,
+        fingerprint: item.fingerprint ?? null,
+        canonicalPath: item.canonicalPath ?? null,
+        paths: Array.isArray(item.paths) ? [...item.paths].sort(compareStrings) : [],
+        owner: item.owner ?? null,
+        disposition: item.disposition ?? null,
+        reason: item.reason ?? null,
+        publicContracts: normalizePublicContracts(item.publicContracts),
+        regressionTests: Array.isArray(item.regressionTests)
+          ? [...item.regressionTests].sort(compareStrings)
+          : [],
+      }))
+      .sort((a, b) => (
+        (a.kind ?? '').localeCompare(b.kind ?? '')
+        || (a.fingerprint ?? '').localeCompare(b.fingerprint ?? '')
+        || a.paths.join('\0').localeCompare(b.paths.join('\0'))
+      )),
   };
+}
+
+function normalizePublicContracts(contracts) {
+  return (Array.isArray(contracts) ? contracts : [])
+    .map((item) => ({
+      path: item?.path ?? null,
+      contract: item?.contract ?? null,
+    }))
+    .sort((a, b) => (
+      (a.path ?? '').localeCompare(b.path ?? '')
+      || (a.contract ?? '').localeCompare(b.contract ?? '')
+    ));
 }
 
 function hasGlobSyntax(value) {
@@ -514,6 +555,7 @@ function collectRestoredServiceDuplicatePolicyViolations(policy, modules = {}) {
         });
       }
     }
+    collectIntentionalEntrypointEvidenceViolations(approval, location, modules, findings);
   }
 
   for (const [index, approval] of policy.approvedContentHashes.entries()) {
@@ -557,6 +599,13 @@ function collectRestoredServiceDuplicatePolicyViolations(policy, modules = {}) {
         reason: 'approved content hash must include an explicit rationale',
       });
     }
+    if (!['canonicalize-restored-shadow', 'intentional-multi-entrypoint'].includes(approval.disposition)) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        reason: 'approved content hash must have a supported concrete disposition',
+      });
+    }
     if (approval.canonicalPath && approval.paths.length > 0 && !approval.paths.includes(approval.canonicalPath)) {
       findings.push({
         policy: location,
@@ -578,6 +627,39 @@ function collectRestoredServiceDuplicatePolicyViolations(policy, modules = {}) {
         });
       }
     }
+    if (approval.disposition === 'intentional-multi-entrypoint') {
+      collectIntentionalEntrypointEvidenceViolations(approval, location, modules, findings);
+    }
+  }
+
+  for (const [index, classification] of policy.classifiedCollisions.entries()) {
+    const location = `audit.restoredServiceDuplicatePolicy.classifiedCollisions[${index}]`;
+    if (!['normalized-content', 'behavior'].includes(classification.kind)) {
+      findings.push({ policy: location, module: 'services', reason: 'classified collision kind must be normalized-content or behavior' });
+    }
+    if (!isSha256(classification.fingerprint)) {
+      findings.push({ policy: location, module: 'services', reason: 'classified collision must name one exact SHA-256 fingerprint' });
+    }
+    if (classification.paths.length < 2 || classification.paths.some((item) => (
+      !item.startsWith('src/services/') || hasGlobSyntax(item)
+    ))) {
+      findings.push({ policy: location, module: 'services', reason: 'classified collision must list every exact colliding service path' });
+    }
+    if (!classification.canonicalPath || !classification.paths.includes(classification.canonicalPath)) {
+      findings.push({ policy: location, module: 'services', reason: 'classified collision must name a canonical path from its exact paths' });
+    }
+    if (!classification.owner || !modules[classification.owner]) {
+      findings.push({ policy: location, module: 'services', reason: 'classified collision must name an existing canonical module owner' });
+    }
+    if (!['canonicalize-restored-shadow', 'intentional-multi-entrypoint'].includes(classification.disposition)) {
+      findings.push({ policy: location, module: 'services', reason: 'classified collision must have a supported concrete disposition' });
+    }
+    if (!classification.reason) {
+      findings.push({ policy: location, module: 'services', reason: 'classified collision must include an explicit rationale' });
+    }
+    if (classification.disposition === 'intentional-multi-entrypoint') {
+      collectIntentionalEntrypointEvidenceViolations(classification, location, modules, findings);
+    }
   }
 
   return findings.sort((a, b) => (
@@ -585,6 +667,62 @@ function collectRestoredServiceDuplicatePolicyViolations(policy, modules = {}) {
     || (a.path ?? '').localeCompare(b.path ?? '')
     || a.reason.localeCompare(b.reason)
   ));
+}
+
+function collectIntentionalEntrypointEvidenceViolations(approval, location, modules, findings) {
+  const contracts = approval.publicContracts ?? [];
+  const contractPaths = contracts.map((item) => item.path);
+  const contractNames = contracts.map((item) => item.contract).filter(Boolean);
+  if (
+    contracts.length !== approval.paths.length
+    || !exactPathSetMatches(contractPaths, approval.paths)
+    || contracts.some((item) => !item.contract)
+    || new Set(contractNames).size !== contractNames.length
+  ) {
+    findings.push({
+      policy: location,
+      module: 'services',
+      reason: 'intentional multi-entrypoints require one distinct supported public contract for every exact path',
+    });
+  }
+
+  const modulePatterns = Object.values(modules)
+    .flatMap((definition) => definition.publicEntrypoints ?? [])
+    .filter((pattern) => pattern.startsWith('src/services/'))
+    .map((pattern) => globToRegExp(pattern));
+  for (const contract of contracts) {
+    if (contract.path && !modulePatterns.some((pattern) => pattern.test(contract.path))) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        path: contract.path,
+        reason: 'intentional multi-entrypoint contract path must be a declared service public entrypoint',
+      });
+    }
+  }
+
+  if ((approval.regressionTests ?? []).length === 0) {
+    findings.push({
+      policy: location,
+      module: 'services',
+      reason: 'intentional multi-entrypoints require at least one executable regression test',
+    });
+  }
+  for (const testPath of approval.regressionTests ?? []) {
+    if (
+      !testPath.startsWith('test/')
+      || hasGlobSyntax(testPath)
+      || !isSourceFile(testPath)
+      || !fs.existsSync(abs(testPath))
+    ) {
+      findings.push({
+        policy: location,
+        module: 'services',
+        path: testPath,
+        reason: 'intentional multi-entrypoint regression test must be an existing exact executable path under test/',
+      });
+    }
+  }
 }
 
 function moduleForTopLevelPath(filePath, modules) {
@@ -685,12 +823,156 @@ function shouldIncludeModule(moduleName, args) {
 }
 
 function collectServiceDuplicateBasenames(files) {
-  void files;
-  // Service filenames are intentionally reused across domain-scoped service
-  // modules (for example browser.ts/host.ts split entrypoints and root
-  // compatibility wrappers for migrated implementations). Ownership conflicts
-  // are enforced through src/module-ownership.json and import-boundary checks.
-  return [];
+  const byBasename = new Map();
+  for (const filePath of files.filter(isServiceSourceFile)) {
+    const basename = path.basename(filePath);
+    if (/^index\.[cm]?[jt]sx?$/.test(basename)) continue;
+    const paths = byBasename.get(basename) ?? [];
+    paths.push(filePath);
+    byBasename.set(basename, paths);
+  }
+  return [...byBasename.entries()]
+    .filter(([, paths]) => paths.length > 1)
+    .map(([basename, paths]) => ({
+      basename,
+      paths: paths.sort(compareStrings),
+      reason: 'non-index executable service files share the same basename',
+    }))
+    .sort((a, b) => a.basename.localeCompare(b.basename));
+}
+
+const SOURCE_KEYWORDS = new Set([
+  'abstract', 'any', 'as', 'asserts', 'async', 'await', 'bigint', 'boolean', 'break',
+  'case', 'catch', 'class', 'const', 'constructor', 'continue', 'debugger', 'declare',
+  'default', 'delete', 'do', 'else', 'enum', 'export', 'extends', 'false', 'finally',
+  'for', 'from', 'function', 'get', 'if', 'implements', 'import', 'in', 'infer',
+  'instanceof', 'interface', 'is', 'keyof', 'let', 'module', 'namespace', 'never',
+  'new', 'null', 'number', 'object', 'of', 'package', 'private', 'protected', 'public',
+  'readonly', 'require', 'return', 'satisfies', 'set', 'static', 'string', 'super',
+  'switch', 'symbol', 'this', 'throw', 'true', 'try', 'type', 'typeof', 'undefined',
+  'unique', 'unknown', 'using', 'var', 'void', 'while', 'with', 'yield',
+]);
+
+function tokenizeSource(text) {
+  const tokens = [];
+  let offset = text.charCodeAt(0) === 0xfeff ? 1 : 0;
+  while (offset < text.length) {
+    const char = text[offset];
+    const next = text[offset + 1];
+    if (/\s/.test(char)) {
+      offset += 1;
+      continue;
+    }
+    if (char === '/' && next === '/') {
+      offset += 2;
+      while (offset < text.length && text[offset] !== '\n' && text[offset] !== '\r') offset += 1;
+      continue;
+    }
+    if (char === '/' && next === '*') {
+      offset += 2;
+      while (offset < text.length && !(text[offset] === '*' && text[offset + 1] === '/')) offset += 1;
+      offset = Math.min(text.length, offset + 2);
+      continue;
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      const quote = char;
+      const start = offset;
+      offset += 1;
+      while (offset < text.length) {
+        if (text[offset] === '\\') {
+          offset += 2;
+          continue;
+        }
+        const current = text[offset];
+        offset += 1;
+        if (current === quote) break;
+      }
+      tokens.push({ kind: 'literal', text: text.slice(start, offset) });
+      continue;
+    }
+    if (/[A-Za-z_$]/.test(char)) {
+      const start = offset;
+      offset += 1;
+      while (offset < text.length && /[\w$]/.test(text[offset])) offset += 1;
+      const value = text.slice(start, offset);
+      tokens.push({ kind: SOURCE_KEYWORDS.has(value) ? 'keyword' : 'identifier', text: value });
+      continue;
+    }
+    if (/\d/.test(char)) {
+      const start = offset;
+      offset += 1;
+      while (offset < text.length && /[\w.]/.test(text[offset])) offset += 1;
+      tokens.push({ kind: 'literal', text: text.slice(start, offset) });
+      continue;
+    }
+    const punctuation = [
+      '>>>=', '===', '!==', '**=', '&&=', '||=', '??=', '>>>', '<<=', '>>=', '...',
+      '=>', '==', '!=', '<=', '>=', '++', '--', '&&', '||', '??', '?.', '**', '+=',
+      '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<', '>>', '?.',
+    ].find((candidate) => text.startsWith(candidate, offset));
+    tokens.push({ kind: 'punctuation', text: punctuation ?? char });
+    offset += (punctuation ?? char).length;
+  }
+  return tokens;
+}
+
+function serializeTokens(tokens) {
+  return tokens.map((token) => `${token.kind.length}:${token.kind}:${token.text.length}:${token.text}`).join('|');
+}
+
+function normalizedSourceRecord(filePath) {
+  const tokens = tokenizeSource(fs.readFileSync(abs(filePath), 'utf8'));
+  const normalized = serializeTokens(tokens);
+  return {
+    algorithm: 'sha256',
+    normalization: 'lexical-v1-comments-and-trivia-elided',
+    value: crypto.createHash('sha256').update(normalized).digest('hex'),
+    tokenCount: tokens.length,
+  };
+}
+
+function literalValue(tokenText) {
+  if (tokenText.length < 2) return tokenText;
+  const quote = tokenText[0];
+  return (quote === '"' || quote === "'") && tokenText.at(-1) === quote
+    ? tokenText.slice(1, -1)
+    : tokenText;
+}
+
+function behaviorSourceRecord(filePath) {
+  const source = fs.readFileSync(abs(filePath), 'utf8');
+  const tokens = tokenizeSource(source);
+  const barrelOnly = isIndexBarrelSource(source);
+  const identifiers = new Map();
+  const behaviorTokens = tokens.map((token, tokenIndex) => {
+    if (token.kind === 'literal') {
+      const value = literalValue(token.text);
+      if (isLocalSpecifier(value)) {
+        const resolved = resolveLocalSpecifier(value, filePath);
+        if (resolved) {
+          return {
+            ...token,
+            text: barrelOnly ? `module:${resolved}` : 'module:<local-dependency>',
+          };
+        }
+      }
+      return token;
+    }
+    if (token.kind !== 'identifier') return token;
+    const previous = tokens[tokenIndex - 1]?.text;
+    const next = tokens[tokenIndex + 1]?.text;
+    const propertyName = previous === '.' || previous === '?.' || next === ':';
+    if (propertyName) return token;
+    if (!identifiers.has(token.text)) identifiers.set(token.text, `id${identifiers.size}`);
+    return { ...token, text: identifiers.get(token.text) };
+  });
+  const normalized = serializeTokens(behaviorTokens);
+  return {
+    algorithm: 'sha256',
+    normalization: 'behavior-structure-v1-local-identifiers-canonicalized-and-imports-resolved',
+    value: crypto.createHash('sha256').update(normalized).digest('hex'),
+    tokenCount: behaviorTokens.length,
+  };
 }
 
 function stripSourceComments(text) {
@@ -848,6 +1130,240 @@ function approvedContentHashForDuplicate(duplicate, policy, canonicalOwner) {
   )) ?? null;
 }
 
+function classifiedCollisionForGroup(kind, fingerprint, canonicalPath, paths, policy, canonicalOwner) {
+  return policy.classifiedCollisions.find((classification) => (
+    classification.kind === kind
+    && classification.fingerprint === fingerprint
+    && classification.canonicalPath === canonicalPath
+    && classification.owner === canonicalOwner.module
+    && exactPathSetMatches(classification.paths, paths)
+  )) ?? null;
+}
+
+function flattenPackageExportTargets(value, exportName, conditions = [], records = []) {
+  if (typeof value === 'string') {
+    records.push({
+      kind: 'package-export',
+      name: exportName,
+      conditions,
+      target: value.replace(/^\.\//, ''),
+    });
+    return records;
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return records;
+  for (const [condition, nested] of Object.entries(value)) {
+    flattenPackageExportTargets(nested, exportName, [...conditions, condition], records);
+  }
+  return records;
+}
+
+function collectPublicEntrypoints(filePath, owner, index, packageExportRecords) {
+  const definition = index.modules[owner.module];
+  const moduleEntries = (definition?.publicEntrypoints ?? [])
+    .filter((pattern) => globToRegExp(pattern).test(filePath))
+    .map((pattern) => ({
+      kind: 'module-manifest',
+      name: pattern,
+      conditions: [],
+      target: filePath,
+    }));
+  const packageEntries = packageExportRecords
+    .filter((entry) => entry.target === filePath)
+    .map((entry) => ({ ...entry }));
+  return [...moduleEntries, ...packageEntries].sort((a, b) => (
+    a.kind.localeCompare(b.kind)
+    || a.name.localeCompare(b.name)
+    || a.conditions.join(',').localeCompare(b.conditions.join(','))
+  ));
+}
+
+function collisionGroupId(kind, fingerprint) {
+  return `${kind}:${fingerprint}`;
+}
+
+function buildCollisionGroups(serviceFiles, kind, fingerprintSelector, index) {
+  const byFingerprint = new Map();
+  for (const record of serviceFiles) {
+    const fingerprint = fingerprintSelector(record);
+    const paths = byFingerprint.get(fingerprint) ?? [];
+    paths.push(record.path);
+    byFingerprint.set(fingerprint, paths);
+  }
+  return [...byFingerprint.entries()]
+    .filter(([, paths]) => paths.length > 1)
+    .map(([fingerprint, unsortedPaths]) => {
+      const paths = unsortedPaths.sort(compareStrings);
+      const canonicalPath = selectCanonicalDuplicatePath(paths, index);
+      const canonicalModuleOwner = ownerRecordForPath(canonicalPath, index);
+      const classification = classifiedCollisionForGroup(
+        kind,
+        fingerprint,
+        canonicalPath,
+        paths,
+        index.restoredServiceDuplicatePolicy,
+        canonicalModuleOwner,
+      );
+      const exactContentApproval = index.restoredServiceDuplicatePolicy.approvedContentHashes.find(
+        (approval) => exactPathSetMatches(approval.paths, paths),
+      ) ?? null;
+      const exactMultiEntrypointApproval = index.restoredServiceDuplicatePolicy.approvedMultiEntrypoints.find(
+        (approval) => exactPathSetMatches(approval.paths, paths),
+      ) ?? null;
+      const disposition = classification?.disposition
+        ?? exactContentApproval?.disposition
+        ?? (exactMultiEntrypointApproval ? 'intentional-multi-entrypoint' : null)
+        ?? 'unclassified-copy';
+      return {
+        id: collisionGroupId(kind, fingerprint),
+        kind,
+        fingerprint: {
+          algorithm: 'sha256',
+          value: fingerprint,
+        },
+        canonicalPath,
+        canonicalModuleOwner,
+        paths,
+        disposition,
+        reason: classification?.reason
+          ?? exactContentApproval?.reason
+          ?? `${kind} collision has no exact ownership classification`,
+        classified: Boolean(classification || exactContentApproval || exactMultiEntrypointApproval),
+        classification: classification ? {
+          owner: classification.owner,
+          disposition: classification.disposition,
+          publicContracts: classification.publicContracts,
+          regressionTests: classification.regressionTests,
+        } : null,
+      };
+    })
+    .sort((a, b) => a.canonicalPath.localeCompare(b.canonicalPath) || a.id.localeCompare(b.id));
+}
+
+function collectServiceFileInventory(files, importersByTarget, index) {
+  const packageJson = fs.existsSync(abs('package.json')) ? readJson('package.json') : {};
+  const packageExportRecords = Object.entries(packageJson.exports ?? {})
+    .flatMap(([exportName, value]) => flattenPackageExportTargets(value, exportName));
+  const records = files.filter(isServiceSourceFile).sort(compareStrings).map((filePath) => {
+    const stats = fs.statSync(abs(filePath));
+    const source = fs.readFileSync(abs(filePath), 'utf8');
+    const owner = ownerRecordForPath(filePath, index);
+    const contentHash = contentHashRecord(filePath);
+    const normalizedContentHash = normalizedSourceRecord(filePath);
+    const behaviorHash = behaviorSourceRecord(filePath);
+    const contentKind = serviceSourceContentKind(filePath);
+    return {
+      path: filePath,
+      basename: path.basename(filePath),
+      extension: path.extname(filePath),
+      sizeBytes: stats.size,
+      lineCount: source === '' ? 0 : source.split(/\r?\n/).length,
+      contentKind,
+      sha256: contentHash.value,
+      contentHash,
+      normalizedContentHash,
+      behaviorHash,
+      importers: importersByTarget.get(filePath) ?? [],
+      importerCount: importersByTarget.get(filePath)?.length ?? 0,
+      publicEntrypoints: collectPublicEntrypoints(filePath, owner, index, packageExportRecords),
+      runtimeClass: owner.runtimeClassification,
+      runtimeClassification: owner.runtimeClassification,
+      browserClassification: owner.browserClassification,
+      declaredOwner: owner,
+      canonicalOwner: owner,
+      module: owner.module,
+      owner: owner.owner,
+      disposition: contentKind === 'approved-index-barrel'
+        ? 'intentional-barrel-entrypoint'
+        : 'canonical-implementation',
+      collisionIds: [],
+    };
+  });
+
+  const normalizedContentCollisions = buildCollisionGroups(
+    records,
+    'normalized-content',
+    (record) => record.normalizedContentHash.value,
+    index,
+  );
+  const behavioralEquivalenceGroups = buildCollisionGroups(
+    records,
+    'behavior',
+    (record) => record.behaviorHash.value,
+    index,
+  );
+  const recordsByPath = new Map(records.map((record) => [record.path, record]));
+  const byBasename = new Map();
+  for (const record of records) {
+    const paths = byBasename.get(record.basename) ?? [];
+    paths.push(record.path);
+    byBasename.set(record.basename, paths);
+  }
+  const basenameCollisions = [...byBasename.entries()]
+    .filter(([, paths]) => paths.length > 1)
+    .map(([basename, unsortedPaths]) => {
+      const paths = unsortedPaths.sort(compareStrings);
+      const indexEntrypoints = /^index\.[cm]?[jt]sx?$/.test(basename);
+      const canonicalPath = selectCanonicalDuplicatePath(paths, index);
+      return {
+        id: `basename:${basename}`,
+        kind: indexEntrypoints ? 'index-entrypoint-basename' : 'non-index-service-basename',
+        basename,
+        canonicalPath,
+        canonicalModuleOwner: ownerRecordForPath(canonicalPath, index),
+        disposition: indexEntrypoints ? 'module-scoped-index-entrypoints' : 'unclassified-copy',
+        classified: indexEntrypoints,
+        reason: indexEntrypoints
+          ? 'module-scoped index entrypoints have named owners and distinct path contracts; content and behavior gates still apply independently'
+          : 'non-index executable service files share the same basename',
+        regressionTests: indexEntrypoints
+          ? ['test/architecture/source-module-boundaries.test.js']
+          : [],
+        paths: paths.map((filePath) => {
+          const record = recordsByPath.get(filePath);
+          return {
+            path: filePath,
+            canonicalOwner: record.canonicalOwner,
+            publicContract: `${record.module}:${filePath}`,
+            publicEntrypoints: record.publicEntrypoints,
+            contentKind: record.contentKind,
+          };
+        }),
+      };
+    })
+    .sort((a, b) => a.basename.localeCompare(b.basename));
+  const collisionByPath = new Map();
+  for (const group of [...normalizedContentCollisions, ...behavioralEquivalenceGroups]) {
+    for (const filePath of group.paths) {
+      const collisions = collisionByPath.get(filePath) ?? [];
+      collisions.push(group);
+      collisionByPath.set(filePath, collisions);
+    }
+  }
+  for (const record of records) {
+    const collisions = collisionByPath.get(record.path) ?? [];
+    record.collisionIds = collisions.map((group) => group.id).sort(compareStrings);
+    const basenameCollision = basenameCollisions.find((group) => (
+      group.paths.some((entry) => entry.path === record.path)
+    ));
+    if (basenameCollision) record.collisionIds.push(basenameCollision.id);
+    record.collisionIds.sort(compareStrings);
+    const unclassified = collisions.find((group) => !group.classified);
+    const remediation = collisions.find((group) => group.disposition === 'canonicalize-restored-shadow');
+    if (unclassified) {
+      record.canonicalOwner = unclassified.canonicalModuleOwner;
+      record.disposition = record.path === unclassified.canonicalPath
+        ? 'canonical-collision-candidate'
+        : 'unclassified-copy';
+    } else if (remediation) {
+      record.canonicalOwner = remediation.canonicalModuleOwner;
+      record.disposition = record.path === remediation.canonicalPath
+        ? 'canonical-implementation'
+        : 'canonicalize-restored-shadow';
+    }
+  }
+  return { records, basenameCollisions, normalizedContentCollisions, behavioralEquivalenceGroups };
+}
+
 function collectServiceIndexClassifications(files, index) {
   const approvedIndexBarrels = [];
   const indexImplementationEntrypoints = [];
@@ -957,12 +1473,15 @@ function collectServiceDuplicateContentHashes(files, index) {
           ? {
               owner: approvedContentHash.owner,
               canonicalPath: approvedContentHash.canonicalPath,
+              disposition: approvedContentHash.disposition,
+              publicContracts: approvedContentHash.publicContracts,
+              regressionTests: approvedContentHash.regressionTests,
               reason: approvedContentHash.reason,
             }
           : null,
         unapproved: !approvedContentHash,
         disposition: approvedContentHash
-          ? 'explicitly-approved-content-hash'
+          ? approvedContentHash.disposition
           : (restoredRootCopies.length > 0 ? 'remove-restored-copy' : 'content-shadow-review'),
         reason: approvedContentHash
           ? approvedContentHash.reason
@@ -984,6 +1503,7 @@ function collectRestoredServiceDuplicateInventory({
   duplicateContentHashes,
   importersByTarget,
   index,
+  serviceFileInventory,
   serviceIndexClassifications,
   policyViolations,
   serviceDuplicateBasenames,
@@ -1075,6 +1595,18 @@ function collectRestoredServiceDuplicateInventory({
     };
   });
 
+  for (const entry of duplicateEntries) {
+    const collisionId = `basename:${entry.basename}`;
+    for (const fileRecord of serviceFileInventory.records.filter((item) => entry.paths.some((candidate) => candidate.path === item.path))) {
+      fileRecord.collisionIds = [...new Set([...fileRecord.collisionIds, collisionId])].sort(compareStrings);
+      if (entry.disposition !== 'explicitly-approved-multi-entrypoint') {
+        fileRecord.disposition = fileRecord.path === entry.canonicalPath
+          ? 'canonical-collision-candidate'
+          : entry.disposition;
+      }
+    }
+  }
+
   const restoredRootFiles = duplicateEntries
     .flatMap((entry) => entry.paths.filter((item) => item.restoredRootCopy).map((item) => ({
       basename: entry.basename,
@@ -1114,9 +1646,9 @@ function collectRestoredServiceDuplicateInventory({
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedDate: currentUtcDate(),
-    taskId: 'SWR-118',
+    taskId: 'SWR-143',
     source: {
       manifestPath,
       serviceRoot: 'src/services',
@@ -1131,6 +1663,7 @@ function collectRestoredServiceDuplicateInventory({
       ),
       approvedMultiEntrypoints: index.restoredServiceDuplicatePolicy.approvedMultiEntrypoints,
       approvedContentHashes: index.restoredServiceDuplicatePolicy.approvedContentHashes,
+      classifiedCollisions: index.restoredServiceDuplicatePolicy.classifiedCollisions,
       policyViolations,
       allowedDispositions: [
         'remove-restored-copy',
@@ -1158,11 +1691,25 @@ function collectRestoredServiceDuplicateInventory({
       indexShadowCopies: serviceIndexClassifications.indexShadowCopies.length,
       duplicateContentHashes: duplicateContentHashes.length,
       unapprovedDuplicateContentHashes: duplicateContentHashes.filter((entry) => entry.unapproved).length,
-      totalImporters: allDuplicatePathRecords.reduce((total, entry) => total + entry.importerCount, 0),
-      uniqueImporterFiles: new Set(allDuplicatePathRecords.flatMap((entry) => (
+      executableServiceFiles: serviceFileInventory.records.length,
+      basenameCollisions: serviceFileInventory.basenameCollisions.length,
+      indexEntrypointBasenameCollisions: serviceFileInventory.basenameCollisions
+        .filter((entry) => entry.kind === 'index-entrypoint-basename').length,
+      normalizedContentCollisions: serviceFileInventory.normalizedContentCollisions.length,
+      unclassifiedNormalizedContentCollisions: serviceFileInventory.normalizedContentCollisions
+        .filter((entry) => !entry.classified).length,
+      behavioralEquivalenceGroups: serviceFileInventory.behavioralEquivalenceGroups.length,
+      unclassifiedBehavioralEquivalenceGroups: serviceFileInventory.behavioralEquivalenceGroups
+        .filter((entry) => !entry.classified).length,
+      totalImporters: serviceFileInventory.records.reduce((total, entry) => total + entry.importerCount, 0),
+      uniqueImporterFiles: new Set(serviceFileInventory.records.flatMap((entry) => (
         entry.importers.map((importer) => importer.file)
       ))).size,
     },
+    serviceFiles: serviceFileInventory.records,
+    basenameCollisions: serviceFileInventory.basenameCollisions,
+    normalizedContentCollisions: serviceFileInventory.normalizedContentCollisions,
+    behavioralEquivalenceGroups: serviceFileInventory.behavioralEquivalenceGroups,
     serviceIndexClassifications,
     duplicateContentHashes,
     restoredRootFiles,
@@ -1274,13 +1821,14 @@ function audit(manifest, args) {
     index.modules,
   );
   const importersByTarget = collectLocalImporters([
-    ...allFiles,
-    ...listFiles('web', (relative) => isAuditedFile(relative)),
+    ...listFiles('.', (relative) => isSourceFile(relative)),
   ]);
+  const serviceFileInventory = collectServiceFileInventory(allFiles, importersByTarget, index);
   const restoredServiceDuplicateInventory = collectRestoredServiceDuplicateInventory({
     duplicateContentHashes: serviceDuplicateContentHashes,
     importersByTarget,
     index,
+    serviceFileInventory,
     serviceIndexClassifications,
     policyViolations: restoredServiceDuplicatePolicyViolations,
     serviceDuplicateBasenames,
@@ -1420,6 +1968,13 @@ function audit(manifest, args) {
       serviceIndexImplementationEntrypoints: serviceIndexClassifications.indexImplementationEntrypoints.length,
       serviceIndexShadowCopies: serviceIndexClassifications.indexShadowCopies.length,
       restoredServiceDuplicatePolicyViolations: restoredServiceDuplicatePolicyViolations.length,
+      serviceExecutableFiles: serviceFileInventory.records.length,
+      serviceNormalizedContentCollisions: serviceFileInventory.normalizedContentCollisions.length,
+      unclassifiedServiceNormalizedContentCollisions: serviceFileInventory.normalizedContentCollisions
+        .filter((entry) => !entry.classified).length,
+      serviceBehavioralEquivalenceGroups: serviceFileInventory.behavioralEquivalenceGroups.length,
+      unclassifiedServiceBehavioralEquivalenceGroups: serviceFileInventory.behavioralEquivalenceGroups
+        .filter((entry) => !entry.classified).length,
       legacySprintServiceFiles: legacySprintServiceFiles.length,
     },
     rootDebt: scopedRootDebt,
@@ -1431,6 +1986,8 @@ function audit(manifest, args) {
     restoredServiceDuplicateInventory,
     serviceIndexClassifications,
     serviceDuplicateContentHashDetails: serviceDuplicateContentHashes,
+    serviceNormalizedContentCollisionDetails: serviceFileInventory.normalizedContentCollisions,
+    serviceBehavioralEquivalenceDetails: serviceFileInventory.behavioralEquivalenceGroups,
     legacyCompatibilityShims: scopedLegacyShims,
     legacyRootImportSpecifiers: scopedLegacyRootImportSpecifiers,
     serviceDuplicateBasenames: serviceDuplicateBasenames.length,
@@ -1515,6 +2072,11 @@ function printReport(result) {
   console.log(`unapproved service duplicate basenames: ${result.summary.unapprovedServiceDuplicateBasenames}`);
   console.log(`service duplicate content hashes: ${result.summary.serviceDuplicateContentHashes}`);
   console.log(`unapproved service duplicate content hashes: ${result.summary.unapprovedServiceDuplicateContentHashes}`);
+  console.log(`service executable files inventoried: ${result.summary.serviceExecutableFiles}`);
+  console.log(`service normalized-content collisions: ${result.summary.serviceNormalizedContentCollisions}`);
+  console.log(`unclassified service normalized-content collisions: ${result.summary.unclassifiedServiceNormalizedContentCollisions}`);
+  console.log(`service behavioral-equivalence groups: ${result.summary.serviceBehavioralEquivalenceGroups}`);
+  console.log(`unclassified service behavioral-equivalence groups: ${result.summary.unclassifiedServiceBehavioralEquivalenceGroups}`);
   console.log(`approved service index barrels: ${result.summary.approvedServiceIndexBarrels}`);
   console.log(`service index implementation entrypoints: ${result.summary.serviceIndexImplementationEntrypoints}`);
   console.log(`service index shadow copies: ${result.summary.serviceIndexShadowCopies}`);
@@ -1590,8 +2152,8 @@ function writeRestoredServiceDuplicateInventoryMarkdown(relativeOrAbsolutePath, 
     '',
     `Task: ${inventory.taskId}`,
     '',
-    'This report inventories every non-index duplicate basename currently present under `src/services`.',
-    'Index barrels are ignored; broad exemptions are not allowed. Every listed duplicate remains service ownership debt until it is removed, moved, or explicitly promoted to an approved multi-entrypoint in a future task.',
+    'This report inventories every executable source file under `src/services` and independently classifies basename, normalized-content, and behavioral-equivalence collisions.',
+    'Index basenames are reported through the per-file ledger and index classification. Broad exemptions are not allowed; every collision has exact paths, fingerprints, ownership, evidence, and a concrete disposition.',
     '',
     '## Summary',
     '',
@@ -1612,6 +2174,13 @@ function writeRestoredServiceDuplicateInventoryMarkdown(relativeOrAbsolutePath, 
     markdownTableRow(['Index shadow copies', inventory.summary.indexShadowCopies]),
     markdownTableRow(['Duplicate content hashes', inventory.summary.duplicateContentHashes]),
     markdownTableRow(['Unapproved duplicate content hashes', inventory.summary.unapprovedDuplicateContentHashes]),
+    markdownTableRow(['Executable service files', inventory.summary.executableServiceFiles]),
+    markdownTableRow(['All basename collision groups', inventory.summary.basenameCollisions]),
+    markdownTableRow(['Module-scoped index basename groups', inventory.summary.indexEntrypointBasenameCollisions]),
+    markdownTableRow(['Normalized-content collisions', inventory.summary.normalizedContentCollisions]),
+    markdownTableRow(['Unclassified normalized-content collisions', inventory.summary.unclassifiedNormalizedContentCollisions]),
+    markdownTableRow(['Behavioral-equivalence groups', inventory.summary.behavioralEquivalenceGroups]),
+    markdownTableRow(['Unclassified behavioral-equivalence groups', inventory.summary.unclassifiedBehavioralEquivalenceGroups]),
     markdownTableRow(['Total import specifiers targeting duplicate paths', inventory.summary.totalImporters]),
     markdownTableRow(['Unique importer files', inventory.summary.uniqueImporterFiles]),
     '',
@@ -1624,6 +2193,7 @@ function writeRestoredServiceDuplicateInventoryMarkdown(relativeOrAbsolutePath, 
     markdownTableRow(['Non-index basename duplicates fail by default', inventory.policy.nonIndexBasenameDuplicatesAreFailuresByDefault]),
     markdownTableRow(['Approved multi-entrypoints', inventory.policy.approvedMultiEntrypoints.length]),
     markdownTableRow(['Approved content hashes', inventory.policy.approvedContentHashes.length]),
+    markdownTableRow(['Exact classified collisions', inventory.policy.classifiedCollisions.length]),
     markdownTableRow(['Policy violations', inventory.policy.policyViolations.length]),
   ];
 
@@ -1633,6 +2203,72 @@ function writeRestoredServiceDuplicateInventoryMarkdown(relativeOrAbsolutePath, 
       const target = item.path ? ` \`${item.path}\`` : '';
       lines.push(`- \`${item.policy}\`${target}: ${item.reason}`);
     }
+  }
+
+  lines.push(
+    '',
+    '## Executable Service File Ledger',
+    '',
+    markdownTableRow(['Path', 'Declared owner', 'Canonical owner', 'Runtime', 'Disposition', 'Importers', 'Public entrypoints', 'Raw SHA-256', 'Normalized SHA-256', 'Behavior SHA-256', 'Collisions']),
+    markdownTableRow(['---', '---', '---', '---', '---', '---', '---', '---', '---', '---', '---']),
+  );
+  for (const item of inventory.serviceFiles) {
+    lines.push(markdownTableRow([
+      `\`${item.path}\``,
+      `\`${item.declaredOwner.module}\` (${item.declaredOwner.owner ?? 'unowned'})`,
+      `\`${item.canonicalOwner.module}\` (${item.canonicalOwner.owner ?? 'unowned'})`,
+      `\`${item.runtimeClass}\``,
+      `\`${item.disposition}\``,
+      item.importerCount,
+      item.publicEntrypoints.map((entry) => `\`${entry.kind}:${entry.name}\``).join('<br>') || 'none',
+      `\`${item.contentHash.value}\``,
+      `\`${item.normalizedContentHash.value}\``,
+      `\`${item.behaviorHash.value}\``,
+      item.collisionIds.map((id) => `\`${id}\``).join('<br>') || 'none',
+    ]));
+  }
+
+  for (const [heading, groups] of [
+    ['Normalized Content Collisions', inventory.normalizedContentCollisions],
+    ['Behavioral Equivalence Groups', inventory.behavioralEquivalenceGroups],
+  ]) {
+    lines.push(
+      '',
+      `## ${heading}`,
+      '',
+      markdownTableRow(['Fingerprint', 'Canonical path', 'Canonical owner', 'Disposition', 'Classified', 'Paths', 'Reason']),
+      markdownTableRow(['---', '---', '---', '---', '---', '---', '---']),
+    );
+    for (const group of groups) {
+      lines.push(markdownTableRow([
+        `\`${group.fingerprint.value}\``,
+        `\`${group.canonicalPath}\``,
+        `\`${group.canonicalModuleOwner.module}\``,
+        `\`${group.disposition}\``,
+        group.classified ? 'yes' : 'no',
+        group.paths.map((item) => `\`${item}\``).join('<br>'),
+        group.reason,
+      ]));
+    }
+  }
+
+  lines.push(
+    '',
+    '## Basename Collisions',
+    '',
+    markdownTableRow(['Basename', 'Class', 'Canonical path', 'Disposition', 'Classified', 'Paths', 'Regression tests']),
+    markdownTableRow(['---', '---', '---', '---', '---', '---', '---']),
+  );
+  for (const group of inventory.basenameCollisions) {
+    lines.push(markdownTableRow([
+      `\`${group.basename}\``,
+      `\`${group.kind}\``,
+      `\`${group.canonicalPath}\``,
+      `\`${group.disposition}\``,
+      group.classified ? 'yes' : 'no',
+      group.paths.map((item) => `\`${item.path}\` (${item.canonicalOwner.module}; ${item.publicContract})`).join('<br>'),
+      group.regressionTests.map((item) => `\`${item}\``).join('<br>') || 'none',
+    ]));
   }
 
   lines.push(
@@ -1793,6 +2429,8 @@ function main() {
       || result.summary.legacyRootImportSpecifiers > 0
       || result.summary.unapprovedServiceDuplicateBasenames > 0
       || result.summary.unapprovedServiceDuplicateContentHashes > 0
+      || result.summary.unclassifiedServiceNormalizedContentCollisions > 0
+      || result.summary.unclassifiedServiceBehavioralEquivalenceGroups > 0
       || result.summary.serviceIndexShadowCopies > 0
       || result.summary.restoredServiceDuplicatePolicyViolations > 0
       || result.summary.legacySprintServiceFiles > 0
