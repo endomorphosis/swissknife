@@ -11,7 +11,7 @@ import {
 import {
   CachedProof, ProofCache,
   getGlobalCache, resetGlobalCache,
-} from '../../src/services/proof-engine/proof-cache-base.js';
+} from '../../src/services/proof-engine/index.js';
 import { CECBridge } from '../../src/services/logic/cec/cec-bridge.js';
 
 // ---------------------------------------------------------------------------

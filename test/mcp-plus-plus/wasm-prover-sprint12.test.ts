@@ -11,8 +11,11 @@
  * Reference: ipfs_datasets_py/logic/deontic/analyzer.py + knowledge_base.py
  */
 
-import { DeonticTextAnalyzer } from '../../src/services/deontic/deontic-deontic-text-analyzer.js';
-import type { DeonticStatement } from '../../src/services/deontic/deontic-deontic-text-analyzer.js';
+import {
+  DeonticTextAnalyzer,
+  generateEntityReports,
+} from '../../src/services/logic/deontic/deontic-text-analyzer.js';
+import type { DeonticStatement } from '../../src/services/logic/deontic/deontic-text-analyzer.js';
 import {
   DeonticKnowledgeBase,
   KnowledgeDeonticModality,
@@ -20,12 +23,12 @@ import {
   KnowledgeTemporalOperator,
   Pred, And, Or, Not, Implies,
   intervalContains,
-} from '../../src/services/deontic/deontic-deontic-knowledge-base.js';
+} from '../../src/services/logic/deontic/deontic-knowledge-base.js';
 import type {
   Party,
   DeonticAction,
   TimeInterval,
-} from '../../src/services/deontic/deontic-deontic-knowledge-base.js';
+} from '../../src/services/logic/deontic/deontic-knowledge-base.js';
 import { mcppCommand } from '../../src/commands/mcp-plus-plus-commands.js';
 
 // ---------------------------------------------------------------------------
@@ -177,6 +180,28 @@ describe('T-72 DeonticTextAnalyzer — conflict detection', () => {
     const conflict = analyzer.checkStatementConflict(s1, s2, ['direct']);
     expect(conflict?.type).toBe('direct');
     expect(conflict?.description).toContain('share audit logs');
+  });
+
+  it('attributes a conflict to every entity named by the conflict', () => {
+    const statements = [
+      { id: 'a', entity: 'Alice', modality: 'obligation', action: 'file' },
+      { id: 'b', entity: 'Bob', modality: 'prohibition', action: 'file' },
+    ] as DeonticStatement[];
+    const reports = generateEntityReports(statements, [{
+      id: 'conflict-a-b',
+      type: 'direct',
+      severity: 'high',
+      entities: ['Alice', 'Bob'],
+      statement1: statements[0],
+      statement2: statements[1],
+      description: 'conflict',
+      resolution: 'resolve',
+    }]);
+
+    expect(reports).toEqual(expect.arrayContaining([
+      expect.objectContaining({ entity: 'Alice', conflictCount: 1 }),
+      expect.objectContaining({ entity: 'Bob', conflictCount: 1 }),
+    ]));
   });
 });
 

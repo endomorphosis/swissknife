@@ -19,7 +19,7 @@ import {
   loadContractArtifact, loadContractAbi, normalizeHexPrefixed,
   hashTextToFieldSha256, packPublicInputsForEvm, packManyPublicInputsForEvm,
   packPublicInputsUint256, validateUint256Array,
-} from '../../src/services/zkp-onchain-eth-bridge';
+} from '../../src/services/zkp/ethereum-zkp-bridge.js';
 
 import {
   createSession, addStatement,
@@ -27,7 +27,7 @@ import {
   validateText, validateFormula, validateFormulaList, ValidationError, InputValidator,
   LogicTranslationTarget,
   getGlobalProofCache, clearGlobalProofCache,
-} from '../../src/services/fol-bridge-session-types';
+} from '../../src/services/logic/api/session-translation-types.js';
 
 // ---------------------------------------------------------------------------
 // TalosWrapper

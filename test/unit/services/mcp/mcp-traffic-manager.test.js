@@ -37,7 +37,7 @@ jest.mock('../../../../src/utils/log', () => ({
 }));
 
 // Import the classes we need to test (after mocks)
-import { TrafficManager } from '../../../../src/services/mcp/mcp-mcp-traffic-manager.js';
+import { TrafficManager } from '../../../../src/services/mcp/host/mcp-traffic-manager.js';
 import { ServerRegistry } from '../../../../src/services/mcp/mcp-registry.js';
 
 

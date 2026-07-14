@@ -7,10 +7,11 @@ This document is the human-readable service boundary contract for
 
 ## Current State
 
-The legacy root-level service shims for MCP, IPFS, glasses, and app-surface
-files have been moved into owned service submodules. New service work should
-enter through an owned subdirectory or an explicitly documented service
-entrypoint, not by adding compatibility files directly under `src/services`.
+Restored root and sibling shadow implementations have been removed. Logic,
+deontic, FOL, DCEC, TDFOL, prover, proof-engine, MCP, browser-runtime, and ZKP
+work now lives in its named owning family. New service work should enter
+through an owned subdirectory or an explicitly documented service entrypoint,
+not by adding compatibility files directly under `src/services`.
 
 `npm run services:audit` currently enforces:
 
@@ -18,6 +19,8 @@ entrypoint, not by adding compatibility files directly under `src/services`.
 - no forbidden cross-module imports
 - no legacy compatibility shims
 - no import specifiers that resolve to legacy root service shims
+- no unclassified basename, normalized-content, or behavioral-equivalence collisions
+- no executable service index shadows
 
 The audit also reports repository-level root compatibility files outside
 `src/services`. Those files are tracked by `src/module-ownership.json` and the
@@ -29,9 +32,16 @@ repository-wide boundary work, but they are not service shims.
 | --- | --- | --- | --- | --- | --- |
 | App surfaces | `src/services/apps` | `service-apps` | universal | `app-surface-runtime` | Application manifests, generated app state, capability policy contracts, all-tools app bindings, and release policy gates. |
 | Glasses surfaces | `src/services/glasses` | `service-glasses` | split | `glasses-surface-runtime` | Meta glasses display, input, webapp, mobile ORB, and hardware-free replay adapters. |
+| External integrations | `src/services/integrations` | `service-integrations` | split | `external-integration-service-runtime` | Browser and host integration adapters. |
 | IPFS descriptors | `src/services/ipfs` | `service-ipfs` | split | `ipfs-descriptor-runtime` | IPFS MCP/UI descriptors, descriptor packs, ORB profiles, proof-cache integration, and browser/host IPFS service adapters. |
+| Logic families | `src/services/logic` | `service-logic` | split | `logic-service-runtime` | Canonical CEC, DCEC, deontic, FOL, modal, natural-language, TDFOL, bridge, and shared logic implementations. |
 | MCP protocol | `src/services/mcp` | `service-mcp` | split | `mcp-protocol-runtime` | MCP/MCP++ protocol, transport, ORB routing, UI profile contracts, mediation, registry, and generated IDL descriptor logic. |
-| Domain services | `src/services` | `services` | split | `domain-service-runtime` | Logic/prover services, telemetry, integration facades, and domain services that do not yet have a narrower service submodule. |
+| Platform services | `src/services/platform` | `service-platform` | split | `platform-service-runtime` | Platform notification, telemetry, browser acceleration, and host integrations. |
+| Proof engine | `src/services/proof-engine` | `service-proof-engine` | split | `proof-engine-service-runtime` | Proof execution, routing, caching, explanation, and browser proof facade. |
+| Provers | `src/services/provers` | `service-provers` | split | `prover-service-runtime` | Native, WASM, neural, and bounded browser prover adapters. |
+| Shared services | `src/services/shared` | `service-shared` | universal | `shared-service-runtime` | Runtime-neutral service helpers and browser crypto. |
+| ZKP | `src/services/zkp` | `service-zkp` | split | `zkp-service-runtime` | ZKP backends, browser adapters, artifact ownership, and Ethereum bridge. |
+| Domain services | `src/services` | `services` | split | `domain-service-runtime` | Exceptional standalone service implementations explicitly listed in the ownership manifest. |
 
 ## Import Rules
 
@@ -79,20 +89,12 @@ browser-safe barrel.
 
 ## Public Entrypoints
 
-The current manifest permits these service entrypoint patterns:
-
-- `src/services/logic/api/logic-public-api.ts`
-- `src/services/platform/browser-acceleration.ts`
-- `src/services/mcp/*.ts`
-- `src/services/provers/*.ts`
-- `src/services/zkp/*.ts`
-- `src/services/apps/*.ts`
-- `src/services/glasses/*.ts`
-- `src/services/integrations/*.ts`
-- `src/services/ipfs/*.ts`
-
-Private bridge, adapter, and wrapper files stay local to their owning service
-area unless they are promoted into `publicEntrypoints` with a documented reason.
+The exact entrypoints and all removed-path migrations are generated in
+`docs/service-module-public-api.md`. Private implementation paths stay local to
+their owning service area unless promoted into `publicEntrypoints` in
+`src/module-ownership.json`. Cross-family consumers use those declared APIs;
+compatibility barrels may contain exports only and may not recreate deleted
+behavior.
 
 ## Evidence And Maintenance
 
@@ -105,6 +107,9 @@ npm run services:audit
 That command writes or refreshes:
 
 - `docs/service-boundary-audit.json`
+- `docs/restored-service-duplicate-inventory.json`
+- `docs/restored-service-duplicate-inventory.md`
+- `docs/service-module-public-api.md`
 - `docs/service-boundary-audit.fingerprint.json`
 - `docs/release-evidence-freshness.json`
 - `docs/release-evidence-freshness.md`

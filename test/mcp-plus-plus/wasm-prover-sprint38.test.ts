@@ -13,7 +13,7 @@ import {
 import {
   BridgeCapability, BridgeRegistry,
   BaseProverBridge, getBridgeRegistry, resetBridgeRegistry, StubProverBridge,
-} from '../../src/services/proof-engine/base-prover-bridge.js';
+} from '../../src/services/proof-engine/index.js';
 
 const LEGAL_TEXT =
   'The contractor shall deliver the goods within 30 days. ' +

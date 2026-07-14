@@ -19,7 +19,7 @@ import {
   handleProofError, handleParseError, withErrorContext, safeCall, safeCallAsync,
   formatErrorMessage, validateNotNull,
   NLContext, makeTDFOLEntity, ContextResolver,
-} from '../../src/services/logic-observability-pipeline';
+} from '../../src/services/logic/cec/cec-runtime-context-utils.js';
 
 // ---------------------------------------------------------------------------
 // ErgoAI Wrapper

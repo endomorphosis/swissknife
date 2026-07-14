@@ -7,5 +7,4 @@ export * from './fol-text-converter.js';
 export * from './interactive-fol-constructor.js';
 export * from './logic-formatter.js';
 export * from './ml-confidence-scorer.js';
-export * from './nlp-predicate-extractor.js';
 export * from './symbolic-fol-bridge.js';

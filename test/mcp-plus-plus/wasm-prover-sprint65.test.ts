@@ -18,7 +18,7 @@ import {
   DeonticPatterns, extractKeywords, calculateTextSimilarity, areEntitiesSimilar, areActionsSimilar,
   WitnessManager,
   EProverAdapter, checkEproverInstallation, EProverProofResult, type EProverProcessResult,
-} from '../../src/services/logic-verification-utilities';
+} from '../../src/services/logic/api/logic-verification-toolkit.js';
 import { Groth16BackendFallback, Groth16Proof } from '../../src/services/zkp/zkp-backends.js';
 
 // ---------------------------------------------------------------------------

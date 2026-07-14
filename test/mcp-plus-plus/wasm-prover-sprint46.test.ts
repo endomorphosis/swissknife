@@ -46,7 +46,7 @@ import {
   ProverStrategy,
   RegisteredProver,
   SingleProverResult,
-} from '../../src/services/proof-engine/prover-router.js';
+} from '../../src/services/proof-engine/index.js';
 
 // ---------------------------------------------------------------------------
 // ShadowProver tests

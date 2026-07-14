@@ -135,7 +135,7 @@ export class ProofTree {
    * Render the proof tree as an ASCII string.
    * Python ref: `ProofTreeVisualizer.render_tree()`.
    */
-  toAscii(style: TreeStyle = 'normal', verbosity: VerbosityLevel = 'normal'): string {
+  toAscii(style: TreeStyle = 'compact', verbosity: VerbosityLevel = 'normal'): string {
     return ProofTreeVisualizer.renderNode(this.root, style, verbosity, '', true);
   }
 }

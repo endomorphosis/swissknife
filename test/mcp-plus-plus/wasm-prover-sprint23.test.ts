@@ -32,7 +32,7 @@ import {
 } from '../../src/services/logic/tdfol/tdfol-core.js';
 import {
   ProofTreeNode, ProofTree, ProofTreeBuilder, ProofTreeVisualizer,
-} from '../../src/services/proof-engine/proof-tree.js';
+} from '../../src/services/proof-engine/index.js';
 import {
   FormulaDependencyGraph,
 } from '../../src/services/logic/shared/formula-dependency-graph.js';

@@ -11,7 +11,7 @@ import {
   SemanticNormalizer, getGlobalNormalizer,
   convertTextToFol, extractTextFromDataset, getQuantifierDistribution, getOperatorDistribution,
   legalTextToDeontic, extractLegalTextFromDataset, convertResultToLegacyFormat,
-} from '../../src/services/logic-language-pipeline';
+} from '../../src/services/logic/api/reasoning-normalization-pipeline.js';
 
 // ---------------------------------------------------------------------------
 // ForwardChainingStrategy

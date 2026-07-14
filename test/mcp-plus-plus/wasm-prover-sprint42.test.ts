@@ -6,7 +6,7 @@
 
 import {
   ProofStatus, ProofResult, makeProofResult,
-} from '../../src/services/proof-engine/proof-execution-engine-types.js';
+} from '../../src/services/proof-engine/index.js';
 import {
   ProverStatus, VampireProver, EProver, ProverRegistry,
   getProverRegistry, resetProverRegistry,

@@ -9,6 +9,6 @@ export * from './services/mcp/libp2p-browser-runtime.js';
 export * from './services/ipfs/ipfs-browser.js';
 export * from './storage/browser.js';
 export * from './workers/browser.js';
-export * from './services/logic-language-pipeline.js';
-export * from './services/deontic/browser-nlp.js';
+export * from './services/logic/api/reasoning-normalization-pipeline.js';
+export * from './services/logic/deontic/browser-nlp.js';
 export * from './services/zkp/browser-zkp.js';

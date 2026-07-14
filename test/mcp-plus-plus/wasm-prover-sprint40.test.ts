@@ -9,7 +9,7 @@ import {
 } from '../../src/services/logic/shared/embedding-prover.js';
 import {
   generateDeonticSMT2Axioms, ProverBackendMixin,
-} from '../../src/services/proof-engine/prover-backend-mixin.js';
+} from '../../src/services/proof-engine/index.js';
 import {
   LogicalComponents, SymbolicFOLBridge,
 } from '../../src/services/logic/fol/symbolic-fol-bridge.js';
