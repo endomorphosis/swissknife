@@ -44,9 +44,32 @@
       "src/tsconfig.json"
     ],
     "restoredServiceDuplicatePolicy": {
-      "indexBasenamesIgnored": true,
+      "indexBasenamesIgnored": false,
       "broadExemptionsAllowed": false,
       "nonIndexBasenameDuplicatesAreFailuresByDefault": true,
+      "approvedIndexEntrypoints": [
+        { "path": "src/services/fol-utils/index.ts", "owner": "service-fol-utils", "publicContract": "FOL utility service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/glasses/index.ts", "owner": "service-glasses", "publicContract": "glasses service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/integrations/index.ts", "owner": "service-integrations", "publicContract": "external integrations service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/ipfs/index.ts", "owner": "service-ipfs", "publicContract": "IPFS service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/api/index.ts", "owner": "service-logic", "publicContract": "logic API service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/bridges/index.ts", "owner": "service-logic", "publicContract": "logic bridge service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/cec/index.ts", "owner": "service-logic", "publicContract": "CEC logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/dcec/index.ts", "owner": "service-logic", "publicContract": "DCEC logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/deontic/index.ts", "owner": "service-logic", "publicContract": "deontic logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/fol/index.ts", "owner": "service-logic", "publicContract": "FOL logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/modal/index.ts", "owner": "service-logic", "publicContract": "modal logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/nl/index.ts", "owner": "service-logic", "publicContract": "natural-language logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/shared/index.ts", "owner": "service-logic", "publicContract": "shared logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/logic/tdfol/index.ts", "owner": "service-logic", "publicContract": "TDFOL logic service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/mcp/index.ts", "owner": "service-mcp", "publicContract": "MCP service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/platform/index.ts", "owner": "service-platform", "publicContract": "platform service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/proof-engine/index.ts", "owner": "service-proof-engine", "publicContract": "proof engine service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/provers/index.ts", "owner": "service-provers", "publicContract": "prover service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/shared/index.ts", "owner": "service-shared", "publicContract": "shared service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/zkp/artifacts/index.ts", "owner": "service-zkp", "publicContract": "ZKP artifact service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] },
+        { "path": "src/services/zkp/index.ts", "owner": "service-zkp", "publicContract": "ZKP service entrypoint", "regressionTests": ["test/architecture/source-module-boundaries.test.js"] }
+      ],
       "approvedMultiEntrypoints": [],
       "approvedContentHashes": [
         {

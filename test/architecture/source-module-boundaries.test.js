@@ -301,7 +301,7 @@ describe('source module boundaries', () => {
       for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
         const target = path.join(directory, entry.name);
         if (entry.isDirectory()) visit(target);
-        else if (/\.(?:ts|tsx|js|jsx|mjs|cjs)$/.test(entry.name)) {
+        else if (/\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs|circom)$/.test(entry.name)) {
           executableFiles.push(path.relative(rootDir, target).split(path.sep).join('/'));
         }
       }
@@ -338,6 +338,8 @@ describe('source module boundaries', () => {
       regressionTests: ['test/architecture/source-module-boundaries.test.js'],
     }));
     expect(indexGroup.paths.map(item => item.path)).toEqual(indexFiles);
+    expect(inventory.policy.indexBasenamesIgnored).toBe(false);
+    expect(inventory.policy.approvedIndexEntrypoints.map(item => item.path)).toEqual(indexFiles);
     expect(new Set(indexGroup.paths.map(item => item.publicContract)).size).toBe(indexFiles.length);
     for (const item of indexGroup.paths) {
       expect(item.canonicalOwner.owner).toEqual(expect.any(String));
@@ -881,6 +883,93 @@ describe('source module boundaries', () => {
     expect(output).toContain('at least one executable regression test');
   });
 
+  it('rejects documentation-only files cited as intentional multi-entrypoint regression tests', () => {
+    const implementation = 'export const intentionalCopy = true;\n';
+    const sha256 = crypto.createHash('sha256').update(implementation).digest('hex');
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/mcp/intentional-a.ts': implementation,
+        'src/services/mcp/intentional-b.ts': implementation,
+        'test/architecture/intentional-entrypoints.test.js': '// Documentation only: test("not executed", () => {}).\n',
+      },
+      manifestPatch: {
+        audit: {
+          restoredServiceDuplicatePolicy: {
+            approvedContentHashes: [{
+              sha256,
+              canonicalPath: 'src/services/mcp/intentional-a.ts',
+              paths: [
+                'src/services/mcp/intentional-a.ts',
+                'src/services/mcp/intentional-b.ts',
+              ],
+              owner: 'service-mcp',
+              disposition: 'intentional-multi-entrypoint',
+              publicContracts: [
+                {
+                  path: 'src/services/mcp/intentional-a.ts',
+                  contract: 'fixture intentional A contract',
+                },
+                {
+                  path: 'src/services/mcp/intentional-b.ts',
+                  contract: 'fixture intentional B contract',
+                },
+              ],
+              regressionTests: ['test/architecture/intentional-entrypoints.test.js'],
+              reason: 'A documentation-only JavaScript file is not regression evidence.',
+            }],
+          },
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-legacy']);
+
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain(
+      'intentional multi-entrypoint regression test must contain an executable test declaration',
+    );
+  });
+
+  it('does not let a stale raw-content approval classify content that drifted on the same paths', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/mcp/canonical-normalized.ts': 'export const normalizedValue = { answer: 42 };\n',
+        'src/services/mcp/renamed-normalized-shadow.ts': '// drifted formatting\nexport const normalizedValue={answer:42};\n',
+      },
+      manifestPatch: {
+        audit: {
+          restoredServiceDuplicatePolicy: {
+            approvedContentHashes: [{
+              sha256: '0'.repeat(64),
+              canonicalPath: 'src/services/mcp/canonical-normalized.ts',
+              paths: [
+                'src/services/mcp/canonical-normalized.ts',
+                'src/services/mcp/renamed-normalized-shadow.ts',
+              ],
+              owner: 'service-mcp',
+              disposition: 'canonicalize-restored-shadow',
+              reason: 'This deliberately stale raw hash must not approve normalized or behavioral drift.',
+            }],
+          },
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-legacy', '--json', 'audit.json']);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toContain('unclassified service normalized-content collisions: 1');
+    expect(output).toContain('unclassified service behavioral-equivalence groups: 1');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.serviceNormalizedContentCollisionDetails[0]).toEqual(expect.objectContaining({
+      classified: false,
+      disposition: 'unclassified-copy',
+    }));
+    expect(audit.serviceBehavioralEquivalenceDetails[0]).toEqual(expect.objectContaining({
+      classified: false,
+      disposition: 'unclassified-copy',
+    }));
+  });
+
   it('allows only exact approved service duplicate content hashes', () => {
     const copiedImplementation = 'export const copiedImplementation = "approved same bytes under a different basename";\n';
     const sha256 = crypto
@@ -934,7 +1023,72 @@ describe('source module boundaries', () => {
     }));
   });
 
+  it('inventories modern TypeScript module extensions and executable circuit source', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/mcp/modern-module.mts': 'export const modernModule = "mts";\n',
+        'src/services/mcp/common-module.cts': 'export const commonModule = "cts";\n',
+        'src/services/mcp/verification-circuit.circom': 'template Verify() { signal input value; }\ncomponent main = Verify();\n',
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-legacy', '--json', 'audit.json']);
+
+    expect(result.status).toBe(0);
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.restoredServiceDuplicateInventory.serviceFiles.map(item => item.path)).toEqual(
+      expect.arrayContaining([
+        'src/services/mcp/modern-module.mts',
+        'src/services/mcp/common-module.cts',
+        'src/services/mcp/verification-circuit.circom',
+      ]),
+    );
+  });
+
+  it('rejects a new index basename collision without exact per-entrypoint evidence', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        'src/services/index.ts': "export * from './owned-root.js';\n",
+        'src/services/mcp/index.ts': "export * from './protocol.js';\n",
+      },
+      manifestPatch: {
+        audit: {
+          serviceRootFileOwners: {
+            'src/services/owned-root.ts': 'services',
+            'src/services/index.ts': 'services',
+          },
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-legacy', '--json', 'audit.json']);
+
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain('unclassified service basename collisions: 1');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.serviceNormalizedContentCollisionDetails).toEqual(expect.any(Array));
+    expect(audit.restoredServiceDuplicateInventory.basenameCollisions[0]).toEqual(
+      expect.objectContaining({
+        basename: 'index.ts',
+        classified: false,
+        disposition: 'unclassified-copy',
+      }),
+    );
+  });
+
   it('distinguishes approved index barrels from root index shadow implementations', () => {
+    const approvedIndexEntrypoints = [
+      {
+        path: 'src/services/index.ts',
+        owner: 'services',
+        publicContract: 'fixture root services entrypoint',
+        regressionTests: ['test/architecture/intentional-entrypoints.test.js'],
+      },
+      {
+        path: 'src/services/mcp/index.ts',
+        owner: 'service-mcp',
+        publicContract: 'fixture MCP services entrypoint',
+        regressionTests: ['test/architecture/intentional-entrypoints.test.js'],
+      },
+    ];
     const barrelFixtureDir = createAuditFixture({
       files: {
         'src/services/index.ts': "export * from './owned-root.js';\n",
@@ -942,6 +1096,7 @@ describe('source module boundaries', () => {
       },
       manifestPatch: {
         audit: {
+          restoredServiceDuplicatePolicy: { approvedIndexEntrypoints },
           serviceRootFileOwners: {
             'src/services/owned-root.ts': 'services',
             'src/services/index.ts': 'services',
@@ -966,6 +1121,7 @@ describe('source module boundaries', () => {
       },
       manifestPatch: {
         audit: {
+          restoredServiceDuplicatePolicy: { approvedIndexEntrypoints },
           serviceRootFileOwners: {
             'src/services/owned-root.ts': 'services',
             'src/services/index.ts': 'services',
