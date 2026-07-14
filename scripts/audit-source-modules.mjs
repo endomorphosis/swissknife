@@ -1010,6 +1010,31 @@ function literalValue(tokenText) {
     : tokenText;
 }
 
+function isDependencyLiteralToken(tokens, tokenIndex) {
+  const previous = tokens[tokenIndex - 1]?.text;
+  const callee = tokens[tokenIndex - 2]?.text;
+  if (previous === 'from' || previous === 'import') return true;
+  if (previous !== '(') return false;
+  if (['import', 'require', 'Worker', 'SharedWorker', 'addModule'].includes(callee)) return true;
+  return callee === 'URL' && tokens[tokenIndex - 3]?.text === 'new';
+}
+
+function normalizedBareDependencyLiteral(tokenText, value) {
+  if (value.startsWith('node:') || value.includes('://') || !/(?:\.js)+$/.test(value)) {
+    return tokenText;
+  }
+  const quote = tokenText[0];
+  const normalized = value.replace(/(?:\.js)+$/, '');
+  const packageSegments = normalized.split('/');
+  const packageRoot = normalized.startsWith('@')
+    ? packageSegments.length === 2
+    : packageSegments.length === 1;
+  if (!packageRoot) return tokenText;
+  return (quote === '"' || quote === "'") && tokenText.at(-1) === quote
+    ? `${quote}${normalized}${quote}`
+    : tokenText;
+}
+
 function behaviorSourceRecord(filePath) {
   const source = fs.readFileSync(abs(filePath), 'utf8');
   const tokens = tokenizeSource(source);
@@ -1018,14 +1043,17 @@ function behaviorSourceRecord(filePath) {
   const behaviorTokens = tokens.map((token, tokenIndex) => {
     if (token.kind === 'literal') {
       const value = literalValue(token.text);
-      if (isLocalSpecifier(value)) {
+      if (isDependencyLiteralToken(tokens, tokenIndex) && isLocalSpecifier(value)) {
         const resolved = resolveLocalSpecifier(value, filePath);
-        if (resolved) {
-          return {
-            ...token,
-            text: barrelOnly ? `module:${resolved}` : 'module:<local-dependency>',
-          };
-        }
+        return {
+          ...token,
+          text: barrelOnly
+            ? `module:${resolved ?? `unresolved:${value}`}`
+            : 'module:<local-dependency>',
+        };
+      }
+      if (isDependencyLiteralToken(tokens, tokenIndex)) {
+        return { ...token, text: normalizedBareDependencyLiteral(token.text, value) };
       }
       return token;
     }
@@ -1040,7 +1068,7 @@ function behaviorSourceRecord(filePath) {
   const normalized = serializeTokens(behaviorTokens);
   return {
     algorithm: 'sha256',
-    normalization: 'behavior-structure-v1-local-identifiers-canonicalized-and-imports-resolved',
+    normalization: 'behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual',
     value: crypto.createHash('sha256').update(normalized).digest('hex'),
     tokenCount: behaviorTokens.length,
   };
@@ -1184,54 +1212,64 @@ function exactPathSetMatches(left, right) {
   return sortedLeft.every((item, index) => item === sortedRight[index]);
 }
 
-function approvedMultiEntrypointForDuplicate(duplicate, policy, canonicalOwner) {
-  return policy.approvedMultiEntrypoints.find((approval) => (
-    approval.basename === duplicate.basename
-    && approval.owner === canonicalOwner.module
-    && exactPathSetMatches(approval.paths, duplicate.paths)
+function findEligibleRestoredServicePolicyEntry(index, collection, predicate) {
+  const entries = index.restoredServiceDuplicatePolicy[collection] ?? [];
+  return entries.find((entry, entryIndex) => (
+    !index.invalidRestoredServiceDuplicatePolicyLocations?.has(
+      `audit.restoredServiceDuplicatePolicy.${collection}[${entryIndex}]`,
+    )
+    && predicate(entry)
   )) ?? null;
 }
 
-function approvedContentHashForDuplicate(duplicate, policy, canonicalOwner) {
-  return policy.approvedContentHashes.find((approval) => (
+function approvedMultiEntrypointForDuplicate(duplicate, index, canonicalOwner) {
+  return findEligibleRestoredServicePolicyEntry(index, 'approvedMultiEntrypoints', (approval) => (
+    approval.basename === duplicate.basename
+    && approval.owner === canonicalOwner.module
+    && exactPathSetMatches(approval.paths, duplicate.paths)
+  ));
+}
+
+function approvedContentHashForDuplicate(duplicate, index, canonicalOwner) {
+  return findEligibleRestoredServicePolicyEntry(index, 'approvedContentHashes', (approval) => (
     approval.sha256 === duplicate.sha256
     && approval.owner === canonicalOwner.module
     && approval.canonicalPath === duplicate.canonicalPath
     && exactPathSetMatches(approval.paths, duplicate.paths.map((item) => item.path))
-  )) ?? null;
+  ));
 }
 
-function classifiedCollisionForGroup(kind, fingerprint, canonicalPath, paths, policy, canonicalOwner) {
-  return policy.classifiedCollisions.find((classification) => (
+function classifiedCollisionForGroup(kind, fingerprint, canonicalPath, paths, index, canonicalOwner) {
+  return findEligibleRestoredServicePolicyEntry(index, 'classifiedCollisions', (classification) => (
     classification.kind === kind
     && classification.fingerprint === fingerprint
     && classification.canonicalPath === canonicalPath
     && classification.owner === canonicalOwner.module
     && exactPathSetMatches(classification.paths, paths)
-  )) ?? null;
+  ));
 }
 
-function approvedContentHashForCollisionGroup(paths, canonicalPath, recordsByPath, policy, canonicalOwner) {
+function approvedContentHashForCollisionGroup(paths, canonicalPath, recordsByPath, index, canonicalOwner) {
   const contentHashes = new Set(paths.map((filePath) => recordsByPath.get(filePath)?.contentHash.value));
   if (contentHashes.size !== 1 || contentHashes.has(undefined)) return null;
   const [sha256] = contentHashes;
-  return policy.approvedContentHashes.find((approval) => (
+  return findEligibleRestoredServicePolicyEntry(index, 'approvedContentHashes', (approval) => (
     approval.sha256 === sha256
     && approval.canonicalPath === canonicalPath
     && approval.owner === canonicalOwner.module
     && exactPathSetMatches(approval.paths, paths)
-  )) ?? null;
+  ));
 }
 
-function approvedMultiEntrypointForCollisionGroup(paths, policy, canonicalOwner) {
+function approvedMultiEntrypointForCollisionGroup(paths, index, canonicalOwner) {
   const basenames = new Set(paths.map((filePath) => path.basename(filePath)));
   if (basenames.size !== 1) return null;
   const [basename] = basenames;
-  return policy.approvedMultiEntrypoints.find((approval) => (
+  return findEligibleRestoredServicePolicyEntry(index, 'approvedMultiEntrypoints', (approval) => (
     approval.basename === basename
     && approval.owner === canonicalOwner.module
     && exactPathSetMatches(approval.paths, paths)
-  )) ?? null;
+  ));
 }
 
 function flattenPackageExportTargets(value, exportName, conditions = [], records = []) {
@@ -1295,19 +1333,19 @@ function buildCollisionGroups(serviceFiles, kind, fingerprintSelector, index) {
         fingerprint,
         canonicalPath,
         paths,
-        index.restoredServiceDuplicatePolicy,
+        index,
         canonicalModuleOwner,
       );
       const exactContentApproval = approvedContentHashForCollisionGroup(
         paths,
         canonicalPath,
         recordsByPath,
-        index.restoredServiceDuplicatePolicy,
+        index,
         canonicalModuleOwner,
       );
       const exactMultiEntrypointApproval = approvedMultiEntrypointForCollisionGroup(
         paths,
-        index.restoredServiceDuplicatePolicy,
+        index,
         canonicalModuleOwner,
       );
       const disposition = classification?.disposition
@@ -1408,13 +1446,15 @@ function collectServiceFileInventory(files, importersByTarget, index) {
       const canonicalModuleOwner = ownerRecordForPath(canonicalPath, index);
       const approvedMultiEntrypoint = indexEntrypoints ? null : approvedMultiEntrypointForDuplicate(
         { basename, paths },
-        index.restoredServiceDuplicatePolicy,
+        index,
         canonicalModuleOwner,
       );
       const pathApprovals = indexEntrypoints
-        ? paths.map((filePath) => index.restoredServiceDuplicatePolicy.approvedIndexEntrypoints.find(
+        ? paths.map((filePath) => findEligibleRestoredServicePolicyEntry(
+            index,
+            'approvedIndexEntrypoints',
             (approval) => approval.path === filePath,
-          ) ?? null)
+          ))
         : [];
       const exactIndexEntrypoints = indexEntrypoints && paths.every((filePath, pathIndex) => {
         const record = recordsByPath.get(filePath);
@@ -1451,11 +1491,9 @@ function collectServiceFileInventory(files, importersByTarget, index) {
         regressionTests: indexCollisionClassified
           ? [...new Set(pathApprovals.flatMap((approval) => approval.regressionTests))].sort(compareStrings)
           : (approvedMultiEntrypoint?.regressionTests ?? []),
-        paths: paths.map((filePath) => {
+        paths: paths.map((filePath, pathIndex) => {
           const record = recordsByPath.get(filePath);
-          const approval = index.restoredServiceDuplicatePolicy.approvedIndexEntrypoints.find(
-            (candidate) => candidate.path === filePath,
-          );
+          const approval = pathApprovals[pathIndex] ?? null;
           return {
             path: filePath,
             canonicalOwner: record.canonicalOwner,
@@ -1594,7 +1632,7 @@ function collectServiceDuplicateContentHashes(files, index) {
       };
       const approvedContentHash = approvedContentHashForDuplicate(
         approvalProbe,
-        index.restoredServiceDuplicatePolicy,
+        index,
         canonicalOwner,
       );
       return {
@@ -1654,7 +1692,7 @@ function collectRestoredServiceDuplicateInventory({
     const canonicalContentHash = contentHashRecord(canonicalPath);
     const approvedMultiEntrypoint = approvedMultiEntrypointForDuplicate(
       item,
-      index.restoredServiceDuplicatePolicy,
+      index,
       canonicalOwner,
     );
     const disposition = approvedMultiEntrypoint
@@ -1956,11 +1994,14 @@ function audit(manifest, args) {
   const allFiles = listFiles('src', (relative) => isAuditedFile(relative));
   const serviceDuplicateBasenames = collectServiceDuplicateBasenames(allFiles);
   const serviceIndexClassifications = collectServiceIndexClassifications(allFiles, index);
-  const serviceDuplicateContentHashes = collectServiceDuplicateContentHashes(allFiles, index);
   const restoredServiceDuplicatePolicyViolations = collectRestoredServiceDuplicatePolicyViolations(
     index.restoredServiceDuplicatePolicy,
     index.modules,
   );
+  index.invalidRestoredServiceDuplicatePolicyLocations = new Set(
+    restoredServiceDuplicatePolicyViolations.map((finding) => finding.policy),
+  );
+  const serviceDuplicateContentHashes = collectServiceDuplicateContentHashes(allFiles, index);
   const importersByTarget = collectLocalImporters([
     ...listFiles('.', (relative) => isSourceFile(relative)),
   ]);
