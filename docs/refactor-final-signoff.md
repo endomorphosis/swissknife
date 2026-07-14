@@ -1,106 +1,49 @@
 # Refactor Final Signoff
 
-Task: SWR-134 — Reconcile board completion claims with the current SwissKnife checkout
+Task: SVD-101 — Aggregate freshness-aware release evidence and close only named gaps
 
-Observed: 2026-07-13T14:54:14-07:00
-Parent HEAD: `d7b240dd71fb887d7aa72dd867b0a098ec9c062f`
-Parent gitlink: `8f291a24ea7b635a8ef804dca66c0fe2d6236f2c`
-SwissKnife HEAD: `8f291a24ea7b635a8ef804dca66c0fe2d6236f2c`
-Release decision: `NO_GO`
+Observed: 2026-07-14T07:47:06.561Z
+SwissKnife revision: `9542d8ac849891edaffd51d3003185160c9f0d60`
+Release decision: **NO_GO**
 
-This signoff supersedes the conflict-bearing historical content previously at this
-path. It is a checkout-reconciliation decision, not a recovered Phase 20 release
-signoff. The machine-readable source of truth is
-`docs/phase-21-checkout-reconciliation.json`, with a readable rendering in
-`docs/phase-21-checkout-reconciliation.md`.
+This signoff is generated from `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`.
+It does not convert missing, stale, blocked, denied, unsupported, or static-only evidence into success.
 
-## Decision
+## Decision basis
 
-The Phase 20 completion and `GO` claims are invalid for the current checkout. The
-task board is historical workflow metadata; it is not source or release evidence.
-At the start of SWR-134 the SwissKnife index and worktree matched HEAD, but that
-committed tree itself contained 21 conflict-bearing paths and 276 conflict-marker
-lines. All four canonical JSON files in the SWR-134 validation command failed to
-parse. Several declared Phase 20 outputs were absent, and the checked-out final
-signoff was a conflicted Phase 17 document rather than the board's claimed Phase 20
-handoff.
+- Required evidence artifacts passed: 1/6
+- Complete app rows passed: 0/45
+- Service/profile cells release-satisfied: 0/24
+- Meta modalities passed: 0/5
+- Named blockers: 13
+- Approved non-release dispositions: 1
 
-Replacing this document and reconciling the four canonical validation JSON files
-removes five baseline conflict paths. Sixteen conflict-bearing paths and 180
-block-marker lines remain. The JSON files now parse, but the historical reports are
-explicitly invalidated and record `NO_GO`; this does not validate Phase 20 behavior
-or change the checkout decision.
+## Named blockers
 
-## Provenance Finding
+- **SVD-093** — `service_profile_matrix`: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json.
+- **SVD-096** — `app_backend_behavior`: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.
+- **SVD-096** — `app_backend_behavior`: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.
+- **SVD-097** — `supervisor_console`: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json.
+- **SVD-097** — `supervisor_console`: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor.
+- **SVD-099** — `meta_device_simulator`: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.
+- **SVD-099** — `meta_device_simulator`: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.
+- **SVD-100** — `peer_interoperability`: Peer interoperability decision is no_go.
+- **SVD-100** — `peer-capture`: Prerequisite ensure-ipfs-mcp-compat-adapters.cjs failed: exit status 1
+- **SVD-100** — `peer_interoperability`: Expected 3 peer services; observed 0.
+- **SVD-100** — `ipfs_kit_py`: ipfs_kit_py has no peer evidence.
+- **SVD-100** — `ipfs_datasets_py`: ipfs_datasets_py has no peer evidence.
+- **SVD-100** — `ipfs_accelerate_py`: ipfs_accelerate_py has no peer evidence.
 
-The parent repository's HEAD and index both pin SwissKnife commit
-`8f291a24ea7b635a8ef804dca66c0fe2d6236f2c`; SwissKnife was initially clean at that
-commit. Thus there is no parent/submodule pointer mismatch to explain the
-regression—the conflict-bearing snapshot is the committed, pinned source.
+## Non-release boundary
 
-A recoverable but dangling commit exists:
-`f2eb814af7b7c9756c3b4dc4ce9780617c54a028`. It is a direct child of the current
-SwissKnife HEAD, its four canonical JSON artifacts parse, and its Phase 20 source
-scan contains no conflict blocks. It changes 149 files (45 added, 12 deleted, 92
-modified). It is not reachable from a branch, tag, reflog, remote-tracking ref, or
-stash ref and may be pruned. It is recovery input, not accepted release evidence:
-its signoff names the parent commit `8f291a24...`, its timestamps and proof run differ
-from the exact board claim, and its generated evidence must be regenerated after a
-durable recovered source commit exists.
+- Physical Meta hardware pairing is not required, was not tested, and is not claimed. SVD-099 simulator evidence is the approved release scope.
+- Denied non-mutating peer tools are accepted only when SVD-100 records exact name-level discovery, a typed denial reason, and no count-based inference.
+- Any other unavailable, unsupported, static-only, missing, or failed case remains a named blocker unless an explicit approved disposition is added to its source artifact.
 
-No durable recovery commit or `refs/stash` entry was found. Four dangling stash-like
-objects from 2026-07-13 00:36–01:09 PDT predate the Phase 20 evidence window and do
-not prove Phase 20 completion.
+## Evidence
 
-## Exact Phase 20 Divergence
+- Machine report: `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`
+- Readable report: `test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md`
+- Freshness receipt: `docs/virtual-desktop-release-evidence.fingerprint.json`
 
-| Phase 20 claim | Current-source observation | Status |
-| --- | --- | --- |
-| 21 paths resolved; 0 conflict blockers | Baseline HEAD contains exactly 21 conflict-bearing paths and 276 marker lines; the index has 0 unmerged entries | invalid |
-| 12 root service moves; 0 ownership or import violations | JSON syntax is repaired, but the audit is invalidated and cannot be regenerated through conflicted generators | unproven and invalid |
-| 88 inventory items; 158 classified operations; 0 unknown paths | Current Markdown predates Phase 20 and differs from the dangling recovery tree; the current gate cannot run through conflicted inputs | unproven and invalid |
-| Two real-browser libp2p receipts | The harness is conflict-bearing and the declared `test-results/libp2p-browser` output is absent from the committed current and recovery trees | unproven and invalid |
-| 40/40 TS/WASM proof assertions, run `714f6b1f-...` | Current proof evidence and proof-runtime test directory are absent; the dangling candidate contains a different run, `8c5ec6ff-...` | absent and invalid |
-| Six current-source fingerprint groups fresh | The report parses only with every historical fingerprint explicitly marked invalid for this checkout | invalid |
-| Release readiness 15/15, decision `GO` | The report now records 0 accepted passes and `NO_GO`; its generator still has 6 marker lines | invalid; effective decision `NO_GO` |
-| Live SWR-133 supervisor receipt | The declared supervisor status path is absent in this worktree | historical only |
-| Phase 20 signoff at the claimed run window | The checked-out blob was a conflict-bearing Phase 17 signoff; no object containing the board's exact proof-run ID or end timestamp was found | absent and invalid |
-
-## Required Recovery Work
-
-1. **SWR-135 — acquire a single-writer lease.** No checkout mutation, stash apply,
-   reset, or submodule update is allowed until every supervisor lane uses the shared
-   lease and the owning process is verified.
-2. **SWR-136 — preserve the dangling object before inspection.** Under the lease,
-   create a durable recovery ref for `f2eb814a...`, verify its tree and 149-path diff,
-   and reject unrelated changes rather than applying the commit wholesale without
-   review.
-3. **SWR-136 — recover and commit source first.** Replay the reviewed Phase 20
-   changes onto a lease-owned branch, run the conflict and architecture gates, and
-   commit the source baseline. Merely deleting marker lines is not recovery.
-4. **SWR-136 — regenerate evidence from that committed source.** Every report and
-   fingerprint must name the actual recovered source commit. Commit the regenerated
-   evidence separately, then commit the resulting SwissKnife gitlink in the parent
-   repository.
-5. **SWR-137 through SWR-141 — revalidate behavior.** Service containment, browser
-   closure, three-engine libp2p, real TS/WASM proofs, and release readiness must run
-   from the recovered committed baseline. A historical board status cannot satisfy
-   any of these gates.
-6. **SWR-142 — publish the handoff.** The final Phase 21 signoff may replace this
-   `NO_GO` only when the single-writer lease, source commit, generated evidence,
-   parent gitlink, and hermetic reproduction all agree.
-
-## Release Blockers
-
-- 16 conflict-bearing paths and 180 block-marker lines remain after the signoff and
-  four canonical validation JSON files are reconciled.
-- The four canonical JSON files parse, but their historical success/freshness
-  values are explicitly invalidated and were not regenerated from current source.
-- Phase 20 source, runtime receipts, fingerprints, and release evidence are not
-  coherently committed and parent-pinned.
-- The only comprehensive Phase 20 recovery commit is dangling and unprotected.
-- The exact Phase 20 board claim is not reproduced by any current-source artifact.
-
-The release decision remains `NO_GO` until the recovery work above is committed and
-validated. Board completion metadata must not be changed or used to override this
-decision.
+The release remains **NO_GO** until the named SVD-093, SVD-096, SVD-097, SVD-099, SVD-100 gaps are refreshed or consciously dispositioned.

@@ -1,2309 +1,1015 @@
 #!/usr/bin/env node
 
+'use strict';
+
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const projectRoot = path.resolve(__dirname, '..');
-const workspaceRoot = path.resolve(projectRoot, '..');
 const evidenceRoot = path.join(projectRoot, 'test-results', 'virtual-desktop-ipfs-mcp-orb');
-const evidenceRootRelative = path.relative(projectRoot, evidenceRoot);
-const sameBatchEvidenceWindowMs = 15 * 60 * 1000;
-
-refreshRepresentativeReleaseEvidence();
-refreshAppContractEvidence();
-
-const artifactDefs = [
-  ['app_inventory', 'app-inventory.json', true],
-  ['app_backend_contract', 'app-backend-contract.json', true],
-  ['app_workflow_matrix', 'app-workflow-matrix.json', true],
-  ['manifest_drift', 'manifest-drift.json', false],
-  ['app_launch', 'app-launch-report.json', false],
-  ['capability_matrix', 'capability-matrix.json', false],
-  ['all_server_tool_catalog', 'all-server-tool-catalog.json', true],
-  ['mcp_plus_plus_libp2p_catalog', 'mcp-plus-plus-libp2p-catalog.json', true],
-  ['mcpplusplus_libp2p_reachability', 'mcpplusplus-libp2p-reachability.json', true],
-  ['descriptor_discovery', 'descriptor-discovery.json', true],
-  ['hierarchical_mcp_tools', 'hierarchical-tools-evidence.json', true],
-  ['mcpplusplus_libp2p_fleet', 'mcpplusplus-libp2p-fleet-reachability.json', true],
-  ['swissknife_libp2p_connector', 'swissknife-libp2p-connector-reachability.json', true],
-  ['service_health', 'service-health.json', true],
-  ['tool_ui_smoke_receipts', 'tool-ui-smoke-receipts.json', true],
-  ['agent_supervisor_console_e2e', 'agent-supervisor-console-e2e.json', true],
-  ['agent_supervisor_console_receipts', 'agent-supervisor-console-receipts.json', true],
-  ['orb_idl_complete_coverage', 'orb-idl-complete-coverage.json', true],
-  ['glasses_simulator_handoff', 'glasses-simulator-handoff.json', true],
-  ['glasses_handoff', 'glasses-handoff-report.json', false],
-  ['live_critical_flows', 'live-critical-flows.json', false],
-  ['receipt_samples', 'receipt-samples.json', false],
-  ['all_tools_ledger', 'all-tools-ledger.json', true],
-  ['all_tools_policy_matrix', 'all-tools-policy-matrix.json', true],
-  ['all_tools_app_bindings', 'all-tools-app-bindings.json', true],
-  ['all_tools_app_family_coverage', 'all-tools-app-family-coverage.json', true],
-  ['all_tools_execution_report', 'all-tools-execution-report.json', true],
-  ['all_tools_idl_coverage', 'all-tools-idl-coverage.json', true],
-  ['all_tools_glasses_coverage', 'all-tools-glasses-coverage.json', true],
-  ['all_tools_policy_release_gate', 'all-tools-policy-release-gate.json', true],
-];
-
-const generatedAt = new Date().toISOString();
-const artifacts = {};
-const data = {};
-const warnings = [];
-const representativeBlockers = [];
-const allToolsBlockers = [];
-
-for (const [key, fileName, required] of artifactDefs) {
-  const artifact = readArtifact(fileName, required);
-  artifacts[key] = artifact.status;
-  data[key] = artifact.data;
-  if (!artifact.data && required) {
-    const targetBlockers = key.startsWith('all_tools_') ? allToolsBlockers : representativeBlockers;
-    targetBlockers.push(`Missing required release evidence artifact: ${artifact.status.path}`);
-  } else if (!artifact.data && !required) {
-    warnings.push(`Optional release evidence artifact is missing: ${artifact.status.path}`);
-  }
-}
-
-const appInventory = data.app_inventory;
-const appBackendContract = data.app_backend_contract;
-const appWorkflowMatrix = data.app_workflow_matrix;
-const manifestDrift = data.manifest_drift;
-const appLaunch = data.app_launch;
-const descriptorDiscovery = data.descriptor_discovery;
-const hierarchicalMcpTools = data.hierarchical_mcp_tools;
-const mcpPlusPlusLibp2pFleet = data.mcpplusplus_libp2p_fleet;
-const swissknifeLibp2pConnector = data.swissknife_libp2p_connector;
-const serviceHealth = data.service_health;
-const toolUiSmokeReceipts = data.tool_ui_smoke_receipts;
-const agentSupervisorConsoleE2e = data.agent_supervisor_console_e2e;
-const agentSupervisorConsoleReceipts = data.agent_supervisor_console_receipts;
-const orbIdlCompleteCoverage = data.orb_idl_complete_coverage;
-const glassesSimulatorHandoff = data.glasses_simulator_handoff;
-const glassesHandoff = data.glasses_handoff;
-const liveCriticalFlows = data.live_critical_flows;
-const receiptSamples = data.receipt_samples;
-const allToolsLedger = data.all_tools_ledger;
-const allToolsPolicyMatrix = data.all_tools_policy_matrix;
-const allToolsAppBindings = data.all_tools_app_bindings;
-const allToolsAppFamilyCoverage = data.all_tools_app_family_coverage;
-const allToolsExecutionReport = data.all_tools_execution_report;
-const allToolsIdlCoverage = data.all_tools_idl_coverage;
-const allToolsGlassesCoverage = data.all_tools_glasses_coverage;
-const allToolsReleaseGate = data.all_tools_policy_release_gate;
-const allServerToolCatalog = data.all_server_tool_catalog;
-const mcpPlusPlusLibp2pCatalog = data.mcp_plus_plus_libp2p_catalog;
-const mcpPlusPlusLibp2pReachability = data.mcpplusplus_libp2p_reachability;
-const requiredHierarchicalMetaTools = [
-  'tools_list_categories',
-  'tools_list_tools',
-  'tools_get_schema',
-  'tools_dispatch',
-];
-
-const appScreenshotCoverage = screenshotCoverage(
-  'app-screenshots',
-  appWorkflowMatrix?.app_count ?? appLaunch?.app_count ?? appInventory?.app_count ?? null,
-);
-const glassesScreenshotCoverage = screenshotCoverage(
-  'glasses-screenshots',
-  glassesHandoff?.displayable_count ? glassesHandoff.displayable_count * 2 : null,
-);
-
-const appInventorySummary = {
-  manifest_app_count: appInventory?.app_count ?? null,
-  inventory_artifact_status: artifacts.app_inventory.status,
-  inventory_app_count: appInventory?.summary?.app_count ?? appInventory?.app_count ?? null,
-  inventory_path: artifacts.app_inventory.path,
+const outputPaths = {
+  json: path.join(evidenceRoot, 'release-evidence.json'),
+  markdown: path.join(evidenceRoot, 'all-tools-release-evidence.md'),
+  signoff: path.join(projectRoot, 'docs', 'refactor-final-signoff.md'),
 };
+const REQUIRED_SERVICES = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
+const REQUIRED_PROFILES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const REQUIRED_TRANSPORTS = ['http', 'libp2p'];
+const REQUIRED_MODALITIES = ['display', 'camera', 'microphone', 'speaker', 'input'];
+const REQUIRED_REPLAY_SCENARIOS = ['primary', 'permission_denied', 'route_unavailable'];
+const EXPECTED_SUPERVISOR_CAPABILITIES = [
+  'supervisor.goals.read',
+  'supervisor.health.read',
+  'supervisor.logs.read',
+  'supervisor.prompt-steering.request',
+  'supervisor.queue.read',
+  'supervisor.receipts.read',
+  'supervisor.run-history.search',
+  'supervisor.subgoals.read',
+  'supervisor.task-control.request',
+  'supervisor.taskboard.links.read',
+];
+const ALLOWED_TOOL_DISPOSITIONS = new Set([
+  'unreachable', 'unsupported', 'denied', 'static-only', 'executed',
+]);
 
-const launchStatus = appLaunch
-  ? {
-      status: 'present',
-      path: artifacts.app_launch.path,
-      generated_at: appLaunch.generated_at,
-      app_count: appLaunch.app_count,
-      opened: appLaunch.summary?.opened ?? null,
-      classifications: {
-        real: appLaunch.summary?.real ?? 0,
-        partial: appLaunch.summary?.partial ?? 0,
-        placeholder: appLaunch.summary?.placeholder ?? 0,
-        generated: appLaunch.summary?.generated ?? 0,
-      },
-      broken_apps: (appLaunch.results ?? [])
-        .filter(result => !result.opened || result.status === 'broken')
-        .map(result => result.app_id),
-      placeholder_apps: (appLaunch.results ?? [])
-        .filter(result => result.status === 'placeholder')
-        .map(result => result.app_id),
-    }
-  : missingStatus(artifacts.app_launch.path);
-
-if (appLaunch) {
-  if ((appLaunch.summary?.broken ?? 0) > 0) {
-    representativeBlockers.push(`${appLaunch.summary.broken} virtual desktop apps are broken.`);
-  }
-  if ((appLaunch.summary?.opened ?? 0) !== appLaunch.app_count) {
-    representativeBlockers.push(`App launch evidence opened ${appLaunch.summary?.opened ?? 0}/${appLaunch.app_count} apps.`);
-  }
-}
-
-const appContractGate = summarizeAppContractGate(
-  appBackendContract,
-  appWorkflowMatrix,
-  artifacts.app_backend_contract,
-  artifacts.app_workflow_matrix,
-  appInventory?.app_count ?? null,
-);
-representativeBlockers.push(...appContractGate.release_blockers);
-warnings.push(...appContractGate.release_warnings);
-
-if (appScreenshotCoverage.expected !== null && appScreenshotCoverage.count < appScreenshotCoverage.expected) {
-  representativeBlockers.push(`App screenshot coverage is ${appScreenshotCoverage.count}/${appScreenshotCoverage.expected}.`);
-}
-if (glassesScreenshotCoverage.expected !== null && glassesScreenshotCoverage.count < glassesScreenshotCoverage.expected) {
-  representativeBlockers.push(`Glasses screenshot coverage is ${glassesScreenshotCoverage.count}/${glassesScreenshotCoverage.expected}.`);
-}
-
-if (manifestDrift) {
-  if (!manifestDrift.valid || (manifestDrift.errors ?? []).length > 0) {
-    representativeBlockers.push(`Manifest drift validation failed with ${(manifestDrift.errors ?? []).length} errors.`);
-  }
-  for (const warning of manifestDrift.warnings ?? []) {
-    warnings.push(`Manifest drift warning: ${warning}`);
-  }
-}
-
-if (serviceHealth) {
-  const unavailable = serviceHealth.summary?.unavailable ?? [];
-  if (unavailable.length > 0) {
-    representativeBlockers.push(`MCP services unavailable: ${unavailable.join(', ')}.`);
-  }
-  const endpointFailures = serviceHealth.summary?.endpoint_failures ?? 0;
-  if (endpointFailures > 0) {
-    warnings.push(`${endpointFailures} MCP endpoint probes failed while service availability remained usable.`);
-  }
-}
-
-if (descriptorDiscovery) {
-  const available = descriptorDiscovery.summary?.live_discovery_available ?? [];
-  for (const serviceId of ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py']) {
-    if (!available.includes(serviceId)) {
-      representativeBlockers.push(`${serviceId} live descriptor discovery is unavailable.`);
-    }
-  }
-}
-
-const hierarchicalMcpGate = summarizeHierarchicalMcpGate(
-  hierarchicalMcpTools,
-  artifacts.hierarchical_mcp_tools,
-);
-representativeBlockers.push(...hierarchicalMcpGate.release_blockers);
-warnings.push(...hierarchicalMcpGate.release_warnings);
-
-const libp2pFleetGate = summarizeLibp2pFleetGate(
-  mcpPlusPlusLibp2pFleet,
-  artifacts.mcpplusplus_libp2p_fleet,
-);
-representativeBlockers.push(...libp2pFleetGate.release_blockers);
-
-const swissknifeLibp2pConnectorGate = summarizeSwissknifeLibp2pConnectorGate(
-  swissknifeLibp2pConnector,
-  artifacts.swissknife_libp2p_connector,
-);
-representativeBlockers.push(...swissknifeLibp2pConnectorGate.release_blockers);
-
-if (glassesHandoff) {
-  if (!glassesHandoff.hardware_free) {
-    representativeBlockers.push('Meta glasses handoff evidence must be hardware-free replayable.');
-  }
-  if (glassesHandoff.passed_count !== glassesHandoff.displayable_count) {
-    representativeBlockers.push(`Meta glasses handoff passed ${glassesHandoff.passed_count}/${glassesHandoff.displayable_count} displayable apps.`);
-  }
-}
-
-if (liveCriticalFlows) {
-  if (liveCriticalFlows.status !== 'passed') {
-    representativeBlockers.push(`Live critical MCP flows status is ${liveCriticalFlows.status ?? 'unknown'}.`);
-  }
-  if (liveCriticalFlows.passed_count !== liveCriticalFlows.flow_count) {
-    representativeBlockers.push(`Live critical MCP flows passed ${liveCriticalFlows.passed_count}/${liveCriticalFlows.flow_count}.`);
-  }
-}
-
-if (receiptSamples && (receiptSamples.samples ?? []).length === 0) {
-  representativeBlockers.push('No live receipt samples are available.');
-}
-
-const gatewayFallbackSpecs = [
-  'test/e2e/storage-provenance-apps.spec.ts',
-  'test/e2e/accelerate-datasets-apps.spec.ts',
-  'test/e2e/media-artifact-apps.spec.ts',
-  'test/e2e/system-network-local-apps.spec.ts',
-  'test/e2e/mcp-orb-descriptor-apps.spec.ts',
-].map(specPath => ({
-  path: specPath,
-  present: fs.existsSync(path.join(projectRoot, specPath)),
-}));
-
-const allToolsFallbackStateCoverage = allToolsAppFamilyCoverage
-  ? {
-      status: 'present',
-      path: artifacts.all_tools_app_family_coverage.path,
-      app_family_count: allToolsAppFamilyCoverage.summary?.app_family_count ?? allToolsAppFamilyCoverage.app_families?.length ?? 0,
-      fallback_state_family_count: (allToolsAppFamilyCoverage.app_families ?? [])
-        .filter(family => (family.state_coverage ?? []).includes('fallback')).length,
-      blocked_state_family_count: (allToolsAppFamilyCoverage.app_families ?? [])
-        .filter(family => (family.state_coverage ?? []).includes('blocked')).length,
-      degraded_state_family_count: (allToolsAppFamilyCoverage.app_families ?? [])
-        .filter(family => (family.state_coverage ?? []).includes('degraded')).length,
-      adapter_required_accelerate_count: allToolsAppFamilyCoverage.summary?.adapter_required_accelerate_count ?? 0,
-    }
-  : missingStatus(artifacts.all_tools_app_family_coverage.path);
-
-if (allToolsFallbackStateCoverage.status === 'present') {
-  if (allToolsFallbackStateCoverage.fallback_state_family_count !== allToolsFallbackStateCoverage.app_family_count) {
-    allToolsBlockers.push(`All-tools app-family fallback state coverage is ${allToolsFallbackStateCoverage.fallback_state_family_count}/${allToolsFallbackStateCoverage.app_family_count}.`);
-  }
-  if (allToolsFallbackStateCoverage.blocked_state_family_count !== allToolsFallbackStateCoverage.app_family_count) {
-    allToolsBlockers.push(`All-tools app-family blocked state coverage is ${allToolsFallbackStateCoverage.blocked_state_family_count}/${allToolsFallbackStateCoverage.app_family_count}.`);
-  }
-  if (allToolsFallbackStateCoverage.degraded_state_family_count !== allToolsFallbackStateCoverage.app_family_count) {
-    allToolsBlockers.push(`All-tools app-family degraded state coverage is ${allToolsFallbackStateCoverage.degraded_state_family_count}/${allToolsFallbackStateCoverage.app_family_count}.`);
-  }
-}
-
-const liveReceiptSamples = receiptSamples
-  ? {
-      status: 'present',
-      path: artifacts.receipt_samples.path,
-      sample_count: (receiptSamples.samples ?? []).length,
-    }
-  : missingStatus(artifacts.receipt_samples.path);
-
-const nonLiveReceiptSamples = (glassesHandoff?.results ?? [])
-  .filter(result => result.receipt_cid)
-  .map(result => ({
-    source: 'glasses_handoff',
-    app_id: result.app_id,
-    receipt_cid: result.receipt_cid,
-  }));
-
-const allToolsDrift = allToolsLedger?.summary?.drift
-  ?? allToolsLedger?.drift_against_previous_accepted_ledger
-  ?? {};
-const allToolsTombstoneCount = allToolsLedger?.summary?.tombstone_count
-  ?? (allToolsLedger?.tombstones ?? []).length
-  ?? 0;
-const failedGates = (allToolsReleaseGate?.gates ?? [])
-  .filter(gate => gate.status === 'fail' || gate.passed === false);
-const adapterBoundaryGate = (allToolsReleaseGate?.gates ?? [])
-  .find(gate => (gate.gate_id ?? gate.id) === 'accelerate_adapter_boundary');
-
-if (allToolsReleaseGate) {
-  if (failedGates.length > 0) {
-    allToolsBlockers.push(...failedGates.map(gate => (
-      `All-tools policy gate failed: ${gate.gate_id ?? gate.id} (${gate.summary ?? gate.reason ?? 'SWR-103 all-tools policy gate failed'}).`
-    )));
-  }
-} else {
-  allToolsBlockers.push('Missing exhaustive all-tools release policy gate.');
-}
-
-if ((allToolsDrift.added_tool_count ?? 0) > 0) {
-  allToolsBlockers.push(`${allToolsDrift.added_tool_count} new MCP tools are not in the accepted ledger.`);
-}
-if ((allToolsDrift.removed_tool_count ?? 0) > 0) {
-  allToolsBlockers.push(`${allToolsDrift.removed_tool_count} previously accepted MCP tools disappeared.`);
-}
-if ((allToolsDrift.changed_schema_tool_count ?? 0) > 0) {
-  allToolsBlockers.push(`${allToolsDrift.changed_schema_tool_count} MCP tools changed schema.`);
-}
-
-const appMatrixGate = buildVirtualDesktopAppMatrixGate({
-  appInventory,
-  appBackendContract,
-  appWorkflowMatrix,
-  allToolsAppBindings,
-  allToolsIdlCoverage,
-  allToolsGlassesCoverage,
-  allServerToolCatalog,
-  mcpPlusPlusLibp2pCatalog,
-  glassesSimulatorHandoff,
-  hierarchicalMcpGate,
-});
-representativeBlockers.push(...appMatrixGate.representative_blockers);
-allToolsBlockers.push(...appMatrixGate.all_tools_blockers);
-
-const swr110Gate = buildSWR110ReleaseGate({
-  artifacts,
-  appInventory,
-  appBackendContract,
-  appWorkflowMatrix,
-  toolUiSmokeReceipts,
-  serviceHealth,
-  descriptorDiscovery,
-  hierarchicalMcpGate,
-  allServerToolCatalog,
-  mcpPlusPlusLibp2pCatalog,
-  mcpPlusPlusLibp2pReachability,
-  allToolsLedger,
-  allToolsPolicyMatrix,
-  allToolsAppBindings,
-  allToolsExecutionReport,
-  allToolsIdlCoverage,
-  allToolsGlassesCoverage,
-  allToolsReleaseGate,
-  agentSupervisorConsoleE2e,
-  agentSupervisorConsoleReceipts,
-  orbIdlCompleteCoverage,
-  glassesSimulatorHandoff,
-});
-representativeBlockers.push(...swr110Gate.representative_blockers);
-allToolsBlockers.push(...swr110Gate.all_tools_blockers);
-
-const representativeDecision = representativeBlockers.length === 0 ? 'go' : 'no_go';
-const allToolsDecision = allToolsBlockers.length === 0 ? 'go' : 'no_go';
-const blockers = dedupe([...representativeBlockers, ...allToolsBlockers]);
-const decision = representativeDecision === 'go' && allToolsDecision === 'go' ? 'go' : 'no_go';
-const nextActions = decision === 'go' ? [] : releaseNextActions({
-  hierarchicalDecision: hierarchicalMcpGate.decision,
-  representativeDecision,
-  allToolsDecision,
-});
-
-const report = {
-  schema: 'swissknife.virtual-desktop-release-evidence.v1',
-  generated_at: generatedAt,
-  evidence_root: evidenceRootRelative,
-  manifest: {
-    status: appInventory ? 'present' : 'missing',
-    manifest_id: appInventory?.manifest_id ?? manifestDrift?.manifest_id ?? null,
-    version: appInventory?.manifest_version ?? manifestDrift?.manifest_version ?? null,
-    app_count: appInventory?.app_count ?? null,
-    categories: appInventory?.summary?.category_counts ?? {},
-    launch_kinds: appInventory?.summary?.launch_kind_counts ?? {},
+const evidenceDefinitions = [
+  {
+    id: 'service_profile_matrix',
+    file: 'all-profile-service-matrix.json',
+    taskId: 'SVD-093',
+    schema: 'swissknife.all_profile_service_matrix.v1',
+    sourcePaths: ['scripts/capture-all-profile-service-matrix.cjs'],
+    validate: validateProfileMatrix,
   },
-  artifacts,
-  app_inventory: appInventorySummary,
-  app_contract_reconciliation: appContractGate.summary,
-  launch_status: launchStatus,
-  screenshot_coverage: {
-    app_screenshots: appScreenshotCoverage,
-    glasses_screenshots: glassesScreenshotCoverage,
+  {
+    id: 'app_backend_behavior',
+    file: 'all-app-live-backend-behavior.json',
+    taskId: 'SVD-096',
+    schema: 'swissknife.all-app-live-backend-behavior.v1',
+    screenshotRoot: 'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend',
+    sourcePaths: [
+      'test/e2e/all-app-live-backend-behavior.spec.ts',
+      'src/services/apps/virtual-desktop-app-manifest.ts',
+      'test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json',
+    ],
+    validate: validateAppBehavior,
   },
-  swr110_release_gate: swr110Gate.summary,
-  virtual_desktop_app_matrix_gate: appMatrixGate.summary,
-  capability_matrix: data.capability_matrix
-    ? {
-        status: 'present',
-        path: artifacts.capability_matrix.path,
-        schema: data.capability_matrix.schema,
-        generated_at: data.capability_matrix.generated_at,
-      }
-    : missingStatus(artifacts.capability_matrix.path),
-  descriptor_validation: {
-    descriptor_discovery: descriptorDiscovery
-      ? {
-          status: 'present',
-          path: artifacts.descriptor_discovery.path,
-          generated_at: descriptorDiscovery.generated_at,
-          live_discovery_available: descriptorDiscovery.summary?.live_discovery_available ?? [],
-          static_fallback_used: descriptorDiscovery.summary?.static_fallback_used ?? [],
-          tool_counts: descriptorDiscovery.summary?.tool_counts ?? {},
-          interface_counts: descriptorDiscovery.summary?.interface_counts ?? {},
-        }
-      : missingStatus(artifacts.descriptor_discovery.path),
-    manifest_drift: manifestDrift
-      ? {
-          status: 'present',
-          path: artifacts.manifest_drift.path,
-          generated_at: manifestDrift.generated_at,
-          valid: manifestDrift.valid,
-          error_count: (manifestDrift.errors ?? []).length,
-          warning_count: (manifestDrift.warnings ?? []).length,
-        }
-      : missingStatus(artifacts.manifest_drift.path),
+  {
+    id: 'supervisor_console',
+    file: 'agent-supervisor-all-app-validation.json',
+    taskId: 'SVD-097',
+    schema: 'swissknife.agent-supervisor-all-app-validation.v1',
+    screenshotRoot: 'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor',
+    sourcePaths: [
+      'test/e2e/agent-supervisor-all-app-validation.spec.ts',
+      'src/services/mcp/agent-supervisor-console-gateway.ts',
+      'web/js/apps/agent-supervisor.js',
+    ],
+    validate: validateSupervisor,
   },
-  service_health: serviceHealth
-    ? {
-        status: 'present',
-        path: artifacts.service_health.path,
-        generated_at: serviceHealth.generated_at,
-        service_count: (serviceHealth.services ?? []).length,
-        available: serviceHealth.summary?.available ?? [],
-        unavailable: serviceHealth.summary?.unavailable ?? [],
-        endpoint_failures: serviceHealth.summary?.endpoint_failures ?? 0,
-        normalized_failure_count: serviceHealth.summary?.normalized_failure_count ?? serviceHealth.summary?.endpoint_failures ?? 0,
-    }
-    : missingStatus(artifacts.service_health.path),
-  hierarchical_mcp: hierarchicalMcpGate.summary,
-  glasses_simulator_handoff: glassesSimulatorHandoff
-    ? {
-        status: 'present',
-        path: artifacts.glasses_simulator_handoff.path,
-        schema: glassesSimulatorHandoff.schema ?? null,
-        generated_at: glassesSimulatorHandoff.generated_at ?? null,
-        hardware_free: glassesSimulatorHandoff.hardware_free ?? null,
-        simulator_driven: glassesSimulatorHandoff.simulator_driven ?? null,
-        physical_glasses_required: glassesSimulatorHandoff.physical_glasses_required ?? null,
-        simulator_id: glassesSimulatorHandoff.simulator?.simulator_id ?? null,
-        simulator_capabilities: glassesSimulatorHandoff.simulator?.capabilities ?? {},
-        capability_evidence_count: (glassesSimulatorHandoff.capability_evidence ?? []).length,
-      }
-    : missingStatus(artifacts.glasses_simulator_handoff.path),
-  mcpplusplus_libp2p_fleet: libp2pFleetGate.summary,
-  swissknife_libp2p_connector: swissknifeLibp2pConnectorGate.summary,
-  glasses_handoff: glassesHandoff
-    ? {
-        status: 'present',
-        path: artifacts.glasses_handoff.path,
-        generated_at: glassesHandoff.generated_at,
-        app_count: glassesHandoff.app_count,
-        displayable_count: glassesHandoff.displayable_count,
-        passed_count: glassesHandoff.passed_count,
-        hardware_free: glassesHandoff.hardware_free,
-        fallback_targets: countBy(glassesHandoff.results ?? [], result => result.fallback_target ?? 'none'),
-        receipt_count: nonLiveReceiptSamples.length,
-      }
-    : missingStatus(artifacts.glasses_handoff.path),
-  fallback_coverage: {
-    all_tools_app_family_states: allToolsFallbackStateCoverage,
-    legacy_gateway_fallback_specs: gatewayFallbackSpecs,
-    legacy_gateway_spec_count: gatewayFallbackSpecs.filter(spec => spec.present).length,
-    glasses_fallbacks: glassesHandoff
-      ? {
-          status: 'present',
-          displayable_count: glassesHandoff.displayable_count,
-          fallback_count: (glassesHandoff.results ?? []).filter(result => result.fallback_target).length,
-          fallback_targets: countBy(glassesHandoff.results ?? [], result => result.fallback_target ?? 'none'),
-        }
-      : missingStatus(artifacts.glasses_handoff.path),
+  {
+    id: 'orb_idl_packets',
+    file: 'all-app-live-orb-idl-handoff.json',
+    taskId: 'SVD-098',
+    schema: 'swissknife.all-app-live-orb-idl-handoff.v1',
+    sourcePaths: [
+      'test/mcp-plus-plus/all-app-live-orb-idl-handoff.test.ts',
+      'src/services/glasses/all-app-live-orb-idl-handoff.ts',
+      'src/services/glasses/desktop-orb-idl-contract.ts',
+      'test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json',
+    ],
+    validate: validateOrbIdl,
   },
-  receipt_samples: {
-    live_receipt_samples: liveReceiptSamples,
-    non_live_receipt_samples: nonLiveReceiptSamples,
+  {
+    id: 'meta_device_simulator',
+    file: 'all-app-meta-device-simulator.json',
+    taskId: 'SVD-099',
+    schema: 'swissknife.all-app-meta-device-simulator.v1',
+    screenshotRoot: 'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator',
+    sourcePaths: [
+      'test/e2e/all-app-meta-device-simulator.spec.ts',
+      'src/services/glasses/all-app-live-orb-idl-handoff.ts',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json',
+    ],
+    validate: validateMetaSimulator,
   },
-  representative_app_gate: {
-    decision: representativeDecision,
-    blocker_count: representativeBlockers.length,
-    warning_count: warnings.length,
-    blockers: representativeBlockers,
+  {
+    id: 'peer_interoperability',
+    file: 'swissknife-all-tools-peer-evidence.json',
+    taskId: 'SVD-100',
+    schema: 'swissknife.all_tools_peer_interoperability_evidence.v1',
+    sourcePaths: [
+      'scripts/capture-swissknife-all-tools-peer-evidence.cjs',
+      'src/services/mcp/mcp-plus-plus-connector.ts',
+    ],
+    validate: validatePeerEvidence,
   },
-  all_tools: {
-    ledger: allToolsLedger
-      ? {
-          status: 'present',
-          path: artifacts.all_tools_ledger.path,
-          generated_at: allToolsLedger.generated_at,
-          exact_tool_record_count: allToolsLedger.summary?.exact_tool_record_count
-            ?? allToolsLedger.summary?.tool_record_count
-            ?? allToolsLedger.tools?.length
-            ?? allToolsLedger.records?.length
-            ?? null,
-          live_exact_tool_count: allToolsLedger.summary?.live_exact_tool_count
-            ?? allToolsLedger.summary?.configured_live_tool_count
-            ?? null,
-          static_exact_tool_count: allToolsLedger.summary?.static_exact_tool_count
-            ?? allToolsLedger.summary?.static_descriptor_tool_count
-            ?? null,
-          tombstone_count: allToolsTombstoneCount,
-          duplicate_group_count: allToolsLedger.summary?.duplicate_group_count ?? (allToolsLedger.duplicate_groups ?? []).length,
-          drift: {
-            previous_found: allToolsDrift.previous_found ?? null,
-            added_tool_count: allToolsDrift.added_tool_count ?? 0,
-            removed_tool_count: allToolsDrift.removed_tool_count ?? 0,
-            changed_schema_tool_count: allToolsDrift.changed_schema_tool_count ?? 0,
-          },
-        }
-      : missingStatus(artifacts.all_tools_ledger.path),
-    classification: allToolsPolicyMatrix
-      ? {
-          status: 'present',
-          path: artifacts.all_tools_policy_matrix.path,
-          tool_count: allToolsPolicyMatrix.tool_count
-            ?? allToolsPolicyMatrix.summary?.tool_count
-            ?? allToolsPolicyMatrix.tools?.length,
-          class_counts: allToolsPolicyMatrix.class_counts ?? allToolsPolicyMatrix.summary?.class_counts ?? {},
-          owner_counts: allToolsPolicyMatrix.owner_counts ?? allToolsPolicyMatrix.summary?.owner_counts ?? {},
-          exposure_counts: allToolsPolicyMatrix.exposure_counts ?? allToolsPolicyMatrix.summary?.exposure_counts ?? {},
-        }
-      : missingStatus(artifacts.all_tools_policy_matrix.path),
-    app_bindings: allToolsAppBindings
-      ? {
-          status: 'present',
-          path: artifacts.all_tools_app_bindings.path,
-          tool_count: allToolsAppBindings.tool_count
-            ?? allToolsAppBindings.summary?.binding_count
-            ?? allToolsAppBindings.rows?.length
-            ?? allToolsAppBindings.bindings?.length,
-          app_visible_tool_count: appVisibleBindingCount(allToolsAppBindings),
-          disposition_counts: allToolsAppBindings.disposition_counts ?? allToolsAppBindings.summary?.disposition_counts ?? {},
-          app_counts: allToolsAppBindings.app_counts ?? allToolsAppBindings.summary?.app_counts ?? {},
-      }
-      : missingStatus(artifacts.all_tools_app_bindings.path),
-    app_family_coverage: allToolsAppFamilyCoverage
-      ? {
-          status: 'present',
-          path: artifacts.all_tools_app_family_coverage.path,
-          app_family_count: allToolsAppFamilyCoverage.summary?.app_family_count,
-          app_visible_tool_count: allToolsAppFamilyCoverage.summary?.app_visible_tool_count,
-          desktop_mobile_only_count: allToolsAppFamilyCoverage.summary?.desktop_mobile_only_count,
-          supervisor_only_count: allToolsAppFamilyCoverage.summary?.supervisor_only_count,
-          adapter_required_accelerate_count: allToolsAppFamilyCoverage.summary?.adapter_required_accelerate_count,
-          fallback_state_family_count: allToolsFallbackStateCoverage.fallback_state_family_count,
-          blocked_state_family_count: allToolsFallbackStateCoverage.blocked_state_family_count,
-          degraded_state_family_count: allToolsFallbackStateCoverage.degraded_state_family_count,
-        }
-      : missingStatus(artifacts.all_tools_app_family_coverage.path),
-    execution_fixtures: allToolsExecutionReport
-      ? {
-          status: 'present',
-          path: artifacts.all_tools_execution_report.path,
-          fixture_count: allToolsExecutionReport.fixture_count
-            ?? allToolsExecutionReport.summary?.fixture_count
-            ?? allToolsExecutionReport.fixtures?.length,
-          app_routable_fixture_count: allToolsExecutionReport.app_routable_fixture_count
-            ?? allToolsExecutionReport.summary?.dry_run_count
-            ?? (allToolsExecutionReport.fixtures ?? []).filter(fixture => fixture.mode !== 'denied_envelope').length,
-          denied_fixture_count: allToolsExecutionReport.denied_fixture_count
-            ?? allToolsExecutionReport.summary?.denied_count
-            ?? (allToolsExecutionReport.fixtures ?? []).filter(fixture => fixture.mode === 'denied_envelope').length,
-          side_effect_receipt_fixture_count: allToolsExecutionReport.side_effect_receipt_fixture_count
-            ?? allToolsExecutionReport.summary?.receipt_required_count
-            ?? null,
-        }
-      : missingStatus(artifacts.all_tools_execution_report.path),
-    orb_idl: allToolsIdlCoverage
-      ? {
-          status: 'present',
-          path: artifacts.all_tools_idl_coverage.path,
-          descriptor_count: allToolsIdlCoverage.descriptor_count
-            ?? allToolsIdlCoverage.summary?.descriptor_count
-            ?? allToolsIdlCoverage.descriptors?.length,
-          method_count: allToolsIdlCoverage.method_count
-            ?? allToolsIdlCoverage.summary?.method_count
-            ?? null,
-          app_routable_tool_count: allToolsIdlCoverage.app_routable_tool_count
-            ?? allToolsIdlCoverage.summary?.method_count
-            ?? null,
-          app_routable_tool_coverage_count: allToolsIdlCoverage.app_routable_tool_coverage_count
-            ?? allToolsIdlCoverage.summary?.method_count
-            ?? null,
-          workflow_count: allToolsIdlCoverage.workflow_count ?? 0,
-          workflow_coverage_count: allToolsIdlCoverage.workflow_coverage_count ?? 0,
-          interface_cid_count: allToolsIdlCoverage.interface_cid_count
-            ?? allToolsIdlCoverage.summary?.interface_cid_count
-            ?? null,
-          adapter_required_method_count: allToolsIdlCoverage.adapter_required_method_count
-            ?? allToolsIdlCoverage.summary?.adapter_required_method_count
-            ?? null,
-        }
-      : missingStatus(artifacts.all_tools_idl_coverage.path),
-    glasses_projection: allToolsGlassesCoverage
-      ? {
-          status: 'present',
-          path: artifacts.all_tools_glasses_coverage.path,
-          projection_count: allToolsGlassesCoverage.projection_count
-            ?? allToolsGlassesCoverage.summary?.projection_count
-            ?? allToolsGlassesCoverage.projections?.length,
-          displayable_projection_count: allToolsGlassesCoverage.displayable_projection_count
-            ?? allToolsGlassesCoverage.summary?.projection_count
-            ?? allToolsGlassesCoverage.projections?.length,
-          hardware_free_replay_state_count: allToolsGlassesCoverage.hardware_free_replay_state_count
-            ?? allToolsGlassesCoverage.summary?.hardware_free_replay_state_count
-            ?? null,
-          adapter_required_projection_count: allToolsGlassesCoverage.adapter_required_projection_count
-            ?? allToolsGlassesCoverage.summary?.adapter_required_projection_count
-            ?? null,
-          behavior_counts: allToolsGlassesCoverage.behavior_counts ?? allToolsGlassesCoverage.summary?.behavior_counts ?? {},
-        }
-      : missingStatus(artifacts.all_tools_glasses_coverage.path),
-    release_policy_gate: allToolsReleaseGate
-      ? {
-          status: 'present',
-          path: artifacts.all_tools_policy_release_gate.path,
-          decision: allToolsReleaseGate.decision,
-          gate_count: allToolsReleaseGate.gate_count ?? allToolsReleaseGate.summary?.gate_count,
-          pass_count: allToolsReleaseGate.pass_count ?? allToolsReleaseGate.summary?.pass_count,
-          fail_count: allToolsReleaseGate.fail_count ?? allToolsReleaseGate.summary?.fail_count,
-          warn_count: allToolsReleaseGate.warn_count ?? allToolsReleaseGate.summary?.warn_count ?? 0,
-          blocker_count: allToolsReleaseGate.blocker_count ?? allToolsReleaseGate.summary?.blocker_count,
-          failed_gates: failedGates.map(gate => ({
-            gate_id: gate.gate_id ?? gate.id,
-            summary: gate.summary ?? (gate.passed === false ? 'gate failed' : 'gate status is fail'),
-            blockers: gate.blockers ?? [],
-          })),
-        }
-      : missingStatus(artifacts.all_tools_policy_release_gate.path),
-    adapter_boundary: adapterBoundaryGate
-      ? {
-          status: adapterBoundaryGate.status ?? (adapterBoundaryGate.passed ? 'pass' : 'fail'),
-          summary: adapterBoundaryGate.summary ?? {
-            passed: adapterBoundaryGate.passed,
-            count: adapterBoundaryGate.count,
-          },
-          evidence: adapterBoundaryGate.evidence,
-          blockers: adapterBoundaryGate.blockers,
-        }
-      : missingStatus('all-tools-policy-release-gate.json#accelerate_adapter_boundary'),
-  },
-  exhaustive_all_tools_gate: {
-    decision: allToolsDecision,
-    blocker_count: allToolsBlockers.length,
-    blockers: dedupe(allToolsBlockers),
-  },
-  go_no_go: {
+];
+
+main();
+
+function main() {
+  fs.mkdirSync(evidenceRoot, { recursive: true });
+  const generatedAt = new Date().toISOString();
+  const sourceRevision = gitRevision();
+  const records = evidenceDefinitions.map(loadEvidence);
+  const gaps = records.flatMap(record => record.gaps);
+  const dispositions = collectDispositions(records);
+
+  for (const disposition of dispositions.rejected) {
+    gaps.push(gap(
+      disposition.task_id || 'SVD-101',
+      'unapproved_non_release_disposition',
+      disposition.scope || disposition.id || 'unknown',
+      disposition.rejection_reason,
+      disposition.source_path,
+    ));
+  }
+
+  const blockerGaps = dedupeGaps(gaps.filter(item => !isClosedByDisposition(item, dispositions.approved)));
+  const decision = blockerGaps.length === 0 ? 'GO' : 'NO_GO';
+  const artifactMap = Object.fromEntries(records.map(record => [record.id, artifactSummary(record)]));
+  const appBehavior = records.find(record => record.id === 'app_backend_behavior');
+  const supervisor = records.find(record => record.id === 'supervisor_console');
+  const orb = records.find(record => record.id === 'orb_idl_packets');
+  const meta = records.find(record => record.id === 'meta_device_simulator');
+  const peer = records.find(record => record.id === 'peer_interoperability');
+  const profile = records.find(record => record.id === 'service_profile_matrix');
+
+  const appMatrix = buildAppMatrix(appBehavior, orb, meta);
+  const serviceMatrix = buildServiceMatrix(profile, peer, dispositions.approved);
+  const toolMatrix = buildToolMatrix(peer, dispositions.approved);
+  const modalityMatrix = buildModalityMatrix(meta, dispositions.approved);
+  const screenshotEvidence = buildScreenshotEvidence(records);
+  const provenanceEvidence = buildProvenanceEvidence(records);
+
+  const report = {
+    schema: 'swissknife.virtual-desktop-release-evidence.v2',
+    task_id: 'SVD-101',
+    generated_at: generatedAt,
+    source_revision: sourceRevision,
+    release_scope: 'SwissKnife virtual desktop, all backend tools, Supervisor Console, ORB/IDL, and Meta simulator',
+    freshness_policy: {
+      kind: 'content-addressed-current-checkout',
+      statement: 'The aggregate fingerprints every present input and its current source dependencies. Deterministic evidence timestamps are not treated as wall-clock expiry.',
+      audit_group: 'virtual-desktop-release-evidence',
+      missing_inputs_are_explicit_no_go_gaps: true,
+      generated_output_is_not_behavior_proof: true,
+    },
+    release_policy: {
+      go_rule: 'Every required app, tool, service/profile/transport cell, Supervisor path, ORB/IDL packet, and simulator modality needs a current passing proof or an approved non-release disposition.',
+      counts_do_not_prove_availability: true,
+      missing_or_failed_proof_defaults_to_no_go: true,
+      required_services: REQUIRED_SERVICES,
+      required_profiles: REQUIRED_PROFILES,
+      required_transports: REQUIRED_TRANSPORTS,
+      required_modalities: REQUIRED_MODALITIES,
+      required_replay_scenarios: REQUIRED_REPLAY_SCENARIOS,
+    },
+    artifacts: artifactMap,
+    app_behavior_matrix: appMatrix,
+    service_profile_transport_matrix: serviceMatrix,
+    tool_behavior_matrix: toolMatrix,
+    supervisor_console: summarizeSupervisor(supervisor),
+    orb_idl_packets: summarizeOrb(orb),
+    meta_simulator_modalities: modalityMatrix,
+    screenshot_evidence: screenshotEvidence,
+    receipt_event_dag_evidence: provenanceEvidence,
+    unavailable_and_blocked_cases: buildUnavailableCases(records, blockerGaps),
+    non_release_dispositions: dispositions,
+    named_gaps: blockerGaps,
+    decision: {
+      status: decision,
+      blocker_count: blockerGaps.length,
+      blocker_task_ids: unique(blockerGaps.map(item => item.task_id)),
+      approved_non_release_disposition_count: dispositions.approved.length,
+      rejected_non_release_disposition_count: dispositions.rejected.length,
+    },
+    // Compatibility projections consumed by the older release-readiness renderer.
+    go_no_go: compatibilityDecision(decision, blockerGaps),
+    hierarchical_mcp: compatibilityHierarchical(serviceMatrix, peer),
+    virtual_desktop_app_matrix_gate: compatibilityAppMatrix(appMatrix, modalityMatrix, blockerGaps),
+    swr110_release_gate: compatibilityCompleteGate(decision, records, blockerGaps),
+  };
+
+  atomicWriteJson(outputPaths.json, report);
+  atomicWrite(outputPaths.markdown, renderMarkdown(report));
+  atomicWrite(outputPaths.signoff, renderSignoff(report));
+  certifyAggregateFreshness();
+
+  console.log(JSON.stringify({
+    schema: report.schema,
+    task_id: report.task_id,
     decision,
-    representative_decision: representativeDecision,
-    all_tools_decision: allToolsDecision,
-    blocker_count: blockers.length,
-    warning_count: warnings.length,
-    blockers,
-    warnings: dedupe(warnings),
-    next_actions: nextActions,
-  },
-};
-
-const releaseJsonPath = path.join(evidenceRoot, 'release-evidence.json');
-const releaseMarkdownPath = path.join(evidenceRoot, 'release-evidence.md');
-const allToolsMarkdownPath = path.join(evidenceRoot, 'all-tools-release-evidence.md');
-const supervisorFreshnessPath = path.join(evidenceRoot, 'all-tools-supervisor-release-freshness.json');
-const markdown = renderMarkdown(report);
-
-fs.mkdirSync(evidenceRoot, { recursive: true });
-fs.writeFileSync(releaseJsonPath, `${JSON.stringify(report, null, 2)}\n`);
-fs.writeFileSync(releaseMarkdownPath, markdown);
-fs.writeFileSync(allToolsMarkdownPath, markdown);
-fs.writeFileSync(
-  supervisorFreshnessPath,
-  `${JSON.stringify(buildSupervisorReleaseFreshness(report), null, 2)}\n`,
-);
-refreshReleaseEvidenceFreshness();
-
-console.log(JSON.stringify({
-  decision,
-  blocker_count: report.go_no_go.blocker_count,
-  warning_count: report.go_no_go.warning_count,
-  hierarchical_mcp_decision: hierarchicalMcpGate.decision,
-  all_tools_decision: allToolsDecision,
-  output: path.relative(projectRoot, releaseJsonPath),
-  supervisor_freshness_output: path.relative(projectRoot, supervisorFreshnessPath),
-}, null, 2));
-
-if (decision !== 'go') {
-  process.exitCode = 1;
+    blocker_count: blockerGaps.length,
+    blocker_task_ids: report.decision.blocker_task_ids,
+    outputs: Object.values(outputPaths).map(relative),
+  }, null, 2));
 }
 
-function refreshRepresentativeReleaseEvidence() {
-  for (const scriptName of [
-    'ensure-ipfs-mcp-compat-adapters.cjs',
-    'capture-virtual-desktop-app-inventory.cjs',
-    'validate-virtual-desktop-manifest.cjs',
-    'capture-ipfs-accelerate-adapter-coverage.cjs',
-    // The policy gate reads adapter coverage. Rebuild it after the adapter probe so
-    // the release decision cannot inherit a stale pre-refresh adapter result.
-    'capture-ipfs-mcp-all-tools-ledger.cjs',
-    'build-all-tools-composite-workflows.cjs',
-    'build-all-tools-capability-matrix.cjs',
-    'capture-hierarchical-mcp-tools-evidence.cjs',
-    'capture-mcp-live-probe-evidence.cjs',
-    'capture-mcp-libp2p-fleet-evidence.cjs',
-    'capture-swissknife-libp2p-connector-evidence.cjs',
-    'capture-virtual-desktop-release-artifacts.cjs',
-  ]) {
-    runEvidenceScript(scriptName);
+function loadEvidence(definition) {
+  const absolutePath = path.join(evidenceRoot, definition.file);
+  const record = {
+    ...definition,
+    path: relative(absolutePath),
+    status: 'missing',
+    data: null,
+    sha256: null,
+    generated_at: null,
+    source_fingerprint: fingerprintPaths(definition.sourcePaths),
+    checks: [],
+    gaps: [],
+    screenshots: [],
+  };
+  if (!fs.existsSync(absolutePath)) {
+    record.gaps.push(gap(definition.taskId, 'missing_evidence', definition.id,
+      `Required current evidence is missing: ${record.path}.`, record.path));
+    if (definition.screenshotRoot && !fs.existsSync(path.join(projectRoot, definition.screenshotRoot))) {
+      record.gaps.push(gap(definition.taskId, 'missing_screenshot_root', definition.id,
+        `Required screenshot evidence directory is missing: ${definition.screenshotRoot}.`, definition.screenshotRoot));
+    }
+    return record;
+  }
+  try {
+    const bytes = fs.readFileSync(absolutePath);
+    record.sha256 = sha256(bytes);
+    record.data = JSON.parse(bytes.toString('utf8'));
+    record.generated_at = record.data.generated_at ?? null;
+    record.status = 'present';
+  } catch (error) {
+    record.status = 'invalid';
+    record.gaps.push(gap(definition.taskId, 'invalid_evidence', definition.id,
+      `Evidence is not valid JSON: ${errorMessage(error)}.`, record.path));
+    return record;
+  }
+  check(record, record.data.schema === definition.schema, 'schema',
+    `Expected schema ${definition.schema}; observed ${record.data.schema ?? 'missing'}.`);
+  check(record, record.data.task_id === definition.taskId, 'task_provenance',
+    `Expected task_id ${definition.taskId}; observed ${record.data.task_id ?? 'missing'}.`);
+  check(record, isIsoDate(record.generated_at), 'generated_at', 'Evidence has no valid generated_at timestamp.');
+  definition.validate(record);
+  if (record.gaps.length === 0) record.status = 'passed';
+  else record.status = 'failed';
+  return record;
+}
+
+function validateProfileMatrix(record) {
+  const data = record.data;
+  check(record, data.complete === true, 'complete', 'The all-profile matrix is not complete.');
+  check(record, normalizeDecision(data.decision) === 'GO', 'decision', `Profile matrix decision is ${data.decision ?? 'missing'}.`);
+  check(record, data.summary?.service_count === REQUIRED_SERVICES.length, 'service_count',
+    `Expected ${REQUIRED_SERVICES.length} services; observed ${data.summary?.service_count ?? 'missing'}.`);
+  check(record, data.summary?.profile_count === REQUIRED_PROFILES.length, 'profile_count',
+    `Expected profiles A-H; observed ${data.summary?.profile_count ?? 'missing'} profiles.`);
+  const profileRows = Array.isArray(data.profile_matrix) ? data.profile_matrix : [];
+  for (const profile of REQUIRED_PROFILES) {
+    const row = profileRows.find(item => item.profile === profile);
+    check(record, Boolean(row), `profile_${profile}`, `Profile ${profile} is absent from the service matrix.`, `profile:${profile}`);
+    for (const service of REQUIRED_SERVICES) {
+      const cell = row?.services?.find(item => item.service === service);
+      check(record, Boolean(cell), `profile_${profile}_${service}`, `${service}/Profile ${profile} has no evidence cell.`, `${service}:${profile}`);
+      if (cell) check(record, cell.capability_state === 'supported', `profile_${profile}_${service}_${cell.capability_state ?? 'unknown'}`,
+        `${service}/Profile ${profile} is ${cell.capability_state ?? 'unknown'}; supported proof or an approved non-release disposition is required.`, `${service}:${profile}`);
+    }
+  }
+  for (const serviceId of REQUIRED_SERVICES) {
+    const service = data.services?.find(item => item.service === serviceId);
+    check(record, Boolean(service), `service_${serviceId}`, `${serviceId} is absent from the live matrix.`, serviceId);
+    check(record, service?.http?.live === true, `${serviceId}_http`, `${serviceId} HTTP route is not live.`, `${serviceId}:http`);
+    check(record, service?.libp2p?.live === true, `${serviceId}_libp2p`, `${serviceId} libp2p route is not live.`, `${serviceId}:libp2p`);
   }
 }
 
-function refreshAppContractEvidence() {
-  runEvidenceScript('build-virtual-desktop-app-contract-evidence.cjs', {
-    SWISSKNIFE_APP_CONTRACT_NO_FAIL: '1',
+function validateAppBehavior(record) {
+  const data = record.data;
+  const apps = Array.isArray(data.apps) ? data.apps : [];
+  check(record, data.status === 'passed', 'status', `All-app behavior status is ${data.status ?? 'missing'}.`);
+  check(record, Number.isInteger(data.app_count) && data.app_count > 0 && data.app_count === apps.length,
+    'app_count', `App count ${data.app_count ?? 'missing'} does not match ${apps.length} app rows.`);
+  for (const key of ['failed', 'unexpected_browser_console_error_count', 'unexpected_failed_request_count']) {
+    check(record, data.summary?.[key] === 0, `summary_${key}`, `App behavior summary ${key} is ${data.summary?.[key] ?? 'missing'}, expected 0.`);
+  }
+  for (const key of ['outage_observed', 'recovered', 'reopened']) {
+    check(record, data.summary?.[key] === data.app_count, `summary_${key}`,
+      `App behavior ${key} coverage is ${data.summary?.[key] ?? 'missing'}/${data.app_count ?? 'unknown'}.`);
+  }
+  for (const app of apps) {
+    const id = app.app_id ?? 'unknown-app';
+    check(record, app.status === 'passed', `${id}_status`, `${id} behavior did not pass.`, id);
+    for (const [key, value] of Object.entries({
+      actual_tool_id: app.actual_tool_id,
+      tool_owner: app.tool_owner,
+      actual_transport: app.actual_transport,
+      correlation_id: app.correlation_id,
+    })) check(record, nonEmpty(value), `${id}_${key}`, `${id} has no ${key}.`, id);
+    check(record, nonEmpty(app.receipt?.receipt_cid), `${id}_receipt`, `${id} has no receipt CID.`, id);
+    check(record, nonEmpty(app.event_dag?.event_cid), `${id}_event_dag`, `${id} has no event-DAG CID.`, id);
+    check(record, app.event_dag?.receipt_cid === app.receipt?.receipt_cid, `${id}_provenance_link`,
+      `${id} event-DAG does not reference its receipt.`, id);
+    record.screenshots.push(...validateScreenshots(record, app.screenshots, id));
+  }
+  for (const skip of data.explicit_skips ?? []) {
+    check(record, [skip.app_id, skip.tool_id, skip.owner, skip.reason].every(nonEmpty),
+      `skip_${skip.app_id ?? 'unknown'}_${skip.tool_id ?? 'unknown'}`,
+      'An explicit fixture skip is not fully named with app, tool, owner, and reason.', skip.app_id ?? skip.tool_id);
+  }
+}
+
+function validateSupervisor(record) {
+  const data = record.data;
+  check(record, normalizeDecision(data.decision) === 'GO', 'decision', `Supervisor decision is ${data.decision ?? 'missing'}.`);
+  check(record, sameSet(data.live_state?.owners ?? [], REQUIRED_SERVICES), 'owners',
+    `Supervisor owners are ${(data.live_state?.owners ?? []).join(', ') || 'missing'}; all three are required.`);
+  check(record, data.task_graph?.linked === true, 'task_graph_linked', 'Supervisor goals/subgoals/tasks are not linked to the taskboard.');
+  const steeringModes = (data.prompt_steering ?? []).map(item => item.mode);
+  check(record, steeringModes.includes('dry-run') && steeringModes.includes('confirmed'), 'steering_modes',
+    'Supervisor proof must include dry-run and confirmed prompt steering.');
+  check(record, (data.prompt_steering ?? []).every(item => item.prompt === '[prompt redacted]'), 'prompt_redaction',
+    'Supervisor evidence persisted an unredacted prompt.');
+  check(record, data.dispatch?.status === 'dispatched' && data.summary?.dispatched_waves > 0,
+    'dispatch', 'The all-app validation wave was not dispatched.');
+  check(record, data.browser_boundary?.gateway_only === true, 'gateway_boundary', 'Supervisor browser traffic bypassed the gateway.');
+  check(record, data.browser_boundary?.direct_file_or_process_access_count === 0, 'host_boundary',
+    'Supervisor attempted direct file or process access.');
+  check(record, data.browser_boundary?.raw_prompt_persisted === false, 'raw_prompt', 'A raw prompt was persisted.');
+  for (const key of ['hidden_control_count', 'text_overlap_count', 'broken_focus_count', 'browser_console_error_count', 'failed_request_count', 'unreported_backend_failure_count']) {
+    check(record, data.ui_validation?.[key] === 0, `ui_${key}`, `Supervisor UI ${key} is ${data.ui_validation?.[key] ?? 'missing'}, expected 0.`);
+  }
+  const outcomes = data.outcomes ?? [];
+  for (const capability of EXPECTED_SUPERVISOR_CAPABILITIES) {
+    check(record, outcomes.some(item => item.capability_id === capability), `capability_${capability}`,
+      `Supervisor capability ${capability} has no current outcome.`, capability);
+  }
+  const governed = outcomes.filter(item => ['supervisor.prompt-steering.request', 'supervisor.task-control.request'].includes(item.capability_id));
+  check(record, governed.every(item => nonEmpty(item.receipt_cid) && nonEmpty(item.event_dag_cid)), 'governed_provenance',
+    'A governed Supervisor outcome is missing its receipt or event-DAG CID.');
+  record.screenshots.push(...validateScreenshots(record, data.screenshots, 'agent-supervisor'));
+}
+
+function validateOrbIdl(record) {
+  const data = record.data;
+  const packets = Array.isArray(data.packets) ? data.packets : [];
+  check(record, data.packet_count === packets.length && packets.length > 0, 'packet_count',
+    `ORB/IDL packet count ${data.packet_count ?? 'missing'} does not match ${packets.length} rows.`);
+  check(record, data.app_count > 0, 'app_count', 'ORB/IDL handoff contains no applications.');
+  for (const packet of packets) {
+    const id = packet.packet_id ?? packet.route_id ?? 'unknown-packet';
+    for (const [key, value] of Object.entries({
+      packet_cid: packet.packet_cid,
+      interface_cid: packet.interface_cid,
+      action_id: packet.action_id,
+      method_id: packet.method_id,
+      owner: packet.owner,
+      correlation_id: packet.correlation_id,
+      capability_profile_id: packet.capability_profile_id,
+    })) check(record, nonEmpty(value), `${id}_${key}`, `${id} has no ${key}.`, id);
+    check(record, nonEmpty(packet.permission?.state), `${id}_permission`, `${id} has no permission state.`, id);
+    check(record, (packet.receipt_refs ?? []).some(ref => nonEmpty(ref.cid)), `${id}_receipt`, `${id} has no receipt reference.`, id);
+    check(record, (packet.event_dag_refs ?? []).some(ref => nonEmpty(ref.cid)), `${id}_event`, `${id} has no event-DAG reference.`, id);
+    check(record, nonEmpty(packet.rollback_behavior?.mode), `${id}_rollback`, `${id} has no rollback behavior.`, id);
+    check(record, nonEmpty(packet.fallback_selection?.target_surface), `${id}_fallback`, `${id} has no fallback selection.`, id);
+    const modalities = (packet.modality_constraints ?? []).map(item => item.modality);
+    check(record, sameSet(modalities, REQUIRED_MODALITIES), `${id}_modalities`, `${id} does not constrain all required modalities.`, id);
+  }
+  for (const capability of EXPECTED_SUPERVISOR_CAPABILITIES) {
+    check(record, packets.some(packet => packet.action_id === capability), `supervisor_${capability}`,
+      `ORB/IDL has no packet for ${capability}.`, capability);
+  }
+}
+
+function validateMetaSimulator(record) {
+  const data = record.data;
+  const packets = Array.isArray(data.packets) ? data.packets : [];
+  check(record, data.status === 'passed', 'status', `Meta simulator status is ${data.status ?? 'missing'}.`);
+  check(record, data.boundary?.simulator_only === true && data.boundary?.hardware_free === true,
+    'simulator_boundary', 'Meta evidence is not explicitly simulator-only and hardware-free.');
+  check(record, data.boundary?.hardware_pairing_required === false && data.boundary?.physical_hardware_claimed === false,
+    'hardware_claim', 'Meta evidence requires or claims physical hardware.');
+  for (const [name, passed] of Object.entries(data.acceptance ?? {})) {
+    check(record, passed === true, `acceptance_${name}`, `Meta acceptance check ${name} failed.`);
+  }
+  check(record, data.source_packet_count === data.replayed_packet_count && packets.length === data.replayed_packet_count,
+    'packet_replay_count', `Meta replayed ${data.replayed_packet_count ?? 'missing'}/${data.source_packet_count ?? 'missing'} packets.`);
+  check(record, sameSet(data.replay_scenarios ?? [], REQUIRED_REPLAY_SCENARIOS), 'replay_scenarios',
+    'Meta evidence does not cover primary, permission-denied, and route-unavailable scenarios.');
+  for (const modality of REQUIRED_MODALITIES) {
+    check(record, data.modality_summary?.[modality] === data.replayed_packet_count, `modality_${modality}`,
+      `${modality} replay coverage is ${data.modality_summary?.[modality] ?? 'missing'}/${data.replayed_packet_count ?? 'unknown'}.`, modality);
+  }
+  check(record, (data.applications ?? []).every(app => app.status === 'passed'), 'applications',
+    'At least one application lacks complete Meta replay evidence.');
+  record.screenshots.push(...validateScreenshots(record, data.output_manifest?.screenshots, 'meta-device-simulator'));
+}
+
+function validatePeerEvidence(record) {
+  const data = record.data;
+  const services = Array.isArray(data.services) ? data.services : [];
+  const tools = Array.isArray(data.tools) ? data.tools : [];
+  check(record, normalizeDecision(data.decision) === 'GO', 'decision', `Peer interoperability decision is ${data.decision ?? 'missing'}.`);
+  for (const blocker of data.blockers ?? []) {
+    record.gaps.push(gap('SVD-100', `peer_gate_${blocker.gate ?? 'unknown'}`,
+      blocker.service ?? 'peer-capture', blocker.reason ?? 'Peer capture reported an unnamed blocker.', record.path));
+  }
+  check(record, data.availability_evidence_policy?.count_only_inference_forbidden === true,
+    'count_policy', 'Peer evidence does not forbid count-only availability inference.');
+  check(record, services.length === REQUIRED_SERVICES.length, 'service_count',
+    `Expected ${REQUIRED_SERVICES.length} peer services; observed ${services.length}.`);
+  for (const serviceId of REQUIRED_SERVICES) {
+    const service = services.find(item => item.service === serviceId);
+    check(record, Boolean(service), `service_${serviceId}`, `${serviceId} has no peer evidence.`, serviceId);
+    if (!service) continue;
+    check(record, normalizeDecision(service?.decision) === 'GO', `${serviceId}_decision`, `${serviceId} peer decision is ${service?.decision ?? 'missing'}.`, serviceId);
+    check(record, (service?.gates ?? []).every(item => item.passed === true), `${serviceId}_gates`, `${serviceId} has failed peer gates.`, serviceId);
+    for (const transport of REQUIRED_TRANSPORTS) {
+      const observed = service?.transports?.[transport];
+      check(record, observed?.connected === true && observed?.no_transport_fallback === true,
+        `${serviceId}_${transport}`, `${serviceId}/${transport} was not independently connected.`, `${serviceId}:${transport}`);
+      check(record, observed?.identity?.verified === true, `${serviceId}_${transport}_identity`,
+        `${serviceId}/${transport} UCAN identity was not verified.`, `${serviceId}:${transport}`);
+      check(record, observed?.descriptor?.cid_retrieval_complete === true, `${serviceId}_${transport}_descriptor`,
+        `${serviceId}/${transport} descriptor CID retrieval is incomplete.`, `${serviceId}:${transport}`);
+      check(record, observed?.fixture?.status === 'executed', `${serviceId}_${transport}_fixture`,
+        `${serviceId}/${transport} approved fixture status is ${observed?.fixture?.status ?? 'missing'}.`, `${serviceId}:${transport}`);
+      check(record, observed?.fixture?.event_dag?.execution_event_present === true,
+        `${serviceId}_${transport}_event_dag`, `${serviceId}/${transport} execution is absent from the event DAG.`, `${serviceId}:${transport}`);
+    }
+    check(record, service?.parity?.passed === true, `${serviceId}_parity`, `${serviceId} HTTP/libp2p parity failed.`, serviceId);
+  }
+  for (const tool of tools) {
+    const scope = `${tool.service ?? 'unknown'}:${tool.name ?? 'unknown'}`;
+    check(record, ALLOWED_TOOL_DISPOSITIONS.has(tool.disposition), `tool_${scope}_disposition`,
+      `${scope} has invalid disposition ${tool.disposition ?? 'missing'}.`, scope);
+    check(record, nonEmpty(tool.disposition_reason), `tool_${scope}_reason`, `${scope} has no disposition reason.`, scope);
+    check(record, tool.availability_inferred_from_count === false, `tool_${scope}_count`, `${scope} availability was inferred from a count.`, scope);
+    if (['unreachable', 'unsupported', 'static-only'].includes(tool.disposition)) {
+      record.gaps.push(gap('SVD-100', `tool_${tool.disposition}`, scope,
+        tool.disposition_reason, record.path));
+    }
+  }
+}
+
+function check(record, passed, id, message, scope = null) {
+  record.checks.push({ id, passed: Boolean(passed), message: passed ? null : message });
+  if (!passed) record.gaps.push(gap(record.taskId, id, scope ?? record.id, message, record.path));
+}
+
+function gap(taskId, code, scope, reason, evidencePath) {
+  return {
+    task_id: taskId,
+    code,
+    scope: String(scope ?? 'unknown'),
+    reason,
+    evidence_path: evidencePath ?? null,
+    status: 'open',
+  };
+}
+
+function collectDispositions(records) {
+  const approved = [{
+    id: 'meta-physical-hardware',
+    task_id: 'SVD-099',
+    scope: 'meta:physical-hardware-pairing',
+    disposition: 'simulator-only',
+    rationale: 'SVD-099 explicitly validates the simulator without requiring or claiming physical hardware pairing.',
+    approved_by: 'SVD-099 acceptance policy',
+    approval_task_id: 'SVD-099',
+    source_path: records.find(record => record.id === 'meta_device_simulator')?.path ?? null,
+  }];
+  const rejected = [];
+
+  const appEvidence = records.find(record => record.id === 'app_backend_behavior');
+  for (const skip of appEvidence?.data?.explicit_skips ?? []) {
+    const candidate = {
+      id: `fixture-skip:${skip.app_id}:${skip.tool_id}`,
+      task_id: 'SVD-096',
+      scope: `tool:${skip.owner}:${skip.tool_id}`,
+      disposition: 'isolated-fixture-skip',
+      rationale: skip.reason,
+      approved_by: 'SVD-096 explicit-skip acceptance policy',
+      approval_task_id: 'SVD-096',
+      source_path: appEvidence.path,
+    };
+    if ([skip.app_id, skip.tool_id, skip.owner, skip.reason].every(nonEmpty)) approved.push(candidate);
+    else rejected.push({ ...candidate, rejection_reason: 'Fixture skip is not fully named.' });
+  }
+
+  const peerEvidence = records.find(record => record.id === 'peer_interoperability');
+  for (const tool of peerEvidence?.data?.tools ?? []) {
+    if (tool.disposition !== 'denied') continue;
+    const candidate = {
+      id: `peer-denied:${tool.service}:${tool.name}`,
+      task_id: 'SVD-100',
+      scope: `tool:${tool.service}:${tool.name}`,
+      disposition: 'non-mutating-fixture-not-approved',
+      rationale: tool.disposition_reason,
+      approved_by: 'SVD-100 narrow non-mutating fixture allowlist',
+      approval_task_id: 'SVD-100',
+      source_path: peerEvidence.path,
+    };
+    if (tool.availability_inferred_from_count === false && nonEmpty(tool.disposition_reason)) approved.push(candidate);
+    else rejected.push({ ...candidate, rejection_reason: 'Denied tool lacks explicit name-level evidence and rationale.' });
+  }
+
+  for (const record of records) {
+    for (const disposition of record.data?.non_release_dispositions ?? []) {
+      const normalized = { ...disposition, source_path: record.path };
+      if (disposition.approved === true
+        && nonEmpty(disposition.scope)
+        && nonEmpty(disposition.rationale)
+        && nonEmpty(disposition.approved_by)
+        && /^SVD-\d+$/.test(disposition.approval_task_id ?? '')) {
+        approved.push(normalized);
+      } else {
+        rejected.push({ ...normalized, rejection_reason: 'Disposition requires approved=true, scope, rationale, approved_by, and an SVD-* approval_task_id.' });
+      }
+    }
+  }
+  return { approved: dedupeObjects(approved, item => `${item.scope}|${item.disposition}`), rejected };
+}
+
+function isClosedByDisposition(item, approved) {
+  return approved.some(disposition => {
+    if (disposition.scope !== item.scope && disposition.scope !== '*') return false;
+    if (disposition.closes_gap_code) return disposition.closes_gap_code === item.code;
+    return /(denied|unavailable|unsupported|static.only|skip)/i.test(item.code);
   });
 }
 
-function runEvidenceScript(scriptName, extraEnv = {}) {
-  const scriptPath = path.join(projectRoot, 'scripts', scriptName);
-  if (!fs.existsSync(scriptPath)) return;
-  try {
-    execFileSync(process.execPath, [scriptPath], {
-      cwd: projectRoot,
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        ...extraEnv,
-      },
-    });
-  } catch (error) {
-    console.warn(`${scriptName} refresh failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-function readArtifact(fileName, required) {
-  const absolutePath = path.join(evidenceRoot, fileName);
-  const relativePath = path.join(evidenceRootRelative, fileName);
-  if (!fs.existsSync(absolutePath)) {
+function buildAppMatrix(appBehavior, orb, meta) {
+  const behaviorApps = appBehavior?.data?.apps ?? [];
+  const orbPackets = orb?.data?.packets ?? [];
+  const metaApps = meta?.data?.applications ?? [];
+  const appIds = unique([
+    ...behaviorApps.map(app => app.app_id),
+    ...orbPackets.map(packet => packet.app_id),
+    ...metaApps.map(app => app.app_id),
+  ].filter(Boolean));
+  const rows = appIds.map(appId => {
+    const behavior = behaviorApps.find(app => app.app_id === appId);
+    const packets = orbPackets.filter(packet => packet.app_id === appId);
+    const simulator = metaApps.find(app => app.app_id === appId);
     return {
-      data: null,
-      status: {
-        status: 'missing',
-        path: relativePath,
-        required,
-        error: 'artifact does not exist',
-      },
+      app_id: appId,
+      backend_behavior: behavior ? behavior.status : 'missing',
+      tool_id: behavior?.actual_tool_id ?? null,
+      owner: behavior?.tool_owner ?? null,
+      transport: behavior?.actual_transport ?? null,
+      correlation_id: behavior?.correlation_id ?? null,
+      outage_recovery_reopen: Boolean(behavior?.outage_observed && behavior?.recovered && behavior?.reopened),
+      receipt_cid: behavior?.receipt?.receipt_cid ?? null,
+      event_dag_cid: behavior?.event_dag?.event_cid ?? null,
+      orb_idl_packet_count: packets.length,
+      meta_simulator: simulator?.status ?? 'missing',
+      screenshots: behavior?.screenshots ?? [],
+      passing: behavior?.status === 'passed' && packets.length > 0 && simulator?.status === 'passed',
     };
-  }
-  try {
-    const data = JSON.parse(fs.readFileSync(absolutePath, 'utf8'));
+  });
+  return {
+    required_app_count: appBehavior?.data?.app_count ?? orb?.data?.app_count ?? null,
+    observed_app_count: rows.length,
+    passing_app_count: rows.filter(row => row.passing).length,
+    rows,
+  };
+}
+
+function buildServiceMatrix(profile, peer, approved) {
+  const profileRows = profile?.data?.profile_matrix ?? [];
+  const peerServices = peer?.data?.services ?? [];
+  const cells = REQUIRED_SERVICES.flatMap(service => REQUIRED_PROFILES.map(profileId => {
+    const profileCell = profileRows.find(row => row.profile === profileId)?.services?.find(item => item.service === service);
+    const peerService = peerServices.find(item => item.service === service);
+    const passing = profileCell?.capability_state === 'supported';
+    const approvedNonRelease = approved.some(item => item.scope === `${service}:${profileId}`);
     return {
-      data,
-      status: {
-        status: 'present',
-        path: relativePath,
-        required,
-        schema: data.schema ?? data.matrix_id ?? data.catalog_id ?? data.report_id ?? null,
-        generated_at: data.generated_at ?? null,
-      },
+      service,
+      profile: profileId,
+      capability_state: profileCell?.capability_state ?? 'unobserved',
+      http_state: profileCell?.http_state ?? transportState(peerService, 'http'),
+      libp2p_state: profileCell?.libp2p_state ?? transportState(peerService, 'libp2p'),
+      selected_transport: profileCell?.transport_fallback?.selected_transport ?? null,
+      fallback_decision: profileCell?.transport_fallback?.decision ?? null,
+      passing,
+      approved_non_release: approvedNonRelease,
+      release_satisfied: passing || approvedNonRelease,
     };
-  } catch (error) {
-    return {
-      data: null,
-      status: {
-        status: 'invalid',
-        path: relativePath,
-        required,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    };
-  }
-}
-
-function screenshotCoverage(directoryName, expected) {
-  const directory = path.join(evidenceRoot, directoryName);
-  const relativeDirectory = path.join(evidenceRootRelative, directoryName);
-  const count = countFiles(directory, fileName => fileName.endsWith('.png'));
-  return {
-    status: fs.existsSync(directory) ? 'present' : 'missing',
-    directory: relativeDirectory,
-    count,
-    expected,
-  };
-}
-
-function countFiles(directory, predicate) {
-  if (!fs.existsSync(directory)) return 0;
-  let count = 0;
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (entry.isFile() && predicate(entry.name)) count += 1;
-  }
-  return count;
-}
-
-function missingStatus(pathValue) {
-  return {
-    status: 'missing',
-    path: pathValue,
-    error: 'artifact does not exist',
-  };
-}
-
-function countBy(items, keyFn) {
-  return items.reduce((counts, item) => {
-    const key = keyFn(item);
-    counts[key] = (counts[key] ?? 0) + 1;
-    return counts;
-  }, {});
-}
-
-function dedupe(items) {
-  return [...new Set(items)];
-}
-
-function blockerText(blocker) {
-  if (typeof blocker === 'string') return blocker;
-  if (blocker === null || blocker === undefined) return String(blocker);
-  if (typeof blocker !== 'object') return String(blocker);
-  const message = blocker.message ?? blocker.reason ?? blocker.error ?? blocker.id;
-  if (typeof message === 'string') return message;
-  return Object.entries(blocker)
-    .map(([key, value]) => `${key}=${Array.isArray(value) ? value.join(',') : String(value)}`)
-    .join('; ');
-}
-
-function hasNonEmptyValue(value) {
-  if (typeof value === 'string') return value.trim().length > 0;
-  return value !== null && value !== undefined;
-}
-
-function appVisibleBindingCount(bindingsArtifact) {
-  if (!bindingsArtifact) return null;
-  if (typeof bindingsArtifact.app_visible_tool_count === 'number') return bindingsArtifact.app_visible_tool_count;
-  if (typeof bindingsArtifact.summary?.app_visible_tool_count === 'number') return bindingsArtifact.summary.app_visible_tool_count;
-  const rows = bindingsArtifact.rows ?? bindingsArtifact.bindings ?? [];
-  if (!Array.isArray(rows)) return null;
-  return rows.filter(row => row?.app_visible === true).length;
-}
-
-function summarizeAppContractGate(backendContract, workflowMatrix, backendStatus, workflowStatus, expectedAppCount) {
-  const releaseBlockers = [];
-  const releaseWarnings = [];
-
-  if (!backendContract) {
-    releaseBlockers.push(`Missing required app backend contract artifact: ${backendStatus.path}`);
-  }
-  if (!workflowMatrix) {
-    releaseBlockers.push(`Missing required app workflow matrix artifact: ${workflowStatus.path}`);
-  }
-
-  const backendApps = Array.isArray(backendContract?.apps) ? backendContract.apps : [];
-  const workflowApps = Array.isArray(workflowMatrix?.apps) ? workflowMatrix.apps : [];
-  const expected = expectedAppCount ?? backendContract?.app_count ?? workflowMatrix?.app_count ?? null;
-  const backendIds = new Set(backendApps.map(app => app.app_id));
-  const workflowIds = new Set(workflowApps.map(app => app.app_id));
-  const backendValidationErrors = backendContract?.validation?.errors ?? [];
-  const workflowValidationErrors = workflowMatrix?.validation?.errors ?? [];
-  const requiredStates = dedupe([
-    ...(workflowMatrix?.required_states ?? ['loading', 'success', 'fallback', 'error']),
-    ...(workflowMatrix?.required_behavior_states ?? ['success', 'fallback', 'error', 'denied']),
-  ]);
-  const pythonBackends = ['ipfs_accelerate_py', 'ipfs_kit_py', 'ipfs_datasets_py'];
-
-  if (backendContract) {
-    if (backendContract.schema !== 'swissknife.virtual-desktop-app-backend-contract.v1') {
-      releaseBlockers.push(`App backend contract schema is ${backendContract.schema ?? 'unknown'}.`);
-    }
-    if (expected !== null && backendApps.length !== expected) {
-      releaseBlockers.push(`App backend contract materialized ${backendApps.length}/${expected} canonical app records.`);
-    }
-    for (const error of backendValidationErrors) {
-      releaseBlockers.push(`App backend contract validation: ${blockerText(error)}`);
-    }
-    for (const warning of backendContract.validation?.warnings ?? []) {
-      releaseWarnings.push(`App backend contract warning: ${blockerText(warning)}`);
-    }
-    for (const record of backendApps) {
-      for (const serviceId of pythonBackends) {
-        if (!record.assigned_backend_capabilities?.[serviceId]) {
-          releaseBlockers.push(`${record.app_id} lacks ${serviceId} backend capability assignment.`);
-        }
-      }
-      if (!record.materialized) {
-        releaseBlockers.push(`${record.app_id} backend contract is not materialized.`);
-      }
-      if (!record.orb_idl?.status) {
-        releaseBlockers.push(`${record.app_id} lacks ORB/IDL backend descriptor disposition.`);
-      }
-      if (!record.glasses_strategy?.kind || !record.glasses_strategy?.handoff) {
-        releaseBlockers.push(`${record.app_id} lacks glasses strategy.`);
-      }
-    }
-  }
-
-  if (workflowMatrix) {
-    if (workflowMatrix.schema !== 'swissknife.virtual-desktop-app-workflow-matrix.v1') {
-      releaseBlockers.push(`App workflow matrix schema is ${workflowMatrix.schema ?? 'unknown'}.`);
-    }
-    if (expected !== null && workflowApps.length !== expected) {
-      releaseBlockers.push(`App workflow matrix materialized ${workflowApps.length}/${expected} canonical behavior records.`);
-    }
-    for (const error of workflowValidationErrors) {
-      releaseBlockers.push(`App workflow matrix validation: ${blockerText(error)}`);
-    }
-    for (const warning of workflowMatrix.validation?.warnings ?? []) {
-      releaseWarnings.push(`App workflow matrix warning: ${blockerText(warning)}`);
-    }
-    for (const record of workflowApps) {
-      if (!backendIds.has(record.app_id)) {
-        releaseBlockers.push(`${record.app_id} has behavior evidence without a backend-contract record.`);
-      }
-      if (!record.primary_action && !record.local_only_rationale) {
-        releaseBlockers.push(`${record.app_id} lacks primary action or local-only rationale.`);
-      }
-      for (const state of requiredStates) {
-        if (!record.states?.[state]?.covered) {
-          releaseBlockers.push(`${record.app_id} lacks ${state} behavior-state coverage.`);
-        }
-      }
-      if (!record.keyboard_checks?.covered || !record.pointer_checks?.covered) {
-        releaseBlockers.push(`${record.app_id} lacks keyboard or pointer behavior checks.`);
-      }
-      if (!record.receipt_or_fixture?.present) {
-        releaseBlockers.push(`${record.app_id} lacks receipt or fixture evidence.`);
-      }
-      if (!record.orb_idl_descriptor?.status) {
-        releaseBlockers.push(`${record.app_id} lacks ORB/IDL descriptor evidence.`);
-      }
-      if (!record.glasses_strategy?.kind || !record.glasses_strategy?.handoff) {
-        releaseBlockers.push(`${record.app_id} lacks glasses behavior strategy.`);
-      }
-      if (record.evidence_quality?.screenshot_only) {
-        releaseBlockers.push(`${record.app_id} is represented only by screenshot evidence.`);
-      }
-    }
-  }
-
-  for (const record of backendApps) {
-    if (!workflowIds.has(record.app_id)) {
-      releaseBlockers.push(`${record.app_id} has backend contract without behavior evidence.`);
-    }
-  }
-
-  const decision = releaseBlockers.length === 0 ? 'go' : 'no_go';
-  return {
-    decision,
-    summary: {
-      status: backendContract && workflowMatrix ? 'present' : 'missing',
-      decision,
-      backend_contract: backendContract
-        ? {
-            status: 'present',
-            path: backendStatus.path,
-            generated_at: backendContract.generated_at,
-            schema: backendContract.schema,
-            app_count: backendApps.length,
-            validation_error_count: backendValidationErrors.length,
-            validation_warning_count: (backendContract.validation?.warnings ?? []).length,
-            declared_python_backend_app_counts: backendContract.summary?.declared_python_backend_app_counts ?? {},
-            covered_python_backend_app_counts: backendContract.summary?.covered_python_backend_app_counts ?? {},
-          }
-        : missingStatus(backendStatus.path),
-      workflow_matrix: workflowMatrix
-        ? {
-            status: 'present',
-            path: workflowStatus.path,
-            generated_at: workflowMatrix.generated_at,
-            schema: workflowMatrix.schema,
-            app_count: workflowApps.length,
-            validation_error_count: workflowValidationErrors.length,
-            validation_warning_count: (workflowMatrix.validation?.warnings ?? []).length,
-            required_states: requiredStates,
-            state_counts: workflowMatrix.summary?.state_counts ?? {},
-            screenshot_only_count: workflowMatrix.summary?.screenshot_only_count ?? null,
-            receipt_or_fixture_count: workflowMatrix.summary?.receipt_or_fixture_count ?? null,
-            keyboard_check_count: workflowMatrix.summary?.keyboard_check_count ?? null,
-            pointer_check_count: workflowMatrix.summary?.pointer_check_count ?? null,
-          }
-        : missingStatus(workflowStatus.path),
-      missing_backend_record_count: workflowApps.filter(record => !backendIds.has(record.app_id)).length,
-      missing_workflow_record_count: backendApps.filter(record => !workflowIds.has(record.app_id)).length,
-      release_blockers: dedupe(releaseBlockers),
-      release_warnings: dedupe(releaseWarnings),
-    },
-    release_blockers: dedupe(releaseBlockers),
-    release_warnings: dedupe(releaseWarnings),
-  };
-}
-
-function summarizeLibp2pFleetGate(evidence, artifactStatus) {
-  const expectedServices = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
-  const blockers = [];
-  if (!evidence) {
-    blockers.push(`Missing MCP++ libp2p fleet evidence: ${artifactStatus.path}`);
-  } else {
-    if (evidence.decision !== 'go') {
-      blockers.push(`MCP++ libp2p fleet evidence decision is ${evidence.decision ?? 'unknown'}.`);
-    }
-    const services = Array.isArray(evidence.services) ? evidence.services : [];
-    for (const serviceId of expectedServices) {
-      const service = services.find(candidate => candidate.service === serviceId);
-      if (!service) {
-        blockers.push(`MCP++ libp2p evidence is missing ${serviceId}.`);
-        continue;
-      }
-      if (service.protocol !== '/mcp+p2p/1.0.0' || !service.initialize_ok) {
-        blockers.push(`${serviceId} did not complete a MCP++ Profile E libp2p initialize handshake.`);
-      }
-      if (!service.tool_count_matches_announce || service.listed_tool_count !== service.unique_tool_name_count) {
-        blockers.push(`${serviceId} MCP++ libp2p tool enumeration does not match its announced unique tool set.`);
-      }
-      if (!service.safe_call_returned) {
-        blockers.push(`${serviceId} MCP++ libp2p safe tool call did not return a result.`);
-      }
-    }
-  }
-  return {
-    summary: evidence
-      ? {
-          status: 'present',
-          path: artifactStatus.path,
-          generated_at: evidence.generated_at,
-          decision: evidence.decision,
-          protocol: evidence.protocol,
-          service_count: evidence.service_count,
-          total_unique_callable_tools: evidence.total_unique_callable_tools,
-          services: (evidence.services ?? []).map(service => ({
-            service: service.service,
-            multiaddr: service.multiaddr,
-            listed_tool_count: service.listed_tool_count,
-            safe_tool: service.safe_tool,
-            safe_call_returned: service.safe_call_returned,
-          })),
-        }
-      : missingStatus(artifactStatus.path),
-    release_blockers: dedupe(blockers),
-  };
-}
-
-function summarizeSwissknifeLibp2pConnectorGate(evidence, artifactStatus) {
-  const expectedServices = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
-  const blockers = [];
-  if (!evidence) {
-    blockers.push(`Missing SwissKnife libp2p connector evidence: ${artifactStatus.path}`);
-  } else {
-    if (evidence.decision !== 'go') {
-      blockers.push(`SwissKnife libp2p connector evidence decision is ${evidence.decision ?? 'unknown'}.`);
-    }
-    for (const serviceId of expectedServices) {
-      const service = (evidence.services ?? []).find(candidate => candidate.service === serviceId);
-      if (!service) {
-        blockers.push(`SwissKnife libp2p connector evidence is missing ${serviceId}.`);
-        continue;
-      }
-      if (!service.connect_success || service.transport !== 'libp2p' || !service.p2p_session_established) {
-        blockers.push(`${serviceId} was not connected through a SwissKnife MCP++ Profile E libp2p session.`);
-      }
-      if (!Array.isArray(service.profiles) || !service.profiles.includes('mcp++/p2p-transport')) {
-        blockers.push(`${serviceId} did not negotiate SwissKnife MCP++ Profile E transport.`);
-      }
-      if (!service.tool_count_matches_announce || service.listed_tool_count !== service.unique_tool_name_count) {
-        blockers.push(`${serviceId} SwissKnife libp2p tool enumeration does not match its announced unique tool set.`);
-      }
-      if (!service.safe_call_returned || !service.no_http_fallback) {
-        blockers.push(`${serviceId} SwissKnife libp2p safe tool call did not complete without HTTP fallback.`);
-      }
-    }
-  }
-  return {
-    summary: evidence
-      ? {
-          status: 'present',
-          path: artifactStatus.path,
-          generated_at: evidence.generated_at,
-          decision: evidence.decision,
-          protocol: evidence.protocol,
-          service_count: evidence.service_count,
-          total_unique_callable_tools: evidence.total_unique_callable_tools,
-          services: (evidence.services ?? []).map(service => ({
-            service: service.service,
-            multiaddr: service.multiaddr,
-            transport: service.transport,
-            listed_tool_count: service.listed_tool_count,
-            safe_tool: service.safe_tool,
-            safe_call_returned: service.safe_call_returned,
-            no_http_fallback: service.no_http_fallback,
-          })),
-        }
-      : missingStatus(artifactStatus.path),
-    release_blockers: dedupe(blockers),
-  };
-}
-
-function summarizeHierarchicalMcpGate(evidence, artifactStatus) {
-  if (!evidence) {
-    return {
-      decision: 'no_go',
-      summary: missingStatus(artifactStatus.path),
-      release_blockers: [`Missing required hierarchical MCP evidence artifact: ${artifactStatus.path}`],
-      release_warnings: [],
-    };
-  }
-
-  const services = Array.isArray(evidence.services) ? evidence.services : [];
-  const metaTools = Array.isArray(evidence.meta_tools)
-    ? evidence.meta_tools
-    : ['tools_list_categories', 'tools_list_tools', 'tools_get_schema', 'tools_dispatch'];
-  const liveFleetRequired = Boolean(evidence.live_fleet_required)
-    || process.env.HIERARCHICAL_MCP_REQUIRE_LIVE === '1';
-  const availableServices = services.filter(service => service.available);
-  const servicesMissingFacade = services
-    .filter(service => service.available && !service.full_facade_available)
-    .map(service => ({
-      service: service.service,
-      missing_meta_tools: metaTools.filter(tool => !service.meta_presence?.[tool]),
-    }));
-  const dispatchFailures = services
-    .flatMap(service => [service.dispatch_probe]
-      .filter(probe => probe && probe.status && probe.status !== 'passed')
-      .map(probe => ({
-        service: service.service,
-        category: probe.category ?? null,
-        tool: probe.tool ?? probe.name ?? null,
-        status: probe.status,
-        error: probe.error ?? probe.message ?? null,
-      })));
-  const aliasDispatchFailures = services
-    .flatMap(service => (service.alias_dispatch_probes ?? [])
-      .filter(probe => probe && probe.status && probe.status !== 'passed')
-      .map(probe => ({
-        service: service.service,
-        category: probe.category ?? null,
-        tool: probe.tool ?? probe.name ?? null,
-        status: probe.status,
-        error: probe.error ?? probe.message ?? null,
-      })));
-  const directOnlySummaries = services
-    .filter(service => (service.flat_direct_only_count ?? 0) > 0)
-    .map(service => ({
-      service: service.service,
-      count: service.flat_direct_only_count,
-      policy_counts: service.flat_direct_only_policy_counts ?? {},
-      reason_counts: service.flat_direct_only_reason_counts ?? {},
-      sample: service.flat_direct_only_sample ?? [],
-    }));
-  const removedSummaries = services
-    .filter(service => (service.removed_from_app_visible_ledger_count ?? 0) > 0)
-    .map(service => ({
-      service: service.service,
-      count: service.removed_from_app_visible_ledger_count,
-      sample: service.removed_from_app_visible_ledger_sample ?? [],
-    }));
-
-  const releaseBlockers = [];
-  const releaseWarnings = [];
-  for (const service of servicesMissingFacade) {
-    releaseBlockers.push(
-      `Hierarchical MCP facade missing for ${service.service}: ${service.missing_meta_tools.join(', ') || 'unknown meta-tools'}.`,
-    );
-  }
-  for (const failure of dispatchFailures) {
-    releaseBlockers.push(
-      `Hierarchical MCP representative dispatch failed for ${failure.service}:${failure.category ?? 'unknown'}.${failure.tool ?? 'unknown'} (${failure.status}${failure.error ? `: ${failure.error}` : ''}).`,
-    );
-  }
-  const unexplainedGapCount = evidence.summary?.unexplained_flat_hierarchy_gap_count
-    ?? services.reduce((sum, service) => sum + (service.unexplained_flat_hierarchy_gap_count ?? 0), 0);
-  if (unexplainedGapCount > 0) {
-    releaseBlockers.push(`${unexplainedGapCount} flat MCP descriptors are neither hierarchical, direct-only, nor removed from the app-visible ledger.`);
-  }
-  const directOnlyCount = evidence.summary?.flat_direct_only_count
-    ?? services.reduce((sum, service) => sum + (service.flat_direct_only_count ?? 0), 0);
-  if (directOnlyCount > 0) {
-    releaseWarnings.push(`${directOnlyCount} MCP descriptors remain direct-only and are explicitly accounted for in hierarchical MCP evidence.`);
-  }
-  if (aliasDispatchFailures.length > 0) {
-    releaseWarnings.push(`${aliasDispatchFailures.length} hierarchical MCP alias dispatch probes failed; representative dispatch remains the release-blocking probe.`);
-  }
-  if (removedSummaries.length > 0) {
-    releaseWarnings.push(
-      `${removedSummaries.reduce((sum, service) => sum + service.count, 0)} flat MCP descriptors are excluded from the SwissKnife app-visible ledger and accounted for in hierarchical MCP evidence.`,
-    );
-  }
-  const evidenceBlockers = evidence.blockers ?? [];
-  for (const blocker of evidenceBlockers) {
-    releaseBlockers.push(`Hierarchical MCP evidence blocker: ${blocker}`);
-  }
-  const evidenceWarnings = evidence.warnings ?? [];
-  for (const warning of evidenceWarnings) {
-    releaseWarnings.push(`Hierarchical MCP evidence warning: ${warning}`);
-  }
-  if (liveFleetRequired && availableServices.length !== services.length) {
-    const unavailable = services.filter(service => !service.available).map(service => service.service);
-    releaseBlockers.push(`Hierarchical MCP live fleet required but unavailable services were observed: ${unavailable.join(', ') || 'unknown'}.`);
-  } else if (!liveFleetRequired && availableServices.length !== services.length) {
-    releaseWarnings.push(`Hierarchical MCP evidence observed ${availableServices.length}/${services.length} configured services live.`);
-  }
-
-  const decision = releaseBlockers.length === 0 ? 'go' : 'no_go';
-  return {
-    decision,
-    summary: {
-      status: 'present',
-      path: artifactStatus.path,
-      schema: evidence.schema ?? null,
-      generated_at: evidence.generated_at ?? null,
-      decision: evidence.decision ?? decision,
-      release_gate_decision: decision,
-      live_fleet_required: liveFleetRequired,
-      service_count: services.length,
-      available_service_count: availableServices.length,
-      services_with_full_facade: services.filter(service => service.full_facade_available).length,
-      meta_tools: metaTools,
-      missing_facade_by_service: servicesMissingFacade,
-      unobserved_services: services.filter(service => !service.available).map(service => service.service),
-      dispatch_probe_count: evidence.summary?.dispatch_probe_count
-        ?? services.filter(service => service.dispatch_probe).length,
-      dispatch_pass_count: evidence.summary?.dispatch_pass_count
-        ?? services.filter(service => service.dispatch_probe?.status === 'passed').length,
-      dispatch_failures: dispatchFailures,
-      alias_dispatch_probe_count: evidence.summary?.alias_dispatch_probe_count
-        ?? services.reduce((sum, service) => sum + (service.alias_dispatch_probe_count ?? 0), 0),
-      alias_dispatch_pass_count: evidence.summary?.alias_dispatch_pass_count
-        ?? services.reduce((sum, service) => sum + (service.alias_dispatch_pass_count ?? 0), 0),
-      alias_dispatch_failures: aliasDispatchFailures,
-      direct_only_descriptor_count: directOnlyCount,
-      direct_only_probe_count: evidence.summary?.direct_only_probe_count
-        ?? services.reduce((sum, service) => sum + (service.direct_only_probe_count ?? 0), 0),
-      direct_only_receipt_count: evidence.summary?.direct_only_receipt_count
-        ?? services.reduce((sum, service) => sum + (service.direct_only_receipt_count ?? 0), 0),
-      direct_only_policy_counts: mergeCounts(services.map(service => service.flat_direct_only_policy_counts ?? {})),
-      direct_only_reason_counts: mergeCounts(services.map(service => service.flat_direct_only_reason_counts ?? {})),
-      direct_only_summaries: directOnlySummaries,
-      removed_from_app_visible_ledger_count: evidence.summary?.removed_from_app_visible_ledger_count
-        ?? services.reduce((sum, service) => sum + (service.removed_from_app_visible_ledger_count ?? 0), 0),
-      removed_from_app_visible_ledger_summaries: removedSummaries,
-      unexplained_flat_hierarchy_gap_count: unexplainedGapCount,
-      evidence_blockers: evidenceBlockers,
-      evidence_warnings: evidenceWarnings,
-      release_blockers: dedupe(releaseBlockers),
-      release_warnings: dedupe(releaseWarnings),
-    },
-    release_blockers: dedupe(releaseBlockers),
-    release_warnings: dedupe(releaseWarnings),
-  };
-}
-
-function buildVirtualDesktopAppMatrixGate({
-  appInventory,
-  appBackendContract,
-  appWorkflowMatrix,
-  allToolsAppBindings,
-  allToolsIdlCoverage,
-  allToolsGlassesCoverage,
-  allServerToolCatalog,
-  mcpPlusPlusLibp2pCatalog,
-  glassesSimulatorHandoff,
-  hierarchicalMcpGate,
-}) {
-  const representativeBlockers = [];
-  const allToolsBlockers = [];
-  const requiredWorkflowStates = dedupe([
-    'loading',
-    'success',
-    'fallback',
-    'error',
-    ...(appWorkflowMatrix?.required_states ?? []),
-    ...(appWorkflowMatrix?.required_behavior_states ?? []),
-  ]);
-  const requiredUxStates = ['success', 'fallback', 'error'];
-  const requiredSimulatorReplayStates = ['open', 'focus', 'activate', 'dispatch_result', 'fallback', 'policy_block'];
-  const requiredSimulatorModalities = ['audio_channel', 'glasses_hud'];
-  const requiredSimulatorCapabilityModalities = [
-    'display.output',
-    'camera.photo_capture',
-    'microphone.input',
-    'speaker.output',
-  ];
-  const hierarchicalMetaToolIds = new Set(requiredHierarchicalMetaTools);
-
-  const inventoryApps = new Set((appInventory?.apps ?? []).map(app => app.id ?? app.app_id ?? app.canonical_id).filter(Boolean));
-  const contractApps = new Map((appBackendContract?.apps ?? []).map(app => [app.canonical_id, app]));
-  const workflowApps = new Map((appWorkflowMatrix?.apps ?? []).map(app => [app.canonical_id ?? app.app_id, app]));
-  const allAppIds = [...new Set([...inventoryApps, ...contractApps.keys(), ...workflowApps.keys()])].sort();
-
-  const appVisibleBindings = (allToolsAppBindings?.rows ?? allToolsAppBindings?.bindings ?? [])
-    .filter(binding => binding?.app_visible === true || binding?.visibility === 'app_visible');
-  const idlDescriptors = allToolsIdlCoverage?.descriptors ?? [];
-  const glassesProjections = allToolsGlassesCoverage?.projections ?? [];
-  const catalogServices = allServerToolCatalog?.services ?? [];
-  const catalogDescriptors = catalogServices.flatMap(service => service.reconciled_descriptors ?? []);
-  const mcpPlusPlusServices = mcpPlusPlusLibp2pCatalog?.services ?? [];
-  const mcpPlusPlusEligibleDescriptors = mcpPlusPlusLibp2pCatalog?.eligible_descriptors ?? [];
-
-  const idlCapabilityIds = new Set(idlDescriptors.flatMap(descriptor => [
-    ...(descriptor.methods ?? []),
-    ...(descriptor.method_bindings ?? []),
-  ].map(method => method.capability_id).filter(Boolean)));
-  const idlToolIds = new Set(idlDescriptors.flatMap(descriptor => descriptor.tool_ids ?? []));
-  const idlApps = new Set(idlDescriptors.map(descriptor => descriptor.app_id).filter(Boolean));
-  const glassesToolIds = new Set(glassesProjections.flatMap(projection => projection.tool_ids ?? []));
-  const glassesApps = new Set(glassesProjections.map(projection => projection.app_id).filter(Boolean));
-  const catalogToolIds = new Set(catalogDescriptors.map(descriptor => descriptor.tool_id).filter(Boolean));
-  const appVisibleBindingCapabilityIds = new Set(appVisibleBindings.map(binding => binding.capability_id).filter(Boolean));
-  const appVisibleBindingToolIds = new Set(appVisibleBindings.map(binding => binding.tool_id).filter(Boolean));
-  const mcpPlusPlusEligibleByService = new Map(mcpPlusPlusServices.map(service => [service.service, new Set()]));
-  for (const descriptor of mcpPlusPlusEligibleDescriptors) {
-    const toolId = typeof descriptor === 'string' ? descriptor : descriptor.tool_id;
-    const service = typeof descriptor === 'string' ? descriptor.split(':')[0] : descriptor.service_id ?? descriptor.service;
-    if (!toolId || !service) continue;
-    if (!mcpPlusPlusEligibleByService.has(service)) mcpPlusPlusEligibleByService.set(service, new Set());
-    mcpPlusPlusEligibleByService.get(service).add(toolId);
-  }
-
-  const missingContractAppIds = allAppIds.filter(appId => !contractApps.has(appId));
-  const missingWorkflowAppIds = allAppIds.filter(appId => !workflowApps.has(appId));
-  const missingScreenshotApps = [];
-  const missingWorkflowStates = [];
-  const missingUxStates = [];
-  const missingLocalOnlyRationaleApps = [];
-  const missingBackendCapabilitySetApps = [];
-  const malformedBackendCapabilities = [];
-  const missingAppVisibleBindingCapabilities = [];
-  const missingOrbIdlApps = [];
-  const missingOrbIdlCapabilities = [];
-  const missingGlassesProjectionApps = [];
-  const missingGlassesProjectionCapabilities = [];
-  const missingCatalogReconciliation = [];
-  const missingMcpPlusPlusEligibility = [];
-  const simulatorReplayGaps = [];
-  const simulatorModalities = new Set();
-  const observedSimulatorCapabilityModalities = new Set();
-  const serverCatalogGaps = [];
-  const serverFacadeGaps = [];
-  const toolClassCounts = {};
-
-  for (const appId of allAppIds) {
-    const contract = contractApps.get(appId);
-    const workflow = workflowApps.get(appId);
-    if (workflow) {
-      const screenshotPath = workflow.screenshot;
-      const screenshotAbsolutePath = screenshotPath ? path.join(projectRoot, screenshotPath) : null;
-      if (!screenshotPath || !fs.existsSync(screenshotAbsolutePath)) {
-        missingScreenshotApps.push({
-          app_id: appId,
-          screenshot: screenshotPath ?? null,
-        });
-      }
-      for (const state of requiredWorkflowStates) {
-        if (!workflow.states?.[state]?.visible) {
-          missingWorkflowStates.push({ app_id: appId, state });
-        }
-      }
-    } else {
-      missingScreenshotApps.push({
-        app_id: appId,
-        screenshot: null,
-        reason: 'missing_workflow',
-      });
-    }
-    if (contract) {
-      for (const state of requiredUxStates) {
-        if (!contract.ux_scenarios?.[state]) {
-          missingUxStates.push({ app_id: appId, state });
-        }
-      }
-      const isToolBacked = contract.backend_state === 'tool_backed';
-      const backendCapabilities = Array.isArray(contract.backend_capabilities)
-        ? contract.backend_capabilities
-        : [];
-      const hasLocalRationale = typeof contract.local_only_rationale === 'string'
-        && contract.local_only_rationale.trim().length > 0;
-      const declaredCapabilityCount = Number(contract.backend_capability_count ?? backendCapabilities.length);
-      if (isToolBacked && (backendCapabilities.length === 0 || declaredCapabilityCount === 0)) {
-        missingBackendCapabilitySetApps.push(appId);
-      }
-      if (Number.isFinite(declaredCapabilityCount) && declaredCapabilityCount !== backendCapabilities.length) {
-        malformedBackendCapabilities.push({
-          app_id: appId,
-          capability_id: null,
-          tool_id: null,
-          service: null,
-          tool_class: 'contract',
-          missing_fields: ['backend_capability_count_mismatch'],
-        });
-      }
-      for (const capability of backendCapabilities) {
-        const missingFields = [
-          'capability_id',
-          'tool_id',
-          'service',
-          'mcp_transport',
-          'mcp_plus_plus_transport',
-          'policy_class',
-          'receipt_strategy',
-        ].filter(field => !hasNonEmptyValue(capability[field]));
-        if (missingFields.length > 0) {
-          malformedBackendCapabilities.push({
-            app_id: appId,
-            capability_id: capability.capability_id ?? null,
-            tool_id: capability.tool_id ?? null,
-            service: capability.service ?? capability.service_id ?? null,
-            tool_class: capability.policy_class ?? 'unknown',
-            missing_fields: missingFields,
-          });
-        }
-        if ((capability.app_visible === true || capability.visibility === 'app_visible')
-          && !appVisibleBindingCapabilityIds.has(capability.capability_id)
-          && !appVisibleBindingToolIds.has(capability.tool_id)) {
-          missingAppVisibleBindingCapabilities.push({
-            app_id: appId,
-            capability_id: capability.capability_id ?? null,
-            tool_id: capability.tool_id ?? null,
-            service: capability.service ?? capability.service_id ?? null,
-            tool_class: capability.policy_class ?? 'unknown',
-          });
-        }
-      }
-      if (!isToolBacked && !hasLocalRationale) {
-        missingLocalOnlyRationaleApps.push(appId);
-      }
-      const hasAppVisibleCapability = backendCapabilities
-        .some(capability => capability.app_visible === true || capability.visibility === 'app_visible');
-      if (isToolBacked && hasAppVisibleCapability) {
-        const descriptorCount = Number(contract.orb_idl_state?.descriptor_count ?? 0);
-        const descriptorIds = contract.orb_idl_state?.descriptor_ids ?? [];
-        if (contract.orb_idl_state?.state === 'not-required' || (descriptorCount === 0 && descriptorIds.length === 0) || !idlApps.has(appId)) {
-          missingOrbIdlApps.push(appId);
-        }
-        if (!glassesApps.has(appId)) {
-          missingGlassesProjectionApps.push(appId);
-        }
-      }
-    }
-  }
-
-  for (const binding of appVisibleBindings) {
-    const toolClass = binding.policy_class ?? 'unknown';
-    toolClassCounts[toolClass] = (toolClassCounts[toolClass] ?? 0) + 1;
-    const capabilityId = binding.capability_id;
-    const toolId = binding.tool_id;
-    const appId = binding.app_id;
-    const service = binding.service_id ?? binding.service ?? null;
-    const name = binding.name ?? toolId?.split(':').at(-1) ?? null;
-    const isHierarchicalMetaTool = hierarchicalMetaToolIds.has(name);
-
-    if (!idlCapabilityIds.has(capabilityId) && !idlToolIds.has(toolId)) {
-      missingOrbIdlCapabilities.push({
-        app_id: appId,
-        capability_id: capabilityId,
-        tool_id: toolId,
-        service,
-        tool_class: toolClass,
-      });
-    }
-    if (!glassesToolIds.has(toolId)) {
-      missingGlassesProjectionCapabilities.push({
-        app_id: appId,
-        capability_id: capabilityId,
-        tool_id: toolId,
-        service,
-        tool_class: toolClass,
-      });
-    }
-    if (!isHierarchicalMetaTool && !catalogToolIds.has(toolId)) {
-      missingCatalogReconciliation.push({
-        app_id: appId,
-        capability_id: capabilityId,
-        tool_id: toolId,
-        service,
-        tool_class: toolClass,
-      });
-    }
-    if (binding.mcp_plus_plus_transport === 'eligible') {
-      const eligible = mcpPlusPlusEligibleByService.get(service);
-      if ((!eligible || eligible.size === 0 || !eligible.has(toolId)) && !isHierarchicalMetaTool) {
-        missingMcpPlusPlusEligibility.push({
-          app_id: appId,
-          capability_id: capabilityId,
-          tool_id: toolId,
-          service,
-          tool_class: toolClass,
-        });
-      }
-    }
-  }
-
-  for (const service of catalogServices) {
-    if ((service.missing_expected_descriptor_count ?? 0) > 0) {
-      serverCatalogGaps.push({
-        server: service.service,
-        kind: 'missing_expected_descriptors',
-        descriptor_count: service.missing_expected_descriptor_count,
-        descriptors: service.missing_expected_descriptors ?? [],
-      });
-    }
-    if ((service.unexplained_flat_descriptor_count ?? 0) > 0) {
-      serverCatalogGaps.push({
-        server: service.service,
-        kind: 'unexplained_flat_descriptors',
-        descriptor_count: service.unexplained_flat_descriptor_count,
-        descriptors: service.unexplained_flat_descriptors ?? [],
-      });
-    }
-  }
-
-  for (const service of hierarchicalMcpGate.summary?.missing_facade_by_service ?? []) {
-    serverFacadeGaps.push({
-      server: service.service,
-      missing_meta_tools: service.missing_meta_tools ?? [],
-    });
-  }
-
-  for (const projection of glassesProjections) {
-    const replayStates = new Set((projection.replay_states ?? projection.replay ?? []).map(state => state.state).filter(Boolean));
-    for (const replay of projection.replay ?? []) {
-      if (replay.surface) simulatorModalities.add(replay.surface);
-    }
-    for (const state of requiredSimulatorReplayStates) {
-      if (!replayStates.has(state)) {
-        simulatorReplayGaps.push({
-          projection_id: projection.projection_id,
-          app_id: projection.app_id,
-          descriptor_id: projection.descriptor_id,
-          simulator_state: state,
-          modality: projection.widget_profile?.renderer ?? projection.behavior ?? null,
-        });
-      }
-    }
-  }
-  const missingSimulatorModalities = requiredSimulatorModalities
-    .filter(modality => !simulatorModalities.has(modality));
-  for (const [modality, available] of Object.entries(glassesSimulatorHandoff?.simulator?.capabilities ?? {})) {
-    if (available) observedSimulatorCapabilityModalities.add(modality);
-  }
-  for (const evidence of glassesSimulatorHandoff?.capability_evidence ?? []) {
-    if (evidence.capability) observedSimulatorCapabilityModalities.add(evidence.capability);
-  }
-  const missingSimulatorCapabilityModalities = requiredSimulatorCapabilityModalities
-    .filter(modality => !observedSimulatorCapabilityModalities.has(modality));
-
-  if (missingContractAppIds.length > 0) {
-    representativeBlockers.push(`Missing canonical backend contract app IDs: ${missingContractAppIds.join(', ')}.`);
-  }
-  if (missingWorkflowAppIds.length > 0) {
-    representativeBlockers.push(`Missing UI/UX workflow app IDs: ${missingWorkflowAppIds.join(', ')}.`);
-  }
-  if (missingScreenshotApps.length > 0) {
-    representativeBlockers.push(`Missing screenshot app IDs: ${missingScreenshotApps.map(item => item.app_id).join(', ')}.`);
-  }
-  if (missingWorkflowStates.length > 0) {
-    representativeBlockers.push(`Missing workflow states: ${missingWorkflowStates.map(item => `${item.app_id}:${item.state}`).join(', ')}.`);
-  }
-  if (missingUxStates.length > 0) {
-    representativeBlockers.push(`Missing contract UX scenarios: ${missingUxStates.map(item => `${item.app_id}:${item.state}`).join(', ')}.`);
-  }
-  if (missingLocalOnlyRationaleApps.length > 0) {
-    representativeBlockers.push(`Missing local-only rationale app IDs: ${missingLocalOnlyRationaleApps.join(', ')}.`);
-  }
-  if (missingBackendCapabilitySetApps.length > 0) {
-    representativeBlockers.push(`Missing backend capability set app IDs: ${missingBackendCapabilitySetApps.join(', ')}.`);
-  }
-  if (malformedBackendCapabilities.length > 0) {
-    representativeBlockers.push(`Malformed backend contract capabilities: ${malformedBackendCapabilities.map(item => `${item.app_id}:${item.capability_id ?? 'contract'}:${item.missing_fields.join('|')}`).join(', ')}.`);
-  }
-  if (missingOrbIdlApps.length > 0) {
-    representativeBlockers.push(`Missing ORB/IDL app projections: ${missingOrbIdlApps.join(', ')}.`);
-  }
-  if (missingGlassesProjectionApps.length > 0) {
-    representativeBlockers.push(`Missing glasses projection app IDs: ${missingGlassesProjectionApps.join(', ')}.`);
-  }
-  if (missingSimulatorModalities.length > 0) {
-    representativeBlockers.push(`Missing simulator modalities: ${missingSimulatorModalities.join(', ')}.`);
-  }
-  if (missingSimulatorCapabilityModalities.length > 0) {
-    representativeBlockers.push(`Missing simulator capability modalities: ${missingSimulatorCapabilityModalities.join(', ')}.`);
-  }
-  if (simulatorReplayGaps.length > 0) {
-    representativeBlockers.push(`Missing simulator replay states: ${simulatorReplayGaps.map(item => `${item.projection_id}:${item.simulator_state}`).join(', ')}.`);
-  }
-  if (missingOrbIdlCapabilities.length > 0) {
-    allToolsBlockers.push(`Missing ORB/IDL capability IDs: ${missingOrbIdlCapabilities.map(item => `${item.app_id}:${item.capability_id}:${item.service}:${item.tool_class}`).join(', ')}.`);
-  }
-  if (missingAppVisibleBindingCapabilities.length > 0) {
-    allToolsBlockers.push(`Missing app-visible binding capability IDs: ${missingAppVisibleBindingCapabilities.map(item => `${item.app_id}:${item.capability_id}:${item.service}:${item.tool_class}`).join(', ')}.`);
-  }
-  if (missingGlassesProjectionCapabilities.length > 0) {
-    allToolsBlockers.push(`Missing glasses projection capability IDs: ${missingGlassesProjectionCapabilities.map(item => `${item.app_id}:${item.capability_id}:${item.service}:${item.tool_class}`).join(', ')}.`);
-  }
-  if (missingCatalogReconciliation.length > 0) {
-    allToolsBlockers.push(`Missing server/tool catalog reconciliation tool IDs: ${missingCatalogReconciliation.map(item => `${item.service}:${item.tool_id}:${item.capability_id}:${item.tool_class}`).join(', ')}.`);
-  }
-  if (missingMcpPlusPlusEligibility.length > 0) {
-    allToolsBlockers.push(`Missing MCP++/libp2p eligibility records: ${missingMcpPlusPlusEligibility.map(item => `${item.service}:${item.tool_id}:${item.capability_id}:${item.tool_class}`).join(', ')}.`);
-  }
-  if (serverCatalogGaps.length > 0) {
-    allToolsBlockers.push(`Server catalog reconciliation gaps: ${serverCatalogGaps.map(item => `${item.server}:${item.kind}:${item.descriptor_count}`).join(', ')}.`);
-  }
-  if (serverFacadeGaps.length > 0) {
-    allToolsBlockers.push(`Hierarchical facade gaps by server: ${serverFacadeGaps.map(item => `${item.server}:${item.missing_meta_tools.join('|')}`).join(', ')}.`);
-  }
-
-  const blockerCount = representativeBlockers.length + allToolsBlockers.length;
-  return {
-    representative_blockers: representativeBlockers,
-    all_tools_blockers: allToolsBlockers,
-    summary: {
-      status: 'present',
-      decision: blockerCount === 0 ? 'go' : 'no_go',
-      blocker_count: blockerCount,
-      representative_blocker_count: representativeBlockers.length,
-      all_tools_blocker_count: allToolsBlockers.length,
-      app_count: allAppIds.length,
-      app_ids: allAppIds,
-      required_workflow_states: requiredWorkflowStates,
-      required_ux_states: requiredUxStates,
-      required_simulator_replay_states: requiredSimulatorReplayStates,
-      required_simulator_modalities: requiredSimulatorModalities,
-      required_simulator_capability_modalities: requiredSimulatorCapabilityModalities,
-      observed_simulator_modalities: [...simulatorModalities].sort(),
-      observed_simulator_capability_modalities: [...observedSimulatorCapabilityModalities].sort(),
-      tool_class_counts: toolClassCounts,
-      missing_contract_app_ids: missingContractAppIds,
-      missing_workflow_app_ids: missingWorkflowAppIds,
-      missing_screenshot_apps: missingScreenshotApps,
-      missing_workflow_states: missingWorkflowStates,
-      missing_ux_states: missingUxStates,
-      missing_local_only_rationale_app_ids: missingLocalOnlyRationaleApps,
-      missing_backend_capability_set_app_ids: missingBackendCapabilitySetApps,
-      malformed_backend_capabilities: malformedBackendCapabilities,
-      missing_app_visible_binding_capabilities: missingAppVisibleBindingCapabilities,
-      missing_orb_idl_app_ids: missingOrbIdlApps,
-      missing_orb_idl_capabilities: missingOrbIdlCapabilities,
-      missing_glasses_projection_app_ids: missingGlassesProjectionApps,
-      missing_glasses_projection_capabilities: missingGlassesProjectionCapabilities,
-      missing_catalog_reconciliation: missingCatalogReconciliation,
-      missing_mcp_plus_plus_eligibility: missingMcpPlusPlusEligibility,
-      server_catalog_gaps: serverCatalogGaps,
-      server_facade_gaps: serverFacadeGaps,
-      missing_simulator_modalities: missingSimulatorModalities,
-      missing_simulator_capability_modalities: missingSimulatorCapabilityModalities,
-      simulator_replay_gaps: simulatorReplayGaps,
-    },
-  };
-}
-
-function buildSWR110ReleaseGate({
-  artifacts,
-  appInventory,
-  appBackendContract,
-  appWorkflowMatrix,
-  toolUiSmokeReceipts,
-  serviceHealth,
-  descriptorDiscovery,
-  hierarchicalMcpGate,
-  allServerToolCatalog,
-  mcpPlusPlusLibp2pCatalog,
-  mcpPlusPlusLibp2pReachability,
-  allToolsLedger,
-  allToolsPolicyMatrix,
-  allToolsAppBindings,
-  allToolsExecutionReport,
-  allToolsIdlCoverage,
-  allToolsGlassesCoverage,
-  allToolsReleaseGate,
-  agentSupervisorConsoleE2e,
-  agentSupervisorConsoleReceipts,
-  orbIdlCompleteCoverage,
-  glassesSimulatorHandoff,
-}) {
-  const representativeBlockers = [];
-  const allToolsBlockers = [];
-  const missingEvidencePaths = [];
-  const requiredMcpServers = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'];
-  const requiredWorkflowStates = ['loading', 'success', 'fallback', 'error'];
-  const requiredToolUiStates = ['success', 'fallback', 'error'];
-  const requiredPolicyFields = [
-    'tool_id',
-    'service_id',
-    'policy_class',
-    'confirmation_policy',
-    'receipt_policy',
-    'fallback',
-  ];
-  const requiredOrbModalities = ['display', 'camera', 'speaker', 'microphone', 'input'];
-  const requiredSupervisorPaths = [
-    'success',
-    'receipt_resolve',
-    'index_search',
-    'server_unavailable',
-    'denied',
-    'stale_state',
-    'transport_fallback',
-  ];
-  const requiredSimulatorCapabilities = [
-    'display.output',
-    'camera.photo_capture',
-    'speaker.output',
-    'microphone.input',
-  ];
-
-  const failRepresentative = (pathValue, message) => {
-    missingEvidencePaths.push(pathValue);
-    representativeBlockers.push(`${pathValue}: ${message}`);
-  };
-  const failAllTools = (pathValue, message) => {
-    missingEvidencePaths.push(pathValue);
-    allToolsBlockers.push(`${pathValue}: ${message}`);
-  };
-  const artifactPath = (key) => artifacts[key]?.path ?? `test-results/virtual-desktop-ipfs-mcp-orb/${key}.json`;
-  const requireArtifact = (key, allTools = false) => {
-    const artifact = artifacts[key];
-    if (artifact?.status === 'present') return true;
-    const message = `required SWR-110 evidence artifact is ${artifact?.status ?? 'missing'}${artifact?.error ? ` (${artifact.error})` : ''}`;
-    if (allTools) failAllTools(artifactPath(key), message);
-    else failRepresentative(artifactPath(key), message);
-    return false;
-  };
-
-  for (const key of [
-    'app_inventory',
-    'app_backend_contract',
-    'app_workflow_matrix',
-    'service_health',
-    'descriptor_discovery',
-    'hierarchical_mcp_tools',
-    'all_server_tool_catalog',
-    'mcp_plus_plus_libp2p_catalog',
-    'mcpplusplus_libp2p_reachability',
-    'tool_ui_smoke_receipts',
-    'agent_supervisor_console_e2e',
-    'agent_supervisor_console_receipts',
-    'orb_idl_complete_coverage',
-    'glasses_simulator_handoff',
-  ]) {
-    requireArtifact(key, false);
-  }
-  for (const key of [
-    'all_tools_ledger',
-    'all_tools_policy_matrix',
-    'all_tools_app_bindings',
-    'all_tools_execution_report',
-    'all_tools_idl_coverage',
-    'all_tools_glasses_coverage',
-    'all_tools_policy_release_gate',
-  ]) {
-    requireArtifact(key, true);
-  }
-
-  const appIds = (appInventory?.apps ?? [])
-    .map(app => app.id ?? app.app_id ?? app.canonical_id)
-    .filter(Boolean)
-    .sort();
-  const appIdSet = new Set(appIds);
-  const contractApps = new Map((appBackendContract?.apps ?? []).map(app => [app.canonical_id ?? app.app_id, app]));
-  const workflowApps = new Map((appWorkflowMatrix?.apps ?? []).map(app => [app.canonical_id ?? app.app_id, app]));
-  const toolUiApps = new Map((toolUiSmokeReceipts?.apps ?? []).map(app => [app.app_id ?? app.canonical_id, app]));
-  const missingWorkflowEvidence = [];
-
-  if (!appInventory || (appInventory.app_count ?? appIds.length) !== appIds.length || appIds.length === 0) {
-    failRepresentative(artifactPath('app_inventory'), 'canonical app inventory is empty or internally inconsistent');
-  }
-  for (const appId of appIds) {
-    const contract = contractApps.get(appId);
-    const workflow = workflowApps.get(appId);
-    if (!contract) {
-      missingWorkflowEvidence.push(`${appId}:backend-contract`);
-    }
-    if (!workflow) {
-      missingWorkflowEvidence.push(`${appId}:workflow`);
-      continue;
-    }
-    for (const state of requiredWorkflowStates) {
-      if (!workflow.states?.[state]?.visible) {
-        missingWorkflowEvidence.push(`${appId}:workflow-state:${state}`);
-      }
-    }
-    if (!workflow.screenshot || !fs.existsSync(path.join(projectRoot, workflow.screenshot))) {
-      missingWorkflowEvidence.push(`${appId}:screenshot:${workflow.screenshot ?? 'missing'}`);
-    }
-  }
-  if (missingWorkflowEvidence.length > 0) {
-    failRepresentative(
-      artifactPath('app_workflow_matrix'),
-      `missing complete desktop app UI/UX evidence: ${missingWorkflowEvidence.slice(0, 80).join(', ')}`,
-    );
-  }
-  for (const app of toolUiSmokeReceipts?.apps ?? []) {
-    const observed = new Set((app.observed_states ?? []).map(state => typeof state === 'string' ? state : state?.state).filter(Boolean));
-    for (const state of requiredToolUiStates) {
-      if (!observed.has(state)) {
-        missingWorkflowEvidence.push(`${app.app_id}:tool-ui-state:${state}`);
-      }
-    }
-    if (!app.screenshot || !fs.existsSync(path.join(projectRoot, app.screenshot))) {
-      missingWorkflowEvidence.push(`${app.app_id}:tool-ui-screenshot:${app.screenshot ?? 'missing'}`);
-    }
-  }
-  for (const appId of appIds.filter(id => contractApps.get(id)?.backend_state === 'tool_backed')) {
-    if (!toolUiApps.has(appId)) {
-      missingWorkflowEvidence.push(`${appId}:tool-ui-smoke`);
-    }
-  }
-  if (missingWorkflowEvidence.some(item => item.includes(':tool-ui-'))) {
-    failRepresentative(
-      artifactPath('tool_ui_smoke_receipts'),
-      `missing app tool UI smoke workflow evidence: ${missingWorkflowEvidence.filter(item => item.includes(':tool-ui-')).slice(0, 80).join(', ')}`,
-    );
-  }
-
-  const serviceAvailable = new Set(serviceHealth?.summary?.available ?? []);
-  const descriptorAvailable = new Set(descriptorDiscovery?.summary?.live_discovery_available ?? []);
-  const catalogServices = new Map((allServerToolCatalog?.services ?? []).map(service => [service.service, service]));
-  for (const service of requiredMcpServers) {
-    if (!serviceAvailable.has(service)) {
-      failRepresentative(artifactPath('service_health'), `required MCP server is not available: ${service}`);
-    }
-    if (!descriptorAvailable.has(service)) {
-      failRepresentative(artifactPath('descriptor_discovery'), `required MCP server lacks live descriptor discovery: ${service}`);
-    }
-    const catalog = catalogServices.get(service);
-    if (!catalog) {
-      failAllTools(artifactPath('all_server_tool_catalog'), `required MCP server is absent from all-server catalog: ${service}`);
-    } else if (!catalog.available || !catalog.full_facade_available) {
-      failAllTools(artifactPath('all_server_tool_catalog'), `required MCP server lacks availability or hierarchical facade: ${service}`);
-    }
-  }
-  if (allServerToolCatalog?.decision !== 'go' || (allServerToolCatalog?.summary?.blocker_count ?? 0) > 0) {
-    failAllTools(artifactPath('all_server_tool_catalog'), `all-server catalog decision is ${allServerToolCatalog?.decision ?? 'missing'}`);
-  }
-
-  const advertisedEndpoints = mcpPlusPlusLibp2pCatalog?.advertised_endpoints ?? [];
-  const unreachableAdvertised = advertisedEndpoints.filter(endpoint => endpoint.reachable !== true);
-  if (mcpPlusPlusLibp2pCatalog?.decision !== 'go') {
-    failAllTools(artifactPath('mcp_plus_plus_libp2p_catalog'), `MCP++/libp2p catalog decision is ${mcpPlusPlusLibp2pCatalog?.decision ?? 'missing'}`);
-  }
-  if (unreachableAdvertised.length > 0) {
-    failAllTools(
-      artifactPath('mcp_plus_plus_libp2p_catalog'),
-      `advertised libp2p endpoints are unreachable: ${unreachableAdvertised.map(endpoint => `${endpoint.service}:${endpoint.multiaddr ?? endpoint.protocol ?? 'unknown'}`).join(', ')}`,
-    );
-  }
-  if (mcpPlusPlusLibp2pReachability?.advertised && mcpPlusPlusLibp2pReachability.ok !== true) {
-    failAllTools(artifactPath('mcpplusplus_libp2p_reachability'), 'advertised MCP++/libp2p reachability probe did not pass');
-  }
-
-  const policyTools = allToolsPolicyMatrix?.tools ?? allToolsPolicyMatrix?.rules ?? [];
-  const ledgerCount = allToolsLedger?.summary?.exact_tool_record_count
-    ?? allToolsLedger?.summary?.tool_record_count
-    ?? allToolsLedger?.tool_count
-    ?? (allToolsLedger?.tools ?? []).length;
-  const appBindingCount = allToolsAppBindings?.summary?.binding_count
-    ?? allToolsAppBindings?.tool_count
-    ?? (allToolsAppBindings?.rows ?? allToolsAppBindings?.bindings ?? []).length;
-  if (!policyTools.length || Number(allToolsPolicyMatrix?.tool_count ?? policyTools.length) !== policyTools.length) {
-    failAllTools(artifactPath('all_tools_policy_matrix'), 'per-tool policy matrix is empty or internally inconsistent');
-  }
-  if (Number.isFinite(Number(ledgerCount)) && Number(ledgerCount) !== policyTools.length) {
-    failAllTools(artifactPath('all_tools_ledger'), `ledger count ${ledgerCount} does not match policy matrix count ${policyTools.length}`);
-  }
-  if (Number.isFinite(Number(appBindingCount)) && Number(appBindingCount) !== policyTools.length) {
-    failAllTools(artifactPath('all_tools_app_bindings'), `app binding count ${appBindingCount} does not match policy matrix count ${policyTools.length}`);
-  }
-  const malformedPolicyTools = policyTools
-    .filter(tool => requiredPolicyFields.some(field => !hasNonEmptyValue(tool[field])))
-    .map(tool => `${tool.tool_id ?? 'missing-tool-id'}:${requiredPolicyFields.filter(field => !hasNonEmptyValue(tool[field])).join('|')}`);
-  if (malformedPolicyTools.length > 0) {
-    failAllTools(artifactPath('all_tools_policy_matrix'), `tools missing policy classification fields: ${malformedPolicyTools.slice(0, 80).join(', ')}`);
-  }
-  const sideEffectfulWithoutReceipts = policyTools
-    .filter(tool => tool.side_effectful && (tool.confirmation_policy !== 'required' || tool.receipt_policy !== 'required'))
-    .map(tool => tool.tool_id);
-  if (sideEffectfulWithoutReceipts.length > 0) {
-    failAllTools(artifactPath('all_tools_policy_matrix'), `side-effectful tools lack confirmation and receipt policy: ${sideEffectfulWithoutReceipts.slice(0, 80).join(', ')}`);
-  }
-  if (allToolsExecutionReport) {
-    const fixtureCount = allToolsExecutionReport.fixture_count ?? allToolsExecutionReport.summary?.fixture_count;
-    if (fixtureCount !== policyTools.length) {
-      failAllTools(artifactPath('all_tools_execution_report'), `execution fixture count ${fixtureCount ?? 'missing'} does not match policy matrix count ${policyTools.length}`);
-    }
-  }
-  const failedPolicyGates = (allToolsReleaseGate?.gates ?? []).filter(gate => gate.status === 'fail' || gate.passed === false);
-  if (allToolsReleaseGate?.decision !== 'go' || failedPolicyGates.length > 0 || (allToolsReleaseGate?.blockers ?? []).length > 0) {
-    const failed = failedPolicyGates.map(gate => gate.gate_id ?? gate.id).join(', ') || 'decision/blockers';
-    failAllTools(artifactPath('all_tools_policy_release_gate'), `all-tools policy release gate is not GO: ${failed}`);
-  }
-  if ((allToolsIdlCoverage?.app_routable_tool_coverage_count ?? 0) !== (allToolsIdlCoverage?.app_routable_tool_count ?? 0)) {
-    failAllTools(artifactPath('all_tools_idl_coverage'), 'all-tools ORB/IDL app-routable tool coverage is incomplete');
-  }
-  if ((allToolsGlassesCoverage?.tool_coverage_count ?? 0) !== (allToolsIdlCoverage?.app_routable_tool_count ?? allToolsGlassesCoverage?.tool_coverage_count ?? 0)) {
-    failAllTools(artifactPath('all_tools_glasses_coverage'), 'all-tools glasses projection coverage is incomplete');
-  }
-
-  if (agentSupervisorConsoleE2e?.decision !== 'go') {
-    failRepresentative(artifactPath('agent_supervisor_console_e2e'), `Agent Supervisor Console decision is ${agentSupervisorConsoleE2e?.decision ?? 'missing'}`);
-  }
-  const observedSupervisorPaths = new Set((agentSupervisorConsoleE2e?.required_paths ?? [])
-    .filter(item => item.observed)
-    .map(item => item.path));
-  for (const requiredPath of requiredSupervisorPaths) {
-    if (!observedSupervisorPaths.has(requiredPath)) {
-      failRepresentative(artifactPath('agent_supervisor_console_e2e'), `Agent Supervisor Console missing required path: ${requiredPath}`);
-    }
-  }
-  const supervisorSourceOwners = new Set((agentSupervisorConsoleE2e?.scenarios ?? []).map(scenario => scenario.source_owner).filter(Boolean));
-  for (const service of requiredMcpServers) {
-    if (!supervisorSourceOwners.has(service)) {
-      failRepresentative(artifactPath('agent_supervisor_console_e2e'), `Agent Supervisor Console does not prove service integration for ${service}`);
-    }
-  }
-  const receiptCount = agentSupervisorConsoleReceipts?.receipt_count ?? (agentSupervisorConsoleReceipts?.receipts ?? []).length;
-  if (receiptCount !== (agentSupervisorConsoleE2e?.summary?.receipt_count ?? receiptCount)) {
-    failRepresentative(artifactPath('agent_supervisor_console_receipts'), 'Agent Supervisor Console receipt count does not match e2e evidence');
-  }
-  if ((agentSupervisorConsoleReceipts?.receipts ?? []).some(receipt => !receipt.receipt_cid || receipt.receipt_owner !== 'ipfs_kit_py')) {
-    failRepresentative(artifactPath('agent_supervisor_console_receipts'), 'Agent Supervisor Console receipts must be owned by ipfs_kit_py and include receipt CIDs');
-  }
-
-  const orbDescriptors = orbIdlCompleteCoverage?.descriptors ?? [];
-  if ((orbIdlCompleteCoverage?.app_count ?? 0) !== appIds.length || (orbIdlCompleteCoverage?.descriptor_count ?? 0) !== appIds.length) {
-    failRepresentative(artifactPath('orb_idl_complete_coverage'), `ORB/IDL descriptor count does not match app inventory count ${appIds.length}`);
-  }
-  const orbAppIds = new Set(orbDescriptors.map(descriptor => descriptor.app_id).filter(Boolean));
-  for (const appId of appIds) {
-    if (!orbAppIds.has(appId)) {
-      failRepresentative(artifactPath('orb_idl_complete_coverage'), `ORB/IDL descriptor missing for app: ${appId}`);
-    }
-  }
-  const orbModalityGaps = [];
-  for (const descriptor of orbDescriptors) {
-    for (const modality of requiredOrbModalities) {
-      const contract = descriptor.modality_contract?.[modality];
-      if (!contract) {
-        orbModalityGaps.push(`${descriptor.app_id}:${modality}:missing-contract`);
-      } else if (!contract.fallback?.kind || !contract.fallback?.typed_reason) {
-        orbModalityGaps.push(`${descriptor.app_id}:${modality}:missing-typed-fallback`);
-      }
-    }
-    const operationPolicies = descriptor.action_policy?.operation_policies ?? [];
-    const hasReadPolicy = operationPolicies.some(policy => policy.method === 'read_status' && policy.policy_class === 'read');
-    const hasActionPolicy = operationPolicies.some(policy => (
-      policy.method === 'request_action'
-      && (policy.policy_class === 'read' || policy.confirmation === 'required')
-      && policy.receipt_required === true
-      && policy.fallback?.typed_reason === 'policy_gate'
-    ));
-    if (!hasReadPolicy || !hasActionPolicy) {
-      orbModalityGaps.push(`${descriptor.app_id}:action-policy`);
-    }
-  }
-  if (orbModalityGaps.length > 0) {
-    failRepresentative(artifactPath('orb_idl_complete_coverage'), `ORB/IDL modality or policy coverage gaps: ${orbModalityGaps.slice(0, 80).join(', ')}`);
-  }
-  const supervisorProjection = orbIdlCompleteCoverage?.supervisor_console ?? {};
-  if (
-    supervisorProjection.app_id !== 'agent-supervisor'
-    || supervisorProjection.status_read_only !== true
-    || supervisorProjection.receipts_read_only !== true
-    || supervisorProjection.steering_requires_confirmation !== true
-  ) {
-    failRepresentative(artifactPath('orb_idl_complete_coverage'), 'Agent Supervisor ORB/IDL projection is not read-only for status/receipts with confirmed steering');
-  }
-
-  const simulatorCaps = glassesSimulatorHandoff?.simulator?.capabilities ?? {};
-  for (const capability of requiredSimulatorCapabilities) {
-    if (simulatorCaps[capability] !== true) {
-      failRepresentative(artifactPath('glasses_simulator_handoff'), `Meta glasses simulator capability is not available: ${capability}`);
-    }
-  }
-  if (
-    glassesSimulatorHandoff?.hardware_free !== true
-    || glassesSimulatorHandoff?.simulator_driven !== true
-    || glassesSimulatorHandoff?.physical_glasses_required !== false
-    || glassesSimulatorHandoff?.direct_desktop_pairing_required !== false
-  ) {
-    failRepresentative(artifactPath('glasses_simulator_handoff'), 'Meta glasses evidence must be simulator-driven, hardware-free, and not depend on direct desktop/physical pairing');
-  }
-  const capabilityEvidence = new Map((glassesSimulatorHandoff?.capability_evidence ?? [])
-    .map(evidence => [evidence.capability, evidence]));
-  const simulatorWorkflowGaps = [];
-  const hasVisibleStates = (items, states) => {
-    const visible = new Set((items ?? [])
-      .filter(item => item.visible_in_simulator !== false)
-      .map(item => item.state)
-      .filter(Boolean));
-    return states.filter(state => !visible.has(state));
-  };
-  const displayEvidence = capabilityEvidence.get('display.output');
-  simulatorWorkflowGaps.push(...hasVisibleStates(
-    displayEvidence?.simulator_visible_states,
-    ['rendered', 'updated', 'focused', 'activated', 'cleared'],
-  ).map(state => `display.output:${state}`));
-  const cameraEvidence = capabilityEvidence.get('camera.photo_capture');
-  simulatorWorkflowGaps.push(...hasVisibleStates(
-    cameraEvidence?.camera_permission_states,
-    ['permission_denied', 'fallback', 'accepted'],
-  ).map(state => `camera.photo_capture:${state}`));
-  const microphoneStates = microphoneWorkflowStates(capabilityEvidence.get('microphone.input')?.audio_policy_states ?? []);
-  for (const state of ['permission_required', 'capturing_transcript', 'denied']) {
-    if (!microphoneStates.has(state)) simulatorWorkflowGaps.push(`microphone.input:${state}`);
-  }
-  const speakerStates = speakerWorkflowStates(capabilityEvidence.get('speaker.output')?.audio_policy_states ?? []);
-  for (const state of ['playing', 'fallback']) {
-    if (!speakerStates.has(state)) simulatorWorkflowGaps.push(`speaker.output:${state}`);
-  }
-  const inputSources = new Set((glassesSimulatorHandoff?.input_mapping_evidence ?? []).map(item => item.input_source).filter(Boolean));
-  for (const inputSource of ['touch', 'voice']) {
-    if (!inputSources.has(inputSource)) simulatorWorkflowGaps.push(`input_mapping:${inputSource}`);
-  }
-  if (glassesSimulatorHandoff?.acceptance_matrix) {
-    for (const [key, value] of Object.entries(glassesSimulatorHandoff.acceptance_matrix)) {
-      if (value !== true) simulatorWorkflowGaps.push(`acceptance_matrix:${key}`);
-    }
-  }
-  if (simulatorWorkflowGaps.length > 0) {
-    failRepresentative(artifactPath('glasses_simulator_handoff'), `Meta glasses simulator modality workflow gaps: ${simulatorWorkflowGaps.join(', ')}`);
-  }
-
-  const blockerCount = representativeBlockers.length + allToolsBlockers.length;
-  return {
-    representative_blockers: dedupe(representativeBlockers),
-    all_tools_blockers: dedupe(allToolsBlockers),
-    summary: {
-      status: 'present',
-      decision: blockerCount === 0 ? 'go' : 'no_go',
-      release_decision: blockerCount === 0 ? 'GO' : 'NO_GO',
-      blocker_count: blockerCount,
-      representative_blocker_count: representativeBlockers.length,
-      all_tools_blocker_count: allToolsBlockers.length,
-      required_mcp_servers: requiredMcpServers,
-      required_orb_modalities: requiredOrbModalities,
-      required_simulator_capabilities: requiredSimulatorCapabilities,
-      required_supervisor_paths: requiredSupervisorPaths,
-      app_count: appIds.length,
-      evidence_paths: Object.fromEntries(Object.entries(artifacts).map(([key, artifact]) => [key, artifact.path])),
-      missing_evidence_paths: dedupe(missingEvidencePaths),
-      representative_blockers: dedupe(representativeBlockers),
-      all_tools_blockers: dedupe(allToolsBlockers),
-    },
-  };
-}
-
-function microphoneWorkflowStates(states) {
-  const observed = new Set();
-  for (const state of states) {
-    if (state.state === 'permission_required' && state.policy_outcome === 'require_confirmation') {
-      observed.add('permission_required');
-    }
-    if (state.audio_state === 'capturing' && state.transcript?.state === 'redacted_transcript_available') {
-      observed.add('capturing_transcript');
-    }
-    if (state.policy_outcome === 'deny' || state.audio_state === 'denied' || state.transcript?.state === 'denied') {
-      observed.add('denied');
-    }
-  }
-  return observed;
-}
-
-function speakerWorkflowStates(states) {
-  const observed = new Set();
-  for (const state of states) {
-    if (state.audio_state === 'playing') observed.add('playing');
-    if (state.audio_state === 'fallback' || state.policy_outcome === 'fallback') observed.add('fallback');
-  }
-  return observed;
-}
-
-function refreshReleaseEvidenceFreshness() {
-  execFileSync(
-    process.execPath,
-    [
-      'scripts/audit-release-evidence-freshness.mjs',
-      '--update',
-      'virtual-desktop-release-evidence',
-      '--json',
-      'docs/release-evidence-freshness.json',
-      '--report',
-      'docs/release-evidence-freshness.md',
-    ],
-    {
-      cwd: projectRoot,
-      stdio: 'pipe',
-    },
-  );
-}
-
-function mergeCounts(countObjects) {
-  const merged = {};
-  for (const counts of countObjects) {
-    for (const [key, value] of Object.entries(counts)) {
-      merged[key] = (merged[key] ?? 0) + Number(value ?? 0);
-    }
-  }
-  return merged;
-}
-
-function releaseNextActions({ hierarchicalDecision, representativeDecision, allToolsDecision }) {
-  const actions = [];
-  if (hierarchicalDecision !== 'go') {
-    actions.push('Refresh hierarchical MCP evidence and close missing facade meta-tools, failed representative dispatch, or unexplained direct-only descriptor gaps.');
-  }
-  if (representativeDecision !== 'go') {
-    actions.push('Refresh representative virtual desktop evidence and close app launch, screenshot, service, descriptor, handoff, critical-flow, or receipt blockers.');
-  }
-  if (allToolsDecision !== 'go') {
-    actions.push('Close exhaustive all-tools release policy blockers and rebuild virtual desktop release evidence.');
-  }
-  return actions;
-}
-
-function buildSupervisorReleaseFreshness(report) {
-  const artifactEntries = Object.entries(report.artifacts ?? {}).map(([id, artifact]) => ({
-    id,
-    status: artifact.status,
-    required: Boolean(artifact.required),
-    path: artifact.path,
-    schema: artifact.schema ?? null,
-    generated_at: artifact.generated_at ?? null,
-    error: artifact.error ?? null,
   }));
-  const staleArtifacts = artifactEntries
-    .filter(artifact => artifact.required && artifact.status !== 'present')
-    .map(artifact => artifact.id);
-
   return {
-    schema: 'swissknife.all_tools_supervisor_release_freshness.v1',
-    generated_at: report.generated_at,
-    source_schema: report.schema,
-    source_report: 'test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json',
-    decision: report.go_no_go?.decision ?? 'unknown',
-    blocker_count: report.go_no_go?.blocker_count ?? 0,
-    warning_count: report.go_no_go?.warning_count ?? 0,
-    stale_artifact_count: staleArtifacts.length,
-    stale_artifacts: staleArtifacts,
-    hierarchical_mcp: {
-      decision: report.hierarchical_mcp?.release_gate_decision ?? report.hierarchical_mcp?.decision ?? 'unknown',
-      generated_at: report.hierarchical_mcp?.generated_at ?? null,
-      direct_only_descriptor_count: report.hierarchical_mcp?.direct_only_descriptor_count ?? null,
-      unexplained_flat_hierarchy_gap_count: report.hierarchical_mcp?.unexplained_flat_hierarchy_gap_count ?? null,
+    required_cell_count: REQUIRED_SERVICES.length * REQUIRED_PROFILES.length,
+    passing_cell_count: cells.filter(cell => cell.passing).length,
+    release_satisfied_cell_count: cells.filter(cell => cell.release_satisfied).length,
+    unavailable_surfaces: profile?.data?.unavailable_surfaces ?? [],
+    denied_surfaces: profile?.data?.denied_surfaces ?? [],
+    cells,
+  };
+}
+
+function buildToolMatrix(peer, approved) {
+  const rows = (peer?.data?.tools ?? []).map(tool => ({
+    service: tool.service,
+    tool_id: tool.name,
+    disposition: tool.disposition,
+    reason: tool.disposition_reason,
+    http: tool.observations?.http ?? null,
+    libp2p: tool.observations?.libp2p ?? null,
+    approved_non_release: tool.disposition === 'denied' && approved.some(item => item.scope === `tool:${tool.service}:${tool.name}`),
+    release_satisfied: tool.disposition === 'executed'
+      || (tool.disposition === 'denied' && approved.some(item => item.scope === `tool:${tool.service}:${tool.name}`)),
+  }));
+  return {
+    count_only_inference_forbidden: peer?.data?.availability_evidence_policy?.count_only_inference_forbidden ?? true,
+    tool_count: rows.length,
+    executed_count: rows.filter(row => row.disposition === 'executed').length,
+    approved_non_release_count: rows.filter(row => row.approved_non_release).length,
+    unsatisfied_count: rows.filter(row => !row.release_satisfied).length,
+    rows,
+  };
+}
+
+function buildModalityMatrix(meta, approved) {
+  const rows = REQUIRED_MODALITIES.map(modality => ({
+    modality,
+    required_scenarios: REQUIRED_REPLAY_SCENARIOS,
+    replayed_packet_count: meta?.data?.modality_summary?.[modality] ?? 0,
+    expected_packet_count: meta?.data?.replayed_packet_count ?? 0,
+    passing: meta?.status === 'passed'
+      && meta.data?.modality_summary?.[modality] === meta.data?.replayed_packet_count,
+  }));
+  return {
+    simulator_only: meta?.data?.boundary?.simulator_only ?? null,
+    hardware_free: meta?.data?.boundary?.hardware_free ?? null,
+    physical_hardware_claimed: meta?.data?.boundary?.physical_hardware_claimed ?? null,
+    hardware_non_release_disposition: approved.find(item => item.scope === 'meta:physical-hardware-pairing') ?? null,
+    passing_modality_count: rows.filter(row => row.passing).length,
+    rows,
+  };
+}
+
+function buildScreenshotEvidence(records) {
+  const rows = records.flatMap(record => record.screenshots.map(screenshot => ({ evidence_id: record.id, ...screenshot })));
+  const expectedRoots = records.filter(record => record.screenshotRoot).map(record => {
+    const absoluteRoot = path.join(projectRoot, record.screenshotRoot);
+    const present = fs.existsSync(absoluteRoot) && fs.statSync(absoluteRoot).isDirectory();
+    const pngCount = present ? walkFiles(absoluteRoot).filter(file => path.extname(file).toLowerCase() === '.png').length : 0;
+    return { task_id: record.taskId, evidence_id: record.id, path: record.screenshotRoot, present, png_count: pngCount };
+  });
+  return {
+    expected_roots: expectedRoots,
+    missing_roots: expectedRoots.filter(root => !root.present),
+    declared_count: rows.length,
+    present_count: rows.filter(row => row.present && row.valid_png).length,
+    missing: rows.filter(row => !row.present || !row.valid_png),
+    rows,
+  };
+}
+
+function buildProvenanceEvidence(records) {
+  const app = records.find(record => record.id === 'app_backend_behavior')?.data?.apps ?? [];
+  const supervisor = records.find(record => record.id === 'supervisor_console')?.data?.outcomes ?? [];
+  const packets = records.find(record => record.id === 'orb_idl_packets')?.data?.packets ?? [];
+  const metaPackets = records.find(record => record.id === 'meta_device_simulator')?.data?.packets ?? [];
+  const peerServices = records.find(record => record.id === 'peer_interoperability')?.data?.services ?? [];
+  return {
+    app_behavior: {
+      receipt_count: app.filter(item => nonEmpty(item.receipt?.receipt_cid)).length,
+      event_dag_count: app.filter(item => nonEmpty(item.event_dag?.event_cid)).length,
+      linked_count: app.filter(item => item.event_dag?.receipt_cid === item.receipt?.receipt_cid).length,
     },
-    all_tools: {
-      decision: report.exhaustive_all_tools_gate?.decision ?? 'unknown',
-      blocker_count: report.exhaustive_all_tools_gate?.blocker_count ?? 0,
+    supervisor: {
+      receipt_count: supervisor.filter(item => nonEmpty(item.receipt_cid)).length,
+      event_dag_count: supervisor.filter(item => nonEmpty(item.event_dag_cid)).length,
     },
-    artifacts: artifactEntries,
+    orb_idl: {
+      packet_count: packets.length,
+      receipt_ref_count: packets.reduce((sum, item) => sum + (item.receipt_refs?.length ?? 0), 0),
+      event_dag_ref_count: packets.reduce((sum, item) => sum + (item.event_dag_refs?.length ?? 0), 0),
+    },
+    meta_simulator: {
+      packet_count: metaPackets.length,
+      preserved_count: metaPackets.filter(item => item.receipt_preservation?.preserved).length,
+    },
+    peer_interoperability: {
+      service_count: peerServices.length,
+      transport_execution_count: peerServices.reduce((sum, service) => sum + REQUIRED_TRANSPORTS.filter(transport =>
+        service.transports?.[transport]?.fixture?.status === 'executed').length, 0),
+      event_dag_visible_count: peerServices.reduce((sum, service) => sum + REQUIRED_TRANSPORTS.filter(transport =>
+        service.transports?.[transport]?.fixture?.event_dag?.execution_event_present === true).length, 0),
+    },
+  };
+}
+
+function summarizeSupervisor(record) {
+  return {
+    status: record?.status ?? 'missing',
+    decision: record?.data?.decision ?? null,
+    owners: record?.data?.live_state?.owners ?? [],
+    task_graph: record?.data?.task_graph ?? null,
+    prompt_steering: record?.data?.prompt_steering ?? [],
+    dispatch: record?.data?.dispatch ?? null,
+    browser_boundary: record?.data?.browser_boundary ?? null,
+    ui_validation: record?.data?.ui_validation ?? null,
+    outcomes: record?.data?.outcomes ?? [],
+  };
+}
+
+function summarizeOrb(record) {
+  const packets = record?.data?.packets ?? [];
+  return {
+    status: record?.status ?? 'missing',
+    packet_count: packets.length,
+    app_count: record?.data?.app_count ?? null,
+    supervisor_packet_count: packets.filter(packet => packet.route_id?.startsWith('supervisor:')).length,
+    interface_cid_count: unique(packets.map(packet => packet.interface_cid).filter(Boolean)).length,
+    permission_states: countBy(packets, packet => packet.permission?.state ?? 'missing'),
+    fallback_surfaces: countBy(packets, packet => packet.fallback_selection?.target_surface ?? 'missing'),
+  };
+}
+
+function buildUnavailableCases(records, blockerGaps) {
+  const cases = blockerGaps.map(item => ({
+    kind: 'release_gap', task_id: item.task_id, scope: item.scope, state: item.code, reason: item.reason,
+  }));
+  const profile = records.find(record => record.id === 'service_profile_matrix')?.data;
+  for (const item of profile?.unavailable_surfaces ?? []) cases.push({ kind: 'profile', task_id: 'SVD-093', state: 'unavailable', ...item });
+  for (const item of profile?.denied_surfaces ?? []) cases.push({ kind: 'profile', task_id: 'SVD-093', state: 'denied', ...item });
+  const app = records.find(record => record.id === 'app_backend_behavior')?.data;
+  for (const item of app?.explicit_skips ?? []) cases.push({ kind: 'tool', task_id: 'SVD-096', state: 'explicitly_skipped', ...item });
+  const peer = records.find(record => record.id === 'peer_interoperability')?.data;
+  for (const tool of peer?.tools ?? []) if (tool.disposition !== 'executed') cases.push({
+    kind: 'tool', task_id: 'SVD-100', state: tool.disposition, service: tool.service,
+    tool_id: tool.name, reason: tool.disposition_reason,
+  });
+  return dedupeObjects(cases, item => `${item.kind}|${item.task_id}|${item.scope ?? item.service ?? ''}|${item.tool_id ?? item.profile ?? ''}|${item.state}`);
+}
+
+function validateScreenshots(record, paths, scope) {
+  if (!Array.isArray(paths) || paths.length === 0) {
+    record.gaps.push(gap(record.taskId, 'missing_screenshots', scope,
+      `${scope} declares no screenshots.`, record.path));
+    return [];
+  }
+  return paths.map(declaredPath => {
+    const safe = safeProjectPath(declaredPath);
+    const present = Boolean(safe && fs.existsSync(safe));
+    const stat = present ? fs.statSync(safe) : null;
+    const validPng = Boolean(present && stat.isFile() && stat.size > 8 && isPng(safe));
+    if (!validPng) record.gaps.push(gap(record.taskId, 'missing_or_invalid_screenshot', scope,
+      `Screenshot is missing or not a non-empty PNG: ${declaredPath}.`, record.path));
+    return { path: declaredPath, scope, present, bytes: stat?.size ?? 0, valid_png: validPng };
+  });
+}
+
+function artifactSummary(record) {
+  return {
+    task_id: record.taskId,
+    path: record.path,
+    expected_schema: record.schema,
+    observed_schema: record.data?.schema ?? null,
+    status: record.status,
+    generated_at: record.generated_at,
+    sha256: record.sha256,
+    source_fingerprint: record.source_fingerprint.combined_sha256,
+    source_files: record.source_fingerprint.files,
+    passed_check_count: record.checks.filter(item => item.passed).length,
+    failed_check_count: record.checks.filter(item => !item.passed).length,
+    failed_checks: record.checks.filter(item => !item.passed),
+  };
+}
+
+function compatibilityDecision(decision, blockers) {
+  return {
+    decision: decision === 'GO' ? 'go' : 'no_go',
+    representative_decision: decision === 'GO' ? 'go' : 'no_go',
+    all_tools_decision: decision === 'GO' ? 'go' : 'no_go',
+    blocker_count: blockers.length,
+    warning_count: 0,
+    blockers: blockers.map(item => `${item.task_id}: ${item.scope}: ${item.reason}`),
+    warnings: [],
+    next_actions: unique(blockers.map(item => `${item.task_id}: refresh or close ${item.scope} with current passing proof or an approved non-release disposition.`)),
+  };
+}
+
+function compatibilityHierarchical(serviceMatrix, peer) {
+  const services = peer?.data?.services ?? [];
+  return {
+    status: peer?.status ?? 'missing',
+    decision: peer?.data?.decision ?? 'no_go',
+    release_gate_decision: peer?.status === 'passed' ? 'go' : 'no_go',
+    service_count: REQUIRED_SERVICES.length,
+    available_service_count: services.filter(service => normalizeDecision(service.decision) === 'GO').length,
+    expected_live_services: REQUIRED_SERVICES,
+    services_with_full_facade: null,
+    dispatch_probe_count: services.length * REQUIRED_TRANSPORTS.length,
+    dispatch_pass_count: services.reduce((sum, service) => sum + REQUIRED_TRANSPORTS.filter(transport => service.transports?.[transport]?.fixture?.status === 'executed').length, 0),
+    direct_only_descriptor_count: 0,
+    unexplained_flat_hierarchy_gap_count: serviceMatrix.cells.filter(cell => !cell.passing).length,
+    stale_live_service_evidence: [],
+    availability_mismatches: [],
+    missing_facade_by_service: [],
+  };
+}
+
+function compatibilityAppMatrix(appMatrix, modalityMatrix, blockers) {
+  const appIds = appMatrix.rows.map(row => row.app_id);
+  const behaviorMissing = appMatrix.rows.filter(row => row.backend_behavior !== 'passed').map(row => row.app_id);
+  const orbMissing = appMatrix.rows.filter(row => row.orb_idl_packet_count === 0).map(row => row.app_id);
+  const metaMissing = appMatrix.rows.filter(row => row.meta_simulator !== 'passed').map(row => row.app_id);
+  return {
+    decision: blockers.length === 0 ? 'go' : 'no_go',
+    blocker_count: blockers.length,
+    app_count: appMatrix.required_app_count ?? appIds.length,
+    missing_contract_app_ids: [],
+    missing_workflow_app_ids: behaviorMissing,
+    missing_screenshot_apps: behaviorMissing.map(app_id => ({ app_id })),
+    missing_workflow_states: [], missing_ux_states: [], missing_local_only_rationale_app_ids: [],
+    missing_backend_capability_set_app_ids: [], malformed_backend_capabilities: [],
+    missing_app_visible_binding_capabilities: [],
+    missing_orb_idl_app_ids: orbMissing, missing_orb_idl_capabilities: [],
+    missing_glasses_projection_app_ids: metaMissing, missing_glasses_projection_capabilities: [],
+    missing_catalog_reconciliation: [], missing_mcp_plus_plus_eligibility: [],
+    server_catalog_gaps: [], server_facade_gaps: [], tool_class_counts: {},
+    missing_simulator_modalities: modalityMatrix.rows.filter(row => !row.passing).map(row => row.modality),
+    missing_simulator_capability_modalities: modalityMatrix.rows.filter(row => !row.passing).map(row => row.modality),
+    simulator_replay_gaps: [],
+  };
+}
+
+function compatibilityCompleteGate(decision, records, blockers) {
+  return {
+    decision: decision === 'GO' ? 'go' : 'no_go',
+    release_decision: decision,
+    blocker_count: blockers.length,
+    representative_blocker_count: blockers.filter(item => item.task_id !== 'SVD-100').length,
+    all_tools_blocker_count: blockers.filter(item => item.task_id === 'SVD-100').length,
+    required_mcp_servers: REQUIRED_SERVICES,
+    required_orb_modalities: REQUIRED_MODALITIES,
+    required_simulator_capabilities: REQUIRED_MODALITIES,
+    required_supervisor_paths: EXPECTED_SUPERVISOR_CAPABILITIES,
+    missing_evidence_paths: records.filter(record => record.status === 'missing').map(record => record.path),
+    representative_blockers: blockers.filter(item => item.task_id !== 'SVD-100').map(item => `${item.task_id}: ${item.reason}`),
+    all_tools_blockers: blockers.filter(item => item.task_id === 'SVD-100').map(item => `${item.task_id}: ${item.reason}`),
   };
 }
 
 function renderMarkdown(report) {
-  const lines = [];
-  lines.push('# SwissKnife Virtual Desktop All-Tools Release Evidence');
-  lines.push('');
-  lines.push(`Generated: ${report.generated_at}`);
-  lines.push(`Decision: **${report.go_no_go.decision.toUpperCase().replace('_', '-')}**`);
-  lines.push('');
-  lines.push('## Blockers');
-  if (report.go_no_go.blockers.length === 0) {
-    lines.push('- None');
-  } else {
-    for (const blocker of report.go_no_go.blockers) lines.push(`- ${blockerText(blocker)}`);
-  }
-  lines.push('');
-  lines.push('## Representative App Evidence');
-  lines.push(`- Manifest apps: ${report.manifest.app_count ?? 'unknown'}`);
-  lines.push(`- App backend contract: ${report.app_contract_reconciliation.backend_contract.status}; records ${report.app_contract_reconciliation.backend_contract.app_count ?? 'unknown'}`);
-  lines.push(`- App workflow matrix: ${report.app_contract_reconciliation.workflow_matrix.status}; records ${report.app_contract_reconciliation.workflow_matrix.app_count ?? 'unknown'}; screenshot-only ${report.app_contract_reconciliation.workflow_matrix.screenshot_only_count ?? 'unknown'}`);
-  lines.push(`- Launch evidence: ${report.launch_status.status}; opened ${report.launch_status.opened ?? 'unknown'} / ${report.launch_status.app_count ?? 'unknown'}`);
-  lines.push(`- App screenshots: ${report.screenshot_coverage.app_screenshots.count} / ${report.screenshot_coverage.app_screenshots.expected ?? 'unknown'}`);
-  lines.push(`- SWR-110 complete evidence gate: ${report.swr110_release_gate.release_decision}; blockers ${report.swr110_release_gate.blocker_count}`);
-  lines.push(`- App matrix release gate: ${report.virtual_desktop_app_matrix_gate.decision}; blockers ${report.virtual_desktop_app_matrix_gate.blocker_count}`);
-  lines.push(`- Glasses handoff: ${report.glasses_handoff.status}; passed ${report.glasses_handoff.passed_count ?? 'unknown'} / ${report.glasses_handoff.displayable_count ?? 'unknown'} displayable apps`);
-  lines.push(`- Service availability: ${(report.service_health.available ?? []).length} available, ${(report.service_health.unavailable ?? []).length} unavailable`);
-  lines.push(`- Hierarchical MCP facade: ${report.hierarchical_mcp.services_with_full_facade ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'} services; dispatch ${report.hierarchical_mcp.dispatch_pass_count ?? 'unknown'} / ${report.hierarchical_mcp.dispatch_probe_count ?? 'unknown'} passed`);
-  lines.push(`- MCP++ libp2p fleet: ${report.mcpplusplus_libp2p_fleet.decision ?? report.mcpplusplus_libp2p_fleet.status}; ${report.mcpplusplus_libp2p_fleet.service_count ?? 'unknown'} services; ${report.mcpplusplus_libp2p_fleet.total_unique_callable_tools ?? 'unknown'} unique callable tools`);
-  lines.push(`- Hierarchical MCP direct-only descriptors: ${report.hierarchical_mcp.direct_only_descriptor_count ?? 'unknown'}; unexplained gaps ${report.hierarchical_mcp.unexplained_flat_hierarchy_gap_count ?? 'unknown'}`);
-  lines.push(`- All-tools fallback states: ${report.fallback_coverage.all_tools_app_family_states.fallback_state_family_count ?? 'unknown'} / ${report.fallback_coverage.all_tools_app_family_states.app_family_count ?? 'unknown'} app families`);
-  lines.push(`- Legacy gateway fallback specs present: ${report.fallback_coverage.legacy_gateway_spec_count}`);
-  lines.push(`- Live receipt samples: ${report.receipt_samples.live_receipt_samples.status}; count ${report.receipt_samples.live_receipt_samples.sample_count ?? 0}`);
-  lines.push(`- Representative decision: ${report.representative_app_gate.decision}`);
-  lines.push('');
-  lines.push('## SWR-110 Complete Release Evidence Gate');
-  lines.push(`- Decision: ${report.swr110_release_gate.release_decision}`);
-  lines.push(`- Required MCP servers: ${report.swr110_release_gate.required_mcp_servers.join(', ')}`);
-  lines.push(`- Required ORB/IDL modalities: ${report.swr110_release_gate.required_orb_modalities.join(', ')}`);
-  lines.push(`- Required simulator capabilities: ${report.swr110_release_gate.required_simulator_capabilities.join(', ')}`);
-  lines.push(`- Required supervisor paths: ${report.swr110_release_gate.required_supervisor_paths.join(', ')}`);
-  lines.push(`- Missing/failing evidence paths: ${report.swr110_release_gate.missing_evidence_paths.join(', ') || 'none'}`);
-  if ((report.swr110_release_gate.representative_blockers ?? []).length > 0) {
-    lines.push('- Representative blockers:');
-    for (const blocker of report.swr110_release_gate.representative_blockers.slice(0, 40)) {
-      lines.push(`  - ${blocker}`);
-    }
-  }
-  if ((report.swr110_release_gate.all_tools_blockers ?? []).length > 0) {
-    lines.push('- All-tools blockers:');
-    for (const blocker of report.swr110_release_gate.all_tools_blockers.slice(0, 40)) {
-      lines.push(`  - ${blocker}`);
-    }
-  }
-  lines.push('');
-  lines.push('## Virtual Desktop App Matrix Gate');
-  lines.push(`- Decision: ${report.virtual_desktop_app_matrix_gate.decision}`);
-  lines.push(`- Apps checked: ${report.virtual_desktop_app_matrix_gate.app_count}`);
-  lines.push(`- Required workflow states: ${report.virtual_desktop_app_matrix_gate.required_workflow_states.join(', ')}`);
-  lines.push(`- Required simulator modalities: ${report.virtual_desktop_app_matrix_gate.required_simulator_modalities.join(', ')}`);
-  lines.push(`- Observed simulator modalities: ${report.virtual_desktop_app_matrix_gate.observed_simulator_modalities.join(', ') || 'none'}`);
-  lines.push(`- Required simulator capability modalities: ${(report.virtual_desktop_app_matrix_gate.required_simulator_capability_modalities ?? []).join(', ')}`);
-  lines.push(`- Observed simulator capability modalities: ${(report.virtual_desktop_app_matrix_gate.observed_simulator_capability_modalities ?? []).join(', ') || 'none'}`);
-  lines.push(`- Missing backend contracts: ${report.virtual_desktop_app_matrix_gate.missing_contract_app_ids.join(', ') || 'none'}`);
-  lines.push(`- Missing workflows: ${report.virtual_desktop_app_matrix_gate.missing_workflow_app_ids.join(', ') || 'none'}`);
-  lines.push(`- Missing screenshots: ${report.virtual_desktop_app_matrix_gate.missing_screenshot_apps.map(item => item.app_id).join(', ') || 'none'}`);
-  lines.push(`- Missing workflow states: ${report.virtual_desktop_app_matrix_gate.missing_workflow_states.map(item => `${item.app_id}:${item.state}`).join(', ') || 'none'}`);
-  lines.push(`- Missing UX states: ${report.virtual_desktop_app_matrix_gate.missing_ux_states.map(item => `${item.app_id}:${item.state}`).join(', ') || 'none'}`);
-  lines.push(`- Missing backend capability sets: ${(report.virtual_desktop_app_matrix_gate.missing_backend_capability_set_app_ids ?? []).join(', ') || 'none'}`);
-  lines.push(`- Malformed backend capabilities: ${(report.virtual_desktop_app_matrix_gate.malformed_backend_capabilities ?? []).map(item => `${item.app_id}:${item.capability_id ?? 'contract'}:${(item.missing_fields ?? []).join('|')}`).slice(0, 40).join(', ') || 'none'}`);
-  lines.push(`- Missing app-visible binding capabilities: ${(report.virtual_desktop_app_matrix_gate.missing_app_visible_binding_capabilities ?? []).map(item => `${item.app_id}:${item.capability_id}`).slice(0, 40).join(', ') || 'none'}`);
-  lines.push(`- Missing ORB/IDL apps: ${report.virtual_desktop_app_matrix_gate.missing_orb_idl_app_ids.join(', ') || 'none'}`);
-  lines.push(`- Missing ORB/IDL capabilities: ${report.virtual_desktop_app_matrix_gate.missing_orb_idl_capabilities.map(item => item.capability_id).slice(0, 40).join(', ') || 'none'}`);
-  lines.push(`- Missing catalog reconciliation: ${report.virtual_desktop_app_matrix_gate.missing_catalog_reconciliation.map(item => `${item.service}:${item.tool_id}`).slice(0, 40).join(', ') || 'none'}`);
-  lines.push(`- Server catalog gaps: ${report.virtual_desktop_app_matrix_gate.server_catalog_gaps.map(item => `${item.server}:${item.kind}:${item.descriptor_count}`).join(', ') || 'none'}`);
-  lines.push(`- Missing simulator capability modalities: ${(report.virtual_desktop_app_matrix_gate.missing_simulator_capability_modalities ?? []).join(', ') || 'none'}`);
-  lines.push(`- Simulator replay gaps: ${report.virtual_desktop_app_matrix_gate.simulator_replay_gaps.map(item => `${item.projection_id}:${item.simulator_state}`).slice(0, 40).join(', ') || 'none'}`);
-  lines.push('');
-  lines.push('## Hierarchical MCP Evidence');
-  lines.push(`- Evidence decision: ${report.hierarchical_mcp.decision ?? report.hierarchical_mcp.status}; release gate: ${report.hierarchical_mcp.release_gate_decision ?? report.hierarchical_mcp.status}`);
-  lines.push(`- Services live: ${report.hierarchical_mcp.available_service_count ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'}`);
-  lines.push(`- Expected live services: ${(report.hierarchical_mcp.expected_live_services ?? []).join(', ') || 'none'}`);
-  lines.push(`- Full facade services: ${report.hierarchical_mcp.services_with_full_facade ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'}`);
-  lines.push(`- Dispatch probes: ${report.hierarchical_mcp.dispatch_pass_count ?? 'unknown'} / ${report.hierarchical_mcp.dispatch_probe_count ?? 'unknown'}`);
-  lines.push(`- Alias dispatch probes: ${report.hierarchical_mcp.alias_dispatch_pass_count ?? 'unknown'} / ${report.hierarchical_mcp.alias_dispatch_probe_count ?? 'unknown'}`);
-  lines.push(`- Direct-only descriptors: ${report.hierarchical_mcp.direct_only_descriptor_count ?? 'unknown'}; receipt probes ${report.hierarchical_mcp.direct_only_receipt_count ?? 'unknown'} / ${report.hierarchical_mcp.direct_only_probe_count ?? 'unknown'}`);
-  lines.push(`- Removed from app-visible ledger: ${report.hierarchical_mcp.removed_from_app_visible_ledger_count ?? 'unknown'}`);
-  lines.push(`- Unexplained flat hierarchy gaps: ${report.hierarchical_mcp.unexplained_flat_hierarchy_gap_count ?? 'unknown'}`);
-  for (const mismatch of report.hierarchical_mcp.availability_mismatches ?? []) {
-    lines.push(`- Availability mismatch ${mismatch.service}: ${mismatch.reason}`);
-  }
-  for (const service of report.hierarchical_mcp.missing_facade_by_service ?? []) {
-    lines.push(`- Missing facade ${service.service}: ${service.missing_meta_tools.join(', ')}`);
-  }
-  if ((report.hierarchical_mcp.unobserved_services ?? []).length > 0) {
-    lines.push(`- Unobserved services: ${report.hierarchical_mcp.unobserved_services.join(', ')}`);
-  }
-  for (const directOnly of report.hierarchical_mcp.direct_only_summaries ?? []) {
-    lines.push(`- Direct-only ${directOnly.service}: ${directOnly.count ?? directOnly.descriptor_count ?? 'unknown'} descriptors; sample ${directOnly.sample.slice(0, 6).map(item => item.tool_id ?? item.name ?? String(item)).join(', ') || 'none'}`);
-  }
-  lines.push('');
-  lines.push('## Exhaustive All-Tools Evidence');
-  lines.push(`- Ledger tools: ${report.all_tools.ledger.exact_tool_record_count ?? 'unknown'} exact records; live ${report.all_tools.ledger.live_exact_tool_count ?? 'unknown'}; static ${report.all_tools.ledger.static_exact_tool_count ?? 'unknown'}`);
-  lines.push(`- Policy classifications: ${report.all_tools.classification.tool_count ?? 'unknown'} tools`);
-  lines.push(`- App bindings: ${report.all_tools.app_bindings.app_visible_tool_count ?? 'unknown'} app-visible tools / ${report.all_tools.app_bindings.tool_count ?? 'unknown'} total`);
-  lines.push(`- App-family states: ${report.all_tools.app_family_coverage.app_family_count ?? 'unknown'} families; fallback ${report.all_tools.app_family_coverage.fallback_state_family_count ?? 'unknown'}; blocked ${report.all_tools.app_family_coverage.blocked_state_family_count ?? 'unknown'}; degraded ${report.all_tools.app_family_coverage.degraded_state_family_count ?? 'unknown'}`);
-  lines.push(`- Execution fixtures: ${report.all_tools.execution_fixtures.fixture_count ?? 'unknown'} total; ${report.all_tools.execution_fixtures.app_routable_fixture_count ?? 'unknown'} app-routable; ${report.all_tools.execution_fixtures.denied_fixture_count ?? 'unknown'} denied`);
-  lines.push(`- ORB/IDL descriptors: ${report.all_tools.orb_idl.descriptor_count ?? 'unknown'} descriptors; ${report.all_tools.orb_idl.method_count ?? 'unknown'} methods; ${report.all_tools.orb_idl.adapter_required_method_count ?? 'unknown'} adapter-required methods`);
-  lines.push(`- Meta glasses projections: ${report.all_tools.glasses_projection.projection_count ?? 'unknown'} projections; ${report.all_tools.glasses_projection.hardware_free_replay_state_count ?? 'unknown'} replay states`);
-  lines.push(`- Tombstones: ${report.all_tools.ledger.tombstone_count ?? 'unknown'}`);
-  lines.push(`- New-tool drift: +${report.all_tools.ledger.drift?.added_tool_count ?? 0} / -${report.all_tools.ledger.drift?.removed_tool_count ?? 0} / changed ${report.all_tools.ledger.drift?.changed_schema_tool_count ?? 0}`);
-  lines.push(`- Exhaustive all-tools decision: ${report.exhaustive_all_tools_gate.decision}`);
-  lines.push('');
-  lines.push('## Hierarchical MCP Evidence');
-  lines.push(`- Evidence: ${report.hierarchical_mcp.status} (${report.hierarchical_mcp.path})`);
-  lines.push(`- Release gate: ${report.hierarchical_mcp.release_gate_decision ?? 'unknown'}`);
-  lines.push(`- Live services: ${report.hierarchical_mcp.available_service_count ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'}`);
-  lines.push(`- Full facade services: ${report.hierarchical_mcp.services_with_full_facade ?? 'unknown'} / ${report.hierarchical_mcp.service_count ?? 'unknown'}`);
-  lines.push(`- Representative dispatch: ${report.hierarchical_mcp.dispatch_pass_count ?? 'unknown'} / ${report.hierarchical_mcp.dispatch_probe_count ?? 'unknown'} passed`);
-  lines.push(`- Direct-only descriptors: ${report.hierarchical_mcp.direct_only_descriptor_count ?? 'unknown'}`);
-  lines.push(`- Removed from app-visible ledger: ${report.hierarchical_mcp.removed_from_app_visible_ledger_count ?? 'unknown'}`);
-  lines.push(`- Unexplained flat/hierarchy gaps: ${report.hierarchical_mcp.unexplained_flat_hierarchy_gap_count ?? 'unknown'}`);
-  for (const failure of report.hierarchical_mcp.dispatch_failures ?? []) {
-    lines.push(`- Dispatch failure ${failure.service}:${failure.category ?? 'unknown'}.${failure.tool ?? 'unknown'} (${failure.status})`);
-  }
-  for (const service of report.hierarchical_mcp.missing_facade_by_service ?? []) {
-    lines.push(`- Missing facade ${service.service}: ${(service.missing_meta_tools ?? []).join(', ') || 'unknown'}`);
-  }
-  lines.push('');
-  lines.push('## Release Gates');
-  const releaseGate = report.all_tools.release_policy_gate;
-  lines.push(`- Gate summary: ${releaseGate.pass_count ?? 'unknown'} passed, ${releaseGate.fail_count ?? 'unknown'} failed, ${releaseGate.warn_count ?? 'unknown'} warned`);
-  for (const gate of releaseGate.failed_gates ?? []) {
-    lines.push(`- Failed gate ${gate.gate_id}: ${gate.summary}`);
-  }
-  lines.push('');
-  lines.push('## Artifacts');
-  for (const [key, artifact] of Object.entries(report.artifacts)) {
-    lines.push(`- ${key}: ${artifact.status} (${artifact.path})`);
-  }
-  lines.push('');
-  lines.push('## Warnings');
-  if (report.go_no_go.warnings.length === 0) {
-    lines.push('- None');
-  } else {
-    for (const warning of report.go_no_go.warnings) lines.push(`- ${warning}`);
-  }
-  lines.push('');
-  lines.push('## Next Actions');
-  if (report.go_no_go.next_actions.length === 0) {
-    lines.push('- None');
-  } else {
-    for (const action of report.go_no_go.next_actions) lines.push(`- ${action}`);
-  }
-  lines.push('');
+  const lines = [
+    '# SwissKnife Virtual Desktop All-Tools Release Evidence', '',
+    `Generated: ${report.generated_at}`, `Source revision: \`${report.source_revision}\``,
+    `Decision: **${report.decision.status}**`, '',
+    '## Named release gaps', '',
+  ];
+  if (report.named_gaps.length === 0) lines.push('- None.');
+  else for (const item of report.named_gaps) lines.push(`- **${item.task_id}** — \`${escapeMd(item.scope)}\` / \`${item.code}\`: ${escapeMd(item.reason)}`);
+  lines.push('', '## Evidence freshness and status', '', '| Evidence | Task | Status | Generated | SHA-256 |', '| --- | --- | --- | --- | --- |');
+  for (const [id, artifact] of Object.entries(report.artifacts)) lines.push(`| \`${id}\` | ${artifact.task_id} | ${artifact.status} | ${artifact.generated_at ?? 'missing'} | \`${artifact.sha256?.slice(0, 12) ?? 'missing'}\` |`);
+  lines.push('', '## App behavior', '', `Passing complete app rows: ${report.app_behavior_matrix.passing_app_count}/${report.app_behavior_matrix.required_app_count ?? report.app_behavior_matrix.observed_app_count}.`, '',
+    '| App | Backend | Tool / owner / transport | Recovery | ORB packets | Meta |', '| --- | --- | --- | --- | ---: | --- |');
+  for (const row of report.app_behavior_matrix.rows) lines.push(`| \`${row.app_id}\` | ${row.backend_behavior} | \`${row.tool_id ?? 'missing'}\` / \`${row.owner ?? 'missing'}\` / \`${row.transport ?? 'missing'}\` | ${row.outage_recovery_reopen ? 'passed' : 'missing'} | ${row.orb_idl_packet_count} | ${row.meta_simulator} |`);
+  lines.push('', '## Service / profile / transport matrix', '', `Passing proof cells: ${report.service_profile_transport_matrix.passing_cell_count}/${report.service_profile_transport_matrix.required_cell_count}; release-satisfied cells: ${report.service_profile_transport_matrix.release_satisfied_cell_count}/${report.service_profile_transport_matrix.required_cell_count}.`, '',
+    '| Service | Profile | Capability | HTTP | libp2p | Selection |', '| --- | --- | --- | --- | --- | --- |');
+  for (const cell of report.service_profile_transport_matrix.cells) lines.push(`| \`${cell.service}\` | ${cell.profile} | ${cell.capability_state} | ${cell.http_state} | ${cell.libp2p_state} | ${cell.fallback_decision ?? 'unobserved'} → ${cell.selected_transport ?? 'none'} |`);
+  lines.push('', '## Supervisor Console', '',
+    `- Evidence status: ${report.supervisor_console.status}`,
+    `- Owners: ${report.supervisor_console.owners.join(', ') || 'none'}`,
+    `- Task graph linked: ${report.supervisor_console.task_graph?.linked ?? false}`,
+    `- Prompt steering modes: ${report.supervisor_console.prompt_steering.map(item => item.mode).join(', ') || 'none'}`,
+    `- Dispatch status: ${report.supervisor_console.dispatch?.status ?? 'missing'}`, '',
+    '## ORB/IDL packets', '',
+    `- Evidence status: ${report.orb_idl_packets.status}`,
+    `- Packets: ${report.orb_idl_packets.packet_count}; apps: ${report.orb_idl_packets.app_count ?? 'unknown'}; Supervisor packets: ${report.orb_idl_packets.supervisor_packet_count}`,
+    `- Interface CIDs: ${report.orb_idl_packets.interface_cid_count}`,
+    `- Permission states: ${formatCounts(report.orb_idl_packets.permission_states)}`,
+    `- Fallback surfaces: ${formatCounts(report.orb_idl_packets.fallback_surfaces)}`, '',
+    '## Meta simulator modalities', '',
+    '| Modality | Replayed packets | Required packets | Status |', '| --- | ---: | ---: | --- |');
+  for (const row of report.meta_simulator_modalities.rows) lines.push(`| ${row.modality} | ${row.replayed_packet_count} | ${row.expected_packet_count} | ${row.passing ? 'passed' : 'missing/failed'} |`);
+  lines.push('', `Physical hardware: **not claimed**; disposition approved by ${report.meta_simulator_modalities.hardware_non_release_disposition?.approved_by ?? 'missing approval'}.`, '',
+    '## Screenshots and provenance', '',
+    `- Screenshot roots present: ${report.screenshot_evidence.expected_roots.filter(root => root.present).length}/${report.screenshot_evidence.expected_roots.length}`,
+    `- Screenshots present and valid: ${report.screenshot_evidence.present_count}/${report.screenshot_evidence.declared_count}`,
+    `- App receipts/events/links: ${report.receipt_event_dag_evidence.app_behavior.receipt_count}/${report.receipt_event_dag_evidence.app_behavior.event_dag_count}/${report.receipt_event_dag_evidence.app_behavior.linked_count}`,
+    `- ORB receipt/event refs: ${report.receipt_event_dag_evidence.orb_idl.receipt_ref_count}/${report.receipt_event_dag_evidence.orb_idl.event_dag_ref_count}`,
+    `- Meta receipt preservation: ${report.receipt_event_dag_evidence.meta_simulator.preserved_count}/${report.receipt_event_dag_evidence.meta_simulator.packet_count}`,
+    `- Peer event-DAG visibility: ${report.receipt_event_dag_evidence.peer_interoperability.event_dag_visible_count}/${REQUIRED_SERVICES.length * REQUIRED_TRANSPORTS.length}`, '',
+    '## Explicit unavailable, blocked, denied, static-only, and skipped cases', '');
+  if (report.unavailable_and_blocked_cases.length === 0) lines.push('- None.');
+  else for (const item of report.unavailable_and_blocked_cases) lines.push(`- **${item.task_id}** — ${escapeMd(item.kind)} / \`${escapeMd(item.scope ?? `${item.service ?? ''}:${item.tool_id ?? item.profile ?? ''}`)}\` / ${item.state}: ${escapeMd(item.reason ?? 'No reason recorded.')}`);
+  lines.push('', '## Approved non-release dispositions', '');
+  for (const item of report.non_release_dispositions.approved) lines.push(`- \`${escapeMd(item.scope)}\` — ${escapeMd(item.disposition)}; ${escapeMd(item.rationale)} (${item.approved_by}, ${item.approval_task_id})`);
+  if (report.non_release_dispositions.approved.length === 0) lines.push('- None.');
+  lines.push('', '## Decision', '', report.decision.status === 'GO'
+    ? 'Every required surface has a current passing proof or an approved non-release disposition.'
+    : `Release remains **NO_GO**. Close only the named task gaps: ${report.decision.blocker_task_ids.join(', ') || 'none'}.`, '');
   return `${lines.join('\n')}\n`;
 }
+
+function renderSignoff(report) {
+  const lines = [
+    '# Refactor Final Signoff', '',
+    'Task: SVD-101 — Aggregate freshness-aware release evidence and close only named gaps', '',
+    `Observed: ${report.generated_at}`,
+    `SwissKnife revision: \`${report.source_revision}\``,
+    `Release decision: **${report.decision.status}**`, '',
+    'This signoff is generated from `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`.',
+    'It does not convert missing, stale, blocked, denied, unsupported, or static-only evidence into success.', '',
+    '## Decision basis', '',
+    `- Required evidence artifacts passed: ${Object.values(report.artifacts).filter(item => item.status === 'passed').length}/${Object.keys(report.artifacts).length}`,
+    `- Complete app rows passed: ${report.app_behavior_matrix.passing_app_count}/${report.app_behavior_matrix.required_app_count ?? report.app_behavior_matrix.observed_app_count}`,
+    `- Service/profile cells release-satisfied: ${report.service_profile_transport_matrix.release_satisfied_cell_count}/${report.service_profile_transport_matrix.required_cell_count}`,
+    `- Meta modalities passed: ${report.meta_simulator_modalities.passing_modality_count}/${REQUIRED_MODALITIES.length}`,
+    `- Named blockers: ${report.decision.blocker_count}`,
+    `- Approved non-release dispositions: ${report.decision.approved_non_release_disposition_count}`, '',
+    '## Named blockers', '',
+  ];
+  if (report.named_gaps.length === 0) lines.push('- None.');
+  else for (const item of report.named_gaps) lines.push(`- **${item.task_id}** — \`${escapeMd(item.scope)}\`: ${escapeMd(item.reason)}`);
+  lines.push('', '## Non-release boundary', '',
+    '- Physical Meta hardware pairing is not required, was not tested, and is not claimed. SVD-099 simulator evidence is the approved release scope.',
+    '- Denied non-mutating peer tools are accepted only when SVD-100 records exact name-level discovery, a typed denial reason, and no count-based inference.',
+    '- Any other unavailable, unsupported, static-only, missing, or failed case remains a named blocker unless an explicit approved disposition is added to its source artifact.', '',
+    '## Evidence', '',
+    '- Machine report: `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`',
+    '- Readable report: `test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md`',
+    '- Freshness receipt: `docs/virtual-desktop-release-evidence.fingerprint.json`', '',
+    report.decision.status === 'GO'
+      ? 'The SVD-101 release scope is approved.'
+      : `The release remains **NO_GO** until the named ${report.decision.blocker_task_ids.join(', ')} gaps are refreshed or consciously dispositioned.`,
+  );
+  return `${lines.join('\n')}\n`;
+}
+
+function certifyAggregateFreshness() {
+  execFileSync(process.execPath, [
+    'scripts/audit-release-evidence-freshness.mjs', '--update', 'virtual-desktop-release-evidence',
+    '--json', 'docs/release-evidence-freshness.json', '--report', 'docs/release-evidence-freshness.md',
+  ], { cwd: projectRoot, stdio: 'pipe' });
+}
+
+function fingerprintPaths(paths) {
+  const files = [];
+  for (const relativePath of paths) {
+    const absolutePath = path.resolve(projectRoot, relativePath);
+    if (!absolutePath.startsWith(`${projectRoot}${path.sep}`) && absolutePath !== projectRoot) continue;
+    if (!fs.existsSync(absolutePath)) {
+      files.push({ path: normalizePath(relativePath), sha256: 'MISSING', exists: false });
+      continue;
+    }
+    if (fs.statSync(absolutePath).isFile()) {
+      files.push({ path: normalizePath(relativePath), sha256: sha256(fs.readFileSync(absolutePath)), exists: true });
+      continue;
+    }
+    walkFiles(absolutePath).forEach(file => files.push({ path: relative(file), sha256: sha256(fs.readFileSync(file)), exists: true }));
+  }
+  files.sort((a, b) => a.path.localeCompare(b.path));
+  return { combined_sha256: sha256(files.map(file => `${file.path}:${file.sha256}`).join('\n')), files };
+}
+
+function safeProjectPath(declaredPath) {
+  if (!nonEmpty(declaredPath) || path.isAbsolute(declaredPath)) return null;
+  const resolved = path.resolve(projectRoot, declaredPath);
+  return resolved.startsWith(`${projectRoot}${path.sep}`) ? resolved : null;
+}
+
+function isPng(filePath) {
+  const signature = fs.readFileSync(filePath).subarray(0, 8);
+  return signature.equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+}
+
+function walkFiles(root) {
+  const files = [];
+  for (const entry of fs.readdirSync(root, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const target = path.join(root, entry.name);
+    if (entry.isDirectory()) files.push(...walkFiles(target));
+    else if (entry.isFile()) files.push(target);
+  }
+  return files;
+}
+
+function atomicWriteJson(filePath, value) { atomicWrite(filePath, `${JSON.stringify(value, null, 2)}\n`); }
+function atomicWrite(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const temporaryPath = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(temporaryPath, value, 'utf8');
+  fs.renameSync(temporaryPath, filePath);
+}
+function gitRevision() {
+  try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim(); }
+  catch { return 'unknown'; }
+}
+function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
+function normalizePath(value) { return value.split(path.sep).join('/'); }
+function relative(value) { return normalizePath(path.relative(projectRoot, value)); }
+function nonEmpty(value) { return typeof value === 'string' && value.trim().length > 0; }
+function isIsoDate(value) { return nonEmpty(value) && Number.isFinite(Date.parse(value)); }
+function normalizeDecision(value) { return String(value ?? '').toUpperCase().replace('-', '_'); }
+function unique(values) { return [...new Set(values)].sort(); }
+function sameSet(left, right) { return JSON.stringify(unique(left)) === JSON.stringify(unique(right)); }
+function dedupeGaps(items) { return dedupeObjects(items, item => `${item.task_id}|${item.code}|${item.scope}|${item.reason}`); }
+function dedupeObjects(items, key) { const seen = new Set(); return items.filter(item => { const id = key(item); if (seen.has(id)) return false; seen.add(id); return true; }); }
+function countBy(items, key) { return items.reduce((counts, item) => { const value = key(item); counts[value] = (counts[value] ?? 0) + 1; return counts; }, {}); }
+function formatCounts(counts) { return Object.entries(counts ?? {}).map(([key, value]) => `${key}=${value}`).join(', ') || 'none'; }
+function transportState(service, transport) { return service?.transports?.[transport]?.connected ? 'live' : 'unobserved'; }
+function escapeMd(value) { return String(value ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' '); }
+function errorMessage(error) { return error instanceof Error ? error.message : String(error); }

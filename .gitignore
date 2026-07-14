@@ -262,6 +262,7 @@ test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/*
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/*.png
 !test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json
+!test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md
 benchmark-results/
 playwright-report/
 coverage/

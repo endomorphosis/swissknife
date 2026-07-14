@@ -1,80 +1,90 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-10T11:21:21.777Z",
+  "generatedAt": "2026-07-14T07:47:06.845Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
       "label": "Browser libp2p Playwright evidence (SWR-028)",
-      "status": "invalid",
+      "status": "never-certified",
       "updated": false,
+      "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-      "recordedFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
-      "currentFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
-      "recordedAt": "2026-07-10T08:30:35.579Z",
-      "regenerateHint": "npm run evidence:libp2p-browser",
-      "invalidReason": "Recorded fingerprint was produced for historical source and was not recomputed from the reconciled checkout."
+      "recordedEvidenceHashes": null,
+      "currentEvidenceHashes": {
+        "docs/browser-libp2p-evidence.md": "a6528fa57e50534040b1b8a7edc1790a8a2642f58016fe62a6491a44b6a40b63"
+      },
+      "recordedFingerprint": null,
+      "currentFingerprint": "f44a53ca2faa1f2b69ab0203430a7ae6a7a3cab962ce0451d86fe40c0337bae4",
+      "recordedAt": null,
+      "regenerateHint": "npm run evidence:libp2p-browser"
     },
     {
       "id": "browser-bundle-budget",
       "label": "Browser bundle budget evidence (SWR-016)",
-      "status": "invalid",
+      "status": "never-certified",
       "updated": false,
+      "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-      "recordedFingerprint": "20c965bbcedd47d85e0fb8420a56d96670a7f51bf15b7bd3d4b94119ea734186",
-      "currentFingerprint": "20c965bbcedd47d85e0fb8420a56d96670a7f51bf15b7bd3d4b94119ea734186",
-      "recordedAt": "2026-07-10T11:21:12.629Z",
-      "regenerateHint": "npm run build:web",
-      "invalidReason": "Recorded fingerprint was produced for historical source and was not recomputed from the reconciled checkout."
+      "recordedEvidenceHashes": null,
+      "currentEvidenceHashes": {
+        "docs/browser-bundle-budget.md": "3741f868e7279f6441dd6c702a3cc0fa036fd2b45a166cc6f0d4ceda57125ee8",
+        "docs/browser-bundle-budget.json": "e1c812aa7a6d5b6ffc1a2581a8d8ab0fa93af2b5c3ead89672d871f29b54974d"
+      },
+      "recordedFingerprint": null,
+      "currentFingerprint": "bde58fd9cf8f0db8ba60e120df7033f293ab16e4479d8afb4e266d0ace6179cf",
+      "recordedAt": null,
+      "regenerateHint": "npm run build:web"
     },
     {
       "id": "module-boundary-audit",
       "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
-      "status": "invalid",
+      "status": "never-certified",
       "updated": false,
+      "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
-      "recordedFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
-      "currentFingerprint": "fdd82c2dcae32857aa6604d84fdb7d99644dfcfe4168a5991aa7cbd2a5a6d3c2",
-      "recordedAt": "2026-07-10T11:20:43.155Z",
-      "regenerateHint": "npm run services:audit",
-      "invalidReason": "Recorded fingerprint was produced for historical source and was not recomputed from the reconciled checkout."
+      "recordedEvidenceHashes": null,
+      "currentEvidenceHashes": {
+        "docs/service-boundary-audit.json": "76ab312ecd665f8192021f68aabdbb79947c387eb682b446d6cc19e4c5d03b79"
+      },
+      "recordedFingerprint": null,
+      "currentFingerprint": "b3682aa5c1ec24bed49c81a580222d63c6f16208d74e316825a32075cef36948",
+      "recordedAt": null,
+      "regenerateHint": "npm run services:audit"
     },
     {
       "id": "virtual-desktop-release-evidence",
-      "label": "Virtual desktop app matrix release evidence (SWR-103)",
-      "status": "invalid",
-      "updated": false,
+      "label": "Virtual desktop all-tools release evidence (SVD-101)",
+      "status": "fresh",
+      "updated": true,
+      "releaseBlocking": true,
       "missingEvidenceFiles": [],
-      "missingSourceFiles": [],
-      "recordedFingerprint": "199654f872ec1e2af31d9402f863ed60d09e32cfe4bf03eab73feb13dbf3ff58",
-      "currentFingerprint": "199654f872ec1e2af31d9402f863ed60d09e32cfe4bf03eab73feb13dbf3ff58",
-      "recordedAt": "2026-07-10T11:21:21.481Z",
-      "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs",
-      "invalidReason": "Recorded fingerprint was produced for historical source and was not recomputed from the reconciled checkout."
+      "missingSourceFiles": [
+        "scripts/capture-all-profile-service-matrix.cjs",
+        "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json",
+        "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor",
+        "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend",
+        "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator"
+      ],
+      "recordedEvidenceHashes": {
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "0d0f68f7c0aad540812e79966b03dfd3c595f22bc171526ec743b7d78fd3c5f5",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "5db6820d8dfeb98e7c11def11dbb8cac0f05b2138dd4dab4687bb4f81e971e81",
+        "docs/refactor-final-signoff.md": "cbdee3a8ebb5fd0d48870256961249c679736cf330b18411cb18bf319a17d219"
+      },
+      "currentEvidenceHashes": {
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "0d0f68f7c0aad540812e79966b03dfd3c595f22bc171526ec743b7d78fd3c5f5",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "5db6820d8dfeb98e7c11def11dbb8cac0f05b2138dd4dab4687bb4f81e971e81",
+        "docs/refactor-final-signoff.md": "cbdee3a8ebb5fd0d48870256961249c679736cf330b18411cb18bf319a17d219"
+      },
+      "recordedFingerprint": "106ebb6d73d08707b4ad404b8595da2b26736e39b3870f5136753bcaecabb644",
+      "currentFingerprint": "106ebb6d73d08707b4ad404b8595da2b26736e39b3870f5136753bcaecabb644",
+      "recordedAt": "2026-07-14T07:47:06.844Z",
+      "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs"
     }
-  ],
-  "taskId": "SWR-134",
-  "decision": "NO_GO",
-  "summary": {
-    "total": 4,
-    "fresh": 0,
-    "invalid": 4,
-    "validForCurrentCheckout": false
-  },
-  "sourceIntegrity": {
-    "status": "invalid",
-    "conflictPathCount": 16,
-    "baselineHead": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c"
-  },
-  "reconciliation": {
-    "taskId": "SWR-134",
-    "reconciledAt": "2026-07-13T14:54:14-07:00",
-    "baselineHead": "8f291a24ea7b635a8ef804dca66c0fe2d6236f2c",
-    "status": "invalid_for_current_checkout",
-    "reason": "This artifact was recovered only to restore parseability. Its generator and other prerequisite paths still contain committed conflict blocks, so historical counts and receipts are not current-source proof.",
-    "authoritativeEvidence": "docs/phase-21-checkout-reconciliation.json",
-    "recoveryTask": "SWR-136"
-  }
+  ]
 }

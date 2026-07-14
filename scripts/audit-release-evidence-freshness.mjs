@@ -33,8 +33,11 @@
  *                        Use this immediately after regenerating the
  *                        corresponding evidence (e.g. after a Playwright run).
  *   --fail-on-stale      Exit non-zero when any evidence group is missing or
- *                        stale (default: on).
+ *                        stale in the selected scope (default: on).
  *   --no-fail-on-stale    Record status without failing the process.
+ *   --scope <active|all|id>
+ *                        Select active release groups (default), every group,
+ *                        or one evidence group for failure evaluation.
  *   --json <path>        Write a machine-readable freshness report.
  *   --report <path>      Write a human-readable Markdown freshness report.
  *   --help, -h            Show this help text.
@@ -60,6 +63,7 @@ const EVIDENCE_GROUPS = [
   {
     id: 'libp2p-browser-playwright',
     label: 'Browser libp2p Playwright evidence (SWR-028)',
+    releaseBlocking: false,
     // Only `docs/browser-libp2p-evidence.md` is tracked in git (the raw
     // `test-results/libp2p-browser/*` Playwright output — screenshots,
     // traces, per-run JSON captures — is intentionally gitignored and
@@ -84,6 +88,7 @@ const EVIDENCE_GROUPS = [
   {
     id: 'browser-bundle-budget',
     label: 'Browser bundle budget evidence (SWR-016)',
+    releaseBlocking: false,
     evidenceFiles: ['docs/browser-bundle-budget.md', 'docs/browser-bundle-budget.json'],
     sourcePaths: [
       'vite.web.config.ts',
@@ -97,6 +102,7 @@ const EVIDENCE_GROUPS = [
   {
     id: 'module-boundary-audit',
     label: 'Module-boundary / service-boundary audit evidence (SWR-024)',
+    releaseBlocking: false,
     evidenceFiles: ['docs/service-boundary-audit.json'],
     sourcePaths: ['src/module-ownership.json', 'scripts/audit-source-modules.mjs'],
     fingerprintFile: 'docs/service-boundary-audit.fingerprint.json',
@@ -104,33 +110,39 @@ const EVIDENCE_GROUPS = [
   },
   {
     id: 'virtual-desktop-release-evidence',
-    label: 'Virtual desktop app matrix release evidence (SWR-103)',
-    evidenceFiles: ['test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json'],
+    label: 'Virtual desktop all-tools release evidence (SVD-101)',
+    releaseBlocking: true,
+    allowMissingSourceRoots: true,
+    evidenceFiles: [
+      'test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md',
+      'docs/refactor-final-signoff.md',
+    ],
     sourcePaths: [
       'scripts/build-virtual-desktop-release-evidence.cjs',
-      'test-results/virtual-desktop-ipfs-mcp-orb/app-inventory.json',
+      'scripts/audit-release-evidence-freshness.mjs',
+      'scripts/capture-all-profile-service-matrix.cjs',
+      'scripts/capture-swissknife-all-tools-peer-evidence.cjs',
       'test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/app-workflow-matrix.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots',
-      'test-results/virtual-desktop-ipfs-mcp-orb/all-server-tool-catalog.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/mcp-plus-plus-libp2p-catalog.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/mcpplusplus-libp2p-reachability.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/descriptor-discovery.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/hierarchical-tools-evidence.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/service-health.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-receipts.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-console-e2e.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-console-receipts.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/orb-idl-complete-coverage.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/glasses-simulator-handoff.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-ledger.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-matrix.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-bindings.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-family-coverage.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-execution-report.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-idl-coverage.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-coverage.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend',
+      'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor',
+      'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator',
+      'test/e2e/all-app-live-backend-behavior.spec.ts',
+      'test/e2e/agent-supervisor-all-app-validation.spec.ts',
+      'test/mcp-plus-plus/all-app-live-orb-idl-handoff.test.ts',
+      'test/e2e/all-app-meta-device-simulator.spec.ts',
+      'src/services/apps/virtual-desktop-app-manifest.ts',
+      'src/services/glasses/all-app-live-orb-idl-handoff.ts',
+      'src/services/glasses/desktop-orb-idl-contract.ts',
+      'src/services/mcp/agent-supervisor-console-gateway.ts',
+      'src/services/mcp/mcp-plus-plus-connector.ts',
+      'web/js/apps/agent-supervisor.js',
     ],
     fingerprintFile: 'docs/virtual-desktop-release-evidence.fingerprint.json',
     regenerateHint: 'node scripts/build-virtual-desktop-release-evidence.cjs',
@@ -196,7 +208,12 @@ function sha256(content) {
 function computeSourceFingerprint(sourcePaths) {
   const files = [];
   for (const sourcePath of sourcePaths) {
-    for (const filePath of collectFiles(sourcePath)) {
+    const collected = collectFiles(sourcePath);
+    if (collected.length === 0 && !fs.existsSync(abs(sourcePath))) {
+      files.push(sourcePath);
+      continue;
+    }
+    for (const filePath of collected) {
       files.push(filePath);
     }
   }
@@ -218,7 +235,14 @@ function loadFingerprintReceipt(fingerprintFile) {
   return readJsonIfExists(fingerprintFile);
 }
 
-function writeFingerprintReceipt(group, fingerprint) {
+function computeEvidenceHashes(evidenceFiles) {
+  return Object.fromEntries(evidenceFiles.map((file) => [
+    file,
+    fs.existsSync(abs(file)) ? sha256(fs.readFileSync(abs(file))) : 'MISSING',
+  ]));
+}
+
+function writeFingerprintReceipt(group, fingerprint, evidenceHashes) {
   ensureParentDir(group.fingerprintFile);
   const receipt = {
     schema: FINGERPRINT_SCHEMA,
@@ -226,6 +250,7 @@ function writeFingerprintReceipt(group, fingerprint) {
     label: group.label,
     generatedAt: new Date().toISOString(),
     evidenceFiles: group.evidenceFiles,
+    evidenceHashes,
     sourceFingerprint: fingerprint.combinedSha256,
     sourceFiles: fingerprint.files.map((file) => ({ path: file.path, sha256: file.sha256 })),
   };
@@ -235,18 +260,26 @@ function writeFingerprintReceipt(group, fingerprint) {
 
 function evaluateGroup(group, { update }) {
   const missingEvidenceFiles = group.evidenceFiles.filter((file) => !fs.existsSync(abs(file)));
+  const currentEvidenceHashes = computeEvidenceHashes(group.evidenceFiles);
   const currentFingerprint = computeSourceFingerprint(group.sourcePaths);
   const missingSourceFiles = currentFingerprint.files.filter((file) => !file.exists).map((file) => file.path);
 
   if (update) {
-    const receipt = writeFingerprintReceipt(group, currentFingerprint);
+    const receipt = writeFingerprintReceipt(group, currentFingerprint, currentEvidenceHashes);
     return {
       id: group.id,
       label: group.label,
-      status: missingEvidenceFiles.length > 0 ? 'missing-evidence' : 'fresh',
+      status: missingEvidenceFiles.length > 0
+        ? 'missing-evidence'
+        : missingSourceFiles.length > 0 && !group.allowMissingSourceRoots
+          ? 'missing-source'
+          : 'fresh',
       updated: true,
+      releaseBlocking: group.releaseBlocking !== false,
       missingEvidenceFiles,
       missingSourceFiles,
+      recordedEvidenceHashes: receipt.evidenceHashes,
+      currentEvidenceHashes,
       recordedFingerprint: receipt.sourceFingerprint,
       currentFingerprint: currentFingerprint.combinedSha256,
       recordedAt: receipt.generatedAt,
@@ -255,12 +288,26 @@ function evaluateGroup(group, { update }) {
   }
 
   const previousReceipt = loadFingerprintReceipt(group.fingerprintFile);
+  const validPreviousReceipt = previousReceipt
+    && previousReceipt.schema === FINGERPRINT_SCHEMA
+    && previousReceipt.id === group.id
+    && typeof previousReceipt.sourceFingerprint === 'string'
+    && previousReceipt.evidenceHashes
+    && typeof previousReceipt.evidenceHashes === 'object';
+  const evidenceHashesMatch = validPreviousReceipt
+    && JSON.stringify(previousReceipt.evidenceHashes) === JSON.stringify(currentEvidenceHashes);
 
   let status;
   if (missingEvidenceFiles.length > 0) {
     status = 'missing-evidence';
+  } else if (missingSourceFiles.length > 0 && !group.allowMissingSourceRoots) {
+    status = 'missing-source';
+  } else if (previousReceipt && !validPreviousReceipt) {
+    status = 'invalid-receipt';
   } else if (!previousReceipt) {
     status = 'never-certified';
+  } else if (!evidenceHashesMatch) {
+    status = 'evidence-modified';
   } else if (previousReceipt.sourceFingerprint !== currentFingerprint.combinedSha256) {
     status = 'stale';
   } else {
@@ -272,8 +319,11 @@ function evaluateGroup(group, { update }) {
     label: group.label,
     status,
     updated: false,
+    releaseBlocking: group.releaseBlocking !== false,
     missingEvidenceFiles,
     missingSourceFiles,
+    recordedEvidenceHashes: previousReceipt?.evidenceHashes ?? null,
+    currentEvidenceHashes,
     recordedFingerprint: previousReceipt?.sourceFingerprint ?? null,
     currentFingerprint: currentFingerprint.combinedSha256,
     recordedAt: previousReceipt?.generatedAt ?? null,
@@ -284,6 +334,7 @@ function evaluateGroup(group, { update }) {
 function parseArgs(argv) {
   const args = {
     update: null,
+    scope: 'active',
     failOnStale: true,
     json: null,
     report: null,
@@ -299,6 +350,9 @@ function parseArgs(argv) {
       args.failOnStale = true;
     } else if (arg === '--no-fail-on-stale') {
       args.failOnStale = false;
+    } else if (arg === '--scope') {
+      args.scope = argv[++i];
+      if (!args.scope) throw new Error('--scope requires "active", "all", or an evidence group id');
     } else if (arg === '--json') {
       args.json = argv[++i];
       if (!args.json) throw new Error('--json requires a path');
@@ -324,6 +378,9 @@ function usage() {
     '                        evidence group (or all groups) instead of only checking it.',
     '  --fail-on-stale       Exit non-zero when evidence is missing/stale (default).',
     '  --no-fail-on-stale    Record status without failing the process.',
+    '  --scope <active|all|id>',
+    '                        Evaluate active release groups (default), all groups,',
+    '                        or one group when deciding the exit status.',
     '  --json <path>         Write a machine-readable freshness report.',
     '  --report <path>       Write a human-readable Markdown freshness report.',
     '  --help, -h            Show this help text.',
@@ -335,8 +392,8 @@ function usage() {
 
 function renderMarkdown(results) {
   const rows = results.map((result) => {
-    const icon = { fresh: '✅', stale: '❌', 'missing-evidence': '❌', 'never-certified': '⚠️' }[result.status];
-    return `| ${result.label} | ${icon} ${result.status} | ${result.recordedAt ?? 'never'} | ${result.regenerateHint} |`;
+    const icon = { fresh: '✅', stale: '❌', 'evidence-modified': '❌', 'missing-evidence': '❌', 'missing-source': '❌', 'invalid-receipt': '❌', 'never-certified': '⚠️' }[result.status];
+    return `| ${result.label} | ${result.releaseBlocking ? 'active' : 'historical'} | ${icon} ${result.status} | ${result.recordedAt ?? 'never'} | ${result.regenerateHint} |`;
   });
 
   return [
@@ -346,10 +403,12 @@ function renderMarkdown(results) {
     'whether expensive, non-re-run-every-time browser/libp2p evidence (Playwright',
     'runs, bundle budget snapshots, module-boundary audit snapshots) and the',
     'virtual-desktop app matrix release evidence are still derived from the',
-    'current state of the source they depend on.',
+    'current state of the source they depend on. Historical SWR groups remain',
+    'visible and can be checked or updated explicitly; the SVD-101 aggregate',
+    'is the active default release-blocking group.',
     '',
-    '| Evidence | Status | Last certified | Regenerate with |',
-    '| --- | --- | --- | --- |',
+    '| Evidence | Default scope | Status | Last certified | Regenerate with |',
+    '| --- | --- | --- | --- | --- |',
     ...rows,
     '',
     ...results
@@ -387,19 +446,26 @@ function run(argv) {
     groupsToUpdate.add(args.update);
   }
 
+  if (args.scope !== 'active' && args.scope !== 'all'
+    && !EVIDENCE_GROUPS.some((group) => group.id === args.scope)) {
+    throw new Error(`Unknown --scope "${args.scope}". Use active, all, or one of: ${EVIDENCE_GROUPS.map((group) => group.id).join(', ')}`);
+  }
+
   // Scope controls which groups can cause a non-zero exit code. Certifying a
   // single evidence group (`--update <id>`) is meant to be run as a narrow
   // step embedded in that group's own regeneration command (e.g.
   // `services:audit` re-certifying `module-boundary-audit`); it must not fail
   // that unrelated command just because some *other* group's evidence is
-  // stale. `--update all` and the default check-only mode (used by the
-  // dedicated `evidence:freshness:check` release gate) intentionally
-  // consider every group. The report/JSON output always reflects every
-  // group's current status regardless of scope, so nothing is hidden.
-  const scope =
-    args.update && args.update !== 'all'
+  // stale. `--update all` considers every group. The default check-only mode
+  // fails on active release-blocking groups; superseded historical groups
+  // remain visible in the report and can still be selected explicitly.
+  const scope = args.update === 'all' || (!args.update && args.scope === 'all')
+    ? new Set(EVIDENCE_GROUPS.map((group) => group.id))
+    : args.update
       ? new Set([args.update])
-      : new Set(EVIDENCE_GROUPS.map((group) => group.id));
+      : args.scope !== 'active'
+        ? new Set([args.scope])
+        : new Set(EVIDENCE_GROUPS.filter((group) => group.releaseBlocking !== false).map((group) => group.id));
 
   const results = EVIDENCE_GROUPS.map((group) =>
     evaluateGroup(group, { update: groupsToUpdate.has(group.id) }),
@@ -422,7 +488,7 @@ function run(argv) {
   console.log('Release evidence freshness:');
   for (const result of results) {
     console.log(
-      `  - ${result.label}: ${result.status}${result.updated ? ' (fingerprint updated)' : ''}`,
+      `  - ${result.label}: ${result.status}${result.updated ? ' (fingerprint updated)' : ''}${result.releaseBlocking ? '' : ' (historical; non-blocking in active scope)'}`,
     );
     if (result.missingEvidenceFiles.length > 0) {
       console.log(`      missing evidence file(s): ${result.missingEvidenceFiles.join(', ')}`);
@@ -435,7 +501,7 @@ function run(argv) {
   const failing = results.filter(
     (result) =>
       scope.has(result.id) &&
-      (result.status === 'stale' || result.status === 'missing-evidence' || result.status === 'never-certified'),
+      ['stale', 'evidence-modified', 'missing-evidence', 'missing-source', 'invalid-receipt', 'never-certified'].includes(result.status),
   );
   if (failing.length > 0 && args.failOnStale) {
     console.error('');
