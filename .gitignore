@@ -253,6 +253,7 @@ test-results/virtual-desktop-ipfs-mcp-orb/*
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json
 !test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json
+!test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-binding-gap-ledger.json
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/
 test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/*
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend/
