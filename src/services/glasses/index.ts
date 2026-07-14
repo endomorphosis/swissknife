@@ -3,6 +3,7 @@ export * from './deployment-readiness-validator.js';
 export * from './desktop-orb-idl-contract.js';
 export * from './all-app-live-orb-idl-handoff.js';
 export * from './agent-supervisor-expanded-io-map.js';
+export * from './agent-supervisor-expanded-io-handoff.js';
 export * from './glasses-app-control-plane.js';
 export * from './glasses-enhanced-control-plane.js';
 export * from './idl-to-glasses-compiler.js';
