@@ -2,8 +2,8 @@
  * @vitest-environment node
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { dirname, join } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 import { VIRTUAL_DESKTOP_APP_MANIFEST } from '../../src/services/apps/virtual-desktop-app-manifest';
 import {
   ALL_APP_LIVE_ORB_IDL_HANDOFF_SCHEMA,
@@ -48,8 +48,6 @@ describe('SVD-098 current all-app live ORB/IDL handoff packets', () => {
         'src/services/mcp/agent-supervisor-console-gateway.ts',
       ],
     });
-    mkdirSync(dirname(HANDOFF_PATH), { recursive: true });
-    writeFileSync(HANDOFF_PATH, `${JSON.stringify(catalog, null, 2)}\n`, 'utf8');
   });
 
   it('compiles every tested app action and every Supervisor Console route', () => {
@@ -83,6 +81,9 @@ describe('SVD-098 current all-app live ORB/IDL handoff packets', () => {
       'supervisor.taskboard.links.read',
     ]);
     expect(existsSync(HANDOFF_PATH)).toBe(true);
+    // The release packet is a checked-in handoff artifact, not a test side
+    // effect. This equality check fails on descriptor/route drift until the
+    // reviewed packet catalog is deliberately refreshed.
     expect(JSON.parse(readFileSync(HANDOFF_PATH, 'utf8'))).toEqual(catalog);
   });
 
