@@ -126,14 +126,14 @@ describe('SVD-098 current all-app live ORB/IDL handoff packets', () => {
         expect(constraint.fallback_surface).toBeTruthy();
         expect(constraint.fallback_reason).toBeTruthy();
       }
-      if (packet.permission.state !== 'permitted') {
-        expect(packet.fallback_selection.selected).toBe(true);
-        expect(packet.fallback_selection.user_visible).toBe(true);
-      }
-      if (packet.fallback_selection.selected) {
-        expect(packet.fallback_selection.reason).not.toBe('direct_route_available');
-      }
     }
+
+    const nonPermittedPackets = catalog.packets.filter(packet => packet.permission.state !== 'permitted');
+    expect(nonPermittedPackets.every(packet => packet.fallback_selection.selected)).toBe(true);
+    expect(nonPermittedPackets.every(packet => packet.fallback_selection.user_visible)).toBe(true);
+    expect(catalog.packets
+      .filter(packet => packet.fallback_selection.selected)
+      .every(packet => packet.fallback_selection.reason !== 'direct_route_available')).toBe(true);
 
     const steering = catalog.packets.find(packet => packet.action_id === 'supervisor.prompt-steering.request');
     const taskControl = catalog.packets.find(packet => packet.action_id === 'supervisor.task-control.request');
@@ -167,7 +167,7 @@ describe('SVD-098 current all-app live ORB/IDL handoff packets', () => {
     expect(terminalDescriptor).toBeTruthy();
     const withoutTerminal = descriptors.filter(descriptor => descriptor !== terminalDescriptor);
 
-    expect(() => compileAllAppLiveOrbIdlHandoff(routes, withoutTerminal)).toThrowError(
+    expect(() => compileAllAppLiveOrbIdlHandoff(routes, withoutTerminal)).toThrow(
       expect.objectContaining<Partial<OrbIdlHandoffCompileError>>({
         code: 'DESCRIPTOR_NOT_FOUND',
         route_id: 'app:terminal:primary',
@@ -177,11 +177,14 @@ describe('SVD-098 current all-app live ORB/IDL handoff packets', () => {
 
   it('fails closed when the descriptor does not expose the route method or its CID is stale', () => {
     const invalidMethodRoute = { ...routes[0], method_id: 'missing_live_backend_method' };
-    expect(() => compileAllAppLiveOrbIdlHandoff([invalidMethodRoute], descriptors)).toThrowError(
+    expect(() => compileAllAppLiveOrbIdlHandoff([invalidMethodRoute], descriptors)).toThrow(
       expect.objectContaining<Partial<OrbIdlHandoffCompileError>>({ code: 'METHOD_NOT_FOUND' }),
     );
 
-    const descriptor = descriptors.find(item => item.descriptor_id === routes[0].descriptor_id)!;
+    const descriptor = descriptors.find(item => item.descriptor_id === routes[0].descriptor_id);
+    if (!descriptor) {
+      throw new Error(`Missing test descriptor ${routes[0].descriptor_id}`);
+    }
     const staleDescriptor: DesktopOrbIdlAppDescriptor = {
       ...descriptor,
       idl_descriptor: {
@@ -192,7 +195,7 @@ describe('SVD-098 current all-app live ORB/IDL handoff packets', () => {
     expect(() => compileAllAppLiveOrbIdlHandoff(
       [routes[0]],
       descriptors.map(item => item === descriptor ? staleDescriptor : item),
-    )).toThrowError(expect.objectContaining<Partial<OrbIdlHandoffCompileError>>({
+    )).toThrow(expect.objectContaining<Partial<OrbIdlHandoffCompileError>>({
       code: 'DESCRIPTOR_CID_MISMATCH',
     }));
   });
