@@ -255,6 +255,7 @@ test-results/virtual-desktop-ipfs-mcp-orb/*
 !test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-io-envelopes.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json
 !test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json
+!test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-meta-io.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json
 !test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json
@@ -265,6 +266,8 @@ test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/*
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend/*.png
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor/
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor/*.png
+!test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/
+!test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/*.png
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/*.png
 !test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json
