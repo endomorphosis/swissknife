@@ -165,12 +165,39 @@ describe('SVD-113 supervisor dispatch artifact store', () => {
     expect(invalid).toMatchObject({ state: 'denied', artifacts: {} });
     expect(invalid.reason).toContain('acyclic JSON-compatible');
     expect(helia.puts).toHaveLength(beforeInvalid);
+
+    const malformed = dispatch() as { event_dag: unknown };
+    malformed.event_dag = null;
+    const malformedResult = await store.persist(malformed as ReturnType<typeof dispatch>, policy);
+    expect(malformedResult).toMatchObject({ state: 'denied', artifacts: {} });
+    expect(malformedResult.reason).toContain('event-DAG checkpoint must be a JSON object');
+
+    const nonJson = dispatch();
+    nonJson.goal = new Date(createdAt);
+    const nonJsonResult = await store.persist(nonJson, policy);
+    expect(nonJsonResult).toMatchObject({ state: 'denied', artifacts: {} });
+    expect(nonJsonResult.reason).toContain('acyclic JSON-compatible');
+    expect(helia.puts).toHaveLength(beforeInvalid);
   });
 
   it('writes reproducible evidence covering policy, peer, compaction, retention, cache, and failure behavior', async () => {
     const helia = new MemoryHelia();
     const store = createSupervisorDispatchArtifactStore({ helia, now: () => new Date(createdAt) });
     const persisted = await store.persist(dispatch(), policy);
+    const receiptCid = persisted.artifacts.receipt!.cid;
+    const local = await store.retrieve(receiptCid, policy);
+    const kit = await createSupervisorDispatchArtifactStore({
+      helia: new MemoryHelia(),
+      peers: [{ id: 'kit-approved', kind: 'kit', approved: true, get: cid => helia.get(cid) }],
+    }).retrieve(receiptCid, policy);
+    const kubo = await createSupervisorDispatchArtifactStore({
+      helia: new MemoryHelia(),
+      peers: [{ id: 'kubo-approved', kind: 'kubo', approved: true, get: cid => helia.get(cid) }],
+    }).retrieve(receiptCid, { ...policy, approved_peer_ids: ['kit-approved', 'kubo-approved'] });
+    helia.available = false;
+    const cache = await store.retrieve(receiptCid, policy);
+    store.clearCache();
+    const unavailable = await store.retrieve(receiptCid, policy);
     const evidence = {
       schema: 'swissknife.supervisor-dispatch-artifact-store-evidence.v1',
       task_id: 'SVD-113',
@@ -195,9 +222,15 @@ describe('SVD-113 supervisor dispatch artifact store', () => {
         cache_fallback_used: persisted.cache_fallback_used,
       },
       retrieval: {
-        local: (await store.retrieve(persisted.artifacts.receipt!.cid, policy)).backend,
+        local: { backend: local.backend, verified: local.verified },
+        kit: { backend: kit.backend, peer_id: kit.peer_id, verified: kit.verified },
+        kubo: { backend: kubo.backend, peer_id: kubo.peer_id, verified: kubo.verified },
         peer_contract: 'approved kit/Kubo peers only; unapproved peers are skipped',
         cid_verification: 'sha256 canonical bytes',
+      },
+      fallback: {
+        cache: { state: cache.state, backend: cache.backend, verified: cache.verified },
+        exhausted: { state: unavailable.state, backend: unavailable.backend, verified: unavailable.verified },
       },
       unavailable_state: 'unavailable after Helia, approved peers, and permitted cache are exhausted',
       validation: { command: 'npm run test:run -- test/mcp-plus-plus/supervisor-dispatch-artifact-store.test.ts' },
