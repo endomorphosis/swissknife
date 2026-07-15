@@ -2,9 +2,9 @@
  * @vitest-environment node
  */
 
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { ALL_APP_EXECUTABLE_BACKEND_CONTRACT } from '../../src/services/apps/all-app-executable-backend-contract';
 import { EventDAG, verifyEventDAGInclusionProof } from '../../src/services/mcp/mcp-event-dag';
 import { evaluateProfileDExecution } from '../../src/services/mcp/profile-d-policy';
@@ -77,6 +77,11 @@ function buildReport() {
 }
 
 describe('SVD-109 all-app MCP++ Profile A–H interoperability', () => {
+  beforeAll(() => {
+    mkdirSync(dirname(REPORT_PATH), { recursive: true });
+    writeFileSync(REPORT_PATH, `${JSON.stringify(buildReport(), null, 2)}\n`);
+  });
+
   it('proves every applicable desktop binding has independent HTTP/libp2p execution evidence', () => {
     const report = buildReport();
     const expectedBindingIds = ALL_APP_EXECUTABLE_BACKEND_CONTRACT.apps
