@@ -1,0 +1,1352 @@
+{
+  "schema": "swissknife.all-tools-disposition-catalog.v1",
+  "catalog_id": "org.hallucinate.swissknife.all-tools-disposition-catalog",
+  "version": "1.0.0",
+  "backend_owners": [
+    "ipfs_kit_py",
+    "ipfs_datasets_py",
+    "ipfs_accelerate_py"
+  ],
+  "source_contract": {
+    "contract_id": "org.hallucinate.swissknife.all-app-executable-backend-contract",
+    "version": "1.0.0"
+  },
+  "entries": [
+    {
+      "entry_id": "tool:ipfs_accelerate_py:detect_hardware",
+      "owner": "ipfs_accelerate_py",
+      "tool_id": "detect_hardware",
+      "discovery_source": "accelerate_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "accelerate-panel",
+        "binding_id": "accelerate-panel.ipfs_accelerate_py.inspect_model_catalog",
+        "intent_id": "accelerate-panel.ipfs_accelerate_py.inspect_model_catalog",
+        "ui_control_id": "accelerate-panel--ipfs_accelerate_py--inspect_model_catalog"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_accelerate_py:get_task",
+      "owner": "ipfs_accelerate_py",
+      "tool_id": "get_task",
+      "discovery_source": "accelerate_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "accelerate-panel",
+        "binding_id": "accelerate-panel.ipfs_accelerate_py.inspect_model_catalog",
+        "intent_id": "accelerate-panel.ipfs_accelerate_py.inspect_model_catalog",
+        "ui_control_id": "accelerate-panel--ipfs_accelerate_py--inspect_model_catalog"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_accelerate_py:HardwareDetector.get_available_hardware",
+      "owner": "ipfs_accelerate_py",
+      "tool_id": "HardwareDetector.get_available_hardware",
+      "discovery_source": "accelerate_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "device-manager",
+        "binding_id": "device-manager.ipfs_accelerate_py.inspect_hardware",
+        "intent_id": "device-manager.ipfs_accelerate_py.inspect_hardware",
+        "ui_control_id": "device-manager--ipfs_accelerate_py--inspect_hardware"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_accelerate_py:HealthChecker.check_detailed",
+      "owner": "ipfs_accelerate_py",
+      "tool_id": "HealthChecker.check_detailed",
+      "discovery_source": "accelerate_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "mcp-control",
+        "binding_id": "mcp-control.ipfs_accelerate_py.inspect_tool_registry",
+        "intent_id": "mcp-control.ipfs_accelerate_py.inspect_tool_registry",
+        "ui_control_id": "mcp-control--ipfs_accelerate_py--inspect_tool_registry"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_accelerate_py:PrometheusMetrics.generate_metrics",
+      "owner": "ipfs_accelerate_py",
+      "tool_id": "PrometheusMetrics.generate_metrics",
+      "discovery_source": "accelerate_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "system-monitor",
+        "binding_id": "system-monitor.ipfs_accelerate_py.inspect_telemetry",
+        "intent_id": "system-monitor.ipfs_accelerate_py.inspect_telemetry",
+        "ui_control_id": "system-monitor--ipfs_accelerate_py--inspect_telemetry"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_accelerate_py:ProvenanceLogger.log_inference",
+      "owner": "ipfs_accelerate_py",
+      "tool_id": "ProvenanceLogger.log_inference",
+      "discovery_source": "accelerate_descriptor",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_accelerate_py:submit_task",
+      "owner": "ipfs_accelerate_py",
+      "tool_id": "submit_task",
+      "discovery_source": "accelerate_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "ai-chat",
+        "binding_id": "ai-chat.ipfs_accelerate_py.submit_inference",
+        "intent_id": "ai-chat.ipfs_accelerate_py.submit_inference",
+        "ui_control_id": "ai-chat--ipfs_accelerate_py--submit_inference"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_accelerate_py:WorkflowCoordinator.submit_task",
+      "owner": "ipfs_accelerate_py",
+      "tool_id": "WorkflowCoordinator.submit_task",
+      "discovery_source": "accelerate_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "agent-supervisor",
+        "binding_id": "agent-supervisor.ipfs_accelerate_py.supervise_agent_work",
+        "intent_id": "agent-supervisor.ipfs_accelerate_py.supervise_agent_work",
+        "ui_control_id": "agent-supervisor--ipfs_accelerate_py--supervise_agent_work"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_datasets_py:check_task_status",
+      "owner": "ipfs_datasets_py",
+      "tool_id": "check_task_status",
+      "discovery_source": "datasets_descriptor",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_datasets_py:get_from_ipfs",
+      "owner": "ipfs_datasets_py",
+      "tool_id": "get_from_ipfs",
+      "discovery_source": "datasets_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "agent-supervisor",
+        "binding_id": "agent-supervisor.ipfs_datasets_py.query_catalog",
+        "intent_id": "agent-supervisor.ipfs_datasets_py.query_catalog",
+        "ui_control_id": "agent-supervisor--ipfs_datasets_py--query_catalog"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_datasets_py:get_task_status",
+      "owner": "ipfs_datasets_py",
+      "tool_id": "get_task_status",
+      "discovery_source": "datasets_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "mcp-control",
+        "binding_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry",
+        "intent_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry",
+        "ui_control_id": "mcp-control--ipfs_datasets_py--inspect_tool_registry"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_datasets_py:load_dataset",
+      "owner": "ipfs_datasets_py",
+      "tool_id": "load_dataset",
+      "discovery_source": "datasets_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "agent-supervisor",
+        "binding_id": "agent-supervisor.ipfs_datasets_py.query_catalog",
+        "intent_id": "agent-supervisor.ipfs_datasets_py.query_catalog",
+        "ui_control_id": "agent-supervisor--ipfs_datasets_py--query_catalog"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_datasets_py:load_index",
+      "owner": "ipfs_datasets_py",
+      "tool_id": "load_index",
+      "discovery_source": "datasets_descriptor",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_datasets_py:pin_to_ipfs",
+      "owner": "ipfs_datasets_py",
+      "tool_id": "pin_to_ipfs",
+      "discovery_source": "datasets_descriptor",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_datasets_py:record_provenance",
+      "owner": "ipfs_datasets_py",
+      "tool_id": "record_provenance",
+      "discovery_source": "datasets_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "calendar",
+        "binding_id": "calendar.ipfs_datasets_py.record_provenance",
+        "intent_id": "calendar.ipfs_datasets_py.record_provenance",
+        "ui_control_id": "calendar--ipfs_datasets_py--record_provenance"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_datasets_py:save_dataset",
+      "owner": "ipfs_datasets_py",
+      "tool_id": "save_dataset",
+      "discovery_source": "datasets_descriptor",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "calendar",
+        "binding_id": "calendar.ipfs_datasets_py.record_provenance",
+        "intent_id": "calendar.ipfs_datasets_py.record_provenance",
+        "ui_control_id": "calendar--ipfs_datasets_py--record_provenance"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:bitswap_stat",
+      "owner": "ipfs_kit_py",
+      "tool_id": "bitswap_stat",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:bitswap_wantlist",
+      "owner": "ipfs_kit_py",
+      "tool_id": "bitswap_wantlist",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:block_get",
+      "owner": "ipfs_kit_py",
+      "tool_id": "block_get",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:block_put",
+      "owner": "ipfs_kit_py",
+      "tool_id": "block_put",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:block_stat",
+      "owner": "ipfs_kit_py",
+      "tool_id": "block_stat",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:cluster_status",
+      "owner": "ipfs_kit_py",
+      "tool_id": "cluster_status",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:create_car",
+      "owner": "ipfs_kit_py",
+      "tool_id": "create_car",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:dag_get",
+      "owner": "ipfs_kit_py",
+      "tool_id": "dag_get",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:dag_put",
+      "owner": "ipfs_kit_py",
+      "tool_id": "dag_put",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:files_ls",
+      "owner": "ipfs_kit_py",
+      "tool_id": "files_ls",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "vibecode",
+        "binding_id": "vibecode.ipfs_kit_py.list_virtual_files",
+        "intent_id": "vibecode.ipfs_kit_py.list_virtual_files",
+        "ui_control_id": "vibecode--ipfs_kit_py--list_virtual_files"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:files_mkdir",
+      "owner": "ipfs_kit_py",
+      "tool_id": "files_mkdir",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:files_read",
+      "owner": "ipfs_kit_py",
+      "tool_id": "files_read",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "vibecode",
+        "binding_id": "vibecode.ipfs_kit_py.list_virtual_files",
+        "intent_id": "vibecode.ipfs_kit_py.list_virtual_files",
+        "ui_control_id": "vibecode--ipfs_kit_py--list_virtual_files"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:files_rm",
+      "owner": "ipfs_kit_py",
+      "tool_id": "files_rm",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:files_stat",
+      "owner": "ipfs_kit_py",
+      "tool_id": "files_stat",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:files_write",
+      "owner": "ipfs_kit_py",
+      "tool_id": "files_write",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "vibecode",
+        "binding_id": "vibecode.ipfs_kit_py.list_virtual_files",
+        "intent_id": "vibecode.ipfs_kit_py.list_virtual_files",
+        "ui_control_id": "vibecode--ipfs_kit_py--list_virtual_files"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:get_pinset",
+      "owner": "ipfs_kit_py",
+      "tool_id": "get_pinset",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:ipfs_add",
+      "owner": "ipfs_kit_py",
+      "tool_id": "ipfs_add",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "server_only",
+        "governance": "policy_review_required",
+        "review_surface": "mcp-control",
+        "rationale": "The declared tool schema accepts a host filesystem path. Browser applications must not receive host paths, so a policy reviewer must authorize any server-side invocation."
+      },
+      "reachability": {
+        "approved_transports": [],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unsupported",
+            "rationale": "This server-only tool is not approved for browser-mediated transport."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unsupported",
+            "rationale": "This server-only tool is not approved for browser-mediated transport."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:ipfs_cat",
+      "owner": "ipfs_kit_py",
+      "tool_id": "ipfs_cat",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "agent-supervisor",
+        "binding_id": "agent-supervisor.ipfs_kit_py.retrieve_content",
+        "intent_id": "agent-supervisor.ipfs_kit_py.retrieve_content",
+        "ui_control_id": "agent-supervisor--ipfs_kit_py--retrieve_content"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:ipfs_ls",
+      "owner": "ipfs_kit_py",
+      "tool_id": "ipfs_ls",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "agent-supervisor",
+        "binding_id": "agent-supervisor.ipfs_kit_py.retrieve_content",
+        "intent_id": "agent-supervisor.ipfs_kit_py.retrieve_content",
+        "ui_control_id": "agent-supervisor--ipfs_kit_py--retrieve_content"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:name_publish",
+      "owner": "ipfs_kit_py",
+      "tool_id": "name_publish",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:name_resolve",
+      "owner": "ipfs_kit_py",
+      "tool_id": "name_resolve",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:node_id",
+      "owner": "ipfs_kit_py",
+      "tool_id": "node_id",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "mcp-control",
+        "binding_id": "mcp-control.ipfs_kit_py.inspect_tool_registry",
+        "intent_id": "mcp-control.ipfs_kit_py.inspect_tool_registry",
+        "ui_control_id": "mcp-control--ipfs_kit_py--inspect_tool_registry"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:pin_add",
+      "owner": "ipfs_kit_py",
+      "tool_id": "pin_add",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:pin_ls",
+      "owner": "ipfs_kit_py",
+      "tool_id": "pin_ls",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:pin_rm",
+      "owner": "ipfs_kit_py",
+      "tool_id": "pin_rm",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:stats_bw",
+      "owner": "ipfs_kit_py",
+      "tool_id": "stats_bw",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:stats_repo",
+      "owner": "ipfs_kit_py",
+      "tool_id": "stats_repo",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "diagnostic_operation",
+        "app_id": "mcp-plus-plus",
+        "operation_id": "mcp-plus-plus.inspect-tool-descriptor",
+        "rationale": "This descriptor-discovered tool has no reviewed application selection rule, so MCP++ Explorer exposes its descriptor, receipt, and transport state for review."
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    },
+    {
+      "entry_id": "tool:ipfs_kit_py:swarm_peers",
+      "owner": "ipfs_kit_py",
+      "tool_id": "swarm_peers",
+      "discovery_source": "kit_manifest",
+      "disposition": {
+        "kind": "app_operation",
+        "app_id": "friends-list",
+        "binding_id": "friends-list.ipfs_kit_py.exchange_peer_messages",
+        "intent_id": "friends-list.ipfs_kit_py.exchange_peer_messages",
+        "ui_control_id": "friends-list--ipfs_kit_py--exchange_peer_messages"
+      },
+      "reachability": {
+        "approved_transports": [
+          "http",
+          "libp2p"
+        ],
+        "observations": [
+          {
+            "transport": "http",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          },
+          {
+            "transport": "libp2p",
+            "state": "unavailable",
+            "rationale": "No explicit HTTP/libp2p reachability receipt has been captured for this exact tool yet."
+          }
+        ]
+      }
+    }
+  ]
+}

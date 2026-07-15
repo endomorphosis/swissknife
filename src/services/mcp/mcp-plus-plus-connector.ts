@@ -36,6 +36,11 @@ import type {
   ProfileDExecutionRequest,
 } from './profile-d-policy.js';
 
+// Helia-backed backend adapters can need one cold initialization round-trip.
+// Keep this finite, but above the backend tool adapter's 15 second execution
+// budget so the client reports the backend receipt rather than aborting first.
+const MCPPP_DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
 // --- Server Connection Config ---
 
 export interface MCPPPServerConfig {
@@ -1327,7 +1332,7 @@ export class MCPPPServerConnector {
     const url = path.startsWith('http') ? path : `${this.config.baseUrl}${path}`;
     return globalThis.fetch(url, {
       ...init,
-      signal: init?.signal || AbortSignal.timeout(15000),
+      signal: init?.signal || AbortSignal.timeout(MCPPP_DEFAULT_REQUEST_TIMEOUT_MS),
     });
   }
 
