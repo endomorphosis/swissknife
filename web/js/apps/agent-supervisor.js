@@ -153,6 +153,7 @@ export class AgentSupervisorApp {
         submitting: false,
         result: null,
         error: null,
+        recoveryAction: null,
       },
       dispatch: {
         reason: 'Dispatch the reviewed task through the governed supervisor queue.',
@@ -362,6 +363,7 @@ export class AgentSupervisorApp {
     this.state.steering.confirm = false;
     this.state.steering.result = null;
     this.state.steering.error = null;
+    this.state.steering.recoveryAction = null;
     if (update) this.update();
   }
 
@@ -449,11 +451,13 @@ export class AgentSupervisorApp {
       this.state.steering.prompt = event.target.value.slice(0, 8000);
       this.state.steering.result = null;
       this.state.steering.error = null;
+      this.state.steering.recoveryAction = null;
     });
     this.container.querySelector('[data-steering-confirm]')?.addEventListener('change', event => {
       this.state.steering.confirm = Boolean(event.target.checked);
       this.state.steering.result = null;
       this.state.steering.error = null;
+      this.state.steering.recoveryAction = null;
       this.update();
     });
     this.container.querySelector('[data-steering-dry-run]')?.addEventListener('change', event => {
@@ -461,10 +465,14 @@ export class AgentSupervisorApp {
       this.state.steering.confirm = false;
       this.state.steering.result = null;
       this.state.steering.error = null;
+      this.state.steering.recoveryAction = null;
       this.update();
     });
     this.container.querySelector('[data-action="submit-steering"]')?.addEventListener('click', () => {
       this.submitSteeringPrompt();
+    });
+    this.container.querySelector('[data-action="recover-steering"]')?.addEventListener('click', () => {
+      this.recoverSteeringRequest();
     });
     this.container.querySelector('[data-dispatch-reason]')?.addEventListener('input', event => {
       this.state.dispatch.reason = event.target.value.slice(0, 1000);
@@ -571,6 +579,7 @@ export class AgentSupervisorApp {
     steering.submitting = true;
     steering.error = null;
     steering.result = null;
+    steering.recoveryAction = null;
     this.update();
 
     const result = await this.invokeCapability('supervisor.prompt-steering.request', request);
@@ -589,7 +598,19 @@ export class AgentSupervisorApp {
         message: result.message || 'Prompt steering request was not accepted.',
         correlation_id: result.correlation_id,
       };
+      steering.recoveryAction = result.recovery_action
+        || result.runtime?.recovery_action
+        || recoveryActionForSteeringFailure(steering.error.reason);
     }
+    this.state.activeTab = 'steering';
+    this.update();
+  }
+
+  recoverSteeringRequest() {
+    this.state.steering.confirm = false;
+    this.state.steering.result = null;
+    this.state.steering.error = null;
+    this.state.steering.recoveryAction = null;
     this.state.activeTab = 'steering';
     this.update();
   }
@@ -1032,6 +1053,7 @@ export class AgentSupervisorApp {
           <div class="as-state as-error" data-testid="steering-error" role="alert">
             <strong>${escapeHtml(error.reason)}</strong>
             <span>${escapeHtml(error.message)}${error.correlation_id ? ` ${escapeHtml(error.correlation_id)}` : ''}</span>
+            <button type="button" data-action="recover-steering" data-testid="steering-recovery" data-supervisor-focusable>${escapeHtml(steering.recoveryAction || recoveryActionForSteeringFailure(error.reason))}</button>
           </div>
         ` : ''}
         ${result ? `
@@ -1042,6 +1064,9 @@ export class AgentSupervisorApp {
             ${metric('Accepted', String(result.accepted))}
             ${metric('Mode', result.dry_run ? 'dry-run' : 'confirmed')}
             ${metric('Policy', result.policy_class || 'unknown')}
+            ${metric('Policy effect', result.policy_effects?.outcome || 'reviewed')}
+            ${metric('Budget', result.policy_effects?.budget || 'not reported')}
+            ${metric('Dependencies', result.policy_effects?.dependencies || 'not reported')}
             ${metric('Event DAG', result.event_dag?.cid || 'pending')}
             ${metric('Event', result.event_dag?.event_type || 'governed-action')}
           </div>
@@ -1469,6 +1494,7 @@ function normalizeGatewayResult(invocation, value) {
       message: value.message || 'Agent Supervisor request was denied.',
       policy_class: invocation.policy_class,
       correlation_id: value.correlation_id || invocation.correlation_id,
+      recovery_action: isSafeRuntimeIdentifier(value.recovery_action) ? value.recovery_action : undefined,
       runtime: normalizeRuntimeObservation(value.runtime),
     };
   }
@@ -1633,9 +1659,28 @@ function normalizeSteeringAccepted(data, review, correlationId) {
     policy_class: data?.policy_class || review.policy_class,
     affected_task_ids: Array.isArray(data?.affected_task_ids) ? data.affected_task_ids : review.affected_task_ids,
     planned_mcp_action: data?.planned_mcp_action || review.planned_mcp_action,
+    policy_effects: normalizePolicyEffects(data?.policy_effects),
     receipt,
     event_dag: data?.event_dag || null,
   };
+}
+
+function normalizePolicyEffects(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const effects = {};
+  for (const key of ['outcome', 'budget', 'dependencies']) {
+    if (typeof value[key] === 'string' && value[key].length <= 256) effects[key] = value[key];
+  }
+  return Object.keys(effects).length ? effects : null;
+}
+
+function recoveryActionForSteeringFailure(reason) {
+  if (reason === 'dependency_blocked') return 'Review dependencies and retry';
+  if (reason === 'budget_exceeded') return 'Adjust scope or budget and retry';
+  if (reason === 'request_expired') return 'Start a new reviewed request';
+  if (reason === 'request_cancelled') return 'Review and resubmit';
+  if (reason === 'policy_denied') return 'Review policy and retry';
+  return 'Review request and retry';
 }
 
 function buildTaskDispatchReview(task, contract) {

@@ -16,6 +16,7 @@ export default defineConfig({
   testMatch: [
     '**/agent-supervisor-all-app-validation.spec.ts',
     '**/agent-supervisor-expanded-meta-io.spec.ts',
+    '**/agent-supervisor-goal-task-lifecycle.spec.ts',
   ],
   timeout: 600_000,
   outputDir: resolve(repoRoot, 'playwright-report/agent-supervisor-artifacts'),
