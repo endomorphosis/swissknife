@@ -1383,6 +1383,7 @@ function normalizeGatewayResult(invocation, value) {
       receipt: value.receipt,
       correlation_id: value.correlation_id || invocation.correlation_id,
       observed_at: value.observed_at,
+      runtime: normalizeRuntimeObservation(value.runtime),
     };
   }
   if (value && typeof value === 'object' && value.state === 'denied') {
@@ -1394,19 +1395,21 @@ function normalizeGatewayResult(invocation, value) {
       message: value.message || 'Agent Supervisor request was denied.',
       policy_class: invocation.policy_class,
       correlation_id: value.correlation_id || invocation.correlation_id,
+      runtime: normalizeRuntimeObservation(value.runtime),
     };
   }
   if (value && typeof value === 'object' && value.state === 'unavailable') {
     return unavailable({
       ...invocation,
       correlation_id: value.correlation_id || invocation.correlation_id,
-    }, value.reason || 'capability_unavailable', value.message || 'Agent Supervisor capability is unavailable.');
+    }, value.reason || 'capability_unavailable', value.message || 'Agent Supervisor capability is unavailable.',
+    normalizeRuntimeObservation(value.runtime));
   }
   return unavailable(invocation, 'capability_unavailable', 'Agent Supervisor gateway returned an unsupported response shape.');
 }
 
-function unavailable(invocation, reason, message) {
-  return {
+function unavailable(invocation, reason, message, runtime = null) {
+  const result = {
     state: 'unavailable',
     capability_id: invocation.capability_id,
     owner: invocation.owner,
@@ -1414,6 +1417,31 @@ function unavailable(invocation, reason, message) {
     message,
     correlation_id: invocation.correlation_id,
   };
+  if (runtime) result.runtime = runtime;
+  return result;
+}
+
+// Runtime observations originate at the mediated gateway.  Keep only the
+// browser-safe identifiers the console is allowed to expose; endpoint URLs,
+// host paths, credentials, and arbitrary transport payloads never enter UI
+// state or the evidence table.
+function normalizeRuntimeObservation(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const runtime = {};
+  if (value.transport === 'http' || value.transport === 'libp2p' || value.transport === 'browser-helia') {
+    runtime.transport = value.transport;
+  }
+  if (value.policy_outcome === 'allow' || value.policy_outcome === 'deny' || value.policy_outcome === 'require_confirmation') {
+    runtime.policy_outcome = value.policy_outcome;
+  }
+  for (const key of ['binding_id', 'content_cid', 'event_dag_cid', 'failure_code', 'recovery_action']) {
+    if (isSafeRuntimeIdentifier(value[key])) runtime[key] = value[key];
+  }
+  return Object.keys(runtime).length ? runtime : undefined;
+}
+
+function isSafeRuntimeIdentifier(value) {
+  return typeof value === 'string' && /^[a-zA-Z0-9._-]{1,256}$/.test(value);
 }
 
 function localPromptSteeringResult(invocation, snapshot) {
