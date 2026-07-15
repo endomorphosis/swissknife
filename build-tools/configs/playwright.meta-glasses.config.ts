@@ -21,6 +21,7 @@ export default defineConfig({
   testDir: resolve(repoRoot, 'test/e2e'),
   testMatch: [
     '**/all-app-meta-device-simulator.spec.ts',
+    '**/all-app-meta-device-simulator-proof.spec.ts',
     '**/meta-glasses-virtual-os.spec.ts',
     '**/meta-glasses-simulator-handoff.spec.ts',
     '**/meta-glasses-expanded-io-simulator-validation.spec.ts',
