@@ -2,8 +2,8 @@
 
 Task: SVD-066 — Close the supervisor-managed all-app MCP++ release loop
 
-Observed: 2026-07-15T22:57:33.937Z
-SwissKnife revision: `efc34fb405efb87604b08f47017927a4bc518954`
+Observed: 2026-07-15T23:01:38.365Z
+SwissKnife revision: `f10e81c1b65fe94585b4765030ddef11923ee7cf`
 Decision: **GO**
 
 ## Final decision
