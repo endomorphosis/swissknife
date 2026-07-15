@@ -2,8 +2,8 @@
 
 Task: SVD-060 — Final all-tools ORB/IDL Meta glasses release closeout
 
-Observed: 2026-07-14T20:31:54.654Z
-SwissKnife revision: `e734ab83b3a1e0d59e66a7ce586c6514f7f03198`
+Observed: 2026-07-15T08:33:06.874Z
+SwissKnife revision: `8feea25e58e712157a89d7b5374ca3f914f35c51`
 Release decision: **NO-GO**
 
 This signoff is generated from `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`.
@@ -15,8 +15,8 @@ It does not convert missing, stale, blocked, denied, unsupported, or static-only
 - Complete app rows passed: 0/45
 - Service/profile cells release-satisfied: 0/24
 - Meta modalities passed: 0/5
-- Named blockers: 15
-- Approved non-release dispositions: 1
+- Named blockers: 18
+- Approved non-release dispositions: 427
 
 ## Named blockers
 
@@ -28,9 +28,12 @@ It does not convert missing, stale, blocked, denied, unsupported, or static-only
 - **SVD-098** (owner: `glasses`) — `orb_idl_packets`: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json.
 - **SVD-099** (owner: `glasses`) — `meta_device_simulator`: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.
 - **SVD-099** (owner: `glasses`) — `meta_device_simulator`: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.
-- **SVD-100** (owner: `mcp`) — `peer_interoperability`: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json.
+- **SVD-100** (owner: `mcp`) — `ipfs_datasets_py:check_task_status`: Name exists in a SwissKnife static descriptor but neither peer advertised it.
+- **SVD-100** (owner: `mcp`) — `ipfs_datasets_py:get_task_status`: Name exists in a SwissKnife static descriptor but neither peer advertised it.
+- **SVD-100** (owner: `mcp`) — `ipfs_datasets_py:load_index`: Name exists in a SwissKnife static descriptor but neither peer advertised it.
+- **SVD-100** (owner: `mcp`) — `ipfs_accelerate_py:WorkflowCoordinator.submit_task`: Name exists in a SwissKnife static descriptor but neither peer advertised it.
 - **SVD-047** (owner: `mcp`) — `representative_app_gate`: Representative virtual-desktop app behavior is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid.
-- **SVD-057** (owner: `mcp`) — `exhaustive_all_tools_gate`: Exhaustive all-tools policy and behavior coverage is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.
+- **SVD-057** (owner: `mcp`) — `exhaustive_all_tools_gate`: Exhaustive all-tools policy and behavior coverage is not satisfied: Name exists in a SwissKnife static descriptor but neither peer advertised it.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.
 - **SVD-047** (owner: `mcp`) — `all_tools_route_orb_glasses`: Every tool app-route, MCP++ call, ORB/IDL packet, and glasses handoff artifact is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-route-coverage.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-call-envelope-fixtures.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-control-plane-handoff.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-handoff-packets.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-handoff-replay-bundles.json is missing or invalid.
 - **SVD-044** (owner: `platform`) — `accelerate_adapter_boundary`: Configured ipfs_accelerate_py adapter boundary is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.; test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json is missing or invalid.
 - **SVD-058** (owner: `apps`) — `browser_compatible_app_smoke`: Browser-compatible all-app smoke evidence is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json is missing or invalid.

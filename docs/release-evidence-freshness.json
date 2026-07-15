@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-15T08:27:38.495Z",
+  "generatedAt": "2026-07-15T08:33:07.035Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
       "label": "Browser libp2p interoperability evidence (SWR-138)",
       "status": "fresh",
-      "updated": true,
+      "updated": false,
       "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
@@ -64,12 +64,11 @@
     {
       "id": "virtual-desktop-release-evidence",
       "label": "Virtual desktop all-tools release evidence (SVD-101)",
-      "status": "evidence-modified",
-      "updated": false,
+      "status": "fresh",
+      "updated": true,
       "releaseBlocking": true,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [
-        "scripts/capture-all-profile-service-matrix.cjs",
         "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json",
         "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json",
         "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json",
@@ -91,20 +90,20 @@
         "test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json"
       ],
       "recordedEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "1fa533c883cc1774dd56dd0f87b7043b24cb44c5f84e1bcd5f21b3f92b1a4380",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "9d2b3ddb5d724588607cbaa5060173971e1c61d39e75ca679ea6858fb70911d0",
-        "docs/refactor-final-signoff.md": "0c8f4c76f22d1a130466c26add03b9a545706189169515dda76597f9e9ab6ad2",
-        "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "466438ca19a3ad71a3d6c0abc50f76befe4243d87c653dfb9e45329b4eaf7e7c"
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "a70c6b0af90d090c967e6571fbe3bc703f95a9d5808264fc9102a65662af84ca",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "0d6d1af0309fefca33189f0fe1b126287f43329816f31ef51b3d027eb53febef",
+        "docs/refactor-final-signoff.md": "5d01d50c7f7ba3beef658536ddba9e2060952d832d9331d46ec02445ce032231",
+        "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "e18d7dcc40495151598f18f11350270be321ff9ed5fe30646add1819c8b32552"
       },
       "currentEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "05ce3317384db67ef23174670f4690951090d19e4daeb5cf9ae978031fca7b56",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "d2c8cb294d38a428a642993effb5a7c721c9238f426b9e32df290d2cfd249718",
-        "docs/refactor-final-signoff.md": "0c8f4c76f22d1a130466c26add03b9a545706189169515dda76597f9e9ab6ad2",
-        "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "466438ca19a3ad71a3d6c0abc50f76befe4243d87c653dfb9e45329b4eaf7e7c"
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "a70c6b0af90d090c967e6571fbe3bc703f95a9d5808264fc9102a65662af84ca",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "0d6d1af0309fefca33189f0fe1b126287f43329816f31ef51b3d027eb53febef",
+        "docs/refactor-final-signoff.md": "5d01d50c7f7ba3beef658536ddba9e2060952d832d9331d46ec02445ce032231",
+        "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "e18d7dcc40495151598f18f11350270be321ff9ed5fe30646add1819c8b32552"
       },
-      "recordedFingerprint": "aa58d1ed979b3182ff9d87882ed5e4d7f57d4f1a1156c6365a43526c104ae302",
-      "currentFingerprint": "aebaace4280f323b5761422e9a111626b77da1814e653e0cac9f6ab99171213d",
-      "recordedAt": "2026-07-14T20:31:54.777Z",
+      "recordedFingerprint": "f5f5f1d63f10aaa84dc9e569dc61a281a14cd69fd304af7434a9ad85d48859e0",
+      "currentFingerprint": "f5f5f1d63f10aaa84dc9e569dc61a281a14cd69fd304af7434a9ad85d48859e0",
+      "recordedAt": "2026-07-15T08:33:07.034Z",
       "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs"
     }
   ]
