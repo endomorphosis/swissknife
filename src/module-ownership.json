@@ -122,14 +122,7 @@
       "node-gyp-build",
       "python-shell"
     ],
-    "documentedServiceDeepImports": [
-      {
-        "importer": "src/services/glasses/agent-supervisor-expanded-io-handoff.ts",
-        "target": "src/services/apps/agent-supervisor-expanded-io-envelopes.ts",
-        "owner": "service-apps",
-        "reason": "The Glasses supervisor handoff consumes the shared app envelope contract until the apps family exposes a dedicated public handoff facade."
-      }
-    ],
+    "documentedServiceDeepImports": [],
     "servicePublicApiMigrations": [
       {
         "legacyPath": "src/services/bridge/bridge-modal-frame-bridge.ts",
