@@ -555,7 +555,14 @@ test.describe('SVD-054 all-tools virtual desktop app smoke coverage', () => {
     expect(coverage.metadata_gap_count).toBe(0);
     expect(fixtures.envelope_count).toBe(coverage.app_routable_tool_count);
     expect(Object.fromEntries(routedApps.map(app => [app.appId, app.routedToolCount]))).toEqual(coverage.app_route_counts);
-    expect(routedApps.every(app => app.confirmationRequiredCount > 0)).toBe(true);
+    // Read-only app routes are intentionally confirmation-free. Require
+    // confirmation coverage where policy requires it rather than inventing an
+    // approval flow for safe reads.
+    expect(routedApps.some(app => app.confirmationRequiredCount > 0)).toBe(true);
+    expect(routedApps
+      .filter(app => app.confirmationRequiredCount === 0)
+      .every(app => Object.keys(app.policyCounts).every(policyClass => policyClass === 'read')))
+      .toBe(true);
     // Read-only routes can be receipt-optional. Preserve exact accounting for
     // the routes that do require operator-visible provenance instead.
     expect(routedApps.reduce((total, app) => total + app.receiptRequiredCount, 0))
@@ -586,10 +593,14 @@ test.describe('SVD-054 all-tools virtual desktop app smoke coverage', () => {
 
       if (app.status === 'dispatch-covered') {
         await expect(page.getByTestId('active-tool-groups')).toContainText(app.services.join(', '));
-        await expect(page.getByTestId('confirmation-state')).toContainText('blocked until approved');
-        await expect(page.getByTestId('success-state')).toContainText('waiting for approval');
-        await page.getByTestId('approve-dispatch').click();
-        await expect(page.getByTestId('confirmation-state')).toContainText('approved');
+        if (app.confirmationRequiredCount > 0) {
+          await expect(page.getByTestId('confirmation-state')).toContainText('blocked until approved');
+          await expect(page.getByTestId('success-state')).toContainText('waiting for approval');
+          await page.getByTestId('approve-dispatch').click();
+          await expect(page.getByTestId('confirmation-state')).toContainText('approved');
+        } else {
+          await expect(page.getByTestId('confirmation-state')).toContainText('not required');
+        }
         await expect(page.getByTestId('success-state')).toContainText('ok=true');
         await expect(page.getByTestId('error-state')).toContainText('POLICY_DENIED');
         await expect(page.getByTestId('receipt-state')).toContainText(app.sampleReceiptRef ?? 'receipt:missing');
@@ -704,7 +715,8 @@ async function openHarness(
 
       function renderActiveApp(): string {
         const app = activeApp();
-        const approved = state.approvedAppIds.has(app.appId);
+        const requiresConfirmation = app.confirmationRequiredCount > 0;
+        const approved = !requiresConfirmation || state.approvedAppIds.has(app.appId);
         const routeStatus = app.status === 'dispatch-covered'
           ? 'MCP++ dispatch-covered'
           : 'opened-no-all-tools-route';
@@ -722,9 +734,9 @@ async function openHarness(
               </div>
             </div>
             <div class="dispatch-path" data-layout-check>
-              <button type="button" data-testid="approve-dispatch">Approve</button>
+              ${requiresConfirmation ? '<button type="button" data-testid="approve-dispatch">Approve</button>' : ''}
               <div data-testid="confirmation-state" data-state="${approved ? 'approved' : 'blocked'}">
-                confirmation ${approved ? 'approved' : 'blocked until approved'}: ${app.confirmationRequiredCount}
+                confirmation ${requiresConfirmation ? (approved ? 'approved' : 'blocked until approved') : 'not required'}: ${app.confirmationRequiredCount}
               </div>
               <div data-testid="success-state" data-state="${approved ? 'success' : 'waiting'}">
                 success ${approved ? `ok=true ${escapeHtml(app.sampleEnvelopeId ?? '')}` : 'waiting for approval'}
