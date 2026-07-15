@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Virtual desktop all-tools release evidence (SVD-101)",
-  "generatedAt": "2026-07-15T08:48:34.081Z",
+  "generatedAt": "2026-07-15T08:53:47.309Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,10 +10,10 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "9f10ff7f703d45ebdee7e35c081c52d7b54694ae3066a9dd729820d7d5897639",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "652e3af3eae3c3bfa957b0bf9a62d26941e4374171d4b00659c6a2c582ee539d",
-    "docs/refactor-final-signoff.md": "88236889bffe480724abd9e8ca397aaa60b4dd3b1e8bd619a4bcce6ddfc9ccfd",
-    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "7346b9b4d1f23641b6d056beeeab5801c33004e6fb827ef6d4101aa142d0a386"
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "1f66d9294953bd815ccc515e4b34bc02ba1da7b30e9df3588174c399fc6fa646",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "f577accf92e0b5860f8c4090487f9ab4e2a9847f33f4027e86ceb6d6f563a53b",
+    "docs/refactor-final-signoff.md": "84fcd9688838240fa38a0fea9dd47fa0a475b3c203b0b4ec37c980fb9017db25",
+    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "a50535313a4127e513503b5078ea55103785ef0258d05a0b77b95efa54e35454"
   },
   "sourceFingerprint": "f5f5f1d63f10aaa84dc9e569dc61a281a14cd69fd304af7434a9ad85d48859e0",
   "sourceFiles": [
