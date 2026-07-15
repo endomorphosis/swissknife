@@ -127,7 +127,7 @@ interface EncodedArtifact {
   reference: SupervisorDispatchArtifactReference;
 }
 
-const SECRET_KEY = /(?:^|[_-])(password|passphrase|secret|token|authorization|credential|cookie|api[_-]?key|private[_-]?key|access[_-]?key)(?:$|[_-])/i;
+const SECRET_KEY = /(?:^|_)(password|passphrase|secret|token|authorization|credential|cookie|api_?key|private_?key|access_?key)(?:$|_)/i;
 const REDACTED = '[REDACTED]';
 
 /** A content-addressed, policy-gated artifact store for supervisor dispatches. */
@@ -198,7 +198,14 @@ export class SupervisorDispatchArtifactStore {
       };
       const manifest = this.encodeArtifact('dispatch_manifest', input, manifestPayload, createdAt, policy);
       await this.store(manifest, policy);
+      artifacts.push(manifest);
       refs.dispatch_manifest = manifest.reference;
+      // A cache entry is useful only when it represents a completed governed
+      // dispatch.  Caching while the Helia write sequence is incomplete could
+      // otherwise make a partial artifact set look retrievable.
+      if (policy.allow_cache_fallback) {
+        for (const artifact of artifacts) this.cache.set(artifact.cid, artifact);
+      }
       return {
         state: 'stored', dispatch_cid: manifest.cid, artifacts: refs,
         cache_fallback_used: false,
@@ -208,7 +215,7 @@ export class SupervisorDispatchArtifactStore {
         state: 'unavailable',
         reason: error instanceof Error ? error.message : 'The browser Helia artifact path is unavailable.',
         artifacts: refs,
-        cache_fallback_used: artifacts.some(artifact => this.cache.has(artifact.cid)),
+        cache_fallback_used: false,
       };
     }
   }
@@ -311,8 +318,6 @@ export class SupervisorDispatchArtifactStore {
     if (!isAllowedKind(artifact.reference.kind, policy)) {
       throw new Error(`${artifact.reference.kind} persistence is not permitted by the dispatch policy.`);
     }
-    // Cache only canonical redacted bytes; it is a policy-governed recovery path.
-    if (policy.allow_cache_fallback) this.cache.set(artifact.cid, artifact);
     if (!this.options.helia) throw new Error('The browser-safe Helia artifact path is unavailable.');
     const stored = await this.options.helia.put(artifact.bytes, { cid: artifact.cid, pin: artifact.reference.pinned });
     if (!stored || stored.cid !== artifact.cid) {
@@ -354,22 +359,26 @@ function validateInput(input: SupervisorDispatchArtifactInput, policy: Superviso
   if (!input.dispatch_id || !input.correlation_id || !input.policy_cid) return 'Dispatch ID, correlation ID, and policy CID are required.';
   if (!isContentCid(input.policy_cid)) return 'The governing policy reference must be a content CID.';
   if (input.policy_outcome !== 'permit') return 'Only policy-permitted dispatches may persist artifacts.';
-  if (policy.require_redaction !== false && !redact(input).redacted) return 'Redaction is required by policy.';
   if (input.goal === undefined || input.task === undefined) return 'Goal and task artifacts are required for a governed dispatch.';
   if (input.receipt === undefined) return 'A receipt is required before dispatch persistence.';
   if (input.event_dag === undefined) return 'An event-DAG checkpoint is required before dispatch persistence.';
+  if (![input.goal, input.task, input.receipt, input.event_dag].every(value => isCanonicalJsonValue(value))) {
+    return 'Governed-dispatch artifacts must contain finite, acyclic JSON-compatible values.';
+  }
+  if (policy.require_redaction !== false && !redact(input).redacted) return 'Redaction is required by policy.';
   const requiredKinds: SupervisorDispatchArtifactKind[] = ['goal', 'task', 'receipt', 'event_dag_checkpoint', 'dispatch_manifest'];
   const allowedKinds = policy.allowed_kinds;
   if (allowedKinds && requiredKinds.some(kind => !allowedKinds.includes(kind))) {
     return 'The dispatch policy must permit every required governed-dispatch artifact kind.';
   }
   if (!isRetention(policy.retention)) return 'The dispatch retention policy is invalid.';
-  const dagRefs = [
-    ...(input.event_dag.parents ?? []),
-    input.event_dag.compaction_certificate_cid,
-    input.event_dag.archive_cid,
-  ].filter((value): value is string => value !== undefined);
-  if (!dagRefs.every(isContentCid)) return 'Event-DAG parents, archive, and compaction certificate references must be content CIDs.';
+  const parents = input.event_dag.parents;
+  if (parents !== undefined && (!Array.isArray(parents) || !parents.every(isContentCid))) {
+    return 'Event-DAG parent references must be content CIDs.';
+  }
+  const dagRefs = [input.event_dag.compaction_certificate_cid, input.event_dag.archive_cid]
+    .filter((value): value is string => value !== undefined);
+  if (!dagRefs.every(isContentCid)) return 'Event-DAG archive and compaction certificate references must be content CIDs.';
   return undefined;
 }
 
@@ -395,7 +404,7 @@ function redact(value: unknown, path = '$'): { value: unknown; paths: string[]; 
     const paths: string[] = [];
     for (const key of Object.keys(value as Record<string, unknown>).sort()) {
       const nextPath = `${path}.${key}`;
-      if (SECRET_KEY.test(key)) {
+      if (isSensitiveKey(key)) {
         output[key] = REDACTED;
         paths.push(nextPath);
       } else {
@@ -407,6 +416,37 @@ function redact(value: unknown, path = '$'): { value: unknown; paths: string[]; 
     return { value: output, paths, redacted: true };
   }
   return { value, paths: [], redacted: true };
+}
+
+/**
+ * Normalize common JavaScript property spellings before applying the redaction
+ * policy.  Dispatch payloads often originate in JSON (snake_case), but UI and
+ * SDK callers commonly use camelCase.  Both forms must have identical privacy
+ * treatment at the storage boundary.
+ */
+function isSensitiveKey(key: string): boolean {
+  const normalized = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[-\s]+/g, '_')
+    .toLowerCase();
+  return SECRET_KEY.test(normalized);
+}
+
+function isCanonicalJsonValue(value: unknown, ancestors = new Set<object>()): boolean {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value !== 'object' || ancestors.has(value)) return false;
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) return value.every(item => isCanonicalJsonValue(item, ancestors));
+    return Object.keys(value as Record<string, unknown>)
+      .every(key => isCanonicalJsonValue((value as Record<string, unknown>)[key], ancestors));
+  } catch {
+    return false;
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 function encodeCanonical(value: unknown): Uint8Array {

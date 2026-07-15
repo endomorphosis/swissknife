@@ -145,6 +145,28 @@ describe('SVD-113 supervisor dispatch artifact store', () => {
     expect(denied).toMatchObject({ state: 'denied' });
   });
 
+  it('redacts camelCase secrets and rejects non-canonical artifacts before any storage write', async () => {
+    const helia = new MemoryHelia();
+    const store = createSupervisorDispatchArtifactStore({ helia, now: () => new Date(createdAt) });
+    const sensitive = dispatch();
+    sensitive.goal = { accessToken: 'camel-case-secret', nested: { privateKey: 'never-store-this' } };
+    const persisted = await store.persist(sensitive, policy);
+    const encodedGoal = new TextDecoder().decode(helia.values.get(persisted.artifacts.goal!.cid)!);
+    expect(encodedGoal).not.toContain('camel-case-secret');
+    expect(encodedGoal).not.toContain('never-store-this');
+    expect(encodedGoal.match(/\[REDACTED\]/g)).toHaveLength(2);
+
+    const cyclic = dispatch();
+    const cyclicGoal: Record<string, unknown> = {};
+    cyclicGoal.self = cyclicGoal;
+    cyclic.goal = cyclicGoal;
+    const beforeInvalid = helia.puts.length;
+    const invalid = await store.persist(cyclic, policy);
+    expect(invalid).toMatchObject({ state: 'denied', artifacts: {} });
+    expect(invalid.reason).toContain('acyclic JSON-compatible');
+    expect(helia.puts).toHaveLength(beforeInvalid);
+  });
+
   it('writes reproducible evidence covering policy, peer, compaction, retention, cache, and failure behavior', async () => {
     const helia = new MemoryHelia();
     const store = createSupervisorDispatchArtifactStore({ helia, now: () => new Date(createdAt) });
