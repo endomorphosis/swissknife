@@ -1,521 +1,352 @@
-/**
- * SWR-028 — Browser libp2p Playwright evidence harness.
- *
- * This module runs inside a real browser (served by Vite, driven by Playwright)
- * and exercises the actual production browser libp2p runtime
- * (`src/services/mcp/libp2p-browser-runtime.ts`) and the actual MCP+p2p session
- * state machine (`src/services/mcp/mcp-p2p-session.ts`) — not mocks — so the
- * Playwright specs in `test/e2e/libp2p-browser.spec.ts` capture real evidence of:
- *
- *  1. Browser libp2p initialization (a real `createLibp2p` node is started).
- *  2. Unavailable optional package reporting (capability gaps).
- *  3. Relay / bootstrap configuration surfaced to the UI.
- *  4. MCP+p2p connection UI state transitions (idle → handshaking → open/error).
- *
- * Scenarios are selected via URL query parameters so the Playwright spec can
- * deterministically reproduce each evidence case across desktop and mobile
- * viewports without depending on real network access.
- */
-
-import { Buffer as BufferPolyfill } from 'buffer';
-
-// `mcp-p2p-session.ts` is currently classified as a host-only module (see
-// tsconfig.host.json) and therefore uses the bare Node `Buffer` global
-// directly rather than importing a browser polyfill itself. Running the real
-// session state machine inside this browser harness requires a full-featured
-// `Buffer` global (allocUnsafe/concat/read-write-UInt32BE/slice/toString),
-// which the `buffer` npm package provides faithfully. This must run before
-// any session method is invoked; it does not need to run before the static
-// imports below evaluate, since none of them touch `Buffer` at module scope.
-(globalThis as { Buffer?: unknown }).Buffer = BufferPolyfill;
-
+/** SWR-138 real-browser libp2p harness.  No stream, peer, or response here is synthetic. */
 import {
   buildBrowserLibp2pConfig,
   createBrowserLibp2pNode,
-  summarizeBrowserLibp2pGaps,
   type BrowserLibp2pImport,
-  type BrowserLibp2pRuntimeOptions,
-  type BrowserLibp2pRuntimeReport,
 } from '../../../../src/services/mcp/libp2p-browser-runtime';
-import {
-  MCPp2pSession,
-  MCP_PLUS_PLUS_PROFILES,
-  type P2PStream,
-  type SessionState,
-} from '../../../../src/services/mcp/mcp-p2p-session';
+import { multiaddr } from '@multiformats/multiaddr';
 
-// ---------------------------------------------------------------------------
-// Real, literal dynamic imports (Vite statically resolves these because they
-// are literal string specifiers, exactly like production browser bundles do).
-// ---------------------------------------------------------------------------
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+const PROTOCOL = '/swissknife/swr-138/signed-request/1.0.0';
+const TIMEOUT_PROTOCOL = '/swissknife/swr-138/deadline/1.0.0';
 
-const KNOWN_LITERAL_LOADERS: Record<string, () => Promise<Record<string, unknown>>> = {
-  libp2p: () => import('libp2p'),
-  '@libp2p/webrtc': () => import('@libp2p/webrtc'),
-  '@libp2p/websockets': () => import('@libp2p/websockets'),
-  '@libp2p/circuit-relay-v2': () => import('@libp2p/circuit-relay-v2'),
-  '@chainsafe/libp2p-noise': () => import('@chainsafe/libp2p-noise'),
-  '@chainsafe/libp2p-yamux': () => import('@chainsafe/libp2p-yamux'),
-  '@libp2p/identify': () => import('@libp2p/identify'),
-  '@chainsafe/libp2p-gossipsub': () => import('@chainsafe/libp2p-gossipsub'),
+type Libp2pNode = {
+  peerId: { toString(): string };
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  dial(address: unknown): Promise<unknown>;
+  dialProtocol(address: unknown, protocol: string, options?: { runOnTransientConnection?: boolean }): Promise<Stream>;
+  handle(protocol: string, handler: (input: { stream: Stream }) => Promise<void> | void, options?: { runOnTransientConnection?: boolean }): Promise<void>;
+  getMultiaddrs(): Array<{ toString(): string }>;
+  getConnections(peerId?: unknown): Array<{ encryption?: string; multiplexer?: string; status?: string }>;
 };
 
-/**
- * True runtime dynamic import for specifiers that are not statically known
- * above (either genuinely absent from this repo's dependency tree, such as
- * `@libp2p/gossipsub`, `@libp2p/mdns`, and `@libp2p/kad-dht`, or forced
- * "unavailable" by a Playwright scenario). The default evidence scenario does
- * not use this override; it exercises the production literal-import loader in
- * libp2p-browser-runtime.ts directly.
- */
-async function dynamicSpecifierImport(specifier: string): Promise<Record<string, unknown>> {
-  return import(/* @vite-ignore */ specifier) as Promise<Record<string, unknown>>;
-}
-
-function buildImportModule(forcedMissing: ReadonlySet<string>): BrowserLibp2pImport {
-  return async specifier => {
-    if (!forcedMissing.has(specifier) && specifier in KNOWN_LITERAL_LOADERS) {
-      return KNOWN_LITERAL_LOADERS[specifier]();
-    }
-    return dynamicSpecifierImport(specifier);
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Scenario configuration (driven by URL query parameters)
-// ---------------------------------------------------------------------------
-
-type Scenario = 'available' | 'relay-only' | 'websocket-only' | 'missing-webrtc' | 'missing-multiple' | 'disabled';
-
-const SCENARIO_FORCED_MISSING: Record<Scenario, string[]> = {
-  available: [],
-  'relay-only': [],
-  'websocket-only': [],
-  'missing-webrtc': ['@libp2p/webrtc'],
-  'missing-multiple': ['@libp2p/webrtc', '@libp2p/circuit-relay-v2', '@chainsafe/libp2p-gossipsub'],
-  disabled: [],
+type Stream = {
+  source: AsyncIterable<{ subarray?: () => Uint8Array } | Uint8Array>;
+  sink(source: AsyncIterable<Uint8Array>): Promise<void>;
+  close(): Promise<void>;
 };
 
-const DEFAULT_RELAY_MULTIADDR =
-  '/dns4/relay.swissknife-mcp.example/tcp/443/wss/p2p/12D3KooWRelayBootstrapExamplePeerAaaaaaaaaaaaaaaaaaaaaaaaaa/p2p-circuit';
-const DEFAULT_WEBSOCKET_BOOTSTRAP_MULTIADDR =
-  '/dns4/bootstrap.swissknife-mcp.example/tcp/443/wss/p2p/12D3KooWBrowserBootstrapPeerAaaaaaaaaaaaaaaaaaaaaaaaa';
+type KeyPair = { algorithm: 'Ed25519' | 'ECDSA-P256'; privateKey: CryptoKey; publicKey: CryptoKey };
+type NodeHandle = { node: Libp2pNode; peerId: string; relayEndpoint: string; keys: KeyPair };
 
-interface HarnessConfig {
-  scenario: Scenario;
-  listenMultiaddrs: string[];
-  rendezvousAddr: string;
-  bootstrapPeers: string[];
-  usesDefaultBootstrap: boolean;
-  p2pOutcome: 'success' | 'error' | 'timeout';
+export interface FailureReceipt {
+  schema: 'swr-138.browser-libp2p.failure.v1';
+  kind: 'missing-capability' | 'permission-blocked' | 'relay-lost' | 'timeout';
+  code: string;
+  phase: string;
+  cause: string;
+  at: string;
 }
 
-function parseConfig(): HarnessConfig {
-  const params = new URLSearchParams(window.location.search);
-  const scenarioParam = params.get('scenario');
-  const scenario: Scenario =
-    scenarioParam === 'relay-only' ||
-    scenarioParam === 'websocket-only' ||
-    scenarioParam === 'missing-webrtc' ||
-    scenarioParam === 'missing-multiple' ||
-    scenarioParam === 'disabled'
-      ? scenarioParam
-      : 'available';
-
-  // Circuit-relay listening (`/p2p-circuit`) requires a reachable bootstrap
-  // relay peer to reserve a slot on. It is opt-in (default false) so the
-  // default "available" scenario demonstrates a clean, real, CI-safe
-  // initialization; the dedicated `relayListen=true` scenario demonstrates
-  // the real (and realistic) failure when no relay is reachable.
-  const includeRelayListen = params.get('relayListen') === 'true';
-  const listenMultiaddrs =
-    scenario === 'relay-only'
-      ? ['/p2p-circuit']
-      : scenario === 'websocket-only'
-        ? []
-        : ['/webrtc', ...(includeRelayListen ? ['/p2p-circuit'] : [])];
-
-  const relayParam = params.get('relay');
-  const rendezvousAddr = relayParam ?? DEFAULT_RELAY_MULTIADDR;
-  const bootstrapParam = params.get('bootstrap');
-  const bootstrapPeers = bootstrapParam
-    ? bootstrapParam.split(',').map(value => value.trim()).filter(Boolean)
-    : scenario === 'websocket-only'
-      ? [DEFAULT_WEBSOCKET_BOOTSTRAP_MULTIADDR]
-      : [rendezvousAddr];
-  const usesDefaultBootstrap = bootstrapParam === null && relayParam === null;
-
-  const p2pParam = params.get('p2p');
-  const p2pOutcome: HarnessConfig['p2pOutcome'] =
-    p2pParam === 'error' || p2pParam === 'timeout' ? p2pParam : 'success';
-
-  return { scenario, listenMultiaddrs, rendezvousAddr, bootstrapPeers, usesDefaultBootstrap, p2pOutcome };
+function canonical(value: unknown): Uint8Array {
+  return encoder.encode(JSON.stringify(value));
 }
 
-// ---------------------------------------------------------------------------
-// DOM helpers
-// ---------------------------------------------------------------------------
-
-function el<T extends HTMLElement = HTMLElement>(testId: string): T {
-  const found = document.querySelector<T>(`[data-testid="${testId}"]`);
-  if (!found) throw new Error(`Missing element for data-testid="${testId}"`);
-  return found;
+function toBase64(value: ArrayBuffer | Uint8Array): string {
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }
 
-function setBadge(badgeEl: HTMLElement, textEl: HTMLElement, state: string, modifierPrefix: string): void {
-  textEl.textContent = state;
-  badgeEl.textContent = state;
-  badgeEl.className = `badge badge-${modifierPrefix}${state}`;
+function fromBase64(value: string): Uint8Array {
+  const binary = atob(value);
+  return Uint8Array.from(binary, char => char.charCodeAt(0));
 }
 
-function renderViewportBanner(): void {
-  const banner = el('viewport-banner');
-  const mobileQuery = window.matchMedia('(max-width: 600px)');
-
-  function update(): void {
-    const layout = mobileQuery.matches ? 'mobile' : 'desktop';
-    document.body.dataset.layout = layout;
-    banner.textContent = `viewport ${window.innerWidth}x${window.innerHeight} (${layout} layout)`;
-  }
-
-  update();
-  mobileQuery.addEventListener('change', update);
-  window.addEventListener('resize', update);
-}
-
-function renderCapabilities(report: BrowserLibp2pRuntimeReport): void {
-  const list = el('capabilities-list');
-  list.innerHTML = '';
-  for (const capability of report.capabilities) {
-    const li = document.createElement('li');
-    li.dataset.testid = `capability-${capability.name}`;
-    li.dataset.installed = String(capability.installed);
-    li.dataset.configured = String(capability.configured);
-    li.textContent = `${capability.name}: installed=${capability.installed} configured=${capability.configured} (${capability.packageName})${
-      capability.reason ? ` — ${capability.reason}` : ''
-    }`;
-    list.appendChild(li);
-  }
-}
-
-function renderGaps(report: BrowserLibp2pRuntimeReport): void {
-  const list = el('gaps-list');
-  const empty = el('gaps-empty');
-  list.innerHTML = '';
-  const summaries = summarizeBrowserLibp2pGaps(report);
-  if (summaries.length === 0) {
-    empty.hidden = false;
-    return;
-  }
-  empty.hidden = true;
-  for (const gap of report.gaps) {
-    const li = document.createElement('li');
-    li.dataset.testid = `gap-${gap.name}`;
-    li.dataset.installed = 'false';
-    li.textContent = `${gap.name} (${gap.packageName}): ${gap.reason}`;
-    list.appendChild(li);
-  }
-}
-
-async function renderPeerDiscoveryAvailability(importModule: BrowserLibp2pImport): Promise<void> {
-  const list = el('discovery-list');
-  list.innerHTML = '';
-  const discoveryPackages: Array<{ name: string; packageName: string; exportName: string }> = [
-    { name: 'mdns', packageName: '@libp2p/mdns', exportName: 'mdns' },
-    { name: 'kad-dht', packageName: '@libp2p/kad-dht', exportName: 'kadDHT' },
-  ];
-
-  for (const pkg of discoveryPackages) {
-    const li = document.createElement('li');
-    li.dataset.testid = `discovery-${pkg.name}`;
-    try {
-      const module = await importModule(pkg.packageName);
-      const installed = typeof module[pkg.exportName] === 'function';
-      li.dataset.installed = String(installed);
-      li.textContent = installed
-        ? `${pkg.name} (${pkg.packageName}): installed`
-        : `${pkg.name} (${pkg.packageName}): installed but missing export ${pkg.exportName}`;
-    } catch (err) {
-      li.dataset.installed = 'false';
-      const reason = err instanceof Error ? err.message : String(err);
-      li.textContent = `${pkg.name} (${pkg.packageName}): unavailable — ${reason}`;
-    }
-    list.appendChild(li);
-  }
-}
-
-function renderRelayConfig(config: HarnessConfig): void {
-  el('relay-listen').textContent = JSON.stringify(config.listenMultiaddrs, null, 2);
-  el('relay-rendezvous').textContent = config.rendezvousAddr;
-  el('relay-bootstrap-peers').textContent = JSON.stringify(config.bootstrapPeers, null, 2);
-}
-
-function renderBootstrapMatrix(report: BrowserLibp2pRuntimeReport): void {
-  const matrix = report.bootstrap;
-  el('bootstrap-mode').textContent = matrix.transportMode;
-  el('bootstrap-report').textContent = JSON.stringify(
-    {
-      schema: matrix.schema,
-      defaultBootstrap: matrix.defaultBootstrap,
-      listenMultiaddrs: matrix.listenMultiaddrs,
-      bootstrapPeers: matrix.bootstrapPeers,
-      relayMultiaddr: matrix.relayMultiaddr,
-      relayOnlyFallback: matrix.relayOnlyFallback,
-      webRTCUnavailable: matrix.webRTCUnavailable,
-      webSocketOnly: matrix.webSocketOnly,
-      gossipSubAvailable: matrix.gossipSubAvailable,
-      simulatedTransports: matrix.simulatedTransports,
-      capabilities: matrix.capabilities,
-      notes: matrix.notes,
-    },
-    null,
-    2,
-  );
-  el('bootstrap-capability-gaps').textContent = JSON.stringify(matrix.capabilityGaps, null, 2);
-}
-
-function buildRuntimeOptions(
-  config: HarnessConfig,
-  importModule?: BrowserLibp2pImport,
-  extraOptions: BrowserLibp2pRuntimeOptions = {},
-): BrowserLibp2pRuntimeOptions {
-  const transportMode =
-    config.scenario === 'relay-only'
-      ? 'relay-only'
-      : config.scenario === 'websocket-only'
-        ? 'websocket-only'
-        : 'default';
-
-  return {
-    importModule,
-    transportMode,
-    relayMultiaddr: config.usesDefaultBootstrap ? undefined : config.rendezvousAddr,
-    bootstrapPeers: config.usesDefaultBootstrap ? undefined : config.bootstrapPeers,
-    libp2pOptions: { addresses: { listen: config.listenMultiaddrs } },
-    ...extraOptions,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Browser libp2p initialization
-// ---------------------------------------------------------------------------
-
-async function runInitialization(config: HarnessConfig): Promise<void> {
-  const statusText = el('init-status');
-  const statusBadge = el('init-status-badge');
-  const detail = el('init-detail');
-
-  if (config.scenario === 'disabled') {
-    const { report } = await buildBrowserLibp2pConfig(buildRuntimeOptions(config, undefined, { enabled: false }));
-    renderCapabilities(report);
-    renderGaps(report);
-    renderBootstrapMatrix(report);
-    setBadge(statusBadge, statusText, 'disabled', '');
-    detail.textContent = 'Browser libp2p runtime disabled by scenario (enabled: false); no node was created.';
-    return;
-  }
-
-  const forcedMissing = new Set(SCENARIO_FORCED_MISSING[config.scenario]);
-<<<<<<< Updated upstream
-  const importModule = forcedMissing.size > 0 ? buildImportModule(forcedMissing) : undefined;
-  const runtimeOptions = buildRuntimeOptions(config, importModule);
-=======
-  const runtimeOverrides = forcedMissing.size > 0
-    ? { importModule: buildImportModule(forcedMissing) }
-    : {};
-  const runtimeOptions = buildRuntimeOptions(config, runtimeOverrides.importModule);
->>>>>>> Stashed changes
-
-  // Capability/gap assembly never requires real network connectivity, so it
-  // is always computed and rendered first — independent of whether the
-  // subsequent real node construction/start attempt below succeeds. This
-  // guarantees "unavailable package reporting" evidence is captured even in
-  // scenarios where starting the node legitimately fails (e.g. no reachable
-  // circuit-relay bootstrap peer).
-  const { report } = await buildBrowserLibp2pConfig(runtimeOptions);
-  renderCapabilities(report);
-  renderGaps(report);
-  renderBootstrapMatrix(report);
-
+async function createSigningKeys(): Promise<KeyPair> {
   try {
-    // `start: false` defers the actual transport listen attempt so we can
-    // control and time it explicitly below, independent of whatever
-    // `createLibp2p`'s own default auto-start behavior is.
-    const runtime = await createBrowserLibp2pNode({
-      ...runtimeOptions,
-<<<<<<< Updated upstream
-      libp2pOptions: { ...(runtimeOptions.libp2pOptions ?? {}), start: false },
-=======
-      libp2pOptions: {
-        ...(runtimeOptions.libp2pOptions ?? {}),
-        start: false,
-      },
->>>>>>> Stashed changes
-    });
-
-    const node = runtime.node as {
-      start(): Promise<void>;
-      peerId: { toString(): string };
-      getMultiaddrs(): Array<{ toString(): string }>;
-      stop(): Promise<void>;
-    };
-
-    const timeoutMs = 15_000;
-    await Promise.race([
-      node.start(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('libp2p start() timed out')), timeoutMs)),
-    ]);
-
-    const peerId = node.peerId.toString();
-    const addrs = node.getMultiaddrs().map(addr => addr.toString());
-
-    setBadge(statusBadge, statusText, 'started', '');
-    detail.textContent = `peerId=${peerId}\nlisten multiaddrs=${JSON.stringify(config.listenMultiaddrs)}\nadvertised addrs=${JSON.stringify(addrs)}`;
-
-    await node.stop();
-  } catch (err) {
-    setBadge(statusBadge, statusText, 'error', '');
-    detail.textContent = err instanceof Error ? `${err.message}` : String(err);
+    const pair = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+    return { algorithm: 'Ed25519', privateKey: pair.privateKey, publicKey: pair.publicKey };
+  } catch {
+    const pair = await crypto.subtle.generateKey(
+      { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'],
+    );
+    return { algorithm: 'ECDSA-P256', privateKey: pair.privateKey, publicKey: pair.publicKey };
   }
 }
 
-// ---------------------------------------------------------------------------
-// MCP + p2p connection state (real MCPp2pSession, scripted transport)
-// ---------------------------------------------------------------------------
-
-function buildLengthPrefixedFrame(message: unknown): Uint8Array {
-  const body = new TextEncoder().encode(JSON.stringify(message));
-  const header = new Uint8Array(4);
-  new DataView(header.buffer).setUint32(0, body.length, false);
-  const frame = new Uint8Array(header.length + body.length);
-  frame.set(header, 0);
-  frame.set(body, header.length);
-  return frame;
+async function sign(keys: KeyPair, bytes: Uint8Array): Promise<string> {
+  const algorithm: AlgorithmIdentifier | EcdsaParams = keys.algorithm === 'Ed25519'
+    ? { name: 'Ed25519' }
+    : { name: 'ECDSA', hash: 'SHA-256' };
+  return toBase64(await crypto.subtle.sign(algorithm, keys.privateKey, bytes));
 }
 
-/**
- * A scripted P2PStream standing in for a real libp2p stream. It responds to
- * the first outbound MCP `initialize` request with a canned reply so the
- * *real* `MCPp2pSession` handshake / framing / state-machine code executes
- * end-to-end inside the browser, without depending on external network peers
- * (which would make the evidence flaky and CI-unsafe).
- */
-function createScriptedP2PStream(outcome: HarnessConfig['p2pOutcome']): P2PStream {
-  let ended = false;
-  const queue: Uint8Array[] = [];
-  let pendingResolve: ((chunk: Uint8Array) => void) | null = null;
-  let requestCount = 0;
-
-  function push(chunk: Uint8Array): void {
-    if (pendingResolve) {
-      const resolve = pendingResolve;
-      pendingResolve = null;
-      resolve(chunk);
-    } else {
-      queue.push(chunk);
-    }
-  }
-
-  return {
-    write(_chunk: Uint8Array) {
-      requestCount += 1;
-      if (requestCount !== 1) return;
-      if (outcome === 'timeout') return; // Never respond — caller races against a timeout.
-      queueMicrotask(() => {
-        if (outcome === 'success') {
-          push(
-            buildLengthPrefixedFrame({
-              jsonrpc: '2.0',
-              id: 1,
-              result: {
-                protocolVersion: '2024-11-05',
-                serverInfo: { name: 'swissknife-libp2p-harness-relay', version: '1.0.0' },
-                capabilities: { tools: true, mcpPlusPlusProfiles: [...MCP_PLUS_PLUS_PROFILES] },
-              },
-            }),
-          );
-        } else {
-          push(
-            buildLengthPrefixedFrame({
-              jsonrpc: '2.0',
-              id: 1,
-              error: { code: -32000, message: 'Simulated relay rejection: no route to bootstrap peer' },
-            }),
-          );
-        }
-      });
-    },
-    close() {
-      ended = true;
-    },
-    abort() {
-      ended = true;
-    },
-    async *[Symbol.asyncIterator]() {
-      while (!ended) {
-        if (queue.length > 0) {
-          yield queue.shift()!;
-        } else {
-          yield await new Promise<Uint8Array>(resolve => {
-            pendingResolve = resolve;
-          });
-        }
-      }
-    },
-  };
+async function verify(algorithm: KeyPair['algorithm'], publicJwk: JsonWebKey, bytes: Uint8Array, signature: string): Promise<boolean> {
+  const importAlgorithm: AlgorithmIdentifier | EcKeyImportParams = algorithm === 'Ed25519'
+    ? { name: 'Ed25519' }
+    : { name: 'ECDSA', namedCurve: 'P-256' };
+  const verifyAlgorithm: AlgorithmIdentifier | EcdsaParams = algorithm === 'Ed25519'
+    ? { name: 'Ed25519' }
+    : { name: 'ECDSA', hash: 'SHA-256' };
+  const publicKey = await crypto.subtle.importKey('jwk', publicJwk, importAlgorithm, false, ['verify']);
+  return crypto.subtle.verify(verifyAlgorithm, publicKey, fromBase64(signature), bytes);
 }
 
-async function runP2PConnectionScenario(config: HarnessConfig): Promise<void> {
-  const statusText = el('p2p-status');
-  const statusBadge = el('p2p-status-badge');
-  const detail = el('p2p-detail');
-
-  const stream = createScriptedP2PStream(config.p2pOutcome);
-  const session = new MCPp2pSession(stream);
-  session.on('state', (state: SessionState) => {
-    setBadge(statusBadge, statusText, state, '');
-  });
-  setBadge(statusBadge, statusText, session.sessionState, '');
-
-  try {
-    const result = await Promise.race([
-      session.handshake({ name: 'swissknife-libp2p-browser-harness', version: '1.0.0' }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('MCP+p2p handshake timed out waiting for relay peer')), 4000),
-      ),
-    ]);
-    detail.textContent = `Connected to ${result.serverInfo.name} (protocol ${result.protocolVersion})\nnegotiated profiles: ${
-      result.capabilities.mcpPlusPlusProfiles?.join(', ') ?? '(none)'
-    }`;
-  } catch (err) {
-    setBadge(statusBadge, statusText, 'error', '');
-    detail.textContent = err instanceof Error ? err.message : String(err);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Entry point
-// ---------------------------------------------------------------------------
-
-async function main(): Promise<void> {
-  renderViewportBanner();
-  const config = parseConfig();
-  renderRelayConfig(config);
-
-  const discoveryImportModule = buildImportModule(new Set());
-  await Promise.all([
-    runInitialization(config),
-    renderPeerDiscoveryAvailability(discoveryImportModule),
-    runP2PConnectionScenario(config),
+async function readStream(stream: Stream, deadlineMs = 10_000): Promise<unknown> {
+  const read = (async () => {
+    const chunks: Uint8Array[] = [];
+    for await (const value of stream.source) chunks.push(value instanceof Uint8Array ? value : value.subarray!());
+    const length = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const combined = new Uint8Array(length);
+    let offset = 0;
+    for (const chunk of chunks) { combined.set(chunk, offset); offset += chunk.length; }
+    return JSON.parse(decoder.decode(combined));
+  })();
+  return Promise.race([
+    read,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`stream deadline exceeded after ${deadlineMs}ms`)), deadlineMs)),
   ]);
-
-  const ready = el('harness-ready');
-  ready.dataset.ready = 'true';
 }
 
-main().catch(err => {
-  console.error('[libp2p-browser-harness] fatal error', err);
-  const ready = el('harness-ready');
-  ready.dataset.ready = 'true';
-  ready.dataset.fatalError = err instanceof Error ? err.message : String(err);
-});
+async function writeJson(stream: Stream, value: unknown): Promise<void> {
+  const bytes = canonical(value);
+  await stream.sink((async function* () { yield bytes; })());
+}
+
+function localRelayWebSocketFilter(addresses: unknown[]): unknown[] {
+  // The local relay is TLS/WSS and the test contexts explicitly accept its
+  // one-run self-signed certificate. Keeping this explicit makes the harness
+  // independent of browser-specific address-filter implementation details.
+  return addresses.filter(address => !String(address).includes('/p2p-circuit'));
+}
+
+async function literalBrowserImport(specifier: string): Promise<Record<string, unknown>> {
+  switch (specifier) {
+    case 'libp2p': return import('libp2p') as Promise<Record<string, unknown>>;
+    case '@libp2p/webrtc': return import('@libp2p/webrtc') as Promise<Record<string, unknown>>;
+    case '@libp2p/websockets': return import('@libp2p/websockets') as Promise<Record<string, unknown>>;
+    case '@libp2p/circuit-relay-v2': return import('@libp2p/circuit-relay-v2') as Promise<Record<string, unknown>>;
+    case '@chainsafe/libp2p-noise': return import('@chainsafe/libp2p-noise') as Promise<Record<string, unknown>>;
+    case '@chainsafe/libp2p-yamux': return import('@chainsafe/libp2p-yamux') as Promise<Record<string, unknown>>;
+    case '@libp2p/identify': return import('@libp2p/identify') as Promise<Record<string, unknown>>;
+    case '@chainsafe/libp2p-gossipsub': return import('@chainsafe/libp2p-gossipsub') as Promise<Record<string, unknown>>;
+    default: throw new Error(`Unexpected browser libp2p dependency: ${specifier}`);
+  }
+}
+
+async function waitForReservation(node: Libp2pNode, relayMultiaddr: string): Promise<string> {
+  const deadline = Date.now() + 15_000;
+  const peerId = node.peerId.toString();
+  while (Date.now() < deadline) {
+    const found = node.getMultiaddrs().map(address => address.toString()).find(address => address.includes('/p2p-circuit'));
+    if (found) return `${relayMultiaddr}/p2p-circuit/p2p/${peerId}`;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  throw new Error('Circuit relay reservation did not become available before deadline');
+}
+
+async function startNode(relayMultiaddr: string): Promise<NodeHandle> {
+  const runtime = await createBrowserLibp2pNode({
+    // All production browser capabilities remain default-enabled. The only
+    // harness-specific input is the address filter accepting the local WSS
+    // relay certificate that Playwright deliberately trusts for this run.
+    webSocketsOptions: { filter: localRelayWebSocketFilter },
+    // A circuit reservation needs an already-open relay connection. Start the
+    // real node without listeners, dial the relay, then ask libp2p's actual
+    // transport manager to listen on the circuit address.
+    libp2pOptions: { start: false, addresses: { listen: [] } },
+  });
+  if (!runtime.report.enabled || runtime.report.gaps.length !== 0) {
+    throw new Error(`Default browser libp2p capabilities unavailable: ${runtime.report.gaps.map(gap => gap.reason).join('; ')}`);
+  }
+  const node = runtime.node as Libp2pNode;
+  await node.start();
+  await node.dial(multiaddr(relayMultiaddr));
+  await (node as unknown as { components: { transportManager: { listen(addresses: unknown[]): Promise<void> } } })
+    .components.transportManager.listen([multiaddr(`${relayMultiaddr}/p2p-circuit`)]);
+  const relayEndpoint = await waitForReservation(node, relayMultiaddr);
+  return { node, peerId: node.peerId.toString(), relayEndpoint, keys: await createSigningKeys() };
+}
+
+async function registerSignedResponder(handle: NodeHandle): Promise<void> {
+  await handle.node.handle(PROTOCOL, async ({ stream }) => {
+    const request = await readStream(stream) as Record<string, unknown>;
+    const requestBody = { nonce: request.nonce, protocol: request.protocol, from: request.from };
+    const requestVerified = await verify(
+      request.algorithm as KeyPair['algorithm'], request.publicKey as JsonWebKey, canonical(requestBody), request.signature as string,
+    );
+    if (!requestVerified) throw new Error('Incoming signed request failed WebCrypto verification');
+    const responseBody = { nonce: request.nonce, protocol: PROTOCOL, from: handle.peerId, accepted: true };
+    const publicKey = await crypto.subtle.exportKey('jwk', handle.keys.publicKey);
+    await writeJson(stream, {
+      ...responseBody,
+      algorithm: handle.keys.algorithm,
+      publicKey,
+      signature: await sign(handle.keys, canonical(responseBody)),
+      requestSignatureVerified: requestVerified,
+    });
+    await stream.close();
+  }, { runOnTransientConnection: true });
+  await handle.node.handle(TIMEOUT_PROTOCOL, async ({ stream }) => {
+    // A real libp2p handler intentionally holds the stream open. The caller's
+    // bounded read, not a canned response, produces the timeout receipt.
+    await new Promise<void>(() => undefined);
+    await stream.close();
+  }, { runOnTransientConnection: true });
+}
+
+function connectionMetadata(node: Libp2pNode, peerId: string): { encryption: string; multiplexer: string } {
+  const connection = node.getConnections().find(candidate =>
+    String((candidate as { remotePeer?: { toString(): string } }).remotePeer?.toString?.() ?? '').includes(peerId),
+  ) ?? node.getConnections()[0];
+  if (!connection) throw new Error('No real libp2p connection available for negotiation assertion');
+  const encryption = connection.encryption ?? '';
+  const multiplexer = connection.multiplexer ?? '';
+  if (!/noise/i.test(encryption) || !/yamux/i.test(multiplexer)) {
+    throw new Error(`Expected Noise and Yamux, got encryption=${encryption || '(none)'} multiplexer=${multiplexer || '(none)'}`);
+  }
+  return { encryption, multiplexer };
+}
+
+async function exchange(sender: NodeHandle, receiver: NodeHandle): Promise<Record<string, unknown>> {
+  const nonce = crypto.randomUUID();
+  const body = { nonce, protocol: PROTOCOL, from: sender.peerId };
+  const publicKey = await crypto.subtle.exportKey('jwk', sender.keys.publicKey);
+  const stream = await sender.node.dialProtocol(multiaddr(receiver.relayEndpoint), PROTOCOL, { runOnTransientConnection: true });
+  await writeJson(stream, { ...body, algorithm: sender.keys.algorithm, publicKey, signature: await sign(sender.keys, canonical(body)) });
+  const response = await readStream(stream) as Record<string, unknown>;
+  const responseBody = { nonce: response.nonce, protocol: response.protocol, from: response.from, accepted: response.accepted };
+  const responseVerified = await verify(
+    response.algorithm as KeyPair['algorithm'], response.publicKey as JsonWebKey, canonical(responseBody), response.signature as string,
+  );
+  await stream.close();
+  if (response.nonce !== nonce || response.accepted !== true || response.requestSignatureVerified !== true || !responseVerified) {
+    throw new Error('Signed libp2p response failed nonce, request-verification, or response-verification checks');
+  }
+  return {
+    protocol: PROTOCOL,
+    nonce,
+    requestSignatureVerified: true,
+    responseSignatureVerified: responseVerified,
+    requestAlgorithm: sender.keys.algorithm,
+    responseAlgorithm: response.algorithm,
+    negotiation: connectionMetadata(sender.node, receiver.peerId),
+  };
+}
+
+function failure(kind: FailureReceipt['kind'], code: string, phase: string, error: unknown): FailureReceipt {
+  return { schema: 'swr-138.browser-libp2p.failure.v1', kind, code, phase, cause: error instanceof Error ? error.message : String(error), at: new Date().toISOString() };
+}
+
+async function captureMissingCapability(): Promise<FailureReceipt> {
+  const importModule: BrowserLibp2pImport = async specifier => {
+    if (specifier === '@libp2p/websockets') throw new Error('module intentionally absent from browser capability set');
+    return literalBrowserImport(specifier);
+  };
+  const runtime = await buildBrowserLibp2pConfig({ transportMode: 'relay-only', importModule });
+  const gap = runtime.report.gaps.find(item => item.name === 'websockets');
+  if (!gap) throw new Error('Missing WebSocket capability did not retain a typed runtime gap');
+  return failure('missing-capability', gap.code, 'capability-assembly', gap.reason);
+}
+
+async function capturePermissionBlocked(): Promise<FailureReceipt> {
+  // Headless Chromium and WebKit auto-deny an ungranted geolocation prompt
+  // (PositionError.PERMISSION_DENIED). Headless Firefox instead leaves the
+  // prompt permanently pending with no UI to answer it, so
+  // getCurrentPosition never settles. Both are real, engine-native ways a
+  // browser blocks an unauthorized capability; race a bounded deadline so
+  // the never-settling Firefox prompt itself becomes the typed receipt
+  // instead of exhausting the outer test timeout.
+  const PROMPT_DEADLINE_MS = 4_000;
+  const outcome = await Promise.race<{ mode: 'denied' | 'unresolved'; error: unknown }>([
+    new Promise(resolve => navigator.geolocation.getCurrentPosition(
+      () => resolve({ mode: 'unresolved', error: new Error('Geolocation unexpectedly succeeded without a granted browser permission') }),
+      error => resolve({ mode: 'denied', error }),
+      { timeout: 1_000, maximumAge: 0 },
+    )),
+    new Promise(resolve => setTimeout(
+      () => resolve({ mode: 'unresolved', error: new Error(`Geolocation permission prompt received no browser response within ${PROMPT_DEADLINE_MS}ms`) }),
+      PROMPT_DEADLINE_MS,
+    )),
+  ]);
+  if (outcome.mode === 'denied') {
+    const code = typeof outcome.error === 'object' && outcome.error !== null && 'code' in outcome.error
+      ? Number((outcome.error as { code: unknown }).code)
+      : 0;
+    if (code !== 1) throw outcome.error;
+    return failure('permission-blocked', 'permission-denied', 'browser-permission', outcome.error);
+  }
+  return failure('permission-blocked', 'permission-prompt-unresolved', 'browser-permission', outcome.error);
+}
+
+async function captureTimeout(sender: NodeHandle, receiver: NodeHandle): Promise<FailureReceipt> {
+  try {
+    const stream = await sender.node.dialProtocol(multiaddr(receiver.relayEndpoint), TIMEOUT_PROTOCOL, { runOnTransientConnection: true });
+    await writeJson(stream, { nonce: crypto.randomUUID() });
+    await readStream(stream, 750);
+    throw new Error('Deadline protocol unexpectedly produced a response');
+  } catch (error) {
+    return failure('timeout', 'stream-deadline-exceeded', 'protocol-response', error);
+  }
+}
+
+async function captureRelayLoss(sender: NodeHandle, receiver: NodeHandle): Promise<FailureReceipt> {
+  try {
+    await sender.node.dialProtocol(multiaddr(receiver.relayEndpoint), PROTOCOL, { runOnTransientConnection: true });
+    throw new Error('Circuit route unexpectedly remained usable after relay shutdown');
+  } catch (error) {
+    return failure('relay-lost', 'relay-route-unavailable', 'relay-dial', error);
+  }
+}
+
+async function stopNode(handle: NodeHandle): Promise<{ peerId: string; stopped: boolean; connections: number }> {
+  await handle.node.stop();
+  return { peerId: handle.peerId, stopped: true, connections: handle.node.getConnections().length };
+}
+
+declare global {
+  interface Window {
+    swr138Libp2p: {
+      protocol: string;
+      start(relayMultiaddr: string): Promise<{ peerId: string; relayEndpoint: string }>;
+      registerResponder(): Promise<void>;
+      exchange(receiverEndpoint: string, receiverPeerId: string): Promise<Record<string, unknown>>;
+      captureTimeout(receiverEndpoint: string): Promise<FailureReceipt>;
+      captureRelayLoss(receiverEndpoint: string): Promise<FailureReceipt>;
+      stop(): Promise<{ peerId: string; stopped: boolean; connections: number }>;
+      captureMissingCapability(): Promise<FailureReceipt>;
+      capturePermissionBlocked(): Promise<FailureReceipt>;
+    };
+  }
+}
+
+let localNode: NodeHandle | undefined;
+async function local(): Promise<NodeHandle> {
+  if (!localNode) throw new Error('No local browser libp2p node has been started');
+  return localNode;
+}
+
+window.swr138Libp2p = {
+  protocol: PROTOCOL,
+  async start(relayMultiaddr) {
+    localNode = await startNode(relayMultiaddr);
+    return { peerId: localNode.peerId, relayEndpoint: localNode.relayEndpoint };
+  },
+  async registerResponder() { await registerSignedResponder(await local()); },
+  async exchange(receiverEndpoint, receiverPeerId) {
+    const sender = await local();
+    return exchange(sender, { ...sender, peerId: receiverPeerId, relayEndpoint: receiverEndpoint });
+  },
+  async captureTimeout(receiverEndpoint) {
+    const sender = await local();
+    return captureTimeout(sender, { ...sender, relayEndpoint: receiverEndpoint });
+  },
+  async captureRelayLoss(receiverEndpoint) {
+    const sender = await local();
+    return captureRelayLoss(sender, { ...sender, relayEndpoint: receiverEndpoint });
+  },
+  async stop() {
+    const handle = await local();
+    const result = await stopNode(handle);
+    localNode = undefined;
+    return result;
+  },
+  captureMissingCapability,
+  capturePermissionBlocked,
+};
+
+document.body.dataset.ready = 'true';

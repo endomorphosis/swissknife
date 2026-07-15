@@ -62,7 +62,7 @@ const repoRoot = path.resolve(__dirname, '..');
 const EVIDENCE_GROUPS = [
   {
     id: 'libp2p-browser-playwright',
-    label: 'Browser libp2p Playwright evidence (SWR-028)',
+    label: 'Browser libp2p interoperability evidence (SWR-138)',
     releaseBlocking: false,
     // Only `docs/browser-libp2p-evidence.md` is tracked in git (the raw
     // `test-results/libp2p-browser/*` Playwright output — screenshots,
@@ -79,6 +79,7 @@ const EVIDENCE_GROUPS = [
       'src/services/mcp/mcp-discovery.ts',
       'test/e2e/libp2p-browser.spec.ts',
       'test/e2e/fixtures/libp2p-browser-harness',
+      'test/e2e/fixtures/libp2p-browser-harness/relay-server.mjs',
       'build-tools/configs/playwright.libp2p-browser.config.ts',
       'build-tools/configs/vite.libp2p-browser-harness.config.ts',
     ],

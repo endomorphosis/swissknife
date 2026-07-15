@@ -1,252 +1,152 @@
 /**
- * SWR-028 — Browser libp2p Playwright evidence.
+ * SWR-138: real browser-to-browser libp2p interoperability.
  *
- * Drives the real, production browser libp2p runtime
- * (src/services/mcp/libp2p-browser-runtime.ts) and the real MCP+p2p session
- * state machine (src/services/mcp/mcp-p2p-session.ts) inside actual desktop
- * and mobile browser engines via the harness in
- * test/e2e/fixtures/libp2p-browser-harness. See build-tools/configs/
- * playwright.libp2p-browser.config.ts for the desktop/mobile project matrix
- * and docs/browser-libp2p-evidence.md for the evidence write-up.
+ * Each project owns two independently-created browser contexts.  The only
+ * host process is a real Circuit Relay v2 server; it is never used as a
+ * browser transport or protocol peer.
  */
-
-import { test, expect, type Page } from '@playwright/test';
-import * as fs from 'fs';
-import * as path from 'path';
+import { test, expect, type BrowserContext, type Page } from '@playwright/test';
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const RESULTS_DIR = path.join(process.cwd(), 'test-results', 'libp2p-browser');
-const SCREENSHOTS_DIR = path.join(RESULTS_DIR, 'screenshots');
+const RELAY_SCRIPT = path.join(process.cwd(), 'test/e2e/fixtures/libp2p-browser-harness/relay-server.mjs');
 
-const CAPABILITY_NAMES = [
-  'webrtc',
-  'websockets',
-  'circuit-relay-v2',
-  'noise',
-  'yamux',
-  'identify',
-  'gossipsub',
-];
+type RelayReceipt = { type: 'swr-138-relay-ready'; peerId: string; multiaddr: string; encryption: string; multiplexer: string };
+type NodeReceipt = { peerId: string; relayEndpoint: string };
+type FailureReceipt = { schema: string; kind: string; code: string; phase: string; cause: string; at: string };
 
-test.beforeAll(() => {
-  fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
-});
-
-async function waitForHarnessReady(page: Page): Promise<void> {
-  await page.waitForSelector('[data-testid="harness-ready"][data-ready="true"]', { timeout: 30_000 });
+function startRelay(): Promise<{ child: ChildProcessWithoutNullStreams; receipt: RelayReceipt }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [RELAY_SCRIPT], { cwd: process.cwd(), env: { ...process.env, SWISSKNIFE_LIBP2P_RELAY_PORT: '0' } });
+    let output = '';
+    const deadline = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error(`Timed out waiting for local libp2p relay readiness: ${output}`));
+    }, 30_000);
+    child.stdout.on('data', chunk => {
+      output += String(chunk);
+      for (const line of output.split('\n')) {
+        try {
+          const receipt = JSON.parse(line) as RelayReceipt;
+          if (receipt.type === 'swr-138-relay-ready') {
+            clearTimeout(deadline);
+            resolve({ child, receipt });
+            return;
+          }
+        } catch { /* wait for a complete JSON line */ }
+      }
+    });
+    child.stderr.on('data', chunk => { output += String(chunk); });
+    child.once('error', error => { clearTimeout(deadline); reject(error); });
+    child.once('exit', code => {
+      if (!output.includes('swr-138-relay-ready')) {
+        clearTimeout(deadline);
+        reject(new Error(`Local libp2p relay exited before readiness (code ${code}): ${output}`));
+      }
+    });
+  });
 }
 
-async function gotoScenario(page: Page, query = ''): Promise<void> {
-  await page.goto(`/${query}`);
-  await waitForHarnessReady(page);
-  const fatalError = await page.getByTestId('harness-ready').getAttribute('data-fatal-error');
-  expect(fatalError, `harness fatal error: ${fatalError}`).toBeNull();
+async function stopRelay(child: ChildProcessWithoutNullStreams): Promise<void> {
+  if (child.exitCode !== null) return;
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('Local relay did not stop cleanly')); }, 10_000);
+    child.once('exit', code => {
+      clearTimeout(timer);
+      if (code === 0 || code === null) resolve();
+      else reject(new Error(`Local relay exited with ${code}`));
+    });
+    child.kill('SIGTERM');
+  });
 }
 
-function screenshotPath(testInfo: { project: { name: string } }, label: string): string {
-  const safeProject = testInfo.project.name.replace(/[^a-z0-9-]/gi, '-');
-  return path.join(SCREENSHOTS_DIR, `${safeProject}-${label}.png`);
+async function ready(page: Page): Promise<void> {
+  await page.goto('/');
+  await page.waitForFunction(() => document.body.dataset.ready === 'true', undefined, { timeout: 30_000 });
 }
 
-test.describe('SWR-028 browser libp2p Playwright evidence', () => {
-  test('captures real browser libp2p initialization with all optional capabilities configured', async ({
-    page,
-  }, testInfo) => {
-    await gotoScenario(page);
+async function startBrowserNode(page: Page, relay: string): Promise<NodeReceipt> {
+  return page.evaluate(async multiaddr => (window as any).swr138Libp2p.start(multiaddr), relay) as Promise<NodeReceipt>;
+}
 
-    await expect(page.getByTestId('init-status')).toHaveText('started');
-    const detail = await page.getByTestId('init-detail').textContent();
-    expect(detail).toMatch(/peerId=12D3Koo/);
-    expect(detail).toContain('listen multiaddrs=["/webrtc"]');
+function writeEvidence(project: string, receipt: Record<string, unknown>): void {
+  fs.mkdirSync(RESULTS_DIR, { recursive: true });
+  fs.writeFileSync(path.join(RESULTS_DIR, `swr-138-${project}.json`), JSON.stringify(receipt, null, 2));
+}
 
-    const capabilityItems = await page.locator('[data-testid="capabilities-list"] li').allTextContents();
-    expect(capabilityItems).toHaveLength(CAPABILITY_NAMES.length);
+test.describe('SWR-138 default browser libp2p interoperability', () => {
+  test('uses a real relay and signed protocol exchange across two isolated contexts', async ({ browser }, testInfo) => {
+    const relay = await startRelay();
+    let senderContext: BrowserContext | undefined;
+    let receiverContext: BrowserContext | undefined;
+    let senderPage: Page | undefined;
+    let receiverPage: Page | undefined;
+    const teardown: Array<Record<string, unknown>> = [];
 
-    for (const name of CAPABILITY_NAMES) {
-      const item = page.getByTestId(`capability-${name}`);
-      await expect(item).toHaveAttribute('data-installed', 'true');
-      await expect(item).toHaveAttribute('data-configured', 'true');
+    try {
+      // Explicitly create contexts instead of using the page fixture: context
+      // storage, permissions, and browser libp2p identities must not leak.
+      senderContext = await browser.newContext({ ignoreHTTPSErrors: true });
+      receiverContext = await browser.newContext({ ignoreHTTPSErrors: true });
+      senderPage = await senderContext.newPage();
+      receiverPage = await receiverContext.newPage();
+      await Promise.all([ready(senderPage), ready(receiverPage)]);
+
+      const receiver = await startBrowserNode(receiverPage, relay.receipt.multiaddr);
+      await receiverPage.evaluate(() => (window as any).swr138Libp2p.registerResponder());
+      const sender = await startBrowserNode(senderPage, relay.receipt.multiaddr);
+      expect(sender.peerId).not.toBe(receiver.peerId);
+      expect(sender.relayEndpoint).toContain('/p2p-circuit');
+      expect(receiver.relayEndpoint).toContain('/p2p-circuit');
+
+      const exchange = await senderPage.evaluate(
+        async receiverInfo => (window as any).swr138Libp2p.exchange(receiverInfo.relayEndpoint, receiverInfo.peerId), receiver,
+      ) as Record<string, unknown>;
+      expect(exchange.protocol).toBe('/swissknife/swr-138/signed-request/1.0.0');
+      expect(exchange.requestSignatureVerified).toBe(true);
+      expect(exchange.responseSignatureVerified).toBe(true);
+      expect(String((exchange.negotiation as Record<string, unknown>).encryption)).toMatch(/noise/i);
+      expect(String((exchange.negotiation as Record<string, unknown>).multiplexer)).toMatch(/yamux/i);
+
+      const missingCapability = await senderPage.evaluate(() => (window as any).swr138Libp2p.captureMissingCapability()) as FailureReceipt;
+      const permissionBlocked = await senderPage.evaluate(() => (window as any).swr138Libp2p.capturePermissionBlocked()) as FailureReceipt;
+      const timeout = await senderPage.evaluate(
+        async receiverInfo => (window as any).swr138Libp2p.captureTimeout(receiverInfo.relayEndpoint), receiver,
+      ) as FailureReceipt;
+      for (const receipt of [missingCapability, permissionBlocked, timeout]) {
+        expect(receipt.schema).toBe('swr-138.browser-libp2p.failure.v1');
+        expect(receipt.cause.length).toBeGreaterThan(0);
+      }
+      expect(missingCapability.kind).toBe('missing-capability');
+      expect(permissionBlocked.kind).toBe('permission-blocked');
+      expect(timeout.kind).toBe('timeout');
+
+      await stopRelay(relay.child);
+      const relayLost = await senderPage.evaluate(
+        async receiverInfo => (window as any).swr138Libp2p.captureRelayLoss(receiverInfo.relayEndpoint), receiver,
+      ) as FailureReceipt;
+      expect(relayLost).toMatchObject({ schema: 'swr-138.browser-libp2p.failure.v1', kind: 'relay-lost', code: 'relay-route-unavailable' });
+
+      const receipt = {
+        schema: 'swr-138.browser-libp2p.interoperability-receipt.v1', taskId: 'SWR-138', engine: testInfo.project.name,
+        contexts: { isolated: true, senderPeerId: sender.peerId, receiverPeerId: receiver.peerId },
+        relay: relay.receipt, protocol: exchange, failures: [missingCapability, permissionBlocked, timeout, relayLost],
+        capturedAt: new Date().toISOString(),
+      };
+      writeEvidence(testInfo.project.name, receipt);
+    } finally {
+      if (senderPage) {
+        try { teardown.push(await senderPage.evaluate(() => (window as any).swr138Libp2p.stop())); } catch (error) { teardown.push({ side: 'sender', error: String(error) }); }
+      }
+      if (receiverPage) {
+        try { teardown.push(await receiverPage.evaluate(() => (window as any).swr138Libp2p.stop())); } catch (error) { teardown.push({ side: 'receiver', error: String(error) }); }
+      }
+      await senderContext?.close();
+      await receiverContext?.close();
+      await stopRelay(relay.child).catch(error => teardown.push({ side: 'relay', error: String(error) }));
+      expect(teardown.every(item => item.stopped !== false)).toBe(true);
     }
-
-    await expect(page.getByTestId('gaps-empty')).toBeVisible();
-
-    await page.screenshot({ path: screenshotPath(testInfo, 'available'), fullPage: true });
-  });
-
-  test('reports an unavailable optional package as a capability gap instead of a silent fallback', async ({
-    page,
-  }, testInfo) => {
-    await gotoScenario(page, '?scenario=missing-webrtc');
-
-    const gapItem = page.getByTestId('gap-webrtc');
-    await expect(gapItem).toBeVisible();
-    const gapText = (await gapItem.textContent()) ?? '';
-    expect(gapText).toContain('@libp2p/webrtc');
-    expect(gapText.toLowerCase()).toContain('unavailable');
-
-    // The remaining capabilities are still real, installed, and configured —
-    // the gap does not silently replace webrtc with a fake transport.
-    await expect(page.getByTestId('capability-websockets')).toHaveAttribute('data-configured', 'true');
-    await expect(page.getByTestId('capability-circuit-relay-v2')).toHaveAttribute('data-configured', 'true');
-
-    // With webrtc missing, the default `/webrtc` listen multiaddr has no
-    // matching transport, so the real node start attempt fails — a genuine,
-    // deterministic consequence of the gap rather than a silent success.
-    await expect(page.getByTestId('init-status')).toHaveText('error');
-
-    await page.screenshot({ path: screenshotPath(testInfo, 'missing-webrtc'), fullPage: true });
-  });
-
-  test('reports multiple unavailable optional packages independently', async ({ page }) => {
-    await gotoScenario(page, '?scenario=missing-multiple');
-
-    for (const name of ['webrtc', 'circuit-relay-v2', 'gossipsub']) {
-      await expect(page.getByTestId(`gap-${name}`)).toBeVisible();
-    }
-    await expect(page.getByTestId('capability-websockets')).toHaveAttribute('data-configured', 'true');
-    await expect(page.getByTestId('capability-noise')).toHaveAttribute('data-configured', 'true');
-  });
-
-  test('disables the browser libp2p runtime entirely when the scenario requests it', async ({ page }) => {
-    await gotoScenario(page, '?scenario=disabled');
-
-    await expect(page.getByTestId('init-status')).toHaveText('disabled');
-    await expect(page.locator('[data-testid="capabilities-list"] li')).toHaveCount(0);
-    await expect(page.getByTestId('gaps-empty')).toBeVisible();
-  });
-
-  test('surfaces the default relay/bootstrap configuration', async ({ page }) => {
-    await gotoScenario(page);
-
-    const listen = await page.getByTestId('relay-listen').textContent();
-    expect(listen).toContain('/webrtc');
-
-    const rendezvous = await page.getByTestId('relay-rendezvous').textContent();
-    expect(rendezvous).toContain('/p2p-circuit');
-
-    const bootstrapPeersRaw = await page.getByTestId('relay-bootstrap-peers').textContent();
-    const bootstrapPeers = JSON.parse(bootstrapPeersRaw ?? '[]') as string[];
-    expect(bootstrapPeers.length).toBeGreaterThan(0);
-    expect(bootstrapPeers[0]).toContain('/p2p-circuit');
-  });
-
-  test('surfaces custom relay/bootstrap configuration and a real circuit-relay listen failure without a reachable relay peer', async ({
-    page,
-  }, testInfo) => {
-    const relay = '/dns4/relay.example.org/tcp/443/wss/p2p/12D3KooWCustomRelayPeerExampleAAAAAAAAAAAAAAAAAAAAAAAA';
-    const bootstrapPeer = '/ip4/203.0.113.10/tcp/4001/p2p/12D3KooWBootstrapPeerExampleBBBBBBBBBBBBBBBBBBBBBBBBBB';
-
-    await gotoScenario(
-      page,
-      `?relayListen=true&relay=${encodeURIComponent(relay)}&bootstrap=${encodeURIComponent(bootstrapPeer)}`,
-    );
-
-    const listen = await page.getByTestId('relay-listen').textContent();
-    expect(listen).toContain('/p2p-circuit');
-
-    const rendezvous = await page.getByTestId('relay-rendezvous').textContent();
-    expect(rendezvous).toBe(relay);
-
-    const bootstrapPeersRaw = await page.getByTestId('relay-bootstrap-peers').textContent();
-    expect(JSON.parse(bootstrapPeersRaw ?? '[]')).toEqual([bootstrapPeer]);
-
-    // All capabilities are still real and configured; only the *listen*
-    // attempt against a circuit-relay address fails, because no relay peer
-    // is actually reachable in this CI-safe evidence run.
-    await expect(page.getByTestId('gaps-empty')).toBeVisible();
-    await expect(page.getByTestId('init-status')).toHaveText('error');
-    const detail = await page.getByTestId('init-detail').textContent();
-    expect(detail).toMatch(/circuit-relay-v2-transport/);
-
-    await page.screenshot({ path: screenshotPath(testInfo, 'relay-bootstrap-config'), fullPage: true });
-  });
-
-  test('drives the real MCP+p2p session through a successful handshake', async ({ page }, testInfo) => {
-    await gotoScenario(page, '?p2p=success');
-
-    await expect(page.getByTestId('p2p-status')).toHaveText('open');
-    const detail = await page.getByTestId('p2p-detail').textContent();
-    expect(detail).toContain('protocol 2024-11-05');
-    expect(detail).toContain('mcp++/ucan');
-
-    await page.screenshot({ path: screenshotPath(testInfo, 'p2p-success'), fullPage: true });
-  });
-
-  test('drives the real MCP+p2p session through a rejected handshake', async ({ page }, testInfo) => {
-    await gotoScenario(page, '?p2p=error');
-
-    await expect(page.getByTestId('p2p-status')).toHaveText('error');
-    const detail = await page.getByTestId('p2p-detail').textContent();
-    expect(detail).toContain('Simulated relay rejection');
-
-    await page.screenshot({ path: screenshotPath(testInfo, 'p2p-error'), fullPage: true });
-  });
-
-  test('drives the real MCP+p2p session through a connection timeout', async ({ page }) => {
-    await gotoScenario(page, '?p2p=timeout');
-
-    await expect(page.getByTestId('p2p-status')).toHaveText('error');
-    const detail = await page.getByTestId('p2p-detail').textContent();
-    expect(detail).toMatch(/timed out/i);
-  });
-
-  test('reports real peer-discovery optional package availability', async ({ page }) => {
-    await gotoScenario(page);
-
-    const mdnsText = await page.getByTestId('discovery-mdns').textContent();
-    const kadDhtText = await page.getByTestId('discovery-kad-dht').textContent();
-    expect(mdnsText).toContain('@libp2p/mdns');
-    expect(kadDhtText).toContain('@libp2p/kad-dht');
-  });
-
-  test('renders a viewport-appropriate layout for this project', async ({ page }, testInfo) => {
-    await gotoScenario(page);
-
-    const layout = await page.locator('body').getAttribute('data-layout');
-    const viewport = page.viewportSize();
-    const expectedLayout = viewport && viewport.width <= 600 ? 'mobile' : 'desktop';
-    expect(layout).toBe(expectedLayout);
-
-    const banner = await page.getByTestId('viewport-banner').textContent();
-    expect(banner).toContain(expectedLayout);
-
-    await page.screenshot({ path: screenshotPath(testInfo, `viewport-${expectedLayout}`), fullPage: true });
-  });
-
-  test('collects an aggregated evidence receipt for docs/browser-libp2p-evidence.md', async ({ page }, testInfo) => {
-    await gotoScenario(page, '?p2p=success');
-
-    const capabilities = await page.locator('[data-testid="capabilities-list"] li').allTextContents();
-    const discovery = await page.locator('[data-testid="discovery-list"] li').allTextContents();
-    const initStatus = await page.getByTestId('init-status').textContent();
-    const initDetail = await page.getByTestId('init-detail').textContent();
-    const p2pStatus = await page.getByTestId('p2p-status').textContent();
-    const p2pDetail = await page.getByTestId('p2p-detail').textContent();
-    const layout = await page.locator('body').getAttribute('data-layout');
-    const viewport = page.viewportSize();
-
-    const receipt = {
-      schema: 'swr_028_browser_libp2p_evidence_receipt_v1',
-      task_id: 'SWR-028',
-      depends_on: ['SWR-015', 'SWR-016'],
-      project: testInfo.project.name,
-      viewport,
-      layout,
-      initStatus,
-      initDetail,
-      capabilities,
-      discovery,
-      p2pStatus,
-      p2pDetail,
-      capturedAt: new Date().toISOString(),
-    };
-
-    const safeProject = testInfo.project.name.replace(/[^a-z0-9-]/gi, '-');
-    fs.writeFileSync(
-      path.join(RESULTS_DIR, `evidence-${safeProject}.json`),
-      JSON.stringify(receipt, null, 2),
-    );
-
-    expect(initStatus).toBe('started');
-    expect(p2pStatus).toBe('open');
   });
 });
