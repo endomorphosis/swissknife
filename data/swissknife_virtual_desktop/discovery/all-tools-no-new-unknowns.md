@@ -1,7 +1,7 @@
 # All-Tools Closeout: No New Unknowns
 
-Generated: 2026-07-15T09:19:41.138Z
-Source revision: `9e78b5d8d850c1dc3dad59972057192a25e77905`
+Generated: 2026-07-15T09:24:21.905Z
+Source revision: `1afd33aca5c71574be70cb1c7c166152c5e83e84`
 Decision: **NO-GO**
 
 ## No new unknowns
