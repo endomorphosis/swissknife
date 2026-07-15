@@ -84,6 +84,13 @@ export interface BrowserLibp2pRuntimeOptions {
   includeYamux?: boolean;
   includeIdentify?: boolean;
   includeGossipSub?: boolean;
+  /**
+   * Options forwarded to the real `@libp2p/websockets` transport factory.
+   * This is intentionally opt-in: production defaults retain the package's
+   * secure-browser address filter, while controlled integration environments
+   * can supply a transport policy (for example a locally trusted relay).
+   */
+  webSocketsOptions?: Record<string, unknown>;
   libp2pOptions?: Record<string, unknown>;
   importModule?: BrowserLibp2pImport;
 }
@@ -431,9 +438,10 @@ function addFactory(
   load: OptionalModuleLoad,
   statuses: BrowserLibp2pCapabilityStatus[],
   gaps: BrowserLibp2pCapabilityGap[],
+  options?: Record<string, unknown>,
 ): void {
   try {
-    config[key] = [...asArray(config[key]), load.factory()];
+    config[key] = [...asArray(config[key]), load.factory(options as never)];
     markConfigured(statuses, load);
   } catch (err) {
     const reason = `Failed to initialize ${load.packageName}: ${gapReason(err)}`;
@@ -511,7 +519,7 @@ export async function buildBrowserLibp2pConfig(
 
   if (requested.websockets) {
     const websockets = await loadOptionalModule(MODULES.websockets, importModule, statuses, gaps);
-    if (websockets) addFactory('transports', config, websockets, statuses, gaps);
+    if (websockets) addFactory('transports', config, websockets, statuses, gaps, options.webSocketsOptions);
   }
 
   if (requested.relay) {
