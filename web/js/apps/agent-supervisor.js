@@ -153,6 +153,7 @@ export class AgentSupervisorApp {
         submitting: false,
         result: null,
         error: null,
+        recoveryAction: null,
       },
       dispatch: {
         reason: 'Dispatch the reviewed task through the governed supervisor queue.',
@@ -163,6 +164,8 @@ export class AgentSupervisorApp {
       },
       receiptOperation: {
         loading: false,
+        operation: null,
+        confirm: false,
         result: null,
         error: null,
       },
@@ -360,6 +363,7 @@ export class AgentSupervisorApp {
     this.state.steering.confirm = false;
     this.state.steering.result = null;
     this.state.steering.error = null;
+    this.state.steering.recoveryAction = null;
     if (update) this.update();
   }
 
@@ -434,15 +438,26 @@ export class AgentSupervisorApp {
     this.container.querySelector('[data-action="checkpoint-receipt"]')?.addEventListener('click', () => {
       this.checkpointSelectedReceipt();
     });
+    this.container.querySelector('[data-action="persist-receipt"]')?.addEventListener('click', () => {
+      this.persistSelectedReceipt();
+    });
+    this.container.querySelector('[data-receipt-operation-confirm]')?.addEventListener('change', event => {
+      this.state.receiptOperation.confirm = Boolean(event.target.checked);
+      this.state.receiptOperation.result = null;
+      this.state.receiptOperation.error = null;
+      this.update();
+    });
     this.container.querySelector('[data-steering-prompt]')?.addEventListener('input', event => {
       this.state.steering.prompt = event.target.value.slice(0, 8000);
       this.state.steering.result = null;
       this.state.steering.error = null;
+      this.state.steering.recoveryAction = null;
     });
     this.container.querySelector('[data-steering-confirm]')?.addEventListener('change', event => {
       this.state.steering.confirm = Boolean(event.target.checked);
       this.state.steering.result = null;
       this.state.steering.error = null;
+      this.state.steering.recoveryAction = null;
       this.update();
     });
     this.container.querySelector('[data-steering-dry-run]')?.addEventListener('change', event => {
@@ -450,10 +465,14 @@ export class AgentSupervisorApp {
       this.state.steering.confirm = false;
       this.state.steering.result = null;
       this.state.steering.error = null;
+      this.state.steering.recoveryAction = null;
       this.update();
     });
     this.container.querySelector('[data-action="submit-steering"]')?.addEventListener('click', () => {
       this.submitSteeringPrompt();
+    });
+    this.container.querySelector('[data-action="recover-steering"]')?.addEventListener('click', () => {
+      this.recoverSteeringRequest();
     });
     this.container.querySelector('[data-dispatch-reason]')?.addEventListener('input', event => {
       this.state.dispatch.reason = event.target.value.slice(0, 1000);
@@ -560,6 +579,7 @@ export class AgentSupervisorApp {
     steering.submitting = true;
     steering.error = null;
     steering.result = null;
+    steering.recoveryAction = null;
     this.update();
 
     const result = await this.invokeCapability('supervisor.prompt-steering.request', request);
@@ -578,7 +598,19 @@ export class AgentSupervisorApp {
         message: result.message || 'Prompt steering request was not accepted.',
         correlation_id: result.correlation_id,
       };
+      steering.recoveryAction = result.recovery_action
+        || result.runtime?.recovery_action
+        || recoveryActionForSteeringFailure(steering.error.reason);
     }
+    this.state.activeTab = 'steering';
+    this.update();
+  }
+
+  recoverSteeringRequest() {
+    this.state.steering.confirm = false;
+    this.state.steering.result = null;
+    this.state.steering.error = null;
+    this.state.steering.recoveryAction = null;
     this.state.activeTab = 'steering';
     this.update();
   }
@@ -649,6 +681,7 @@ export class AgentSupervisorApp {
       return;
     }
     this.state.receiptOperation.loading = true;
+    this.state.receiptOperation.operation = 'retrieve-content';
     this.state.receiptOperation.result = null;
     this.state.receiptOperation.error = null;
     this.update();
@@ -677,7 +710,16 @@ export class AgentSupervisorApp {
       this.update();
       return;
     }
+    if (!this.state.receiptOperation.confirm) {
+      this.state.receiptOperation.error = {
+        reason: 'confirmation_required',
+        message: 'Confirm the selected receipt operation before creating an event-DAG checkpoint.',
+      };
+      this.update();
+      return;
+    }
     this.state.receiptOperation.loading = true;
+    this.state.receiptOperation.operation = 'checkpoint-event-dag';
     this.state.receiptOperation.result = null;
     this.state.receiptOperation.error = null;
     this.update();
@@ -689,6 +731,7 @@ export class AgentSupervisorApp {
     this.state.receiptOperation.loading = false;
     if (isAvailableResult(result)) {
       this.state.receiptOperation.result = result;
+      this.state.receiptOperation.confirm = false;
       const checkpointReceipt = result.receipt || result.data?.receipt;
       if (checkpointReceipt?.receipt_id) {
         this.state.snapshot.receipts = upsertReceipt(this.state.snapshot.receipts, checkpointReceipt);
@@ -698,6 +741,51 @@ export class AgentSupervisorApp {
       this.state.receiptOperation.error = result;
     }
     this.state.results.eventDagCheckpoint = result;
+    this.update();
+  }
+
+  async persistSelectedReceipt() {
+    const selected = this.state.snapshot.receipts
+      .find(item => item.receipt_id === this.state.selectedReceiptId);
+    if (!selected) {
+      this.state.receiptOperation.error = {
+        reason: 'receipt_unavailable',
+        message: 'Select a receipt before requesting browser-safe persistence.',
+      };
+      this.update();
+      return;
+    }
+    if (!this.state.receiptOperation.confirm) {
+      this.state.receiptOperation.error = {
+        reason: 'confirmation_required',
+        message: 'Confirm the selected receipt operation before requesting browser-safe persistence.',
+      };
+      this.update();
+      return;
+    }
+    this.state.receiptOperation.loading = true;
+    this.state.receiptOperation.operation = 'persist-receipt';
+    this.state.receiptOperation.result = null;
+    this.state.receiptOperation.error = null;
+    this.update();
+    const correlation = `persist-${Date.now()}`;
+    const result = await this.invokeCapability('supervisor.receipts.persist', {
+      receipt: selected,
+      confirmation_token: `confirm-agent-supervisor:receipt:${selected.receipt_id}:${correlation}`,
+    });
+    this.state.receiptOperation.loading = false;
+    if (isAvailableResult(result)) {
+      this.state.receiptOperation.result = result;
+      this.state.receiptOperation.confirm = false;
+      const persistedReceipt = result.receipt || result.data;
+      if (persistedReceipt?.receipt_id) {
+        this.state.snapshot.receipts = upsertReceipt(this.state.snapshot.receipts, persistedReceipt);
+        this.state.selectedReceiptId = persistedReceipt.receipt_id;
+      }
+    } else {
+      this.state.receiptOperation.error = result;
+    }
+    this.state.results.receiptPersist = result;
     this.update();
   }
 
@@ -965,6 +1053,7 @@ export class AgentSupervisorApp {
           <div class="as-state as-error" data-testid="steering-error" role="alert">
             <strong>${escapeHtml(error.reason)}</strong>
             <span>${escapeHtml(error.message)}${error.correlation_id ? ` ${escapeHtml(error.correlation_id)}` : ''}</span>
+            <button type="button" data-action="recover-steering" data-testid="steering-recovery" data-supervisor-focusable>${escapeHtml(steering.recoveryAction || recoveryActionForSteeringFailure(error.reason))}</button>
           </div>
         ` : ''}
         ${result ? `
@@ -975,6 +1064,9 @@ export class AgentSupervisorApp {
             ${metric('Accepted', String(result.accepted))}
             ${metric('Mode', result.dry_run ? 'dry-run' : 'confirmed')}
             ${metric('Policy', result.policy_class || 'unknown')}
+            ${metric('Policy effect', result.policy_effects?.outcome || 'reviewed')}
+            ${metric('Budget', result.policy_effects?.budget || 'not reported')}
+            ${metric('Dependencies', result.policy_effects?.dependencies || 'not reported')}
             ${metric('Event DAG', result.event_dag?.cid || 'pending')}
             ${metric('Event', result.event_dag?.event_type || 'governed-action')}
           </div>
@@ -1066,19 +1158,26 @@ export class AgentSupervisorApp {
             ${metric('Owner', selected.owner)}
             ${metric('Created', selected.created_at || 'unknown')}
           </div>
+          <label class="as-confirm-line">
+            <input type="checkbox" data-receipt-operation-confirm data-testid="receipt-operation-confirm" ${operation.confirm ? 'checked' : ''} ${operation.loading ? 'disabled' : ''}>
+            <span>Confirm persistence or event-DAG checkpoint for this selected receipt.</span>
+          </label>
           <div class="as-actions as-receipt-actions">
+            <button type="button" data-action="persist-receipt" data-testid="receipt-persist" data-supervisor-focusable ${operation.loading || !operation.confirm ? 'disabled' : ''}>${operation.loading ? 'Working' : 'Persist receipt'}</button>
             <button type="button" data-action="retrieve-receipt-content" data-testid="receipt-retrieve" data-supervisor-focusable ${operation.loading ? 'disabled' : ''}>${operation.loading ? 'Working' : 'Retrieve content'}</button>
-            <button type="button" data-action="checkpoint-receipt" data-testid="receipt-checkpoint" data-supervisor-focusable ${operation.loading ? 'disabled' : ''}>Checkpoint event-DAG</button>
+            <button type="button" data-action="checkpoint-receipt" data-testid="receipt-checkpoint" data-supervisor-focusable ${operation.loading || !operation.confirm ? 'disabled' : ''}>Checkpoint event-DAG</button>
           </div>
           <div class="as-section-line" data-testid="receipt-operation-evidence">
             <h4>Receipt operation evidence</h4>
             ${operationResult ? `
+              ${metric('Operation', operation.operation || 'unknown')}
               ${metric('Owner', operationResult.owner || 'ipfs_kit_py')}
               ${metric('Transport', operationResult.runtime?.transport || 'unobserved')}
               ${metric('Policy', operationResult.runtime?.policy_outcome || operationResult.policy_class || 'unobserved')}
               ${metric('CID', operationResult.runtime?.event_dag_cid || operationResult.runtime?.content_cid || operationResult.receipt?.cid || 'no-cid')}
+              ${metric('Event DAG', operationResult.runtime?.event_dag_cid || operationResult.data?.cid || operationResult.data?.event_dag?.cid || 'no-checkpoint')}
               ${metric('Failure', operationResult.runtime?.failure_code || 'none')}
-            ` : '<span>Retrieve or checkpoint the selected receipt to record mediated kit or browser-Helia evidence.</span>'}
+            ` : '<span>Persist, retrieve, or checkpoint the selected receipt to record mediated kit or browser-Helia evidence.</span>'}
             ${operationError ? `<span role="alert">${escapeHtml(operationError.reason || operationError.state || 'unavailable')}: ${escapeHtml(operationError.message || 'Receipt operation failed.')}</span>` : ''}
           </div>
         ` : ''}
@@ -1395,6 +1494,7 @@ function normalizeGatewayResult(invocation, value) {
       message: value.message || 'Agent Supervisor request was denied.',
       policy_class: invocation.policy_class,
       correlation_id: value.correlation_id || invocation.correlation_id,
+      recovery_action: isSafeRuntimeIdentifier(value.recovery_action) ? value.recovery_action : undefined,
       runtime: normalizeRuntimeObservation(value.runtime),
     };
   }
@@ -1559,9 +1659,28 @@ function normalizeSteeringAccepted(data, review, correlationId) {
     policy_class: data?.policy_class || review.policy_class,
     affected_task_ids: Array.isArray(data?.affected_task_ids) ? data.affected_task_ids : review.affected_task_ids,
     planned_mcp_action: data?.planned_mcp_action || review.planned_mcp_action,
+    policy_effects: normalizePolicyEffects(data?.policy_effects),
     receipt,
     event_dag: data?.event_dag || null,
   };
+}
+
+function normalizePolicyEffects(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const effects = {};
+  for (const key of ['outcome', 'budget', 'dependencies']) {
+    if (typeof value[key] === 'string' && value[key].length <= 256) effects[key] = value[key];
+  }
+  return Object.keys(effects).length ? effects : null;
+}
+
+function recoveryActionForSteeringFailure(reason) {
+  if (reason === 'dependency_blocked') return 'Review dependencies and retry';
+  if (reason === 'budget_exceeded') return 'Adjust scope or budget and retry';
+  if (reason === 'request_expired') return 'Start a new reviewed request';
+  if (reason === 'request_cancelled') return 'Review and resubmit';
+  if (reason === 'policy_denied') return 'Review policy and retry';
+  return 'Review request and retry';
 }
 
 function buildTaskDispatchReview(task, contract) {

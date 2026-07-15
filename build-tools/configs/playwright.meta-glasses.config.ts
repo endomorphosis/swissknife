@@ -23,6 +23,7 @@ export default defineConfig({
     '**/all-app-meta-device-simulator.spec.ts',
     '**/meta-glasses-virtual-os.spec.ts',
     '**/meta-glasses-simulator-handoff.spec.ts',
+    '**/meta-glasses-expanded-io-simulator-validation.spec.ts',
   ],
   timeout: 240 * 1000,
   fullyParallel: false,

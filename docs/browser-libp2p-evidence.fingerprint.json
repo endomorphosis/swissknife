@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "libp2p-browser-playwright",
   "label": "Browser libp2p interoperability evidence (SWR-138)",
-  "generatedAt": "2026-07-15T08:27:38.482Z",
+  "generatedAt": "2026-07-15T14:26:49.648Z",
   "evidenceFiles": [
     "docs/browser-libp2p-evidence.md"
   ],

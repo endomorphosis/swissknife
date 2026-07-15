@@ -73,7 +73,7 @@ Path: `src/services/zkp/artifacts/schnorr-field.wasm.b64`
 
 Asset ID: `zkp.schnorr.field-helper.v1`
 
-The Schnorr backend decodes this committed base64 payload into the inline helper used by `instantiateSchnorrWasmHelper()`. It is not fetched at runtime. Its decoded byte SHA-256 is `312741ca9aa9db89eaad2c558f32a71ea654e7e83f65841f4e6a224cd1ca5a8e`.
+The Schnorr backend decodes this committed base64 payload into the inline helper used by `instantiateSchnorrWasmHelper()`. It is not fetched at runtime. Its decoded byte SHA-256 is `59fb1c30446716179bab2e5691bbf344aa2a60d123f7101fc0ee731e96976e0c`.
 
 ## Package-Owned WASM
 
