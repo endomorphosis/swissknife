@@ -177,4 +177,45 @@ describe('Agent Supervisor browser gateway contract', () => {
     expect(content).toMatchObject({ state: 'available', owner: 'ipfs_kit_py', data: { cid: 'bafybrowserheliacheckpoint', from: 'helia' }, runtime: { transport: 'browser-helia', content_cid: 'bafybrowserheliacheckpoint' } });
     expect(new Set(calls.map(call => call.owner))).toEqual(new Set(['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py']));
   });
+
+  it('does not report a governed action as available when immutable persistence fails', async () => {
+    const tools = ['ipfs_accelerate_py', 'ipfs_kit_py'].map(owner => ({
+      owner,
+      tool_id: owner === 'ipfs_accelerate_py' ? 'get_task' : 'ipfs_cat',
+      capabilities: [owner === 'ipfs_accelerate_py' ? 'ipfs.accelerate.supervisor' : 'ipfs.kit.storage'],
+    }));
+    const runtime = createAgentSupervisorThreeBackendRuntime({
+      tool_gateway: new AllAppToolGateway({
+        http: {
+          kind: 'http',
+          async invoke(call) {
+            if (call.owner === 'ipfs_kit_py') throw new Error('kit persistence offline');
+            return {
+              ok: true, owner: call.owner, tool_id: call.tool_id, transport: call.transport,
+              correlation_id: call.correlation_id, outcome: 'executed', result: { accepted: true },
+              receipt: { receipt_id: 'receipt:accelerate', cid: 'bafyaccelerate', owner: call.owner, tool_id: call.tool_id, transport: call.transport, correlation_id: call.correlation_id, policy_outcome: 'allow', outcome: 'executed' },
+            };
+          },
+        },
+      }),
+      discovered_tools: tools,
+      available_transports: ['http'],
+    });
+
+    const result = await runtime.invoke(buildAgentSupervisorInvocation('supervisor.task-control.request', {
+      task_id: 'SWR-107-1',
+      action: 'claim',
+      reason: 'verify immutable receipt persistence',
+      dry_run: false,
+      confirmation_token: 'confirm-agent-supervisor:task:SWR-107-1:test',
+    }, 'corr-persistence-failure'));
+
+    expect(result).toMatchObject({
+      state: 'unavailable',
+      capability_id: 'supervisor.task-control.request',
+      reason: 'persistence_failed',
+      correlation_id: 'corr-persistence-failure',
+      runtime: { failure_code: 'persistence_failed', recovery_action: expect.any(String) },
+    });
+  });
 });
