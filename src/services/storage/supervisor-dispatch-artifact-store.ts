@@ -356,12 +356,14 @@ export function supervisorDispatchArtifactCid(value: unknown): string {
 }
 
 function validateInput(input: SupervisorDispatchArtifactInput, policy: SupervisorDispatchArtifactPolicy): string | undefined {
-  if (!input.dispatch_id || !input.correlation_id || !input.policy_cid) return 'Dispatch ID, correlation ID, and policy CID are required.';
+  if (!isNonEmptyString(input.dispatch_id) || !isNonEmptyString(input.correlation_id) || !isNonEmptyString(input.policy_cid)) {
+    return 'Dispatch ID, correlation ID, and policy CID are required.';
+  }
   if (!isContentCid(input.policy_cid)) return 'The governing policy reference must be a content CID.';
   if (input.policy_outcome !== 'permit') return 'Only policy-permitted dispatches may persist artifacts.';
   if (input.goal === undefined || input.task === undefined) return 'Goal and task artifacts are required for a governed dispatch.';
   if (input.receipt === undefined) return 'A receipt is required before dispatch persistence.';
-  if (input.event_dag === undefined) return 'An event-DAG checkpoint is required before dispatch persistence.';
+  if (!isPlainRecord(input.event_dag)) return 'An event-DAG checkpoint must be a JSON object.';
   if (![input.goal, input.task, input.receipt, input.event_dag].every(value => isCanonicalJsonValue(value))) {
     return 'Governed-dispatch artifacts must contain finite, acyclic JSON-compatible values.';
   }
@@ -399,8 +401,11 @@ function redact(value: unknown, path = '$'): { value: unknown; paths: string[]; 
     const items = value.map((item, index) => redact(item, `${path}[${index}]`));
     return { value: items.map(item => item.value), paths: items.flatMap(item => item.paths), redacted: items.every(item => item.redacted) };
   }
-  if (value !== null && typeof value === 'object') {
-    const output: Record<string, unknown> = {};
+  if (isPlainRecord(value)) {
+    // A null-prototype record preserves a literal "__proto__" key instead of
+    // invoking Object.prototype's legacy setter while redacting untrusted
+    // dispatch payloads.
+    const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
     const paths: string[] = [];
     for (const key of Object.keys(value as Record<string, unknown>).sort()) {
       const nextPath = `${path}.${key}`;
@@ -440,6 +445,7 @@ function isCanonicalJsonValue(value: unknown, ancestors = new Set<object>()): bo
   ancestors.add(value);
   try {
     if (Array.isArray(value)) return value.every(item => isCanonicalJsonValue(item, ancestors));
+    if (!isPlainRecord(value)) return false;
     return Object.keys(value as Record<string, unknown>)
       .every(key => isCanonicalJsonValue((value as Record<string, unknown>)[key], ancestors));
   } catch {
@@ -447,6 +453,16 @@ function isCanonicalJsonValue(value: unknown, ancestors = new Set<object>()): bo
   } finally {
     ancestors.delete(value);
   }
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
 function encodeCanonical(value: unknown): Uint8Array {
