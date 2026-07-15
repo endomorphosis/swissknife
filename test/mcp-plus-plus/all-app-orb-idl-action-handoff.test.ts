@@ -58,8 +58,11 @@ describe('SVD-110 exhaustive ORB/IDL action handoff contracts', () => {
       expect(packet.packet_cid).toMatch(/^sha256:[0-9a-f]{64}$/);
       expect(packet.interface_cid).toMatch(/^sha256:[0-9a-f]{64}$/);
       expect(packet.action_id).toBeTruthy();
+      expect(packet.route_id.startsWith('binding:')
+        ? packet.action_id.startsWith(`${packet.app_id}.`)
+        : packet.action_id.startsWith('supervisor.')).toBe(true);
       expect(packet.binding_id).toBeTruthy();
-      expect(packet.peer_did).toMatch(/^did:key:z[1-9A-HJ-NP-Za-km-z]+$/);
+      expect(packet.peer_did).toMatch(/^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]{40,}$/);
       expect(packet.capability_profile.profile_id).toMatch(/^mcp\+\+:/);
       expect(packet.capability_profile.required_profiles).toEqual(expect.arrayContaining(['A', 'B', 'D', 'F']));
       expect(packet.capability_profile.transports).toEqual(expect.arrayContaining(['http']));

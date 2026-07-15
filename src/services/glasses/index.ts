@@ -2,6 +2,7 @@ export * from './control-surface-mediator.js';
 export * from './deployment-readiness-validator.js';
 export * from './desktop-orb-idl-contract.js';
 export * from './all-app-live-orb-idl-handoff.js';
+export * from './all-app-orb-idl-action-handoff.js';
 export * from './agent-supervisor-expanded-io-map.js';
 export * from './agent-supervisor-expanded-io-handoff.js';
 export * from './meta-glasses-expanded-io-simulator-validation.js';
