@@ -163,6 +163,8 @@ export class AgentSupervisorApp {
       },
       receiptOperation: {
         loading: false,
+        operation: null,
+        confirm: false,
         result: null,
         error: null,
       },
@@ -434,6 +436,15 @@ export class AgentSupervisorApp {
     this.container.querySelector('[data-action="checkpoint-receipt"]')?.addEventListener('click', () => {
       this.checkpointSelectedReceipt();
     });
+    this.container.querySelector('[data-action="persist-receipt"]')?.addEventListener('click', () => {
+      this.persistSelectedReceipt();
+    });
+    this.container.querySelector('[data-receipt-operation-confirm]')?.addEventListener('change', event => {
+      this.state.receiptOperation.confirm = Boolean(event.target.checked);
+      this.state.receiptOperation.result = null;
+      this.state.receiptOperation.error = null;
+      this.update();
+    });
     this.container.querySelector('[data-steering-prompt]')?.addEventListener('input', event => {
       this.state.steering.prompt = event.target.value.slice(0, 8000);
       this.state.steering.result = null;
@@ -649,6 +660,7 @@ export class AgentSupervisorApp {
       return;
     }
     this.state.receiptOperation.loading = true;
+    this.state.receiptOperation.operation = 'retrieve-content';
     this.state.receiptOperation.result = null;
     this.state.receiptOperation.error = null;
     this.update();
@@ -677,7 +689,16 @@ export class AgentSupervisorApp {
       this.update();
       return;
     }
+    if (!this.state.receiptOperation.confirm) {
+      this.state.receiptOperation.error = {
+        reason: 'confirmation_required',
+        message: 'Confirm the selected receipt operation before creating an event-DAG checkpoint.',
+      };
+      this.update();
+      return;
+    }
     this.state.receiptOperation.loading = true;
+    this.state.receiptOperation.operation = 'checkpoint-event-dag';
     this.state.receiptOperation.result = null;
     this.state.receiptOperation.error = null;
     this.update();
@@ -689,6 +710,7 @@ export class AgentSupervisorApp {
     this.state.receiptOperation.loading = false;
     if (isAvailableResult(result)) {
       this.state.receiptOperation.result = result;
+      this.state.receiptOperation.confirm = false;
       const checkpointReceipt = result.receipt || result.data?.receipt;
       if (checkpointReceipt?.receipt_id) {
         this.state.snapshot.receipts = upsertReceipt(this.state.snapshot.receipts, checkpointReceipt);
@@ -698,6 +720,51 @@ export class AgentSupervisorApp {
       this.state.receiptOperation.error = result;
     }
     this.state.results.eventDagCheckpoint = result;
+    this.update();
+  }
+
+  async persistSelectedReceipt() {
+    const selected = this.state.snapshot.receipts
+      .find(item => item.receipt_id === this.state.selectedReceiptId);
+    if (!selected) {
+      this.state.receiptOperation.error = {
+        reason: 'receipt_unavailable',
+        message: 'Select a receipt before requesting browser-safe persistence.',
+      };
+      this.update();
+      return;
+    }
+    if (!this.state.receiptOperation.confirm) {
+      this.state.receiptOperation.error = {
+        reason: 'confirmation_required',
+        message: 'Confirm the selected receipt operation before requesting browser-safe persistence.',
+      };
+      this.update();
+      return;
+    }
+    this.state.receiptOperation.loading = true;
+    this.state.receiptOperation.operation = 'persist-receipt';
+    this.state.receiptOperation.result = null;
+    this.state.receiptOperation.error = null;
+    this.update();
+    const correlation = `persist-${Date.now()}`;
+    const result = await this.invokeCapability('supervisor.receipts.persist', {
+      receipt: selected,
+      confirmation_token: `confirm-agent-supervisor:receipt:${selected.receipt_id}:${correlation}`,
+    });
+    this.state.receiptOperation.loading = false;
+    if (isAvailableResult(result)) {
+      this.state.receiptOperation.result = result;
+      this.state.receiptOperation.confirm = false;
+      const persistedReceipt = result.receipt || result.data;
+      if (persistedReceipt?.receipt_id) {
+        this.state.snapshot.receipts = upsertReceipt(this.state.snapshot.receipts, persistedReceipt);
+        this.state.selectedReceiptId = persistedReceipt.receipt_id;
+      }
+    } else {
+      this.state.receiptOperation.error = result;
+    }
+    this.state.results.receiptPersist = result;
     this.update();
   }
 
@@ -1066,19 +1133,26 @@ export class AgentSupervisorApp {
             ${metric('Owner', selected.owner)}
             ${metric('Created', selected.created_at || 'unknown')}
           </div>
+          <label class="as-confirm-line">
+            <input type="checkbox" data-receipt-operation-confirm data-testid="receipt-operation-confirm" ${operation.confirm ? 'checked' : ''} ${operation.loading ? 'disabled' : ''}>
+            <span>Confirm persistence or event-DAG checkpoint for this selected receipt.</span>
+          </label>
           <div class="as-actions as-receipt-actions">
+            <button type="button" data-action="persist-receipt" data-testid="receipt-persist" data-supervisor-focusable ${operation.loading || !operation.confirm ? 'disabled' : ''}>${operation.loading ? 'Working' : 'Persist receipt'}</button>
             <button type="button" data-action="retrieve-receipt-content" data-testid="receipt-retrieve" data-supervisor-focusable ${operation.loading ? 'disabled' : ''}>${operation.loading ? 'Working' : 'Retrieve content'}</button>
-            <button type="button" data-action="checkpoint-receipt" data-testid="receipt-checkpoint" data-supervisor-focusable ${operation.loading ? 'disabled' : ''}>Checkpoint event-DAG</button>
+            <button type="button" data-action="checkpoint-receipt" data-testid="receipt-checkpoint" data-supervisor-focusable ${operation.loading || !operation.confirm ? 'disabled' : ''}>Checkpoint event-DAG</button>
           </div>
           <div class="as-section-line" data-testid="receipt-operation-evidence">
             <h4>Receipt operation evidence</h4>
             ${operationResult ? `
+              ${metric('Operation', operation.operation || 'unknown')}
               ${metric('Owner', operationResult.owner || 'ipfs_kit_py')}
               ${metric('Transport', operationResult.runtime?.transport || 'unobserved')}
               ${metric('Policy', operationResult.runtime?.policy_outcome || operationResult.policy_class || 'unobserved')}
               ${metric('CID', operationResult.runtime?.event_dag_cid || operationResult.runtime?.content_cid || operationResult.receipt?.cid || 'no-cid')}
+              ${metric('Event DAG', operationResult.runtime?.event_dag_cid || operationResult.data?.cid || operationResult.data?.event_dag?.cid || 'no-checkpoint')}
               ${metric('Failure', operationResult.runtime?.failure_code || 'none')}
-            ` : '<span>Retrieve or checkpoint the selected receipt to record mediated kit or browser-Helia evidence.</span>'}
+            ` : '<span>Persist, retrieve, or checkpoint the selected receipt to record mediated kit or browser-Helia evidence.</span>'}
             ${operationError ? `<span role="alert">${escapeHtml(operationError.reason || operationError.state || 'unavailable')}: ${escapeHtml(operationError.message || 'Receipt operation failed.')}</span>` : ''}
           </div>
         ` : ''}

@@ -1,0 +1,132 @@
+{
+  "schema": "swissknife.agent-supervisor-three-backend-runtime.v1",
+  "task_id": "SVD-107",
+  "generated_at": "2026-07-15T08:00:00.000Z",
+  "decision": "GO",
+  "validation_mode": "controlled-mediated-runtime",
+  "live_network_claimed": false,
+  "runtime_boundary": {
+    "transport": "AllAppToolGateway fixture with an injected browser-safe Helia adapter",
+    "host_access": "none",
+    "credentials_or_endpoint_urls_recorded": false,
+    "purpose": "Exercises the browser-mediated three-owner contract and its typed recovery paths without claiming a live backend probe."
+  },
+  "contract": {
+    "schema": "swissknife.agent_supervisor_console.v1",
+    "app_id": "agent-supervisor",
+    "required_owners": [
+      "ipfs_accelerate_py",
+      "ipfs_datasets_py",
+      "ipfs_kit_py"
+    ],
+    "forbidden_browser_surfaces": [
+      "host_state_file_read",
+      "host_process_launch",
+      "direct_implementation_supervisor_call",
+      "unmediated_prompt_mutation"
+    ]
+  },
+  "observations": [
+    {
+      "id": "accelerate-queue-read",
+      "capability_id": "supervisor.queue.read",
+      "owner": "ipfs_accelerate_py",
+      "correlation_id": "svd-107-runtime-accelerate-queue",
+      "state": "available",
+      "runtime": {
+        "binding_id": "agent-supervisor.ipfs_accelerate_py.supervise_agent_work",
+        "transport": "http",
+        "policy_outcome": "allow"
+      },
+      "assertions": {
+        "mediated": true,
+        "receipt_required": true,
+        "receipt_observed": true
+      }
+    },
+    {
+      "id": "datasets-policy-assistance",
+      "capability_id": "supervisor.policy.assist",
+      "owner": "ipfs_datasets_py",
+      "correlation_id": "svd-107-runtime-datasets-policy",
+      "state": "available",
+      "runtime": {
+        "binding_id": "agent-supervisor.ipfs_datasets_py.query_catalog",
+        "transport": "libp2p",
+        "policy_outcome": "allow"
+      },
+      "assertions": {
+        "mediated": true,
+        "receipt_required": true,
+        "receipt_observed": true,
+        "semantic_or_policy_assistance_visible": true
+      }
+    },
+    {
+      "id": "kit-content-retrieval-browser-helia-recovery",
+      "capability_id": "supervisor.content.retrieve",
+      "owner": "ipfs_kit_py",
+      "correlation_id": "svd-107-runtime-kit-content",
+      "state": "available",
+      "runtime": {
+        "binding_id": "agent-supervisor.ipfs_kit_py.retrieve_content",
+        "transport": "browser-helia",
+        "policy_outcome": "allow",
+        "content_cid": "bafybrowserheliacheckpoint",
+        "recovery_action": "browser_helia_fallback"
+      },
+      "assertions": {
+        "kit_transport_failure_observed_before_fallback": true,
+        "fallback_is_browser_safe": true,
+        "host_storage_access": false,
+        "content_cid_visible": true
+      }
+    },
+    {
+      "id": "governed-action-persistence-failure-guardrail",
+      "capability_id": "supervisor.task-control.request",
+      "owner": "ipfs_accelerate_py",
+      "correlation_id": "svd-107-runtime-persistence-failure",
+      "state": "unavailable",
+      "reason": "persistence_failed",
+      "runtime": {
+        "binding_id": "agent-supervisor.ipfs_accelerate_py.supervise_agent_work",
+        "transport": "http",
+        "policy_outcome": "allow",
+        "failure_code": "persistence_failed",
+        "recovery_action": "persist_browser_receipt"
+      },
+      "assertions": {
+        "governed_action_was_not_reported_as_success": true,
+        "immutable_receipt_required_before_completion": true,
+        "event_dag_checkpoint_required_before_completion": true,
+        "correlation_id_preserved": true,
+        "user_visible_recovery_action": true
+      }
+    }
+  ],
+  "coverage": {
+    "owner_count": 3,
+    "owners_observed": [
+      "ipfs_accelerate_py",
+      "ipfs_datasets_py",
+      "ipfs_kit_py"
+    ],
+    "available_observation_count": 3,
+    "guardrail_observation_count": 1,
+    "browser_helia_recovery_observed": true,
+    "persistence_failure_guardrail_observed": true,
+    "direct_host_access_observed": false
+  },
+  "validation": {
+    "commands": [
+      "npm run test:run -- test/browser/agent-supervisor-console-gateway.test.ts",
+      "npm run test:run -- test/mcp-plus-plus/agent-supervisor-prompt-steering.test.ts",
+      "node scripts/capture-all-profile-service-matrix.cjs"
+    ],
+    "source_tests": [
+      "test/browser/agent-supervisor-console-gateway.test.ts",
+      "test/mcp-plus-plus/agent-supervisor-prompt-steering.test.ts"
+    ]
+  }
+}

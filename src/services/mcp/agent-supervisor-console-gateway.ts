@@ -825,6 +825,22 @@ export class AgentSupervisorThreeBackendRuntime implements AgentSupervisorGatewa
   ): AgentSupervisorGatewayResult<TData> {
     const response = result.response.response as { result?: unknown; receipt?: unknown } | null;
     const receipt = normalizeReceipt(response?.receipt);
+    const capability = getAgentSupervisorCapability(invocation.capability_id);
+    if (capability?.receipt_required && !receipt) {
+      return {
+        ...agentSupervisorUnavailableResult(
+          invocation.capability_id,
+          'receipt_unavailable',
+          'The mediated backend response omitted the immutable receipt required by this capability.',
+          { owner: invocation.owner, correlation_id: result.correlation_id },
+        ),
+        runtime: {
+          ...observation(result),
+          failure_code: 'receipt_unavailable',
+          recovery_action: 'persist_browser_receipt',
+        },
+      } as AgentSupervisorGatewayResult<TData>;
+    }
     const data = response?.result as TData;
     return {
       state: 'available', capability_id: invocation.capability_id, owner: invocation.owner, data,
@@ -849,9 +865,18 @@ export class AgentSupervisorThreeBackendRuntime implements AgentSupervisorGatewa
     });
     if (persistence.state !== 'available' || !persistence.receipt) {
       return {
-        ...accepted,
-        runtime: { ...accepted.runtime, failure_code: 'persistence_failed', recovery_action: 'persist_browser_receipt' },
-      };
+        ...agentSupervisorUnavailableResult(
+          invocation.capability_id,
+          'persistence_failed',
+          'The supervisor action was accepted, but its immutable receipt could not be persisted.',
+          { owner: invocation.owner, correlation_id: correlationId },
+        ),
+        runtime: {
+          ...accepted.runtime,
+          failure_code: 'persistence_failed',
+          recovery_action: persistence.runtime?.recovery_action ?? 'persist_browser_receipt',
+        },
+      } as AgentSupervisorGatewayResult<TData>;
     }
     const checkpoint = await this.invoke<AgentSupervisorEventDagRef, Record<string, unknown>>({
       ...buildAgentSupervisorInvocation('supervisor.event-dag.checkpoint', {
@@ -861,6 +886,22 @@ export class AgentSupervisorThreeBackendRuntime implements AgentSupervisorGatewa
         confirmation_token: (invocation.payload as { confirmation_token?: unknown })?.confirmation_token,
       }, `${correlationId}:event-dag`),
     });
+    if (checkpoint.state !== 'available') {
+      return {
+        ...agentSupervisorUnavailableResult(
+          invocation.capability_id,
+          'persistence_failed',
+          'The supervisor action receipt was persisted, but its event-DAG checkpoint could not be recorded.',
+          { owner: invocation.owner, correlation_id: correlationId },
+        ),
+        runtime: {
+          ...accepted.runtime,
+          content_cid: persistence.receipt.cid,
+          failure_code: 'persistence_failed',
+          recovery_action: checkpoint.runtime?.recovery_action ?? 'persist_browser_receipt',
+        },
+      } as AgentSupervisorGatewayResult<TData>;
+    }
     const data = isObject(accepted.data)
       ? { ...accepted.data, receipt: persistence.receipt, event_dag: checkpoint.state === 'available' ? checkpoint.data : undefined } as TData
       : accepted.data;
@@ -871,9 +912,9 @@ export class AgentSupervisorThreeBackendRuntime implements AgentSupervisorGatewa
       runtime: {
         ...accepted.runtime,
         content_cid: persistence.receipt.cid,
-        event_dag_cid: checkpoint.state === 'available' ? checkpoint.runtime?.event_dag_cid ?? checkpoint.runtime?.content_cid : undefined,
-        failure_code: checkpoint.state === 'available' ? undefined : 'persistence_failed',
-        recovery_action: checkpoint.state === 'available' ? undefined : 'persist_browser_receipt',
+        event_dag_cid: checkpoint.runtime?.event_dag_cid ?? checkpoint.runtime?.content_cid,
+        failure_code: undefined,
+        recovery_action: undefined,
       },
     };
   }
@@ -1565,8 +1606,8 @@ function toolFailureReason(result: AllAppToolGatewayResult): AgentSupervisorUnav
 
 function normalizeReceipt(value: unknown): AgentSupervisorReceiptRef | undefined {
   if (!isObject(value) || typeof value.receipt_id !== 'string') return undefined;
-  // A backend invocation receipt identifies its executing owner. Console
-  // persistence receipts are normalized only when kit owns the reference.
+  // Backend execution receipts are always exposed to this console as an
+  // immutable ipfs_kit_py reference, never as an owner process handle.
   return {
     receipt_id: value.receipt_id,
     cid: stringOrUndefined(value.cid),
