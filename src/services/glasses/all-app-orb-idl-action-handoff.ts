@@ -161,7 +161,10 @@ export function buildEligibleAllAppOrbIdlActionRoutes(): OrbIdlActionHandoffRout
     return {
       route_id: `binding:${binding.binding_id}`,
       app_id: binding.app_id,
-      action_id: executable.tool_selection.preferred_tool_ids[0],
+      // The tool is a dispatch implementation detail.  The mediated intent is
+      // the stable application action identity that policy, receipts, and
+      // replay use to distinguish otherwise similar tool calls.
+      action_id: executable.mediated_intent.intent_id,
       method_id: 'request_action',
       binding_id: binding.binding_id,
       correlation_id: `svd110-binding-${String(index + 1).padStart(3, '0')}-${slug(binding.binding_id)}`,
@@ -443,12 +446,21 @@ function rollbackFor(binding: ExecutableBackendBinding, receiptCid: string): Orb
 }
 
 function peerDidFor(owner: string): string {
+  // These are the verified Profile-C peer identities captured by SVD-109's
+  // independent HTTP/libp2p evidence.  Keep the packet self-contained rather
+  // than deriving an identity from a mutable endpoint or transport handle.
   const peers: Record<string, string> = {
-    ipfs_kit_py: 'did:key:z6MkhSvdK7t',
-    ipfs_datasets_py: 'did:key:z6MkhSvdD4tas',
-    ipfs_accelerate_py: 'did:key:z6MkhSvdAcce1',
+    ipfs_kit_py: 'did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu',
+    ipfs_datasets_py: 'did:key:z6MkkgF8EaWd4nwRodPwicSYJbuhKiBoxQXQi7wMCw4FHNtc',
+    ipfs_accelerate_py: 'did:key:z6MkgPkf8stf2vgAeEdETTtcPNd6WUMZaxNcPLpPFmStWiFz',
   };
-  return peers[owner] ?? 'did:key:z6MkhSvdUnkn';
+  const peerDid = peers[owner];
+  if (!peerDid) {
+    throw new OrbIdlActionHandoffCompileError(
+      'LIVE_BINDING_IDENTITY_MISMATCH', owner, 'No verified Profile-C peer DID is registered for the binding owner.',
+    );
+  }
+  return peerDid;
 }
 
 function stableCid(value: unknown): string {
