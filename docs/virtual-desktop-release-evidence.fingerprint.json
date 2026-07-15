@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Virtual desktop all-tools release evidence (SVD-101)",
-  "generatedAt": "2026-07-14T20:31:54.777Z",
+  "generatedAt": "2026-07-15T08:33:07.034Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,16 +10,16 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "1fa533c883cc1774dd56dd0f87b7043b24cb44c5f84e1bcd5f21b3f92b1a4380",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "9d2b3ddb5d724588607cbaa5060173971e1c61d39e75ca679ea6858fb70911d0",
-    "docs/refactor-final-signoff.md": "0c8f4c76f22d1a130466c26add03b9a545706189169515dda76597f9e9ab6ad2",
-    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "466438ca19a3ad71a3d6c0abc50f76befe4243d87c653dfb9e45329b4eaf7e7c"
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "a70c6b0af90d090c967e6571fbe3bc703f95a9d5808264fc9102a65662af84ca",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "0d6d1af0309fefca33189f0fe1b126287f43329816f31ef51b3d027eb53febef",
+    "docs/refactor-final-signoff.md": "5d01d50c7f7ba3beef658536ddba9e2060952d832d9331d46ec02445ce032231",
+    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "e18d7dcc40495151598f18f11350270be321ff9ed5fe30646add1819c8b32552"
   },
-  "sourceFingerprint": "aa58d1ed979b3182ff9d87882ed5e4d7f57d4f1a1156c6365a43526c104ae302",
+  "sourceFingerprint": "f5f5f1d63f10aaa84dc9e569dc61a281a14cd69fd304af7434a9ad85d48859e0",
   "sourceFiles": [
     {
       "path": "scripts/audit-release-evidence-freshness.mjs",
-      "sha256": "3c0c337c6093b19bda744adabba2b6d304ada1ac3b41bae92bea52d81a2dbf99"
+      "sha256": "b0e519d7786d1feff26719453010358e0f6b97679f656396e2022c8ff089b884"
     },
     {
       "path": "scripts/build-virtual-desktop-release-evidence.cjs",
@@ -27,7 +27,7 @@
     },
     {
       "path": "scripts/capture-all-profile-service-matrix.cjs",
-      "sha256": "MISSING"
+      "sha256": "7dc4f53d6106bb1e6da4efb8e70d58ed338629f053c013a3970fbeaf6c5b1a4b"
     },
     {
       "path": "scripts/capture-swissknife-all-tools-peer-evidence.cjs",
@@ -47,11 +47,11 @@
     },
     {
       "path": "src/services/mcp/agent-supervisor-console-gateway.ts",
-      "sha256": "9c84c16dd80fda2b25315c7f70c747449456c0138a24f5f6000bea6e3ebfddb8"
+      "sha256": "8aa8c089a0477924eb2252b7727bf143c22bcdbd74e29c40d85919328945bda3"
     },
     {
       "path": "src/services/mcp/mcp-plus-plus-connector.ts",
-      "sha256": "d0c5930b402dbceab87b26b06a99f9502a3b91866f87b8925150028ba6a136f6"
+      "sha256": "7f6953de8cf3fe35d5e619825619d55bf5057544db49efd792c0954a2aa4ca35"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json",
@@ -135,11 +135,11 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json",
-      "sha256": "MISSING"
+      "sha256": "32af7f75ced77ddcb4665561288daa6ec575ecc1b3ffafdaed906087787ce51e"
     },
     {
       "path": "test/e2e/agent-supervisor-all-app-validation.spec.ts",
-      "sha256": "2ea9c5fb77f1038f72f3815fac1c0f1e2d3f463c7173c8cf414f18f9afecb2a3"
+      "sha256": "8d82f8ba9d65e7e73d745458ce37c2a40215cc04657ab59b1d83a8b4697c962e"
     },
     {
       "path": "test/e2e/all-app-live-backend-behavior.spec.ts",
@@ -155,7 +155,7 @@
     },
     {
       "path": "web/js/apps/agent-supervisor.js",
-      "sha256": "bba03731a8c7050cdc947258a1affac605130975773ce7caf06532a755052025"
+      "sha256": "d4b3bd8bb67d08f61e52b003f3084b8ff6f76d9bb09a73b4681faffd66ec71c7"
     }
   ]
 }

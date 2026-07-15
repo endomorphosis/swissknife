@@ -13,7 +13,7 @@ is the active default release-blocking group.
 | Browser libp2p interoperability evidence (SWR-138) | historical | ✅ fresh | 2026-07-15T08:27:38.482Z | npm run evidence:libp2p-browser |
 | Browser bundle budget evidence (SWR-016) | historical | ❌ stale | 2026-07-15T05:55:13.996Z | npm run build:web |
 | Module-boundary / service-boundary audit evidence (SWR-024) | historical | ❌ stale | 2026-07-15T05:54:56.054Z | npm run services:audit |
-| Virtual desktop all-tools release evidence (SVD-101) | active | ❌ evidence-modified | 2026-07-14T20:31:54.777Z | node scripts/build-virtual-desktop-release-evidence.cjs |
+| Virtual desktop all-tools release evidence (SVD-101) | active | ✅ fresh | 2026-07-15T08:33:07.034Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 
 ## Browser bundle budget evidence (SWR-016)
 
@@ -28,11 +28,4 @@ is the active default release-blocking group.
 - Recorded fingerprint: `9171e7f69e4a66a8299f0cdafbb68b299216a77bc2263dd3d79b94f5d20c0f6b`
 - Current fingerprint: `4eae38ab3b799c71cc5034b0401ce1cb176a9182dd00b9205060ee77da1f77de`
 - Regenerate with: `npm run services:audit`
-
-## Virtual desktop all-tools release evidence (SVD-101)
-
-- Status: **evidence-modified**
-- Recorded fingerprint: `aa58d1ed979b3182ff9d87882ed5e4d7f57d4f1a1156c6365a43526c104ae302`
-- Current fingerprint: `aebaace4280f323b5761422e9a111626b77da1814e653e0cac9f6ab99171213d`
-- Regenerate with: `node scripts/build-virtual-desktop-release-evidence.cjs`
 
