@@ -928,6 +928,7 @@ async def run_bridge(args: argparse.Namespace) -> None:
             "profile_a_mcp_idl": True,
             "profile_b_cid_envelope": True,
             "profile_c_ucan": True,
+            "profile_f_event_dag": True,
             "profile_h_x402_payments": registry.profile_h_profile is not None,
             "peer_id": peer_id,
             "multiaddr": multiaddr,
