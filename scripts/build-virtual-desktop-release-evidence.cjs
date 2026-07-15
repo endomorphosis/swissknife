@@ -150,6 +150,7 @@ function main() {
   const blockerGaps = dedupeGaps(gaps.filter(item => !isClosedByDisposition(item, dispositions.approved)));
   const decision = blockerGaps.length === 0 ? 'GO' : 'NO_GO';
   const unknownTaskClassGaps = blockerGaps.filter(item => !/^SVD-\d+$/.test(item.task_id ?? '') || !nonEmpty(item.owner));
+  const closeoutIntegrity = assessCloseoutIntegrity(decision, blockerGaps);
   const artifactMap = Object.fromEntries(records.map(record => [record.id, artifactSummary(record)]));
   const appBehavior = records.find(record => record.id === 'app_backend_behavior');
   const supervisor = records.find(record => record.id === 'supervisor_console');
@@ -200,6 +201,7 @@ function main() {
         ? 'Every open release gap is assigned to an existing SVD task class and named queue owner; no new unknown task class was introduced.'
         : 'One or more release gaps lack an existing SVD task class or named queue owner.',
     },
+    closeout_integrity: closeoutIntegrity,
     app_behavior_matrix: appMatrix,
     service_profile_transport_matrix: serviceMatrix,
     tool_behavior_matrix: toolMatrix,
@@ -1036,6 +1038,52 @@ function gap(taskId, code, scope, reason, evidencePath) {
   };
 }
 
+/**
+ * A NO-GO is a release result, not an escape hatch. Preserve enough detail to
+ * make every unresolved item actionable without inventing a follow-up class:
+ * a known SVD task, its queue owner, a concrete scope and reason, and the
+ * evidence location that produced the result.
+ */
+function assessCloseoutIntegrity(decision, blockers) {
+  const violations = [];
+  if (decision === 'GO' && blockers.length > 0) {
+    violations.push({ code: 'go_with_blockers', reason: 'GO cannot be recorded while named blockers remain.' });
+  }
+  if (decision === 'NO_GO' && blockers.length === 0) {
+    violations.push({ code: 'no_go_without_blockers', reason: 'NO-GO requires at least one explicit blocker.' });
+  }
+  blockers.forEach((item, index) => {
+    const identity = `${item.task_id ?? 'unknown'}:${item.scope ?? index}`;
+    if (!/^SVD-\d+$/.test(item.task_id ?? '')) {
+      violations.push({ code: 'invalid_blocker_task', blocker: identity, reason: 'Blocker task_id is not an existing SVD task-class identifier.' });
+    }
+    if (item.owner_task_id !== item.task_id) {
+      violations.push({ code: 'owner_task_mismatch', blocker: identity, reason: 'Blocker owner_task_id does not match task_id.' });
+    }
+    if (!nonEmpty(item.owner)) {
+      violations.push({ code: 'missing_blocker_owner', blocker: identity, reason: 'Blocker has no named queue owner.' });
+    }
+    if (!nonEmpty(item.code) || !nonEmpty(item.scope) || !nonEmpty(item.reason)) {
+      violations.push({ code: 'incomplete_blocker_detail', blocker: identity, reason: 'Blocker lacks a code, scope, or reason.' });
+    }
+    if (!nonEmpty(item.evidence_path)) {
+      violations.push({ code: 'missing_blocker_evidence', blocker: identity, reason: 'Blocker has no evidence path.' });
+    }
+  });
+  return {
+    status: violations.length === 0 ? 'passed' : 'failed',
+    decision,
+    explicit_blocker_count: blockers.length,
+    owner_assigned_blocker_count: blockers.filter(item => nonEmpty(item.owner)).length,
+    violations,
+    statement: violations.length === 0
+      ? (decision === 'GO'
+        ? 'GO has no unresolved blockers.'
+        : 'NO-GO contains only explicit blockers with an existing SVD task class, named owner, scope, reason, and evidence path.')
+      : 'The closeout decision has incomplete or unassigned blocker metadata.',
+  };
+}
+
 function ownerForTask(taskId) {
   if (!taskOwnerCache) {
     const queue = readJson(supervisorQueuePath);
@@ -1511,6 +1559,14 @@ function renderMarkdown(report) {
   lines.push('', '## Blockers', '');
   if (report.named_gaps.length === 0) lines.push('- None.');
   else for (const item of report.named_gaps) lines.push(`- **${item.task_id}** (owner: \`${escapeMd(item.owner ?? 'unassigned')}\`) — \`${escapeMd(item.scope)}\` / \`${item.code}\`: ${escapeMd(item.reason)}`);
+  lines.push('', '## Closeout integrity', '',
+    `- Status: **${report.closeout_integrity.status}**`,
+    `- Explicit blockers: ${report.closeout_integrity.explicit_blocker_count}`,
+    `- Owner-assigned blockers: ${report.closeout_integrity.owner_assigned_blocker_count}`,
+    `- ${report.closeout_integrity.statement}`);
+  for (const violation of report.closeout_integrity.violations) {
+    lines.push(`- **${violation.code}**: ${escapeMd(violation.reason)}`);
+  }
   lines.push('', '## Evidence freshness and status', '', '| Evidence | Task | Status | Generated | SHA-256 |', '| --- | --- | --- | --- | --- |');
   for (const [id, artifact] of Object.entries(report.artifacts)) lines.push(`| \`${id}\` | ${artifact.task_id} | ${artifact.status} | ${artifact.generated_at ?? 'missing'} | \`${artifact.sha256?.slice(0, 12) ?? 'missing'}\` |`);
   lines.push('', '## App behavior', '', `Passing complete app rows: ${report.app_behavior_matrix.passing_app_count}/${report.app_behavior_matrix.required_app_count ?? report.app_behavior_matrix.observed_app_count}.`, '',
@@ -1588,6 +1644,11 @@ function renderNoNewUnknowns(report) {
   else for (const item of report.named_gaps) {
     lines.push(`- **${item.task_id}** (owner: \`${escapeMd(item.owner ?? 'unassigned')}\`) — \`${escapeMd(item.scope)}\`: ${escapeMd(item.reason)}`);
   }
+  lines.push('', '## Closeout integrity', '',
+    `- Status: **${report.closeout_integrity.status}**`,
+    `- Explicit blockers: ${report.closeout_integrity.explicit_blocker_count}`,
+    `- Owner-assigned blockers: ${report.closeout_integrity.owner_assigned_blocker_count}`,
+    `- ${report.closeout_integrity.statement}`);
   lines.push('', '## Task-class conclusion', '',
     report.unknown_task_class_audit.statement,
     'This ledger does not create follow-up task classes; it records only the existing owner task for each unsatisfied gate.');
@@ -1715,6 +1776,7 @@ function errorMessage(error) { return error instanceof Error ? error.message : S
 module.exports = {
   _test: {
     buildAppMatrix,
+    assessCloseoutIntegrity,
     isClosedByDisposition,
     loadReleaseInventory,
     phaseArtifactChecks,
