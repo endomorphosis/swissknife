@@ -12,6 +12,8 @@ import {
 } from './zkp-browser-schnorr.js';
 import { assertProductionBrowserZkpBackendId } from './browser-zkp-policy.js';
 
+export * from './profile-d-policy-zkp.js';
+
 export const DEFAULT_BROWSER_ZKP_BACKEND_ID = BROWSER_SCHNORR_BACKEND_ID;
 
 export type BrowserZkpBackendId =

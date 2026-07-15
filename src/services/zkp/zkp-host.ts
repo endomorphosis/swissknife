@@ -10,3 +10,4 @@ export * from './zkp-browser.js';
 export * from './zkp-backends.js';
 export * from './zkp-provekit-artifacts.js';
 export * from './zkp-provekit-setup-artifacts.js';
+export * from './profile-d-policy-zkp.js';

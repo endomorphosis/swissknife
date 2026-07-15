@@ -31,6 +31,10 @@ import {
   verifyMCPPPeerIdentity,
   type MCPPPPeerIdentity,
 } from './mcp-plus-plus-profile-c.js';
+import type {
+  ProfileDExecutionDecision,
+  ProfileDExecutionRequest,
+} from './profile-d-policy.js';
 
 // --- Server Connection Config ---
 
@@ -43,6 +47,8 @@ export interface MCPPPServerConfig {
   dagPath?: string;      // Event DAG endpoint
   interfacesPath?: string; // Interface descriptor registry
   delegationPath?: string; // UCAN delegation endpoint
+  /** Profile D policy evaluator REST endpoint, when the server exposes one. */
+  policyPath?: string;
   p2pProtocolId?: string;  // libp2p protocol ID
   /** Ed25519 did:key DID that verifies Profile C peer identity challenges. */
   clientDID?: string;
@@ -79,6 +85,7 @@ export const IPFS_DATASETS_SERVER: MCPPPServerConfig = {
   dagPath: '/mcp/dag',
   interfacesPath: '/mcp/interfaces',
   delegationPath: '/mcp/ucan/delegate',
+  policyPath: '/mcp/policy/evaluate',
   ucanService: 'ipfs_datasets_py',
   p2pProtocolId: '/mcp+p2p/1.0.0',
 };
@@ -96,6 +103,7 @@ export const IPFS_ACCELERATE_SERVER: MCPPPServerConfig = {
   dagPath: '/mcp/dag',
   interfacesPath: '/mcp/interfaces',
   delegationPath: '/mcp/ucan/delegate',
+  policyPath: '/mcp/policy/evaluate',
   ucanService: 'ipfs_accelerate_py',
   p2pProtocolId: '/mcp+p2p/1.0.0',
 };
@@ -1213,6 +1221,30 @@ export class MCPPPServerConnector {
   }
 
   // --- Profile D: Policy ---
+
+  /**
+   * Evaluate a Profile D policy over the negotiated transport.
+   *
+   * The response is intentionally returned verbatim: callers must pass any
+   * supplied ZKP certificate through `verifyProfileDPolicyCertificate` before
+   * treating it as a verified zero-knowledge proof.
+   */
+  async evaluateProfileDPolicy(request: ProfileDExecutionRequest): Promise<ProfileDExecutionDecision> {
+    if (!this.connected || !this.negotiatedProfiles.includes('mcp++/deontic-policy')) {
+      throw new Error('MCP++ Profile D deontic policy was not negotiated with this server.');
+    }
+    if (this.session || !this.config.policyPath) {
+      return this.jsonRpc('mcp++/policy/evaluate', request) as Promise<ProfileDExecutionDecision>;
+    }
+    const response = await this.fetch(this.config.policyPath, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) throw new Error(`Profile D policy evaluation failed: ${response.status}`);
+    const payload = await response.json() as Record<string, unknown>;
+    return (payload.result ?? payload) as ProfileDExecutionDecision;
+  }
 
   async evaluatePolicy(intentCid: string, proofCid?: string): Promise<{ decision: string; obligations: any[] }> {
     try {

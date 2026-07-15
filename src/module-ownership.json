@@ -122,7 +122,14 @@
       "node-gyp-build",
       "python-shell"
     ],
-    "documentedServiceDeepImports": [],
+    "documentedServiceDeepImports": [
+      {
+        "importer": "src/services/glasses/agent-supervisor-expanded-io-handoff.ts",
+        "target": "src/services/apps/agent-supervisor-expanded-io-envelopes.ts",
+        "owner": "service-apps",
+        "reason": "The Glasses supervisor handoff consumes the shared app envelope contract until the apps family exposes a dedicated public handoff facade."
+      }
+    ],
     "servicePublicApiMigrations": [
       {
         "legacyPath": "src/services/bridge/bridge-modal-frame-bridge.ts",
@@ -921,6 +928,7 @@
       "src/services/zkp/browser-snarkjs-backend.ts",
       "src/services/zkp/browser-zkp-policy.ts",
       "src/services/zkp/browser-zkp.ts",
+      "src/services/zkp/profile-d-policy-zkp.ts",
       "src/services/zkp/zkp-browser-schnorr.ts",
       "src/storage/browser.ts",
       "src/workers/browser.ts",
@@ -957,6 +965,7 @@
       "src/services/zkp/browser-snarkjs-backend.ts",
       "src/services/zkp/browser-zkp-policy.ts",
       "src/services/zkp/browser-zkp.ts",
+      "src/services/zkp/profile-d-policy-zkp.ts",
       "src/services/zkp/zkp-browser-schnorr.ts",
       "src/services/zkp/zkp-types.ts"
     ]
@@ -2395,6 +2404,7 @@
         "src/services/zkp/ethereum-zkp-bridge.ts",
         "src/services/zkp/groth16-cec-expansion.ts",
         "src/services/zkp/index.ts",
+        "src/services/zkp/profile-d-policy-zkp.ts",
         "src/services/zkp/zkp-backends.ts",
         "src/services/zkp/zkp-browser-schnorr.ts",
         "src/services/zkp/zkp-browser.ts",

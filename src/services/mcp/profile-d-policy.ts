@@ -1,6 +1,10 @@
 /** Pure TypeScript MCP++ Profile D execution-policy evaluator. */
 
 import { dagJsonCid } from './ipld-cid.js';
+import {
+  createProfileDPolicyStatementOnlyCertificate,
+  type ProfileDPolicyZkpCertificate,
+} from '../zkp/profile-d-policy-zkp.js';
 
 export const PROFILE_D_POLICY_SCHEMA = 'mcp++/profile-d-policy@1' as const;
 export const PROFILE_D_ZKP_STATEMENT_SCHEMA = 'mcp++/profile-d-policy-zkp-statement@1' as const;
@@ -52,15 +56,10 @@ export interface ProfileDExecutionDecision {
   readonly zkp_certificate?: ProfileDZkpStatement;
 }
 
-export interface ProfileDZkpStatement {
-  readonly schema: typeof PROFILE_D_ZKP_STATEMENT_SCHEMA;
-  readonly status: 'statement_ready';
-  readonly zero_knowledge: false;
-  readonly proof: null;
-  readonly reason: string;
-  readonly public_inputs: Readonly<Record<string, string | boolean>>;
-  readonly statement_cid: string;
-}
+/** `statement_cid` is a local DAG-JSON convenience field and is optional on the wire. */
+export type ProfileDZkpStatement = ProfileDPolicyZkpCertificate & {
+  readonly statement_cid?: string;
+};
 
 /** Evaluate a Profile D policy locally, without Python or a remote service. */
 export function evaluateProfileDExecution(request: ProfileDExecutionRequest): ProfileDExecutionDecision {
@@ -109,7 +108,12 @@ export function evaluateProfileDExecution(request: ProfileDExecutionRequest): Pr
     obligations, justification, policy_version: policyModel.version, formal_logic: formalLogic,
     formal_logic_cid: formalLogicCid, policy_source: source,
   } as const;
-  return request.request_zkp_certificate ? { ...base, zkp_certificate: zkpStatement(base) } : base;
+  return request.request_zkp_certificate ? {
+    ...base,
+    zkp_certificate: zkpStatement({ ...base, policy: policyModel, context: {
+      actor: request.actor.trim(), action: request.action.trim(), resource: request.resource ?? null, evaluated_at: evaluatedAt,
+    } }),
+  } : base;
 }
 
 function compileTextPolicy(input: string | readonly string[], fallbackActor: string): ProfileDPolicy {
@@ -171,14 +175,12 @@ function canonicalTimestamp(value: number): string {
   return new Date(value).toISOString().replace('.000Z', 'Z');
 }
 
-function zkpStatement(value: Omit<ProfileDExecutionDecision, 'zkp_certificate'>): ProfileDZkpStatement {
-  const public_inputs = {
-    policy_cid: value.policy_cid, decision_cid: value.decision_cid, intent_cid: value.intent_cid,
-    formal_logic_cid: value.formal_logic_cid, decision: value.decision, allowed: value.allowed,
-  };
-  return {
-    schema: PROFILE_D_ZKP_STATEMENT_SCHEMA, status: 'statement_ready', zero_knowledge: false, proof: null,
-    reason: 'No dedicated Profile D policy-evaluation circuit is registered.', public_inputs,
-    statement_cid: cid(public_inputs),
-  };
+function zkpStatement(value: Omit<ProfileDExecutionDecision, 'zkp_certificate'> & { policy: unknown; context: unknown }): ProfileDZkpStatement {
+  const certificate = createProfileDPolicyStatementOnlyCertificate({
+    policy: value.policy,
+    context: value.context,
+    verdict: value.decision,
+    obligations: value.obligations,
+  });
+  return { ...certificate, statement_cid: cid(certificate.public_statement) };
 }

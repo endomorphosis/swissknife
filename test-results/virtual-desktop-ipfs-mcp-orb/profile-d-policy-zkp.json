@@ -1,0 +1,159 @@
+{
+  "schema": "swissknife.profile-d-policy-zkp-evidence.v1",
+  "task_id": "SVD-081",
+  "generated_at": "2026-07-14T00:00:00.000Z",
+  "decision": "go",
+  "circuit_ref": "profile_d_policy_evaluation@v1",
+  "purpose": "Profile D policy-decision commitment verification without disclosure of policy text or evaluation context.",
+  "public_statement_schema": "mcp++/profile-d-policy-zkp-statement@1",
+  "commitment_algorithm": "sha256",
+  "required_public_fields": [
+    "policy_commitment",
+    "context_commitment",
+    "decision_commitment",
+    "verdict",
+    "obligations_commitment"
+  ],
+  "private_witness_fields": [
+    "policy",
+    "policy_text",
+    "context",
+    "witness",
+    "witness_bytes",
+    "witness_trace",
+    "salt"
+  ],
+  "vectors": [
+    {
+      "id": "production-admitted-allow-with-obligations",
+      "public_statement": {
+        "schema": "mcp++/profile-d-policy-zkp-statement@1",
+        "circuit_ref": "profile_d_policy_evaluation@v1",
+        "policy_commitment": "fb440e2c2cd136d7add9abd99109443dfd882048a846a390c9117809e2a71797",
+        "context_commitment": "69ce6add93579d587c970e0512a67afd9fd5d469434dfddf9ffd35697cea54fa",
+        "decision_commitment": "277bf2653a149aec071e2ca3ee70fe1f14a7a8a66f069c46eb46564ffbaf38ff",
+        "verdict": "allow_with_obligations",
+        "obligations_commitment": "9c93ccfbe8234b4d626b7da0a9f2442fc13e2e7f7da1ef0bd221f359fc21665b"
+      },
+      "certificate": {
+        "schema": "mcp++/profile-d-policy-zkp-certificate@1",
+        "certificate_version": 1,
+        "status": "verified",
+        "circuit_ref": "profile_d_policy_evaluation@v1",
+        "public_statement": {
+          "schema": "mcp++/profile-d-policy-zkp-statement@1",
+          "circuit_ref": "profile_d_policy_evaluation@v1",
+          "policy_commitment": "fb440e2c2cd136d7add9abd99109443dfd882048a846a390c9117809e2a71797",
+          "context_commitment": "69ce6add93579d587c970e0512a67afd9fd5d469434dfddf9ffd35697cea54fa",
+          "decision_commitment": "277bf2653a149aec071e2ca3ee70fe1f14a7a8a66f069c46eb46564ffbaf38ff",
+          "verdict": "allow_with_obligations",
+          "obligations_commitment": "9c93ccfbe8234b4d626b7da0a9f2442fc13e2e7f7da1ef0bd221f359fc21665b"
+        },
+        "public_inputs": {
+          "schema": "mcp++/profile-d-policy-zkp-statement@1",
+          "circuit_ref": "profile_d_policy_evaluation@v1",
+          "policy_commitment": "fb440e2c2cd136d7add9abd99109443dfd882048a846a390c9117809e2a71797",
+          "context_commitment": "69ce6add93579d587c970e0512a67afd9fd5d469434dfddf9ffd35697cea54fa",
+          "decision_commitment": "277bf2653a149aec071e2ca3ee70fe1f14a7a8a66f069c46eb46564ffbaf38ff",
+          "verdict": "allow_with_obligations",
+          "obligations_commitment": "9c93ccfbe8234b4d626b7da0a9f2442fc13e2e7f7da1ef0bd221f359fc21665b"
+        },
+        "zero_knowledge": true,
+        "verified": true,
+        "proof": {
+          "system": "groth16",
+          "circuit_id": "profile_d_policy_evaluation",
+          "circuit_version": 1,
+          "proof": "YmFzZTY0LXByb29mLWJ5dGVz",
+          "vk_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "admission": {
+          "production_admitted": true,
+          "status": "production-admitted",
+          "reason": "all Profile D ZKP admission gates are satisfied",
+          "circuit_admitted": true,
+          "trusted_setup_admitted": true,
+          "verification_key_admitted": true
+        }
+      },
+      "expected": {
+        "verification": "verified",
+        "private_witness_disclosed": false
+      }
+    },
+    {
+      "id": "missing-verification-key-is-statement-only",
+      "public_statement": {
+        "schema": "mcp++/profile-d-policy-zkp-statement@1",
+        "circuit_ref": "profile_d_policy_evaluation@v1",
+        "policy_commitment": "fb440e2c2cd136d7add9abd99109443dfd882048a846a390c9117809e2a71797",
+        "context_commitment": "69ce6add93579d587c970e0512a67afd9fd5d469434dfddf9ffd35697cea54fa",
+        "decision_commitment": "277bf2653a149aec071e2ca3ee70fe1f14a7a8a66f069c46eb46564ffbaf38ff",
+        "verdict": "allow_with_obligations",
+        "obligations_commitment": "9c93ccfbe8234b4d626b7da0a9f2442fc13e2e7f7da1ef0bd221f359fc21665b"
+      },
+      "certificate": {
+        "schema": "mcp++/profile-d-policy-zkp-certificate@1",
+        "certificate_version": 1,
+        "status": "statement_only",
+        "circuit_ref": "profile_d_policy_evaluation@v1",
+        "public_statement": {
+          "schema": "mcp++/profile-d-policy-zkp-statement@1",
+          "circuit_ref": "profile_d_policy_evaluation@v1",
+          "policy_commitment": "fb440e2c2cd136d7add9abd99109443dfd882048a846a390c9117809e2a71797",
+          "context_commitment": "69ce6add93579d587c970e0512a67afd9fd5d469434dfddf9ffd35697cea54fa",
+          "decision_commitment": "277bf2653a149aec071e2ca3ee70fe1f14a7a8a66f069c46eb46564ffbaf38ff",
+          "verdict": "allow_with_obligations",
+          "obligations_commitment": "9c93ccfbe8234b4d626b7da0a9f2442fc13e2e7f7da1ef0bd221f359fc21665b"
+        },
+        "public_inputs": {
+          "schema": "mcp++/profile-d-policy-zkp-statement@1",
+          "circuit_ref": "profile_d_policy_evaluation@v1",
+          "policy_commitment": "fb440e2c2cd136d7add9abd99109443dfd882048a846a390c9117809e2a71797",
+          "context_commitment": "69ce6add93579d587c970e0512a67afd9fd5d469434dfddf9ffd35697cea54fa",
+          "decision_commitment": "277bf2653a149aec071e2ca3ee70fe1f14a7a8a66f069c46eb46564ffbaf38ff",
+          "verdict": "allow_with_obligations",
+          "obligations_commitment": "9c93ccfbe8234b4d626b7da0a9f2442fc13e2e7f7da1ef0bd221f359fc21665b"
+        },
+        "zero_knowledge": false,
+        "verified": false,
+        "proof": null,
+        "admission": {
+          "production_admitted": false,
+          "status": "statement-only",
+          "reason": "Profile D circuit, trusted setup, and verification key are not production-admitted",
+          "circuit_admitted": false,
+          "trusted_setup_admitted": false,
+          "verification_key_admitted": false
+        }
+      },
+      "expected": {
+        "verification": "statement_only",
+        "private_witness_disclosed": false
+      }
+    }
+  ],
+  "acceptance_checks": {
+    "admitted_certificate_verifies_public_decision_commitments": true,
+    "tampered_public_commitment_is_rejected": true,
+    "missing_or_non_admitted_circuit_is_statement_only": true,
+    "missing_or_non_admitted_trusted_setup_is_statement_only": true,
+    "missing_or_non_admitted_verification_key_is_statement_only": true,
+    "private_policy_text_absent": true,
+    "private_context_absent": true,
+    "private_witness_absent": true
+  },
+  "validation": {
+    "python": {
+      "command": "cd external/ipfs_datasets && PYTHONPATH=. python3 -m pytest tests/unit_tests/logic/zkp/test_profile_d_policy_circuit.py -q",
+      "status": "passed",
+      "test_count": 11
+    },
+    "typescript": {
+      "command": "cd swissknife && npm run test:run -- test/mcp-plus-plus/profile-d-policy.test.ts test/mcp-plus-plus/profile-d-policy-zkp.test.ts",
+      "status": "passed",
+      "test_count": 9
+    }
+  },
+  "release_boundary": "The verified vector uses an explicitly admitted test verifier. The default repository configuration is the second vector: statement-only and never a proof or authorization grant."
+}

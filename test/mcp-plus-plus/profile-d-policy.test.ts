@@ -104,7 +104,7 @@ describe('MCP++ Profile D TypeScript policy evaluator', () => {
     expect(result.allowed).toBe(false);
   });
 
-  it('returns formal logic and a ZKP-ready statement without claiming a proof', () => {
+  it('returns formal logic and a statement-only ZKP certificate without claiming a proof', () => {
     const result = evaluateProfileDExecution({
       actor: 'did:key:alice',
       action: 'tools.call',
@@ -116,7 +116,10 @@ describe('MCP++ Profile D TypeScript policy evaluator', () => {
     expect(result.formal_logic).toEqual(['P(did:key:alice,tools.call,*)']);
     expect(result.policy_cid).toMatch(/^baguq[a-z2-7]+$/);
     expect(result.zkp_certificate?.statement_cid).toMatch(/^baguq[a-z2-7]+$/);
-    expect(result.zkp_certificate).toMatchObject({ status: 'statement_ready', zero_knowledge: false, proof: null });
+    expect(result.zkp_certificate).toMatchObject({
+      status: 'statement_only', zero_knowledge: false, verified: false, proof: null,
+      admission: { production_admitted: false, status: 'statement-only' },
+    });
   });
 
   it('uses the byte-identical CIDv1 DAG-JSON encoding shared with ipfs_datasets_py', () => {
