@@ -10,22 +10,29 @@ is the active default release-blocking group.
 
 | Evidence | Default scope | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- | --- |
-| Browser libp2p Playwright evidence (SWR-028) | historical | ⚠️ never-certified | never | npm run evidence:libp2p-browser |
-| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-15T05:55:13.996Z | npm run build:web |
-| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-15T05:54:56.054Z | npm run services:audit |
-| Virtual desktop all-tools release evidence (SVD-101) | active | ❌ missing-evidence | 2026-07-14T20:31:54.777Z | node scripts/build-virtual-desktop-release-evidence.cjs |
+| Browser libp2p interoperability evidence (SWR-138) | historical | ✅ fresh | 2026-07-15T08:27:38.482Z | npm run evidence:libp2p-browser |
+| Browser bundle budget evidence (SWR-016) | historical | ❌ stale | 2026-07-15T05:55:13.996Z | npm run build:web |
+| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ❌ stale | 2026-07-15T05:54:56.054Z | npm run services:audit |
+| Virtual desktop all-tools release evidence (SVD-101) | active | ❌ evidence-modified | 2026-07-14T20:31:54.777Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 
-## Browser libp2p Playwright evidence (SWR-028)
+## Browser bundle budget evidence (SWR-016)
 
-- Status: **never-certified**
-- Recorded fingerprint: `none`
-- Current fingerprint: `949df6231225a332ed1b049788126aedd499e133a0a9ca91a3722f6d0e5d3554`
-- Regenerate with: `npm run evidence:libp2p-browser`
+- Status: **stale**
+- Recorded fingerprint: `e470de788f7f548e9567f49e3c622ba67aefaca6c513b77eec78d15f8219a52c`
+- Current fingerprint: `c7862617eb66250a4e5e58ced8174df1ac298bed935255c1854ae8b9cf9e2be1`
+- Regenerate with: `npm run build:web`
+
+## Module-boundary / service-boundary audit evidence (SWR-024)
+
+- Status: **stale**
+- Recorded fingerprint: `9171e7f69e4a66a8299f0cdafbb68b299216a77bc2263dd3d79b94f5d20c0f6b`
+- Current fingerprint: `4eae38ab3b799c71cc5034b0401ce1cb176a9182dd00b9205060ee77da1f77de`
+- Regenerate with: `npm run services:audit`
 
 ## Virtual desktop all-tools release evidence (SVD-101)
 
-- Status: **missing-evidence**
-- Missing evidence file(s): ../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md
-
+- Status: **evidence-modified**
+- Recorded fingerprint: `aa58d1ed979b3182ff9d87882ed5e4d7f57d4f1a1156c6365a43526c104ae302`
+- Current fingerprint: `aebaace4280f323b5761422e9a111626b77da1814e653e0cac9f6ab99171213d`
 - Regenerate with: `node scripts/build-virtual-desktop-release-evidence.cjs`
 

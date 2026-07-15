@@ -1,24 +1,19 @@
 {
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "libp2p-browser-playwright",
-  "label": "Browser libp2p Playwright evidence (SWR-028)",
-<<<<<<< Updated upstream
-  "generatedAt": "2026-07-10T08:30:35.579Z",
+  "label": "Browser libp2p interoperability evidence (SWR-138)",
+  "generatedAt": "2026-07-15T08:27:38.482Z",
   "evidenceFiles": [
     "docs/browser-libp2p-evidence.md"
   ],
-  "sourceFingerprint": "7750042ccf70ca83b3bd306aeabc64073d854d7e7745331bf3c31427a0ba0a26",
-=======
-  "generatedAt": "2026-07-11T02:21:52.828Z",
-  "evidenceFiles": [
-    "docs/browser-libp2p-evidence.md"
-  ],
-  "sourceFingerprint": "9af53acf7b5b96d0823d352516a11f82258a43534df6d9b2ec419b0860f5d927",
->>>>>>> Stashed changes
+  "evidenceHashes": {
+    "docs/browser-libp2p-evidence.md": "ccc1a6d13f07ca52d02395df473e879f0d3a6913197016313cd71082f8044ce1"
+  },
+  "sourceFingerprint": "4c2088af81490904af0404cee1c968b583f068fc2917951e53fdbc9dbdaf7483",
   "sourceFiles": [
     {
       "path": "build-tools/configs/playwright.libp2p-browser.config.ts",
-      "sha256": "52413e6eff423a1843085cf70c33d6b22f0b4b007d2b2d69c88e4fbe0413b812"
+      "sha256": "a1391f020bb27d64af4629d3de36c88746ea655c6cb240f76798df49958c66bc"
     },
     {
       "path": "build-tools/configs/vite.libp2p-browser-harness.config.ts",
@@ -26,11 +21,7 @@
     },
     {
       "path": "src/services/mcp/libp2p-browser-runtime.ts",
-<<<<<<< Updated upstream
-      "sha256": "b9bc093ab9a8176c7e4bac657390cc493ffd46dd48173d36d3aa7bbf4d295907"
-=======
-      "sha256": "cc8e0b9283192133f7958796a26b1f682a43f9af1dbc4e1dab8ea7f64d685776"
->>>>>>> Stashed changes
+      "sha256": "dca1c42831163bb95c10491f685105fd89a0de1ea29cf441393e3d24966e58d0"
     },
     {
       "path": "src/services/mcp/mcp-discovery.ts",
@@ -38,23 +29,23 @@
     },
     {
       "path": "src/services/mcp/mcp-p2p-session.ts",
-      "sha256": "3e14ca3ee4c254950d667b12195707df5869c60092fd478a2615e1d98ee6d699"
+      "sha256": "cea3fd283df1c0833cb0b5aba6523adf8a76d25c78a22a3e8733375d836f1caf"
     },
     {
       "path": "test/e2e/fixtures/libp2p-browser-harness/harness.ts",
-<<<<<<< Updated upstream
-      "sha256": "5857787bbe9316bf29f7c96a52f7e6bc7a1ad8375f132b36610a3faae0fbd824"
-=======
-      "sha256": "37297d038c127e66a3c93562f8dddafc5a48b73b206f7738118dc72f86b4c1eb"
->>>>>>> Stashed changes
+      "sha256": "aedc3fb98d499b31c2b3f2a08a97f25766b8410f819bc92d4f8e884a622a718a"
     },
     {
       "path": "test/e2e/fixtures/libp2p-browser-harness/index.html",
       "sha256": "71b757b279a2999efc6a06ab46fe8806710953db0536cb66922ea21f7bf5f3ba"
     },
     {
+      "path": "test/e2e/fixtures/libp2p-browser-harness/relay-server.mjs",
+      "sha256": "5d42be550e4f5edb7e06fe703a69a55dc3ee8230f85db7d0b884c70069dcaa60"
+    },
+    {
       "path": "test/e2e/libp2p-browser.spec.ts",
-      "sha256": "67c045a19671f1f44c423f109e8a0f632173f4e52f6fe026f575c90d1ff41b1e"
+      "sha256": "8af6517b0bcf566ba23446b4f0c47601f3b2b3907776c888969b7fc381d9b5f0"
     }
   ]
 }

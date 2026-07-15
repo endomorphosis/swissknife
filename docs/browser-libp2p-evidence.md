@@ -1,178 +1,55 @@
-# Browser libp2p Playwright Evidence (SWR-028, SWR-092)
+# Browser libp2p interoperability evidence (SWR-138)
 
-This document records the Playwright evidence gathered for **SWR-028 — Add
-browser libp2p Playwright evidence** and refreshed for **SWR-092 — Keep libp2p
-enabled by default in browser-safe runtime paths**. SWR-092 depends on the
-SWR-091 browser export lock, so the evidence covers both the package export
-path and the virtual desktop apps that import it.
+`npm run test:e2e:libp2p-browser` runs the same real interoperability flow in
+Chromium, Firefox, and WebKit. Each engine receives two independently-created
+Playwright browser contexts; no page fixture, storage, permission state, or
+libp2p identity is shared between them.
 
-## What is exercised
+The test starts `test/e2e/fixtures/libp2p-browser-harness/relay-server.mjs`, a
+real Node libp2p Circuit Relay v2 service. It listens only on a temporary local
+TLS WebSocket address and is configured with WebSockets, Identify, Noise,
+Yamux, and `circuitRelayServer()`. The browsers construct the production
+`createBrowserLibp2pNode` default-enabled runtime, explicitly dial the relay
+through their browser WebSocket transport, reserve circuit addresses, and dial
+each other through those circuit addresses. No TCP, host transport, fake peer,
+or status-only transport is present in either browser bundle.
 
-Unlike the unit tests in `test/mcp-plus-plus/mcp-transport-libp2p-runtime.test.ts`
-(which inject a fully mocked `importModule`), this evidence runs the **real**
-production browser modules inside a **real** browser engine (Chromium, via
-Playwright), with real installed npm packages:
+The receiver registers `/swissknife/swr-138/signed-request/1.0.0`; the sender
+opens that real libp2p stream and exchanges nonce-bound WebCrypto signed JSON
+messages. The receiver verifies the request before signing its response, and
+the sender verifies the response. The receipt records both verification results
+and the actual connection metadata. The test fails unless the negotiated
+encryption contains `noise` and the multiplexer contains `yamux`.
 
-- `src/services/mcp/libp2p-browser-runtime.ts` — `buildBrowserLibp2pConfig`,
-  `createBrowserLibp2pNode`, `getBrowserLibp2pDefaultStatus`,
-  `summarizeBrowserLibp2pGaps`.
-- `src/services/mcp/mcp-p2p-session.ts` — the real `MCPp2pSession` state
-  machine (idle → handshaking → open/error/closed), driven through a scripted
-  (but real, framed, JSON-RPC) transport stream so the evidence is
-  deterministic and does not depend on external network reachability.
+Every engine writes `test-results/libp2p-browser/swr-138-<engine>.json` with:
 
-The harness lives at `test/e2e/fixtures/libp2p-browser-harness/` (`index.html`
-+ `harness.ts`) and is served by a dedicated Vite dev server config,
-`build-tools/configs/vite.libp2p-browser-harness.config.ts`. Playwright drives
-it via `build-tools/configs/playwright.libp2p-browser.config.ts` and
-`test/e2e/libp2p-browser.spec.ts`, across two projects:
+- distinct sender and receiver peer IDs plus their circuit-relay endpoints;
+- live relay peer ID/address and Noise/Yamux configuration;
+- registered protocol, nonce, signature algorithms, and both verification
+  outcomes;
+- typed (`swr-138.browser-libp2p.failure.v1`) receipts for an unavailable
+  capability, isolated-context permission denial, a real protocol deadline,
+  and loss of the relay after it is stopped; and
+- clean browser-node/context shutdown results.
 
-- `libp2p-browser-desktop-chromium` (1280×800 desktop viewport)
-- `libp2p-browser-mobile-pixel-5` (393×727 mobile viewport, Playwright's
-  `Pixel 5` device profile)
+The negative cases are actual failure paths: capability assembly receives a
+missing module, the browser's geolocation permission prompt is denied or left
+permanently unresolved by the isolated context (both are genuine engine
+behaviors — Chromium and WebKit auto-deny, headless Firefox never resolves the
+prompt), a registered remote libp2p handler keeps a real stream open beyond
+its deadline, and the relay process is terminated before a new circuit dial is
+attempted.
+They are not scripted success responses.
 
-The harness's responsive layout switches from a two-column grid to a
-single-column stack below 600px width; `body[data-layout]` reflects the active
-layout and is asserted directly in the desktop and mobile runs.
+Run the evidence and browser-boundary checks with:
 
-### Production browser loader
-
-`libp2p-browser-runtime.ts` now keeps browser libp2p enabled by default through
-a production literal-import loader. The default loader dispatches the browser
-runtime package names to literal `import('...')` calls for `libp2p`,
-`@libp2p/webrtc`, `@libp2p/websockets`, `@libp2p/circuit-relay-v2`,
-`@chainsafe/libp2p-noise`, `@chainsafe/libp2p-yamux`, `@libp2p/identify`, and
-`@chainsafe/libp2p-gossipsub`. Vite can therefore resolve the real installed
-browser-capable modules in the production web bundle; the default evidence
-scenario uses this production loader directly.
-
-Missing optional packages are not replaced by local transports. They are
-reported as typed `BrowserLibp2pCapabilityGap` entries with a `code`
-(`package-unavailable`, `export-missing`, or
-`factory-initialization-failed`), the affected package name, and the runtime
-reason. The Playwright harness still injects an `importModule` override only
-for the forced-missing scenarios, so those tests can deterministically prove
-the gap path.
-
-`getBrowserLibp2pDefaultStatus()` is the app-facing evidence API. MCP Control
-and P2P Network render it live, including `defaultEnabled: true`,
-`moduleLoader: "literal-browser-imports"`, default listen multiaddrs, the core
-`libp2p` package status, each configured browser capability, and any typed
-gap rows.
-
-## Dependency fix required for real evidence
-
-Capturing real initialization evidence surfaced a genuine version mismatch:
-`@libp2p/webrtc@^4.1.10` (and the `libp2p@1.9.4` core) require
-`@libp2p/identify@^2.1.5` for its browser transport dependency-capability
-checks, but `package.json` pinned `@libp2p/identify@^1.0.21` — a version that
-predates the `serviceCapabilities`/`serviceDependencies` symbols the transport
-dependency check relies on. Constructing a real `Libp2pNode` with the old
-`@libp2p/identify` failed with:
-
-```
-CodeError: Service "@libp2p/webrtc" required capability "@libp2p/identify" but
-it was not provided by any component
-```
-
-This was invisible to the existing SWR-015/SWR-016 unit tests because they use
-a fully mocked `importModule` and never construct a real `Libp2pNode`. This
-task bumped `@libp2p/identify` to `^2.1.5` in `package.json`
-(`optionalDependencies`), which resolves cleanly and keeps
-`npm run test:run -- test/mcp-plus-plus/mcp-transport-libp2p-runtime.test.ts
-test/mcp-plus-plus/wasm-prover-browser-purity.test.ts` and
-`npm run build:web && node scripts/audit-web-bundle.mjs ...` (the SWR-015/016
-validation commands) green, with the libp2p bundle budget unchanged
-(103.9 KiB raw / 3 chunks).
-
-## Scenarios captured
-
-| Scenario (`?scenario=`, or dedicated query) | What it proves |
-| --- | --- |
-| `available` (default) | Real `createLibp2p` node construction and `start()` succeed through the production literal-import loader with all 7 optional capabilities (webrtc, websockets, circuit-relay-v2, noise, yamux, identify, gossipsub) installed and configured, with zero capability gaps. A real `peerId` is generated. |
-| `missing-webrtc` | `@libp2p/webrtc` is forced unavailable. The runtime reports a real capability gap (`gap-webrtc`) instead of silently substituting a fake transport; the remaining capabilities stay real, installed, and configured. The default `/webrtc` listen multiaddr then has no matching transport, so the node start attempt fails — a real, deterministic consequence, not a harness bug. |
-| `missing-multiple` | `@libp2p/webrtc`, `@libp2p/circuit-relay-v2`, and gossipsub (both `@libp2p/gossipsub` and its `@chainsafe/libp2p-gossipsub` fallback) are all forced unavailable simultaneously and reported as independent gaps. |
-| `disabled` | `enabled: false` is passed through; the runtime reports `capabilities: []`, `gaps: []`, and no node is constructed at all. |
-| Peer discovery (`@libp2p/mdns`, `@libp2p/kad-dht`) | These packages are genuinely absent from this repository's dependency tree (not simulated). The harness reports real `unavailable` gaps for both, mirroring the same optional-package pattern `MCPDiscovery.start()` uses in `mcp-discovery.ts`. |
-| `relayListen=true` (+ `relay=`, `bootstrap=`) | The relay/bootstrap configuration panel renders the configured listen multiaddrs (including `/p2p-circuit`), the rendezvous/relay multiaddr, and the bootstrap/circuit-relay peer list — all sourced from URL query overrides, not hardcoded. Because no relay peer is actually reachable in this CI-safe run, the real circuit-relay-v2 transport fails to reserve a listen slot (`Transport (@libp2p/circuit-relay-v2-transport) could not listen on any available address`) — genuine evidence of what relay/bootstrap configuration requires in practice, with zero capability gaps (every package is installed; only the network-dependent listen attempt fails). |
-| `p2p=success` | A real `MCPp2pSession` completes the MCP `initialize` handshake end-to-end (framing, JSON-RPC correlation, capability negotiation) against a scripted relay peer, reaching `open` state with negotiated `mcp++/*` profiles. |
-| `p2p=error` | The scripted peer returns a JSON-RPC error during handshake; the session reaches `error` state with the real rejection message. |
-| `p2p=timeout` | The scripted peer never responds; the harness's bounded race times out, reaching `error` state with a timeout message — proving the UI does not hang indefinitely on an unreachable relay. |
-| MCP Control / P2P Network default panels | Both browser apps call `getBrowserLibp2pDefaultStatus()` and render live default-on evidence. The panels display `Enabled by default`, the literal browser import loader, default listen multiaddrs, configured package/export rows, and typed gap codes if a package is unavailable. |
-
-## Running the evidence
-
-```
+```sh
 cd swissknife
 npm run evidence:libp2p-browser
 npm run audit:bundle-host-leakage
 ```
 
-The evidence command starts the dedicated Vite dev server
-(`vite.libp2p-browser-harness.config.ts`), runs all scenarios across both
-desktop and mobile projects (24 tests total), and writes:
-
-- `test-results/libp2p-browser/results.json` — Playwright JSON report.
-- `test-results/libp2p-browser/screenshots/*.png` — full-page screenshots per
-  scenario, per project (available/missing-webrtc/relay-bootstrap-config/
-  p2p-success/p2p-error/viewport-desktop/viewport-mobile).
-- `test-results/libp2p-browser/evidence-*.json` — an aggregated evidence
-  receipt per project (`swr_028_browser_libp2p_evidence_receipt_v1`).
-- `test-results/libp2p-browser/playwright-artifacts/` — traces/videos on
-  failure (`retain-on-failure`).
-
-## Example captured evidence (desktop project, `available` scenario)
-
-```json
-{
-  "schema": "swr_028_browser_libp2p_evidence_receipt_v1",
-  "task_id": "SWR-028",
-  "depends_on": ["SWR-015", "SWR-016"],
-  "project": "libp2p-browser-desktop-chromium",
-  "viewport": { "width": 1280, "height": 800 },
-  "layout": "desktop",
-  "initStatus": "started",
-  "initDetail": "peerId=12D3KooWCNqFhFhbva2x8VyWgKi5qTQnLnJCnpaF1DpNRYYjacMw\nlisten multiaddrs=[\"/webrtc\"]\nadvertised addrs=[]",
-  "capabilities": [
-    "webrtc: installed=true configured=true (@libp2p/webrtc)",
-    "websockets: installed=true configured=true (@libp2p/websockets)",
-    "circuit-relay-v2: installed=true configured=true (@libp2p/circuit-relay-v2)",
-    "noise: installed=true configured=true (@chainsafe/libp2p-noise)",
-    "yamux: installed=true configured=true (@chainsafe/libp2p-yamux)",
-    "identify: installed=true configured=true (@libp2p/identify)",
-    "gossipsub: installed=true configured=true (@chainsafe/libp2p-gossipsub)"
-  ],
-  "discovery": [
-    "mdns (@libp2p/mdns): unavailable — Failed to resolve module specifier '@libp2p/mdns'",
-    "kad-dht (@libp2p/kad-dht): unavailable — Failed to resolve module specifier '@libp2p/kad-dht'"
-  ],
-  "p2pStatus": "open",
-  "p2pDetail": "Connected to swissknife-libp2p-harness-relay (protocol 2024-11-05)\nnegotiated profiles: mcp++/cid-envelope, mcp++/ucan, mcp++/idl, mcp++/event-dag, mcp++/policy-d, mcp++/pubsub-bus, mcp++/p2p-transport"
-}
-```
-
-The mobile project (`libp2p-browser-mobile-pixel-5`, 393×727) produces the
-same structural evidence with `layout: "mobile"` and a distinct real `peerId`,
-confirming parity across viewports.
-
-## Files
-
-- `test/e2e/fixtures/libp2p-browser-harness/index.html` — harness page and
-  responsive layout.
-- `test/e2e/fixtures/libp2p-browser-harness/harness.ts` — harness logic
-  (real runtime calls, scenario parsing, DOM rendering).
-- `build-tools/configs/vite.libp2p-browser-harness.config.ts` — isolated Vite
-  dev server for the harness.
-- `build-tools/configs/playwright.libp2p-browser.config.ts` — desktop +
-  mobile Playwright project matrix and `test-results/libp2p-browser` reporter
-  wiring.
-- `test/e2e/libp2p-browser.spec.ts` — the Playwright specs described above.
-- `scripts/run_playwright_test.mjs` — extended to allocate a stable, isolated
-  dev-server port for this config (`SWISSKNIFE_LIBP2P_BROWSER_E2E_PORT`),
-  mirroring the existing meta-glasses port allocation pattern.
-- `package.json` — adds `npm run test:e2e:libp2p-browser` and bumps
-  `@libp2p/identify` to `^2.1.5`.
-- `web/js/apps/mcp-control.js` and `web/js/apps/p2p-network.js` — render live
-  `getBrowserLibp2pDefaultStatus()` evidence in the virtual desktop.
-- `scripts/audit-web-bundle.mjs` — records host leakage and default Pyodide
-  exposure; SWR-092 acceptance requires both to remain `0`.
+Raw Playwright reports, traces, and per-engine receipts are transient CI
+artifacts under `test-results/libp2p-browser`; this document and its freshness
+fingerprint are the checked-in provenance. The evidence command refreshes that
+fingerprint only after all three engines pass.
