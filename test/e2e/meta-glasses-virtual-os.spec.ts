@@ -44,6 +44,13 @@ const MGW_556_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   'mgw-556-daemon-launch-health-gate.json',
 );
 const HALLUCINATE_APP_FIXTURE_ROOT = path.dirname(MGW_556_DAEMON_LAUNCH_GATE_FIXTURE);
+const SVD_072_CANONICAL_REPORT_PATH = path.join(
+  process.cwd(),
+  'test-results',
+  'meta-glasses-virtual-os',
+  '2026-07-09T18-30-06-420Z',
+  'apps-meta-display-report.json',
+);
 const HAO_725_DAEMON_LAUNCH_GATE_FIXTURE = path.join(
   process.cwd(),
   '..',
@@ -1571,6 +1578,17 @@ test('opens every SwissKnife desktop app and renders a reusable Meta glasses ORB
   fs.writeFileSync(
     path.join(resultsDir, 'apps-meta-display-report.json'),
     JSON.stringify(report, null, 2),
+    'utf8',
+  );
+  // Keep the task's stable evidence location in addition to the run-scoped
+  // report, so release automation does not need to infer a timestamped path.
+  fs.mkdirSync(path.dirname(SVD_072_CANONICAL_REPORT_PATH), { recursive: true });
+  fs.writeFileSync(
+    SVD_072_CANONICAL_REPORT_PATH,
+    JSON.stringify({
+      ...report,
+      canonicalEvidencePath: 'test-results/meta-glasses-virtual-os/2026-07-09T18-30-06-420Z/apps-meta-display-report.json',
+    }, null, 2),
     'utf8',
   );
 

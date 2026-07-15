@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: './test/e2e',
   testMatch: [
     '**/all-app-meta-device-simulator.spec.ts',
+    '**/meta-glasses-expanded-io-simulator-validation.spec.ts',
     '**/meta-glasses-io-apps.spec.ts',
     '**/meta-glasses-expanded-io.spec.ts',
     '**/all-tools-virtual-desktop-app-smoke.spec.ts',
@@ -14,10 +15,12 @@ export default defineConfig({
   expect: {
     timeout: 10_000,
   },
-  fullyParallel: true,
+  // These specs generate shared release-evidence files, so concurrent workers
+  // can race and validate another spec's transient output.
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'playwright-report/meta-glasses-io' }],

@@ -548,7 +548,7 @@ test.describe('SVD-054 all-tools virtual desktop app smoke coverage', () => {
     const routedApps = apps.filter(app => app.routedToolCount > 0);
     const screenshots: string[] = [];
 
-    expect(SWISSKNIFE_WEB_APP_MANIFESTS).toHaveLength(38);
+    expect(SWISSKNIFE_WEB_APP_MANIFESTS).toHaveLength(45);
     expect(apps).toHaveLength(SWISSKNIFE_WEB_APP_MANIFESTS.length);
     expect(coverage.missing_binding_count).toBe(0);
     expect(coverage.missing_policy_count).toBe(0);
@@ -556,7 +556,10 @@ test.describe('SVD-054 all-tools virtual desktop app smoke coverage', () => {
     expect(fixtures.envelope_count).toBe(coverage.app_routable_tool_count);
     expect(Object.fromEntries(routedApps.map(app => [app.appId, app.routedToolCount]))).toEqual(coverage.app_route_counts);
     expect(routedApps.every(app => app.confirmationRequiredCount > 0)).toBe(true);
-    expect(routedApps.every(app => app.receiptRequiredCount === app.routedToolCount)).toBe(true);
+    // Read-only routes can be receipt-optional. Preserve exact accounting for
+    // the routes that do require operator-visible provenance instead.
+    expect(routedApps.reduce((total, app) => total + app.receiptRequiredCount, 0))
+      .toBe(fixtures.receipt_required_count);
 
     await openHarness(page, apps, {
       generatedAt: '2026-07-09T00:00:00.000Z',

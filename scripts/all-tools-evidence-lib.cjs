@@ -947,27 +947,11 @@ function normalizedDispositionFor(disposition) {
   return disposition;
 }
 
-function resultRendererFor(appId) {
-  if (appId === 'accelerate-panel' || appId === 'model-browser') return 'job-status-console';
-  if (appId === 'datasets-browser') return 'dataset-card-grid';
-  if (appId === 'ipfs-explorer' || appId === 'file-manager') return 'cid-file-list';
-  if (appId === 'idl-explorer') return 'idl-method-inspector';
-  if (appId === 'orb-auto-ui') return 'orb-envelope-timeline';
-  if (appId === 'mcp-plus-plus') return 'mcp-tool-result-tree';
-  return 'json-result-viewer';
-}
-
 function glassesFallbackFor(policyClass) {
   if (['credential', 'destructive', 'media_capture'].includes(policyClass)) return 'desktop_confirmation_required';
   if (policyClass === 'heavy_compute') return 'audio_summary_with_receipt';
   if (policyClass === 'external_network') return 'mobile_review_card';
   return 'compact_result_card';
-}
-
-function glassesExposureFor(policyClass) {
-  if (['credential', 'destructive', 'media_capture'].includes(policyClass)) return 'blocked_until_desktop_confirmed';
-  if (policyClass === 'heavy_compute') return 'progress_and_summary';
-  return 'display_webapp';
 }
 
 function buildDerivedArtifacts(ledger) {

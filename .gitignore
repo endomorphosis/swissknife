@@ -261,6 +261,8 @@ test-results/virtual-desktop-ipfs-mcp-orb/*
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json
 !test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json
 !test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-meta-io.json
+!test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-io-handoff.json
+!test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json
 !test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json
@@ -277,6 +279,9 @@ test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/*
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/*.png
 !test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md
+!test-results/meta-glasses-virtual-os/
+!test-results/meta-glasses-virtual-os/2026-07-09T18-30-06-420Z/
+!test-results/meta-glasses-virtual-os/2026-07-09T18-30-06-420Z/apps-meta-display-report.json
 benchmark-results/
 playwright-report/
 coverage/
