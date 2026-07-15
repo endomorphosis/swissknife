@@ -893,12 +893,7 @@
         "reason": "Restored MCP client variant still imports the same legacy command registry; SWR-143 inventories it explicitly and SWR-144 will reconcile the divergent client implementations."
       }
     ],
-    "serviceRootFileOwners": {
-      "src/services/event-dag.ts": "services",
-      "src/services/groth16-cec-delegation.ts": "services",
-      "src/services/logic-proof-storage-parsers.ts": "services",
-      "src/services/zkp-canonicalization-security.ts": "services"
-    },
+    "serviceRootFileOwners": {},
     "browserSafeSourceGlobs": [
       "src/browser.ts",
       "src/components/browser/*.tsx",
@@ -2100,6 +2095,7 @@
         "src/services/logic/api/logic-api-remainders.ts",
         "src/services/logic/api/logic-batch-processing.ts",
         "src/services/logic/api/logic-verification-toolkit.ts",
+        "src/services/logic/api/proof-storage-parsers.ts",
         "src/services/logic/api/reasoning-normalization-pipeline.ts",
         "src/services/logic/api/session-translation-types.ts",
         "src/services/logic/bridges/index.ts",
@@ -2397,10 +2393,12 @@
         "src/services/zkp/browser-zkp-policy.ts",
         "src/services/zkp/browser-zkp.ts",
         "src/services/zkp/ethereum-zkp-bridge.ts",
+        "src/services/zkp/groth16-cec-expansion.ts",
         "src/services/zkp/index.ts",
         "src/services/zkp/zkp-backends.ts",
         "src/services/zkp/zkp-browser-schnorr.ts",
         "src/services/zkp/zkp-browser.ts",
+        "src/services/zkp/zkp-canonicalization-runtime.ts",
         "src/services/zkp/zkp-host.ts"
       ],
       "privateEntrypoints": [],
@@ -2415,7 +2413,7 @@
     "services": {
       "owner": "domain-service-runtime",
       "path": "src/services",
-      "purpose": "Explicitly inventoried root service facades and compatibility files. New service implementation files must live in a named service family subdirectory.",
+      "purpose": "Root service namespace aggregate. Service implementations must live in a named service family subdirectory.",
       "runtimeClassification": "split",
       "browserReachability": "allowed only through browser-safe service files or explicitly classified neutral files",
       "allowedImports": [
@@ -2434,20 +2432,15 @@
         "screens",
         "hooks"
       ],
-      "publicEntrypoints": [
-        "src/services/event-dag.ts",
-        "src/services/groth16-cec-delegation.ts",
-        "src/services/logic-proof-storage-parsers.ts",
-        "src/services/zkp-canonicalization-security.ts"
-      ],
+      "publicEntrypoints": [],
       "privateEntrypoints": [
         "src/services/*-wrapper.ts",
         "src/services/*-bridge.ts",
         "src/services/*-adapter.ts"
       ],
       "notes": [
-        "Root service source files are exceptional standalone implementations and must be listed in audit.serviceRootFileOwners.",
-        "Restored compatibility and shadow implementations are forbidden at src/services root; public migrations resolve to named service-family APIs.",
+        "Executable root service files are forbidden; public migrations resolve to named service-family APIs.",
+        "Restored compatibility and shadow implementations are forbidden at src/services root.",
         "New implementations must land under a named owned service family."
       ],
       "rootOnly": true,

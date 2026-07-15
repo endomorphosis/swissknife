@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-14T22:32:32.709Z",
+  "generatedAt": "2026-07-15T05:55:14.009Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -35,9 +35,9 @@
         "docs/browser-bundle-budget.md": "6850a8fc5a10ee74981221c65976e4f9ca7f4e8ae2828d6d50dd3b9ea8fb9bff",
         "docs/browser-bundle-budget.json": "fef14f1f00a7ab0675f8fe2ab6f3bd1458e420040671ec50e3b661d3edc5dc53"
       },
-      "recordedFingerprint": "cb41c8c24ce2ab0fdb8d1d3f6a31ed82e62ebbf27347a3dca4c368d0c9c1c2e8",
-      "currentFingerprint": "cb41c8c24ce2ab0fdb8d1d3f6a31ed82e62ebbf27347a3dca4c368d0c9c1c2e8",
-      "recordedAt": "2026-07-14T22:32:32.691Z",
+      "recordedFingerprint": "e470de788f7f548e9567f49e3c622ba67aefaca6c513b77eec78d15f8219a52c",
+      "currentFingerprint": "e470de788f7f548e9567f49e3c622ba67aefaca6c513b77eec78d15f8219a52c",
+      "recordedAt": "2026-07-15T05:55:13.996Z",
       "regenerateHint": "npm run build:web"
     },
     {
@@ -49,14 +49,14 @@
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
       "recordedEvidenceHashes": {
-        "docs/service-boundary-audit.json": "6db2701ab527d8d63f93ef044de65c5bdf07f5ddf0db79757c6f5e271df44d54"
+        "docs/service-boundary-audit.json": "c136ddb668f8fe6b70295a2d127f12441a39f1e9189deb449fdf02204871b668"
       },
       "currentEvidenceHashes": {
-        "docs/service-boundary-audit.json": "6db2701ab527d8d63f93ef044de65c5bdf07f5ddf0db79757c6f5e271df44d54"
+        "docs/service-boundary-audit.json": "c136ddb668f8fe6b70295a2d127f12441a39f1e9189deb449fdf02204871b668"
       },
-      "recordedFingerprint": "255a7715fdc000a47ee7ad4f45f05627351efb4d1a9bc2cae5901c45532efddd",
-      "currentFingerprint": "255a7715fdc000a47ee7ad4f45f05627351efb4d1a9bc2cae5901c45532efddd",
-      "recordedAt": "2026-07-14T22:31:52.730Z",
+      "recordedFingerprint": "9171e7f69e4a66a8299f0cdafbb68b299216a77bc2263dd3d79b94f5d20c0f6b",
+      "currentFingerprint": "9171e7f69e4a66a8299f0cdafbb68b299216a77bc2263dd3d79b94f5d20c0f6b",
+      "recordedAt": "2026-07-15T05:54:56.054Z",
       "regenerateHint": "npm run services:audit"
     },
     {

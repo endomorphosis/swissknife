@@ -3,7 +3,7 @@ import {
   validateAgentSupervisorExpandedIOEnvelopes,
   type AgentSupervisorExpandedIOEnvelope,
   type AgentSupervisorExpandedIOEnvelopeCatalog,
-} from '../apps/agent-supervisor-expanded-io-envelopes.js';
+} from '../apps/index.js';
 import { computeCID, computeInterfaceCID } from '../mcp/mcp-idl.js';
 import {
   buildAgentSupervisorExpandedIOMap,

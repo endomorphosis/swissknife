@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,6 +30,8 @@ const DEFAULT_RESTORED_SERVICE_DUPLICATE_INVENTORY_MARKDOWN =
   'docs/restored-service-duplicate-inventory.md';
 const DEFAULT_SERVICE_MODULE_PUBLIC_API_MARKDOWN =
   'docs/service-module-public-api.md';
+const DEFAULT_REVALIDATION_TASK_ID = 'SWR-137';
+const DEFAULT_RECOVERY_PROVENANCE_PATH = 'docs/phase-21-recovery-provenance.json';
 const HOST_ONLY_BUILTINS = new Set([
   'assert',
   'async_hooks',
@@ -1169,6 +1172,32 @@ function currentUtcDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function sourceRevision() {
+  try {
+    return execFileSync('git', ['rev-parse', '--verify', 'HEAD'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function revalidationProvenance(manifest) {
+  const config = manifest.audit?.revalidationProvenance ?? {};
+  const recoveryProvenancePath = config.recoveryProvenancePath
+    ?? DEFAULT_RECOVERY_PROVENANCE_PATH;
+  return {
+    taskId: config.taskId ?? DEFAULT_REVALIDATION_TASK_ID,
+    sourceRevision: sourceRevision(),
+    recoveryProvenance: {
+      path: recoveryProvenancePath,
+      available: fs.existsSync(abs(recoveryProvenancePath)),
+    },
+  };
+}
+
 function relativeDepth(filePath) {
   return filePath.split('/').length;
 }
@@ -1725,6 +1754,7 @@ function collectRestoredServiceDuplicateInventory({
   duplicateContentHashes,
   importersByTarget,
   index,
+  provenance,
   serviceFileInventory,
   serviceIndexClassifications,
   policyViolations,
@@ -1870,12 +1900,14 @@ function collectRestoredServiceDuplicateInventory({
   return {
     schemaVersion: 2,
     generatedDate: currentUtcDate(),
-    taskId: 'SWR-143',
+    taskId: provenance.taskId,
     source: {
       manifestPath,
       serviceRoot: 'src/services',
       auditScript: 'scripts/audit-source-modules.mjs',
       phase16CleanupEvidence: 'implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16',
+      sourceRevision: provenance.sourceRevision,
+      recoveryProvenance: provenance.recoveryProvenance,
     },
     policy: {
       indexBasenamesIgnored: index.restoredServiceDuplicatePolicy.indexBasenamesIgnored,
@@ -2315,6 +2347,7 @@ function collectBrowserUnsafeImports(index) {
 
 function audit(manifest, args) {
   const index = buildManifestIndex(manifest);
+  const provenance = revalidationProvenance(manifest);
   const allFiles = listFiles('src', (relative) => isAuditedFile(relative));
   const serviceDuplicateBasenames = collectServiceDuplicateBasenames(allFiles);
   const serviceIndexClassifications = collectServiceIndexClassifications(allFiles, index);
@@ -2337,6 +2370,7 @@ function audit(manifest, args) {
     serviceFileInventory,
     serviceIndexClassifications,
     policyViolations: restoredServiceDuplicatePolicyViolations,
+    provenance,
     serviceDuplicateBasenames,
   });
   const legacySprintServiceFiles = collectLegacySprintServiceFiles(allFiles);
@@ -2355,6 +2389,7 @@ function audit(manifest, args) {
   const moduleNames = Object.keys(index.modules).sort(compareStrings);
   const knownModuleFiles = new Map(moduleNames.map((moduleName) => [moduleName, []]));
   const rootDebt = [];
+  const rootServiceImplementationViolations = [];
   const unknownFiles = [];
   const forbiddenImports = [];
   const legacyRootImportSpecifiers = [];
@@ -2370,6 +2405,18 @@ function audit(manifest, args) {
         reason: index.rootFileOwners.has(filePath)
           ? 'root source compatibility file with an explicit owner'
           : 'root source file outside a top-level module',
+      });
+    }
+
+    if (
+      isDirectServiceRootFile(filePath)
+      && isServiceSourceFile(filePath)
+      && serviceSourceContentKind(filePath) !== 'approved-index-barrel'
+    ) {
+      rootServiceImplementationViolations.push({
+        file: filePath,
+        module: owner ?? 'unknown',
+        reason: 'executable service implementation is located directly under src/services',
       });
     }
 
@@ -2455,6 +2502,7 @@ function audit(manifest, args) {
       schemaVersion: manifest.schemaVersion,
       manifestVersion: manifest.manifestVersion,
     },
+    provenance,
     modules: moduleNames
       .filter((moduleName) => shouldIncludeModule(moduleName, args))
       .map((moduleName) => {
@@ -2469,6 +2517,7 @@ function audit(manifest, args) {
     summary: {
       modules: moduleNames.filter((moduleName) => shouldIncludeModule(moduleName, args)).length,
       rootFiles: scopedRootDebt.length,
+      rootServiceImplementationViolations: rootServiceImplementationViolations.length,
       unknownFiles: scopedUnknownFiles.length,
       forbiddenImports: forbiddenImports.length,
       legacyCompatibilityShims: scopedLegacyShims.length,
@@ -2499,6 +2548,7 @@ function audit(manifest, args) {
         .filter((entry) => !entry.classified).length,
     },
     rootDebt: scopedRootDebt,
+    rootServiceImplementationViolations: rootServiceImplementationViolations.sort(compareFindings),
     unknownFiles: scopedUnknownFiles,
     forbiddenImports: forbiddenImports.sort(compareFindings),
     ownershipConflicts,
@@ -2585,6 +2635,7 @@ function printReport(result) {
   console.log(`manifest: ${result.manifest.path} (schema ${result.manifest.schemaVersion}, version ${result.manifest.manifestVersion})`);
   console.log(`modules: ${result.summary.modules}`);
   console.log(`root files: ${result.summary.rootFiles}`);
+  console.log(`root service implementation violations: ${result.summary.rootServiceImplementationViolations}`);
   console.log(`unknown files: ${result.summary.unknownFiles}`);
   console.log(`forbidden imports: ${result.summary.forbiddenImports}`);
   console.log(`ownership conflicts: ${result.summary.ownershipConflicts}`);
@@ -2654,6 +2705,8 @@ function printReport(result) {
   printSection('service duplicate basenames', result.serviceDuplicateBasenameDetails, formatDuplicateBasenameLine);
   console.log('');
   printSection('legacy sprint service files', result.legacySprintServiceFiles, formatPathLine);
+  console.log('');
+  printSection('root service implementation violations', result.rootServiceImplementationViolations, formatFindingLine);
 }
 
 function writeJson(relativeOrAbsolutePath, result) {
@@ -3100,6 +3153,7 @@ function main() {
       || result.summary.unclassifiedServiceNormalizedContentCollisions > 0
       || result.summary.unclassifiedServiceBehavioralEquivalenceGroups > 0
       || result.summary.serviceIndexShadowCopies > 0
+      || result.summary.rootServiceImplementationViolations > 0
       || result.summary.restoredServiceDuplicatePolicyViolations > 0
       || result.summary.legacySprintServiceFiles > 0
       || result.summary.unresolvedMergeMarkers > 0

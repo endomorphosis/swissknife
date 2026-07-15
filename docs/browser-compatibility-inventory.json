@@ -1,26 +1,184 @@
 {
-  "results": [
-    {
-      "path": "src/services/mcp/libp2p-browser-runtime.ts",
-      "kind": "service-barrel, shared-reachable-module",
-      "reason": "Service barrel/interface module transitively reachable from active browser build roots; Shared source module transitively reachable from active browser build roots",
-      "classification": "browser-safe",
-      "reachable": [
-        "src/services/mcp/libp2p-browser-runtime.ts"
+  "schema": "swissknife.browser_compatibility_inventory.v2",
+  "taskId": "SWR-137",
+  "provenance": {
+    "sourceCommit": "56a7ed5c9b170e832b832ec3d650ecb58f68f1f1",
+    "generator": "scripts/audit-browser-compat.mjs",
+    "mode": "current-source-graph",
+    "roots": {
+      "activeBuildInputs": [
+        "web/index.html",
+        "web/src/browser-main-working.ts"
       ],
-      "findings": [
-        {
-          "category": "dynamic-import",
-          "severity": "browser-safe",
-          "file": "src/services/mcp/libp2p-browser-runtime.ts",
-          "line": 123,
-          "message": "browser libp2p optional package loader with explicit capability gaps",
-          "chain": [
-            "src/services/mcp/libp2p-browser-runtime.ts"
-          ]
-        }
+      "indexedSourceRoots": [
+        "web",
+        "src",
+        "ipfs_accelerate_js/src"
       ]
+    }
+  },
+  "summary": {
+    "inventoryItems": 90,
+    "classifications": {
+      "browserSafe": 82,
+      "hostOnly": 0,
+      "simulatedTestOnly": 8,
+      "unknown": 0
     },
+    "browserReachableHostOnlyImports": 0,
+    "unknownExecutableBrowserPaths": 0,
+    "sourceFilesIndexed": 1585,
+    "canonicalBrowserPublicApiViolations": 0,
+    "gatePassed": true
+  },
+  "canonicalBrowserPublicApi": {
+    "rows": [
+      {
+        "subpath": ".",
+        "expectedTarget": "src/browser.ts",
+        "declaredTarget": "src/browser.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 31,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./browser",
+        "expectedTarget": "src/browser.ts",
+        "declaredTarget": "src/browser.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 31,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./mcp",
+        "expectedTarget": "src/services/mcp/browser-mcp.ts",
+        "declaredTarget": "src/services/mcp/browser-mcp.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 4,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./mcp/libp2p",
+        "expectedTarget": "src/services/mcp/libp2p-browser-runtime.ts",
+        "declaredTarget": "src/services/mcp/libp2p-browser-runtime.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 1,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./libp2p",
+        "expectedTarget": "src/services/mcp/libp2p-browser-runtime.ts",
+        "declaredTarget": "src/services/mcp/libp2p-browser-runtime.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 1,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./ipfs",
+        "expectedTarget": "src/services/ipfs/ipfs-browser.ts",
+        "declaredTarget": "src/services/ipfs/ipfs-browser.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 7,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./storage",
+        "expectedTarget": "src/storage/browser.ts",
+        "declaredTarget": "src/storage/browser.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 6,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./workers",
+        "expectedTarget": "src/workers/browser.ts",
+        "declaredTarget": "src/workers/browser.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 6,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./logic-language",
+        "expectedTarget": "src/services/logic/api/reasoning-normalization-pipeline.ts",
+        "declaredTarget": "src/services/logic/api/reasoning-normalization-pipeline.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 3,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./deontic-nlp",
+        "expectedTarget": "src/services/logic/deontic/browser-nlp.ts",
+        "declaredTarget": "src/services/logic/deontic/browser-nlp.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 3,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./zkp",
+        "expectedTarget": "src/services/zkp/browser-zkp.ts",
+        "declaredTarget": "src/services/zkp/browser-zkp.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 10,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./proof-engine",
+        "expectedTarget": "src/services/proof-engine/proof-engine-browser.ts",
+        "declaredTarget": "src/services/proof-engine/proof-engine-browser.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 4,
+        "hostFindings": 0
+      },
+      {
+        "subpath": "./provers",
+        "expectedTarget": "src/services/provers/provers-browser.ts",
+        "declaredTarget": "src/services/provers/provers-browser.ts",
+        "classification": "browser-safe",
+        "reachableFiles": 3,
+        "hostFindings": 0
+      }
+    ],
+    "semanticChecks": [
+      {
+        "id": "libp2p-default-enabled",
+        "file": "src/services/mcp/libp2p-browser-runtime.ts",
+        "description": "libp2p is enabled unless explicitly disabled and its status receipt records defaultEnabled: true",
+        "passed": true
+      },
+      {
+        "id": "libp2p-real-browser-transports",
+        "file": "src/services/mcp/libp2p-browser-runtime.ts",
+        "description": "literal browser imports configure WebRTC, WebSockets, circuit relay, Noise, and Yamux without synthetic transports",
+        "passed": true
+      },
+      {
+        "id": "typed-remote-mcp-boundary",
+        "file": "src/services/mcp/agent-supervisor-console-gateway.ts",
+        "description": "remote Python-owned capabilities cross a typed MCP/MCP++/libp2p transport and default to a typed unavailable result",
+        "passed": true
+      },
+      {
+        "id": "typescript-theorem-default",
+        "file": "src/services/provers/provers-browser.ts",
+        "description": "the browser theorem default is real TypeScript execution and unsupported/native backends return typed unavailability",
+        "passed": true
+      },
+      {
+        "id": "wasm-zkp-default",
+        "file": "src/services/zkp/browser-zkp.ts",
+        "description": "the browser ZKP default is the audited Schnorr WebAssembly backend and production selection rejects simulated identifiers",
+        "passed": true
+      },
+      {
+        "id": "wasm-zkp-instantiation",
+        "file": "src/services/zkp/zkp-browser-schnorr.ts",
+        "description": "the default ZKP backend instantiates checked-in WebAssembly bytes",
+        "passed": true
+      }
+    ],
+    "violations": []
+  },
+  "results": [
     {
       "path": "web/aero-test.html",
       "kind": "simulated-test-html",
@@ -119,6 +277,7 @@
         "src/services/apps/app-manifest-registry.ts",
         "src/services/apps/app-manifest.ts",
         "web/js/apps/ai-chat.js",
+        "web/js/apps/agent-supervisor.js",
         "web/js/apps/api-keys.js",
         "web/js/apps/calculator.js",
         "web/js/apps/calendar.js",
@@ -157,26 +316,12 @@
         "web/js/apps/training-manager.js",
         "web/js/apps/vibecode.js",
         "web/js/hallucinate-backend-bridge.js",
-        "src/services/mcp/libp2p-browser-runtime.ts",
+        "web/js/libp2p-browser-runtime.js",
         "web/js/core/ipfs-accelerate-global-adapter.js",
-        "src/cloudflare/worker-templates.ts",
         "web/js/audio/strudel-processor.js",
         "web/js/hallucinate-backend-bridge.mjs"
       ],
       "findings": [
-        {
-          "category": "dynamic-import",
-          "severity": "browser-safe",
-          "file": "src/services/mcp/libp2p-browser-runtime.ts",
-          "line": 123,
-          "message": "browser libp2p optional package loader with explicit capability gaps",
-          "chain": [
-            "web/desktop.ts",
-            "web/src/apps/app-manifest-loader.ts",
-            "web/js/apps/mcp-control.js",
-            "src/services/mcp/libp2p-browser-runtime.ts"
-          ]
-        },
         {
           "category": "dynamic-import",
           "severity": "browser-safe",
@@ -187,6 +332,18 @@
             "web/desktop.ts",
             "web/src/apps/app-manifest-loader.ts",
             "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/agent-supervisor.js",
+          "line": 297,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/agent-supervisor.js"
           ]
         },
         {
@@ -445,7 +602,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1381,
+          "line": 1386,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -457,7 +614,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1448,
+          "line": 1453,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -469,7 +626,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1714,
+          "line": 1719,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -481,7 +638,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1725,
+          "line": 1730,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -493,7 +650,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1783,
+          "line": 1788,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -505,7 +662,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1785,
+          "line": 1790,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -877,7 +1034,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 743,
+          "line": 737,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -889,7 +1046,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 813,
+          "line": 807,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -901,7 +1058,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 822,
+          "line": 816,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -913,7 +1070,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 831,
+          "line": 825,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -925,7 +1082,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 2672,
+          "line": 2671,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -1326,27 +1483,14 @@
         "web/js/apps/music-studio-unified.js",
         "web/js/apps/music-studio.js",
         "web/js/apps/p2p-chat.js",
+        "web/js/apps/agent-supervisor.js",
         "web/js/audio/strudel-processor.js",
         "web/js/hallucinate-backend-bridge.js",
-        "src/services/mcp/libp2p-browser-runtime.ts",
-        "src/cloudflare/worker-templates.ts",
+        "web/js/libp2p-browser-runtime.js",
         "web/js/core/ipfs-accelerate-global-adapter.js",
         "web/js/hallucinate-backend-bridge.mjs"
       ],
       "findings": [
-        {
-          "category": "dynamic-import",
-          "severity": "browser-safe",
-          "file": "src/services/mcp/libp2p-browser-runtime.ts",
-          "line": 123,
-          "message": "browser libp2p optional package loader with explicit capability gaps",
-          "chain": [
-            "web/index.html",
-            "web/js/main-simple.js",
-            "web/js/apps/mcp-control.js",
-            "src/services/mcp/libp2p-browser-runtime.ts"
-          ]
-        },
         {
           "category": "dynamic-import",
           "severity": "browser-safe",
@@ -1357,6 +1501,18 @@
             "web/index.html",
             "web/js/main-simple.js",
             "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/agent-supervisor.js",
+          "line": 297,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/apps/agent-supervisor.js"
           ]
         },
         {
@@ -1615,7 +1771,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1381,
+          "line": 1386,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -1627,7 +1783,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1448,
+          "line": 1453,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -1639,7 +1795,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1714,
+          "line": 1719,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -1651,7 +1807,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1725,
+          "line": 1730,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -1663,7 +1819,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1783,
+          "line": 1788,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -1675,7 +1831,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1785,
+          "line": 1790,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -2047,7 +2203,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 743,
+          "line": 737,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -2059,7 +2215,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 813,
+          "line": 807,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -2071,7 +2227,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 822,
+          "line": 816,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -2083,7 +2239,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 831,
+          "line": 825,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -2095,7 +2251,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 2672,
+          "line": 2671,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -2382,6 +2538,26 @@
         {
           "category": "worker",
           "severity": "browser-safe",
+          "file": "web/index.html",
+          "line": 366,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.html"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
+          "file": "web/index.html",
+          "line": 368,
+          "message": "browser worker/worklet dependency",
+          "chain": [
+            "web/index.html"
+          ]
+        },
+        {
+          "category": "worker",
+          "severity": "browser-safe",
           "file": "web/js/apps/strudel-ai-daw.js",
           "line": 758,
           "message": "browser worker/worklet dependency",
@@ -2442,6 +2618,7 @@
         "src/services/apps/app-manifest-registry.ts",
         "src/services/apps/app-manifest.ts",
         "web/js/apps/ai-chat.js",
+        "web/js/apps/agent-supervisor.js",
         "web/js/apps/api-keys.js",
         "web/js/apps/calculator.js",
         "web/js/apps/calendar.js",
@@ -2480,27 +2657,12 @@
         "web/js/apps/training-manager.js",
         "web/js/apps/vibecode.js",
         "web/js/hallucinate-backend-bridge.js",
-        "src/services/mcp/libp2p-browser-runtime.ts",
+        "web/js/libp2p-browser-runtime.js",
         "web/js/core/ipfs-accelerate-global-adapter.js",
-        "src/cloudflare/worker-templates.ts",
         "web/js/audio/strudel-processor.js",
         "web/js/hallucinate-backend-bridge.mjs"
       ],
       "findings": [
-        {
-          "category": "dynamic-import",
-          "severity": "browser-safe",
-          "file": "src/services/mcp/libp2p-browser-runtime.ts",
-          "line": 123,
-          "message": "browser libp2p optional package loader with explicit capability gaps",
-          "chain": [
-            "web/index.vite.html",
-            "web/desktop.ts",
-            "web/src/apps/app-manifest-loader.ts",
-            "web/js/apps/mcp-control.js",
-            "src/services/mcp/libp2p-browser-runtime.ts"
-          ]
-        },
         {
           "category": "dynamic-import",
           "severity": "browser-safe",
@@ -2512,6 +2674,19 @@
             "web/desktop.ts",
             "web/src/apps/app-manifest-loader.ts",
             "web/js/apps/file-manager.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/agent-supervisor.js",
+          "line": 297,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.vite.html",
+            "web/desktop.ts",
+            "web/src/apps/app-manifest-loader.ts",
+            "web/js/apps/agent-supervisor.js"
           ]
         },
         {
@@ -2791,7 +2966,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1381,
+          "line": 1386,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -2804,7 +2979,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1448,
+          "line": 1453,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -2817,7 +2992,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1714,
+          "line": 1719,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -2830,7 +3005,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1725,
+          "line": 1730,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -2843,7 +3018,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1783,
+          "line": 1788,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -2856,7 +3031,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1785,
+          "line": 1790,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -3259,7 +3434,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 743,
+          "line": 737,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -3272,7 +3447,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 813,
+          "line": 807,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -3285,7 +3460,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 822,
+          "line": 816,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -3298,7 +3473,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 831,
+          "line": 825,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -3311,7 +3486,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 2672,
+          "line": 2671,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -3685,6 +3860,50 @@
       "findings": []
     },
     {
+      "path": "web/js/apps/accelerate-datasets-capabilities.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/accelerate-datasets-capabilities.js",
+        "web/js/core/app-capability-gateway.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/app-capability-gateway.js",
+          "line": 190,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/accelerate-datasets-capabilities.js",
+            "web/js/core/app-capability-gateway.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/agent-supervisor.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/agent-supervisor.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/apps/agent-supervisor.js",
+          "line": 297,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/agent-supervisor.js"
+          ]
+        }
+      ]
+    },
+    {
       "path": "web/js/apps/ai-chat.js",
       "kind": "lazy-app-bundle",
       "reason": "Browser desktop app bundle under web/js/apps/",
@@ -3902,6 +4121,16 @@
       ]
     },
     {
+      "path": "web/js/apps/generated-service-surface.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/generated-service-surface.js"
+      ],
+      "findings": []
+    },
+    {
       "path": "web/js/apps/github.js",
       "kind": "lazy-app-bundle",
       "reason": "Browser desktop app bundle under web/js/apps/",
@@ -4062,26 +4291,15 @@
       "reachable": [
         "web/js/apps/mcp-control.js",
         "web/js/hallucinate-backend-bridge.js",
-        "src/services/mcp/libp2p-browser-runtime.ts",
+        "web/js/libp2p-browser-runtime.js",
         "web/js/hallucinate-backend-bridge.mjs"
       ],
       "findings": [
         {
-          "category": "dynamic-import",
-          "severity": "browser-safe",
-          "file": "src/services/mcp/libp2p-browser-runtime.ts",
-          "line": 123,
-          "message": "browser libp2p optional package loader with explicit capability gaps",
-          "chain": [
-            "web/js/apps/mcp-control.js",
-            "src/services/mcp/libp2p-browser-runtime.ts"
-          ]
-        },
-        {
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1381,
+          "line": 1386,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/mcp-control.js"
@@ -4091,7 +4309,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1448,
+          "line": 1453,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/mcp-control.js"
@@ -4101,7 +4319,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1714,
+          "line": 1719,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/mcp-control.js"
@@ -4111,7 +4329,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1725,
+          "line": 1730,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/mcp-control.js"
@@ -4121,7 +4339,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1783,
+          "line": 1788,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/mcp-control.js"
@@ -4131,10 +4349,56 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/mcp-control.js",
-          "line": 1785,
+          "line": 1790,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/mcp-control.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/mcp-plus-plus-explorer.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/mcp-plus-plus-explorer.js",
+        "web/js/core/mcp-plus-plus-desktop-client.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/mcp-plus-plus-desktop-client.js",
+          "line": 383,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/mcp-plus-plus-explorer.js",
+            "web/js/core/mcp-plus-plus-desktop-client.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/media-artifact-capabilities.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/media-artifact-capabilities.js",
+        "web/js/core/app-capability-gateway.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/app-capability-gateway.js",
+          "line": 190,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/media-artifact-capabilities.js",
+            "web/js/core/app-capability-gateway.js"
           ]
         }
       ]
@@ -4573,26 +4837,14 @@
       "classification": "browser-safe",
       "reachable": [
         "web/js/apps/p2p-network.js",
-        "src/services/mcp/libp2p-browser-runtime.ts",
-        "src/cloudflare/worker-templates.ts"
+        "web/js/libp2p-browser-runtime.js"
       ],
       "findings": [
         {
-          "category": "dynamic-import",
-          "severity": "browser-safe",
-          "file": "src/services/mcp/libp2p-browser-runtime.ts",
-          "line": 123,
-          "message": "browser libp2p optional package loader with explicit capability gaps",
-          "chain": [
-            "web/js/apps/p2p-network.js",
-            "src/services/mcp/libp2p-browser-runtime.ts"
-          ]
-        },
-        {
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 743,
+          "line": 737,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/p2p-network.js"
@@ -4602,7 +4854,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 813,
+          "line": 807,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/p2p-network.js"
@@ -4612,7 +4864,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 822,
+          "line": 816,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/p2p-network.js"
@@ -4622,7 +4874,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 831,
+          "line": 825,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/p2p-network.js"
@@ -4632,7 +4884,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/p2p-network.js",
-          "line": 2672,
+          "line": 2671,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/p2p-network.js"
@@ -4708,6 +4960,29 @@
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/settings.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/apps/storage-provenance-capabilities.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/storage-provenance-capabilities.js",
+        "web/js/core/app-capability-gateway.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/app-capability-gateway.js",
+          "line": 190,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/storage-provenance-capabilities.js",
+            "web/js/core/app-capability-gateway.js"
           ]
         }
       ]
@@ -4804,6 +5079,29 @@
         "web/js/apps/system-monitor.js"
       ],
       "findings": []
+    },
+    {
+      "path": "web/js/apps/system-network-local-capabilities.js",
+      "kind": "lazy-app-bundle",
+      "reason": "Browser desktop app bundle under web/js/apps/",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/apps/system-network-local-capabilities.js",
+        "web/js/core/app-capability-gateway.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/app-capability-gateway.js",
+          "line": 190,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/apps/system-network-local-capabilities.js",
+            "web/js/core/app-capability-gateway.js"
+          ]
+        }
+      ]
     },
     {
       "path": "web/js/apps/task-manager.js",
@@ -5031,6 +5329,78 @@
       "findings": []
     },
     {
+      "path": "web/js/core/app-capability-gateway.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/app-capability-gateway.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/app-capability-gateway.js",
+          "line": 190,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/core/app-capability-gateway.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/core/cloudflare-worker-templates-browser.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/cloudflare-worker-templates-browser.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/cloudflare-worker-templates-browser.js",
+          "line": 2,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/core/cloudflare-worker-templates-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/cloudflare-worker-templates-browser.js",
+          "line": 3,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/core/cloudflare-worker-templates-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/cloudflare-worker-templates-browser.js",
+          "line": 4,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/core/cloudflare-worker-templates-browser.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/cloudflare-worker-templates-browser.js",
+          "line": 8,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/core/cloudflare-worker-templates-browser.js"
+          ]
+        }
+      ]
+    },
+    {
       "path": "web/js/core/descriptor-runtime.js",
       "kind": "browser-support-module",
       "reason": "Browser support utility reachable from web build roots or app bundles",
@@ -5065,6 +5435,60 @@
         "web/js/core/ipfs-accelerate-global-adapter.js"
       ],
       "findings": []
+    },
+    {
+      "path": "web/js/core/libp2p-browser-runtime-browser.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/libp2p-browser-runtime-browser.js"
+      ],
+      "findings": []
+    },
+    {
+      "path": "web/js/core/mcp-descriptor-registry.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/mcp-descriptor-registry.js",
+        "web/js/core/app-capability-gateway.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/app-capability-gateway.js",
+          "line": 190,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/core/mcp-descriptor-registry.js",
+            "web/js/core/app-capability-gateway.js"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/js/core/mcp-plus-plus-desktop-client.js",
+      "kind": "browser-support-module",
+      "reason": "Browser support utility reachable from web build roots or app bundles",
+      "classification": "browser-safe",
+      "reachable": [
+        "web/js/core/mcp-plus-plus-desktop-client.js"
+      ],
+      "findings": [
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/core/mcp-plus-plus-desktop-client.js",
+          "line": 383,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/js/core/mcp-plus-plus-desktop-client.js"
+          ]
+        }
+      ]
     },
     {
       "path": "web/js/core/orb-client.js",

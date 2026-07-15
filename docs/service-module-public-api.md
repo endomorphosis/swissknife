@@ -12,14 +12,14 @@ Service implementations have exactly one owning family. Cross-family consumers m
 | `service-glasses` | glasses-surface-runtime | `split` | none | 7 |
 | `service-integrations` | external-integration-service-runtime | `split` | none | 4 |
 | `service-ipfs` | ipfs-descriptor-runtime | `split` | `src/services/ipfs/ipfs-browser.ts` | 9 |
-| `service-logic` | logic-service-runtime | `split` | `src/services/logic/api/reasoning-normalization-pipeline.ts` | 71 |
+| `service-logic` | logic-service-runtime | `split` | `src/services/logic/api/reasoning-normalization-pipeline.ts` | 72 |
 | `service-mcp` | mcp-protocol-runtime | `split` | `src/services/mcp/browser-mcp.ts` | 24 |
 | `service-platform` | platform-service-runtime | `split` | none | 8 |
 | `service-proof-engine` | proof-engine-service-runtime | `split` | `src/services/proof-engine/proof-engine-browser.ts` | 3 |
 | `service-provers` | prover-service-runtime | `split` | `src/services/provers/provers-browser.ts` | 19 |
 | `service-shared` | shared-service-runtime | `universal` | `src/services/shared/shared-browser-crypto.ts` | 3 |
-| `service-zkp` | zkp-service-runtime | `split` | `src/services/zkp/browser-zkp.ts` | 10 |
-| `services` | domain-service-runtime | `split` | none | 4 |
+| `service-zkp` | zkp-service-runtime | `split` | `src/services/zkp/browser-zkp.ts` | 12 |
+| `services` | domain-service-runtime | `split` | none | 0 |
 
 ## Canonical Family APIs
 
@@ -109,6 +109,7 @@ Public entrypoints:
 - `src/services/logic/api/logic-api-remainders.ts`
 - `src/services/logic/api/logic-batch-processing.ts`
 - `src/services/logic/api/logic-verification-toolkit.ts`
+- `src/services/logic/api/proof-storage-parsers.ts`
 - `src/services/logic/api/reasoning-normalization-pipeline.ts`
 - `src/services/logic/api/session-translation-types.ts`
 - `src/services/logic/bridges/index.ts`
@@ -304,10 +305,12 @@ Public entrypoints:
 - `src/services/zkp/browser-zkp-policy.ts`
 - `src/services/zkp/browser-zkp.ts`
 - `src/services/zkp/ethereum-zkp-bridge.ts`
+- `src/services/zkp/groth16-cec-expansion.ts`
 - `src/services/zkp/index.ts`
 - `src/services/zkp/zkp-backends.ts`
 - `src/services/zkp/zkp-browser-schnorr.ts`
 - `src/services/zkp/zkp-browser.ts`
+- `src/services/zkp/zkp-canonicalization-runtime.ts`
 - `src/services/zkp/zkp-host.ts`
 
 Private implementation patterns (declared public entrypoints are excluded):
@@ -320,10 +323,7 @@ Owner: domain-service-runtime. Runtime: `split`.
 
 Public entrypoints:
 
-- `src/services/event-dag.ts`
-- `src/services/groth16-cec-delegation.ts`
-- `src/services/logic-proof-storage-parsers.ts`
-- `src/services/zkp-canonicalization-security.ts`
+- None; this is an ownership aggregate only.
 
 Private implementation patterns (declared public entrypoints are excluded):
 
