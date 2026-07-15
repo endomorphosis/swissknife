@@ -13,7 +13,7 @@ is the active default release-blocking group for the SVD-066 supervisor-managed 
 | Browser libp2p interoperability evidence (SWR-138) | historical | ✅ fresh | 2026-07-15T14:26:49.648Z | npm run evidence:libp2p-browser |
 | Browser bundle budget evidence (SWR-016) | historical | ❌ stale | 2026-07-15T05:55:13.996Z | npm run build:web |
 | Module-boundary / service-boundary audit evidence (SWR-024) | historical | ❌ stale | 2026-07-15T05:54:56.054Z | npm run services:audit |
-| Supervisor-managed virtual desktop all-app release evidence (SVD-066) | active | ✅ fresh | 2026-07-15T22:16:32.444Z | node scripts/build-virtual-desktop-release-evidence.cjs |
+| Supervisor-managed virtual desktop all-app release evidence (SVD-066) | active | ✅ fresh | 2026-07-15T22:20:08.743Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 
 ## Browser bundle budget evidence (SWR-016)
 
