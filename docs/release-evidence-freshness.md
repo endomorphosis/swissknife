@@ -13,7 +13,7 @@ is the active default release-blocking group.
 | Browser libp2p interoperability evidence (SWR-138) | historical | ✅ fresh | 2026-07-15T08:27:38.482Z | npm run evidence:libp2p-browser |
 | Browser bundle budget evidence (SWR-016) | historical | ❌ stale | 2026-07-15T05:55:13.996Z | npm run build:web |
 | Module-boundary / service-boundary audit evidence (SWR-024) | historical | ❌ stale | 2026-07-15T05:54:56.054Z | npm run services:audit |
-| Virtual desktop all-tools release evidence (SVD-101) | active | ✅ fresh | 2026-07-15T08:33:07.034Z | node scripts/build-virtual-desktop-release-evidence.cjs |
+| Virtual desktop all-tools release evidence (SVD-101) | active | ✅ fresh | 2026-07-15T08:36:20.215Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 
 ## Browser bundle budget evidence (SWR-016)
 
