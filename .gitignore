@@ -263,6 +263,7 @@ test-results/virtual-desktop-ipfs-mcp-orb/*
 !test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-meta-io.json
 !test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-io-handoff.json
 !test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json
+!test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json
 !test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json
