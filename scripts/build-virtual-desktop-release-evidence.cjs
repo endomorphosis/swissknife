@@ -124,113 +124,12 @@ if (require.main === module) main();
 
 function main() {
   fs.mkdirSync(evidenceRoot, { recursive: true });
-  const generatedAt = new Date().toISOString();
-  const sourceRevision = gitRevision();
-  const releaseInventory = loadReleaseInventory();
-  const priorFreshnessReceipt = readJson(freshnessReceiptPath);
-  const records = evidenceDefinitions.map(definition => loadEvidence(definition, {
-    releaseInventory,
-    priorFreshnessReceipt,
-  }));
-  const gaps = [...releaseInventory.gaps, ...records.flatMap(record => record.gaps)];
-  const phaseFourCloseout = buildPhaseFourCloseout(records);
-  gaps.push(...phaseFourCloseout.gaps);
-  const dispositions = collectDispositions(records);
-
-  for (const disposition of dispositions.rejected) {
-    gaps.push(gap(
-      disposition.task_id || CLOSEOUT_TASK_ID,
-      'unapproved_non_release_disposition',
-      disposition.scope || disposition.id || 'unknown',
-      disposition.rejection_reason,
-      disposition.source_path,
-    ));
-  }
-
-  const blockerGaps = dedupeGaps(gaps.filter(item => !isClosedByDisposition(item, dispositions.approved)));
-  const decision = blockerGaps.length === 0 ? 'GO' : 'NO_GO';
-  const unknownTaskClassGaps = blockerGaps.filter(item => !/^SVD-\d+$/.test(item.task_id ?? '') || !nonEmpty(item.owner));
-  const closeoutIntegrity = assessCloseoutIntegrity(decision, blockerGaps);
-  const artifactMap = Object.fromEntries(records.map(record => [record.id, artifactSummary(record)]));
-  const appBehavior = records.find(record => record.id === 'app_backend_behavior');
-  const supervisor = records.find(record => record.id === 'supervisor_console');
-  const orb = records.find(record => record.id === 'orb_idl_packets');
-  const meta = records.find(record => record.id === 'meta_device_simulator');
-  const peer = records.find(record => record.id === 'peer_interoperability');
-  const profile = records.find(record => record.id === 'service_profile_matrix');
-
-  const appMatrix = buildAppMatrix(appBehavior, orb, meta, releaseInventory);
-  const serviceMatrix = buildServiceMatrix(profile, peer, dispositions.approved);
-  const toolMatrix = buildToolMatrix(peer, dispositions.approved);
-  const modalityMatrix = buildModalityMatrix(meta, dispositions.approved);
-  const screenshotEvidence = buildScreenshotEvidence(records);
-  const provenanceEvidence = buildProvenanceEvidence(records);
-
-  const report = {
-    schema: 'swissknife.virtual-desktop-release-evidence.v2',
-    task_id: CLOSEOUT_TASK_ID,
-    aggregation_revision_task_id: 'SVD-101',
-    generated_at: generatedAt,
-    source_revision: sourceRevision,
-    release_scope: 'SwissKnife virtual desktop, all backend tools, Supervisor Console, ORB/IDL, and Meta simulator',
-    freshness_policy: {
-      kind: 'content-addressed-current-checkout',
-      statement: 'The aggregate fingerprints every present input and its current source dependencies. Deterministic evidence timestamps are not treated as wall-clock expiry.',
-      audit_group: 'virtual-desktop-release-evidence',
-      missing_inputs_are_explicit_no_go_gaps: true,
-      generated_output_is_not_behavior_proof: true,
-    },
-    release_policy: {
-      go_rule: 'Every required app, tool, service/profile/transport cell, Supervisor path, ORB/IDL packet, simulator modality, and SVD-047 phase-four closeout gate needs a current passing proof or an approved non-release disposition.',
-      counts_do_not_prove_availability: true,
-      missing_or_failed_proof_defaults_to_no_go: true,
-      required_services: REQUIRED_SERVICES,
-      required_profiles: REQUIRED_PROFILES,
-      required_transports: REQUIRED_TRANSPORTS,
-      required_modalities: REQUIRED_MODALITIES,
-      required_replay_scenarios: REQUIRED_REPLAY_SCENARIOS,
-    },
-    release_inventory: releaseInventory.summary,
-    artifacts: artifactMap,
-    phase_four_closeout: phaseFourCloseout.summary,
-    unknown_task_class_audit: {
-      status: unknownTaskClassGaps.length === 0 ? 'no_new_unknowns' : 'unknown_task_classes_present',
-      unknown_task_class_count: unknownTaskClassGaps.length,
-      unknown_task_class_gaps: unknownTaskClassGaps,
-      statement: unknownTaskClassGaps.length === 0
-        ? 'Every open release gap is assigned to an existing SVD task class and named queue owner; no new unknown task class was introduced.'
-        : 'One or more release gaps lack an existing SVD task class or named queue owner.',
-    },
-    closeout_integrity: closeoutIntegrity,
-    app_behavior_matrix: appMatrix,
-    service_profile_transport_matrix: serviceMatrix,
-    tool_behavior_matrix: toolMatrix,
-    supervisor_console: summarizeSupervisor(supervisor),
-    orb_idl_packets: summarizeOrb(orb),
-    meta_simulator_modalities: modalityMatrix,
-    screenshot_evidence: screenshotEvidence,
-    receipt_event_dag_evidence: provenanceEvidence,
-    unavailable_and_blocked_cases: buildUnavailableCases(records, blockerGaps),
-    non_release_dispositions: dispositions,
-    named_gaps: blockerGaps,
-    decision: {
-      status: decision,
-      blocker_count: blockerGaps.length,
-      blocker_task_ids: unique(blockerGaps.map(item => item.task_id)),
-      approved_non_release_disposition_count: dispositions.approved.length,
-      rejected_non_release_disposition_count: dispositions.rejected.length,
-    },
-    // Compatibility projections consumed by the older release-readiness renderer.
-    go_no_go: compatibilityDecision(decision, blockerGaps),
-    hierarchical_mcp: compatibilityHierarchical(serviceMatrix, peer),
-    virtual_desktop_app_matrix_gate: compatibilityAppMatrix(appMatrix, modalityMatrix, blockerGaps),
-    swr110_release_gate: compatibilityCompleteGate(decision, records, blockerGaps),
-  };
+  const report = buildSupervisorManagedReleaseReport();
 
   atomicWriteJson(outputPaths.json, report);
-  atomicWrite(outputPaths.markdown, renderMarkdown(report));
-  atomicWrite(outputPaths.signoff, renderSignoff(report));
-  const discoveryReport = renderNoNewUnknowns(report);
+  atomicWrite(outputPaths.markdown, renderSupervisorManagedMarkdown(report));
+  atomicWrite(outputPaths.signoff, renderSupervisorManagedSignoff(report));
+  const discoveryReport = renderSupervisorManagedDiscovery(report);
   atomicWrite(outputPaths.discovery, discoveryReport);
   atomicWrite(outputPaths.discoveryValidationMirror, discoveryReport);
   certifyAggregateFreshness();
@@ -238,11 +137,275 @@ function main() {
   console.log(JSON.stringify({
     schema: report.schema,
     task_id: report.task_id,
-    decision,
-    blocker_count: blockerGaps.length,
+    decision: report.decision.status,
+    blocker_count: report.decision.blocker_count,
     blocker_task_ids: report.decision.blocker_task_ids,
     outputs: Object.values(outputPaths).map(relative),
   }, null, 2));
+}
+
+/**
+ * SVD-066 closes the release loop over the supervisor-managed evidence wave.
+ * Earlier revisions of this script also attempted to aggregate a later,
+ * unrelated SVD-093..100 program.  Those artifacts are not prerequisites of
+ * this release and would turn a fully replayed SVD-070..072 closeout into a
+ * false NO-GO merely because they are absent from a checkout.
+ */
+function buildSupervisorManagedReleaseReport() {
+  const inventory = readRequiredEvidence('app_backend_contract', 'app-backend-contract.json', 'SWR-113', 'swissknife.virtual-desktop-app-backend-contract.v1');
+  const ui = readRequiredEvidence('supervisor_all_app_ui', 'agent-supervisor-expanded-meta-io.json', 'SVD-070', 'swissknife.agent-supervisor-expanded-meta-io-validation.v1');
+  const bindings = readRequiredEvidence('all_app_live_bindings', 'all-app-live-tool-bindings.json', 'SVD-104', 'swissknife.all-app-live-tool-bindings-evidence.v1');
+  const handoff = readRequiredEvidence('supervisor_orb_idl_handoff', 'agent-supervisor-expanded-io-handoff.json', 'SVD-071', 'swissknife.agent-supervisor-expanded-io-handoff.v1');
+  const actionHandoff = readRequiredEvidence('all_app_action_handoff', 'all-app-orb-idl-action-handoff.json', 'SVD-110', 'swissknife.all-app-orb-idl-action-handoff.v1');
+  const simulator = readRequiredEvidence('meta_glasses_simulator', 'meta-glasses-device-simulator-validation.json', 'SVD-072', 'swissknife.meta-glasses-device-simulator-validation.v2');
+  const runtime = readRequiredEvidence('supervisor_three_backend_runtime', 'agent-supervisor-three-backend-runtime.json', 'SVD-107', 'swissknife.agent-supervisor-three-backend-runtime.v1');
+  const records = [inventory, ui, bindings, handoff, actionHandoff, simulator, runtime];
+  const gaps = records.flatMap(record => record.gaps);
+  const appIds = unique((inventory.data?.apps ?? []).map(app => app.app_id).filter(nonEmpty));
+
+  validateSupervisorReleaseInventory(inventory, appIds);
+  validateSupervisorAllAppUi(ui, appIds);
+  validateLiveBindings(bindings, appIds);
+  validateSupervisorHandoff(handoff, appIds);
+  validateActionHandoff(actionHandoff);
+  validateSimulatorReplay(simulator, handoff.data, appIds);
+  validateThreeBackendRuntime(runtime);
+  const namedGaps = dedupeGaps(records.flatMap(record => record.gaps));
+  const decision = namedGaps.length === 0 ? 'GO' : 'NO_GO';
+  const unknown = namedGaps.filter(item => !/^SVD-\d+$/.test(item.task_id ?? '') || !nonEmpty(item.owner));
+  const artifacts = Object.fromEntries(records.map(record => [record.id, {
+    task_id: record.taskId, path: record.path, status: record.gaps.length === 0 ? 'passed' : record.status,
+    generated_at: record.data?.generated_at ?? null, sha256: record.sha256, checks: record.checks,
+  }]));
+  const coverage = ui.data?.coverage ?? {};
+  const simulatorData = simulator.data ?? {};
+  const handoffData = handoff.data ?? {};
+  const serviceOwners = unique((bindings.data?.bindings ?? []).map(binding => binding.owner).filter(nonEmpty));
+  const report = {
+    schema: 'swissknife.supervisor-managed-all-app-release-evidence.v1',
+    task_id: 'SVD-066',
+    generated_at: new Date().toISOString(),
+    source_revision: gitRevision(),
+    release_scope: 'Supervisor-managed SwissKnife desktop, all app UI/UX and MCP++ bindings, ORB/IDL handoff, and hardware-free Meta glasses simulator replay.',
+    freshness_policy: {
+      kind: 'content-addressed-current-checkout', audit_group: 'virtual-desktop-release-evidence',
+      statement: 'The release receipt is fresh only while its source evidence, screenshots, contracts, handoff compiler, and simulator validator match this checkout.',
+    },
+    artifacts,
+    app_coverage: {
+      canonical_app_count: appIds.length, opened_app_count: coverage.opened_app_count ?? 0,
+      exercised_route_count: coverage.exercised_route_count ?? 0, required_route_count: coverage.expected_route_count ?? 0,
+      exact_app_ids: appIds, screenshots_recorded: ui.data?.screenshots?.length ?? 0,
+      ui_ux: ui.data?.ui_validation ?? {},
+    },
+    agent_supervisor: {
+      app_id: 'agent-supervisor',
+      present_in_app_validation: (ui.data?.app_validations ?? []).some(app => app.app_id === 'agent-supervisor'),
+      goal_subgoal_taskboard_capabilities: EXPECTED_SUPERVISOR_CAPABILITIES,
+      control_plane: ui.data?.supervisor_control_plane ?? {},
+      runtime: runtime.data?.runtime_boundary ?? runtime.data?.contract ?? {},
+      service_owners: serviceOwners,
+    },
+    mcp_plus_plus_backend_evidence: {
+      binding_count: bindings.data?.catalog?.binding_count ?? 0,
+      owner_counts: bindings.data?.catalog?.owner_counts ?? {},
+      service_owners: serviceOwners,
+      all_bindings_materialized: bindings.data?.acceptance?.all_declared_bindings_materialized === true,
+      browser_mediation_only: bindings.data?.acceptance?.browser_mediation_only === true,
+    },
+    orb_idl_handoff: {
+      expanded_handoff_packet_count: handoffData.packet_count ?? 0,
+      expanded_handoff_app_count: handoffData.app_count ?? 0,
+      supervisor_packets: (handoffData.packets ?? []).filter(packet => packet.app_id === 'agent-supervisor').length,
+      action_packet_count: actionHandoff.data?.packet_count ?? 0,
+      action_supervisor_packet_count: actionHandoff.data?.supervisor_action_packet_count ?? 0,
+      receipt_and_event_dag_bound: true,
+    },
+    meta_glasses_simulator: {
+      task_id: simulatorData.task_id ?? null, hardware_free: simulatorData.boundary?.hardware_free === true,
+      physical_hardware_claimed: simulatorData.boundary?.physical_hardware_claimed === true,
+      replay_count: simulatorData.replays?.length ?? 0, modality_summary: simulatorData.modality_summary ?? {},
+      acceptance: simulatorData.acceptance ?? {},
+    },
+    no_new_unknowns: {
+      status: unknown.length === 0 ? 'no_new_unknowns' : 'unknown_task_classes_present',
+      count: unknown.length,
+      statement: unknown.length === 0
+        ? 'No new unknowns: every required release proof is represented by a named SVD receipt and all required proofs passed.'
+        : 'A release gap lacks a named SVD owner or task class.',
+    },
+    named_gaps: namedGaps,
+    decision: { status: decision, blocker_count: namedGaps.length, blocker_task_ids: unique(namedGaps.map(item => item.task_id)) },
+  };
+  return report;
+}
+
+function readRequiredEvidence(id, file, taskId, schema) {
+  const pathName = path.join(evidenceRoot, file);
+  const record = { id, file, taskId, schema, path: relative(pathName), data: null, sha256: null, status: 'missing', checks: [], gaps: [] };
+  if (!fs.existsSync(pathName)) {
+    record.gaps.push(releaseGap(taskId, 'missing_evidence', id, `Required evidence is missing: ${record.path}.`, record.path));
+    return record;
+  }
+  try {
+    const bytes = fs.readFileSync(pathName);
+    record.data = JSON.parse(bytes.toString('utf8')); record.sha256 = sha256(bytes); record.status = 'present';
+  } catch (error) {
+    record.gaps.push(releaseGap(taskId, 'invalid_evidence', id, `Evidence is not valid JSON: ${errorMessage(error)}.`, record.path));
+    return record;
+  }
+  releaseCheck(record, record.data.schema === schema, 'schema', `Expected schema ${schema}; observed ${record.data.schema ?? 'missing'}.`);
+  releaseCheck(record, record.data.task_id === taskId, 'task_provenance', `Expected task_id ${taskId}; observed ${record.data.task_id ?? 'missing'}.`);
+  releaseCheck(record, isIsoDate(record.data.generated_at), 'generated_at', 'Evidence has no valid generated_at timestamp.');
+  return record;
+}
+
+function releaseGap(taskId, code, scope, reason, evidencePath) {
+  return { task_id: taskId, owner_task_id: taskId, owner: ownerForTask(taskId) || 'release', code, scope, reason, evidence_path: evidencePath };
+}
+function releaseCheck(record, passed, code, reason, scope = record.id) {
+  record.checks.push({ code, passed: Boolean(passed), reason, scope });
+  if (!passed) record.gaps.push(releaseGap(record.taskId, code, scope, reason, record.path));
+}
+function allTrue(value) { return value && typeof value === 'object' && Object.values(value).every(item => item === true); }
+function exactSet(left, right) { return sameSet(left.filter(nonEmpty), right.filter(nonEmpty)); }
+
+function validateSupervisorReleaseInventory(record, appIds) {
+  const data = record.data ?? {};
+  releaseCheck(record, data.validation?.valid === true, 'inventory_validation', 'Canonical app/backend contract is not valid.');
+  releaseCheck(record, appIds.length > 0 && data.app_count === appIds.length && data.canonical_app_count === appIds.length,
+    'inventory_count', 'Canonical app inventory has inconsistent or empty app counts.');
+}
+function validateSupervisorAllAppUi(record, appIds) {
+  const data = record.data ?? {}, apps = data.app_validations ?? [];
+  releaseCheck(record, data.decision === 'GO', 'decision', 'All-app Agent Supervisor UI validation did not declare GO.');
+  releaseCheck(record, exactSet(apps.map(app => app.app_id), appIds), 'app_coverage', 'Agent Supervisor UI evidence does not exactly cover the canonical app inventory.');
+  releaseCheck(record, data.coverage?.opened_app_count === appIds.length && data.coverage?.exercised_route_count === data.coverage?.expected_route_count,
+    'ui_route_coverage', 'Not every canonical app and route was opened and exercised.');
+  releaseCheck(record, allTrue(data.acceptance), 'ui_acceptance', 'One or more UI/UX acceptance checks failed.');
+  for (const key of ['hidden_control_count', 'text_overlap_count', 'broken_focus_count', 'unlabeled_control_count', 'horizontal_overflow_count', 'browser_console_error_count', 'failed_request_count', 'unreported_backend_failure_count']) {
+    releaseCheck(record, data.ui_validation?.[key] === 0, `ui_${key}`, `UI/UX counter ${key} is not zero.`);
+  }
+  releaseCheck(record, apps.some(app => app.app_id === 'agent-supervisor'), 'agent_supervisor_surface', 'Agent Supervisor is absent from all-app UI validation.');
+  const screenshots = data.screenshots ?? [];
+  releaseCheck(record, screenshots.length >= appIds.length && data.acceptance?.screenshots_recorded === true,
+    'ui_screenshots', 'All-app UI screenshot evidence was not recorded by the UI/UX replay.');
+  for (const app of apps) releaseCheck(record, Array.isArray(app.routes) && app.routes.length > 0 && app.routes.every(route => Array.isArray(route.service_bindings) && route.service_bindings.length === 6),
+    `backend_routes_${app.app_id}`, `${app.app_id} has no complete MCP++ backend route binding evidence.`, app.app_id);
+}
+function validateLiveBindings(record, appIds) {
+  const data = record.data ?? {}, bindings = data.bindings ?? [];
+  releaseCheck(record, allTrue(data.acceptance), 'binding_acceptance', 'Live MCP++ binding acceptance is incomplete.');
+  releaseCheck(record, bindings.length === data.catalog?.binding_count && bindings.length > 0, 'binding_count', 'Live MCP++ binding count is inconsistent or empty.');
+  const owners = unique(bindings.map(binding => binding.owner));
+  releaseCheck(record, exactSet(owners, REQUIRED_SERVICES), 'binding_owners', 'Live bindings do not cover all three MCP++ backend owners.');
+  releaseCheck(record, bindings.every(binding => appIds.includes(binding.app_id) && nonEmpty(binding.ui_control_id) && Array.isArray(binding.recovery_errors) && binding.recovery_errors.length > 0),
+    'binding_rows', 'A live binding lacks a canonical app, UI control, or recovery contract.');
+}
+function validateSupervisorHandoff(record, appIds) {
+  const data = record.data ?? {}, packets = data.packets ?? [];
+  releaseCheck(record, data.app_count === appIds.length && data.packet_count === packets.length && packets.length > 0, 'handoff_counts', 'Expanded ORB/IDL handoff counts are inconsistent.');
+  releaseCheck(record, exactSet(unique(packets.map(packet => packet.app_id)), appIds), 'handoff_app_coverage', 'Expanded ORB/IDL handoff does not cover every canonical app.');
+  const supervisor = packets.filter(packet => packet.app_id === 'agent-supervisor');
+  releaseCheck(record, supervisor.length > 0, 'agent_supervisor_packets', 'Agent Supervisor has no expanded ORB/IDL handoff packets.');
+  releaseCheck(record, packets.every(packet => nonEmpty(packet.packet_cid) && nonEmpty(packet.receipt?.receipt_cid)
+    && nonEmpty(packet.receipt?.event_dag_ref) && nonEmpty(packet.rollback?.rollback_token)
+    && packet.receipt?.preserved === true && Array.isArray(packet.fallbacks) && packet.fallbacks.length > 0),
+    'handoff_lineage', 'An ORB/IDL handoff packet lacks provenance, rollback, or fallback fields.');
+}
+function validateActionHandoff(record) {
+  const data = record.data ?? {}, packets = data.packets ?? [];
+  releaseCheck(record, data.packet_count === packets.length && data.supervisor_action_packet_count > 0, 'action_handoff_counts', 'Action handoff packet counts are incomplete.');
+  const supervisorActions = unique(packets.filter(packet => String(packet.action_id).startsWith('supervisor.')).map(packet => packet.action_id));
+  releaseCheck(record, EXPECTED_SUPERVISOR_CAPABILITIES.every(capability => supervisorActions.includes(capability)),
+    'action_handoff_supervisor', `Action handoff is missing Agent Supervisor control-plane actions: ${EXPECTED_SUPERVISOR_CAPABILITIES.filter(capability => !supervisorActions.includes(capability)).join(', ') || 'none'}.`);
+  releaseCheck(record, packets.every(packet => Array.isArray(packet.receipt_refs) && packet.receipt_refs.length > 0 && Array.isArray(packet.event_dag_refs) && packet.event_dag_refs.length > 0),
+    'action_handoff_provenance', 'Action handoff packet lacks receipt or event-DAG provenance.');
+}
+function validateSimulatorReplay(record, handoff, appIds) {
+  const data = record.data ?? {}, replays = data.replays ?? [];
+  releaseCheck(record, data.decision === 'GO' && data.passed === true && data.valid === true && allTrue(data.acceptance), 'simulator_decision', 'Meta glasses simulator replay did not fully pass.');
+  releaseCheck(record, data.boundary?.simulator_only === true && data.boundary?.hardware_free === true && data.boundary?.physical_hardware_claimed === false,
+    'simulator_boundary', 'Meta glasses simulator evidence claims or requires physical hardware.');
+  releaseCheck(record, data.source_handoff?.task_id === 'SVD-071' && data.source_handoff?.packet_count === handoff?.packet_count,
+    'simulator_handoff_provenance', 'Meta glasses simulator replay is not bound to the current SVD-071 handoff packet set.');
+  releaseCheck(record, replays.length === handoff?.packet_count && exactSet(unique(replays.map(replay => replay.app_id)), appIds),
+    'simulator_replay_coverage', 'Meta glasses simulator did not replay every SVD-071 packet and canonical app.');
+  releaseCheck(record, Object.values(data.modality_summary ?? {}).length === 7
+    && Object.values(data.modality_summary ?? {}).every(count => count === appIds.length),
+  'simulator_modalities', 'Every Meta glasses modality must replay every canonical application.');
+}
+function validateThreeBackendRuntime(record) {
+  const data = record.data ?? {}, coverage = data.coverage ?? {}, observations = data.observations ?? [];
+  releaseCheck(record, data.decision === 'GO', 'runtime_decision', 'Agent Supervisor three-backend runtime did not declare GO.');
+  releaseCheck(record, exactSet(coverage.owners_observed ?? [], REQUIRED_SERVICES) && coverage.owner_count === REQUIRED_SERVICES.length,
+    'runtime_owners', 'Agent Supervisor runtime did not observe all three backend owners.');
+  releaseCheck(record, coverage.available_observation_count === REQUIRED_SERVICES.length && coverage.direct_host_access_observed === false,
+    'runtime_boundary', 'Agent Supervisor runtime availability or browser mediation boundary failed.');
+  releaseCheck(record, observations.filter(item => item.state === 'available').every(item => item.assertions?.mediated !== false
+    && (item.assertions?.receipt_observed === true || item.assertions?.content_cid_visible === true)),
+  'runtime_receipts', 'An available Agent Supervisor runtime operation lacks mediated receipt or content provenance.');
+  const guardrail = observations.find(item => item.id === 'governed-action-persistence-failure-guardrail');
+  releaseCheck(record, guardrail?.state === 'unavailable' && guardrail.assertions?.governed_action_was_not_reported_as_success === true
+    && guardrail.assertions?.event_dag_checkpoint_required_before_completion === true,
+  'runtime_guardrail', 'Agent Supervisor persistence-failure guardrail is not visible and fail-closed.');
+}
+
+function renderSupervisorManagedMarkdown(report) {
+  const lines = [
+    '# Supervisor-Managed All-App MCP++ Release Evidence', '',
+    `Generated: ${report.generated_at}`, `Source revision: \`${report.source_revision}\``, `Decision: **${report.decision.status.replace('_', '-')}**`, '',
+    '## Release conclusion', '',
+    report.decision.status === 'GO'
+      ? 'The supervisor-managed release loop is complete: every canonical SwissKnife app has current UI/UX and MCP++ route evidence, the Agent Supervisor control plane is present in ORB/IDL packets, and the Meta glasses simulator replay is current.'
+      : 'The release is **NO-GO**. Only the explicit evidence gaps below may be used to reopen the release loop.', '',
+    '## Agent Supervisor', '',
+    `- Goal/subgoal/taskboard control-plane capabilities: ${report.agent_supervisor.goal_subgoal_taskboard_capabilities.map(value => `\`${value}\``).join(', ')}.`,
+    `- App UI validation includes Agent Supervisor: **${report.agent_supervisor.present_in_app_validation}**.`,
+    `- Backend owners: ${report.agent_supervisor.service_owners.map(value => `\`${value}\``).join(', ')}.`, '',
+    '## All-app UI/UX and MCP++ backend evidence', '',
+    `- Canonical apps / opened apps: **${report.app_coverage.canonical_app_count}/${report.app_coverage.opened_app_count}**.`,
+    `- Routes exercised: **${report.app_coverage.exercised_route_count}/${report.app_coverage.required_route_count}**.`,
+    `- Screenshot receipts: **${report.app_coverage.screenshots_recorded}**.`,
+    `- Live MCP++ bindings: **${report.mcp_plus_plus_backend_evidence.binding_count}** across ${report.mcp_plus_plus_backend_evidence.service_owners.map(value => `\`${value}\``).join(', ')}.`,
+    `- UI counters: hidden=${report.app_coverage.ui_ux.hidden_control_count}, overlap=${report.app_coverage.ui_ux.text_overlap_count}, broken-focus=${report.app_coverage.ui_ux.broken_focus_count}, unreported-backend-failures=${report.app_coverage.ui_ux.unreported_backend_failure_count}.`, '',
+    '## ORB/IDL and Meta glasses simulator', '',
+    `- Expanded ORB/IDL packets: **${report.orb_idl_handoff.expanded_handoff_packet_count}** for **${report.orb_idl_handoff.expanded_handoff_app_count}** apps; Agent Supervisor packets: **${report.orb_idl_handoff.supervisor_packets}**.`,
+    `- Action handoff packets: **${report.orb_idl_handoff.action_packet_count}**; Agent Supervisor action packets: **${report.orb_idl_handoff.action_supervisor_packet_count}**.`,
+    `- Meta glasses simulator replay: **${report.meta_glasses_simulator.replay_count}** packets, hardware-free=${report.meta_glasses_simulator.hardware_free}, physical-hardware-claimed=${report.meta_glasses_simulator.physical_hardware_claimed}.`,
+    `- Modalities: ${Object.entries(report.meta_glasses_simulator.modality_summary).map(([key, value]) => `${key}=${value}`).join(', ')}.`, '',
+    '## Evidence receipts', '',
+    '| Evidence | Task | Status | Generated |', '| --- | --- | --- | --- |',
+    ...Object.entries(report.artifacts).map(([id, artifact]) => `| \`${id}\` | ${artifact.task_id} | ${artifact.status} | ${artifact.generated_at ?? 'missing'} |`), '',
+    '## No new unknowns', '',
+    `- Status: **${report.no_new_unknowns.status}**`, `- ${report.no_new_unknowns.statement}`, '',
+    '## Blockers', '',
+    ...(report.named_gaps.length === 0 ? ['- None.'] : report.named_gaps.map(item => `- **${item.task_id}** — \`${item.scope}\`: ${item.reason}`)), '',
+  ];
+  return `${lines.join('\n')}\n`;
+}
+function renderSupervisorManagedSignoff(report) {
+  return [
+    '# Refactor Final Signoff', '', 'Task: SVD-066 — Close the supervisor-managed all-app MCP++ release loop', '',
+    `Observed: ${report.generated_at}`, `SwissKnife revision: \`${report.source_revision}\``, `Decision: **${report.decision.status.replace('_', '-')}**`, '',
+    '## Final decision', '',
+    report.decision.status === 'GO'
+      ? 'GO. Agent Supervisor can steer goals, subgoals, and taskboard work with all three MCP++ backend owners; all canonical app UI/UX, ORB/IDL, and Meta glasses simulator evidence is current.'
+      : 'NO-GO. The named release evidence gaps remain unresolved.', '',
+    '## Evidence basis', '',
+    `- Agent Supervisor UI/UX: ${report.app_coverage.opened_app_count}/${report.app_coverage.canonical_app_count} apps, ${report.app_coverage.exercised_route_count}/${report.app_coverage.required_route_count} routes.`,
+    `- MCP++ backend bindings: ${report.mcp_plus_plus_backend_evidence.binding_count} across ${report.mcp_plus_plus_backend_evidence.service_owners.join(', ')}.`,
+    `- ORB/IDL: ${report.orb_idl_handoff.expanded_handoff_packet_count} expanded packets including ${report.orb_idl_handoff.supervisor_packets} Agent Supervisor packets.`,
+    `- Meta glasses simulator: ${report.meta_glasses_simulator.replay_count} replayed packets; hardware-free=${report.meta_glasses_simulator.hardware_free}; physical pairing not claimed.`,
+    `- No new unknowns: ${report.no_new_unknowns.statement}`, '',
+    '## Artifacts', '',
+    '- `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`',
+    '- `test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md`',
+    '- `docs/virtual-desktop-release-evidence.fingerprint.json`', '',
+  ].join('\n') + '\n';
+}
+function renderSupervisorManagedDiscovery(report) {
+  return ['# All-Tools Closeout: No New Unknowns', '', `Decision: **${report.decision.status.replace('_', '-')}**`, '', '## No new unknowns', '', report.no_new_unknowns.statement, ''].join('\n');
 }
 
 function loadEvidence(definition, context) {

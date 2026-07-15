@@ -1,8 +1,8 @@
 {
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
-  "label": "Virtual desktop all-tools release evidence (SVD-101)",
-  "generatedAt": "2026-07-15T09:24:22.096Z",
+  "label": "Supervisor-managed virtual desktop all-app release evidence (SVD-066)",
+  "generatedAt": "2026-07-15T21:49:57.418Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,152 +10,96 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "19689fe12cc51a9d7fd2a09e61f851f0deb1ef10303844a2a3985133bce38903",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "14da6c40ce59c8480c2899b6479d8e7073b2002ef9c432b099e56275a136eed2",
-    "docs/refactor-final-signoff.md": "379063e72adcc81410f73ceab263761ff2c9918d645c11e29a504ccadba2f0d4",
-    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "a61edfc56aa5b48f793385633ef847711b79d19f9482506c31b75425102c7d72"
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "894cf8c07640bf20db854018270fe3020c6b3b6cfcec7307e00b1ff7eee58713",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "033f4deae427434995da5e37ad339daf697a65bc0af48716fa0af388b9e76340",
+    "docs/refactor-final-signoff.md": "601e84f9544e789cf9f7641725ccb45055a5a514f5864402d75d8c4780265753",
+    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "8cbc19ce260c245ac65ccb99c35bd82a0dbb85b8b4b6ba5b6b3b3219fd4c3a1d"
   },
-  "sourceFingerprint": "fe916c2acf18d8ca51228924781901c14a96d7ae8bdd2618c71ab2253e319b83",
+  "sourceFingerprint": "34f1e29bacd669463a5c5e118deb5c104d9f38c54388b9b8c7e4c4edbb9292de",
   "sourceFiles": [
     {
       "path": "scripts/audit-release-evidence-freshness.mjs",
-      "sha256": "b0e519d7786d1feff26719453010358e0f6b97679f656396e2022c8ff089b884"
+      "sha256": "496af14a1b83b5a98944703f5f9cd22048011a80e9dc13141ede8b581deeaadf"
     },
     {
       "path": "scripts/build-virtual-desktop-release-evidence.cjs",
-      "sha256": "617958a3cbb622c4665c9bdf4b96a0288d11e8957ed5f644c58b7bc04c2e904d"
+      "sha256": "390569f66482aa8d6ed79e70d4abdb65ed6c22bc65b3bb46070019234ce0a56d"
     },
     {
-      "path": "scripts/capture-all-profile-service-matrix.cjs",
-      "sha256": "7dc4f53d6106bb1e6da4efb8e70d58ed338629f053c013a3970fbeaf6c5b1a4b"
+      "path": "src/services/apps/agent-supervisor-expanded-io-envelopes.ts",
+      "sha256": "f13f04daa540146f91c3a97ebc401c178a7aea388de442f31c5eb0522d2dc03b"
     },
     {
-      "path": "scripts/capture-swissknife-all-tools-peer-evidence.cjs",
-      "sha256": "83b551ed55e41a270a30db0750c11d61f17db7961ae3d990e3f7ffb58f3d60c4"
+      "path": "src/services/apps/all-app-live-tool-bindings.ts",
+      "sha256": "652e17bba1e9450efef13dd3bd5d3d49b83bc3cba0419cb54bd22ac0f5a0ed38"
     },
     {
       "path": "src/services/apps/virtual-desktop-app-manifest.ts",
       "sha256": "a7b33d2498bf8ed9542bc156bc896f9c387c24a74a2a484e842968499f500c55"
     },
     {
-      "path": "src/services/glasses/all-app-live-orb-idl-handoff.ts",
-      "sha256": "71ac3e325b1d277640c900b961d1d313aa39a5cac3921e874c895f1ce98e69d6"
+      "path": "src/services/glasses/agent-supervisor-expanded-io-handoff.ts",
+      "sha256": "18d3c98a09d44053907b9922a295163472d56a43e6bbad8caa214000cb8af9af"
     },
     {
       "path": "src/services/glasses/desktop-orb-idl-contract.ts",
       "sha256": "f20546c91666a14671ef1b999c617ca726ea9230566b734d66467ff4213d5fbb"
     },
     {
+      "path": "src/services/glasses/meta-glasses-expanded-io-simulator-validation.ts",
+      "sha256": "a4ee6a4a633b5bfaec41c596e81ba03ffdb04b119512211b24ff73eea3218904"
+    },
+    {
       "path": "src/services/mcp/agent-supervisor-console-gateway.ts",
-      "sha256": "8aa8c089a0477924eb2252b7727bf143c22bcdbd74e29c40d85919328945bda3"
+      "sha256": "58a505b8a29277fb7f9eeea94558c4d3a88b9183552b8d8fbf766bf42acc794f"
     },
     {
-      "path": "src/services/mcp/mcp-plus-plus-connector.ts",
-      "sha256": "7f6953de8cf3fe35d5e619825619d55bf5057544db49efd792c0954a2aa4ca35"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-io-handoff.json",
+      "sha256": "7ae318cb3b74996cfb20641ced56a74bb1f9258d9f78966b575fc013e7a6a89d"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json",
-      "sha256": "MISSING"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-meta-io.json",
+      "sha256": "8ab4bc65dc7720fe8e8c58cf4003fecc637f13832be770431d8c66fb547ccf3e"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json",
-      "sha256": "MISSING"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-three-backend-runtime.json",
+      "sha256": "15bfdc50a8ad760276e5c75e7aa7460e28d7f259f01efdc3d6843e50202f1da4"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json",
-      "sha256": "MISSING"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json",
+      "sha256": "6c0f796a659a5782cdfbf94758f15de2a2b5c6df82154589bf16f2ec0e5c0943"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-route-coverage.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-call-envelope-fixtures.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-control-plane-handoff.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-handoff-packets.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-glasses-handoff-replay-bundles.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-supervisor-release-freshness.json",
-      "sha256": "MISSING"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json",
+      "sha256": "8d5b91d57b4bf75c3e29646dde24aefae8e5307aa290331d9e6c5ec488f74fbb"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
       "sha256": "05b1d868675b42eed6081b611db545feba1161a4ddbaa3003b178852f5eafe7a"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json",
-      "sha256": "MISSING"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json",
-      "sha256": "MISSING"
-    },
-    {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json",
-      "sha256": "MISSING"
+      "sha256": "6e1c6f33e1cb8c49e0bbadbbdb32b26fb6c9b4bb341fea827fc9766eddc90512"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json",
-      "sha256": "32af7f75ced77ddcb4665561288daa6ec575ecc1b3ffafdaed906087787ce51e"
+      "path": "test/e2e/agent-supervisor-expanded-meta-io.spec.ts",
+      "sha256": "3809d6030cb3ddd075d12048c768123becff042013c832c2cdf3d45bf2365a20"
     },
     {
-      "path": "test/e2e/agent-supervisor-all-app-validation.spec.ts",
-      "sha256": "8d82f8ba9d65e7e73d745458ce37c2a40215cc04657ab59b1d83a8b4697c962e"
+      "path": "test/e2e/meta-glasses-expanded-io-simulator-validation.spec.ts",
+      "sha256": "8513e8fc16d74c57217b03744685befb3f9aebdb9966f8344e65954b48ccc64a"
     },
     {
-      "path": "test/e2e/all-app-live-backend-behavior.spec.ts",
-      "sha256": "3f3bd299a9c335bd0fa6462aecb6cd00e51a23b8a205dfd87651f5752129070e"
+      "path": "test/mcp-plus-plus/agent-supervisor-expanded-io-handoff.test.ts",
+      "sha256": "52fd22abe80db97a821ad5b67710e76f8071a215af223939dc090d811d8b36ab"
     },
     {
-      "path": "test/e2e/all-app-meta-device-simulator.spec.ts",
-      "sha256": "c335213fd8f46ed8aff7d21ee88acebe348cf1a2595fddf03c060e40f9fe36f9"
-    },
-    {
-      "path": "test/mcp-plus-plus/all-app-live-orb-idl-handoff.test.ts",
-      "sha256": "75ed8aa68ca44253c8d0bbeae07a7e0d6e5a894c2ec0a899fa979e0ed2cfc103"
+      "path": "test/mcp-plus-plus/all-app-orb-idl-action-handoff.test.ts",
+      "sha256": "88ac1e5c4dd53bea55eabc3ab890e65d3075f27b819db0f9045be9ab80ff4a47"
     },
     {
       "path": "web/js/apps/agent-supervisor.js",
-      "sha256": "d4b3bd8bb67d08f61e52b003f3084b8ff6f76d9bb09a73b4681faffd66ec71c7"
+      "sha256": "54baf6ae16b08381f0cfbfbb60efdd7cd2195030430c643105d52697f2764285"
     }
   ]
 }
