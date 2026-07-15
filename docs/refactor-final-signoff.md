@@ -2,8 +2,8 @@
 
 Task: SVD-060 — Final all-tools ORB/IDL Meta glasses release closeout
 
-Observed: 2026-07-15T09:02:47.032Z
-SwissKnife revision: `96350b5f9201c5bd8db7ce397d243c34cde642c0`
+Observed: 2026-07-15T09:06:59.128Z
+SwissKnife revision: `f5922b5b578dbf6bf8183062525d9bdb1a402990`
 Release decision: **NO-GO**
 
 This signoff is generated from `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`.
