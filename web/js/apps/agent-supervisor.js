@@ -42,6 +42,11 @@ const AGENT_SUPERVISOR_CONTRACT = Object.freeze({
     capability('supervisor.taskboard.links.read', 'Taskboard links', 'read', 'ipfs_datasets_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.taskboard.links.read', true),
     capability('supervisor.logs.read', 'Supervisor logs', 'read', 'ipfs_accelerate_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.logs.read', true),
     capability('supervisor.receipts.read', 'Supervisor receipts', 'read', 'ipfs_kit_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.receipts.read', false),
+    capability('supervisor.policy.assist', 'Dataset policy assistance', 'read', 'ipfs_datasets_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.policy.assist', true),
+    capability('supervisor.semantic-goal.assist', 'Dataset semantic-goal assistance', 'read', 'ipfs_datasets_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.semantic_goal.assist', true),
+    capability('supervisor.receipts.persist', 'Persist supervisor receipt', 'governed-write', 'ipfs_kit_py', 'confirm', ['mcp', 'mcp++'], 'agent_supervisor.receipts.persist', true),
+    capability('supervisor.content.retrieve', 'Retrieve content reference', 'read', 'ipfs_kit_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.content.retrieve', true),
+    capability('supervisor.event-dag.checkpoint', 'Persist event-DAG checkpoint', 'governed-write', 'ipfs_kit_py', 'confirm', ['mcp', 'mcp++'], 'agent_supervisor.event_dag.checkpoint', true),
     capability('supervisor.run-history.search', 'Run history search', 'read', 'ipfs_datasets_py', 'read', ['mcp', 'mcp++', 'libp2p'], 'agent_supervisor.run_history.search', true),
     capability('supervisor.prompt-steering.request', 'Prompt steering request', 'governed-write', 'ipfs_accelerate_py', 'confirm', ['mcp', 'mcp++'], 'agent_supervisor.prompt_steering.request', true),
     capability('supervisor.task-control.request', 'Task control request', 'governed-write', 'ipfs_accelerate_py', 'privileged-control', ['mcp', 'mcp++'], 'agent_supervisor.task_control.request', true),
@@ -244,6 +249,8 @@ export class AgentSupervisorApp {
       logs: ['supervisor.logs.read', { limit: 50 }],
       receipts: ['supervisor.receipts.read', { limit: 100 }],
       runHistory: ['supervisor.run-history.search', { limit: 100 }],
+      policyAssist: ['supervisor.policy.assist', { limit: 20 }],
+      semanticGoalAssist: ['supervisor.semantic-goal.assist', { limit: 20 }],
     };
 
     const entries = await Promise.all(Object.entries(requests).map(async ([key, [capabilityId, payload]]) => {
@@ -273,6 +280,8 @@ export class AgentSupervisorApp {
       logs: listDataOr(results.logs, fallback.logs),
       receipts: listDataOr(results.receipts, fallback.receipts),
       runHistory: listDataOr(results.runHistory, fallback.runHistory),
+      policyAssist: dataOr(results.policyAssist, null),
+      semanticGoalAssist: dataOr(results.semanticGoalAssist, null),
     };
     return { ok: true, snapshot, results, errors };
   }
@@ -306,9 +315,6 @@ export class AgentSupervisorApp {
       }
     } catch (error) {
       return unavailable(invocation, 'transport_unavailable', error instanceof Error ? error.message : String(error));
-    }
-    if (capabilityId === 'supervisor.prompt-steering.request') {
-      return localPromptSteeringResult(invocation, this.state.snapshot);
     }
     return unavailable(invocation, 'not_configured', 'No browser gateway transport is configured.');
   }
@@ -826,6 +832,7 @@ export class AgentSupervisorApp {
           <h4>Redacted logs</h4>
           ${taskLogs.length ? taskLogs.map(log => `<span>${escapeHtml(log.level)}: ${escapeHtml(log.message)}${log.redacted ? ' [redacted]' : ''}</span>`).join('') : '<span>No log entries.</span>'}
         </div>
+        ${this.renderDatasetAssistance()}
       </div>
     `;
   }
@@ -995,6 +1002,7 @@ export class AgentSupervisorApp {
               <strong>${escapeHtml(item.owner)}</strong>
               <span>${escapeHtml(item.transport)}</span>
               <span>${escapeHtml(item.receipt?.receipt_id || 'no-receipt')}</span>
+              <span>${escapeHtml(item.receipt?.cid || 'no-cid')}</span>
             </div>
           `).join('')}
         </div>
@@ -1012,9 +1020,12 @@ export class AgentSupervisorApp {
     const rows = results.length
       ? results.map(result => {
         const state = result?.state || 'unavailable';
-        const reason = result?.reason || result?.data?.evidence_path || result?.data?.transport_path?.path || state;
+        const reason = result?.reason || result?.runtime?.failure_code || result?.data?.evidence_path || result?.data?.transport_path?.path || state;
         const correlation = result?.correlation_id || 'uncorrelated';
         const receiptId = result?.receipt?.receipt_id || result?.data?.receipt?.receipt_id || 'no-receipt';
+        const cid = result?.runtime?.content_cid || result?.receipt?.cid || result?.data?.receipt?.cid || 'no-cid';
+        const transport = result?.runtime?.transport || result?.transport || 'unobserved';
+        const policy = result?.runtime?.policy_outcome || result?.policy_class || 'unobserved';
         return `
           <div class="as-gateway-row">
             <span class="as-status ${escapeHtml(state === 'available' ? 'available' : 'unavailable')}"></span>
@@ -1022,8 +1033,11 @@ export class AgentSupervisorApp {
             <span>${escapeHtml(result?.owner || 'unknown-owner')}</span>
             <span>${escapeHtml(state)}</span>
             <span>${escapeHtml(reason)}</span>
+            <span>${escapeHtml(transport)}</span>
+            <span>${escapeHtml(policy)}</span>
             <span>${escapeHtml(correlation)}</span>
             <span>${escapeHtml(receiptId)}</span>
+            <span>${escapeHtml(cid)}</span>
           </div>
         `;
       }).join('')
@@ -1049,8 +1063,11 @@ export class AgentSupervisorApp {
             <span>Owner</span>
             <span>State</span>
             <span>Path</span>
+            <span>Transport</span>
+            <span>Policy</span>
             <span>Correlation</span>
             <span>Receipt</span>
+            <span>CID</span>
           </div>
           ${rows || '<span>No gateway evidence recorded.</span>'}
         </div>
@@ -1075,6 +1092,25 @@ export class AgentSupervisorApp {
           <h4>Forbidden browser surfaces</h4>
           ${this.contract.forbidden_browser_surfaces.map(surface => `<code>${escapeHtml(surface)}</code>`).join('')}
         </div>
+      </div>
+    `;
+  }
+
+  renderDatasetAssistance() {
+    const policy = this.state.snapshot.policyAssist;
+    const semantic = this.state.snapshot.semanticGoalAssist;
+    const describe = value => {
+      if (!value) return 'No live dataset assistance returned.';
+      if (typeof value === 'string') return value;
+      const text = value.summary || value.message || value.policy_result || value.semantic_goal || value.goal || value.title;
+      return text ? String(text) : JSON.stringify(value).slice(0, 420);
+    };
+    return `
+      <div class="as-section-line" data-testid="dataset-assistance">
+        <h4>Dataset assistance</h4>
+        <span><strong>Policy:</strong> ${escapeHtml(describe(policy))}</span>
+        <span><strong>Semantic goal:</strong> ${escapeHtml(describe(semantic))}</span>
+        <span>Owner: ipfs_datasets_py; every result and failure is listed in Gateway evidence.</span>
       </div>
     `;
   }
@@ -1138,7 +1174,7 @@ export class AgentSupervisorApp {
         .as-backend-row { display: grid; grid-template-columns: 10px minmax(150px, 1fr) minmax(70px, auto) minmax(120px, 1fr); gap: 10px; align-items: center; border-bottom: 1px solid #263a34; padding: 8px 0; min-width: 0; }
         .as-backend-row span:last-child { overflow-wrap: anywhere; color: #9eb2aa; }
         .as-gateway-table { display: grid; gap: 1px; background: #263a34; border: 1px solid #263a34; overflow-x: auto; }
-        .as-gateway-row { display: grid; grid-template-columns: 10px minmax(190px, 1.2fr) minmax(120px, 0.8fr) minmax(86px, 0.6fr) minmax(130px, 0.8fr) minmax(150px, 1fr) minmax(120px, 0.8fr); gap: 8px; align-items: center; min-width: 860px; background: #101b18; padding: 8px; }
+        .as-gateway-row { display: grid; grid-template-columns: 10px minmax(190px, 1.2fr) minmax(120px, 0.8fr) minmax(86px, 0.6fr) minmax(130px, 0.8fr) minmax(80px, .55fr) minmax(90px, .65fr) minmax(150px, 1fr) minmax(120px, .8fr) minmax(120px, .8fr); gap: 8px; align-items: center; min-width: 1280px; background: #101b18; padding: 8px; }
         .as-gateway-row span, .as-gateway-row strong { overflow-wrap: anywhere; min-width: 0; }
         .as-gateway-row span { color: #a8bbb2; }
         .as-gateway-head { background: #17241f; }
@@ -1157,7 +1193,7 @@ export class AgentSupervisorApp {
           .as-steering-result { grid-template-columns: 1fr; }
           .as-backend-row { grid-template-columns: 10px minmax(0, 1fr); }
           .as-backend-row span { overflow-wrap: anywhere; }
-          .as-gateway-row { min-width: 760px; }
+          .as-gateway-row { min-width: 1080px; }
         }
       </style>
     `;
@@ -1538,6 +1574,8 @@ function emptySnapshot() {
     logs: [],
     receipts: [],
     runHistory: [],
+    policyAssist: null,
+    semanticGoalAssist: null,
   };
 }
 

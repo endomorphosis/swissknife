@@ -279,6 +279,8 @@ async function installThreeOwnerGateway(page: Page): Promise<void> {
         else if (invocation.capability_id === 'supervisor.logs.read') result = available([{ log_id: 'log-svd097', level: 'info', message: 'Governed prompt content [prompt redacted].', created_at: now, scope: 'goal', target_id: 'SVD-097', redacted: true, receipt: receipts[1] }], receipts[1]);
         else if (invocation.capability_id === 'supervisor.receipts.read') result = available(receipts, receipts[0]);
         else if (invocation.capability_id === 'supervisor.run-history.search') result = available([{ run_id: 'run-svd097-owner-check', goal_id: 'SVD-097', subgoal_id: 'SVD-097-live-owners', task_id: 'SVD-097-verify-owners', status: 'completed', started_at: now, completed_at: now, receipt: receipts[3] }], receipts[3]);
+        else if (invocation.capability_id === 'supervisor.policy.assist') result = available({ policy_result: 'confirmation and dependency policy is current', source: 'ipfs_datasets_py' }, receipts[2]);
+        else if (invocation.capability_id === 'supervisor.semantic-goal.assist') result = available({ semantic_goal: 'SVD-097 all-app validation wave', source: 'ipfs_datasets_py' }, receipts[2]);
         else if (invocation.capability_id === 'supervisor.prompt-steering.request') {
           const dryRun = Boolean(invocation.payload?.dry_run);
           const resultReceipt = dryRun

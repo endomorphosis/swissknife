@@ -23,6 +23,19 @@ import type {
   AgentSupervisorTaskControlRequest,
   AgentSupervisorUnavailableReason,
 } from '../../shared/service-contracts/agent-supervisor-console.js';
+import {
+  AllAppToolGateway,
+  type AllAppToolGatewayResult,
+} from './all-app-tool-gateway.js';
+import {
+  ALL_APP_LIVE_TOOL_BINDINGS,
+  getAllAppLiveToolBinding,
+  invokeAllAppLiveToolBinding,
+} from '../apps/all-app-live-tool-bindings.js';
+import type {
+  DiscoveredBackendTool,
+  MediatedPolicyOutcome,
+} from '../apps/all-app-executable-backend-contract.js';
 
 export const AGENT_SUPERVISOR_CONSOLE_CONTRACT_ID = 'swissknife.agent_supervisor_console.v1';
 export const AGENT_SUPERVISOR_CONSOLE_SCHEMA_REF = 'contracts/agent-supervisor-console.schema.json';
@@ -169,6 +182,46 @@ const CAPABILITIES: readonly AgentSupervisorCapabilityDescriptor[] = Object.free
     output_ref: '#/$defs/receiptRefList',
     receipt_required: false,
     description: 'Resolves immutable evidence and receipt references from content-addressed persistence.',
+  },
+  {
+    id: 'supervisor.policy.assist',
+    title: 'Dataset policy assistance',
+    access: 'read', owner: 'ipfs_datasets_py', policy_class: 'read', transports: READ_TRANSPORTS,
+    method: 'agent_supervisor.policy.assist', input_ref: '#/$defs/listRequest', output_ref: '#/$defs/semanticAssist',
+    receipt_required: true,
+    description: 'Retrieves policy guidance and policy-result context from the governed datasets index.',
+  },
+  {
+    id: 'supervisor.semantic-goal.assist',
+    title: 'Dataset semantic-goal assistance',
+    access: 'read', owner: 'ipfs_datasets_py', policy_class: 'read', transports: READ_TRANSPORTS,
+    method: 'agent_supervisor.semantic_goal.assist', input_ref: '#/$defs/listRequest', output_ref: '#/$defs/semanticAssist',
+    receipt_required: true,
+    description: 'Retrieves semantic goal, dependency, and task suggestions from the datasets index.',
+  },
+  {
+    id: 'supervisor.receipts.persist',
+    title: 'Persist supervisor receipt',
+    access: 'governed-write', owner: 'ipfs_kit_py', policy_class: 'confirm', transports: GOVERNED_TRANSPORTS,
+    method: 'agent_supervisor.receipts.persist', input_ref: '#/$defs/receiptRef', output_ref: '#/$defs/receiptRef',
+    receipt_required: true,
+    description: 'Persists a receipt through ipfs_kit_py, using a browser-safe Helia fallback only when kit is unavailable.',
+  },
+  {
+    id: 'supervisor.content.retrieve',
+    title: 'Retrieve supervisor content reference',
+    access: 'read', owner: 'ipfs_kit_py', policy_class: 'read', transports: READ_TRANSPORTS,
+    method: 'agent_supervisor.content.retrieve', input_ref: '#/$defs/receiptReadRequest', output_ref: '#/$defs/receiptRef',
+    receipt_required: true,
+    description: 'Resolves a supervisor content reference by CID through kit or browser-safe Helia fallback.',
+  },
+  {
+    id: 'supervisor.event-dag.checkpoint',
+    title: 'Persist event-DAG checkpoint',
+    access: 'governed-write', owner: 'ipfs_kit_py', policy_class: 'confirm', transports: GOVERNED_TRANSPORTS,
+    method: 'agent_supervisor.event_dag.checkpoint', input_ref: '#/$defs/receiptRef', output_ref: '#/$defs/eventDagRef',
+    receipt_required: true,
+    description: 'Persists an event-DAG checkpoint and exposes its CID, owner, policy outcome, and recovery state.',
   },
   {
     id: 'supervisor.run-history.search',
@@ -600,6 +653,41 @@ export class AgentSupervisorConsoleGateway {
     return this.invoke('supervisor.run-history.search', request, correlationId);
   }
 
+  policyAssist(
+    request: AgentSupervisorReadListRequest = {},
+    correlationId?: string,
+  ): Promise<AgentSupervisorGatewayResult<unknown>> {
+    return this.invoke('supervisor.policy.assist', request, correlationId);
+  }
+
+  semanticGoalAssist(
+    request: AgentSupervisorReadListRequest = {},
+    correlationId?: string,
+  ): Promise<AgentSupervisorGatewayResult<unknown>> {
+    return this.invoke('supervisor.semantic-goal.assist', request, correlationId);
+  }
+
+  persistReceipt(
+    request: Record<string, unknown>,
+    correlationId?: string,
+  ): Promise<AgentSupervisorGatewayResult<AgentSupervisorReceiptRef>> {
+    return this.invoke('supervisor.receipts.persist', request, correlationId);
+  }
+
+  retrieveContent(
+    request: AgentSupervisorReceiptReadRequest,
+    correlationId?: string,
+  ): Promise<AgentSupervisorGatewayResult<unknown>> {
+    return this.invoke('supervisor.content.retrieve', request, correlationId);
+  }
+
+  checkpointEventDag(
+    request: Record<string, unknown>,
+    correlationId?: string,
+  ): Promise<AgentSupervisorGatewayResult<AgentSupervisorEventDagRef>> {
+    return this.invoke('supervisor.event-dag.checkpoint', request, correlationId);
+  }
+
   requestPromptSteering(
     request: AgentSupervisorPromptSteeringRequest,
     correlationId?: string,
@@ -634,6 +722,238 @@ export function createAgentSupervisorConsoleGateway(
   transport?: AgentSupervisorGatewayTransport,
 ): AgentSupervisorConsoleGateway {
   return new AgentSupervisorConsoleGateway(transport);
+}
+
+/** Browser-safe content store used only after the ipfs_kit_py binding fails. */
+export interface AgentSupervisorHeliaFallback {
+  put(value: unknown): Promise<{ cid: string }>;
+  get(cid: string): Promise<unknown>;
+}
+
+export interface AgentSupervisorThreeBackendRuntimeOptions {
+  tool_gateway: AllAppToolGateway;
+  discovered_tools: readonly DiscoveredBackendTool[];
+  available_transports: readonly ('http' | 'libp2p')[];
+  helia?: AgentSupervisorHeliaFallback;
+  now?: () => Date;
+  policy_decision?: (invocation: AgentSupervisorGatewayInvocation) => {
+    decision_id: string;
+    outcome: MediatedPolicyOutcome;
+    reason: string;
+  };
+}
+
+const SUPERVISOR_BINDING_BY_OWNER = Object.freeze({
+  ipfs_accelerate_py: 'agent-supervisor.ipfs_accelerate_py.supervise_agent_work',
+  ipfs_datasets_py: 'agent-supervisor.ipfs_datasets_py.query_catalog',
+  ipfs_kit_py: 'agent-supervisor.ipfs_kit_py.retrieve_content',
+} as const);
+
+/**
+ * Bridges the high-level console API to SVD-104's materialized bindings.  The
+ * owner is selected from the capability catalog, never from browser input.
+ */
+export class AgentSupervisorThreeBackendRuntime implements AgentSupervisorGatewayTransport {
+  private readonly now: () => Date;
+
+  constructor(private readonly options: AgentSupervisorThreeBackendRuntimeOptions) {
+    this.now = options.now ?? (() => new Date());
+  }
+
+  async invoke<TData, TPayload>(
+    invocation: AgentSupervisorGatewayInvocation<TPayload>,
+  ): Promise<AgentSupervisorGatewayResult<TData>> {
+    const capability = getAgentSupervisorCapability(invocation.capability_id);
+    if (!capability || capability.owner !== invocation.owner) {
+      return agentSupervisorUnavailableResult(invocation.capability_id, 'capability_unavailable',
+        'The capability owner is not registered by the Agent Supervisor contract.', {
+          owner: invocation.owner, correlation_id: invocation.correlation_id,
+        }) as AgentSupervisorGatewayResult<TData>;
+    }
+    const bindingId = SUPERVISOR_BINDING_BY_OWNER[capability.owner];
+    const binding = getAllAppLiveToolBinding(bindingId);
+    if (!binding || binding.app_id !== 'agent-supervisor') {
+      return agentSupervisorUnavailableResult(invocation.capability_id, 'capability_unavailable',
+        'The required materialized Agent Supervisor binding is unavailable.', {
+          owner: invocation.owner, correlation_id: invocation.correlation_id,
+        }) as AgentSupervisorGatewayResult<TData>;
+    }
+
+    const correlationId = invocation.correlation_id ?? makeStableId('agent-supervisor');
+    const policy = this.policyFor(invocation);
+    const result = await invokeAllAppLiveToolBinding(bindingId, {
+      correlation_id: correlationId,
+      payload: {
+        operation: invocation.method,
+        capability_id: invocation.capability_id,
+        request: sanitizeBrowserPayload(invocation.payload),
+      },
+      consent: consentFor(invocation),
+      policy_decision: policy,
+      dry_run: Boolean((invocation.payload as { dry_run?: unknown })?.dry_run),
+      discovered_tools: this.options.discovered_tools,
+      available_transports: this.options.available_transports,
+    }, this.options.tool_gateway);
+
+    if (result.state === 'executed') {
+      const available = this.availableFromToolResult<TData>(invocation, result);
+      return capability.owner === 'ipfs_accelerate_py' && invocation.access === 'governed-write'
+        ? this.persistGovernedEvidence(invocation, available, correlationId)
+        : available;
+    }
+    if (capability.owner === 'ipfs_kit_py' && this.options.helia && shouldUseHelia(invocation, result)) {
+      return this.heliaFallback<TData>(invocation, result, correlationId);
+    }
+    return this.failureFromToolResult<TData>(invocation, result);
+  }
+
+  private policyFor(invocation: AgentSupervisorGatewayInvocation) {
+    if (this.options.policy_decision) return this.options.policy_decision(invocation);
+    const confirmed = Boolean((invocation.payload as { confirmation_token?: unknown })?.confirmation_token);
+    return {
+      decision_id: `policy-${invocation.correlation_id ?? makeStableId('decision')}`,
+      outcome: invocation.access === 'governed-write' && !confirmed ? 'require_confirmation' as const : 'allow' as const,
+      reason: invocation.access === 'governed-write' && !confirmed
+        ? 'Confirmation must be visible before a governed request is dispatched.'
+        : 'Browser-safe mediated request is permitted by the console policy.',
+    };
+  }
+
+  private availableFromToolResult<TData>(
+    invocation: AgentSupervisorGatewayInvocation,
+    result: AllAppToolGatewayResult,
+  ): AgentSupervisorGatewayResult<TData> {
+    const response = result.response.response as { result?: unknown; receipt?: unknown } | null;
+    const receipt = normalizeReceipt(response?.receipt, invocation.owner);
+    const data = response?.result as TData;
+    return {
+      state: 'available', capability_id: invocation.capability_id, owner: invocation.owner, data,
+      receipt, correlation_id: result.correlation_id, observed_at: this.now().toISOString(),
+      runtime: observation(result, receipt?.cid),
+    };
+  }
+
+  private async persistGovernedEvidence<TData>(
+    invocation: AgentSupervisorGatewayInvocation,
+    accepted: AgentSupervisorGatewayResult<TData>,
+    correlationId: string,
+  ): Promise<AgentSupervisorGatewayResult<TData>> {
+    if (accepted.state !== 'available') return accepted;
+    const persistence = await this.invoke<AgentSupervisorReceiptRef, Record<string, unknown>>({
+      ...buildAgentSupervisorInvocation('supervisor.receipts.persist', {
+        source_capability_id: invocation.capability_id,
+        source_correlation_id: correlationId,
+        source_receipt: accepted.receipt,
+        confirmation_token: (invocation.payload as { confirmation_token?: unknown })?.confirmation_token,
+      }, `${correlationId}:receipt`),
+    });
+    if (persistence.state !== 'available' || !persistence.receipt) {
+      return {
+        ...accepted,
+        runtime: { ...accepted.runtime, failure_code: 'persistence_failed', recovery_action: 'persist_browser_receipt' },
+      };
+    }
+    const checkpoint = await this.invoke<AgentSupervisorEventDagRef, Record<string, unknown>>({
+      ...buildAgentSupervisorInvocation('supervisor.event-dag.checkpoint', {
+        receipt: persistence.receipt,
+        source_capability_id: invocation.capability_id,
+        source_correlation_id: correlationId,
+        confirmation_token: (invocation.payload as { confirmation_token?: unknown })?.confirmation_token,
+      }, `${correlationId}:event-dag`),
+    });
+    const data = isObject(accepted.data)
+      ? { ...accepted.data, receipt: persistence.receipt, event_dag: checkpoint.state === 'available' ? checkpoint.data : undefined } as TData
+      : accepted.data;
+    return {
+      ...accepted,
+      data,
+      receipt: persistence.receipt,
+      runtime: {
+        ...accepted.runtime,
+        content_cid: persistence.receipt.cid,
+        event_dag_cid: checkpoint.state === 'available' ? checkpoint.runtime?.event_dag_cid ?? checkpoint.runtime?.content_cid : undefined,
+        failure_code: checkpoint.state === 'available' ? undefined : 'persistence_failed',
+        recovery_action: checkpoint.state === 'available' ? undefined : 'persist_browser_receipt',
+      },
+    };
+  }
+
+  private failureFromToolResult<TData>(
+    invocation: AgentSupervisorGatewayInvocation,
+    result: AllAppToolGatewayResult,
+  ): AgentSupervisorGatewayResult<TData> {
+    const reason = result.state === 'denied' ? 'policy_denied' : toolFailureReason(result);
+    const message = String(result.events.at(-1)?.detail?.message ?? result.recovery?.user_message ?? 'The mediated backend request did not complete.');
+    if (result.state === 'denied') {
+      return {
+        ...agentSupervisorDeniedResult(invocation.capability_id, reason as AgentSupervisorDeniedReason, message, {
+          owner: invocation.owner, correlation_id: result.correlation_id,
+          required_confirmation: result.policy_outcome === 'require_confirmation',
+        }), runtime: observation(result),
+      } as AgentSupervisorGatewayResult<TData>;
+    }
+    return {
+      ...agentSupervisorUnavailableResult(invocation.capability_id, reason as AgentSupervisorUnavailableReason, message, {
+        owner: invocation.owner, correlation_id: result.correlation_id,
+      }), runtime: observation(result),
+    } as AgentSupervisorGatewayResult<TData>;
+  }
+
+  private async heliaFallback<TData>(
+    invocation: AgentSupervisorGatewayInvocation,
+    failed: AllAppToolGatewayResult,
+    correlationId: string,
+  ): Promise<AgentSupervisorGatewayResult<TData>> {
+    try {
+      const payload = sanitizeBrowserPayload(invocation.payload);
+      if (invocation.capability_id === 'supervisor.content.retrieve') {
+        const cid = typeof payload.cid === 'string' ? payload.cid : undefined;
+        if (!cid) throw new Error('A content CID is required for browser Helia retrieval.');
+        const data = await this.options.helia!.get(cid) as TData;
+        return this.heliaAvailable(invocation, data, correlationId, cid, failed);
+      }
+      const stored = await this.options.helia!.put({
+        schema: 'swissknife.agent-supervisor-browser-helia-fallback.v1',
+        capability_id: invocation.capability_id,
+        correlation_id: correlationId,
+        payload,
+        created_at: this.now().toISOString(),
+      });
+      const receipt: AgentSupervisorReceiptRef = {
+        receipt_id: `browser-helia:${correlationId}`, cid: stored.cid, owner: 'ipfs_kit_py', created_at: this.now().toISOString(),
+      };
+      const eventDag = invocation.capability_id === 'supervisor.event-dag.checkpoint'
+        ? { event_id: `browser-helia-event:${correlationId}`, cid: stored.cid, receipt_cid: stored.cid, owner: 'ipfs_kit_py' as const, event_type: 'browser-helia-checkpoint', created_at: receipt.created_at }
+        : undefined;
+      return {
+        state: 'available', capability_id: invocation.capability_id, owner: invocation.owner,
+        data: (eventDag ?? receipt) as TData, receipt, correlation_id: correlationId, observed_at: this.now().toISOString(),
+        runtime: { ...observation(failed, stored.cid), transport: 'browser-helia', content_cid: stored.cid, event_dag_cid: eventDag?.cid },
+      };
+    } catch (error) {
+      return {
+        ...agentSupervisorUnavailableResult(invocation.capability_id, 'helia_unavailable',
+          error instanceof Error ? error.message : 'Browser Helia fallback failed.', {
+            owner: invocation.owner, correlation_id: correlationId,
+          }),
+        runtime: { ...observation(failed), transport: 'browser-helia', failure_code: 'helia_unavailable' },
+      } as AgentSupervisorGatewayResult<TData>;
+    }
+  }
+
+  private heliaAvailable<TData>(invocation: AgentSupervisorGatewayInvocation, data: TData, correlationId: string, cid: string, failed: AllAppToolGatewayResult): AgentSupervisorGatewayResult<TData> {
+    return {
+      state: 'available', capability_id: invocation.capability_id, owner: invocation.owner, data,
+      correlation_id: correlationId, observed_at: this.now().toISOString(),
+      runtime: { ...observation(failed, cid), transport: 'browser-helia', content_cid: cid },
+    };
+  }
+}
+
+export function createAgentSupervisorThreeBackendRuntime(
+  options: AgentSupervisorThreeBackendRuntimeOptions,
+): AgentSupervisorThreeBackendRuntime {
+  return new AgentSupervisorThreeBackendRuntime(options);
 }
 
 export function createUnavailableAgentSupervisorTransport(
@@ -1206,4 +1526,56 @@ function stableStringify(value: unknown): string {
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function sanitizeBrowserPayload(value: unknown): Record<string, unknown> {
+  if (!isObject(value)) return {};
+  // The all-app gateway performs the authoritative boundary check. This copy
+  // avoids forwarding prototype-bearing browser objects into a transport.
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
+function consentFor(invocation: AgentSupervisorGatewayInvocation): 'granted' | 'not_required' {
+  if (invocation.access === 'read') return 'not_required';
+  return (invocation.payload as { confirmation_token?: unknown })?.confirmation_token ? 'granted' : 'not_required';
+}
+
+function shouldUseHelia(
+  invocation: AgentSupervisorGatewayInvocation,
+  result: AllAppToolGatewayResult,
+): boolean {
+  return result.state === 'unavailable'
+    && ['supervisor.receipts.persist', 'supervisor.content.retrieve', 'supervisor.event-dag.checkpoint'].includes(invocation.capability_id);
+}
+
+function toolFailureReason(result: AllAppToolGatewayResult): AgentSupervisorUnavailableReason {
+  if (result.response.outcome === 'unsupported') return 'capability_unavailable';
+  if (result.response.outcome === 'unreachable') return 'transport_unavailable';
+  if (result.recovery?.error === 'receipt_missing') return 'receipt_unavailable';
+  return 'server_unavailable';
+}
+
+function normalizeReceipt(value: unknown, owner: AgentSupervisorBackendOwner): AgentSupervisorReceiptRef | undefined {
+  if (!isObject(value) || typeof value.receipt_id !== 'string') return undefined;
+  // A backend invocation receipt identifies its executing owner. Console
+  // persistence receipts are normalized only when kit owns the reference.
+  return {
+    receipt_id: value.receipt_id,
+    cid: stringOrUndefined(value.cid),
+    owner: owner === 'ipfs_kit_py' ? 'ipfs_kit_py' : 'ipfs_kit_py',
+    created_at: stringOrUndefined(value.created_at),
+  };
+}
+
+function observation(result: AllAppToolGatewayResult, contentCid?: string) {
+  const response = result.response.response as { receipt?: unknown } | null;
+  const receipt = normalizeReceipt(response?.receipt, result.owner ?? 'ipfs_kit_py');
+  return {
+    binding_id: result.binding_id ?? undefined,
+    transport: result.transport ?? undefined,
+    policy_outcome: result.policy_outcome,
+    content_cid: contentCid ?? receipt?.cid,
+    failure_code: result.state === 'executed' ? undefined : result.response.outcome,
+    recovery_action: result.recovery?.action,
+  };
 }

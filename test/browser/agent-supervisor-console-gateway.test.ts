@@ -3,9 +3,12 @@ import {
   AGENT_SUPERVISOR_CONSOLE_CONTRACT,
   buildAgentSupervisorInvocation,
   createAgentSupervisorConsoleGateway,
+  createAgentSupervisorThreeBackendRuntime,
   listAgentSupervisorCapabilities,
   type AgentSupervisorGatewayTransport,
 } from '../../src/services/mcp/browser-mcp';
+import { AllAppToolGateway, type BrowserMediatedToolCall } from '../../src/services/mcp/all-app-tool-gateway';
+import { getAllAppLiveToolBinding } from '../../src/services/apps/all-app-live-tool-bindings';
 
 describe('Agent Supervisor browser gateway contract', () => {
   it('declares all browser-safe read and governed write capabilities with backend owners', () => {
@@ -130,5 +133,46 @@ describe('Agent Supervisor browser gateway contract', () => {
         },
       },
     });
+  });
+
+  it('uses all three materialized bindings and exposes kit-to-Helia recovery evidence', async () => {
+    const calls: BrowserMediatedToolCall[] = [];
+    const tools = ['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py'].flatMap(owner => {
+      const binding = getAllAppLiveToolBinding(`agent-supervisor.${owner}.${owner === 'ipfs_accelerate_py' ? 'supervise_agent_work' : owner === 'ipfs_datasets_py' ? 'query_catalog' : 'retrieve_content'}`);
+      if (!binding) throw new Error(`missing ${owner} binding`);
+      // The live binding's preferred tool is selected from the executable contract by its capability.
+      const tool = owner === 'ipfs_accelerate_py' ? 'get_task' : owner === 'ipfs_datasets_py' ? 'load_dataset' : 'ipfs_cat';
+      return [{ owner: binding.owner, tool_id: tool, capabilities: [owner === 'ipfs_accelerate_py' ? 'ipfs.accelerate.supervisor' : owner === 'ipfs_datasets_py' ? 'ipfs.datasets.discovery' : 'ipfs.kit.storage'] }];
+    });
+    const runtime = createAgentSupervisorThreeBackendRuntime({
+      tool_gateway: new AllAppToolGateway({
+        http: {
+          kind: 'http',
+          async invoke(call) {
+            calls.push(call);
+            if (call.owner === 'ipfs_kit_py') throw new Error('kit temporarily unreachable');
+            return {
+              ok: true, owner: call.owner, tool_id: call.tool_id, transport: call.transport,
+              correlation_id: call.correlation_id, outcome: 'executed', result: { owner: call.owner, assistance: true },
+              receipt: { receipt_id: `receipt:${call.owner}`, owner: call.owner, tool_id: call.tool_id, transport: call.transport, correlation_id: call.correlation_id, policy_outcome: 'allow', outcome: 'executed' },
+            };
+          },
+        },
+      }),
+      discovered_tools: tools,
+      available_transports: ['http'],
+      helia: { put: async () => ({ cid: 'bafybrowserheliacheckpoint' }), get: async cid => ({ cid, from: 'helia' }) },
+    });
+
+    const [state, policy, checkpoint] = await Promise.all([
+      runtime.invoke(buildAgentSupervisorInvocation('supervisor.queue.read', {}, 'corr-state')),
+      runtime.invoke(buildAgentSupervisorInvocation('supervisor.policy.assist', {}, 'corr-policy')),
+      runtime.invoke(buildAgentSupervisorInvocation('supervisor.event-dag.checkpoint', { confirmation_token: 'confirm' }, 'corr-checkpoint')),
+    ]);
+
+    expect(state).toMatchObject({ state: 'available', owner: 'ipfs_accelerate_py', runtime: { transport: 'http', policy_outcome: 'allow' } });
+    expect(policy).toMatchObject({ state: 'available', owner: 'ipfs_datasets_py', runtime: { binding_id: 'agent-supervisor.ipfs_datasets_py.query_catalog' } });
+    expect(checkpoint).toMatchObject({ state: 'available', owner: 'ipfs_kit_py', runtime: { transport: 'browser-helia', content_cid: 'bafybrowserheliacheckpoint' } });
+    expect(new Set(calls.map(call => call.owner))).toEqual(new Set(['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py']));
   });
 });

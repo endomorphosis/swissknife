@@ -22,6 +22,11 @@ export type AgentSupervisorCapabilityId =
   | 'supervisor.taskboard.links.read'
   | 'supervisor.logs.read'
   | 'supervisor.receipts.read'
+  | 'supervisor.policy.assist'
+  | 'supervisor.semantic-goal.assist'
+  | 'supervisor.receipts.persist'
+  | 'supervisor.content.retrieve'
+  | 'supervisor.event-dag.checkpoint'
   | 'supervisor.run-history.search'
   | 'supervisor.prompt-steering.request'
   | 'supervisor.task-control.request';
@@ -33,7 +38,9 @@ export type AgentSupervisorUnavailableReason =
   | 'index_stale'
   | 'receipt_unavailable'
   | 'not_configured'
-  | 'timeout';
+  | 'timeout'
+  | 'helia_unavailable'
+  | 'persistence_failed';
 
 export type AgentSupervisorDeniedReason =
   | 'policy_denied'
@@ -105,6 +112,21 @@ export interface AgentSupervisorGatewayInvocation<TPayload = unknown> {
   correlation_id?: string;
 }
 
+/**
+ * Transport-safe evidence attached to every runtime result.  It contains
+ * identifiers and outcomes only; it intentionally never contains an owner URL,
+ * credential, host path, or process detail.
+ */
+export interface AgentSupervisorRuntimeObservation {
+  binding_id?: string;
+  transport?: 'http' | 'libp2p' | 'browser-helia';
+  policy_outcome?: 'allow' | 'deny' | 'require_confirmation';
+  content_cid?: string;
+  event_dag_cid?: string;
+  failure_code?: string;
+  recovery_action?: string;
+}
+
 export interface AgentSupervisorAvailableResult<TData = unknown> {
   state: 'available';
   capability_id: AgentSupervisorCapabilityId;
@@ -113,6 +135,7 @@ export interface AgentSupervisorAvailableResult<TData = unknown> {
   receipt?: AgentSupervisorReceiptRef;
   correlation_id?: string;
   observed_at?: string;
+  runtime?: AgentSupervisorRuntimeObservation;
 }
 
 export interface AgentSupervisorUnavailableResult {
@@ -123,6 +146,7 @@ export interface AgentSupervisorUnavailableResult {
   message: string;
   retry_after_ms?: number;
   correlation_id?: string;
+  runtime?: AgentSupervisorRuntimeObservation;
 }
 
 export interface AgentSupervisorDeniedResult {
@@ -135,6 +159,7 @@ export interface AgentSupervisorDeniedResult {
   decision_id?: string;
   required_confirmation?: boolean;
   correlation_id?: string;
+  runtime?: AgentSupervisorRuntimeObservation;
 }
 
 export type AgentSupervisorGatewayResult<TData = unknown> =
