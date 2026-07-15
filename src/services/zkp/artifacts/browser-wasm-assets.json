@@ -24,9 +24,9 @@
       "packageName": null,
       "cachePolicy": "module-immutable",
       "integrity": {
-        "bytes": 49,
-        "sha256": "312741ca9aa9db89eaad2c558f32a71ea654e7e83f65841f4e6a224cd1ca5a8e",
-        "sriSha384": "sha384-rM+oyijCi2T+fJ1UW5u22To9AHQ/5ZIZYballQA6G+3Vc7jka/6UDzV7EaEuy4D+"
+        "bytes": 82,
+        "sha256": "59fb1c30446716179bab2e5691bbf344aa2a60d123f7101fc0ee731e96976e0c",
+        "sriSha384": "sha384-GhlF872BUU82d3mMdqMM1utq8pWEv0tDI3503O1YKAZZifayPpXaA7n6G1jjKWTB"
       },
       "isolation": {
         "requiresCrossOriginIsolation": false,

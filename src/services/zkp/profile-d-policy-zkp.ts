@@ -247,15 +247,28 @@ function parseAdmission(value: unknown): ProfileDPolicyZkpAdmission | null {
     || typeof value.circuit_admitted !== 'boolean' || typeof value.trusted_setup_admitted !== 'boolean'
     || typeof value.verification_key_admitted !== 'boolean'
     || (value.status !== 'statement-only' && value.status !== 'production-admitted')) return null;
-  const fullyAdmitted = value.circuit_admitted && value.trusted_setup_admitted && value.verification_key_admitted;
-  if (value.production_admitted !== fullyAdmitted
-    || (value.status === 'production-admitted') !== fullyAdmitted) return null;
-  return value as ProfileDPolicyZkpAdmission;
+  const productionAdmitted = value.production_admitted;
+  const status = value.status;
+  const circuitAdmitted = value.circuit_admitted;
+  const trustedSetupAdmitted = value.trusted_setup_admitted;
+  const verificationKeyAdmitted = value.verification_key_admitted;
+  const fullyAdmitted = circuitAdmitted && trustedSetupAdmitted && verificationKeyAdmitted;
+  if (productionAdmitted !== fullyAdmitted
+    || (status === 'production-admitted') !== fullyAdmitted) return null;
+  return {
+    production_admitted: productionAdmitted,
+    status,
+    reason: value.reason,
+    circuit_admitted: circuitAdmitted,
+    trusted_setup_admitted: trustedSetupAdmitted,
+    verification_key_admitted: verificationKeyAdmitted,
+  };
 }
 
 function parseProof(value: unknown, circuitRef: string): ProfileDPolicyProof | null {
   if (!isRecord(value) || value.system !== 'groth16' || typeof value.circuit_id !== 'string'
-    || !Number.isSafeInteger(value.circuit_version) || value.circuit_version < 1 || !isSha256Hex(value.vk_hash)
+    || typeof value.circuit_version !== 'number' || !Number.isSafeInteger(value.circuit_version)
+    || value.circuit_version < 1 || !isSha256Hex(value.vk_hash)
     || !('proof' in value)) return null;
   if (`${value.circuit_id}@v${value.circuit_version}` !== circuitRef) return null;
   return value as unknown as ProfileDPolicyProof;

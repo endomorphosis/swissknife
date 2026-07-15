@@ -87,7 +87,7 @@ function materializeBinding(
       python_process_access: 'never_exposed_to_application',
     }),
     observability: Object.freeze({
-      required_events: Object.freeze(['request', 'policy', 'response', 'recovery']),
+      required_events: Object.freeze(['request', 'policy', 'response', 'recovery'] as const),
       correlation_id: 'required_and_preserved',
       receipt: 'required',
     }),

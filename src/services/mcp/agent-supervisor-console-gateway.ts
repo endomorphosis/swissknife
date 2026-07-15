@@ -824,7 +824,7 @@ export class AgentSupervisorThreeBackendRuntime implements AgentSupervisorGatewa
     result: AllAppToolGatewayResult,
   ): AgentSupervisorGatewayResult<TData> {
     const response = result.response.response as { result?: unknown; receipt?: unknown } | null;
-    const receipt = normalizeReceipt(response?.receipt, invocation.owner);
+    const receipt = normalizeReceipt(response?.receipt);
     const data = response?.result as TData;
     return {
       state: 'available', capability_id: invocation.capability_id, owner: invocation.owner, data,
@@ -1563,21 +1563,21 @@ function toolFailureReason(result: AllAppToolGatewayResult): AgentSupervisorUnav
   return 'server_unavailable';
 }
 
-function normalizeReceipt(value: unknown, owner: AgentSupervisorBackendOwner): AgentSupervisorReceiptRef | undefined {
+function normalizeReceipt(value: unknown): AgentSupervisorReceiptRef | undefined {
   if (!isObject(value) || typeof value.receipt_id !== 'string') return undefined;
   // A backend invocation receipt identifies its executing owner. Console
   // persistence receipts are normalized only when kit owns the reference.
   return {
     receipt_id: value.receipt_id,
     cid: stringOrUndefined(value.cid),
-    owner: owner === 'ipfs_kit_py' ? 'ipfs_kit_py' : 'ipfs_kit_py',
+    owner: 'ipfs_kit_py',
     created_at: stringOrUndefined(value.created_at),
   };
 }
 
 function observation(result: AllAppToolGatewayResult, contentCid?: string) {
   const response = result.response.response as { receipt?: unknown } | null;
-  const receipt = normalizeReceipt(response?.receipt, result.owner ?? 'ipfs_kit_py');
+  const receipt = normalizeReceipt(response?.receipt);
   return {
     binding_id: result.binding_id ?? undefined,
     transport: result.transport ?? undefined,

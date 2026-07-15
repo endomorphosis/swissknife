@@ -150,7 +150,7 @@
     "test:fast": "jest --config=config/jest/jest.fast.config.cjs --runInBand",
     "test:service": "jest --config=config/jest/jest.service.config.cjs --runInBand",
     "pretest:browser-compat": "npm run browser:toolchain:verify",
-    "test:browser-compat": "npm run test:browser-compat:static && npm run test:browser-compat:runtime",
+    "test:browser-compat": "npm run test:browser-compat:static && npm run test:browser-compat:runtime && npm run test:browser-proof-runtime",
     "test:browser-compat:static": "jest --config=config/jest/jest.browser-compat.config.cjs --runInBand",
     "test:browser-compat:runtime": "vitest run --config build-tools/configs/vitest.browser-compat.config.ts",
     "test:browser-proof-runtime": "vitest run --config build-tools/configs/vitest.browser-proof-runtime.config.ts",
