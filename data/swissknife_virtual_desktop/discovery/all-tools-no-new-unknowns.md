@@ -1,7 +1,7 @@
 # All-Tools Closeout: No New Unknowns
 
-Generated: 2026-07-15T09:12:03.531Z
-Source revision: `06fb303e0b405d118eba1053efdb12a5ae2bf627`
+Generated: 2026-07-15T09:19:41.138Z
+Source revision: `9e78b5d8d850c1dc3dad59972057192a25e77905`
 Decision: **NO-GO**
 
 ## No new unknowns
@@ -39,6 +39,13 @@ Decision: **NO-GO**
 - **SVD-044** (owner: `platform`) — `accelerate_adapter_boundary`: Configured ipfs_accelerate_py adapter boundary is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.; test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json is missing or invalid.
 - **SVD-058** (owner: `apps`) — `browser_compatible_app_smoke`: Browser-compatible all-app smoke evidence is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json is missing or invalid.
 - **SVD-059** (owner: `glasses`) — `meta_glasses_simulator`: Hardware-free Meta glasses simulator evidence is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.; test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json is missing or invalid.
+
+## Closeout integrity
+
+- Status: **passed**
+- Explicit blockers: 18
+- Owner-assigned blockers: 18
+- NO-GO contains only explicit blockers with an existing SVD task class, named owner, scope, reason, and evidence path.
 
 ## Task-class conclusion
 

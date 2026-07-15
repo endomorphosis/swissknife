@@ -78,6 +78,25 @@ test('a wildcard disposition cannot silently close named gaps', () => {
   assert.equal(releaseEvidence.isClosedByDisposition(gap, exact), true);
 });
 
+test('NO-GO closeout requires explicit owner-assigned blocker evidence', () => {
+  const valid = releaseEvidence.assessCloseoutIntegrity('NO_GO', [{
+    task_id: 'SVD-060', owner_task_id: 'SVD-060', owner: 'mcp',
+    code: 'missing_evidence', scope: 'meta-simulator', reason: 'Simulator evidence is missing.',
+    evidence_path: 'test-results/meta-simulator.json',
+  }]);
+  assert.equal(valid.status, 'passed');
+  assert.equal(valid.owner_assigned_blocker_count, 1);
+
+  const invalid = releaseEvidence.assessCloseoutIntegrity('NO_GO', [{
+    task_id: 'unknown', owner_task_id: 'SVD-060', owner: '', code: '', scope: '', reason: '', evidence_path: null,
+  }]);
+  assert.equal(invalid.status, 'failed');
+  assert.deepEqual(invalid.violations.map(item => item.code).sort(), [
+    'incomplete_blocker_detail', 'invalid_blocker_task', 'missing_blocker_evidence',
+    'missing_blocker_owner', 'owner_task_mismatch',
+  ]);
+});
+
 test('changed dependencies stale evidence captured before the prior certification', () => {
   const observed = record('SVD-098');
   observed.id = 'orb_idl_packets';
