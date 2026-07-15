@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-15T23:44:54.426Z",
+  "generatedAt": "2026-07-15T23:48:54.584Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -70,20 +70,20 @@
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
       "recordedEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "0fb48e0fd277b8f1d324aa03479cd292cd0f17382c1fe4164a96c3b478d549c7",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "00e2d493a80f987104deca30fe0ab3173d09941ca98413cf72d0a9bf2288b092",
-        "docs/refactor-final-signoff.md": "67a4e50d07eaf8b827ea0eb45081480e1a102800065e1dfaf7a0966a3de4e605",
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "7aafc0a3f54a1f54aea10ef55425808320857eaffbc7518ef71662cbcc8eaca4",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "80f0180ab615935479f4086a3530ae823e7e84aa4189aa9c5bd8f7477c279f3a",
+        "docs/refactor-final-signoff.md": "f8e22cd51dc38c61b487f69ffd5125fc66d99f448134fe8ec0b6b1ec2075d060",
         "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "8cbc19ce260c245ac65ccb99c35bd82a0dbb85b8b4b6ba5b6b3b3219fd4c3a1d"
       },
       "currentEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "0fb48e0fd277b8f1d324aa03479cd292cd0f17382c1fe4164a96c3b478d549c7",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "00e2d493a80f987104deca30fe0ab3173d09941ca98413cf72d0a9bf2288b092",
-        "docs/refactor-final-signoff.md": "67a4e50d07eaf8b827ea0eb45081480e1a102800065e1dfaf7a0966a3de4e605",
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "7aafc0a3f54a1f54aea10ef55425808320857eaffbc7518ef71662cbcc8eaca4",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "80f0180ab615935479f4086a3530ae823e7e84aa4189aa9c5bd8f7477c279f3a",
+        "docs/refactor-final-signoff.md": "f8e22cd51dc38c61b487f69ffd5125fc66d99f448134fe8ec0b6b1ec2075d060",
         "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "8cbc19ce260c245ac65ccb99c35bd82a0dbb85b8b4b6ba5b6b3b3219fd4c3a1d"
       },
       "recordedFingerprint": "34f1e29bacd669463a5c5e118deb5c104d9f38c54388b9b8c7e4c4edbb9292de",
       "currentFingerprint": "34f1e29bacd669463a5c5e118deb5c104d9f38c54388b9b8c7e4c4edbb9292de",
-      "recordedAt": "2026-07-15T23:44:54.425Z",
+      "recordedAt": "2026-07-15T23:48:54.583Z",
       "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs"
     }
   ]
