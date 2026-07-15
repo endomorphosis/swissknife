@@ -955,6 +955,7 @@
       "src/services/provers/crypto-exchange-proof-artifacts.ts",
       "src/services/provers/provers-browser.ts",
       "src/services/shared/shared-browser-crypto.ts",
+      "src/services/storage/supervisor-dispatch-artifact-store.ts",
       "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1.r1cs",
       "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1.wasm",
       "src/services/zkp/artifacts/groth16/deontic_discharge_v1/deontic_discharge_v1_final.zkey",
@@ -2182,6 +2183,36 @@
         "src/services/logic/**/*"
       ],
       "browserSafeEntrypoint": "src/services/logic/api/reasoning-normalization-pipeline.ts"
+    },
+    "service-storage": {
+      "owner": "browser-safe-dispatch-artifact-storage",
+      "path": "src/services/storage",
+      "purpose": "Browser-safe, policy-governed content-addressed storage for supervisor dispatch artifacts and event-DAG checkpoints.",
+      "runtimeClassification": "browser-safe",
+      "browserReachability": "allowed through injected Helia-compatible adapters only",
+      "allowedImports": [
+        "shared",
+        "storage",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "components",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/storage/supervisor-dispatch-artifact-store.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "The dispatch store is browser-safe and receives Helia plus approved kit/Kubo retrieval adapters by injection; it must not import Kubo HTTP, Node filesystem, process, or backend credentials."
+      ],
+      "privateImplementationPaths": [
+        "src/services/storage/**/*"
+      ],
+      "browserSafeEntrypoint": "src/services/storage/supervisor-dispatch-artifact-store.ts"
     },
     "service-mcp": {
       "owner": "mcp-protocol-runtime",

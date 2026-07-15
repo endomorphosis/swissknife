@@ -29,7 +29,18 @@ export type AgentSupervisorCapabilityId =
   | 'supervisor.event-dag.checkpoint'
   | 'supervisor.run-history.search'
   | 'supervisor.prompt-steering.request'
-  | 'supervisor.task-control.request';
+  | 'supervisor.task-control.request'
+  | 'supervisor.profile-g.read'
+  | 'supervisor.schedule.frontier.read'
+  | 'supervisor.neighborhood.read'
+  | 'supervisor.schedule.claims.read'
+  | 'supervisor.risk.read'
+  | 'supervisor.goal.decompose'
+  | 'supervisor.schedule.propose'
+  | 'supervisor.schedule.claim'
+  | 'supervisor.schedule.renew'
+  | 'supervisor.schedule.release'
+  | 'supervisor.schedule.reconcile';
 
 export type AgentSupervisorUnavailableReason =
   | 'server_unavailable'

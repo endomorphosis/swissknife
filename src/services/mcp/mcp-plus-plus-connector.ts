@@ -121,6 +121,25 @@ export const MCPPP_PROFILE_H_METHODS = [
   'mcp++/payments/refund/request', 'mcp++/payments/reconcile',
 ] as const;
 
+/** Profile G is the governed goal, risk, and scheduling control plane. */
+export const MCPPP_PROFILE_G_CAPABILITY = 'mcp++/risk-scheduling' as const;
+
+/**
+ * The common authority fields required by Profile G mutations.  Keep this
+ * intentionally structural: each operation adds its own CID-bearing payload,
+ * while all writes remain bound to a caller, idempotency key, policy proof,
+ * and correlation ID.
+ */
+export interface MCPPPProfileGMutation {
+  caller_did: string;
+  idempotency_key: string;
+  correlation_id: string;
+  parents: readonly string[];
+  proof_cid: string;
+  policy_decision_cid: string;
+  [key: string]: unknown;
+}
+
 // --- MCP++ JSON-RPC Protocol Types ---
 
 interface MCPJsonRpcRequest {
@@ -1274,6 +1293,111 @@ export class MCPPPServerConnector {
     }
   }
 
+  // --- Profile G: risk-aware goal and scheduling control plane ---
+
+  async getRiskSchedulingProfile(): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/risk/profile', {});
+  }
+
+  async createGoal(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/goals/create', request);
+  }
+
+  async getGoal(goalCid: string): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/goals/get', { goal_cid: goalCid });
+  }
+
+  async listGoals(request: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/goals/list', request);
+  }
+
+  async decomposeGoal(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/goals/decompose', request);
+  }
+
+  async selectGoalPlan(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/goals/select', request);
+  }
+
+  async createTask(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/tasks/create', request);
+  }
+
+  async getTask(taskCid: string): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/tasks/get', { task_cid: taskCid });
+  }
+
+  async listTasks(request: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/tasks/list', request);
+  }
+
+  async listReadyTasks(request: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/tasks/ready', request);
+  }
+
+  async assessRisk(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/risk/assess', request);
+  }
+
+  async getRiskEvidence(taskCid: string): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/risk/evidence', { task_cid: taskCid });
+  }
+
+  async getRiskHistory(taskCid: string): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/risk/history', { task_cid: taskCid });
+  }
+
+  async queryNeighborhood(request: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/neighborhood/query', request);
+  }
+
+  async attestNeighborhood(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/neighborhood/attest', request);
+  }
+
+  async getScheduleFrontier(request: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/schedule/frontier', request);
+  }
+
+  async getScheduleStatus(taskCid: string): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/schedule/status', { task_cid: taskCid });
+  }
+
+  async proposeSchedule(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/schedule/propose', request);
+  }
+
+  async claimTask(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/schedule/claim', request);
+  }
+
+  async renewTaskClaim(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/schedule/renew', request);
+  }
+
+  async releaseTaskClaim(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/schedule/release', request);
+  }
+
+  async resolveTaskClaims(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/schedule/resolve', request);
+  }
+
+  async reconcileSchedule(request: MCPPPProfileGMutation): Promise<Record<string, unknown>> {
+    return this.profileGRequest('mcp++/schedule/reconcile', request);
+  }
+
+  private async profileGRequest(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
+    if (!this.connected || !this.negotiatedProfiles.includes(MCPPP_PROFILE_G_CAPABILITY)) {
+      throw new Error('MCP++ Profile G risk scheduling was not negotiated with this server.');
+    }
+    const result = await this.jsonRpc(method, params);
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      throw new Error(`Profile G returned an invalid response for ${method}.`);
+    }
+    return result as Record<string, unknown>;
+  }
+
   // --- Profile H: x402 paid capability control plane ---
 
   async getPaymentProfile(): Promise<Record<string, unknown>> { return this.profileHRequest('mcp++/payments/profile', {}); }
@@ -1345,6 +1469,7 @@ export class MCPPPServerConnector {
     if (caps['mcp++/deontic-policy']) profiles.push('mcp++/deontic-policy');
     if (caps['mcp++/event-dag']) profiles.push('mcp++/event-dag');
     if (caps['mcp++/p2p-transport']) profiles.push('mcp++/p2p-transport');
+    if (caps[MCPPP_PROFILE_G_CAPABILITY]) profiles.push(MCPPP_PROFILE_G_CAPABILITY);
     if (caps[MCPPP_PROFILE_H_CAPABILITY]) profiles.push(MCPPP_PROFILE_H_CAPABILITY);
     return profiles.length > 0 ? profiles : ['mcp++/basic'];
   }

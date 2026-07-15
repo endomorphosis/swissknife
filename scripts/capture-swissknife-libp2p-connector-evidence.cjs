@@ -197,7 +197,7 @@ for (const announce of announces) {
           proofCid: delegation.proofCid,
           ucan: delegation.ucan,
           ucanAudience: agentDID,
-          timestamp: '2026-07-10T00:00:00.000Z',
+          timestamp: new Date().toISOString(),
           correlationId: 'profile-b-parity-' + announce.service,
         })
         : null;

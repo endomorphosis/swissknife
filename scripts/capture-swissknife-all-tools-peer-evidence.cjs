@@ -497,7 +497,7 @@ async function executeApprovedFixture(connector, config, observation) {
       ucan: delegation.ucan,
       ucanAudience: agentDid,
       parents: [],
-      timestamp: '2026-07-13T00:00:00.000Z',
+      timestamp: new Date().toISOString(),
       correlationId: 'svd-100-' + config.service,
     });
     const envelope = execution.envelope ?? {};
