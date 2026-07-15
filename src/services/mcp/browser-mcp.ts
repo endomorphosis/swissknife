@@ -1,6 +1,7 @@
 import { sha256Hex, utf8Bytes } from '../provers/browser-crypto.js';
 
 export * from './agent-supervisor-console-gateway.js';
+export * from './all-app-tool-gateway.js';
 
 export interface BrowserMCPMethodSignature {
   name: string;

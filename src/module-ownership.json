@@ -899,9 +899,11 @@
       "src/components/browser/*.tsx",
       "src/hooks/browser/*.ts",
       "src/screens/browser/*.tsx",
+      "src/services/apps/all-app-executable-backend-contract.ts",
       "src/services/apps/all-tools-policy-classifier.ts",
       "src/services/apps/app-manifest-registry.ts",
       "src/services/apps/app-manifest.ts",
+      "src/services/apps/virtual-desktop-app-manifest.ts",
       "src/services/ipfs/ipfs-browser.ts",
       "src/services/logic/api/reasoning-normalization-pipeline.ts",
       "src/services/logic/deontic/browser-nlp.ts",
@@ -910,6 +912,7 @@
       "src/services/logic/deontic/deontic-text-analyzer.ts",
       "src/services/logic/shared/tdfol-nl-patterns.ts",
       "src/services/mcp/agent-supervisor-console-gateway.ts",
+      "src/services/mcp/all-app-tool-gateway.ts",
       "src/services/mcp/browser-mcp.ts",
       "src/services/mcp/libp2p-browser-runtime.ts",
       "src/services/proof-engine/proof-engine-browser.ts",
@@ -931,9 +934,11 @@
       "web/src/**/*.tsx"
     ],
     "browserSafeServiceFiles": [
+      "src/services/apps/all-app-executable-backend-contract.ts",
       "src/services/apps/all-tools-policy-classifier.ts",
       "src/services/apps/app-manifest-registry.ts",
       "src/services/apps/app-manifest.ts",
+      "src/services/apps/virtual-desktop-app-manifest.ts",
       "src/services/ipfs/ipfs-browser.ts",
       "src/services/logic/api/reasoning-normalization-pipeline.ts",
       "src/services/logic/deontic/browser-nlp.ts",
@@ -942,6 +947,7 @@
       "src/services/logic/deontic/deontic-text-analyzer.ts",
       "src/services/logic/shared/tdfol-nl-patterns.ts",
       "src/services/mcp/agent-supervisor-console-gateway.ts",
+      "src/services/mcp/all-app-tool-gateway.ts",
       "src/services/mcp/browser-mcp.ts",
       "src/services/mcp/libp2p-browser-runtime.ts",
       "src/services/proof-engine/proof-engine-browser.ts",
@@ -1946,6 +1952,8 @@
         "screens"
       ],
       "publicEntrypoints": [
+        "src/services/apps/all-app-executable-backend-contract.ts",
+        "src/services/apps/all-app-live-tool-bindings.ts",
         "src/services/apps/all-tools-app-binding-matrix.ts",
         "src/services/apps/all-tools-composite-workflows.ts",
         "src/services/apps/all-tools-policy-classifier.ts",
@@ -2195,6 +2203,7 @@
       ],
       "publicEntrypoints": [
         "src/services/mcp/agent-supervisor-console-gateway.ts",
+        "src/services/mcp/all-app-tool-gateway.ts",
         "src/services/mcp/all-tools-idl-generator.ts",
         "src/services/mcp/browser-mcp.ts",
         "src/services/mcp/host/mcpClient.ts",

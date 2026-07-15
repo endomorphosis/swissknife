@@ -1,0 +1,1552 @@
+{
+  "schema": "swissknife.all-app-live-tool-bindings-evidence.v1",
+  "task_id": "SVD-104",
+  "generated_at": "2026-07-15T06:00:00.000Z",
+  "catalog": {
+    "schema": "swissknife.all-app-live-tool-bindings.v1",
+    "catalog_id": "org.hallucinate.swissknife.all-app-live-tool-bindings",
+    "version": "1.0.0",
+    "source_contract": {
+      "contract_id": "org.hallucinate.swissknife.all-app-executable-backend-contract",
+      "version": "1.0.0"
+    },
+    "binding_count": 79,
+    "owner_counts": {
+      "ipfs_kit_py": 31,
+      "ipfs_datasets_py": 22,
+      "ipfs_accelerate_py": 26
+    }
+  },
+  "acceptance": {
+    "all_declared_bindings_materialized": true,
+    "browser_mediation_only": true,
+    "http_and_libp2p_declared": true,
+    "observable_lifecycle_required": true,
+    "direct_python_or_host_access_disallowed": true
+  },
+  "bindings": [
+    {
+      "binding_id": "terminal.ipfs_kit_py.retrieve_content",
+      "app_id": "terminal",
+      "owner": "ipfs_kit_py",
+      "capability_id": "terminal.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "terminal.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "terminal--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "terminal.ipfs_datasets_py.query_catalog",
+      "app_id": "terminal",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "terminal.ipfs_datasets_py.ipfs-datasets-discovery",
+      "intent_id": "terminal.ipfs_datasets_py.query_catalog",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "terminal--ipfs_datasets_py--query_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "terminal.ipfs_accelerate_py.inspect_model_catalog",
+      "app_id": "terminal",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "terminal.ipfs_accelerate_py.ipfs-accelerate-models",
+      "intent_id": "terminal.ipfs_accelerate_py.inspect_model_catalog",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "terminal--ipfs_accelerate_py--inspect_model_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "vibecode.ipfs_kit_py.list_virtual_files",
+      "app_id": "vibecode",
+      "owner": "ipfs_kit_py",
+      "capability_id": "vibecode.ipfs_kit_py.ipfs-kit-vfs",
+      "intent_id": "vibecode.ipfs_kit_py.list_virtual_files",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "vibecode--ipfs_kit_py--list_virtual_files",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "vibecode.ipfs_datasets_py.record_provenance",
+      "app_id": "vibecode",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "vibecode.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "vibecode.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "vibecode--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "vibecode.ipfs_accelerate_py.submit_inference",
+      "app_id": "vibecode",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "vibecode.ipfs_accelerate_py.ipfs-accelerate-inference",
+      "intent_id": "vibecode.ipfs_accelerate_py.submit_inference",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "vibecode--ipfs_accelerate_py--submit_inference",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "music-studio-unified.ipfs_kit_py.retrieve_content",
+      "app_id": "music-studio-unified",
+      "owner": "ipfs_kit_py",
+      "capability_id": "music-studio-unified.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "music-studio-unified.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "music-studio-unified--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "music-studio-unified.ipfs_accelerate_py.inspect_job_state",
+      "app_id": "music-studio-unified",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "music-studio-unified.ipfs_accelerate_py.ipfs-accelerate-jobs",
+      "intent_id": "music-studio-unified.ipfs_accelerate_py.inspect_job_state",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "music-studio-unified--ipfs_accelerate_py--inspect_job_state",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "ai-chat.ipfs_kit_py.retrieve_content",
+      "app_id": "ai-chat",
+      "owner": "ipfs_kit_py",
+      "capability_id": "ai-chat.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "ai-chat.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "ai-chat--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "ai-chat.ipfs_datasets_py.query_catalog",
+      "app_id": "ai-chat",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "ai-chat.ipfs_datasets_py.ipfs-datasets-discovery",
+      "intent_id": "ai-chat.ipfs_datasets_py.query_catalog",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "ai-chat--ipfs_datasets_py--query_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "ai-chat.ipfs_accelerate_py.submit_inference",
+      "app_id": "ai-chat",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "ai-chat.ipfs_accelerate_py.ipfs-accelerate-inference",
+      "intent_id": "ai-chat.ipfs_accelerate_py.submit_inference",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "ai-chat--ipfs_accelerate_py--submit_inference",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "file-manager.ipfs_kit_py.retrieve_content",
+      "app_id": "file-manager",
+      "owner": "ipfs_kit_py",
+      "capability_id": "file-manager.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "file-manager.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "file-manager--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "file-manager.ipfs_datasets_py.record_provenance",
+      "app_id": "file-manager",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "file-manager.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "file-manager.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "file-manager--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "task-manager.ipfs_datasets_py.record_provenance",
+      "app_id": "task-manager",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "task-manager.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "task-manager.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "task-manager--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "task-manager.ipfs_accelerate_py.inspect_job_state",
+      "app_id": "task-manager",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "task-manager.ipfs_accelerate_py.ipfs-accelerate-jobs",
+      "intent_id": "task-manager.ipfs_accelerate_py.inspect_job_state",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "task-manager--ipfs_accelerate_py--inspect_job_state",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "todo.ipfs_kit_py.retrieve_content",
+      "app_id": "todo",
+      "owner": "ipfs_kit_py",
+      "capability_id": "todo.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "todo.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "todo--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "todo.ipfs_datasets_py.record_provenance",
+      "app_id": "todo",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "todo.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "todo.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "todo--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "model-browser.ipfs_kit_py.retrieve_content",
+      "app_id": "model-browser",
+      "owner": "ipfs_kit_py",
+      "capability_id": "model-browser.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "model-browser.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "model-browser--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "model-browser.ipfs_datasets_py.query_catalog",
+      "app_id": "model-browser",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "model-browser.ipfs_datasets_py.ipfs-datasets-discovery",
+      "intent_id": "model-browser.ipfs_datasets_py.query_catalog",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "model-browser--ipfs_datasets_py--query_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "model-browser.ipfs_accelerate_py.inspect_model_catalog",
+      "app_id": "model-browser",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "model-browser.ipfs_accelerate_py.ipfs-accelerate-models",
+      "intent_id": "model-browser.ipfs_accelerate_py.inspect_model_catalog",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "model-browser--ipfs_accelerate_py--inspect_model_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "huggingface.ipfs_kit_py.retrieve_content",
+      "app_id": "huggingface",
+      "owner": "ipfs_kit_py",
+      "capability_id": "huggingface.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "huggingface.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "huggingface--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "huggingface.ipfs_datasets_py.query_catalog",
+      "app_id": "huggingface",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "huggingface.ipfs_datasets_py.ipfs-datasets-discovery",
+      "intent_id": "huggingface.ipfs_datasets_py.query_catalog",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "huggingface--ipfs_datasets_py--query_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "huggingface.ipfs_accelerate_py.inspect_model_catalog",
+      "app_id": "huggingface",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "huggingface.ipfs_accelerate_py.ipfs-accelerate-models",
+      "intent_id": "huggingface.ipfs_accelerate_py.inspect_model_catalog",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "huggingface--ipfs_accelerate_py--inspect_model_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "openrouter.ipfs_datasets_py.record_provenance",
+      "app_id": "openrouter",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "openrouter.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "openrouter.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "openrouter--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "openrouter.ipfs_accelerate_py.submit_inference",
+      "app_id": "openrouter",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "openrouter.ipfs_accelerate_py.ipfs-accelerate-inference",
+      "intent_id": "openrouter.ipfs_accelerate_py.submit_inference",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "openrouter--ipfs_accelerate_py--submit_inference",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "ipfs-explorer.ipfs_kit_py.retrieve_content",
+      "app_id": "ipfs-explorer",
+      "owner": "ipfs_kit_py",
+      "capability_id": "ipfs-explorer.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "ipfs-explorer.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "ipfs-explorer--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "device-manager.ipfs_kit_py.retrieve_content",
+      "app_id": "device-manager",
+      "owner": "ipfs_kit_py",
+      "capability_id": "device-manager.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "device-manager.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "device-manager--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "device-manager.ipfs_accelerate_py.inspect_hardware",
+      "app_id": "device-manager",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "device-manager.ipfs_accelerate_py.ipfs-accelerate-hardware",
+      "intent_id": "device-manager.ipfs_accelerate_py.inspect_hardware",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "device-manager--ipfs_accelerate_py--inspect_hardware",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "mcp-control.ipfs_kit_py.inspect_tool_registry",
+      "app_id": "mcp-control",
+      "owner": "ipfs_kit_py",
+      "capability_id": "mcp-control.ipfs_kit_py.mcp-registry",
+      "intent_id": "mcp-control.ipfs_kit_py.inspect_tool_registry",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "mcp-control--ipfs_kit_py--inspect_tool_registry",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry",
+      "app_id": "mcp-control",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "mcp-control.ipfs_datasets_py.mcp-registry",
+      "intent_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "mcp-control--ipfs_datasets_py--inspect_tool_registry",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "mcp-control.ipfs_accelerate_py.inspect_tool_registry",
+      "app_id": "mcp-control",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "mcp-control.ipfs_accelerate_py.mcp-registry",
+      "intent_id": "mcp-control.ipfs_accelerate_py.inspect_tool_registry",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "mcp-control--ipfs_accelerate_py--inspect_tool_registry",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "github.ipfs_kit_py.retrieve_content",
+      "app_id": "github",
+      "owner": "ipfs_kit_py",
+      "capability_id": "github.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "github.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "github--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "github.ipfs_datasets_py.record_provenance",
+      "app_id": "github",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "github.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "github.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "github--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "cron.ipfs_datasets_py.record_provenance",
+      "app_id": "cron",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "cron.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "cron.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "cron--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "cron.ipfs_accelerate_py.inspect_job_state",
+      "app_id": "cron",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "cron.ipfs_accelerate_py.ipfs-accelerate-jobs",
+      "intent_id": "cron.ipfs_accelerate_py.inspect_job_state",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "cron--ipfs_accelerate_py--inspect_job_state",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "navi.ipfs_datasets_py.query_catalog",
+      "app_id": "navi",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "navi.ipfs_datasets_py.ipfs-datasets-discovery",
+      "intent_id": "navi.ipfs_datasets_py.query_catalog",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "navi--ipfs_datasets_py--query_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "p2p-network.ipfs_kit_py.inspect_peer_network",
+      "app_id": "p2p-network",
+      "owner": "ipfs_kit_py",
+      "capability_id": "p2p-network.ipfs_kit_py.ipfs-kit-swarm",
+      "intent_id": "p2p-network.ipfs_kit_py.inspect_peer_network",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "p2p-network--ipfs_kit_py--inspect_peer_network",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "p2p-network.ipfs_accelerate_py.inspect_hardware",
+      "app_id": "p2p-network",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "p2p-network.ipfs_accelerate_py.ipfs-accelerate-hardware",
+      "intent_id": "p2p-network.ipfs_accelerate_py.inspect_hardware",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "p2p-network--ipfs_accelerate_py--inspect_hardware",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "p2p-chat-unified.ipfs_kit_py.exchange_peer_messages",
+      "app_id": "p2p-chat-unified",
+      "owner": "ipfs_kit_py",
+      "capability_id": "p2p-chat-unified.ipfs_kit_py.ipfs-kit-pubsub",
+      "intent_id": "p2p-chat-unified.ipfs_kit_py.exchange_peer_messages",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "p2p-chat-unified--ipfs_kit_py--exchange_peer_messages",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "p2p-chat-unified.ipfs_datasets_py.record_provenance",
+      "app_id": "p2p-chat-unified",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "p2p-chat-unified.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "p2p-chat-unified.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "p2p-chat-unified--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "neural-network-designer.ipfs_kit_py.retrieve_content",
+      "app_id": "neural-network-designer",
+      "owner": "ipfs_kit_py",
+      "capability_id": "neural-network-designer.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "neural-network-designer.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "neural-network-designer--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "neural-network-designer.ipfs_accelerate_py.inspect_model_catalog",
+      "app_id": "neural-network-designer",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "neural-network-designer.ipfs_accelerate_py.ipfs-accelerate-models",
+      "intent_id": "neural-network-designer.ipfs_accelerate_py.inspect_model_catalog",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "neural-network-designer--ipfs_accelerate_py--inspect_model_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "training-manager.ipfs_kit_py.retrieve_content",
+      "app_id": "training-manager",
+      "owner": "ipfs_kit_py",
+      "capability_id": "training-manager.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "training-manager.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "training-manager--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "training-manager.ipfs_datasets_py.query_catalog",
+      "app_id": "training-manager",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "training-manager.ipfs_datasets_py.ipfs-datasets-discovery",
+      "intent_id": "training-manager.ipfs_datasets_py.query_catalog",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "training-manager--ipfs_datasets_py--query_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "training-manager.ipfs_accelerate_py.inspect_job_state",
+      "app_id": "training-manager",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "training-manager.ipfs_accelerate_py.ipfs-accelerate-jobs",
+      "intent_id": "training-manager.ipfs_accelerate_py.inspect_job_state",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "training-manager--ipfs_accelerate_py--inspect_job_state",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "calendar.ipfs_kit_py.retrieve_content",
+      "app_id": "calendar",
+      "owner": "ipfs_kit_py",
+      "capability_id": "calendar.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "calendar.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "calendar--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "calendar.ipfs_datasets_py.record_provenance",
+      "app_id": "calendar",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "calendar.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "calendar.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "calendar--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "peertube.ipfs_kit_py.retrieve_content",
+      "app_id": "peertube",
+      "owner": "ipfs_kit_py",
+      "capability_id": "peertube.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "peertube.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "peertube--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "peertube.ipfs_accelerate_py.submit_inference",
+      "app_id": "peertube",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "peertube.ipfs_accelerate_py.ipfs-accelerate-inference",
+      "intent_id": "peertube.ipfs_accelerate_py.submit_inference",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "peertube--ipfs_accelerate_py--submit_inference",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "friends-list.ipfs_kit_py.exchange_peer_messages",
+      "app_id": "friends-list",
+      "owner": "ipfs_kit_py",
+      "capability_id": "friends-list.ipfs_kit_py.ipfs-kit-pubsub",
+      "intent_id": "friends-list.ipfs_kit_py.exchange_peer_messages",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "friends-list--ipfs_kit_py--exchange_peer_messages",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "friends-list.ipfs_datasets_py.record_provenance",
+      "app_id": "friends-list",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "friends-list.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "friends-list.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "friends-list--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "image-viewer.ipfs_kit_py.retrieve_content",
+      "app_id": "image-viewer",
+      "owner": "ipfs_kit_py",
+      "capability_id": "image-viewer.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "image-viewer.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "image-viewer--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "image-viewer.ipfs_accelerate_py.submit_inference",
+      "app_id": "image-viewer",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "image-viewer.ipfs_accelerate_py.ipfs-accelerate-inference",
+      "intent_id": "image-viewer.ipfs_accelerate_py.submit_inference",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "image-viewer--ipfs_accelerate_py--submit_inference",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "notes.ipfs_kit_py.retrieve_content",
+      "app_id": "notes",
+      "owner": "ipfs_kit_py",
+      "capability_id": "notes.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "notes.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "notes--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "notes.ipfs_datasets_py.record_provenance",
+      "app_id": "notes",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "notes.ipfs_datasets_py.ipfs-datasets-provenance",
+      "intent_id": "notes.ipfs_datasets_py.record_provenance",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "notes--ipfs_datasets_py--record_provenance",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "media-player.ipfs_kit_py.retrieve_content",
+      "app_id": "media-player",
+      "owner": "ipfs_kit_py",
+      "capability_id": "media-player.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "media-player.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "media-player--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "media-player.ipfs_accelerate_py.submit_inference",
+      "app_id": "media-player",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "media-player.ipfs_accelerate_py.ipfs-accelerate-inference",
+      "intent_id": "media-player.ipfs_accelerate_py.submit_inference",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "media-player--ipfs_accelerate_py--submit_inference",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "system-monitor.ipfs_accelerate_py.inspect_telemetry",
+      "app_id": "system-monitor",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "system-monitor.ipfs_accelerate_py.ipfs-accelerate-telemetry",
+      "intent_id": "system-monitor.ipfs_accelerate_py.inspect_telemetry",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "system-monitor--ipfs_accelerate_py--inspect_telemetry",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "neural-photoshop.ipfs_kit_py.retrieve_content",
+      "app_id": "neural-photoshop",
+      "owner": "ipfs_kit_py",
+      "capability_id": "neural-photoshop.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "neural-photoshop.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "neural-photoshop--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "neural-photoshop.ipfs_accelerate_py.submit_inference",
+      "app_id": "neural-photoshop",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "neural-photoshop.ipfs_accelerate_py.ipfs-accelerate-inference",
+      "intent_id": "neural-photoshop.ipfs_accelerate_py.submit_inference",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "neural-photoshop--ipfs_accelerate_py--submit_inference",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "cinema.ipfs_kit_py.retrieve_content",
+      "app_id": "cinema",
+      "owner": "ipfs_kit_py",
+      "capability_id": "cinema.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "cinema.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "cinema--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "cinema.ipfs_accelerate_py.inspect_job_state",
+      "app_id": "cinema",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "cinema.ipfs_accelerate_py.ipfs-accelerate-jobs",
+      "intent_id": "cinema.ipfs_accelerate_py.inspect_job_state",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "cinema--ipfs_accelerate_py--inspect_job_state",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "strudel.ipfs_kit_py.retrieve_content",
+      "app_id": "strudel",
+      "owner": "ipfs_kit_py",
+      "capability_id": "strudel.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "strudel.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "strudel--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "strudel.ipfs_accelerate_py.inspect_job_state",
+      "app_id": "strudel",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "strudel.ipfs_accelerate_py.ipfs-accelerate-jobs",
+      "intent_id": "strudel.ipfs_accelerate_py.inspect_job_state",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "strudel--ipfs_accelerate_py--inspect_job_state",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "strudel-ai-daw.ipfs_kit_py.retrieve_content",
+      "app_id": "strudel-ai-daw",
+      "owner": "ipfs_kit_py",
+      "capability_id": "strudel-ai-daw.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "strudel-ai-daw.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "strudel-ai-daw--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "strudel-ai-daw.ipfs_accelerate_py.submit_inference",
+      "app_id": "strudel-ai-daw",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "strudel-ai-daw.ipfs_accelerate_py.ipfs-accelerate-inference",
+      "intent_id": "strudel-ai-daw.ipfs_accelerate_py.submit_inference",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "strudel-ai-daw--ipfs_accelerate_py--submit_inference",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "music-studio.ipfs_kit_py.retrieve_content",
+      "app_id": "music-studio",
+      "owner": "ipfs_kit_py",
+      "capability_id": "music-studio.ipfs_kit_py.ipfs-kit-storage",
+      "intent_id": "music-studio.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "music-studio--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "p2p-chat.ipfs_kit_py.exchange_peer_messages",
+      "app_id": "p2p-chat",
+      "owner": "ipfs_kit_py",
+      "capability_id": "p2p-chat.ipfs_kit_py.ipfs-kit-pubsub",
+      "intent_id": "p2p-chat.ipfs_kit_py.exchange_peer_messages",
+      "transports": [
+        "http"
+      ],
+      "ui_control_id": "p2p-chat--ipfs_kit_py--exchange_peer_messages",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "datasets-browser.ipfs_datasets_py.query_catalog",
+      "app_id": "datasets-browser",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "datasets-browser.ipfs_datasets_py.ipfs-datasets-discovery",
+      "intent_id": "datasets-browser.ipfs_datasets_py.query_catalog",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "datasets-browser--ipfs_datasets_py--query_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "accelerate-panel.ipfs_accelerate_py.inspect_model_catalog",
+      "app_id": "accelerate-panel",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "accelerate-panel.ipfs_accelerate_py.ipfs-accelerate-models",
+      "intent_id": "accelerate-panel.ipfs_accelerate_py.inspect_model_catalog",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "accelerate-panel--ipfs_accelerate_py--inspect_model_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "orb-auto-ui.ipfs_kit_py.inspect_tool_descriptor",
+      "app_id": "orb-auto-ui",
+      "owner": "ipfs_kit_py",
+      "capability_id": "orb-auto-ui.ipfs_kit_py.mcp-descriptor",
+      "intent_id": "orb-auto-ui.ipfs_kit_py.inspect_tool_descriptor",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "orb-auto-ui--ipfs_kit_py--inspect_tool_descriptor",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor",
+      "app_id": "orb-auto-ui",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "orb-auto-ui.ipfs_datasets_py.mcp-descriptor",
+      "intent_id": "orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "orb-auto-ui--ipfs_datasets_py--inspect_tool_descriptor",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "orb-auto-ui.ipfs_accelerate_py.inspect_tool_descriptor",
+      "app_id": "orb-auto-ui",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "orb-auto-ui.ipfs_accelerate_py.mcp-descriptor",
+      "intent_id": "orb-auto-ui.ipfs_accelerate_py.inspect_tool_descriptor",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "orb-auto-ui--ipfs_accelerate_py--inspect_tool_descriptor",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "mcp-plus-plus.ipfs_kit_py.inspect_tool_registry",
+      "app_id": "mcp-plus-plus",
+      "owner": "ipfs_kit_py",
+      "capability_id": "mcp-plus-plus.ipfs_kit_py.mcp-registry",
+      "intent_id": "mcp-plus-plus.ipfs_kit_py.inspect_tool_registry",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "mcp-plus-plus--ipfs_kit_py--inspect_tool_registry",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "mcp-plus-plus.ipfs_datasets_py.inspect_tool_registry",
+      "app_id": "mcp-plus-plus",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "mcp-plus-plus.ipfs_datasets_py.mcp-registry",
+      "intent_id": "mcp-plus-plus.ipfs_datasets_py.inspect_tool_registry",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "mcp-plus-plus--ipfs_datasets_py--inspect_tool_registry",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "mcp-plus-plus.ipfs_accelerate_py.inspect_tool_registry",
+      "app_id": "mcp-plus-plus",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "mcp-plus-plus.ipfs_accelerate_py.mcp-registry",
+      "intent_id": "mcp-plus-plus.ipfs_accelerate_py.inspect_tool_registry",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "mcp-plus-plus--ipfs_accelerate_py--inspect_tool_registry",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "agent-supervisor.ipfs_accelerate_py.supervise_agent_work",
+      "app_id": "agent-supervisor",
+      "owner": "ipfs_accelerate_py",
+      "capability_id": "agent-supervisor.ipfs-accelerate-supervisor",
+      "intent_id": "agent-supervisor.ipfs_accelerate_py.supervise_agent_work",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "agent-supervisor--ipfs_accelerate_py--supervise_agent_work",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "agent-supervisor.ipfs_datasets_py.query_catalog",
+      "app_id": "agent-supervisor",
+      "owner": "ipfs_datasets_py",
+      "capability_id": "agent-supervisor.ipfs-datasets-task-index",
+      "intent_id": "agent-supervisor.ipfs_datasets_py.query_catalog",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "agent-supervisor--ipfs_datasets_py--query_catalog",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    },
+    {
+      "binding_id": "agent-supervisor.ipfs_kit_py.retrieve_content",
+      "app_id": "agent-supervisor",
+      "owner": "ipfs_kit_py",
+      "capability_id": "agent-supervisor.ipfs-kit-receipt-storage",
+      "intent_id": "agent-supervisor.ipfs_kit_py.retrieve_content",
+      "transports": [
+        "http",
+        "libp2p"
+      ],
+      "ui_control_id": "agent-supervisor--ipfs_kit_py--retrieve_content",
+      "recovery_errors": [
+        "policy_denied",
+        "owner_unreachable",
+        "tool_unsupported",
+        "invalid_input",
+        "invalid_output",
+        "receipt_missing"
+      ]
+    }
+  ]
+}
