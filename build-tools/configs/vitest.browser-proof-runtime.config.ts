@@ -3,12 +3,14 @@ import { defineConfig } from 'vitest/config'
 
 const rootDir = resolve(__dirname, '../..')
 
-// Release proof evidence must come from an actual browser engine. Keep this
-// lane separate from the broader happy-dom compatibility suite so a DOM
-// emulator can never be mistaken for real-browser proof execution.
+// Release proof evidence must come from actual browser engines. Keep this lane
+// separate from the broader happy-dom compatibility suite so a DOM emulator
+// can never be mistaken for real-browser proof execution.  All supported
+// engines are explicit instances: a passing Chromium-only run is insufficient
+// evidence for the browser proof runtime.
 export default defineConfig({
   test: {
-    name: 'browser-proof-runtime-chromium',
+    name: 'browser-proof-runtime',
     globals: true,
     include: ['test/browser-proof-runtime/**/*.{test,spec}.{js,ts,jsx,tsx}'],
     retry: 0,
@@ -19,7 +21,11 @@ export default defineConfig({
       enabled: true,
       headless: true,
       provider: 'playwright',
-      instances: [{ browser: 'chromium' }],
+      instances: [
+        { browser: 'chromium', name: 'chromium', viewport: { width: 1280, height: 800 } },
+        { browser: 'firefox', name: 'firefox', viewport: { width: 1280, height: 800 } },
+        { browser: 'webkit', name: 'webkit', viewport: { width: 1280, height: 800 } },
+      ],
     },
   },
   resolve: {

@@ -11,5 +11,26 @@
   "malformed": {
     "id": "unclosed-group",
     "formula": "(p &&"
+  },
+  "zkp": {
+    "id": "browser-schnorr-audited-policy-proof",
+    "seed": 139,
+    "validWitness": {
+      "statement": "O(log_access)",
+      "publicInputs": {
+        "policy": "audit",
+        "subject": "browser-proof-runtime"
+      },
+      "privateWitness": {
+        "derivation": [
+          "axiom:audit",
+          "rule:obligation"
+        ]
+      }
+    },
+    "expectedPublicInputs": {
+      "policy": "audit",
+      "subject": "browser-proof-runtime"
+    }
   }
 }

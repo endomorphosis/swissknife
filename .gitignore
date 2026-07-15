@@ -245,9 +245,13 @@ docs/reports/*.md
 test-results/
 !test-results/
 test-results/*
+test/browser-proof-runtime/__screenshots__/
 !test-results/browser-smoke-matrix/
 test-results/browser-smoke-matrix/*
 !test-results/browser-smoke-matrix/*.json
+!test-results/browser-proof-runtime/
+!test-results/browser-proof-runtime/README.md
+!test-results/browser-proof-runtime/observed-three-engine-runtime.json
 !test-results/virtual-desktop-ipfs-mcp-orb/
 test-results/virtual-desktop-ipfs-mcp-orb/*
 !test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json

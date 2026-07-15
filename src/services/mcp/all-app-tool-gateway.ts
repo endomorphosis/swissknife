@@ -236,7 +236,10 @@ export class AllAppToolGateway {
       transport: plan.transport,
       correlation_id: plan.correlation_id,
       input: plan.input,
-      receipt_required: plan.receipt_requirement.required,
+      // Browser-mediated calls are receipt-bearing by contract. Output
+      // validation also rejects a missing receipt, so do not weaken this wire
+      // invariant when an upstream declaration is malformed.
+      receipt_required: true,
     };
   }
 

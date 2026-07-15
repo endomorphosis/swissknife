@@ -17,6 +17,15 @@ import {
   type BrowserProofWorkerRequestMessage,
   type BrowserProofWorkerResultMessage,
 } from '../../src/services/proof-engine/proof-engine-browser.js';
+import {
+  BROWSER_SCHNORR_BACKEND_ID,
+  DEFAULT_BROWSER_ZKP_BACKEND_ID,
+  BrowserSchnorrZkpBackend,
+  createDefaultBrowserZkpBackend,
+  generateDefaultBrowserZkpProof,
+  instantiateSchnorrWasmHelper,
+  verifyDefaultBrowserZkpProof,
+} from '../../src/services/zkp/browser-zkp.js';
 
 const unavailableBrowserBackends: BrowserProverBackendId[] = [
   'cvc5-wasm',
@@ -265,6 +274,92 @@ describe('browser proof-engine facade and worker failure boundary', () => {
       kind: 'execution_error', code: 'BROWSER_PROOF_WORKER_FAILED',
       message: expect.stringContaining('worker is terminated'),
     });
+  });
+});
+
+describe('browser WASM ZKP backend', () => {
+  const witness = JSON.stringify(theoremFixtures.zkp.validWitness);
+
+  it('selects the audited browser-WASM backend by default and instantiates its WebAssembly module', async () => {
+    expect(DEFAULT_BROWSER_ZKP_BACKEND_ID).toBe(BROWSER_SCHNORR_BACKEND_ID);
+    const selected = createDefaultBrowserZkpBackend();
+    expect(selected).toBeInstanceOf(BrowserSchnorrZkpBackend);
+
+    // This is deliberately not a mocked WebAssembly API: the helper is the
+    // committed WASM binary used by the production browser backend.
+    const wasm = await instantiateSchnorrWasmHelper();
+    expect(wasm.add_mod(0x7fff_fffe, 3, 0x7fff_ffff)).toBe(2);
+    // This vector distinguishes true modular addition from a wrapped i32
+    // addition followed by a remainder operation.
+    expect(wasm.add_mod(0xffff_ffff, 0xffff_ffff, 10)).toBe(0);
+  });
+
+  it('generates, verifies, and records deterministic public inputs using the real WASM-backed ZKP backend', async () => {
+    const backend = new BrowserSchnorrZkpBackend();
+    const first = await backend.generateProof(witness, theoremFixtures.zkp.seed);
+    const second = await backend.generateProof(witness, theoremFixtures.zkp.seed);
+
+    // Deterministic input normalization and seeded Fiat-Shamir nonce produce
+    // stable proof bytes. This makes the release evidence independently
+    // reproducible without making an unseeded production call deterministic.
+    expect(first.proofData).toEqual(second.proofData);
+    expect(first.publicInputs).toEqual(second.publicInputs);
+    expect(first.publicInputs).toMatchObject(theoremFixtures.zkp.expectedPublicInputs);
+    expect(first.metadata).toMatchObject({
+      backend: BROWSER_SCHNORR_BACKEND_ID,
+      verifier_id: 'browser-schnorr-zkp-v0.1',
+      proof_system: 'schnorr-fiat-shamir',
+      wasm_artifact: expect.stringContaining('schnorr-field.wasm'),
+      wasm_artifact_sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
+    expect(first.payload()).toMatchObject({
+      backend: BROWSER_SCHNORR_BACKEND_ID,
+      proofSystem: 'schnorr-fiat-shamir',
+      statement: theoremFixtures.zkp.validWitness.statement,
+      publicInputs: theoremFixtures.zkp.expectedPublicInputs,
+    });
+
+    await expect(backend.verifyProof(JSON.stringify(first.toDict()))).resolves.toBe(true);
+    await expect(verifyDefaultBrowserZkpProof(JSON.stringify(first.toDict()))).resolves.toBe(true);
+    expect(backend.getStats()).toMatchObject({ proofsGenerated: 2, proofsVerified: 1, failures: 0, wasmLoads: 1 });
+  });
+
+  it('rejects tampered, malformed, and fabricated ZKP proof envelopes', async () => {
+    const backend = new BrowserSchnorrZkpBackend();
+    const proof = await backend.generateProof(witness, theoremFixtures.zkp.seed);
+    const payload = proof.payload();
+
+    await expect(backend.verifyProof(JSON.stringify({
+      ...payload,
+      statement: 'O(write)',
+    }))).resolves.toBe(false);
+    await expect(backend.verifyProof(JSON.stringify({
+      ...payload,
+      response: '1',
+    }))).resolves.toBe(false);
+    await expect(backend.verifyProof('{not valid JSON')).resolves.toBe(false);
+    await expect(backend.verifyProof(JSON.stringify({
+      schema: 'browser-schnorr-zkp-v1', backend: 'fabricated-proof-result',
+    }))).resolves.toBe(false);
+    await expect(backend.generateProof('{not valid JSON', theoremFixtures.zkp.seed)).rejects.toThrow();
+  });
+
+  it('does not permit browser defaults to select simulated, Python, host-native, or fabricated ZKP backends', () => {
+    for (const backend of [
+      'simulated',
+      'python-reference-runner',
+      'host-native',
+      'mock-success',
+      'fabricated-proof-result',
+    ]) {
+      expect(() => createDefaultBrowserZkpBackend({ backend })).toThrow(/browser production ZKP backend/i);
+    }
+  });
+
+  it('runs the public default generation path rather than an injected or fabricated result', async () => {
+    const proof = await generateDefaultBrowserZkpProof(witness, { seed: theoremFixtures.zkp.seed });
+    expect(proof.metadata).toMatchObject({ backend: BROWSER_SCHNORR_BACKEND_ID });
+    await expect(verifyDefaultBrowserZkpProof(JSON.stringify(proof.toDict()))).resolves.toBe(true);
   });
 });
 
