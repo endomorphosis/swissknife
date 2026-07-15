@@ -252,6 +252,7 @@ test-results/browser-smoke-matrix/*
 test-results/virtual-desktop-ipfs-mcp-orb/*
 !test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json
 !test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-io-map.json
+!test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-three-backend-runtime.json
 !test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-io-envelopes.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json
 !test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json

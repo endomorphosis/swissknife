@@ -164,15 +164,17 @@ describe('Agent Supervisor browser gateway contract', () => {
       helia: { put: async () => ({ cid: 'bafybrowserheliacheckpoint' }), get: async cid => ({ cid, from: 'helia' }) },
     });
 
-    const [state, policy, checkpoint] = await Promise.all([
+    const [state, policy, checkpoint, content] = await Promise.all([
       runtime.invoke(buildAgentSupervisorInvocation('supervisor.queue.read', {}, 'corr-state')),
       runtime.invoke(buildAgentSupervisorInvocation('supervisor.policy.assist', {}, 'corr-policy')),
       runtime.invoke(buildAgentSupervisorInvocation('supervisor.event-dag.checkpoint', { confirmation_token: 'confirm' }, 'corr-checkpoint')),
+      runtime.invoke(buildAgentSupervisorInvocation('supervisor.content.retrieve', { cid: 'bafybrowserheliacheckpoint' }, 'corr-content')),
     ]);
 
     expect(state).toMatchObject({ state: 'available', owner: 'ipfs_accelerate_py', runtime: { transport: 'http', policy_outcome: 'allow' } });
     expect(policy).toMatchObject({ state: 'available', owner: 'ipfs_datasets_py', runtime: { binding_id: 'agent-supervisor.ipfs_datasets_py.query_catalog' } });
     expect(checkpoint).toMatchObject({ state: 'available', owner: 'ipfs_kit_py', runtime: { transport: 'browser-helia', content_cid: 'bafybrowserheliacheckpoint' } });
+    expect(content).toMatchObject({ state: 'available', owner: 'ipfs_kit_py', data: { cid: 'bafybrowserheliacheckpoint', from: 'helia' }, runtime: { transport: 'browser-helia', content_cid: 'bafybrowserheliacheckpoint' } });
     expect(new Set(calls.map(call => call.owner))).toEqual(new Set(['ipfs_accelerate_py', 'ipfs_datasets_py', 'ipfs_kit_py']));
   });
 });

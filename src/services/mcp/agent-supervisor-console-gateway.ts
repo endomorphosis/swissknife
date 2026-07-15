@@ -1544,8 +1544,16 @@ function shouldUseHelia(
   invocation: AgentSupervisorGatewayInvocation,
   result: AllAppToolGatewayResult,
 ): boolean {
-  return result.state === 'unavailable'
-    && ['supervisor.receipts.persist', 'supervisor.content.retrieve', 'supervisor.event-dag.checkpoint'].includes(invocation.capability_id);
+  if (!['supervisor.receipts.persist', 'supervisor.content.retrieve', 'supervisor.event-dag.checkpoint']
+    .includes(invocation.capability_id)) return false;
+
+  // Helia is a recovery path for a kit transport/capability failure, not a way
+  // around mediated input validation or a policy decision.  In particular, a
+  // host-path/credential payload must stay rejected by AllAppToolGateway.
+  if (result.state === 'executed' || result.state === 'denied'
+    || result.policy_outcome !== 'allow') return false;
+  const response = result.response.response as { error?: unknown } | null;
+  return response?.error !== 'invalid_input';
 }
 
 function toolFailureReason(result: AllAppToolGatewayResult): AgentSupervisorUnavailableReason {

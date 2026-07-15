@@ -59,6 +59,8 @@ const AGENT_SUPERVISOR_CONTRACT = Object.freeze({
     'receipt_unavailable',
     'not_configured',
     'timeout',
+    'helia_unavailable',
+    'persistence_failed',
   ]),
   denied_states: Object.freeze([
     'policy_denied',
@@ -156,6 +158,11 @@ export class AgentSupervisorApp {
         reason: 'Dispatch the reviewed task through the governed supervisor queue.',
         confirm: false,
         submitting: false,
+        result: null,
+        error: null,
+      },
+      receiptOperation: {
+        loading: false,
         result: null,
         error: null,
       },
@@ -421,6 +428,12 @@ export class AgentSupervisorApp {
         this.update();
       });
     });
+    this.container.querySelector('[data-action="retrieve-receipt-content"]')?.addEventListener('click', () => {
+      this.retrieveSelectedReceiptContent();
+    });
+    this.container.querySelector('[data-action="checkpoint-receipt"]')?.addEventListener('click', () => {
+      this.checkpointSelectedReceipt();
+    });
     this.container.querySelector('[data-steering-prompt]')?.addEventListener('input', event => {
       this.state.steering.prompt = event.target.value.slice(0, 8000);
       this.state.steering.result = null;
@@ -621,6 +634,70 @@ export class AgentSupervisorApp {
       };
     }
     this.state.activeTab = 'dispatch';
+    this.update();
+  }
+
+  async retrieveSelectedReceiptContent() {
+    const selected = this.state.snapshot.receipts
+      .find(item => item.receipt_id === this.state.selectedReceiptId);
+    if (!selected?.cid) {
+      this.state.receiptOperation.error = {
+        reason: 'receipt_unavailable',
+        message: 'Select a receipt with a content CID before requesting retrieval.',
+      };
+      this.update();
+      return;
+    }
+    this.state.receiptOperation.loading = true;
+    this.state.receiptOperation.result = null;
+    this.state.receiptOperation.error = null;
+    this.update();
+    const result = await this.invokeCapability('supervisor.content.retrieve', {
+      cid: selected.cid,
+      receipt_ids: [selected.receipt_id],
+    });
+    this.state.receiptOperation.loading = false;
+    if (isAvailableResult(result)) {
+      this.state.receiptOperation.result = result;
+    } else {
+      this.state.receiptOperation.error = result;
+    }
+    this.state.results.contentRetrieve = result;
+    this.update();
+  }
+
+  async checkpointSelectedReceipt() {
+    const selected = this.state.snapshot.receipts
+      .find(item => item.receipt_id === this.state.selectedReceiptId);
+    if (!selected) {
+      this.state.receiptOperation.error = {
+        reason: 'receipt_unavailable',
+        message: 'Select a receipt before creating an event-DAG checkpoint.',
+      };
+      this.update();
+      return;
+    }
+    this.state.receiptOperation.loading = true;
+    this.state.receiptOperation.result = null;
+    this.state.receiptOperation.error = null;
+    this.update();
+    const correlation = `checkpoint-${Date.now()}`;
+    const result = await this.invokeCapability('supervisor.event-dag.checkpoint', {
+      receipt: selected,
+      confirmation_token: `confirm-agent-supervisor:receipt:${selected.receipt_id}:${correlation}`,
+    });
+    this.state.receiptOperation.loading = false;
+    if (isAvailableResult(result)) {
+      this.state.receiptOperation.result = result;
+      const checkpointReceipt = result.receipt || result.data?.receipt;
+      if (checkpointReceipt?.receipt_id) {
+        this.state.snapshot.receipts = upsertReceipt(this.state.snapshot.receipts, checkpointReceipt);
+        this.state.selectedReceiptId = checkpointReceipt.receipt_id;
+      }
+    } else {
+      this.state.receiptOperation.error = result;
+    }
+    this.state.results.eventDagCheckpoint = result;
     this.update();
   }
 
@@ -969,6 +1046,9 @@ export class AgentSupervisorApp {
   renderReceipts() {
     const { receipts } = this.state.snapshot;
     const selected = receipts.find(item => item.receipt_id === this.state.selectedReceiptId) || receipts[0];
+    const operation = this.state.receiptOperation;
+    const operationResult = operation.result;
+    const operationError = operation.error;
     return `
       <div class="as-detail-body" data-testid="receipt-view">
         <div class="as-receipt-list">
@@ -985,6 +1065,21 @@ export class AgentSupervisorApp {
             ${metric('CID', selected.cid || 'pending')}
             ${metric('Owner', selected.owner)}
             ${metric('Created', selected.created_at || 'unknown')}
+          </div>
+          <div class="as-actions as-receipt-actions">
+            <button type="button" data-action="retrieve-receipt-content" data-testid="receipt-retrieve" data-supervisor-focusable ${operation.loading ? 'disabled' : ''}>${operation.loading ? 'Working' : 'Retrieve content'}</button>
+            <button type="button" data-action="checkpoint-receipt" data-testid="receipt-checkpoint" data-supervisor-focusable ${operation.loading ? 'disabled' : ''}>Checkpoint event-DAG</button>
+          </div>
+          <div class="as-section-line" data-testid="receipt-operation-evidence">
+            <h4>Receipt operation evidence</h4>
+            ${operationResult ? `
+              ${metric('Owner', operationResult.owner || 'ipfs_kit_py')}
+              ${metric('Transport', operationResult.runtime?.transport || 'unobserved')}
+              ${metric('Policy', operationResult.runtime?.policy_outcome || operationResult.policy_class || 'unobserved')}
+              ${metric('CID', operationResult.runtime?.event_dag_cid || operationResult.runtime?.content_cid || operationResult.receipt?.cid || 'no-cid')}
+              ${metric('Failure', operationResult.runtime?.failure_code || 'none')}
+            ` : '<span>Retrieve or checkpoint the selected receipt to record mediated kit or browser-Helia evidence.</span>'}
+            ${operationError ? `<span role="alert">${escapeHtml(operationError.reason || operationError.state || 'unavailable')}: ${escapeHtml(operationError.message || 'Receipt operation failed.')}</span>` : ''}
           </div>
         ` : ''}
       </div>
