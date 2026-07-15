@@ -262,6 +262,72 @@ const CAPABILITIES: readonly AgentSupervisorCapabilityDescriptor[] = Object.free
     receipt_required: true,
     description: 'Requests a task-control transition through supervisor policy, dependency, and receipt checks.',
   },
+  {
+    id: 'supervisor.profile-g.read', title: 'Profile G scheduling profile',
+    access: 'read', owner: 'ipfs_accelerate_py', policy_class: 'read', transports: READ_TRANSPORTS,
+    method: 'mcp++/risk/profile', input_ref: '#/$defs/listRequest', output_ref: '#/$defs/semanticAssist', receipt_required: true,
+    description: 'Reads the negotiated Profile G risk and scheduling limits without mutating scheduling state.',
+  },
+  {
+    id: 'supervisor.schedule.frontier.read', title: 'Schedule frontier',
+    access: 'read', owner: 'ipfs_accelerate_py', policy_class: 'read', transports: READ_TRANSPORTS,
+    method: 'mcp++/schedule/frontier', input_ref: '#/$defs/listRequest', output_ref: '#/$defs/queueItemList', receipt_required: true,
+    description: 'Reads the capability-aware scheduling frontier through the mediated Supervisor route.',
+  },
+  {
+    id: 'supervisor.neighborhood.read', title: 'Scheduling neighborhood',
+    access: 'read', owner: 'ipfs_accelerate_py', policy_class: 'read', transports: READ_TRANSPORTS,
+    method: 'mcp++/neighborhood/query', input_ref: '#/$defs/listRequest', output_ref: '#/$defs/semanticAssist', receipt_required: true,
+    description: 'Reads the task neighborhood and delegation context used for risk-aware placement.',
+  },
+  {
+    id: 'supervisor.schedule.claims.read', title: 'Task claim status',
+    access: 'read', owner: 'ipfs_accelerate_py', policy_class: 'read', transports: READ_TRANSPORTS,
+    method: 'mcp++/schedule/status', input_ref: '#/$defs/listRequest', output_ref: '#/$defs/queueItemList', receipt_required: true,
+    description: 'Reads lease and fencing status before any governed claim mutation.',
+  },
+  {
+    id: 'supervisor.risk.read', title: 'Task risk evidence',
+    access: 'read', owner: 'ipfs_accelerate_py', policy_class: 'read', transports: READ_TRANSPORTS,
+    method: 'mcp++/risk/history', input_ref: '#/$defs/listRequest', output_ref: '#/$defs/semanticAssist', receipt_required: true,
+    description: 'Reads CID-addressed risk history and does not infer authority from peer identity alone.',
+  },
+  {
+    id: 'supervisor.goal.decompose', title: 'Decompose goal',
+    access: 'governed-write', owner: 'ipfs_accelerate_py', policy_class: 'confirm', transports: GOVERNED_TRANSPORTS,
+    method: 'mcp++/goals/decompose', input_ref: '#/$defs/promptSteeringRequest', output_ref: '#/$defs/governedActionAccepted', receipt_required: true,
+    description: 'Requests policy-confirmed goal decomposition with a receipt and event-DAG checkpoint.',
+  },
+  {
+    id: 'supervisor.schedule.propose', title: 'Propose schedule',
+    access: 'governed-write', owner: 'ipfs_accelerate_py', policy_class: 'confirm', transports: GOVERNED_TRANSPORTS,
+    method: 'mcp++/schedule/propose', input_ref: '#/$defs/taskControlRequest', output_ref: '#/$defs/governedActionAccepted', receipt_required: true,
+    description: 'Proposes a schedule subject to capability, dependency, budget, and policy checks.',
+  },
+  {
+    id: 'supervisor.schedule.claim', title: 'Claim scheduled task',
+    access: 'governed-write', owner: 'ipfs_accelerate_py', policy_class: 'privileged-control', transports: GOVERNED_TRANSPORTS,
+    method: 'mcp++/schedule/claim', input_ref: '#/$defs/taskControlRequest', output_ref: '#/$defs/governedActionAccepted', receipt_required: true,
+    description: 'Claims a task only after capability-aware delegation, lease, policy, and receipt checks.',
+  },
+  {
+    id: 'supervisor.schedule.renew', title: 'Renew scheduled task claim',
+    access: 'governed-write', owner: 'ipfs_accelerate_py', policy_class: 'privileged-control', transports: GOVERNED_TRANSPORTS,
+    method: 'mcp++/schedule/renew', input_ref: '#/$defs/taskControlRequest', output_ref: '#/$defs/governedActionAccepted', receipt_required: true,
+    description: 'Renews a fenced claim through the same policy and receipt boundary.',
+  },
+  {
+    id: 'supervisor.schedule.release', title: 'Release scheduled task claim',
+    access: 'governed-write', owner: 'ipfs_accelerate_py', policy_class: 'confirm', transports: GOVERNED_TRANSPORTS,
+    method: 'mcp++/schedule/release', input_ref: '#/$defs/taskControlRequest', output_ref: '#/$defs/governedActionAccepted', receipt_required: true,
+    description: 'Releases a lease through an explicit policy-confirmed, auditable mutation.',
+  },
+  {
+    id: 'supervisor.schedule.reconcile', title: 'Reconcile schedule',
+    access: 'governed-write', owner: 'ipfs_accelerate_py', policy_class: 'privileged-control', transports: GOVERNED_TRANSPORTS,
+    method: 'mcp++/schedule/reconcile', input_ref: '#/$defs/taskControlRequest', output_ref: '#/$defs/governedActionAccepted', receipt_required: true,
+    description: 'Reconciles schedule claims only with capability-aware delegation and durable evidence.',
+  },
 ]);
 
 export const AGENT_SUPERVISOR_CONSOLE_CONTRACT: AgentSupervisorConsoleContract = Object.freeze({
@@ -706,6 +772,12 @@ export class AgentSupervisorConsoleGateway {
     if (validation) return Promise.resolve(validation);
     return this.invoke('supervisor.task-control.request', request, correlationId);
   }
+
+  profileG(correlationId?: string): Promise<AgentSupervisorGatewayResult<unknown>> { return this.invoke('supervisor.profile-g.read', {}, correlationId); }
+  frontier(correlationId?: string): Promise<AgentSupervisorGatewayResult<unknown>> { return this.invoke('supervisor.schedule.frontier.read', {}, correlationId); }
+  neighborhood(correlationId?: string): Promise<AgentSupervisorGatewayResult<unknown>> { return this.invoke('supervisor.neighborhood.read', {}, correlationId); }
+  claims(correlationId?: string): Promise<AgentSupervisorGatewayResult<unknown>> { return this.invoke('supervisor.schedule.claims.read', {}, correlationId); }
+  risk(correlationId?: string): Promise<AgentSupervisorGatewayResult<unknown>> { return this.invoke('supervisor.risk.read', {}, correlationId); }
 
   private invoke<TData, TPayload>(
     capabilityId: AgentSupervisorCapabilityId,
