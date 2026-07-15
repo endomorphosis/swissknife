@@ -12,7 +12,8 @@ export default defineConfig({
 	testMatch: [
 		'**/strudel-ai-daw.smoke.test.ts',
 		'**/screenshot-and-verify-all-apps.test.ts',
-		'**/all-app-live-backend-behavior.spec.ts'
+		'**/all-app-live-backend-behavior.spec.ts',
+		'**/all-app-live-behavior-proof.spec.ts'
 	],
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,

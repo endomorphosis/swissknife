@@ -24,7 +24,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const SCHEMA = "swissknife.browser-validation-toolchain.v1";
-const NODE_POLICY = "^20.19.0 || >=22.12.0";
+// Helia's locked browser/libp2p transport used by the all-app evidence lane
+// requires Node 22.19 or newer. Keep this exact value in lock-step with the
+// root package and lockfile engine declaration.
+const NODE_POLICY = ">=22.19.0";
 const PACKAGE_MANAGER_NAME = "npm";
 const DEFAULT_RECEIPT =
   "test-results/browser-toolchain/verification-receipt.json";
@@ -125,9 +128,7 @@ function parseSemanticVersion(raw, label) {
 
 function isSupportedNodeVersion(version) {
   if (version.prerelease) return false;
-  if (version.major === 20) return version.minor >= 19;
-  if (version.major === 21) return false;
-  if (version.major === 22) return version.minor >= 12;
+  if (version.major === 22) return version.minor >= 19;
   return version.major > 22;
 }
 
@@ -140,15 +141,14 @@ function compareSemanticVersions(left, right) {
 
 function runPolicySelfTests() {
   const cases = [
-    ["20.18.1", false],
-    ["20.19.0", true],
-    ["20.19.1", true],
+    ["20.19.1", false],
     ["21.7.3", false],
-    ["22.11.0", false],
-    ["22.12.0", true],
+    ["22.18.9", false],
+    ["22.19.0", true],
+    ["22.19.1", true],
     ["23.0.0", true],
     ["24.0.0", true],
-    ["22.12.0-rc.1", false],
+    ["22.19.0-rc.1", false],
   ];
   const results = cases.map(([candidate, expected]) => {
     const actual = isSupportedNodeVersion(
