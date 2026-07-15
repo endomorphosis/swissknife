@@ -13,6 +13,7 @@ describe('browser proof runtime evidence contract', () => {
   const observedResult = JSON.parse(projectFile('test-results/browser-proof-runtime/observed-three-engine-runtime.json'));
   const runtimeConfig = projectFile('build-tools/configs/vitest.browser-proof-runtime.config.ts');
   const runtimeTests = projectFile('test/browser-proof-runtime/browser-theorem-runtime.test.ts');
+  const runtimeRunner = projectFile('scripts/run-browser-proof-runtime.mjs');
   const schnorrSource = projectFile('src/services/zkp/zkp-browser-schnorr.ts');
   const wasmAssets = JSON.parse(projectFile('src/services/zkp/artifacts/browser-wasm-assets.json'));
 
@@ -42,6 +43,17 @@ describe('browser proof runtime evidence contract', () => {
       assertions_per_engine: evidence.observed_execution.assertions_per_engine,
     });
     expect(observedResult.engines.map(engine => engine.name)).toEqual(evidence.required_engines);
+    expect(observedResult.engines).toEqual(evidence.required_engines.map(name => ({
+      name,
+      outcome: 'passed',
+      assertion_count: evidence.observed_execution.assertions_per_engine,
+    })));
+    expect(observedResult.source_fingerprints).toMatchObject({
+      runtime_config_sha256: crypto.createHash('sha256').update(runtimeConfig).digest('hex'),
+      runtime_test_sha256: crypto.createHash('sha256').update(runtimeTests).digest('hex'),
+      runner_sha256: crypto.createHash('sha256').update(runtimeRunner).digest('hex'),
+      vitest_output_sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
   });
 
   test('ties the contract to the Playwright engines and the audited browser implementations', () => {
