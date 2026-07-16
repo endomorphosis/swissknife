@@ -198,6 +198,15 @@ function buildSupervisorManagedReleaseReport() {
   const simulatorData = simulator.data ?? {};
   const handoffData = handoff.data ?? {};
   const serviceOwners = unique((bindings.data?.bindings ?? []).map(binding => binding.owner).filter(nonEmpty));
+  // Keep the release claim tied to the compiled action-handoff receipt.  The
+  // UI replay proves that the Supervisor surface exists; the ORB/IDL action
+  // packets prove that the goal, subgoal, and taskboard operations it exposes
+  // are actually routable with receipt/event-DAG provenance.
+  const supervisorControlPlaneActions = unique((actionHandoff.data?.packets ?? [])
+    .filter(packet => packet.app_id === 'agent-supervisor' && String(packet.action_id).startsWith('supervisor.'))
+    .map(packet => packet.action_id));
+  const supervisorSteeringVerified = EXPECTED_SUPERVISOR_CAPABILITIES
+    .every(capability => supervisorControlPlaneActions.includes(capability));
   const report = {
     schema: 'swissknife.supervisor-managed-all-app-release-evidence.v1',
     task_id: 'SVD-066',
@@ -218,7 +227,9 @@ function buildSupervisorManagedReleaseReport() {
     agent_supervisor: {
       app_id: 'agent-supervisor',
       present_in_app_validation: (ui.data?.app_validations ?? []).some(app => app.app_id === 'agent-supervisor'),
-      goal_subgoal_taskboard_capabilities: EXPECTED_SUPERVISOR_CAPABILITIES,
+      goal_subgoal_taskboard_capabilities: supervisorControlPlaneActions,
+      expected_goal_subgoal_taskboard_capabilities: EXPECTED_SUPERVISOR_CAPABILITIES,
+      goal_subgoal_taskboard_steering_verified: supervisorSteeringVerified,
       control_plane: ui.data?.supervisor_control_plane ?? {},
       runtime: runtime.data?.runtime_boundary ?? runtime.data?.contract ?? {},
       service_owners: serviceOwners,
@@ -247,8 +258,10 @@ function buildSupervisorManagedReleaseReport() {
     no_new_unknowns: {
       status: unknown.length === 0 ? 'no_new_unknowns' : 'unknown_task_classes_present',
       count: unknown.length,
-      statement: unknown.length === 0
+      statement: namedGaps.length === 0
         ? 'No new unknowns: every required release proof is represented by a named SVD receipt and all required proofs passed.'
+        : unknown.length === 0
+        ? 'No new unknowns: every release gap is assigned to an existing task class and owner.'
         : 'A release gap lacks a named SVD owner or task class.',
     },
     named_gaps: namedGaps,
@@ -377,7 +390,8 @@ function renderSupervisorManagedMarkdown(report) {
       ? 'The supervisor-managed release loop is complete: every canonical SwissKnife app has current UI/UX and MCP++ route evidence, the Agent Supervisor control plane is present in ORB/IDL packets, and the Meta glasses simulator replay is current.'
       : 'The release is **NO-GO**. Only the explicit evidence gaps below may be used to reopen the release loop.', '',
     '## Agent Supervisor', '',
-    `- Goal/subgoal/taskboard control-plane capabilities: ${report.agent_supervisor.goal_subgoal_taskboard_capabilities.map(value => `\`${value}\``).join(', ')}.`,
+    `- Goal/subgoal/taskboard control-plane actions: ${report.agent_supervisor.goal_subgoal_taskboard_capabilities.map(value => `\`${value}\``).join(', ')}.`,
+    `- Goal/subgoal/taskboard steering is packet-verified: **${report.agent_supervisor.goal_subgoal_taskboard_steering_verified}**.`,
     `- App UI validation includes Agent Supervisor: **${report.agent_supervisor.present_in_app_validation}**.`,
     `- Backend owners: ${report.agent_supervisor.service_owners.map(value => `\`${value}\``).join(', ')}.`, '',
     '## All-app UI/UX and MCP++ backend evidence', '',
@@ -407,10 +421,11 @@ function renderSupervisorManagedSignoff(report) {
     `Observed: ${report.generated_at}`, `SwissKnife revision: \`${report.source_revision}\``, `Decision: **${report.decision.status.replace('_', '-')}**`, '',
     '## Final decision', '',
     report.decision.status === 'GO'
-      ? 'GO. Agent Supervisor can steer goals, subgoals, and taskboard work with all three MCP++ backend owners; all canonical app UI/UX, ORB/IDL, and Meta glasses simulator evidence is current.'
+      ? 'GO. Agent Supervisor can steer goals, subgoals, and taskboard work through packet-verified MCP++ control-plane actions with all three backend owners; all canonical app UI/UX, ORB/IDL, and Meta glasses simulator evidence is current.'
       : 'NO-GO. The named release evidence gaps remain unresolved.', '',
     '## Evidence basis', '',
     `- Agent Supervisor UI/UX: ${report.app_coverage.opened_app_count}/${report.app_coverage.canonical_app_count} apps, ${report.app_coverage.exercised_route_count}/${report.app_coverage.required_route_count} routes.`,
+    `- Agent Supervisor goal/subgoal/taskboard steering: packet-verified=${report.agent_supervisor.goal_subgoal_taskboard_steering_verified}; ${report.agent_supervisor.goal_subgoal_taskboard_capabilities.length} observed control-plane actions.`,
     `- MCP++ backend bindings: ${report.mcp_plus_plus_backend_evidence.binding_count} across ${report.mcp_plus_plus_backend_evidence.service_owners.join(', ')}.`,
     `- ORB/IDL: ${report.orb_idl_handoff.expanded_handoff_packet_count} expanded packets including ${report.orb_idl_handoff.supervisor_packets} Agent Supervisor packets.`,
     `- Meta glasses simulator: ${report.meta_glasses_simulator.replay_count} replayed packets; hardware-free=${report.meta_glasses_simulator.hardware_free}; physical pairing not claimed.`,
