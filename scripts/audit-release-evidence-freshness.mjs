@@ -251,6 +251,19 @@ function computeEvidenceHashes(evidenceFiles) {
 
 function writeFingerprintReceipt(group, fingerprint, evidenceHashes) {
   ensureParentDir(group.fingerprintFile);
+  const existing = loadFingerprintReceipt(group.fingerprintFile);
+  const sourceFiles = fingerprint.files.map((file) => ({ path: file.path, sha256: file.sha256 }));
+  // Re-certifying identical content must be a no-op.  Otherwise every
+  // release invocation changes `generatedAt`, which dirties a checked-in
+  // receipt even though neither evidence nor the sources it covers changed.
+  if (existing
+    && existing.schema === FINGERPRINT_SCHEMA
+    && existing.id === group.id
+    && JSON.stringify(existing.evidenceHashes) === JSON.stringify(evidenceHashes)
+    && existing.sourceFingerprint === fingerprint.combinedSha256
+    && JSON.stringify(existing.sourceFiles) === JSON.stringify(sourceFiles)) {
+    return existing;
+  }
   const receipt = {
     schema: FINGERPRINT_SCHEMA,
     id: group.id,
@@ -259,10 +272,15 @@ function writeFingerprintReceipt(group, fingerprint, evidenceHashes) {
     evidenceFiles: group.evidenceFiles,
     evidenceHashes,
     sourceFingerprint: fingerprint.combinedSha256,
-    sourceFiles: fingerprint.files.map((file) => ({ path: file.path, sha256: file.sha256 })),
+    sourceFiles,
   };
-  fs.writeFileSync(abs(group.fingerprintFile), `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+  writeIfChanged(abs(group.fingerprintFile), `${JSON.stringify(receipt, null, 2)}\n`);
   return receipt;
+}
+
+function writeIfChanged(filePath, contents) {
+  if (fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf8') === contents) return;
+  fs.writeFileSync(filePath, contents, 'utf8');
 }
 
 function evaluateGroup(group, { update }) {
@@ -480,16 +498,20 @@ function run(argv) {
 
   if (args.json) {
     ensureParentDir(args.json);
-    fs.writeFileSync(
-      abs(args.json),
-      `${JSON.stringify({ schemaVersion: 1, generatedAt: new Date().toISOString(), results }, null, 2)}\n`,
-      'utf8',
-    );
+    const reportPath = abs(args.json);
+    const previous = readJsonIfExists(args.json);
+    const generatedAt = previous
+      && previous.schemaVersion === 1
+      && JSON.stringify(previous.results) === JSON.stringify(results)
+      && typeof previous.generatedAt === 'string'
+      ? previous.generatedAt
+      : new Date().toISOString();
+    writeIfChanged(reportPath, `${JSON.stringify({ schemaVersion: 1, generatedAt, results }, null, 2)}\n`);
   }
 
   if (args.report) {
     ensureParentDir(args.report);
-    fs.writeFileSync(abs(args.report), `${renderMarkdown(results)}\n`, 'utf8');
+    writeIfChanged(abs(args.report), `${renderMarkdown(results)}\n`);
   }
 
   console.log('Release evidence freshness:');

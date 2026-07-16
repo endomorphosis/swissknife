@@ -210,8 +210,14 @@ function buildSupervisorManagedReleaseReport() {
   const report = {
     schema: 'swissknife.supervisor-managed-all-app-release-evidence.v1',
     task_id: 'SVD-066',
-    generated_at: new Date().toISOString(),
-    source_revision: gitRevision(),
+    // A release receipt is a content-addressed assertion, not a build log.
+    // Using wall-clock time and the repository HEAD here made an otherwise
+    // no-op regeneration dirty its own tracked evidence after every commit.
+    // Keep the observable provenance tied to the reviewed input receipts so
+    // the release loop converges; the freshness gate below still hashes every
+    // source file and output artifact on each invocation.
+    generated_at: releaseEvidenceGeneratedAt(records),
+    source_revision: releaseEvidenceRevision(records),
     release_scope: 'Supervisor-managed SwissKnife desktop, all app UI/UX and MCP++ bindings, ORB/IDL handoff, and hardware-free Meta glasses simulator replay.',
     freshness_policy: {
       kind: 'content-addressed-current-checkout', audit_group: 'virtual-desktop-release-evidence',
@@ -389,7 +395,7 @@ function validateThreeBackendRuntime(record) {
 function renderSupervisorManagedMarkdown(report) {
   const lines = [
     '# Supervisor-Managed All-App MCP++ Release Evidence', '',
-    `Generated: ${report.generated_at}`, `Source revision: \`${report.source_revision}\``, `Decision: **${report.decision.status.replace('_', '-')}**`, '',
+    `Generated: ${report.generated_at}`, `Evidence revision: \`${report.source_revision}\``, `Decision: **${report.decision.status.replace('_', '-')}**`, '',
     '## Release conclusion', '',
     report.decision.status === 'GO'
       ? 'The supervisor-managed release loop is complete: every canonical SwissKnife app has current UI/UX and MCP++ route evidence, the Agent Supervisor control plane is present in ORB/IDL packets, and the Meta glasses simulator replay is current.'
@@ -423,7 +429,7 @@ function renderSupervisorManagedMarkdown(report) {
 function renderSupervisorManagedSignoff(report) {
   return [
     '# Refactor Final Signoff', '', 'Task: SVD-066 — Close the supervisor-managed all-app MCP++ release loop', '',
-    `Observed: ${report.generated_at}`, `SwissKnife revision: \`${report.source_revision}\``, `Decision: **${report.decision.status.replace('_', '-')}**`, '',
+    `Observed: ${report.generated_at}`, `SwissKnife evidence revision: \`${report.source_revision}\``, `Decision: **${report.decision.status.replace('_', '-')}**`, '',
     '## Final decision', '',
     report.decision.status === 'GO'
       ? 'GO. Agent Supervisor can steer goals, subgoals, and taskboard work through packet-verified MCP++ control-plane actions with all three backend owners; all canonical app UI/UX, ORB/IDL, and Meta glasses simulator evidence is current.'
@@ -1897,6 +1903,22 @@ function certifyAggregateFreshness() {
   ], { cwd: projectRoot, stdio: 'pipe' });
 }
 
+function releaseEvidenceGeneratedAt(records) {
+  const timestamps = records
+    .map(record => record.data?.generated_at)
+    .filter(isIsoDate)
+    .sort();
+  return timestamps.at(-1) ?? '1970-01-01T00:00:00.000Z';
+}
+
+function releaseEvidenceRevision(records) {
+  const inputs = records
+    .map(record => `${record.id}:${record.sha256 ?? 'MISSING'}`)
+    .sort()
+    .join('\n');
+  return `content-addressed:${sha256(inputs)}`;
+}
+
 function fingerprintPaths(paths) {
   const files = [];
   for (const relativePath of paths) {
@@ -1952,6 +1974,7 @@ function walkFiles(root) {
 function atomicWriteJson(filePath, value) { atomicWrite(filePath, `${JSON.stringify(value, null, 2)}\n`); }
 function atomicWrite(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  if (fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf8') === value) return;
   const temporaryPath = `${filePath}.${process.pid}.tmp`;
   fs.writeFileSync(temporaryPath, value, 'utf8');
   fs.renameSync(temporaryPath, filePath);
@@ -1959,10 +1982,6 @@ function atomicWrite(filePath, value) {
 function readJson(filePath) {
   try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); }
   catch { return null; }
-}
-function gitRevision() {
-  try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim(); }
-  catch { return 'unknown'; }
 }
 function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 function normalizePath(value) { return value.split(path.sep).join('/'); }
