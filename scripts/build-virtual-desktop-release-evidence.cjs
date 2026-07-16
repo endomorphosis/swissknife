@@ -320,6 +320,11 @@ function validateSupervisorAllAppUi(record, appIds) {
   const screenshots = data.screenshots ?? [];
   releaseCheck(record, screenshots.length >= appIds.length && data.acceptance?.screenshots_recorded === true,
     'ui_screenshots', 'All-app UI screenshot evidence was not recorded by the UI/UX replay.');
+  const invalidScreenshots = screenshots.filter(screenshot => !isValidPngReceipt(screenshot));
+  releaseCheck(record, screenshots.every(nonEmpty) && unique(screenshots).length === screenshots.length,
+    'ui_screenshot_receipt_uniqueness', 'UI screenshot receipt paths must be non-empty and unique.');
+  releaseCheck(record, invalidScreenshots.length === 0,
+    'ui_screenshot_files', `UI screenshot evidence is missing, outside the project, or not a PNG: ${invalidScreenshots.join(', ') || 'none'}.`);
   for (const app of apps) releaseCheck(record, Array.isArray(app.routes) && app.routes.length > 0 && app.routes.every(route => Array.isArray(route.service_bindings) && route.service_bindings.length === 6),
     `backend_routes_${app.app_id}`, `${app.app_id} has no complete MCP++ backend route binding evidence.`, app.app_id);
 }
@@ -1920,6 +1925,18 @@ function safeProjectPath(declaredPath) {
 function isPng(filePath) {
   const signature = fs.readFileSync(filePath).subarray(0, 8);
   return signature.equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+}
+
+/** Screenshot paths originate in evidence JSON; fail the release as a named
+ * check instead of allowing malformed paths or unreadable files to abort the
+ * compiler before it can emit a useful NO-GO receipt. */
+function isValidPngReceipt(declaredPath) {
+  const filePath = safeProjectPath(declaredPath);
+  try {
+    return Boolean(filePath && fs.statSync(filePath).isFile() && isPng(filePath));
+  } catch {
+    return false;
+  }
 }
 
 function walkFiles(root) {

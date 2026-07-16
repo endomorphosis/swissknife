@@ -131,6 +131,11 @@ const EVIDENCE_GROUPS = [
       'test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-three-backend-runtime.json',
+      // The UI validation receipt names these PNG files.  Hash the complete
+      // corpus as a source dependency so a deleted, replaced, or newly added
+      // screenshot cannot leave an otherwise unchanged JSON receipt looking
+      // current.
+      'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io',
       'test/e2e/agent-supervisor-expanded-meta-io.spec.ts',
       'test/e2e/meta-glasses-expanded-io-simulator-validation.spec.ts',
       'test/mcp-plus-plus/agent-supervisor-expanded-io-handoff.test.ts',
@@ -139,6 +144,8 @@ const EVIDENCE_GROUPS = [
       'src/services/apps/all-app-live-tool-bindings.ts',
       'src/services/apps/agent-supervisor-expanded-io-envelopes.ts',
       'src/services/glasses/agent-supervisor-expanded-io-handoff.ts',
+      'src/services/glasses/agent-supervisor-expanded-io-map.ts',
+      'src/services/glasses/all-app-orb-idl-action-handoff.ts',
       'src/services/glasses/meta-glasses-expanded-io-simulator-validation.ts',
       'src/services/glasses/desktop-orb-idl-contract.ts',
       'src/services/mcp/agent-supervisor-console-gateway.ts',

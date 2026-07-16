@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Supervisor-managed virtual desktop all-app release evidence (SVD-066)",
-  "generatedAt": "2026-07-16T00:27:10.509Z",
+  "generatedAt": "2026-07-16T00:32:03.710Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,16 +10,16 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "e94f3abb581a85f9395f526d212e1b2804e310f79fb21bd1aae606cc55858a3e",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "8d8dfd71ce7bdad33baf97c1dbe9198c6990d5f31e371d70b62281f6754ada87",
-    "docs/refactor-final-signoff.md": "3c8942966518dc0dfa412d78d5c22134bcf97a39e16f398d06a8a4e3a06e1a3e",
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "400018729f090525c10bcda28cc0b5fc8394a3a60d278e6184ab27380fc92024",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "6a75b0525a67ebc68913411b519374a79cfd039838d04d8f4ae9a955bcf615a3",
+    "docs/refactor-final-signoff.md": "c5d63e8b95e9af90c3554fca3988dc3c9300f4030095e0d55d9af8ab31baae8e",
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "8cbc19ce260c245ac65ccb99c35bd82a0dbb85b8b4b6ba5b6b3b3219fd4c3a1d"
   },
-  "sourceFingerprint": "76b954e0420c78746ccf347728bfaa428fa1bf51ac3d0b61fc7facb43fb071ba",
+  "sourceFingerprint": "12941f85450b784b2b56678a5a817138998fc309415dabc7c9607a07286f8b81",
   "sourceFiles": [
     {
       "path": "scripts/audit-release-evidence-freshness.mjs",
-      "sha256": "697460b3e60ac04056196365869049fcc97dafdda5285459f326c9ac252a68b2"
+      "sha256": "3a9b7a65033f64e21cbf0f9bebf78c97f7a21df565c0740c9e5446a23fa4e938"
     },
     {
       "path": "scripts/build-agent-supervisor-expanded-io-release-inputs.ts",
@@ -27,7 +27,7 @@
     },
     {
       "path": "scripts/build-virtual-desktop-release-evidence.cjs",
-      "sha256": "b8629b2e1b1551790ff873f9869ae9b3e8acc44b36c36656428f44a2a084a486"
+      "sha256": "9060db3c0ef47190759a34a1b10fcc459005ea64a4ccf0ce95687e1ba33afac5"
     },
     {
       "path": "src/services/apps/agent-supervisor-expanded-io-envelopes.ts",
@@ -44,6 +44,14 @@
     {
       "path": "src/services/glasses/agent-supervisor-expanded-io-handoff.ts",
       "sha256": "18d3c98a09d44053907b9922a295163472d56a43e6bbad8caa214000cb8af9af"
+    },
+    {
+      "path": "src/services/glasses/agent-supervisor-expanded-io-map.ts",
+      "sha256": "f3f2548e8ce58adc370ee008407c04b4e7f2b9edc8af8955d0ec189bc6a46ac9"
+    },
+    {
+      "path": "src/services/glasses/all-app-orb-idl-action-handoff.ts",
+      "sha256": "0804949dbf2012f26dfc872fdaa04406f60437380d106ac5567b2bad2867dbf3"
     },
     {
       "path": "src/services/glasses/desktop-orb-idl-contract.ts",
@@ -80,6 +88,190 @@
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
       "sha256": "05b1d868675b42eed6081b611db545feba1161a4ddbaa3003b178852f5eafe7a"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/00-agent-supervisor-control-plane.png",
+      "sha256": "adec7c530844f134540b2f27c862d623a91bf127963989f3c01b10a2fbb65ee3"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/01-accelerate-panel.png",
+      "sha256": "78c5b576ea45457c02e45e8a2d3d86f1eb7a9ed6147a26ebdc817448bcd5daad"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/02-agent-supervisor.png",
+      "sha256": "d76f53133fd1059f6b037147700ef9b9e8a53e39bcdb51d2b65028cfce67dd8f"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/03-ai-chat.png",
+      "sha256": "803af242b75ed0af7d9a11464a43243f54b1025276c5f22e17f8eb3880d5a7fa"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/04-api-keys.png",
+      "sha256": "23382cfba5250e57340b7284a16f92f18f3e9c8a48850a34915a0452fda88a22"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/05-calculator.png",
+      "sha256": "f53848ab966e6e01b8983491f9cfa56e2cc203a09a7e44e38c0824d7f2e6951d"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/06-calendar.png",
+      "sha256": "2dcc0fe4b22573e8411e0c19bc65f319a4f09dbbe5f2da0fc3ecf0cb99d1c50d"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/07-cinema.png",
+      "sha256": "89eb26d468dfa37bae40722494f2e7941500ecda3f227f5afa44b18b5a0a7243"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/08-clock.png",
+      "sha256": "69742ed6a5931aa96a9467ea463b08712051cc8c2382c75f9ee0d5906c46fb1a"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/09-cron.png",
+      "sha256": "767d8e7c41773f204162c588f48dab23bb2fec0c760d1b13e6e0ec21206faeee"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/10-datasets-browser.png",
+      "sha256": "275d4730cd135040e99b356c56c2fbc1b417c6576b8c136a87e65c9cbf2f50a7"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/11-device-manager.png",
+      "sha256": "9533020fe8af1ba46a6d0770cf21017c7ad21446a7ba58e2685adbcbcc8a6f7d"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/12-file-manager.png",
+      "sha256": "0a8f40e3bdfb90b066c2d52302a4fbb29f43e947aab81c240e0f32ff669f6533"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/13-friends-list.png",
+      "sha256": "a2120616fafe081acf4d6d642a0e98a9b0eaee692a325eb2766ec3925e6eaf0d"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/14-github.png",
+      "sha256": "88fe32e16ee1eaafeda60fcebd2bf914f5e7b9dc20936ee982938108ca4ab891"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/15-glasses-preview.png",
+      "sha256": "f06479187fcb9b15782b5cfd8464feeddf55171b9ac5d542c69e16a1fd6213eb"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/16-huggingface.png",
+      "sha256": "9cf0a3df8d59cdb317c99eb6475124b6d35dc473ec7a6e49e0f630235f5f5767"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/17-idl-explorer.png",
+      "sha256": "e9d0c7ffbb603997c2dee1947fd1465a56dac8ba8492483efa35f328387617c7"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/18-image-viewer.png",
+      "sha256": "3e9e59c10bac397ba41eebfb25a664038234fd6a5b6409e4debcef59a279e0c4"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/19-ipfs-explorer.png",
+      "sha256": "b738b7557c4df31a479e8d546d81d6fc802e602ce9841cd684a04e27ee4663f9"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/20-mcp-control.png",
+      "sha256": "8ebe76a3fd209c5b47f57abc9b1503bc590b1746fd9a753e75971864d551d32e"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/21-mcp-plus-plus.png",
+      "sha256": "467523bb4e32a2fee6928cfc19a40e1e24a982c98cde5192bbe1c53ae359d734"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/22-media-player.png",
+      "sha256": "7bcfd72bd33379fa3bb71bb8c64b30084c0b10961ba1ce88bab02e012246eab3"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/23-model-browser.png",
+      "sha256": "de6efbd9c7a2656808b241144eace0edb706a06a81c5f62afb4ad398132d85ae"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/24-music-studio.png",
+      "sha256": "de546fe705ef22e2ae73862b579ccb485ac2c2dc03700ee3eac7d03275c53428"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/25-music-studio-unified.png",
+      "sha256": "9c0513ec684cc17833750c414927f9aa4b8b45dcb30eb74f2da46a2dd148f338"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/26-navi.png",
+      "sha256": "a2af14cd7cb659b7bc84d07a86ef6a15807c82910a3e2976137041ccef8299bc"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/27-neural-network-designer.png",
+      "sha256": "2391cd3d3b50009df83eb49bcbda064a1bbfb43ec513a3762010c44e2659d02d"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/28-neural-photoshop.png",
+      "sha256": "7c442859998d55dd5b112ad40fc018b7ab9a2baad9dc8fa15a8081c0d8f4564b"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/29-notes.png",
+      "sha256": "a16bcae1c8839b70cb7f284198e86a5550ea4ad0fde167d1fd770660d813f34b"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/30-oauth-login.png",
+      "sha256": "7e259c8be7ee9175578550e307a986c4df1f2a6917cb46be6e28a8410ad82416"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/31-openrouter.png",
+      "sha256": "d11f6abac1c5020b4d607b12dbedfb58a0f9421d68540c558b8bc6989579a17c"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/32-orb-auto-ui.png",
+      "sha256": "89970462a7938a54520106737b8e481dda1cadc18a6a43effa4f236c64559e55"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/33-p2p-chat.png",
+      "sha256": "87645aabf7b3155c51d2555e39695ff9066a61b7b96cb95d8cd42761d93e8a93"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/34-p2p-chat-unified.png",
+      "sha256": "aea989abacbce5f13bc74d28b51a3d3cc6b4ea9c5024c8672a412e88b7f4858e"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/35-p2p-network.png",
+      "sha256": "c7541de23fc930a9f376189db885c1a9e1d53fab13dc8b87f9f03a233f6cbec8"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/36-peertube.png",
+      "sha256": "94778b301d826e1ef8bdf07c701fbb1a15c0608ce47b3eb341942d5be0020d4a"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/37-settings.png",
+      "sha256": "40a8009957763906fd2c3273ffbaa5ba6d35295a72ee00b1ab44fbb590748d9c"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/38-strudel.png",
+      "sha256": "bfd0dbd595f40b95034970ac1ec2b3d797bb6c458da4d0e2549f131f2dbb4d37"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/39-strudel-ai-daw.png",
+      "sha256": "22ab8313f74ece3b9a6baa4f5bbc83c3cdb106f4d8b58bdef9fefa48a88e7dc1"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/40-system-monitor.png",
+      "sha256": "fe402eb0046d52603689c89ed933ba7a28a9d02ae797d08d268f90c071a46dab"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/41-task-manager.png",
+      "sha256": "ecadc8b399a1685bdf9e96df0852f81a7a3a3011c672f21a3ee043a3388d4fbe"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/42-terminal.png",
+      "sha256": "32f9ac4ede08f5bf66afab658440429c52fd34bf6039ef29b97b671da305e43a"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/43-todo.png",
+      "sha256": "a44617d5fd0ddf863d8bb6621fb8f980df8bea6cc64496f97dc8bd2fbb08b44b"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/44-training-manager.png",
+      "sha256": "5fb3c27558a78e5842aab6a58d5052a4325a9b236fbf9d4a169f36efc042e10c"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/45-vibecode.png",
+      "sha256": "bf94cb1e3964134d87a18d8afd954ec2f543ec804bd3a1c63db2ac01d3432688"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json",

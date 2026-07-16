@@ -148,7 +148,7 @@ test('supervisor all-app UI evidence fails closed when the control-plane app is 
     }],
     coverage: { opened_app_count: 1, exercised_route_count: 1, expected_route_count: 1 },
     acceptance: { screenshots_recorded: true },
-    screenshots: [{ app_id: 'agent-supervisor' }],
+    screenshots: ['test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/00-agent-supervisor-control-plane.png'],
     ui_validation: {
       hidden_control_count: 0,
       text_overlap_count: 0,
@@ -167,6 +167,14 @@ test('supervisor all-app UI evidence fails closed when the control-plane app is 
   missingSupervisor.data = { ...valid.data, app_validations: [] };
   releaseEvidence.validateSupervisorAllAppUi(missingSupervisor, ['agent-supervisor']);
   assert.ok(missingSupervisor.gaps.some(gap => gap.code === 'agent_supervisor_surface'));
+
+  const missingScreenshot = record('SVD-070');
+  missingScreenshot.data = {
+    ...valid.data,
+    screenshots: ['test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/missing.png'],
+  };
+  releaseEvidence.validateSupervisorAllAppUi(missingScreenshot, ['agent-supervisor']);
+  assert.ok(missingScreenshot.gaps.some(gap => gap.code === 'ui_screenshot_files'));
 });
 
 test('control-plane action handoff requires every supervisor steering capability', () => {
