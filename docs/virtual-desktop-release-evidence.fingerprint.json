@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Supervisor-managed virtual desktop all-app release evidence (SVD-066)",
-  "generatedAt": "2026-07-16T00:35:12.990Z",
+  "generatedAt": "2026-07-16T00:38:30.226Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,9 +10,9 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "f60e608536471757e228ab50700ddf0bab116125b56ffeaeec08b126758bc1d4",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "ecc9ca95abfad24388584925cb8a54ebdf93982ad2f2e67bba0c5bd2f6bc23ee",
-    "docs/refactor-final-signoff.md": "6fd68d0084b534dfc121399952c78b03470daa70290c8b19970929cb6a0dcfee",
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "f92a8d6207c1641a717bc10a2a0bbe6b4f69b08c65cb8e197bb390514601a3e1",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "f310b6d21a314d0eea778a6b05ddb271ede773b8e2d9bfb2a98f68d5fe412c86",
+    "docs/refactor-final-signoff.md": "82c70d244c62d875c45a6175ff604d268e2ee9d82fbc0e2e3e8157bce5235fd8",
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "8cbc19ce260c245ac65ccb99c35bd82a0dbb85b8b4b6ba5b6b3b3219fd4c3a1d"
   },
   "sourceFingerprint": "12941f85450b784b2b56678a5a817138998fc309415dabc7c9607a07286f8b81",
