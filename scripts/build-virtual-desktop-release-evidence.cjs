@@ -124,6 +124,7 @@ if (require.main === module) main();
 
 function main() {
   fs.mkdirSync(evidenceRoot, { recursive: true });
+  refreshExpandedIoReleaseInputs();
   const report = buildSupervisorManagedReleaseReport();
 
   atomicWriteJson(outputPaths.json, report);
@@ -142,6 +143,22 @@ function main() {
     blocker_task_ids: report.decision.blocker_task_ids,
     outputs: Object.values(outputPaths).map(relative),
   }, null, 2));
+}
+
+/**
+ * SVD-071 and SVD-072 are deterministic releases of reviewed source inputs.
+ * They used to be emitted as a side effect of a Playwright spec, which meant
+ * a clean release checkout could retain a stale or missing final handoff even
+ * though the source compiler was available.  Regenerate and validate both
+ * packets before evaluating the SVD-066 aggregate receipt.
+ */
+function refreshExpandedIoReleaseInputs() {
+  const tsx = path.join(projectRoot, 'node_modules', '.bin', 'tsx');
+  const builder = path.join(projectRoot, 'scripts', 'build-agent-supervisor-expanded-io-release-inputs.ts');
+  if (!fs.existsSync(tsx)) {
+    throw new Error('Cannot refresh SVD-071/SVD-072 release inputs: local tsx runtime is unavailable.');
+  }
+  execFileSync(tsx, [builder], { cwd: projectRoot, stdio: 'pipe' });
 }
 
 /**

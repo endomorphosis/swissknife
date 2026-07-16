@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Supervisor-managed virtual desktop all-app release evidence (SVD-066)",
-  "generatedAt": "2026-07-15T23:57:38.847Z",
+  "generatedAt": "2026-07-16T00:03:06.838Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,20 +10,24 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "3799891d91b2630146c7c8922e1115fee16933dc631aa1730e0a4e0c020284ca",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "4907880770cc43d295acc00ea1f1e4a89be4c2a101e854bf49918d87a39afcaa",
-    "docs/refactor-final-signoff.md": "db1b58806cb93eb2c87fbc15e34355a31a2a5a76b8229ebdb78028e75ad2a790",
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "b665a281e43b370498cd3c03a86004d69e5e1d323be13376de9d3976b148cd64",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "0898e12194f579504625f47341ffde47e14c7d2e45f46aef7611fa14c4d15323",
+    "docs/refactor-final-signoff.md": "d7a391f06a01645645b871677850d397113b3119d81ee1a8e533506d6eacb0f8",
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "8cbc19ce260c245ac65ccb99c35bd82a0dbb85b8b4b6ba5b6b3b3219fd4c3a1d"
   },
-  "sourceFingerprint": "34f1e29bacd669463a5c5e118deb5c104d9f38c54388b9b8c7e4c4edbb9292de",
+  "sourceFingerprint": "11d9f66388b0aaa2550bc0966e025fc74aac0f8c7b6fea5c96136c93a5b69ba2",
   "sourceFiles": [
     {
       "path": "scripts/audit-release-evidence-freshness.mjs",
-      "sha256": "496af14a1b83b5a98944703f5f9cd22048011a80e9dc13141ede8b581deeaadf"
+      "sha256": "697460b3e60ac04056196365869049fcc97dafdda5285459f326c9ac252a68b2"
+    },
+    {
+      "path": "scripts/build-agent-supervisor-expanded-io-release-inputs.ts",
+      "sha256": "4a4e6152bb54ec2493af55e6f657d7b4ba518126629c06bb3858b83c9b0fdff5"
     },
     {
       "path": "scripts/build-virtual-desktop-release-evidence.cjs",
-      "sha256": "390569f66482aa8d6ed79e70d4abdb65ed6c22bc65b3bb46070019234ce0a56d"
+      "sha256": "3e58611740ad0edad82850766fb4a48de62f30b21493abecf101fb580eb90dc6"
     },
     {
       "path": "src/services/apps/agent-supervisor-expanded-io-envelopes.ts",

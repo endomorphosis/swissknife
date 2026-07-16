@@ -122,6 +122,7 @@ const EVIDENCE_GROUPS = [
     ],
     sourcePaths: [
       'scripts/build-virtual-desktop-release-evidence.cjs',
+      'scripts/build-agent-supervisor-expanded-io-release-inputs.ts',
       'scripts/audit-release-evidence-freshness.mjs',
       'test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-meta-io.json',
