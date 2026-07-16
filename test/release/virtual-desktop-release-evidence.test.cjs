@@ -137,3 +137,92 @@ test('route, call, ORB/IDL, replay, and control-plane counts must reconcile exac
 
   assert.ok(checks.some(check => !check.passed && /call-envelope-fixtures/.test(check.reason)));
 });
+
+test('supervisor all-app UI evidence fails closed when the control-plane app is absent', () => {
+  const valid = record('SVD-070');
+  valid.data = {
+    decision: 'GO',
+    app_validations: [{
+      app_id: 'agent-supervisor',
+      routes: [{ service_bindings: Array.from({ length: 6 }, () => ({})) }],
+    }],
+    coverage: { opened_app_count: 1, exercised_route_count: 1, expected_route_count: 1 },
+    acceptance: { screenshots_recorded: true },
+    screenshots: [{ app_id: 'agent-supervisor' }],
+    ui_validation: {
+      hidden_control_count: 0,
+      text_overlap_count: 0,
+      broken_focus_count: 0,
+      unlabeled_control_count: 0,
+      horizontal_overflow_count: 0,
+      browser_console_error_count: 0,
+      failed_request_count: 0,
+      unreported_backend_failure_count: 0,
+    },
+  };
+  releaseEvidence.validateSupervisorAllAppUi(valid, ['agent-supervisor']);
+  assert.equal(valid.gaps.length, 0);
+
+  const missingSupervisor = record('SVD-070');
+  missingSupervisor.data = { ...valid.data, app_validations: [] };
+  releaseEvidence.validateSupervisorAllAppUi(missingSupervisor, ['agent-supervisor']);
+  assert.ok(missingSupervisor.gaps.some(gap => gap.code === 'agent_supervisor_surface'));
+});
+
+test('control-plane action handoff requires every supervisor steering capability', () => {
+  const capabilities = releaseEvidence.expectedSupervisorCapabilities;
+  const valid = record('SVD-110');
+  valid.data = {
+    packet_count: capabilities.length,
+    supervisor_action_packet_count: capabilities.length,
+    packets: capabilities.map(action_id => ({
+      action_id,
+      receipt_refs: ['receipt-cid'],
+      event_dag_refs: ['event-dag-ref'],
+    })),
+  };
+  releaseEvidence.validateActionHandoff(valid);
+  assert.equal(valid.gaps.length, 0);
+
+  const incomplete = record('SVD-110');
+  incomplete.data = {
+    ...valid.data,
+    packet_count: capabilities.length - 1,
+    supervisor_action_packet_count: capabilities.length - 1,
+    packets: valid.data.packets.slice(1),
+  };
+  releaseEvidence.validateActionHandoff(incomplete);
+  assert.ok(incomplete.gaps.some(gap => gap.code === 'action_handoff_supervisor'));
+});
+
+test('Meta glasses simulator requires every modality for each canonical app', () => {
+  const valid = record('SVD-072');
+  valid.data = {
+    decision: 'GO',
+    passed: true,
+    valid: true,
+    acceptance: { full_replay: true },
+    boundary: { simulator_only: true, hardware_free: true, physical_hardware_claimed: false },
+    source_handoff: { task_id: 'SVD-071', packet_count: 1 },
+    replays: [{ app_id: 'agent-supervisor' }],
+    modality_summary: {
+      'display.output': 1,
+      'camera.photo_capture': 1,
+      'camera.video_capture': 1,
+      'microphone.input': 1,
+      'microphone.transcription': 1,
+      'speaker.output': 1,
+      'headphone.output': 1,
+    },
+  };
+  releaseEvidence.validateSimulatorReplay(valid, { packet_count: 1 }, ['agent-supervisor']);
+  assert.equal(valid.gaps.length, 0);
+
+  const incomplete = record('SVD-072');
+  incomplete.data = {
+    ...valid.data,
+    modality_summary: { ...valid.data.modality_summary, 'speaker.output': 0 },
+  };
+  releaseEvidence.validateSimulatorReplay(incomplete, { packet_count: 1 }, ['agent-supervisor']);
+  assert.ok(incomplete.gaps.some(gap => gap.code === 'simulator_modalities'));
+});

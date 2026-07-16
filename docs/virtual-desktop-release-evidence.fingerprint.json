@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Supervisor-managed virtual desktop all-app release evidence (SVD-066)",
-  "generatedAt": "2026-07-16T00:14:39.859Z",
+  "generatedAt": "2026-07-16T00:19:48.645Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,12 +10,12 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "7813528455f74b9e81d5218e5cd05f26aaa7c5098ea3dddb01c975c8e4a8e979",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "67aa1910ccc418134b0b13f269847192e918783caaa8241c5f4e8117b793a47f",
-    "docs/refactor-final-signoff.md": "219b8ca57c30e814c64369e9ab6172f21e11f3f69dd51f48b49512f2d5b4f800",
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "a8a6eb7d4b77c125ea16848db3b5a9de08f43e22855fa569ede85699e77fe950",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "b37924f84e4455f03c80ec2186dd156073f40aa30bbe294efe8f6c9dbe9cd51f",
+    "docs/refactor-final-signoff.md": "454ed8ca324f5ff4908c325e8c835170e93a20aab89bdf3379fe477fc335d548",
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "8cbc19ce260c245ac65ccb99c35bd82a0dbb85b8b4b6ba5b6b3b3219fd4c3a1d"
   },
-  "sourceFingerprint": "11d9f66388b0aaa2550bc0966e025fc74aac0f8c7b6fea5c96136c93a5b69ba2",
+  "sourceFingerprint": "0b6f63b10ed2ab0a0b9724016aa0ab982edfdeb613a2af628b37e231d1383f13",
   "sourceFiles": [
     {
       "path": "scripts/audit-release-evidence-freshness.mjs",
@@ -27,7 +27,7 @@
     },
     {
       "path": "scripts/build-virtual-desktop-release-evidence.cjs",
-      "sha256": "3e58611740ad0edad82850766fb4a48de62f30b21493abecf101fb580eb90dc6"
+      "sha256": "64e02e31f226db89ec4a6526d760774da75a2c65185dd9f274a02e9bd9485b14"
     },
     {
       "path": "src/services/apps/agent-supervisor-expanded-io-envelopes.ts",
