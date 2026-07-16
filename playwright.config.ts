@@ -5,6 +5,7 @@ export default defineConfig({
   testMatch: [
     '**/all-app-meta-device-simulator.spec.ts',
     '**/all-app-meta-device-simulator-proof.spec.ts',
+    '**/all-app-ui-ux-accessibility.spec.ts',
     '**/meta-glasses-expanded-io-simulator-validation.spec.ts',
     '**/meta-glasses-io-apps.spec.ts',
     '**/meta-glasses-expanded-io.spec.ts',
