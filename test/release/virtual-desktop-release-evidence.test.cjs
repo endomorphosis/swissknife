@@ -235,25 +235,26 @@ test('Meta glasses simulator requires every modality for each canonical app', ()
   assert.ok(incomplete.gaps.some(gap => gap.code === 'simulator_modalities'));
 });
 
-test('fresh release evidence rejects unbound and placeholder tool-backed execution claims', () => {
-  const findings = [];
-  const contract = { apps: [{
-    app_id: 'terminal', backend_state: 'tool_backed', backend_capabilities: [{
-      capability_id: 'kit.add', tool_id: 'add', service: 'ipfs_kit_py', mcp_transport: 'http',
+test('fresh release evidence distinguishes executable browser bindings from the broader backend catalog', () => {
+  const fixtureOnly = [];
+  const bindings = {
+    bindings: [{
+      app_id: 'terminal', binding_id: 'terminal.ipfs_kit_py.retrieve_content',
+      owner: 'ipfs_kit_py', capability_id: 'terminal.ipfs_kit_py.ipfs-kit-storage', transports: ['http'],
     }],
-  }] };
-  releaseEvidence.validateFreshToolBackedPairs(contract, {
-    bindings: [{ app_id: 'terminal', owner: 'ipfs_kit_py', capability_id: 'kit.add', coverage_status: 'declared_no_tool_binding' }],
-  }, { executions: [] }, finding => findings.push(finding));
-  assert.equal(findings[0].code, 'declared_no_tool_binding');
-  assert.equal(findings[0].application, 'terminal');
-  assert.equal(findings[0].tool, 'add');
-  assert.equal(findings[0].owner, 'ipfs_kit_py');
+  };
+  releaseEvidence.validateFreshToolBackedPairs(bindings, {
+    fixture_boundary: { kind: 'isolated-browser-behavior-simulator' },
+  }, finding => fixtureOnly.push(finding));
+  assert.equal(fixtureOnly[0].code, 'fixture_only_behavior_proof');
+  assert.equal(fixtureOnly[0].application, 'terminal');
+  assert.equal(fixtureOnly[0].tool, 'terminal.ipfs_kit_py.retrieve_content');
+  assert.equal(fixtureOnly[0].owner, 'ipfs_kit_py');
 
   const placeholder = [];
-  releaseEvidence.validateFreshToolBackedPairs(contract, {
-    bindings: [{ app_id: 'terminal', owner: 'ipfs_kit_py', capability_id: 'kit.add', transports: ['http'] }],
-  }, { executions: [{ app_id: 'terminal', owner: 'ipfs_kit_py', tool_id: 'add', execution_mode: 'fixture-only' }] }, finding => placeholder.push(finding));
+  releaseEvidence.validateFreshToolBackedPairs(bindings, {
+    executions: [{ binding_id: 'terminal.ipfs_kit_py.retrieve_content', execution_mode: 'fixture-only' }],
+  }, finding => placeholder.push(finding));
   assert.equal(placeholder[0].code, 'placeholder_execution_claim');
   assert.equal(placeholder[0].task_id, 'SVD-106');
 });

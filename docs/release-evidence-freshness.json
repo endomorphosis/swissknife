@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-18T19:00:47.924Z",
+  "generatedAt": "2026-07-18T19:26:02.447Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -68,31 +68,22 @@
       "updated": true,
       "releaseBlocking": true,
       "missingEvidenceFiles": [],
-      "missingSourceFiles": [
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-binding-gap-ledger.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-ui-ux-accessibility.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-behavior-proof",
-        "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof",
-        "test-results/virtual-desktop-ipfs-mcp-orb/supervisor-dispatch-artifact-store.json"
-      ],
+      "missingSourceFiles": [],
       "recordedEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "26f9c072d54ee50b4292cfdb14c60412dc85b8ecb4c2e1f201e3927b7849f22f",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "8f03968d131450fefcb3da371e3a359d7c7086a569c03724c99e538484213fbb",
-        "docs/release-readiness-report.json": "d5c55868861736c2a2c1031b0fc4e1ed0428763e9bc7d5b16c1ed9b172330ee2",
-        "docs/release-readiness-report.md": "4cb78c894ba7ca1fc0f0e90535ef96b7ee3b5f54d55624af5fb71a705abb9870"
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "76ed1622a2aed2f3cafc30f6bac19b6b6cfc2ebea918afa374cfbd83fb266b68",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "519b8c535581c76e4243edd893be32bd54f8e43c45d38645b4586d64c27f9232",
+        "docs/release-readiness-report.json": "90813b64aaba7cab2ec9caf3dcf13cd815495b29166f41a77a52ddd4f042e179",
+        "docs/release-readiness-report.md": "0d5d94479369c9cd01399d49811f234faaf2224c0d3c5444435088a315946846"
       },
       "currentEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "26f9c072d54ee50b4292cfdb14c60412dc85b8ecb4c2e1f201e3927b7849f22f",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "8f03968d131450fefcb3da371e3a359d7c7086a569c03724c99e538484213fbb",
-        "docs/release-readiness-report.json": "d5c55868861736c2a2c1031b0fc4e1ed0428763e9bc7d5b16c1ed9b172330ee2",
-        "docs/release-readiness-report.md": "4cb78c894ba7ca1fc0f0e90535ef96b7ee3b5f54d55624af5fb71a705abb9870"
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "76ed1622a2aed2f3cafc30f6bac19b6b6cfc2ebea918afa374cfbd83fb266b68",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "519b8c535581c76e4243edd893be32bd54f8e43c45d38645b4586d64c27f9232",
+        "docs/release-readiness-report.json": "90813b64aaba7cab2ec9caf3dcf13cd815495b29166f41a77a52ddd4f042e179",
+        "docs/release-readiness-report.md": "0d5d94479369c9cd01399d49811f234faaf2224c0d3c5444435088a315946846"
       },
-      "recordedFingerprint": "d47202ead578d172a3e66ba789078ffcd9dd4df1a62c6b80aefbe2be8ae45380",
-      "currentFingerprint": "d47202ead578d172a3e66ba789078ffcd9dd4df1a62c6b80aefbe2be8ae45380",
-      "recordedAt": "2026-07-18T19:00:47.923Z",
+      "recordedFingerprint": "25c16ef2ac6b3c1a0e69fef9ded7123f8d41a748ce8b0b8b012545abc8b39b3f",
+      "currentFingerprint": "25c16ef2ac6b3c1a0e69fef9ded7123f8d41a748ce8b0b8b012545abc8b39b3f",
+      "recordedAt": "2026-07-18T19:26:02.445Z",
       "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs"
     }
   ]

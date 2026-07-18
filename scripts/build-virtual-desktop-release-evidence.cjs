@@ -178,8 +178,8 @@ const FRESH_RELEASE_INPUTS = [
   ['action_handoff', 'all-app-orb-idl-action-handoff.json', 'SVD-110', 'swissknife.all-app-orb-idl-action-handoff.v1'],
   ['meta_simulator', 'all-app-meta-device-simulator-proof.json', 'SVD-111', 'swissknife.all-app-meta-device-simulator-proof.v1'],
   ['ui_accessibility', 'all-app-ui-ux-accessibility.json', 'SVD-112', 'swissknife.all-app-ui-ux-accessibility.v1'],
-  ['dispatch_artifact_store', 'supervisor-dispatch-artifact-store.json', 'SVD-113', 'swissknife.supervisor-dispatch-artifact-store.v1'],
-  ['merge_reconciliation', path.join(workspaceRoot, 'tmp', 'swissknife_all_tools_supervisor', 'state', 'submodule-merge-diagnostics.json'), 'SVD-116', null],
+  ['dispatch_artifact_store', 'supervisor-dispatch-artifact-store.json', 'SVD-113', 'swissknife.supervisor-dispatch-artifact-store-evidence.v1'],
+  ['merge_reconciliation', 'submodule-merge-reconciliation.json', 'SVD-116', 'swissknife.submodule-merge-reconciliation-evidence.v1'],
 ];
 
 function buildFreshReleaseReport({ now = Date.now() } = {}) {
@@ -190,18 +190,20 @@ function buildFreshReleaseReport({ now = Date.now() } = {}) {
     inputs[id] = readFreshReleaseInput(id, file, taskId, schema, now, add);
   }
 
-  // The canonical contract and transport proof are required primary sources,
-  // not optional legacy fallbacks. They give pair and tool checks their exact
-  // app/service identity even when a dependent receipt is absent.
+  // The canonical app inventory and transport proof are required primary
+  // sources, not optional legacy fallbacks. Browser bindings are intentionally
+  // validated from the executable binding receipt below: the all-tools backend
+  // inventory has a broader purpose and is not a one-to-one binding catalog.
   const contract = readFreshReleaseInput('app_backend_contract', 'app-backend-contract.json', 'SWR-113', 'swissknife.virtual-desktop-app-backend-contract.v1', now, add);
   const peer = readFreshReleaseInput('peer_interoperability', 'swissknife-all-tools-peer-evidence.json', 'SVD-100', 'swissknife.all_tools_peer_interoperability_evidence.v1', now, add);
   inputs.app_backend_contract = contract;
   inputs.peer_interoperability = peer;
 
-  validateFreshToolBackedPairs(contract.data, inputs.live_bindings.data, inputs.live_behavior.data, add);
+  validateFreshToolBackedPairs(inputs.live_bindings.data, inputs.live_behavior.data, add);
   validateFreshCatalog(inputs.tool_disposition_catalog.data, peer.data, add);
   validateFreshTransportEvidence(inputs.profile_interoperability.data, add);
   validateFreshSimulatorEvidence(inputs.meta_simulator.data, add);
+  validateFreshMergeReconciliation(inputs.merge_reconciliation.data, add);
 
   const namedGaps = dedupeFreshFindings(findings);
   const decision = namedGaps.length === 0 ? 'GO' : 'NO_GO';
@@ -248,7 +250,7 @@ function readFreshReleaseInput(id, file, taskId, schema, now, add) {
     add({ code: 'invalid_evidence_input', task_id: taskId, evidence_path: result.path, reason: `Evidence is unreadable JSON: ${errorMessage(error)}`, remediation: `Repair and regenerate ${taskId} evidence.` });
     result.status = 'invalid'; return result;
   }
-  result.generated_at = result.data.generated_at ?? result.data.generatedAt ?? null;
+  result.generated_at = result.data.generated_at ?? result.data.generatedAt ?? result.data.updated_at ?? null;
   if (schema && result.data.schema !== schema) add({ code: 'invalid_evidence_schema', task_id: taskId, evidence_path: result.path, reason: `Expected ${schema}; observed ${result.data.schema ?? 'missing'}.`, remediation: `Regenerate ${taskId} with its production evidence command.` });
   if (result.data.task_id && result.data.task_id !== taskId) add({ code: 'invalid_evidence_task', task_id: taskId, evidence_path: result.path, reason: `Expected task_id ${taskId}; observed ${result.data.task_id}.`, remediation: 'Use a receipt produced by the declared owning task.' });
   if (!isIsoDate(result.generated_at)) {
@@ -278,29 +280,90 @@ function dedupeFreshFindings(findings) {
 function freshArtifactView(input) { return { task_id: input.task_id, path: input.path, status: input.status, generated_at: input.generated_at, age_ms: input.age_ms, freshness: input.freshness, sha256: input.sha256 }; }
 function freshFindingSummary(item) { return `${item.task_id}: app=${item.application ?? '-'} tool=${item.tool ?? '-'} owner=${item.owner ?? '-'} transport=${item.transport ?? '-'} modality=${item.modality ?? '-'} — ${item.reason ?? item.code}`; }
 
-function validateFreshToolBackedPairs(contract, bindings, behavior, add) {
-  const bindingRows = bindings?.bindings ?? [];
-  const executionRows = [behavior?.executions, behavior?.tool_executions, behavior?.observations, behavior?.results].flat().filter(Boolean);
-  for (const app of contract?.apps ?? []) {
-    if (app.backend_state !== 'tool_backed') continue;
-    for (const capability of app.backend_capabilities ?? []) {
-      const owner = capability.service ?? capability.owner ?? null;
-      const tool = capability.tool_id ?? capability.capability_id ?? null;
-      const pair = bindingRows.find(row => row.app_id === app.app_id && row.owner === owner && (!capability.capability_id || row.capability_id === capability.capability_id));
-      if (!pair || pair.coverage_status === 'declared_no_tool_binding' || pair.state === 'declared_no_tool_binding') {
-        add({ code: 'declared_no_tool_binding', application: app.app_id, tool, owner, transport: capability.mcp_transport ?? null, task_id: 'SVD-104', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json', remediation: 'Materialize a browser-mediated binding with an exact tool ID, observable request/response, correlation ID, receipt, and recovery route.' });
-        continue;
-      }
-      const execution = executionRows.find(row => row.app_id === app.app_id && (row.tool_id === tool || row.capability_id === capability.capability_id) && (!owner || row.owner === owner || row.service === owner));
-      if (!execution) {
-        add({ code: 'missing_live_execution', application: app.app_id, tool, owner, transport: pair.transports?.join(',') ?? capability.mcp_transport ?? null, task_id: 'SVD-106', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json', remediation: 'Capture application-originated live execution with exact tool invocation, transport, correlation ID, receipt/event-DAG reference, and recovery evidence.' });
-      } else if (isPlaceholderExecution(execution)) {
-        add({ code: 'placeholder_execution_claim', application: app.app_id, tool, owner, transport: execution.transport ?? null, task_id: 'SVD-106', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json', reason: 'Descriptor-only, static-only, or fixture-only execution claims cannot certify a tool-backed pair.', remediation: 'Repeat the workflow against the mediated backend; retain the real request, response, correlation ID, and receipt.' });
-      }
+function validateFreshToolBackedPairs(bindings, behavior, add) {
+  const bindingRows = Array.isArray(bindings?.bindings) ? bindings.bindings : [];
+  const executionRows = [behavior?.executions, behavior?.tool_executions, behavior?.observations, behavior?.results]
+    .flat()
+    .filter(Boolean);
+  const fixtureOnlyBehavior = isPlaceholderExecution(behavior?.fixture_boundary)
+    || String(behavior?.fixture_boundary?.kind ?? '').startsWith('isolated-');
+
+  if (bindingRows.length === 0) {
+    add({
+      code: 'missing_live_bindings',
+      task_id: 'SVD-104',
+      evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json',
+      remediation: 'Capture the executable browser binding catalog before release.',
+    });
+    return;
+  }
+
+  for (const binding of bindingRows) {
+    const application = binding.app_id ?? null;
+    const bindingId = binding.binding_id ?? null;
+    const owner = binding.owner ?? null;
+    const transports = Array.isArray(binding.transports)
+      ? binding.transports
+      : Array.isArray(binding.gateway?.transports) ? binding.gateway.transports : [];
+    if (!application || !bindingId || !owner || transports.length === 0) {
+      add({
+        code: 'invalid_live_binding',
+        application,
+        tool: bindingId,
+        owner,
+        task_id: 'SVD-104',
+        evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json',
+        remediation: 'Emit the app ID, binding ID, backend owner, and allowed transport set for every browser binding.',
+      });
+      continue;
+    }
+    const execution = executionRows.find(row => row.binding_id === bindingId);
+    if (!execution) {
+      add({
+        code: fixtureOnlyBehavior ? 'fixture_only_behavior_proof' : 'missing_live_execution',
+        application,
+        tool: bindingId,
+        owner,
+        transport: transports.join(','),
+        task_id: 'SVD-106',
+        evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json',
+        reason: fixtureOnlyBehavior
+          ? 'The only SVD-106 receipt is an isolated fixture and cannot certify this browser binding.'
+          : 'No application-originated execution observation names this browser binding.',
+        remediation: 'Capture application-originated mediated execution with the binding ID, exact tool ID, transport, correlation ID, receipt/event-DAG reference, and recovery evidence.',
+      });
+    } else if (isPlaceholderExecution(execution)) {
+      add({
+        code: 'placeholder_execution_claim',
+        application,
+        tool: bindingId,
+        owner,
+        transport: execution.transport ?? transports.join(','),
+        task_id: 'SVD-106',
+        evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json',
+        reason: 'Descriptor-only, static-only, or fixture-only execution claims cannot certify a browser binding.',
+        remediation: 'Repeat the workflow against the mediated backend and retain the real request, response, correlation ID, receipt, and event-DAG reference.',
+      });
     }
   }
 }
-function isPlaceholderExecution(row) { return /descriptor[ _-]?only|static[ _-]?only|fixture[ _-]?only|\bfixture\b/.test(JSON.stringify(row).toLowerCase()); }
+function isPlaceholderExecution(row) {
+  return /descriptor[ _-]?only|static[ _-]?only|fixture[ _-]?only|\bfixture\b/
+    .test(JSON.stringify(row ?? null).toLowerCase());
+}
+
+function validateFreshMergeReconciliation(reconciliation, add) {
+  const checked = reconciliation?.reconciliation;
+  if (checked?.unresolved_conflicts_absent !== true) {
+    add({
+      code: 'unresolved_submodule_merge_conflicts',
+      task_id: 'SVD-116',
+      evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/submodule-merge-reconciliation.json',
+      reason: 'Current reconciliation evidence reports unavailable repositories or unmerged paths.',
+      remediation: 'Resolve every reported git conflict, then recapture SVD-116 without overwriting unrelated working-tree changes.',
+    });
+  }
+}
 function validateFreshCatalog(catalog, peer, add) {
   const entries = catalog?.entries ?? [];
   for (const entry of entries) {

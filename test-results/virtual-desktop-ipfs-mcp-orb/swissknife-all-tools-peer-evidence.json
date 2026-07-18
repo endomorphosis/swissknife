@@ -1,12 +1,12 @@
 {
   "schema": "swissknife.all_tools_peer_interoperability_evidence.v1",
-  "generated_at": "2026-07-15T20:23:49.216Z",
+  "generated_at": "2026-07-18T19:09:09.183Z",
   "task_id": "SVD-100",
   "decision": "go",
   "scope": "SwissKnife MCP++ client discovery and approved fixture execution over independent HTTP and libp2p sessions",
   "client": {
     "implementation": "src/services/mcp/mcp-plus-plus-connector.ts",
-    "ucan_audience_did": "did:key:z6Mko6tmohc9GK1bC4Y5wP6fATCZrY2YK9oMVkeUTrFisDLS"
+    "ucan_audience_did": "did:key:z6MksD1kG9tUJUE4c9gA7HY8FYCuj5Rq8628VmRXG1Gtahfv"
   },
   "availability_evidence_policy": {
     "rule": "Availability is established only by an explicit name-level discovery observation and, for approved fixtures, a successful invocation. Aggregate counts are never availability evidence.",
@@ -48,8 +48,8 @@
       "announce": {
         "file": "ipfs-kit-mcp-p2p-announce.json",
         "protocol": "/mcp+p2p/1.0.0",
-        "peer_id": "12D3KooWJLDDTmazfcJXabzeUJRcXkxQd9KtfR7qLmB2zPKbTiJq",
-        "multiaddr": "/ip4/127.0.0.1/tcp/9114/p2p/12D3KooWJLDDTmazfcJXabzeUJRcXkxQd9KtfR7qLmB2zPKbTiJq"
+        "peer_id": "12D3KooWQF8un4N6sW7Bs72WsrXHmhvJgAB5kh35QTzwja2pADov",
+        "multiaddr": "/ip4/127.0.0.1/tcp/39817/p2p/12D3KooWQF8un4N6sW7Bs72WsrXHmhvJgAB5kh35QTzwja2pADov"
       },
       "transports": {
         "http": {
@@ -400,7 +400,7 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu",
-            "identity_proof_cid": "bafkreihucnmcnshxcbgtp2s4gn2m57ek67c4t2l4pgqnh2eaify3nrrsdq",
+            "identity_proof_cid": "bafkreic7qdkvu22zplemu42uq7dfjluz3w7wzbdtq5tjuini3awvwx3n6u",
             "peer_id": null,
             "multiaddr": null,
             "peer_id_matches_announce": null,
@@ -412,7 +412,7 @@
             "approval": "non-mutating status fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreigfesapkdntionv4x3v53fr6t7u7j6a6hh27saskw5d46lqalvslm",
+              "proof_cid": "bafkreicdirbvslqdhkfmh3ytqyyyxbxcyom5cjx7nfv2kmiebgiuza5bnq",
               "valid": true,
               "validation_chain_length": 1
             },
@@ -424,12 +424,12 @@
             },
             "envelope": {
               "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
-              "envelope_cid": "bafkreigilwsli25g747rawqire3zdxhx36b3zcez3iodp3yuygtdqaffre",
+              "envelope_cid": "bafkreibqa2phjsy3ycj4dvmkrgnusn67qpfvqnkhbwvwsxqejdn3bhb4fi",
               "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
-              "intent_cid": "bafkreia7v2cngij4iyecuwgjkg7xyhutpq4ewho277hbp7gmktdet4kor4",
-              "output_cid": "bafkreiamjehj2lbbh5f6zrnwy4yek67fr2lz2fg7nqf4wrkmiwv5p62waa",
-              "receipt_cid": "bafkreiews36hz4xdx3iuzz2xh4snhmfy2vlvbuhyfvxq7rrzyiioefo4ku",
-              "event_cid": "bafkreifyokbsi2ajnajk3gdd7yiqe6jdnva766snoegncxazad4g2uhd3q",
+              "intent_cid": "bafkreigsmrvh3dmoipvcyzrv6wsgvfkjdkhz4wbu6hghijtm5kuamclvbm",
+              "output_cid": "bafkreidyqn66hfubj757vogyujtkjbonvmwenj3n4b4jfrxl57l5qbfuwy",
+              "receipt_cid": "bafkreibjd7po75j2siv7uaybxjzzhqgute3hvkd7p7gxkgnfsvujnzp3ee",
+              "event_cid": "bafkreiay2p6fxljxdx2zygyedad76yt7i3wetu45gbw7ynldf4nzrzbxqy",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
@@ -451,7 +451,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreia7v2cngij4iyecuwgjkg7xyhutpq4ewho277hbp7gmktdet4kor4",
+                  "cid": "bafkreigsmrvh3dmoipvcyzrv6wsgvfkjdkhz4wbu6hghijtm5kuamclvbm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -459,7 +459,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreigilwsli25g747rawqire3zdxhx36b3zcez3iodp3yuygtdqaffre",
+                  "cid": "bafkreibqa2phjsy3ycj4dvmkrgnusn67qpfvqnkhbwvwsxqejdn3bhb4fi",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -467,7 +467,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreiamjehj2lbbh5f6zrnwy4yek67fr2lz2fg7nqf4wrkmiwv5p62waa",
+                  "cid": "bafkreidyqn66hfubj757vogyujtkjbonvmwenj3n4b4jfrxl57l5qbfuwy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -475,7 +475,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreiews36hz4xdx3iuzz2xh4snhmfy2vlvbuhyfvxq7rrzyiioefo4ku",
+                  "cid": "bafkreibjd7po75j2siv7uaybxjzzhqgute3hvkd7p7gxkgnfsvujnzp3ee",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -483,7 +483,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreifyokbsi2ajnajk3gdd7yiqe6jdnva766snoegncxazad4g2uhd3q",
+                  "cid": "bafkreiay2p6fxljxdx2zygyedad76yt7i3wetu45gbw7ynldf4nzrzbxqy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -496,7 +496,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreifyokbsi2ajnajk3gdd7yiqe6jdnva766snoegncxazad4g2uhd3q"
+              "event_cid": "bafkreiay2p6fxljxdx2zygyedad76yt7i3wetu45gbw7ynldf4nzrzbxqy"
             },
             "error": null
           },
@@ -504,7 +504,7 @@
         },
         "libp2p": {
           "transport": "libp2p",
-          "endpoint": "/ip4/127.0.0.1/tcp/9114/p2p/12D3KooWJLDDTmazfcJXabzeUJRcXkxQd9KtfR7qLmB2zPKbTiJq",
+          "endpoint": "/ip4/127.0.0.1/tcp/39817/p2p/12D3KooWQF8un4N6sW7Bs72WsrXHmhvJgAB5kh35QTzwja2pADov",
           "connected": true,
           "selected_transport": "libp2p",
           "no_transport_fallback": true,
@@ -850,9 +850,9 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu",
-            "identity_proof_cid": "bafkreicq4nkqux4njmxpaw7d46hejv3ngaods3zqbkixmxnhe4rxiji6w4",
-            "peer_id": "12D3KooWJLDDTmazfcJXabzeUJRcXkxQd9KtfR7qLmB2zPKbTiJq",
-            "multiaddr": "/ip4/127.0.0.1/tcp/9114/p2p/12D3KooWJLDDTmazfcJXabzeUJRcXkxQd9KtfR7qLmB2zPKbTiJq",
+            "identity_proof_cid": "bafkreih47mnudcogfz47zx6lahdmsoe4mngo5d2n2dty5lmzugo2ovrh4e",
+            "peer_id": "12D3KooWQF8un4N6sW7Bs72WsrXHmhvJgAB5kh35QTzwja2pADov",
+            "multiaddr": "/ip4/127.0.0.1/tcp/39817/p2p/12D3KooWQF8un4N6sW7Bs72WsrXHmhvJgAB5kh35QTzwja2pADov",
             "peer_id_matches_announce": true,
             "multiaddr_matches_announce": true
           },
@@ -862,7 +862,7 @@
             "approval": "non-mutating status fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreigm7kye2bjydnurdu5e56e7i6o6e7n3yrijmpcuz6b73jagsfmwra",
+              "proof_cid": "bafkreie6mlqhabr2vegsbnciigvqm53tnu36hswpgzel7t6suz3eeuzcka",
               "valid": true,
               "validation_chain_length": 1
             },
@@ -874,12 +874,12 @@
             },
             "envelope": {
               "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
-              "envelope_cid": "bafkreift2bu6fkeytcchls5sifu7glqftrncvltc7dfqgw3pm2f55mf2be",
+              "envelope_cid": "bafkreiatcs4n5rsk2ae2jsbq2y2oooffb22ba4iicokydni2yni77d3xzi",
               "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
-              "intent_cid": "bafkreig7i5d44vra4jsxoa4vwxnzao3w5vknug7xb7r36mqrsgzjb3ermm",
-              "output_cid": "bafkreidt3gfi2lj6ybieqp3vvafkyw3xads6jlsqmt3hf7abc63xajam3a",
-              "receipt_cid": "bafkreic2tkkliqt2ewtr7rlsa22hswra4kfb3f6fub42pazbs6pealkhhq",
-              "event_cid": "bafkreicqhzdtkkzyou33akkezg7o7xzt2sl3opubhu7wtrm7vjtsswzbja",
+              "intent_cid": "bafkreifrq5e7glzdg67rkvwprg7za2awidn22tqmpvqsiqgpf6altctgbu",
+              "output_cid": "bafkreidz64s2k6tvdxcuirbysseolla4tpoudtdn4gddf6mtryjnschj3m",
+              "receipt_cid": "bafkreiezgiuzjcignkvzafaz2uahokyhlqtgdmuuxp7e3nmxzjp6nduezi",
+              "event_cid": "bafkreiampa76mq2l5w2i3a37tvjm4fws6aklmuc5jccw4qbtme3ygntft4",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
@@ -901,7 +901,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreig7i5d44vra4jsxoa4vwxnzao3w5vknug7xb7r36mqrsgzjb3ermm",
+                  "cid": "bafkreifrq5e7glzdg67rkvwprg7za2awidn22tqmpvqsiqgpf6altctgbu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -909,7 +909,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreift2bu6fkeytcchls5sifu7glqftrncvltc7dfqgw3pm2f55mf2be",
+                  "cid": "bafkreiatcs4n5rsk2ae2jsbq2y2oooffb22ba4iicokydni2yni77d3xzi",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -917,7 +917,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreidt3gfi2lj6ybieqp3vvafkyw3xads6jlsqmt3hf7abc63xajam3a",
+                  "cid": "bafkreidz64s2k6tvdxcuirbysseolla4tpoudtdn4gddf6mtryjnschj3m",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -925,7 +925,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreic2tkkliqt2ewtr7rlsa22hswra4kfb3f6fub42pazbs6pealkhhq",
+                  "cid": "bafkreiezgiuzjcignkvzafaz2uahokyhlqtgdmuuxp7e3nmxzjp6nduezi",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -933,7 +933,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreicqhzdtkkzyou33akkezg7o7xzt2sl3opubhu7wtrm7vjtsswzbja",
+                  "cid": "bafkreiampa76mq2l5w2i3a37tvjm4fws6aklmuc5jccw4qbtme3ygntft4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -946,7 +946,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreicqhzdtkkzyou33akkezg7o7xzt2sl3opubhu7wtrm7vjtsswzbja"
+              "event_cid": "bafkreiampa76mq2l5w2i3a37tvjm4fws6aklmuc5jccw4qbtme3ygntft4"
             },
             "error": null
           },
@@ -964,7 +964,7 @@
             "approval": "non-mutating status fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreigfesapkdntionv4x3v53fr6t7u7j6a6hh27saskw5d46lqalvslm",
+              "proof_cid": "bafkreicdirbvslqdhkfmh3ytqyyyxbxcyom5cjx7nfv2kmiebgiuza5bnq",
               "valid": true,
               "validation_chain_length": 1
             },
@@ -976,12 +976,12 @@
             },
             "envelope": {
               "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
-              "envelope_cid": "bafkreigilwsli25g747rawqire3zdxhx36b3zcez3iodp3yuygtdqaffre",
+              "envelope_cid": "bafkreibqa2phjsy3ycj4dvmkrgnusn67qpfvqnkhbwvwsxqejdn3bhb4fi",
               "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
-              "intent_cid": "bafkreia7v2cngij4iyecuwgjkg7xyhutpq4ewho277hbp7gmktdet4kor4",
-              "output_cid": "bafkreiamjehj2lbbh5f6zrnwy4yek67fr2lz2fg7nqf4wrkmiwv5p62waa",
-              "receipt_cid": "bafkreiews36hz4xdx3iuzz2xh4snhmfy2vlvbuhyfvxq7rrzyiioefo4ku",
-              "event_cid": "bafkreifyokbsi2ajnajk3gdd7yiqe6jdnva766snoegncxazad4g2uhd3q",
+              "intent_cid": "bafkreigsmrvh3dmoipvcyzrv6wsgvfkjdkhz4wbu6hghijtm5kuamclvbm",
+              "output_cid": "bafkreidyqn66hfubj757vogyujtkjbonvmwenj3n4b4jfrxl57l5qbfuwy",
+              "receipt_cid": "bafkreibjd7po75j2siv7uaybxjzzhqgute3hvkd7p7gxkgnfsvujnzp3ee",
+              "event_cid": "bafkreiay2p6fxljxdx2zygyedad76yt7i3wetu45gbw7ynldf4nzrzbxqy",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
@@ -1003,7 +1003,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreia7v2cngij4iyecuwgjkg7xyhutpq4ewho277hbp7gmktdet4kor4",
+                  "cid": "bafkreigsmrvh3dmoipvcyzrv6wsgvfkjdkhz4wbu6hghijtm5kuamclvbm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1011,7 +1011,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreigilwsli25g747rawqire3zdxhx36b3zcez3iodp3yuygtdqaffre",
+                  "cid": "bafkreibqa2phjsy3ycj4dvmkrgnusn67qpfvqnkhbwvwsxqejdn3bhb4fi",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1019,7 +1019,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreiamjehj2lbbh5f6zrnwy4yek67fr2lz2fg7nqf4wrkmiwv5p62waa",
+                  "cid": "bafkreidyqn66hfubj757vogyujtkjbonvmwenj3n4b4jfrxl57l5qbfuwy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1027,7 +1027,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreiews36hz4xdx3iuzz2xh4snhmfy2vlvbuhyfvxq7rrzyiioefo4ku",
+                  "cid": "bafkreibjd7po75j2siv7uaybxjzzhqgute3hvkd7p7gxkgnfsvujnzp3ee",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1035,7 +1035,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreifyokbsi2ajnajk3gdd7yiqe6jdnva766snoegncxazad4g2uhd3q",
+                  "cid": "bafkreiay2p6fxljxdx2zygyedad76yt7i3wetu45gbw7ynldf4nzrzbxqy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1048,7 +1048,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreifyokbsi2ajnajk3gdd7yiqe6jdnva766snoegncxazad4g2uhd3q"
+              "event_cid": "bafkreiay2p6fxljxdx2zygyedad76yt7i3wetu45gbw7ynldf4nzrzbxqy"
             },
             "error": null
           },
@@ -1058,7 +1058,7 @@
             "approval": "non-mutating status fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreigm7kye2bjydnurdu5e56e7i6o6e7n3yrijmpcuz6b73jagsfmwra",
+              "proof_cid": "bafkreie6mlqhabr2vegsbnciigvqm53tnu36hswpgzel7t6suz3eeuzcka",
               "valid": true,
               "validation_chain_length": 1
             },
@@ -1070,12 +1070,12 @@
             },
             "envelope": {
               "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
-              "envelope_cid": "bafkreift2bu6fkeytcchls5sifu7glqftrncvltc7dfqgw3pm2f55mf2be",
+              "envelope_cid": "bafkreiatcs4n5rsk2ae2jsbq2y2oooffb22ba4iicokydni2yni77d3xzi",
               "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
-              "intent_cid": "bafkreig7i5d44vra4jsxoa4vwxnzao3w5vknug7xb7r36mqrsgzjb3ermm",
-              "output_cid": "bafkreidt3gfi2lj6ybieqp3vvafkyw3xads6jlsqmt3hf7abc63xajam3a",
-              "receipt_cid": "bafkreic2tkkliqt2ewtr7rlsa22hswra4kfb3f6fub42pazbs6pealkhhq",
-              "event_cid": "bafkreicqhzdtkkzyou33akkezg7o7xzt2sl3opubhu7wtrm7vjtsswzbja",
+              "intent_cid": "bafkreifrq5e7glzdg67rkvwprg7za2awidn22tqmpvqsiqgpf6altctgbu",
+              "output_cid": "bafkreidz64s2k6tvdxcuirbysseolla4tpoudtdn4gddf6mtryjnschj3m",
+              "receipt_cid": "bafkreiezgiuzjcignkvzafaz2uahokyhlqtgdmuuxp7e3nmxzjp6nduezi",
+              "event_cid": "bafkreiampa76mq2l5w2i3a37tvjm4fws6aklmuc5jccw4qbtme3ygntft4",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
@@ -1097,7 +1097,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreig7i5d44vra4jsxoa4vwxnzao3w5vknug7xb7r36mqrsgzjb3ermm",
+                  "cid": "bafkreifrq5e7glzdg67rkvwprg7za2awidn22tqmpvqsiqgpf6altctgbu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1105,7 +1105,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreift2bu6fkeytcchls5sifu7glqftrncvltc7dfqgw3pm2f55mf2be",
+                  "cid": "bafkreiatcs4n5rsk2ae2jsbq2y2oooffb22ba4iicokydni2yni77d3xzi",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1113,7 +1113,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreidt3gfi2lj6ybieqp3vvafkyw3xads6jlsqmt3hf7abc63xajam3a",
+                  "cid": "bafkreidz64s2k6tvdxcuirbysseolla4tpoudtdn4gddf6mtryjnschj3m",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1121,7 +1121,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreic2tkkliqt2ewtr7rlsa22hswra4kfb3f6fub42pazbs6pealkhhq",
+                  "cid": "bafkreiezgiuzjcignkvzafaz2uahokyhlqtgdmuuxp7e3nmxzjp6nduezi",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1129,7 +1129,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreicqhzdtkkzyou33akkezg7o7xzt2sl3opubhu7wtrm7vjtsswzbja",
+                  "cid": "bafkreiampa76mq2l5w2i3a37tvjm4fws6aklmuc5jccw4qbtme3ygntft4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1142,7 +1142,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreicqhzdtkkzyou33akkezg7o7xzt2sl3opubhu7wtrm7vjtsswzbja"
+              "event_cid": "bafkreiampa76mq2l5w2i3a37tvjm4fws6aklmuc5jccw4qbtme3ygntft4"
             },
             "error": null
           }
@@ -5218,8 +5218,8 @@
       "announce": {
         "file": "ipfs-datasets-mcp-p2p-announce.json",
         "protocol": "/mcp+p2p/1.0.0",
-        "peer_id": "12D3KooWLyrSii6dzE5ZDcmbTNVSYaWJkXXfL5zFxKfEi957nndo",
-        "multiaddr": "/ip4/127.0.0.1/tcp/9112/p2p/12D3KooWLyrSii6dzE5ZDcmbTNVSYaWJkXXfL5zFxKfEi957nndo"
+        "peer_id": "12D3KooWBG71MSvwWqGRVvhfSQrB5jiX5DZQknnu8qKH3uZwfYK6",
+        "multiaddr": "/ip4/127.0.0.1/tcp/39213/p2p/12D3KooWBG71MSvwWqGRVvhfSQrB5jiX5DZQknnu8qKH3uZwfYK6"
       },
       "transports": {
         "http": {
@@ -5814,7 +5814,7 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkkgF8EaWd4nwRodPwicSYJbuhKiBoxQXQi7wMCw4FHNtc",
-            "identity_proof_cid": "bafkreibuvcp66twvjfzrjnzz6ajkz6xs7p7odlrud2wwf3uwkrajuiqr34",
+            "identity_proof_cid": "bafkreie6fc7zuwjrmnyvil375iijax4n25acpvtac66a5zwassuefx4be4",
             "peer_id": null,
             "multiaddr": null,
             "peer_id_matches_announce": null,
@@ -5826,28 +5826,28 @@
             "approval": "non-mutating catalog fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreicfijq3ewe7zthqj2fzastkcwtabt3qvzcckjw77ys3w26tsp6xcm",
+              "proof_cid": "bafkreidunhv5ukicvzox26dj65gwcifgwjey5wm6fwh6oczso2aotwtxee",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:dc13c301157baca38ea9b657fec8b2b75774772b97285078dcfc5f9ee3df191e",
+              "semantic_fingerprint": "sha256:85d91307399dc622d0fab8fc5875c96214f336557bd5c4b66642007afd85295d",
               "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "envelope": {
               "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
-              "envelope_cid": "bafkreigxxj6qxjlenv6qylr6vafijyxebvdyiokoee456kbxud2ihgg2qa",
+              "envelope_cid": "bafkreifoh5ri53ux5jxjynujrbn43owa53pa3owhsjiyniqplchd2jfavu",
               "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
-              "intent_cid": "bafkreihwbeqlejk3ntcsatsjc74voh4w3hahbwu2hgmb6yl2ycwrr3oaae",
-              "output_cid": "bafkreielwdm7sntttbvlht7snamhcy6i2fzdkatoo33xo6wyhjz5baceqi",
-              "receipt_cid": "bafkreigfzjg2my5xol3qtnekjpug4o4j4ftpubyhlnz73ognsq67xfgjl4",
-              "event_cid": "bafkreidquxeolg44sjjfmaurryizbmtiwpgksfsee672rceekqehts6xhy",
+              "intent_cid": "bafkreiaefd7ehcmuehxdj5bbi3ylgidy5rtrndp6g5u7ogyaxzrijy6i7y",
+              "output_cid": "bafkreibfrbbxfpqlq74qvjhamiqc6rxkrjpxqxoqp6w64rbwvvxz7ow4um",
+              "receipt_cid": "bafkreiey4mc3fph4ttggyzuv2557lmaswencdaxpnn5zrekxr2ryn77gzq",
+              "event_cid": "bafkreidnklaubcakuohal2yee2k3qdzzdkrswaoafxv3aavsbc3yz2cniu",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:0d91eac2aaf5cf8ab07828e6b160432b541602bdc07321bbc34c9e684585ecb6",
+              "result_semantic_fingerprint": "sha256:0a5b02c28ef25cc5e7bce14e712a998b95bb4d8c2fcce0808894a0c8e8832239",
               "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "cid_retrieval": {
@@ -5865,7 +5865,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreihwbeqlejk3ntcsatsjc74voh4w3hahbwu2hgmb6yl2ycwrr3oaae",
+                  "cid": "bafkreiaefd7ehcmuehxdj5bbi3ylgidy5rtrndp6g5u7ogyaxzrijy6i7y",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5873,7 +5873,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreigxxj6qxjlenv6qylr6vafijyxebvdyiokoee456kbxud2ihgg2qa",
+                  "cid": "bafkreifoh5ri53ux5jxjynujrbn43owa53pa3owhsjiyniqplchd2jfavu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5881,7 +5881,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreielwdm7sntttbvlht7snamhcy6i2fzdkatoo33xo6wyhjz5baceqi",
+                  "cid": "bafkreibfrbbxfpqlq74qvjhamiqc6rxkrjpxqxoqp6w64rbwvvxz7ow4um",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5889,7 +5889,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreigfzjg2my5xol3qtnekjpug4o4j4ftpubyhlnz73ognsq67xfgjl4",
+                  "cid": "bafkreiey4mc3fph4ttggyzuv2557lmaswencdaxpnn5zrekxr2ryn77gzq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5897,7 +5897,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreidquxeolg44sjjfmaurryizbmtiwpgksfsee672rceekqehts6xhy",
+                  "cid": "bafkreidnklaubcakuohal2yee2k3qdzzdkrswaoafxv3aavsbc3yz2cniu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5910,7 +5910,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreidquxeolg44sjjfmaurryizbmtiwpgksfsee672rceekqehts6xhy"
+              "event_cid": "bafkreidnklaubcakuohal2yee2k3qdzzdkrswaoafxv3aavsbc3yz2cniu"
             },
             "error": null
           },
@@ -5918,7 +5918,7 @@
         },
         "libp2p": {
           "transport": "libp2p",
-          "endpoint": "/ip4/127.0.0.1/tcp/9112/p2p/12D3KooWLyrSii6dzE5ZDcmbTNVSYaWJkXXfL5zFxKfEi957nndo",
+          "endpoint": "/ip4/127.0.0.1/tcp/39213/p2p/12D3KooWBG71MSvwWqGRVvhfSQrB5jiX5DZQknnu8qKH3uZwfYK6",
           "connected": true,
           "selected_transport": "libp2p",
           "no_transport_fallback": true,
@@ -6508,9 +6508,9 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkkgF8EaWd4nwRodPwicSYJbuhKiBoxQXQi7wMCw4FHNtc",
-            "identity_proof_cid": "bafkreifwqozpliqntn57zqeetn7dypixznpmuo57352aj4tohvhevadqjq",
-            "peer_id": "12D3KooWLyrSii6dzE5ZDcmbTNVSYaWJkXXfL5zFxKfEi957nndo",
-            "multiaddr": "/ip4/127.0.0.1/tcp/9112/p2p/12D3KooWLyrSii6dzE5ZDcmbTNVSYaWJkXXfL5zFxKfEi957nndo",
+            "identity_proof_cid": "bafkreicaghlk62rxo3lpd3obkxmydbevoljmn6wei373bht7fv6llamozy",
+            "peer_id": "12D3KooWBG71MSvwWqGRVvhfSQrB5jiX5DZQknnu8qKH3uZwfYK6",
+            "multiaddr": "/ip4/127.0.0.1/tcp/39213/p2p/12D3KooWBG71MSvwWqGRVvhfSQrB5jiX5DZQknnu8qKH3uZwfYK6",
             "peer_id_matches_announce": true,
             "multiaddr_matches_announce": true
           },
@@ -6520,28 +6520,28 @@
             "approval": "non-mutating catalog fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreidnxygqv56dulvoliuzmc5pt2ivt6xs5tosdifvsk7p2t5idexvim",
+              "proof_cid": "bafkreihapbau77edsdqgtm7mamzv3ymchtzneqrw5frwxbfvauhdyiuuvi",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:c35a7ba3847d6a5fe59bc9cc8c3fecc7b50e72b0c81a8a5f3db2bbbe94daa28b",
+              "semantic_fingerprint": "sha256:7b3df4107a3db0045d29add0157be77a6313464e9f1501d88c08b28a777268dd",
               "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "envelope": {
               "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
-              "envelope_cid": "bafkreiaaeguzw3siqmfybezzv5hnl4kimjggmyzoky4ojccmwjs43imhja",
+              "envelope_cid": "bafkreichhj47hf7rbjsysbawv2qxqwlnlptwxfq4fsciqe3n6sgag3fhbe",
               "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
-              "intent_cid": "bafkreifdr64pr4kzehzwrhagwzjze3rpopu6bt2jpk2k2xl7figlsqdj4a",
-              "output_cid": "bafkreibu5byprsmc7ftkg7jeqopyngqpnfan26gqiopodorabftw5ppdwa",
-              "receipt_cid": "bafkreidqfkwwa5zfkw6nhq7bkdrrsks4ojfpwijddadwgt77gaeglgdrmu",
-              "event_cid": "bafkreice5u63dw2hlcqrwch7hj33irj2xlbyckvcgudk56ggk5hk57qcky",
+              "intent_cid": "bafkreiciosm23mnkh5spswtyrrtpeaixzqqk2tkmactmlww2wjuwhlfasa",
+              "output_cid": "bafkreidtratj435uet436h7bjqpvg3a77owlapteiapismhzrrli4vqvdm",
+              "receipt_cid": "bafkreid46hpy7aqh7jjjktghe44l2j753ryrgfzonc652nvbu4lqwmicni",
+              "event_cid": "bafkreiag2c234y4echt452q7xjdjnpzjrqfishsffks22yigit5gmn7pxy",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:1958a1ed3ba948bb792b7717650cc8d79d647849b11d2792cb5d3bdd5ec602c9",
+              "result_semantic_fingerprint": "sha256:e1dba2767da9e625a3f6344767578894a8f43490be3210cdd71409e3e28b62d8",
               "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "cid_retrieval": {
@@ -6559,7 +6559,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreifdr64pr4kzehzwrhagwzjze3rpopu6bt2jpk2k2xl7figlsqdj4a",
+                  "cid": "bafkreiciosm23mnkh5spswtyrrtpeaixzqqk2tkmactmlww2wjuwhlfasa",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6567,7 +6567,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreiaaeguzw3siqmfybezzv5hnl4kimjggmyzoky4ojccmwjs43imhja",
+                  "cid": "bafkreichhj47hf7rbjsysbawv2qxqwlnlptwxfq4fsciqe3n6sgag3fhbe",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6575,7 +6575,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreibu5byprsmc7ftkg7jeqopyngqpnfan26gqiopodorabftw5ppdwa",
+                  "cid": "bafkreidtratj435uet436h7bjqpvg3a77owlapteiapismhzrrli4vqvdm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6583,7 +6583,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreidqfkwwa5zfkw6nhq7bkdrrsks4ojfpwijddadwgt77gaeglgdrmu",
+                  "cid": "bafkreid46hpy7aqh7jjjktghe44l2j753ryrgfzonc652nvbu4lqwmicni",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6591,7 +6591,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreice5u63dw2hlcqrwch7hj33irj2xlbyckvcgudk56ggk5hk57qcky",
+                  "cid": "bafkreiag2c234y4echt452q7xjdjnpzjrqfishsffks22yigit5gmn7pxy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6604,7 +6604,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreice5u63dw2hlcqrwch7hj33irj2xlbyckvcgudk56ggk5hk57qcky"
+              "event_cid": "bafkreiag2c234y4echt452q7xjdjnpzjrqfishsffks22yigit5gmn7pxy"
             },
             "error": null
           },
@@ -6622,28 +6622,28 @@
             "approval": "non-mutating catalog fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreicfijq3ewe7zthqj2fzastkcwtabt3qvzcckjw77ys3w26tsp6xcm",
+              "proof_cid": "bafkreidunhv5ukicvzox26dj65gwcifgwjey5wm6fwh6oczso2aotwtxee",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:dc13c301157baca38ea9b657fec8b2b75774772b97285078dcfc5f9ee3df191e",
+              "semantic_fingerprint": "sha256:85d91307399dc622d0fab8fc5875c96214f336557bd5c4b66642007afd85295d",
               "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "envelope": {
               "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
-              "envelope_cid": "bafkreigxxj6qxjlenv6qylr6vafijyxebvdyiokoee456kbxud2ihgg2qa",
+              "envelope_cid": "bafkreifoh5ri53ux5jxjynujrbn43owa53pa3owhsjiyniqplchd2jfavu",
               "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
-              "intent_cid": "bafkreihwbeqlejk3ntcsatsjc74voh4w3hahbwu2hgmb6yl2ycwrr3oaae",
-              "output_cid": "bafkreielwdm7sntttbvlht7snamhcy6i2fzdkatoo33xo6wyhjz5baceqi",
-              "receipt_cid": "bafkreigfzjg2my5xol3qtnekjpug4o4j4ftpubyhlnz73ognsq67xfgjl4",
-              "event_cid": "bafkreidquxeolg44sjjfmaurryizbmtiwpgksfsee672rceekqehts6xhy",
+              "intent_cid": "bafkreiaefd7ehcmuehxdj5bbi3ylgidy5rtrndp6g5u7ogyaxzrijy6i7y",
+              "output_cid": "bafkreibfrbbxfpqlq74qvjhamiqc6rxkrjpxqxoqp6w64rbwvvxz7ow4um",
+              "receipt_cid": "bafkreiey4mc3fph4ttggyzuv2557lmaswencdaxpnn5zrekxr2ryn77gzq",
+              "event_cid": "bafkreidnklaubcakuohal2yee2k3qdzzdkrswaoafxv3aavsbc3yz2cniu",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:0d91eac2aaf5cf8ab07828e6b160432b541602bdc07321bbc34c9e684585ecb6",
+              "result_semantic_fingerprint": "sha256:0a5b02c28ef25cc5e7bce14e712a998b95bb4d8c2fcce0808894a0c8e8832239",
               "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "cid_retrieval": {
@@ -6661,7 +6661,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreihwbeqlejk3ntcsatsjc74voh4w3hahbwu2hgmb6yl2ycwrr3oaae",
+                  "cid": "bafkreiaefd7ehcmuehxdj5bbi3ylgidy5rtrndp6g5u7ogyaxzrijy6i7y",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6669,7 +6669,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreigxxj6qxjlenv6qylr6vafijyxebvdyiokoee456kbxud2ihgg2qa",
+                  "cid": "bafkreifoh5ri53ux5jxjynujrbn43owa53pa3owhsjiyniqplchd2jfavu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6677,7 +6677,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreielwdm7sntttbvlht7snamhcy6i2fzdkatoo33xo6wyhjz5baceqi",
+                  "cid": "bafkreibfrbbxfpqlq74qvjhamiqc6rxkrjpxqxoqp6w64rbwvvxz7ow4um",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6685,7 +6685,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreigfzjg2my5xol3qtnekjpug4o4j4ftpubyhlnz73ognsq67xfgjl4",
+                  "cid": "bafkreiey4mc3fph4ttggyzuv2557lmaswencdaxpnn5zrekxr2ryn77gzq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6693,7 +6693,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreidquxeolg44sjjfmaurryizbmtiwpgksfsee672rceekqehts6xhy",
+                  "cid": "bafkreidnklaubcakuohal2yee2k3qdzzdkrswaoafxv3aavsbc3yz2cniu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6706,7 +6706,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreidquxeolg44sjjfmaurryizbmtiwpgksfsee672rceekqehts6xhy"
+              "event_cid": "bafkreidnklaubcakuohal2yee2k3qdzzdkrswaoafxv3aavsbc3yz2cniu"
             },
             "error": null
           },
@@ -6716,28 +6716,28 @@
             "approval": "non-mutating catalog fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreidnxygqv56dulvoliuzmc5pt2ivt6xs5tosdifvsk7p2t5idexvim",
+              "proof_cid": "bafkreihapbau77edsdqgtm7mamzv3ymchtzneqrw5frwxbfvauhdyiuuvi",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:c35a7ba3847d6a5fe59bc9cc8c3fecc7b50e72b0c81a8a5f3db2bbbe94daa28b",
+              "semantic_fingerprint": "sha256:7b3df4107a3db0045d29add0157be77a6313464e9f1501d88c08b28a777268dd",
               "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "envelope": {
               "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
-              "envelope_cid": "bafkreiaaeguzw3siqmfybezzv5hnl4kimjggmyzoky4ojccmwjs43imhja",
+              "envelope_cid": "bafkreichhj47hf7rbjsysbawv2qxqwlnlptwxfq4fsciqe3n6sgag3fhbe",
               "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
-              "intent_cid": "bafkreifdr64pr4kzehzwrhagwzjze3rpopu6bt2jpk2k2xl7figlsqdj4a",
-              "output_cid": "bafkreibu5byprsmc7ftkg7jeqopyngqpnfan26gqiopodorabftw5ppdwa",
-              "receipt_cid": "bafkreidqfkwwa5zfkw6nhq7bkdrrsks4ojfpwijddadwgt77gaeglgdrmu",
-              "event_cid": "bafkreice5u63dw2hlcqrwch7hj33irj2xlbyckvcgudk56ggk5hk57qcky",
+              "intent_cid": "bafkreiciosm23mnkh5spswtyrrtpeaixzqqk2tkmactmlww2wjuwhlfasa",
+              "output_cid": "bafkreidtratj435uet436h7bjqpvg3a77owlapteiapismhzrrli4vqvdm",
+              "receipt_cid": "bafkreid46hpy7aqh7jjjktghe44l2j753ryrgfzonc652nvbu4lqwmicni",
+              "event_cid": "bafkreiag2c234y4echt452q7xjdjnpzjrqfishsffks22yigit5gmn7pxy",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:1958a1ed3ba948bb792b7717650cc8d79d647849b11d2792cb5d3bdd5ec602c9",
+              "result_semantic_fingerprint": "sha256:e1dba2767da9e625a3f6344767578894a8f43490be3210cdd71409e3e28b62d8",
               "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "cid_retrieval": {
@@ -6755,7 +6755,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreifdr64pr4kzehzwrhagwzjze3rpopu6bt2jpk2k2xl7figlsqdj4a",
+                  "cid": "bafkreiciosm23mnkh5spswtyrrtpeaixzqqk2tkmactmlww2wjuwhlfasa",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6763,7 +6763,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreiaaeguzw3siqmfybezzv5hnl4kimjggmyzoky4ojccmwjs43imhja",
+                  "cid": "bafkreichhj47hf7rbjsysbawv2qxqwlnlptwxfq4fsciqe3n6sgag3fhbe",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6771,7 +6771,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreibu5byprsmc7ftkg7jeqopyngqpnfan26gqiopodorabftw5ppdwa",
+                  "cid": "bafkreidtratj435uet436h7bjqpvg3a77owlapteiapismhzrrli4vqvdm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6779,7 +6779,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreidqfkwwa5zfkw6nhq7bkdrrsks4ojfpwijddadwgt77gaeglgdrmu",
+                  "cid": "bafkreid46hpy7aqh7jjjktghe44l2j753ryrgfzonc652nvbu4lqwmicni",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6787,7 +6787,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreice5u63dw2hlcqrwch7hj33irj2xlbyckvcgudk56ggk5hk57qcky",
+                  "cid": "bafkreiag2c234y4echt452q7xjdjnpzjrqfishsffks22yigit5gmn7pxy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6800,7 +6800,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreice5u63dw2hlcqrwch7hj33irj2xlbyckvcgudk56ggk5hk57qcky"
+              "event_cid": "bafkreiag2c234y4echt452q7xjdjnpzjrqfishsffks22yigit5gmn7pxy"
             },
             "error": null
           }
@@ -14126,8 +14126,8 @@
       "announce": {
         "file": "ipfs-accelerate-mcp-p2p-announce.json",
         "protocol": "/mcp+p2p/1.0.0",
-        "peer_id": "12D3KooWJJMtxt6fXXCDSYUjtAcc5aaey6KQZYXYwrrE2dTjzbDv",
-        "multiaddr": "/ip4/127.0.0.1/tcp/9113/p2p/12D3KooWJJMtxt6fXXCDSYUjtAcc5aaey6KQZYXYwrrE2dTjzbDv"
+        "peer_id": "12D3KooWPReTqKQ6Fd3UzkwxQHnKXbo9eqECweGfvXd2zSKExj9b",
+        "multiaddr": "/ip4/127.0.0.1/tcp/43025/p2p/12D3KooWPReTqKQ6Fd3UzkwxQHnKXbo9eqECweGfvXd2zSKExj9b"
       },
       "transports": {
         "http": {
@@ -14416,7 +14416,7 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkgPkf8stf2vgAeEdETTtcPNd6WUMZaxNcPLpPFmStWiFz",
-            "identity_proof_cid": "bafkreifnfl5yekl7tftwazuloqarstwy5rd52qozhgrpytc5nagrgcei2m",
+            "identity_proof_cid": "bafkreibhtql55kcidffby2qunxsvgy5wxoft3d66nimdut3dslvaqe4wde",
             "peer_id": null,
             "multiaddr": null,
             "peer_id_matches_announce": null,
@@ -14428,28 +14428,28 @@
             "approval": "non-mutating health fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreibfzntuzajygx2q7hzrxpxpij6x2wlyti723snd2j4vvu5xtw5mxm",
+              "proof_cid": "bafkreiazkf3ywuaq65f7ofg5dozx2mvoy3amc7qzrrb5lvz3z6vinvk2si",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:17e7ad8c425d110c128d6c5f7bcf7bdcc22455923df83f7e641c1cddd561e244",
+              "semantic_fingerprint": "sha256:a696ac169e8225b1da400fed46d1375666c3c6d6171d211e1c4283f3cfd31eec",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "envelope": {
               "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
-              "envelope_cid": "bafkreicd773552i65puoeybtcbqw3u67ksoz24fsl22bkffrska57q54di",
+              "envelope_cid": "bafkreiaankwpn76cymbh665ktsea3miikmjxtma4amdznbb3kpipw24xla",
               "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
-              "intent_cid": "bafkreih7ovgjcqg2tlvbine6rxsfikp27bjybos4a7ceemvviqw55gxaq4",
-              "output_cid": "bafkreigbdqgjnlrnsmqksadvyrcssjmnnodbn4acx64cz3uigfwjtltzve",
-              "receipt_cid": "bafkreichni42nw6hiw6efucsxvoysbhzxvmljlfwhaqlnufj6va2whudl4",
-              "event_cid": "bafkreifrr3lfrneuawitindlrgsw46yqhzmbgxzphjpslm2u2c2v3ik5b4",
+              "intent_cid": "bafkreidg36bciumrzbedqzzubgyquarfghrtsizthipc3n5rzfq42x3xrm",
+              "output_cid": "bafkreibg7ewgn7jm2xtdlqmx7q3woexcpmgxjbgyexnwrwkqizbo23nbvq",
+              "receipt_cid": "bafkreifm7bovaxtdgq35rujrbw5eer2ymogv7hkxogcsapvybk4vxfeone",
+              "event_cid": "bafkreiezqzh5f5bmstvwttmytm4npdglcc45gnrxwj6bwdka46mow6wdem",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:c11c0c96ae2d9320a90075c44529258d6b8616f002bfb82cee88316c99ae79a9",
+              "result_semantic_fingerprint": "sha256:26f92c66fd2cd5e635c197fc376712e27b0d7484d825db68d9504642ed6da1ac",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "cid_retrieval": {
@@ -14467,7 +14467,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreih7ovgjcqg2tlvbine6rxsfikp27bjybos4a7ceemvviqw55gxaq4",
+                  "cid": "bafkreidg36bciumrzbedqzzubgyquarfghrtsizthipc3n5rzfq42x3xrm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14475,7 +14475,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreicd773552i65puoeybtcbqw3u67ksoz24fsl22bkffrska57q54di",
+                  "cid": "bafkreiaankwpn76cymbh665ktsea3miikmjxtma4amdznbb3kpipw24xla",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14483,7 +14483,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreigbdqgjnlrnsmqksadvyrcssjmnnodbn4acx64cz3uigfwjtltzve",
+                  "cid": "bafkreibg7ewgn7jm2xtdlqmx7q3woexcpmgxjbgyexnwrwkqizbo23nbvq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14491,7 +14491,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreichni42nw6hiw6efucsxvoysbhzxvmljlfwhaqlnufj6va2whudl4",
+                  "cid": "bafkreifm7bovaxtdgq35rujrbw5eer2ymogv7hkxogcsapvybk4vxfeone",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14499,7 +14499,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreifrr3lfrneuawitindlrgsw46yqhzmbgxzphjpslm2u2c2v3ik5b4",
+                  "cid": "bafkreiezqzh5f5bmstvwttmytm4npdglcc45gnrxwj6bwdka46mow6wdem",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14512,7 +14512,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreifrr3lfrneuawitindlrgsw46yqhzmbgxzphjpslm2u2c2v3ik5b4"
+              "event_cid": "bafkreiezqzh5f5bmstvwttmytm4npdglcc45gnrxwj6bwdka46mow6wdem"
             },
             "error": null
           },
@@ -14520,7 +14520,7 @@
         },
         "libp2p": {
           "transport": "libp2p",
-          "endpoint": "/ip4/127.0.0.1/tcp/9113/p2p/12D3KooWJJMtxt6fXXCDSYUjtAcc5aaey6KQZYXYwrrE2dTjzbDv",
+          "endpoint": "/ip4/127.0.0.1/tcp/43025/p2p/12D3KooWPReTqKQ6Fd3UzkwxQHnKXbo9eqECweGfvXd2zSKExj9b",
           "connected": true,
           "selected_transport": "libp2p",
           "no_transport_fallback": true,
@@ -14804,9 +14804,9 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkgPkf8stf2vgAeEdETTtcPNd6WUMZaxNcPLpPFmStWiFz",
-            "identity_proof_cid": "bafkreibcmpaet33s2cgw4bg7er6thrw6pc7rttudzwwol4s3hyzfdakwpi",
-            "peer_id": "12D3KooWJJMtxt6fXXCDSYUjtAcc5aaey6KQZYXYwrrE2dTjzbDv",
-            "multiaddr": "/ip4/127.0.0.1/tcp/9113/p2p/12D3KooWJJMtxt6fXXCDSYUjtAcc5aaey6KQZYXYwrrE2dTjzbDv",
+            "identity_proof_cid": "bafkreie2qktnr4mw32srxtum6oomjs667nkkebijdqdq3pf625dphyl6p4",
+            "peer_id": "12D3KooWPReTqKQ6Fd3UzkwxQHnKXbo9eqECweGfvXd2zSKExj9b",
+            "multiaddr": "/ip4/127.0.0.1/tcp/43025/p2p/12D3KooWPReTqKQ6Fd3UzkwxQHnKXbo9eqECweGfvXd2zSKExj9b",
             "peer_id_matches_announce": true,
             "multiaddr_matches_announce": true
           },
@@ -14816,28 +14816,28 @@
             "approval": "non-mutating health fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreigc2avkv263b6ypfloop5bbfvzy3yyacnd2e6rynkjt7daxzidgmm",
+              "proof_cid": "bafkreiessdkb65k7no73hcgka7w6ygrmvtf2esdz5icjcuftz2zvyojl3y",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:c8aa383794169a34cae429a0619951be8d4cc699549d27865d3b3467f694b4de",
+              "semantic_fingerprint": "sha256:155f4b256727006733781f508499db13fbc74818a006b6cdbfea4161a8d078f4",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "envelope": {
               "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
-              "envelope_cid": "bafkreiezjqgipvxtg3np25cj2rqlj4b6vewgmjym3sunfy76mxlzboro6m",
+              "envelope_cid": "bafkreieius6tyxof57cwwtsknl2omsw6uukj4vrq7bp7o55ui4pgnfuhr4",
               "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
-              "intent_cid": "bafkreier34gwmyyom4awlsjjgckoahwjewecx324haknhtt53nuokf3hdu",
-              "output_cid": "bafkreibicycc3l6aivhzeykeiwphd6msvyz46e52adzwr26isyp2l3wogy",
-              "receipt_cid": "bafkreicyiqtcpui5z2o62wb6s4kslqzhuveieeqyjuroyjrgrnwim6pwq4",
-              "event_cid": "bafkreibasasrmrykzztbpdhenreaeouhylnnrayylfit4gwppjeeackgn4",
+              "intent_cid": "bafkreicbvzelcrr5hoj5dcak2ob2ddubav4hvveo5kpgjj7ftgdjgymriu",
+              "output_cid": "bafkreig4ynkhnwg2lkghd3qrsjmkqqgoelyg3ky2xpiqbkhbt3dgcuvivy",
+              "receipt_cid": "bafkreihzibllr4krtguchvboslmdk56ekoahvr3zqg4vhrar7nz32zcojq",
+              "event_cid": "bafkreibrhvoh5jijtsofod22jxlol4jx3volk4vkfecy6l3l6sryzygpfa",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:2816042dafc0454f926144459e71f992ae33cf13ba00f368ebc8961fa5eece36",
+              "result_semantic_fingerprint": "sha256:dcc35476d8da5a8c71ee119258a840ce22f06dab1abbd100a8e19ec66152a8ae",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "cid_retrieval": {
@@ -14855,7 +14855,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreier34gwmyyom4awlsjjgckoahwjewecx324haknhtt53nuokf3hdu",
+                  "cid": "bafkreicbvzelcrr5hoj5dcak2ob2ddubav4hvveo5kpgjj7ftgdjgymriu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14863,7 +14863,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreiezjqgipvxtg3np25cj2rqlj4b6vewgmjym3sunfy76mxlzboro6m",
+                  "cid": "bafkreieius6tyxof57cwwtsknl2omsw6uukj4vrq7bp7o55ui4pgnfuhr4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14871,7 +14871,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreibicycc3l6aivhzeykeiwphd6msvyz46e52adzwr26isyp2l3wogy",
+                  "cid": "bafkreig4ynkhnwg2lkghd3qrsjmkqqgoelyg3ky2xpiqbkhbt3dgcuvivy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14879,7 +14879,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreicyiqtcpui5z2o62wb6s4kslqzhuveieeqyjuroyjrgrnwim6pwq4",
+                  "cid": "bafkreihzibllr4krtguchvboslmdk56ekoahvr3zqg4vhrar7nz32zcojq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14887,7 +14887,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreibasasrmrykzztbpdhenreaeouhylnnrayylfit4gwppjeeackgn4",
+                  "cid": "bafkreibrhvoh5jijtsofod22jxlol4jx3volk4vkfecy6l3l6sryzygpfa",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14900,7 +14900,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreibasasrmrykzztbpdhenreaeouhylnnrayylfit4gwppjeeackgn4"
+              "event_cid": "bafkreibrhvoh5jijtsofod22jxlol4jx3volk4vkfecy6l3l6sryzygpfa"
             },
             "error": null
           },
@@ -14918,28 +14918,28 @@
             "approval": "non-mutating health fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreibfzntuzajygx2q7hzrxpxpij6x2wlyti723snd2j4vvu5xtw5mxm",
+              "proof_cid": "bafkreiazkf3ywuaq65f7ofg5dozx2mvoy3amc7qzrrb5lvz3z6vinvk2si",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:17e7ad8c425d110c128d6c5f7bcf7bdcc22455923df83f7e641c1cddd561e244",
+              "semantic_fingerprint": "sha256:a696ac169e8225b1da400fed46d1375666c3c6d6171d211e1c4283f3cfd31eec",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "envelope": {
               "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
-              "envelope_cid": "bafkreicd773552i65puoeybtcbqw3u67ksoz24fsl22bkffrska57q54di",
+              "envelope_cid": "bafkreiaankwpn76cymbh665ktsea3miikmjxtma4amdznbb3kpipw24xla",
               "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
-              "intent_cid": "bafkreih7ovgjcqg2tlvbine6rxsfikp27bjybos4a7ceemvviqw55gxaq4",
-              "output_cid": "bafkreigbdqgjnlrnsmqksadvyrcssjmnnodbn4acx64cz3uigfwjtltzve",
-              "receipt_cid": "bafkreichni42nw6hiw6efucsxvoysbhzxvmljlfwhaqlnufj6va2whudl4",
-              "event_cid": "bafkreifrr3lfrneuawitindlrgsw46yqhzmbgxzphjpslm2u2c2v3ik5b4",
+              "intent_cid": "bafkreidg36bciumrzbedqzzubgyquarfghrtsizthipc3n5rzfq42x3xrm",
+              "output_cid": "bafkreibg7ewgn7jm2xtdlqmx7q3woexcpmgxjbgyexnwrwkqizbo23nbvq",
+              "receipt_cid": "bafkreifm7bovaxtdgq35rujrbw5eer2ymogv7hkxogcsapvybk4vxfeone",
+              "event_cid": "bafkreiezqzh5f5bmstvwttmytm4npdglcc45gnrxwj6bwdka46mow6wdem",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:c11c0c96ae2d9320a90075c44529258d6b8616f002bfb82cee88316c99ae79a9",
+              "result_semantic_fingerprint": "sha256:26f92c66fd2cd5e635c197fc376712e27b0d7484d825db68d9504642ed6da1ac",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "cid_retrieval": {
@@ -14957,7 +14957,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreih7ovgjcqg2tlvbine6rxsfikp27bjybos4a7ceemvviqw55gxaq4",
+                  "cid": "bafkreidg36bciumrzbedqzzubgyquarfghrtsizthipc3n5rzfq42x3xrm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14965,7 +14965,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreicd773552i65puoeybtcbqw3u67ksoz24fsl22bkffrska57q54di",
+                  "cid": "bafkreiaankwpn76cymbh665ktsea3miikmjxtma4amdznbb3kpipw24xla",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14973,7 +14973,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreigbdqgjnlrnsmqksadvyrcssjmnnodbn4acx64cz3uigfwjtltzve",
+                  "cid": "bafkreibg7ewgn7jm2xtdlqmx7q3woexcpmgxjbgyexnwrwkqizbo23nbvq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14981,7 +14981,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreichni42nw6hiw6efucsxvoysbhzxvmljlfwhaqlnufj6va2whudl4",
+                  "cid": "bafkreifm7bovaxtdgq35rujrbw5eer2ymogv7hkxogcsapvybk4vxfeone",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14989,7 +14989,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreifrr3lfrneuawitindlrgsw46yqhzmbgxzphjpslm2u2c2v3ik5b4",
+                  "cid": "bafkreiezqzh5f5bmstvwttmytm4npdglcc45gnrxwj6bwdka46mow6wdem",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -15002,7 +15002,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreifrr3lfrneuawitindlrgsw46yqhzmbgxzphjpslm2u2c2v3ik5b4"
+              "event_cid": "bafkreiezqzh5f5bmstvwttmytm4npdglcc45gnrxwj6bwdka46mow6wdem"
             },
             "error": null
           },
@@ -15012,28 +15012,28 @@
             "approval": "non-mutating health fixture",
             "status": "executed",
             "delegation": {
-              "proof_cid": "bafkreigc2avkv263b6ypfloop5bbfvzy3yyacnd2e6rynkjt7daxzidgmm",
+              "proof_cid": "bafkreiessdkb65k7no73hcgka7w6ygrmvtf2esdz5icjcuftz2zvyojl3y",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:c8aa383794169a34cae429a0619951be8d4cc699549d27865d3b3467f694b4de",
+              "semantic_fingerprint": "sha256:155f4b256727006733781f508499db13fbc74818a006b6cdbfea4161a8d078f4",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "envelope": {
               "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
-              "envelope_cid": "bafkreiezjqgipvxtg3np25cj2rqlj4b6vewgmjym3sunfy76mxlzboro6m",
+              "envelope_cid": "bafkreieius6tyxof57cwwtsknl2omsw6uukj4vrq7bp7o55ui4pgnfuhr4",
               "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
-              "intent_cid": "bafkreier34gwmyyom4awlsjjgckoahwjewecx324haknhtt53nuokf3hdu",
-              "output_cid": "bafkreibicycc3l6aivhzeykeiwphd6msvyz46e52adzwr26isyp2l3wogy",
-              "receipt_cid": "bafkreicyiqtcpui5z2o62wb6s4kslqzhuveieeqyjuroyjrgrnwim6pwq4",
-              "event_cid": "bafkreibasasrmrykzztbpdhenreaeouhylnnrayylfit4gwppjeeackgn4",
+              "intent_cid": "bafkreicbvzelcrr5hoj5dcak2ob2ddubav4hvveo5kpgjj7ftgdjgymriu",
+              "output_cid": "bafkreig4ynkhnwg2lkghd3qrsjmkqqgoelyg3ky2xpiqbkhbt3dgcuvivy",
+              "receipt_cid": "bafkreihzibllr4krtguchvboslmdk56ekoahvr3zqg4vhrar7nz32zcojq",
+              "event_cid": "bafkreibrhvoh5jijtsofod22jxlol4jx3volk4vkfecy6l3l6sryzygpfa",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:2816042dafc0454f926144459e71f992ae33cf13ba00f368ebc8961fa5eece36",
+              "result_semantic_fingerprint": "sha256:dcc35476d8da5a8c71ee119258a840ce22f06dab1abbd100a8e19ec66152a8ae",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "cid_retrieval": {
@@ -15051,7 +15051,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreier34gwmyyom4awlsjjgckoahwjewecx324haknhtt53nuokf3hdu",
+                  "cid": "bafkreicbvzelcrr5hoj5dcak2ob2ddubav4hvveo5kpgjj7ftgdjgymriu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -15059,7 +15059,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreiezjqgipvxtg3np25cj2rqlj4b6vewgmjym3sunfy76mxlzboro6m",
+                  "cid": "bafkreieius6tyxof57cwwtsknl2omsw6uukj4vrq7bp7o55ui4pgnfuhr4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -15067,7 +15067,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreibicycc3l6aivhzeykeiwphd6msvyz46e52adzwr26isyp2l3wogy",
+                  "cid": "bafkreig4ynkhnwg2lkghd3qrsjmkqqgoelyg3ky2xpiqbkhbt3dgcuvivy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -15075,7 +15075,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreicyiqtcpui5z2o62wb6s4kslqzhuveieeqyjuroyjrgrnwim6pwq4",
+                  "cid": "bafkreihzibllr4krtguchvboslmdk56ekoahvr3zqg4vhrar7nz32zcojq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -15083,7 +15083,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreibasasrmrykzztbpdhenreaeouhylnnrayylfit4gwppjeeackgn4",
+                  "cid": "bafkreibrhvoh5jijtsofod22jxlol4jx3volk4vkfecy6l3l6sryzygpfa",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -15096,7 +15096,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreibasasrmrykzztbpdhenreaeouhylnnrayylfit4gwppjeeackgn4"
+              "event_cid": "bafkreibrhvoh5jijtsofod22jxlol4jx3volk4vkfecy6l3l6sryzygpfa"
             },
             "error": null
           }

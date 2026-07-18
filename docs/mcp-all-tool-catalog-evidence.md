@@ -1,6 +1,6 @@
 # MCP All-Tool Catalog Evidence
 
-Generated: 2026-07-18T18:51:56.920Z
+Generated: 2026-07-18T19:09:17.575Z
 
 Decision: **go**
 
@@ -11,14 +11,14 @@ Decision: **go**
 | Services | 3 |
 | Available services | 3 |
 | Services with full hierarchical facade | 3 |
-| Flat MCP tools | 417 |
-| Hierarchical MCP tools | 421 |
-| Reconciled descriptors | 569 |
-| Expected live descriptors | 417 |
-| Live reconciled descriptors | 417 |
-| Read dispatch receipts | 218 |
-| Policy-gated evidence entries | 348 |
-| Direct-only descriptors | 26 |
+| Flat MCP tools | 538 |
+| Hierarchical MCP tools | 542 |
+| Reconciled descriptors | 690 |
+| Expected live descriptors | 538 |
+| Live reconciled descriptors | 538 |
+| Read dispatch receipts | 265 |
+| Policy-gated evidence entries | 422 |
+| Direct-only descriptors | 47 |
 | Host-only descriptors | 108 |
 | Advertised libp2p endpoints | 1 |
 | Reachable advertised libp2p endpoints | 1 |
@@ -27,7 +27,7 @@ Decision: **go**
 
 | Service | Endpoint | Flat tools | Hierarchical tools | Facade | Missing expected | Unexplained flat | Read receipts | Policy gated |
 | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |
-| ipfs_kit_py | http://127.0.0.1:8014/mcp | 28 | 28 | yes | 0 | 0 | 32 | 24 |
+| ipfs_kit_py | http://127.0.0.1:8014/mcp | 149 | 149 | yes | 0 | 0 | 79 | 98 |
 | ipfs_datasets_py | http://127.0.0.1:3002/mcp | 271 | 271 | yes | 0 | 0 | 158 | 118 |
 | ipfs_accelerate_py | http://127.0.0.1:3003/mcp | 118 | 122 | yes | 0 | 0 | 0 | 206 |
 

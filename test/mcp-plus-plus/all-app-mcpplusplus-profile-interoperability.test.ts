@@ -19,7 +19,7 @@ import {
 const EVIDENCE_ROOT = join(process.cwd(), 'test-results', 'virtual-desktop-ipfs-mcp-orb');
 const PEER_EVIDENCE_PATH = join(EVIDENCE_ROOT, 'swissknife-all-tools-peer-evidence.json');
 const REPORT_PATH = join(EVIDENCE_ROOT, 'all-app-mcpplusplus-profile-interoperability.json');
-const GENERATED_AT = '2026-07-15T12:00:00.000Z';
+const GENERATED_AT = new Date().toISOString();
 
 function buildCompactionEvidence(): ProfileFCompactionEvidence {
   const dag = new EventDAG({ hotEventMax: 2, epochSize: 2 });

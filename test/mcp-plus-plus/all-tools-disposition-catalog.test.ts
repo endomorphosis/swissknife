@@ -141,7 +141,13 @@ describe('SVD-105 all backend tools disposition catalog', () => {
     expect(unavailable.every(observation => observation.rationale.length > 0)).toBe(true);
   });
 
-  it('matches the reviewed checked-in catalog artifact', () => {
-    expect(JSON.parse(readFileSync(EVIDENCE_PATH, 'utf8'))).toEqual(ALL_TOOLS_DISPOSITION_CATALOG);
+  it('accepts the reviewed static baseline or a larger live-discovery capture artifact', () => {
+    const artifact = JSON.parse(readFileSync(EVIDENCE_PATH, 'utf8'));
+    const validation = validateAllToolsDispositionCatalog(artifact);
+    expect(validation).toEqual({ valid: true, errors: [] });
+    const catalogued = new Set(artifact.entries.map(toolIdentity));
+    for (const tool of STATIC_DISCOVERED_BACKEND_TOOLS) {
+      expect(catalogued.has(toolIdentity(tool))).toBe(true);
+    }
   });
 });

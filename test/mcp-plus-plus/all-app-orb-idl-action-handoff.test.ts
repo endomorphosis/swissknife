@@ -20,7 +20,7 @@ import { buildVirtualDesktopOrbIdlCompleteCoverage } from '../../src/services/gl
 const EVIDENCE_PATH = join(
   process.cwd(), 'test-results', 'virtual-desktop-ipfs-mcp-orb', 'all-app-orb-idl-action-handoff.json',
 );
-const GENERATED_AT = '2026-07-15T00:00:00.000Z';
+const GENERATED_AT = new Date().toISOString();
 
 function buildCatalog() {
   return compileAllAppOrbIdlActionHandoff(

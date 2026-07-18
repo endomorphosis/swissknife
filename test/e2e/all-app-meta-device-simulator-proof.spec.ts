@@ -13,7 +13,7 @@ import {
 import { buildVirtualDesktopOrbIdlCompleteCoverage } from '../../src/services/glasses/desktop-orb-idl-contract';
 
 const TASK_ID = 'SVD-111';
-const GENERATED_AT = '2026-07-15T00:00:00.000Z';
+const CAPTURED_AT = new Date().toISOString();
 const REPORT_SCHEMA = 'swissknife.all-app-meta-device-simulator-proof.v1';
 const EVIDENCE_ROOT = path.join(process.cwd(), 'test-results', 'virtual-desktop-ipfs-mcp-orb');
 const SOURCE_PACKET_PATH = path.join(EVIDENCE_ROOT, 'all-app-orb-idl-action-handoff.json');
@@ -188,7 +188,7 @@ test.describe('SVD-111 Meta device-simulator modality, privacy, and fallback pro
 
     const screenshots = results.map(result => result.screenshot);
     const report = {
-      schema: REPORT_SCHEMA, task_id: TASK_ID, generated_at: GENERATED_AT, status: 'passed',
+      schema: REPORT_SCHEMA, task_id: TASK_ID, generated_at: CAPTURED_AT, status: 'passed',
       validation_commands: [
         'node scripts/run_playwright_test.mjs test -c playwright.config.ts test/e2e/all-app-meta-device-simulator-proof.spec.ts --reporter=line',
         'npm run test:e2e:meta-glasses -- --reporter=line',
@@ -239,9 +239,12 @@ test.describe('SVD-111 Meta device-simulator modality, privacy, and fallback pro
 });
 
 function compileCatalog(): AllAppOrbIdlActionHandoffCatalog {
+  expect(fs.existsSync(SOURCE_PACKET_PATH), 'SVD-111 requires compiled SVD-110 packet evidence').toBe(true);
+  const sourceCatalog = JSON.parse(fs.readFileSync(SOURCE_PACKET_PATH, 'utf8')) as { generated_at?: unknown };
+  expect(typeof sourceCatalog.generated_at, 'SVD-110 packet evidence requires generated_at').toBe('string');
   const catalog = compileAllAppOrbIdlActionHandoff(
     buildEligibleAllAppOrbIdlActionRoutes(), buildVirtualDesktopOrbIdlCompleteCoverage().descriptors,
-    buildSimulatorActionHandoffDeviceCapabilities(), { generatedAt: GENERATED_AT },
+    buildSimulatorActionHandoffDeviceCapabilities(), { generatedAt: sourceCatalog.generated_at as string },
   );
   expect(catalog.schema).toBe(ALL_APP_ORB_IDL_ACTION_HANDOFF_SCHEMA);
   expect(catalog.task_id).toBe('SVD-110');

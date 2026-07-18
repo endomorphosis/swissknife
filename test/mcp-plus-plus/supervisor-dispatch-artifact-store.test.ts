@@ -201,7 +201,7 @@ describe('SVD-113 supervisor dispatch artifact store', () => {
     const evidence = {
       schema: 'swissknife.supervisor-dispatch-artifact-store-evidence.v1',
       task_id: 'SVD-113',
-      generated_at: createdAt,
+      generated_at: new Date().toISOString(),
       decision: 'GO',
       runtime_boundary: {
         browser_safe: true,

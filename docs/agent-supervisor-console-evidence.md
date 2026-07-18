@@ -2,7 +2,7 @@
 
 Task: SWR-107
 
-Generated: 2026-07-18T18:57:34.897Z
+Generated: 2026-07-18T19:09:17.575Z
 
 Decision: go
 
@@ -17,7 +17,7 @@ Decision: go
 | Service | Role | Available | Endpoint | Flat tools | Agent Supervisor descriptors |
 | --- | --- | --- | --- | ---: | ---: |
 | ipfs_accelerate_py | state_authority | yes | http://127.0.0.1:3003/mcp | 122 | 28 |
-| ipfs_kit_py | receipt_authority | yes | http://127.0.0.1:8014/mcp | 32 | 2 |
+| ipfs_kit_py | receipt_authority | yes | http://127.0.0.1:8014/mcp | 153 | 4 |
 | ipfs_datasets_py | search_authority | yes | http://127.0.0.1:3002/mcp | 275 | 1 |
 
 ## Required Paths
