@@ -1,6 +1,6 @@
 # MCP All-Tool Catalog Evidence
 
-Generated: 2026-07-10T11:35:56.875Z
+Generated: 2026-07-18T18:13:59.160Z
 
 Decision: **go**
 
@@ -11,14 +11,14 @@ Decision: **go**
 | Services | 3 |
 | Available services | 3 |
 | Services with full hierarchical facade | 3 |
-| Flat MCP tools | 658 |
-| Hierarchical MCP tools | 476 |
-| Reconciled descriptors | 810 |
-| Expected live descriptors | 658 |
-| Live reconciled descriptors | 658 |
-| Read dispatch receipts | 367 |
-| Policy-gated evidence entries | 426 |
-| Direct-only descriptors | 269 |
+| Flat MCP tools | 417 |
+| Hierarchical MCP tools | 421 |
+| Reconciled descriptors | 569 |
+| Expected live descriptors | 417 |
+| Live reconciled descriptors | 417 |
+| Read dispatch receipts | 218 |
+| Policy-gated evidence entries | 348 |
+| Direct-only descriptors | 26 |
 | Host-only descriptors | 108 |
 | Advertised libp2p endpoints | 1 |
 | Reachable advertised libp2p endpoints | 1 |
@@ -27,8 +27,8 @@ Decision: **go**
 
 | Service | Endpoint | Flat tools | Hierarchical tools | Facade | Missing expected | Unexplained flat | Read receipts | Policy gated |
 | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |
-| ipfs_kit_py | http://127.0.0.1:8014/mcp | 204 | 204 | yes | 0 | 0 | 105 | 113 |
-| ipfs_datasets_py | http://127.0.0.1:3002/mcp | 336 | 150 | yes | 0 | 0 | 66 | 107 |
+| ipfs_kit_py | http://127.0.0.1:8014/mcp | 28 | 28 | yes | 0 | 0 | 32 | 24 |
+| ipfs_datasets_py | http://127.0.0.1:3002/mcp | 271 | 271 | yes | 0 | 0 | 158 | 118 |
 | ipfs_accelerate_py | http://127.0.0.1:3003/mcp | 118 | 122 | yes | 0 | 0 | 0 | 206 |
 
 ## MCP++ / libp2p
@@ -37,8 +37,8 @@ Decision: **go**
 
 | Service | Eligible descriptors | Advertised transport |
 | --- | ---: | --- |
-| ipfs_kit_py | 227 | mcp++-idl-only |
-| ipfs_datasets_py | 348 | mcp++-idl-only |
+| ipfs_kit_py | 60 | mcp++-idl-only |
+| ipfs_datasets_py | 283 | mcp++-idl-only |
 | ipfs_accelerate_py | 238 | libp2p |
 
 ## Policy
@@ -50,7 +50,6 @@ Decision: **go**
 
 ## Warnings
 
-- 150 ipfs_datasets_py hierarchical entries were not present in the flat tools/list surface.
 - 4 ipfs_accelerate_py hierarchical entries were not present in the flat tools/list surface.
 
 ## Artifacts

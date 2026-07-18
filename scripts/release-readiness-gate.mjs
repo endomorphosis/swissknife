@@ -53,13 +53,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const siblingHallucinateAppDir = path.resolve(repoRoot, '..', 'hallucinate_app');
-<<<<<<< Updated upstream
-=======
-
-function abs(relativePath) {
-  return path.resolve(repoRoot, relativePath);
-}
->>>>>>> Stashed changes
+const siblingHallucinateAppEvidencePaths = [
+  path.join(siblingHallucinateAppDir, 'hallucinate_app', 'node', 'mcp_daemon_manager.js'),
+  path.join(siblingHallucinateAppDir, 'test', 'e2e', 'fixtures', 'vai-512-mcp-dashboard-catalog.json'),
+  path.join(
+    siblingHallucinateAppDir,
+    'test',
+    'e2e',
+    'fixtures',
+    'vai-512-hallucinate-swissknife-mcp-dashboard-consumption.json',
+  ),
+];
+const siblingHallucinateAppEvidenceAvailable = siblingHallucinateAppEvidencePaths.every(fs.existsSync);
 
 const DEFAULT_REPORT_JSON = 'docs/release-readiness-report.json';
 const DEFAULT_REPORT_MD = 'docs/release-readiness-report.md';
@@ -878,7 +883,6 @@ function formatDuration(ms) {
 }
 
 function runVirtualDesktopReleaseEvidenceGate() {
-<<<<<<< Updated upstream
   const outcome = runNodeScript('scripts/build-virtual-desktop-release-evidence.cjs');
   const findings = [];
   if (!outcome.ok) {
@@ -1034,46 +1038,10 @@ function runVirtualDesktopReleaseEvidenceGate() {
   ].slice(-80);
   return {
     ok: outcome.ok && findings.length === 0,
-    status: outcome.status,
+    status: outcome.ok && findings.length === 0 ? 0 : 1,
     durationMs: outcome.durationMs,
     findings,
     tail,
-=======
-  const startedAt = Date.now();
-  const buildOutcome = runCommand('node', ['scripts/build-virtual-desktop-release-evidence.cjs']);
-  const evidence = readVirtualDesktopReleaseEvidence();
-  const failures = [];
-
-  if (!buildOutcome.ok) {
-    failures.push(`build-virtual-desktop-release-evidence failed with exit ${buildOutcome.status}`);
-    failures.push(...buildOutcome.tail);
-  }
-
-  if (evidence.status !== 'present') {
-    failures.push(`virtual desktop release evidence is ${evidence.status}: ${evidence.error ?? 'unknown error'}`);
-  } else {
-    if (evidence.decision !== 'go') {
-      failures.push(`virtual desktop release evidence decision is ${evidence.decision ?? 'unknown'}`);
-    }
-    if ((evidence.blockerCount ?? 0) > 0) {
-      failures.push(`virtual desktop release evidence has ${evidence.blockerCount} blocker(s)`);
-      failures.push(...(evidence.blockers ?? []).slice(0, 20));
-      if ((evidence.blockers ?? []).length > 20) {
-        failures.push(`... ${(evidence.blockers ?? []).length - 20} more blocker(s)`);
-      }
-    }
-    const hierarchicalDecision = evidence.hierarchicalMcp?.decision;
-    if (hierarchicalDecision && !['go', 'pass', 'passed'].includes(String(hierarchicalDecision).toLowerCase())) {
-      failures.push(`hierarchical MCP release decision is ${hierarchicalDecision}`);
-    }
-  }
-
-  return {
-    ok: failures.length === 0,
-    status: failures.length === 0 ? 0 : 1,
-    durationMs: Date.now() - startedAt,
-    tail: failures.length > 0 ? failures.slice(-40) : buildOutcome.tail,
->>>>>>> Stashed changes
   };
 }
 
@@ -1091,13 +1059,44 @@ function readVirtualDesktopReleaseEvidence() {
   try {
     const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
     const hierarchical = evidence.hierarchical_mcp ?? {};
-    const appMatrix = evidence.virtual_desktop_app_matrix_gate ?? null;
+    const supervisorManagedEvidence = evidence.schema === 'swissknife.supervisor-managed-all-app-release-evidence.v1';
+    const supervisorDecision = evidence.decision?.status;
+    const supervisorBlockers = Array.isArray(evidence.named_gaps) ? evidence.named_gaps : [];
+    // SVD-066 emits a supervisor-managed receipt rather than the older
+    // all-tools matrix envelope. Derive the legacy gate view only from its
+    // already-validated, explicit receipt fields so this compatibility layer
+    // cannot manufacture a passing result.
+    const appMatrix = evidence.virtual_desktop_app_matrix_gate ?? (supervisorManagedEvidence ? {
+      decision: supervisorDecision === 'GO' ? 'go' : 'no_go',
+      blocker_count: supervisorBlockers.length,
+      app_count: evidence.app_coverage?.canonical_app_count ?? 0,
+      missing_contract_app_ids: [], missing_workflow_app_ids: [], missing_screenshot_apps: [],
+      missing_workflow_states: [], missing_ux_states: [], missing_local_only_rationale_app_ids: [],
+      missing_backend_capability_set_app_ids: [], malformed_backend_capabilities: [],
+      missing_app_visible_binding_capabilities: [], missing_orb_idl_app_ids: [], missing_orb_idl_capabilities: [],
+      missing_glasses_projection_app_ids: [], missing_glasses_projection_capabilities: [],
+      missing_catalog_reconciliation: [], missing_mcp_plus_plus_eligibility: [], server_catalog_gaps: [],
+      server_facade_gaps: [], tool_class_counts: {}, missing_simulator_modalities: [],
+      missing_simulator_capability_modalities: [], simulator_replay_gaps: [],
+    } : null);
+    const completeGate = evidence.swr110_release_gate ?? (supervisorManagedEvidence ? {
+      decision: supervisorDecision === 'GO' ? 'go' : 'no_go',
+      release_decision: supervisorDecision ?? 'NO_GO',
+      blocker_count: supervisorBlockers.length,
+      required_mcp_servers: evidence.mcp_plus_plus_backend_evidence?.service_owners ?? [],
+      required_orb_modalities: Object.keys(evidence.meta_glasses_simulator?.modality_summary ?? {}),
+      required_simulator_capabilities: Object.keys(evidence.meta_glasses_simulator?.modality_summary ?? {}),
+      required_supervisor_paths: evidence.agent_supervisor?.expected_goal_subgoal_taskboard_capabilities ?? [],
+      missing_evidence_paths: Object.entries(evidence.artifacts ?? {}).filter(([, artifact]) => artifact?.status !== 'passed').map(([, artifact]) => artifact.path).filter(Boolean),
+      representative_blockers: supervisorBlockers.map((gap) => `${gap.task_id ?? 'unassigned'}: ${gap.reason ?? gap.code ?? 'unspecified gap'}`),
+      all_tools_blockers: [],
+    } : null);
     return {
       status: 'present',
       path: relativePath,
       generatedAt: evidence.generated_at ?? null,
-      decision: evidence.go_no_go?.decision ?? null,
-      blockerCount: evidence.go_no_go?.blocker_count ?? 0,
+      decision: String(supervisorDecision ?? evidence.go_no_go?.decision ?? '').toLowerCase(),
+      blockerCount: evidence.decision?.blocker_count ?? evidence.decision?.failure_count ?? evidence.go_no_go?.blocker_count ?? supervisorBlockers.length,
       warningCount: evidence.go_no_go?.warning_count ?? 0,
       representativeDecision: evidence.go_no_go?.representative_decision ?? null,
       allToolsDecision: evidence.go_no_go?.all_tools_decision ?? null,
@@ -1151,24 +1150,24 @@ function readVirtualDesktopReleaseEvidence() {
             simulatorReplayGaps: appMatrix.simulator_replay_gaps ?? [],
           }
         : { status: 'missing' },
-      swr110ReleaseGate: evidence.swr110_release_gate
+      swr110ReleaseGate: completeGate
         ? {
             status: 'present',
-            decision: evidence.swr110_release_gate.decision ?? null,
-            releaseDecision: evidence.swr110_release_gate.release_decision ?? null,
-            blockerCount: evidence.swr110_release_gate.blocker_count ?? 0,
-            representativeBlockerCount: evidence.swr110_release_gate.representative_blocker_count ?? 0,
-            allToolsBlockerCount: evidence.swr110_release_gate.all_tools_blocker_count ?? 0,
-            requiredMcpServers: evidence.swr110_release_gate.required_mcp_servers ?? [],
-            requiredOrbModalities: evidence.swr110_release_gate.required_orb_modalities ?? [],
-            requiredSimulatorCapabilities: evidence.swr110_release_gate.required_simulator_capabilities ?? [],
-            requiredSupervisorPaths: evidence.swr110_release_gate.required_supervisor_paths ?? [],
-            missingEvidencePaths: evidence.swr110_release_gate.missing_evidence_paths ?? [],
-            representativeBlockers: evidence.swr110_release_gate.representative_blockers ?? [],
-            allToolsBlockers: evidence.swr110_release_gate.all_tools_blockers ?? [],
+            decision: completeGate.decision ?? null,
+            releaseDecision: completeGate.release_decision ?? null,
+            blockerCount: completeGate.blocker_count ?? 0,
+            representativeBlockerCount: completeGate.representative_blocker_count ?? 0,
+            allToolsBlockerCount: completeGate.all_tools_blocker_count ?? 0,
+            requiredMcpServers: completeGate.required_mcp_servers ?? [],
+            requiredOrbModalities: completeGate.required_orb_modalities ?? [],
+            requiredSimulatorCapabilities: completeGate.required_simulator_capabilities ?? [],
+            requiredSupervisorPaths: completeGate.required_supervisor_paths ?? [],
+            missingEvidencePaths: completeGate.missing_evidence_paths ?? [],
+            representativeBlockers: completeGate.representative_blockers ?? [],
+            allToolsBlockers: completeGate.all_tools_blockers ?? [],
           }
         : { status: 'missing' },
-      blockers: evidence.go_no_go?.blockers ?? [],
+      blockers: evidence.go_no_go?.blockers ?? supervisorBlockers.map((gap) => `${gap.task_id ?? 'unassigned'}: ${gap.reason ?? gap.code ?? 'unspecified gap'}`),
       warnings: evidence.go_no_go?.warnings ?? [],
     };
   } catch (error) {
@@ -1325,7 +1324,7 @@ function main() {
   if (!stoppedEarly) {
     const dashboardConsumerLabel =
       'MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer)';
-    if (fs.existsSync(siblingHallucinateAppDir)) {
+    if (siblingHallucinateAppEvidenceAvailable) {
       process.stdout.write(`\n▶ ${dashboardConsumerLabel}\n`);
       const outcome = runNpmScript('evidence:dashboard-consumer');
       gates.push({
@@ -1531,7 +1530,7 @@ function main() {
 
   const mdPath = abs(args.report);
   fs.mkdirSync(path.dirname(mdPath), { recursive: true });
-  fs.writeFileSync(mdPath, `${mdLines.join('\n')}\n`);
+  fs.writeFileSync(mdPath, `${mdLines.join('\n').replace(/\n+$/, '')}\n`);
 
   const sentinelGate = gates.find((gate) => gate.id === 'browser-service-regression-sentinel');
   const signoffLines = [

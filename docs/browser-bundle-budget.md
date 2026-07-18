@@ -17,7 +17,7 @@ The JSON block below is the release budget source of truth; increasing a budget 
 
 ## Gate Summary
 
-- Total bundle: 2.33 MiB raw, 561.2 KiB gzip, 468.6 KiB brotli across 51 files.
+- Total bundle: 2.34 MiB raw, 562.4 KiB gzip, 469.8 KiB brotli across 51 files.
 - libp2p-related chunks: 606.8 KiB raw, 177.7 KiB gzip across 2 chunks.
 - Host-only leakage findings: 0.
 - Python/Pyodide exposure findings: 18.
@@ -26,9 +26,9 @@ The JSON block below is the release budget source of truth; increasing a budget 
 
 | Budget | Actual | Limit | Status |
 | --- | --- | --- | --- |
-| totalRawBytes |2.33 MiB |2.62 MiB |pass |
-| totalGzipBytes |561.2 KiB |634.8 KiB |pass |
-| totalBrotliBytes |468.6 KiB |546.9 KiB |pass |
+| totalRawBytes |2.34 MiB |2.62 MiB |pass |
+| totalGzipBytes |562.4 KiB |634.8 KiB |pass |
+| totalBrotliBytes |469.8 KiB |546.9 KiB |pass |
 | libp2pRawBytes |606.8 KiB |634.8 KiB |pass |
 | libp2pGzipBytes |177.7 KiB |185.5 KiB |pass |
 | libp2pBrotliBytes |141.6 KiB |156.3 KiB |pass |
@@ -40,7 +40,7 @@ The JSON block below is the release budget source of truth; increasing a budget 
 | File | Raw | Gzip | Brotli | Reason |
 | --- | --- | --- | --- | --- |
 | dist/assets/vendor-libp2p-BWo2oUv2.js |601.8 KiB |176.1 KiB |140.1 KiB |package:@libp2p/interface, package:@libp2p/interface, package:@libp2p/interface |
-| dist/assets/libp2p-browser-runtime-Doubh1Bz.js |5.0 KiB |1.6 KiB |1.4 KiB |module:web/js/libp2p-browser-runtime.js |
+| dist/assets/libp2p-browser-runtime-C_MPrED5.js |5.0 KiB |1.6 KiB |1.4 KiB |module:web/js/libp2p-browser-runtime.js |
 
 
 ## Host-Only Leakage
@@ -56,18 +56,18 @@ _None._
 | python-reference |python-command-or-text |dist/assets/github-C7z4FcBm.js |Python |<option value="Python">Python</option> |
 | python-reference |python-command-or-text |dist/assets/github-C7z4FcBm.js |Python |eturn{JavaScript:"#f1e05a",TypeScript:"#2b7489",Python:"#3572A5",Java:"#b07219",Go:"#00ADD8",Rus |
 | python-reference |python-command-or-text |dist/assets/huggingface-kNxMl9sf.js |Python |<div class="example-prompt">"Write a Python function to calculate fibonacci..."</div> |
-| python-reference |python-command-or-text |dist/assets/index-BGT_R7cE.js |python |o node builtins</code> <code>no python wrappers</code> <code>no |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |python |stCommandInterpreters:Object.freeze(["python3","python","uvicorn","gunicorn","pip3","pip","node" |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |python |tnet","ruby","php","go","cargo"])}),I=new Set(["python","python3","uvicorn","gunicorn","pip","pi |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |python |ss="host-daemon-disclaimer${c.isPythonCommand?" python-command-disclaimer":""}"> |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |python |ss="host-daemon-disclaimer${s.isPythonCommand?" python-command-disclaimer":""}"> |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |python |ort:8765},{name:"example-mcp-server-2",command:"python server.py",status:"stopped",port:8766}];f |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |python |.classList.remove("hidden"),t.classList.toggle("python-command-disclaimer",o.isPythonCommand),t. |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |Python |on) must run it. This example text references a Python interpreter/server; it documents the host |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |Python |d is never parsed or executed by any in-browser Python code interpreter.",hostCommandInterpreter |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |Python |n the command references an interpreter such as Python. </p> |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |python3 |reter.",hostCommandInterpreters:Object.freeze(["python3","python","uvicorn","gunicorn","pip3","p |
-| python-reference |python-command-or-text |dist/assets/mcp-control-CNmfq9SR.js |python3 |by","php","go","cargo"])}),I=new Set(["python","python3","uvicorn","gunicorn","pip","pip3"]),T=/ |
+| python-reference |python-command-or-text |dist/assets/index-CKcr58u6.js |python |o node builtins</code> <code>no python wrappers</code> <code>no |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |python |stCommandInterpreters:Object.freeze(["python3","python","uvicorn","gunicorn","pip3","pip","node" |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |python |tnet","ruby","php","go","cargo"])}),I=new Set(["python","python3","uvicorn","gunicorn","pip","pi |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |python |ss="host-daemon-disclaimer${c.isPythonCommand?" python-command-disclaimer":""}"> |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |python |ss="host-daemon-disclaimer${s.isPythonCommand?" python-command-disclaimer":""}"> |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |python |ort:8765},{name:"example-mcp-server-2",command:"python server.py",status:"stopped",port:8766}];f |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |python |.classList.remove("hidden"),t.classList.toggle("python-command-disclaimer",o.isPythonCommand),t. |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |Python |on) must run it. This example text references a Python interpreter/server; it documents the host |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |Python |d is never parsed or executed by any in-browser Python code interpreter.",hostCommandInterpreter |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |Python |n the command references an interpreter such as Python. </p> |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |python3 |reter.",hostCommandInterpreters:Object.freeze(["python3","python","uvicorn","gunicorn","pip3","p |
+| python-reference |python-command-or-text |dist/assets/mcp-control-OcD8egkf.js |python3 |by","php","go","cargo"])}),I=new Set(["python","python3","uvicorn","gunicorn","pip","pip3"]),T=/ |
 | python-reference |python-command-or-text |dist/assets/vibecode-D0wbqg_z.js |python |entFile=null,this.recentFiles=[],this.language="python",this.theme="dark",this.editorMode="split |
 | python-reference |python-command-or-text |dist/assets/vibecode-D0wbqg_z.js |Python |<div class="status-right"> <span>Python \| Streamlit \| Line 1, Col 1</span> |
 
@@ -81,7 +81,7 @@ _None._
 
 | Type | Name | Owner | Classification | Modules | Chunks | Rendered Bytes |
 | --- | --- | --- | --- | --- | --- | --- |
-| source |web |browser-web-app |browser-safe |58 |42 |1.87 MiB |
+| source |web |browser-web-app |browser-safe |58 |42 |1.88 MiB |
 | package |@chainsafe/libp2p-gossipsub |mcp-protocol-runtime |third-party |27 |1 |207.7 KiB |
 | package |libp2p |mcp-protocol-runtime |third-party |25 |1 |137.4 KiB |
 | package |@noble/curves |third-party-runtime |third-party |10 |1 |126.8 KiB |
@@ -215,16 +215,16 @@ _None._
 | --- | --- | --- | --- |
 | dist/assets/vendor-libp2p-BWo2oUv2.js |601.8 KiB |176.1 KiB |140.1 KiB |
 | dist/assets/index-Ccg8_Iox.css |231.5 KiB |37.5 KiB |30.6 KiB |
-| dist/assets/p2p-network-RD7TkVAW.js |94.9 KiB |17.2 KiB |14.4 KiB |
-| dist/assets/mcp-control-CNmfq9SR.js |69.4 KiB |14.0 KiB |12.1 KiB |
+| dist/assets/p2p-network-DHKdi2WN.js |94.9 KiB |17.2 KiB |14.4 KiB |
+| dist/assets/mcp-control-OcD8egkf.js |69.4 KiB |14.0 KiB |12.1 KiB |
 | dist/assets/file-manager-vsY99IO3.js |65.9 KiB |14.0 KiB |11.7 KiB |
 | dist/assets/neural-photoshop-DFGyHC_i.js |65.3 KiB |14.2 KiB |11.9 KiB |
-| dist/assets/index-BGT_R7cE.js |63.9 KiB |15.3 KiB |12.9 KiB |
-| dist/assets/agent-supervisor-C5cG1evZ.js |53.5 KiB |13.0 KiB |11.3 KiB |
+| dist/assets/index-CKcr58u6.js |63.9 KiB |15.3 KiB |12.9 KiB |
+| dist/assets/agent-supervisor-BRvvm2RC.js |60.9 KiB |14.3 KiB |12.4 KiB |
 | dist/assets/friends-list-C50UOwyX.js |51.9 KiB |11.3 KiB |9.4 KiB |
 | dist/assets/ipfs-explorer-BI78ByE9.js |51.7 KiB |11.6 KiB |9.8 KiB |
 | dist/assets/training-manager-Vjh42uH5.js |48.4 KiB |10.2 KiB |8.8 KiB |
-| dist/assets/strudel-ai-daw-CAZ34dgO.js |47.5 KiB |11.9 KiB |10.4 KiB |
+| dist/assets/strudel-ai-daw-B0E0dEXL.js |47.5 KiB |11.9 KiB |10.4 KiB |
 | dist/assets/calculator-DxXtFSyX.js |42.2 KiB |6.4 KiB |5.4 KiB |
 | dist/assets/huggingface-kNxMl9sf.js |41.4 KiB |6.3 KiB |5.3 KiB |
 | dist/assets/api-keys-BudxLkI9.js |41.0 KiB |8.5 KiB |7.3 KiB |

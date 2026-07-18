@@ -22,7 +22,10 @@ const accelerateRoot = process.env.IPFS_ACCELERATE_PY_ROOT || '/home/barberb/ipf
 const acceleratePython = process.env.IPFS_ACCELERATE_PYTHON || path.join(accelerateRoot, '.venv', 'bin', 'python3');
 const mcpAnnounceFile = process.env.IPFS_ACCELERATE_PY_TASK_P2P_ANNOUNCE_FILE
   || path.join(accelerateRoot, 'state', 'task_p2p_announce_mcp.json');
-const liveProbeTimeoutMs = Number(process.env.SWISSKNIFE_MCP_LIVE_PROBE_TIMEOUT_MS || 8000);
+// Dataset dashboard dispatches share a single upstream worker.  A full
+// catalog replay must allow a bounded queued request to finish instead of
+// mistaking queue pressure for an unavailable backend.
+const liveProbeTimeoutMs = Number(process.env.SWISSKNIFE_MCP_LIVE_PROBE_TIMEOUT_MS || 30000);
 const liveProbeConcurrency = Number(process.env.SWISSKNIFE_MCP_LIVE_PROBE_CONCURRENCY || 8);
 const requiredServiceRoles = new Set(['configured', 'configured_compat']);
 const requiredServices = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
@@ -48,7 +51,6 @@ main().catch(error => {
 
 async function main() {
   fs.mkdirSync(evidenceRoot, { recursive: true });
-<<<<<<< Updated upstream
 
   const ledger = await captureAllToolsLedger();
   const appBindings = readRequiredJson(path.join(evidenceRoot, 'all-tools-app-bindings.json'), 'all-tools-app-bindings.json');
@@ -87,21 +89,6 @@ async function main() {
     live_dispatch_receipt_count: allServerCatalog.summary.live_dispatch_receipt_count,
     policy_gated_evidence_count: allServerCatalog.summary.policy_gated_evidence_count,
     libp2p_decision: libp2pCatalog.decision,
-=======
-  const hierarchical = await captureHierarchicalFacadeEvidence();
-  const libp2p = captureLibp2pReachabilityEvidence();
-  const mcpFleetToolCount = hierarchical.probes.reduce((total, probe) => total + (probe.tool_count ?? 0), 0);
-  const mcpFleetToolCounts = Object.fromEntries(hierarchical.probes.map(probe => [probe.service, probe.tool_count ?? 0]));
-  writeJson('mcp-hierarchical-facade-live-probes.json', hierarchical);
-  writeJson('mcpplusplus-libp2p-reachability.json', libp2p);
-  console.log(JSON.stringify({
-    hierarchical_decision: hierarchical.decision,
-    hierarchical_probe_count: hierarchical.probes.length,
-    mcp_fleet_tool_count: mcpFleetToolCount,
-    mcp_fleet_tool_counts: mcpFleetToolCounts,
-    libp2p_ok: libp2p.ok,
-    libp2p_accelerate_tool_count: libp2p.tool_count ?? 0,
->>>>>>> Stashed changes
     outputs: [
       'test-results/virtual-desktop-ipfs-mcp-orb/all-server-tool-catalog.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/mcp-plus-plus-libp2p-catalog.json',
@@ -177,9 +164,17 @@ async function captureServiceCatalog(config, bindingRows, policyRows, contractCa
     return reconcileDescriptor(config, endpoint, row, policy, contract, flatByName, hierarchyByName, fullFacadeAvailable);
   });
 
+  // The datasets compatibility adapter proxies a single dashboard worker;
+  // concurrent generic dry-run probes can otherwise abort before dispatch.
+  // Keep the remaining service probes parallel while serializing that one
+  // bounded queue. Each successful receipt is still produced by the live
+  // MCP route, never a descriptor or fixture shortcut.
+  const verificationConcurrency = config.service === 'ipfs_datasets_py'
+    ? 1
+    : liveProbeConcurrency;
   await mapLimit(
     reconciledDescriptors.filter(descriptor => descriptor.needs_live_verification),
-    liveProbeConcurrency,
+    verificationConcurrency,
     async descriptor => {
       descriptor.verification = await verifyDescriptor(endpoint, descriptor);
       descriptor.reconciliation.receipt_present = Boolean(descriptor.verification.receipt);

@@ -2,20 +2,20 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "browser-bundle-budget",
   "label": "Browser bundle budget evidence (SWR-016)",
-  "generatedAt": "2026-07-15T05:55:13.996Z",
+  "generatedAt": "2026-07-18T18:04:14.535Z",
   "evidenceFiles": [
     "docs/browser-bundle-budget.md",
     "docs/browser-bundle-budget.json"
   ],
   "evidenceHashes": {
-    "docs/browser-bundle-budget.md": "6850a8fc5a10ee74981221c65976e4f9ca7f4e8ae2828d6d50dd3b9ea8fb9bff",
-    "docs/browser-bundle-budget.json": "fef14f1f00a7ab0675f8fe2ab6f3bd1458e420040671ec50e3b661d3edc5dc53"
+    "docs/browser-bundle-budget.md": "9a53e161d81f4f9d7b27a4fa1bc79e345ab32adba142d6c925a7acb1e5750c3f",
+    "docs/browser-bundle-budget.json": "076960e0316e7bc78bd2d3ecfda8ff41535c09f002dad59499139bbaa8335559"
   },
-  "sourceFingerprint": "e470de788f7f548e9567f49e3c622ba67aefaca6c513b77eec78d15f8219a52c",
+  "sourceFingerprint": "79d90d3ffacb05f756611a8ca2b7ad3a2f8da6f16175568cceabd6e938ab0e76",
   "sourceFiles": [
     {
       "path": "package.json",
-      "sha256": "67fac678b898348f829a9930cd9f58b28389a203e6d5a422dea8112aa10a417b"
+      "sha256": "ec5844871af050ee90d7a51a1dcd3e3cc86fb6396f1954e5e48e13afbe0c752a"
     },
     {
       "path": "scripts/audit-web-bundle.mjs",
@@ -23,7 +23,7 @@
     },
     {
       "path": "src/module-ownership.json",
-      "sha256": "68dfd2c7bf556fddb150c8896c44becf52b518935bdcfe64ef4f13bca7b885b8"
+      "sha256": "ac47de4c42acef2addfd64e39f91cf1552e04194f033e9d722db035a1f5a0906"
     },
     {
       "path": "vite.web.config.ts",

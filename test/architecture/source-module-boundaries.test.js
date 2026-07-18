@@ -868,6 +868,17 @@ describe('source module boundaries', () => {
             ],
           },
         },
+        modules: {
+          'service-mcp': {
+            owner: 'fixture-mcp',
+            path: 'src/services/mcp',
+            runtimeClassification: 'split',
+            allowedImports: ['services', 'shared', 'utils'],
+            forbiddenImports: ['commands', 'entrypoints'],
+            publicEntrypoints: ['src/services/mcp/*.ts', 'src/services/mcp/compat/*.ts'],
+            privateEntrypoints: [],
+          },
+        },
       },
     });
     const inventoryPath = path.join(fixtureDir, 'approved-inventory.json');

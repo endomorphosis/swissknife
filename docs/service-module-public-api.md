@@ -8,17 +8,18 @@ Service implementations have exactly one owning family. Cross-family consumers m
 
 | Family | Owner | Runtime | Browser-safe entrypoint | Public entrypoints |
 | --- | --- | --- | --- | --- |
-| `service-apps` | app-surface-runtime | `universal` | `src/services/apps/app-manifest.ts` | 12 |
+| `service-apps` | app-surface-runtime | `universal` | `src/services/apps/app-manifest.ts` | 14 |
 | `service-glasses` | glasses-surface-runtime | `split` | none | 7 |
 | `service-integrations` | external-integration-service-runtime | `split` | none | 4 |
 | `service-ipfs` | ipfs-descriptor-runtime | `split` | `src/services/ipfs/ipfs-browser.ts` | 9 |
 | `service-logic` | logic-service-runtime | `split` | `src/services/logic/api/reasoning-normalization-pipeline.ts` | 72 |
-| `service-mcp` | mcp-protocol-runtime | `split` | `src/services/mcp/browser-mcp.ts` | 24 |
+| `service-mcp` | mcp-protocol-runtime | `split` | `src/services/mcp/browser-mcp.ts` | 25 |
 | `service-platform` | platform-service-runtime | `split` | none | 8 |
 | `service-proof-engine` | proof-engine-service-runtime | `split` | `src/services/proof-engine/proof-engine-browser.ts` | 3 |
 | `service-provers` | prover-service-runtime | `split` | `src/services/provers/provers-browser.ts` | 19 |
 | `service-shared` | shared-service-runtime | `universal` | `src/services/shared/shared-browser-crypto.ts` | 3 |
-| `service-zkp` | zkp-service-runtime | `split` | `src/services/zkp/browser-zkp.ts` | 12 |
+| `service-storage` | browser-safe-dispatch-artifact-storage | `browser-safe` | `src/services/storage/supervisor-dispatch-artifact-store.ts` | 1 |
+| `service-zkp` | zkp-service-runtime | `split` | `src/services/zkp/browser-zkp.ts` | 13 |
 | `services` | domain-service-runtime | `split` | none | 0 |
 
 ## Canonical Family APIs
@@ -29,6 +30,8 @@ Owner: app-surface-runtime. Runtime: `universal`.
 
 Public entrypoints:
 
+- `src/services/apps/all-app-executable-backend-contract.ts`
+- `src/services/apps/all-app-live-tool-bindings.ts`
 - `src/services/apps/all-tools-app-binding-matrix.ts`
 - `src/services/apps/all-tools-composite-workflows.ts`
 - `src/services/apps/all-tools-policy-classifier.ts`
@@ -189,6 +192,7 @@ Owner: mcp-protocol-runtime. Runtime: `split`.
 Public entrypoints:
 
 - `src/services/mcp/agent-supervisor-console-gateway.ts`
+- `src/services/mcp/all-app-tool-gateway.ts`
 - `src/services/mcp/all-tools-idl-generator.ts`
 - `src/services/mcp/browser-mcp.ts`
 - `src/services/mcp/host/mcpClient.ts`
@@ -294,6 +298,18 @@ Private implementation patterns (declared public entrypoints are excluded):
 
 - `src/services/shared/**/*`
 
+### service-storage
+
+Owner: browser-safe-dispatch-artifact-storage. Runtime: `browser-safe`.
+
+Public entrypoints:
+
+- `src/services/storage/supervisor-dispatch-artifact-store.ts`
+
+Private implementation patterns (declared public entrypoints are excluded):
+
+- `src/services/storage/**/*`
+
 ### service-zkp
 
 Owner: zkp-service-runtime. Runtime: `split`.
@@ -307,6 +323,7 @@ Public entrypoints:
 - `src/services/zkp/ethereum-zkp-bridge.ts`
 - `src/services/zkp/groth16-cec-expansion.ts`
 - `src/services/zkp/index.ts`
+- `src/services/zkp/profile-d-policy-zkp.ts`
 - `src/services/zkp/zkp-backends.ts`
 - `src/services/zkp/zkp-browser-schnorr.ts`
 - `src/services/zkp/zkp-browser.ts`

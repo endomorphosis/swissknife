@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
-const { captureAllToolsLedger } = require('./all-tools-evidence-lib.cjs');
 
 const bootstrap = spawnSync(process.execPath, [path.join(__dirname, 'ensure-ipfs-mcp-compat-adapters.cjs')], {
   cwd: path.resolve(__dirname, '..'),
@@ -14,6 +13,10 @@ if (bootstrap.error) {
   process.exit(1);
 }
 if (bootstrap.status !== 0) process.exit(bootstrap.status ?? 1);
+
+// Bootstrap may lease an isolated datasets endpoint; load the catalog only
+// afterwards so every collector uses that verified worktree-local endpoint.
+const { captureAllToolsLedger } = require('./all-tools-evidence-lib.cjs');
 
 captureAllToolsLedger()
   .then(ledger => {

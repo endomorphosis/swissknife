@@ -447,7 +447,6 @@ function extractCategoryTools(payload, category) {
 
 function chooseRepresentativeTool(entries) {
   if (entries.length === 0) return null;
-<<<<<<< Updated upstream
   const preferredNames = [
     'get_server_status',
     'p2p_taskqueue_status',
@@ -462,9 +461,7 @@ function chooseRepresentativeTool(entries) {
     const preferred = entries.find(entry => entry.name === preferredName || entry.flat_name === preferredName || entry.flat_name.endsWith(`.${preferredName}`));
     if (preferred) return preferred;
   }
-=======
   const preferred = entries.filter(entry => PREFERRED_REPRESENTATIVE_TOOLS.includes(entry.name));
->>>>>>> Stashed changes
   const safe = entries.filter(entry => /(^|[_.-])(status|health|list|get|check|info|version|ping)([_.-]|$)/i.test(entry.name));
   return (preferred.length > 0 ? preferred : safe.length > 0 ? safe : entries).sort((a, b) => {
     const preferredIndexA = PREFERRED_REPRESENTATIVE_TOOLS.indexOf(a.name);

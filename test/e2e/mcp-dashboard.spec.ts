@@ -3,7 +3,7 @@ import { spawnSync } from 'child_process';
 import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import MCPDaemonManager from '../../../hallucinate_app/hallucinate_app/node/mcp_daemon_manager.js';
+import { pathToFileURL } from 'url';
 import {
   buildSwissknifeMCPDashboardConsumerPlans,
   buildSwissknifeMCPDashboardInvocationPlan,
@@ -11,6 +11,25 @@ import {
 import { getAppManifest } from '../../src/services/apps/app-manifest-registry';
 import { VIRTUAL_DESKTOP_APP_MANIFEST } from '../../src/services/apps/virtual-desktop-app-manifest';
 import hallucinateBackendBridge from '../../web/js/hallucinate-backend-bridge.mjs';
+
+// The local desktop smoke stays runnable in a standalone SwissKnife checkout;
+// dashboard-consumer assertions are cross-repository and must not make module
+// loading fail before their explicit availability guard can report the cause.
+const dashboardManagerPath = path.resolve(
+  process.cwd(),
+  '..',
+  'hallucinate_app',
+  'hallucinate_app',
+  'node',
+  'mcp_daemon_manager.js',
+);
+const MCPDaemonManager: any = (await import(pathToFileURL(dashboardManagerPath).href)
+  .then(module => module.default)
+  .catch(() => class MissingDashboardManager {
+    getDashboardCapabilityCatalog(): never {
+      throw new Error('Hallucinate App dashboard consumer is unavailable in this standalone checkout.');
+    }
+  }));
 
 const DASHBOARD_CATALOG_FIXTURE = path.resolve(
   process.cwd(),

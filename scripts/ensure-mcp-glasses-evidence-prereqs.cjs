@@ -31,7 +31,7 @@ const requiredArtifacts = [
   'agent-supervisor-console-e2e.json',
   'agent-supervisor-console-receipts.json',
   'orb-idl-complete-coverage.json',
-];
+].filter(fileName => fileName !== 'app-inventory.json' || dashboardConsumerAvailable());
 const simulatorArtifact = 'glasses-simulator-handoff.json';
 
 const missing = requiredArtifacts.filter(fileName => !fs.existsSync(path.join(evidenceRoot, fileName)));
@@ -45,19 +45,47 @@ if (missing.length === 0 && staleOrNoGo.length === 0) {
 }
 
 console.log(`Regenerating MCP glasses evidence prerequisites: ${[...missing, ...staleOrNoGo].join(', ')}`);
-for (const [command, args] of [
+const commands = [
   [process.execPath, ['scripts/capture-ipfs-mcp-all-tools-ledger.cjs']],
   [process.execPath, ['scripts/capture-ipfs-accelerate-adapter-coverage.cjs']],
   [process.execPath, ['scripts/build-all-tools-composite-workflows.cjs']],
   [process.execPath, ['scripts/build-all-tools-capability-matrix.cjs']],
   [process.execPath, ['scripts/capture-mcp-live-probe-evidence.cjs']],
   [process.execPath, ['scripts/capture-hierarchical-mcp-tools-evidence.cjs']],
-  [process.execPath, ['scripts/run_playwright_test.mjs', 'test', '-c', 'build-tools/configs/playwright.mcp-dashboard.config.ts']],
-  [process.execPath, ['scripts/test-mcp-dashboard-consumer.cjs']],
   [process.execPath, ['scripts/build-agent-supervisor-console-evidence.cjs']],
   [tsxBinary(), ['scripts/build-meta-glasses-simulator-handoff-evidence.ts']],
-]) {
+];
+
+// Dashboard-consumer evidence belongs to a sibling Hallucinate App checkout.
+// In a standalone SwissKnife worktree retain the real desktop workflow replay,
+// but do not claim an unavailable external consumer as passing evidence.
+if (dashboardConsumerAvailable()) {
+  commands.splice(6, 0,
+    [process.execPath, ['scripts/run_playwright_test.mjs', 'test', '-c', 'build-tools/configs/playwright.mcp-dashboard.config.ts']],
+    [process.execPath, ['scripts/test-mcp-dashboard-consumer.cjs']],
+  );
+} else {
+  console.log('Skipping optional Hallucinate App dashboard-consumer evidence: sibling checkout is unavailable.');
+  commands.splice(6, 0, [process.execPath, [
+    'scripts/run_playwright_test.mjs',
+    'test',
+    '-c', 'build-tools/configs/playwright.mcp-dashboard.config.ts',
+    '--grep',
+    'opens every tool-backed virtual desktop app|generates exhaustive SWR-102 per-app UI/UX workflow matrix',
+  ]]);
+}
+
+for (const [command, args] of commands) {
   runChecked(command, args);
+}
+
+function dashboardConsumerAvailable() {
+  const appRoot = path.resolve(projectRoot, '..', 'hallucinate_app');
+  return [
+    path.join(appRoot, 'hallucinate_app', 'node', 'mcp_daemon_manager.js'),
+    path.join(appRoot, 'test', 'e2e', 'fixtures', 'vai-512-mcp-dashboard-catalog.json'),
+    path.join(appRoot, 'test', 'e2e', 'fixtures', 'vai-512-hallucinate-swissknife-mcp-dashboard-consumption.json'),
+  ].every(fs.existsSync);
 }
 
 function tsxBinary() {

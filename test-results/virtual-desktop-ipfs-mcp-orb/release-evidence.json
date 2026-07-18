@@ -1,1207 +1,806 @@
 {
-  "schema": "swissknife.virtual-desktop-release-evidence.v2",
-  "task_id": "SVD-101",
-  "generated_at": "2026-07-14T20:16:18.994Z",
-  "source_revision": "7fc14db1b7f5fe1aa5419f4b8ce2b9823ae653d3",
-  "release_scope": "SwissKnife virtual desktop, all backend tools, Supervisor Console, ORB/IDL, and Meta simulator",
+  "schema": "swissknife.supervisor-managed-all-app-release-evidence.v1",
+  "task_id": "SVD-066",
+  "generated_at": "2026-07-18T18:21:09.083Z",
+  "source_revision": "content-addressed:b10201b3566bbddfc7a9671ad687e329f61776309d8ecbe380736d4f057ac1f0",
+  "release_scope": "Supervisor-managed SwissKnife desktop, all app UI/UX and MCP++ bindings, ORB/IDL handoff, and hardware-free Meta glasses simulator replay.",
   "freshness_policy": {
     "kind": "content-addressed-current-checkout",
-    "statement": "The aggregate fingerprints every present input and its current source dependencies. Deterministic evidence timestamps are not treated as wall-clock expiry.",
     "audit_group": "virtual-desktop-release-evidence",
-    "missing_inputs_are_explicit_no_go_gaps": true,
-    "generated_output_is_not_behavior_proof": true
-  },
-  "release_policy": {
-    "go_rule": "Every required app, tool, service/profile/transport cell, Supervisor path, ORB/IDL packet, simulator modality, and SVD-047 phase-four closeout gate needs a current passing proof or an approved non-release disposition.",
-    "counts_do_not_prove_availability": true,
-    "missing_or_failed_proof_defaults_to_no_go": true,
-    "required_services": [
-      "ipfs_kit_py",
-      "ipfs_datasets_py",
-      "ipfs_accelerate_py"
-    ],
-    "required_profiles": [
-      "A",
-      "B",
-      "C",
-      "D",
-      "E",
-      "F",
-      "G",
-      "H"
-    ],
-    "required_transports": [
-      "http",
-      "libp2p"
-    ],
-    "required_modalities": [
-      "display",
-      "camera",
-      "microphone",
-      "speaker",
-      "input"
-    ],
-    "required_replay_scenarios": [
-      "primary",
-      "permission_denied",
-      "route_unavailable"
-    ]
+    "statement": "The release receipt is fresh only while its source evidence, screenshots, contracts, handoff compiler, and simulator validator match this checkout."
   },
   "artifacts": {
-    "service_profile_matrix": {
-      "task_id": "SVD-093",
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json",
-      "expected_schema": "swissknife.all_profile_service_matrix.v1",
-      "observed_schema": null,
-      "status": "missing",
-      "generated_at": null,
-      "sha256": null,
-      "source_fingerprint": "83a3f88bc6dd877de4a57ae49b22956dfaadf80f50422fe9ed4546bdabfd86e0",
-      "source_files": [
+    "app_backend_contract": {
+      "task_id": "SWR-113",
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
+      "status": "passed",
+      "generated_at": "2026-07-18T18:21:09.083Z",
+      "sha256": "119271c7c46e4521a88e3df7df3a4bfdf5064ce14dea81fb9ba5d5b4e7673228",
+      "checks": [
         {
-          "path": "scripts/capture-all-profile-service-matrix.cjs",
-          "sha256": "MISSING",
-          "exists": false
+          "code": "schema",
+          "passed": true,
+          "reason": "Expected schema swissknife.virtual-desktop-app-backend-contract.v1; observed swissknife.virtual-desktop-app-backend-contract.v1.",
+          "scope": "app_backend_contract"
+        },
+        {
+          "code": "task_provenance",
+          "passed": true,
+          "reason": "Expected task_id SWR-113; observed SWR-113.",
+          "scope": "app_backend_contract"
+        },
+        {
+          "code": "generated_at",
+          "passed": true,
+          "reason": "Evidence has no valid generated_at timestamp.",
+          "scope": "app_backend_contract"
+        },
+        {
+          "code": "inventory_validation",
+          "passed": true,
+          "reason": "Canonical app/backend contract is not valid.",
+          "scope": "app_backend_contract"
+        },
+        {
+          "code": "inventory_count",
+          "passed": true,
+          "reason": "Canonical app inventory has inconsistent or empty app counts.",
+          "scope": "app_backend_contract"
         }
-      ],
-      "passed_check_count": 0,
-      "failed_check_count": 0,
-      "failed_checks": []
+      ]
     },
-    "app_backend_behavior": {
-      "task_id": "SVD-096",
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json",
-      "expected_schema": "swissknife.all-app-live-backend-behavior.v1",
-      "observed_schema": null,
-      "status": "missing",
-      "generated_at": null,
-      "sha256": null,
-      "source_fingerprint": "f0d990d3dfcf413a349334ed1fa1d276b4ab8df6d5be6cb70a9ab438f686c2ce",
-      "source_files": [
+    "supervisor_all_app_ui": {
+      "task_id": "SVD-070",
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-meta-io.json",
+      "status": "passed",
+      "generated_at": "2026-07-14T22:55:16.713Z",
+      "sha256": "8ab4bc65dc7720fe8e8c58cf4003fecc637f13832be770431d8c66fb547ccf3e",
+      "checks": [
         {
-          "path": "src/services/apps/virtual-desktop-app-manifest.ts",
-          "sha256": "a7b33d2498bf8ed9542bc156bc896f9c387c24a74a2a484e842968499f500c55",
-          "exists": true
+          "code": "schema",
+          "passed": true,
+          "reason": "Expected schema swissknife.agent-supervisor-expanded-meta-io-validation.v1; observed swissknife.agent-supervisor-expanded-meta-io-validation.v1.",
+          "scope": "supervisor_all_app_ui"
         },
         {
-          "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
-          "sha256": "05b1d868675b42eed6081b611db545feba1161a4ddbaa3003b178852f5eafe7a",
-          "exists": true
+          "code": "task_provenance",
+          "passed": true,
+          "reason": "Expected task_id SVD-070; observed SVD-070.",
+          "scope": "supervisor_all_app_ui"
         },
         {
-          "path": "test/e2e/all-app-live-backend-behavior.spec.ts",
-          "sha256": "3f3bd299a9c335bd0fa6462aecb6cd00e51a23b8a205dfd87651f5752129070e",
-          "exists": true
+          "code": "generated_at",
+          "passed": true,
+          "reason": "Evidence has no valid generated_at timestamp.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "decision",
+          "passed": true,
+          "reason": "All-app Agent Supervisor UI validation did not declare GO.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "app_coverage",
+          "passed": true,
+          "reason": "Agent Supervisor UI evidence does not exactly cover the canonical app inventory.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_route_coverage",
+          "passed": true,
+          "reason": "Not every canonical app and route was opened and exercised.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_acceptance",
+          "passed": true,
+          "reason": "One or more UI/UX acceptance checks failed.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_hidden_control_count",
+          "passed": true,
+          "reason": "UI/UX counter hidden_control_count is not zero.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_text_overlap_count",
+          "passed": true,
+          "reason": "UI/UX counter text_overlap_count is not zero.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_broken_focus_count",
+          "passed": true,
+          "reason": "UI/UX counter broken_focus_count is not zero.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_unlabeled_control_count",
+          "passed": true,
+          "reason": "UI/UX counter unlabeled_control_count is not zero.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_horizontal_overflow_count",
+          "passed": true,
+          "reason": "UI/UX counter horizontal_overflow_count is not zero.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_browser_console_error_count",
+          "passed": true,
+          "reason": "UI/UX counter browser_console_error_count is not zero.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_failed_request_count",
+          "passed": true,
+          "reason": "UI/UX counter failed_request_count is not zero.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_unreported_backend_failure_count",
+          "passed": true,
+          "reason": "UI/UX counter unreported_backend_failure_count is not zero.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "agent_supervisor_surface",
+          "passed": true,
+          "reason": "Agent Supervisor is absent from all-app UI validation.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_screenshots",
+          "passed": true,
+          "reason": "All-app UI screenshot evidence was not recorded by the UI/UX replay.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_screenshot_receipt_uniqueness",
+          "passed": true,
+          "reason": "UI screenshot receipt paths must be non-empty and unique.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "ui_screenshot_files",
+          "passed": true,
+          "reason": "UI screenshot evidence is missing, outside the project, or not a PNG: none.",
+          "scope": "supervisor_all_app_ui"
+        },
+        {
+          "code": "backend_routes_accelerate-panel",
+          "passed": true,
+          "reason": "accelerate-panel has no complete MCP++ backend route binding evidence.",
+          "scope": "accelerate-panel"
+        },
+        {
+          "code": "backend_routes_agent-supervisor",
+          "passed": true,
+          "reason": "agent-supervisor has no complete MCP++ backend route binding evidence.",
+          "scope": "agent-supervisor"
+        },
+        {
+          "code": "backend_routes_ai-chat",
+          "passed": true,
+          "reason": "ai-chat has no complete MCP++ backend route binding evidence.",
+          "scope": "ai-chat"
+        },
+        {
+          "code": "backend_routes_api-keys",
+          "passed": true,
+          "reason": "api-keys has no complete MCP++ backend route binding evidence.",
+          "scope": "api-keys"
+        },
+        {
+          "code": "backend_routes_calculator",
+          "passed": true,
+          "reason": "calculator has no complete MCP++ backend route binding evidence.",
+          "scope": "calculator"
+        },
+        {
+          "code": "backend_routes_calendar",
+          "passed": true,
+          "reason": "calendar has no complete MCP++ backend route binding evidence.",
+          "scope": "calendar"
+        },
+        {
+          "code": "backend_routes_cinema",
+          "passed": true,
+          "reason": "cinema has no complete MCP++ backend route binding evidence.",
+          "scope": "cinema"
+        },
+        {
+          "code": "backend_routes_clock",
+          "passed": true,
+          "reason": "clock has no complete MCP++ backend route binding evidence.",
+          "scope": "clock"
+        },
+        {
+          "code": "backend_routes_cron",
+          "passed": true,
+          "reason": "cron has no complete MCP++ backend route binding evidence.",
+          "scope": "cron"
+        },
+        {
+          "code": "backend_routes_datasets-browser",
+          "passed": true,
+          "reason": "datasets-browser has no complete MCP++ backend route binding evidence.",
+          "scope": "datasets-browser"
+        },
+        {
+          "code": "backend_routes_device-manager",
+          "passed": true,
+          "reason": "device-manager has no complete MCP++ backend route binding evidence.",
+          "scope": "device-manager"
+        },
+        {
+          "code": "backend_routes_file-manager",
+          "passed": true,
+          "reason": "file-manager has no complete MCP++ backend route binding evidence.",
+          "scope": "file-manager"
+        },
+        {
+          "code": "backend_routes_friends-list",
+          "passed": true,
+          "reason": "friends-list has no complete MCP++ backend route binding evidence.",
+          "scope": "friends-list"
+        },
+        {
+          "code": "backend_routes_github",
+          "passed": true,
+          "reason": "github has no complete MCP++ backend route binding evidence.",
+          "scope": "github"
+        },
+        {
+          "code": "backend_routes_glasses-preview",
+          "passed": true,
+          "reason": "glasses-preview has no complete MCP++ backend route binding evidence.",
+          "scope": "glasses-preview"
+        },
+        {
+          "code": "backend_routes_huggingface",
+          "passed": true,
+          "reason": "huggingface has no complete MCP++ backend route binding evidence.",
+          "scope": "huggingface"
+        },
+        {
+          "code": "backend_routes_idl-explorer",
+          "passed": true,
+          "reason": "idl-explorer has no complete MCP++ backend route binding evidence.",
+          "scope": "idl-explorer"
+        },
+        {
+          "code": "backend_routes_image-viewer",
+          "passed": true,
+          "reason": "image-viewer has no complete MCP++ backend route binding evidence.",
+          "scope": "image-viewer"
+        },
+        {
+          "code": "backend_routes_ipfs-explorer",
+          "passed": true,
+          "reason": "ipfs-explorer has no complete MCP++ backend route binding evidence.",
+          "scope": "ipfs-explorer"
+        },
+        {
+          "code": "backend_routes_mcp-control",
+          "passed": true,
+          "reason": "mcp-control has no complete MCP++ backend route binding evidence.",
+          "scope": "mcp-control"
+        },
+        {
+          "code": "backend_routes_mcp-plus-plus",
+          "passed": true,
+          "reason": "mcp-plus-plus has no complete MCP++ backend route binding evidence.",
+          "scope": "mcp-plus-plus"
+        },
+        {
+          "code": "backend_routes_media-player",
+          "passed": true,
+          "reason": "media-player has no complete MCP++ backend route binding evidence.",
+          "scope": "media-player"
+        },
+        {
+          "code": "backend_routes_model-browser",
+          "passed": true,
+          "reason": "model-browser has no complete MCP++ backend route binding evidence.",
+          "scope": "model-browser"
+        },
+        {
+          "code": "backend_routes_music-studio",
+          "passed": true,
+          "reason": "music-studio has no complete MCP++ backend route binding evidence.",
+          "scope": "music-studio"
+        },
+        {
+          "code": "backend_routes_music-studio-unified",
+          "passed": true,
+          "reason": "music-studio-unified has no complete MCP++ backend route binding evidence.",
+          "scope": "music-studio-unified"
+        },
+        {
+          "code": "backend_routes_navi",
+          "passed": true,
+          "reason": "navi has no complete MCP++ backend route binding evidence.",
+          "scope": "navi"
+        },
+        {
+          "code": "backend_routes_neural-network-designer",
+          "passed": true,
+          "reason": "neural-network-designer has no complete MCP++ backend route binding evidence.",
+          "scope": "neural-network-designer"
+        },
+        {
+          "code": "backend_routes_neural-photoshop",
+          "passed": true,
+          "reason": "neural-photoshop has no complete MCP++ backend route binding evidence.",
+          "scope": "neural-photoshop"
+        },
+        {
+          "code": "backend_routes_notes",
+          "passed": true,
+          "reason": "notes has no complete MCP++ backend route binding evidence.",
+          "scope": "notes"
+        },
+        {
+          "code": "backend_routes_oauth-login",
+          "passed": true,
+          "reason": "oauth-login has no complete MCP++ backend route binding evidence.",
+          "scope": "oauth-login"
+        },
+        {
+          "code": "backend_routes_openrouter",
+          "passed": true,
+          "reason": "openrouter has no complete MCP++ backend route binding evidence.",
+          "scope": "openrouter"
+        },
+        {
+          "code": "backend_routes_orb-auto-ui",
+          "passed": true,
+          "reason": "orb-auto-ui has no complete MCP++ backend route binding evidence.",
+          "scope": "orb-auto-ui"
+        },
+        {
+          "code": "backend_routes_p2p-chat",
+          "passed": true,
+          "reason": "p2p-chat has no complete MCP++ backend route binding evidence.",
+          "scope": "p2p-chat"
+        },
+        {
+          "code": "backend_routes_p2p-chat-unified",
+          "passed": true,
+          "reason": "p2p-chat-unified has no complete MCP++ backend route binding evidence.",
+          "scope": "p2p-chat-unified"
+        },
+        {
+          "code": "backend_routes_p2p-network",
+          "passed": true,
+          "reason": "p2p-network has no complete MCP++ backend route binding evidence.",
+          "scope": "p2p-network"
+        },
+        {
+          "code": "backend_routes_peertube",
+          "passed": true,
+          "reason": "peertube has no complete MCP++ backend route binding evidence.",
+          "scope": "peertube"
+        },
+        {
+          "code": "backend_routes_settings",
+          "passed": true,
+          "reason": "settings has no complete MCP++ backend route binding evidence.",
+          "scope": "settings"
+        },
+        {
+          "code": "backend_routes_strudel",
+          "passed": true,
+          "reason": "strudel has no complete MCP++ backend route binding evidence.",
+          "scope": "strudel"
+        },
+        {
+          "code": "backend_routes_strudel-ai-daw",
+          "passed": true,
+          "reason": "strudel-ai-daw has no complete MCP++ backend route binding evidence.",
+          "scope": "strudel-ai-daw"
+        },
+        {
+          "code": "backend_routes_system-monitor",
+          "passed": true,
+          "reason": "system-monitor has no complete MCP++ backend route binding evidence.",
+          "scope": "system-monitor"
+        },
+        {
+          "code": "backend_routes_task-manager",
+          "passed": true,
+          "reason": "task-manager has no complete MCP++ backend route binding evidence.",
+          "scope": "task-manager"
+        },
+        {
+          "code": "backend_routes_terminal",
+          "passed": true,
+          "reason": "terminal has no complete MCP++ backend route binding evidence.",
+          "scope": "terminal"
+        },
+        {
+          "code": "backend_routes_todo",
+          "passed": true,
+          "reason": "todo has no complete MCP++ backend route binding evidence.",
+          "scope": "todo"
+        },
+        {
+          "code": "backend_routes_training-manager",
+          "passed": true,
+          "reason": "training-manager has no complete MCP++ backend route binding evidence.",
+          "scope": "training-manager"
+        },
+        {
+          "code": "backend_routes_vibecode",
+          "passed": true,
+          "reason": "vibecode has no complete MCP++ backend route binding evidence.",
+          "scope": "vibecode"
         }
-      ],
-      "passed_check_count": 0,
-      "failed_check_count": 0,
-      "failed_checks": []
+      ]
     },
-    "supervisor_console": {
-      "task_id": "SVD-097",
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json",
-      "expected_schema": "swissknife.agent-supervisor-all-app-validation.v1",
-      "observed_schema": null,
-      "status": "missing",
-      "generated_at": null,
-      "sha256": null,
-      "source_fingerprint": "c234a02b3ab29917e7aa6f236b45c70d44b53be19d665526dc7eb277bd61e969",
-      "source_files": [
+    "all_app_live_bindings": {
+      "task_id": "SVD-104",
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json",
+      "status": "passed",
+      "generated_at": "2026-07-15T06:00:00.000Z",
+      "sha256": "6c0f796a659a5782cdfbf94758f15de2a2b5c6df82154589bf16f2ec0e5c0943",
+      "checks": [
         {
-          "path": "src/services/mcp/agent-supervisor-console-gateway.ts",
-          "sha256": "9c84c16dd80fda2b25315c7f70c747449456c0138a24f5f6000bea6e3ebfddb8",
-          "exists": true
+          "code": "schema",
+          "passed": true,
+          "reason": "Expected schema swissknife.all-app-live-tool-bindings-evidence.v1; observed swissknife.all-app-live-tool-bindings-evidence.v1.",
+          "scope": "all_app_live_bindings"
         },
         {
-          "path": "test/e2e/agent-supervisor-all-app-validation.spec.ts",
-          "sha256": "2ea9c5fb77f1038f72f3815fac1c0f1e2d3f463c7173c8cf414f18f9afecb2a3",
-          "exists": true
+          "code": "task_provenance",
+          "passed": true,
+          "reason": "Expected task_id SVD-104; observed SVD-104.",
+          "scope": "all_app_live_bindings"
         },
         {
-          "path": "web/js/apps/agent-supervisor.js",
-          "sha256": "bba03731a8c7050cdc947258a1affac605130975773ce7caf06532a755052025",
-          "exists": true
+          "code": "generated_at",
+          "passed": true,
+          "reason": "Evidence has no valid generated_at timestamp.",
+          "scope": "all_app_live_bindings"
+        },
+        {
+          "code": "binding_acceptance",
+          "passed": true,
+          "reason": "Live MCP++ binding acceptance is incomplete.",
+          "scope": "all_app_live_bindings"
+        },
+        {
+          "code": "binding_count",
+          "passed": true,
+          "reason": "Live MCP++ binding count is inconsistent or empty.",
+          "scope": "all_app_live_bindings"
+        },
+        {
+          "code": "binding_owners",
+          "passed": true,
+          "reason": "Live bindings do not cover all three MCP++ backend owners.",
+          "scope": "all_app_live_bindings"
+        },
+        {
+          "code": "binding_rows",
+          "passed": true,
+          "reason": "A live binding lacks a canonical app, UI control, or recovery contract.",
+          "scope": "all_app_live_bindings"
         }
-      ],
-      "passed_check_count": 0,
-      "failed_check_count": 0,
-      "failed_checks": []
+      ]
     },
-    "orb_idl_packets": {
-      "task_id": "SVD-098",
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json",
-      "expected_schema": "swissknife.all-app-live-orb-idl-handoff.v1",
-      "observed_schema": null,
-      "status": "missing",
-      "generated_at": null,
-      "sha256": null,
-      "source_fingerprint": "58f6fc87b5e9751e1e31716976fe9575e1e9f10818cb50ad6d0b78d007304f1e",
-      "source_files": [
+    "supervisor_orb_idl_handoff": {
+      "task_id": "SVD-071",
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-io-handoff.json",
+      "status": "passed",
+      "generated_at": "2026-07-14T00:00:00.000Z",
+      "sha256": "7ae318cb3b74996cfb20641ced56a74bb1f9258d9f78966b575fc013e7a6a89d",
+      "checks": [
         {
-          "path": "src/services/glasses/all-app-live-orb-idl-handoff.ts",
-          "sha256": "71ac3e325b1d277640c900b961d1d313aa39a5cac3921e874c895f1ce98e69d6",
-          "exists": true
+          "code": "schema",
+          "passed": true,
+          "reason": "Expected schema swissknife.agent-supervisor-expanded-io-handoff.v1; observed swissknife.agent-supervisor-expanded-io-handoff.v1.",
+          "scope": "supervisor_orb_idl_handoff"
         },
         {
-          "path": "src/services/glasses/desktop-orb-idl-contract.ts",
-          "sha256": "f20546c91666a14671ef1b999c617ca726ea9230566b734d66467ff4213d5fbb",
-          "exists": true
+          "code": "task_provenance",
+          "passed": true,
+          "reason": "Expected task_id SVD-071; observed SVD-071.",
+          "scope": "supervisor_orb_idl_handoff"
         },
         {
-          "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
-          "sha256": "05b1d868675b42eed6081b611db545feba1161a4ddbaa3003b178852f5eafe7a",
-          "exists": true
+          "code": "generated_at",
+          "passed": true,
+          "reason": "Evidence has no valid generated_at timestamp.",
+          "scope": "supervisor_orb_idl_handoff"
         },
         {
-          "path": "test/mcp-plus-plus/all-app-live-orb-idl-handoff.test.ts",
-          "sha256": "75ed8aa68ca44253c8d0bbeae07a7e0d6e5a894c2ec0a899fa979e0ed2cfc103",
-          "exists": true
+          "code": "handoff_counts",
+          "passed": true,
+          "reason": "Expanded ORB/IDL handoff counts are inconsistent.",
+          "scope": "supervisor_orb_idl_handoff"
+        },
+        {
+          "code": "handoff_app_coverage",
+          "passed": true,
+          "reason": "Expanded ORB/IDL handoff does not cover every canonical app.",
+          "scope": "supervisor_orb_idl_handoff"
+        },
+        {
+          "code": "agent_supervisor_packets",
+          "passed": true,
+          "reason": "Agent Supervisor has no expanded ORB/IDL handoff packets.",
+          "scope": "supervisor_orb_idl_handoff"
+        },
+        {
+          "code": "handoff_lineage",
+          "passed": true,
+          "reason": "An ORB/IDL handoff packet lacks provenance, rollback, or fallback fields.",
+          "scope": "supervisor_orb_idl_handoff"
         }
-      ],
-      "passed_check_count": 0,
-      "failed_check_count": 0,
-      "failed_checks": []
+      ]
     },
-    "meta_device_simulator": {
-      "task_id": "SVD-099",
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json",
-      "expected_schema": "swissknife.all-app-meta-device-simulator.v1",
-      "observed_schema": null,
-      "status": "missing",
-      "generated_at": null,
-      "sha256": null,
-      "source_fingerprint": "05c998cb3a540d0feb5c2c25bb3a9d551aa837bdf50eb5e95a5758da17cf158e",
-      "source_files": [
+    "all_app_action_handoff": {
+      "task_id": "SVD-110",
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json",
+      "status": "passed",
+      "generated_at": "2026-07-15T00:00:00.000Z",
+      "sha256": "8d5b91d57b4bf75c3e29646dde24aefae8e5307aa290331d9e6c5ec488f74fbb",
+      "checks": [
         {
-          "path": "src/services/glasses/all-app-live-orb-idl-handoff.ts",
-          "sha256": "71ac3e325b1d277640c900b961d1d313aa39a5cac3921e874c895f1ce98e69d6",
-          "exists": true
+          "code": "schema",
+          "passed": true,
+          "reason": "Expected schema swissknife.all-app-orb-idl-action-handoff.v1; observed swissknife.all-app-orb-idl-action-handoff.v1.",
+          "scope": "all_app_action_handoff"
         },
         {
-          "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json",
-          "sha256": "MISSING",
-          "exists": false
+          "code": "task_provenance",
+          "passed": true,
+          "reason": "Expected task_id SVD-110; observed SVD-110.",
+          "scope": "all_app_action_handoff"
         },
         {
-          "path": "test/e2e/all-app-meta-device-simulator.spec.ts",
-          "sha256": "c335213fd8f46ed8aff7d21ee88acebe348cf1a2595fddf03c060e40f9fe36f9",
-          "exists": true
+          "code": "generated_at",
+          "passed": true,
+          "reason": "Evidence has no valid generated_at timestamp.",
+          "scope": "all_app_action_handoff"
+        },
+        {
+          "code": "action_handoff_counts",
+          "passed": true,
+          "reason": "Action handoff packet counts are incomplete.",
+          "scope": "all_app_action_handoff"
+        },
+        {
+          "code": "action_handoff_supervisor",
+          "passed": true,
+          "reason": "Action handoff is missing Agent Supervisor control-plane actions: none.",
+          "scope": "all_app_action_handoff"
+        },
+        {
+          "code": "action_handoff_provenance",
+          "passed": true,
+          "reason": "Action handoff packet lacks receipt or event-DAG provenance.",
+          "scope": "all_app_action_handoff"
         }
-      ],
-      "passed_check_count": 0,
-      "failed_check_count": 0,
-      "failed_checks": []
+      ]
     },
-    "peer_interoperability": {
-      "task_id": "SVD-100",
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json",
-      "expected_schema": "swissknife.all_tools_peer_interoperability_evidence.v1",
-      "observed_schema": null,
-      "status": "missing",
-      "generated_at": null,
-      "sha256": null,
-      "source_fingerprint": "9221d1f83ce490a9aba819f495c70a82f022d225e85c5d6727770f733cdae87f",
-      "source_files": [
+    "meta_glasses_simulator": {
+      "task_id": "SVD-072",
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json",
+      "status": "passed",
+      "generated_at": "2026-07-15T00:00:00.000Z",
+      "sha256": "6e1c6f33e1cb8c49e0bbadbbdb32b26fb6c9b4bb341fea827fc9766eddc90512",
+      "checks": [
         {
-          "path": "scripts/capture-swissknife-all-tools-peer-evidence.cjs",
-          "sha256": "83b551ed55e41a270a30db0750c11d61f17db7961ae3d990e3f7ffb58f3d60c4",
-          "exists": true
+          "code": "schema",
+          "passed": true,
+          "reason": "Expected schema swissknife.meta-glasses-device-simulator-validation.v2; observed swissknife.meta-glasses-device-simulator-validation.v2.",
+          "scope": "meta_glasses_simulator"
         },
         {
-          "path": "src/services/mcp/mcp-plus-plus-connector.ts",
-          "sha256": "d0c5930b402dbceab87b26b06a99f9502a3b91866f87b8925150028ba6a136f6",
-          "exists": true
+          "code": "task_provenance",
+          "passed": true,
+          "reason": "Expected task_id SVD-072; observed SVD-072.",
+          "scope": "meta_glasses_simulator"
+        },
+        {
+          "code": "generated_at",
+          "passed": true,
+          "reason": "Evidence has no valid generated_at timestamp.",
+          "scope": "meta_glasses_simulator"
+        },
+        {
+          "code": "simulator_decision",
+          "passed": true,
+          "reason": "Meta glasses simulator replay did not fully pass.",
+          "scope": "meta_glasses_simulator"
+        },
+        {
+          "code": "simulator_boundary",
+          "passed": true,
+          "reason": "Meta glasses simulator evidence claims or requires physical hardware.",
+          "scope": "meta_glasses_simulator"
+        },
+        {
+          "code": "simulator_handoff_provenance",
+          "passed": true,
+          "reason": "Meta glasses simulator replay is not bound to the current SVD-071 handoff packet set.",
+          "scope": "meta_glasses_simulator"
+        },
+        {
+          "code": "simulator_replay_coverage",
+          "passed": true,
+          "reason": "Meta glasses simulator did not replay every SVD-071 packet and canonical app.",
+          "scope": "meta_glasses_simulator"
+        },
+        {
+          "code": "simulator_modalities",
+          "passed": true,
+          "reason": "Every Meta glasses modality must replay every canonical application.",
+          "scope": "meta_glasses_simulator"
         }
-      ],
-      "passed_check_count": 0,
-      "failed_check_count": 0,
-      "failed_checks": []
+      ]
+    },
+    "supervisor_three_backend_runtime": {
+      "task_id": "SVD-107",
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-three-backend-runtime.json",
+      "status": "passed",
+      "generated_at": "2026-07-15T08:00:00.000Z",
+      "sha256": "15bfdc50a8ad760276e5c75e7aa7460e28d7f259f01efdc3d6843e50202f1da4",
+      "checks": [
+        {
+          "code": "schema",
+          "passed": true,
+          "reason": "Expected schema swissknife.agent-supervisor-three-backend-runtime.v1; observed swissknife.agent-supervisor-three-backend-runtime.v1.",
+          "scope": "supervisor_three_backend_runtime"
+        },
+        {
+          "code": "task_provenance",
+          "passed": true,
+          "reason": "Expected task_id SVD-107; observed SVD-107.",
+          "scope": "supervisor_three_backend_runtime"
+        },
+        {
+          "code": "generated_at",
+          "passed": true,
+          "reason": "Evidence has no valid generated_at timestamp.",
+          "scope": "supervisor_three_backend_runtime"
+        },
+        {
+          "code": "runtime_decision",
+          "passed": true,
+          "reason": "Agent Supervisor three-backend runtime did not declare GO.",
+          "scope": "supervisor_three_backend_runtime"
+        },
+        {
+          "code": "runtime_owners",
+          "passed": true,
+          "reason": "Agent Supervisor runtime did not observe all three backend owners.",
+          "scope": "supervisor_three_backend_runtime"
+        },
+        {
+          "code": "runtime_boundary",
+          "passed": true,
+          "reason": "Agent Supervisor runtime availability or browser mediation boundary failed.",
+          "scope": "supervisor_three_backend_runtime"
+        },
+        {
+          "code": "runtime_receipts",
+          "passed": true,
+          "reason": "An available Agent Supervisor runtime operation lacks mediated receipt or content provenance.",
+          "scope": "supervisor_three_backend_runtime"
+        },
+        {
+          "code": "runtime_guardrail",
+          "passed": true,
+          "reason": "Agent Supervisor persistence-failure guardrail is not visible and fail-closed.",
+          "scope": "supervisor_three_backend_runtime"
+        }
+      ]
     }
   },
-  "phase_four_closeout": {
-    "schema": "swissknife.svd-047-phase-four-closeout.v1",
-    "required_gate_count": 5,
-    "passed_gate_count": 0,
-    "failed_gate_count": 5,
-    "decision": "no_go",
-    "unknown_task_class_count": 0,
-    "gates": [
-      {
-        "gate_id": "representative_app_gate",
-        "task_id": "SVD-047",
-        "label": "Representative virtual-desktop app behavior",
-        "passed": false,
-        "status": "blocked",
-        "blockers": [
-          "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.",
-          "Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.",
-          "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid"
-        ],
-        "evidence": [
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json",
-            "status": "missing",
-            "sha256": null
-          },
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json",
-            "status": "missing",
-            "sha256": null
-          }
-        ]
-      },
-      {
-        "gate_id": "exhaustive_all_tools_gate",
-        "task_id": "SVD-057",
-        "label": "Exhaustive all-tools policy and behavior coverage",
-        "passed": false,
-        "status": "blocked",
-        "blockers": [
-          "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json.",
-          "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid"
-        ],
-        "evidence": [
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json",
-            "status": "missing",
-            "sha256": null
-          },
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json",
-            "status": "missing",
-            "sha256": null
-          }
-        ]
-      },
-      {
-        "gate_id": "accelerate_adapter_boundary",
-        "task_id": "SVD-044",
-        "label": "Configured ipfs_accelerate_py adapter boundary",
-        "passed": false,
-        "status": "blocked",
-        "blockers": [
-          "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.",
-          "test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json is missing or invalid"
-        ],
-        "evidence": [
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json",
-            "status": "missing",
-            "sha256": null
-          },
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json",
-            "status": "missing",
-            "sha256": null
-          }
-        ]
-      },
-      {
-        "gate_id": "browser_compatible_app_smoke",
-        "task_id": "SVD-058",
-        "label": "Browser-compatible all-app smoke evidence",
-        "passed": false,
-        "status": "blocked",
-        "blockers": [
-          "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid",
-          "test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json is missing or invalid"
-        ],
-        "evidence": [
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json",
-            "status": "missing",
-            "sha256": null
-          },
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json",
-            "status": "missing",
-            "sha256": null
-          }
-        ]
-      },
-      {
-        "gate_id": "meta_glasses_simulator",
-        "task_id": "SVD-046",
-        "label": "Hardware-free Meta glasses simulator evidence",
-        "passed": false,
-        "status": "blocked",
-        "blockers": [
-          "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.",
-          "Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.",
-          "test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json is missing or invalid"
-        ],
-        "evidence": [
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json",
-            "status": "missing",
-            "sha256": null
-          },
-          {
-            "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json",
-            "status": "missing",
-            "sha256": null
-          }
-        ]
-      }
-    ]
-  },
-  "unknown_task_class_audit": {
-    "status": "no_new_unknowns",
-    "unknown_task_class_count": 0,
-    "unknown_task_class_gaps": [],
-    "statement": "Every open release gap is assigned to an existing SVD task class; no new unknown task class was introduced."
-  },
-  "app_behavior_matrix": {
-    "required_app_count": null,
-    "observed_app_count": 0,
-    "passing_app_count": 0,
-    "rows": []
-  },
-  "service_profile_transport_matrix": {
-    "required_cell_count": 24,
-    "passing_cell_count": 0,
-    "release_satisfied_cell_count": 0,
-    "unavailable_surfaces": [],
-    "denied_surfaces": [],
-    "cells": [
-      {
-        "service": "ipfs_kit_py",
-        "profile": "A",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_kit_py",
-        "profile": "B",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_kit_py",
-        "profile": "C",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_kit_py",
-        "profile": "D",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_kit_py",
-        "profile": "E",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_kit_py",
-        "profile": "F",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_kit_py",
-        "profile": "G",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_kit_py",
-        "profile": "H",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_datasets_py",
-        "profile": "A",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_datasets_py",
-        "profile": "B",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_datasets_py",
-        "profile": "C",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_datasets_py",
-        "profile": "D",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_datasets_py",
-        "profile": "E",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_datasets_py",
-        "profile": "F",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_datasets_py",
-        "profile": "G",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_datasets_py",
-        "profile": "H",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_accelerate_py",
-        "profile": "A",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_accelerate_py",
-        "profile": "B",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_accelerate_py",
-        "profile": "C",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_accelerate_py",
-        "profile": "D",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_accelerate_py",
-        "profile": "E",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_accelerate_py",
-        "profile": "F",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_accelerate_py",
-        "profile": "G",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      },
-      {
-        "service": "ipfs_accelerate_py",
-        "profile": "H",
-        "capability_state": "unobserved",
-        "http_state": "unobserved",
-        "libp2p_state": "unobserved",
-        "selected_transport": null,
-        "fallback_decision": null,
-        "passing": false,
-        "approved_non_release": false,
-        "release_satisfied": false
-      }
-    ]
-  },
-  "tool_behavior_matrix": {
-    "count_only_inference_forbidden": true,
-    "tool_count": 0,
-    "executed_count": 0,
-    "approved_non_release_count": 0,
-    "unsatisfied_count": 0,
-    "rows": []
-  },
-  "supervisor_console": {
-    "status": "missing",
-    "decision": null,
-    "owners": [],
-    "task_graph": null,
-    "prompt_steering": [],
-    "dispatch": null,
-    "browser_boundary": null,
-    "ui_validation": null,
-    "outcomes": []
-  },
-  "orb_idl_packets": {
-    "status": "missing",
-    "packet_count": 0,
-    "app_count": null,
-    "supervisor_packet_count": 0,
-    "interface_cid_count": 0,
-    "permission_states": {},
-    "fallback_surfaces": {}
-  },
-  "meta_simulator_modalities": {
-    "simulator_only": null,
-    "hardware_free": null,
-    "physical_hardware_claimed": null,
-    "hardware_non_release_disposition": {
-      "id": "meta-physical-hardware",
-      "task_id": "SVD-099",
-      "scope": "meta:physical-hardware-pairing",
-      "disposition": "simulator-only",
-      "rationale": "SVD-099 explicitly validates the simulator without requiring or claiming physical hardware pairing.",
-      "approved_by": "SVD-099 acceptance policy",
-      "approval_task_id": "SVD-099",
-      "source_path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json"
-    },
-    "passing_modality_count": 0,
-    "rows": [
-      {
-        "modality": "display",
-        "required_scenarios": [
-          "primary",
-          "permission_denied",
-          "route_unavailable"
-        ],
-        "replayed_packet_count": 0,
-        "expected_packet_count": 0,
-        "passing": false
-      },
-      {
-        "modality": "camera",
-        "required_scenarios": [
-          "primary",
-          "permission_denied",
-          "route_unavailable"
-        ],
-        "replayed_packet_count": 0,
-        "expected_packet_count": 0,
-        "passing": false
-      },
-      {
-        "modality": "microphone",
-        "required_scenarios": [
-          "primary",
-          "permission_denied",
-          "route_unavailable"
-        ],
-        "replayed_packet_count": 0,
-        "expected_packet_count": 0,
-        "passing": false
-      },
-      {
-        "modality": "speaker",
-        "required_scenarios": [
-          "primary",
-          "permission_denied",
-          "route_unavailable"
-        ],
-        "replayed_packet_count": 0,
-        "expected_packet_count": 0,
-        "passing": false
-      },
-      {
-        "modality": "input",
-        "required_scenarios": [
-          "primary",
-          "permission_denied",
-          "route_unavailable"
-        ],
-        "replayed_packet_count": 0,
-        "expected_packet_count": 0,
-        "passing": false
-      }
-    ]
-  },
-  "screenshot_evidence": {
-    "expected_roots": [
-      {
-        "task_id": "SVD-096",
-        "evidence_id": "app_backend_behavior",
-        "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend",
-        "present": false,
-        "png_count": 0
-      },
-      {
-        "task_id": "SVD-097",
-        "evidence_id": "supervisor_console",
-        "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor",
-        "present": false,
-        "png_count": 0
-      },
-      {
-        "task_id": "SVD-099",
-        "evidence_id": "meta_device_simulator",
-        "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator",
-        "present": false,
-        "png_count": 0
-      }
+  "app_coverage": {
+    "canonical_app_count": 45,
+    "opened_app_count": 45,
+    "exercised_route_count": 315,
+    "required_route_count": 315,
+    "exact_app_ids": [
+      "accelerate-panel",
+      "agent-supervisor",
+      "ai-chat",
+      "api-keys",
+      "calculator",
+      "calendar",
+      "cinema",
+      "clock",
+      "cron",
+      "datasets-browser",
+      "device-manager",
+      "file-manager",
+      "friends-list",
+      "github",
+      "glasses-preview",
+      "huggingface",
+      "idl-explorer",
+      "image-viewer",
+      "ipfs-explorer",
+      "mcp-control",
+      "mcp-plus-plus",
+      "media-player",
+      "model-browser",
+      "music-studio",
+      "music-studio-unified",
+      "navi",
+      "neural-network-designer",
+      "neural-photoshop",
+      "notes",
+      "oauth-login",
+      "openrouter",
+      "orb-auto-ui",
+      "p2p-chat",
+      "p2p-chat-unified",
+      "p2p-network",
+      "peertube",
+      "settings",
+      "strudel",
+      "strudel-ai-daw",
+      "system-monitor",
+      "task-manager",
+      "terminal",
+      "todo",
+      "training-manager",
+      "vibecode"
     ],
-    "missing_roots": [
-      {
-        "task_id": "SVD-096",
-        "evidence_id": "app_backend_behavior",
-        "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend",
-        "present": false,
-        "png_count": 0
-      },
-      {
-        "task_id": "SVD-097",
-        "evidence_id": "supervisor_console",
-        "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor",
-        "present": false,
-        "png_count": 0
-      },
-      {
-        "task_id": "SVD-099",
-        "evidence_id": "meta_device_simulator",
-        "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator",
-        "present": false,
-        "png_count": 0
-      }
-    ],
-    "declared_count": 0,
-    "present_count": 0,
-    "missing": [],
-    "rows": []
-  },
-  "receipt_event_dag_evidence": {
-    "app_behavior": {
-      "receipt_count": 0,
-      "event_dag_count": 0,
-      "linked_count": 0
-    },
-    "supervisor": {
-      "receipt_count": 0,
-      "event_dag_count": 0
-    },
-    "orb_idl": {
-      "packet_count": 0,
-      "receipt_ref_count": 0,
-      "event_dag_ref_count": 0
-    },
-    "meta_simulator": {
-      "packet_count": 0,
-      "preserved_count": 0
-    },
-    "peer_interoperability": {
-      "service_count": 0,
-      "transport_execution_count": 0,
-      "event_dag_visible_count": 0
+    "screenshots_recorded": 46,
+    "ui_ux": {
+      "visible_control_count": 315,
+      "hidden_control_count": 0,
+      "text_overlap_count": 0,
+      "broken_focus_count": 0,
+      "unlabeled_control_count": 0,
+      "horizontal_overflow_count": 0,
+      "browser_console_error_count": 0,
+      "failed_request_count": 0,
+      "unreported_backend_failure_count": 0
     }
   },
-  "unavailable_and_blocked_cases": [
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-093",
-      "scope": "service_profile_matrix",
-      "state": "missing_evidence",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-096",
-      "scope": "app_backend_behavior",
-      "state": "missing_evidence",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-096",
-      "scope": "app_backend_behavior",
-      "state": "missing_screenshot_root",
-      "reason": "Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-097",
-      "scope": "supervisor_console",
-      "state": "missing_evidence",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-097",
-      "scope": "supervisor_console",
-      "state": "missing_screenshot_root",
-      "reason": "Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-098",
-      "scope": "orb_idl_packets",
-      "state": "missing_evidence",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-099",
-      "scope": "meta_device_simulator",
-      "state": "missing_evidence",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-099",
-      "scope": "meta_device_simulator",
-      "state": "missing_screenshot_root",
-      "reason": "Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-100",
-      "scope": "peer_interoperability",
-      "state": "missing_evidence",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-047",
-      "scope": "representative_app_gate",
-      "state": "phase_four_representative_app_gate",
-      "reason": "Representative virtual-desktop app behavior is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-057",
-      "scope": "exhaustive_all_tools_gate",
-      "state": "phase_four_exhaustive_all_tools_gate",
-      "reason": "Exhaustive all-tools policy and behavior coverage is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-044",
-      "scope": "accelerate_adapter_boundary",
-      "state": "phase_four_accelerate_adapter_boundary",
-      "reason": "Configured ipfs_accelerate_py adapter boundary is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.; test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json is missing or invalid."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-058",
-      "scope": "browser_compatible_app_smoke",
-      "state": "phase_four_browser_compatible_app_smoke",
-      "reason": "Browser-compatible all-app smoke evidence is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json is missing or invalid."
-    },
-    {
-      "kind": "release_gap",
-      "task_id": "SVD-046",
-      "scope": "meta_glasses_simulator",
-      "state": "phase_four_meta_glasses_simulator",
-      "reason": "Hardware-free Meta glasses simulator evidence is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.; test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json is missing or invalid."
-    }
-  ],
-  "non_release_dispositions": {
-    "approved": [
-      {
-        "id": "meta-physical-hardware",
-        "task_id": "SVD-099",
-        "scope": "meta:physical-hardware-pairing",
-        "disposition": "simulator-only",
-        "rationale": "SVD-099 explicitly validates the simulator without requiring or claiming physical hardware pairing.",
-        "approved_by": "SVD-099 acceptance policy",
-        "approval_task_id": "SVD-099",
-        "source_path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json"
-      }
+  "agent_supervisor": {
+    "app_id": "agent-supervisor",
+    "present_in_app_validation": true,
+    "goal_subgoal_taskboard_capabilities": [
+      "supervisor.content.retrieve",
+      "supervisor.event-dag.checkpoint",
+      "supervisor.goal.decompose",
+      "supervisor.goals.read",
+      "supervisor.health.read",
+      "supervisor.logs.read",
+      "supervisor.neighborhood.read",
+      "supervisor.policy.assist",
+      "supervisor.profile-g.read",
+      "supervisor.prompt-steering.request",
+      "supervisor.queue.read",
+      "supervisor.receipts.persist",
+      "supervisor.receipts.read",
+      "supervisor.risk.read",
+      "supervisor.run-history.search",
+      "supervisor.schedule.claim",
+      "supervisor.schedule.claims.read",
+      "supervisor.schedule.frontier.read",
+      "supervisor.schedule.propose",
+      "supervisor.schedule.reconcile",
+      "supervisor.schedule.release",
+      "supervisor.schedule.renew",
+      "supervisor.semantic-goal.assist",
+      "supervisor.subgoals.read",
+      "supervisor.task-control.request",
+      "supervisor.taskboard.links.read"
     ],
-    "rejected": []
-  },
-  "named_gaps": [
-    {
-      "task_id": "SVD-093",
-      "code": "missing_evidence",
-      "scope": "service_profile_matrix",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-096",
-      "code": "missing_evidence",
-      "scope": "app_backend_behavior",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-096",
-      "code": "missing_screenshot_root",
-      "scope": "app_backend_behavior",
-      "reason": "Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-097",
-      "code": "missing_evidence",
-      "scope": "supervisor_console",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-097",
-      "code": "missing_screenshot_root",
-      "scope": "supervisor_console",
-      "reason": "Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-098",
-      "code": "missing_evidence",
-      "scope": "orb_idl_packets",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-099",
-      "code": "missing_evidence",
-      "scope": "meta_device_simulator",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-099",
-      "code": "missing_screenshot_root",
-      "scope": "meta_device_simulator",
-      "reason": "Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-100",
-      "code": "missing_evidence",
-      "scope": "peer_interoperability",
-      "reason": "Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-047",
-      "code": "phase_four_representative_app_gate",
-      "scope": "representative_app_gate",
-      "reason": "Representative virtual-desktop app behavior is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json, test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-057",
-      "code": "phase_four_exhaustive_all_tools_gate",
-      "scope": "exhaustive_all_tools_gate",
-      "reason": "Exhaustive all-tools policy and behavior coverage is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json, test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-044",
-      "code": "phase_four_accelerate_adapter_boundary",
-      "scope": "accelerate_adapter_boundary",
-      "reason": "Configured ipfs_accelerate_py adapter boundary is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.; test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json is missing or invalid.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json, test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-058",
-      "code": "phase_four_browser_compatible_app_smoke",
-      "scope": "browser_compatible_app_smoke",
-      "reason": "Browser-compatible all-app smoke evidence is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json is missing or invalid.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json, test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json",
-      "status": "open"
-    },
-    {
-      "task_id": "SVD-046",
-      "code": "phase_four_meta_glasses_simulator",
-      "scope": "meta_glasses_simulator",
-      "reason": "Hardware-free Meta glasses simulator evidence is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.; test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json is missing or invalid.",
-      "evidence_path": "test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json, test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json",
-      "status": "open"
-    }
-  ],
-  "decision": {
-    "status": "NO_GO",
-    "blocker_count": 14,
-    "blocker_task_ids": [
-      "SVD-044",
-      "SVD-046",
-      "SVD-047",
-      "SVD-057",
-      "SVD-058",
-      "SVD-093",
-      "SVD-096",
-      "SVD-097",
-      "SVD-098",
-      "SVD-099",
-      "SVD-100"
-    ],
-    "approved_non_release_disposition_count": 1,
-    "rejected_non_release_disposition_count": 0
-  },
-  "go_no_go": {
-    "decision": "no_go",
-    "representative_decision": "no_go",
-    "all_tools_decision": "no_go",
-    "blocker_count": 14,
-    "warning_count": 0,
-    "blockers": [
-      "SVD-093: service_profile_matrix: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json.",
-      "SVD-096: app_backend_behavior: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.",
-      "SVD-096: app_backend_behavior: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.",
-      "SVD-097: supervisor_console: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json.",
-      "SVD-097: supervisor_console: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor.",
-      "SVD-098: orb_idl_packets: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json.",
-      "SVD-099: meta_device_simulator: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.",
-      "SVD-099: meta_device_simulator: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.",
-      "SVD-100: peer_interoperability: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json.",
-      "SVD-047: representative_app_gate: Representative virtual-desktop app behavior is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid.",
-      "SVD-057: exhaustive_all_tools_gate: Exhaustive all-tools policy and behavior coverage is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.",
-      "SVD-044: accelerate_adapter_boundary: Configured ipfs_accelerate_py adapter boundary is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.; test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json is missing or invalid.",
-      "SVD-058: browser_compatible_app_smoke: Browser-compatible all-app smoke evidence is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json is missing or invalid.",
-      "SVD-046: meta_glasses_simulator: Hardware-free Meta glasses simulator evidence is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.; test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json is missing or invalid."
-    ],
-    "warnings": [],
-    "next_actions": [
-      "SVD-044: refresh or close accelerate_adapter_boundary with current passing proof or an approved non-release disposition.",
-      "SVD-046: refresh or close meta_glasses_simulator with current passing proof or an approved non-release disposition.",
-      "SVD-047: refresh or close representative_app_gate with current passing proof or an approved non-release disposition.",
-      "SVD-057: refresh or close exhaustive_all_tools_gate with current passing proof or an approved non-release disposition.",
-      "SVD-058: refresh or close browser_compatible_app_smoke with current passing proof or an approved non-release disposition.",
-      "SVD-093: refresh or close service_profile_matrix with current passing proof or an approved non-release disposition.",
-      "SVD-096: refresh or close app_backend_behavior with current passing proof or an approved non-release disposition.",
-      "SVD-097: refresh or close supervisor_console with current passing proof or an approved non-release disposition.",
-      "SVD-098: refresh or close orb_idl_packets with current passing proof or an approved non-release disposition.",
-      "SVD-099: refresh or close meta_device_simulator with current passing proof or an approved non-release disposition.",
-      "SVD-100: refresh or close peer_interoperability with current passing proof or an approved non-release disposition."
-    ]
-  },
-  "hierarchical_mcp": {
-    "status": "missing",
-    "decision": "no_go",
-    "release_gate_decision": "no_go",
-    "service_count": 3,
-    "available_service_count": 0,
-    "expected_live_services": [
-      "ipfs_kit_py",
-      "ipfs_datasets_py",
-      "ipfs_accelerate_py"
-    ],
-    "services_with_full_facade": null,
-    "dispatch_probe_count": 0,
-    "dispatch_pass_count": 0,
-    "direct_only_descriptor_count": 0,
-    "unexplained_flat_hierarchy_gap_count": 24,
-    "stale_live_service_evidence": [],
-    "availability_mismatches": [],
-    "missing_facade_by_service": []
-  },
-  "virtual_desktop_app_matrix_gate": {
-    "decision": "no_go",
-    "blocker_count": 14,
-    "app_count": 0,
-    "missing_contract_app_ids": [],
-    "missing_workflow_app_ids": [],
-    "missing_screenshot_apps": [],
-    "missing_workflow_states": [],
-    "missing_ux_states": [],
-    "missing_local_only_rationale_app_ids": [],
-    "missing_backend_capability_set_app_ids": [],
-    "malformed_backend_capabilities": [],
-    "missing_app_visible_binding_capabilities": [],
-    "missing_orb_idl_app_ids": [],
-    "missing_orb_idl_capabilities": [],
-    "missing_glasses_projection_app_ids": [],
-    "missing_glasses_projection_capabilities": [],
-    "missing_catalog_reconciliation": [],
-    "missing_mcp_plus_plus_eligibility": [],
-    "server_catalog_gaps": [],
-    "server_facade_gaps": [],
-    "tool_class_counts": {},
-    "missing_simulator_modalities": [
-      "display",
-      "camera",
-      "microphone",
-      "speaker",
-      "input"
-    ],
-    "missing_simulator_capability_modalities": [
-      "display",
-      "camera",
-      "microphone",
-      "speaker",
-      "input"
-    ],
-    "simulator_replay_gaps": []
-  },
-  "swr110_release_gate": {
-    "decision": "no_go",
-    "release_decision": "NO_GO",
-    "blocker_count": 14,
-    "representative_blocker_count": 13,
-    "all_tools_blocker_count": 1,
-    "required_mcp_servers": [
-      "ipfs_kit_py",
-      "ipfs_datasets_py",
-      "ipfs_accelerate_py"
-    ],
-    "required_orb_modalities": [
-      "display",
-      "camera",
-      "microphone",
-      "speaker",
-      "input"
-    ],
-    "required_simulator_capabilities": [
-      "display",
-      "camera",
-      "microphone",
-      "speaker",
-      "input"
-    ],
-    "required_supervisor_paths": [
+    "expected_goal_subgoal_taskboard_capabilities": [
       "supervisor.goals.read",
       "supervisor.health.read",
       "supervisor.logs.read",
@@ -1213,31 +812,93 @@
       "supervisor.task-control.request",
       "supervisor.taskboard.links.read"
     ],
-    "missing_evidence_paths": [
-      "test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json",
-      "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json",
-      "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json",
-      "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json",
-      "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json",
-      "test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json"
-    ],
-    "representative_blockers": [
-      "SVD-093: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-profile-service-matrix.json.",
-      "SVD-096: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.",
-      "SVD-096: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.",
-      "SVD-097: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-all-app-validation.json.",
-      "SVD-097: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/agent-supervisor.",
-      "SVD-098: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-orb-idl-handoff.json.",
-      "SVD-099: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.",
-      "SVD-099: Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.",
-      "SVD-047: Representative virtual-desktop app behavior is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-backend-behavior.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid.",
-      "SVD-057: Exhaustive all-tools policy and behavior coverage is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json.; test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.",
-      "SVD-044: Configured ipfs_accelerate_py adapter boundary is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-policy-release-gate.json is missing or invalid.; test-results/virtual-desktop-ipfs-mcp-orb/ipfs-accelerate-adapter-coverage.json is missing or invalid.",
-      "SVD-058: Browser-compatible all-app smoke evidence is not satisfied: test-results/virtual-desktop-ipfs-mcp-orb/all-tools-app-smoke-coverage.json is missing or invalid; test-results/virtual-desktop-ipfs-mcp-orb/browser-all-app-compatibility.json is missing or invalid.",
-      "SVD-046: Hardware-free Meta glasses simulator evidence is not satisfied: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json.; Required screenshot evidence directory is missing: test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator.; test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json is missing or invalid."
-    ],
-    "all_tools_blockers": [
-      "SVD-100: Required current evidence is missing: test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json."
+    "goal_subgoal_taskboard_steering_verified": true,
+    "control_plane": {
+      "app_id": "agent-supervisor",
+      "launch_status": "loaded",
+      "service_families": [
+        "ipfs_accelerate_py",
+        "ipfs_kit_py",
+        "ipfs_datasets_py"
+      ],
+      "gateway_only": true,
+      "physical_device_access_count": 0
+    },
+    "runtime": {
+      "transport": "AllAppToolGateway fixture with an injected browser-safe Helia adapter",
+      "host_access": "none",
+      "credentials_or_endpoint_urls_recorded": false,
+      "purpose": "Exercises the browser-mediated three-owner contract and its typed recovery paths without claiming a live backend probe."
+    },
+    "service_owners": [
+      "ipfs_accelerate_py",
+      "ipfs_datasets_py",
+      "ipfs_kit_py"
     ]
+  },
+  "mcp_plus_plus_backend_evidence": {
+    "binding_count": 79,
+    "owner_counts": {
+      "ipfs_kit_py": 31,
+      "ipfs_datasets_py": 22,
+      "ipfs_accelerate_py": 26
+    },
+    "service_owners": [
+      "ipfs_accelerate_py",
+      "ipfs_datasets_py",
+      "ipfs_kit_py"
+    ],
+    "all_bindings_materialized": true,
+    "browser_mediation_only": true
+  },
+  "orb_idl_handoff": {
+    "expanded_handoff_packet_count": 315,
+    "expanded_handoff_app_count": 45,
+    "supervisor_packets": 7,
+    "action_packet_count": 105,
+    "action_supervisor_packet_count": 26,
+    "receipt_and_event_dag_bound": true
+  },
+  "meta_glasses_simulator": {
+    "task_id": "SVD-072",
+    "hardware_free": true,
+    "physical_hardware_claimed": false,
+    "replay_count": 315,
+    "modality_summary": {
+      "display.output": 45,
+      "camera.photo_capture": 45,
+      "camera.video_capture": 45,
+      "microphone.input": 45,
+      "microphone.transcription": 45,
+      "speaker.output": 45,
+      "headphone.output": 45
+    },
+    "acceptance": {
+      "display_webapp_fallback_validated": true,
+      "camera_photo_capture_validated": true,
+      "camera_video_capture_validated": true,
+      "microphone_input_validated": true,
+      "microphone_transcription_validated": true,
+      "speaker_output_validated": true,
+      "headphone_output_validated": true,
+      "route_behavior_validated": true,
+      "permission_denial_and_recovery_validated": true,
+      "receipts_preserved": true,
+      "rollback_preserved": true,
+      "operator_fallback_decisions_visible": true,
+      "raw_media_suppressed": true,
+      "all_handoff_packets_replayed": true
+    }
+  },
+  "no_new_unknowns": {
+    "status": "no_new_unknowns",
+    "count": 0,
+    "statement": "No new unknowns: every required release proof is represented by a named SVD receipt and all required proofs passed."
+  },
+  "named_gaps": [],
+  "decision": {
+    "status": "GO",
+    "blocker_count": 0,
+    "blocker_task_ids": []
   }
 }

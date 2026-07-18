@@ -1,9 +1,30 @@
 #!/usr/bin/env node
 
 const { spawnSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
+const hallucinateAppRoot = path.resolve(root, '..', 'hallucinate_app');
+const requiredHallucinateAppPaths = [
+  path.join(hallucinateAppRoot, 'hallucinate_app', 'node', 'mcp_daemon_manager.js'),
+  path.join(hallucinateAppRoot, 'test', 'e2e', 'fixtures', 'vai-512-mcp-dashboard-catalog.json'),
+  path.join(
+    hallucinateAppRoot,
+    'test',
+    'e2e',
+    'fixtures',
+    'vai-512-hallucinate-swissknife-mcp-dashboard-consumption.json',
+  ),
+];
+
+if (!requiredHallucinateAppPaths.every(fs.existsSync)) {
+  console.log(JSON.stringify({
+    status: 'skipped',
+    reason: 'sibling hallucinate_app checkout does not include dashboard-consumer evidence sources',
+  }));
+  process.exit(0);
+}
 
 const validator = String.raw`
 import fs from 'fs';

@@ -900,6 +900,7 @@
       "src/hooks/browser/*.ts",
       "src/screens/browser/*.tsx",
       "src/services/apps/all-app-executable-backend-contract.ts",
+      "src/services/apps/all-app-live-tool-bindings.ts",
       "src/services/apps/all-tools-policy-classifier.ts",
       "src/services/apps/app-manifest-registry.ts",
       "src/services/apps/app-manifest.ts",
@@ -935,6 +936,7 @@
     ],
     "browserSafeServiceFiles": [
       "src/services/apps/all-app-executable-backend-contract.ts",
+      "src/services/apps/all-app-live-tool-bindings.ts",
       "src/services/apps/all-tools-policy-classifier.ts",
       "src/services/apps/app-manifest-registry.ts",
       "src/services/apps/app-manifest.ts",

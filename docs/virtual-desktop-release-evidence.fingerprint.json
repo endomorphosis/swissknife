@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Supervisor-managed virtual desktop all-app release evidence (SVD-066)",
-  "generatedAt": "2026-07-16T00:54:47.847Z",
+  "generatedAt": "2026-07-18T18:21:11.120Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,12 +10,12 @@
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "436c61ae1c06fb50952400b3a8a1abbfca35ae1bd27fa125b4eab8c2bfe59df2",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "efdce696b0eb319c63b745eff1ffe70abd7aa77629276efd77256d3e40d5e16e",
-    "docs/refactor-final-signoff.md": "f89a246be61f3df140a6c922c07860f4b9e92bee3bb2c3886137204ec0b1b676",
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "7ec2e15f0e42fd25da8d77775339fab610a3815ede01bef392ee982aacfe83b9",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "aa25670659ea6f27f9ae81e89ee2c3e70dd68a2c217a51f809b052cce3f17c7e",
+    "docs/refactor-final-signoff.md": "2424f4fedaf14dfaf4a31741e756695df0da93fa922e68405844ed7947a70c1b",
     "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "8cbc19ce260c245ac65ccb99c35bd82a0dbb85b8b4b6ba5b6b3b3219fd4c3a1d"
   },
-  "sourceFingerprint": "d56ce450c9620fce23ce706c363a1e7ca42a4d2968d8ff21d0bc1e68636dd036",
+  "sourceFingerprint": "61f0518c893708676397c143e1a3c636ddc0a5136d25d6d720e40ed06ffe1067",
   "sourceFiles": [
     {
       "path": "scripts/audit-release-evidence-freshness.mjs",
@@ -87,7 +87,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
-      "sha256": "05b1d868675b42eed6081b611db545feba1161a4ddbaa3003b178852f5eafe7a"
+      "sha256": "119271c7c46e4521a88e3df7df3a4bfdf5064ce14dea81fb9ba5d5b4e7673228"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/00-agent-supervisor-control-plane.png",

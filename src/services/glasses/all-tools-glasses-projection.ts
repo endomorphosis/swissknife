@@ -226,6 +226,11 @@ function buildProjection(descriptor: AllToolsIDLDescriptorRecord): AllToolsGlass
 
 function behaviorForDescriptor(descriptor: AllToolsIDLDescriptorRecord): AllToolsGlassesBehavior {
   const fallbacks = new Set(descriptor.method_bindings.map(binding => binding.glasses_fallback));
+  const policyClasses = new Set(descriptor.method_bindings.map(binding => binding.policy_class));
+  // Writes may be represented in the simulator, but their confirmation UI is
+  // intentionally retained on the desktop/mobile handoff surface. This keeps
+  // the projection truthful without claiming a physical-glasses invocation.
+  if (policyClasses.has('write')) return 'physical_device_only';
   if (fallbacks.has('desktop_or_mobile_only')) return 'physical_device_only';
   if (fallbacks.has('mobile_card')) return 'mobile_card';
   if (fallbacks.has('audio_summary')) return 'audio_summary';

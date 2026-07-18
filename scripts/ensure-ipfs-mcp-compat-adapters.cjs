@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require("node:fs");
+const net = require("node:net");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
 
@@ -19,10 +20,25 @@ const REQUIRED_HELIA_SERVICES = [
   "relay",
 ];
 const REQUIRED_HELIA_DISCOVERY = ["bootstrap", "mdns"];
+const ADAPTER_FALLBACK_PORT_LIMIT = 32;
+const adapterEndpointConfig = {
+  ipfs_kit_py: {
+    environmentName: "IPFS_KIT_MCP_ENDPOINT",
+    defaultEndpoint: "http://127.0.0.1:8014/api/mcp/status",
+    fallbackPortStart: 31014,
+    leasePath: path.join(evidenceRoot, "ipfs-kit-compat-endpoint.json"),
+  },
+  ipfs_datasets_py: {
+    environmentName: "IPFS_DATASETS_MCP_ENDPOINT",
+    defaultEndpoint: "http://127.0.0.1:3002/api/mcp/status",
+    fallbackPortStart: 31002,
+    leasePath: path.join(evidenceRoot, "ipfs-datasets-compat-endpoint.json"),
+  },
+};
 const adapters = [
   {
     service: "ipfs_kit_py",
-    endpoint: "http://127.0.0.1:8014/api/mcp/status",
+    endpoint: configuredAdapterEndpoint("ipfs_kit_py"),
     script: "start-ipfs-kit-mcp-compat.cjs",
     pidFile: "ipfs-kit-compat.pid",
     logFile: "ipfs-kit-compat.log",
@@ -35,7 +51,7 @@ const adapters = [
   },
   {
     service: "ipfs_datasets_py",
-    endpoint: "http://127.0.0.1:3002/api/mcp/status",
+    endpoint: configuredAdapterEndpoint("ipfs_datasets_py"),
     script: "start-ipfs-datasets-mcp-compat.cjs",
     pidFile: "ipfs-datasets-compat.pid",
     logFile: "ipfs-datasets-compat.log",
@@ -81,6 +97,10 @@ async function ensureAdapter(adapter) {
   if (endpointIsReady) {
     const stopped = await stopOwnedStaleAdapter(adapter);
     if (!stopped) {
+      if (!process.env[adapterEndpointConfig[adapter.service]?.environmentName]) {
+        const fallback = await availableFallbackAdapter(adapter);
+        if (fallback) return ensureAdapter(fallback);
+      }
       return {
         service: adapter.service,
         ready: false,
@@ -90,9 +110,24 @@ async function ensureAdapter(adapter) {
     }
   }
 
+  // A listener can be occupied but unhealthy, so endpointReady() returns
+  // false. Do not race it by spawning on its port; lease a private fallback.
+  const endpointUrl = new URL(adapter.endpoint);
+  if (!(await canListen(endpointUrl.hostname, Number(endpointUrl.port)))) {
+    if (!process.env[adapterEndpointConfig[adapter.service]?.environmentName]) {
+      const fallback = await availableFallbackAdapter(adapter);
+      if (fallback) return ensureAdapter(fallback);
+    }
+    return {
+      service: adapter.service,
+      ready: false,
+      action: "listener_not_owned_by_swissknife_adapter",
+      endpoint: adapter.endpoint,
+    };
+  }
+
   const logPath = path.join(evidenceRoot, adapter.logFile);
   const logFd = fs.openSync(logPath, "a");
-  const endpointUrl = new URL(adapter.endpoint);
   const child = spawn(
     process.execPath,
     [
@@ -126,7 +161,7 @@ async function ensureAdapter(adapter) {
     (await waitForEndpoint(adapter.endpoint, 30000)) &&
     (await profileEReady(adapter));
   const heliaStatus = ready ? await waitForHelia(adapter, 30000) : null;
-  return {
+  const result = {
     service: adapter.service,
     ready: ready && heliaStatus?.ready === true,
     action: "started",
@@ -135,6 +170,67 @@ async function ensureAdapter(adapter) {
     pid: child.pid,
     log_path: path.relative(projectRoot, logPath),
   };
+  if (result.ready) writeAdapterEndpointLease(adapter.service, adapter.endpoint);
+  return result;
+}
+
+/**
+ * An unowned default-port listener must never be killed or treated as this
+ * worktree's evidence adapter. Lease an available loopback port instead and
+ * make consumers use only that recorded, verified endpoint.
+ */
+function configuredAdapterEndpoint(service) {
+  const config = adapterEndpointConfig[service];
+  if (!config) throw new Error(`No endpoint configuration for ${service}`);
+  const configured = process.env[config.environmentName];
+  if (configured) return datasetsStatusEndpoint(configured);
+  try {
+    const lease = JSON.parse(fs.readFileSync(config.leasePath, "utf8"));
+    if (lease?.schema === "swissknife.mcp-compat-endpoint.v1" && lease.service === service && typeof lease.endpoint === "string") {
+      return datasetsStatusEndpoint(lease.endpoint);
+    }
+  } catch (_error) {
+    // No verified local lease exists; use the conventional interoperability endpoint.
+  }
+  return config.defaultEndpoint;
+}
+
+async function availableFallbackAdapter(adapter) {
+  const config = adapterEndpointConfig[adapter.service];
+  if (!config) return null;
+  for (let offset = 0; offset < ADAPTER_FALLBACK_PORT_LIMIT; offset += 1) {
+    const port = config.fallbackPortStart + offset;
+    if (!(await canListen("127.0.0.1", port))) continue;
+    return { ...adapter, endpoint: `http://127.0.0.1:${port}/api/mcp/status` };
+  }
+  return null;
+}
+
+function canListen(host, port) {
+  return new Promise(resolve => {
+    const server = net.createServer();
+    server.once("error", () => resolve(false));
+    server.listen({ host, port, exclusive: true }, () => server.close(error => resolve(!error)));
+  });
+}
+
+function datasetsStatusEndpoint(endpoint) {
+  const url = new URL(endpoint);
+  return `${url.protocol}//${url.host}/api/mcp/status`;
+}
+
+function writeAdapterEndpointLease(service, endpoint) {
+  const config = adapterEndpointConfig[service];
+  if (!config) return;
+  const url = new URL(endpoint);
+  const record = {
+    schema: "swissknife.mcp-compat-endpoint.v1",
+    service,
+    endpoint: `${url.protocol}//${url.host}`,
+    status_endpoint: endpoint,
+    generated_at: new Date().toISOString(),
+  };
+  fs.writeFileSync(config.leasePath, `${JSON.stringify(record, null, 2)}\n`, "utf8");
 }
 
 async function heliaReady(adapter) {

@@ -2,7 +2,7 @@
   "schema": "swissknife.browser-proof-runtime-observed-result.v1",
   "command": "npm run test:browser-proof-runtime",
   "outcome": "passed",
-  "generated_at": "2026-07-15T14:32:46.915Z",
+  "generated_at": "2026-07-18T18:30:19.864Z",
   "assertion_count": 81,
   "assertions_per_engine": 27,
   "engines": [
@@ -26,6 +26,6 @@
     "runtime_config_sha256": "b187b95b39c936b428e8b67d589550f7f586bc33e751a8b9fe3b43fcf2479de9",
     "runtime_test_sha256": "d169ebb47e654c77652c05447304bcf3ce9397c2d683468169e06d244ef53135",
     "runner_sha256": "8eac627719179c3147648730976ccbdf4b127a0de26ada60e30d9a255e6f0563",
-    "vitest_output_sha256": "1687d1991e39ff73e12e1aeee12d9e9e3d8dfb1816546397cde4fdf271b1bd13"
+    "vitest_output_sha256": "fda0a931ca0728ce82b9287271bc9c8e5a15a77205a35cb8265b847ab7a8e4dd"
   }
 }

@@ -1,27 +1,39 @@
 # Refactor Final Signoff
 
-Task: SVD-066 — Close the supervisor-managed all-app MCP++ release loop
+Generated: 2026-07-18T18:30:51.007Z
+Commit: 6a9d599e7134bc881983da0406f3cb7c3a14e44f
+Release readiness: PASSED
 
-Observed: 2026-07-15T08:00:00.000Z
-SwissKnife evidence revision: `content-addressed:a00e760f6973a1a77cfa2ff6c64be46f449da20a73be233e59265d8c059229c7`
-Decision: **GO**
+## SWR-095 Browser/Service Sentinel
 
-## Final decision
+Status: passed
 
-GO. Agent Supervisor can steer goals, subgoals, and taskboard work through packet-verified MCP++ control-plane actions with all three backend owners; all canonical app UI/UX, ORB/IDL, and Meta glasses simulator evidence is current.
+The release readiness gate now fails on:
 
-## Evidence basis
+- duplicate service basenames
+- sprint-named service files
+- top-level duplicate service wrappers
+- browser package entrypoints that statically reference host-only Node APIs
+- default browser package entrypoints that expose Pyodide APIs
+- stale browser/libp2p release evidence through `evidence:freshness:check --fail-on-stale`
+- browser ZKP source drift toward simulated/test-only proof backends
+- skipped browser-safety gates
 
-- Agent Supervisor UI/UX: 45/45 apps, 315/315 routes.
-- Agent Supervisor goal/subgoal/taskboard steering: packet-verified=true; 26 observed control-plane actions.
-- MCP++ backend bindings: 79 across ipfs_accelerate_py, ipfs_datasets_py, ipfs_kit_py.
-- ORB/IDL: 315 expanded packets including 7 Agent Supervisor packets.
-- Meta glasses simulator: 315 replayed packets; hardware-free=true; physical pairing not claimed.
-- No new unknowns: No new unknowns: every required release proof is represented by a named SVD receipt and all required proofs passed.
+## Gate Summary
 
-## Artifacts
-
-- `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`
-- `test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md`
-- `docs/virtual-desktop-release-evidence.fingerprint.json`
+| Gate | Status | Reason |
+| --- | --- | --- |
+| browser-service-regression-sentinel | passed |  |
+| services-audit | passed |  |
+| module-boundary-audit | passed |  |
+| typecheck | passed |  |
+| test-fast | passed |  |
+| test-browser-compat | passed |  |
+| build-web | passed |  |
+| bundle-host-leakage | passed |  |
+| evidence-mcp-glasses | passed |  |
+| virtual-desktop-release-evidence | passed |  |
+| evidence-freshness | passed |  |
+| evidence-dashboard-consumer | skipped | sibling hallucinate_app checkout not present (standalone swissknife checkout) |
+| skipped-gate-policy | passed |  |
 

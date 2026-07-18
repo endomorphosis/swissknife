@@ -32,6 +32,8 @@ const ACCELERATE_COMPAT_VERSION = '1.0.0';
 const ACCELERATE_COMPAT_SCRIPT = path.join(REPO_ROOT, 'scripts', 'start-ipfs-accelerate-mcp-compat.cjs');
 const ACCELERATE_COMPAT_PID_FILE = path.join(OUT_DIR, 'ipfs-accelerate-compat.pid');
 const ACCELERATE_COMPAT_LOG_FILE = path.join(OUT_DIR, 'ipfs-accelerate-compat.log');
+const DATASETS_COMPAT_ENDPOINT_LEASE = path.join(OUT_DIR, 'ipfs-datasets-compat-endpoint.json');
+const KIT_COMPAT_ENDPOINT_LEASE = path.join(OUT_DIR, 'ipfs-kit-compat-endpoint.json');
 
 const VIRTUAL_DESKTOP_APPS = [
   { id: 'ai-chat', title: 'AI Chat', category: 'productivity', component: 'web/js/apps/ai-chat.js', service_families: ['ipfs_accelerate_py'], capabilities: ['meta-glasses-display-webapp', 'meta-glasses-microphone', 'meta-glasses-speaker', 'orb-idl-handoff'], binding_state: 'tool_backed', rationale: 'AI chat routes inference-capable MCP tools through ipfs_accelerate_py when a backend is configured.' },
@@ -85,7 +87,7 @@ const CONFIGURED_SERVICES = [
   {
     service: 'ipfs_kit_py',
     role: 'configured',
-    endpoint: 'http://127.0.0.1:8014',
+    endpoint: configuredAdapterEndpoint('ipfs_kit_py', 'IPFS_KIT_MCP_ENDPOINT', KIT_COMPAT_ENDPOINT_LEASE, 'http://127.0.0.1:8014'),
     rpc_path: '/mcp',
     tools_list_path: '/mcp/tools/list',
     health_path: '/api/mcp/status',
@@ -93,7 +95,7 @@ const CONFIGURED_SERVICES = [
   {
     service: 'ipfs_datasets_py',
     role: 'configured',
-    endpoint: 'http://127.0.0.1:3002',
+    endpoint: configuredDatasetsEndpoint(),
     rpc_path: '/mcp',
     tools_list_path: '/mcp/tools/list',
     health_path: '/health',
@@ -115,6 +117,28 @@ const CONFIGURED_SERVICES = [
     health_path: '/mcp/health',
   },
 ];
+
+function configuredDatasetsEndpoint() {
+  return configuredAdapterEndpoint('ipfs_datasets_py', 'IPFS_DATASETS_MCP_ENDPOINT', DATASETS_COMPAT_ENDPOINT_LEASE, 'http://127.0.0.1:3002');
+}
+
+function configuredAdapterEndpoint(service, environmentName, leasePath, fallbackEndpoint) {
+  if (process.env[environmentName]) return normalizeMcpEndpoint(process.env[environmentName]);
+  try {
+    const lease = JSON.parse(fs.readFileSync(leasePath, 'utf8'));
+    if (lease?.schema === 'swissknife.mcp-compat-endpoint.v1' && lease.service === service) {
+      return normalizeMcpEndpoint(lease.endpoint);
+    }
+  } catch (_error) {
+    // The default remains interoperable until the bootstrapper verifies a local lease.
+  }
+  return fallbackEndpoint;
+}
+
+function normalizeMcpEndpoint(endpoint) {
+  const url = new URL(endpoint);
+  return `${url.protocol}//${url.host}`;
+}
 
 const REQUIRED_ACCELERATE_TOOLS = [
   'detect_hardware',
@@ -1316,7 +1340,10 @@ function buildIdlCoverage(ledger, policies, bindings) {
   for (const record of ledger.records) {
     const policy = policyById.get(record.id);
     const binding = bindingById.get(record.id);
-    if (!policy || !binding?.app_visible) continue;
+    // Desktop/mobile-only tools remain part of the ORB contract so glasses
+    // can emit a redacted physical-device handoff instead of silently
+    // dropping a high-risk capability from its coverage evidence.
+    if (!policy || (!binding?.app_visible && binding?.visibility !== 'desktop_mobile_only')) continue;
     const key = `${binding.app_id}:${record.service}:${record.category}`;
     if (!groups.has(key)) {
       groups.set(key, {
@@ -1336,7 +1363,9 @@ function buildIdlCoverage(ledger, policies, bindings) {
       receipt_policy: policy.receipt_policy,
       receipt_required: policy.receipt_required,
       adapter_required: record.service === 'ipfs_accelerate_py' && record.role === 'real_local',
-      glasses_fallback: binding.glasses_fallback,
+      glasses_fallback: binding.visibility === 'desktop_mobile_only'
+        ? 'desktop_or_mobile_only'
+        : binding.glasses_fallback,
     });
   }
   const descriptors = Array.from(groups.values())
@@ -1436,7 +1465,7 @@ function buildGlassesCoverage(idl, policies) {
     const classes = new Set(descriptor.method_bindings.map(method => policyById.get(method.tool_id)?.policy_class).filter(Boolean));
     const highRisk = ['credential', 'destructive', 'media_capture'].some(policy => classes.has(policy));
     const heavy = classes.has('heavy_compute');
-    const behavior = highRisk ? 'mobile_card' : heavy ? 'audio_summary' : 'display_webapp';
+    const behavior = classes.has('write') ? 'physical_device_only' : highRisk ? 'mobile_card' : heavy ? 'audio_summary' : 'display_webapp';
     return {
       projection_id: `${descriptor.descriptor_id}.glasses`,
       descriptor_id: descriptor.descriptor_id,
@@ -1460,7 +1489,7 @@ function buildGlassesCoverage(idl, policies) {
       replay: replayStates.map(state => ({
         state,
         frame_id: `${descriptor.descriptor_id}.${state}`,
-        surface: behavior === 'audio_summary' ? 'audio_channel' : behavior === 'mobile_card' ? 'mobile_companion' : 'glasses_hud',
+        surface: behavior === 'physical_device_only' ? 'desktop_handoff' : behavior === 'audio_summary' ? 'audio_channel' : behavior === 'mobile_card' ? 'mobile_companion' : 'glasses_hud',
         expected_render: state === 'policy_block' ? 'policy blocked state with receipt link' : 'capability state rendered without hardware dependency',
         policy_outcome: highRisk && state === 'activate' ? 'require_confirmation' : state === 'policy_block' ? 'deny' : state === 'fallback' ? 'fallback' : 'permit',
         receipt_required: descriptor.method_bindings.some(method => method.receipt_policy !== 'none'),
@@ -1471,7 +1500,7 @@ function buildGlassesCoverage(idl, policies) {
         valid: state !== 'activate' || !highRisk,
         fallback: highRisk && state === 'activate' ? 'desktop_confirmation_required' : null,
       })),
-      fallback_summary: highRisk ? 'Requires mobile/desktop confirmation card before invocation.' : 'Falls back to descriptor preview and result receipt.',
+      fallback_summary: behavior === 'physical_device_only' ? 'Physical-device-only handoff requires desktop/mobile confirmation before invocation.' : highRisk ? 'Requires mobile/desktop confirmation card before invocation.' : 'Falls back to descriptor preview and result receipt.',
       policy_block_summary: 'Policy-block state is represented in replay without requiring physical glasses hardware.',
     };
   });

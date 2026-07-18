@@ -344,6 +344,7 @@ function buildAppBackendContract(matrix) {
       : 'not-required';
     const localOnly = backendCapabilities.length === 0;
     return {
+      app_id: row.app_id,
       canonical_id: row.app_id,
       aliases: Object.entries(aliases)
         .filter(([, canonical]) => canonical === row.app_id)
@@ -383,6 +384,11 @@ function buildAppBackendContract(matrix) {
   const localOnlyApps = apps.filter(app => app.backend_capability_count === 0);
   const contract = {
     schema: 'swissknife.virtual-desktop-app-backend-contract.v1',
+    // This is the same canonical contract consumed by the supervisor-managed
+    // release builder. Preserve its provenance and validation envelope when
+    // refreshing the all-tools projection so one evidence lane cannot
+    // silently downgrade another lane's required input.
+    task_id: 'SWR-113',
     contract_id: 'org.hallucinate.swissknife.virtual-desktop-app-backend-contract',
     generated_at: matrix.generated_at,
     generated_from: matrix.generated_from,
@@ -394,6 +400,13 @@ function buildAppBackendContract(matrix) {
     service_counts: mergeCounts(apps.map(app => countBy(app.backend_capabilities, capability => capability.service))),
     policy_class_counts: mergeCounts(apps.map(app => countBy(app.backend_capabilities, capability => capability.policy_class))),
     receipt_strategy_counts: mergeCounts(apps.map(app => countBy(app.backend_capabilities, capability => capability.receipt_strategy))),
+    validation: {
+      valid: apps.length > 0
+        && apps.length === new Set(apps.map(app => app.app_id)).size
+        && apps.length === new Set(apps.map(app => app.canonical_id)).size,
+      errors: [],
+      warnings: [],
+    },
     coverage: {
       omitted_app_count: 0,
       apps_with_launch_owner_count: apps.filter(app => app.launch_owner.owner_module && app.launch_owner.launch_kind).length,
