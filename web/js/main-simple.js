@@ -1,4 +1,5 @@
 // SwissKnife Web Desktop - Main Application (Simplified for Testing)
+import { mountLiveToolGateway } from './live-tool-gateway.js';
 
 console.log('SwissKnife Web Desktop starting...');
 
@@ -579,15 +580,22 @@ class SwissKnifeDesktop {
                 y: 100 + (this.windowCounter * 30)
             });
 
+            const appContent = document.getElementById(`${window.id}-content`);
+            const gatewayHost = document.getElementById(`${window.id}-gateway`);
+
             const smokeEntry = getToolSmokeEntry(appId);
             if (smokeEntry) {
-                renderToolSmokePanel(document.getElementById(`${window.id}-content`), smokeEntry);
+                renderToolSmokePanel(appContent, smokeEntry);
+                await mountLiveToolGateway(gatewayHost, appId);
                 console.log(`Rendered MCP UI smoke panel for ${appConfig.name}`);
                 return;
             }
             
-            // Load app component (placeholder for now)
-            await this.loadAppComponent(window, appConfig.component);
+            // Keep governed backend controls available while optional app
+            // initialization (for example a large WASM runtime) completes.
+            const componentLoad = this.loadAppComponent(window, appConfig.component);
+            await mountLiveToolGateway(gatewayHost, appId);
+            await componentLoad;
             
             console.log(`Launched ${appConfig.name}`);
         } catch (error) {
@@ -619,10 +627,13 @@ class SwissKnifeDesktop {
                     <button class="window-control close" title="Close">×</button>
                 </div>
             </div>
-            <div class="window-content" id="${windowId}-content">
-                <div class="window-loading">
-                    <div class="window-loading-spinner"></div>
+            <div class="window-content">
+                <div class="window-app-content" id="${windowId}-content">
+                    <div class="window-loading">
+                        <div class="window-loading-spinner"></div>
+                    </div>
                 </div>
+                <div class="live-tool-gateway-host" id="${windowId}-gateway"></div>
             </div>
         `;
         
@@ -2189,6 +2200,15 @@ function installToolSmokeStyles() {
         .tool-smoke-panel[data-state="success"] .tool-smoke-state{border-color:#2f9e44;color:#b7f7c5}
         .tool-smoke-panel[data-state="fallback"] .tool-smoke-state{border-color:#b7791f;color:#ffe4a3}
         .tool-smoke-panel[data-state="error"] .tool-smoke-state{border-color:#d64545;color:#ffc0c0}
+        .window-app-content{min-height:0}
+        .live-tool-gateway-host{border-top:1px solid #2f3945}
+        .live-tool-gateway-panel{padding:12px;background:#111820;color:#e5e7eb;font:13px system-ui}
+        .live-tool-gateway-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+        .live-tool-gateway-controls{display:grid;gap:8px}
+        .live-tool-gateway-control{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,2fr);gap:8px;align-items:center}
+        .live-tool-gateway-control button{background:#26384f;color:#f8fafc;border:1px solid #45617f;padding:6px 10px;text-align:left;overflow-wrap:anywhere;cursor:pointer}
+        .live-tool-gateway-control button:disabled{opacity:.6;cursor:not-allowed}
+        .live-tool-gateway-control output{color:#bdd7ff;overflow-wrap:anywhere}
     `;
     document.head.appendChild(style);
 }

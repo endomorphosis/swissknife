@@ -7,6 +7,7 @@ import {
   ALL_APP_TOOL_GATEWAY_PROTOCOL,
   type BrowserMediatedToolCall,
 } from './all-app-tool-gateway.js';
+import { sha256Hex } from '../shared/shared-browser-crypto.js';
 
 /**
  * Server-side half of the desktop gateway.  It is deliberately transport
@@ -30,8 +31,8 @@ export interface MediatedOwnerAdapter {
 export interface AllAppToolMediatorOptions {
   adapters: Readonly<Partial<Record<BrowserMediatedToolCall['owner'], MediatedOwnerAdapter>>>;
   now?: () => Date;
-  receiptId?: (call: BrowserMediatedToolCall) => string;
-  eventDagRef?: (call: BrowserMediatedToolCall) => string;
+  receiptId?: (call: BrowserMediatedToolCall, result: unknown) => string;
+  eventDagRef?: (call: BrowserMediatedToolCall, result: unknown) => string;
 }
 
 export interface AllAppToolMediatorResponse {
@@ -53,6 +54,13 @@ export interface AllAppToolMediatorResponse {
     received_at: string;
     receipt_refs: readonly string[];
     event_dag_refs: readonly string[];
+    persistence?: {
+      status: 'persisted' | 'failed';
+      backend?: string;
+      receipt_cid?: string;
+      event_cid?: string;
+      error?: string;
+    };
   };
 }
 
@@ -64,13 +72,13 @@ const FORBIDDEN_KEYS = new Set([
 
 export class AllAppToolMediator {
   private readonly now: () => Date;
-  private readonly receiptId: (call: BrowserMediatedToolCall) => string;
-  private readonly eventDagRef: (call: BrowserMediatedToolCall) => string;
+  private readonly receiptId: (call: BrowserMediatedToolCall, result: unknown) => string;
+  private readonly eventDagRef: (call: BrowserMediatedToolCall, result: unknown) => string;
 
   constructor(private readonly options: AllAppToolMediatorOptions) {
     this.now = options.now ?? (() => new Date());
-    this.receiptId = options.receiptId ?? (call => `receipt:${call.correlation_id}`);
-    this.eventDagRef = options.eventDagRef ?? (call => `event-dag:${call.correlation_id}`);
+    this.receiptId = options.receiptId ?? ((call, result) => contentReference('receipt', call, result));
+    this.eventDagRef = options.eventDagRef ?? ((call, result) => contentReference('event', call, result));
   }
 
   async dispatch(call: BrowserMediatedToolCall): Promise<AllAppToolMediatorResponse> {
@@ -104,9 +112,12 @@ export class AllAppToolMediator {
         dry_run: call.input.policy.dry_run,
         policy: call.input.policy,
       });
-      return this.response(call, 'executed', unwrapMcpResult(output));
+      return this.response(call, 'executed', sanitizeOwnerResult(unwrapMcpResult(output)));
     } catch (error) {
-      return this.response(call, 'unreachable', { error: error instanceof Error ? error.message : String(error) });
+      const message = error instanceof Error ? error.message : String(error);
+      return this.response(call, /^owner adapter returned http|fetch failed|network|connect|timed out/i.test(message)
+        ? 'unreachable'
+        : 'failed', { error: message });
     }
   }
 
@@ -115,8 +126,8 @@ export class AllAppToolMediator {
     outcome: AllAppToolMediatorResponse['outcome'],
     result: unknown,
   ): AllAppToolMediatorResponse {
-    const receiptId = this.receiptId(call);
-    const eventDagRef = this.eventDagRef(call);
+    const receiptId = this.receiptId(call, result);
+    const eventDagRef = this.eventDagRef(call, result);
     return {
       ok: outcome === 'executed', owner: call.owner, tool_id: call.tool_id, transport: call.transport,
       correlation_id: call.correlation_id, outcome, result,
@@ -160,8 +171,83 @@ function forbiddenPayloadPath(value: unknown): boolean {
 }
 
 function unwrapMcpResult(value: unknown): unknown {
-  if (value && typeof value === 'object' && 'jsonrpc' in value && 'result' in value) {
-    return (value as { result: unknown }).result;
+  if (value && typeof value === 'object' && 'jsonrpc' in value) {
+    const response = value as { result?: unknown; error?: { code?: unknown; message?: unknown; data?: unknown } };
+    if (response.error) {
+      const message = typeof response.error.message === 'string'
+        ? response.error.message
+        : 'Owner adapter returned a JSON-RPC error.';
+      throw new Error(message);
+    }
+    if ('result' in response) {
+      const result = response.result;
+      if (result && typeof result === 'object' && (result as { isError?: unknown }).isError === true) {
+        const content = (result as { content?: Array<{ text?: unknown }> }).content;
+        const message = typeof content?.[0]?.text === 'string'
+          ? content[0].text
+          : 'Owner adapter rejected the tool call.';
+        throw new Error(message);
+      }
+      return result;
+    }
   }
   return value;
+}
+
+function sanitizeOwnerResult(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeOwnerResult);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+    .filter(([key]) => !FORBIDDEN_KEYS.has(key.toLowerCase()))
+    .map(([key, child]) => [key, sanitizeOwnerResult(child)]));
+}
+
+export type GatewayArtifactKind = 'receipt' | 'event';
+
+export function gatewayArtifactCanonicalJson(
+  kind: GatewayArtifactKind,
+  call: BrowserMediatedToolCall,
+  result: unknown,
+): string {
+  return canonicalJson({ kind, call, result });
+}
+
+function contentReference(kind: GatewayArtifactKind, call: BrowserMediatedToolCall, result: unknown): string {
+  const digestHex = sha256Hex(gatewayArtifactCanonicalJson(kind, call, result));
+  return cidV1RawSha256(digestHex);
+}
+
+function cidV1RawSha256(digestHex: string): string {
+  const bytes = new Uint8Array(4 + digestHex.length / 2);
+  bytes.set([0x01, 0x55, 0x12, 0x20]);
+  for (let index = 0; index < digestHex.length; index += 2) {
+    bytes[4 + index / 2] = Number.parseInt(digestHex.slice(index, index + 2), 16);
+  }
+  return `b${base32Lower(bytes)}`;
+}
+
+function base32Lower(bytes: Uint8Array): string {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
+  let accumulator = 0;
+  let bits = 0;
+  let result = '';
+  for (const byte of bytes) {
+    accumulator = (accumulator << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      result += alphabet[(accumulator >> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) result += alphabet[(accumulator << (5 - bits)) & 31];
+  return result;
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === undefined) return 'null';
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  return `{${Object.keys(value as Record<string, unknown>).sort()
+    .map(key => `${JSON.stringify(key)}:${canonicalJson((value as Record<string, unknown>)[key])}`)
+    .join(',')}}`;
 }

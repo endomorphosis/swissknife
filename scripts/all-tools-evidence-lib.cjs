@@ -13,7 +13,7 @@ const {
   profileASelectResult,
 } = require('./mcpplusplus-profile-a.cjs');
 const { executeProfileB, ProfileBRequestError } = require('./mcpplusplus-profile-b.cjs');
-const { createArtifactStore, decodeBase64 } = require('./mcpplusplus-artifact-store.cjs');
+const { createArtifactStore, decodeBase64, getHeliaNetworkStatus } = require('./mcpplusplus-artifact-store.cjs');
 const {
   getProfileCService,
   validateProfileCInvocation,
@@ -186,6 +186,11 @@ const ACCELERATE_BROWSER_BOUNDARY_FORBIDDEN = [
   '127.0.0.1:3003',
   '127.0.0.1:9000',
 ];
+// The compatibility catalog is immutable for a running adapter. Rebuilding it
+// on every readiness probe or browser-control catalog refresh retained large
+// upstream response graphs long enough to exhaust Node's heap.
+const ACCELERATE_CATALOG_CACHE_TTL_MS = 10 * 60 * 1000;
+const accelerateCatalogCache = new Map();
 
 function nowIso() {
   return new Date().toISOString();
@@ -1956,6 +1961,21 @@ function startAccelerateCompatServer(options = {}) {
   const profileH = createProfileHAdapter({ service: 'ipfs_accelerate_py' });
   const profileAPersistence = new Map();
 
+  async function healthPayload() {
+    const manifest = await accelerateCompatManifest(upstream);
+    return {
+      status: 'ok',
+      adapter: ACCELERATE_COMPAT_NAME,
+      adapter_version: ACCELERATE_COMPAT_VERSION,
+      pid: process.pid,
+      tools_count: manifest.tools.length,
+      upstream,
+      upstream_available: manifest.upstream_available,
+      hierarchy_facade: manifest.hierarchy_facade,
+      alias_mappings: manifest.alias_mappings,
+    };
+  }
+
   async function profileCResult(operation, params) {
     const profileC = await profileCService;
     switch (operation) {
@@ -1990,6 +2010,12 @@ function startAccelerateCompatServer(options = {}) {
     let rpcRequestId = null;
     try {
       url = new URL(req.url, `http://${host}:${port}`);
+      if (req.method === 'GET' && url.pathname === '/api/mcp/status') {
+        return sendJson(res, 200, { success: true, data: await healthPayload() });
+      }
+      if (req.method === 'GET' && url.pathname === '/mcp/helia/status') {
+        return sendJson(res, 200, await getHeliaNetworkStatus());
+      }
       if (req.method === 'GET' && (url.pathname === '/mcp/tools/list' || url.pathname === '/mcp/tools')) {
         const tools = await accelerateCompatTools(upstream);
         return sendJson(res, 200, { tools });
@@ -1999,18 +2025,7 @@ function startAccelerateCompatServer(options = {}) {
         return sendJson(res, 200, manifest);
       }
       if (req.method === 'GET' && url.pathname === '/mcp/health') {
-        const manifest = await accelerateCompatManifest(upstream);
-        return sendJson(res, 200, {
-          status: 'ok',
-          adapter: ACCELERATE_COMPAT_NAME,
-          adapter_version: ACCELERATE_COMPAT_VERSION,
-          pid: process.pid,
-          tools_count: manifest.tools.length,
-          upstream,
-          upstream_available: manifest.upstream_available,
-          hierarchy_facade: manifest.hierarchy_facade,
-          alias_mappings: manifest.alias_mappings,
-        });
+        return sendJson(res, 200, await healthPayload());
       }
       if (req.method === 'GET' && url.pathname === '/mcp/p2p/peers') {
         return sendJson(res, 200, profileEPeersResult('ipfs_accelerate_py'));
@@ -2270,6 +2285,22 @@ async function accelerateCompatManifest(upstream) {
 }
 
 async function accelerateCompatCatalog(upstream) {
+  const cached = accelerateCatalogCache.get(upstream);
+  if (cached?.value && Date.now() - cached.generated_at < ACCELERATE_CATALOG_CACHE_TTL_MS) return cached.value;
+  if (cached?.pending) return cached.pending;
+  const pending = buildAccelerateCompatCatalog(upstream);
+  accelerateCatalogCache.set(upstream, { generated_at: Date.now(), pending });
+  try {
+    const value = await pending;
+    accelerateCatalogCache.set(upstream, { generated_at: Date.now(), value });
+    return value;
+  } catch (error) {
+    accelerateCatalogCache.delete(upstream);
+    throw error;
+  }
+}
+
+async function buildAccelerateCompatCatalog(upstream) {
   const real = await fetchText(`${upstream}/mcp/tools`);
   const realTools = extractTools(real.json)
     .map(tool => normalizeCompatTool(tool, 'Real local ipfs_accelerate_py tool proxied through SwissKnife adapter.'))
@@ -2347,6 +2378,24 @@ function resolveAccelerateUpstreamTool(name, realNames) {
 
 async function callAccelerateCompatTool(upstream, name, args) {
   const catalog = await accelerateCompatCatalog(upstream);
+  if (args?.dry_run === true) {
+    const tool = catalog.tools.find(item => item.name === name);
+    return tool
+      ? {
+        content: [{ type: 'json', json: {
+          ok: true,
+          dry_run: true,
+          tool: tool.name,
+          policy: 'adapter-enforced-no-side-effects',
+        } }],
+        receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, dry_run: true },
+      }
+      : {
+        isError: true,
+        content: [{ type: 'text', text: `Unknown ipfs_accelerate_py tool: ${name}.` }],
+        receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, dry_run: true },
+      };
+  }
   if (name === 'tools_list_categories') {
     return {
       content: [{ type: 'json', json: { categories: catalog.categories } }],

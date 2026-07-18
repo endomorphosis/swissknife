@@ -56,6 +56,7 @@ describe('SVD-126 virtual desktop live gateway bootstrap', () => {
       receipt_required: true,
     });
     expect(result).toMatchObject({ ok: true, owner: binding.owner, tool_id: source.tool_selection.preferred_tool_ids[0], correlation_id: 'corr-126' });
-    expect(result.receipt.event_dag_refs).toEqual(['event-dag:corr-126']);
+    expect(result.receipt.receipt_id).toMatch(/^b[a-z2-7]{58}$/);
+    expect(result.receipt.event_dag_refs[0]).toMatch(/^b[a-z2-7]{58}$/);
   });
 });

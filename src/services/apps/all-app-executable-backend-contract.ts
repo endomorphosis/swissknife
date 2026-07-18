@@ -269,8 +269,8 @@ const TOOL_PREFERENCES: Readonly<
     discovery: ['load_dataset', 'get_from_ipfs'],
     vector: ['load_index', 'load_dataset'],
     provenance: ['record_provenance', 'save_dataset'],
-    registry: ['get_task_status'],
-    descriptor: ['get_task_status'],
+    registry: ['tools_list_categories'],
+    descriptor: ['tools_get_schema'],
   },
   ipfs_accelerate_py: {
     models: ['get_task', 'detect_hardware'],

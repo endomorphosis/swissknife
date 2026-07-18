@@ -8,11 +8,28 @@ const { spawn } = require('node:child_process');
 const projectRoot = path.resolve(__dirname, '..');
 const evidenceRoot = path.join(projectRoot, 'test-results', 'virtual-desktop-ipfs-mcp-orb');
 const python = process.env.IPFS_ACCELERATE_PYTHON || '/home/barberb/ipfs_accelerate_py/.venv/bin/python3';
+const leaseFileNames = {
+  ipfs_kit_py: 'ipfs-kit-compat-endpoint.json',
+  ipfs_datasets_py: 'ipfs-datasets-compat-endpoint.json',
+  ipfs_accelerate_py: 'ipfs-accelerate-compat-endpoint.json',
+};
 const bridges = [
-  { service: 'ipfs_kit_py', endpoint: 'http://127.0.0.1:8014/mcp', port: 9114, announce: 'ipfs-kit-mcp-p2p-announce.json', pid: 'ipfs-kit-mcp-p2p.pid', log: 'ipfs-kit-mcp-p2p.log' },
-  { service: 'ipfs_datasets_py', endpoint: 'http://127.0.0.1:3002/mcp', port: 9112, announce: 'ipfs-datasets-mcp-p2p-announce.json', pid: 'ipfs-datasets-mcp-p2p.pid', log: 'ipfs-datasets-mcp-p2p.log' },
-  { service: 'ipfs_accelerate_py', endpoint: 'http://127.0.0.1:3003/mcp', port: 9113, announce: 'ipfs-accelerate-mcp-p2p-announce.json', pid: 'ipfs-accelerate-mcp-p2p.pid', log: 'ipfs-accelerate-mcp-p2p.log' },
+  { service: 'ipfs_kit_py', endpoint: leasedMcpEndpoint('ipfs_kit_py', 'http://127.0.0.1:8014/mcp'), port: 9114, announce: 'ipfs-kit-mcp-p2p-announce.json', pid: 'ipfs-kit-mcp-p2p.pid', log: 'ipfs-kit-mcp-p2p.log' },
+  { service: 'ipfs_datasets_py', endpoint: leasedMcpEndpoint('ipfs_datasets_py', 'http://127.0.0.1:3002/mcp'), port: 9112, announce: 'ipfs-datasets-mcp-p2p-announce.json', pid: 'ipfs-datasets-mcp-p2p.pid', log: 'ipfs-datasets-mcp-p2p.log' },
+  { service: 'ipfs_accelerate_py', endpoint: leasedMcpEndpoint('ipfs_accelerate_py', 'http://127.0.0.1:3003/mcp'), port: 9113, announce: 'ipfs-accelerate-mcp-p2p-announce.json', pid: 'ipfs-accelerate-mcp-p2p.pid', log: 'ipfs-accelerate-mcp-p2p.log' },
 ];
+
+function leasedMcpEndpoint(service, fallback) {
+  try {
+    const lease = JSON.parse(fs.readFileSync(path.join(evidenceRoot, leaseFileNames[service]), 'utf8'));
+    if (lease.schema === 'swissknife.mcp-compat-endpoint.v1' && lease.service === service && typeof lease.endpoint === 'string') {
+      return `${lease.endpoint.replace(/\/$/, '')}/mcp`;
+    }
+  } catch (_error) {
+    // A first run has no lease; the conventional local endpoint is still valid.
+  }
+  return fallback;
+}
 
 main().catch(error => {
   console.error(error instanceof Error ? error.stack : error);
@@ -29,7 +46,7 @@ async function main() {
 
 async function ensureBridge(bridge) {
   const announcePath = path.join(evidenceRoot, bridge.announce);
-  if (await portReady(bridge.port) && readAnnounce(announcePath, bridge.service)) {
+  if (await portReady(bridge.port) && readAnnounce(announcePath, bridge.service, bridge.endpoint)) {
     return { service: bridge.service, ready: true, action: 'already_running', announce_file: path.relative(projectRoot, announcePath) };
   }
 
@@ -74,10 +91,11 @@ async function ensureBridge(bridge) {
   };
 }
 
-function readAnnounce(filePath, service) {
+function readAnnounce(filePath, service, endpoint) {
   try {
     const announce = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     return announce.service === service
+      && announce.endpoint === endpoint
       && announce.protocol === '/mcp+p2p/1.0.0'
       && announce.profile_e_version === '1.9.0'
       && announce.canonical_initialize === true
@@ -134,7 +152,7 @@ function ownedBridgeProcess(pid, bridge) {
 async function waitForBridge(port, announcePath, service) {
   const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
-    if (await portReady(port) && readAnnounce(announcePath, service)) return true;
+    if (await portReady(port) && readAnnounce(announcePath, service, bridges.find(bridge => bridge.service === service)?.endpoint)) return true;
     await new Promise(resolve => setTimeout(resolve, 250));
   }
   return false;

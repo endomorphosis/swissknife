@@ -537,6 +537,18 @@ async function callDatasetTool(payload) {
     payload.arguments ??
     payload.args ??
     {};
+  if (args?.dry_run === true) {
+    const tool = findTool(null, name);
+    return tool
+      ? content({
+        ok: true,
+        dry_run: true,
+        category: tool.category,
+        tool: tool.name,
+        policy: 'adapter-enforced-no-side-effects',
+      }, name, { category: tool.category, target: tool.name, dry_run: true })
+      : errorResult(`Unknown ipfs_datasets_py tool: ${name}`, name, { dry_run: true });
+  }
   if (name === "tools_list_categories") {
     return content({ categories: categoryRows() }, name);
   }

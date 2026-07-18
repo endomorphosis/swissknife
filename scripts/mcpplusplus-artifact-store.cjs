@@ -100,6 +100,19 @@ function heliaFetchTimeout() {
   return Number.isInteger(configured) && configured > 0 ? configured : 30000;
 }
 
+function heliaPositiveInteger(name, fallback) {
+  const parsed = Number.parseInt(process.env[name] || "", 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function heliaResourceLimits() {
+  return {
+    max_connections: heliaPositiveInteger("MCPPLUSPLUS_HELIA_MAX_CONNECTIONS", 32),
+    max_parallel_dials: heliaPositiveInteger("MCPPLUSPLUS_HELIA_MAX_PARALLEL_DIALS", 4),
+    dial_timeout_ms: heliaPositiveInteger("MCPPLUSPLUS_HELIA_DIAL_TIMEOUT_MS", 10_000),
+  };
+}
+
 function publicHeliaRepo() {
   const repo = heliaRepo();
   const home = os.homedir();
@@ -209,6 +222,7 @@ async function getHeliaRuntime() {
         node_repo: nodeRepo,
         peer_discovery: networked ? ["mdns", "bootstrap"] : [],
         repo,
+        resource_limits: networked ? heliaResourceLimits() : null,
         started: false,
       };
       if (networked) {
@@ -236,6 +250,16 @@ function createNetworkedHelia({
   bootstrapPeers,
 }) {
   const libp2p = libp2pDefaults();
+  const resourceLimits = heliaResourceLimits();
+  // Keep default bootstrap, DHT, and mDNS discovery enabled, but bound the
+  // long-lived host adapters so a descriptor-heavy MCP++ workload cannot
+  // turn peer discovery into unbounded memory or dial pressure.
+  libp2p.connectionManager = {
+    ...libp2p.connectionManager,
+    maxConnections: resourceLimits.max_connections,
+    maxParallelDials: resourceLimits.max_parallel_dials,
+    dialTimeout: resourceLimits.dial_timeout_ms,
+  };
   // The browser owns WebRTC-direct. Avoid a native ICE UDP listener for every
   // long-lived host adapter while keeping TCP, WebSocket, and relay listeners.
   libp2p.addresses = {
@@ -339,6 +363,7 @@ async function getHeliaNetworkStatus() {
     node_repo: runtime.node_repo,
     peer_id: runtime.networked ? runtime.helia.libp2p.peerId.toString() : null,
     peer_discovery: runtime.peer_discovery,
+    resource_limits: runtime.resource_limits,
     multiaddrs: runtime.networked
       ? runtime.helia.libp2p
           .getMultiaddrs()
