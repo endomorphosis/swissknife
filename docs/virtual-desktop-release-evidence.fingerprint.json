@@ -1,33 +1,37 @@
 {
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
-  "label": "Supervisor-managed virtual desktop all-app release evidence (SVD-066)",
-  "generatedAt": "2026-07-18T18:21:11.120Z",
+  "label": "Freshness-aware virtual desktop release evidence (SVD-114)",
+  "generatedAt": "2026-07-18T19:00:47.923Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
-    "docs/refactor-final-signoff.md",
-    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md"
+    "docs/release-readiness-report.json",
+    "docs/release-readiness-report.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "7ec2e15f0e42fd25da8d77775339fab610a3815ede01bef392ee982aacfe83b9",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "aa25670659ea6f27f9ae81e89ee2c3e70dd68a2c217a51f809b052cce3f17c7e",
-    "docs/refactor-final-signoff.md": "2424f4fedaf14dfaf4a31741e756695df0da93fa922e68405844ed7947a70c1b",
-    "../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md": "8cbc19ce260c245ac65ccb99c35bd82a0dbb85b8b4b6ba5b6b3b3219fd4c3a1d"
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "26f9c072d54ee50b4292cfdb14c60412dc85b8ecb4c2e1f201e3927b7849f22f",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "8f03968d131450fefcb3da371e3a359d7c7086a569c03724c99e538484213fbb",
+    "docs/release-readiness-report.json": "d5c55868861736c2a2c1031b0fc4e1ed0428763e9bc7d5b16c1ed9b172330ee2",
+    "docs/release-readiness-report.md": "4cb78c894ba7ca1fc0f0e90535ef96b7ee3b5f54d55624af5fb71a705abb9870"
   },
-  "sourceFingerprint": "61f0518c893708676397c143e1a3c636ddc0a5136d25d6d720e40ed06ffe1067",
+  "sourceFingerprint": "d47202ead578d172a3e66ba789078ffcd9dd4df1a62c6b80aefbe2be8ae45380",
   "sourceFiles": [
     {
-      "path": "scripts/audit-release-evidence-freshness.mjs",
-      "sha256": "82794d85b83c7f341abf8c20c7678313a4c01093a128ccac2d8f89bdbef39191"
+      "path": "../tmp/swissknife_all_tools_supervisor/state/submodule-merge-diagnostics.json",
+      "sha256": "33e0764c84f875a97e00b48c71db671f64042350a80c6a4df4f4207e64369d90"
     },
     {
-      "path": "scripts/build-agent-supervisor-expanded-io-release-inputs.ts",
-      "sha256": "4a4e6152bb54ec2493af55e6f657d7b4ba518126629c06bb3858b83c9b0fdff5"
+      "path": "scripts/audit-release-evidence-freshness.mjs",
+      "sha256": "31cecea80c6a291df00e0a30dc4da8e8c7af09897587954d950fcacaeff54628"
     },
     {
       "path": "scripts/build-virtual-desktop-release-evidence.cjs",
-      "sha256": "ee7d53e0520d2fb44c3bb4bc34ab6d4ca121085352bbf56aed287f293b5753b6"
+      "sha256": "16a632c49de607663e2c0f79d797d319299ed4f4f832d5904d10ca76faf7eb4e"
+    },
+    {
+      "path": "scripts/release-readiness-gate.mjs",
+      "sha256": "4c26310c91ec352fb49d08f9fb1b61962a42688ada11bc713d1662cd68ff08dc"
     },
     {
       "path": "src/services/apps/agent-supervisor-expanded-io-envelopes.ts",
@@ -66,228 +70,64 @@
       "sha256": "58a505b8a29277fb7f9eeea94558c4d3a88b9183552b8d8fbf766bf42acc794f"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-io-handoff.json",
-      "sha256": "7ae318cb3b74996cfb20641ced56a74bb1f9258d9f78966b575fc013e7a6a89d"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json",
+      "sha256": "MISSING"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-meta-io.json",
-      "sha256": "8ab4bc65dc7720fe8e8c58cf4003fecc637f13832be770431d8c66fb547ccf3e"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-three-backend-runtime.json",
-      "sha256": "15bfdc50a8ad760276e5c75e7aa7460e28d7f259f01efdc3d6843e50202f1da4"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-binding-gap-ledger.json",
+      "sha256": "MISSING"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json",
       "sha256": "6c0f796a659a5782cdfbf94758f15de2a2b5c6df82154589bf16f2ec0e5c0943"
     },
     {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json",
+      "sha256": "MISSING"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json",
+      "sha256": "MISSING"
+    },
+    {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json",
       "sha256": "8d5b91d57b4bf75c3e29646dde24aefae8e5307aa290331d9e6c5ec488f74fbb"
     },
     {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-ui-ux-accessibility.json",
+      "sha256": "MISSING"
+    },
+    {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-disposition-catalog.json",
+      "sha256": "b74dd0d6cfdd5748173b84c628a0072e407287f333845d0d5914abc4730d0652"
+    },
+    {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
-      "sha256": "119271c7c46e4521a88e3df7df3a4bfdf5064ce14dea81fb9ba5d5b4e7673228"
+      "sha256": "6804f5b7e3d6ee46e07b4485debaade014590f1e63b857b48eda7c7605ae7a60"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/00-agent-supervisor-control-plane.png",
-      "sha256": "adec7c530844f134540b2f27c862d623a91bf127963989f3c01b10a2fbb65ee3"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-behavior-proof",
+      "sha256": "MISSING"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/01-accelerate-panel.png",
-      "sha256": "78c5b576ea45457c02e45e8a2d3d86f1eb7a9ed6147a26ebdc817448bcd5daad"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof",
+      "sha256": "MISSING"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/02-agent-supervisor.png",
-      "sha256": "d76f53133fd1059f6b037147700ef9b9e8a53e39bcdb51d2b65028cfce67dd8f"
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/supervisor-dispatch-artifact-store.json",
+      "sha256": "MISSING"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/03-ai-chat.png",
-      "sha256": "803af242b75ed0af7d9a11464a43243f54b1025276c5f22e17f8eb3880d5a7fa"
+      "path": "test/e2e/all-app-live-behavior-proof.spec.ts",
+      "sha256": "eeca2f1740b4378e654caa0c682a908b00ee40ef2b6b6c005bf6f9134164158c"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/04-api-keys.png",
-      "sha256": "23382cfba5250e57340b7284a16f92f18f3e9c8a48850a34915a0452fda88a22"
+      "path": "test/e2e/all-app-meta-device-simulator-proof.spec.ts",
+      "sha256": "54f1ca4c5990a100c6cc8528a1755f67cc770603d2f3b3148827b820a7b09a07"
     },
     {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/05-calculator.png",
-      "sha256": "f53848ab966e6e01b8983491f9cfa56e2cc203a09a7e44e38c0824d7f2e6951d"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/06-calendar.png",
-      "sha256": "2dcc0fe4b22573e8411e0c19bc65f319a4f09dbbe5f2da0fc3ecf0cb99d1c50d"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/07-cinema.png",
-      "sha256": "89eb26d468dfa37bae40722494f2e7941500ecda3f227f5afa44b18b5a0a7243"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/08-clock.png",
-      "sha256": "69742ed6a5931aa96a9467ea463b08712051cc8c2382c75f9ee0d5906c46fb1a"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/09-cron.png",
-      "sha256": "767d8e7c41773f204162c588f48dab23bb2fec0c760d1b13e6e0ec21206faeee"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/10-datasets-browser.png",
-      "sha256": "275d4730cd135040e99b356c56c2fbc1b417c6576b8c136a87e65c9cbf2f50a7"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/11-device-manager.png",
-      "sha256": "9533020fe8af1ba46a6d0770cf21017c7ad21446a7ba58e2685adbcbcc8a6f7d"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/12-file-manager.png",
-      "sha256": "0a8f40e3bdfb90b066c2d52302a4fbb29f43e947aab81c240e0f32ff669f6533"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/13-friends-list.png",
-      "sha256": "a2120616fafe081acf4d6d642a0e98a9b0eaee692a325eb2766ec3925e6eaf0d"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/14-github.png",
-      "sha256": "88fe32e16ee1eaafeda60fcebd2bf914f5e7b9dc20936ee982938108ca4ab891"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/15-glasses-preview.png",
-      "sha256": "f06479187fcb9b15782b5cfd8464feeddf55171b9ac5d542c69e16a1fd6213eb"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/16-huggingface.png",
-      "sha256": "9cf0a3df8d59cdb317c99eb6475124b6d35dc473ec7a6e49e0f630235f5f5767"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/17-idl-explorer.png",
-      "sha256": "e9d0c7ffbb603997c2dee1947fd1465a56dac8ba8492483efa35f328387617c7"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/18-image-viewer.png",
-      "sha256": "3e9e59c10bac397ba41eebfb25a664038234fd6a5b6409e4debcef59a279e0c4"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/19-ipfs-explorer.png",
-      "sha256": "b738b7557c4df31a479e8d546d81d6fc802e602ce9841cd684a04e27ee4663f9"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/20-mcp-control.png",
-      "sha256": "8ebe76a3fd209c5b47f57abc9b1503bc590b1746fd9a753e75971864d551d32e"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/21-mcp-plus-plus.png",
-      "sha256": "467523bb4e32a2fee6928cfc19a40e1e24a982c98cde5192bbe1c53ae359d734"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/22-media-player.png",
-      "sha256": "7bcfd72bd33379fa3bb71bb8c64b30084c0b10961ba1ce88bab02e012246eab3"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/23-model-browser.png",
-      "sha256": "de6efbd9c7a2656808b241144eace0edb706a06a81c5f62afb4ad398132d85ae"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/24-music-studio.png",
-      "sha256": "de546fe705ef22e2ae73862b579ccb485ac2c2dc03700ee3eac7d03275c53428"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/25-music-studio-unified.png",
-      "sha256": "9c0513ec684cc17833750c414927f9aa4b8b45dcb30eb74f2da46a2dd148f338"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/26-navi.png",
-      "sha256": "a2af14cd7cb659b7bc84d07a86ef6a15807c82910a3e2976137041ccef8299bc"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/27-neural-network-designer.png",
-      "sha256": "2391cd3d3b50009df83eb49bcbda064a1bbfb43ec513a3762010c44e2659d02d"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/28-neural-photoshop.png",
-      "sha256": "7c442859998d55dd5b112ad40fc018b7ab9a2baad9dc8fa15a8081c0d8f4564b"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/29-notes.png",
-      "sha256": "a16bcae1c8839b70cb7f284198e86a5550ea4ad0fde167d1fd770660d813f34b"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/30-oauth-login.png",
-      "sha256": "7e259c8be7ee9175578550e307a986c4df1f2a6917cb46be6e28a8410ad82416"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/31-openrouter.png",
-      "sha256": "d11f6abac1c5020b4d607b12dbedfb58a0f9421d68540c558b8bc6989579a17c"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/32-orb-auto-ui.png",
-      "sha256": "89970462a7938a54520106737b8e481dda1cadc18a6a43effa4f236c64559e55"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/33-p2p-chat.png",
-      "sha256": "87645aabf7b3155c51d2555e39695ff9066a61b7b96cb95d8cd42761d93e8a93"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/34-p2p-chat-unified.png",
-      "sha256": "aea989abacbce5f13bc74d28b51a3d3cc6b4ea9c5024c8672a412e88b7f4858e"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/35-p2p-network.png",
-      "sha256": "c7541de23fc930a9f376189db885c1a9e1d53fab13dc8b87f9f03a233f6cbec8"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/36-peertube.png",
-      "sha256": "94778b301d826e1ef8bdf07c701fbb1a15c0608ce47b3eb341942d5be0020d4a"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/37-settings.png",
-      "sha256": "40a8009957763906fd2c3273ffbaa5ba6d35295a72ee00b1ab44fbb590748d9c"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/38-strudel.png",
-      "sha256": "bfd0dbd595f40b95034970ac1ec2b3d797bb6c458da4d0e2549f131f2dbb4d37"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/39-strudel-ai-daw.png",
-      "sha256": "22ab8313f74ece3b9a6baa4f5bbc83c3cdb106f4d8b58bdef9fefa48a88e7dc1"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/40-system-monitor.png",
-      "sha256": "fe402eb0046d52603689c89ed933ba7a28a9d02ae797d08d268f90c071a46dab"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/41-task-manager.png",
-      "sha256": "ecadc8b399a1685bdf9e96df0852f81a7a3a3011c672f21a3ee043a3388d4fbe"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/42-terminal.png",
-      "sha256": "32f9ac4ede08f5bf66afab658440429c52fd34bf6039ef29b97b671da305e43a"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/43-todo.png",
-      "sha256": "a44617d5fd0ddf863d8bb6621fb8f980df8bea6cc64496f97dc8bd2fbb08b44b"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/44-training-manager.png",
-      "sha256": "5fb3c27558a78e5842aab6a58d5052a4325a9b236fbf9d4a169f36efc042e10c"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/45-vibecode.png",
-      "sha256": "bf94cb1e3964134d87a18d8afd954ec2f543ec804bd3a1c63db2ac01d3432688"
-    },
-    {
-      "path": "test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json",
-      "sha256": "6e1c6f33e1cb8c49e0bbadbbdb32b26fb6c9b4bb341fea827fc9766eddc90512"
-    },
-    {
-      "path": "test/e2e/agent-supervisor-expanded-meta-io.spec.ts",
-      "sha256": "3809d6030cb3ddd075d12048c768123becff042013c832c2cdf3d45bf2365a20"
-    },
-    {
-      "path": "test/e2e/meta-glasses-expanded-io-simulator-validation.spec.ts",
-      "sha256": "8513e8fc16d74c57217b03744685befb3f9aebdb9966f8344e65954b48ccc64a"
-    },
-    {
-      "path": "test/mcp-plus-plus/agent-supervisor-expanded-io-handoff.test.ts",
-      "sha256": "52fd22abe80db97a821ad5b67710e76f8071a215af223939dc090d811d8b36ab"
+      "path": "test/e2e/all-app-ui-ux-accessibility.spec.ts",
+      "sha256": "38180d964d3b9e2ef3e21d41e712cf25a37323446b0f39321b9b27a30128ed15"
     },
     {
       "path": "test/mcp-plus-plus/all-app-orb-idl-action-handoff.test.ts",

@@ -111,34 +111,41 @@ const EVIDENCE_GROUPS = [
   },
   {
     id: 'virtual-desktop-release-evidence',
-    label: 'Supervisor-managed virtual desktop all-app release evidence (SVD-066)',
+    label: 'Freshness-aware virtual desktop release evidence (SVD-114)',
     releaseBlocking: true,
+    // The aggregate records absent inputs as named NO-GO findings.  The
+    // fingerprint audit must still be able to certify that this explicit
+    // state has not changed, rather than aborting before the receipt exists.
     allowMissingSourceRoots: true,
     evidenceFiles: [
       'test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md',
-      'docs/refactor-final-signoff.md',
-      '../data/swissknife_virtual_desktop/discovery/all-tools-no-new-unknowns.md',
+      'docs/release-readiness-report.json',
+      'docs/release-readiness-report.md',
     ],
     sourcePaths: [
       'scripts/build-virtual-desktop-release-evidence.cjs',
-      'scripts/build-agent-supervisor-expanded-io-release-inputs.ts',
-      'scripts/audit-release-evidence-freshness.mjs',
+      'scripts/audit-release-evidence-freshness.mjs', 'scripts/release-readiness-gate.mjs',
       'test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-meta-io.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-binding-gap-ledger.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-expanded-io-handoff.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-disposition-catalog.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/meta-glasses-device-simulator-validation.json',
-      'test-results/virtual-desktop-ipfs-mcp-orb/agent-supervisor-three-backend-runtime.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-ui-ux-accessibility.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/supervisor-dispatch-artifact-store.json',
+      '../tmp/swissknife_all_tools_supervisor/state/submodule-merge-diagnostics.json',
       // The UI validation receipt names these PNG files.  Hash the complete
       // corpus as a source dependency so a deleted, replaced, or newly added
       // screenshot cannot leave an otherwise unchanged JSON receipt looking
       // current.
-      'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io',
-      'test/e2e/agent-supervisor-expanded-meta-io.spec.ts',
-      'test/e2e/meta-glasses-expanded-io-simulator-validation.spec.ts',
-      'test/mcp-plus-plus/agent-supervisor-expanded-io-handoff.test.ts',
+      'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-behavior-proof',
+      'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof',
+      'test/e2e/all-app-live-behavior-proof.spec.ts',
+      'test/e2e/all-app-meta-device-simulator-proof.spec.ts',
+      'test/e2e/all-app-ui-ux-accessibility.spec.ts',
       'test/mcp-plus-plus/all-app-orb-idl-action-handoff.test.ts',
       'src/services/apps/virtual-desktop-app-manifest.ts',
       'src/services/apps/all-app-live-tool-bindings.ts',

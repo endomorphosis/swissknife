@@ -1058,39 +1058,27 @@ function readVirtualDesktopReleaseEvidence() {
 
   try {
     const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
+    if (evidence.schema !== 'swissknife.virtual-desktop-release-evidence.v2' || evidence.task_id !== 'SVD-114') {
+      return {
+        status: 'invalid', path: relativePath,
+        error: 'release evidence must be the SVD-114 freshness-aware v2 receipt; legacy aggregate receipts are not accepted',
+      };
+    }
+    if (!Array.isArray(evidence.named_gaps) || !evidence.named_gaps.every((item) => (
+      Object.prototype.hasOwnProperty.call(item, 'application')
+      && Object.prototype.hasOwnProperty.call(item, 'tool')
+      && Object.prototype.hasOwnProperty.call(item, 'owner')
+      && Object.prototype.hasOwnProperty.call(item, 'transport')
+      && Object.prototype.hasOwnProperty.call(item, 'modality')
+      && typeof item.task_id === 'string' && typeof item.remediation === 'string'
+    ))) {
+      return { status: 'invalid', path: relativePath, error: 'release evidence findings must name application, tool, owner, transport, modality, task ID, and remediation' };
+    }
     const hierarchical = evidence.hierarchical_mcp ?? {};
-    const supervisorManagedEvidence = evidence.schema === 'swissknife.supervisor-managed-all-app-release-evidence.v1';
     const supervisorDecision = evidence.decision?.status;
     const supervisorBlockers = Array.isArray(evidence.named_gaps) ? evidence.named_gaps : [];
-    // SVD-066 emits a supervisor-managed receipt rather than the older
-    // all-tools matrix envelope. Derive the legacy gate view only from its
-    // already-validated, explicit receipt fields so this compatibility layer
-    // cannot manufacture a passing result.
-    const appMatrix = evidence.virtual_desktop_app_matrix_gate ?? (supervisorManagedEvidence ? {
-      decision: supervisorDecision === 'GO' ? 'go' : 'no_go',
-      blocker_count: supervisorBlockers.length,
-      app_count: evidence.app_coverage?.canonical_app_count ?? 0,
-      missing_contract_app_ids: [], missing_workflow_app_ids: [], missing_screenshot_apps: [],
-      missing_workflow_states: [], missing_ux_states: [], missing_local_only_rationale_app_ids: [],
-      missing_backend_capability_set_app_ids: [], malformed_backend_capabilities: [],
-      missing_app_visible_binding_capabilities: [], missing_orb_idl_app_ids: [], missing_orb_idl_capabilities: [],
-      missing_glasses_projection_app_ids: [], missing_glasses_projection_capabilities: [],
-      missing_catalog_reconciliation: [], missing_mcp_plus_plus_eligibility: [], server_catalog_gaps: [],
-      server_facade_gaps: [], tool_class_counts: {}, missing_simulator_modalities: [],
-      missing_simulator_capability_modalities: [], simulator_replay_gaps: [],
-    } : null);
-    const completeGate = evidence.swr110_release_gate ?? (supervisorManagedEvidence ? {
-      decision: supervisorDecision === 'GO' ? 'go' : 'no_go',
-      release_decision: supervisorDecision ?? 'NO_GO',
-      blocker_count: supervisorBlockers.length,
-      required_mcp_servers: evidence.mcp_plus_plus_backend_evidence?.service_owners ?? [],
-      required_orb_modalities: Object.keys(evidence.meta_glasses_simulator?.modality_summary ?? {}),
-      required_simulator_capabilities: Object.keys(evidence.meta_glasses_simulator?.modality_summary ?? {}),
-      required_supervisor_paths: evidence.agent_supervisor?.expected_goal_subgoal_taskboard_capabilities ?? [],
-      missing_evidence_paths: Object.entries(evidence.artifacts ?? {}).filter(([, artifact]) => artifact?.status !== 'passed').map(([, artifact]) => artifact.path).filter(Boolean),
-      representative_blockers: supervisorBlockers.map((gap) => `${gap.task_id ?? 'unassigned'}: ${gap.reason ?? gap.code ?? 'unspecified gap'}`),
-      all_tools_blockers: [],
-    } : null);
+    const appMatrix = evidence.virtual_desktop_app_matrix_gate ?? null;
+    const completeGate = evidence.swr110_release_gate ?? null;
     return {
       status: 'present',
       path: relativePath,

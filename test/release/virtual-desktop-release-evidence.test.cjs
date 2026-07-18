@@ -234,3 +234,38 @@ test('Meta glasses simulator requires every modality for each canonical app', ()
   releaseEvidence.validateSimulatorReplay(incomplete, { packet_count: 1 }, ['agent-supervisor']);
   assert.ok(incomplete.gaps.some(gap => gap.code === 'simulator_modalities'));
 });
+
+test('fresh release evidence rejects unbound and placeholder tool-backed execution claims', () => {
+  const findings = [];
+  const contract = { apps: [{
+    app_id: 'terminal', backend_state: 'tool_backed', backend_capabilities: [{
+      capability_id: 'kit.add', tool_id: 'add', service: 'ipfs_kit_py', mcp_transport: 'http',
+    }],
+  }] };
+  releaseEvidence.validateFreshToolBackedPairs(contract, {
+    bindings: [{ app_id: 'terminal', owner: 'ipfs_kit_py', capability_id: 'kit.add', coverage_status: 'declared_no_tool_binding' }],
+  }, { executions: [] }, finding => findings.push(finding));
+  assert.equal(findings[0].code, 'declared_no_tool_binding');
+  assert.equal(findings[0].application, 'terminal');
+  assert.equal(findings[0].tool, 'add');
+  assert.equal(findings[0].owner, 'ipfs_kit_py');
+
+  const placeholder = [];
+  releaseEvidence.validateFreshToolBackedPairs(contract, {
+    bindings: [{ app_id: 'terminal', owner: 'ipfs_kit_py', capability_id: 'kit.add', transports: ['http'] }],
+  }, { executions: [{ app_id: 'terminal', owner: 'ipfs_kit_py', tool_id: 'add', execution_mode: 'fixture-only' }] }, finding => placeholder.push(finding));
+  assert.equal(placeholder[0].code, 'placeholder_execution_claim');
+  assert.equal(placeholder[0].task_id, 'SVD-106');
+});
+
+test('fresh release evidence rejects every unclassified backend tool with a remediation', () => {
+  const findings = [];
+  releaseEvidence.validateFreshCatalog({ entries: [{
+    owner: 'ipfs_datasets_py', tool_id: 'query', disposition: { kind: 'unclassified' },
+    reachability: { approved_transports: ['libp2p'] },
+  }] }, null, finding => findings.push(finding));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].code, 'unclassified_backend_tool');
+  assert.equal(findings[0].transport, 'libp2p');
+  assert.match(findings[0].remediation, /Classify/);
+});
