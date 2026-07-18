@@ -34,6 +34,12 @@ const adapterEndpointConfig = {
     fallbackPortStart: 31002,
     leasePath: path.join(evidenceRoot, "ipfs-datasets-compat-endpoint.json"),
   },
+  ipfs_accelerate_py: {
+    environmentName: "IPFS_ACCELERATE_MCP_ENDPOINT",
+    defaultEndpoint: "http://127.0.0.1:3003/api/mcp/status",
+    fallbackPortStart: 31003,
+    leasePath: path.join(evidenceRoot, "ipfs-accelerate-compat-endpoint.json"),
+  },
 };
 const adapters = [
   {
@@ -60,6 +66,15 @@ const adapters = [
       IPFS_DATASETS_PY_ROOT:
         process.env.IPFS_DATASETS_PY_ROOT || "/home/barberb/ipfs_datasets_py",
     },
+  },
+  {
+    service: "ipfs_accelerate_py",
+    endpoint: configuredAdapterEndpoint("ipfs_accelerate_py"),
+    script: "start-ipfs-accelerate-mcp-compat.cjs",
+    pidFile: "ipfs-accelerate-compat.pid",
+    logFile: "ipfs-accelerate-compat.log",
+    version: "1.0.0",
+    env: {},
   },
 ];
 

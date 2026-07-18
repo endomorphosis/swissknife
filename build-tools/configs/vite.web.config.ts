@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite'
 import { rmSync } from 'node:fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import { createAllAppToolMediator } from '../../src/services/mcp/all-app-tool-mediator.js'
 
 const configDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(configDir, '../..')
@@ -148,6 +149,55 @@ function swissknifeBrowserLibp2pFallbackHygienePlugin(): Plugin {
   }
 }
 
+/**
+ * The desktop is the only browser-facing origin.  This middleware owns the
+ * fixed `/mcp/tools/call` route and forwards a normalized tool call to an
+ * owner adapter selected on the server.  Endpoint configuration is read here,
+ * never serialized into the browser bundle or response envelope.
+ */
+function swissknifeSameOriginToolMediatorPlugin(): Plugin {
+  const endpointFor = {
+    ipfs_kit_py: process.env.SWISSKNIFE_IPFS_KIT_MCP_URL ?? 'http://127.0.0.1:8014/mcp',
+    ipfs_datasets_py: process.env.SWISSKNIFE_IPFS_DATASETS_MCP_URL ?? 'http://127.0.0.1:3002/mcp',
+    ipfs_accelerate_py: process.env.SWISSKNIFE_IPFS_ACCELERATE_MCP_URL ?? 'http://127.0.0.1:3003/mcp',
+  } as const
+  const mediator = createAllAppToolMediator({
+    adapters: Object.fromEntries(Object.entries(endpointFor).map(([owner, endpoint]) => [owner, {
+      async invoke(call: { tool_id: string; payload: Readonly<Record<string, unknown>>; correlation_id: string; dry_run: boolean }) {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-swissknife-correlation-id': call.correlation_id },
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: call.correlation_id, method: 'tools/call',
+            params: { name: call.tool_id, arguments: { ...call.payload, dry_run: call.dry_run } },
+          }),
+        })
+        if (!response.ok) throw new Error(`Owner adapter returned HTTP ${response.status}.`)
+        return response.json()
+      },
+    }])) as Parameters<typeof createAllAppToolMediator>[0]['adapters'],
+  })
+  const install = (server: { middlewares: { use(handler: (request: import('node:http').IncomingMessage, response: import('node:http').ServerResponse, next: () => void) => void): void } }) => {
+    server.middlewares.use((request, response, next) => {
+      if (request.method !== 'POST' || request.url?.split('?')[0] !== '/mcp/tools/call') return next()
+      const chunks: Buffer[] = []
+      request.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
+      request.on('end', async () => {
+        try {
+          const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+          const result = await mediator.dispatch(payload)
+          response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+          response.end(JSON.stringify(result))
+        } catch (error) {
+          response.writeHead(400, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+          response.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
+        }
+      })
+    })
+  }
+  return { name: 'swissknife-same-origin-tool-mediator', configureServer: install, configurePreviewServer: install }
+}
+
 function swissknifeBundleAuditPlugin(): Plugin {
   return {
     name: 'swissknife-bundle-audit-metadata',
@@ -205,6 +255,7 @@ export default defineConfig({
     swissknifeWebDistCleanPlugin(),
     swissknifeBrowserImportGuardPlugin(),
     swissknifeBrowserLibp2pFallbackHygienePlugin(),
+    swissknifeSameOriginToolMediatorPlugin(),
     swissknifeBundleAuditPlugin(),
   ],
   

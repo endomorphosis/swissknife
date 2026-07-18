@@ -1,6 +1,7 @@
 // Temporary clean bootstrap replacing corrupted main.ts
 import '/css/desktop.css';
 import { loadApp, type AppLoadResult } from './src/apps/app-manifest-loader';
+import { bindLiveToolGatewayPanel, renderLiveToolGatewayPanel } from './src/live-tool-gateway-panel';
 
 interface App { id:string; title:string; loader:(el:HTMLElement)=>void; }
 interface ToolSmokeCatalogEntry {
@@ -135,6 +136,7 @@ class MiniDesktop {
  */
 export async function renderAppLoadResult(container: HTMLElement, result: AppLoadResult, desktop?: unknown): Promise<void> {
   const smokePanel = renderToolSmokePanel(result.app_id);
+  const liveGatewayPanel = renderLiveToolGatewayPanel(result.app_id);
   if (result.status === 'loaded') {
     const moduleRecord = result.module as {
       mountSwissKnifeApp?: (container: HTMLElement, options?: Record<string, unknown>) => unknown | Promise<unknown>;
@@ -145,10 +147,15 @@ export async function renderAppLoadResult(container: HTMLElement, result: AppLoa
         container.insertAdjacentHTML('beforeend', smokePanel);
         bindToolSmokePanel(container, result.app_id);
       }
+      if (liveGatewayPanel) {
+        container.insertAdjacentHTML('beforeend', liveGatewayPanel);
+        bindLiveToolGatewayPanel(container, result.app_id);
+      }
       return;
     }
-    container.innerHTML = `<div style="padding:8px;color:#ddd;font:13px system-ui">Loaded app "${escapeHtml(result.app_id)}".</div>${smokePanel}`;
+    container.innerHTML = `<div style="padding:8px;color:#ddd;font:13px system-ui">Loaded app "${escapeHtml(result.app_id)}".</div>${smokePanel}${liveGatewayPanel}`;
     bindToolSmokePanel(container, result.app_id);
+    bindLiveToolGatewayPanel(container, result.app_id);
     return;
   }
 
@@ -159,8 +166,9 @@ export async function renderAppLoadResult(container: HTMLElement, result: AppLoa
     result.descriptor_ref ? `<div style="opacity:.7">descriptor: ${escapeHtml(result.descriptor_ref)}</div>` : '',
   ].filter(Boolean).join('');
 
-  container.innerHTML = `<div style="padding:8px;color:#ddd;font:13px system-ui"><strong>${statusLabel}: ${escapeHtml(result.app_id)}</strong>${details}</div>${smokePanel}`;
+  container.innerHTML = `<div style="padding:8px;color:#ddd;font:13px system-ui"><strong>${statusLabel}: ${escapeHtml(result.app_id)}</strong>${details}</div>${smokePanel}${liveGatewayPanel}`;
   bindToolSmokePanel(container, result.app_id);
+  bindLiveToolGatewayPanel(container, result.app_id);
 }
 
 if(typeof document!=='undefined'){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>new MiniDesktop()); else new MiniDesktop(); }
