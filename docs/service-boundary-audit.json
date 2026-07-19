@@ -6,7 +6,7 @@
   },
   "provenance": {
     "taskId": "SWR-137",
-    "sourceRevision": "820ebeef1e8c8fdf0d0017097898f4108efda88d",
+    "sourceRevision": "86a6fec2fcbadef876dc2a0390405e7f9085b423",
     "recoveryProvenance": {
       "path": "docs/phase-21-recovery-provenance.json",
       "available": false
@@ -467,7 +467,7 @@
       "serviceRoot": "src/services",
       "auditScript": "scripts/audit-source-modules.mjs",
       "phase16CleanupEvidence": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16",
-      "sourceRevision": "820ebeef1e8c8fdf0d0017097898f4108efda88d",
+      "sourceRevision": "86a6fec2fcbadef876dc2a0390405e7f9085b423",
       "recoveryProvenance": {
         "path": "docs/phase-21-recovery-provenance.json",
         "available": false

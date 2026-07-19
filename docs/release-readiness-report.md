@@ -1,22 +1,22 @@
 # Release Readiness Report
 
-Generated: 2026-07-19T05:58:02.996Z
-Commit: 820ebeef1e8c8fdf0d0017097898f4108efda88d
+Generated: 2026-07-19T06:20:40.959Z
+Commit: 86a6fec2fcbadef876dc2a0390405e7f9085b423
 Overall status: ✅ PASSED
 Release decision: `GO`
-Duration: 288.8s
+Duration: 296.2s
 
 | Gate | Status | Duration |
 | --- | --- | --- |
 | Browser/service duplicate regression sentinel (SWR-095) | ✅ passed | 0.1s |
-| Service-boundary audit (services:audit) | ✅ passed | 5.7s |
-| Repository module-boundary audit (audit:module-boundary) | ✅ passed | 5.5s |
+| Service-boundary audit (services:audit) | ✅ passed | 5.5s |
+| Repository module-boundary audit (audit:module-boundary) | ✅ passed | 5.2s |
 | TypeScript project typecheck (typecheck) | ✅ passed | 8.6s |
-| Fast unit test lane (test:fast) | ✅ passed | 36.7s |
-| Browser compatibility lane (test:browser-compat) | ✅ passed | 16.7s |
-| Web bundle build + host-leakage/budget audit (build:web) | ✅ passed | 14.5s |
+| Fast unit test lane (test:fast) | ✅ passed | 37.6s |
+| Browser compatibility lane (test:browser-compat) | ✅ passed | 17.2s |
+| Web bundle build + host-leakage/budget audit (build:web) | ✅ passed | 15.6s |
 | Web bundle host-leakage re-audit (audit:bundle-host-leakage) | ✅ passed | 8.2s |
-| MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses) | ✅ passed | 191.3s |
+| MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses) | ✅ passed | 196.6s |
 | Virtual desktop release evidence aggregation (hierarchical MCP + all-tools) | ✅ passed | 0.4s |
 | Independent all-app release closeout replay (SVD-115) | ✅ passed | 0.1s |
 | Browser/libp2p release evidence freshness (evidence:freshness:check) | ✅ passed | 0.3s |

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "taskId": "SWR-110",
-  "generatedAt": "2026-07-19T05:58:02.996Z",
-  "startedAt": "2026-07-19T05:53:14.156Z",
-  "durationMs": 288840,
-  "commitSha": "820ebeef1e8c8fdf0d0017097898f4108efda88d",
+  "generatedAt": "2026-07-19T06:20:40.959Z",
+  "startedAt": "2026-07-19T06:15:44.740Z",
+  "durationMs": 296219,
+  "commitSha": "86a6fec2fcbadef876dc2a0390405e7f9085b423",
   "overallStatus": "passed",
   "releaseDecision": "GO",
   "goNoGo": "GO",
@@ -17,7 +17,7 @@
   "virtualDesktopReleaseEvidence": {
     "status": "present",
     "path": "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
-    "generatedAt": "2026-07-19T05:58:01.559Z",
+    "generatedAt": "2026-07-19T06:20:39.460Z",
     "decision": "go",
     "blockerCount": 0,
     "warningCount": 0,
@@ -114,7 +114,7 @@
   "independentAllAppReleaseReplay": {
     "path": "test-results/virtual-desktop-ipfs-mcp-orb/independent-all-app-release-replay.json",
     "status": "present",
-    "generatedAt": "2026-07-19T05:58:01.968Z",
+    "generatedAt": "2026-07-19T06:20:39.875Z",
     "decision": "GO",
     "blockerCount": 0,
     "blockerTaskIds": [],
@@ -133,7 +133,7 @@
       "id": "services-audit",
       "label": "Service-boundary audit (services:audit)",
       "status": "passed",
-      "durationMs": 5706,
+      "durationMs": 5480,
       "tail": [],
       "findings": []
     },
@@ -141,7 +141,7 @@
       "id": "module-boundary-audit",
       "label": "Repository module-boundary audit (audit:module-boundary)",
       "status": "passed",
-      "durationMs": 5479,
+      "durationMs": 5219,
       "tail": [],
       "findings": []
     },
@@ -149,7 +149,7 @@
       "id": "typecheck",
       "label": "TypeScript project typecheck (typecheck)",
       "status": "passed",
-      "durationMs": 8646,
+      "durationMs": 8639,
       "tail": [],
       "findings": []
     },
@@ -157,7 +157,7 @@
       "id": "test-fast",
       "label": "Fast unit test lane (test:fast)",
       "status": "passed",
-      "durationMs": 36679,
+      "durationMs": 37630,
       "tail": [],
       "findings": []
     },
@@ -165,7 +165,7 @@
       "id": "test-browser-compat",
       "label": "Browser compatibility lane (test:browser-compat)",
       "status": "passed",
-      "durationMs": 16703,
+      "durationMs": 17176,
       "tail": [],
       "findings": []
     },
@@ -173,7 +173,7 @@
       "id": "build-web",
       "label": "Web bundle build + host-leakage/budget audit (build:web)",
       "status": "passed",
-      "durationMs": 14534,
+      "durationMs": 15634,
       "tail": [],
       "findings": []
     },
@@ -181,7 +181,7 @@
       "id": "bundle-host-leakage",
       "label": "Web bundle host-leakage re-audit (audit:bundle-host-leakage)",
       "status": "passed",
-      "durationMs": 8204,
+      "durationMs": 8197,
       "tail": [],
       "findings": []
     },
@@ -189,7 +189,7 @@
       "id": "evidence-mcp-glasses",
       "label": "MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)",
       "status": "passed",
-      "durationMs": 191322,
+      "durationMs": 196619,
       "tail": [],
       "findings": []
     },
@@ -205,7 +205,7 @@
       "id": "independent-all-app-release-replay",
       "label": "Independent all-app release closeout replay (SVD-115)",
       "status": "passed",
-      "durationMs": 97,
+      "durationMs": 104,
       "tail": [],
       "findings": []
     },
@@ -213,7 +213,7 @@
       "id": "evidence-freshness",
       "label": "Browser/libp2p release evidence freshness (evidence:freshness:check)",
       "status": "passed",
-      "durationMs": 321,
+      "durationMs": 348,
       "tail": [],
       "findings": []
     },
@@ -221,7 +221,7 @@
       "id": "evidence-dashboard-consumer",
       "label": "MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer)",
       "status": "passed",
-      "durationMs": 655,
+      "durationMs": 680,
       "tail": [],
       "findings": []
     },
