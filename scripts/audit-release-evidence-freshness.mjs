@@ -131,6 +131,7 @@ const EVIDENCE_GROUPS = [
       'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-disposition-catalog.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json',
+      'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-gateway-executions.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json',
       'test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json',
@@ -144,6 +145,14 @@ const EVIDENCE_GROUPS = [
       'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-behavior-proof',
       'test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof',
       'test/e2e/all-app-live-behavior-proof.spec.ts',
+      // SVD-127 is only valid when this report remains tied to the visible
+      // desktop workflow and its call-bound HTTP/libp2p observations.
+      'test/e2e/all-app-live-gateway-executions.spec.ts',
+      'test/mcp-plus-plus/all-app-mcpplusplus-profile-interoperability.test.ts',
+      'src/services/mcp/all-app-mcpplusplus-profile-interoperability.ts',
+      'src/services/mcp/all-app-tool-mediator.ts',
+      'build-tools/configs/vite.web.config.ts',
+      'web/js/live-tool-gateway.js',
       'test/e2e/all-app-meta-device-simulator-proof.spec.ts',
       'test/e2e/all-app-ui-ux-accessibility.spec.ts',
       'test/mcp-plus-plus/all-app-orb-idl-action-handoff.test.ts',

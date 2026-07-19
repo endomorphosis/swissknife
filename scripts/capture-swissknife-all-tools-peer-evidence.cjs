@@ -96,9 +96,9 @@ async function main() {
 async function ensureIsolatedBridges() {
   const python = process.env.IPFS_ACCELERATE_PYTHON || '/home/barberb/ipfs_accelerate_py/.venv/bin/python3';
   const configs = [
-    { service: 'ipfs_kit_py', endpoint: 'http://127.0.0.1:8014/mcp', announce: announceFiles[0] },
-    { service: 'ipfs_datasets_py', endpoint: 'http://127.0.0.1:3002/mcp', announce: announceFiles[1] },
-    { service: 'ipfs_accelerate_py', endpoint: 'http://127.0.0.1:3003/mcp', announce: announceFiles[2] },
+    { service: 'ipfs_kit_py', endpoint: compatibilityMcpEndpoint('ipfs_kit_py', 'http://127.0.0.1:8014/mcp'), announce: announceFiles[0] },
+    { service: 'ipfs_datasets_py', endpoint: compatibilityMcpEndpoint('ipfs_datasets_py', 'http://127.0.0.1:3002/mcp'), announce: announceFiles[1] },
+    { service: 'ipfs_accelerate_py', endpoint: compatibilityMcpEndpoint('ipfs_accelerate_py', 'http://127.0.0.1:3003/mcp'), announce: announceFiles[2] },
   ];
   const results = [];
   for (const config of configs) {
@@ -145,6 +145,24 @@ async function ensureIsolatedBridges() {
   return results;
 }
 
+// Compatibility adapters may be assigned a non-default local port.  The
+// libp2p bridge must proxy to the exact leased endpoint; using the historical
+// datasets default makes a valid Profile E peer silently represent an HTTP
+// backend that is not the one the desktop calls.
+function compatibilityMcpEndpoint(service, fallback) {
+  const leaseName = `${service.replace(/_py$/, '').replaceAll('_', '-')}-compat-endpoint.json`;
+  try {
+    const lease = JSON.parse(fs.readFileSync(path.join(evidenceRoot, leaseName), 'utf8'));
+    if (lease.schema === 'swissknife.mcp-compat-endpoint.v1' && lease.service === service && typeof lease.endpoint === 'string') {
+      return `${lease.endpoint.replace(/\/$/, '')}/mcp`;
+    }
+  } catch {
+    // The adapter bootstrap above may legitimately be absent in a developer
+    // checkout; preserve the conventional endpoint as the bounded fallback.
+  }
+  return fallback;
+}
+
 async function reusableBridge(config) {
   const pidPath = path.join(evidenceRoot, `svd-100-${config.service}-bridge.pid`);
   const announcePath = path.join(evidenceRoot, config.announce);
@@ -156,7 +174,7 @@ async function reusableBridge(config) {
   } catch {
     return null;
   }
-  if (!ownedBridgeProcess(pid, config.service) || !validAnnounce(announce, config.service)) return null;
+  if (!ownedBridgeProcess(pid, config) || !validAnnounce(announce, config.service)) return null;
   const port = portFromMultiaddr(announce.multiaddr);
   if (!port || !(await portReady(port))) return null;
   return {
@@ -166,14 +184,15 @@ async function reusableBridge(config) {
   };
 }
 
-function ownedBridgeProcess(pid, service) {
+function ownedBridgeProcess(pid, config) {
   if (!Number.isInteger(pid) || pid <= 1) return false;
   try {
     const command = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8').replace(/\0/g, ' ');
     const cwd = fs.realpathSync(`/proc/${pid}/cwd`);
     return cwd === projectRoot
       && command.includes('ipfs_mcp_libp2p_bridge.py')
-      && command.includes(`--service ${service}`);
+      && command.includes(`--service ${config.service}`)
+      && command.includes(`--endpoint ${config.endpoint}`);
   } catch {
     return false;
   }
@@ -301,6 +320,12 @@ const serviceConfigs = [
   { service: 'ipfs_accelerate_py', server: IPFS_ACCELERATE_SERVER.name, fixture: { tool: 'get_server_status', arguments: {}, approval: 'non-mutating health fixture' } },
 ];
 const announceByService = new Map(announces.map(announce => [announce.service, announce]));
+const endpointOverrides = Object.fromEntries(serviceConfigs.map(config => {
+  const endpoint = announceByService.get(config.service)?.endpoint;
+  return [config.server, typeof endpoint === 'string'
+    ? { baseUrl: endpoint.replace(/\\/mcp$/, ''), mcpPath: '/mcp' }
+    : {}];
+}));
 const multiaddrs = Object.fromEntries(serviceConfigs.map(config => [
   config.server,
   announceByService.get(config.service)?.multiaddr,
@@ -374,7 +399,9 @@ console.log(JSON.stringify({
 
 async function captureTransport(transport) {
   mark(transport + ': connecting all peers');
-  const connector = createMultiServerConnector(agentDid, transport === 'libp2p' ? { libp2p: multiaddrs } : {});
+  const connector = createMultiServerConnector(agentDid, transport === 'libp2p'
+    ? { libp2p: multiaddrs, serverOverrides: endpointOverrides }
+    : { serverOverrides: endpointOverrides });
   const connections = await connector.connectAll();
   mark(transport + ': peer connections complete');
   const rows = new Map();

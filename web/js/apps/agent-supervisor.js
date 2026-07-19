@@ -326,6 +326,13 @@ export class AgentSupervisorApp {
     } catch (error) {
       return unavailable(invocation, 'transport_unavailable', error instanceof Error ? error.message : String(error));
     }
+    // The standalone desktop still supports a reviewed, confirmation-gated
+    // prompt-steering receipt when no mediated gateway has been provisioned.
+    // This is deliberately limited to the local policy preview; any injected
+    // HTTP/libp2p gateway remains the authoritative execution path above.
+    if (capabilityId === 'supervisor.prompt-steering.request') {
+      return localPromptSteeringResult(invocation, this.state.snapshot);
+    }
     return unavailable(invocation, 'not_configured', 'No browser gateway transport is configured.');
   }
 

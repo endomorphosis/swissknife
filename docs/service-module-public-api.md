@@ -13,7 +13,7 @@ Service implementations have exactly one owning family. Cross-family consumers m
 | `service-integrations` | external-integration-service-runtime | `split` | none | 4 |
 | `service-ipfs` | ipfs-descriptor-runtime | `split` | `src/services/ipfs/ipfs-browser.ts` | 9 |
 | `service-logic` | logic-service-runtime | `split` | `src/services/logic/api/reasoning-normalization-pipeline.ts` | 72 |
-| `service-mcp` | mcp-protocol-runtime | `split` | `src/services/mcp/browser-mcp.ts` | 25 |
+| `service-mcp` | mcp-protocol-runtime | `split` | `src/services/mcp/browser-mcp.ts` | 27 |
 | `service-platform` | platform-service-runtime | `split` | none | 8 |
 | `service-proof-engine` | proof-engine-service-runtime | `split` | `src/services/proof-engine/proof-engine-browser.ts` | 3 |
 | `service-provers` | prover-service-runtime | `split` | `src/services/provers/provers-browser.ts` | 19 |
@@ -193,8 +193,10 @@ Public entrypoints:
 
 - `src/services/mcp/agent-supervisor-console-gateway.ts`
 - `src/services/mcp/all-app-tool-gateway.ts`
+- `src/services/mcp/all-app-tool-mediator.ts`
 - `src/services/mcp/all-tools-idl-generator.ts`
 - `src/services/mcp/browser-mcp.ts`
+- `src/services/mcp/virtual-desktop-live-gateway.ts`
 - `src/services/mcp/host/mcpClient.ts`
 - `src/services/mcp/host/mcp-traffic-manager.ts`
 - `src/services/mcp/host/mcp-versioned-client.ts`

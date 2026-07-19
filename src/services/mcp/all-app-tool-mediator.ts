@@ -22,6 +22,8 @@ export interface MediatedOwnerToolCall {
   payload: Readonly<Record<string, unknown>>;
   dry_run: boolean;
   policy: BrowserMediatedToolCall['input']['policy'];
+  /** Selected by the mediated contract, never by an owner endpoint. */
+  transport: BrowserMediatedToolCall['transport'];
 }
 
 export interface MediatedOwnerAdapter {
@@ -111,6 +113,7 @@ export class AllAppToolMediator {
         payload: call.input.payload,
         dry_run: call.input.policy.dry_run,
         policy: call.input.policy,
+        transport: call.transport,
       });
       return this.response(call, 'executed', sanitizeOwnerResult(unwrapMcpResult(output)));
     } catch (error) {

@@ -33,6 +33,7 @@
           "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
         },
         "requiredArguments": [
+          "--implementation-timeout",
           "--no-ephemeral-worktree",
           "--no-worktree-reconciliation"
         ],
@@ -56,6 +57,8 @@
           "--state-prefix",
           "swissknife_all_tools",
           "--implement",
+          "--implementation-timeout",
+          "7200",
           "--no-ephemeral-worktree",
           "--no-worktree-reconciliation"
         ]

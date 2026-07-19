@@ -549,7 +549,7 @@ class SwissKnifeDesktop {
         window.showAbout = () => this.showAbout();
     }
     
-    async launchApp(appId) {
+    async launchApp(appId, options = {}) {
         console.log(`Launching app: ${appId}`);
         
         const appConfig = this.apps.get(appId);
@@ -588,6 +588,23 @@ class SwissKnifeDesktop {
                 renderToolSmokePanel(appContent, smokeEntry);
                 await mountLiveToolGateway(gatewayHost, appId);
                 console.log(`Rendered MCP UI smoke panel for ${appConfig.name}`);
+                return;
+            }
+
+            // The release replay opens the same canonical desktop window and
+            // mounts its governed MCP++ controls, but does not need to boot an
+            // unrelated heavyweight application runtime (for example a media
+            // engine or model browser) just to click those controls.  This is
+            // opt-in and keeps normal desktop launches unchanged.
+            if (options.gatewayOnly === true) {
+                appContent.innerHTML = `
+                    <section class="app-placeholder" data-testid="gateway-only-app-surface">
+                        <h2>${appConfig.name}</h2>
+                        <p>Application transport controls are ready.</p>
+                    </section>
+                `;
+                await mountLiveToolGateway(gatewayHost, appId);
+                console.log(`Rendered transport replay surface for ${appConfig.name}`);
                 return;
             }
             

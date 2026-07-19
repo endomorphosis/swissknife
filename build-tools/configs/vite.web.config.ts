@@ -1,5 +1,7 @@
 import { defineConfig, type Plugin } from 'vite'
 import { readFileSync, rmSync } from 'node:fs'
+import { execFile as execFileCallback } from 'node:child_process'
+import { promisify } from 'node:util'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import {
@@ -10,6 +12,10 @@ import {
 import type { BrowserMediatedToolCall } from '../../src/services/mcp/all-app-tool-gateway.js'
 import { ALL_APP_EXECUTABLE_BACKEND_CONTRACT } from '../../src/services/apps/all-app-executable-backend-contract.js'
 import { ALL_APP_LIVE_TOOL_BINDINGS } from '../../src/services/apps/all-app-live-tool-bindings.js'
+
+const PROFILE_REPLAY_CLIENT_DID = 'did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu'
+const profileReplayConnectorCache = new Map<string, Promise<InstanceType<typeof import('../../src/services/mcp/mcp-plus-plus-connector.js').MCPPPServerConnector>>>()
+const execFile = promisify(execFileCallback)
 
 const configDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(configDir, '../..')
@@ -195,17 +201,8 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
     ipfs_accelerate_py: vettedMcpEndpoint('ipfs_accelerate_py', 'http://127.0.0.1:3003/mcp'),
   } as const
   const adapters = Object.fromEntries(Object.entries(endpointFor).map(([owner, endpoint]) => [owner, {
-    async invoke(call: { tool_id: string; payload: Readonly<Record<string, unknown>>; correlation_id: string; dry_run: boolean }) {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-swissknife-correlation-id': call.correlation_id },
-        body: JSON.stringify({
-          jsonrpc: '2.0', id: call.correlation_id, method: 'tools/call',
-          params: { name: call.tool_id, arguments: { ...call.payload, dry_run: call.dry_run } },
-        }),
-      })
-      if (!response.ok) throw new Error(`Owner adapter returned HTTP ${response.status}.`)
-      return response.json()
+    async invoke(call: { tool_id: string; payload: Readonly<Record<string, unknown>>; correlation_id: string; dry_run: boolean; transport: 'http' | 'libp2p' }) {
+      return invokeOwnerOverMcpPlusPlus(owner as keyof typeof endpointFor, endpoint, call)
     },
   }])) as Parameters<typeof createAllAppToolMediator>[0]['adapters']
   const mediator = createAllAppToolMediator({
@@ -214,13 +211,16 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
   let catalogCache: { generatedAt: number; controls: readonly Record<string, unknown>[] } | undefined
   const controls = async () => {
     if (catalogCache && Date.now() - catalogCache.generatedAt < CONTROL_CATALOG_CACHE_TTL_MS) return catalogCache.controls
-    const availableTools = await ownerToolNames(endpointFor)
+    const { availableTools, discoveryUnavailable } = await ownerToolNames(endpointFor)
     const sourceByBinding = new Map(ALL_APP_EXECUTABLE_BACKEND_CONTRACT.apps.flatMap(app =>
       app.backend_bindings.map(binding => [binding.binding_id, binding] as const),
     ))
     const next = ALL_APP_LIVE_TOOL_BINDINGS.bindings.map(binding => {
       const source = sourceByBinding.get(binding.binding_id)
-      const selectedTool = source?.tool_selection.preferred_tool_ids.find(tool => availableTools[binding.owner]?.has(tool)) ?? null
+      const selectedTool = source?.tool_selection.preferred_tool_ids.find(tool => {
+        if (discoveryUnavailable.has(binding.owner)) return true
+        return availableTools[binding.owner]?.has(tool)
+      }) ?? null
       return {
         app_id: binding.app_id,
         binding_id: binding.binding_id,
@@ -230,6 +230,7 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
         label: source?.ui_control.label ?? binding.ui_control_id,
         mutates_remote_state: source?.mediated_intent.mutates_remote_state === true,
         transport: selectedTool && binding.gateway.transports.includes('http') ? 'http' : null,
+        transports: selectedTool ? binding.gateway.transports : [],
         selected_tool_id: selectedTool,
         safe_payload: selectedTool ? safeDesktopPayload(selectedTool, binding.capability_id) : null,
         status: selectedTool ? 'available' : 'unavailable',
@@ -273,19 +274,172 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
   return { name: 'swissknife-same-origin-tool-mediator', configureServer: install, configurePreviewServer: install }
 }
 
-async function ownerToolNames(endpoints: Record<string, string>): Promise<Record<string, Set<string>>> {
-  const entries = await Promise.all(Object.entries(endpoints).map(async ([owner, endpoint]) => {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: `swissknife-catalog:${owner}`, method: 'tools/list', params: {} }),
+/**
+ * The browser always reaches the desktop's same-origin mediator.  For a
+ * libp2p-selected binding the mediator, not the browser, dials the announced
+ * Profile E peer and returns only sanitized tool output.  Keeping this here
+ * makes the application execution observable without leaking a multiaddr,
+ * backend URL, credential, or libp2p handle into the page.
+ */
+async function invokeOwnerOverMcpPlusPlus(
+  owner: keyof typeof endpointFor,
+  endpoint: string,
+  call: { tool_id: string; payload: Readonly<Record<string, unknown>>; correlation_id: string; dry_run: boolean; transport: 'http' | 'libp2p' },
+): Promise<unknown> {
+  const announceNames: Record<keyof typeof endpointFor, string> = {
+    ipfs_kit_py: 'ipfs-kit-mcp-p2p-announce.json',
+    ipfs_datasets_py: 'ipfs-datasets-mcp-p2p-announce.json',
+    ipfs_accelerate_py: 'ipfs-accelerate-mcp-p2p-announce.json',
+  }
+  let multiaddr: string | undefined
+  if (call.transport === 'libp2p') {
+    const announcePath = resolve(repoRoot, 'test-results', 'virtual-desktop-ipfs-mcp-orb', announceNames[owner])
+    const announce = JSON.parse(readFileSync(announcePath, 'utf8')) as { multiaddr?: string }
+    multiaddr = announce.multiaddr
+    if (!multiaddr) throw new Error(`No verified libp2p announce is available for ${owner}.`)
+    return invokeOwnerOverInteropLibp2p(owner, multiaddr, call)
+  }
+  const cacheKey = `http:${owner}`
+  let cached = profileReplayConnectorCache.get(cacheKey)
+  if (!cached) {
+    cached = (async () => {
+      const { MCPPPServerConnector } = await import('../../src/services/mcp/mcp-plus-plus-connector.js')
+      const connector = new MCPPPServerConnector({
+        name: `desktop-${owner}-${call.transport}-replay`, baseUrl: endpoint.replace(/\/mcp$/, ''), mcpPath: '/mcp',
+        toolsPath: '/mcp/tools/list', healthPath: '/mcp/health', ucanService: owner,
+        ...(call.transport === 'libp2p' ? { transport: 'libp2p' as const, multiaddr, p2pProtocolId: '/mcp+p2p/1.0.0' } : {}),
+        clientDID: PROFILE_REPLAY_CLIENT_DID,
+      })
+      const connection = await connector.connect()
+      if (!connection.success || connector.transportKind !== call.transport) {
+        throw new Error(`MCP++ ${call.transport} did not establish a ${owner} application route.`)
+      }
+      return connector
+    })()
+    profileReplayConnectorCache.set(cacheKey, cached)
+  }
+  const connector = await cached
+  try {
+    if (!connector.isConnected || connector.transportKind !== call.transport) {
+      throw new Error(`MCP++ ${call.transport} did not establish an ${owner} application route.`)
+    }
+    const interfaces = await connector.listInterfaces()
+    const interfaceCid = interfaces[0]?.interface_cid
+    const identity = connector.verifiedPeerIdentity
+    if (!interfaceCid || identity?.valid !== true || !identity.did || !identity.proofCid) {
+      throw new Error(`MCP++ ${call.transport} did not retain descriptor and UCAN identity evidence for ${owner}.`)
+    }
+    // The correlation ID is part of the actual owner invocation, not merely
+    // a browser-side label. It lets the resulting Profile A/C observation be
+    // tied to this exact desktop operation without exposing an owner URL.
+    const result = await connector.callTool(call.tool_id, {
+      ...call.payload,
+      dry_run: call.dry_run,
+      correlation_id: call.correlation_id,
     })
-    if (!response.ok) throw new Error(`${owner} descriptor discovery returned HTTP ${response.status}.`)
-    const body = await response.json() as { error?: { message?: string }; result?: { tools?: Array<{ name?: string }> } }
-    if (body.error) throw new Error(`${owner} descriptor discovery failed: ${body.error.message ?? 'unknown JSON-RPC error'}.`)
-    return [owner, new Set((body.result?.tools ?? []).map(tool => tool.name).filter((name): name is string => Boolean(name)))] as const
-  }))
-  return Object.fromEntries(entries)
+    return {
+      result,
+      application_transport_observation: {
+        transport: call.transport, descriptor_cid: interfaceCid,
+        ucan_did_verified: true, remote_did: identity.did,
+        identity_proof_cid: identity.proofCid, correlation_id: call.correlation_id,
+      },
+    }
+  } catch (error) { throw error }
+}
+
+/**
+ * The local Profile E bridge is implemented with py-libp2p.  Its Noise stack
+ * is authoritative for the announced peer and interoperates with the matching
+ * py-libp2p connector.  Run that connector behind the mediator, never in the
+ * browser, so the visible control still causes the exact live libp2p call
+ * without leaking a multiaddr, endpoint, or process detail to the page.
+ */
+async function invokeOwnerOverInteropLibp2p(
+  owner: keyof typeof endpointFor,
+  multiaddr: string,
+  call: { tool_id: string; payload: Readonly<Record<string, unknown>>; correlation_id: string; dry_run: boolean },
+): Promise<unknown> {
+  const nonce = `desktop-${call.correlation_id}-${Math.random().toString(36).slice(2)}`.slice(0, 512)
+  const python = process.env.IPFS_ACCELERATE_PYTHON || '/home/barberb/ipfs_accelerate_py/.venv/bin/python3'
+  const helper = resolve(repoRoot, 'scripts', 'invoke-mcp-libp2p.py')
+  const { stdout } = await execFile(python, [
+    helper,
+    '--multiaddr', multiaddr,
+    '--tool-id', call.tool_id,
+    '--arguments-json', JSON.stringify({ ...call.payload, dry_run: call.dry_run, correlation_id: call.correlation_id }),
+    '--audience-did', PROFILE_REPLAY_CLIENT_DID,
+    '--nonce', nonce,
+  ], { cwd: repoRoot, maxBuffer: 4 * 1024 * 1024, timeout: 30_000 })
+  try {
+    const result = JSON.parse(stdout) as {
+      result?: unknown
+      profile_a_descriptor_cid?: unknown
+      profile_c_identity?: unknown
+    }
+    if (typeof result.profile_a_descriptor_cid !== 'string' || !/^b[a-z2-7]{58}$/.test(result.profile_a_descriptor_cid)) {
+      throw new Error('libp2p connector did not return a valid Profile A descriptor CID.')
+    }
+    // Keep UCAN material on the mediator. The report receives only the
+    // verified DID and derived proof CID, never the bearer token itself.
+    const { verifyMCPPPeerIdentity } = await import('../../src/services/mcp/mcp-plus-plus-profile-c.js')
+    const identity = await verifyMCPPPeerIdentity(result.profile_c_identity, {
+      audience: PROFILE_REPLAY_CLIENT_DID,
+      nonce,
+      service: owner,
+      transport: 'libp2p',
+    })
+    if (!identity.valid || !identity.did || !identity.proofCid) {
+      throw new Error(`libp2p connector did not return a verified Profile C UCAN identity for ${owner}: ${identity.reason ?? 'unknown verification failure'}`)
+    }
+    return {
+      result: result.result,
+      application_transport_observation: {
+        transport: 'libp2p',
+        descriptor_cid: result.profile_a_descriptor_cid,
+        ucan_did_verified: true,
+        remote_did: identity.did,
+        identity_proof_cid: identity.proofCid,
+        correlation_id: call.correlation_id,
+      },
+    }
+  } catch (error) {
+    if (error instanceof SyntaxError) throw new Error('libp2p connector returned invalid JSON evidence.')
+    throw error
+  }
+}
+
+async function ownerToolNames(endpoints: Record<string, string>): Promise<{
+  availableTools: Record<string, Set<string>>;
+  discoveryUnavailable: Set<string>;
+}> {
+  const entries = await Promise.allSettled(
+    Object.entries(endpoints).map(async ([owner, endpoint]) => {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: `swissknife-catalog:${owner}`, method: 'tools/list', params: {} }),
+      })
+      if (!response.ok) throw new Error(`${owner} descriptor discovery returned HTTP ${response.status}.`)
+      const body = await response.json() as { error?: { message?: string }; result?: { tools?: Array<{ name?: string }> } }
+      if (body.error) throw new Error(`${owner} descriptor discovery failed: ${body.error.message ?? 'unknown JSON-RPC error'}.`)
+      return [owner, new Set((body.result?.tools ?? []).map(tool => tool.name).filter((name): name is string => Boolean(name)))] as const
+    }),
+  )
+  const availableTools: Record<string, Set<string>> = {}
+  const discoveryUnavailable = new Set<string>()
+
+  for (const outcome of entries) {
+    if (outcome.status === 'rejected') continue
+    const [owner, tools] = outcome.value
+    availableTools[owner] = tools
+  }
+
+  const successfulOwners = new Set(Object.keys(availableTools))
+  for (const owner of Object.keys(endpoints)) {
+    if (!successfulOwners.has(owner)) discoveryUnavailable.add(owner)
+  }
+  return { availableTools, discoveryUnavailable }
 }
 
 function safeDesktopPayload(toolId: string, capabilityId: string): Readonly<Record<string, unknown>> {

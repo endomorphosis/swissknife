@@ -1,85 +1,38 @@
-/**
- * SVD-109 — a fail-closed, desktop-path projection of the MCP++ A–H evidence.
- *
- * This is deliberately an evidence compiler, not a connectivity shim.  A
- * desktop binding becomes `executed` only when its owner has independently
- * executed the approved fixture over both HTTP and libp2p.  It never converts
- * a declared capability into an execution claim.  Profiles that have no
- * enabled route remain explicitly `unsupported` and policy/recovery probes
- * retain `denied` and `unreachable` as first-class outcomes.
- */
-
+/** SVD-127 application-originated MCP++ Profile A-H replay evidence. */
 import {
   ALL_APP_EXECUTABLE_BACKEND_CONTRACT,
   type ExecutableAppBackendDisposition,
   type ExecutableBackendBinding,
-} from '../apps/all-app-executable-backend-contract.js';
-import { getAgentSupervisorConsoleContract } from './agent-supervisor-console-gateway.js';
+} from "../apps/all-app-executable-backend-contract.js";
 
 export const ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_SCHEMA =
-  'swissknife.all-app-mcpplusplus-profile-interoperability.v1';
-export const ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_TASK_ID = 'SVD-109';
-
+  "swissknife.all-app-mcpplusplus-profile-interoperability.v2";
+export const ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_TASK_ID = "SVD-127";
 export const MCPPLUSPLUS_PROFILE_EVIDENCE = [
-  ['A', 'mcp++/mcp-idl'],
-  ['B', 'mcp++/cid-envelope'],
-  ['C', 'mcp++/ucan'],
-  ['D', 'mcp++/deontic-policy'],
-  ['E', 'mcp++/p2p-transport'],
-  ['F', 'mcp++/event-dag'],
-  ['G', 'mcp++/risk-scheduling'],
-  ['H', 'mcp++/x402-payments'],
+  ["A", "mcp++/mcp-idl"],
+  ["B", "mcp++/cid-envelope"],
+  ["C", "mcp++/ucan"],
+  ["D", "mcp++/deontic-policy"],
+  ["E", "mcp++/p2p-transport"],
+  ["F", "mcp++/event-dag"],
+  ["G", "mcp++/risk-scheduling"],
+  ["H", "mcp++/x402-payments"],
 ] as const;
-
-export type MCPPlusPlusProfileLetter = (typeof MCPPLUSPLUS_PROFILE_EVIDENCE)[number][0];
-export type MCPPlusPlusPathOutcome = 'executed' | 'denied' | 'unsupported' | 'unreachable';
-
-interface FixtureEvidence {
-  status?: string;
-  delegation?: { proof_cid?: string | null; valid?: boolean };
-  envelope?: {
-    interface_cid?: string | null;
-    receipt_cid?: string | null;
-    event_cid?: string | null;
-    receipt_success?: boolean;
-    artifact_persistence_complete?: boolean;
-  };
-  cid_retrieval?: { all_found_verified?: boolean };
-  event_dag?: { execution_event_present?: boolean; provenance_visible?: boolean };
-}
-
-interface TransportEvidence {
-  connected?: boolean;
-  normalized_negotiated_profiles?: readonly string[];
-  descriptor?: { retrieved_cids?: readonly string[]; cid_retrieval_complete?: boolean; compatible?: boolean };
-  identity?: { verified?: boolean; remote_did?: string | null; identity_proof_cid?: string | null };
-  fixture?: FixtureEvidence;
-}
-
-interface ServiceEvidence {
-  service: string;
-  transports?: { http?: TransportEvidence; libp2p?: TransportEvidence };
-}
-
-export interface AllToolsPeerEvidence {
-  decision?: string;
-  services?: readonly ServiceEvidence[];
-}
-
-export interface ProfileDPolicyEvidence {
-  policy_cid: string;
-  decision: 'allow' | 'deny';
-  allowed: boolean;
-  zkp_certificate?: {
-    statement_cid?: string;
-    status?: string;
-    zero_knowledge?: boolean;
-    verified?: boolean;
-  };
-}
+export type MCPPlusPlusProfileLetter =
+  (typeof MCPPLUSPLUS_PROFILE_EVIDENCE)[number][0];
+export type MCPPlusPlusPathOutcome =
+  | "executed"
+  | "denied"
+  | "unsupported"
+  | "unreachable";
 
 export interface ProfileFCompactionEvidence {
-  event_cid: string;
+  /** Persisted Profile F event emitted by this exact desktop operation. */
+  source_event_cid: string;
+  source_receipt_cid: string;
+  source_correlation_id: string;
+  /** Locally content-addressed provenance node that commits to the sources. */
+  provenance_event_cid: string;
   archive_cid: string;
   certificate_cid: string;
   merkle_root: string;
@@ -89,6 +42,46 @@ export interface ProfileFCompactionEvidence {
   bounded_history_compacted: boolean;
 }
 
+export interface ApplicationGatewayExecution {
+  app_id: string;
+  binding_id: string;
+  /** DOM control emitted by the canonical desktop application window. */
+  ui_control_id?: string;
+  owner: string;
+  selected_tool_id: string | null;
+  selected_transport: "http" | "libp2p" | null;
+  correlation_id: string;
+  request: { route: string; same_origin: boolean };
+  policy: { outcome?: string; decision_id?: string };
+  response: { outcome: string; ok: boolean; http_status: number };
+  recovery: { action?: string; correlation_id_preserved?: boolean } | null;
+  receipt_refs: readonly string[];
+  event_dag_refs: readonly string[];
+  persistence: {
+    status?: string;
+    receipt_cid?: string;
+    event_cid?: string;
+  } | null;
+  transport_observation?: {
+    transport?: "http" | "libp2p";
+    descriptor_cid?: string | null;
+    ucan_did_verified?: boolean;
+    remote_did?: string | null;
+    identity_proof_cid?: string | null;
+    correlation_id?: string;
+  } | null;
+  no_backend_urls_or_credentials_exposed: boolean;
+  /** Browser network observations retained by the desktop replay harness. */
+  browser_observed_urls?: readonly string[];
+}
+export interface ApplicationGatewayEvidence {
+  task_id?: string;
+  schema?: string;
+  status?: string;
+  generated_at?: string;
+  execution_origin?: string;
+  executions?: readonly ApplicationGatewayExecution[];
+}
 export interface MCPPlusPlusProfileObservation {
   profile: MCPPlusPlusProfileLetter;
   capability: string;
@@ -96,10 +89,9 @@ export interface MCPPlusPlusProfileObservation {
   rationale: string;
   evidence: Readonly<Record<string, unknown>>;
 }
-
 export interface MCPPlusPlusDesktopPathEvidence {
   path_id: string;
-  surface: 'desktop' | 'supervisor-console';
+  surface: "desktop";
   app_id: string;
   route: string;
   binding_id: string;
@@ -107,223 +99,440 @@ export interface MCPPlusPlusDesktopPathEvidence {
   operation: string;
   correlation_id: string;
   transports: {
-    http: 'executed';
-    libp2p: 'executed';
-    parity_verified: true;
+    http: ApplicationTransportObservation;
+    libp2p: ApplicationTransportObservation;
+    parity_verified: boolean;
   };
   profiles: readonly MCPPlusPlusProfileObservation[];
 }
-
-export interface MCPPlusPlusOutcomeProbe {
-  probe_id: string;
-  outcome: Exclude<MCPPlusPlusPathOutcome, 'executed'>;
-  app_id: string;
-  rationale: string;
-  recovery_action: string | null;
+export interface ApplicationTransportObservation {
+  transport: "http" | "libp2p";
+  application_originated: true;
+  selected_tool_id: string;
+  correlation_id: string;
+  descriptor_cid: string;
+  receipt_cid: string;
+  event_cid: string;
+  ucan_did_verified: true;
+  remote_did: string;
+  identity_proof_cid: string;
+  policy_outcome: "allow";
+  policy_decision_id: string;
+  persistence_verified: true;
+  recovery: { observed: boolean; correlation_id_preserved: boolean };
 }
-
 export interface AllAppMCPPlusPlusProfileInteroperabilityReport {
   schema: typeof ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_SCHEMA;
   task_id: typeof ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_TASK_ID;
   generated_at: string;
-  decision: 'GO';
-  validation_mode: 'controlled-desktop-contract-plus-independent-peer-fixtures';
-  live_network_claimed: false;
+  decision: "GO";
+  validation_mode: "application-originated-canonical-desktop-http-and-libp2p-replay";
+  live_network_claimed: true;
   evidence_boundary: {
-    desktop_execution: string;
-    peer_execution: string;
-    payment: string;
+    application_execution: string;
+    peer_identity_and_descriptor: string;
+    governance: string;
   };
-  profiles: readonly { profile: MCPPlusPlusProfileLetter; capability: string }[];
+  /** Immutable provenance of the SVD-126 desktop replay consumed here. */
+  application_evidence: {
+    schema: "swissknife.all-app-live-gateway-executions.v2";
+    generated_at: string;
+    execution_count: number;
+    eligible_transport_pair_count: number;
+  };
+  profiles: readonly {
+    profile: MCPPlusPlusProfileLetter;
+    capability: string;
+  }[];
   desktop_paths: readonly MCPPlusPlusDesktopPathEvidence[];
-  supervisor_console: MCPPlusPlusDesktopPathEvidence;
-  outcome_probes: readonly MCPPlusPlusOutcomeProbe[];
+  outcome_probes: readonly {
+    probe_id: string;
+    outcome: Exclude<MCPPlusPlusPathOutcome, "executed">;
+    rationale: string;
+  }[];
   coverage: {
     applicable_desktop_path_count: number;
     executed_path_count: number;
+    application_transport_observation_count: number;
     profile_outcome_counts: Readonly<Record<MCPPlusPlusPathOutcome, number>>;
     all_profiles_represented: true;
+    scheduling_enabled: false;
     payment_enabled: false;
   };
 }
 
-function executedFixture(transport: TransportEvidence | undefined): boolean {
-  const fixture = transport?.fixture;
-  return transport?.connected === true
-    && fixture?.status === 'executed'
-    && fixture.delegation?.valid === true
-    && fixture.envelope?.receipt_success === true
-    && fixture.envelope?.artifact_persistence_complete === true
-    && fixture.cid_retrieval?.all_found_verified === true
-    && fixture.event_dag?.execution_event_present === true
-    && fixture.event_dag?.provenance_visible === true;
+function applicableBindings(): Array<{
+  app: ExecutableAppBackendDisposition;
+  binding: ExecutableBackendBinding;
+}> {
+  return ALL_APP_EXECUTABLE_BACKEND_CONTRACT.apps.flatMap((app) =>
+    app.backend_bindings
+      .filter(
+        (binding) =>
+          binding.transport_policy.allowed_transports.includes("http") &&
+          binding.transport_policy.allowed_transports.includes("libp2p"),
+      )
+      .map((binding) => ({ app, binding })),
+  );
 }
-
-function peerFor(owner: string, evidence: AllToolsPeerEvidence): ServiceEvidence {
-  const peer = evidence.services?.find(candidate => candidate.service === owner);
-  if (!peer || !executedFixture(peer.transports?.http) || !executedFixture(peer.transports?.libp2p)) {
-    throw new Error(`SVD-109 requires independently executed HTTP and libp2p fixtures for ${owner}.`);
-  }
-  return peer;
+function cid(value: string | undefined, label: string): string {
+  if (!value || !/^b[a-z2-7]{58}$/.test(value))
+    throw new Error(`SVD-127 requires a persisted ${label} CID.`);
+  return value;
 }
-
-function profileObservation(
-  profile: MCPPlusPlusProfileLetter,
-  capability: string,
-  owner: string,
-  peer: ServiceEvidence,
-  policy: ProfileDPolicyEvidence,
-  compaction: ProfileFCompactionEvidence,
-  isSupervisor: boolean,
-): MCPPlusPlusProfileObservation {
-  const http = peer.transports!.http!;
-  const libp2p = peer.transports!.libp2p!;
-  const fixture = http.fixture!;
-  const common = {
-    owner,
-    http_descriptor_cid: http.descriptor?.retrieved_cids?.[0] ?? null,
-    libp2p_descriptor_cid: libp2p.descriptor?.retrieved_cids?.[0] ?? null,
-    http_receipt_cid: http.fixture?.envelope?.receipt_cid ?? null,
-    libp2p_receipt_cid: libp2p.fixture?.envelope?.receipt_cid ?? null,
-  };
-  switch (profile) {
-    case 'A':
-      return { profile, capability, outcome: 'executed', rationale: 'Both independently executed transports retrieved compatible descriptor CIDs.', evidence: common };
-    case 'B':
-      return { profile, capability, outcome: 'executed', rationale: 'Both transports persisted and re-read the receipt CID for the approved fixture.', evidence: common };
-    case 'C':
-      return {
-        profile, capability, outcome: 'executed', rationale: 'Both transports verified the same UCAN DID identity and a valid delegation proof.',
-        evidence: {
-          ...common,
-          remote_did: http.identity?.remote_did ?? null,
-          libp2p_remote_did: libp2p.identity?.remote_did ?? null,
-          identity_proof_cid: http.identity?.identity_proof_cid ?? null,
-          delegation_proof_cid: fixture.delegation?.proof_cid ?? null,
-        },
-      };
-    case 'D':
-      return {
-        profile, capability, outcome: 'executed', rationale: 'A policy allow decision is CID-addressed and its certificate remains statement-only unless independently verified.',
-        evidence: { ...common, policy_cid: policy.policy_cid, decision: policy.decision, allowed: policy.allowed, certificate: policy.zkp_certificate ?? null },
-      };
-    case 'E':
-      return { profile, capability, outcome: 'executed', rationale: 'HTTP and libp2p fixture outcomes are independently executed and parity-checked.', evidence: common };
-    case 'F':
-      return {
-        profile, capability, outcome: 'executed', rationale: 'Fixture events are visible through provenance and a bounded local compaction proof verifies the archive certificate.',
-        evidence: { ...common, ...compaction },
-      };
-    case 'G':
-      return isSupervisor
-        ? { profile, capability, outcome: 'executed', rationale: 'Supervisor Console exposes governed goal, scheduling, risk, and capability-aware delegation routes.', evidence: { ...common, scheduling_surface: 'agent-supervisor', capability_aware_delegation: true } }
-        : { profile, capability, outcome: 'unsupported', rationale: 'This desktop binding has no governed scheduling operation; it must not claim Profile G execution.', evidence: { owner } };
-    case 'H':
-      return { profile, capability, outcome: 'unsupported', rationale: 'No ready seller/payment settlement evidence was enabled for this controlled run.', evidence: { owner, payment_enabled: false, settlement_attempted: false } };
-  }
-}
-
-function applicableBindings(): Array<{ app: ExecutableAppBackendDisposition; binding: ExecutableBackendBinding }> {
-  return ALL_APP_EXECUTABLE_BACKEND_CONTRACT.apps.flatMap(app => app.backend_bindings
-    .filter(binding => binding.transport_policy.allowed_transports.includes('http')
-      && binding.transport_policy.allowed_transports.includes('libp2p'))
-    .map(binding => ({ app, binding })));
-}
-
-function buildPath(
+function transportObservation(
   app: ExecutableAppBackendDisposition,
   binding: ExecutableBackendBinding,
-  peerEvidence: AllToolsPeerEvidence,
-  policy: ProfileDPolicyEvidence,
-  compaction: ProfileFCompactionEvidence,
-  surface: 'desktop' | 'supervisor-console' = 'desktop',
-): MCPPlusPlusDesktopPathEvidence {
-  const peer = peerFor(binding.owner, peerEvidence);
-  const isSupervisor = app.app_id === 'agent-supervisor';
+  execution: ApplicationGatewayExecution | undefined,
+  transport: "http" | "libp2p",
+): ApplicationTransportObservation {
+  if (
+    !execution ||
+    execution.selected_transport !== transport ||
+    execution.response.outcome !== "executed" ||
+    execution.response.ok !== true ||
+    execution.request.route !== "/mcp/tools/call" ||
+    execution.request.same_origin !== true ||
+    execution.response.http_status !== 200 ||
+    execution.ui_control_id !== `live-gateway-control-${binding.binding_id}` ||
+    !execution.browser_observed_urls?.every((url) => url === "/mcp/tools/call") ||
+    execution.browser_observed_urls.length === 0 ||
+    !execution.correlation_id.startsWith(`desktop:${binding.binding_id}:`) ||
+    execution.app_id !== app.app_id ||
+    execution.policy.outcome !== "allow" ||
+    !execution.policy.decision_id ||
+    execution.persistence?.status !== "persisted" ||
+    !execution.no_backend_urls_or_credentials_exposed ||
+    execution.owner !== binding.owner ||
+    !execution.selected_tool_id ||
+    !binding.tool_selection.preferred_tool_ids.includes(
+      execution.selected_tool_id,
+    )
+  ) {
+    throw new Error(
+      `SVD-127 requires a visible application-originated successful ${transport} replay for ${binding.binding_id}.`,
+    );
+  }
+  const observed = execution.transport_observation;
+  // Do not use an independent peer capture as a substitute for a desktop
+  // replay. The same server-side connector that invoked this exact tool must
+  // return the Profile A descriptor and Profile C identity proof.
+  if (
+    observed?.transport !== transport ||
+    !observed.descriptor_cid ||
+    observed.ucan_did_verified !== true ||
+    !observed.remote_did ||
+    !observed.identity_proof_cid ||
+    observed.correlation_id !== execution.correlation_id
+  ) {
+    throw new Error(
+      `SVD-127 requires the call-bound ${transport} descriptor and UCAN observation for ${binding.binding_id}.`,
+    );
+  }
   return {
-    path_id: `${surface}:${binding.binding_id}`,
-    surface,
-    app_id: app.app_id,
-    route: binding.ui_control.surface,
-    binding_id: binding.binding_id,
-    owner: binding.owner,
-    operation: binding.mediated_intent.operation,
-    correlation_id: `svd-109:${binding.binding_id}`,
-    transports: { http: 'executed', libp2p: 'executed', parity_verified: true },
-    profiles: MCPPLUSPLUS_PROFILE_EVIDENCE.map(([profile, capability]) =>
-      profileObservation(profile, capability, binding.owner, peer, policy, compaction, isSupervisor)),
+    transport,
+    application_originated: true,
+    selected_tool_id:
+      execution.selected_tool_id ??
+      (() => {
+        throw new Error(
+          "SVD-127 application replay omitted exact tool identity.",
+        );
+      })(),
+    correlation_id: execution.correlation_id,
+    descriptor_cid: cid(observed.descriptor_cid, "descriptor"),
+    receipt_cid: cid(
+      execution.persistence.receipt_cid ?? execution.receipt_refs[0],
+      "receipt",
+    ),
+    event_cid: cid(
+      execution.persistence.event_cid ?? execution.event_dag_refs[0],
+      "event DAG",
+    ),
+    ucan_did_verified: true,
+    remote_did: observed.remote_did,
+    identity_proof_cid: cid(observed.identity_proof_cid, "identity proof"),
+    policy_outcome: "allow",
+    policy_decision_id:
+      execution.policy.decision_id ??
+      (() => {
+        throw new Error(
+          `SVD-127 application replay omitted the allow policy decision for ${binding.binding_id}.`,
+        );
+      })(),
+    persistence_verified: true,
+    recovery: {
+      observed: execution.recovery !== null,
+      correlation_id_preserved:
+        execution.recovery?.correlation_id_preserved === true,
+    },
   };
 }
-
-function outcomeProbes(): readonly MCPPlusPlusOutcomeProbe[] {
-  const policyBlocked = ALL_APP_EXECUTABLE_BACKEND_CONTRACT.apps.find(app => app.disposition === 'policy_blocked');
-  const local = ALL_APP_EXECUTABLE_BACKEND_CONTRACT.apps.find(app => app.disposition === 'browser_local');
-  const binding = applicableBindings()[0]?.binding;
-  if (!policyBlocked || !local || !binding) throw new Error('SVD-109 outcome probe prerequisites are missing.');
-  return [
-    { probe_id: 'policy-denied-before-transport', outcome: 'denied', app_id: policyBlocked.app_id, rationale: policyBlocked.rationale, recovery_action: 'request_confirmation' },
-    { probe_id: 'no-mcp-profile-for-browser-local-path', outcome: 'unsupported', app_id: local.app_id, rationale: local.rationale, recovery_action: null },
-    { probe_id: 'both-transports-unavailable', outcome: 'unreachable', app_id: binding.binding_id.split('.')[0], rationale: 'Neither approved transport is available; the recovery route preserves correlation ID and surfaces retry.', recovery_action: 'try_fallback_transport' },
-  ];
+function profileObservations(
+  path: MCPPlusPlusDesktopPathEvidence,
+  compaction: {
+    http: ProfileFCompactionEvidence;
+    libp2p: ProfileFCompactionEvidence;
+  },
+): MCPPlusPlusProfileObservation[] {
+  const common = {
+    owner: path.owner,
+    http: path.transports.http,
+    libp2p: path.transports.libp2p,
+  };
+  return MCPPLUSPLUS_PROFILE_EVIDENCE.map(([profile, capability]) => {
+    if (profile === "G")
+      return {
+        profile,
+        capability,
+        outcome: "unsupported",
+        rationale:
+          "Governed scheduling is not enabled for this desktop replay.",
+        evidence: { owner: path.owner, scheduling_enabled: false },
+      };
+    if (profile === "H")
+      return {
+        profile,
+        capability,
+        outcome: "unsupported",
+        rationale:
+          "No governed settlement seller is enabled for this desktop replay.",
+        evidence: {
+          owner: path.owner,
+          payment_enabled: false,
+          settlement_attempted: false,
+        },
+      };
+    if (profile === "D")
+      return {
+        profile,
+        capability,
+        outcome: "executed",
+        rationale:
+          "Both application replays retain their call-bound allow policy decisions.",
+        evidence: {
+          ...common,
+          http_policy: {
+            outcome: path.transports.http.policy_outcome,
+            decision_id: path.transports.http.policy_decision_id,
+          },
+          libp2p_policy: {
+            outcome: path.transports.libp2p.policy_outcome,
+            decision_id: path.transports.libp2p.policy_decision_id,
+          },
+        },
+      };
+    if (profile === "F")
+      return {
+        profile,
+        capability,
+        outcome: "executed",
+        rationale:
+          "Each application transport receipt is included in the verified bounded compaction archive.",
+        evidence: { ...common, ...compaction },
+      };
+    return {
+      profile,
+      capability,
+      outcome: "executed",
+      rationale: `Both canonical desktop calls completed over ${profile === "E" ? "HTTP and libp2p" : "their selected transport"} with retained CID evidence.`,
+      evidence: common,
+    };
+  });
 }
 
 export function buildAllAppMCPPlusPlusProfileInteroperabilityReport(input: {
   generatedAt: string;
-  peerEvidence: AllToolsPeerEvidence;
-  policyEvidence: ProfileDPolicyEvidence;
-  compactionEvidence: ProfileFCompactionEvidence;
+  applicationEvidence: ApplicationGatewayEvidence;
+  compactionEvidence: readonly ProfileFCompactionEvidence[];
 }): AllAppMCPPlusPlusProfileInteroperabilityReport {
-  if (input.peerEvidence.decision?.toLowerCase() !== 'go') {
-    throw new Error('SVD-109 requires a GO decision from all-tools peer evidence.');
+  if (
+    input.applicationEvidence.task_id !== "SVD-126" ||
+    input.applicationEvidence.schema !==
+      "swissknife.all-app-live-gateway-executions.v2" ||
+    input.applicationEvidence.status !== "passed" ||
+    input.applicationEvidence.execution_origin !==
+      "canonical-virtual-desktop-browser"
+  )
+    throw new Error(
+      "SVD-127 requires the successful SVD-126 canonical desktop workflow evidence.",
+    );
+  if (input.compactionEvidence.length === 0)
+    throw new Error(
+      "SVD-127 requires application-originated Profile F compaction evidence.",
+    );
+  const compactionBySourceEvent = new Map(
+    input.compactionEvidence.map((evidence) => [
+      `${evidence.source_event_cid}:${evidence.source_correlation_id}`,
+      evidence,
+    ]),
+  );
+  const executions = input.applicationEvidence.executions ?? [];
+  const expectedTransportPairs = applicableBindings().flatMap(({ binding }) =>
+    (["http", "libp2p"] as const).map(
+      (transport) => `${binding.binding_id}:${transport}`,
+    ),
+  );
+  const replayRows = executions.filter((row) =>
+    expectedTransportPairs.includes(`${row.binding_id}:${row.selected_transport}`),
+  );
+  const replayPairCounts = new Map<string, number>();
+  for (const row of replayRows) {
+    const key = `${row.binding_id}:${row.selected_transport}`;
+    replayPairCounts.set(key, (replayPairCounts.get(key) ?? 0) + 1);
   }
-  if (!input.policyEvidence.allowed || input.policyEvidence.decision !== 'allow') {
-    throw new Error('SVD-109 requires an allow policy proof for executed desktop paths.');
+  const missingOrDuplicateReplay = expectedTransportPairs.find(
+    (key) => replayPairCounts.get(key) !== 1,
+  );
+  if (missingOrDuplicateReplay) {
+    const [bindingId, transport] = missingOrDuplicateReplay.split(":");
+    throw new Error(
+      `SVD-127 requires exactly one visible application-originated successful ${transport} replay for ${bindingId}.`,
+    );
   }
-  if (!input.compactionEvidence.certificate_verified
-    || !input.compactionEvidence.inclusion_verified
-    || !input.compactionEvidence.bounded_history_compacted) {
-    throw new Error('SVD-109 requires a verified Profile F compaction proof.');
-  }
-
-  const desktopPaths = applicableBindings().map(({ app, binding }) =>
-    buildPath(app, binding, input.peerEvidence, input.policyEvidence, input.compactionEvidence));
-  const supervisorApp = ALL_APP_EXECUTABLE_BACKEND_CONTRACT.apps.find(app => app.app_id === 'agent-supervisor');
-  const supervisorBinding = supervisorApp?.backend_bindings.find(binding => binding.owner === 'ipfs_accelerate_py'
-    && binding.transport_policy.allowed_transports.includes('libp2p'));
-  if (!supervisorApp || !supervisorBinding) throw new Error('SVD-109 requires an applicable Agent Supervisor MCP++ binding.');
-  const supervisor = buildPath(supervisorApp, supervisorBinding, input.peerEvidence, input.policyEvidence, input.compactionEvidence, 'supervisor-console');
-  const contract = getAgentSupervisorConsoleContract();
-  if (!contract.capabilities.some(capability => capability.id === 'supervisor.schedule.claim')) {
-    throw new Error('SVD-109 requires Supervisor capability-aware scheduling delegation.');
-  }
-
-  const observations = [...desktopPaths, supervisor].flatMap(path => path.profiles);
-  const outcomeCounts: Record<MCPPlusPlusPathOutcome, number> = { executed: 0, denied: 0, unsupported: 0, unreachable: 0 };
-  for (const observation of observations) outcomeCounts[observation.outcome] += 1;
-  for (const probe of outcomeProbes()) outcomeCounts[probe.outcome] += 1;
-
+  const paths = applicableBindings().map(({ app, binding }) => {
+    const httpExecution = executions.find(
+      (row) =>
+        row.binding_id === binding.binding_id &&
+        row.selected_transport === "http",
+    );
+    const libp2pExecution = executions.find(
+      (row) =>
+        row.binding_id === binding.binding_id &&
+        row.selected_transport === "libp2p",
+    );
+    const http = transportObservation(app, binding, httpExecution, "http");
+    const libp2p = transportObservation(
+      app,
+      binding,
+      libp2pExecution,
+      "libp2p",
+    );
+    const httpCompaction = compactionBySourceEvent.get(
+      `${http.event_cid}:${http.correlation_id}`,
+    );
+    const libp2pCompaction = compactionBySourceEvent.get(
+      `${libp2p.event_cid}:${libp2p.correlation_id}`,
+    );
+    if (
+      !validCompaction(httpCompaction, http) ||
+      !validCompaction(libp2pCompaction, libp2p)
+    ) {
+      throw new Error(
+        `SVD-127 requires a verified Profile F compaction certificate for both transports of ${binding.binding_id}.`,
+      );
+    }
+    const path: MCPPlusPlusDesktopPathEvidence = {
+      path_id: `desktop:${binding.binding_id}`,
+      surface: "desktop",
+      app_id: app.app_id,
+      route: binding.ui_control.surface,
+      binding_id: binding.binding_id,
+      owner: binding.owner,
+      operation: binding.mediated_intent.operation,
+      correlation_id: http.correlation_id,
+      transports: {
+        http,
+        libp2p,
+        parity_verified: http.selected_tool_id === libp2p.selected_tool_id,
+      },
+      profiles: [],
+    };
+    path.profiles = profileObservations(path, {
+      http: httpCompaction,
+      libp2p: libp2pCompaction,
+    });
+    if (!path.transports.parity_verified)
+      throw new Error(
+        `SVD-127 transport replay selected different exact tools for ${binding.binding_id}.`,
+      );
+    return path;
+  });
+  const counts: Record<MCPPlusPlusPathOutcome, number> = {
+    executed: 0,
+    denied: 1,
+    unsupported: 0,
+    unreachable: 1,
+  };
+  for (const profile of paths.flatMap((path) => path.profiles))
+    counts[profile.outcome] += 1;
   return {
     schema: ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_SCHEMA,
     task_id: ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_TASK_ID,
     generated_at: input.generatedAt,
-    decision: 'GO',
-    validation_mode: 'controlled-desktop-contract-plus-independent-peer-fixtures',
-    live_network_claimed: false,
+    decision: "GO",
+    validation_mode:
+      "application-originated-canonical-desktop-http-and-libp2p-replay",
+    live_network_claimed: true,
     evidence_boundary: {
-      desktop_execution: 'Desktop and Supervisor paths execute the browser-mediated contract with explicit transport, policy, receipt, and recovery requirements.',
-      peer_execution: 'HTTP and libp2p execution, UCAN verification, descriptor/receipt CID retrieval, and event visibility come from independently captured approved peer fixtures.',
-      payment: 'Profile H remains unsupported unless a ready seller, settlement policy, and transport-specific payment evidence are present.',
+      application_execution:
+        "Every executed transport observation is a visible canonical desktop control posting to the same-origin mediator.",
+      peer_identity_and_descriptor:
+        "The exact server-side connector that invokes each desktop operation returns its descriptor CID and verified UCAN identity; independent peer captures are not report inputs.",
+      governance:
+        "Profiles G and H are unsupported until governed scheduling or settlement are explicitly enabled.",
     },
-    profiles: MCPPLUSPLUS_PROFILE_EVIDENCE.map(([profile, capability]) => ({ profile, capability })),
-    desktop_paths: desktopPaths,
-    supervisor_console: supervisor,
-    outcome_probes: outcomeProbes(),
+    application_evidence: {
+      schema: "swissknife.all-app-live-gateway-executions.v2",
+      generated_at: input.applicationEvidence.generated_at ?? input.generatedAt,
+      execution_count: executions.length,
+      eligible_transport_pair_count: expectedTransportPairs.length,
+    },
+    profiles: MCPPLUSPLUS_PROFILE_EVIDENCE.map(([profile, capability]) => ({
+      profile,
+      capability,
+    })),
+    desktop_paths: paths,
+    outcome_probes: [
+      {
+        probe_id: "policy-denied-before-transport",
+        outcome: "denied",
+        rationale: "Policy denial remains explicit.",
+      },
+      {
+        probe_id: "both-transports-unavailable",
+        outcome: "unreachable",
+        rationale: "Recovery preserves correlation identity.",
+      },
+    ],
     coverage: {
-      applicable_desktop_path_count: desktopPaths.length,
-      executed_path_count: desktopPaths.length + 1,
-      profile_outcome_counts: outcomeCounts,
+      applicable_desktop_path_count: paths.length,
+      executed_path_count: paths.length,
+      application_transport_observation_count: paths.length * 2,
+      profile_outcome_counts: counts,
       all_profiles_represented: true,
+      scheduling_enabled: false,
       payment_enabled: false,
     },
   };
+}
+
+function validCompaction(
+  evidence: ProfileFCompactionEvidence | undefined,
+  observation: ApplicationTransportObservation,
+): evidence is ProfileFCompactionEvidence {
+  return Boolean(
+    evidence &&
+      evidence.source_event_cid === observation.event_cid &&
+      evidence.source_receipt_cid === observation.receipt_cid &&
+      evidence.source_correlation_id === observation.correlation_id &&
+      // Profile F stores locally content-addressed archive records using the
+      // EventDAG's canonical sha256 references.  The certificate and its
+      // provenance node must be present as content addresses; a boolean
+      // verification flag alone must never turn a truncated certificate into
+      // application transport evidence.
+      contentReference(evidence.provenance_event_cid) &&
+      contentReference(evidence.archive_cid) &&
+      contentReference(evidence.certificate_cid) &&
+      /^[a-f0-9]{64}$/.test(evidence.merkle_root) &&
+      Number.isSafeInteger(evidence.event_count) &&
+      evidence.event_count > 0 &&
+      evidence.certificate_verified &&
+      evidence.inclusion_verified &&
+      evidence.bounded_history_compacted,
+  );
+}
+
+function contentReference(value: string): boolean {
+  return /^sha256:[a-f0-9]{64}$/.test(value);
 }

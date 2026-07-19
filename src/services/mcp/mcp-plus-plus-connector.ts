@@ -1616,20 +1616,27 @@ export interface MultiServerConnectorOptions {
    * When omitted, servers use their default HTTP transport.
    */
   libp2p?: string | Record<string, string>;
+  /**
+   * Per-server endpoint leases.  Local compatibility adapters can bind a
+   * service to a non-default loopback port; callers that have verified that
+   * lease must use it for HTTP and the corresponding Profile E bridge.
+   */
+  serverOverrides?: Readonly<Partial<Record<string, Partial<MCPPPServerConfig>>>>;
 }
 
 export function createMultiServerConnector(
   agentDID: string,
   options: MultiServerConnectorOptions = {},
 ): MCPPPMultiServerConnector {
-  const { includeKit = true, libp2p } = options;
+  const { includeKit = true, libp2p, serverOverrides } = options;
   const connector = new MCPPPMultiServerConnector(agentDID);
 
   const withTransport = (base: MCPPPServerConfig): MCPPPServerConfig => {
-    if (!libp2p) return base;
-    const multiaddr = typeof libp2p === 'string' ? libp2p : libp2p[base.name];
-    if (!multiaddr) return base;
-    return { ...base, transport: 'libp2p', multiaddr };
+    const configured = { ...base, ...serverOverrides?.[base.name] };
+    if (!libp2p) return configured;
+    const multiaddr = typeof libp2p === 'string' ? libp2p : libp2p[configured.name];
+    if (!multiaddr) return configured;
+    return { ...configured, transport: 'libp2p', multiaddr };
   };
 
   if (includeKit) connector.addServer(withTransport(IPFS_KIT_SERVER));

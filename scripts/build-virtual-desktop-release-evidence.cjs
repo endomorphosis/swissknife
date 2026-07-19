@@ -18,6 +18,7 @@ let taskOwnerCache;
 const outputPaths = {
   json: path.join(evidenceRoot, 'release-evidence.json'),
   markdown: path.join(evidenceRoot, 'all-tools-release-evidence.md'),
+  replay: path.join(evidenceRoot, 'independent-all-app-release-replay.json'),
   signoff: path.join(projectRoot, 'docs', 'refactor-final-signoff.md'),
   discovery: path.join(workspaceRoot, 'data', 'swissknife_virtual_desktop', 'discovery', 'all-tools-no-new-unknowns.md'),
   // The backlog validation runs after `cd swissknife` but names the
@@ -130,7 +131,8 @@ function main() {
 
   atomicWriteJson(outputPaths.json, report);
   atomicWrite(outputPaths.markdown, renderFreshReleaseMarkdown(report));
-  atomicWrite(outputPaths.signoff, renderFreshReleaseSignoff(report));
+  const independentReplay = replayIndependentAllAppCloseout();
+  atomicWrite(outputPaths.signoff, renderFreshReleaseSignoff(report, independentReplay));
   const discoveryReport = renderFreshReleaseDiscovery(report);
   atomicWrite(outputPaths.discovery, discoveryReport);
   atomicWrite(outputPaths.discoveryValidationMirror, discoveryReport);
@@ -174,7 +176,12 @@ const FRESH_RELEASE_INPUTS = [
   ['live_bindings', 'all-app-live-tool-bindings.json', 'SVD-104', 'swissknife.all-app-live-tool-bindings-evidence.v1'],
   ['tool_disposition_catalog', 'all-tools-disposition-catalog.json', 'SVD-105', 'swissknife.all-tools-disposition-catalog.v1'],
   ['live_behavior', 'all-app-live-behavior-proof.json', 'SVD-106', 'swissknife.all-app-live-behavior-proof.v1'],
-  ['profile_interoperability', 'all-app-mcpplusplus-profile-interoperability.json', 'SVD-109', 'swissknife.all-app-mcpplusplus-profile-interoperability.v1'],
+  // SVD-106 deliberately uses an isolated simulator to cover visible UI,
+  // denial, outage, recovery, and reopen states.  Live backend invocation
+  // evidence is captured separately by SVD-126 from the canonical desktop;
+  // never treat the simulator as a substitute for those real calls.
+  ['gateway_executions', 'all-app-live-gateway-executions.json', 'SVD-126', 'swissknife.all-app-live-gateway-executions.v2'],
+  ['profile_interoperability', 'all-app-mcpplusplus-profile-interoperability.json', 'SVD-127', 'swissknife.all-app-mcpplusplus-profile-interoperability.v2'],
   ['action_handoff', 'all-app-orb-idl-action-handoff.json', 'SVD-110', 'swissknife.all-app-orb-idl-action-handoff.v1'],
   ['meta_simulator', 'all-app-meta-device-simulator-proof.json', 'SVD-111', 'swissknife.all-app-meta-device-simulator-proof.v1'],
   ['ui_accessibility', 'all-app-ui-ux-accessibility.json', 'SVD-112', 'swissknife.all-app-ui-ux-accessibility.v1'],
@@ -199,7 +206,11 @@ function buildFreshReleaseReport({ now = Date.now() } = {}) {
   inputs.app_backend_contract = contract;
   inputs.peer_interoperability = peer;
 
-  validateFreshToolBackedPairs(inputs.live_bindings.data, inputs.live_behavior.data, add);
+  validateFreshBindingLedger(inputs.binding_gap_ledger.data, contract.data, inputs.live_bindings.data, add);
+  validateFreshToolBackedPairs(inputs.live_bindings.data, inputs.gateway_executions.data, add, {
+    taskId: 'SVD-126',
+    evidencePath: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-gateway-executions.json',
+  });
   validateFreshCatalog(inputs.tool_disposition_catalog.data, peer.data, add);
   validateFreshTransportEvidence(inputs.profile_interoperability.data, add);
   validateFreshSimulatorEvidence(inputs.meta_simulator.data, add);
@@ -266,8 +277,14 @@ function readFreshReleaseInput(id, file, taskId, schema, now, add) {
 function normalizeReleaseFinding(item) {
   return {
     severity: 'blocker', code: item.code ?? 'release_evidence_failure',
-    application: item.application ?? null, tool: item.tool ?? null, owner: item.owner ?? null,
-    transport: item.transport ?? null, modality: item.modality ?? null,
+    // A release report is operational evidence, not a percentage dashboard.
+    // Keep every attribution column populated even for aggregate-input
+    // failures, so the on-call owner can act without reopening the source.
+    application: nonEmpty(item.application) ? item.application : 'release-evidence',
+    tool: nonEmpty(item.tool) ? item.tool : 'evidence-input',
+    owner: nonEmpty(item.owner) ? item.owner : (item.task_id ?? 'SVD-114'),
+    transport: nonEmpty(item.transport) ? item.transport : 'not_applicable',
+    modality: nonEmpty(item.modality) ? item.modality : 'not_applicable',
     task_id: item.task_id ?? 'SVD-114', remediation: item.remediation ?? 'Regenerate production evidence and rerun the release builder.',
     reason: item.reason ?? null, evidence_path: item.evidence_path ?? null,
   };
@@ -280,13 +297,64 @@ function dedupeFreshFindings(findings) {
 function freshArtifactView(input) { return { task_id: input.task_id, path: input.path, status: input.status, generated_at: input.generated_at, age_ms: input.age_ms, freshness: input.freshness, sha256: input.sha256 }; }
 function freshFindingSummary(item) { return `${item.task_id}: app=${item.application ?? '-'} tool=${item.tool ?? '-'} owner=${item.owner ?? '-'} transport=${item.transport ?? '-'} modality=${item.modality ?? '-'} — ${item.reason ?? item.code}`; }
 
-function validateFreshToolBackedPairs(bindings, behavior, add) {
+/**
+ * SVD-102 is not merely an informational coverage graph.  A tool-backed
+ * application which declares a backend family without a tool binding is a
+ * release blocker, even if an unrelated app happens to exercise that owner.
+ * The ledger has existed in two compatible shapes, hence the explicit state
+ * and reason checks below rather than a truthy/coverage-count shortcut.
+ */
+function validateFreshBindingLedger(ledger, contract, bindings, add) {
+  if (!ledger || !contract) return;
+  const toolBackedApps = new Map((contract.apps ?? [])
+    .filter(app => app?.backend_state === 'tool_backed')
+    .map(app => [app.app_id, app]));
+  const bindingRows = Array.isArray(bindings?.bindings) ? bindings.bindings : [];
+  const assignments = Array.isArray(ledger.application_backend_assignments)
+    ? ledger.application_backend_assignments : [];
+
+  for (const assignment of assignments) {
+    const app = toolBackedApps.get(assignment?.app_id);
+    if (!app) continue;
+    const state = String(assignment.current_binding_state ?? assignment.release_state ?? '').toLowerCase();
+    const reasons = Array.isArray(assignment.reasons) ? assignment.reasons.join(' ') : String(assignment.reasons ?? '');
+    const explicitNoBinding = state === 'declared_no_tool_binding'
+      || /\bdeclared_no_tool_binding\b/i.test(reasons);
+    if (!explicitNoBinding) continue;
+
+    const owner = assignment.backend_owner ?? assignment.owner ?? 'unknown-backend-owner';
+    const capabilityId = assignment.capability_id ?? assignment.assignment_id ?? 'declared-backend-capability';
+    const matchingBinding = bindingRows.find(row => row.app_id === app.app_id
+      && row.owner === owner && (row.capability_id === capabilityId || row.intent_id === capabilityId));
+    const transports = matchingBinding?.transports
+      ?? [assignment.transport_policy?.mcp, assignment.transport_policy?.mcp_plus_plus].filter(value => value && value !== 'not-eligible');
+    add({
+      code: 'declared_no_tool_binding',
+      application: app.app_id,
+      tool: capabilityId,
+      owner,
+      transport: transports.length ? transports.join(',') : 'not_declared',
+      modality: 'desktop',
+      task_id: 'SVD-102',
+      evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-binding-gap-ledger.json',
+      reason: 'A tool-backed application declares this backend capability but the binding ledger records declared_no_tool_binding.',
+      remediation: 'Create an explicit mediated application/tool binding, then capture a canonical desktop execution for this exact capability.',
+    });
+  }
+}
+
+function validateFreshToolBackedPairs(bindings, behavior, add, {
+  taskId = 'SVD-106',
+  evidencePath = 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json',
+} = {}) {
   const bindingRows = Array.isArray(bindings?.bindings) ? bindings.bindings : [];
   const executionRows = [behavior?.executions, behavior?.tool_executions, behavior?.observations, behavior?.results]
     .flat()
     .filter(Boolean);
   const fixtureOnlyBehavior = isPlaceholderExecution(behavior?.fixture_boundary)
     || String(behavior?.fixture_boundary?.kind ?? '').startsWith('isolated-');
+  const canonicalGatewayOrigin = behavior?.execution_origin === 'canonical-virtual-desktop-browser'
+    && nonEmpty(behavior?.browser_origin);
 
   if (bindingRows.length === 0) {
     add({
@@ -325,8 +393,8 @@ function validateFreshToolBackedPairs(bindings, behavior, add) {
         tool: bindingId,
         owner,
         transport: transports.join(','),
-        task_id: 'SVD-106',
-        evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json',
+        task_id: taskId,
+        evidence_path: evidencePath,
         reason: fixtureOnlyBehavior
           ? 'The only SVD-106 receipt is an isolated fixture and cannot certify this browser binding.'
           : 'No application-originated execution observation names this browser binding.',
@@ -339,13 +407,55 @@ function validateFreshToolBackedPairs(bindings, behavior, add) {
         tool: bindingId,
         owner,
         transport: execution.transport ?? transports.join(','),
-        task_id: 'SVD-106',
-        evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json',
+        task_id: taskId,
+        evidence_path: evidencePath,
         reason: 'Descriptor-only, static-only, or fixture-only execution claims cannot certify a browser binding.',
         remediation: 'Repeat the workflow against the mediated backend and retain the real request, response, correlation ID, receipt, and event-DAG reference.',
       });
+    } else if (!validLiveGatewayExecution(execution, binding, canonicalGatewayOrigin)) {
+      add({
+        code: 'incomplete_live_execution',
+        application,
+        tool: bindingId,
+        owner,
+        transport: execution.selected_transport ?? execution.transport ?? transports.join(','),
+        modality: 'desktop',
+        task_id: taskId,
+        evidence_path: evidencePath,
+        reason: 'The claimed execution is not a complete canonical browser-mediated call for this exact app, owner, binding, and allowed transport.',
+        remediation: 'Recapture the real desktop call with matching app/owner/binding fields, canonical browser origin, allow decision, request/response, correlation ID, descriptor, receipt, event-DAG, persistence, and recovery evidence.',
+      });
     }
   }
+}
+
+function validLiveGatewayExecution(execution, binding, canonicalGatewayOrigin) {
+  const transport = execution?.selected_transport ?? execution?.transport;
+  const allowedTransports = Array.isArray(binding?.transports) ? binding.transports : [];
+  const observation = execution?.transport_observation;
+  const receiptRefs = Array.isArray(execution?.receipt_refs) ? execution.receipt_refs : [];
+  const eventRefs = Array.isArray(execution?.event_dag_refs) ? execution.event_dag_refs : [];
+  return canonicalGatewayOrigin
+    && execution?.app_id === binding?.app_id
+    && execution?.owner === binding?.owner
+    && execution?.binding_id === binding?.binding_id
+    && nonEmpty(execution?.selected_tool_id)
+    && allowedTransports.includes(transport)
+    && nonEmpty(execution?.correlation_id)
+    && execution?.request?.same_origin === true
+    && nonEmpty(execution?.request?.route)
+    && execution?.response?.outcome === 'executed' && execution?.response?.ok === true
+    && execution?.policy?.outcome === 'allow' && nonEmpty(execution?.policy?.decision_id)
+    && receiptRefs.some(isCid) && eventRefs.some(isCid)
+    && execution?.persistence?.status === 'persisted'
+    && isCid(execution?.persistence?.receipt_cid) && isCid(execution?.persistence?.event_cid)
+    && observation?.transport === transport && isCid(observation?.descriptor_cid)
+    && observation?.ucan_did_verified === true && /^did:key:/.test(observation?.remote_did ?? '')
+    && isCid(observation?.identity_proof_cid)
+    && observation?.correlation_id === execution?.correlation_id
+    && execution?.recovery?.correlation_id_preserved === true
+    && Array.isArray(execution?.browser_observed_urls) && execution.browser_observed_urls.length > 0
+    && execution?.no_backend_urls_or_credentials_exposed === true;
 }
 function isPlaceholderExecution(row) {
   return /descriptor[ _-]?only|static[ _-]?only|fixture[ _-]?only|\bfixture\b/
@@ -365,21 +475,106 @@ function validateFreshMergeReconciliation(reconciliation, add) {
   }
 }
 function validateFreshCatalog(catalog, peer, add) {
-  const entries = catalog?.entries ?? [];
+  const entries = Array.isArray(catalog?.entries) ? catalog.entries : [];
+  if (!catalog || !Array.isArray(catalog.entries) || entries.length === 0) {
+    add({ code: 'missing_backend_tool_catalog', task_id: 'SVD-105', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-disposition-catalog.json', reason: 'The backend disposition catalog is absent, malformed, or empty; aggregate counts cannot classify tools.', remediation: 'Generate a name-level disposition entry for every discovered backend tool.' });
+    return;
+  }
   for (const entry of entries) {
     const kind = entry.disposition?.kind ?? entry.disposition_kind;
-    if (!kind || /unclassified|unknown/.test(kind)) add({ code: 'unclassified_backend_tool', tool: entry.tool_id ?? entry.name ?? null, owner: entry.owner ?? null, transport: entry.reachability?.approved_transports?.join(',') ?? null, task_id: 'SVD-105', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-disposition-catalog.json', remediation: 'Classify this backend tool as an app operation, diagnostic operation, governed server-only operation, or an explicit visible availability disposition.' });
+    const approvedTransports = Array.isArray(entry.reachability?.approved_transports)
+      ? entry.reachability.approved_transports : [];
+    const observedTransports = Array.isArray(entry.reachability?.observations)
+      ? entry.reachability.observations.map(observation => observation?.transport).filter(nonEmpty) : [];
+    const transports = unique([...approvedTransports, ...observedTransports]);
+    // Server-only and denied operations may deliberately expose no *approved*
+    // browser transport.  They are still classified when their observed
+    // transports and explicit governance disposition are present.
+    if (!entry.owner || !nonEmpty(entry.tool_id ?? entry.name) || !kind || /unclassified|unknown/.test(kind) || transports.length === 0) add({ code: 'unclassified_backend_tool', tool: entry.tool_id ?? entry.name ?? 'unnamed-tool', owner: entry.owner ?? 'unknown-backend-owner', transport: transports.join(',') || 'not_declared', task_id: 'SVD-105', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-tools-disposition-catalog.json', reason: 'A backend tool lacks stable owner/name, observed or approved transport, or an explicit non-unknown disposition.', remediation: 'Classify this backend tool as an app operation, diagnostic operation, governed server-only operation, or an explicit visible availability disposition.' });
   }
   const catalogued = new Set(entries.map(entry => `${entry.owner}:${entry.tool_id}`));
-  for (const tool of peer?.tool_observations ?? peer?.tools ?? []) {
+  const discoveredTools = Array.isArray(peer?.tool_observations) ? peer.tool_observations
+    : Array.isArray(peer?.tools) ? peer.tools : null;
+  if (peer && !discoveredTools) {
+    add({ code: 'missing_backend_tool_inventory', task_id: 'SVD-100', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json', reason: 'Peer evidence does not expose a name-level discovered tool inventory.', remediation: 'Recapture SVD-100 with every discovered backend tool named individually.' });
+    return;
+  }
+  for (const tool of discoveredTools ?? []) {
     const owner = tool.service ?? tool.owner; const name = tool.name ?? tool.tool_id;
     if (owner && name && !catalogued.has(`${owner}:${name}`)) add({ code: 'unclassified_backend_tool', tool: name, owner, task_id: 'SVD-105', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json', remediation: 'Add a classified disposition before release; a discovery count is not a disposition.' });
   }
 }
 function validateFreshTransportEvidence(profile, add) {
   if (!profile) return;
-  if (isPlaceholderExecution(profile)) add({ code: 'placeholder_execution_claim', task_id: 'SVD-109', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json', remediation: 'Replace descriptor/fixture-only transport evidence with application-originated HTTP and libp2p observations.' });
+  const evidencePath = 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json';
+  if (isPlaceholderExecution(profile)) {
+    add({ code: 'placeholder_execution_claim', task_id: 'SVD-127', evidence_path: evidencePath, remediation: 'Replace descriptor/fixture-only transport evidence with application-originated HTTP and libp2p observations.' });
+    return;
+  }
+  if (profile.decision !== 'GO'
+    || profile.validation_mode !== 'application-originated-canonical-desktop-http-and-libp2p-replay'
+    || profile.live_network_claimed !== true) {
+    add({ code: 'invalid_application_transport_replay', task_id: 'SVD-127', evidence_path: evidencePath, reason: 'The Profile A-H receipt does not declare a successful application-originated canonical desktop replay.', remediation: 'Rerun the visible desktop HTTP/libp2p workflow; contract projections and peer fixtures are not accepted.' });
+    return;
+  }
+  const paths = Array.isArray(profile.desktop_paths) ? profile.desktop_paths : [];
+  if (paths.length === 0) {
+    add({ code: 'missing_application_transport_replay', task_id: 'SVD-127', evidence_path: evidencePath, remediation: 'Capture at least one eligible visible desktop binding over both HTTP and libp2p.' });
+    return;
+  }
+  for (const path of paths) {
+    const binding = path?.binding_id ?? null;
+    const application = path?.app_id ?? null;
+    const http = path?.transports?.http;
+    const libp2p = path?.transports?.libp2p;
+    for (const [transport, observation] of [['http', http], ['libp2p', libp2p]]) {
+      if (!validApplicationTransportObservation(observation, transport)) {
+        add({ code: 'incomplete_application_transport_observation', application, tool: binding, transport, task_id: 'SVD-127', evidence_path: evidencePath, reason: `The ${transport} replay is missing a call-bound descriptor/receipt/event CID, verified UCAN DID, allow decision, correlation ID, or recovery record.`, remediation: 'Repeat the visible desktop replay on this exact transport and preserve the complete mediator observation.' });
+      }
+    }
+    if (!http || !libp2p || http.selected_tool_id !== libp2p.selected_tool_id || path?.transports?.parity_verified !== true) {
+      add({ code: 'transport_tool_parity_unverified', application, tool: binding, task_id: 'SVD-127', evidence_path: evidencePath, reason: 'HTTP and libp2p did not prove the same exact selected tool for this desktop binding.', remediation: 'Replay both transports through the same visible binding and retain the exact selected tool ID.' });
+    }
+    const profiles = new Map((Array.isArray(path?.profiles) ? path.profiles : []).map(item => [item?.profile, item]));
+    for (const letter of ['A', 'B', 'C', 'D', 'E', 'F']) {
+      if (profiles.get(letter)?.outcome !== 'executed') add({ code: 'missing_executed_mcp_profile', application, tool: binding, transport: letter, task_id: 'SVD-127', evidence_path: evidencePath, reason: `Profile ${letter} is not backed by this application's actual dual-transport replay.`, remediation: 'Capture the missing application-originated Profile A-F evidence.' });
+    }
+    for (const letter of ['G', 'H']) {
+      if (profiles.get(letter)?.outcome !== 'unsupported') add({ code: 'ungoverned_profile_claim', application, tool: binding, transport: letter, task_id: 'SVD-127', evidence_path: evidencePath, reason: `Profile ${letter} must remain explicitly unsupported until its governed prerequisite is enabled.`, remediation: 'Either retain the explicit unsupported result or provide enabled governed scheduling/settlement evidence.' });
+    }
+    const compaction = profiles.get('F')?.evidence;
+    for (const [transport, source] of [['http', http], ['libp2p', libp2p]]) {
+      const entry = compaction?.[transport];
+      if (entry?.source_event_cid !== source?.event_cid
+        || entry?.source_receipt_cid !== source?.receipt_cid
+        || entry?.source_correlation_id !== source?.correlation_id
+        || entry?.certificate_verified !== true
+        || entry?.inclusion_verified !== true
+        || entry?.bounded_history_compacted !== true) {
+        add({ code: 'unverified_application_compaction', application, tool: binding, transport, task_id: 'SVD-127', evidence_path: evidencePath, reason: 'Profile F lacks a verified compaction certificate bound to this application transport provenance.', remediation: 'Rebuild Profile F compaction from the exact persisted desktop receipt/event references.' });
+      }
+    }
+  }
+  if (profile.coverage?.scheduling_enabled !== false || profile.coverage?.payment_enabled !== false) add({ code: 'ungoverned_profile_enablement', task_id: 'SVD-127', evidence_path: evidencePath, reason: 'The report enables governed scheduling or settlement without its required governed workflow evidence.', remediation: 'Keep Profiles G/H unsupported until their prerequisites are enabled and replayed.' });
 }
+function validApplicationTransportObservation(observation, transport) {
+  return observation?.transport === transport
+    && observation?.application_originated === true
+    && nonEmpty(observation?.selected_tool_id)
+    && nonEmpty(observation?.correlation_id)
+    && isCid(observation?.descriptor_cid)
+    && isCid(observation?.receipt_cid)
+    && isCid(observation?.event_cid)
+    && observation?.ucan_did_verified === true
+    && /^did:key:/.test(observation?.remote_did ?? '')
+    && isCid(observation?.identity_proof_cid)
+    && observation?.policy_outcome === 'allow'
+    && nonEmpty(observation?.policy_decision_id)
+    && observation?.persistence_verified === true
+    && observation?.recovery?.observed === true
+    && observation?.recovery?.correlation_id_preserved === true;
+}
+function isCid(value) { return typeof value === 'string' && /^b[a-z2-7]{58}$/.test(value); }
 function validateFreshSimulatorEvidence(simulator, add) {
   if (!simulator) return;
   for (const replay of simulator.replays ?? []) if (replay.modality && isPlaceholderExecution(replay)) add({ code: 'placeholder_execution_claim', application: replay.app_id ?? null, modality: replay.modality, task_id: 'SVD-111', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json', remediation: 'Replay the compiled packet in the device simulator and retain privacy, permission, rollback, and fallback observations.' });
@@ -406,7 +601,37 @@ function renderFreshReleaseMarkdown(report) {
   lines.push('', '## Input receipts', '', '| Input | Task | Freshness | Captured |', '| --- | --- | --- | --- |', ...Object.entries(report.artifacts).map(([id, value]) => `| ${id} | ${value.task_id} | ${value.freshness} | ${value.generated_at ?? '—'} |`), '');
   return lines.join('\n');
 }
-function renderFreshReleaseSignoff(report) { return `# Refactor Final Signoff\n\nTask: SVD-114\n\nDecision: **${report.decision.status.replace('_', '-')}**\n\nThe detailed release receipt is in \`test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json\`.\n`; }
+function replayIndependentAllAppCloseout() {
+  // SVD-115 owns a separate read-only verifier. A NO_GO exit is expected to
+  // produce a durable receipt, so retain it rather than converting it into a
+  // builder crash that would hide its specific unfinished task IDs.
+  try {
+    execFileSync(process.execPath, ['scripts/replay-all-app-release-closeout.cjs'], { cwd: projectRoot, stdio: 'pipe' });
+  } catch (_) { /* The replay report below is the authoritative failure record. */ }
+  try {
+    return JSON.parse(fs.readFileSync(outputPaths.replay, 'utf8'));
+  } catch (error) {
+    return { decision: { status: 'NO_GO', blocker_count: 1, blocker_task_ids: ['SVD-115'] }, findings: [{ reason: `Replay receipt unavailable: ${errorMessage(error)}` }] };
+  }
+}
+
+function renderFreshReleaseSignoff(report, replay) {
+  const decision = replay?.decision ?? {};
+  const replayDecision = decision.status ?? 'NO_GO';
+  const blockers = Array.isArray(decision.blocker_task_ids) ? decision.blocker_task_ids : ['SVD-115'];
+  return [
+    '# Refactor Final Signoff', '',
+    'Tasks: SVD-114 freshness-aware evidence and SVD-115 independent all-app release replay', '',
+    `SVD-114 decision: **${report.decision.status.replace('_', '-')}**`,
+    `SVD-115 replay decision: **${replayDecision.replace('_', '-')}**`,
+    `SVD-115 blockers: ${blockers.join(', ') || 'none'}`, '',
+    'The independent replay reads the canonical application catalog, declared backend bindings, all-tools dispositions, Supervisor Console lifecycle, A-H transports, ORB/IDL packets, Meta simulator, UI/UX, CID/event-DAG persistence, and freshness receipt without regenerating any of them.',
+    'It emits GO only when both the SVD-114 receipt and every replayed surface are passing and current; otherwise it remains NO-GO with the specific owner task IDs.', '',
+    '## Evidence', '',
+    '- Freshness-aware release receipt: `test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json`',
+    '- Independent replay receipt: `test-results/virtual-desktop-ipfs-mcp-orb/independent-all-app-release-replay.json`',
+  ].join('\n') + '\n';
+}
 function renderFreshReleaseDiscovery(report) { return `# All-Tools Closeout: No New Unknowns\n\nDecision: **${report.decision.status.replace('_', '-')}**\n\nEvery blocking condition is enumerated in the SVD-114 release receipt with an owner and remediation.\n`; }
 
 /**
@@ -2271,7 +2496,10 @@ module.exports = {
     validatePeerEvidence,
     validateRouteOrbGlassesArtifacts,
     isPlaceholderExecution,
+    readFreshReleaseInput,
+    validateFreshBindingLedger,
     validateFreshToolBackedPairs,
+    validLiveGatewayExecution,
     validateFreshCatalog,
     buildFreshReleaseReport,
   },

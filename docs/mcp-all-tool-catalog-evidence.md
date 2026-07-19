@@ -1,6 +1,6 @@
 # MCP All-Tool Catalog Evidence
 
-Generated: 2026-07-18T19:09:17.575Z
+Generated: 2026-07-19T05:54:55.681Z
 
 Decision: **go**
 
@@ -27,8 +27,8 @@ Decision: **go**
 
 | Service | Endpoint | Flat tools | Hierarchical tools | Facade | Missing expected | Unexplained flat | Read receipts | Policy gated |
 | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |
-| ipfs_kit_py | http://127.0.0.1:8014/mcp | 149 | 149 | yes | 0 | 0 | 79 | 98 |
-| ipfs_datasets_py | http://127.0.0.1:3002/mcp | 271 | 271 | yes | 0 | 0 | 158 | 118 |
+| ipfs_kit_py | http://127.0.0.1:31014/mcp | 149 | 149 | yes | 0 | 0 | 79 | 98 |
+| ipfs_datasets_py | http://127.0.0.1:31002/mcp | 271 | 271 | yes | 0 | 0 | 158 | 118 |
 | ipfs_accelerate_py | http://127.0.0.1:3003/mcp | 118 | 122 | yes | 0 | 0 | 0 | 206 |
 
 ## MCP++ / libp2p
@@ -37,7 +37,7 @@ Decision: **go**
 
 | Service | Eligible descriptors | Advertised transport |
 | --- | ---: | --- |
-| ipfs_kit_py | 60 | mcp++-idl-only |
+| ipfs_kit_py | 181 | mcp++-idl-only |
 | ipfs_datasets_py | 283 | mcp++-idl-only |
 | ipfs_accelerate_py | 238 | libp2p |
 

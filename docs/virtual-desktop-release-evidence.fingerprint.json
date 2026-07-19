@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Freshness-aware virtual desktop release evidence (SVD-114)",
-  "generatedAt": "2026-07-18T19:26:02.445Z",
+  "generatedAt": "2026-07-19T05:58:01.897Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
@@ -10,28 +10,32 @@
     "docs/release-readiness-report.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "76ed1622a2aed2f3cafc30f6bac19b6b6cfc2ebea918afa374cfbd83fb266b68",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "519b8c535581c76e4243edd893be32bd54f8e43c45d38645b4586d64c27f9232",
-    "docs/release-readiness-report.json": "90813b64aaba7cab2ec9caf3dcf13cd815495b29166f41a77a52ddd4f042e179",
-    "docs/release-readiness-report.md": "0d5d94479369c9cd01399d49811f234faaf2224c0d3c5444435088a315946846"
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "2a8d23fad5dadb0a55925e4bbd599bd5dee5d5fa2b357410e09513528e424fa3",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "6da9a326abc88877fd7e0cdfd197b255ee5cd791de57a0a37ae46fe7ca4e6500",
+    "docs/release-readiness-report.json": "bc2fbb822f418dd2ad21ef79883ee5bdba195713e246b0b140b549c104af4a5c",
+    "docs/release-readiness-report.md": "2ab6d77f7de1eda95ec37a41b3aed4163340e6234492568d5e05606a9911009d"
   },
-  "sourceFingerprint": "25c16ef2ac6b3c1a0e69fef9ded7123f8d41a748ce8b0b8b012545abc8b39b3f",
+  "sourceFingerprint": "5dac2b658349d3bea577d64e38baaffa9197300262a9667eb92681460762b2cf",
   "sourceFiles": [
     {
       "path": "../tmp/swissknife_all_tools_supervisor/state/submodule-merge-diagnostics.json",
       "sha256": "39ea53168f43c3373b7e7f86fc1f271ccd6e225574e58f6516ae1f91a229cd8c"
     },
     {
+      "path": "build-tools/configs/vite.web.config.ts",
+      "sha256": "4d41040df7900a417e7982a468c102d0cf1fcb138f143c41b2893b051e88d6ca"
+    },
+    {
       "path": "scripts/audit-release-evidence-freshness.mjs",
-      "sha256": "31cecea80c6a291df00e0a30dc4da8e8c7af09897587954d950fcacaeff54628"
+      "sha256": "4aa4970ebd528d782a2b68cb26aac34f0d9b8e7812012b019d23eabab6f334e3"
     },
     {
       "path": "scripts/build-virtual-desktop-release-evidence.cjs",
-      "sha256": "fa6a9a4eacf4c0a470a2b4a8c8d8a4f0a71e16a0465d6e1ef454a7053d85a50b"
+      "sha256": "2d652758db51baf4e687814d7c5249b02475a04eb5662f3c5e291c5665e9f27d"
     },
     {
       "path": "scripts/release-readiness-gate.mjs",
-      "sha256": "4c26310c91ec352fb49d08f9fb1b61962a42688ada11bc713d1662cd68ff08dc"
+      "sha256": "d265dcc100f3254ad41c749527df4a6463f047bcd0780ab50646ba9df7a60a63"
     },
     {
       "path": "src/services/apps/agent-supervisor-expanded-io-envelopes.ts",
@@ -70,6 +74,14 @@
       "sha256": "58a505b8a29277fb7f9eeea94558c4d3a88b9183552b8d8fbf766bf42acc794f"
     },
     {
+      "path": "src/services/mcp/all-app-mcpplusplus-profile-interoperability.ts",
+      "sha256": "850c31a60f1aeb23c9b0188fba4fdeada5c73f5735dc4009f69861b56840ed6b"
+    },
+    {
+      "path": "src/services/mcp/all-app-tool-mediator.ts",
+      "sha256": "191a1ebcf9d96548dadc90dae2e83cdbf6da2e5b25c0d3e299f3eae96b6e6fed"
+    },
+    {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json",
       "sha256": "d3f0ce89aab0e36613dbc6577f73c10bbc9e2ff460314c6ba61d07f15f819a99"
     },
@@ -78,12 +90,16 @@
       "sha256": "c3eac244073f57370ca1359175c5e0ce360caebc337ff7446cd6b4ca332dadb8"
     },
     {
+      "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-gateway-executions.json",
+      "sha256": "cc40fc76646a05c12426166b8d80787cc4996e831a223f9f0b435e82d833431a"
+    },
+    {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json",
       "sha256": "af7937753c829f1c7fbc94e1d62d8ad68172d8b0e1969ae0b60961d17e59ffb7"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json",
-      "sha256": "99a0f434e6c631d90365f2453f72db458ad6b940d759b2d4e89fc40b9eefb74d"
+      "sha256": "04643ecd4c348e76c0059c9b1e489798586c62f20a3d8f7e1ba8e9bd784de78f"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json",
@@ -103,7 +119,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
-      "sha256": "119271c7c46e4521a88e3df7df3a4bfdf5064ce14dea81fb9ba5d5b4e7673228"
+      "sha256": "9a1b69848212781b33213bbc3871839ce6ce096771b33389cc92290753241c9f"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-behavior-proof/01-terminal-error.png",
@@ -1074,6 +1090,10 @@
       "sha256": "eeca2f1740b4378e654caa0c682a908b00ee40ef2b6b6c005bf6f9134164158c"
     },
     {
+      "path": "test/e2e/all-app-live-gateway-executions.spec.ts",
+      "sha256": "2a99b09e77c95b6d921722d1294818e0dbb0590eafc107dbf54fec29ca29debe"
+    },
+    {
       "path": "test/e2e/all-app-meta-device-simulator-proof.spec.ts",
       "sha256": "5bf3771273633c4e5341e46d02e6db60bdd1d041b7cdb3dfa9708bb6faf27ac9"
     },
@@ -1082,12 +1102,20 @@
       "sha256": "38180d964d3b9e2ef3e21d41e712cf25a37323446b0f39321b9b27a30128ed15"
     },
     {
+      "path": "test/mcp-plus-plus/all-app-mcpplusplus-profile-interoperability.test.ts",
+      "sha256": "fb2c6a6fbcbdb4f0478e49c5ee1d8ad27531928533998b4bd518f605f0349eb0"
+    },
+    {
       "path": "test/mcp-plus-plus/all-app-orb-idl-action-handoff.test.ts",
       "sha256": "407d3d9cc92b5083541985249212ad6b3c188fde7324d209c6f741bb5a833003"
     },
     {
       "path": "web/js/apps/agent-supervisor.js",
-      "sha256": "54baf6ae16b08381f0cfbfbb60efdd7cd2195030430c643105d52697f2764285"
+      "sha256": "9744ca20d0f787ddb3d87608709310f72381a2344078b179d0d8111529d8496a"
+    },
+    {
+      "path": "web/js/live-tool-gateway.js",
+      "sha256": "72bf7bccf079f9bf70e7e943d1269633d263595dfa6945794f523a8f7255a19e"
     }
   ]
 }

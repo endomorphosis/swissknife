@@ -1,6 +1,9 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const test = require('node:test');
 
 const { _test: releaseEvidence } = require('../../scripts/build-virtual-desktop-release-evidence.cjs');
@@ -8,6 +11,32 @@ const { _test: releaseEvidence } = require('../../scripts/build-virtual-desktop-
 function record(taskId = 'SVD-060') {
   return { taskId, path: 'fixture.json', checks: [], gaps: [] };
 }
+
+test('fresh release inputs fail closed for absent and stale receipts', () => {
+  const missingFindings = [];
+  const missingPath = path.join(os.tmpdir(), `svd-114-missing-${process.pid}.json`);
+  const missing = releaseEvidence.readFreshReleaseInput(
+    'missing', missingPath, 'SVD-TEST', 'test.schema.v1', Date.now(), finding => missingFindings.push(finding),
+  );
+  assert.equal(missing.status, 'missing');
+  assert.equal(missingFindings[0].code, 'missing_evidence_input');
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'svd-114-stale-'));
+  const stalePath = path.join(tempDir, 'receipt.json');
+  try {
+    fs.writeFileSync(stalePath, JSON.stringify({
+      schema: 'test.schema.v1', task_id: 'SVD-TEST', generated_at: '2000-01-01T00:00:00.000Z',
+    }));
+    const staleFindings = [];
+    const stale = releaseEvidence.readFreshReleaseInput(
+      'stale', stalePath, 'SVD-TEST', 'test.schema.v1', Date.now(), finding => staleFindings.push(finding),
+    );
+    assert.equal(stale.freshness, 'stale');
+    assert.equal(staleFindings[0].code, 'stale_evidence_timestamp');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
 
 test('canonical inventory prevents partial app evidence from satisfying the release', () => {
   const inventory = releaseEvidence.loadReleaseInventory();
@@ -257,6 +286,87 @@ test('fresh release evidence distinguishes executable browser bindings from the 
   }, finding => placeholder.push(finding));
   assert.equal(placeholder[0].code, 'placeholder_execution_claim');
   assert.equal(placeholder[0].task_id, 'SVD-106');
+
+  const liveGateway = [];
+  releaseEvidence.validateFreshToolBackedPairs(bindings, {
+    execution_origin: 'canonical-virtual-desktop-browser',
+    browser_origin: 'http://localhost:3001',
+    executions: [{
+      app_id: 'terminal',
+      binding_id: 'terminal.ipfs_kit_py.retrieve_content',
+      owner: 'ipfs_kit_py',
+      selected_tool_id: 'ipfs_cat',
+      selected_transport: 'http',
+      correlation_id: 'desktop:terminal:1',
+      request: { route: '/mcp/tools/call', same_origin: true },
+      policy: { outcome: 'allow', decision_id: 'desktop-policy:terminal' },
+      response: { outcome: 'executed', ok: true },
+      receipt_refs: ['bafkreifpvbepoilyb5hnhj5zph7cj52xnd2pgw6imbksjzx2rsfyzud5qa'],
+      event_dag_refs: ['bafkreiglfkcp2zglgxtvkmhtb5wbibtc4oxtfirupnvxha5vr2eisjodh4'],
+      persistence: {
+        status: 'persisted',
+        receipt_cid: 'bafkreifpvbepoilyb5hnhj5zph7cj52xnd2pgw6imbksjzx2rsfyzud5qa',
+        event_cid: 'bafkreiglfkcp2zglgxtvkmhtb5wbibtc4oxtfirupnvxha5vr2eisjodh4',
+      },
+      transport_observation: {
+        transport: 'http',
+        descriptor_cid: 'bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi',
+        ucan_did_verified: true,
+        remote_did: 'did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu',
+        identity_proof_cid: 'bafkreicz2chhqa2yrdagrztspcknorbyluuypoq2vq7ujcdro4twlvwjrm',
+        correlation_id: 'desktop:terminal:1',
+      },
+      recovery: { correlation_id_preserved: true },
+      browser_observed_urls: ['/mcp/tools/call'],
+      no_backend_urls_or_credentials_exposed: true,
+    }],
+  }, finding => liveGateway.push(finding), {
+    taskId: 'SVD-126',
+    evidencePath: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-gateway-executions.json',
+  });
+  assert.deepEqual(liveGateway, []);
+});
+
+test('fresh release evidence rejects declared-but-unbound tool-backed backend pairs', () => {
+  const findings = [];
+  releaseEvidence.validateFreshBindingLedger({
+    application_backend_assignments: [{
+      app_id: 'terminal', backend_owner: 'ipfs_kit_py',
+      capability_id: 'terminal.ipfs_kit_py.storage',
+      transport_policy: { mcp: 'required', mcp_plus_plus: 'eligible' },
+      current_binding_state: 'declared_no_tool_binding',
+      reasons: ['The app backend contract explicitly reports declared_no_tool_binding.'],
+    }],
+  }, {
+    apps: [{ app_id: 'terminal', backend_state: 'tool_backed' }],
+  }, { bindings: [] }, finding => findings.push(finding));
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].code, 'declared_no_tool_binding');
+  assert.equal(findings[0].application, 'terminal');
+  assert.equal(findings[0].tool, 'terminal.ipfs_kit_py.storage');
+  assert.equal(findings[0].owner, 'ipfs_kit_py');
+  assert.equal(findings[0].task_id, 'SVD-102');
+  assert.match(findings[0].remediation, /explicit mediated application\/tool binding/);
+});
+
+test('fresh release evidence refuses gateway records without complete real-call provenance', () => {
+  const findings = [];
+  const bindings = { bindings: [{
+    app_id: 'terminal', binding_id: 'terminal.ipfs_kit_py.retrieve_content',
+    owner: 'ipfs_kit_py', transports: ['http'],
+  }] };
+  releaseEvidence.validateFreshToolBackedPairs(bindings, {
+    execution_origin: 'canonical-virtual-desktop-browser', browser_origin: 'http://localhost:3001',
+    executions: [{
+      app_id: 'terminal', binding_id: 'terminal.ipfs_kit_py.retrieve_content', owner: 'ipfs_kit_py',
+      selected_transport: 'http', selected_tool_id: 'ipfs_cat', response: { outcome: 'executed', ok: true },
+    }],
+  }, finding => findings.push(finding), { taskId: 'SVD-126' });
+
+  assert.equal(findings[0].code, 'incomplete_live_execution');
+  assert.equal(findings[0].application, 'terminal');
+  assert.equal(findings[0].owner, 'ipfs_kit_py');
 });
 
 test('fresh release evidence rejects every unclassified backend tool with a remediation', () => {

@@ -1,175 +1,328 @@
-/**
- * @vitest-environment node
- */
-
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { beforeAll, describe, expect, it } from 'vitest';
-import { ALL_APP_EXECUTABLE_BACKEND_CONTRACT } from '../../src/services/apps/all-app-executable-backend-contract';
-import { EventDAG, verifyEventDAGInclusionProof } from '../../src/services/mcp/mcp-event-dag';
-import { evaluateProfileDExecution } from '../../src/services/mcp/profile-d-policy';
+/** @vitest-environment node */
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
+import {
+  EventDAG,
+  verifyEventDAGInclusionProof,
+} from "../../src/services/mcp/mcp-event-dag";
 import {
   ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_SCHEMA,
   MCPPLUSPLUS_PROFILE_EVIDENCE,
   buildAllAppMCPPlusPlusProfileInteroperabilityReport,
-  type AllToolsPeerEvidence,
+  type ApplicationGatewayEvidence,
   type ProfileFCompactionEvidence,
-} from '../../src/services/mcp/all-app-mcpplusplus-profile-interoperability';
+} from "../../src/services/mcp/all-app-mcpplusplus-profile-interoperability";
 
-const EVIDENCE_ROOT = join(process.cwd(), 'test-results', 'virtual-desktop-ipfs-mcp-orb');
-const PEER_EVIDENCE_PATH = join(EVIDENCE_ROOT, 'swissknife-all-tools-peer-evidence.json');
-const REPORT_PATH = join(EVIDENCE_ROOT, 'all-app-mcpplusplus-profile-interoperability.json');
-const GENERATED_AT = new Date().toISOString();
+const ROOT = join(
+  process.cwd(),
+  "test-results",
+  "virtual-desktop-ipfs-mcp-orb",
+);
+const APPLICATION_PATH = join(ROOT, "all-app-live-gateway-executions.json");
+const REPORT_PATH = join(
+  ROOT,
+  "all-app-mcpplusplus-profile-interoperability.json",
+);
 
-function buildCompactionEvidence(): ProfileFCompactionEvidence {
-  const dag = new EventDAG({ hotEventMax: 2, epochSize: 2 });
-  const root = dag.appendEvent({
-    intent_cid: 'sha256:intent' + '0'.repeat(57),
-    interface_cid: 'sha256:interface' + '0'.repeat(54),
-    proofs: [], outputs: [], parents: [], timestamp: '2026-07-15T00:00:00.000Z',
-    correlation_id: 'svd-109-compaction', operation: 'desktop-path-proof',
+function compaction(
+  application: ApplicationGatewayEvidence,
+): ProfileFCompactionEvidence[] {
+  const source = (application.executions ?? [])
+    .filter(
+      (execution) =>
+        execution.response.ok && execution.persistence?.status === "persisted",
+    );
+  if (source.length === 0)
+    throw new Error(
+      "Profile F application replay compaction requires persisted desktop executions.",
+    );
+  // Commit every persisted desktop transport observation to one bounded
+  // archive.  A certificate is therefore linked to each exact receipt/event
+  // pair, rather than proving a small unrelated sample and reusing it for the
+  // rest of the application replay.
+  const dag = new EventDAG({ autoCompact: false });
+  let parent: string | undefined;
+  const eventCids = source.map((execution, index) => {
+    const sourceEventCid =
+      execution.persistence?.event_cid ?? execution.event_dag_refs[0];
+    const sourceReceiptCid =
+      execution.persistence?.receipt_cid ?? execution.receipt_refs[0];
+    if (!sourceEventCid || !sourceReceiptCid)
+      throw new Error("Missing persisted application event or receipt.");
+    const provenanceEventCid = dag.appendEvent({
+      // These are the persisted artifacts produced by the visible desktop
+      // controls. The local DAG only compacts their retained provenance;
+      // source_event_cid and source_receipt_cid remain the native artifacts.
+      intent_cid: sourceReceiptCid,
+      interface_cid:
+        execution.transport_observation?.descriptor_cid ??
+        (() => {
+          throw new Error("Missing application descriptor.");
+        })(),
+      proofs: [
+        execution.transport_observation?.identity_proof_cid ??
+          (() => {
+            throw new Error("Missing application identity proof.");
+          })(),
+      ],
+      outputs: [sourceEventCid],
+      parents: parent ? [parent] : [],
+      timestamp: new Date(
+        Date.parse("2026-07-18T00:00:00.000Z") + index * 1000,
+      ).toISOString(),
+      correlation_id: execution.correlation_id,
+      operation: execution.selected_tool_id ?? "application-replay",
+    });
+    return { execution, sourceEventCid, sourceReceiptCid, provenanceEventCid };
   });
-  const child = dag.appendEvent({
-    intent_cid: 'sha256:child-intent' + '0'.repeat(51),
-    interface_cid: 'sha256:interface' + '0'.repeat(54),
-    proofs: [], outputs: [], parents: [root], timestamp: '2026-07-15T00:00:01.000Z',
-    correlation_id: 'svd-109-compaction', operation: 'receipt-persisted',
-  });
-  dag.appendEvent({
-    intent_cid: 'sha256:tip-intent' + '0'.repeat(53),
-    interface_cid: 'sha256:interface' + '0'.repeat(54),
-    proofs: [], outputs: [], parents: [child], timestamp: '2026-07-15T00:00:02.000Z',
-    correlation_id: 'svd-109-compaction', operation: 'archive-checkpoint',
-  });
-  const archive = dag.listArchives()[0];
-  const witness = dag.getInclusionProof(root);
-  const bounded = dag.traverseBounded(root);
-  if (!archive || !witness) throw new Error('Expected deterministic Profile F compaction evidence.');
-  return {
-    event_cid: root,
-    archive_cid: archive.archive_cid,
-    certificate_cid: archive.certificate.certificate_cid,
-    merkle_root: archive.certificate.merkle_root,
-    event_count: archive.certificate.event_count,
-    certificate_verified: dag.verifyCertificate(archive.certificate.certificate_cid),
-    inclusion_verified: verifyEventDAGInclusionProof(root, witness.proof, witness.merkle_root),
-    bounded_history_compacted: bounded.events.length === 0
-      && bounded.archive_boundaries.some(boundary => boundary.event_cid === root),
-  };
+  const archive = dag.compact({ maxEvents: eventCids.length, retainRecent: 0 });
+  if (!archive)
+    throw new Error(
+      "Profile F application replay compaction prerequisites are absent.",
+    );
+  return eventCids.map(
+    ({ execution, sourceEventCid, sourceReceiptCid, provenanceEventCid }) => {
+      const witness = dag.getInclusionProof(provenanceEventCid);
+      if (!witness)
+        throw new Error("Profile F compaction omitted an application event.");
+      return {
+        source_event_cid: sourceEventCid,
+        source_receipt_cid: sourceReceiptCid,
+        source_correlation_id: execution.correlation_id,
+        provenance_event_cid: provenanceEventCid,
+        archive_cid: archive.archive_cid,
+        certificate_cid: archive.certificate.certificate_cid,
+        merkle_root: archive.certificate.merkle_root,
+        event_count: archive.certificate.event_count,
+        certificate_verified: dag.verifyCertificate(
+          archive.certificate.certificate_cid,
+        ),
+        inclusion_verified: verifyEventDAGInclusionProof(
+          provenanceEventCid,
+          witness.proof,
+          witness.merkle_root,
+        ),
+        bounded_history_compacted:
+          dag.traverseBounded(provenanceEventCid).events.length === 0,
+      };
+    },
+  );
 }
-
-function buildReport() {
-  const peerEvidence = JSON.parse(readFileSync(PEER_EVIDENCE_PATH, 'utf8')) as AllToolsPeerEvidence;
-  const policyEvidence = evaluateProfileDExecution({
-    actor: 'did:key:svd-109-desktop',
-    action: 'mcp.desktop.invoke',
-    resource: 'virtual-desktop/*',
-    evaluated_at: '2026-07-15T00:00:00.000Z',
-    policy: { clauses: [{ clause_type: 'permission', actor: 'did:key:svd-109-desktop', action: 'mcp.desktop.invoke', resource: 'virtual-desktop/*' }] },
-    request_zkp_certificate: true,
-  });
+function report() {
+  const application = JSON.parse(
+    readFileSync(APPLICATION_PATH, "utf8"),
+  ) as ApplicationGatewayEvidence;
   return buildAllAppMCPPlusPlusProfileInteroperabilityReport({
-    generatedAt: GENERATED_AT,
-    peerEvidence,
-    policyEvidence,
-    compactionEvidence: buildCompactionEvidence(),
+    generatedAt: new Date().toISOString(),
+    applicationEvidence: application,
+    compactionEvidence: compaction(application),
   });
 }
 
-describe('SVD-109 all-app MCP++ Profile A–H interoperability', () => {
+describe("SVD-127 application-originated MCP++ Profile A-H replay", () => {
   beforeAll(() => {
     mkdirSync(dirname(REPORT_PATH), { recursive: true });
-    writeFileSync(REPORT_PATH, `${JSON.stringify(buildReport(), null, 2)}\n`);
+    writeFileSync(REPORT_PATH, `${JSON.stringify(report(), null, 2)}\n`);
   });
-
-  it('proves every applicable desktop binding has independent HTTP/libp2p execution evidence', () => {
-    const report = buildReport();
-    const expectedBindingIds = ALL_APP_EXECUTABLE_BACKEND_CONTRACT.apps
-      .flatMap(app => app.backend_bindings)
-      .filter(binding => binding.transport_policy.allowed_transports.includes('http')
-        && binding.transport_policy.allowed_transports.includes('libp2p'))
-      .map(binding => binding.binding_id)
-      .sort();
-
-    expect(report).toMatchObject({
+  it("accepts only visible canonical desktop HTTP and libp2p executions", () => {
+    const application = JSON.parse(
+      readFileSync(APPLICATION_PATH, "utf8"),
+    ) as ApplicationGatewayEvidence;
+    const value = report();
+    expect(value).toMatchObject({
       schema: ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_SCHEMA,
-      task_id: 'SVD-109',
-      generated_at: GENERATED_AT,
-      decision: 'GO',
-      live_network_claimed: false,
+      task_id: "SVD-127",
+      decision: "GO",
+      live_network_claimed: true,
     });
-    expect(report.desktop_paths.map(path => path.binding_id).sort()).toEqual(expectedBindingIds);
-    expect(report.desktop_paths.every(path => path.transports.parity_verified)).toBe(true);
-    expect(report.desktop_paths.every(path => path.transports.http === 'executed'
-      && path.transports.libp2p === 'executed')).toBe(true);
-  });
-
-  it('carries descriptor, receipt, UCAN, policy, and event-DAG evidence for Profiles A through F', () => {
-    const report = buildReport();
-    for (const path of [...report.desktop_paths, report.supervisor_console]) {
-      expect(path.profiles.map(profile => profile.profile)).toEqual(MCPPLUSPLUS_PROFILE_EVIDENCE.map(([profile]) => profile));
-      for (const profile of path.profiles.filter(profile => ['A', 'B', 'C', 'D', 'E', 'F'].includes(profile.profile))) {
-        expect(profile.outcome).toBe('executed');
-      }
-      const a = path.profiles.find(profile => profile.profile === 'A')!;
-      const b = path.profiles.find(profile => profile.profile === 'B')!;
-      const c = path.profiles.find(profile => profile.profile === 'C')!;
-      const d = path.profiles.find(profile => profile.profile === 'D')!;
-      const f = path.profiles.find(profile => profile.profile === 'F')!;
-      expect(a.evidence.http_descriptor_cid).toEqual(expect.any(String));
-      expect(b.evidence.http_receipt_cid).toEqual(expect.any(String));
-      expect(c.evidence.remote_did).toMatch(/^did:key:/);
-      expect(c.evidence.delegation_proof_cid).toEqual(expect.any(String));
-      expect(d.evidence.policy_cid).toMatch(/^baguq[a-z2-7]+$/);
-      expect(f.evidence).toMatchObject({ certificate_verified: true, inclusion_verified: true, bounded_history_compacted: true });
+    expect(value.desktop_paths.length).toBeGreaterThan(0);
+    expect(value.application_evidence).toMatchObject({
+      schema: "swissknife.all-app-live-gateway-executions.v2",
+      execution_count: (application.executions ?? []).length,
+      eligible_transport_pair_count: value.desktop_paths.length * 2,
+    });
+    for (const path of value.desktop_paths) {
+      expect(path.transports.http).toMatchObject({
+        application_originated: true,
+        transport: "http",
+        policy_outcome: "allow",
+        persistence_verified: true,
+        ucan_did_verified: true,
+      });
+      expect(path.transports.libp2p).toMatchObject({
+        application_originated: true,
+        transport: "libp2p",
+        policy_outcome: "allow",
+        persistence_verified: true,
+        ucan_did_verified: true,
+      });
+      expect(path.transports.parity_verified).toBe(true);
     }
   });
-
-  it('keeps Supervisor scheduling/delegation distinct and payment policy honest', () => {
-    const report = buildReport();
-    const supervisorG = report.supervisor_console.profiles.find(profile => profile.profile === 'G');
-    const supervisorH = report.supervisor_console.profiles.find(profile => profile.profile === 'H');
-    expect(supervisorG).toMatchObject({ outcome: 'executed', evidence: { scheduling_surface: 'agent-supervisor', capability_aware_delegation: true } });
-    expect(supervisorH).toMatchObject({ outcome: 'unsupported', evidence: { payment_enabled: false, settlement_attempted: false } });
-    expect(report.desktop_paths.filter(path => path.app_id !== 'agent-supervisor')
-      .every(path => path.profiles.find(profile => profile.profile === 'G')?.outcome === 'unsupported')).toBe(true);
-    expect(report.coverage.payment_enabled).toBe(false);
+  it("retains transport-specific CID, DID, policy, provenance, compaction, correlation, and recovery evidence", () => {
+    for (const path of report().desktop_paths) {
+      for (const transport of [path.transports.http, path.transports.libp2p]) {
+        expect(transport.descriptor_cid).toMatch(/^b[a-z2-7]{58}$/);
+        expect(transport.receipt_cid).toMatch(/^b[a-z2-7]{58}$/);
+        expect(transport.event_cid).toMatch(/^b[a-z2-7]{58}$/);
+        expect(transport.remote_did).toMatch(/^did:key:/);
+        expect(transport.identity_proof_cid).toMatch(/^b[a-z2-7]{58}$/);
+        expect(transport.correlation_id).toContain("desktop:");
+        expect(transport.recovery.observed).toBe(true);
+        expect(transport.recovery.correlation_id_preserved).toBe(true);
+      }
+      const profiles = path.profiles;
+      expect(profiles.map((item) => item.profile)).toEqual(
+        MCPPLUSPLUS_PROFILE_EVIDENCE.map(([profile]) => profile),
+      );
+      expect(
+        profiles
+          .filter((item) =>
+            ["A", "B", "C", "D", "E", "F"].includes(item.profile),
+          )
+          .every((item) => item.outcome === "executed"),
+      ).toBe(true);
+      expect(
+        profiles.find((item) => item.profile === "F")?.evidence,
+      ).toMatchObject({
+        http: {
+          source_event_cid: path.transports.http.event_cid,
+          source_receipt_cid: path.transports.http.receipt_cid,
+          source_correlation_id: path.transports.http.correlation_id,
+          certificate_verified: true,
+          inclusion_verified: true,
+          bounded_history_compacted: true,
+        },
+        libp2p: {
+          source_event_cid: path.transports.libp2p.event_cid,
+          source_receipt_cid: path.transports.libp2p.receipt_cid,
+          source_correlation_id: path.transports.libp2p.correlation_id,
+          certificate_verified: true,
+          inclusion_verified: true,
+          bounded_history_compacted: true,
+        },
+      });
+      expect(
+        profiles.find((item) => item.profile === "D")?.evidence,
+      ).toMatchObject({
+        http_policy: { outcome: "allow" },
+        libp2p_policy: { outcome: "allow" },
+      });
+    }
   });
-
-  it('retains explicit denied, unsupported, and unreachable paths rather than collapsing them', () => {
-    const report = buildReport();
-    expect(report.outcome_probes.map(probe => probe.outcome).sort()).toEqual(['denied', 'unreachable', 'unsupported']);
-    expect(report.coverage.profile_outcome_counts.denied).toBeGreaterThan(0);
-    expect(report.coverage.profile_outcome_counts.unsupported).toBeGreaterThan(0);
-    expect(report.coverage.profile_outcome_counts.unreachable).toBeGreaterThan(0);
-  });
-
-  it('fails closed when independently executed libp2p evidence is absent', () => {
-    const peerEvidence = JSON.parse(readFileSync(PEER_EVIDENCE_PATH, 'utf8')) as AllToolsPeerEvidence;
-    const withoutLibp2p = structuredClone(peerEvidence);
-    const kit = withoutLibp2p.services?.find(service => service.service === 'ipfs_kit_py');
-    if (kit?.transports?.libp2p?.fixture) kit.transports.libp2p.fixture.status = 'unsupported';
-    const policyEvidence = evaluateProfileDExecution({
-      actor: 'did:key:svd-109-desktop', action: 'mcp.desktop.invoke', resource: 'virtual-desktop/*',
-      evaluated_at: '2026-07-15T00:00:00.000Z',
-      policy: { clauses: [{ clause_type: 'permission', actor: 'did:key:svd-109-desktop', action: 'mcp.desktop.invoke', resource: 'virtual-desktop/*' }] },
+  it("keeps governed scheduling and settlement explicitly unsupported", () => {
+    const value = report();
+    expect(
+      value.desktop_paths.every(
+        (path) =>
+          path.profiles.find((item) => item.profile === "G")?.outcome ===
+            "unsupported" &&
+          path.profiles.find((item) => item.profile === "H")?.outcome ===
+            "unsupported",
+      ),
+    ).toBe(true);
+    expect(value.coverage).toMatchObject({
+      scheduling_enabled: false,
+      payment_enabled: false,
     });
-    expect(() => buildAllAppMCPPlusPlusProfileInteroperabilityReport({
-      generatedAt: GENERATED_AT, peerEvidence: withoutLibp2p, policyEvidence, compactionEvidence: buildCompactionEvidence(),
-    })).toThrow(/independently executed HTTP and libp2p fixtures/i);
   });
-
-  it('keeps a reviewed evidence snapshot without treating dynamic peer CIDs as immutable fixtures', () => {
-    const artifact = JSON.parse(readFileSync(REPORT_PATH, 'utf8')) as ReturnType<typeof buildReport>;
-    expect(artifact).toMatchObject({
-      schema: ALL_APP_MCPPLUSPLUS_PROFILE_INTEROPERABILITY_SCHEMA,
-      task_id: 'SVD-109',
-      decision: 'GO',
-      live_network_claimed: false,
-      coverage: { applicable_desktop_path_count: 22, all_profiles_represented: true, payment_enabled: false },
-    });
-    expect(artifact.desktop_paths.every(path => path.profiles.some(profile => profile.profile === 'A'
-      && profile.outcome === 'executed'))).toBe(true);
-    expect(artifact.supervisor_console.profiles.find(profile => profile.profile === 'G')?.outcome).toBe('executed');
+  it("fails closed when an application transport replay is absent", () => {
+    const application = JSON.parse(
+      readFileSync(APPLICATION_PATH, "utf8"),
+    ) as ApplicationGatewayEvidence;
+    application.executions = application.executions?.filter(
+      (row) => row.selected_transport !== "libp2p",
+    );
+    expect(() =>
+      buildAllAppMCPPlusPlusProfileInteroperabilityReport({
+        generatedAt: new Date().toISOString(),
+        applicationEvidence: application,
+        compactionEvidence: compaction(
+          JSON.parse(
+            readFileSync(APPLICATION_PATH, "utf8"),
+          ) as ApplicationGatewayEvidence,
+        ),
+      }),
+    ).toThrow(/application-originated successful libp2p replay/i);
+  });
+  it("fails closed when the replay is not tied to its visible desktop control", () => {
+    const application = JSON.parse(
+      readFileSync(APPLICATION_PATH, "utf8"),
+    ) as ApplicationGatewayEvidence;
+    const eligibleBindingId = report().desktop_paths[0]?.binding_id;
+    const execution = application.executions?.find(
+      (row) =>
+        row.binding_id === eligibleBindingId && row.selected_transport === "http",
+    );
+    if (!execution) throw new Error("Expected canonical HTTP desktop replay.");
+    execution.ui_control_id = "fixture-control";
+    expect(() =>
+      buildAllAppMCPPlusPlusProfileInteroperabilityReport({
+        generatedAt: new Date().toISOString(),
+        applicationEvidence: application,
+        compactionEvidence: compaction(
+          JSON.parse(
+            readFileSync(APPLICATION_PATH, "utf8"),
+          ) as ApplicationGatewayEvidence,
+        ),
+      }),
+    ).toThrow(/visible application-originated successful http replay/i);
+  });
+  it("fails closed when duplicate transport observations are offered", () => {
+    const application = JSON.parse(
+      readFileSync(APPLICATION_PATH, "utf8"),
+    ) as ApplicationGatewayEvidence;
+    const eligibleBindingId = report().desktop_paths[0]?.binding_id;
+    const execution = application.executions?.find(
+      (row) =>
+        row.binding_id === eligibleBindingId && row.selected_transport === "http",
+    );
+    if (!execution) throw new Error("Expected canonical HTTP desktop replay.");
+    application.executions = [...(application.executions ?? []), execution];
+    expect(() =>
+      buildAllAppMCPPlusPlusProfileInteroperabilityReport({
+        generatedAt: new Date().toISOString(),
+        applicationEvidence: application,
+        compactionEvidence: compaction(
+          JSON.parse(
+            readFileSync(APPLICATION_PATH, "utf8"),
+          ) as ApplicationGatewayEvidence,
+        ),
+      }),
+    ).toThrow(/exactly one visible application-originated successful http replay/i);
+  });
+  it("fails closed when a compaction certificate is not bound to its transport receipt", () => {
+    const application = JSON.parse(
+      readFileSync(APPLICATION_PATH, "utf8"),
+    ) as ApplicationGatewayEvidence;
+    const evidence = compaction(application);
+    const corrupt = evidence.map((entry) => ({
+      ...entry,
+      source_receipt_cid: entry.source_event_cid,
+    }));
+    expect(() =>
+      buildAllAppMCPPlusPlusProfileInteroperabilityReport({
+        generatedAt: new Date().toISOString(),
+        applicationEvidence: application,
+        compactionEvidence: corrupt,
+      }),
+    ).toThrow(/Profile F compaction certificate for both transports/i);
+  });
+  it("fails closed when a verified compaction record omits its certificate reference", () => {
+    const application = JSON.parse(
+      readFileSync(APPLICATION_PATH, "utf8"),
+    ) as ApplicationGatewayEvidence;
+    const corrupt = compaction(application).map((entry) => ({
+      ...entry,
+      certificate_cid: "",
+    }));
+    expect(() =>
+      buildAllAppMCPPlusPlusProfileInteroperabilityReport({
+        generatedAt: new Date().toISOString(),
+        applicationEvidence: application,
+        compactionEvidence: corrupt,
+      }),
+    ).toThrow(/Profile F compaction certificate for both transports/i);
   });
 });

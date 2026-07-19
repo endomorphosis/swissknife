@@ -26,8 +26,9 @@
  *      evidence fingerprint no longer matches the current state of the source it depends on.
  *   10. evidence:mcp-glasses       - regenerate MCP/glasses manifest + capability coverage evidence
  *   11. virtual-desktop-release-evidence - aggregate and hard-gate complete desktop/all-tools/simulator evidence
- *   12. evidence:freshness:check    - fingerprint freshness after the SWR-110 aggregate is regenerated
- *   13. skipped-gate-policy        - explicit skip reasons and browser-safety skip enforcement
+ *   12. independent-all-app-release-replay - SVD-115 independent closeout replay of canonical evidence
+ *   13. evidence:freshness:check    - fingerprint freshness after the SWR-110 aggregate is regenerated
+ *   14. skipped-gate-policy        - explicit skip reasons and browser-safety skip enforcement
  *   14. evidence:dashboard-consumer (optional, cross-repo) - MCP dashboard catalog/launch-gate
  *      receipt consistency against the live capability registry. Only runs when the sibling
  *      `hallucinate_app` checkout is present (monorepo/local dev); it is skipped, not failed,
@@ -1045,6 +1046,58 @@ function runVirtualDesktopReleaseEvidenceGate() {
   };
 }
 
+function runIndependentAllAppReleaseReplayGate() {
+  const outcome = runNodeScript('scripts/replay-all-app-release-closeout.cjs');
+  const findings = [];
+  const relativePath = 'test-results/virtual-desktop-ipfs-mcp-orb/independent-all-app-release-replay.json';
+  const replayPath = abs(relativePath);
+  let replay = null;
+  try {
+    replay = JSON.parse(fs.readFileSync(replayPath, 'utf8'));
+  } catch (error) {
+    pushFinding(findings, 'independent-all-app-release-replay-missing', `SVD-115 replay is missing or invalid: ${error.message}`, relativePath);
+  }
+  if (replay) {
+    if (replay.schema !== 'swissknife.independent-all-app-release-replay.v1' || replay.task_id !== 'SVD-115') {
+      pushFinding(findings, 'independent-all-app-release-replay-schema', 'SVD-115 replay does not have the canonical schema/task identity', relativePath);
+    }
+    if (replay.decision?.status !== 'GO' || replay.decision?.blocker_count !== 0 || !Array.isArray(replay.findings) || replay.findings.length !== 0) {
+      pushFinding(
+        findings,
+        'independent-all-app-release-replay-no-go',
+        `SVD-115 independent replay is ${replay.decision?.status ?? 'unknown'}`,
+        relativePath,
+        (replay.decision?.blocker_task_ids ?? []).join(','),
+      );
+    }
+  }
+  return {
+    ok: outcome.ok && findings.length === 0,
+    status: outcome.ok && findings.length === 0 ? 0 : 1,
+    durationMs: outcome.durationMs,
+    findings,
+    tail: [...outcome.tail, ...findings.map((finding) => `${finding.id}: ${finding.message}${finding.detail ? ` (${finding.detail})` : ''}`)].slice(-80),
+  };
+}
+
+function readIndependentAllAppReleaseReplay() {
+  const relativePath = 'test-results/virtual-desktop-ipfs-mcp-orb/independent-all-app-release-replay.json';
+  try {
+    const replay = JSON.parse(fs.readFileSync(abs(relativePath), 'utf8'));
+    return {
+      path: relativePath,
+      status: replay.schema === 'swissknife.independent-all-app-release-replay.v1' && replay.task_id === 'SVD-115' ? 'present' : 'invalid',
+      generatedAt: replay.generated_at ?? null,
+      decision: replay.decision?.status ?? null,
+      blockerCount: replay.decision?.blocker_count ?? null,
+      blockerTaskIds: replay.decision?.blocker_task_ids ?? [],
+      findingCount: Array.isArray(replay.findings) ? replay.findings.length : null,
+    };
+  } catch (error) {
+    return { path: relativePath, status: 'missing', error: error.message };
+  }
+}
+
 function readVirtualDesktopReleaseEvidence() {
   const relativePath = 'test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json';
   const evidencePath = abs(relativePath);
@@ -1264,6 +1317,11 @@ function main() {
       run: () => runVirtualDesktopReleaseEvidenceGate(),
     },
     {
+      id: 'independent-all-app-release-replay',
+      label: 'Independent all-app release closeout replay (SVD-115)',
+      run: () => runIndependentAllAppReleaseReplayGate(),
+    },
+    {
       id: 'evidence-freshness',
       label: 'Browser/libp2p release evidence freshness (evidence:freshness:check)',
       run: () => runNpmScript('evidence:freshness:check'),
@@ -1372,6 +1430,7 @@ function main() {
   const skipped = gates.filter((gate) => gate.status === 'skipped');
   const overallStatus = failed.length > 0 ? 'failed' : 'passed';
   const virtualDesktopReleaseEvidence = readVirtualDesktopReleaseEvidence();
+  const independentAllAppReleaseReplay = readIndependentAllAppReleaseReplay();
   const releaseDecision = overallStatus === 'passed' ? 'GO' : 'NO_GO';
 
   const report = {
@@ -1391,6 +1450,7 @@ function main() {
       releaseDecision,
     },
     virtualDesktopReleaseEvidence,
+    independentAllAppReleaseReplay,
     gates,
   };
 
@@ -1509,6 +1569,15 @@ function main() {
       mdLines.push('');
     }
   }
+  mdLines.push('## Independent All-App Release Replay', '');
+  mdLines.push(
+    `Path: \`${independentAllAppReleaseReplay.path}\``,
+    `Status: \`${independentAllAppReleaseReplay.status}\``,
+    `Decision: \`${independentAllAppReleaseReplay.decision ?? 'unknown'}\``,
+    `Blockers: ${independentAllAppReleaseReplay.blockerCount ?? 'unknown'}`,
+    `Unfinished task IDs: ${(independentAllAppReleaseReplay.blockerTaskIds ?? []).join(', ') || 'none'}`,
+    '',
+  );
   if (failed.length > 0) {
     mdLines.push('## Failure detail', '');
     for (const gate of failed) {
@@ -1518,7 +1587,14 @@ function main() {
 
   const mdPath = abs(args.report);
   fs.mkdirSync(path.dirname(mdPath), { recursive: true });
-  fs.writeFileSync(mdPath, `${mdLines.join('\n').replace(/\n+$/, '')}\n`);
+  // Gate tails can contain Vite or test-runner output. Preserve that evidence,
+  // but normalize line endings so a generated diagnostic report never makes
+  // the independent release replay fail `git diff --check`.
+  const markdown = mdLines
+    .map((line) => String(line).replace(/[\t ]+$/g, ''))
+    .join('\n')
+    .replace(/\n+$/, '');
+  fs.writeFileSync(mdPath, `${markdown}\n`);
 
   const sentinelGate = gates.find((gate) => gate.id === 'browser-service-regression-sentinel');
   const signoffLines = [
@@ -1549,6 +1625,13 @@ function main() {
     '| --- | --- | --- |',
     ...gates.map((gate) => `| ${gate.id} | ${gate.status} | ${gate.skipReason ?? ''} |`),
     '',
+    '## Independent All-App Release Replay (SVD-115)',
+    '',
+    `Receipt: \`${independentAllAppReleaseReplay.path}\``,
+    `Decision: **${independentAllAppReleaseReplay.decision ?? 'NO_GO'}**`,
+    `Blockers: ${independentAllAppReleaseReplay.blockerCount ?? 'unknown'}`,
+    `Unfinished task IDs: ${(independentAllAppReleaseReplay.blockerTaskIds ?? []).join(', ') || 'none'}`,
+    '',
   ];
   if (failed.length > 0) {
     signoffLines.push('## Blocking Failures', '');
@@ -1559,7 +1642,11 @@ function main() {
 
   const signoffPath = abs(args.signoff);
   fs.mkdirSync(path.dirname(signoffPath), { recursive: true });
-  fs.writeFileSync(signoffPath, `${signoffLines.join('\n')}\n`);
+  const signoff = signoffLines
+    .map((line) => String(line).replace(/[\t ]+$/g, ''))
+    .join('\n')
+    .replace(/\n+$/, '');
+  fs.writeFileSync(signoffPath, `${signoff}\n`);
 
   process.stdout.write('\n' + '='.repeat(72) + '\n');
   process.stdout.write(
