@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-13T22:30:08.422Z",
+  "timestamp": "2026-07-19T03:07:28.465Z",
   "summary": {
     "qualityScore": 84,
     "qualityGrade": "B",
@@ -7,11 +7,11 @@
     "brokenLinks": 14,
     "missingScreenshots": 0,
     "generationTime": 29,
-    "lastUpdate": "2026-07-13T22:30:07.870Z",
+    "lastUpdate": "2026-07-19T03:07:27.926Z",
     "status": "needs-improvement"
   },
   "analytics": {
-    "timestamp": "2026-07-13T22:30:07.870Z",
+    "timestamp": "2026-07-19T03:07:27.926Z",
     "quality": {
       "overallScore": 84,
       "completeness": 74,
@@ -40,7 +40,7 @@
       "deletedFiles": 0
     },
     "linkValidation": {
-      "totalLinks": 658,
+      "totalLinks": 660,
       "brokenLinks": 14,
       "repairedLinks": 0,
       "validationStatus": "FAIL"
@@ -103,9 +103,9 @@
     }
   },
   "linkValidation": {
-    "generated": "2026-07-13T22:30:08.112Z",
+    "generated": "2026-07-19T03:07:28.163Z",
     "summary": {
-      "totalFiles": 658,
+      "totalFiles": 660,
       "brokenLinks": 14,
       "repairSuggestions": 0,
       "validationStatus": "FAIL"
@@ -221,7 +221,7 @@
     ]
   },
   "screenshots": {
-    "generated": "2026-07-13T22:30:08.200Z",
+    "generated": "2026-07-19T03:07:28.241Z",
     "summary": {
       "totalMissing": 0,
       "availableScreenshots": 1,
@@ -236,12 +236,6 @@
     "recommendations": []
   },
   "trends": [
-    {
-      "timestamp": "2026-07-10T05:34:40.093Z",
-      "qualityScore": 84,
-      "totalFiles": 33,
-      "brokenLinks": 54
-    },
     {
       "timestamp": "2026-07-10T05:48:18.395Z",
       "qualityScore": 84,
@@ -292,6 +286,12 @@
     },
     {
       "timestamp": "2026-07-13T22:30:07.870Z",
+      "qualityScore": 84,
+      "totalFiles": 33,
+      "brokenLinks": 54
+    },
+    {
+      "timestamp": "2026-07-19T03:07:27.926Z",
       "qualityScore": 84,
       "totalFiles": 33,
       "brokenLinks": 54
