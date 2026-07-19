@@ -1,23 +1,23 @@
 {
   "schemaVersion": 2,
   "taskId": "SWR-110",
-  "generatedAt": "2026-07-19T06:20:40.959Z",
-  "startedAt": "2026-07-19T06:15:44.740Z",
-  "durationMs": 296219,
-  "commitSha": "86a6fec2fcbadef876dc2a0390405e7f9085b423",
+  "generatedAt": "2026-07-19T11:06:22.590Z",
+  "startedAt": "2026-07-19T10:54:15.476Z",
+  "durationMs": 727114,
+  "commitSha": "86eac7da0ca1366089d0d01e7fe9db4575ab5500",
   "overallStatus": "passed",
   "releaseDecision": "GO",
   "goNoGo": "GO",
   "summary": {
-    "total": 14,
-    "passed": 14,
+    "total": 20,
+    "passed": 20,
     "failed": 0,
     "releaseDecision": "GO"
   },
   "virtualDesktopReleaseEvidence": {
     "status": "present",
     "path": "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
-    "generatedAt": "2026-07-19T06:20:39.460Z",
+    "generatedAt": "2026-07-19T11:06:20.874Z",
     "decision": "go",
     "blockerCount": 0,
     "warningCount": 0,
@@ -114,7 +114,7 @@
   "independentAllAppReleaseReplay": {
     "path": "test-results/virtual-desktop-ipfs-mcp-orb/independent-all-app-release-replay.json",
     "status": "present",
-    "generatedAt": "2026-07-19T06:20:39.875Z",
+    "generatedAt": "2026-07-19T11:06:21.377Z",
     "decision": "GO",
     "blockerCount": 0,
     "blockerTaskIds": [],
@@ -125,7 +125,7 @@
       "id": "browser-service-regression-sentinel",
       "label": "Browser/service duplicate regression sentinel (SWR-095)",
       "status": "passed",
-      "durationMs": 69,
+      "durationMs": 71,
       "tail": [],
       "findings": []
     },
@@ -133,7 +133,7 @@
       "id": "services-audit",
       "label": "Service-boundary audit (services:audit)",
       "status": "passed",
-      "durationMs": 5480,
+      "durationMs": 6113,
       "tail": [],
       "findings": []
     },
@@ -141,7 +141,7 @@
       "id": "module-boundary-audit",
       "label": "Repository module-boundary audit (audit:module-boundary)",
       "status": "passed",
-      "durationMs": 5219,
+      "durationMs": 5861,
       "tail": [],
       "findings": []
     },
@@ -149,7 +149,7 @@
       "id": "typecheck",
       "label": "TypeScript project typecheck (typecheck)",
       "status": "passed",
-      "durationMs": 8639,
+      "durationMs": 8911,
       "tail": [],
       "findings": []
     },
@@ -157,7 +157,7 @@
       "id": "test-fast",
       "label": "Fast unit test lane (test:fast)",
       "status": "passed",
-      "durationMs": 37630,
+      "durationMs": 38585,
       "tail": [],
       "findings": []
     },
@@ -165,7 +165,7 @@
       "id": "test-browser-compat",
       "label": "Browser compatibility lane (test:browser-compat)",
       "status": "passed",
-      "durationMs": 17176,
+      "durationMs": 18151,
       "tail": [],
       "findings": []
     },
@@ -173,7 +173,7 @@
       "id": "build-web",
       "label": "Web bundle build + host-leakage/budget audit (build:web)",
       "status": "passed",
-      "durationMs": 15634,
+      "durationMs": 15238,
       "tail": [],
       "findings": []
     },
@@ -181,7 +181,7 @@
       "id": "bundle-host-leakage",
       "label": "Web bundle host-leakage re-audit (audit:bundle-host-leakage)",
       "status": "passed",
-      "durationMs": 8197,
+      "durationMs": 8584,
       "tail": [],
       "findings": []
     },
@@ -189,7 +189,55 @@
       "id": "evidence-mcp-glasses",
       "label": "MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)",
       "status": "passed",
-      "durationMs": 196619,
+      "durationMs": 201830,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "application-live-behavior-proof",
+      "label": "Current real application behavior proof (SVD-106)",
+      "status": "passed",
+      "durationMs": 54308,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "application-gateway-evidence",
+      "label": "Application-originated browser gateway calls (SVD-126)",
+      "status": "passed",
+      "durationMs": 66965,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "mcpplusplus-profile-interoperability",
+      "label": "Profiles A-H HTTP/browser-libp2p transport matrix (SVD-127)",
+      "status": "passed",
+      "durationMs": 5244,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "meta-device-simulator-replay",
+      "label": "Hardware-free Meta glasses device simulator replay (SVD-099/SVD-111)",
+      "status": "passed",
+      "durationMs": 291430,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "dispatch-artifact-persistence",
+      "label": "Supervisor dispatch artifact CID/event-DAG persistence (SVD-113)",
+      "status": "passed",
+      "durationMs": 2145,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "submodule-merge-reconciliation",
+      "label": "Submodule/workspace merge reconciliation (SVD-116)",
+      "status": "passed",
+      "durationMs": 1866,
       "tail": [],
       "findings": []
     },
@@ -197,7 +245,7 @@
       "id": "virtual-desktop-release-evidence",
       "label": "Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)",
       "status": "passed",
-      "durationMs": 417,
+      "durationMs": 515,
       "tail": [],
       "findings": []
     },
@@ -205,7 +253,7 @@
       "id": "independent-all-app-release-replay",
       "label": "Independent all-app release closeout replay (SVD-115)",
       "status": "passed",
-      "durationMs": 104,
+      "durationMs": 110,
       "tail": [],
       "findings": []
     },
@@ -213,7 +261,7 @@
       "id": "evidence-freshness",
       "label": "Browser/libp2p release evidence freshness (evidence:freshness:check)",
       "status": "passed",
-      "durationMs": 348,
+      "durationMs": 413,
       "tail": [],
       "findings": []
     },
@@ -221,7 +269,7 @@
       "id": "evidence-dashboard-consumer",
       "label": "MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer)",
       "status": "passed",
-      "durationMs": 680,
+      "durationMs": 735,
       "tail": [],
       "findings": []
     },
@@ -229,7 +277,7 @@
       "id": "skipped-gate-policy",
       "label": "Skipped gate policy (explicit reason + browser-safety enforcement)",
       "status": "passed",
-      "durationMs": 0,
+      "durationMs": 1,
       "tail": [],
       "findings": []
     }

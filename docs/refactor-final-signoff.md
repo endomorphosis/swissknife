@@ -1,7 +1,7 @@
 # Refactor Final Signoff
 
-Generated: 2026-07-19T06:20:40.959Z
-Commit: 86a6fec2fcbadef876dc2a0390405e7f9085b423
+Generated: 2026-07-19T11:06:22.590Z
+Commit: 86eac7da0ca1366089d0d01e7fe9db4575ab5500
 Release readiness: PASSED
 
 ## SWR-095 Browser/Service Sentinel
@@ -32,6 +32,12 @@ The release readiness gate now fails on:
 | build-web | passed |  |
 | bundle-host-leakage | passed |  |
 | evidence-mcp-glasses | passed |  |
+| application-live-behavior-proof | passed |  |
+| application-gateway-evidence | passed |  |
+| mcpplusplus-profile-interoperability | passed |  |
+| meta-device-simulator-replay | passed |  |
+| dispatch-artifact-persistence | passed |  |
+| submodule-merge-reconciliation | passed |  |
 | virtual-desktop-release-evidence | passed |  |
 | independent-all-app-release-replay | passed |  |
 | evidence-freshness | passed |  |

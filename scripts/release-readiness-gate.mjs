@@ -49,6 +49,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  RELEASE_EVIDENCE_PRODUCER_GATES,
+  resetReleaseEvidenceProducers,
+  runSingleProducerGate,
+} from './lib/release-readiness-evidence-producers.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1257,6 +1262,25 @@ function main() {
   const gates = [];
   let stoppedEarly = null;
 
+  // SVD-131: cold-start, one-pass guarantee. Delete every evidence artifact
+  // owned by the producer gates below before running anything, so this
+  // candidate cannot pass because a gitignored receipt from a prior run (in
+  // this checkout or a previous session sharing it) happens to still be
+  // sitting in the working tree. Only files/directories this manifest
+  // explicitly owns are removed; every other evidence artifact (including
+  // git-tracked catalogues owned by earlier SVD/SWR tasks) is left alone.
+  process.stdout.write('\n▶ Cold-start evidence reset (SVD-131)\n');
+  const clearedEvidence = resetReleaseEvidenceProducers({
+    log: (cleared) => {
+      process.stdout.write(
+        `  cleared ${cleared.length} prior-run receipt(s):\n${cleared.map((entry) => `    - ${entry}`).join('\n')}\n`,
+      );
+    },
+  });
+  if (clearedEvidence.length === 0) {
+    process.stdout.write('  evidence root already empty; nothing to clear.\n');
+  }
+
   const requiredGates = [
     {
       id: 'browser-service-regression-sentinel',
@@ -1311,6 +1335,27 @@ function main() {
       label: 'MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)',
       run: () => runNpmScript('evidence:mcp-glasses'),
     },
+    // SVD-131: the canonical real producers for every evidence class the
+    // aggregate below reads and validates. These must run -- in this order,
+    // every time -- so `npm run release:readiness` from a clean checkout
+    // regenerates them itself instead of aggregating whatever gitignored
+    // receipts happen to already exist in the working tree (see the
+    // cold-start reset above `main()`'s gate loop).
+    ...RELEASE_EVIDENCE_PRODUCER_GATES.map((producer) => ({
+      id: producer.id,
+      label: producer.label,
+      run: () => {
+        const outcome = runSingleProducerGate(producer, { runProducer: () => runNpmScript(producer.npmScript) });
+        const findings = [];
+        for (const file of outcome.missingFiles ?? []) {
+          pushFinding(findings, `${producer.id}-missing-evidence-file`, `${producer.label} did not produce required evidence`, file);
+        }
+        for (const dir of outcome.missingDirs ?? []) {
+          pushFinding(findings, `${producer.id}-missing-evidence-dir`, `${producer.label} did not produce required (non-empty) evidence directory`, dir);
+        }
+        return { ...outcome, findings };
+      },
+    })),
     {
       id: 'virtual-desktop-release-evidence',
       label: 'Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)',

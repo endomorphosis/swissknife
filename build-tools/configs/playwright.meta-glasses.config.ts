@@ -4,7 +4,6 @@ import { fileURLToPath } from 'url';
 
 const configDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(configDir, '../..');
-const webRoot = resolve(repoRoot, 'web');
 const metaGlassesPort = resolveMetaGlassesPort();
 const baseURL = `http://127.0.0.1:${metaGlassesPort}`;
 
@@ -51,9 +50,24 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `python3 -m http.server ${metaGlassesPort} --bind 127.0.0.1 --directory "${webRoot}"`,
-    url: `${baseURL}/index.html`,
+    // SVD-131: serve the desktop through the real same-origin Vite dev
+    // server -- the same one `playwright.live-gateway.config.ts` uses --
+    // instead of a plain `python3 -m http.server` static file server. The
+    // Meta glasses simulator suites launch real desktop apps, which mount
+    // `js/live-tool-gateway.js` and depend on the `/mcp/tools/bindings` and
+    // `/mcp/tools/call` same-origin mediator middleware that only the Vite
+    // dev server installs (see `vite.web.config.ts`); a static file server
+    // 404s those routes, which both violates "no Python in the evidence
+    // path" and produces spurious "Gateway control catalog returned HTTP
+    // 404" console errors that fail the zero-browser-error assertions in
+    // this suite. `--strictPort` refuses to silently fall back to a
+    // different port, so this evidence run either owns `metaGlassesPort`
+    // itself or fails loudly instead of attaching to an unverified,
+    // possibly foreign server; `reuseExistingServer: false` means
+    // Playwright always starts (and owns) its own server instance here.
+    command: `npm run desktop -- --port ${metaGlassesPort} --strictPort`,
+    url: baseURL,
     reuseExistingServer: false,
-    timeout: 30 * 1000,
+    timeout: 120 * 1000,
   },
 });

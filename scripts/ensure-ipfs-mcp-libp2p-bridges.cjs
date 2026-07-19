@@ -46,11 +46,23 @@ async function main() {
 
 async function ensureBridge(bridge) {
   const announcePath = path.join(evidenceRoot, bridge.announce);
-  if (await portReady(bridge.port) && readAnnounce(announcePath, bridge.service, bridge.endpoint)) {
+  const healthPortReady = await portReady(bridge.port);
+  const announceValid = readAnnounce(announcePath, bridge.service, bridge.endpoint);
+  // SVD-131: the health-check port and a structurally valid announce file
+  // are not sufficient proof the bridge is actually reachable over libp2p.
+  // A long-running bridge's internal libp2p swarm can silently rebind (or
+  // die) while its unrelated HTTP health endpoint keeps responding, leaving
+  // a stale multiaddr/port in the announce file that no longer accepts
+  // connections. Every application-originated libp2p call would then fail
+  // with a real transport error even though this "already_running" check
+  // reported success. Independently verify the announced multiaddr's own
+  // TCP port is live before trusting this bridge as fresh evidence.
+  const multiaddrReady = announceValid && (await multiaddrPortReady(announcePath));
+  if (healthPortReady && announceValid && multiaddrReady) {
     return { service: bridge.service, ready: true, action: 'already_running', announce_file: path.relative(projectRoot, announcePath) };
   }
 
-  const portWasReady = await portReady(bridge.port);
+  const portWasReady = healthPortReady;
   if (portWasReady) {
     const stopped = await stopOwnedStaleBridge(bridge);
     if (!stopped) {
@@ -152,10 +164,42 @@ function ownedBridgeProcess(pid, bridge) {
 async function waitForBridge(port, announcePath, service) {
   const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
-    if (await portReady(port) && readAnnounce(announcePath, service, bridges.find(bridge => bridge.service === service)?.endpoint)) return true;
+    if (
+      await portReady(port)
+      && readAnnounce(announcePath, service, bridges.find(bridge => bridge.service === service)?.endpoint)
+      && (await multiaddrPortReady(announcePath))
+    ) return true;
     await new Promise(resolve => setTimeout(resolve, 250));
   }
   return false;
+}
+
+/**
+ * Parses the TCP port out of a `/ip4/<host>/tcp/<port>/p2p/<peer-id>`
+ * multiaddr. Returns `null` for any other transport shape (e.g. QUIC) this
+ * ensure script does not know how to independently freshness-check.
+ */
+function multiaddrTcpPort(multiaddr) {
+  const match = /\/tcp\/(\d+)(?:\/|$)/.exec(typeof multiaddr === 'string' ? multiaddr : '');
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Independently proves the announced libp2p multiaddr is actually reachable
+ * right now, not merely that the announce file has the right shape. This is
+ * the freshness guarantee that a stale-but-structurally-valid announce file
+ * left over from an earlier bridge instance cannot be mistaken for a live
+ * one just because the unrelated HTTP health port still responds.
+ */
+async function multiaddrPortReady(announcePath) {
+  try {
+    const announce = JSON.parse(fs.readFileSync(announcePath, 'utf8'));
+    const port = multiaddrTcpPort(announce.multiaddr);
+    if (!port) return false;
+    return await portReady(port);
+  } catch (_error) {
+    return false;
+  }
 }
 
 function portReady(port) {

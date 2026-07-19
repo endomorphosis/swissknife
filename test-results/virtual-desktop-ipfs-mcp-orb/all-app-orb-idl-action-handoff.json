@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.all-app-orb-idl-action-handoff.v1",
   "task_id": "SVD-110",
-  "generated_at": "2026-07-18T19:16:16.957Z",
+  "generated_at": "2026-07-19T11:01:27.460Z",
   "generated_from": [
     "src/services/apps/all-app-executable-backend-contract.ts",
     "src/services/apps/all-app-live-tool-bindings.ts",
@@ -4091,8 +4091,8 @@
       "source_contract_ref": "org.hallucinate.swissknife.all-app-live-tool-bindings"
     },
     {
-      "packet_id": "handoff:binding:mcp-control.ipfs_datasets_py.inspect_tool_registry:1c391cff6a05bd14",
-      "packet_cid": "sha256:c72ed329bbf98c9072722544a88557f19cc81efc8e7d70b81c391cff6a05bd14",
+      "packet_id": "handoff:binding:mcp-control.ipfs_datasets_py.inspect_tool_registry:daae1964862a0b83",
+      "packet_cid": "sha256:d80f4f7d971b184b1303995e6473d0f0f63ea6cf09321827daae1964862a0b83",
       "route_id": "binding:mcp-control.ipfs_datasets_py.inspect_tool_registry",
       "app_id": "mcp-control",
       "action_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry",
@@ -4131,14 +4131,14 @@
       "correlation_id": "svd110-binding-030-mcp-control-ipfs-datasets-py-inspect-tool-registry",
       "tool_ref": {
         "owner": "ipfs_datasets_py",
-        "tool_id": "get_task_status",
+        "tool_id": "tools_list_categories",
         "gateway_route": "/mcp/tools/call",
         "binding_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry"
       },
       "tool_refs": [
         {
           "owner": "ipfs_datasets_py",
-          "tool_id": "get_task_status",
+          "tool_id": "tools_list_categories",
           "gateway_route": "/mcp/tools/call",
           "binding_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry"
         }
@@ -4514,8 +4514,8 @@
       "source_contract_ref": "org.hallucinate.swissknife.all-app-live-tool-bindings"
     },
     {
-      "packet_id": "handoff:binding:mcp-plus-plus.ipfs_datasets_py.inspect_tool_registry:220107cd19b1af0a",
-      "packet_cid": "sha256:557879f96d314b9b5d4222c3948e52f81e141bf00bdac2dd220107cd19b1af0a",
+      "packet_id": "handoff:binding:mcp-plus-plus.ipfs_datasets_py.inspect_tool_registry:4e7fce35ffeab2ec",
+      "packet_cid": "sha256:da5f1225ce7bd3c4b9cd75d9de0a1497d8b763ce8c2aa37f4e7fce35ffeab2ec",
       "route_id": "binding:mcp-plus-plus.ipfs_datasets_py.inspect_tool_registry",
       "app_id": "mcp-plus-plus",
       "action_id": "mcp-plus-plus.ipfs_datasets_py.inspect_tool_registry",
@@ -4554,14 +4554,14 @@
       "correlation_id": "svd110-binding-075-mcp-plus-plus-ipfs-datasets-py-inspect-tool-registry",
       "tool_ref": {
         "owner": "ipfs_datasets_py",
-        "tool_id": "get_task_status",
+        "tool_id": "tools_list_categories",
         "gateway_route": "/mcp/tools/call",
         "binding_id": "mcp-plus-plus.ipfs_datasets_py.inspect_tool_registry"
       },
       "tool_refs": [
         {
           "owner": "ipfs_datasets_py",
-          "tool_id": "get_task_status",
+          "tool_id": "tools_list_categories",
           "gateway_route": "/mcp/tools/call",
           "binding_id": "mcp-plus-plus.ipfs_datasets_py.inspect_tool_registry"
         }
@@ -7323,8 +7323,8 @@
       "source_contract_ref": "org.hallucinate.swissknife.all-app-live-tool-bindings"
     },
     {
-      "packet_id": "handoff:binding:orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor:84e6a095a1b17a04",
-      "packet_cid": "sha256:893c10f7bda57a2d7059e301f5b945b5d78e10c4799d627d84e6a095a1b17a04",
+      "packet_id": "handoff:binding:orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor:7df9cb00969f70c4",
+      "packet_cid": "sha256:d54355fbfae0b5b5724ded1ae44a1ce5c788a8fc7a207dca7df9cb00969f70c4",
       "route_id": "binding:orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor",
       "app_id": "orb-auto-ui",
       "action_id": "orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor",
@@ -7363,14 +7363,14 @@
       "correlation_id": "svd110-binding-072-orb-auto-ui-ipfs-datasets-py-inspect-tool-descriptor",
       "tool_ref": {
         "owner": "ipfs_datasets_py",
-        "tool_id": "get_task_status",
+        "tool_id": "tools_get_schema",
         "gateway_route": "/mcp/tools/call",
         "binding_id": "orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor"
       },
       "tool_refs": [
         {
           "owner": "ipfs_datasets_py",
-          "tool_id": "get_task_status",
+          "tool_id": "tools_get_schema",
           "gateway_route": "/mcp/tools/call",
           "binding_id": "orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor"
         }

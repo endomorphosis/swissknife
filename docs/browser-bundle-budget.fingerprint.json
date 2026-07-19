@@ -2,7 +2,7 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "browser-bundle-budget",
   "label": "Browser bundle budget evidence (SWR-016)",
-  "generatedAt": "2026-07-19T05:54:41.878Z",
+  "generatedAt": "2026-07-19T10:41:57.474Z",
   "evidenceFiles": [
     "docs/browser-bundle-budget.md",
     "docs/browser-bundle-budget.json"
@@ -11,11 +11,11 @@
     "docs/browser-bundle-budget.md": "48a16e569811d30c37ff07b977bdf606c92595cd9689862134be80808f710199",
     "docs/browser-bundle-budget.json": "27f23a0d17a118aef006583995fc61e4006400bfa6861ca6ae2ed30634f1df76"
   },
-  "sourceFingerprint": "1a66da77a666b74c46e2f34ccd9e4aa5c96096fd38cd1d088caca1ceb2b51f54",
+  "sourceFingerprint": "199162140fd8967eb2053e3b0cc6728b858d3c2ddb9c2879d643fb2242145ef7",
   "sourceFiles": [
     {
       "path": "package.json",
-      "sha256": "f4b1988da0297e6fe3e7be0766f29f382b0cba81028af6e231f93a4588dafb97"
+      "sha256": "0a44cf0c9b0224b201edac90f99e51ed07b10dd5b682531b23b4e2c2941bb76e"
     },
     {
       "path": "scripts/audit-web-bundle.mjs",

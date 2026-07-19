@@ -1,25 +1,31 @@
 # Release Readiness Report
 
-Generated: 2026-07-19T06:20:40.959Z
-Commit: 86a6fec2fcbadef876dc2a0390405e7f9085b423
+Generated: 2026-07-19T11:06:22.590Z
+Commit: 86eac7da0ca1366089d0d01e7fe9db4575ab5500
 Overall status: ✅ PASSED
 Release decision: `GO`
-Duration: 296.2s
+Duration: 727.1s
 
 | Gate | Status | Duration |
 | --- | --- | --- |
 | Browser/service duplicate regression sentinel (SWR-095) | ✅ passed | 0.1s |
-| Service-boundary audit (services:audit) | ✅ passed | 5.5s |
-| Repository module-boundary audit (audit:module-boundary) | ✅ passed | 5.2s |
-| TypeScript project typecheck (typecheck) | ✅ passed | 8.6s |
-| Fast unit test lane (test:fast) | ✅ passed | 37.6s |
-| Browser compatibility lane (test:browser-compat) | ✅ passed | 17.2s |
-| Web bundle build + host-leakage/budget audit (build:web) | ✅ passed | 15.6s |
-| Web bundle host-leakage re-audit (audit:bundle-host-leakage) | ✅ passed | 8.2s |
-| MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses) | ✅ passed | 196.6s |
-| Virtual desktop release evidence aggregation (hierarchical MCP + all-tools) | ✅ passed | 0.4s |
+| Service-boundary audit (services:audit) | ✅ passed | 6.1s |
+| Repository module-boundary audit (audit:module-boundary) | ✅ passed | 5.9s |
+| TypeScript project typecheck (typecheck) | ✅ passed | 8.9s |
+| Fast unit test lane (test:fast) | ✅ passed | 38.6s |
+| Browser compatibility lane (test:browser-compat) | ✅ passed | 18.2s |
+| Web bundle build + host-leakage/budget audit (build:web) | ✅ passed | 15.2s |
+| Web bundle host-leakage re-audit (audit:bundle-host-leakage) | ✅ passed | 8.6s |
+| MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses) | ✅ passed | 201.8s |
+| Current real application behavior proof (SVD-106) | ✅ passed | 54.3s |
+| Application-originated browser gateway calls (SVD-126) | ✅ passed | 67.0s |
+| Profiles A-H HTTP/browser-libp2p transport matrix (SVD-127) | ✅ passed | 5.2s |
+| Hardware-free Meta glasses device simulator replay (SVD-099/SVD-111) | ✅ passed | 291.4s |
+| Supervisor dispatch artifact CID/event-DAG persistence (SVD-113) | ✅ passed | 2.1s |
+| Submodule/workspace merge reconciliation (SVD-116) | ✅ passed | 1.9s |
+| Virtual desktop release evidence aggregation (hierarchical MCP + all-tools) | ✅ passed | 0.5s |
 | Independent all-app release closeout replay (SVD-115) | ✅ passed | 0.1s |
-| Browser/libp2p release evidence freshness (evidence:freshness:check) | ✅ passed | 0.3s |
+| Browser/libp2p release evidence freshness (evidence:freshness:check) | ✅ passed | 0.4s |
 | MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer) | ✅ passed | 0.7s |
 | Skipped gate policy (explicit reason + browser-safety enforcement) | ✅ passed | 0.0s |
 
