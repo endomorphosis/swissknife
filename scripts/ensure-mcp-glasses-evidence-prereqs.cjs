@@ -61,12 +61,26 @@ const commands = [
 // but do not claim an unavailable external consumer as passing evidence.
 if (dashboardConsumerAvailable()) {
   commands.splice(6, 0,
-    [process.execPath, ['scripts/run_playwright_test.mjs', 'test', '-c', 'build-tools/configs/playwright.mcp-dashboard.config.ts']],
+    [process.execPath, [
+      'scripts/run-with-owned-port.mjs',
+      '--env-var', 'SWISSKNIFE_MCP_E2E_PORT',
+      '--preferred', '3417',
+      '--',
+      process.execPath,
+      'scripts/run_playwright_test.mjs',
+      'test',
+      '-c', 'build-tools/configs/playwright.mcp-dashboard.config.ts',
+    ]],
     [process.execPath, ['scripts/test-mcp-dashboard-consumer.cjs']],
   );
 } else {
   console.log('Skipping optional Hallucinate App dashboard-consumer evidence: sibling checkout is unavailable.');
   commands.splice(6, 0, [process.execPath, [
+    'scripts/run-with-owned-port.mjs',
+    '--env-var', 'SWISSKNIFE_MCP_E2E_PORT',
+    '--preferred', '3417',
+    '--',
+    process.execPath,
     'scripts/run_playwright_test.mjs',
     'test',
     '-c', 'build-tools/configs/playwright.mcp-dashboard.config.ts',

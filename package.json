@@ -201,7 +201,7 @@
     "test:ci-safe": "jest --config=config/jest/jest.fast.config.cjs --ci --coverage --runInBand",
     "test:unit": "npm run test:fast",
     "test:e2e": "jest --config=config/jest/jest.e2e.config.cjs --runInBand",
-    "test:e2e:mcp": "node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.mcp-dashboard.config.ts && node scripts/test-mcp-dashboard-consumer.cjs",
+    "test:e2e:mcp": "node scripts/run-with-owned-port.mjs --env-var SWISSKNIFE_MCP_E2E_PORT --preferred 3417 -- node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.mcp-dashboard.config.ts && node scripts/test-mcp-dashboard-consumer.cjs",
     "test:e2e:live-gateway": "node scripts/run-with-owned-port.mjs --env-var SWISSKNIFE_LIVE_GATEWAY_E2E_PORT --preferred 3001 -- node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.live-gateway.config.ts test/e2e/all-app-live-gateway-executions.spec.ts --reporter=line",
     "evidence:live-gateway": "node scripts/ensure-ipfs-mcp-compat-adapters.cjs && node scripts/ensure-ipfs-mcp-libp2p-bridges.cjs && npm run test:e2e:live-gateway",
     "test:e2e:live-behavior-proof": "node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.live-behavior-proof.config.ts test/e2e/all-app-live-behavior-proof.spec.ts --reporter=line",

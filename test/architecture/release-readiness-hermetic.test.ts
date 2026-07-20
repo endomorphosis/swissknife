@@ -421,6 +421,8 @@ describe('release readiness hermetic cold-start orchestration (SVD-131)', () => 
 
     expect(packageJson.scripts['test:e2e:live-gateway']).toContain('scripts/run-with-owned-port.mjs');
     expect(packageJson.scripts['test:e2e:live-gateway']).toContain('SWISSKNIFE_LIVE_GATEWAY_E2E_PORT');
+    expect(packageJson.scripts['test:e2e:mcp']).toContain('scripts/run-with-owned-port.mjs');
+    expect(packageJson.scripts['test:e2e:mcp']).toContain('SWISSKNIFE_MCP_E2E_PORT');
     expect(liveGatewayConfig).toContain('reuseExistingServer: false');
     expect(liveGatewayConfig).toContain('--strictPort');
     expect(liveGatewayConfig).toContain('SWISSKNIFE_LIVE_GATEWAY_E2E_PORT');

@@ -27,7 +27,7 @@ export default defineConfig({
     command: `CHOKIDAR_USEPOLLING=1 npx vite dev --config vite.web.config.ts --host 127.0.0.1 --port ${e2ePort}`,
     url: baseURL,
     cwd: repoRoot,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120 * 1000,
   },
 });
