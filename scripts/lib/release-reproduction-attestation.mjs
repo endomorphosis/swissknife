@@ -685,8 +685,8 @@ export function runCleanCheckoutReleaseReproduction({
     const reproductionSourceFingerprint = trackedTreeFingerprint(cloneRoot);
     const reproductionLockfileSha256 = sha256File(path.join(cloneRoot, 'package-lock.json'));
     const freshness = freshnessSummary(cloneRoot);
-    const referenceEvidenceFreshnessSha256 = evidenceFreshnessFingerprint(referenceEvidenceFreshness);
-    const reproductionEvidenceFreshnessSha256 = evidenceFreshnessFingerprint(freshness);
+    const referenceEvidenceFreshnessContract = evidenceFreshnessContractFingerprint(referenceEvidenceFreshness);
+    const reproductionEvidenceFreshnessContract = evidenceFreshnessContractFingerprint(freshness);
     const blockingFreshnessFailures = (freshness.results ?? []).filter((result) =>
       result.release_blocking && result.status !== 'fresh',
     );
@@ -700,9 +700,9 @@ export function runCleanCheckoutReleaseReproduction({
         reproductionSourceFingerprint.git_tree_sha,
       ),
       lockfile_hash: compareValue(referenceLockfileSha256 ?? null, reproductionLockfileSha256),
-      evidence_freshness_fingerprint: compareValue(
-        referenceEvidenceFreshnessSha256,
-        reproductionEvidenceFreshnessSha256,
+      evidence_freshness_contract: compareValue(
+        referenceEvidenceFreshnessContract,
+        reproductionEvidenceFreshnessContract,
       ),
     };
     const comparisonFailures = Object.values(comparisons).filter((comparison) => comparison.matches === false);
@@ -763,6 +763,17 @@ export function runCleanCheckoutReleaseReproduction({
       failure_reason: `unexpected reproduction error: ${error?.message ?? String(error)}`,
     });
   }
+}
+
+function evidenceFreshnessContractFingerprint(freshness) {
+  const contract = (freshness?.results ?? [])
+    .map((result) => ({
+      id: result.id ?? null,
+      release_blocking: result.release_blocking === true,
+      status: result.status ?? null,
+    }))
+    .sort((left, right) => String(left.id).localeCompare(String(right.id)));
+  return evidenceFreshnessFingerprint({ results: contract });
 }
 
 export function buildReleaseReproductionAttestation({
