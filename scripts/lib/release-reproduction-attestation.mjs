@@ -101,12 +101,23 @@ export function capturePreRunGitState(repoRoot) {
   const swissknifeBranch = git(repoRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
   const swissknifeStatus = git(repoRoot, ['status', '--porcelain=v1', '--untracked-files=all']);
   const parentHeadResult = git(parentRoot, ['rev-parse', 'HEAD']);
-  const parentGitlinkRowResult = git(parentRoot, ['ls-tree', 'HEAD', 'swissknife']);
+  const parentHeadGitlinkRowResult = git(parentRoot, ['ls-tree', 'HEAD', 'swissknife']);
+  const parentIndexGitlinkRowResult = git(parentRoot, ['ls-files', '-s', 'swissknife']);
   const parentStatusResult = git(parentRoot, ['status', '--porcelain=v1', '--', 'swissknife']);
   const parentHead = parentHeadResult.stdout || process.env[CLEAN_REPRODUCTION_PARENT_HEAD_ENV] || null;
-  const parentGitlinkRow = parentGitlinkRowResult.stdout || '';
-  const gitlinkMatch = parentGitlinkRow.match(/\bcommit\s+([0-9a-f]{40})\b/);
-  const parentGitlinkSha = gitlinkMatch?.[1] ?? process.env[CLEAN_REPRODUCTION_PARENT_GITLINK_ENV] ?? null;
+  const parentHeadGitlinkRow = parentHeadGitlinkRowResult.stdout || '';
+  const parentIndexGitlinkRow = parentIndexGitlinkRowResult.stdout || '';
+  const parentHeadGitlinkSha = parentHeadGitlinkRow.match(/\bcommit\s+([0-9a-f]{40})\b/)?.[1] ?? null;
+  const parentIndexGitlinkSha = parentIndexGitlinkRow.match(/^160000\s+([0-9a-f]{40})\s+\d+\s+swissknife$/)?.[1] ?? null;
+  const parentEnvGitlinkSha = process.env[CLEAN_REPRODUCTION_PARENT_GITLINK_ENV] || null;
+  const parentGitlinkSha = parentIndexGitlinkSha ?? parentHeadGitlinkSha ?? parentEnvGitlinkSha;
+  const parentGitlinkSource = parentIndexGitlinkSha
+    ? 'index'
+    : parentHeadGitlinkSha
+      ? 'HEAD'
+      : parentEnvGitlinkSha
+        ? 'environment'
+        : null;
   let parentStatusEntries = parentStatusResult.stdout ? parentStatusResult.stdout.split('\n').filter(Boolean) : [];
   if (parentStatusEntries.length === 0 && process.env[CLEAN_REPRODUCTION_PARENT_STATUS_ENV]) {
     try {
@@ -125,6 +136,9 @@ export function capturePreRunGitState(repoRoot) {
     swissknife_status_entries: swissknifeStatus.stdout ? swissknifeStatus.stdout.split('\n').filter(Boolean) : [],
     parent_head: parentHead,
     parent_gitlink_sha: parentGitlinkSha,
+    parent_gitlink_source: parentGitlinkSource,
+    parent_head_gitlink_sha: parentHeadGitlinkSha,
+    parent_index_gitlink_sha: parentIndexGitlinkSha,
     parent_gitlink_matches_head: Boolean(parentGitlinkSha && swissknifeHead && parentGitlinkSha === swissknifeHead),
     parent_status_entries: parentStatusEntries,
   };
@@ -787,6 +801,9 @@ export function buildReleaseReproductionAttestation({
       pre_run_status_entries: preRunGitState?.swissknife_status_entries ?? [],
       parent_repository_commit: preRunGitState?.parent_head ?? null,
       parent_gitlink_sha: preRunGitState?.parent_gitlink_sha ?? null,
+      parent_gitlink_source: preRunGitState?.parent_gitlink_source ?? null,
+      parent_head_gitlink_sha: preRunGitState?.parent_head_gitlink_sha ?? null,
+      parent_index_gitlink_sha: preRunGitState?.parent_index_gitlink_sha ?? null,
       parent_gitlink_matches_head: preRunGitState?.parent_gitlink_matches_head ?? null,
       parent_status_entries: preRunGitState?.parent_status_entries ?? [],
       lockfile: {
@@ -836,6 +853,7 @@ export function renderReleaseReproductionAttestationMarkdown(attestation) {
     '',
     `Parent repository commit: \`${attestation.candidate?.parent_repository_commit ?? 'unknown'}\``,
     `Parent gitlink SHA: \`${attestation.candidate?.parent_gitlink_sha ?? 'missing'}\``,
+    `Parent gitlink source: ${attestation.candidate?.parent_gitlink_source ?? 'unknown'}`,
     `Parent gitlink matches checkout: ${attestation.candidate?.parent_gitlink_matches_head === true ? 'yes' : 'no'}`,
     `Detached checkout: ${attestation.candidate?.detached === true ? 'yes' : 'no'}`,
     `Checkout policy: ${attestation.candidate?.checkout_policy?.mode ?? 'unknown'} (${attestation.candidate?.checkout_policy?.reason ?? 'unknown'})`,
