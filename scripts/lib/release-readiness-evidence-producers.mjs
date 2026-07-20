@@ -54,6 +54,8 @@ export const evidenceRoot = path.join(repoRoot, 'test-results', 'virtual-desktop
  * @property {boolean=} truthy Whether the value must be truthy.
  * @property {number=} arrayMinLength Required minimum array length.
  * @property {number=} arrayMaxLength Required maximum array length.
+ * @property {{path: string, equals?: unknown, oneOf?: unknown[]}=} skipWhen Skip this
+ * check only when a documented receipt context matches this JSON-path condition.
  *
  * @typedef {object} EvidenceFileVerification
  * @property {string} file Evidence file path relative to `evidenceRoot`.
@@ -508,12 +510,30 @@ export const RELEASE_EVIDENCE_PRODUCER_GATES = [
           taskId: 'SWR-162',
           extra: [
             { path: 'decision', equals: 'GO' },
-            { path: 'task_status.tasks.SWR-160.status', equals: 'completed' },
-            { path: 'task_status.tasks.SWR-161.status', equals: 'completed' },
+            { path: 'task_status.availability', oneOf: ['present', 'unavailable_in_standalone_source_checkout'] },
+            { path: 'task_status.required_for_decision', present: true },
+            {
+              path: 'task_status.tasks.SWR-160.status',
+              equals: 'completed',
+              skipWhen: { path: 'task_status.availability', equals: 'unavailable_in_standalone_source_checkout' },
+            },
+            {
+              path: 'task_status.tasks.SWR-161.status',
+              equals: 'completed',
+              skipWhen: { path: 'task_status.availability', equals: 'unavailable_in_standalone_source_checkout' },
+            },
             { path: 'checkout.unmerged_paths', arrayMaxLength: 0 },
             { path: 'checkout.conflict_marker_paths', arrayMaxLength: 0 },
-            { path: 'integration.ref_dispositions', arrayMinLength: 1 },
-            { path: 'integration.rejected_stale_or_recovery_branches', arrayMinLength: 1 },
+            {
+              path: 'integration.ref_dispositions',
+              arrayMinLength: 1,
+              skipWhen: { path: 'task_status.availability', equals: 'unavailable_in_standalone_source_checkout' },
+            },
+            {
+              path: 'integration.rejected_stale_or_recovery_branches',
+              arrayMinLength: 1,
+              skipWhen: { path: 'task_status.availability', equals: 'unavailable_in_standalone_source_checkout' },
+            },
           ],
         }),
       }],
@@ -850,6 +870,7 @@ function verifyProducerEvidenceContent(producer, evidenceRootDir, repoRootDir) {
       });
     }
     for (const check of verification.checks ?? []) {
+      if (jsonCheckMatches(data, check.skipWhen)) continue;
       const value = readJsonPath(data, check.path);
       const reason = jsonCheckFailure(value, check);
       if (reason) {
@@ -869,6 +890,13 @@ function readJsonPath(value, dottedPath) {
     if (current === null || current === undefined) return undefined;
     return current[segment];
   }, value);
+}
+
+function jsonCheckMatches(data, condition) {
+  if (!condition?.path) return false;
+  const value = readJsonPath(data, condition.path);
+  if (Object.hasOwn(condition, 'equals')) return value === condition.equals;
+  return Array.isArray(condition.oneOf) && condition.oneOf.includes(value);
 }
 
 function jsonCheckFailure(value, check) {

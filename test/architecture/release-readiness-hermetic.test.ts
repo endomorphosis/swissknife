@@ -705,6 +705,57 @@ describe('release readiness hermetic cold-start orchestration (SVD-131)', () => 
     }
   });
 
+  it('requires parent-only refactor metadata in an integration receipt but accepts its explicit standalone-clone context', () => {
+    const isolated = createIsolatedRoot();
+    try {
+      const producer = RELEASE_EVIDENCE_PRODUCER_GATES.find((entry) => entry.id === 'refactor-main-reconciliation')!;
+      const receiptPath = join(isolated.evidenceRoot, producer.evidenceFiles[0]);
+      const baseReceipt = {
+        schema: producer.schema,
+        task_id: producer.taskId,
+        generated_at: '2026-07-20T00:00:00.000Z',
+        decision: 'GO',
+        checkout: {
+          unmerged_paths: [],
+          conflict_marker_paths: [],
+        },
+        integration: {
+          ref_dispositions: [],
+          rejected_stale_or_recovery_branches: [],
+        },
+      };
+
+      writeJson(receiptPath, {
+        ...baseReceipt,
+        task_status: {
+          availability: 'unavailable_in_standalone_source_checkout',
+          required_for_decision: false,
+          tasks: {},
+        },
+      });
+      expect(verifyProducerEvidence(producer, isolated.evidenceRoot, isolated.repoRoot)).toMatchObject({ ok: true });
+
+      writeJson(receiptPath, {
+        ...baseReceipt,
+        task_status: {
+          availability: 'present',
+          required_for_decision: true,
+          tasks: {},
+        },
+      });
+      const embeddedVerification = verifyProducerEvidence(producer, isolated.evidenceRoot, isolated.repoRoot);
+      expect(embeddedVerification.ok).toBe(false);
+      expect(embeddedVerification.invalidFiles.map((entry) => entry.path)).toEqual(expect.arrayContaining([
+        'task_status.tasks.SWR-160.status',
+        'task_status.tasks.SWR-161.status',
+        'integration.ref_dispositions',
+        'integration.rejected_stale_or_recovery_branches',
+      ]));
+    } finally {
+      isolated.cleanup();
+    }
+  });
+
   it('leases around a foreign listener without reusing, killing, or masquerading as it', async () => {
     const { server, port: foreignPort } = await listenOnLoopback();
     try {
