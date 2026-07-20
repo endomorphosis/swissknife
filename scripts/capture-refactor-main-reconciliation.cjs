@@ -69,16 +69,33 @@ function currentBranch() {
   return branch.ok ? branch.stdout : null;
 }
 
-function parseTodoStatuses() {
-  if (!fs.existsSync(todoPath)) {
+function workspaceHasGitWorktree(root) {
+  return runGit(['rev-parse', '--is-inside-work-tree'], { cwd: root }).ok;
+}
+
+function parseTodoStatuses({
+  taskBoardPath = todoPath,
+  relativeRoot = workspaceRoot,
+  parentWorkspaceIsGitWorktree = workspaceHasGitWorktree(relativeRoot),
+} = {}) {
+  const present = fs.existsSync(taskBoardPath);
+  // The task board belongs to the parent monorepo, not this nested
+  // SwissKnife repository. A standalone detached source reproduction cannot
+  // read it, while an embedded integration checkout must still require it.
+  const requiredForDecision = present || parentWorkspaceIsGitWorktree;
+  if (!present) {
     return {
-      path: path.relative(workspaceRoot, todoPath),
+      path: path.relative(relativeRoot, taskBoardPath),
       present: false,
+      required_for_decision: requiredForDecision,
+      availability: parentWorkspaceIsGitWorktree
+        ? 'missing_from_parent_workspace'
+        : 'unavailable_in_standalone_source_checkout',
       tasks: {},
     };
   }
 
-  const text = fs.readFileSync(todoPath, 'utf8');
+  const text = fs.readFileSync(taskBoardPath, 'utf8');
   const tasks = {};
   const headingPattern = /^##\s+(SWR-\d+)\s+(.+)$/gm;
   const matches = Array.from(text.matchAll(headingPattern));
@@ -96,10 +113,25 @@ function parseTodoStatuses() {
   }
 
   return {
-    path: path.relative(workspaceRoot, todoPath),
+    path: path.relative(relativeRoot, taskBoardPath),
     present: true,
+    required_for_decision: true,
+    availability: 'present',
     tasks,
   };
+}
+
+function taskStatusBlockers(todo) {
+  if (!todo.required_for_decision) return [];
+
+  const blockers = [];
+  if (!todo.present) blockers.push(`task board is missing at ${todo.path}`);
+  for (const taskId of REQUIRED_COMPLETED_TASKS) {
+    if (todo.tasks[taskId]?.status !== 'completed') {
+      blockers.push(`${taskId} status is ${todo.tasks[taskId]?.status ?? 'missing'}, expected completed`);
+    }
+  }
+  return blockers;
 }
 
 function listCandidateRefs() {
@@ -259,10 +291,12 @@ function renderMarkdown(report) {
     '',
     '## Task Status Evidence',
     '',
+    `- Parent task board: ${report.task_status.availability}`,
+    `- Parent task board required for this checkout: ${report.task_status.required_for_decision ? 'yes' : 'no'}`,
     ...REQUIRED_COMPLETED_TASKS.map((taskId) =>
-      `- ${taskId}: ${report.task_status.tasks[taskId]?.status ?? 'missing'}`,
+      `- ${taskId}: ${report.task_status.tasks[taskId]?.status ?? 'unavailable'}`,
     ),
-    `- ${CURRENT_TASK}: ${report.task_status.tasks[CURRENT_TASK]?.status ?? 'missing'}`,
+    `- ${CURRENT_TASK}: ${report.task_status.tasks[CURRENT_TASK]?.status ?? 'unavailable'}`,
     '',
     '## Blockers',
     '',
@@ -296,12 +330,7 @@ function main() {
   );
 
   const blockers = [];
-  if (!todo.present) blockers.push(`task board is missing at ${todo.path}`);
-  for (const taskId of REQUIRED_COMPLETED_TASKS) {
-    if (todo.tasks[taskId]?.status !== 'completed') {
-      blockers.push(`${taskId} status is ${todo.tasks[taskId]?.status ?? 'missing'}, expected completed`);
-    }
-  }
+  blockers.push(...taskStatusBlockers(todo));
   if (!headSha) blockers.push('cannot resolve SwissKnife HEAD');
   if (!selectedUpstream) blockers.push('cannot resolve origin/main or main as reconciliation base');
   if (unmergedPaths.length > 0) blockers.push(`unmerged paths remain: ${unmergedPaths.join(', ')}`);
@@ -362,4 +391,10 @@ function main() {
   if (report.decision !== 'GO') process.exit(1);
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = {
+  parseTodoStatuses,
+  taskStatusBlockers,
+  workspaceHasGitWorktree,
+};

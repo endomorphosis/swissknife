@@ -26,6 +26,7 @@ import { createServer } from 'node:net';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
 import {
   RELEASE_REPRODUCTION_SCHEMA,
   buildReleaseReproductionAttestation,
@@ -48,6 +49,29 @@ import {
   verifyProducerEvidence,
 } from '../../scripts/lib/release-readiness-evidence-producers.mjs';
 import { findOwnedPort } from '../../scripts/lib/pick-free-port.mjs';
+
+const require = createRequire(import.meta.url);
+const {
+  parseTodoStatuses,
+  taskStatusBlockers,
+} = require('../../scripts/capture-refactor-main-reconciliation.cjs') as {
+  parseTodoStatuses: (options: {
+    taskBoardPath: string;
+    relativeRoot: string;
+    parentWorkspaceIsGitWorktree: boolean;
+  }) => {
+    present: boolean;
+    required_for_decision: boolean;
+    availability: string;
+    tasks: Record<string, { status?: string }>;
+  };
+  taskStatusBlockers: (todo: {
+    present: boolean;
+    required_for_decision: boolean;
+    path: string;
+    tasks: Record<string, { status?: string }>;
+  }) => string[];
+};
 
 interface IsolatedRoot {
   repoRoot: string;
@@ -821,6 +845,47 @@ describe('release reproduction attestation (SWR-141)', () => {
       expect(blockerIds).toContain('stale-release-evidence');
     } finally {
       isolated.cleanup();
+    }
+  });
+});
+
+describe('refactor main reconciliation taskboard context (SWR-162)', () => {
+  it('keeps a missing parent board blocking in an integration workspace but not in a standalone source clone', () => {
+    const standaloneWorkspace = mkdtempSync(join(tmpdir(), 'swr162-standalone-'));
+    const integrationWorkspace = mkdtempSync(join(tmpdir(), 'swr162-integration-'));
+    const boardSuffix = join('implementation_plan', 'docs', '38-swissknife-repository-refactoring-plan-2026-07-08.todo.md');
+    try {
+      const standalone = parseTodoStatuses({
+        taskBoardPath: join(standaloneWorkspace, boardSuffix),
+        relativeRoot: standaloneWorkspace,
+        parentWorkspaceIsGitWorktree: false,
+      });
+      const integration = parseTodoStatuses({
+        taskBoardPath: join(integrationWorkspace, boardSuffix),
+        relativeRoot: integrationWorkspace,
+        parentWorkspaceIsGitWorktree: true,
+      });
+
+      expect(standalone).toMatchObject({
+        present: false,
+        required_for_decision: false,
+        availability: 'unavailable_in_standalone_source_checkout',
+      });
+      expect(taskStatusBlockers(standalone)).toEqual([]);
+
+      expect(integration).toMatchObject({
+        present: false,
+        required_for_decision: true,
+        availability: 'missing_from_parent_workspace',
+      });
+      expect(taskStatusBlockers(integration)).toEqual(expect.arrayContaining([
+        expect.stringContaining('task board is missing'),
+        'SWR-160 status is missing, expected completed',
+        'SWR-161 status is missing, expected completed',
+      ]));
+    } finally {
+      rmSync(standaloneWorkspace, { recursive: true, force: true });
+      rmSync(integrationWorkspace, { recursive: true, force: true });
     }
   });
 });
