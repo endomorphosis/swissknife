@@ -1,0 +1,1481 @@
+{
+  "config": {
+    "configFile": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/build-tools/configs/playwright.meta-glasses.config.ts",
+    "rootDir": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test-results/meta-glasses-virtual-os/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test-results/playwright-artifacts/meta-glasses-virtual-os",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "meta-glasses-chromium",
+        "name": "meta-glasses-chromium",
+        "testDir": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/all-app-meta-device-simulator.spec.ts",
+          "**/all-app-meta-device-simulator-proof.spec.ts",
+          "**/meta-glasses-virtual-os.spec.ts",
+          "**/meta-glasses-simulator-handoff.spec.ts",
+          "**/meta-glasses-expanded-io-simulator-validation.spec.ts"
+        ],
+        "timeout": 240000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.55.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run desktop -- --port 3004 --strictPort",
+      "url": "http://127.0.0.1:3004",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "all-app-meta-device-simulator-proof.spec.ts",
+      "file": "all-app-meta-device-simulator-proof.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "SVD-111 Meta device-simulator modality, privacy, and fallback proof",
+          "file": "all-app-meta-device-simulator-proof.spec.ts",
+          "line": 98,
+          "column": 6,
+          "specs": [
+            {
+              "title": "replays every compiled SVD-110 ORB/IDL packet without claiming a physical Meta pairing",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "meta-glasses-chromium",
+                  "projectName": "meta-glasses-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 68430,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-19T11:01:32.618Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ebc917daa9206ae438dd-dd5bca16cd8376a21c55",
+              "file": "all-app-meta-device-simulator-proof.spec.ts",
+              "line": 99,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "all-app-meta-device-simulator.spec.ts",
+      "file": "all-app-meta-device-simulator.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "SVD-099 all-app Meta device simulator packet replay",
+          "file": "all-app-meta-device-simulator.spec.ts",
+          "line": 214,
+          "column": 6,
+          "specs": [
+            {
+              "title": "replays every SVD-098 packet and all safe I/O/fallback states without hardware pairing",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "meta-glasses-chromium",
+                  "projectName": "meta-glasses-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 160986,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-19T11:02:41.247Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aea94feb213080e1b7d5-73bd66d7dc0354b2d8e6",
+              "file": "all-app-meta-device-simulator.spec.ts",
+              "line": 215,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "meta-glasses-expanded-io-simulator-validation.spec.ts",
+      "file": "meta-glasses-expanded-io-simulator-validation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "SVD-072 expanded Meta glasses I/O simulator validation",
+          "file": "meta-glasses-expanded-io-simulator-validation.spec.ts",
+          "line": 31,
+          "column": 6,
+          "specs": [
+            {
+              "title": "replays final SVD-071 packets through visible route, denial, fallback, and recovery states",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "meta-glasses-chromium",
+                  "projectName": "meta-glasses-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2770,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-19T11:05:22.347Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "28b790facd84d8bbaa98-b6d1726148e362213d3c",
+              "file": "meta-glasses-expanded-io-simulator-validation.spec.ts",
+              "line": 32,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "meta-glasses-simulator-handoff.spec.ts",
+      "file": "meta-glasses-simulator-handoff.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Meta glasses simulator ORB/IDL handoff evidence",
+          "file": "meta-glasses-simulator-handoff.spec.ts",
+          "line": 19,
+          "column": 6,
+          "specs": [
+            {
+              "title": "renders simulator-visible display, camera, speaker, microphone, and handoff states",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "meta-glasses-chromium",
+                  "projectName": "meta-glasses-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2396,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-19T11:05:25.154Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e5d1e02b5d720fe18f68-12644775f954cdebffdf",
+              "file": "meta-glasses-simulator-handoff.spec.ts",
+              "line": 20,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "meta-glasses-virtual-os.spec.ts",
+      "file": "meta-glasses-virtual-os.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "HAO-675 launch replay fixture proves Swissknife and Hallucinate App Playwright readiness",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.604Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-001717fdd10b2bce7a25",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 345,
+          "column": 1
+        },
+        {
+          "title": "HAO-705 cross-device launch gate fixture proves phone-hosted desktop peer offload replay",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.624Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-259f3c34c4ff39443870",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 383,
+          "column": 1
+        },
+        {
+          "title": "MGW-556 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.653Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-64ef8e7fadf8a30af4a7",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 433,
+          "column": 1
+        },
+        {
+          "title": "HAO-725 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.680Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-e2867e28f16d7e3148b9",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 467,
+          "column": 1
+        },
+        {
+          "title": "MGW-559 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.705Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-c209961366d565f3811d",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 501,
+          "column": 1
+        },
+        {
+          "title": "VAI-568 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.728Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-ff00942b666192eecbb8",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 535,
+          "column": 1
+        },
+        {
+          "title": "VAI-574 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.751Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-70d41913c4f9dfcd6a33",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 573,
+          "column": 1
+        },
+        {
+          "title": "VAI-577 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.775Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-a5f4ff8d7840df4f84fd",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 611,
+          "column": 1
+        },
+        {
+          "title": "VAI-580 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.800Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-6d0c0ba58f4144764ffb",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 649,
+          "column": 1
+        },
+        {
+          "title": "VAI-583 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.824Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-c561dd1544dc508da2ca",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 687,
+          "column": 1
+        },
+        {
+          "title": "VAI-586 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.848Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-81ce7b6934398939aae8",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 725,
+          "column": 1
+        },
+        {
+          "title": "VAI-589 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.871Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-4bddb18f57e3dd5e7003",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 763,
+          "column": 1
+        },
+        {
+          "title": "VAI-593 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.894Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-8ac313ddfd030a3fc95c",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 801,
+          "column": 1
+        },
+        {
+          "title": "VAI-596 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.917Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-6a90f2c4f411b30f3486",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 839,
+          "column": 1
+        },
+        {
+          "title": "VAI-599 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.940Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-0a749989ce71570dfabc",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 877,
+          "column": 1
+        },
+        {
+          "title": "VAI-602 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 16,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.965Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-350d648523e3beadf7c2",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 916,
+          "column": 1
+        },
+        {
+          "title": "VAI-605 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:27.994Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-0a7448645d4518cf5ee3",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 955,
+          "column": 1
+        },
+        {
+          "title": "VAI-608 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.019Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-9fae2f542f19d753f2be",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 994,
+          "column": 1
+        },
+        {
+          "title": "VAI-612 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.042Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-28afd7536e039245057b",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1033,
+          "column": 1
+        },
+        {
+          "title": "VAI-615 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.065Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-c5d4fd4fde12c3d17867",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1072,
+          "column": 1
+        },
+        {
+          "title": "VAI-618 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.090Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-2eb1d097be107777c159",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1111,
+          "column": 1
+        },
+        {
+          "title": "VAI-621 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.115Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-414a7782a85579c83c98",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1150,
+          "column": 1
+        },
+        {
+          "title": "VAI-624 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.138Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-371b0ecb20160df892f1",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1176,
+          "column": 1
+        },
+        {
+          "title": "VAI-627 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.161Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-e73841c7c9251be94792",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1202,
+          "column": 1
+        },
+        {
+          "title": "VAI-633 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.189Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-9cbfe460adfe21e40f8a",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1228,
+          "column": 1
+        },
+        {
+          "title": "VAI-636 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.214Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-4fdc80d2ebda030d75a8",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1254,
+          "column": 1
+        },
+        {
+          "title": "VAI-639 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.237Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-3fed9f3e64b40b8cf6c8",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1280,
+          "column": 1
+        },
+        {
+          "title": "VAI-645 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.258Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-cc63e55f947d9033bb43",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1306,
+          "column": 1
+        },
+        {
+          "title": "VAI-648 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.280Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-75cc42c5db51d541392c",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1332,
+          "column": 1
+        },
+        {
+          "title": "VAI-652 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.303Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-a71343cac7a0bb1e1a0d",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1358,
+          "column": 1
+        },
+        {
+          "title": "VAI-654 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.325Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-e16d102d524a7d1d9de3",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1384,
+          "column": 1
+        },
+        {
+          "title": "VAI-656 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.346Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-69ea5740326a36e5c46f",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1410,
+          "column": 1
+        },
+        {
+          "title": "VAI-658 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.368Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-6fcd993e0ca6620db3f5",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1436,
+          "column": 1
+        },
+        {
+          "title": "VAI-660 daemon launch gate fixture preserves Swissknife backend handoff records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.390Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-cb3d9593e078880c5f2b",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1462,
+          "column": 1
+        },
+        {
+          "title": "opens every SwissKnife desktop app and renders a reusable Meta glasses ORB template",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "meta-glasses-chromium",
+              "projectName": "meta-glasses-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 47962,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-19T11:05:28.413Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fa34f6499311016549fd-251daaf2d81782b3eb78",
+          "file": "meta-glasses-virtual-os.spec.ts",
+          "line": 1488,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-07-19T11:01:30.231Z",
+    "duration": 286494.988,
+    "expected": 39,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
