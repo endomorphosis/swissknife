@@ -17,7 +17,7 @@ The JSON block below is the release budget source of truth; increasing a budget 
 
 ## Gate Summary
 
-- Total bundle: 2.58 MiB raw, 616.1 KiB gzip, 515.8 KiB brotli across 65 files.
+- Total bundle: 2.35 MiB raw, 564.7 KiB gzip, 471.6 KiB brotli across 51 files.
 - libp2p-related chunks: 606.8 KiB raw, 177.7 KiB gzip across 2 chunks.
 - Host-only leakage findings: 0.
 - Python/Pyodide exposure findings: 18.
@@ -26,9 +26,9 @@ The JSON block below is the release budget source of truth; increasing a budget 
 
 | Budget | Actual | Limit | Status |
 | --- | --- | --- | --- |
-| totalRawBytes |2.58 MiB |2.62 MiB |pass |
-| totalGzipBytes |616.1 KiB |634.8 KiB |pass |
-| totalBrotliBytes |515.8 KiB |546.9 KiB |pass |
+| totalRawBytes |2.35 MiB |2.62 MiB |pass |
+| totalGzipBytes |564.7 KiB |634.8 KiB |pass |
+| totalBrotliBytes |471.6 KiB |546.9 KiB |pass |
 | libp2pRawBytes |606.8 KiB |634.8 KiB |pass |
 | libp2pGzipBytes |177.7 KiB |185.5 KiB |pass |
 | libp2pBrotliBytes |141.6 KiB |156.3 KiB |pass |
@@ -223,7 +223,6 @@ _None._
 | dist/assets/agent-supervisor-CKsdYr1J.js |63.9 KiB |15.0 KiB |13.0 KiB |
 | dist/assets/friends-list-C50UOwyX.js |51.9 KiB |11.3 KiB |9.4 KiB |
 | dist/assets/ipfs-explorer-BI78ByE9.js |51.7 KiB |11.6 KiB |9.8 KiB |
-| dist/css/apps.css |49.9 KiB |7.3 KiB |6.2 KiB |
 | dist/assets/training-manager-Vjh42uH5.js |48.4 KiB |10.2 KiB |8.8 KiB |
 | dist/assets/strudel-ai-daw-CGDq-bVn.js |47.5 KiB |11.9 KiB |10.4 KiB |
 | dist/assets/calculator-DxXtFSyX.js |42.2 KiB |6.4 KiB |5.4 KiB |
@@ -233,4 +232,5 @@ _None._
 | dist/assets/image-viewer-DBuvJ1x3.js |36.7 KiB |7.3 KiB |6.2 KiB |
 | dist/assets/cron-a7QcC19M.js |34.9 KiB |8.1 KiB |7.0 KiB |
 | dist/assets/github-C7z4FcBm.js |34.8 KiB |6.5 KiB |5.6 KiB |
+| dist/assets/music-studio-unified-D96Hde8p.js |34.2 KiB |7.1 KiB |6.1 KiB |
 

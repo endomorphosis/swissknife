@@ -130,7 +130,7 @@ async function ensureIsolatedBridges() {
     child.unref();
     fs.closeSync(logFd);
     fs.writeFileSync(pidPath, `${child.pid}\n`, 'utf8');
-    const ready = await waitForBridge(child.pid, port, announcePath, config.service);
+    const ready = await waitForBridge(child.pid, port, announcePath, config);
     results.push({
       service: config.service,
       ready,
@@ -198,13 +198,13 @@ function ownedBridgeProcess(pid, config) {
   }
 }
 
-async function waitForBridge(pid, port, announcePath, service) {
+async function waitForBridge(pid, port, announcePath, config) {
   const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
-    if (!ownedBridgeProcess(pid, service)) return false;
+    if (!ownedBridgeProcess(pid, config)) return false;
     try {
       const announce = JSON.parse(fs.readFileSync(announcePath, 'utf8'));
-      if (validAnnounce(announce, service) && portFromMultiaddr(announce.multiaddr) === port
+      if (validAnnounce(announce, config.service) && portFromMultiaddr(announce.multiaddr) === port
           && await portReady(port)) return true;
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 250));
@@ -316,7 +316,7 @@ const statusValues = ${JSON.stringify(STATUS_VALUES)};
 const protocol = '/mcp+p2p/1.0.0';
 const serviceConfigs = [
   { service: 'ipfs_kit_py', server: IPFS_KIT_SERVER.name, fixture: { tool: 'files_stat', arguments: {}, approval: 'non-mutating status fixture' } },
-  { service: 'ipfs_datasets_py', server: IPFS_DATASETS_SERVER.name, fixture: { tool: 'list_indices', arguments: {}, approval: 'non-mutating catalog fixture' } },
+  { service: 'ipfs_datasets_py', server: IPFS_DATASETS_SERVER.name, fixture: { tool: 'tools_list_categories', arguments: {}, approval: 'non-mutating catalog fixture' } },
   { service: 'ipfs_accelerate_py', server: IPFS_ACCELERATE_SERVER.name, fixture: { tool: 'get_server_status', arguments: {}, approval: 'non-mutating health fixture' } },
 ];
 const announceByService = new Map(announces.map(announce => [announce.service, announce]));

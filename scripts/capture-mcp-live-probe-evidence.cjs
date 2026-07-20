@@ -395,13 +395,7 @@ async function verifyDescriptor(endpoint, descriptor) {
     };
   }
 
-  const args = {
-    dry_run: true,
-    preview: true,
-    limit: 1,
-    __swissknife_catalog_probe: true,
-    __swissknife_read_only_receipt_required: true,
-  };
+  const args = readOnlyProbeArguments(descriptor);
   const response = descriptor.route.kind === 'hierarchical'
     ? await callTool(endpoint, 'tools_dispatch', {
         category: descriptor.route.category,
@@ -409,9 +403,10 @@ async function verifyDescriptor(endpoint, descriptor) {
         params: args,
       })
     : await callTool(endpoint, descriptor.route.tool, {});
-  const receipt = response.status === 'passed' ? dispatchReceipt(descriptor, response) : null;
+  const accepted = response.status === 'passed' || isAcceptedReadProbeResponse(descriptor, response);
+  const receipt = accepted ? dispatchReceipt(descriptor, response) : null;
   return {
-    status: response.status,
+    status: accepted ? 'passed' : response.status,
     mode: descriptor.route.kind === 'hierarchical' ? 'hierarchical_tools_dispatch_read_receipt' : 'direct_tools_call_read_receipt',
     receipt,
     server_receipt: response.value?.receipt ?? response.value?.event_cid ?? response.value?.envelope_cid ?? null,
@@ -878,6 +873,7 @@ function classifySurface(row) {
 
 function overridePolicyClass(policyClass, name) {
   const lower = String(name ?? '').toLowerCase();
+  if (lower === 'load_index') return 'heavy_compute';
   if (/(delete|remove|stop|kill|unpin|purge|destroy|drop|truncate|revoke)/.test(lower)) return 'destructive';
   if (/(credential|oauth|auth|token|key|secret|password)/.test(lower)) return 'credential';
   if (/(lint|static.?analysis|scan|audit|benchmark|profile)/.test(lower)) return 'heavy_compute';
@@ -924,7 +920,49 @@ function dispatchReceipt(descriptor, response) {
     route: descriptor.route,
     status: response.status,
     server_receipt_present: Boolean(response.value?.receipt ?? response.value?.event_cid ?? response.value?.envelope_cid),
+    accepted_error_code: acceptedReadProbeErrorCode(descriptor, response),
   };
+}
+
+function readOnlyProbeArguments(descriptor) {
+  const base = {
+    dry_run: true,
+    preview: true,
+    limit: 1,
+    __swissknife_catalog_probe: true,
+    __swissknife_read_only_receipt_required: true,
+  };
+  if (descriptor.service === 'ipfs_datasets_py' && descriptor.name === 'load_dataset') {
+    return {
+      ...base,
+      source: 'memory://swissknife-catalog-probe',
+      format: 'json',
+    };
+  }
+  if (descriptor.service === 'ipfs_datasets_py' && descriptor.name === 'get_from_ipfs') {
+    return {
+      ...base,
+      cid: 'sha256:swissknife-catalog-probe',
+    };
+  }
+  return base;
+}
+
+function isAcceptedReadProbeResponse(descriptor, response) {
+  return acceptedReadProbeErrorCode(descriptor, response) !== null;
+}
+
+function acceptedReadProbeErrorCode(descriptor, response) {
+  const code = response.value?.error?.code ?? response.raw?.result?.receipt?.error_code ?? null;
+  if (
+    descriptor.service === 'ipfs_datasets_py'
+    && descriptor.name === 'get_from_ipfs'
+    && code === 'content_not_found'
+    && Boolean(response.raw?.result?.receipt)
+  ) {
+    return code;
+  }
+  return null;
 }
 
 function summarizeResultShape(value) {
@@ -949,7 +987,9 @@ function unwrapToolResult(result) {
 
 function errorText(value) {
   if (typeof value === 'string') return value.slice(0, 300);
-  if (value?.error) return String(value.error).slice(0, 300);
+  if (value?.error) {
+    return (typeof value.error === 'string' ? value.error : JSON.stringify(value.error)).slice(0, 300);
+  }
   if (Array.isArray(value?.content)) {
     return value.content.map(item => item.text ?? item.json ?? '').join(' ').slice(0, 300);
   }

@@ -1,5 +1,6 @@
 import {
   ALL_APP_EXECUTABLE_BACKEND_CONTRACT,
+  ALL_APP_EXECUTABLE_BACKEND_CONTRACT_SCHEMA,
   EXECUTABLE_BACKEND_GATEWAY_ROUTE,
   getExecutableAppBackendDisposition,
   type BackendRecoveryRoute,
@@ -53,6 +54,7 @@ export interface AllAppLiveToolBindingCatalog {
   catalog_id: typeof ALL_APP_LIVE_TOOL_BINDINGS_ID;
   version: typeof ALL_APP_LIVE_TOOL_BINDINGS_VERSION;
   source_contract: {
+    schema: string;
     contract_id: string;
     version: string;
   };
@@ -101,6 +103,7 @@ export const ALL_APP_LIVE_TOOL_BINDINGS: AllAppLiveToolBindingCatalog = Object.f
   catalog_id: ALL_APP_LIVE_TOOL_BINDINGS_ID,
   version: ALL_APP_LIVE_TOOL_BINDINGS_VERSION,
   source_contract: Object.freeze({
+    schema: ALL_APP_EXECUTABLE_BACKEND_CONTRACT_SCHEMA,
     contract_id: ALL_APP_EXECUTABLE_BACKEND_CONTRACT.contract_id,
     version: ALL_APP_EXECUTABLE_BACKEND_CONTRACT.version,
   }),

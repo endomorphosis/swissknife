@@ -1,0 +1,1653 @@
+{
+  "runId": "2026-07-19T17-53-30-287Z",
+  "launch_readiness_receipt_v1": {
+    "schema": "launch_readiness_receipt_v1",
+    "gate": "LaunchReadinessGate",
+    "objective": "VAIOS-G697",
+    "validation": "Playwright launch replay",
+    "surface": "meta-glasses-virtual-os",
+    "requiredHops": [
+      "phone-hosted Swissknife virtual desktop",
+      "desktop peer offload",
+      "Hallucinate App mediation",
+      "Meta glasses terminal"
+    ],
+    "status": "passed",
+    "evidence": {
+      "discoveredAppCount": 45,
+      "renderedMetaDisplayCount": 45,
+      "command": "npm --prefix swissknife run test:e2e:meta-glasses"
+    }
+  },
+  "discoveredApps": [
+    {
+      "appId": "terminal",
+      "title": "SwissKnife Terminal",
+      "iconLabel": "Terminal"
+    },
+    {
+      "appId": "vibecode",
+      "title": "VibeCode - AI Streamlit Editor",
+      "iconLabel": "VibeCode"
+    },
+    {
+      "appId": "music-studio-unified",
+      "title": "🎵 Music Studio - AI-powered Digital Audio Workstation",
+      "iconLabel": "Music Studio"
+    },
+    {
+      "appId": "ai-chat",
+      "title": "AI Chat",
+      "iconLabel": "AI Chat"
+    },
+    {
+      "appId": "file-manager",
+      "title": "File Manager",
+      "iconLabel": "Files"
+    },
+    {
+      "appId": "task-manager",
+      "title": "Task Manager",
+      "iconLabel": "Tasks"
+    },
+    {
+      "appId": "todo",
+      "title": "Todo & Goals",
+      "iconLabel": "Todo"
+    },
+    {
+      "appId": "model-browser",
+      "title": "AI Model Manager",
+      "iconLabel": "AI Models"
+    },
+    {
+      "appId": "huggingface",
+      "title": "🤗 Hugging Face Hub",
+      "iconLabel": "Hugging Face"
+    },
+    {
+      "appId": "openrouter",
+      "title": "🔄 OpenRouter Hub",
+      "iconLabel": "OpenRouter"
+    },
+    {
+      "appId": "ipfs-explorer",
+      "title": "IPFS Explorer",
+      "iconLabel": "IPFS"
+    },
+    {
+      "appId": "device-manager",
+      "title": "Device Manager",
+      "iconLabel": "Devices"
+    },
+    {
+      "appId": "settings",
+      "title": "Settings",
+      "iconLabel": "Settings"
+    },
+    {
+      "appId": "mcp-control",
+      "title": "MCP Control",
+      "iconLabel": "MCP Control"
+    },
+    {
+      "appId": "api-keys",
+      "title": "API Keys",
+      "iconLabel": "API Keys"
+    },
+    {
+      "appId": "github",
+      "title": "GitHub",
+      "iconLabel": "GitHub"
+    },
+    {
+      "appId": "oauth-login",
+      "title": "OAuth Login",
+      "iconLabel": "OAuth"
+    },
+    {
+      "appId": "cron",
+      "title": "AI Cron",
+      "iconLabel": "AI Cron"
+    },
+    {
+      "appId": "navi",
+      "title": "NAVI",
+      "iconLabel": "NAVI"
+    },
+    {
+      "appId": "p2p-network",
+      "title": "P2P Network Manager",
+      "iconLabel": "P2P Network"
+    },
+    {
+      "appId": "p2p-chat-unified",
+      "title": "P2P Chat - Unified real-time and offline messaging",
+      "iconLabel": "P2P Chat"
+    },
+    {
+      "appId": "neural-network-designer",
+      "title": "Neural Network Designer",
+      "iconLabel": "NN Designer"
+    },
+    {
+      "appId": "training-manager",
+      "title": "Training Manager",
+      "iconLabel": "Training"
+    },
+    {
+      "appId": "calculator",
+      "title": "Calculator",
+      "iconLabel": "Calculator"
+    },
+    {
+      "appId": "clock",
+      "title": "Clock & Timers",
+      "iconLabel": "Clock"
+    },
+    {
+      "appId": "calendar",
+      "title": "Calendar & Events",
+      "iconLabel": "Calendar"
+    },
+    {
+      "appId": "peertube",
+      "title": "PeerTube - P2P Video Player",
+      "iconLabel": "PeerTube"
+    },
+    {
+      "appId": "friends-list",
+      "title": "Friends & Network",
+      "iconLabel": "Friends"
+    },
+    {
+      "appId": "image-viewer",
+      "title": "Image Viewer",
+      "iconLabel": "Images"
+    },
+    {
+      "appId": "notes",
+      "title": "Notes",
+      "iconLabel": "Notes"
+    },
+    {
+      "appId": "media-player",
+      "title": "Media Player",
+      "iconLabel": "Media Player"
+    },
+    {
+      "appId": "system-monitor",
+      "title": "System Monitor",
+      "iconLabel": "Monitor"
+    },
+    {
+      "appId": "neural-photoshop",
+      "title": "Art - AI Image Editor",
+      "iconLabel": "Art"
+    },
+    {
+      "appId": "cinema",
+      "title": "Cinema - Professional Video Editor",
+      "iconLabel": "Cinema"
+    },
+    {
+      "appId": "strudel",
+      "title": "Strudel - Live Coding Music",
+      "iconLabel": "Strudel"
+    },
+    {
+      "appId": "strudel-ai-daw",
+      "title": "Strudel AI DAW",
+      "iconLabel": "Strudel AI"
+    },
+    {
+      "appId": "music-studio",
+      "title": "Music Studio - Classic",
+      "iconLabel": "Studio Classic"
+    },
+    {
+      "appId": "p2p-chat",
+      "title": "P2P Chat - Classic",
+      "iconLabel": "P2P Classic"
+    },
+    {
+      "appId": "datasets-browser",
+      "title": "Datasets Browser",
+      "iconLabel": "Datasets"
+    },
+    {
+      "appId": "accelerate-panel",
+      "title": "Accelerate Panel",
+      "iconLabel": "Accelerate"
+    },
+    {
+      "appId": "idl-explorer",
+      "title": "IDL Explorer",
+      "iconLabel": "IDL"
+    },
+    {
+      "appId": "glasses-preview",
+      "title": "Glasses Preview",
+      "iconLabel": "Glasses"
+    },
+    {
+      "appId": "orb-auto-ui",
+      "title": "ORB Auto-UI",
+      "iconLabel": "ORB UI"
+    },
+    {
+      "appId": "mcp-plus-plus",
+      "title": "MCP++ Explorer",
+      "iconLabel": "MCP++"
+    },
+    {
+      "appId": "agent-supervisor",
+      "title": "Agent Supervisor",
+      "iconLabel": "Supervisor"
+    }
+  ],
+  "snapshots": [
+    {
+      "appId": "terminal",
+      "title": "SwissKnife Terminal",
+      "iconLabel": "Terminal",
+      "windowTitle": "SwissKnife Terminal",
+      "text": "🖥️\nSwissKnife Terminal\n−\n□\n×\nTerminal\n×\n+\n🤖\n🌐\n⚙️\n\nWelcome to SwissKnife Terminal\n=============================\n\nA powerful terminal with AI assistance, P2P connectivity, and SwissKnife integration.\n\nAvailable commands:\n• help - Show all available commands\n• ai [query] - Get AI assistance  \n• p2p - Connect to P2P network\n• ipfs - IPFS storage commands\n• desktop - Desktop management\n\nType 'help' for a complete list of commands.\n\nswissknife@desktop:/home/swissknife$\nReady\nSession: main | swissknife@swissknife-256color\nMCP++ actions\n3\nSwissKnife Terminal: retrieve content\nready\nSwissKnife Terminal: query catalog\nready\nSwissKnife Terminal: inspect model catalog\nready",
+      "buttonCount": 11,
+      "inputCount": 1,
+      "canvasCount": 0,
+      "interactiveCount": 12,
+      "hasLoadError": false
+    },
+    {
+      "appId": "vibecode",
+      "title": "VibeCode - AI Streamlit Editor",
+      "iconLabel": "VibeCode",
+      "windowTitle": "VibeCode Editor",
+      "text": "🎯\nVibeCode Editor\n−\n□\n×\n📄 New\n💾 Save\n▶️ Run\n🤖 AI\n⚙️\nPreview will appear here when you run your Streamlit app\nReady\nPython | Streamlit | Line 1, Col 1\nMCP++ actions\n3\nVibeCode: list virtual files\nready\nVibeCode: record provenance\nready\nVibeCode: submit inference\nready",
+      "buttonCount": 13,
+      "inputCount": 2,
+      "canvasCount": 0,
+      "interactiveCount": 15,
+      "hasLoadError": false
+    },
+    {
+      "appId": "music-studio-unified",
+      "title": "🎵 Music Studio - AI-powered Digital Audio Workstation",
+      "iconLabel": "Music Studio",
+      "windowTitle": "Music Studio",
+      "text": "🎵\nMusic Studio\n−\n□\n×\n🎵 Music Studio\n▶️\n⏹️\n⏺️\nBPM:\n🎼 Composer\n🎛️ Mixer\n✨ Effects\n🎭 Performance\n🤖 AI\n🎼 PATTERN EDITOR\n▶️ Run\n🗑️ Clear\n💾 Save\nQuick patterns:\n🥁 Drums\n🎸 Bass\n🎹 Melody\n🌊 Ambient\n📊 Visualizer\n🌊 Wave\n📊 Spectrum\n🤖 AI Assistant\n🥁 Generate Drums\n🎸 Generate Bass\n🎹 Generate Melody\n✨ Improve Pattern\nStyle:\nAmbient\nTechno\nDrum & Bass\nJazz\nExperimental\n📚 Pattern Library\nBasic Beat\n\"bd ~ sn ~\"\nAcid Bass\nnote(\"c2 ~ c3 ~\").slow(2)\nAmbient Pad\n\"c4 e4 g4\".chord().slow(8)\nTechno Loop\n\"bd*4\".layer(\"~ ~ sn ~\")\n♫ 120 BPM • 4 tracks • Stopped\n🎚️ Master: 80%\n🎵 Pattern: Active\n0 peers connected\nMCP++ actions\n2\nMusic Studio: retrieve content\nready\nMusic Studio: inspect job state\nready",
+      "buttonCount": 26,
+      "inputCount": 3,
+      "canvasCount": 1,
+      "interactiveCount": 30,
+      "hasLoadError": false
+    },
+    {
+      "appId": "ai-chat",
+      "title": "AI Chat",
+      "iconLabel": "AI Chat",
+      "windowTitle": "AI Chat",
+      "text": "🤖\nAI Chat\n−\n□\n×\n🤖 AI Assistant\n+\nAI Provider:\n🤖\nOpenAI\n🧠\nAnthropic\n🌟\nGoogle\n🏠\nLocal Models\nModel: \ngpt-4\ngpt-4-turbo\ngpt-3.5-turbo\nContext Sources:\n🖥️\nDesktop State\n📁\nFile Contents\n💻\nCode Context\n⚙️\nSystem Info\n🌐\nP2P Network\n📦\nIPFS Content\nCurrent Session\nJust now\nMESSAGES:\n0\nTOKENS:\n0\n🎤\nVoice\n🧠\nContext\n🌐\nTranslate\nConnected\n📤\n⚙️\n🤖\nEnhanced AI Assistant\n\nI'm your intelligent assistant with access to your desktop context, files, and system information.\n\n🎤 Voice Input\n🧠 Smart Context\n💻 Code Generation\n🌐 Multi-language\n🖥️ Desktop Analysis\n💻 Code Assistant\n📊 System Health\n📎\n💻\n🎤\n➤\n0 characters • ~0 tokens\nCtrl+K: Commands • Ctrl+/: Help\nMCP++ actions\n3\nAI Chat: retrieve content\nready\nAI Chat: query catalog\nready\nAI Chat: submit inference\nready",
+      "buttonCount": 19,
+      "inputCount": 8,
+      "canvasCount": 0,
+      "interactiveCount": 27,
+      "hasLoadError": false
+    },
+    {
+      "appId": "file-manager",
+      "title": "File Manager",
+      "iconLabel": "Files",
+      "windowTitle": "File Manager",
+      "text": "📁\nFile Manager\n−\n□\n×\n⬅️\n➡️\n⬆️\n🔄\n📁\n🔍\n📁+\n📤\n📥\n🔗\nName\nSize\nDate\nType\n⊞\n☰\n⚙️\n💾\nLocal Storage\n🌐\nIPFS Network\n☁️\nCloud Storage\n🔗\nP2P Network\n👥\nCollaborative Workspace\nQUICK ACCESS\n📄\nDocuments\n🖼️\nPictures\n📥\nDownloads\n🧠\nAI Models\n🔗\nP2P Shared\nSTORAGE INFO\nLocal Storage\n156 GB / 240 GB\nIPFS Cache\n4.5 GB / 10 GB\nFILE OPERATIONS\n✂️\nCut\n📋\nCopy\n📥\nPaste\n🗑️\nDelete\nAI TOOLS\n🤖\nAuto Organize\n🔍\nFind Duplicates\n🏷️\nSmart Tags\n8 items\nShow hidden files\n📁\nAI Models\n🖼️\ndesktop-screenshot.png\n2 MB\n📁\nDocuments\n📝\nneural-network-v2.js\n239.9 KB\n📁\nPictures\n📄\nproject-notes.md\n15.1 KB\n📦\nshared-model-bert.zip\n418.6 MB\n📝\ntraining-data.json\n12 MB\nMCP++ actions\n2\nFile Manager: retrieve content\nready\nFile Manager: record provenance\nready",
+      "buttonCount": 37,
+      "inputCount": 5,
+      "canvasCount": 0,
+      "interactiveCount": 42,
+      "hasLoadError": false
+    },
+    {
+      "appId": "task-manager",
+      "title": "Task Manager",
+      "iconLabel": "Tasks",
+      "windowTitle": "Task Manager",
+      "text": "⚡\nTask Manager\n−\n□\n×\n⚡ Processes 📊 Performance 🌐 Network 🔗 P2P Tasks\n⏸️ 📤 ⚙️\n \nAll Processes\nHigh CPU\nHigh Memory\nWeb Processes\nSystem Processes\n🔄 Refresh\n⚠️ End Task\n\tProcess Name 📝\tPID 🆔\tCPU % 🔥\tMemory 🧠\tStatus 📊\tActions ⚡\n🔥 CPU USAGE\n0%\nCores: - Speed: -\n🧠 MEMORY USAGE\n0%\nUsed: - Total: -\n🎮 GPU USAGE\n0%\nType: - Memory: -\n🌐 NETWORK\n0 MB/s\nDown: - Up: -\n📈 Performance History\n⚠️ System Alerts\nACTIVE CONNECTIONS\n0\nBANDWIDTH USAGE\n0 MB/s\nLATENCY\n0ms\nPACKET LOSS\n0%\n🔗 Active Network Connections\nProtocol\tLocal Address\tRemote Address\tState\tProcess\tBandwidth\nCONNECTED PEERS\n0\nACTIVE TASKS\n0\nCOMPLETED TASKS\n0\nNETWORK LOAD\n0%\n🔄 Enable Task Sharing 📡 Broadcast Availability ⚡ Optimize Network\n🎯 Distributed Tasks\nAll Tasks\nRunning\nCompleted\nFailed\nLocal\nRemote\n🔄 Refresh\n🌐 Peer Network\nMCP++ actions\n2\nTask Manager: record provenance\nready\nTask Manager: inspect job state\nready",
+      "buttonCount": 18,
+      "inputCount": 4,
+      "canvasCount": 1,
+      "interactiveCount": 23,
+      "hasLoadError": false
+    },
+    {
+      "appId": "todo",
+      "title": "Todo & Goals",
+      "iconLabel": "Todo",
+      "windowTitle": "Todo & Goals",
+      "text": "📋\nTodo & Goals\n−\n□\n×\n📋 Todo & Goals\nPlain Text Goal Management\n🎤 Voice 📝 Todos 🎯 Goals 📊 Graph\n💡 Low\n📋 Medium\n🔥 High\n⚡ Urgent\nAdd Todo\n💡 Voice commands: \"Add todo: [task]\" | \"Mark [task] complete\" | \"Set [task] priority high\"\n⚡ Urgent Tasks\n0\n🔥 High Priority\n0\n📋 Medium Priority\n0\n💡 Low Priority\n0\n✅ Completed\n0\n📋\n0\ntodos • 🎯\n0\ngoals\n🎤 Voice:\nReady\n• Last updated:\nNever\nMCP++ actions\n2\nTodo and Goals: retrieve content\nready\nTodo and Goals: record provenance\nready",
+      "buttonCount": 11,
+      "inputCount": 3,
+      "canvasCount": 0,
+      "interactiveCount": 14,
+      "hasLoadError": false
+    },
+    {
+      "appId": "model-browser",
+      "title": "AI Model Manager",
+      "iconLabel": "AI Models",
+      "windowTitle": "AI Model Browser",
+      "text": "🧠\nAI Model Browser\n−\n□\n×\n🔍\nAll\nLanguage\nVision\nCode\nEmbedding\nInstalled\n🔄 Refresh\n📥 Import\n💬\nDialoGPT Medium\n\nby Microsoft\n\nA state-of-the-art large-scale pretrained dialogue response generation model\n📁 1.2 GB\n⬇️ 125.0K\n❤️ 450\nlanguage\nconversational\npytorch\ngpt\n🔗\nAll MiniLM L6 v2\n\nby Sentence Transformers\n\nSentence embedding model for semantic search\n📁 80 MB\n⬇️ 2.5M\n❤️ 890\nembedding\nsentence-similarity\npytorch\nembeddings\n💻\nCodeBERT Base\n\nby Microsoft\n\nPre-trained model for programming language understanding\n📁 500 MB\n⬇️ 75.0K\n❤️ 320\ncode\ncode\nprogramming\nbert\n👁️\nCLIP ViT Base\n\nby OpenAI\n\nVision transformer for image-text understanding\n📁 600 MB\n⬇️ 150.0K\n❤️ 670\nvision\nvision\nmultimodal\nclip\n🤖\nNo Model Selected\n\nSelect a model from the list to see details and options.\n\nMCP++ actions\n3\nAI Model Manager: retrieve content\nready\nAI Model Manager: query catalog\nready\nAI Model Manager: inspect model catalog\nready",
+      "buttonCount": 16,
+      "inputCount": 1,
+      "canvasCount": 0,
+      "interactiveCount": 17,
+      "hasLoadError": false
+    },
+    {
+      "appId": "huggingface",
+      "title": "🤗 Hugging Face Hub",
+      "iconLabel": "Hugging Face",
+      "windowTitle": "🤗 Hugging Face Hub",
+      "text": "🤗\n🤗 Hugging Face Hub\n−\n□\n×\n🤗\nHugging Face Hub\nNot Connected\n⚙️\nSettings\n🔑\nConnect\n🧠\nModels\n3\n📊\nDatasets\n2\n⚡\nInference\n0\n🚀\nDeployments\n1\n🎮\nPlayground\n🧠 AI Models Hub\n\nBrowse and manage 100,000+ AI models from Hugging Face\n\n🔍\nAll Tasks\nText Generation\nText Classification\nImage Classification\nSpeech Recognition\nTranslation\nAll Libraries\nTransformers\nPyTorch\nTensorFlow\nJAX\n🔄\nRefresh\nGPT-2\n📥\n1.5M\n❤️\n2.5K\nText Generation\nby openai\npytorch\ntransformer\ntext-generation\n📥\nLoad\n🧪\nTest\n🚀\nDeploy\nAvailable for inference\nDistilBERT Base Uncased\n📥\n800.0K\n❤️\n1.2K\nText Classification\nby huggingface\npytorch\nbert\nclassification\n📥\nLoad\n🧪\nTest\n🚀\nDeploy\nAvailable for inference\nBART Large CNN\n📥\n600.0K\n❤️\n900\nSummarization\nby facebook\npytorch\nbart\nsummarization\n📥\nLoad\n🧪\nTest\n🚀\nDeploy\nAvailable for inference\n← Previous\nPage 1 of 1000+\nNext →\n🌐\nAPI Status: Disconnected\n💾\nCache: 0 items\n⏱️\nLast refresh: Never\nMCP++ actions\n3\nHugging Face Hub: retrieve content\nready\nHugging Face Hub: query catalog\nready\nHugging Face Hub: inspect model catalog\nready",
+      "buttonCount": 21,
+      "inputCount": 3,
+      "canvasCount": 0,
+      "interactiveCount": 24,
+      "hasLoadError": false
+    },
+    {
+      "appId": "openrouter",
+      "title": "🔄 OpenRouter Hub",
+      "iconLabel": "OpenRouter",
+      "windowTitle": "🔄 OpenRouter Hub",
+      "text": "🔄\n🔄 OpenRouter Hub\n−\n□\n×\n🔄\nOpenRouter Hub\nNot Connected\n⚙️\nSettings\n🔑\nConnect\n🤖\nModels\n4\n💬\nChat\n0\n🎮\nPlayground\n📊\nAnalytics\n🏢\nProviders\n4\n🔍\nAll Providers\nOpenAI\nAnthropic\nGoogle\nMistral AI\nSort by Name\nSort by Provider\nSort by Price\nSort by Context Length\nTOTAL MODELS\n4\nPROVIDERS\n4\nFAVORITES\n0\n🤖 OPENAI\nGPT-4\n⭐\nℹ️\nOpenAI\nContext: 8K\nInput: $0.03/1K\nOutput: $0.06/1K\nchat\nreasoning\ncode\nTry Model\n✓ Default\n🧠 ANTHROPIC\nClaude 3 Opus\n⭐\nℹ️\nAnthropic\nContext: 200K\nInput: $0.015/1K\nOutput: $0.075/1K\nchat\nanalysis\nlong-context\nTry Model\nSet Default\n🌟 GOOGLE\nGemini Pro\n⭐\nℹ️\nGoogle\nContext: 33K\nInput: $0.0005/1K\nOutput: $0.0015/1K\nchat\nmultimodal\nvision\nTry Model\nSet Default\n🚀 MISTRAL AI\nMistral 7B Instruct\n⭐\nℹ️\nMistral AI\nContext: 33K\nInput: $0.0002/1K\nOutput: $0.0002/1K\nchat\ninstruct\nefficient\nTry Model\nSet Default\nMCP++ actions\n2\nOpenRouter Hub: record provenance\nready\nOpenRouter Hub: submit inference\nready",
+      "buttonCount": 23,
+      "inputCount": 3,
+      "canvasCount": 0,
+      "interactiveCount": 26,
+      "hasLoadError": false
+    },
+    {
+      "appId": "ipfs-explorer",
+      "title": "IPFS Explorer",
+      "iconLabel": "IPFS",
+      "windowTitle": "IPFS Explorer",
+      "text": "🌐\nIPFS Explorer\n−\n□\n×\n🗂️ Explorer 📌 Pinning 🌐 Network 📊 Analytics\n📁+ 📁 ⚙️\n← → 🏠 🔄\n Go\nipfs.io\ngateway.ipfs.io\ncloudflare-ipfs.com\ndweb.link\n📋\n⊞\n🔗 QUICK ACCESS\n📂 IPFS Welcome\n🖼️ Sample Images\n🎵 Audio Files\n📌 RECENT PINS\n📊 NETWORK STATUS\nPeers\n0\nBandwidth\n0 KB/s\nStorage\n0 MB\nLoading IPFS content...\n📌\n0\nTOTAL PINS\n💾\n0 MB\nPINNED DATA\n🔄\nSynced\nSYNC STATUS\n⚡\n0/s\nPIN RATE\n📌 Bulk Pin 🤖 Auto Pin 📤 Export List 📥 Import List\n📌 Pinned Content\nAll Pins\nLocal Only\nRemote Pins\nRecursive\n \n🌐 IPFS Network Overview\n🔗 CONNECTED PEERS\n0\n⬇️ DOWNLOAD SPEED\n0 KB/s\n⬆️ UPLOAD SPEED\n0 KB/s\n📶 DHT SIZE\n0\n🔍 Discover Peers 🧪 Test Connectivity ⚡ Optimize Routing 🔧 Diagnostics\n👥 Connected Peers\n🌐 Gateway Performance\n📊 IPFS Usage Analytics\n📈\n1.2 GB\nData Retrieved\n📤\n456 MB\nData Shared\n🔄\n89%\nCache Hit Rate\n⚡\n245ms\nAvg Latency\n📈 Bandwidth Usage (24h)\n📊 Content Types\n💡 Usage Insights\nMCP++ actions\n1\nIPFS Explorer: retrieve content\nready",
+      "buttonCount": 30,
+      "inputCount": 8,
+      "canvasCount": 2,
+      "interactiveCount": 40,
+      "hasLoadError": false
+    },
+    {
+      "appId": "device-manager",
+      "title": "Device Manager",
+      "iconLabel": "Devices",
+      "windowTitle": "Device Manager",
+      "text": "🔧\nDevice Manager\n−\n□\n×\n🔧 Hardware 🌐 Network Devices 📊 Performance 💿 Drivers\n🔍 ⚡ 📤 ⚙️\n💻 System Information\nDevice Name Loading...\nOperating System Loading...\nBrowser Loading...\nArchitecture Loading...\n🔍 Device Details\n🌐\n0\nNETWORK INTERFACES\n📶\n0\nWIFI NETWORKS\n🔗\n0\nP2P PEERS\n🔊\n0\nBLUETOOTH DEVICES\n📶 Scan WiFi 🔗 Discover P2P 🔊 Scan Bluetooth 🔧 Diagnostics\n🌐 Network Interfaces\n📶 WiFi Networks\n🔗 P2P Peers\n🔊 Bluetooth Devices\n⚡ Hardware Performance\n🔥 CPU Benchmark 🧠 Memory Test 🎮 GPU Test 💾 Storage Test 🌐 Network Test 🚀 Full System Test\n📊 Recent Benchmark Results\n📈 Performance History\n📊 Real-Time Monitoring\n🔥 CPU Performance\nTemperature: --°C Frequency: -- MHz\n🧠 Memory Usage\nAvailable: -- GB Speed: -- MHz\n🎮 GPU Performance\nMemory: -- MB Temperature: --°C\n🌐 Network Activity\nLatency: -- ms Throughput: -- MB/s\n💿 Device Drivers\nTOTAL DRIVERS\n0\nUP TO DATE\n0\nOUTDATED\n0\nMISSING\n0\n🔍 Scan Drivers ⬆️ Update All 💾 Backup Drivers ♻️ Restore Drivers\n📋 Driver Details\n💡 Recommendations\nMCP++ actions\n2\nDevice Manager: retrieve content\nready\nDevice Manager: inspect hardware\nready",
+      "buttonCount": 27,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 27,
+      "hasLoadError": false
+    },
+    {
+      "appId": "settings",
+      "title": "Settings",
+      "iconLabel": "Settings",
+      "windowTitle": "Settings",
+      "text": "⚙️\nSettings\n−\n□\n×\n⚙️\nGeneral\n🤖\nAI & Models\n🌐\nP2P Network\n🎨\nAppearance\n🔒\nSecurity\nℹ️\nAbout\nSystem Status\nMemory: 0 MB\nP2P Peers: 0\nActive Models: 0\nGeneral Settings\nReset to Defaults\nSave Changes\n🏠 General Preferences\n\nConfigure basic application settings and user preferences\n\nUsername\n Your display name in the application\nLanguage\nEnglish\nEspañol\nFrançais\nDeutsch\n Application interface language\nEnable Auto-Save\nAutomatically save your work periodically\nEnable Notifications\nShow system and application notifications",
+      "buttonCount": 5,
+      "inputCount": 4,
+      "canvasCount": 0,
+      "interactiveCount": 9,
+      "hasLoadError": false
+    },
+    {
+      "appId": "mcp-control",
+      "title": "MCP Control",
+      "iconLabel": "MCP Control",
+      "windowTitle": "MCP Control",
+      "text": "🔌\nMCP Control\n−\n□\n×\n🔌 MCP Server Control Center\n🟢 0 host daemon commands running\n🌐 0 browser-connected remotes\n🔍 Auto-discovery ON\n🔄 Refresh 📋 Templates 🖥️ Add Host Daemon 🌐 Add Browser Remote 🔍 Discovery 📊 Metrics 🔄 libp2p\n📂 Categories\n🔍 All Servers 0\n🖥️ Host Daemon 0\n🌐 Browser Remote 0\n⚙️ Core 0\n🔗 Integrations 0\n🗄️ Databases 0\n☁️ Cloud 0\n🛠️ Custom 0\n📊 Quick Stats\nActive Host Daemons:\n0\nBrowser Remote Connections:\n0\nTotal Connections:\n0\nAuto-start Enabled:\n0\nTemplates Available:\n8\nBrowser libp2p Defaults\nRefresh\nEnabled by default: 8 configured, 0 gaps\nListen: /webrtc\nLoader: literal-browser-imports\nUpdated: 10:53:44 AM\nlibp2p Core\nlibp2p\nconfigured from createLibp2p\nWebRTC\n@libp2p/webrtc\nconfigured from webRTC\nWebSockets\n@libp2p/websockets\nconfigured from webSockets\nCircuit Relay v2\n@libp2p/circuit-relay-v2\nconfigured from circuitRelayTransport\nIdentify\n@libp2p/identify\nconfigured from identify\nNoise\n@chainsafe/libp2p-noise\nconfigured from noise\nYamux\n@chainsafe/libp2p-yamux\nconfigured from yamux\nGossipSub\n@chainsafe/libp2p-gossipsub\nconfigured from gossipsub\n🔔 Recent Activity\nNo recent activity\nAll Status\nRunning\nConnected\nStopped\nError\nAll Types\nHost Daemon\nBrowser Remote\n🔌\nNo MCP Servers Configured\n\nAdd your first MCP server to get started with Model Context Protocol integration.\n\n\"Host Daemon\" entries record a command line for a host process to run — the browser never executes it. \"Browser Remote\" entries are HTTP(S), WebSocket, or libp2p endpoints the browser build connects to directly.\n\n📋 Browse Templates 🖥️ Add Host Daemon Command 🌐 Add Browser Remote\nMCP++ actions\n3\nMCP Control: inspect tool registry\nready\nMCP Control: inspect tool registry\nready\nMCP Control: inspect tool registry\nready",
+      "buttonCount": 36,
+      "inputCount": 19,
+      "canvasCount": 0,
+      "interactiveCount": 55,
+      "hasLoadError": false
+    },
+    {
+      "appId": "api-keys",
+      "title": "API Keys",
+      "iconLabel": "API Keys",
+      "windowTitle": "API Keys",
+      "text": "🔑\nAPI Keys\n−\n□\n×\n🔒\nSecure API Vault\n\nEnter your vault password to access encrypted API keys\n\nRemember for this session\n🔓 Unlock Vault\n🛡️\nAES-256 Encryption\n⏰\nAuto-lock after 15 minutes\n🌐\nP2P Secure Sharing",
+      "buttonCount": 4,
+      "inputCount": 2,
+      "canvasCount": 0,
+      "interactiveCount": 6,
+      "hasLoadError": false
+    },
+    {
+      "appId": "github",
+      "title": "GitHub",
+      "iconLabel": "GitHub",
+      "windowTitle": "GitHub",
+      "text": "🐙\nGitHub\n−\n□\n×\n🐙 GitHub Integration\n\nConnect your GitHub account to manage repositories, issues, and pull requests.\n\n🔑 Personal Access Token\n\nUse a GitHub Personal Access Token for authentication.\n\nGitHub Token:\nGenerate a token at GitHub Settings → Developer settings → Personal access tokens\nConnect with Token\nOR\n🔐 OAuth\n\nSign in with your GitHub account using OAuth (requires OAuth Login app configuration).\n\n🔐 Sign in with GitHub\nRequired Permissions\n✅ repo - Access to repositories\n✅ issues - Manage issues\n✅ pull_requests - Manage pull requests\n✅ user - Access user information\n✅ workflow - Access GitHub Actions\nMCP++ actions\n2\nGitHub: retrieve content\nready\nGitHub: record provenance\nready",
+      "buttonCount": 7,
+      "inputCount": 1,
+      "canvasCount": 0,
+      "interactiveCount": 8,
+      "hasLoadError": false
+    },
+    {
+      "appId": "oauth-login",
+      "title": "OAuth Login",
+      "iconLabel": "OAuth",
+      "windowTitle": "OAuth Login",
+      "text": "🔐\nOAuth Login\n−\n□\n×\n🔐 OAuth Login System\n🔑 0 active sessions\n🔄 Refresh ⚙️ Configure 🚪 Logout All\n🔐\nWelcome to SwissKnife\n\nChoose your preferred sign-in method to get started\n\n🔴\nContinue with Google\nSign in to your Google account\n→\n🔵\nContinue with Facebook\nSign in to your Facebook account\n→\n🐙\nContinue with GitHub\nConfiguration required\nSetup\n🟦\nContinue with Microsoft\nSign in to your Microsoft account\n→\n🟣\nContinue with Discord\nSign in to your Discord account\n→\nor\n⚙️ Advanced Configuration & Management",
+      "buttonCount": 28,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 28,
+      "hasLoadError": false
+    },
+    {
+      "appId": "cron",
+      "title": "AI Cron",
+      "iconLabel": "AI Cron",
+      "windowTitle": "AI Cron Scheduler",
+      "text": "⏰\nAI Cron Scheduler\n−\n□\n×\n⏰ Scheduler 📋 Templates 📜 History 📊 Monitoring\n➕ 📥 📤 ⚙️\n⏰\n0\nSCHEDULED TASKS\n🏃\n0\nRUNNING TASKS\n✅\n0\nCOMPLETED TODAY\n🔗\n0\nP2P DISTRIBUTED\n⏸️ Pause All\n▶️ Resume All\n🚀 Run Now\nAll Tasks\nActive\nPaused\nAI Tasks\nML Tasks\nP2P Tasks\n \n📋 Scheduled Tasks\n🏃 Currently Running\n📋 Task Templates\n✨ Create Custom 📥 Import Template\nAll 🤖 AI 🧠 ML 💾 Storage 🔍 Monitoring 🌐 Network\n📜 Execution History\nAll Executions\nSuccessful\nFailed\nToday\nThis Week\n 🗑️ Clear History 📤 Export\nTask Name\tExecution Time\tDuration\tStatus\tOutput\tActions\n📊 Task Monitoring\n⚡ SYSTEM LOAD\n0%\n🔗 P2P NETWORK\nDisconnected\n🤖 AI PROCESSING\n0\n📊 SUCCESS RATE\n100%\n🚨 Active Alerts\n📋 Recent Logs\nMCP++ actions\n2\nAI Cron: record provenance\nready\nAI Cron: inspect job state\nready",
+      "buttonCount": 32,
+      "inputCount": 11,
+      "canvasCount": 0,
+      "interactiveCount": 43,
+      "hasLoadError": false
+    },
+    {
+      "appId": "navi",
+      "title": "NAVI",
+      "iconLabel": "NAVI",
+      "windowTitle": "NAVI",
+      "text": "NAVI\n−\n□\n×\n🤖\nNAVI\nYour AI Assistant\n🎤 ⚙️ 🗑️\n💬 Conversation\nHelpful\nCasual\nProfessional\nCreative\n \nGPT-4\nClaude 3\nLLaMA 2\n🤖\nHello! I'm NAVI, your AI assistant. I can help you with:\n🖥️ Controlling your desktop and applications\n📁 Managing files and organizing data\n🤖 AI-powered analysis and assistance\n🎤 Voice commands and interactions\n📊 System monitoring and optimization\n🔗 P2P network coordination\nTry saying \"help\" to see available commands, or just ask me anything!\n 🎤 📤\n❓ Help 📊 Status 💡 Suggest ⚙️ Automate\n🧠 Context Awareness\n👁️\n🖥️ Active Apps\n📁 Recent Files\n🔗 P2P Network\n📊 System Health\n🎯 Suggestions\nListening...\nMCP++ actions\n1\nNAVI: query catalog\nready",
+      "buttonCount": 15,
+      "inputCount": 3,
+      "canvasCount": 0,
+      "interactiveCount": 18,
+      "hasLoadError": false
+    },
+    {
+      "appId": "p2p-network",
+      "title": "P2P Network Manager",
+      "iconLabel": "P2P Network",
+      "windowTitle": "P2P Network Manager",
+      "text": "🔗\nP2P Network Manager\n−\n□\n×\n🌐 P2P Network Manager\nDisconnected\nNetwork\nPeers\nModels\nTasks\nWorkspaces\nWorkers\nCloudFlare\nHybrid Workers\n🤗 Hugging Face\nTransport\n🌐 P2P Network Status\nConnection Status\n\nDisconnected\n\nActive Peers\n\n0\n\nNetwork Tasks\n\n0\n\nBrowser libp2p Defaults\nEnabled by default: 8 configured, 0 gaps\n🔄\nRefresh\nDefault listen multiaddrs: /webrtc · Loader: literal-browser-imports · Updated: 10:53:50 AM\nlibp2p Core\nlibp2p\nconfigured from createLibp2p\nWebRTC\n@libp2p/webrtc\nconfigured from webRTC\nWebSockets\n@libp2p/websockets\nconfigured from webSockets\nCircuit Relay v2\n@libp2p/circuit-relay-v2\nconfigured from circuitRelayTransport\nIdentify\n@libp2p/identify\nconfigured from identify\nNoise\n@chainsafe/libp2p-noise\nconfigured from noise\nYamux\n@chainsafe/libp2p-yamux\nconfigured from yamux\nGossipSub\n@chainsafe/libp2p-gossipsub\nconfigured from gossipsub\nConnect to Network\nMCP++ actions\n2\nP2P Network Manager: inspect peer network\nready\nP2P Network Manager: inspect hardware\nready",
+      "buttonCount": 20,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 20,
+      "hasLoadError": false
+    },
+    {
+      "appId": "p2p-chat-unified",
+      "title": "P2P Chat - Unified real-time and offline messaging",
+      "iconLabel": "P2P Chat",
+      "windowTitle": "P2P Chat - Unified",
+      "text": "💬\nP2P Chat - Unified\n−\n□\n×\n🔗 P2P Chat\ndisconnected\n💬 Online\n📬 Offline\n⚙️\n💬\n\nNo conversations yet\n\nAdd contacts to start chatting\n\n+ Add Contact\n🔗\nWelcome to P2P Chat\n\nSecure, decentralized messaging with both real-time and offline capabilities. Select a conversation from the sidebar or add new contacts to get started.\n\n⚡\nReal-time Chat\n\nDirect P2P messaging\n\n📬\nOffline Messages\n\nStore & forward via IPFS\n\nPeer ID: Not connected\n0 peers • online mode\nMCP++ actions\n2\nP2P Chat: exchange peer messages\nready\nP2P Chat: record provenance\nready",
+      "buttonCount": 9,
+      "inputCount": 1,
+      "canvasCount": 0,
+      "interactiveCount": 10,
+      "hasLoadError": false
+    },
+    {
+      "appId": "neural-network-designer",
+      "title": "Neural Network Designer",
+      "iconLabel": "NN Designer",
+      "windowTitle": "Neural Network Designer",
+      "text": "🧠\nNeural Network Designer\n−\n□\n×\nUntitled Network\n✏️ Edit\n🆕 New\n📂 Load\n💾 Save\n📤 Export\n✅ Validate\n🚀 Train\n🌐 Deploy\n↶ Undo\n↷ Redo\n🗑️ Clear\n🧱 Layer Types\n📥\nInput Layer\n🔗\nDense/Linear\n🔲\nConv2D\n⬇️\nMaxPool2D\n🎯\nDropout\n📊\nBatchNorm\n👁️\nAttention\n🔄\nTransformer\n📤\nOutput Layer\n🔗 Connection Tools\n🔗 Connect Layers\n⚡ Auto Connect\n🗑️ Clear Connections\n⚙️ Properties\nSelect a layer to view its properties\n📊 Network Summary\nTOTAL LAYERS:\n0\nPARAMETERS:\n0\nCONNECTIONS:\n0\nMEMORY:\n0 MB\n📂 Version Control\nv1.0.0\n💾\n📜 History 🌐 Share\nLayers:\n0\nP2P:\nDisconnected\nIPFS:\nReady\nCanvas: 800x600\nZoom: 100%\nMCP++ actions\n2\nNeural Network Designer: retrieve content\nready\nNeural Network Designer: inspect model catalog\nready",
+      "buttonCount": 24,
+      "inputCount": 4,
+      "canvasCount": 1,
+      "interactiveCount": 29,
+      "hasLoadError": false
+    },
+    {
+      "appId": "training-manager",
+      "title": "Training Manager",
+      "iconLabel": "Training",
+      "windowTitle": "Training Manager",
+      "text": "🎯\nTraining Manager\n−\n□\n×\n🎯 New Training\n📊 Import Dataset\n🧠 Load Model\nIPFS Accelerate: Disconnected\nHugging Face: Unavailable\nP2P: Fallback\n⏸️ Pause All\n▶️ Resume All\nTRAINING JOBS\n0\nACTIVE\n0\nCOMPLETED\n0\nTOTAL\n\nNo training jobs yet\n\n🎯 Start Your First Training\nJOB DETAILS\n\nSelect a training job to view details\n\nMODEL VERSIONS\n🔄 Refresh\n\nNo model versions yet\n\nTrain a model to create versions\n\nTraining Progress\n📊 Toggle Charts\nMCP++ actions\n3\nTraining Manager: retrieve content\nready\nTraining Manager: query catalog\nready\nTraining Manager: inspect job state\nready",
+      "buttonCount": 21,
+      "inputCount": 16,
+      "canvasCount": 0,
+      "interactiveCount": 37,
+      "hasLoadError": false
+    },
+    {
+      "appId": "calculator",
+      "title": "Calculator",
+      "iconLabel": "Calculator",
+      "windowTitle": "Calculator",
+      "text": "🧮\nCalculator\n−\n□\n×\n🧮\nStandard\n🔬\nScientific\n💻\nProgrammer\n🔄\nConverter\n📜\n0\nC\nCE\n⌫\n÷\n7\n8\n9\n×\n4\n5\n6\n−\n1\n2\n3\n+\n0\n.\n=",
+      "buttonCount": 28,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 28,
+      "hasLoadError": false
+    },
+    {
+      "appId": "clock",
+      "title": "Clock & Timers",
+      "iconLabel": "Clock",
+      "windowTitle": "Clock & Timers",
+      "text": "🕐\nClock & Timers\n−\n□\n×\n🕐\nClock\n⏱️\nStopwatch\n⏲️\nTimer\n⏰\nAlarms\n⚙️\n⛶\n10:53:55\nSunday, July 19, 2026\nAmerica/Los_Angeles\nLocal\n10:53:55\nNew York\n13:53:55\nLondon\n18:53:55\nTokyo\n02:53:55\nSydney\n03:53:55",
+      "buttonCount": 10,
+      "inputCount": 13,
+      "canvasCount": 0,
+      "interactiveCount": 23,
+      "hasLoadError": false
+    },
+    {
+      "appId": "calendar",
+      "title": "Calendar & Events",
+      "iconLabel": "Calendar",
+      "windowTitle": "Calendar & Events",
+      "text": "📅\nCalendar & Events\n−\n□\n×\n‹\nToday\n›\nJuly 2026\nMonth\nWeek\nDay\nAgenda\n+ New Event\n⚙️\n📤\nMon\nTue\nWed\nThu\nFri\nSat\nSun\n29\n30\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n1\n2\n3\n4\n5\n6\n7\n8\n9\nMini Calendar\nJul 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nCategories\n💼\nWork\n🏠\nPersonal\n💻\nDevelopment\n🤝\nBusiness\n🏥\nHealth\n📚\nEducation\n🎉\nSocial\nUpcoming Events\nMCP++ actions\n2\nCalendar and Events: retrieve content\nready\nCalendar and Events: record provenance\nready",
+      "buttonCount": 19,
+      "inputCount": 11,
+      "canvasCount": 0,
+      "interactiveCount": 30,
+      "hasLoadError": false
+    },
+    {
+      "appId": "peertube",
+      "title": "PeerTube - P2P Video Player",
+      "iconLabel": "PeerTube",
+      "windowTitle": "PeerTube - P2P Video Player",
+      "text": "📺\nPeerTube - P2P Video Player\n−\n□\n×\n📺\nPeerTube\n🔍\n📤 Upload\n🏠 Join Room\n👥\n0\n🏠\nHome\n🔥\nTrending\n📺\nSubscriptions\n📚\nLibrary\nCATEGORIES\n💻\nTechnology\n📚\nEducation\n🎬\nEntertainment\n🎵\nMusic\n🎮\nGaming\n🔬\nScience\n🎨\nArt & Design\n📰\nNews\nWATCH TOGETHER\n🚀 Create Room\n🔗 Join\nFeatured Videos\n⊞\n☰\n🎬\n5:30\nWelcome to PeerTube\nSwissKnife Team\n👁️ 1,234\n👍 89\n🎬\n12:45\nBuilding Decentralized Applications\nTech Academy\n👁️ 5,678\n👍 234\n🎬\n8:20\nFuture of P2P Networks\nFuture Network\n👁️ 3,456\n👍 156\nMCP++ actions\n2\nPeerTube: retrieve content\nready\nPeerTube: submit inference\nready",
+      "buttonCount": 33,
+      "inputCount": 7,
+      "canvasCount": 0,
+      "interactiveCount": 40,
+      "hasLoadError": false
+    },
+    {
+      "appId": "friends-list",
+      "title": "Friends & Network",
+      "iconLabel": "Friends",
+      "windowTitle": "Friends & Network",
+      "text": "👥\nFriends & Network\n−\n□\n×\n👥\nFriends & Network\n➕\nAdd Friend\n🆔\nManage Identity\n🔗\nOnline\n👥\nFriends (\n3\n)\n⏰\nPending (\n1\n)\n��\nIdentity Links\n🔍\nDiscover\n🔍\nAll Status\nOnline\nAway\nOffline\nAll Platforms\nGitHub\nHugging Face\nlibp2p\nIPFS\nA\nAlice Cooper\n🟢 Online\n🐙\nalice-dev\n✓\n🤗\nalice-ml\n✓\n🔗\n12D3KooW...\ndeveloper\nai-researcher\np2p-enthusiast\n5 mutual friends\nAdded Aug 14, 2025\n💬\n👤\nB\nBob Wilson\n🟡 Away\n🐙\nbob-blockchain\n✓\n🐦\nbob_crypto\n🌐\nQmYwAPJz...\nblockchain\nweb3\nipfs\n3 mutual friends\nAdded Aug 31, 2025\n💬\n👤\nC\nCharlie Data\n🔴 Last seen 2h ago\n🤗\ncharlie-transformers\n✓\n💬\nCharlieAI#1234\n✓\n🐙\ncharlie-ml\nmachine-learning\nnlp\ndata-science\n8 mutual friends\nAdded Jul 21, 2025\n💬\n👤\nMCP++ actions\n2\nFriends and Network: exchange peer messages\nready\nFriends and Network: record provenance\nready",
+      "buttonCount": 33,
+      "inputCount": 6,
+      "canvasCount": 0,
+      "interactiveCount": 39,
+      "hasLoadError": false
+    },
+    {
+      "appId": "image-viewer",
+      "title": "Image Viewer",
+      "iconLabel": "Images",
+      "windowTitle": "Image Viewer",
+      "text": "🖼️\nImage Viewer\n−\n□\n×\n[object Object]\nMCP++ actions\n2\nImage Viewer: retrieve content\nready\nImage Viewer: submit inference\nready",
+      "buttonCount": 5,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 5,
+      "hasLoadError": false
+    },
+    {
+      "appId": "notes",
+      "title": "Notes",
+      "iconLabel": "Notes",
+      "windowTitle": "Notes",
+      "text": "📝\nNotes\n−\n□\n×\n📝 Notes\n+\nLast Modified\nDate Created\nTitle\nSize\n☰\nTags\nwelcome\ntutorial\nmarkdown\nai\nresearch\np2p\nml\nmeetings\nplanning\ntasks\nMeeting Notes - Project Planning\nProject Planning Meeting Date: 7/19/2026 Attendees: Development Team Agenda 1. SwissKnife Desktop Enhancement 2. P2P Network Optimization 3. AI Model\n30m ago\n65 words\nWelcome to SwissKnife Notes\n⭐\nWelcome to SwissKnife Notes! 📝 This is your intelligent note-taking companion with advanced features: Features - Markdown Support: Write with rich\n1h ago\n105 words\nAI Research Notes\nAI Research Progress Current Projects - P2P Neural Network Training - Distributed Model Inference - IPFS-based Model Storage Key Findings - Distribu\n2h ago\n47 words\n3\nNOTES\n217\nWORDS\n📝\nWelcome to SwissKnife Notes\n\nCreate, organize, and manage your notes with AI-powered features. Start by creating a new note or selecting one from the sidebar.\n\nCreate New Note\nImport Notes\nMCP++ actions\n2\nNotes: retrieve content\nready\nNotes: record provenance\nready",
+      "buttonCount": 10,
+      "inputCount": 2,
+      "canvasCount": 0,
+      "interactiveCount": 12,
+      "hasLoadError": false
+    },
+    {
+      "appId": "media-player",
+      "title": "Media Player",
+      "iconLabel": "Media Player",
+      "windowTitle": "Media Player",
+      "text": "🎵\nMedia Player\n−\n□\n×\n🎵\nSwissKnife Media Player\n−\n□\nChill Lo-Fi Beat\nSwissKnife Studio - Desktop Vibes\n00:00 / 00:00\n⏮\n▶\n⏹\n⏭\n🔊\n🔀\n🔁\n📋\n🎛️\n📁\n⚙️\nMCP++ actions\n2\nMedia Player: retrieve content\nready\nMedia Player: submit inference\nready",
+      "buttonCount": 23,
+      "inputCount": 4,
+      "canvasCount": 1,
+      "interactiveCount": 28,
+      "hasLoadError": false
+    },
+    {
+      "appId": "system-monitor",
+      "title": "System Monitor",
+      "iconLabel": "Monitor",
+      "windowTitle": "System Monitor",
+      "text": "📊\nSystem Monitor\n−\n□\n×\n📊\nOverview\n⚡\nProcesses\n🌐\nNetwork\n💾\nStorage\n📈\nPerformance\n🔄\n🚨\n📤\n🖥️\nCPU: 0%\n🧠\nRAM: 0%\n🎮\nGPU: 0%\n🌐\nNetwork: 0 MB/s\n⏱️\nUptime: 0h 0m\n🖥️\nCPU USAGE\n0%\nHigh-performance CPU (16+ cores)\n🧠\nMEMORY USAGE\n0%\n8.0 GB Total\n🎮\nGPU USAGE\n0%\nANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)\n🌐\nNETWORK ACTIVITY\n0 MB/s\n↓ 0 MB/s ↑ 0 MB/s\nSystem Information\nℹ️\nSYSTEM DETAILS\nOS: Windows 1.0.0\nArchitecture: x64\nCPU Cores: 28\nUptime: 0h 0m\n🔗\nP2P NETWORK\nStatus: Connected\nPeers: 12 active\nShared Models: 8\nData Transferred: 2.4 GB\n🌐\nIPFS NODE\nStatus: Online\nPeers: 234 connected\nPinned Content: 45 items\nStorage Used: 1.2 GB\nMCP++ actions\n1\nSystem Monitor: inspect telemetry\nready",
+      "buttonCount": 13,
+      "inputCount": 0,
+      "canvasCount": 4,
+      "interactiveCount": 17,
+      "hasLoadError": false
+    },
+    {
+      "appId": "neural-photoshop",
+      "title": "Art - AI Image Editor",
+      "iconLabel": "Art",
+      "windowTitle": "Art - AI Image Editor",
+      "text": "🎨\nArt - AI Image Editor\n−\n□\n×\n📄 New\n📁 Open\n💾 Save\n📤 Export\n↶ Undo\n↷ Redo\n📋 Copy\n📄 Paste\n✂️ Cut\n25%\n50%\n75%\n100%\n150%\n200%\nFit\n🛠️ TOOLS\n−\n👆\nSelect\n🖌️\nBrush\n🧽\nEraser\n⬚\nSelection\n🪢\nLasso\n🪄\nMagic Wand\n📋\nClone\n🩹\nHealing\n🔄\nTransform\n✂️\nCrop\n📝\nText\n⬛\nShape\n⚙️ PROPERTIES\n−\nSelect a tool to see its properties\n1024 × 1024 px | RGB | 300 DPI\nX: 0, Y: 0\nMCP++ actions\n2\nNeural Photoshop: retrieve content\nready\nNeural Photoshop: submit inference\nready",
+      "buttonCount": 47,
+      "inputCount": 3,
+      "canvasCount": 2,
+      "interactiveCount": 52,
+      "hasLoadError": false
+    },
+    {
+      "appId": "cinema",
+      "title": "Cinema - Professional Video Editor",
+      "iconLabel": "Cinema",
+      "windowTitle": "Cinema - Professional Video Editor",
+      "text": "🎬\nCinema - Professional Video Editor\n−\n□\n×\n🎬\nCinema - Professional Video Editor\nReady for Professional Video Editing\n👆\nSelect\n✂️\nCut\n🌅\nFade\n📝\nText\n✨\nEffects\n🔄\nTransition\n🔊\nAudio\n🎨\nColor\n📹\nStabilize\n⚡\nRender\n🎬 Video Preview Area\n\nDrop video files here or use Import\n⏮️\n▶️\n⏭️\n00:00 / 00:00\nTimeline\n📹 Video\n🔊 Audio\n📝 Text\n🎞️\nDrop video clips here to start editing\nMulti-track timeline with precision controls\nMCP++ actions\n2\nCinema: retrieve content\nready\nCinema: inspect job state\nready",
+      "buttonCount": 15,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 15,
+      "hasLoadError": false
+    },
+    {
+      "appId": "strudel",
+      "title": "Strudel - Live Coding Music",
+      "iconLabel": "Strudel",
+      "windowTitle": "🎵 Music Studio",
+      "text": "🎵\n🎵 Music Studio\n−\n□\n×\n🎵 My Music Studio\n\nMake beautiful music in just a few clicks!\n\n❓ Help Me\n🎼 Choose Your Song\n🎸\n🎸 Playing God (Polyphia)\nListen to beautiful Polyphia music\nChoose This Song\n🎨\n✨ My Creation\nCreate your own music with AI help\nChoose This Song\n▶️\nPlay Music\n⏹️\nStop Music\n🔊 Volume Control\n🔉\n70%\n🔊\n🎵 Now Playing\nPick a song to get started! 👆\n🎉 Welcome to your Music Studio! Pick a song to get started! 🎵\n👋 Welcome! Let's make music together!\nGot it! ✅\nSkip tutorial\nMCP++ actions\n2\nStrudel: retrieve content\nready\nStrudel: inspect job state\nready",
+      "buttonCount": 14,
+      "inputCount": 1,
+      "canvasCount": 0,
+      "interactiveCount": 15,
+      "hasLoadError": false
+    },
+    {
+      "appId": "strudel-ai-daw",
+      "title": "Strudel AI DAW",
+      "iconLabel": "Strudel AI",
+      "windowTitle": "Strudel AI DAW",
+      "text": "🎼\nStrudel AI DAW\n−\n□\n×\n🎵 Strudel AI DAW\n📄 New\n📁 Open\n💾 Save\n🎧 Export\n🤖 AI Generate\n⚡ AI Enhance\n🔧 AI Fix\n❓ Help\n⚙️ Settings\n▶️\n⏸️\n⏹️\n🔴\nBPM\nTAP\nMASTER VOLUME\n80%\nCPU:\n0ms\n🎼 Patterns\n🥁 Samples\n🎛️ Presets\nPattern Library\n+\nMain Pattern\n✏️\n📋\n🗑️\n🎵\nmain.js\n×\n🎨 Format\n✅ Validate\n⚡ Optimize\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n🎛️ Dynamic Controls\n🔍 Scan\n📊 MASTER CONTROLS\nGain\n0.8\nLPF Cutoff\n1000Hz\n💾 Save Preset\n📁 Load Preset\n📊 Visualization\n🤖 AI Assistant\n🖥️ Console\n⏰ Timeline\n🌊 Waveform\n📊 Spectrum\nFFT Size\n256\n512\n1024\n2048\nWindow\nBlackman\nHamming\nHann\nMCP++ actions\n2\nStrudel AI DAW: retrieve content\nready\nStrudel AI DAW: submit inference\nready",
+      "buttonCount": 46,
+      "inputCount": 18,
+      "canvasCount": 2,
+      "interactiveCount": 66,
+      "hasLoadError": false
+    },
+    {
+      "appId": "music-studio",
+      "title": "Music Studio - Classic",
+      "iconLabel": "Studio Classic",
+      "windowTitle": "Music Studio Classic",
+      "text": "🎸\nMusic Studio Classic\n−\n□\n×\n🎵 New Project\n🎤 Record\n📁 Import\nAudio: Ready\nP2P: Unavailable\n🤝 Collaborate\n💾 Export\n🎼 TRACKS\n0\nTRACKS\n🎹 INSTRUMENTS\nSynthesizers\n🎵 Lead\n🎸 Bass\n🎹 Pad\nDrums\n🥁 Kick\n🥁 Snare\n🥁 Hi-Hat\n🤝 COLLABORATORS\n0\nCONNECTED\nMCP++ actions\n1\nMusic Studio Classic: retrieve content\nready",
+      "buttonCount": 16,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 16,
+      "hasLoadError": false
+    },
+    {
+      "appId": "p2p-chat",
+      "title": "P2P Chat - Classic",
+      "iconLabel": "P2P Classic",
+      "windowTitle": "P2P Chat Classic",
+      "text": "💭\nP2P Chat Classic\n−\n□\n×\n💬\nP2P Chat\nDisconnected\n🔗 Connect to Network\n🔍 Discover Peers\n📢 Broadcast Message\nCONNECTED PEERS (0)\nNo peers connected\nUse \"Discover Peers\" to find others\nSelect a peer to start chatting\n💬\nWelcome to P2P Chat!\nSelect a peer from the sidebar to start chatting\nMCP++ actions\n1\nP2P Chat Classic: exchange peer messages\nready",
+      "buttonCount": 7,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 7,
+      "hasLoadError": false
+    },
+    {
+      "appId": "datasets-browser",
+      "title": "Datasets Browser",
+      "iconLabel": "Datasets",
+      "windowTitle": "IPFS Datasets Browser",
+      "text": "▦\nIPFS Datasets Browser\n−\n□\n×\nIPFS Datasets Browser\n\nDataset, vector, provenance, and search tools exposed through MCP/MCP++ descriptors.\n\nservice-ready\nDataset catalog\nREADY\nLive descriptor discovery is available.\nORB/IDL handoff\nREADY\nInterface descriptors and method bindings are generated.\nPolicy envelope\nREADY\nConfirmation and receipt policies are attached.\nGlasses fallback\nREADY\nDisplay, mobile-card, and audio-summary fallbacks are declared.\nRefresh\nIDL\nGlasses\nMCP++ actions\n1\nDatasets Browser: query catalog\nready",
+      "buttonCount": 7,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 7,
+      "hasLoadError": false
+    },
+    {
+      "appId": "accelerate-panel",
+      "title": "Accelerate Panel",
+      "iconLabel": "Accelerate",
+      "windowTitle": "IPFS Accelerate Panel",
+      "text": "▶\nIPFS Accelerate Panel\n−\n□\n×\nIPFS Accelerate Panel\n\nHardware, inference, queue, and telemetry tools exposed through the configured compatibility bridge.\n\nservice-ready\nAccelerate jobs\nREADY\nLive descriptor discovery is available.\nORB/IDL handoff\nREADY\nInterface descriptors and method bindings are generated.\nPolicy envelope\nREADY\nConfirmation and receipt policies are attached.\nGlasses fallback\nREADY\nDisplay, mobile-card, and audio-summary fallbacks are declared.\nRefresh\nIDL\nGlasses\nMCP++ actions\n1\nAccelerate Panel: inspect model catalog\nready",
+      "buttonCount": 7,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 7,
+      "hasLoadError": false
+    },
+    {
+      "appId": "idl-explorer",
+      "title": "IDL Explorer",
+      "iconLabel": "IDL",
+      "windowTitle": "ORB IDL Explorer",
+      "text": "⌘\nORB IDL Explorer\n−\n□\n×\nORB IDL Explorer\n\nIDL descriptors, interface CIDs, method bindings, and receipt policies for every app-bound tool.\n\nservice-ready\nIDL descriptors\nREADY\nLive descriptor discovery is available.\nORB/IDL handoff\nREADY\nInterface descriptors and method bindings are generated.\nPolicy envelope\nREADY\nConfirmation and receipt policies are attached.\nGlasses fallback\nREADY\nDisplay, mobile-card, and audio-summary fallbacks are declared.\nRefresh\nIDL\nGlasses",
+      "buttonCount": 6,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 6,
+      "hasLoadError": false
+    },
+    {
+      "appId": "glasses-preview",
+      "title": "Glasses Preview",
+      "iconLabel": "Glasses",
+      "windowTitle": "Meta Glasses Preview",
+      "text": "◉\nMeta Glasses Preview\n−\n□\n×\nMeta Glasses Preview\n\nProjection behavior, replay states, and handoff fallbacks for the glasses layer.\n\nservice-ready\nGlasses projections\nREADY\nLive descriptor discovery is available.\nORB/IDL handoff\nREADY\nInterface descriptors and method bindings are generated.\nPolicy envelope\nREADY\nConfirmation and receipt policies are attached.\nGlasses fallback\nREADY\nDisplay, mobile-card, and audio-summary fallbacks are declared.\nRefresh\nIDL\nGlasses",
+      "buttonCount": 6,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 6,
+      "hasLoadError": false
+    },
+    {
+      "appId": "orb-auto-ui",
+      "title": "ORB Auto-UI",
+      "iconLabel": "ORB UI",
+      "windowTitle": "ORB Auto UI",
+      "text": "◇\nORB Auto UI\n−\n□\n×\nORB Auto UI\n\nGenerated UI envelopes for tools that do not already have a dedicated desktop workflow.\n\nservice-ready\nGenerated controls\nREADY\nLive descriptor discovery is available.\nORB/IDL handoff\nREADY\nInterface descriptors and method bindings are generated.\nPolicy envelope\nREADY\nConfirmation and receipt policies are attached.\nGlasses fallback\nREADY\nDisplay, mobile-card, and audio-summary fallbacks are declared.\nRefresh\nIDL\nGlasses\nMCP++ actions\n3\nORB Auto-UI: inspect tool descriptor\nready\nORB Auto-UI: inspect tool descriptor\nready\nORB Auto-UI: inspect tool descriptor\nready",
+      "buttonCount": 9,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 9,
+      "hasLoadError": false
+    },
+    {
+      "appId": "mcp-plus-plus",
+      "title": "MCP++ Explorer",
+      "iconLabel": "MCP++",
+      "windowTitle": "MCP++ Explorer",
+      "text": "※\nMCP++ Explorer\n−\n□\n×\nMCP++ Explorer\n\nUnified view across ipfs_kit_py, ipfs_datasets_py, and ipfs_accelerate_py tools.\n\nservice-ready\nMCP++ tools\nREADY\nLive descriptor discovery is available.\nORB/IDL handoff\nREADY\nInterface descriptors and method bindings are generated.\nPolicy envelope\nREADY\nConfirmation and receipt policies are attached.\nGlasses fallback\nREADY\nDisplay, mobile-card, and audio-summary fallbacks are declared.\nRefresh\nIDL\nGlasses\nMCP++ actions\n3\nMCP++ Explorer: inspect tool registry\nready\nMCP++ Explorer: inspect tool registry\nready\nMCP++ Explorer: inspect tool registry\nready",
+      "buttonCount": 9,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 9,
+      "hasLoadError": false
+    },
+    {
+      "appId": "agent-supervisor",
+      "title": "Agent Supervisor",
+      "iconLabel": "Supervisor",
+      "windowTitle": "Agent Supervisor",
+      "text": "◬\nAgent Supervisor\n−\n□\n×\nAgent Supervisor\nGoals, task queue, receipts, and MCP++ health\nContract\nSecurity\nRefresh\nEmpty\nError\nSTATUS\ndegraded\nACTIVE GOALS\n2\nQUEUED\n4\nRUNNING\n1\nMODE\nfallback\nGoals\n2 goals\nSWR-105\nBuild the Agent Supervisor virtual-desktop application\nSWR-105-ui\nGoals tree, queue, active task, and receipt UI\nSWR-105-contract\nBrowser-safe contract cross-links and health panes\nSWR-106\nAdd governed prompt steering for goals, subgoals, and tasks\nSWR-106-policy\nConfirmation-gated steering request flow\nQueue\n4 tasks\nSWR-105-1\nRender supervisor goals/subgoals tree\nsupervisor\nSWR-105-2\nWire queue item to taskboard and receipts\nrelease-evidence\nSWR-105-3\nPublish browser-safe backend contract links\ngithub\nSWR-106-1\nDraft governed prompt steering confirmation flow\ntodo\nActive task\nDispatch\nSteering\nReceipts\nHealth\nContract\nSWR-105-1\n\nRender supervisor goals/subgoals tree\n\nGOAL\nSWR-105\nSUBGOAL\nSWR-105-ui\nSTATE\nrunning\nDEPS\nnone\nTaskboard links\nsupervisor: Supervisor queue record\nRun history\nrun-SWR-105-1 running\nRedacted logs\ninfo: Queue snapshot loaded through the mediated read surface.\nDataset assistance\nPolicy: No live dataset assistance returned.\nSemantic goal: No live dataset assistance returned.\nOwner: ipfs_datasets_py; every result and failure is listed in Gateway evidence.\nMCP++ actions\n3\nAgent Supervisor: supervise agent work\nready\nAgent Supervisor: query catalog\nready\nAgent Supervisor: retrieve content\nready",
+      "buttonCount": 25,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 25,
+      "hasLoadError": false
+    }
+  ],
+  "metaDisplayResults": [
+    {
+      "appId": "terminal",
+      "interfaceCid": "sha256:4b3e49a24b6cb695007241165e150f639e579b84562d016910cbf7d7b189ef0d",
+      "widgetCid": "sha256:f2fb88600aaaccbb45df4a71ab567b631580dfe3b115191fb66c6c94cc90c732",
+      "receiptCid": "sha256:486d85f07741a5631550c0662821a45c24e0f78b7bf0a538843de45695767bb4",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "vibecode",
+      "interfaceCid": "sha256:1403117ba891e7a55a0532ca6d3bcd62f4760f2392b7701d844223b1de48a1bc",
+      "widgetCid": "sha256:d98c2c629a1a324641ba09dcd19067cb89f0dbd17d477359d1623d0e51619ea8",
+      "receiptCid": "sha256:cc0949657bbdbed30ca83c45547d6cf01914becab1b818c813916027d7751ae5",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "music-studio-unified",
+      "interfaceCid": "sha256:ac95aa130888dfcbb9b84ec9e634fa0f6fa615037ca5960030f35731d9e1941e",
+      "widgetCid": "sha256:93db88924ca78d44461f2f5d6ae70569a689528fd1b7d2814418a7e9c7be2f6b",
+      "receiptCid": "sha256:707bd80a22aebab5a01d3964fabbc20c2d2b0e0e19764e8cb5a8bd6f774bb062",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "ai-chat",
+      "interfaceCid": "sha256:7440007903a4e94e2b39c7b153953894b2e2b08c2407a219409b3a447ad3a4b2",
+      "widgetCid": "sha256:290ea10eb5e070ee31f66bd0e5ae2cdd6b7ce3f3971dac66515de9c83dc6824e",
+      "receiptCid": "sha256:bdb06c423bb2a0fb6bc3382b6204a7198bfc11a85ac6cc698f0513e27e8e1017",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "file-manager",
+      "interfaceCid": "sha256:2d1c75959e5df4a74b983f1dfbe09db1492ed3ce9b7c67fc772b9e72eb28ffed",
+      "widgetCid": "sha256:17c6902538c20102b4070873953c0e8d0aabd1c226838819225af7dcb3fc35da",
+      "receiptCid": "sha256:7c8431ff7d1fd9270870bf30f0bdffdc79edbd49921ea86af1a021d5af2acfe8",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "task-manager",
+      "interfaceCid": "sha256:1e98c0c682c58ba8391bfb523db291bd1db782cbeb2eff931f495a2c88b63827",
+      "widgetCid": "sha256:fe0097340c1b9c050a65bbe061e3a709087576cc2ac40390c2e471e92f573c73",
+      "receiptCid": "sha256:9027d69f8eceb164ae4c07071b27631a53380d2d34d6342ea7c78ecd81babb3e",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "todo",
+      "interfaceCid": "sha256:41f5d76cfa901727d3cf9745c7aa65d6a08c34dd3308bbca5df4d91ac926ac4c",
+      "widgetCid": "sha256:2ce13acc3d567836babc04431b37eb8525ad8d42b293852f59a3c9fedf2f0f27",
+      "receiptCid": "sha256:10de4dd3d6ee052a253334529c30aed19dfb9dd06782c18a43ee69b8aa81a030",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "model-browser",
+      "interfaceCid": "sha256:7d344ee2b29725e64e00d1a7550f6c126a51c5d1a7de76e0aec4ffceb839bc48",
+      "widgetCid": "sha256:af0926f76b72e03ed8895e09e49b414ed9ed6a16a8c269de76cc2a3c34802e87",
+      "receiptCid": "sha256:eba7a14018bfadd23875aa3bacb289e4d83c1e208815b90a73eb913397b64ef9",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "huggingface",
+      "interfaceCid": "sha256:5319f0e2c928bac94d7c6f4ea3cb810683995c820d41c8db17dd3f8d197a1f52",
+      "widgetCid": "sha256:1648c88ada2b5b778bb0d8210557867ccecf7ae03562e899783a672447bb996d",
+      "receiptCid": "sha256:971cf997650ae6a63a7bc6e3b69c28364bcb3b8e376bdc478143c02b9f812eeb",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "openrouter",
+      "interfaceCid": "sha256:59be98a0d70c014e2c476f12c0f429dfad35f9eadd999957bb550243d5d51c1a",
+      "widgetCid": "sha256:4988fec7db93eafde7328aea42d9a191315952191b27f3541e495fbde677b84f",
+      "receiptCid": "sha256:448ec8cc732643c63078f70842a7d7e17d7048c332af064d821ac5099e402d66",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "ipfs-explorer",
+      "interfaceCid": "sha256:7a0bee8017a9e224dd8ab7e89f6148d381b8abb52838cb0d39a3ae5fb09dd204",
+      "widgetCid": "sha256:f9321d0cfea5258a7e1a636bc1cc8afc311c1466951435db614055dda45cdd87",
+      "receiptCid": "sha256:908d5e58c91185022aaef6a92a900f596d06bf96493b9175f194ac2fb81cf90b",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "device-manager",
+      "interfaceCid": "sha256:9d30a46b9b78fed8891c9da5eb8da2547a79a053df31e358c2b55e34ab471228",
+      "widgetCid": "sha256:133cbe1dd99c425de93c834daeea9b9e4b976b421f7253bbb0baf658bce9d1b6",
+      "receiptCid": "sha256:bf4d50d1bf02734dd79be3d50e36a6b5caac9a6e7aa196f36a95abe91583fe33",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "settings",
+      "interfaceCid": "sha256:4b59ea57adeab1f5f4b8a7f0346f7644ec81dfb5f58741c1e4e21517ed372260",
+      "widgetCid": "sha256:b17f5548fac1e6dd9875928981758a90d637f0cf3d2aaab7affa6a5ef9e5b8b6",
+      "receiptCid": "sha256:f8c7f61227ea7a498e3255e4bb12ffa2bcb23a56b9668fa2ee662fe1264d039c",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "mcp-control",
+      "interfaceCid": "sha256:63b1990b4dc17e4f1339bb16bf2541924e873dc49f9d39ef90bfd17d25bfa5fe",
+      "widgetCid": "sha256:b7a3b0c11e4a1d1622808a58e4117d5d7aaf52c11c609b11c70b6415a8b0c5aa",
+      "receiptCid": "sha256:f7f8e591c9c3511cf9bb4fd14bc5174c13ce0ff889f3a03bf5c39c0ff65e8fd9",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "api-keys",
+      "interfaceCid": "sha256:8d693360dadc90923f8db6887e55d0da550a27065949cf0e1022c199793490e4",
+      "widgetCid": "sha256:c286fb6892e731a53718a87c11b2eaeb2e4bae3bb34810ca822f5605f12bc7b7",
+      "receiptCid": "sha256:271389e8f7e372fb6a300eea5ae493dd896949db2310c2f7524296b757c06909",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "github",
+      "interfaceCid": "sha256:2ae170e5035694d1a86095af02f494af0338145748482fbcdab3ac256f5450c6",
+      "widgetCid": "sha256:0ca61a4ab8339c48d1c84973e07a9ba2b58f80e48eb06dbe167abb57e97703eb",
+      "receiptCid": "sha256:a17bafd00acf1950a090826c3052c58495339e0020cf4304822a4d37bf1acc98",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "oauth-login",
+      "interfaceCid": "sha256:1c296a6ea0b27c5aad859f074ab4547e88ffe08e8a615a208336ede539bbb9e5",
+      "widgetCid": "sha256:68cc487f1f597862a496309c77b2c2d27cc7da7f53a4f8fe7e636f20c0348625",
+      "receiptCid": "sha256:23f513789f681f962ed55351e5363c9da1465bb5f62583a62e2e759b39c74f68",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "cron",
+      "interfaceCid": "sha256:0cae3482bf56881374f90877a9a71e86e62a3812f71049857875dee1d2af684d",
+      "widgetCid": "sha256:92a60be4ab2ce142b9a17cf9e116119e9a2639bb819cadb00e0436c2a5df835c",
+      "receiptCid": "sha256:0362a05dc3c7294f313696da8724b75df1c6f2a84de35628577886530f63b07b",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "navi",
+      "interfaceCid": "sha256:dac99c4119274f35838fa367b28c383d5c80d07bbdfc76f6ceb1a02ad771bf09",
+      "widgetCid": "sha256:56100250699827bda249f2b03fde985c7c8bee3f583c54602427f74139e76fe4",
+      "receiptCid": "sha256:14079e41be7554f723e1c879f553bfb342090f5160d4ee42e1cbeb8c8fa0390c",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "p2p-network",
+      "interfaceCid": "sha256:c30579581913a0647510891fdb9202feee73285983c463a83c375f71e8a89356",
+      "widgetCid": "sha256:d2395f65f8dc2f5841f8fecd0a2eda661a80f63800d2bf275f47a0f201618c96",
+      "receiptCid": "sha256:79ca4b2495a14336e9cd7a64be4cb41fc0079a9528801ba5f12ed9b7e067f9b5",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "p2p-chat-unified",
+      "interfaceCid": "sha256:469301ba4373575d48781f619412b9ea717f6626caf8fffda8c81adc28d0f775",
+      "widgetCid": "sha256:35c79eb51507fac9285e136c7633059c89bfd2f93cf8ec335e5a5b39682c8ba1",
+      "receiptCid": "sha256:5a50fbcf2b22bced2375c0c9b6e256b641ad81ca8def7f87102ebbacf432b1e2",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "neural-network-designer",
+      "interfaceCid": "sha256:9f2f9bc4d9512a5e830ba06f75f31c45a8c75d7d3afc8b7cf3ad4bdff99a2630",
+      "widgetCid": "sha256:dd28e36936e28395f071e3c0fded230e8c63ade8fd67cf97a38570a6fcf914c3",
+      "receiptCid": "sha256:a88980aecefd87c7520bdfd77ba77a6071d569d8bc9a139793d9f318e97139b8",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "training-manager",
+      "interfaceCid": "sha256:8bb4df51d300991494b3d9432812be9d206ce19a8700c54337c00a721f9646b3",
+      "widgetCid": "sha256:57edfc914dc0aeac5715419dfe0a4a5e229594e9770d7ecbc51ac1b999c855fc",
+      "receiptCid": "sha256:41d6ccf19927d95b943c79b9e800dbd4484bbe75223c7a74113e30f431914892",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "calculator",
+      "interfaceCid": "sha256:7058ce047009ede4258ad07c9638010784b8709b17ae6f1d025a7ab2a3be1e9f",
+      "widgetCid": "sha256:b0f8b55e744b2f78667fe151a86e4213f143aa8e913e25435d7445d1cce763e6",
+      "receiptCid": "sha256:998d7e6dd6798a67fb2d8aa6876ea07dcf5a04ba096e9c85ad1288e3cbe835f1",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "clock",
+      "interfaceCid": "sha256:aae513ca79225df84935bdafc6319fcb2deae7c9c3dada481d8a5160c3f30c5c",
+      "widgetCid": "sha256:58c599909607c7b30199bfbff0362c0932a6966dce2884af844a8d9806d33d3c",
+      "receiptCid": "sha256:7354589eddc8d4796efb8e68469d76744013cd6f5e804d46ca7515f3b6848b1f",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "calendar",
+      "interfaceCid": "sha256:57f34d0fb66f5efcaf6f2f7d5aa15ade2d430bc8f3c3c89f91d8f19dcb26e5a4",
+      "widgetCid": "sha256:fbc00ef25a6b4bf219ae8d58d06ef467441f867be76723d475c874a43befdf6f",
+      "receiptCid": "sha256:620289a6038bef4923d87e2ea2c0fdca5ce57f9ce2f309ff568908c701205e2d",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "peertube",
+      "interfaceCid": "sha256:cd91a1ad4717a25f902e4b107ad9e7c4cf97d8bbe23f1589c23c7a6a8e9600d6",
+      "widgetCid": "sha256:85585b2665d4a3ba2544dedee319f1d6e976a69fac2ec3aa85662a72c9bf3255",
+      "receiptCid": "sha256:4906b9a25361db40f6e440a64b7f7caa7c1e8807054df1d6c0665e0079037f60",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "friends-list",
+      "interfaceCid": "sha256:4c51117cee90ba113e16ff7f242ecad54b6a8df7feaf5532ebcd68841c136b1d",
+      "widgetCid": "sha256:1dd48f5f2b811f778ba1c7c765732184d95d9c9eb728dab3eb9ed2d5adf2d115",
+      "receiptCid": "sha256:2162128ca8907d9be0cc13aaa8693a2fa084cb4efd8a0a9196f682ccbf517189",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "image-viewer",
+      "interfaceCid": "sha256:4ae2256f141f5b1e6c8089907ba6bacba449e4b220fbf2358af340bced067a59",
+      "widgetCid": "sha256:33530050786392a84bbfc3adf49fa182f81cb8b9900e41f214cf5a2f2c1d2e2f",
+      "receiptCid": "sha256:6e79d6da02a3039f5c70068021e447b9f48b2f148a81d88628370aba46201032",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "notes",
+      "interfaceCid": "sha256:fa389132d1bedfdb184593a89f8dc292f4f19a81a74174bf667f97c2f344964f",
+      "widgetCid": "sha256:a3d6289b927461c52ad0ee50af33d19a69be159268f0e002efa6e7d744953611",
+      "receiptCid": "sha256:0206ce23b4e5786149bfec786c935a064c35bf117a5d72f2e26b5fcaac5ff52e",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "media-player",
+      "interfaceCid": "sha256:174d5cc63c2020bb30ee36d9757dd462f61cdc20952139d74cd2449928320c43",
+      "widgetCid": "sha256:a36c1d7f74e13b8b10e04be28dd6dc464be520b6d05c278cfbdc6855915ab075",
+      "receiptCid": "sha256:69d2fb187c839591f93f12cc18d9e1f6542b32ae2f3aaa4b5e32e38fdbd877f2",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "system-monitor",
+      "interfaceCid": "sha256:fa8719fb803a220a65395c41295470297629c71ba791ac35ec60de7a4a98de42",
+      "widgetCid": "sha256:0734e80e8a6105610e2692991db516852b5e45df347c6a8212ccaaf58e26785c",
+      "receiptCid": "sha256:3061619846585c471d2fc06ac3e65004645013a5c6b55d1d20bd57a4a6601e96",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "neural-photoshop",
+      "interfaceCid": "sha256:ef9428b85057ab60fcdce4b75796ae9f39529df1e25ea581d0c9c12a019a88c6",
+      "widgetCid": "sha256:15b5553f26bb1329781fc7852616a7b2a76e324cc03a048fa4258985457a0634",
+      "receiptCid": "sha256:f4d60ea2ef451c57404f2ba6bc8755412c86dca54a5729008ef4a3e742eb23f6",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "cinema",
+      "interfaceCid": "sha256:67b46d9e26b2e69cdf59d048cd1143ab4d632ac173330eadcab60c10c55f16af",
+      "widgetCid": "sha256:fcc6660d85c93c07b1332670aabccdb4479b22d19c7455c27994c423a4a8a166",
+      "receiptCid": "sha256:73ba9271a68aec83c4d7a37743176c1bb2176aa87abb2c218d001af8b5968d42",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "strudel",
+      "interfaceCid": "sha256:6ea465298df0b90ddf36e02f60561a4be9fa509cd4f2c01b8efb6ba358398541",
+      "widgetCid": "sha256:0638d3751eb15776be2ed30e48e990e683c284c40ef3e63744de84fbca5b7bdc",
+      "receiptCid": "sha256:379a6050583fa058bbe66422c5e62a3c1b7075e778fe90314a650ea48eea2007",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "strudel-ai-daw",
+      "interfaceCid": "sha256:58ba1f3138eb0ee3ffd46ed6b764df9fc498fe0f81a18a35deb2b7e9e79c0a17",
+      "widgetCid": "sha256:507803c86914cd640e689be185330eb47a4afce87b55b058d2fa28f497655d9c",
+      "receiptCid": "sha256:0604585a7aa62e543560c5b33513cf696f32c28d5e0d5ccdc97f0a3dec5386a2",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "music-studio",
+      "interfaceCid": "sha256:ad22fa690fc1485fed3a2d4adfb36ddb7f6215b8f1699e2b947db72c65328cf3",
+      "widgetCid": "sha256:a133e327584c79f85d9e8553b0229f00ddd271f86051ab3552858674fe7d33ab",
+      "receiptCid": "sha256:09a655f07a58d582f5a8709e12bda81b3d4f71329ea40bcb82386870bb27d62c",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "p2p-chat",
+      "interfaceCid": "sha256:fb1e6810bef63072c2a8bc40f6e669b08d964b832bbba68bf9ebe8cd10600802",
+      "widgetCid": "sha256:fc539dde57776e6b974cd8c0f6ec193f85ed9efa05d69826d7544f4eb17f4155",
+      "receiptCid": "sha256:ab9627c0e69b9a9d4b7eac105ca0de7a698a9034d8b301c8f0b970911f544ce8",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "datasets-browser",
+      "interfaceCid": "sha256:8a808d29008164534d26dbe81930ed946d4e77d8f80ebd40ac5266470ed8621b",
+      "widgetCid": "sha256:c3df0672360642e839287d285b0f66663de5fa52c3b2e2a93361a3ea0382e86d",
+      "receiptCid": "sha256:4e54538dedfc33972f68ed51d841a3ac5ce5af7e1fe09fbfd902a3fca2e6fb93",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "accelerate-panel",
+      "interfaceCid": "sha256:fb1ea8ca074758e14a1f586501c4be82185fa36c8bf0b096e91ff2b8aca381f1",
+      "widgetCid": "sha256:d8db0652c1c83ba8c6abee63b6eeb79e3876a53c21a1638a34c2ec2d31e640cf",
+      "receiptCid": "sha256:70fd6e1a6e09363353ee14af4172843ae9ae4d08b444068ff8046c42574dbce8",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "idl-explorer",
+      "interfaceCid": "sha256:175ce136a82ba69031b7fb768bd121cbd6036d728b9dcbaecc9c162599738268",
+      "widgetCid": "sha256:beed77efb11257d07cbbd89062399f9eed9d9f1ca22ea96ca533b8bfb2381eb8",
+      "receiptCid": "sha256:1908dbf1f3eade4a3c833a8630fa5416e0fa08c1f8e5809e1b00a9cc797cc141",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "glasses-preview",
+      "interfaceCid": "sha256:8e3e2b5c0a4a6bb1ffc7692d64bc723e87c66d2862d0efe16e3c4e34dee4d0fa",
+      "widgetCid": "sha256:d1be10863a9efce3909ae83aad4103a2a9f09767cdcdf68a5a1655982795a747",
+      "receiptCid": "sha256:7f56c399c8e706fb6cf0048e0a9774d69efebbcd57935a4c87f708bd1ec26266",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "orb-auto-ui",
+      "interfaceCid": "sha256:ef09748c23841200c1af0f1099bbb22d2715508860a6c245b49923e5b3599eb7",
+      "widgetCid": "sha256:676c48237df7dc244f0303c33f8334fd4c0e832cba772b898379125a49b63707",
+      "receiptCid": "sha256:7be20645a3680ee9f9ffb22ed40df24d59b3bdcc1a29da70afbf787c8b58b02c",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "mcp-plus-plus",
+      "interfaceCid": "sha256:184df794ad6f2cf6e27e410b3dc068ee691ad0986b9d0604801a3e34bf8f35e7",
+      "widgetCid": "sha256:119f3fe84fb6aaf4f8e7ae42cf6c1ed4e2628c6757609fdab321e35fda01bcde",
+      "receiptCid": "sha256:bde474a5411b02da47ea852fee304d47a895c9ad4e8ac5b0cf6b7fd938eb2ff5",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "agent-supervisor",
+      "interfaceCid": "sha256:10d61577ad08ef6654b335ea345569da5128bf493fd65826613119b67ab7f067",
+      "widgetCid": "sha256:d5d36066d0e61893598377bc1ba804f485fc9f31edba33224784161e35c92795",
+      "receiptCid": "sha256:3776367180e4555a1ac8bb026ae005937c2c1e8be4e4d046d552d7d082baf4fc",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    }
+  ],
+  "failures": {
+    "openFailures": [],
+    "templateFailures": [],
+    "browserErrors": []
+  }
+}

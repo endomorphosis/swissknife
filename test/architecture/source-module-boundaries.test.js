@@ -95,6 +95,7 @@ function createAuditFixture({ files = {}, manifestPatch = {} } = {}) {
       browserSafeServiceFiles: [
         'src/services/mcp/protocol.ts',
       ],
+      browserHostOnlyPackages: ['pyodide', 'python-shell'],
       documentedServiceDeepImports: [],
       browserPublicEntrypoints: [],
       ...manifestPatch.audit,
@@ -194,6 +195,112 @@ function createAuditFixture({ files = {}, manifestPatch = {} } = {}) {
   }
 
   return fixtureDir;
+}
+
+const releaseSurfaceEntrypoints = [
+  'scripts/lib/release-readiness-evidence-producers.mjs',
+  'scripts/release-readiness-gate.mjs',
+  'scripts/lib/release-reproduction-attestation.mjs',
+  'scripts/capture-refactor-main-reconciliation.cjs',
+  'scripts/lib/pick-free-port.mjs',
+  'scripts/run-with-owned-port.mjs',
+  'build-tools/configs/playwright.live-behavior-proof.config.ts',
+  'build-tools/configs/playwright.live-gateway.config.ts',
+  'test/architecture/release-readiness-hermetic.test.ts',
+];
+
+function releaseSurfaceManifestPatch(overrides = {}) {
+  return {
+    audit: {
+      releaseReadinessSurface: {
+        manifestPath: 'scripts/lib/release-readiness-evidence-producers.mjs',
+        producerExport: 'RELEASE_EVIDENCE_PRODUCER_GATES',
+        entrypointOwnershipExport: 'RELEASE_READINESS_ENTRYPOINT_OWNERSHIP',
+        owner: 'release-readiness',
+        requiredEntrypoints: releaseSurfaceEntrypoints,
+        ownedPortHelper: 'scripts/lib/pick-free-port.mjs',
+        ownedPortWrapper: 'scripts/run-with-owned-port.mjs',
+        releaseGate: 'scripts/release-readiness-gate.mjs',
+        publicReleaseApiImporters: [
+          'scripts/release-readiness-gate.mjs',
+          'test/architecture/release-readiness-hermetic.test.ts',
+        ],
+        ownedPortHelperImporters: [
+          'scripts/run-with-owned-port.mjs',
+          'test/architecture/release-readiness-hermetic.test.ts',
+        ],
+        publicExports: [
+          'RELEASE_EVIDENCE_PRODUCER_GATES',
+          'RELEASE_READINESS_ENTRYPOINT_OWNERSHIP',
+          'validateReleaseReadinessManifest',
+          'createReleaseEvidenceProducerGateEntries',
+          'runReleaseEvidenceProducers',
+          'producerEvidenceAbsolutePaths',
+          'producerEvidenceDirectories',
+          'releaseReadinessEvidenceAbsolutePaths',
+        ],
+        ownedPortExports: ['findOwnedPort'],
+        ...overrides,
+      },
+    },
+  };
+}
+
+function releaseSurfaceFixtureFiles({ ownershipPaths = releaseSurfaceEntrypoints } = {}) {
+  const ownershipEntries = ownershipPaths.map((entryPath) => `  {
+    path: '${entryPath}',
+    owner: 'release-readiness',
+    runtime: '${entryPath.includes('playwright') ? 'browser-playwright' : 'host-release'}',
+    auditDecision: 'Fixture executable release-readiness ownership decision for ${entryPath}',
+  }`).join(',\n');
+  return {
+    'scripts/lib/release-readiness-evidence-producers.mjs': [
+      'export const RELEASE_EVIDENCE_PRODUCER_GATES = [{',
+      "  id: 'fixture-producer',",
+      "  label: 'Fixture producer',",
+      "  npmScript: 'fixture:producer',",
+      "  schema: 'swissknife.fixture.v1',",
+      "  taskId: 'SVD-131',",
+      '  defaultEnabled: true,',
+      "  evidenceFiles: ['fixture.json'],",
+      "  ownership: { owner: 'release-readiness', runtime: 'host-release', auditDecision: 'fixture producer' },",
+      "  evidenceVerification: { mode: 'json-content-and-artifact-presence', files: [{ file: 'fixture.json', json: true, generatedAt: true, checks: [{ path: 'schema' }, { path: 'task_id' }, { path: 'payload' }] }] },",
+      '}];',
+      `export const RELEASE_READINESS_ENTRYPOINT_OWNERSHIP = [\n${ownershipEntries}\n];`,
+      'export function validateReleaseReadinessManifest() { return []; }',
+      'export function createReleaseEvidenceProducerGateEntries() { return []; }',
+      'export function runReleaseEvidenceProducers() { return { ok: true }; }',
+      'export function producerEvidenceAbsolutePaths() { return []; }',
+      'export function producerEvidenceDirectories() { return []; }',
+      'export function releaseReadinessEvidenceAbsolutePaths() { return []; }',
+      '',
+    ].join('\n'),
+    'scripts/release-readiness-gate.mjs': [
+      "import { createReleaseEvidenceProducerGateEntries } from './lib/release-readiness-evidence-producers.mjs';",
+      'export const gates = createReleaseEvidenceProducerGateEntries({ runProducer() {} });',
+      '',
+    ].join('\n'),
+    'scripts/lib/release-reproduction-attestation.mjs': 'export function buildReleaseReproductionAttestation() { return { ok: true }; }\n',
+    'scripts/capture-refactor-main-reconciliation.cjs': [
+      'const fs = require("node:fs");',
+      'fs.writeFileSync("test-results/virtual-desktop-ipfs-mcp-orb/refactor-main-reconciliation.json", "{}\\n");',
+      '',
+    ].join('\n'),
+    'scripts/lib/pick-free-port.mjs': 'export async function findOwnedPort() { return { port: 3001, owner: "current-process-exclusive-bind-probe" }; }\n',
+    'scripts/run-with-owned-port.mjs': [
+      "import { findOwnedPort } from './lib/pick-free-port.mjs';",
+      'export async function runWithOwnedPort() { return findOwnedPort(); }',
+      '',
+    ].join('\n'),
+    'build-tools/configs/playwright.live-behavior-proof.config.ts': 'export default { testDir: "../../test/e2e" };\n',
+    'build-tools/configs/playwright.live-gateway.config.ts': 'export default { webServer: { command: "vite --strictPort", reuseExistingServer: false } };\n',
+    'test/architecture/release-readiness-hermetic.test.ts': [
+      "import { RELEASE_EVIDENCE_PRODUCER_GATES } from '../../scripts/lib/release-readiness-evidence-producers.mjs';",
+      "import { findOwnedPort } from '../../scripts/lib/pick-free-port.mjs';",
+      'test("fixture release surface", () => expect(RELEASE_EVIDENCE_PRODUCER_GATES.length + Number(Boolean(findOwnedPort))).toBeGreaterThan(0));',
+      '',
+    ].join('\n'),
+  };
 }
 
 function runFixtureAudit(fixtureDir, args = ['--fail-on-unknown', '--fail-on-forbidden']) {
@@ -1742,6 +1849,191 @@ describe('source module boundaries', () => {
       file: browserEntrypoint,
       reason: expect.stringMatching(/behavior-equivalent.*without exact duplicate-policy approval/i),
       equivalentPaths: expect.arrayContaining([browserEntrypoint, equivalentModule]),
+    }));
+  });
+
+  it('audits the post-SVD-131 release-readiness surface from executable exports and imports', () => {
+    const audit = runSourceModuleAudit();
+    expect(audit.summary.releaseReadinessSurfaceViolations).toBe(0);
+    expect(audit.releaseReadinessSurface).toEqual(expect.objectContaining({
+      enabled: true,
+      source: expect.objectContaining({
+        manifestPath: 'scripts/lib/release-readiness-evidence-producers.mjs',
+        ownedPortHelper: 'scripts/lib/pick-free-port.mjs',
+        ownedPortWrapper: 'scripts/run-with-owned-port.mjs',
+      }),
+    }));
+    expect(audit.releaseReadinessSurface.producerManifestFiles).toEqual([
+      'scripts/lib/release-readiness-evidence-producers.mjs',
+    ]);
+    expect(audit.releaseReadinessSurface.entrypoints.map(item => item.path)).toEqual(
+      releaseSurfaceEntrypoints,
+    );
+    expect(audit.releaseReadinessSurface.releaseBehaviorFiles).toEqual(
+      expect.arrayContaining(releaseSurfaceEntrypoints),
+    );
+  });
+
+  it('rejects a second executable release evidence producer manifest', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        ...releaseSurfaceFixtureFiles(),
+        'scripts/lib/second-release-producers.mjs': [
+          '// A comment mentioning export const RELEASE_EVIDENCE_PRODUCER_GATES must not matter.',
+          'export const RELEASE_EVIDENCE_PRODUCER_GATES = [{ id: "duplicate-producer" }];',
+          '',
+        ].join('\n'),
+      },
+      manifestPatch: releaseSurfaceManifestPatch(),
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-forbidden', '--json', 'audit.json']);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toContain('second executable producer manifest');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.releaseReadinessSurface.producerManifestFiles).toEqual([
+      'scripts/lib/release-readiness-evidence-producers.mjs',
+      'scripts/lib/second-release-producers.mjs',
+    ]);
+    expect(audit.releaseReadinessSurface.violations).toContainEqual(expect.objectContaining({
+      file: 'scripts/lib/second-release-producers.mjs',
+      reason: expect.stringMatching(/second executable producer manifest/i),
+    }));
+  });
+
+  it('ignores comment-only release producer manifest text', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        ...releaseSurfaceFixtureFiles(),
+        'scripts/lib/comment-only-release-producers.mjs': [
+          '// export const RELEASE_EVIDENCE_PRODUCER_GATES = [{ id: "not-real" }];',
+          'export const harmless = true;',
+          '',
+        ].join('\n'),
+      },
+      manifestPatch: releaseSurfaceManifestPatch(),
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-forbidden', '--json', 'audit.json']);
+
+    expect(result.status).toBe(0);
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.releaseReadinessSurface.producerManifestFiles).toEqual([
+      'scripts/lib/release-readiness-evidence-producers.mjs',
+    ]);
+  });
+
+  it('rejects a renamed endpoint-leasing helper instead of accepting a new helper path by filename', () => {
+    const renamedEntrypoints = releaseSurfaceEntrypoints.map(item => (
+      item === 'scripts/lib/pick-free-port.mjs' ? 'scripts/lib/pick-owned-port.mjs' : item
+    ));
+    const files = releaseSurfaceFixtureFiles({ ownershipPaths: renamedEntrypoints });
+    files['scripts/lib/pick-owned-port.mjs'] = files['scripts/lib/pick-free-port.mjs'];
+    delete files['scripts/lib/pick-free-port.mjs'];
+    files['scripts/run-with-owned-port.mjs'] = [
+      "import { findOwnedPort } from './lib/pick-owned-port.mjs';",
+      'export async function runWithOwnedPort() { return findOwnedPort(); }',
+      '',
+    ].join('\n');
+
+    const fixtureDir = createAuditFixture({
+      files,
+      manifestPatch: releaseSurfaceManifestPatch(),
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-forbidden', '--json', 'audit.json']);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toContain('required release-readiness entrypoint is missing');
+    expect(output).toContain('owned port wrapper must import the canonical endpoint-leasing helper');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.releaseReadinessSurface.violations).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        file: 'scripts/lib/pick-free-port.mjs',
+        reason: expect.stringMatching(/missing from the producer manifest/i),
+      }),
+      expect.objectContaining({
+        file: 'scripts/run-with-owned-port.mjs',
+        target: 'scripts/lib/pick-free-port.mjs',
+        reason: expect.stringMatching(/canonical endpoint-leasing helper/i),
+      }),
+    ]));
+  });
+
+  it('rejects a direct deep import that bypasses the owned release API and leaves the root script unclassified', () => {
+    const fixtureDir = createAuditFixture({
+      files: {
+        ...releaseSurfaceFixtureFiles(),
+        'scripts/unclassified-release-runner.mjs': [
+          "import { RELEASE_EVIDENCE_PRODUCER_GATES } from './lib/release-readiness-evidence-producers.mjs';",
+          'export const producerCount = RELEASE_EVIDENCE_PRODUCER_GATES.length;',
+          '',
+        ].join('\n'),
+      },
+      manifestPatch: releaseSurfaceManifestPatch(),
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-forbidden', '--json', 'audit.json']);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toContain('direct release producer manifest import bypasses');
+    expect(output).toContain('not classified in the producer manifest ownership export');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.releaseReadinessSurface.violations).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        file: 'scripts/unclassified-release-runner.mjs',
+        target: 'scripts/lib/release-readiness-evidence-producers.mjs',
+        reason: expect.stringMatching(/bypasses the owned release API/i),
+      }),
+      expect.objectContaining({
+        file: 'scripts/unclassified-release-runner.mjs',
+        reason: expect.stringMatching(/not classified/i),
+      }),
+    ]));
+  });
+
+  it('rejects browser-reachable Python packages through the source import graph', () => {
+    const browserEntrypoint = 'src/services/mcp/browser-python-entry.ts';
+    const fixtureDir = createAuditFixture({
+      files: {
+        'package.json': `${JSON.stringify({
+          name: 'source-boundary-fixture',
+          exports: {
+            './browser/python': {
+              browser: `./${browserEntrypoint}`,
+              default: `./${browserEntrypoint}`,
+            },
+          },
+        }, null, 2)}\n`,
+        [browserEntrypoint]: [
+          "import { loadPyodide } from 'pyodide';",
+          'export async function runBrowserPython() { return loadPyodide(); }',
+          '',
+        ].join('\n'),
+      },
+      manifestPatch: {
+        audit: {
+          browserSafeSourceGlobs: [browserEntrypoint],
+          browserSafeServiceFiles: [browserEntrypoint],
+          browserPublicEntrypoints: [{
+            exportName: './browser/python',
+            path: browserEntrypoint,
+            owner: 'service-mcp',
+            publicContract: 'Fixture browser Python capability must be rejected',
+          }],
+        },
+      },
+    });
+    const result = runFixtureAudit(fixtureDir, ['--fail-on-forbidden', '--json', 'audit.json']);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    expect(result.status).not.toBe(0);
+    expect(output).toContain('package classified as host-only');
+    const audit = readJson(path.join(fixtureDir, 'audit.json'));
+    expect(audit.browserUnsafeImports).toContainEqual(expect.objectContaining({
+      file: browserEntrypoint,
+      specifier: 'pyodide',
+      reason: 'browser public entrypoint reaches a package classified as host-only',
     }));
   });
 

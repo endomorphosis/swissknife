@@ -50,10 +50,18 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
-  RELEASE_EVIDENCE_PRODUCER_GATES,
-  resetReleaseEvidenceProducers,
-  runSingleProducerGate,
+  createReleaseEvidenceProducerGateEntries,
+  resetReleaseReadinessEvidence,
+  validateReleaseReadinessManifest,
 } from './lib/release-readiness-evidence-producers.mjs';
+import {
+  RELEASE_REPRODUCTION_ATTESTATION_JSON,
+  RELEASE_REPRODUCTION_ATTESTATION_MD,
+  buildReleaseReproductionAttestation,
+  capturePreRunGitState,
+  runCleanCheckoutReleaseReproduction,
+  writeReleaseReproductionAttestation,
+} from './lib/release-reproduction-attestation.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -88,7 +96,21 @@ const BROWSER_SAFETY_GATE_IDS = new Set([
 ]);
 const HOST_IMPORT_PATTERN =
   /\b(?:from|import)\s*(?:[^'"()]*?\s+from\s*)?["'](?:node:)?(?:child_process|fs\/promises|fs|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']|\brequire\s*\(\s*["'](?:node:)?(?:child_process|fs\/promises|fs|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)["']\s*\)|\bnode:(?:child_process|fs\/promises|fs|path|worker_threads|net|tls|dgram|dns|readline|repl|tty|vm)\b/g;
+const HOST_LEAKAGE_PATTERNS = [
+  HOST_IMPORT_PATTERN,
+  /\b(?:child_process|fs\/promises|worker_threads|net|tls|dgram|readline|repl|tty)\b/g,
+];
 const PYODIDE_DEFAULT_PATTERN = /\b(?:loadPyodide|runPython|runPythonAsync)\b|<script[^>]+(?:pyodide|loadPyodide)[^>]*>/gi;
+const FORBIDDEN_EXPORT_SEGMENTS = [
+  '/host',
+  '/node',
+  '/native',
+  '/python',
+  '/cli',
+  '/server',
+  '/subprocess',
+];
+const REQUIRED_SMOKE_RECEIPTS = [];
 const BROWSER_ZKP_FORBIDDEN_PATTERNS = [
   {
     id: 'simulated-prover-import',
@@ -168,6 +190,14 @@ function readText(relativePath) {
 
 function readJson(relativePath) {
   return JSON.parse(readText(relativePath));
+}
+
+function readJsonIfExists(relativePath) {
+  try {
+    return exists(relativePath) ? readJson(relativePath) : null;
+  } catch {
+    return null;
+  }
 }
 
 function exists(relativePath) {
@@ -536,6 +566,25 @@ function runCommand(command, commandArgs) {
   };
 }
 
+function runCommandIn(cwd, command, commandArgs) {
+  const startedAt = Date.now();
+  const result = spawnSync(command, commandArgs, {
+    cwd,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    env: process.env,
+  });
+  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`.trim();
+  return {
+    ok: result.status === 0,
+    status: result.status,
+    durationMs: Date.now() - startedAt,
+    stdout: result.stdout?.trim() ?? '',
+    stderr: result.stderr?.trim() ?? '',
+    tail: output ? output.split('\n').filter(Boolean).slice(-60) : [],
+  };
+}
+
 function runNpmScript(scriptName, extraArgs = []) {
   return runCommand('npm', ['run', scriptName, ...(extraArgs.length ? ['--', ...extraArgs] : [])]);
 }
@@ -565,6 +614,8 @@ function gateBundleHostLeakageAndPyodide() {
 function gateLibp2pEvidenceFreshness() {
   const outcome = runCommand('node', [
     'scripts/audit-release-evidence-freshness.mjs',
+    '--update',
+    'virtual-desktop-release-evidence',
     '--fail-on-stale',
     '--json',
     'docs/release-evidence-freshness.json',
@@ -572,8 +623,9 @@ function gateLibp2pEvidenceFreshness() {
     'docs/release-evidence-freshness.md',
   ]);
   return {
-    detail: outcome.tail,
-    failures: outcome.ok ? [] : [`audit-release-evidence-freshness failed with exit ${outcome.status}`, ...outcome.tail],
+    ok: outcome.ok,
+    status: outcome.status,
+    tail: outcome.ok ? [] : [`audit-release-evidence-freshness failed with exit ${outcome.status}`, ...outcome.tail],
     durationMs: outcome.durationMs,
   };
 }
@@ -879,9 +931,339 @@ function runSkippedGatePolicy(gates) {
   };
 }
 
+function runReleaseReadinessManifestGate() {
+  const startedAt = Date.now();
+  const failures = validateReleaseReadinessManifest();
+  return {
+    ok: failures.length === 0,
+    status: failures.length === 0 ? 0 : 1,
+    durationMs: Date.now() - startedAt,
+    findings: failures.map((message) => ({
+      id: 'release-readiness-manifest-invalid',
+      message,
+      file: 'scripts/lib/release-readiness-evidence-producers.mjs',
+    })),
+    tail: failures,
+  };
+}
+
 function gitCommitSha() {
   const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' });
   return result.status === 0 ? result.stdout.trim() : null;
+}
+
+function gitCount(cwd, args) {
+  const result = runCommandIn(cwd, 'git', args);
+  if (!result.ok || !result.stdout) return 0;
+  return result.stdout.split('\n').filter(Boolean).length;
+}
+
+function parseSwrBoard() {
+  const parentRoot = path.resolve(repoRoot, '..');
+  const todoPath = path.join(
+    parentRoot,
+    'implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md',
+  );
+  if (!fs.existsSync(todoPath)) {
+    return {
+      path: path.relative(parentRoot, todoPath).split(path.sep).join('/'),
+      status: 'missing',
+      taskCount: 0,
+      tasks: {},
+      dependencyStatuses: {},
+      blockers: ['task board is not present beside this SwissKnife checkout'],
+    };
+  }
+
+  const source = fs.readFileSync(todoPath, 'utf8');
+  const taskMatches = [...source.matchAll(/^## (SWR-\d+) (.+)$/gm)];
+  const tasks = {};
+  for (let index = 0; index < taskMatches.length; index += 1) {
+    const match = taskMatches[index];
+    const next = taskMatches[index + 1];
+    const block = source.slice(match.index, next?.index ?? source.length);
+    const status = block.match(/^- Status:\s*(.+)$/m)?.[1]?.trim() ?? 'unknown';
+    tasks[match[1]] = {
+      title: match[2].trim(),
+      status,
+    };
+  }
+  const dependencyIds = ['SWR-135', 'SWR-136', 'SWR-137', 'SWR-138', 'SWR-139', 'SWR-140', 'SWR-141'];
+  const dependencyStatuses = Object.fromEntries(
+    dependencyIds.map((taskId) => [taskId, tasks[taskId]?.status ?? 'missing']),
+  );
+  const blockers = [];
+  for (const [taskId, status] of Object.entries(dependencyStatuses)) {
+    if (status !== 'completed') blockers.push(`${taskId} status is ${status}`);
+  }
+  if (!tasks['SWR-142']) {
+    blockers.push('SWR-142 is missing from the task board');
+  } else if (tasks['SWR-142'].status === 'completed') {
+    blockers.push('SWR-142 is already marked completed before the handoff checks agree');
+  }
+
+  return {
+    path: path.relative(parentRoot, todoPath).split(path.sep).join('/'),
+    status: 'present',
+    taskCount: Object.keys(tasks).length,
+    tasks,
+    dependencyStatuses,
+    swr142Status: tasks['SWR-142']?.status ?? 'missing',
+    blockers,
+  };
+}
+
+function readSupervisorState(relativePath) {
+  const parentRoot = path.resolve(repoRoot, '..');
+  const absolutePath = path.join(parentRoot, relativePath);
+  if (!fs.existsSync(absolutePath)) return null;
+  let payload = null;
+  try {
+    payload = JSON.parse(fs.readFileSync(absolutePath, 'utf8'));
+  } catch {
+    return {
+      path: relativePath,
+      readable: false,
+      active: false,
+      reason: 'invalid JSON',
+    };
+  }
+  const supervisorPid = Number(payload.supervisor_pid ?? payload.daemon_pid ?? 0);
+  const daemonPid = Number(payload.daemon_pid ?? 0);
+  const supervisorAlive = Number.isInteger(supervisorPid) && supervisorPid > 0
+    ? (() => {
+        try {
+          process.kill(supervisorPid, 0);
+          return true;
+        } catch {
+          return false;
+        }
+      })()
+    : false;
+  const daemonAlive = Number.isInteger(daemonPid) && daemonPid > 0
+    ? (() => {
+        try {
+          process.kill(daemonPid, 0);
+          return true;
+        } catch {
+          return false;
+        }
+      })()
+    : false;
+  return {
+    path: relativePath,
+    readable: true,
+    active: payload.status === 'running' && (supervisorAlive || daemonAlive),
+    status: payload.status ?? null,
+    runId: payload.run_id ?? null,
+    lane: payload.state_prefix ?? null,
+    board: payload.todo_path ?? null,
+    supervisorPid: Number.isInteger(supervisorPid) && supervisorPid > 0 ? supervisorPid : null,
+    daemonPid: Number.isInteger(daemonPid) && daemonPid > 0 ? daemonPid : null,
+    supervisorAlive,
+    daemonAlive,
+    logPath: payload.log_path ?? null,
+    updatedAt: payload.updated_at ?? null,
+  };
+}
+
+function readCheckoutLeaseStatus() {
+  const outcome = runCommandIn(repoRoot, 'node', ['scripts/swissknife-checkout-lease.mjs', '--status', '--json']);
+  if (!outcome.ok) {
+    return {
+      ok: false,
+      status: 'unavailable',
+      reason: outcome.tail.join(' | ') || `lease status command exited ${outcome.status}`,
+      owner: null,
+    };
+  }
+  try {
+    const parsed = JSON.parse(outcome.stdout);
+    return {
+      ok: parsed.ok === true,
+      status: parsed.state ?? 'unknown',
+      reason: parsed.reason ?? null,
+      namespace: parsed.namespace ?? null,
+      owner: parsed.owner ?? null,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 'invalid',
+      reason: `cannot parse lease status JSON: ${error.message}`,
+      owner: null,
+    };
+  }
+}
+
+function collectPhase21Handoff({ preRunGitState, releaseDecision, reproductionPreflight }) {
+  const board = parseSwrBoard();
+  const serviceAudit = readJsonIfExists('docs/service-boundary-audit.json');
+  const duplicateInventory = readJsonIfExists('docs/restored-service-duplicate-inventory.json');
+  const libp2pFingerprint = readJsonIfExists('docs/browser-libp2p-evidence.fingerprint.json');
+  const proofContract = readJsonIfExists('docs/browser-proof-runtime-evidence.json');
+  const proofObserved = readJsonIfExists('test-results/browser-proof-runtime/observed-three-engine-runtime.json');
+  const freshness = readJsonIfExists('docs/release-evidence-freshness.json');
+  const lease = readCheckoutLeaseStatus();
+  const supervisorStates = [
+    'tmp/swissknife_refactor_integration_supervisor/state/swissknife_refactor_integration_supervisor_status.json',
+    'tmp/swissknife_refactor_supervisor/state/swissknife_refactor_supervisor_status.json',
+    'tmp/swissknife_all_tools_supervisor/state/swissknife_all_tools_supervisor_status.json',
+  ].map(readSupervisorState).filter(Boolean);
+  const activeSupervisorStates = supervisorStates.filter((state) => state.active);
+  const activeSwr142Supervisor = activeSupervisorStates.find((state) =>
+    state.board === board.path ||
+    state.board === 'implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md'
+  );
+  const leaseOwnerBoard = lease.owner?.board ?? null;
+  const leaseOwnerLane = lease.owner?.lane ?? null;
+  const activeWriterCoveredByLease = Boolean(
+    activeSwr142Supervisor &&
+    lease.ok &&
+    lease.status === 'active' &&
+    leaseOwnerBoard === activeSwr142Supervisor.board,
+  );
+  const requiredEngines = ['chromium', 'firefox', 'webkit'];
+  const proofEngines = Array.isArray(proofObserved?.engines)
+    ? proofObserved.engines.map((engine) => ({
+        engine: engine.name ?? null,
+        outcome: engine.outcome ?? null,
+        assertionCount: engine.assertion_count ?? null,
+      }))
+    : [];
+  const proofEngineNames = new Set(proofEngines.map((engine) => engine.engine));
+  const libp2pFreshness = (freshness?.results ?? []).find((entry) => entry.id === 'libp2p-browser-playwright');
+  const libp2pEngines = requiredEngines.map((engine) => ({
+    engine,
+    receiptPath: `test-results/libp2p-browser/swr-138-${engine}.json`,
+    sourceControlledEvidence: 'docs/browser-libp2p-evidence.md',
+    fingerprintPath: 'docs/browser-libp2p-evidence.fingerprint.json',
+    rawReceiptPresent: exists(`test-results/libp2p-browser/swr-138-${engine}.json`),
+    fingerprintStatus: libp2pFreshness?.status ?? 'unknown',
+    recordedAt: libp2pFingerprint?.generatedAt ?? null,
+  }));
+  const missingProofEngines = requiredEngines.filter((engine) => !proofEngineNames.has(engine));
+
+  const duplicateCounts = {
+    serviceDuplicateBasenames: serviceAudit?.summary?.serviceDuplicateBasenames ?? null,
+    unapprovedServiceDuplicateBasenames: serviceAudit?.summary?.unapprovedServiceDuplicateBasenames ?? null,
+    duplicateContentHashes: serviceAudit?.summary?.serviceDuplicateContentHashes ?? null,
+    unapprovedDuplicateContentHashes: serviceAudit?.summary?.unapprovedServiceDuplicateContentHashes ?? null,
+    normalizedContentCollisions: serviceAudit?.summary?.serviceNormalizedContentCollisions ?? null,
+    unclassifiedNormalizedContentCollisions: serviceAudit?.summary?.unclassifiedServiceNormalizedContentCollisions ?? null,
+    behavioralEquivalenceGroups: serviceAudit?.summary?.serviceBehavioralEquivalenceGroups ?? null,
+    unclassifiedBehavioralEquivalenceGroups: serviceAudit?.summary?.unclassifiedServiceBehavioralEquivalenceGroups ?? null,
+    inventoryDuplicateBasenames: duplicateInventory?.summary?.duplicateBasenames ?? null,
+    inventoryDuplicatePaths: duplicateInventory?.summary?.duplicatePaths ?? null,
+  };
+  const conflictCounts = {
+    swissknifeUnmergedIndexEntries: gitCount(repoRoot, ['ls-files', '-u']),
+    parentUnmergedIndexEntries: gitCount(path.resolve(repoRoot, '..'), ['ls-files', '-u', '--', 'swissknife']),
+    unresolvedMergeMarkers: serviceAudit?.summary?.unresolvedMergeMarkers ?? null,
+    ownershipConflicts: serviceAudit?.summary?.ownershipConflicts ?? null,
+    browserUnsafeImports: serviceAudit?.summary?.browserUnsafeImports ?? null,
+    forbiddenImports: serviceAudit?.summary?.forbiddenImports ?? null,
+  };
+
+  const blockers = [
+    ...board.blockers.map((blocker) => `board:${blocker}`),
+  ];
+  if ((preRunGitState?.swissknife_status_entries ?? []).length > 0) {
+    blockers.push(`source:SwissKnife checkout has ${preRunGitState.swissknife_status_entries.length} pre-run status entries`);
+  }
+  if (!preRunGitState?.parent_gitlink_matches_head) {
+    blockers.push('source:parent gitlink does not match nested SwissKnife HEAD');
+  }
+  if (!lease.ok || lease.status !== 'active') {
+    blockers.push(`lease:lease status is ${lease.status}`);
+  }
+  if (activeSupervisorStates.length > 1) {
+    blockers.push(`lease:${activeSupervisorStates.length} active supervisor writers observed`);
+  }
+  if (activeSwr142Supervisor && !activeWriterCoveredByLease) {
+    blockers.push(`lease:active SWR board writer is not the checkout lease owner (lease lane ${leaseOwnerLane ?? 'none'})`);
+  }
+  for (const [key, value] of Object.entries(duplicateCounts)) {
+    if (key.startsWith('unapproved') || key.startsWith('unclassified')) {
+      if (Number(value ?? 0) > 0) blockers.push(`duplicates:${key}=${value}`);
+    }
+  }
+  for (const [key, value] of Object.entries(conflictCounts)) {
+    if (Number(value ?? 0) > 0) blockers.push(`conflicts:${key}=${value}`);
+  }
+  if (libp2pFreshness?.status !== 'fresh') {
+    blockers.push(`browser:libp2p browser evidence freshness is ${libp2pFreshness?.status ?? 'missing'}`);
+  }
+  if (proofObserved?.outcome !== 'passed' || missingProofEngines.length > 0) {
+    blockers.push(`browser:proof runtime missing or failing engines ${missingProofEngines.join(', ') || 'unknown'}`);
+  }
+  if (releaseDecision !== 'GO') {
+    blockers.push(`release:release decision is ${releaseDecision}`);
+  }
+  if (reproductionPreflight?.release_decision !== 'GO') {
+    blockers.push(`release:hermetic attestation decision is ${reproductionPreflight?.release_decision ?? 'missing'}`);
+  }
+
+  return {
+    taskId: 'SWR-142',
+    generatedAt: new Date().toISOString(),
+    decision: blockers.length === 0 ? 'GO' : 'NO_GO',
+    blockers,
+    board,
+    checkout: {
+      swissknifeHead: preRunGitState?.swissknife_head ?? null,
+      swissknifeBranch: preRunGitState?.swissknife_branch ?? null,
+      detached: preRunGitState?.swissknife_detached ?? null,
+      preRunStatusEntryCount: (preRunGitState?.swissknife_status_entries ?? []).length,
+      parentRepositoryCommit: preRunGitState?.parent_head ?? null,
+      parentGitlinkSha: preRunGitState?.parent_gitlink_sha ?? null,
+      parentGitlinkMatchesHead: preRunGitState?.parent_gitlink_matches_head ?? null,
+      parentStatusEntries: preRunGitState?.parent_status_entries ?? [],
+    },
+    lease,
+    supervisorStates,
+    activeSupervisorCount: activeSupervisorStates.length,
+    activeWriterCoveredByLease,
+    duplicateCounts,
+    conflictCounts,
+    browserReceipts: {
+      requiredEngines,
+      libp2p: {
+        evidencePath: 'docs/browser-libp2p-evidence.md',
+        fingerprintPath: 'docs/browser-libp2p-evidence.fingerprint.json',
+        fingerprintStatus: libp2pFreshness?.status ?? 'unknown',
+        fingerprintGeneratedAt: libp2pFingerprint?.generatedAt ?? null,
+        sourceFingerprint: libp2pFingerprint?.sourceFingerprint ?? null,
+        engines: libp2pEngines,
+      },
+      proof: {
+        contractPath: 'docs/browser-proof-runtime-evidence.json',
+        observedPath: 'test-results/browser-proof-runtime/observed-three-engine-runtime.json',
+        contractTaskId: proofContract?.task_id ?? null,
+        outcome: proofObserved?.outcome ?? null,
+        generatedAt: proofObserved?.generated_at ?? null,
+        assertionCount: proofObserved?.assertion_count ?? null,
+        assertionsPerEngine: proofObserved?.assertions_per_engine ?? null,
+        engines: proofEngines,
+        theoremBackend: proofContract?.theorem_runtime?.default_backend?.id ?? null,
+        zkpBackend: proofContract?.zkp_runtime?.default_backend?.id ?? null,
+        wasmHelperSha256: proofContract?.zkp_runtime?.default_backend?.wasm_helper_sha256 ?? null,
+      },
+    },
+    hermeticRelease: {
+      reportPath: 'docs/release-readiness-report.json',
+      attestationPath: RELEASE_REPRODUCTION_ATTESTATION_JSON,
+      releaseDecision,
+      attestationDecision: reproductionPreflight?.release_decision ?? null,
+      blockerCount: reproductionPreflight?.no_go_findings?.length ?? null,
+      blockerIds: (reproductionPreflight?.no_go_findings ?? []).map((finding) => finding.id),
+      cleanCheckoutStatus: reproductionPreflight?.clean_checkout_reproduction?.status ?? null,
+      cleanCheckoutFailure: reproductionPreflight?.clean_checkout_reproduction?.failure_reason ??
+        reproductionPreflight?.clean_checkout_reproduction?.reason ??
+        null,
+      canonicalPayloadSha256: reproductionPreflight?.canonical_payload_sha256 ?? null,
+    },
+  };
 }
 
 function formatDuration(ms) {
@@ -1259,18 +1641,20 @@ function main() {
   }
 
   const startedAt = new Date();
+  const preRunGitState = capturePreRunGitState(repoRoot);
   const gates = [];
   let stoppedEarly = null;
 
   // SVD-131: cold-start, one-pass guarantee. Delete every evidence artifact
-  // owned by the producer gates below before running anything, so this
+  // owned by the producer manifest and explicit downstream closeout receipts
+  // before running anything, so this
   // candidate cannot pass because a gitignored receipt from a prior run (in
   // this checkout or a previous session sharing it) happens to still be
-  // sitting in the working tree. Only files/directories this manifest
-  // explicitly owns are removed; every other evidence artifact (including
-  // git-tracked catalogues owned by earlier SVD/SWR tasks) is left alone.
+  // sitting in the working tree. Only paths this manifest explicitly owns are
+  // removed; every other evidence artifact (including git-tracked catalogues
+  // owned by earlier SVD/SWR tasks) is left alone.
   process.stdout.write('\n▶ Cold-start evidence reset (SVD-131)\n');
-  const clearedEvidence = resetReleaseEvidenceProducers({
+  const clearedEvidence = resetReleaseReadinessEvidence({
     log: (cleared) => {
       process.stdout.write(
         `  cleared ${cleared.length} prior-run receipt(s):\n${cleared.map((entry) => `    - ${entry}`).join('\n')}\n`,
@@ -1282,6 +1666,11 @@ function main() {
   }
 
   const requiredGates = [
+    {
+      id: 'release-readiness-manifest',
+      label: 'Release evidence producer manifest ownership preflight (SVD-131)',
+      run: () => runReleaseReadinessManifestGate(),
+    },
     {
       id: 'browser-service-regression-sentinel',
       label: 'Browser/service duplicate regression sentinel (SWR-095)',
@@ -1341,21 +1730,9 @@ function main() {
     // regenerates them itself instead of aggregating whatever gitignored
     // receipts happen to already exist in the working tree (see the
     // cold-start reset above `main()`'s gate loop).
-    ...RELEASE_EVIDENCE_PRODUCER_GATES.map((producer) => ({
-      id: producer.id,
-      label: producer.label,
-      run: () => {
-        const outcome = runSingleProducerGate(producer, { runProducer: () => runNpmScript(producer.npmScript) });
-        const findings = [];
-        for (const file of outcome.missingFiles ?? []) {
-          pushFinding(findings, `${producer.id}-missing-evidence-file`, `${producer.label} did not produce required evidence`, file);
-        }
-        for (const dir of outcome.missingDirs ?? []) {
-          pushFinding(findings, `${producer.id}-missing-evidence-dir`, `${producer.label} did not produce required (non-empty) evidence directory`, dir);
-        }
-        return { ...outcome, findings };
-      },
-    })),
+    ...createReleaseEvidenceProducerGateEntries({
+      runProducer: (producer) => runNpmScript(producer.npmScript),
+    }),
     {
       id: 'virtual-desktop-release-evidence',
       label: 'Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)',
@@ -1368,8 +1745,8 @@ function main() {
     },
     {
       id: 'evidence-freshness',
-      label: 'Browser/libp2p release evidence freshness (evidence:freshness:check)',
-      run: () => runNpmScript('evidence:freshness:check'),
+      label: 'Browser/libp2p release evidence freshness certification',
+      run: () => gateLibp2pEvidenceFreshness(),
     },
   ];
 
@@ -1476,11 +1853,57 @@ function main() {
   const overallStatus = failed.length > 0 ? 'failed' : 'passed';
   const virtualDesktopReleaseEvidence = readVirtualDesktopReleaseEvidence();
   const independentAllAppReleaseReplay = readIndependentAllAppReleaseReplay();
-  const releaseDecision = overallStatus === 'passed' ? 'GO' : 'NO_GO';
+  const gateReleaseDecision = overallStatus === 'passed' ? 'GO' : 'NO_GO';
+  const localReproductionPreflight = buildReleaseReproductionAttestation({
+    repoRoot,
+    preRunGitState,
+    releaseReadinessReport: { releaseDecision: gateReleaseDecision },
+    generatedAt: finishedAt.toISOString(),
+  });
+  process.stdout.write('\n▶ Hermetic clean detached checkout reproduction (SWR-141)\n');
+  const cleanCheckoutReproduction = gateReleaseDecision === 'GO'
+    ? runCleanCheckoutReleaseReproduction({
+        repoRoot,
+        preRunGitState,
+        referenceSourceFingerprint: localReproductionPreflight.candidate.source_fingerprint,
+        referenceLockfileSha256: localReproductionPreflight.candidate.lockfile.sha256,
+        referenceEvidenceFreshness: localReproductionPreflight.evidence_freshness,
+        generatedAt: finishedAt.toISOString(),
+      })
+    : {
+        required: false,
+        status: 'skipped',
+        generated_at: finishedAt.toISOString(),
+        reason: 'parent release gates failed; clean detached reproduction runs only after parent gates pass',
+        commands: [],
+      };
+  if (cleanCheckoutReproduction.status === 'passed') {
+    process.stdout.write('  ✓ clean checkout reproduced release readiness from committed source\n');
+  } else if (cleanCheckoutReproduction.status === 'skipped') {
+    process.stdout.write(`  ⏭ skipped (${cleanCheckoutReproduction.reason})\n`);
+  } else {
+    process.stdout.write(`  ✗ ${cleanCheckoutReproduction.failure_reason ?? 'clean checkout reproduction failed'}\n`);
+  }
+  const reproductionPreflight = buildReleaseReproductionAttestation({
+    repoRoot,
+    preRunGitState,
+    releaseReadinessReport: { releaseDecision: gateReleaseDecision },
+    generatedAt: finishedAt.toISOString(),
+    cleanCheckoutReproduction,
+  });
+  const releaseDecision = gateReleaseDecision === 'GO' && reproductionPreflight.release_decision === 'GO'
+    ? 'GO'
+    : 'NO_GO';
+  const phase21Handoff = collectPhase21Handoff({
+    preRunGitState,
+    releaseDecision,
+    reproductionPreflight,
+  });
 
   const report = {
     schemaVersion: 2,
-    taskId: 'SWR-110',
+    taskId: 'SWR-141',
+    supersedesTaskId: 'SWR-110',
     generatedAt: finishedAt.toISOString(),
     startedAt: startedAt.toISOString(),
     durationMs: finishedAt.getTime() - startedAt.getTime(),
@@ -1496,6 +1919,35 @@ function main() {
     },
     virtualDesktopReleaseEvidence,
     independentAllAppReleaseReplay,
+    phase21Handoff,
+    releaseReproductionAttestation: {
+      path: RELEASE_REPRODUCTION_ATTESTATION_JSON,
+      markdownPath: RELEASE_REPRODUCTION_ATTESTATION_MD,
+      decision: reproductionPreflight.release_decision,
+      blockerCount: reproductionPreflight.no_go_findings.length,
+      blockerIds: reproductionPreflight.no_go_findings.map((finding) => finding.id),
+      parentGitlinkSha: reproductionPreflight.candidate.parent_gitlink_sha,
+      parentGitlinkMatchesHead: reproductionPreflight.candidate.parent_gitlink_matches_head,
+      preRunStatusEntryCount: reproductionPreflight.candidate.pre_run_status_entries.length,
+      lockfileSha256: reproductionPreflight.candidate.lockfile.sha256,
+      sourceFingerprint: reproductionPreflight.candidate.source_fingerprint.tracked_content_sha256,
+      cleanCheckout: {
+        status: cleanCheckoutReproduction.status,
+        failureReason: cleanCheckoutReproduction.failure_reason ?? cleanCheckoutReproduction.reason ?? null,
+        commit: cleanCheckoutReproduction.commit ?? null,
+        commandCount: Array.isArray(cleanCheckoutReproduction.commands) ? cleanCheckoutReproduction.commands.length : 0,
+        commands: (cleanCheckoutReproduction.commands ?? []).map((entry) => ({
+          command: entry.command,
+          ok: entry.ok,
+          status: entry.status,
+          durationMs: entry.duration_ms,
+        })),
+        childReleaseDecision: cleanCheckoutReproduction.child_release_readiness_report?.decision ?? null,
+        childAttestationDecision: cleanCheckoutReproduction.child_attestation?.decision ?? null,
+        childAttestationHash: cleanCheckoutReproduction.child_attestation?.canonical_payload_sha256 ?? null,
+        comparisons: cleanCheckoutReproduction.comparisons ?? {},
+      },
+    },
     gates,
   };
 
@@ -1623,6 +2075,47 @@ function main() {
     `Unfinished task IDs: ${(independentAllAppReleaseReplay.blockerTaskIds ?? []).join(', ') || 'none'}`,
     '',
   );
+  mdLines.push('## Release Reproduction Attestation', '');
+  mdLines.push(
+    `Path: \`${report.releaseReproductionAttestation.path}\``,
+    `Markdown: \`${report.releaseReproductionAttestation.markdownPath}\``,
+    `Decision: \`${report.releaseReproductionAttestation.decision}\``,
+    `Blockers: ${report.releaseReproductionAttestation.blockerCount}`,
+    `Parent gitlink: \`${report.releaseReproductionAttestation.parentGitlinkSha ?? 'missing'}\``,
+    `Parent gitlink matches HEAD: ${report.releaseReproductionAttestation.parentGitlinkMatchesHead ? 'yes' : 'no'}`,
+    `Pre-run local status entries: ${report.releaseReproductionAttestation.preRunStatusEntryCount}`,
+    `Lockfile SHA-256: \`${report.releaseReproductionAttestation.lockfileSha256}\``,
+    `Source fingerprint: \`${report.releaseReproductionAttestation.sourceFingerprint}\``,
+    `Clean checkout reproduction: \`${report.releaseReproductionAttestation.cleanCheckout.status}\``,
+    `Clean checkout child decision: \`${report.releaseReproductionAttestation.cleanCheckout.childReleaseDecision ?? 'unknown'}\``,
+    `Clean checkout failure: ${report.releaseReproductionAttestation.cleanCheckout.failureReason ?? 'none'}`,
+    '',
+  );
+  mdLines.push('## Phase 21 Handoff (SWR-142)', '');
+  mdLines.push(
+    `Decision: \`${phase21Handoff.decision}\``,
+    `Board: \`${phase21Handoff.board.path}\` (${phase21Handoff.board.status}; SWR-142 status \`${phase21Handoff.board.swr142Status ?? 'unknown'}\`)`,
+    `Checkout: \`${phase21Handoff.checkout.swissknifeHead ?? 'unknown'}\` on \`${phase21Handoff.checkout.swissknifeBranch ?? 'detached'}\`; pre-run status entries ${phase21Handoff.checkout.preRunStatusEntryCount}`,
+    `Parent gitlink: \`${phase21Handoff.checkout.parentGitlinkSha ?? 'missing'}\`; matches HEAD: ${phase21Handoff.checkout.parentGitlinkMatchesHead ? 'yes' : 'no'}`,
+    `Lease owner: ${phase21Handoff.lease.owner ? `\`${phase21Handoff.lease.owner.lane}\` PID ${phase21Handoff.lease.owner.pid}` : '`none`'}; active supervisors: ${phase21Handoff.activeSupervisorCount}; active SWR writer covered by lease: ${phase21Handoff.activeWriterCoveredByLease ? 'yes' : 'no'}`,
+    `Duplicate basenames: ${phase21Handoff.duplicateCounts.serviceDuplicateBasenames ?? 'unknown'} service / ${phase21Handoff.duplicateCounts.inventoryDuplicateBasenames ?? 'unknown'} inventory; unapproved basenames: ${phase21Handoff.duplicateCounts.unapprovedServiceDuplicateBasenames ?? 'unknown'}`,
+    `Duplicate content hashes: ${phase21Handoff.duplicateCounts.duplicateContentHashes ?? 'unknown'}; unapproved content hashes: ${phase21Handoff.duplicateCounts.unapprovedDuplicateContentHashes ?? 'unknown'}`,
+    `Conflict counts: unmerged index ${phase21Handoff.conflictCounts.swissknifeUnmergedIndexEntries}, unresolved markers ${phase21Handoff.conflictCounts.unresolvedMergeMarkers ?? 'unknown'}, ownership conflicts ${phase21Handoff.conflictCounts.ownershipConflicts ?? 'unknown'}, browser-unsafe imports ${phase21Handoff.conflictCounts.browserUnsafeImports ?? 'unknown'}`,
+    `libp2p evidence: \`${phase21Handoff.browserReceipts.libp2p.fingerprintStatus}\` at \`${phase21Handoff.browserReceipts.libp2p.fingerprintPath}\`; engines ${phase21Handoff.browserReceipts.libp2p.engines.map((entry) => `${entry.engine}:${entry.rawReceiptPresent ? 'raw-present' : 'fingerprint-only'}`).join(', ')}`,
+    `Proof evidence: \`${phase21Handoff.browserReceipts.proof.outcome ?? 'unknown'}\`, ${phase21Handoff.browserReceipts.proof.assertionCount ?? 'unknown'} assertions, engines ${phase21Handoff.browserReceipts.proof.engines.map((entry) => `${entry.engine}:${entry.outcome}/${entry.assertionCount}`).join(', ') || 'none'}, theorem \`${phase21Handoff.browserReceipts.proof.theoremBackend ?? 'unknown'}\`, ZKP \`${phase21Handoff.browserReceipts.proof.zkpBackend ?? 'unknown'}\`, WASM \`${phase21Handoff.browserReceipts.proof.wasmHelperSha256 ?? 'unknown'}\``,
+    `Hermetic release: release \`${phase21Handoff.hermeticRelease.releaseDecision}\`, attestation \`${phase21Handoff.hermeticRelease.attestationDecision ?? 'unknown'}\`, clean checkout \`${phase21Handoff.hermeticRelease.cleanCheckoutStatus ?? 'unknown'}\`, blockers ${phase21Handoff.hermeticRelease.blockerCount ?? 'unknown'}`,
+    '',
+  );
+  if (phase21Handoff.blockers.length > 0) {
+    mdLines.push('Phase 21 handoff blockers:');
+    for (const blocker of phase21Handoff.blockers.slice(0, 20)) {
+      mdLines.push(`- ${blocker}`);
+    }
+    if (phase21Handoff.blockers.length > 20) {
+      mdLines.push(`- ... ${phase21Handoff.blockers.length - 20} more`);
+    }
+    mdLines.push('');
+  }
   if (failed.length > 0) {
     mdLines.push('## Failure detail', '');
     for (const gate of failed) {
@@ -1648,6 +2141,7 @@ function main() {
     `Generated: ${report.generatedAt}`,
     `Commit: ${report.commitSha ?? 'unknown'}`,
     `Release readiness: ${overallStatus === 'passed' ? 'PASSED' : 'FAILED'}`,
+    `Release decision: ${releaseDecision}`,
     '',
     '## SWR-095 Browser/Service Sentinel',
     '',
@@ -1677,7 +2171,87 @@ function main() {
     `Blockers: ${independentAllAppReleaseReplay.blockerCount ?? 'unknown'}`,
     `Unfinished task IDs: ${(independentAllAppReleaseReplay.blockerTaskIds ?? []).join(', ') || 'none'}`,
     '',
+    '## Release Reproduction Attestation (SWR-141)',
+    '',
+    `Receipt: \`${RELEASE_REPRODUCTION_ATTESTATION_JSON}\``,
+    `Decision: **${report.releaseReproductionAttestation.decision}**`,
+    `Blockers: ${report.releaseReproductionAttestation.blockerCount}`,
+    `Parent gitlink matches HEAD: ${report.releaseReproductionAttestation.parentGitlinkMatchesHead ? 'yes' : 'no'}`,
+    `Pre-run local status entries: ${report.releaseReproductionAttestation.preRunStatusEntryCount}`,
+    `Clean checkout reproduction: ${report.releaseReproductionAttestation.cleanCheckout.status}`,
+    `Clean checkout failure: ${report.releaseReproductionAttestation.cleanCheckout.failureReason ?? 'none'}`,
+    '',
+    '## Phase 21 Recovery And Reproducibility Handoff (SWR-142)',
+    '',
+    `Decision: **${phase21Handoff.decision}**`,
+    `Board: \`${phase21Handoff.board.path}\` (${phase21Handoff.board.status}; SWR-142 status \`${phase21Handoff.board.swr142Status ?? 'unknown'}\`)`,
+    `Checkout HEAD: \`${phase21Handoff.checkout.swissknifeHead ?? 'unknown'}\``,
+    `Checkout branch/detached: \`${phase21Handoff.checkout.swissknifeBranch ?? 'detached'}\` / ${phase21Handoff.checkout.detached ? 'detached' : 'not detached'}`,
+    `Parent repository commit: \`${phase21Handoff.checkout.parentRepositoryCommit ?? 'unknown'}\``,
+    `Parent gitlink SHA: \`${phase21Handoff.checkout.parentGitlinkSha ?? 'missing'}\``,
+    `Parent gitlink matches HEAD: ${phase21Handoff.checkout.parentGitlinkMatchesHead ? 'yes' : 'no'}`,
+    `Pre-run SwissKnife status entries: ${phase21Handoff.checkout.preRunStatusEntryCount}`,
+    `Parent status entries: ${phase21Handoff.checkout.parentStatusEntries.join(' | ') || 'none'}`,
+    `Lease namespace state: \`${phase21Handoff.lease.status}\` (${phase21Handoff.lease.reason ?? 'no reason'})`,
+    `Lease owner: ${phase21Handoff.lease.owner ? `\`${phase21Handoff.lease.owner.lane}\` PID ${phase21Handoff.lease.owner.pid}, board \`${phase21Handoff.lease.owner.board}\`` : '`none`'}`,
+    `Active supervisor writers observed: ${phase21Handoff.activeSupervisorCount}`,
+    `Active SWR writer covered by checkout lease: ${phase21Handoff.activeWriterCoveredByLease ? 'yes' : 'no'}`,
+    '',
+    '### Duplicate And Conflict Counts',
+    '',
+    `Service duplicate basenames: ${phase21Handoff.duplicateCounts.serviceDuplicateBasenames ?? 'unknown'}`,
+    `Unapproved service duplicate basenames: ${phase21Handoff.duplicateCounts.unapprovedServiceDuplicateBasenames ?? 'unknown'}`,
+    `Duplicate content hashes: ${phase21Handoff.duplicateCounts.duplicateContentHashes ?? 'unknown'}`,
+    `Unapproved duplicate content hashes: ${phase21Handoff.duplicateCounts.unapprovedDuplicateContentHashes ?? 'unknown'}`,
+    `Normalized content collisions: ${phase21Handoff.duplicateCounts.normalizedContentCollisions ?? 'unknown'}`,
+    `Unclassified normalized content collisions: ${phase21Handoff.duplicateCounts.unclassifiedNormalizedContentCollisions ?? 'unknown'}`,
+    `Behavioral equivalence groups: ${phase21Handoff.duplicateCounts.behavioralEquivalenceGroups ?? 'unknown'}`,
+    `Unclassified behavioral equivalence groups: ${phase21Handoff.duplicateCounts.unclassifiedBehavioralEquivalenceGroups ?? 'unknown'}`,
+    `SwissKnife unmerged index entries: ${phase21Handoff.conflictCounts.swissknifeUnmergedIndexEntries}`,
+    `Parent unmerged index entries for swissknife: ${phase21Handoff.conflictCounts.parentUnmergedIndexEntries}`,
+    `Unresolved merge markers: ${phase21Handoff.conflictCounts.unresolvedMergeMarkers ?? 'unknown'}`,
+    `Ownership conflicts: ${phase21Handoff.conflictCounts.ownershipConflicts ?? 'unknown'}`,
+    `Forbidden imports: ${phase21Handoff.conflictCounts.forbiddenImports ?? 'unknown'}`,
+    `Browser-unsafe imports: ${phase21Handoff.conflictCounts.browserUnsafeImports ?? 'unknown'}`,
+    '',
+    '### Browser Proof Receipts',
+    '',
+    `libp2p fingerprint: \`${phase21Handoff.browserReceipts.libp2p.sourceFingerprint ?? 'missing'}\` (${phase21Handoff.browserReceipts.libp2p.fingerprintStatus})`,
+    `libp2p recorded at: ${phase21Handoff.browserReceipts.libp2p.fingerprintGeneratedAt ?? 'unknown'}`,
+    '| Engine | libp2p receipt | Raw receipt present |',
+    '| --- | --- | --- |',
+    ...phase21Handoff.browserReceipts.libp2p.engines.map((entry) =>
+      `| ${entry.engine} | \`${entry.sourceControlledEvidence}\` + \`${entry.fingerprintPath}\` | ${entry.rawReceiptPresent ? 'yes' : 'no'} |`,
+    ),
+    '',
+    `Proof observed at: ${phase21Handoff.browserReceipts.proof.generatedAt ?? 'unknown'}`,
+    `Proof assertions: ${phase21Handoff.browserReceipts.proof.assertionCount ?? 'unknown'} (${phase21Handoff.browserReceipts.proof.assertionsPerEngine ?? 'unknown'} per engine)`,
+    `TypeScript theorem backend: \`${phase21Handoff.browserReceipts.proof.theoremBackend ?? 'unknown'}\``,
+    `WASM ZKP backend: \`${phase21Handoff.browserReceipts.proof.zkpBackend ?? 'unknown'}\``,
+    `WASM helper SHA-256: \`${phase21Handoff.browserReceipts.proof.wasmHelperSha256 ?? 'unknown'}\``,
+    '| Engine | Proof outcome | Assertions |',
+    '| --- | --- | --- |',
+    ...phase21Handoff.browserReceipts.proof.engines.map((entry) =>
+      `| ${entry.engine ?? 'unknown'} | ${entry.outcome ?? 'unknown'} | ${entry.assertionCount ?? 'unknown'} |`,
+    ),
+    '',
+    '### Hermetic Release Result',
+    '',
+    `Release decision: \`${phase21Handoff.hermeticRelease.releaseDecision}\``,
+    `Attestation decision: \`${phase21Handoff.hermeticRelease.attestationDecision ?? 'unknown'}\``,
+    `Attestation blockers: ${(phase21Handoff.hermeticRelease.blockerIds ?? []).join(', ') || 'none'}`,
+    `Clean checkout reproduction: \`${phase21Handoff.hermeticRelease.cleanCheckoutStatus ?? 'unknown'}\``,
+    `Clean checkout failure: ${phase21Handoff.hermeticRelease.cleanCheckoutFailure ?? 'none'}`,
+    `Attestation canonical payload SHA-256: \`${phase21Handoff.hermeticRelease.canonicalPayloadSha256 ?? 'unknown'}\``,
+    '',
   ];
+  if (phase21Handoff.blockers.length > 0) {
+    signoffLines.push('### Phase 21 Handoff Blockers', '');
+    for (const blocker of phase21Handoff.blockers) {
+      signoffLines.push(`- ${blocker}`);
+    }
+    signoffLines.push('');
+  }
   if (failed.length > 0) {
     signoffLines.push('## Blocking Failures', '');
     for (const gate of failed) {
@@ -1693,13 +2267,21 @@ function main() {
     .replace(/\n+$/, '');
   fs.writeFileSync(signoffPath, `${signoff}\n`);
 
+  const reproductionAttestation = writeReleaseReproductionAttestation({
+    repoRoot,
+    preRunGitState,
+    releaseReadinessReport: { ...report, releaseDecision: gateReleaseDecision },
+    cleanCheckoutReproduction,
+  });
+
   process.stdout.write('\n' + '='.repeat(72) + '\n');
   process.stdout.write(
     `Release readiness gate: ${overallStatus === 'passed' ? 'PASSED' : 'FAILED'} ` +
-      `(${passed.length} passed, ${failed.length} failed, ${skipped.length} skipped)\n`,
+      `(${passed.length} passed, ${failed.length} failed, ${skipped.length} skipped); decision ${releaseDecision}\n`,
   );
   process.stdout.write(`Report: ${path.relative(repoRoot, jsonPath)}, ${path.relative(repoRoot, mdPath)}\n`);
   process.stdout.write(`Signoff: ${path.relative(repoRoot, signoffPath)}\n`);
+  process.stdout.write(`Reproduction attestation: ${RELEASE_REPRODUCTION_ATTESTATION_JSON}, ${RELEASE_REPRODUCTION_ATTESTATION_MD} (${reproductionAttestation.release_decision})\n`);
   process.stdout.write('='.repeat(72) + '\n');
 
   process.exit(report.overallStatus === 'passed' ? 0 : 1);

@@ -66,9 +66,9 @@
     "input": 71
   },
   "permission_summary": {
-    "confirmation_required": 25,
-    "denied": 21,
-    "permitted": 25
+    "confirmation_required": 24,
+    "denied": 30,
+    "permitted": 17
   },
   "fallback_summary": {
     "audio_channel": 11,
@@ -104,7 +104,7 @@
       "app_id": "terminal",
       "app_title": "SwissKnife Terminal",
       "packet_ids": [
-        "handoff:app:terminal:primary:be229738f0b8b4ba"
+        "handoff:app:terminal:primary:d7e9aa07d568a970"
       ],
       "requested_modalities": [
         "display"
@@ -136,7 +136,7 @@
       "app_id": "vibecode",
       "app_title": "VibeCode",
       "packet_ids": [
-        "handoff:app:vibecode:primary:776c13037981c725"
+        "handoff:app:vibecode:primary:6492a94f8d488f16"
       ],
       "requested_modalities": [
         "display"
@@ -168,7 +168,7 @@
       "app_id": "music-studio-unified",
       "app_title": "Music Studio",
       "packet_ids": [
-        "handoff:app:music-studio-unified:primary:9d774287ba2cf8c0"
+        "handoff:app:music-studio-unified:primary:51af137df970a728"
       ],
       "requested_modalities": [
         "speaker"
@@ -200,7 +200,7 @@
       "app_id": "ai-chat",
       "app_title": "AI Chat",
       "packet_ids": [
-        "handoff:app:ai-chat:primary:36d54163649ca684"
+        "handoff:app:ai-chat:primary:301777b5cc6198f5"
       ],
       "requested_modalities": [
         "display"
@@ -232,7 +232,7 @@
       "app_id": "file-manager",
       "app_title": "File Manager",
       "packet_ids": [
-        "handoff:app:file-manager:primary:d715ccc35d337b78"
+        "handoff:app:file-manager:primary:bfefda12ee39e2e9"
       ],
       "requested_modalities": [
         "display"
@@ -264,7 +264,7 @@
       "app_id": "task-manager",
       "app_title": "Task Manager",
       "packet_ids": [
-        "handoff:app:task-manager:primary:a4db3575f3380f09"
+        "handoff:app:task-manager:primary:b76545686f787325"
       ],
       "requested_modalities": [
         "display"
@@ -296,7 +296,7 @@
       "app_id": "todo",
       "app_title": "Todo and Goals",
       "packet_ids": [
-        "handoff:app:todo:primary:18cd7fddd77b3f87"
+        "handoff:app:todo:primary:3bde178fb7a474df"
       ],
       "requested_modalities": [
         "display"
@@ -328,7 +328,7 @@
       "app_id": "model-browser",
       "app_title": "AI Model Manager",
       "packet_ids": [
-        "handoff:app:model-browser:primary:37eb7ca42646d0f3"
+        "handoff:app:model-browser:primary:05365497a917ff2e"
       ],
       "requested_modalities": [
         "display"
@@ -360,7 +360,7 @@
       "app_id": "huggingface",
       "app_title": "Hugging Face Hub",
       "packet_ids": [
-        "handoff:app:huggingface:primary:00c19f3519b36bca"
+        "handoff:app:huggingface:primary:93ea1a728e96b389"
       ],
       "requested_modalities": [
         "display"
@@ -392,7 +392,7 @@
       "app_id": "openrouter",
       "app_title": "OpenRouter Hub",
       "packet_ids": [
-        "handoff:app:openrouter:primary:d78e73e61e69a771"
+        "handoff:app:openrouter:primary:8f702f0de2e1a90e"
       ],
       "requested_modalities": [
         "display"
@@ -424,7 +424,7 @@
       "app_id": "ipfs-explorer",
       "app_title": "IPFS Explorer",
       "packet_ids": [
-        "handoff:app:ipfs-explorer:primary:52d3fbd6eb41fedd"
+        "handoff:app:ipfs-explorer:primary:3a7a3d4b546bee3d"
       ],
       "requested_modalities": [
         "display"
@@ -456,7 +456,7 @@
       "app_id": "device-manager",
       "app_title": "Device Manager",
       "packet_ids": [
-        "handoff:app:device-manager:primary:e4c74b632553c50a"
+        "handoff:app:device-manager:primary:fe136b4bc5d16812"
       ],
       "requested_modalities": [
         "display"
@@ -488,7 +488,7 @@
       "app_id": "settings",
       "app_title": "Settings",
       "packet_ids": [
-        "handoff:app:settings:primary:ba022b84bbf704a3"
+        "handoff:app:settings:primary:c5030d167357015a"
       ],
       "requested_modalities": [
         "display"
@@ -520,7 +520,7 @@
       "app_id": "mcp-control",
       "app_title": "MCP Control",
       "packet_ids": [
-        "handoff:app:mcp-control:primary:6c3a5b9462e053b4"
+        "handoff:app:mcp-control:primary:541f464c6ea48dbd"
       ],
       "requested_modalities": [
         "display"
@@ -552,7 +552,7 @@
       "app_id": "api-keys",
       "app_title": "API Keys",
       "packet_ids": [
-        "handoff:app:api-keys:primary:2be727fb8cabaa81"
+        "handoff:app:api-keys:primary:6ff604445980b43b"
       ],
       "requested_modalities": [
         "display"
@@ -584,7 +584,7 @@
       "app_id": "github",
       "app_title": "GitHub",
       "packet_ids": [
-        "handoff:app:github:primary:9e366290063edf4f"
+        "handoff:app:github:primary:c5637bc83331a35b"
       ],
       "requested_modalities": [
         "display"
@@ -616,7 +616,7 @@
       "app_id": "oauth-login",
       "app_title": "OAuth Login",
       "packet_ids": [
-        "handoff:app:oauth-login:primary:81662ee3810a2820"
+        "handoff:app:oauth-login:primary:01dc76f63359005e"
       ],
       "requested_modalities": [
         "display"
@@ -648,7 +648,7 @@
       "app_id": "cron",
       "app_title": "AI Cron",
       "packet_ids": [
-        "handoff:app:cron:primary:076c8d27c02c6fe0"
+        "handoff:app:cron:primary:191ea7d10582c5ee"
       ],
       "requested_modalities": [
         "display"
@@ -680,7 +680,7 @@
       "app_id": "navi",
       "app_title": "NAVI",
       "packet_ids": [
-        "handoff:app:navi:primary:792030e9db321ce4"
+        "handoff:app:navi:primary:0d9d9cfc88fcc960"
       ],
       "requested_modalities": [
         "display"
@@ -712,7 +712,7 @@
       "app_id": "p2p-network",
       "app_title": "P2P Network Manager",
       "packet_ids": [
-        "handoff:app:p2p-network:primary:235e9842b47555c8"
+        "handoff:app:p2p-network:primary:8cef5097d97c0e01"
       ],
       "requested_modalities": [
         "display"
@@ -744,7 +744,7 @@
       "app_id": "p2p-chat-unified",
       "app_title": "P2P Chat",
       "packet_ids": [
-        "handoff:app:p2p-chat-unified:primary:59e496eeda05cb69"
+        "handoff:app:p2p-chat-unified:primary:b99951924a0f7c4d"
       ],
       "requested_modalities": [
         "display"
@@ -776,7 +776,7 @@
       "app_id": "neural-network-designer",
       "app_title": "Neural Network Designer",
       "packet_ids": [
-        "handoff:app:neural-network-designer:primary:ddf12524a8e602ef"
+        "handoff:app:neural-network-designer:primary:39dc69f3f4accce0"
       ],
       "requested_modalities": [
         "display"
@@ -808,7 +808,7 @@
       "app_id": "training-manager",
       "app_title": "Training Manager",
       "packet_ids": [
-        "handoff:app:training-manager:primary:892b1718b09a8d4e"
+        "handoff:app:training-manager:primary:7cbf96496ec8772f"
       ],
       "requested_modalities": [
         "display"
@@ -840,7 +840,7 @@
       "app_id": "calculator",
       "app_title": "Calculator",
       "packet_ids": [
-        "handoff:app:calculator:primary:68a95178df9ae270"
+        "handoff:app:calculator:primary:074e59bdeb001510"
       ],
       "requested_modalities": [
         "display"
@@ -872,7 +872,7 @@
       "app_id": "clock",
       "app_title": "Clock and Timers",
       "packet_ids": [
-        "handoff:app:clock:primary:0bac0ce8a9509274"
+        "handoff:app:clock:primary:bf2e51156dd77992"
       ],
       "requested_modalities": [
         "display"
@@ -904,7 +904,7 @@
       "app_id": "calendar",
       "app_title": "Calendar and Events",
       "packet_ids": [
-        "handoff:app:calendar:primary:9b8003c2c0480efd"
+        "handoff:app:calendar:primary:15d17680c414d006"
       ],
       "requested_modalities": [
         "display"
@@ -936,7 +936,7 @@
       "app_id": "peertube",
       "app_title": "PeerTube",
       "packet_ids": [
-        "handoff:app:peertube:primary:421c0963d66b4ce2"
+        "handoff:app:peertube:primary:147e2332d7548c6d"
       ],
       "requested_modalities": [
         "display"
@@ -968,7 +968,7 @@
       "app_id": "friends-list",
       "app_title": "Friends and Network",
       "packet_ids": [
-        "handoff:app:friends-list:primary:8bde53cf0ae5c68f"
+        "handoff:app:friends-list:primary:a422f1cb13a2e2fc"
       ],
       "requested_modalities": [
         "display"
@@ -1000,7 +1000,7 @@
       "app_id": "image-viewer",
       "app_title": "Image Viewer",
       "packet_ids": [
-        "handoff:app:image-viewer:primary:622cf747cfcea36d"
+        "handoff:app:image-viewer:primary:d96a4e4942ce4912"
       ],
       "requested_modalities": [
         "display"
@@ -1032,7 +1032,7 @@
       "app_id": "notes",
       "app_title": "Notes",
       "packet_ids": [
-        "handoff:app:notes:primary:b406d30dd750d611"
+        "handoff:app:notes:primary:2a1004c7bcc0e986"
       ],
       "requested_modalities": [
         "display"
@@ -1064,7 +1064,7 @@
       "app_id": "media-player",
       "app_title": "Media Player",
       "packet_ids": [
-        "handoff:app:media-player:primary:14bcd1dc7eac61a8"
+        "handoff:app:media-player:primary:836045edb759af0b"
       ],
       "requested_modalities": [
         "speaker"
@@ -1096,7 +1096,7 @@
       "app_id": "system-monitor",
       "app_title": "System Monitor",
       "packet_ids": [
-        "handoff:app:system-monitor:primary:2018c925955e2718"
+        "handoff:app:system-monitor:primary:433d40921a0cfd70"
       ],
       "requested_modalities": [
         "display"
@@ -1128,7 +1128,7 @@
       "app_id": "neural-photoshop",
       "app_title": "Neural Photoshop",
       "packet_ids": [
-        "handoff:app:neural-photoshop:primary:e8267035f96fa750"
+        "handoff:app:neural-photoshop:primary:fa3522dee680ceb2"
       ],
       "requested_modalities": [
         "display"
@@ -1160,7 +1160,7 @@
       "app_id": "cinema",
       "app_title": "Cinema",
       "packet_ids": [
-        "handoff:app:cinema:primary:c73840c9fb486aaf"
+        "handoff:app:cinema:primary:ae4a56c90d8d1404"
       ],
       "requested_modalities": [
         "display"
@@ -1192,7 +1192,7 @@
       "app_id": "strudel",
       "app_title": "Strudel",
       "packet_ids": [
-        "handoff:app:strudel:primary:58d6026d6fab8170"
+        "handoff:app:strudel:primary:9437a19544d4419e"
       ],
       "requested_modalities": [
         "speaker"
@@ -1224,7 +1224,7 @@
       "app_id": "strudel-ai-daw",
       "app_title": "Strudel AI DAW",
       "packet_ids": [
-        "handoff:app:strudel-ai-daw:primary:35da9fbaee113792"
+        "handoff:app:strudel-ai-daw:primary:5558af523efebde4"
       ],
       "requested_modalities": [
         "speaker"
@@ -1256,7 +1256,7 @@
       "app_id": "music-studio",
       "app_title": "Music Studio Classic",
       "packet_ids": [
-        "handoff:app:music-studio:primary:b1484cb18e1fac78"
+        "handoff:app:music-studio:primary:6fd6bdf0768f25c4"
       ],
       "requested_modalities": [
         "speaker"
@@ -1288,7 +1288,7 @@
       "app_id": "p2p-chat",
       "app_title": "P2P Chat Classic",
       "packet_ids": [
-        "handoff:app:p2p-chat:primary:9918f7907f0ef0c1"
+        "handoff:app:p2p-chat:primary:ce476e156721a466"
       ],
       "requested_modalities": [
         "display"
@@ -1320,7 +1320,7 @@
       "app_id": "datasets-browser",
       "app_title": "Datasets Browser",
       "packet_ids": [
-        "handoff:app:datasets-browser:primary:2da0910a6163c8ec"
+        "handoff:app:datasets-browser:primary:bde6972c466cf648"
       ],
       "requested_modalities": [
         "display"
@@ -1352,7 +1352,7 @@
       "app_id": "accelerate-panel",
       "app_title": "Accelerate Panel",
       "packet_ids": [
-        "handoff:app:accelerate-panel:primary:5f37faecbb60b85a"
+        "handoff:app:accelerate-panel:primary:5a1532efbd2be50d"
       ],
       "requested_modalities": [
         "display"
@@ -1384,7 +1384,7 @@
       "app_id": "idl-explorer",
       "app_title": "IDL Explorer",
       "packet_ids": [
-        "handoff:app:idl-explorer:primary:79aacdfc7dd07c0e"
+        "handoff:app:idl-explorer:primary:ac48306ad7aad84f"
       ],
       "requested_modalities": [
         "display"
@@ -1416,7 +1416,7 @@
       "app_id": "glasses-preview",
       "app_title": "Glasses Preview",
       "packet_ids": [
-        "handoff:app:glasses-preview:primary:87acee7931c44321"
+        "handoff:app:glasses-preview:primary:8a49255a1cf08e4e"
       ],
       "requested_modalities": [
         "display"
@@ -1448,7 +1448,7 @@
       "app_id": "orb-auto-ui",
       "app_title": "ORB Auto-UI",
       "packet_ids": [
-        "handoff:app:orb-auto-ui:primary:4587c08c5c2c3a1d"
+        "handoff:app:orb-auto-ui:primary:a2ab917a3f858d86"
       ],
       "requested_modalities": [
         "display"
@@ -1480,7 +1480,7 @@
       "app_id": "mcp-plus-plus",
       "app_title": "MCP++ Explorer",
       "packet_ids": [
-        "handoff:app:mcp-plus-plus:primary:473d64ab4aa0f16c"
+        "handoff:app:mcp-plus-plus:primary:ef9cd159a689efc2"
       ],
       "requested_modalities": [
         "display"
@@ -1512,7 +1512,7 @@
       "app_id": "agent-supervisor",
       "app_title": "Agent Supervisor",
       "packet_ids": [
-        "handoff:app:agent-supervisor:primary:47bde1aee817002c",
+        "handoff:app:agent-supervisor:primary:4500866c46bccf75",
         "handoff:supervisor:supervisor.content.retrieve:8cf9aaa42cf6906a",
         "handoff:supervisor:supervisor.event-dag.checkpoint:defaa1efb13f5806",
         "handoff:supervisor:supervisor.goal.decompose:b80027c8abe6f246",
@@ -1578,13 +1578,13 @@
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/01-accelerate-panel-ipfs-accelerate-py-configured-compat-get-model-details.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/02-agent-supervisor-ipfs-accelerate-py-configured-compat-gh-create-workflo.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/03-ai-chat-ipfs-accelerate-py-configured-compat-execute-with-payl.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/04-api-keys-ipfs-kit-py-configured-get-secrets-manager.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/04-api-keys-policy-credentials.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/05-calculator-local-calculator.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/06-calendar-local-calendar.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/07-cinema-ipfs-kit-py-configured-handle-bucket-export-car.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/07-cinema-ipfs-accelerate-jobs.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/08-clock-local-time.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/09-cron-local-scheduler.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/10-datasets-browser-ipfs-datasets-py-configured-ai-dataset-builder.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/10-datasets-browser-ipfs-datasets-py-configured-check-task-status.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/11-device-manager-ipfs-accelerate-py-configured-compat-detect-hardware.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/12-file-manager-ipfs-accelerate-py-configured-compat-ipfs-files-add.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/13-friends-list-local-contacts.png",
@@ -1593,24 +1593,24 @@
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/16-huggingface-ipfs-accelerate-py-configured-compat-build-hf-inferenc.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/17-idl-explorer-ipfs-accelerate-py-configured-compat-tools-get-schema.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/18-image-viewer-local-media-image.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/19-ipfs-explorer-ipfs-datasets-py-configured-enhanced-ipfs-cluster-tool.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/19-ipfs-explorer-ipfs-kit-storage.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/20-mcp-control-ipfs-accelerate-py-configured-compat-add-endpoint.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/21-mcp-plus-plus-ipfs-datasets-py-configured-create-embeddings-tool.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/22-media-player-ipfs-kit-py-configured-audit-analytics-get-compliance-.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/23-model-browser-ipfs-datasets-py-configured-advanced-embedding-generat.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/21-mcp-plus-plus-ipfs-datasets-py-configured-tools-dispatch.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/22-media-player-local-media-playback.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/23-model-browser-ipfs-accelerate-models.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/24-music-studio-unified-local-audio.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/25-music-studio-local-audio.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/26-navi-ipfs-accelerate-py-configured-compat-get-mcp-manifest.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/27-neural-network-designer-ipfs-datasets-py-configured-entity-analysis-tools.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/28-neural-photoshop-ipfs-datasets-py-configured-analyze-detection-accuracy.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/29-notes-ipfs-datasets-py-configured-archive-is-integration.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/27-neural-network-designer-ipfs-accelerate-models.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/28-neural-photoshop-ipfs-accelerate-inference.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/29-notes-local-notes.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/30-oauth-login-external-oauth.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/31-openrouter-external-openrouter.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/32-orb-auto-ui-ipfs-accelerate-py-static-descriptor-get-task.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/33-p2p-chat-unified-ipfs-kit-pubsub.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/34-p2p-chat-ipfs-kit-pubsub.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/35-p2p-network-ipfs-accelerate-py-configured-compat-list-peers.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/36-peertube-ipfs-kit-py-configured-handle-pin-add.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/36-peertube-external-peertube.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/37-settings-local-settings.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/38-strudel-ai-daw-local-audio.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/39-strudel-local-audio.png",
@@ -1619,7 +1619,7 @@
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/42-terminal-local-shell.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/43-todo-local-tasks.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/44-training-manager-ipfs-accelerate-py-configured-compat-create-workflow.png",
-      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/45-vibecode-ipfs-datasets-py-configured-ai-agent-pr-creator.png",
+      "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/45-vibecode-local-editor.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/46-agent-supervisor-supervisor-content-retrieve.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/47-agent-supervisor-supervisor-event-dag-checkpoint.png",
       "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/48-agent-supervisor-supervisor-goal-decompose.png",
@@ -1650,8 +1650,8 @@
   },
   "packets": [
     {
-      "packet_id": "handoff:app:accelerate-panel:primary:5f37faecbb60b85a",
-      "packet_cid": "sha256:cc3bef4a91532ffba3459f6efa37672fb67db8a5e7ba6e3f5f37faecbb60b85a",
+      "packet_id": "handoff:app:accelerate-panel:primary:5a1532efbd2be50d",
+      "packet_cid": "sha256:18c70d6b933baa62ede38d473a4727c3973c3d3374d20fb65a1532efbd2be50d",
       "route_id": "app:accelerate-panel:primary",
       "app_id": "accelerate-panel",
       "app_title": "Accelerate Panel",
@@ -1695,7 +1695,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:cc3bef4a91532ffba3459f6efa37672fb67db8a5e7ba6e3f5f37faecbb60b85a",
+          "safe_payload": "simulator://display/sha256:18c70d6b933baa62ede38d473a4727c3973c3d3374d20fb65a1532efbd2be50d",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -2154,8 +2154,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:agent-supervisor:primary:47bde1aee817002c",
-      "packet_cid": "sha256:06667e4d786f9abcf14892e9e3c460ecb5a9eaba2e3d733d47bde1aee817002c",
+      "packet_id": "handoff:app:agent-supervisor:primary:4500866c46bccf75",
+      "packet_cid": "sha256:b5205b45c28350996a463367f53a071a79f738201e3bdcef4500866c46bccf75",
       "route_id": "app:agent-supervisor:primary",
       "app_id": "agent-supervisor",
       "app_title": "Agent Supervisor",
@@ -2199,7 +2199,7 @@
           "hardware_available": false,
           "read_only": true,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:06667e4d786f9abcf14892e9e3c460ecb5a9eaba2e3d733d47bde1aee817002c",
+          "safe_payload": "simulator://display/sha256:b5205b45c28350996a463367f53a071a79f738201e3bdcef4500866c46bccf75",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "display-webapp",
@@ -2658,8 +2658,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:ai-chat:primary:36d54163649ca684",
-      "packet_cid": "sha256:a5b0ee13851e585f1a43194b0df6f54b1da4c6cd2706948936d54163649ca684",
+      "packet_id": "handoff:app:ai-chat:primary:301777b5cc6198f5",
+      "packet_cid": "sha256:b4304792c8d0e5d5474ff7221e4fa4f30dbdf6ac98615298301777b5cc6198f5",
       "route_id": "app:ai-chat:primary",
       "app_id": "ai-chat",
       "app_title": "AI Chat",
@@ -2703,7 +2703,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:a5b0ee13851e585f1a43194b0df6f54b1da4c6cd2706948936d54163649ca684",
+          "safe_payload": "simulator://display/sha256:b4304792c8d0e5d5474ff7221e4fa4f30dbdf6ac98615298301777b5cc6198f5",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -3162,12 +3162,12 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:api-keys:primary:2be727fb8cabaa81",
-      "packet_cid": "sha256:6c4496bfd425293127b3f3a163f65393caee601d65636c542be727fb8cabaa81",
+      "packet_id": "handoff:app:api-keys:primary:6ff604445980b43b",
+      "packet_cid": "sha256:173d0b2c7c1f549994224bbbe37c8787b5304cd3d17c96926ff604445980b43b",
       "route_id": "app:api-keys:primary",
       "app_id": "api-keys",
       "app_title": "API Keys",
-      "action_id": "ipfs_kit_py:configured:get_secrets_manager",
+      "action_id": "policy.credentials",
       "requested_modality": "display",
       "permission_state": "denied",
       "correlation_id": "svd096-15-api-keys",
@@ -3207,7 +3207,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:6c4496bfd425293127b3f3a163f65393caee601d65636c542be727fb8cabaa81",
+          "safe_payload": "simulator://display/sha256:173d0b2c7c1f549994224bbbe37c8787b5304cd3d17c96926ff604445980b43b",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -3650,12 +3650,12 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/04-api-keys-ipfs-kit-py-configured-get-secrets-manager.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/04-api-keys-policy-credentials.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:calculator:primary:68a95178df9ae270",
-      "packet_cid": "sha256:ef38b8d4a6f96af5d81565830dd573f9209265631ce670e868a95178df9ae270",
+      "packet_id": "handoff:app:calculator:primary:074e59bdeb001510",
+      "packet_cid": "sha256:4427abb69bea0c1d770aaa601baa8588d18d17fba54cedff074e59bdeb001510",
       "route_id": "app:calculator:primary",
       "app_id": "calculator",
       "app_title": "Calculator",
@@ -3699,7 +3699,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:ef38b8d4a6f96af5d81565830dd573f9209265631ce670e868a95178df9ae270",
+          "safe_payload": "simulator://display/sha256:4427abb69bea0c1d770aaa601baa8588d18d17fba54cedff074e59bdeb001510",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -4146,8 +4146,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:calendar:primary:9b8003c2c0480efd",
-      "packet_cid": "sha256:c59ae6f86a1c3a5d05603137cf7353154921369525ea50609b8003c2c0480efd",
+      "packet_id": "handoff:app:calendar:primary:15d17680c414d006",
+      "packet_cid": "sha256:c040be56884cffff7fe96fe74a5f489136d1f5522ccba60215d17680c414d006",
       "route_id": "app:calendar:primary",
       "app_id": "calendar",
       "app_title": "Calendar and Events",
@@ -4191,7 +4191,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:c59ae6f86a1c3a5d05603137cf7353154921369525ea50609b8003c2c0480efd",
+          "safe_payload": "simulator://display/sha256:c040be56884cffff7fe96fe74a5f489136d1f5522ccba60215d17680c414d006",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -4638,14 +4638,14 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:cinema:primary:c73840c9fb486aaf",
-      "packet_cid": "sha256:b4e36850ba72d9166700e4674cc2566b20e679d644d9b7d1c73840c9fb486aaf",
+      "packet_id": "handoff:app:cinema:primary:ae4a56c90d8d1404",
+      "packet_cid": "sha256:022ed67a306ed9eb582c02966e5ec45abfbd52db72d02c25ae4a56c90d8d1404",
       "route_id": "app:cinema:primary",
       "app_id": "cinema",
       "app_title": "Cinema",
-      "action_id": "ipfs_kit_py:configured:handle_bucket_export_car",
+      "action_id": "ipfs.accelerate.jobs",
       "requested_modality": "display",
-      "permission_state": "permitted",
+      "permission_state": "denied",
       "correlation_id": "svd096-34-cinema",
       "interface_cid": "sha256:34382847edcdd53fd3ada302d07d29683b5244066db38200f2d3a368391ee63d",
       "focus_activation": {
@@ -4656,7 +4656,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "policy_allowed"
+        "activation_decision": "policy_denied"
       },
       "layout": {
         "viewport_width": 640,
@@ -4683,7 +4683,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:b4e36850ba72d9166700e4674cc2566b20e679d644d9b7d1c73840c9fb486aaf",
+          "safe_payload": "simulator://display/sha256:022ed67a306ed9eb582c02966e5ec45abfbd52db72d02c25ae4a56c90d8d1404",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -5061,9 +5061,9 @@
         }
       },
       "permission_replay": {
-        "declared_state": "permitted",
+        "declared_state": "denied",
         "declared_policy_class": "read",
-        "activation_decision": "policy_allowed",
+        "activation_decision": "policy_denied",
         "prompt_required": false,
         "prompt_replayed": false,
         "packet_denial_replayed": false,
@@ -5075,14 +5075,14 @@
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "policy_allowed",
+            "text": "policy_denied",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "policy_allowed",
+        "policy_denied",
         "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
@@ -5126,12 +5126,12 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/07-cinema-ipfs-kit-py-configured-handle-bucket-export-car.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/07-cinema-ipfs-accelerate-jobs.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:clock:primary:0bac0ce8a9509274",
-      "packet_cid": "sha256:2d409ec0823a7ef8af0a3c80758abb3c72b875c9aa78e3670bac0ce8a9509274",
+      "packet_id": "handoff:app:clock:primary:bf2e51156dd77992",
+      "packet_cid": "sha256:8a31ecde29ac45b95a68f37246f77673c413a962f3ddf314bf2e51156dd77992",
       "route_id": "app:clock:primary",
       "app_id": "clock",
       "app_title": "Clock and Timers",
@@ -5175,7 +5175,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:2d409ec0823a7ef8af0a3c80758abb3c72b875c9aa78e3670bac0ce8a9509274",
+          "safe_payload": "simulator://display/sha256:8a31ecde29ac45b95a68f37246f77673c413a962f3ddf314bf2e51156dd77992",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -5622,8 +5622,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:cron:primary:076c8d27c02c6fe0",
-      "packet_cid": "sha256:606a5c717538555200d68053128bf73d4535bb48254b30e7076c8d27c02c6fe0",
+      "packet_id": "handoff:app:cron:primary:191ea7d10582c5ee",
+      "packet_cid": "sha256:4ef90f8bcf4264e2c86a48837fe3202c2a15af0db1e1b62b191ea7d10582c5ee",
       "route_id": "app:cron:primary",
       "app_id": "cron",
       "app_title": "AI Cron",
@@ -5667,7 +5667,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:606a5c717538555200d68053128bf73d4535bb48254b30e7076c8d27c02c6fe0",
+          "safe_payload": "simulator://display/sha256:4ef90f8bcf4264e2c86a48837fe3202c2a15af0db1e1b62b191ea7d10582c5ee",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -6114,14 +6114,14 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:datasets-browser:primary:2da0910a6163c8ec",
-      "packet_cid": "sha256:840ae3ba7cc9281c39559deda92378cd8c44ba18150a3f152da0910a6163c8ec",
+      "packet_id": "handoff:app:datasets-browser:primary:bde6972c466cf648",
+      "packet_cid": "sha256:d4d01471ea6421e3555d12e0570d114b273f3cedda46bc03bde6972c466cf648",
       "route_id": "app:datasets-browser:primary",
       "app_id": "datasets-browser",
       "app_title": "Datasets Browser",
-      "action_id": "ipfs_datasets_py:configured:ai_dataset_builder",
+      "action_id": "ipfs_datasets_py:configured:check_task_status",
       "requested_modality": "display",
-      "permission_state": "permitted",
+      "permission_state": "confirmation_required",
       "correlation_id": "svd096-39-datasets-browser",
       "interface_cid": "sha256:1e75400465beeef3f68349abf0df76875a3127225725a3f108aecd9c019ef632",
       "focus_activation": {
@@ -6132,7 +6132,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "policy_allowed"
+        "activation_decision": "awaiting_operator_confirmation"
       },
       "layout": {
         "viewport_width": 640,
@@ -6155,11 +6155,11 @@
           "availability": "available",
           "primary_surface": "glasses_hud",
           "permission_scope": "meta_glasses.display.render",
-          "allowed": true,
+          "allowed": false,
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:840ae3ba7cc9281c39559deda92378cd8c44ba18150a3f152da0910a6163c8ec",
+          "safe_payload": "simulator://display/sha256:d4d01471ea6421e3555d12e0570d114b273f3cedda46bc03bde6972c466cf648",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -6196,7 +6196,7 @@
               "decision": "modality_display_operator_denied",
               "fallback_surface": "glasses_hud",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6213,7 +6213,7 @@
               "decision": "modality_display_route_unavailable",
               "fallback_surface": "glasses_hud",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6273,7 +6273,7 @@
               "decision": "modality_camera_operator_denied",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6290,7 +6290,7 @@
               "decision": "modality_camera_route_unavailable",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6350,7 +6350,7 @@
               "decision": "modality_microphone_operator_denied",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6367,7 +6367,7 @@
               "decision": "modality_microphone_route_unavailable",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6427,7 +6427,7 @@
               "decision": "modality_speaker_operator_denied",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6444,7 +6444,7 @@
               "decision": "modality_speaker_route_unavailable",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6504,7 +6504,7 @@
               "decision": "modality_input_operator_denied",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6521,7 +6521,7 @@
               "decision": "modality_input_route_unavailable",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:compensating_receipt",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -6537,28 +6537,40 @@
         }
       },
       "permission_replay": {
-        "declared_state": "permitted",
-        "declared_policy_class": "read",
-        "activation_decision": "policy_allowed",
-        "prompt_required": false,
-        "prompt_replayed": false,
-        "packet_denial_replayed": false,
-        "packet_approval_replayed": false,
-        "policy_resolution_replayed": true,
-        "denial_rollback_visible": false,
-        "denial_fallback_visible": false,
+        "declared_state": "confirmation_required",
+        "declared_policy_class": "heavy_compute",
+        "activation_decision": "awaiting_operator_confirmation",
+        "prompt_required": true,
+        "prompt_replayed": true,
+        "packet_denial_replayed": true,
+        "packet_approval_replayed": true,
+        "policy_resolution_replayed": false,
+        "denial_rollback_visible": true,
+        "denial_fallback_visible": true,
         "modality_denial_replayed": true,
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "policy_allowed",
+            "text": "awaiting_operator_confirmation",
+            "rendered": true,
+            "fully_visible": true
+          },
+          {
+            "text": "operator_denied",
+            "rendered": true,
+            "fully_visible": true
+          },
+          {
+            "text": "operator_approved",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "policy_allowed",
+        "awaiting_operator_confirmation",
+        "operator_denied",
+        "operator_approved",
         "modality_display_policy_allowed",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
@@ -6577,11 +6589,11 @@
         "operator_visible_fallback"
       ],
       "rollback": {
-        "expected_mode": "no_mutation",
-        "observed_state": "partial_failure:no_mutation"
+        "expected_mode": "compensating_receipt",
+        "observed_state": "partial_failure:compensating_receipt"
       },
       "fallback": {
-        "packet_selected": false,
+        "packet_selected": true,
         "packet_target": "glasses_hud",
         "observed_surface": "glasses_hud",
         "user_visible": true,
@@ -6602,12 +6614,12 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/10-datasets-browser-ipfs-datasets-py-configured-ai-dataset-builder.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/10-datasets-browser-ipfs-datasets-py-configured-check-task-status.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:device-manager:primary:e4c74b632553c50a",
-      "packet_cid": "sha256:a55dd152a9badcae7a8d60cf4ff9362d5c29cfc0ab1a1abde4c74b632553c50a",
+      "packet_id": "handoff:app:device-manager:primary:fe136b4bc5d16812",
+      "packet_cid": "sha256:f933d47a297eeb633724546902fd3c384cbdec347641ed6bfe136b4bc5d16812",
       "route_id": "app:device-manager:primary",
       "app_id": "device-manager",
       "app_title": "Device Manager",
@@ -6651,7 +6663,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:a55dd152a9badcae7a8d60cf4ff9362d5c29cfc0ab1a1abde4c74b632553c50a",
+          "safe_payload": "simulator://display/sha256:f933d47a297eeb633724546902fd3c384cbdec347641ed6bfe136b4bc5d16812",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -7110,8 +7122,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:file-manager:primary:d715ccc35d337b78",
-      "packet_cid": "sha256:d5da8cc349c1641de481eff2eb0fe7a39b776ba1213b66e9d715ccc35d337b78",
+      "packet_id": "handoff:app:file-manager:primary:bfefda12ee39e2e9",
+      "packet_cid": "sha256:4cca312982f0a6749dc52c8ddd240405ab45e9afe5b25717bfefda12ee39e2e9",
       "route_id": "app:file-manager:primary",
       "app_id": "file-manager",
       "app_title": "File Manager",
@@ -7155,7 +7167,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:d5da8cc349c1641de481eff2eb0fe7a39b776ba1213b66e9d715ccc35d337b78",
+          "safe_payload": "simulator://display/sha256:4cca312982f0a6749dc52c8ddd240405ab45e9afe5b25717bfefda12ee39e2e9",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -7614,8 +7626,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:friends-list:primary:8bde53cf0ae5c68f",
-      "packet_cid": "sha256:faeb39df4afa95e5e3591c5a9451f67da34a9d428a6d24ab8bde53cf0ae5c68f",
+      "packet_id": "handoff:app:friends-list:primary:a422f1cb13a2e2fc",
+      "packet_cid": "sha256:8523d077a694ef223a216bad90b6761bf15996c2d443a9b0a422f1cb13a2e2fc",
       "route_id": "app:friends-list:primary",
       "app_id": "friends-list",
       "app_title": "Friends and Network",
@@ -7659,7 +7671,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:faeb39df4afa95e5e3591c5a9451f67da34a9d428a6d24ab8bde53cf0ae5c68f",
+          "safe_payload": "simulator://display/sha256:8523d077a694ef223a216bad90b6761bf15996c2d443a9b0a422f1cb13a2e2fc",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -8106,8 +8118,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:github:primary:9e366290063edf4f",
-      "packet_cid": "sha256:7b56f879c46447234ea383cbb64dae048a897b021a16be7b9e366290063edf4f",
+      "packet_id": "handoff:app:github:primary:c5637bc83331a35b",
+      "packet_cid": "sha256:e51ba80f66de0022e76904c291899f09ab0d755b6da7962bc5637bc83331a35b",
       "route_id": "app:github:primary",
       "app_id": "github",
       "app_title": "GitHub",
@@ -8151,7 +8163,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:7b56f879c46447234ea383cbb64dae048a897b021a16be7b9e366290063edf4f",
+          "safe_payload": "simulator://display/sha256:e51ba80f66de0022e76904c291899f09ab0d755b6da7962bc5637bc83331a35b",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -8610,8 +8622,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:glasses-preview:primary:87acee7931c44321",
-      "packet_cid": "sha256:a5727852914665ca7e4136b9e56f66abde1b9ff83b15909587acee7931c44321",
+      "packet_id": "handoff:app:glasses-preview:primary:8a49255a1cf08e4e",
+      "packet_cid": "sha256:4caf9d6f4fd3a504c7c65c9ebc2d0e5a9e4de15c3c5d672d8a49255a1cf08e4e",
       "route_id": "app:glasses-preview:primary",
       "app_id": "glasses-preview",
       "app_title": "Glasses Preview",
@@ -8655,7 +8667,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:a5727852914665ca7e4136b9e56f66abde1b9ff83b15909587acee7931c44321",
+          "safe_payload": "simulator://display/sha256:4caf9d6f4fd3a504c7c65c9ebc2d0e5a9e4de15c3c5d672d8a49255a1cf08e4e",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -9102,8 +9114,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:huggingface:primary:00c19f3519b36bca",
-      "packet_cid": "sha256:5bb0b049aecb80c0e08a9ff2fd4971f9891001df76d6f6fd00c19f3519b36bca",
+      "packet_id": "handoff:app:huggingface:primary:93ea1a728e96b389",
+      "packet_cid": "sha256:92660d364be6f53254f7ea0900d9a8a69cc415dc6d669c8c93ea1a728e96b389",
       "route_id": "app:huggingface:primary",
       "app_id": "huggingface",
       "app_title": "Hugging Face Hub",
@@ -9147,7 +9159,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:5bb0b049aecb80c0e08a9ff2fd4971f9891001df76d6f6fd00c19f3519b36bca",
+          "safe_payload": "simulator://display/sha256:92660d364be6f53254f7ea0900d9a8a69cc415dc6d669c8c93ea1a728e96b389",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -9606,8 +9618,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:idl-explorer:primary:79aacdfc7dd07c0e",
-      "packet_cid": "sha256:090cecd6547fcda5a15735c4c71823bef5f712bc5ded86ee79aacdfc7dd07c0e",
+      "packet_id": "handoff:app:idl-explorer:primary:ac48306ad7aad84f",
+      "packet_cid": "sha256:22e950a03f3caf63fc77cddbe320b4998190d9e9d7eb3adaac48306ad7aad84f",
       "route_id": "app:idl-explorer:primary",
       "app_id": "idl-explorer",
       "app_title": "IDL Explorer",
@@ -9651,7 +9663,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:090cecd6547fcda5a15735c4c71823bef5f712bc5ded86ee79aacdfc7dd07c0e",
+          "safe_payload": "simulator://display/sha256:22e950a03f3caf63fc77cddbe320b4998190d9e9d7eb3adaac48306ad7aad84f",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -10110,8 +10122,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:image-viewer:primary:622cf747cfcea36d",
-      "packet_cid": "sha256:ef0cebab5c17d19011a61888568e92e76e110ee01136bafa622cf747cfcea36d",
+      "packet_id": "handoff:app:image-viewer:primary:d96a4e4942ce4912",
+      "packet_cid": "sha256:e73f8dd0645cc32fb053240b1d530ab01905faaa83076d94d96a4e4942ce4912",
       "route_id": "app:image-viewer:primary",
       "app_id": "image-viewer",
       "app_title": "Image Viewer",
@@ -10155,7 +10167,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:ef0cebab5c17d19011a61888568e92e76e110ee01136bafa622cf747cfcea36d",
+          "safe_payload": "simulator://display/sha256:e73f8dd0645cc32fb053240b1d530ab01905faaa83076d94d96a4e4942ce4912",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -10602,14 +10614,14 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:ipfs-explorer:primary:52d3fbd6eb41fedd",
-      "packet_cid": "sha256:db4060964634bc75c5113f09ddd1b8f312b3e8edf97b182852d3fbd6eb41fedd",
+      "packet_id": "handoff:app:ipfs-explorer:primary:3a7a3d4b546bee3d",
+      "packet_cid": "sha256:b529a17e84f783b67b3587dbb9010fc19c7ca114eddcdb8d3a7a3d4b546bee3d",
       "route_id": "app:ipfs-explorer:primary",
       "app_id": "ipfs-explorer",
       "app_title": "IPFS Explorer",
-      "action_id": "ipfs_datasets_py:configured:enhanced_ipfs_cluster_tools",
+      "action_id": "ipfs.kit.storage",
       "requested_modality": "display",
-      "permission_state": "permitted",
+      "permission_state": "denied",
       "correlation_id": "svd096-11-ipfs-explorer",
       "interface_cid": "sha256:92304d3d8782ac113fc874ea603f7847db6ab1b035fb47c528b7fd5ca12d626c",
       "focus_activation": {
@@ -10620,7 +10632,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "policy_allowed"
+        "activation_decision": "policy_denied"
       },
       "layout": {
         "viewport_width": 640,
@@ -10643,11 +10655,11 @@
           "availability": "available",
           "primary_surface": "glasses_hud",
           "permission_scope": "meta_glasses.display.render",
-          "allowed": true,
+          "allowed": false,
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:db4060964634bc75c5113f09ddd1b8f312b3e8edf97b182852d3fbd6eb41fedd",
+          "safe_payload": "simulator://display/sha256:b529a17e84f783b67b3587dbb9010fc19c7ca114eddcdb8d3a7a3d4b546bee3d",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -10663,10 +10675,10 @@
           "flows": [
             {
               "scenario": "primary",
-              "result": "safe_display_direct_projection",
-              "decision": "modality_display_policy_allowed",
+              "result": "safe_display_fallback_projection",
+              "decision": "modality_display_policy_degraded",
               "fallback_surface": "glasses_hud",
-              "fallback_user_visible": false,
+              "fallback_user_visible": true,
               "rollback_state": "not_required",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
@@ -11025,9 +11037,9 @@
         }
       },
       "permission_replay": {
-        "declared_state": "permitted",
+        "declared_state": "denied",
         "declared_policy_class": "read",
-        "activation_decision": "policy_allowed",
+        "activation_decision": "policy_denied",
         "prompt_required": false,
         "prompt_replayed": false,
         "packet_denial_replayed": false,
@@ -11039,15 +11051,15 @@
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "policy_allowed",
+            "text": "policy_denied",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "policy_allowed",
-        "modality_display_policy_allowed",
+        "policy_denied",
+        "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
         "modality_camera_policy_degraded",
@@ -11069,7 +11081,7 @@
         "observed_state": "partial_failure:no_mutation"
       },
       "fallback": {
-        "packet_selected": false,
+        "packet_selected": true,
         "packet_target": "glasses_hud",
         "observed_surface": "glasses_hud",
         "user_visible": true,
@@ -11090,12 +11102,12 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/19-ipfs-explorer-ipfs-datasets-py-configured-enhanced-ipfs-cluster-tool.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/19-ipfs-explorer-ipfs-kit-storage.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:mcp-control:primary:6c3a5b9462e053b4",
-      "packet_cid": "sha256:a0fef7f84a8b4cdbd1ccb8d9ef24d8b8c5dda80d3b5d47276c3a5b9462e053b4",
+      "packet_id": "handoff:app:mcp-control:primary:541f464c6ea48dbd",
+      "packet_cid": "sha256:25d5cf6e8123096499034e532dc842b29ff1b4268bbeae3c541f464c6ea48dbd",
       "route_id": "app:mcp-control:primary",
       "app_id": "mcp-control",
       "app_title": "MCP Control",
@@ -11139,7 +11151,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:a0fef7f84a8b4cdbd1ccb8d9ef24d8b8c5dda80d3b5d47276c3a5b9462e053b4",
+          "safe_payload": "simulator://display/sha256:25d5cf6e8123096499034e532dc842b29ff1b4268bbeae3c541f464c6ea48dbd",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -11598,14 +11610,14 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:mcp-plus-plus:primary:473d64ab4aa0f16c",
-      "packet_cid": "sha256:d7a8458e7b00566fd3a4747bf60c02586495573c7195ec1e473d64ab4aa0f16c",
+      "packet_id": "handoff:app:mcp-plus-plus:primary:ef9cd159a689efc2",
+      "packet_cid": "sha256:7813545e2ed8b02f293304d1901d517be4d62c60628eb68def9cd159a689efc2",
       "route_id": "app:mcp-plus-plus:primary",
       "app_id": "mcp-plus-plus",
       "app_title": "MCP++ Explorer",
-      "action_id": "ipfs_datasets_py:configured:create_embeddings_tool",
+      "action_id": "ipfs_datasets_py:configured:tools_dispatch",
       "requested_modality": "display",
-      "permission_state": "confirmation_required",
+      "permission_state": "permitted",
       "correlation_id": "svd096-44-mcp-plus-plus",
       "interface_cid": "sha256:75ada6f032da78f5f34237fbcbeccd6998721d4b87f8663da30fa02fe2f7aa14",
       "focus_activation": {
@@ -11616,7 +11628,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "awaiting_operator_confirmation"
+        "activation_decision": "policy_allowed"
       },
       "layout": {
         "viewport_width": 640,
@@ -11643,7 +11655,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:d7a8458e7b00566fd3a4747bf60c02586495573c7195ec1e473d64ab4aa0f16c",
+          "safe_payload": "simulator://display/sha256:7813545e2ed8b02f293304d1901d517be4d62c60628eb68def9cd159a689efc2",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -11680,7 +11692,7 @@
               "decision": "modality_display_operator_denied",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -11697,7 +11709,7 @@
               "decision": "modality_display_route_unavailable",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -11757,7 +11769,7 @@
               "decision": "modality_camera_operator_denied",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -11774,7 +11786,7 @@
               "decision": "modality_camera_route_unavailable",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -11834,7 +11846,7 @@
               "decision": "modality_microphone_operator_denied",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -11851,7 +11863,7 @@
               "decision": "modality_microphone_route_unavailable",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -11911,7 +11923,7 @@
               "decision": "modality_speaker_operator_denied",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -11928,7 +11940,7 @@
               "decision": "modality_speaker_route_unavailable",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -11988,7 +12000,7 @@
               "decision": "modality_input_operator_denied",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -12005,7 +12017,7 @@
               "decision": "modality_input_route_unavailable",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -12021,40 +12033,28 @@
         }
       },
       "permission_replay": {
-        "declared_state": "confirmation_required",
-        "declared_policy_class": "write",
-        "activation_decision": "awaiting_operator_confirmation",
-        "prompt_required": true,
-        "prompt_replayed": true,
-        "packet_denial_replayed": true,
-        "packet_approval_replayed": true,
-        "policy_resolution_replayed": false,
-        "denial_rollback_visible": true,
-        "denial_fallback_visible": true,
+        "declared_state": "permitted",
+        "declared_policy_class": "read",
+        "activation_decision": "policy_allowed",
+        "prompt_required": false,
+        "prompt_replayed": false,
+        "packet_denial_replayed": false,
+        "packet_approval_replayed": false,
+        "policy_resolution_replayed": true,
+        "denial_rollback_visible": false,
+        "denial_fallback_visible": false,
         "modality_denial_replayed": true,
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "awaiting_operator_confirmation",
-            "rendered": true,
-            "fully_visible": true
-          },
-          {
-            "text": "operator_denied",
-            "rendered": true,
-            "fully_visible": true
-          },
-          {
-            "text": "operator_approved",
+            "text": "policy_allowed",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "awaiting_operator_confirmation",
-        "operator_denied",
-        "operator_approved",
+        "policy_allowed",
         "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
@@ -12073,8 +12073,8 @@
         "operator_visible_fallback"
       ],
       "rollback": {
-        "expected_mode": "compensating_receipt",
-        "observed_state": "partial_failure:compensating_receipt"
+        "expected_mode": "no_mutation",
+        "observed_state": "partial_failure:no_mutation"
       },
       "fallback": {
         "packet_selected": true,
@@ -12098,18 +12098,18 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/21-mcp-plus-plus-ipfs-datasets-py-configured-create-embeddings-tool.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/21-mcp-plus-plus-ipfs-datasets-py-configured-tools-dispatch.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:media-player:primary:14bcd1dc7eac61a8",
-      "packet_cid": "sha256:01d1f8d1b4d9a13fef8fd538e212006e6e3bbe3b4bc6ad5a14bcd1dc7eac61a8",
+      "packet_id": "handoff:app:media-player:primary:836045edb759af0b",
+      "packet_cid": "sha256:250df95206048424b87c6ca61e0d0133b969de9b2651dea2836045edb759af0b",
       "route_id": "app:media-player:primary",
       "app_id": "media-player",
       "app_title": "Media Player",
-      "action_id": "ipfs_kit_py:configured:audit_analytics_get_compliance_score",
+      "action_id": "local.media.playback",
       "requested_modality": "speaker",
-      "permission_state": "permitted",
+      "permission_state": "denied",
       "correlation_id": "svd096-31-media-player",
       "interface_cid": "sha256:fa718b55d24668347d78e86360baa06544df02368fab52300781a796a7d9b8fb",
       "focus_activation": {
@@ -12120,7 +12120,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "policy_allowed"
+        "activation_decision": "policy_denied"
       },
       "layout": {
         "viewport_width": 640,
@@ -12147,7 +12147,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:01d1f8d1b4d9a13fef8fd538e212006e6e3bbe3b4bc6ad5a14bcd1dc7eac61a8",
+          "safe_payload": "simulator://display/sha256:250df95206048424b87c6ca61e0d0133b969de9b2651dea2836045edb759af0b",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -12525,9 +12525,9 @@
         }
       },
       "permission_replay": {
-        "declared_state": "permitted",
+        "declared_state": "denied",
         "declared_policy_class": "read",
-        "activation_decision": "policy_allowed",
+        "activation_decision": "policy_denied",
         "prompt_required": false,
         "prompt_replayed": false,
         "packet_denial_replayed": false,
@@ -12539,14 +12539,14 @@
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "policy_allowed",
+            "text": "policy_denied",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "policy_allowed",
+        "policy_denied",
         "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
@@ -12590,18 +12590,18 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/22-media-player-ipfs-kit-py-configured-audit-analytics-get-compliance-.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/22-media-player-local-media-playback.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:model-browser:primary:37eb7ca42646d0f3",
-      "packet_cid": "sha256:6aa6615810f6d5c878cc1d82e272a58c9a2b04a3dace1f4137eb7ca42646d0f3",
+      "packet_id": "handoff:app:model-browser:primary:05365497a917ff2e",
+      "packet_cid": "sha256:ab638ab0d7a8ac42f7de95b52db79aa9d8408048bec6a32b05365497a917ff2e",
       "route_id": "app:model-browser:primary",
       "app_id": "model-browser",
       "app_title": "AI Model Manager",
-      "action_id": "ipfs_datasets_py:configured:advanced_embedding_generation",
+      "action_id": "ipfs.accelerate.models",
       "requested_modality": "display",
-      "permission_state": "permitted",
+      "permission_state": "denied",
       "correlation_id": "svd096-08-model-browser",
       "interface_cid": "sha256:3158e2a175bc7bd37d568af1f71add5113bd15a5d32408e3e86dda0a60102cc4",
       "focus_activation": {
@@ -12612,7 +12612,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "policy_allowed"
+        "activation_decision": "policy_denied"
       },
       "layout": {
         "viewport_width": 640,
@@ -12635,11 +12635,11 @@
           "availability": "available",
           "primary_surface": "glasses_hud",
           "permission_scope": "meta_glasses.display.render",
-          "allowed": true,
+          "allowed": false,
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:6aa6615810f6d5c878cc1d82e272a58c9a2b04a3dace1f4137eb7ca42646d0f3",
+          "safe_payload": "simulator://display/sha256:ab638ab0d7a8ac42f7de95b52db79aa9d8408048bec6a32b05365497a917ff2e",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -12655,10 +12655,10 @@
           "flows": [
             {
               "scenario": "primary",
-              "result": "safe_display_direct_projection",
-              "decision": "modality_display_policy_allowed",
+              "result": "safe_display_fallback_projection",
+              "decision": "modality_display_policy_degraded",
               "fallback_surface": "glasses_hud",
-              "fallback_user_visible": false,
+              "fallback_user_visible": true,
               "rollback_state": "not_required",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
@@ -13017,9 +13017,9 @@
         }
       },
       "permission_replay": {
-        "declared_state": "permitted",
+        "declared_state": "denied",
         "declared_policy_class": "read",
-        "activation_decision": "policy_allowed",
+        "activation_decision": "policy_denied",
         "prompt_required": false,
         "prompt_replayed": false,
         "packet_denial_replayed": false,
@@ -13031,15 +13031,15 @@
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "policy_allowed",
+            "text": "policy_denied",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "policy_allowed",
-        "modality_display_policy_allowed",
+        "policy_denied",
+        "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
         "modality_camera_policy_degraded",
@@ -13061,7 +13061,7 @@
         "observed_state": "partial_failure:no_mutation"
       },
       "fallback": {
-        "packet_selected": false,
+        "packet_selected": true,
         "packet_target": "glasses_hud",
         "observed_surface": "glasses_hud",
         "user_visible": true,
@@ -13082,12 +13082,12 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/23-model-browser-ipfs-datasets-py-configured-advanced-embedding-generat.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/23-model-browser-ipfs-accelerate-models.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:music-studio-unified:primary:9d774287ba2cf8c0",
-      "packet_cid": "sha256:d50c7fcbd5521e57bb9d09848846a530ab1fc3cb920a96739d774287ba2cf8c0",
+      "packet_id": "handoff:app:music-studio-unified:primary:51af137df970a728",
+      "packet_cid": "sha256:72983896b743d754bb28373d90b539bcfbd13a603a293ca451af137df970a728",
       "route_id": "app:music-studio-unified:primary",
       "app_id": "music-studio-unified",
       "app_title": "Music Studio",
@@ -13131,7 +13131,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:d50c7fcbd5521e57bb9d09848846a530ab1fc3cb920a96739d774287ba2cf8c0",
+          "safe_payload": "simulator://display/sha256:72983896b743d754bb28373d90b539bcfbd13a603a293ca451af137df970a728",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -13578,8 +13578,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:music-studio:primary:b1484cb18e1fac78",
-      "packet_cid": "sha256:c31d0025f99157ab6a394086785c2cfdad2350dccab283f8b1484cb18e1fac78",
+      "packet_id": "handoff:app:music-studio:primary:6fd6bdf0768f25c4",
+      "packet_cid": "sha256:4cdf3bfe4e53eddbfcbed17e87266033256256b838dcb8016fd6bdf0768f25c4",
       "route_id": "app:music-studio:primary",
       "app_id": "music-studio",
       "app_title": "Music Studio Classic",
@@ -13623,7 +13623,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:c31d0025f99157ab6a394086785c2cfdad2350dccab283f8b1484cb18e1fac78",
+          "safe_payload": "simulator://display/sha256:4cdf3bfe4e53eddbfcbed17e87266033256256b838dcb8016fd6bdf0768f25c4",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -14070,8 +14070,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:navi:primary:792030e9db321ce4",
-      "packet_cid": "sha256:dc5bed60fe99dc7e195b697cbceef288a869bbd142f41b00792030e9db321ce4",
+      "packet_id": "handoff:app:navi:primary:0d9d9cfc88fcc960",
+      "packet_cid": "sha256:14046a56af75fed797cb8a4505519866ffd52c2704494c740d9d9cfc88fcc960",
       "route_id": "app:navi:primary",
       "app_id": "navi",
       "app_title": "NAVI",
@@ -14115,7 +14115,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:dc5bed60fe99dc7e195b697cbceef288a869bbd142f41b00792030e9db321ce4",
+          "safe_payload": "simulator://display/sha256:14046a56af75fed797cb8a4505519866ffd52c2704494c740d9d9cfc88fcc960",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -14574,14 +14574,14 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:neural-network-designer:primary:ddf12524a8e602ef",
-      "packet_cid": "sha256:63541f725b092b1a58b8f3615f8aa0542c9bd283fd21a0acddf12524a8e602ef",
+      "packet_id": "handoff:app:neural-network-designer:primary:39dc69f3f4accce0",
+      "packet_cid": "sha256:749e4e29a146f79615254bb52d72856e77ae253c3f8ff5f339dc69f3f4accce0",
       "route_id": "app:neural-network-designer:primary",
       "app_id": "neural-network-designer",
       "app_title": "Neural Network Designer",
-      "action_id": "ipfs_datasets_py:configured:entity_analysis_tools",
+      "action_id": "ipfs.accelerate.models",
       "requested_modality": "display",
-      "permission_state": "permitted",
+      "permission_state": "denied",
       "correlation_id": "svd096-22-neural-network-designer",
       "interface_cid": "sha256:a7fef5cd7fc14055a0877242dd323a824066519dc20e6fd2ac07dc1a6b3ce71f",
       "focus_activation": {
@@ -14592,7 +14592,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "policy_allowed"
+        "activation_decision": "policy_denied"
       },
       "layout": {
         "viewport_width": 640,
@@ -14619,7 +14619,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:63541f725b092b1a58b8f3615f8aa0542c9bd283fd21a0acddf12524a8e602ef",
+          "safe_payload": "simulator://display/sha256:749e4e29a146f79615254bb52d72856e77ae253c3f8ff5f339dc69f3f4accce0",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -14997,9 +14997,9 @@
         }
       },
       "permission_replay": {
-        "declared_state": "permitted",
+        "declared_state": "denied",
         "declared_policy_class": "read",
-        "activation_decision": "policy_allowed",
+        "activation_decision": "policy_denied",
         "prompt_required": false,
         "prompt_replayed": false,
         "packet_denial_replayed": false,
@@ -15011,14 +15011,14 @@
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "policy_allowed",
+            "text": "policy_denied",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "policy_allowed",
+        "policy_denied",
         "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
@@ -15062,18 +15062,18 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/27-neural-network-designer-ipfs-datasets-py-configured-entity-analysis-tools.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/27-neural-network-designer-ipfs-accelerate-models.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:neural-photoshop:primary:e8267035f96fa750",
-      "packet_cid": "sha256:8ca40f35c5ac4bc292bfe02f9443afa71578f1c5947c8906e8267035f96fa750",
+      "packet_id": "handoff:app:neural-photoshop:primary:fa3522dee680ceb2",
+      "packet_cid": "sha256:5e751908bb9bee9eaeb24200631ac710540d4cb3ae8929cbfa3522dee680ceb2",
       "route_id": "app:neural-photoshop:primary",
       "app_id": "neural-photoshop",
       "app_title": "Neural Photoshop",
-      "action_id": "ipfs_datasets_py:configured:analyze_detection_accuracy",
+      "action_id": "ipfs.accelerate.inference",
       "requested_modality": "display",
-      "permission_state": "permitted",
+      "permission_state": "denied",
       "correlation_id": "svd096-33-neural-photoshop",
       "interface_cid": "sha256:b8bdbca4cc164e75b0aa5ddf43dd4cec9a906410fb622c0265cbfabb1aa4a253",
       "focus_activation": {
@@ -15084,7 +15084,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "policy_allowed"
+        "activation_decision": "policy_denied"
       },
       "layout": {
         "viewport_width": 640,
@@ -15111,7 +15111,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:8ca40f35c5ac4bc292bfe02f9443afa71578f1c5947c8906e8267035f96fa750",
+          "safe_payload": "simulator://display/sha256:5e751908bb9bee9eaeb24200631ac710540d4cb3ae8929cbfa3522dee680ceb2",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -15489,9 +15489,9 @@
         }
       },
       "permission_replay": {
-        "declared_state": "permitted",
+        "declared_state": "denied",
         "declared_policy_class": "read",
-        "activation_decision": "policy_allowed",
+        "activation_decision": "policy_denied",
         "prompt_required": false,
         "prompt_replayed": false,
         "packet_denial_replayed": false,
@@ -15503,14 +15503,14 @@
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "policy_allowed",
+            "text": "policy_denied",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "policy_allowed",
+        "policy_denied",
         "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
@@ -15554,18 +15554,18 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/28-neural-photoshop-ipfs-datasets-py-configured-analyze-detection-accuracy.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/28-neural-photoshop-ipfs-accelerate-inference.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:notes:primary:b406d30dd750d611",
-      "packet_cid": "sha256:28f5d4798fcc514bdb7fd7f5d8aa22154db0ede079eacb5bb406d30dd750d611",
+      "packet_id": "handoff:app:notes:primary:2a1004c7bcc0e986",
+      "packet_cid": "sha256:8f0834fd20d31e427295cd8d5432d64f309f504a35619f462a1004c7bcc0e986",
       "route_id": "app:notes:primary",
       "app_id": "notes",
       "app_title": "Notes",
-      "action_id": "ipfs_datasets_py:configured:archive_is_integration",
+      "action_id": "local.notes",
       "requested_modality": "display",
-      "permission_state": "permitted",
+      "permission_state": "denied",
       "correlation_id": "svd096-30-notes",
       "interface_cid": "sha256:4ec07874b5acd1704ffc4c8abe658e1c2aac9bad9566f9163330bd524090f2d5",
       "focus_activation": {
@@ -15576,7 +15576,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "policy_allowed"
+        "activation_decision": "policy_denied"
       },
       "layout": {
         "viewport_width": 640,
@@ -15603,7 +15603,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:28f5d4798fcc514bdb7fd7f5d8aa22154db0ede079eacb5bb406d30dd750d611",
+          "safe_payload": "simulator://display/sha256:8f0834fd20d31e427295cd8d5432d64f309f504a35619f462a1004c7bcc0e986",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -15640,7 +15640,7 @@
               "decision": "modality_display_operator_denied",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15657,7 +15657,7 @@
               "decision": "modality_display_route_unavailable",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15717,7 +15717,7 @@
               "decision": "modality_camera_operator_denied",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15734,7 +15734,7 @@
               "decision": "modality_camera_route_unavailable",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15794,7 +15794,7 @@
               "decision": "modality_microphone_operator_denied",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15811,7 +15811,7 @@
               "decision": "modality_microphone_route_unavailable",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15871,7 +15871,7 @@
               "decision": "modality_speaker_operator_denied",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15888,7 +15888,7 @@
               "decision": "modality_speaker_route_unavailable",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15948,7 +15948,7 @@
               "decision": "modality_input_operator_denied",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:no_mutation",
+              "rollback_state": "operator_denial:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15965,7 +15965,7 @@
               "decision": "modality_input_route_unavailable",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:no_mutation",
+              "rollback_state": "route_unavailable:preserve_projection",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -15981,9 +15981,9 @@
         }
       },
       "permission_replay": {
-        "declared_state": "permitted",
-        "declared_policy_class": "read",
-        "activation_decision": "policy_allowed",
+        "declared_state": "denied",
+        "declared_policy_class": "write",
+        "activation_decision": "policy_denied",
         "prompt_required": false,
         "prompt_replayed": false,
         "packet_denial_replayed": false,
@@ -15995,14 +15995,14 @@
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "policy_allowed",
+            "text": "policy_denied",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "policy_allowed",
+        "policy_denied",
         "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
@@ -16021,8 +16021,8 @@
         "operator_visible_fallback"
       ],
       "rollback": {
-        "expected_mode": "no_mutation",
-        "observed_state": "partial_failure:no_mutation"
+        "expected_mode": "preserve_projection",
+        "observed_state": "partial_failure:preserve_projection"
       },
       "fallback": {
         "packet_selected": true,
@@ -16046,12 +16046,12 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/29-notes-ipfs-datasets-py-configured-archive-is-integration.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/29-notes-local-notes.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:oauth-login:primary:81662ee3810a2820",
-      "packet_cid": "sha256:ad03f43efe02601e21c1c9214bd8c3e303a40cb56e48254481662ee3810a2820",
+      "packet_id": "handoff:app:oauth-login:primary:01dc76f63359005e",
+      "packet_cid": "sha256:5919e3b75f33a73ccf10dad1042009bc1118895904b892b701dc76f63359005e",
       "route_id": "app:oauth-login:primary",
       "app_id": "oauth-login",
       "app_title": "OAuth Login",
@@ -16095,7 +16095,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:ad03f43efe02601e21c1c9214bd8c3e303a40cb56e48254481662ee3810a2820",
+          "safe_payload": "simulator://display/sha256:5919e3b75f33a73ccf10dad1042009bc1118895904b892b701dc76f63359005e",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -16542,8 +16542,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:openrouter:primary:d78e73e61e69a771",
-      "packet_cid": "sha256:12a1bce8d07bd1cb86e9babbbf15151d8599b69fe04e1019d78e73e61e69a771",
+      "packet_id": "handoff:app:openrouter:primary:8f702f0de2e1a90e",
+      "packet_cid": "sha256:0af323e33f055c28293ee65ecc7f1b7007ef889f3cd141d08f702f0de2e1a90e",
       "route_id": "app:openrouter:primary",
       "app_id": "openrouter",
       "app_title": "OpenRouter Hub",
@@ -16587,7 +16587,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:12a1bce8d07bd1cb86e9babbbf15151d8599b69fe04e1019d78e73e61e69a771",
+          "safe_payload": "simulator://display/sha256:0af323e33f055c28293ee65ecc7f1b7007ef889f3cd141d08f702f0de2e1a90e",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -17034,8 +17034,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:orb-auto-ui:primary:4587c08c5c2c3a1d",
-      "packet_cid": "sha256:7ba5e650f4d551246eba7acfc998244364bfa5f674f60cad4587c08c5c2c3a1d",
+      "packet_id": "handoff:app:orb-auto-ui:primary:a2ab917a3f858d86",
+      "packet_cid": "sha256:19d426dadae1e82e79d80b7adf55a8a7a4a7812477b9d0b6a2ab917a3f858d86",
       "route_id": "app:orb-auto-ui:primary",
       "app_id": "orb-auto-ui",
       "app_title": "ORB Auto-UI",
@@ -17079,7 +17079,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:7ba5e650f4d551246eba7acfc998244364bfa5f674f60cad4587c08c5c2c3a1d",
+          "safe_payload": "simulator://display/sha256:19d426dadae1e82e79d80b7adf55a8a7a4a7812477b9d0b6a2ab917a3f858d86",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -17526,8 +17526,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:p2p-chat-unified:primary:59e496eeda05cb69",
-      "packet_cid": "sha256:ccd86b4f2d534b66d97097550efda5c64b1c6d727c785ede59e496eeda05cb69",
+      "packet_id": "handoff:app:p2p-chat-unified:primary:b99951924a0f7c4d",
+      "packet_cid": "sha256:e6f7ca19e7c2d4f7992b2261fc5702f7fb43a429025ba65bb99951924a0f7c4d",
       "route_id": "app:p2p-chat-unified:primary",
       "app_id": "p2p-chat-unified",
       "app_title": "P2P Chat",
@@ -17571,7 +17571,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:ccd86b4f2d534b66d97097550efda5c64b1c6d727c785ede59e496eeda05cb69",
+          "safe_payload": "simulator://display/sha256:e6f7ca19e7c2d4f7992b2261fc5702f7fb43a429025ba65bb99951924a0f7c4d",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -18018,8 +18018,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:p2p-chat:primary:9918f7907f0ef0c1",
-      "packet_cid": "sha256:ad1cb535cddf1739ac75f6f560202deea08eb2f70c800b069918f7907f0ef0c1",
+      "packet_id": "handoff:app:p2p-chat:primary:ce476e156721a466",
+      "packet_cid": "sha256:66ec946b20d112e6e0ccb94695b190f69602b279d9f00dd6ce476e156721a466",
       "route_id": "app:p2p-chat:primary",
       "app_id": "p2p-chat",
       "app_title": "P2P Chat Classic",
@@ -18063,7 +18063,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:ad1cb535cddf1739ac75f6f560202deea08eb2f70c800b069918f7907f0ef0c1",
+          "safe_payload": "simulator://display/sha256:66ec946b20d112e6e0ccb94695b190f69602b279d9f00dd6ce476e156721a466",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -18510,8 +18510,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:p2p-network:primary:235e9842b47555c8",
-      "packet_cid": "sha256:e669202f1c436caf0298d5c0e11fbb4ea1d8d0fc3e6491be235e9842b47555c8",
+      "packet_id": "handoff:app:p2p-network:primary:8cef5097d97c0e01",
+      "packet_cid": "sha256:f23d76c9e6d58ee556cfa40745a6c785ae1afa443461d3ec8cef5097d97c0e01",
       "route_id": "app:p2p-network:primary",
       "app_id": "p2p-network",
       "app_title": "P2P Network Manager",
@@ -18555,7 +18555,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:e669202f1c436caf0298d5c0e11fbb4ea1d8d0fc3e6491be235e9842b47555c8",
+          "safe_payload": "simulator://display/sha256:f23d76c9e6d58ee556cfa40745a6c785ae1afa443461d3ec8cef5097d97c0e01",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -19014,14 +19014,14 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:peertube:primary:421c0963d66b4ce2",
-      "packet_cid": "sha256:06804ad4a843f647b9bf6cfa41eacace40878ef0e85db5a3421c0963d66b4ce2",
+      "packet_id": "handoff:app:peertube:primary:147e2332d7548c6d",
+      "packet_cid": "sha256:70bc3c62c3c2741a66686dbba49099154ef2385a51616954147e2332d7548c6d",
       "route_id": "app:peertube:primary",
       "app_id": "peertube",
       "app_title": "PeerTube",
-      "action_id": "ipfs_kit_py:configured:handle_pin_add",
+      "action_id": "external.peertube",
       "requested_modality": "display",
-      "permission_state": "confirmation_required",
+      "permission_state": "denied",
       "correlation_id": "svd096-27-peertube",
       "interface_cid": "sha256:01e3dba102a90d0a4313f97cc78288a4e8a84c4b8bb94c22d031f56ff958cef6",
       "focus_activation": {
@@ -19032,7 +19032,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "awaiting_operator_confirmation"
+        "activation_decision": "policy_denied"
       },
       "layout": {
         "viewport_width": 640,
@@ -19059,7 +19059,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:06804ad4a843f647b9bf6cfa41eacace40878ef0e85db5a3421c0963d66b4ce2",
+          "safe_payload": "simulator://display/sha256:70bc3c62c3c2741a66686dbba49099154ef2385a51616954147e2332d7548c6d",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -19096,7 +19096,7 @@
               "decision": "modality_display_operator_denied",
               "fallback_surface": "audio_channel",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19113,7 +19113,7 @@
               "decision": "modality_display_route_unavailable",
               "fallback_surface": "audio_channel",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19173,7 +19173,7 @@
               "decision": "modality_camera_operator_denied",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19190,7 +19190,7 @@
               "decision": "modality_camera_route_unavailable",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19250,7 +19250,7 @@
               "decision": "modality_microphone_operator_denied",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19267,7 +19267,7 @@
               "decision": "modality_microphone_route_unavailable",
               "fallback_surface": "desktop",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19327,7 +19327,7 @@
               "decision": "modality_speaker_operator_denied",
               "fallback_surface": "audio_channel",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19344,7 +19344,7 @@
               "decision": "modality_speaker_route_unavailable",
               "fallback_surface": "audio_channel",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19404,7 +19404,7 @@
               "decision": "modality_input_operator_denied",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "operator_denial:compensating_receipt",
+              "rollback_state": "operator_denial:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19421,7 +19421,7 @@
               "decision": "modality_input_route_unavailable",
               "fallback_surface": "mobile_card",
               "fallback_user_visible": true,
-              "rollback_state": "route_unavailable:compensating_receipt",
+              "rollback_state": "route_unavailable:no_mutation",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
               "receipt_refs": [
@@ -19437,40 +19437,28 @@
         }
       },
       "permission_replay": {
-        "declared_state": "confirmation_required",
-        "declared_policy_class": "write",
-        "activation_decision": "awaiting_operator_confirmation",
-        "prompt_required": true,
-        "prompt_replayed": true,
-        "packet_denial_replayed": true,
-        "packet_approval_replayed": true,
-        "policy_resolution_replayed": false,
-        "denial_rollback_visible": true,
-        "denial_fallback_visible": true,
+        "declared_state": "denied",
+        "declared_policy_class": "read",
+        "activation_decision": "policy_denied",
+        "prompt_required": false,
+        "prompt_replayed": false,
+        "packet_denial_replayed": false,
+        "packet_approval_replayed": false,
+        "policy_resolution_replayed": true,
+        "denial_rollback_visible": false,
+        "denial_fallback_visible": false,
         "modality_denial_replayed": true,
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "awaiting_operator_confirmation",
-            "rendered": true,
-            "fully_visible": true
-          },
-          {
-            "text": "operator_denied",
-            "rendered": true,
-            "fully_visible": true
-          },
-          {
-            "text": "operator_approved",
+            "text": "policy_denied",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "awaiting_operator_confirmation",
-        "operator_denied",
-        "operator_approved",
+        "policy_denied",
         "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
@@ -19489,8 +19477,8 @@
         "operator_visible_fallback"
       ],
       "rollback": {
-        "expected_mode": "compensating_receipt",
-        "observed_state": "partial_failure:compensating_receipt"
+        "expected_mode": "no_mutation",
+        "observed_state": "partial_failure:no_mutation"
       },
       "fallback": {
         "packet_selected": true,
@@ -19514,12 +19502,12 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/36-peertube-ipfs-kit-py-configured-handle-pin-add.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/36-peertube-external-peertube.png",
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:settings:primary:ba022b84bbf704a3",
-      "packet_cid": "sha256:04422b500760e2895ceedf8d481629fb4334fa9a1bb9532eba022b84bbf704a3",
+      "packet_id": "handoff:app:settings:primary:c5030d167357015a",
+      "packet_cid": "sha256:e3520ca604bacfc95b0a50ec057995a3fbd591808c60fd43c5030d167357015a",
       "route_id": "app:settings:primary",
       "app_id": "settings",
       "app_title": "Settings",
@@ -19563,7 +19551,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:04422b500760e2895ceedf8d481629fb4334fa9a1bb9532eba022b84bbf704a3",
+          "safe_payload": "simulator://display/sha256:e3520ca604bacfc95b0a50ec057995a3fbd591808c60fd43c5030d167357015a",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -20010,8 +19998,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:strudel-ai-daw:primary:35da9fbaee113792",
-      "packet_cid": "sha256:dce1f75cf40299504b1a5050f5cc3669a15b4c7c5c9aaadd35da9fbaee113792",
+      "packet_id": "handoff:app:strudel-ai-daw:primary:5558af523efebde4",
+      "packet_cid": "sha256:1a7a1e28aaab0384cc4d41b8ad3bd50edc5bacb96337bb265558af523efebde4",
       "route_id": "app:strudel-ai-daw:primary",
       "app_id": "strudel-ai-daw",
       "app_title": "Strudel AI DAW",
@@ -20055,7 +20043,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:dce1f75cf40299504b1a5050f5cc3669a15b4c7c5c9aaadd35da9fbaee113792",
+          "safe_payload": "simulator://display/sha256:1a7a1e28aaab0384cc4d41b8ad3bd50edc5bacb96337bb265558af523efebde4",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -20502,8 +20490,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:strudel:primary:58d6026d6fab8170",
-      "packet_cid": "sha256:63dc8004100a03729c26d86595296fe58476c8ce95f7f66858d6026d6fab8170",
+      "packet_id": "handoff:app:strudel:primary:9437a19544d4419e",
+      "packet_cid": "sha256:1b7f68982d18804da85bf8055099aa286de733f84297f6e09437a19544d4419e",
       "route_id": "app:strudel:primary",
       "app_id": "strudel",
       "app_title": "Strudel",
@@ -20547,7 +20535,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:63dc8004100a03729c26d86595296fe58476c8ce95f7f66858d6026d6fab8170",
+          "safe_payload": "simulator://display/sha256:1b7f68982d18804da85bf8055099aa286de733f84297f6e09437a19544d4419e",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "audio-summary",
@@ -20994,8 +20982,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:system-monitor:primary:2018c925955e2718",
-      "packet_cid": "sha256:853884be1cb03b79d20ede61014764cf72cf3022d640a3c02018c925955e2718",
+      "packet_id": "handoff:app:system-monitor:primary:433d40921a0cfd70",
+      "packet_cid": "sha256:ef44d1da56205eea5307f7a54ace033312bfe46feab4aab4433d40921a0cfd70",
       "route_id": "app:system-monitor:primary",
       "app_id": "system-monitor",
       "app_title": "System Monitor",
@@ -21039,7 +21027,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:853884be1cb03b79d20ede61014764cf72cf3022d640a3c02018c925955e2718",
+          "safe_payload": "simulator://display/sha256:ef44d1da56205eea5307f7a54ace033312bfe46feab4aab4433d40921a0cfd70",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -21498,8 +21486,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:task-manager:primary:a4db3575f3380f09",
-      "packet_cid": "sha256:63d6e296ba19a129d50ba4b13ff4fb5b16b88bcb995592d5a4db3575f3380f09",
+      "packet_id": "handoff:app:task-manager:primary:b76545686f787325",
+      "packet_cid": "sha256:949d92066fe8cd0acf5b46805ba1c6ae03202e7fac9b9078b76545686f787325",
       "route_id": "app:task-manager:primary",
       "app_id": "task-manager",
       "app_title": "Task Manager",
@@ -21543,7 +21531,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:63d6e296ba19a129d50ba4b13ff4fb5b16b88bcb995592d5a4db3575f3380f09",
+          "safe_payload": "simulator://display/sha256:949d92066fe8cd0acf5b46805ba1c6ae03202e7fac9b9078b76545686f787325",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -21990,8 +21978,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:terminal:primary:be229738f0b8b4ba",
-      "packet_cid": "sha256:42ebdac82e808fcaf148bd96aa479a861839d979d7620454be229738f0b8b4ba",
+      "packet_id": "handoff:app:terminal:primary:d7e9aa07d568a970",
+      "packet_cid": "sha256:13071fa8933ed0fe44ae3ada953ea393d70affb06cfc457ed7e9aa07d568a970",
       "route_id": "app:terminal:primary",
       "app_id": "terminal",
       "app_title": "SwissKnife Terminal",
@@ -22035,7 +22023,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:42ebdac82e808fcaf148bd96aa479a861839d979d7620454be229738f0b8b4ba",
+          "safe_payload": "simulator://display/sha256:13071fa8933ed0fe44ae3ada953ea393d70affb06cfc457ed7e9aa07d568a970",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -22482,8 +22470,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:todo:primary:18cd7fddd77b3f87",
-      "packet_cid": "sha256:14c6d263ae23bbac5ed1bea37cbecca5d21fbaf49188865118cd7fddd77b3f87",
+      "packet_id": "handoff:app:todo:primary:3bde178fb7a474df",
+      "packet_cid": "sha256:cbd71f59d2ef0b38cd1dbb010ae6ff2bb344beb14129c1573bde178fb7a474df",
       "route_id": "app:todo:primary",
       "app_id": "todo",
       "app_title": "Todo and Goals",
@@ -22527,7 +22515,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:14c6d263ae23bbac5ed1bea37cbecca5d21fbaf49188865118cd7fddd77b3f87",
+          "safe_payload": "simulator://display/sha256:cbd71f59d2ef0b38cd1dbb010ae6ff2bb344beb14129c1573bde178fb7a474df",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -22974,8 +22962,8 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:training-manager:primary:892b1718b09a8d4e",
-      "packet_cid": "sha256:c91f4e42bd31462b6c940a9b2d7c9f2ace129ef5b472393e892b1718b09a8d4e",
+      "packet_id": "handoff:app:training-manager:primary:7cbf96496ec8772f",
+      "packet_cid": "sha256:e35f0765a2d1bdb70c517c64446400bd235789faa815b9917cbf96496ec8772f",
       "route_id": "app:training-manager:primary",
       "app_id": "training-manager",
       "app_title": "Training Manager",
@@ -23019,7 +23007,7 @@
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:c91f4e42bd31462b6c940a9b2d7c9f2ace129ef5b472393e892b1718b09a8d4e",
+          "safe_payload": "simulator://display/sha256:e35f0765a2d1bdb70c517c64446400bd235789faa815b9917cbf96496ec8772f",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "mobile-card",
@@ -23478,14 +23466,14 @@
       "status": "passed"
     },
     {
-      "packet_id": "handoff:app:vibecode:primary:776c13037981c725",
-      "packet_cid": "sha256:311c996441a7075782492db6f3e6ee652700ce027dda45e3776c13037981c725",
+      "packet_id": "handoff:app:vibecode:primary:6492a94f8d488f16",
+      "packet_cid": "sha256:9e0322105b6f70c5282e2a01861394624d2fe933fb5d16a96492a94f8d488f16",
       "route_id": "app:vibecode:primary",
       "app_id": "vibecode",
       "app_title": "VibeCode",
-      "action_id": "ipfs_datasets_py:configured:ai_agent_pr_creator",
+      "action_id": "local.editor",
       "requested_modality": "display",
-      "permission_state": "permitted",
+      "permission_state": "denied",
       "correlation_id": "svd096-02-vibecode",
       "interface_cid": "sha256:7c8cf2e8250c061fa17290e009ca33da67ca2ba066757a2935c369f86030a9c0",
       "focus_activation": {
@@ -23496,7 +23484,7 @@
         "final_focus_ring_visible": true,
         "activated_method": "request_action",
         "activation_text_fully_visible": true,
-        "activation_decision": "policy_allowed"
+        "activation_decision": "policy_denied"
       },
       "layout": {
         "viewport_width": 640,
@@ -23519,11 +23507,11 @@
           "availability": "available",
           "primary_surface": "glasses_hud",
           "permission_scope": "meta_glasses.display.render",
-          "allowed": true,
+          "allowed": false,
           "hardware_available": false,
           "read_only": false,
           "result": "safe_display_fallback_projection",
-          "safe_payload": "simulator://display/sha256:311c996441a7075782492db6f3e6ee652700ce027dda45e3776c13037981c725",
+          "safe_payload": "simulator://display/sha256:9e0322105b6f70c5282e2a01861394624d2fe933fb5d16a96492a94f8d488f16",
           "raw_payload_captured": false,
           "fallback": {
             "kind": "native-display",
@@ -23539,10 +23527,10 @@
           "flows": [
             {
               "scenario": "primary",
-              "result": "safe_display_direct_projection",
-              "decision": "modality_display_policy_allowed",
+              "result": "safe_display_fallback_projection",
+              "decision": "modality_display_policy_degraded",
               "fallback_surface": "glasses_hud",
-              "fallback_user_visible": false,
+              "fallback_user_visible": true,
               "rollback_state": "not_required",
               "operator_decision_visible": true,
               "raw_payload_captured": false,
@@ -23901,9 +23889,9 @@
         }
       },
       "permission_replay": {
-        "declared_state": "permitted",
+        "declared_state": "denied",
         "declared_policy_class": "read",
-        "activation_decision": "policy_allowed",
+        "activation_decision": "policy_denied",
         "prompt_required": false,
         "prompt_replayed": false,
         "packet_denial_replayed": false,
@@ -23915,15 +23903,15 @@
         "receipts_preserved": true,
         "decisions": [
           {
-            "text": "policy_allowed",
+            "text": "policy_denied",
             "rendered": true,
             "fully_visible": true
           }
         ]
       },
       "operator_decisions": [
-        "policy_allowed",
-        "modality_display_policy_allowed",
+        "policy_denied",
+        "modality_display_policy_degraded",
         "modality_display_operator_denied",
         "modality_display_route_unavailable",
         "modality_camera_policy_degraded",
@@ -23945,7 +23933,7 @@
         "observed_state": "partial_failure:no_mutation"
       },
       "fallback": {
-        "packet_selected": false,
+        "packet_selected": true,
         "packet_target": "glasses_hud",
         "observed_surface": "glasses_hud",
         "user_visible": true,
@@ -23966,7 +23954,7 @@
         ],
         "preserved": true
       },
-      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/45-vibecode-ipfs-datasets-py-configured-ai-agent-pr-creator.png",
+      "screenshot": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/45-vibecode-local-editor.png",
       "status": "passed"
     },
     {

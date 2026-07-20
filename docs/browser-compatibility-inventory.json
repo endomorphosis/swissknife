@@ -2,7 +2,7 @@
   "schema": "swissknife.browser_compatibility_inventory.v2",
   "taskId": "SWR-137",
   "provenance": {
-    "sourceCommit": "56a7ed5c9b170e832b832ec3d650ecb58f68f1f1",
+    "sourceCommit": "bf8649a1870aa6647015db5cf2e496ede45c408f",
     "generator": "scripts/audit-browser-compat.mjs",
     "mode": "current-source-graph",
     "roots": {
@@ -27,7 +27,7 @@
     },
     "browserReachableHostOnlyImports": 0,
     "unknownExecutableBrowserPaths": 0,
-    "sourceFilesIndexed": 1585,
+    "sourceFilesIndexed": 1598,
     "canonicalBrowserPublicApiViolations": 0,
     "gatePassed": true
   },
@@ -38,7 +38,7 @@
         "expectedTarget": "src/browser.ts",
         "declaredTarget": "src/browser.ts",
         "classification": "browser-safe",
-        "reachableFiles": 31,
+        "reachableFiles": 37,
         "hostFindings": 0
       },
       {
@@ -46,7 +46,7 @@
         "expectedTarget": "src/browser.ts",
         "declaredTarget": "src/browser.ts",
         "classification": "browser-safe",
-        "reachableFiles": 31,
+        "reachableFiles": 37,
         "hostFindings": 0
       },
       {
@@ -54,7 +54,7 @@
         "expectedTarget": "src/services/mcp/browser-mcp.ts",
         "declaredTarget": "src/services/mcp/browser-mcp.ts",
         "classification": "browser-safe",
-        "reachableFiles": 4,
+        "reachableFiles": 9,
         "hostFindings": 0
       },
       {
@@ -118,7 +118,7 @@
         "expectedTarget": "src/services/zkp/browser-zkp.ts",
         "declaredTarget": "src/services/zkp/browser-zkp.ts",
         "classification": "browser-safe",
-        "reachableFiles": 10,
+        "reachableFiles": 11,
         "hostFindings": 0
       },
       {
@@ -274,6 +274,7 @@
       "reachable": [
         "web/desktop.ts",
         "web/src/apps/app-manifest-loader.ts",
+        "web/src/live-tool-gateway-panel.ts",
         "src/services/apps/app-manifest-registry.ts",
         "src/services/apps/app-manifest.ts",
         "web/js/apps/ai-chat.js",
@@ -315,11 +316,16 @@
         "web/js/apps/todo.js",
         "web/js/apps/training-manager.js",
         "web/js/apps/vibecode.js",
+        "src/services/mcp/virtual-desktop-live-gateway.ts",
         "web/js/hallucinate-backend-bridge.js",
         "web/js/libp2p-browser-runtime.js",
         "web/js/core/ipfs-accelerate-global-adapter.js",
         "web/js/audio/strudel-processor.js",
-        "web/js/hallucinate-backend-bridge.mjs"
+        "src/services/apps/all-app-executable-backend-contract.ts",
+        "src/services/apps/all-app-live-tool-bindings.ts",
+        "src/services/mcp/all-app-tool-gateway.ts",
+        "web/js/hallucinate-backend-bridge.mjs",
+        "src/services/apps/virtual-desktop-app-manifest.ts"
       ],
       "findings": [
         {
@@ -338,7 +344,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/agent-supervisor.js",
-          "line": 297,
+          "line": 316,
           "message": "remote API or wrapper call",
           "chain": [
             "web/desktop.ts",
@@ -1445,6 +1451,7 @@
         "web/index.html",
         "web/js/p2p-ml-bridge.js",
         "web/js/main-simple.js",
+        "web/js/live-tool-gateway.js",
         "web/js/apps/terminal.js",
         "web/js/apps/vibecode.js",
         "web/js/apps/strudel-ai-daw.js",
@@ -1507,7 +1514,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/agent-supervisor.js",
-          "line": 297,
+          "line": 316,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.html",
@@ -2536,6 +2543,30 @@
           ]
         },
         {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/live-tool-gateway.js",
+          "line": 56,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/live-tool-gateway.js"
+          ]
+        },
+        {
+          "category": "remote-wrapper",
+          "severity": "browser-safe",
+          "file": "web/js/live-tool-gateway.js",
+          "line": 124,
+          "message": "remote API or wrapper call",
+          "chain": [
+            "web/index.html",
+            "web/js/main-simple.js",
+            "web/js/live-tool-gateway.js"
+          ]
+        },
+        {
           "category": "worker",
           "severity": "browser-safe",
           "file": "web/index.html",
@@ -2615,6 +2646,7 @@
         "web/js/p2p-ml-bridge.js",
         "web/desktop.ts",
         "web/src/apps/app-manifest-loader.ts",
+        "web/src/live-tool-gateway-panel.ts",
         "src/services/apps/app-manifest-registry.ts",
         "src/services/apps/app-manifest.ts",
         "web/js/apps/ai-chat.js",
@@ -2656,11 +2688,16 @@
         "web/js/apps/todo.js",
         "web/js/apps/training-manager.js",
         "web/js/apps/vibecode.js",
+        "src/services/mcp/virtual-desktop-live-gateway.ts",
         "web/js/hallucinate-backend-bridge.js",
         "web/js/libp2p-browser-runtime.js",
         "web/js/core/ipfs-accelerate-global-adapter.js",
         "web/js/audio/strudel-processor.js",
-        "web/js/hallucinate-backend-bridge.mjs"
+        "src/services/apps/all-app-executable-backend-contract.ts",
+        "src/services/apps/all-app-live-tool-bindings.ts",
+        "src/services/mcp/all-app-tool-gateway.ts",
+        "web/js/hallucinate-backend-bridge.mjs",
+        "src/services/apps/virtual-desktop-app-manifest.ts"
       ],
       "findings": [
         {
@@ -2680,7 +2717,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/agent-supervisor.js",
-          "line": 297,
+          "line": 316,
           "message": "remote API or wrapper call",
           "chain": [
             "web/index.vite.html",
@@ -3895,7 +3932,7 @@
           "category": "remote-wrapper",
           "severity": "browser-safe",
           "file": "web/js/apps/agent-supervisor.js",
-          "line": 297,
+          "line": 316,
           "message": "remote API or wrapper call",
           "chain": [
             "web/js/apps/agent-supervisor.js"

@@ -1,0 +1,1199 @@
+{
+  "schema": "swissknife.refactor-main-reconciliation.v1",
+  "task_id": "SWR-162",
+  "generated_at": "2026-07-20T00:04:10.775Z",
+  "decision": "GO",
+  "blockers": [],
+  "checkout": {
+    "head": "bf8649a1870aa6647015db5cf2e496ede45c408f",
+    "branch": "automation/swissknife-refactor-integration",
+    "selected_upstream_ref": "origin/main",
+    "selected_upstream_sha": "bf8649a1870aa6647015db5cf2e496ede45c408f",
+    "status_entries": [
+      "M docs/agent-supervisor-console-evidence.md",
+      "M docs/all-app-live-binding-gap-ledger.md",
+      "M docs/browser-bundle-budget.fingerprint.json",
+      "M docs/browser-bundle-budget.json",
+      "M docs/browser-bundle-budget.md",
+      "M docs/browser-compatibility-inventory.json",
+      "M docs/browser-compatibility-inventory.md",
+      "M docs/mcp-all-tool-catalog-evidence.md",
+      "M docs/refactor-evidence-maintenance.md",
+      "M docs/refactor-final-signoff.md",
+      "M docs/release-evidence-freshness.json",
+      "M docs/release-evidence-freshness.md",
+      "M docs/release-readiness-report.json",
+      "M docs/release-readiness-report.md",
+      "M docs/restored-service-duplicate-inventory.json",
+      "M docs/restored-service-duplicate-inventory.md",
+      "M docs/service-boundary-audit.fingerprint.json",
+      "M docs/service-boundary-audit.json",
+      "M docs/supervisor-refactor-runbook.md",
+      "M docs/virtual-desktop-all-tools-app-coverage.md",
+      "M docs/virtual-desktop-release-evidence.fingerprint.json",
+      "M docs/virtual-desktop-tool-ui-smoke-evidence.md",
+      "M package.json",
+      "M scripts/audit-release-evidence-freshness.mjs",
+      "M scripts/audit-source-modules.mjs",
+      "M scripts/capture-mcp-live-probe-evidence.cjs",
+      "M scripts/capture-swissknife-all-tools-peer-evidence.cjs",
+      "M scripts/ensure-ipfs-mcp-libp2p-bridges.cjs",
+      "M scripts/lib/pick-free-port.mjs",
+      "M scripts/lib/release-readiness-evidence-producers.mjs",
+      "M scripts/release-readiness-gate.mjs",
+      "M src/module-ownership.json",
+      "M src/services/apps/all-app-live-tool-bindings.ts",
+      "M test-results/browser-proof-runtime/observed-three-engine-runtime.json",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-binding-gap-ledger.json",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/all-app-ui-ux-accessibility.json",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/all-tools-disposition-catalog.json",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/01-accelerate-panel-ipfs-accelerate-py-configured-compat-get-model-details.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/02-agent-supervisor-ipfs-accelerate-py-configured-compat-gh-create-workflo.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/03-ai-chat-ipfs-accelerate-py-configured-compat-execute-with-payl.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/04-api-keys-ipfs-kit-py-configured-get-secrets-manager.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/05-calculator-local-calculator.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/06-calendar-local-calendar.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/07-cinema-ipfs-kit-py-configured-handle-bucket-export-car.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/08-clock-local-time.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/09-cron-local-scheduler.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/10-datasets-browser-ipfs-datasets-py-configured-ai-dataset-builder.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/11-device-manager-ipfs-accelerate-py-configured-compat-detect-hardware.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/12-file-manager-ipfs-accelerate-py-configured-compat-ipfs-files-add.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/13-friends-list-local-contacts.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/14-github-ipfs-accelerate-py-configured-compat-gh-get-cache-stat.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/15-glasses-preview-glasses-preview.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/16-huggingface-ipfs-accelerate-py-configured-compat-build-hf-inferenc.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/17-idl-explorer-ipfs-accelerate-py-configured-compat-tools-get-schema.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/18-image-viewer-local-media-image.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/19-ipfs-explorer-ipfs-datasets-py-configured-enhanced-ipfs-cluster-tool.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/20-mcp-control-ipfs-accelerate-py-configured-compat-add-endpoint.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/21-mcp-plus-plus-ipfs-datasets-py-configured-create-embeddings-tool.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/22-media-player-ipfs-kit-py-configured-audit-analytics-get-compliance-.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/23-model-browser-ipfs-datasets-py-configured-advanced-embedding-generat.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/24-music-studio-unified-local-audio.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/25-music-studio-local-audio.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/26-navi-ipfs-accelerate-py-configured-compat-get-mcp-manifest.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/27-neural-network-designer-ipfs-datasets-py-configured-entity-analysis-tools.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/28-neural-photoshop-ipfs-datasets-py-configured-analyze-detection-accuracy.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/29-notes-ipfs-datasets-py-configured-archive-is-integration.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/30-oauth-login-external-oauth.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/31-openrouter-external-openrouter.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/32-orb-auto-ui-ipfs-accelerate-py-static-descriptor-get-task.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/33-p2p-chat-unified-ipfs-kit-pubsub.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/34-p2p-chat-ipfs-kit-pubsub.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/35-p2p-network-ipfs-accelerate-py-configured-compat-list-peers.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/36-peertube-ipfs-kit-py-configured-handle-pin-add.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/37-settings-local-settings.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/38-strudel-ai-daw-local-audio.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/39-strudel-local-audio.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/40-system-monitor-ipfs-accelerate-py-configured-compat-get-dashboard-cac.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/41-task-manager-local-processes.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/42-terminal-local-shell.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/43-todo-local-tasks.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/44-training-manager-ipfs-accelerate-py-configured-compat-create-workflow.png",
+      "D test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/45-vibecode-ipfs-datasets-py-configured-ai-agent-pr-creator.png",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
+      "M test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json",
+      "M test/architecture/release-readiness-hermetic.test.ts",
+      "M test/architecture/source-module-boundaries.test.js",
+      "?? .npmrc",
+      "?? docs/refactor-main-reconciliation.json",
+      "?? docs/refactor-main-reconciliation.md",
+      "?? docs/release-readiness-ownership.md",
+      "?? docs/release-reproduction-attestation.json",
+      "?? docs/release-reproduction-attestation.md",
+      "?? scripts/capture-refactor-main-reconciliation.cjs",
+      "?? scripts/lib/release-reproduction-attestation.mjs",
+      "?? test-results/meta-glasses-virtual-os/2026-07-09T18-30-06-420Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T16-35-24-149Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T16-49-17-238Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T17-01-55-935Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T17-05-13-177Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T17-18-14-536Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T17-40-08-819Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T17-53-30-287Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T18-19-48-225Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T18-42-04-861Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T18-48-21-800Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T19-00-35-795Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T19-13-43-268Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T19-21-00-007Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T19-55-07-223Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T20-17-24-808Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T20-19-55-297Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T20-38-36-063Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T20-59-52-870Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T21-30-40-383Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T21-39-14-187Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T21-58-02-131Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T22-20-48-238Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T22-39-56-192Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T23-11-07-624Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/2026-07-19T23-28-04-866Z/apps-meta-display-report.json",
+      "?? test-results/meta-glasses-virtual-os/results.json",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/04-api-keys-policy-credentials.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/07-cinema-ipfs-accelerate-jobs.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/10-datasets-browser-ipfs-datasets-py-configured-check-task-status.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/19-ipfs-explorer-ipfs-kit-storage.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/21-mcp-plus-plus-ipfs-datasets-py-configured-tools-dispatch.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/22-media-player-local-media-playback.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/23-model-browser-ipfs-accelerate-models.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/27-neural-network-designer-ipfs-accelerate-models.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/28-neural-photoshop-ipfs-accelerate-inference.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/29-notes-local-notes.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/36-peertube-external-peertube.png",
+      "?? test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/45-vibecode-local-editor.png"
+    ],
+    "unmerged_paths": [],
+    "conflict_marker_paths": [],
+    "diff_check": {
+      "ok": true,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "task_status": {
+    "path": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
+    "present": true,
+    "tasks": {
+      "SWR-001": {
+        "title": "Restore strict service-boundary audit",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit (passes; root files 0, unknown files 0, forbidden imports 0, legacy root import specifiers 0)"
+      },
+      "SWR-002": {
+        "title": "Harden browser and host entrypoint boundaries",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:run -- test/mcp-plus-plus/mcp-browser-entrypoint.test.ts test/mcp-plus-plus/wasm-prover-browser-purity.test.ts test/mcp-plus-plus/mcp-transport-libp2p-runtime.test.ts && npm run test:run -- test/unit/services/mcp/mcpTransport.test.ts && npm run build:web && rg -n \"node:fs|node:path|child_process|Buffer\\\\.from|mcp-remote-deontic-engine|RemoteDeonticEngine|pyodide|spawn\\\\(|execFile\\\\(\" web/dist/assets web/dist/index.html (all pass; bundle scan returns no matches)"
+      },
+      "SWR-003": {
+        "title": "Resolve TypeScript TS6305 project-output drift",
+        "status": "completed",
+        "validation": "cd swissknife && npm run typecheck"
+      },
+      "SWR-004": {
+        "title": "Consolidate test lanes and scripts",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:fast && npm run test:browser-compat"
+      },
+      "SWR-005": {
+        "title": "Enforce pure TS/WASM prover and ZKP browser runtime",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:run -- test/mcp-plus-plus/wasm-prover-browser-purity.test.ts test/mcp-plus-plus/wasm-prover-browser-zkp-real.test.ts test/mcp-plus-plus/wasm-prover-browser-groth16-semantic.test.ts && npm run build:web (passes; real browser Groth16 semantic proof generation and verification covered)"
+      },
+      "SWR-006": {
+        "title": "Clarify apps, glasses, IPFS, and MCP ownership",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:run -- test/mcp-plus-plus/glasses-manifest-coverage.test.ts test/mcp-plus-plus/mobile-orb-edge-all-apps.test.ts && node scripts/test-mcp-dashboard-consumer.cjs"
+      },
+      "SWR-007": {
+        "title": "Extend module-boundary discipline beyond services",
+        "status": "completed",
+        "validation": "cd swissknife && npm run lint && npm run test:fast"
+      },
+      "SWR-008": {
+        "title": "Clean browser dependencies and bundle budgets",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && ! rg -n \"node:fs|node:path|child_process|Buffer\\\\.from|mcp-remote-deontic-engine\" dist/assets dist/index.html"
+      },
+      "SWR-009": {
+        "title": "Wire CI and release readiness gates",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck && npm run test:fast && npm run test:browser-compat && npm run build:web (all pass; `npm run release:gate` orchestrates the same gates plus MCP/glasses evidence and writes docs/release-readiness-report.{json,md})"
+      },
+      "SWR-010": {
+        "title": "Keep refactor documentation and evidence current",
+        "status": "completed",
+        "validation": "test -f implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md && cd swissknife && npm run services:audit"
+      },
+      "SWR-011": {
+        "title": "Build repository-wide browser compatibility inventory",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-compat.mjs --report docs/browser-compatibility-inventory.md"
+      },
+      "SWR-012": {
+        "title": "Add top-level source module ownership manifest",
+        "status": "completed",
+        "validation": "cd swissknife && test -f src/module-ownership.json && test -f docs/source-module-boundaries.md"
+      },
+      "SWR-013": {
+        "title": "Split CLI and process entrypoints from browser runtime",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-compat.mjs --fail-on-host-imports && npm run build:web"
+      },
+      "SWR-014": {
+        "title": "Enforce UI import boundaries for browser surfaces",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-ui-imports.mjs && npm run build:web"
+      },
+      "SWR-015": {
+        "title": "Harden browser libp2p bootstrap and defaults",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:run -- test/mcp-plus-plus/mcp-transport-libp2p-runtime.test.ts test/mcp-plus-plus/wasm-prover-browser-purity.test.ts"
+      },
+      "SWR-016": {
+        "title": "Track libp2p and browser bundle budgets",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && node scripts/audit-web-bundle.mjs --fail-on-host-leakage --report docs/browser-bundle-budget.md"
+      },
+      "SWR-017": {
+        "title": "Define browser IPFS transport strategy",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:run -- test/mcp-plus-plus/ipfs-ui-descriptors.test.ts test/mcp-plus-plus/ipfs-accelerate-descriptor-pack.test.ts && node scripts/audit-browser-compat.mjs --module ipfs"
+      },
+      "SWR-018": {
+        "title": "Make browser storage runtime explicit",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-compat.mjs --module storage && npm run test:run -- test/browser"
+      },
+      "SWR-019": {
+        "title": "Separate Web Worker and Node worker runtimes",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:workers && node scripts/audit-browser-compat.mjs --module workers"
+      },
+      "SWR-020": {
+        "title": "Split model/provider adapters by browser and host capability",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-compat.mjs --module ai --module models && npm run build:web"
+      },
+      "SWR-021": {
+        "title": "Make Pyodide optional and sandboxed, never default runtime",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && node scripts/audit-web-bundle.mjs --fail-on-default-pyodide"
+      },
+      "SWR-022": {
+        "title": "Harden browser ZKP artifact loading and integrity",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:run -- test/mcp-plus-plus/wasm-prover-browser-groth16-semantic.test.ts test/mcp-plus-plus/wasm-prover-browser-zkp-real.test.ts && npm run build:web"
+      },
+      "SWR-023": {
+        "title": "Normalize app manifests and lazy imports for the web bundle",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:run -- test/mcp-plus-plus/all-tools-app-binding-matrix.test.ts test/mcp-plus-plus/all-tools-policy-classifier.test.ts && npm run build:web"
+      },
+      "SWR-024": {
+        "title": "Add repository module-boundary audit",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden"
+      },
+      "SWR-025": {
+        "title": "Decompose typecheck into browser-safe lanes",
+        "status": "completed",
+        "validation": "cd swissknife && npm run typecheck:browser && npm run typecheck:services"
+      },
+      "SWR-026": {
+        "title": "Clean legacy web JavaScript from active type/build lanes",
+        "status": "completed",
+        "validation": "cd swissknife && npm run typecheck:browser && npm run build:web"
+      },
+      "SWR-027": {
+        "title": "Make MCP dashboard browser truth explicit",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/test-mcp-dashboard-consumer.cjs && npm run build:web && node scripts/audit-web-bundle.mjs --fail-on-host-leakage"
+      },
+      "SWR-028": {
+        "title": "Add browser libp2p Playwright evidence",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.libp2p-browser.config.ts"
+      },
+      "SWR-029": {
+        "title": "Wire browser bundle policy into release gates",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden && npm run typecheck:browser && npm run test:browser-compat && npm run build:web && node scripts/audit-web-bundle.mjs --fail-on-host-leakage"
+      },
+      "SWR-030": {
+        "title": "Harden supervisor usage for SwissKnife refactor tasks",
+        "status": "completed",
+        "validation": "python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail"
+      },
+      "SWR-031": {
+        "title": "Review completed SwissKnife refactor commit set",
+        "status": "completed",
+        "validation": "cd swissknife && test -f docs/refactor-integration-review.md && rg -n \"Browser runtime|libp2p|Module boundaries|ZKP|IPFS|Storage|Workers|Release gates\" docs/refactor-integration-review.md"
+      },
+      "SWR-032": {
+        "title": "Re-run clean release-readiness gate and archive output",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness"
+      },
+      "SWR-033": {
+        "title": "Confirm browser bundle host-leakage and Pyodide policy",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && node scripts/audit-web-bundle.mjs --dist dist --report docs/browser-bundle-budget.md --json docs/browser-bundle-budget.json --fail-on-host-leakage --fail-on-default-pyodide"
+      },
+      "SWR-034": {
+        "title": "Refresh browser libp2p Playwright evidence",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.libp2p-browser.config.ts"
+      },
+      "SWR-035": {
+        "title": "Prepare SwissKnife main-branch merge package",
+        "status": "completed",
+        "validation": "cd swissknife && test -f docs/refactor-merge-package.md && git status --short && git log --oneline -20"
+      },
+      "SWR-036": {
+        "title": "Create residual browser-compatibility follow-up board",
+        "status": "completed",
+        "validation": "test -f implementation_plan/docs/39-swissknife-browser-compatibility-followups-2026-07-08.todo.md && cd swissknife && node scripts/audit-browser-compat.mjs --report docs/browser-compatibility-inventory.md && node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden"
+      },
+      "SWR-037": {
+        "title": "Audit package exports and browser entry conditions",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-package-browser-exports.mjs --fail-on-host-leakage --report docs/browser-public-api.md && npm run typecheck:browser"
+      },
+      "SWR-038": {
+        "title": "Enforce browser dependency allowlist and Node builtin denylist",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-dependencies.mjs --fail-on-node-builtins --fail-on-unapproved-polyfills --report docs/browser-dependency-policy.md && npm run build:web"
+      },
+      "SWR-039": {
+        "title": "Make libp2p browser defaults visible in app settings and MCP control",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.libp2p-browser.config.ts"
+      },
+      "SWR-040": {
+        "title": "Harden browser WASM asset, integrity, and isolation policy",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-wasm-assets.mjs --fail-on-missing-integrity --report docs/browser-wasm-asset-policy.md && npm run test:run -- test/mcp-plus-plus/wasm-prover-browser-zkp-real.test.ts test/mcp-plus-plus/wasm-prover-browser-groth16-semantic.test.ts"
+      },
+      "SWR-041": {
+        "title": "Add browser deployment policy for CSP, workers, storage, and offline mode",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-deployment-policy.mjs --report docs/browser-deployment-policy.md && npm run build:web && npm run test:browser-compat"
+      },
+      "SWR-042": {
+        "title": "Remediate residual browser inventory host-only and unknown items",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-compat.mjs --report docs/browser-compatibility-inventory.md --json docs/browser-compatibility-inventory.json && node scripts/audit-source-modules.mjs --fail-on-unknown --fail-on-forbidden && npm run build:web"
+      },
+      "SWR-043": {
+        "title": "Add browser smoke matrix across desktop, mobile, and constrained capabilities",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.browser-smoke.config.ts"
+      },
+      "SWR-044": {
+        "title": "Wire phase-11 browser hardening into release readiness",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness"
+      },
+      "SWR-045": {
+        "title": "Perform final SwissKnife merge dry-run and residual-risk signoff",
+        "status": "completed",
+        "validation": "cd swissknife && test -f docs/refactor-final-signoff.md && npm run release:readiness && git status --short && git log --oneline -30"
+      },
+      "SWR-046": {
+        "title": "Add browser package-consumer fixture",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/test-browser-package-consumer.mjs && npm run build:web"
+      },
+      "SWR-047": {
+        "title": "Add browser libp2p bootstrap and relay matrix",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.libp2p-browser.config.ts --grep \"bootstrap|relay|capability\""
+      },
+      "SWR-048": {
+        "title": "Add service worker and offline cache compatibility gate",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-offline-cache.mjs --report docs/browser-offline-cache-policy.md && node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.browser-smoke.config.ts --grep \"offline|cache|service worker\""
+      },
+      "SWR-049": {
+        "title": "Add browser security headers and cross-origin isolation evidence",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-security-headers.mjs --report docs/browser-security-isolation.md && npm run build:web"
+      },
+      "SWR-050": {
+        "title": "Add browser observability without host leakage",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-observability.mjs --report docs/browser-observability-policy.md && npm run build:web && node scripts/audit-web-bundle.mjs --fail-on-host-leakage"
+      },
+      "SWR-051": {
+        "title": "Add browser API contract tests for MCP, IPFS, storage, workers, and ZKP",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:browser-compat && npm run test:run -- test/browser/browser-api-contracts.test.ts"
+      },
+      "SWR-052": {
+        "title": "Final browser compatibility release candidate gate",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness && node scripts/audit-browser-compat.mjs --report docs/browser-compatibility-inventory.md && git status --short"
+      },
+      "SWR-053": {
+        "title": "Add browser import-map and CDN packaging policy",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-distribution.mjs --report docs/browser-distribution-policy.md && npm run build:web"
+      },
+      "SWR-054": {
+        "title": "Add browser dependency upgrade and lockfile drift gate",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-lockfile.mjs --report docs/browser-dependency-policy.md && npm run build:web"
+      },
+      "SWR-055": {
+        "title": "Add real-device browser test checklist and evidence template",
+        "status": "completed",
+        "validation": "cd swissknife && test -f docs/browser-real-device-checklist.md && rg -n \"Chrome|Firefox|Safari|Android|iOS|WebRTC|IndexedDB|WASM|libp2p\" docs/browser-real-device-checklist.md"
+      },
+      "SWR-056": {
+        "title": "Add browser error taxonomy and user-visible capability states",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-observability.mjs --report docs/browser-observability-policy.md && npm run build:web"
+      },
+      "SWR-057": {
+        "title": "Add browser performance budget and startup regression gate",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-browser-performance-budget.mjs --report docs/browser-performance-budget.md && npm run build:web"
+      },
+      "SWR-058": {
+        "title": "Add browser rollback and feature-flag safety plan",
+        "status": "completed",
+        "validation": "cd swissknife && test -f docs/browser-release-rollback-plan.md && rg -n \"rollback|feature flag|libp2p|WASM|storage|MCP|ZKP\" docs/browser-release-rollback-plan.md"
+      },
+      "SWR-059": {
+        "title": "Add browser architecture decision records",
+        "status": "completed",
+        "validation": "cd swissknife && test -f docs/adr/browser-runtime-boundaries.md && test -f docs/adr/browser-libp2p-defaults.md && test -f docs/adr/browser-wasm-zkp-policy.md"
+      },
+      "SWR-060": {
+        "title": "Final supervisor closeout and handoff report",
+        "status": "completed",
+        "validation": "python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail (passes on 2026-07-09; `stuck: False`, `active_task_id: SWR-060`, `completed_count: 59`, `blocked_task_ids: []` while this closeout attempt was still active)"
+      },
+      "SWR-061": {
+        "title": "Audit and remediate restored duplicate service files",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit"
+      },
+      "SWR-062": {
+        "title": "Rename legacy sprint service files into descriptive owned modules",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && ! find src/services -type f -name '*sprint*' | grep ."
+      },
+      "SWR-063": {
+        "title": "Define canonical service public APIs after duplicate cleanup",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck:services"
+      },
+      "SWR-064": {
+        "title": "Re-run browser compatibility inventory after service de-duplication",
+        "status": "completed",
+        "validation": "cd swissknife && npm run browser:compat:inventory"
+      },
+      "SWR-065": {
+        "title": "Make browser libp2p the default in web-facing service consumers",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:browser-smoke"
+      },
+      "SWR-066": {
+        "title": "Enforce post-cleanup browser no-host-leakage gates",
+        "status": "completed",
+        "validation": "cd swissknife && npm run audit:web-bundle && npm run audit:browser-lockfile"
+      },
+      "SWR-067": {
+        "title": "Prove browser ZKP paths use real TS/WASM proof backends by default",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:browser-api-contracts"
+      },
+      "SWR-068": {
+        "title": "Add browser package-consumer regression for canonical service APIs",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:browser-entrypoints"
+      },
+      "SWR-069": {
+        "title": "Refresh release readiness after service duplicate cleanup",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness"
+      },
+      "SWR-070": {
+        "title": "Supervisor handoff for the reopened service/browser refactor phase",
+        "status": "completed",
+        "validation": "python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail"
+      },
+      "SWR-071": {
+        "title": "Make restored duplicate service files a failing audit gate",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit"
+      },
+      "SWR-072": {
+        "title": "Remove restored root service duplicates and retarget imports",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && test ! -e src/services/nlp-predicate-extractor.ts && test ! -e src/services/spacy-wasm-nlp.ts && test ! -e src/services/zkp-ucan-bridge.ts"
+      },
+      "SWR-073": {
+        "title": "Rename legacy sprint service files into descriptive module-owned files",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && ! find src/services -type f -name '*sprint*' | grep ."
+      },
+      "SWR-074": {
+        "title": "Canonicalize logic language and deontic NLP service ownership",
+        "status": "completed",
+        "validation": "cd swissknife && npm run typecheck:services && npm run services:audit"
+      },
+      "SWR-075": {
+        "title": "Reconcile web JavaScript libp2p runtime with canonical TypeScript services",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:browser-smoke"
+      },
+      "SWR-076": {
+        "title": "Add browser runtime package fixture for service de-duplication regressions",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:browser-entrypoints"
+      },
+      "SWR-077": {
+        "title": "Refresh browser inventory and no-host-leakage evidence after cleanup",
+        "status": "completed",
+        "validation": "cd swissknife && npm run browser:compat:inventory && npm run audit:web-bundle"
+      },
+      "SWR-078": {
+        "title": "Re-verify browser ZKP uses real TS/WASM paths after service cleanup",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:browser-api-contracts"
+      },
+      "SWR-079": {
+        "title": "Run release-readiness and merge-hygiene report for Phase 14",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness"
+      },
+      "SWR-080": {
+        "title": "Supervisor closeout for Phase 14 regression-proofing",
+        "status": "completed",
+        "validation": "python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail"
+      },
+      "SWR-081": {
+        "title": "Close the ipfs_datasets_py flat-to-hierarchical catalog gap",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/capture-hierarchical-mcp-tools-evidence.cjs"
+      },
+      "SWR-082": {
+        "title": "Add normalized category/name aliasing for datasets hierarchical dispatch",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/capture-hierarchical-mcp-tools-evidence.cjs && npm run evidence:mcp-glasses"
+      },
+      "SWR-083": {
+        "title": "Promote the hierarchical MCP evidence report into the release gate",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/capture-hierarchical-mcp-tools-evidence.cjs && node scripts/build-virtual-desktop-release-evidence.cjs && npm run release:readiness"
+      },
+      "SWR-084": {
+        "title": "Expand all-tools bindings from three generated app families to every intended virtual desktop app",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/capture-ipfs-mcp-all-tools-ledger.cjs && node scripts/build-all-tools-capability-matrix.cjs"
+      },
+      "SWR-085": {
+        "title": "Add end-to-end UI/UX smoke coverage for tool-backed virtual desktop apps",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:mcp && npm run evidence:mcp-glasses"
+      },
+      "SWR-086": {
+        "title": "Use the Meta glasses simulator for ORB/IDL handoff evidence",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:meta-glasses && npm run evidence:mcp-glasses"
+      },
+      "SWR-087": {
+        "title": "Preserve accelerate compatibility adapter readiness and PID evidence",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/capture-ipfs-accelerate-adapter-coverage.cjs && ss -ltnp | grep ':3003'"
+      },
+      "SWR-088": {
+        "title": "Supervisor closeout for exhaustive MCP hierarchy and app coverage",
+        "status": "completed",
+        "validation": "python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail"
+      },
+      "SWR-089": {
+        "title": "Remove restored duplicate service files and sprint-named service regressions",
+        "status": "completed",
+        "validation": "cd swissknife && find src/services -type f -printf '%f\\t%p\\n' | awk -F '\\t' '{count[$1]++; paths[$1]=paths[$1] \"\\n\" $2} END {for (name in count) if (count[name] > 1 && name !~ /^index\\./) print name paths[name]}' | tee /tmp/swr-089-duplicate-services.txt && test ! -s /tmp/swr-089-duplicate-services.txt && ! find src/services -maxdepth 2 -type f | grep -E '(^|/)cec-sprint[0-9]|(^|/)sprint[0-9]' && npm run services:audit"
+      },
+      "SWR-090": {
+        "title": "Make module ownership the single source of truth for service containment",
+        "status": "completed",
+        "validation": "cd swissknife && npm run audit:module-boundary && npm run services:audit"
+      },
+      "SWR-091": {
+        "title": "Lock browser package exports and default browser entrypoints",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:browser-compat && npm run build:web"
+      },
+      "SWR-092": {
+        "title": "Keep libp2p enabled by default in browser-safe runtime paths",
+        "status": "completed",
+        "validation": "cd swissknife && npm run evidence:libp2p-browser && npm run audit:bundle-host-leakage"
+      },
+      "SWR-093": {
+        "title": "Split host-only adapters from browser-safe service contracts",
+        "status": "completed",
+        "validation": "cd swissknife && npm run browser:compat:inventory && npm run audit:bundle-host-leakage && npm run typecheck:services"
+      },
+      "SWR-094": {
+        "title": "Verify real browser ZKP and WASM paths after containment cleanup",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:browser-compat && npm run test:fast -- test/mcp-plus-plus/wasm-prover-browser-purity.test.ts"
+      },
+      "SWR-095": {
+        "title": "Add a browser/service duplicate regression sentinel to release readiness",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness"
+      },
+      "SWR-096": {
+        "title": "Prove all tool-backed virtual desktop apps remain browser-compatible",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:mcp && npm run evidence:mcp-glasses && npm run audit:bundle-host-leakage"
+      },
+      "SWR-097": {
+        "title": "Keep Meta glasses and ORB/IDL evidence simulator-driven",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:meta-glasses && npm run evidence:mcp-glasses"
+      },
+      "SWR-098": {
+        "title": "Preserve ipfs_accelerate_py supervisor/adapter evidence without hiding browser constraints",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/capture-ipfs-accelerate-adapter-coverage.cjs && npm run evidence:mcp-glasses && npm run audit:bundle-host-leakage"
+      },
+      "SWR-099": {
+        "title": "Phase 16 supervisor closeout and merge-readiness report",
+        "status": "completed",
+        "validation": "python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail"
+      },
+      "SWR-100": {
+        "title": "Freeze the exhaustive app-to-backend capability contract",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/capture-ipfs-mcp-all-tools-ledger.cjs && node scripts/build-all-tools-capability-matrix.cjs && npm run test:e2e:mcp"
+      },
+      "SWR-101": {
+        "title": "Prove complete MCP and MCP++/libp2p catalog reachability",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/capture-mcp-live-probe-evidence.cjs && node scripts/capture-hierarchical-mcp-tools-evidence.cjs && npm run evidence:libp2p-browser"
+      },
+      "SWR-102": {
+        "title": "Generate exhaustive per-app UI/UX workflow scenarios",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:mcp && npm run evidence:mcp-glasses"
+      },
+      "SWR-103": {
+        "title": "Make the virtual desktop app matrix a release-blocking gate",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/build-virtual-desktop-release-evidence.cjs && npm run release:readiness"
+      },
+      "SWR-104": {
+        "title": "Define browser-safe agent-supervisor gateway capabilities",
+        "status": "completed",
+        "validation": "cd swissknife && npm run typecheck:services && npm run test:browser-compat && npm run audit:bundle-host-leakage"
+      },
+      "SWR-105": {
+        "title": "Build the Agent Supervisor virtual-desktop application",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && npm run test:e2e:mcp && npm run test:browser-compat"
+      },
+      "SWR-106": {
+        "title": "Add governed prompt steering for goals, subgoals, and tasks",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:fast -- test/mcp-plus-plus && npm run test:e2e:mcp"
+      },
+      "SWR-107": {
+        "title": "Verify the Supervisor Console against all three IPFS server families",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/capture-mcp-live-probe-evidence.cjs && npm run test:e2e:mcp && npm run evidence:mcp-glasses"
+      },
+      "SWR-108": {
+        "title": "Extend ORB/IDL contracts for the complete desktop and Supervisor Console",
+        "status": "completed",
+        "validation": "cd swissknife && npm run evidence:mcp-glasses && npm run typecheck:services"
+      },
+      "SWR-109": {
+        "title": "Run Meta glasses simulator modality and handoff workflows",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:meta-glasses && npm run evidence:mcp-glasses"
+      },
+      "SWR-110": {
+        "title": "Gate complete desktop, all-tools, and simulator evidence in release readiness",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness"
+      },
+      "SWR-111": {
+        "title": "Phase 17 supervisor closeout and operational handoff",
+        "status": "completed",
+        "validation": "python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail"
+      },
+      "SWR-112": {
+        "title": "Repair the virtual-desktop release evidence generator and canonical output",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/build-virtual-desktop-release-evidence.cjs && node -e \"const e=require('./test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json'); if (!['go','no_go'].includes(e.decision)) process.exit(1); console.log(e.decision)\""
+      },
+      "SWR-113": {
+        "title": "Reconcile the canonical app contract with per-app behavior evidence",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:mcp && node scripts/build-virtual-desktop-release-evidence.cjs"
+      },
+      "SWR-114": {
+        "title": "Materialize the Agent Supervisor Console as a canonical desktop app module",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && npm run test:e2e:mcp && npm run test:browser-compat"
+      },
+      "SWR-115": {
+        "title": "Normalize Meta glasses simulator modality evidence and artifact names",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:meta-glasses && npm run evidence:mcp-glasses && node scripts/build-virtual-desktop-release-evidence.cjs"
+      },
+      "SWR-116": {
+        "title": "Run the exhaustive behavior and evidence release gate from clean outputs",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness"
+      },
+      "SWR-117": {
+        "title": "Phase 18 supervisor closeout and evidence-contract handoff",
+        "status": "completed",
+        "validation": "python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail"
+      },
+      "SWR-118": {
+        "title": "Inventory and classify every restored duplicate service implementation",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/audit-source-modules.mjs --json docs/service-boundary-audit.json && node -e 'process.exit((require(\"./docs/service-boundary-audit.json\").serviceDuplicateBasenames ?? 0) > 0 ? 0 : 1)'"
+      },
+      "SWR-119": {
+        "title": "Remove restored duplicate service copies and retarget imports to canonical modules",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck:services && npm run test:fast -- test/architecture/source-module-boundaries.test.js"
+      },
+      "SWR-120": {
+        "title": "Make service duplicate prevention content-aware and merge-resistant",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && node -e 'const fs=require(\"fs\"); const source=fs.readFileSync(\"scripts/release-readiness-gate.mjs\", \"utf8\"); if (!source.includes(\"services:audit\")) process.exit(1);'"
+      },
+      "SWR-121": {
+        "title": "Rebuild browser import closure and default libp2p evidence after duplicate removal",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && npm run test:browser-compat && npm run evidence:libp2p-browser && npm run audit:bundle-host-leakage"
+      },
+      "SWR-122": {
+        "title": "Re-run canonical desktop and release evidence from the duplicate-free tree",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:mcp && npm run test:e2e:meta-glasses && npm run evidence:mcp-glasses && npm run release:readiness"
+      },
+      "SWR-123": {
+        "title": "Phase 19 duplicate-remediation and browser closure handoff",
+        "status": "completed",
+        "validation": "python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail"
+      },
+      "SWR-124": {
+        "title": "Repair active source and evidence merge conflicts before further refactoring",
+        "status": "completed",
+        "validation": "cd swissknife && ! rg -n '^(<<<<<<<|=======|>>>>>>>)' src/module-ownership.json scripts/release-readiness-gate.mjs scripts/build-virtual-desktop-release-evidence.cjs scripts/capture-hierarchical-mcp-tools-evidence.cjs scripts/capture-mcp-live-probe-evidence.cjs test/e2e/fixtures/libp2p-browser-harness/harness.ts && node -e '[\"src/module-ownership.json\",\"docs/release-readiness-report.json\",\"docs/release-evidence-freshness.json\",\"docs/service-boundary-audit.json\"].forEach(p=>JSON.parse(require(\"fs\").readFileSync(p,\"utf8\")))'"
+      },
+      "SWR-125": {
+        "title": "Move remaining root service implementations behind owned service-family entrypoints",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck:services && npm run test:fast -- test/architecture/source-module-boundaries.test.js"
+      },
+      "SWR-126": {
+        "title": "Make module ownership an executable dependency and public-API contract",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck:services && npm run test:fast -- test/architecture/source-module-boundaries.test.js"
+      },
+      "SWR-127": {
+        "title": "Close browser app capability boundaries and eliminate unknown executable runtime paths",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && npm run test:browser-compat && npm run audit:bundle-host-leakage"
+      },
+      "SWR-128": {
+        "title": "Prove default-enabled libp2p interoperability in real browser contexts",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:libp2p-browser && npm run evidence:libp2p-browser && npm run audit:bundle-host-leakage"
+      },
+      "SWR-129": {
+        "title": "Make browser proof and ZKP entrypoints real TypeScript or WebAssembly execution paths",
+        "status": "completed",
+        "validation": "cd swissknife && npm run typecheck:browser && npm run test:browser-compat && npm run audit:bundle-host-leakage"
+      },
+      "SWR-130": {
+        "title": "Exercise every browser app through its owned capability and runtime state matrix",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && npm run test:e2e:mcp && npm run test:browser-compat && npm run test:e2e:libp2p-browser"
+      },
+      "SWR-131": {
+        "title": "Rebuild all release evidence from a conflict-free source tree and require freshness coherence",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run evidence:libp2p-browser && npm run audit:bundle-host-leakage && npm run release:readiness"
+      },
+      "SWR-132": {
+        "title": "Enforce a non-destructive shared-checkout supervisor contract",
+        "status": "completed",
+        "validation": "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS=0 python -m ipfs_accelerate_py.agent_supervisor.todo_daemon.implementation_supervisor --once --todo-path implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md --state-dir tmp/swissknife_refactor_supervisor/state --task-prefix '## SWR-' --state-prefix swissknife_refactor --no-implement --no-ephemeral-worktree --no-worktree-reconciliation --no-retry-budget-guardrail --no-dependency-guardrail --no-reconciliation-guardrail"
+      },
+      "SWR-133": {
+        "title": "Phase 20 refactor, browser-runtime, and supervisor handoff",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness"
+      },
+      "SWR-134": {
+        "title": "Reconcile board completion claims with the current SwissKnife checkout",
+        "status": "completed",
+        "validation": "cd swissknife && node -e '[\"src/module-ownership.json\",\"docs/release-readiness-report.json\",\"docs/release-evidence-freshness.json\",\"docs/service-boundary-audit.json\"].forEach(p=>JSON.parse(require(\"fs\").readFileSync(p,\"utf8\")))'"
+      },
+      "SWR-135": {
+        "title": "Establish a non-destructive single-writer lease for every SwissKnife supervisor lane",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/swissknife-checkout-lease.mjs --check && node -e 'process.exit(require(\"fs\").existsSync(\"docs/supervisor-lane-inventory.json\") ? 0 : 1)'"
+      },
+      "SWR-136": {
+        "title": "Recover and commit a conflict-free Phase 20 baseline with source-to-evidence provenance",
+        "status": "completed",
+        "validation": "cd swissknife && ! rg -n '^(<<<<<<<|=======|>>>>>>>)' src scripts test docs -g '!archived/**' && npm run services:audit && npm run release:readiness"
+      },
+      "SWR-137": {
+        "title": "Revalidate service containment and browser import closure from the recovered baseline",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck && npm run build:web && npm run test:browser-compat && npm run audit:bundle-host-leakage"
+      },
+      "SWR-138": {
+        "title": "Exercise default browser libp2p interoperability across Chromium, Firefox, and WebKit",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:e2e:libp2p-browser && npm run evidence:libp2p-browser && npm run audit:bundle-host-leakage"
+      },
+      "SWR-139": {
+        "title": "Prove browser theorem and ZKP execution across supported engines without simulated defaults",
+        "status": "completed",
+        "validation": "cd swissknife && npm run typecheck:browser && npm run test:browser-compat && npm run audit:bundle-host-leakage"
+      },
+      "SWR-140": {
+        "title": "Verify all browser application states with offline and remote-capability isolation",
+        "status": "completed",
+        "validation": "cd swissknife && npm run build:web && npm run test:browser-compat && npm run test:e2e:mcp"
+      },
+      "SWR-141": {
+        "title": "Produce a hermetic clean-checkout release reproduction and provenance attestation",
+        "status": "completed",
+        "validation": "cd swissknife && npm ci && npm run release:readiness"
+      },
+      "SWR-142": {
+        "title": "Phase 21 recovery and reproducibility handoff",
+        "status": "completed",
+        "validation": "cd swissknife && npm run release:readiness"
+      },
+      "SWR-143": {
+        "title": "Inventory restored service duplicates by basename, normalized content, and behavior",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck:services"
+      },
+      "SWR-144": {
+        "title": "Canonicalize restored service implementations and retarget every importer",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck:services && npm run test:fast -- test/architecture/source-module-boundaries.test.js"
+      },
+      "SWR-145": {
+        "title": "Enforce merge-resistant service ownership and browser-safe public entrypoints",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck:services && npm run test:browser-compat && npm run audit:bundle-host-leakage"
+      },
+      "SWR-146": {
+        "title": "Pin a portable browser-validation Node toolchain for supervisor lanes",
+        "status": "completed",
+        "validation": "cd swissknife && node scripts/verify-browser-toolchain.mjs && npm run build:web && npm run test:browser-compat"
+      },
+      "SWR-147": {
+        "title": "Resolve implementation retry-budget failure for SWR-143",
+        "status": "completed",
+        "validation": "test -f tmp/swissknife_refactor_supervisor/discovery/2026-07-14-swr-147-swr-143-implementation-retry-budget.md"
+      },
+      "SWR-148": {
+        "title": "Resolve merge retry-budget failure for SWR-146",
+        "status": "completed",
+        "validation": "test -f tmp/swissknife_refactor_supervisor/discovery/2026-07-14-swr-148-swr-146-merge-retry-budget.md"
+      },
+      "SWR-149": {
+        "title": "Resolve validation retry-budget failure for SWR-144",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck:services && npm run test:fast -- test/architecture/source-module-boundaries.test.js"
+      },
+      "SWR-150": {
+        "title": "Resolve merge retry-budget failure for SWR-137",
+        "status": "completed",
+        "validation": "test -f /home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/tmp/swissknife_refactor_supervisor/discovery/2026-07-14-swr-150-swr-137-merge-retry-budget.md"
+      },
+      "SWR-153": {
+        "title": "Reconcile advertised datasets MCP capabilities with real callable handlers",
+        "status": "completed",
+        "validation": "cd external/ipfs_datasets && pytest -q tests/unit/mcp_server/test_hierarchical_tool_manager.py; cd swissknife && npm run evidence:mcp-glasses && node -e \"const x=require('./test-results/virtual-desktop-ipfs-mcp-orb/all-server-tool-catalog.json'); if (x.decision !== 'go') throw new Error(x.blockers.join(' | '));\""
+      },
+      "SWR-154": {
+        "title": "Make clean-checkout compatibility-adapter cleanup ownership-safe",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:fast -- test/architecture/release-reproduction-adapter-lifecycle.test.js && npm run release:readiness"
+      },
+      "SWR-160": {
+        "title": "Refactor the SVD-131 cold-start release orchestration into stable ownership boundaries",
+        "status": "completed",
+        "validation": "cd swissknife && npm run test:run -- test/architecture/release-readiness-hermetic.test.ts && npm run services:audit && npm run typecheck:services && npm run release:readiness"
+      },
+      "SWR-161": {
+        "title": "Extend duplicate, import-boundary, and browser-host audits for the post-SVD-131 release surface",
+        "status": "completed",
+        "validation": "cd swissknife && npm run services:audit && npm run typecheck:services && npm run test:fast -- test/architecture/source-module-boundaries.test.js && npm run test:browser-compat && npm run audit:bundle-host-leakage"
+      },
+      "SWR-162": {
+        "title": "Reconcile validated refactor-lane output into SwissKnife main without replaying stale task attempts",
+        "status": "ready",
+        "validation": "cd swissknife && git diff --check && npm run release:readiness && node -e 'const report=require(\"./docs/release-readiness-report.json\"); if(report.summary?.releaseDecision !== \"GO\" || report.summary?.failed !== 0) process.exit(1)'"
+      },
+      "SWR-163": {
+        "title": "Resolve validation retry-budget failure for SWR-160",
+        "status": "completed",
+        "validation": "`cd swissknife && npm run test:run -- test/architecture/release-readiness-hermetic.test.ts && npm run services:audit && npm run typecheck:services && npm run release:readiness`."
+      }
+    }
+  },
+  "integration": {
+    "base_sha": "bf8649a1870aa6647015db5cf2e496ede45c408f",
+    "integrated_commit_count": 0,
+    "integrated_commits": [],
+    "candidate_ref_count": 12,
+    "preserved_already_integrated_refs": [
+      {
+        "ref": "implementation/swr-160-attempt-1-1784474746-submodule-swissknife",
+        "sha": "add6ea7a622b551f2266272f13dc9926608d98e8",
+        "committedAt": "2026-07-19 08:02:27 -0700",
+        "subject": "Merge remote-tracking branch 'origin/main'",
+        "category": "attempt",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      },
+      {
+        "ref": "implementation/swr-160-attempt-1-1784474944-submodule-swissknife",
+        "sha": "add6ea7a622b551f2266272f13dc9926608d98e8",
+        "committedAt": "2026-07-19 08:02:27 -0700",
+        "subject": "Merge remote-tracking branch 'origin/main'",
+        "category": "attempt",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      },
+      {
+        "ref": "origin/copilot/auto-heal-failed-workflows",
+        "sha": "b622eedf148f97ca838e9ab694585ff5a1214a70",
+        "committedAt": "2025-10-30 00:43:55 +0000",
+        "subject": "Add comprehensive security audit summary - all vulnerabilities fixed",
+        "category": "attempt",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      },
+      {
+        "ref": "origin/implementation/mgw-572-attempt-3-1783506404-submodule-swissknife",
+        "sha": "db63a68d338eaae27786887035a5b50a9176d353",
+        "committedAt": "2026-07-08 10:28:42 +0000",
+        "subject": "MGW-572: Close objective gap: Interoperate swissknife with external/ipfs_kit",
+        "category": "attempt",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      },
+      {
+        "ref": "origin/recovery/restore-snapshot-only-20260708",
+        "sha": "cbd1a155b40782e6cef6b138b9866982e8f703c5",
+        "committedAt": "2026-07-08 14:02:19 -0700",
+        "subject": "recovery: restore snapshot-only files from 2026-07-08 snapshot",
+        "category": "recovery",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      }
+    ],
+    "rejected_stale_or_recovery_branches": [
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-005805",
+        "sha": "2395f5372af667781be68e1f2e73dcd15bcfe44c",
+        "committedAt": "2025-10-30 00:58:05 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-005827",
+        "sha": "d0e6ea664e2801da8449b7ee728d2634ee1d16a1",
+        "committedAt": "2025-10-30 00:58:27 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-022435",
+        "sha": "06e7d4d394139fcb144045a485dbdf0763ab76ae",
+        "committedAt": "2025-10-30 02:24:35 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-022557",
+        "sha": "4fae61814a5f27050abc762c4a5a21e211fc0e9d",
+        "committedAt": "2025-10-30 02:25:57 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-035616",
+        "sha": "267d44e3c8eed0939194baf3eb3513cc33ff3f6e",
+        "committedAt": "2025-10-30 03:56:16 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-035653",
+        "sha": "b86cdf5ad5f823396093cce593646a1b42513b0b",
+        "committedAt": "2025-10-30 03:56:53 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/recovery/snapshot-20260708-1817",
+        "sha": "87290f3645d823767a42104a5e8d63fb36779ed9",
+        "committedAt": "2026-07-08 13:54:58 -0700",
+        "subject": "recovery: restore snapshot state from 2026-07-08 18:17",
+        "category": "recovery",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "recovery branch is preserved for audit/recovery but is not accepted as release source"
+      }
+    ],
+    "ref_dispositions": [
+      {
+        "ref": "implementation/swr-160-attempt-1-1784474746-submodule-swissknife",
+        "sha": "add6ea7a622b551f2266272f13dc9926608d98e8",
+        "committedAt": "2026-07-19 08:02:27 -0700",
+        "subject": "Merge remote-tracking branch 'origin/main'",
+        "category": "attempt",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      },
+      {
+        "ref": "implementation/swr-160-attempt-1-1784474944-submodule-swissknife",
+        "sha": "add6ea7a622b551f2266272f13dc9926608d98e8",
+        "committedAt": "2026-07-19 08:02:27 -0700",
+        "subject": "Merge remote-tracking branch 'origin/main'",
+        "category": "attempt",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-005805",
+        "sha": "2395f5372af667781be68e1f2e73dcd15bcfe44c",
+        "committedAt": "2025-10-30 00:58:05 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-005827",
+        "sha": "d0e6ea664e2801da8449b7ee728d2634ee1d16a1",
+        "committedAt": "2025-10-30 00:58:27 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-022435",
+        "sha": "06e7d4d394139fcb144045a485dbdf0763ab76ae",
+        "committedAt": "2025-10-30 02:24:35 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-022557",
+        "sha": "4fae61814a5f27050abc762c4a5a21e211fc0e9d",
+        "committedAt": "2025-10-30 02:25:57 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-035616",
+        "sha": "267d44e3c8eed0939194baf3eb3513cc33ff3f6e",
+        "committedAt": "2025-10-30 03:56:16 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/auto-heal/swissknife-ci-20251030-035653",
+        "sha": "b86cdf5ad5f823396093cce593646a1b42513b0b",
+        "committedAt": "2025-10-30 03:56:53 +0000",
+        "subject": "Auto-heal: Track workflow failure for SwissKnife CI",
+        "category": "diagnostic",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "diagnostic branch is preserved for audit/recovery but is not accepted as release source"
+      },
+      {
+        "ref": "origin/copilot/auto-heal-failed-workflows",
+        "sha": "b622eedf148f97ca838e9ab694585ff5a1214a70",
+        "committedAt": "2025-10-30 00:43:55 +0000",
+        "subject": "Add comprehensive security audit summary - all vulnerabilities fixed",
+        "category": "attempt",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      },
+      {
+        "ref": "origin/implementation/mgw-572-attempt-3-1783506404-submodule-swissknife",
+        "sha": "db63a68d338eaae27786887035a5b50a9176d353",
+        "committedAt": "2026-07-08 10:28:42 +0000",
+        "subject": "MGW-572: Close objective gap: Interoperate swissknife with external/ipfs_kit",
+        "category": "attempt",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      },
+      {
+        "ref": "origin/recovery/restore-snapshot-only-20260708",
+        "sha": "cbd1a155b40782e6cef6b138b9866982e8f703c5",
+        "committedAt": "2026-07-08 14:02:19 -0700",
+        "subject": "recovery: restore snapshot-only files from 2026-07-08 snapshot",
+        "category": "recovery",
+        "relationship_to_head": "ancestor_of_integration_base",
+        "decision": "preserved_already_integrated",
+        "reason": "tip is already reachable from the candidate; no branch replay or merge was needed"
+      },
+      {
+        "ref": "origin/recovery/snapshot-20260708-1817",
+        "sha": "87290f3645d823767a42104a5e8d63fb36779ed9",
+        "committedAt": "2026-07-08 13:54:58 -0700",
+        "subject": "recovery: restore snapshot state from 2026-07-08 18:17",
+        "category": "recovery",
+        "relationship_to_head": "diverged_from_candidate_head",
+        "decision": "rejected_preserved",
+        "reason": "recovery branch is preserved for audit/recovery but is not accepted as release source"
+      }
+    ],
+    "policy": "Only refs whose commits are already reachable from the validated candidate are accepted; stale attempt, diagnostic, rescue, and recovery refs are preserved but not merged wholesale."
+  }
+}

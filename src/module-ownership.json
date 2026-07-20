@@ -120,8 +120,50 @@
     ],
     "browserHostOnlyPackages": [
       "node-gyp-build",
+      "pyodide",
       "python-shell"
     ],
+    "releaseReadinessSurface": {
+      "manifestPath": "scripts/lib/release-readiness-evidence-producers.mjs",
+      "producerExport": "RELEASE_EVIDENCE_PRODUCER_GATES",
+      "entrypointOwnershipExport": "RELEASE_READINESS_ENTRYPOINT_OWNERSHIP",
+      "owner": "release-readiness",
+      "requiredEntrypoints": [
+        "scripts/lib/release-readiness-evidence-producers.mjs",
+        "scripts/release-readiness-gate.mjs",
+        "scripts/lib/release-reproduction-attestation.mjs",
+        "scripts/capture-refactor-main-reconciliation.cjs",
+        "scripts/lib/pick-free-port.mjs",
+        "scripts/run-with-owned-port.mjs",
+        "build-tools/configs/playwright.live-behavior-proof.config.ts",
+        "build-tools/configs/playwright.live-gateway.config.ts",
+        "test/architecture/release-readiness-hermetic.test.ts"
+      ],
+      "ownedPortHelper": "scripts/lib/pick-free-port.mjs",
+      "ownedPortWrapper": "scripts/run-with-owned-port.mjs",
+      "releaseGate": "scripts/release-readiness-gate.mjs",
+      "publicReleaseApiImporters": [
+        "scripts/release-readiness-gate.mjs",
+        "test/architecture/release-readiness-hermetic.test.ts"
+      ],
+      "ownedPortHelperImporters": [
+        "scripts/run-with-owned-port.mjs",
+        "test/architecture/release-readiness-hermetic.test.ts"
+      ],
+      "publicExports": [
+        "RELEASE_EVIDENCE_PRODUCER_GATES",
+        "RELEASE_READINESS_ENTRYPOINT_OWNERSHIP",
+        "validateReleaseReadinessManifest",
+        "createReleaseEvidenceProducerGateEntries",
+        "runReleaseEvidenceProducers",
+        "producerEvidenceAbsolutePaths",
+        "producerEvidenceDirectories",
+        "releaseReadinessEvidenceAbsolutePaths"
+      ],
+      "ownedPortExports": [
+        "findOwnedPort"
+      ]
+    },
     "documentedServiceDeepImports": [],
     "servicePublicApiMigrations": [
       {

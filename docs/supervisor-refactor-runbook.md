@@ -5,6 +5,98 @@ This runbook defines the safe supervisor workflow for
 It is scoped to `SWR-*` refactor tasks and the dedicated state directory
 `tmp/swissknife_refactor_supervisor/state`.
 
+## Phase 21 Handoff Scope
+
+SWR-142 is a recovery and reproducibility handoff. It does not override the
+source tree, parent gitlink, task board, lease owner, or generated release
+evidence. If those inputs disagree, the final signoff must say `NO_GO` and
+must leave SWR-142 uncompleted until the supervising daemon or operator can
+commit and reconcile the exact source revision being released.
+
+Treat these files as the Phase 21 handoff source set:
+
+| Evidence | Path |
+| --- | --- |
+| Task board | `implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md` |
+| Final signoff | `swissknife/docs/refactor-final-signoff.md` |
+| Supervisor runbook | `swissknife/docs/supervisor-refactor-runbook.md` |
+| Release readiness report | `swissknife/docs/release-readiness-report.json` |
+| Release readiness summary | `swissknife/docs/release-readiness-report.md` |
+| Reproduction attestation | `swissknife/docs/release-reproduction-attestation.json` |
+| Reproduction attestation summary | `swissknife/docs/release-reproduction-attestation.md` |
+| Release freshness | `swissknife/docs/release-evidence-freshness.json` |
+| Service audit | `swissknife/docs/service-boundary-audit.json` |
+| Restored duplicate inventory | `swissknife/docs/restored-service-duplicate-inventory.json` |
+| Browser libp2p evidence | `swissknife/docs/browser-libp2p-evidence.md` |
+| Browser libp2p freshness receipt | `swissknife/docs/browser-libp2p-evidence.fingerprint.json` |
+| Browser proof contract | `swissknife/docs/browser-proof-runtime-evidence.json` |
+| Browser proof observed run | `swissknife/test-results/browser-proof-runtime/observed-three-engine-runtime.json` |
+| Checkout lease owner | `$SUPERPROJECT_COMMON_GIT_DIR/swissknife-checkout-lease-v1/owner.json` |
+| Integration supervisor state | `tmp/swissknife_refactor_integration_supervisor/state/swissknife_refactor_integration_supervisor_status.json` |
+| Integration task state | `tmp/swissknife_refactor_integration_supervisor/state/swissknife_refactor_integration_task_state.json` |
+| Canonical refactor supervisor state | `tmp/swissknife_refactor_supervisor/state/swissknife_refactor_supervisor_status.json` |
+| All-tools supervisor state | `tmp/swissknife_all_tools_supervisor/state/swissknife_all_tools_supervisor_status.json` |
+
+The Phase 21 handoff is `GO` only when all of these checks are true:
+
+- SWR-135 through SWR-141 are `completed` in the SWR board and SWR-142 is not
+  pre-marked `completed`.
+- `git -C swissknife rev-parse HEAD` equals the parent `swissknife` gitlink
+  recorded by `git ls-tree HEAD swissknife`.
+- `git -C swissknife status --porcelain=v1 --untracked-files=all` is empty
+  before release evidence generation.
+- `node swissknife/scripts/swissknife-checkout-lease.mjs --status --json`
+  reports exactly one active lease owner and any active SWR implementation
+  writer is that lease owner.
+- `docs/service-boundary-audit.json` and
+  `docs/restored-service-duplicate-inventory.json` report zero unapproved
+  duplicate basenames, zero unapproved duplicate content hashes, zero
+  unclassified normalized-content collisions, zero unclassified behavioral
+  equivalence groups, zero unresolved merge markers, and zero ownership
+  conflicts.
+- Browser libp2p evidence is fresh for Chromium, Firefox, and WebKit through
+  `docs/browser-libp2p-evidence.md` plus
+  `docs/browser-libp2p-evidence.fingerprint.json`; raw
+  `test-results/libp2p-browser/swr-138-<engine>.json` files may be present
+  only as transient local or CI artifacts and are not a substitute for the
+  source-controlled fingerprint.
+- Browser proof evidence reports Chromium, Firefox, and WebKit passing with
+  TypeScript theorem execution and the browser Schnorr WASM ZKP backend in
+  `test-results/browser-proof-runtime/observed-three-engine-runtime.json`.
+- `npm run release:readiness` writes `releaseDecision: "GO"` and the
+  SWR-141 reproduction attestation writes `release_decision: "GO"` with a
+  passed clean detached checkout reproduction.
+
+Current SWR-142 attempt-1 observation on 2026-07-19:
+
+| Check | Observed value |
+| --- | --- |
+| Parent repository commit | `af233aaffc0ec71a157ceb6a11c8b914c37e7dc0` |
+| Parent gitlink | `bf8649a1870aa6647015db5cf2e496ede45c408f` |
+| Nested SwissKnife HEAD | `bf8649a1870aa6647015db5cf2e496ede45c408f` |
+| Parent gitlink matches nested HEAD | yes |
+| Nested checkout status | dirty before release generation |
+| Active integration supervisor | PID `759918`, daemon PID `1754171`, state prefix `swissknife_refactor_integration`, task `SWR-142` |
+| Checkout lease owner | `all-tools`, PID `2436243`, board `implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md` |
+| Active SWR writer covered by lease | no |
+| Service duplicate basenames | 0 |
+| Unapproved duplicate basenames | 0 |
+| Duplicate content hashes | 1 approved |
+| Normalized content collisions | 1 classified |
+| Behavioral equivalence groups | 0 |
+| SwissKnife unmerged index entries | 0 |
+| Unresolved merge markers | 0 |
+| Ownership conflicts | 0 |
+| Browser libp2p receipt | `libp2p-browser-playwright` freshness `fresh`, source fingerprint `4c2088af81490904af0404cee1c968b583f068fc2917951e53fdbc9dbdaf7483` |
+| Browser proof receipt | Chromium, Firefox, and WebKit passed; 81 assertions total, 27 per engine |
+| Hermetic release | `NO_GO`; clean checkout reproduction failed and local pre-run status was dirty |
+
+Because the active SWR writer is not the checkout lease owner and the nested
+checkout has uncommitted changes, the current Phase 21 signoff must remain
+`NO_GO` even when the executable release gates themselves pass. Do not edit
+SWR-142 to `completed` until the board, source tree, parent gitlink, lease
+owner, and generated evidence all agree in a clean run.
+
 ## Phase 17 Handoff Scope
 
 SWR-111 is the Phase 17 supervisor closeout for exhaustive virtual desktop

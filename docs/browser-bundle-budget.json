@@ -10,11 +10,11 @@
     "libp2pBrotliBytes": 160000,
     "libp2pChunkCount": 8
   },
-  "fileCount": 65,
+  "fileCount": 51,
   "totals": {
-    "rawBytes": 2705490,
-    "gzipBytes": 630850,
-    "brotliBytes": 528217
+    "rawBytes": 2460336,
+    "gzipBytes": 578280,
+    "brotliBytes": 482949
   },
   "files": [
     {
@@ -76,12 +76,6 @@
       "rawBytes": 52923,
       "gzipBytes": 11843,
       "brotliBytes": 10036
-    },
-    {
-      "file": "dist/css/apps.css",
-      "rawBytes": 51064,
-      "gzipBytes": 7428,
-      "brotliBytes": 6385
     },
     {
       "file": "dist/assets/training-manager-Vjh42uH5.js",
@@ -240,18 +234,6 @@
       "brotliBytes": 5170
     },
     {
-      "file": "dist/css/aero-enhanced.css",
-      "rawBytes": 27414,
-      "gzipBytes": 4822,
-      "brotliBytes": 4146
-    },
-    {
-      "file": "dist/css/strudel.css",
-      "rawBytes": 23041,
-      "gzipBytes": 4483,
-      "brotliBytes": 3792
-    },
-    {
       "file": "dist/assets/cinema-DzujNh54.js",
       "rawBytes": 21451,
       "gzipBytes": 5153,
@@ -262,12 +244,6 @@
       "rawBytes": 20406,
       "gzipBytes": 3708,
       "brotliBytes": 2986
-    },
-    {
-      "file": "dist/workers/gpu-worker.js",
-      "rawBytes": 20198,
-      "gzipBytes": 5050,
-      "brotliBytes": 4455
     },
     {
       "file": "dist/assets/p2p-chat-unified-CXzE0BPr.js",
@@ -282,40 +258,10 @@
       "brotliBytes": 3382
     },
     {
-      "file": "dist/workers/ai-worker.js",
-      "rawBytes": 18964,
-      "gzipBytes": 5496,
-      "brotliBytes": 4841
-    },
-    {
       "file": "dist/assets/todo-CYdVt4P9.js",
       "rawBytes": 18502,
       "gzipBytes": 4290,
       "brotliBytes": 3589
-    },
-    {
-      "file": "dist/workers/file-worker.js",
-      "rawBytes": 18317,
-      "gzipBytes": 5059,
-      "brotliBytes": 4422
-    },
-    {
-      "file": "dist/workers/compute-worker.js",
-      "rawBytes": 17270,
-      "gzipBytes": 4598,
-      "brotliBytes": 3996
-    },
-    {
-      "file": "dist/workers/audio-worker.js",
-      "rawBytes": 16312,
-      "gzipBytes": 3967,
-      "brotliBytes": 3461
-    },
-    {
-      "file": "dist/css/desktop.css",
-      "rawBytes": 15304,
-      "gzipBytes": 3217,
-      "brotliBytes": 2723
     },
     {
       "file": "dist/assets/music-studio--P-Otwmv.js",
@@ -328,24 +274,6 @@
       "rawBytes": 13072,
       "gzipBytes": 3723,
       "brotliBytes": 3078
-    },
-    {
-      "file": "dist/css/windows.css",
-      "rawBytes": 12860,
-      "gzipBytes": 2692,
-      "brotliBytes": 2262
-    },
-    {
-      "file": "dist/css/strudel-grandma.css",
-      "rawBytes": 12328,
-      "gzipBytes": 2844,
-      "brotliBytes": 2361
-    },
-    {
-      "file": "dist/css/terminal.css",
-      "rawBytes": 10941,
-      "gzipBytes": 2397,
-      "brotliBytes": 2022
     },
     {
       "file": "dist/assets/navi-icon--4zhKvv7.png",
@@ -378,12 +306,6 @@
       "brotliBytes": 621
     },
     {
-      "file": "dist/cli-simple.js",
-      "rawBytes": 1136,
-      "gzipBytes": 492,
-      "brotliBytes": 393
-    },
-    {
       "file": "dist/manifest.webmanifest",
       "rawBytes": 786,
       "gzipBytes": 445,
@@ -397,12 +319,6 @@
     },
     {
       "file": "dist/assets/favicon-c6ccp5z9.ico",
-      "rawBytes": 5,
-      "gzipBytes": 25,
-      "brotliBytes": 9
-    },
-    {
-      "file": "dist/favicon.ico",
       "rawBytes": 5,
       "gzipBytes": 25,
       "brotliBytes": 9
@@ -2331,19 +2247,19 @@
   "budgetResults": [
     {
       "name": "totalRawBytes",
-      "actual": 2705490,
+      "actual": 2460336,
       "budget": 2750000,
       "pass": true
     },
     {
       "name": "totalGzipBytes",
-      "actual": 630850,
+      "actual": 578280,
       "budget": 650000,
       "pass": true
     },
     {
       "name": "totalBrotliBytes",
-      "actual": 528217,
+      "actual": 482949,
       "budget": 560000,
       "pass": true
     },

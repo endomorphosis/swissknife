@@ -32,6 +32,45 @@ const DEFAULT_SERVICE_MODULE_PUBLIC_API_MARKDOWN =
   'docs/service-module-public-api.md';
 const DEFAULT_REVALIDATION_TASK_ID = 'SWR-137';
 const DEFAULT_RECOVERY_PROVENANCE_PATH = 'docs/phase-21-recovery-provenance.json';
+const DEFAULT_RELEASE_READINESS_SURFACE = {
+  manifestPath: 'scripts/lib/release-readiness-evidence-producers.mjs',
+  producerExport: 'RELEASE_EVIDENCE_PRODUCER_GATES',
+  entrypointOwnershipExport: 'RELEASE_READINESS_ENTRYPOINT_OWNERSHIP',
+  owner: 'release-readiness',
+  requiredEntrypoints: [
+    'scripts/lib/release-readiness-evidence-producers.mjs',
+    'scripts/release-readiness-gate.mjs',
+    'scripts/lib/release-reproduction-attestation.mjs',
+    'scripts/capture-refactor-main-reconciliation.cjs',
+    'scripts/lib/pick-free-port.mjs',
+    'scripts/run-with-owned-port.mjs',
+    'build-tools/configs/playwright.live-behavior-proof.config.ts',
+    'build-tools/configs/playwright.live-gateway.config.ts',
+    'test/architecture/release-readiness-hermetic.test.ts',
+  ],
+  ownedPortHelper: 'scripts/lib/pick-free-port.mjs',
+  ownedPortWrapper: 'scripts/run-with-owned-port.mjs',
+  releaseGate: 'scripts/release-readiness-gate.mjs',
+  publicReleaseApiImporters: [
+    'scripts/release-readiness-gate.mjs',
+    'test/architecture/release-readiness-hermetic.test.ts',
+  ],
+  ownedPortHelperImporters: [
+    'scripts/run-with-owned-port.mjs',
+    'test/architecture/release-readiness-hermetic.test.ts',
+  ],
+  publicExports: [
+    'RELEASE_EVIDENCE_PRODUCER_GATES',
+    'RELEASE_READINESS_ENTRYPOINT_OWNERSHIP',
+    'validateReleaseReadinessManifest',
+    'createReleaseEvidenceProducerGateEntries',
+    'runReleaseEvidenceProducers',
+    'producerEvidenceAbsolutePaths',
+    'producerEvidenceDirectories',
+    'releaseReadinessEvidenceAbsolutePaths',
+  ],
+  ownedPortExports: ['findOwnedPort'],
+};
 const HOST_ONLY_BUILTINS = new Set([
   'assert',
   'async_hooks',
@@ -357,6 +396,7 @@ function globToRegExp(glob) {
 function buildManifestIndex(manifest) {
   const modules = manifest.modules ?? {};
   const restoredServiceDuplicatePolicy = normalizeRestoredServiceDuplicatePolicy(manifest);
+  const releaseReadinessSurface = normalizeReleaseReadinessSurface(manifest);
   const rootFileOwners = new Map(Object.entries(manifest.audit?.rootFileOwners ?? {}));
   const serviceRootFileOwners = new Map(Object.entries(manifest.audit?.serviceRootFileOwners ?? {}));
   const ignoredRootFiles = new Set(manifest.audit?.ignoredRootFiles ?? []);
@@ -447,9 +487,33 @@ function buildManifestIndex(manifest) {
     modules,
     documentedServiceDeepImports,
     pathOwners,
+    releaseReadinessSurface,
     restoredServiceDuplicatePolicy,
     rootFileOwners,
     serviceRootFileOwners,
+  };
+}
+
+function normalizeReleaseReadinessSurface(manifest) {
+  const config = manifest.audit?.releaseReadinessSurface;
+  if (!config) return null;
+  const merged = {
+    ...DEFAULT_RELEASE_READINESS_SURFACE,
+    ...config,
+  };
+  return {
+    manifestPath: merged.manifestPath,
+    producerExport: merged.producerExport,
+    entrypointOwnershipExport: merged.entrypointOwnershipExport,
+    owner: merged.owner,
+    requiredEntrypoints: [...new Set(merged.requiredEntrypoints ?? [])].sort(compareStrings),
+    ownedPortHelper: merged.ownedPortHelper,
+    ownedPortWrapper: merged.ownedPortWrapper,
+    releaseGate: merged.releaseGate,
+    publicReleaseApiImporters: [...new Set(merged.publicReleaseApiImporters ?? [])].sort(compareStrings),
+    ownedPortHelperImporters: [...new Set(merged.ownedPortHelperImporters ?? [])].sort(compareStrings),
+    publicExports: [...new Set(merged.publicExports ?? [])].sort(compareStrings),
+    ownedPortExports: [...new Set(merged.ownedPortExports ?? [])].sort(compareStrings),
   };
 }
 
@@ -843,6 +907,129 @@ function containsExecutableTestDeclaration(source) {
       && ['concurrent', 'each', 'only', 'skip', 'todo'].includes(tokens[index + 2]?.text)
       && tokens[index + 3]?.text === '(';
   });
+}
+
+function exportedConstDeclarations(filePath) {
+  if (!fs.existsSync(abs(filePath)) || !isSourceFile(filePath)) return new Set();
+  const tokens = tokenizeSource(fs.readFileSync(abs(filePath), 'utf8'));
+  const declarations = new Set();
+  for (let index = 0; index < tokens.length - 2; index += 1) {
+    if (
+      tokens[index].text === 'export'
+      && tokens[index + 1]?.text === 'const'
+      && tokens[index + 2]?.kind === 'identifier'
+    ) {
+      declarations.add(tokens[index + 2].text);
+    }
+  }
+  return declarations;
+}
+
+function sourceDeclaresExportedConst(filePath, exportName) {
+  return exportedConstDeclarations(filePath).has(exportName);
+}
+
+function indexOfExportedConstArray(source, exportName) {
+  const re = new RegExp(`\\bexport\\s+const\\s+${escapeRegExp(exportName)}\\s*=\\s*\\[`, 'm');
+  const match = re.exec(source);
+  return match ? match.index + match[0].length - 1 : -1;
+}
+
+function matchingArrayLiteral(source, openIndex) {
+  if (openIndex < 0 || source[openIndex] !== '[') return null;
+  let depth = 0;
+  let quote = null;
+  for (let index = openIndex; index < source.length; index += 1) {
+    const char = source[index];
+    if (quote) {
+      if (char === '\\') {
+        index += 1;
+      } else if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      continue;
+    }
+    if (char === '[') depth += 1;
+    if (char === ']') {
+      depth -= 1;
+      if (depth === 0) return source.slice(openIndex, index + 1);
+    }
+  }
+  return null;
+}
+
+function releaseEntrypointOwnershipRecords(filePath, exportName) {
+  if (!fs.existsSync(abs(filePath)) || !isSourceFile(filePath)) return [];
+  const source = stripSourceComments(fs.readFileSync(abs(filePath), 'utf8'));
+  const literal = matchingArrayLiteral(source, indexOfExportedConstArray(source, exportName));
+  if (!literal) return [];
+  const records = [];
+  const objectRe = /\{([\s\S]*?)\}/g;
+  for (const match of literal.matchAll(objectRe)) {
+    const body = match[1];
+    const record = {};
+    for (const key of ['path', 'owner', 'runtime', 'auditDecision']) {
+      const valueMatch = new RegExp(`\\b${key}\\s*:\\s*(['"])([\\s\\S]*?)\\1`).exec(body);
+      if (valueMatch) record[key] = valueMatch[2];
+    }
+    if (record.path || record.owner || record.runtime || record.auditDecision) records.push(record);
+  }
+  return records;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function localImportTargets(filePath) {
+  return extractExecutableImports(filePath)
+    .filter((item) => isLocalSpecifier(item.specifier))
+    .map((item) => ({
+      ...item,
+      target: resolveLocalSpecifier(item.specifier, filePath),
+    }))
+    .filter((item) => item.target);
+}
+
+function extractExecutableImports(filePath) {
+  if (!fs.existsSync(abs(filePath)) || !isSourceFile(filePath)) return [];
+  const source = fs.readFileSync(abs(filePath), 'utf8');
+  const tokens = tokenizeSource(source);
+  const imports = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token.kind !== 'literal') continue;
+    const specifier = normalizeSpecifier(literalValue(token.text));
+    if (!specifier || specifier.startsWith('http://') || specifier.startsWith('https://')) continue;
+    if (!isDependencyLiteralToken(tokens, index)) continue;
+    imports.push({
+      file: filePath,
+      kind: executableImportKind(tokens, index),
+      line: null,
+      specifier,
+    });
+  }
+  return imports.sort((a, b) => (
+    a.kind.localeCompare(b.kind)
+    || a.specifier.localeCompare(b.specifier)
+  ));
+}
+
+function executableImportKind(tokens, index) {
+  const previous = tokens[index - 1]?.text;
+  const callee = tokens[index - 2]?.text;
+  if (previous === 'from') return tokens[index - 3]?.text === 'export' ? 'export-from' : 'static-import';
+  if (previous === 'import') return 'side-effect-import';
+  if (callee === 'import') return 'dynamic-import';
+  if (callee === 'require') return 'require';
+  if (callee === 'URL') return 'url-dependency';
+  if (['Worker', 'SharedWorker'].includes(callee)) return 'worker-script';
+  if (callee === 'addModule') return 'worklet-script';
+  return 'dependency';
 }
 
 function moduleForTopLevelPath(filePath, modules) {
@@ -2345,10 +2532,277 @@ function collectBrowserUnsafeImports(index) {
   return findings.sort(compareFindings);
 }
 
+function collectReleaseReadinessSurface(allSourceFiles, index) {
+  const config = index.releaseReadinessSurface;
+  if (!config) {
+    return {
+      enabled: false,
+      summary: {
+        producerManifestFiles: 0,
+        ownedEntrypoints: 0,
+        releaseBehaviorFiles: 0,
+        violations: 0,
+      },
+      source: null,
+      producerManifestFiles: [],
+      entrypoints: [],
+      releaseBehaviorFiles: [],
+      violations: [],
+    };
+  }
+
+  const violations = [];
+  const producerManifestFiles = allSourceFiles
+    .filter((filePath) => sourceDeclaresExportedConst(filePath, config.producerExport))
+    .sort(compareStrings);
+  const ownershipRecords = releaseEntrypointOwnershipRecords(
+    config.manifestPath,
+    config.entrypointOwnershipExport,
+  );
+  const ownershipPaths = new Set(ownershipRecords.map((entry) => entry.path).filter(Boolean));
+  const requiredEntrypoints = new Set(config.requiredEntrypoints);
+  const publicReleaseApiImporters = new Set(config.publicReleaseApiImporters);
+  const ownedPortHelperImporters = new Set(config.ownedPortHelperImporters);
+
+  if (!fs.existsSync(abs(config.manifestPath))) {
+    violations.push({
+      file: config.manifestPath,
+      module: config.owner,
+      reason: 'release producer manifest path does not exist',
+    });
+  } else if (!sourceDeclaresExportedConst(config.manifestPath, config.producerExport)) {
+    violations.push({
+      file: config.manifestPath,
+      module: config.owner,
+      reason: `release producer manifest must export const ${config.producerExport}`,
+    });
+  }
+
+  for (const producerFile of producerManifestFiles) {
+    if (producerFile === config.manifestPath) continue;
+    violations.push({
+      file: producerFile,
+      module: config.owner,
+      reason: `second executable producer manifest exports ${config.producerExport}; use ${config.manifestPath}`,
+    });
+  }
+
+  if (producerManifestFiles.length === 0) {
+    violations.push({
+      file: config.manifestPath,
+      module: config.owner,
+      reason: `no executable release producer manifest exports ${config.producerExport}`,
+    });
+  }
+
+  if (!sourceDeclaresExportedConst(config.manifestPath, config.entrypointOwnershipExport)) {
+    violations.push({
+      file: config.manifestPath,
+      module: config.owner,
+      reason: `release producer manifest must export const ${config.entrypointOwnershipExport}`,
+    });
+  }
+
+  for (const required of config.requiredEntrypoints) {
+    if (!ownershipPaths.has(required)) {
+      violations.push({
+        file: required,
+        module: config.owner,
+        reason: 'required release-readiness entrypoint is missing from the producer manifest ownership export',
+      });
+    }
+  }
+
+  for (const entry of ownershipRecords) {
+    if (!entry.path) {
+      violations.push({
+        file: config.manifestPath,
+        module: config.owner,
+        reason: 'release entrypoint ownership record is missing an exact path',
+      });
+      continue;
+    }
+    if (entry.owner !== config.owner) {
+      violations.push({
+        file: entry.path,
+        module: entry.owner ?? 'unknown',
+        reason: `release entrypoint owner must be ${config.owner}`,
+      });
+    }
+    if (!entry.runtime || hasGlobSyntax(entry.runtime)) {
+      violations.push({
+        file: entry.path,
+        module: config.owner,
+        reason: 'release entrypoint ownership record must include one exact runtime classification',
+      });
+    }
+    if (!entry.auditDecision?.trim()) {
+      violations.push({
+        file: entry.path,
+        module: config.owner,
+        reason: 'release entrypoint ownership record must include an audit decision',
+      });
+    }
+    if (!fs.existsSync(abs(entry.path)) || !isSourceFile(entry.path)) {
+      violations.push({
+        file: entry.path,
+        module: config.owner,
+        reason: 'release entrypoint path must be an existing executable source file',
+      });
+    }
+  }
+
+  for (const exportName of config.publicExports) {
+    if (!sourceDeclaresExportedConst(config.manifestPath, exportName) && !exportedConstDeclarations(config.manifestPath).has(exportName)) {
+      const source = fs.existsSync(abs(config.manifestPath))
+        ? stripSourceComments(fs.readFileSync(abs(config.manifestPath), 'utf8'))
+        : '';
+      const functionRe = new RegExp(`\\bexport\\s+function\\s+${escapeRegExp(exportName)}\\s*\\(`);
+      if (!functionRe.test(source)) {
+        violations.push({
+          file: config.manifestPath,
+          module: config.owner,
+          reason: `release public API export is missing: ${exportName}`,
+        });
+      }
+    }
+  }
+
+  const helperSource = fs.existsSync(abs(config.ownedPortHelper))
+    ? stripSourceComments(fs.readFileSync(abs(config.ownedPortHelper), 'utf8'))
+    : '';
+  for (const exportName of config.ownedPortExports) {
+    const functionRe = new RegExp(`\\bexport\\s+async\\s+function\\s+${escapeRegExp(exportName)}\\s*\\(|\\bexport\\s+function\\s+${escapeRegExp(exportName)}\\s*\\(`);
+    if (!functionRe.test(helperSource)) {
+      violations.push({
+        file: config.ownedPortHelper,
+        module: config.owner,
+        reason: `owned endpoint-leasing helper must export ${exportName}`,
+      });
+    }
+  }
+
+  const wrapperImports = fs.existsSync(abs(config.ownedPortWrapper))
+    ? localImportTargets(config.ownedPortWrapper)
+    : [];
+  if (!wrapperImports.some((item) => item.target === config.ownedPortHelper)) {
+    violations.push({
+      file: config.ownedPortWrapper,
+      module: config.owner,
+      target: config.ownedPortHelper,
+      reason: 'owned port wrapper must import the canonical endpoint-leasing helper',
+    });
+  }
+
+  const releaseGateImports = fs.existsSync(abs(config.releaseGate))
+    ? localImportTargets(config.releaseGate)
+    : [];
+  if (!releaseGateImports.some((item) => item.target === config.manifestPath)) {
+    violations.push({
+      file: config.releaseGate,
+      module: config.owner,
+      target: config.manifestPath,
+      reason: 'release gate must import the authoritative producer manifest public API',
+    });
+  }
+
+  for (const entrypointPath of [
+    'build-tools/configs/playwright.live-behavior-proof.config.ts',
+    'build-tools/configs/playwright.live-gateway.config.ts',
+  ].filter((item) => requiredEntrypoints.has(item))) {
+    if (!fs.existsSync(abs(entrypointPath))) continue;
+    const source = stripSourceComments(fs.readFileSync(abs(entrypointPath), 'utf8'));
+    if (/\breuseExistingServer\s*:\s*true\b/.test(source)) {
+      violations.push({
+        file: entrypointPath,
+        module: config.owner,
+        reason: 'browser Playwright release config must not reuse a foreign existing server',
+      });
+    }
+    if (/\bpython(?:3)?\b|\bpyodide\b|\brunPython(?:Async)?\b/i.test(source)) {
+      violations.push({
+        file: entrypointPath,
+        module: config.owner,
+        reason: 'browser Playwright release config must not invoke Python or Pyodide',
+      });
+    }
+  }
+
+  const releaseBehaviorFiles = new Set([
+    ...producerManifestFiles,
+    ...ownershipRecords.map((entry) => entry.path).filter(Boolean),
+  ]);
+
+  for (const filePath of allSourceFiles) {
+    const imports = localImportTargets(filePath);
+    const importsProducerManifest = imports.some((item) => item.target === config.manifestPath);
+    const importsOwnedPortHelper = imports.some((item) => item.target === config.ownedPortHelper);
+    const declaresOwnership = sourceDeclaresExportedConst(filePath, config.entrypointOwnershipExport);
+    if (importsProducerManifest || importsOwnedPortHelper || declaresOwnership) {
+      releaseBehaviorFiles.add(filePath);
+    }
+
+    if (importsProducerManifest && !publicReleaseApiImporters.has(filePath)) {
+      violations.push({
+        file: filePath,
+        module: config.owner,
+        target: config.manifestPath,
+        reason: 'direct release producer manifest import bypasses the owned release API import seam',
+      });
+    }
+    if (importsOwnedPortHelper && !ownedPortHelperImporters.has(filePath)) {
+      violations.push({
+        file: filePath,
+        module: config.owner,
+        target: config.ownedPortHelper,
+        reason: 'direct endpoint-leasing helper import bypasses the owned port wrapper seam',
+      });
+    }
+  }
+
+  for (const filePath of releaseBehaviorFiles) {
+    if (!ownershipPaths.has(filePath) && filePath !== config.manifestPath) {
+      violations.push({
+        file: filePath,
+        module: config.owner,
+        reason: 'release-readiness behavior appears in a root script/config that is not classified in the producer manifest ownership export',
+      });
+    }
+  }
+
+  const dedupedViolations = [...new Map(violations.map((item) => [
+    `${item.file}\0${item.target ?? ''}\0${item.reason}`,
+    item,
+  ])).values()].sort(compareFindings);
+
+  return {
+    enabled: true,
+    source: {
+      manifestPath: config.manifestPath,
+      producerExport: config.producerExport,
+      entrypointOwnershipExport: config.entrypointOwnershipExport,
+      ownedPortHelper: config.ownedPortHelper,
+      ownedPortWrapper: config.ownedPortWrapper,
+      releaseGate: config.releaseGate,
+    },
+    summary: {
+      producerManifestFiles: producerManifestFiles.length,
+      ownedEntrypoints: ownershipRecords.length,
+      releaseBehaviorFiles: releaseBehaviorFiles.size,
+      violations: dedupedViolations.length,
+    },
+    producerManifestFiles,
+    entrypoints: ownershipRecords,
+    releaseBehaviorFiles: [...releaseBehaviorFiles].sort(compareStrings),
+    violations: dedupedViolations,
+  };
+}
+
 function audit(manifest, args) {
   const index = buildManifestIndex(manifest);
   const provenance = revalidationProvenance(manifest);
   const allFiles = listFiles('src', (relative) => isAuditedFile(relative));
+  const allSourceFiles = listFiles('.', (relative) => isSourceFile(relative));
   const serviceDuplicateBasenames = collectServiceDuplicateBasenames(allFiles);
   const serviceIndexClassifications = collectServiceIndexClassifications(allFiles, index);
   const restoredServiceDuplicatePolicyViolations = collectRestoredServiceDuplicatePolicyViolations(
@@ -2359,9 +2813,7 @@ function audit(manifest, args) {
     restoredServiceDuplicatePolicyViolations.map((finding) => finding.policy),
   );
   const serviceDuplicateContentHashes = collectServiceDuplicateContentHashes(allFiles, index);
-  const importersByTarget = collectLocalImporters([
-    ...listFiles('.', (relative) => isSourceFile(relative)),
-  ]);
+  const importersByTarget = collectLocalImporters(allSourceFiles);
   const serviceFileInventory = collectServiceFileInventory(allFiles, importersByTarget, index);
   const restoredServiceDuplicateInventory = collectRestoredServiceDuplicateInventory({
     duplicateContentHashes: serviceDuplicateContentHashes,
@@ -2376,6 +2828,7 @@ function audit(manifest, args) {
   const legacySprintServiceFiles = collectLegacySprintServiceFiles(allFiles);
   const ownershipConflicts = collectOwnershipConflicts(allFiles, index);
   const browserUnsafeImports = collectBrowserUnsafeImports(index);
+  const releaseReadinessSurface = collectReleaseReadinessSurface(allSourceFiles, index);
   const browserEntrypointPolicyViolations = collectBrowserEntrypointPolicyViolations(
     index,
     serviceFileInventory,
@@ -2525,6 +2978,7 @@ function audit(manifest, args) {
       ownershipConflicts: ownershipConflicts.length,
       browserUnsafeImports: browserUnsafeImports.length,
       browserEntrypointPolicyViolations: browserEntrypointPolicyViolations.length,
+      releaseReadinessSurfaceViolations: releaseReadinessSurface.summary.violations,
       undocumentedServiceDeepImports: undocumentedServiceDeepImports.length,
       unresolvedMergeMarkers: unresolvedMergeMarkers.length,
       serviceDuplicateBasenames: serviceDuplicateBasenames.length,
@@ -2554,6 +3008,7 @@ function audit(manifest, args) {
     ownershipConflicts,
     browserUnsafeImports,
     browserEntrypointPolicyViolations,
+    releaseReadinessSurface,
     undocumentedServiceDeepImports,
     unresolvedMergeMarkers,
     restoredServiceDuplicatePolicyViolations,
@@ -2641,6 +3096,7 @@ function printReport(result) {
   console.log(`ownership conflicts: ${result.summary.ownershipConflicts}`);
   console.log(`browser unsafe imports: ${result.summary.browserUnsafeImports}`);
   console.log(`browser entrypoint policy violations: ${result.summary.browserEntrypointPolicyViolations}`);
+  console.log(`release-readiness surface violations: ${result.summary.releaseReadinessSurfaceViolations}`);
   console.log(`undocumented service deep imports: ${result.summary.undocumentedServiceDeepImports}`);
   console.log(`unresolved merge markers: ${result.summary.unresolvedMergeMarkers}`);
   console.log(`restored service duplicate policy violations: ${result.summary.restoredServiceDuplicatePolicyViolations}`);
@@ -2691,6 +3147,8 @@ function printReport(result) {
   printSection('browser unsafe imports', result.browserUnsafeImports, formatFindingLine);
   console.log('');
   printSection('browser entrypoint policy violations', result.browserEntrypointPolicyViolations, formatFindingLine);
+  console.log('');
+  printSection('release-readiness surface violations', result.releaseReadinessSurface.violations, formatFindingLine);
   console.log('');
   printSection('undocumented service deep imports', result.undocumentedServiceDeepImports, formatFindingLine);
   console.log('');
@@ -3137,6 +3595,10 @@ function main() {
     args.failOnForbidden
     && result.summary.browserEntrypointPolicyViolations > 0
   ) failures.push('browser entrypoint policy violations');
+  if (
+    args.failOnForbidden
+    && result.summary.releaseReadinessSurfaceViolations > 0
+  ) failures.push('release-readiness surface violations');
   if (
     args.failOnForbidden
     && result.summary.undocumentedServiceDeepImports > 0

@@ -48,13 +48,20 @@ export async function findOwnedPort({
   preferredPort,
   fallbackRange = 64,
 } = {}) {
+  const owner = 'current-process-exclusive-bind-probe';
   if (Number.isInteger(preferredPort)) {
     for (let offset = 0; offset < fallbackRange; offset += 1) {
       const candidate = preferredPort + offset;
       if (candidate > 65535) break;
       // eslint-disable-next-line no-await-in-loop
       if (await canBind(host, candidate)) {
-        return { port: candidate, leasedFromPreferred: offset === 0 };
+        return {
+          host,
+          port: candidate,
+          leasedFromPreferred: offset === 0,
+          owner,
+          foreignListenerAction: offset === 0 ? 'none-observed' : 'left-untouched',
+        };
       }
     }
   }
@@ -71,7 +78,13 @@ export async function findOwnedPort({
           reject(closeError ?? new Error('failed to lease an ephemeral port'));
           return;
         }
-        resolve({ port, leasedFromPreferred: false });
+        resolve({
+          host,
+          port,
+          leasedFromPreferred: false,
+          owner,
+          foreignListenerAction: Number.isInteger(preferredPort) ? 'left-untouched' : 'none-observed',
+        });
       });
     });
   });

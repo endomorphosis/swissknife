@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
-  "generatedDate": "2026-07-19",
+  "generatedDate": "2026-07-20",
   "taskId": "SWR-137",
   "source": {
     "manifestPath": "src/module-ownership.json",
     "serviceRoot": "src/services",
     "auditScript": "scripts/audit-source-modules.mjs",
     "phase16CleanupEvidence": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16",
-    "sourceRevision": "86eac7da0ca1366089d0d01e7fe9db4575ab5500",
+    "sourceRevision": "bf8649a1870aa6647015db5cf2e496ede45c408f",
     "recoveryProvenance": {
       "path": "docs/phase-21-recovery-provenance.json",
       "available": false
@@ -344,8 +344,8 @@
     "unclassifiedNormalizedContentCollisions": 0,
     "behavioralEquivalenceGroups": 0,
     "unclassifiedBehavioralEquivalenceGroups": 0,
-    "totalImporters": 1941,
-    "uniqueImporterFiles": 617
+    "totalImporters": 1942,
+    "uniqueImporterFiles": 618
   },
   "serviceFiles": [
     {
@@ -597,25 +597,25 @@
       "path": "src/services/apps/all-app-live-tool-bindings.ts",
       "basename": "all-app-live-tool-bindings.ts",
       "extension": ".ts",
-      "sizeBytes": 7996,
-      "lineCount": 193,
+      "sizeBytes": 8118,
+      "lineCount": 196,
       "contentKind": "service-implementation",
-      "sha256": "652e17bba1e9450efef13dd3bd5d3d49b83bc3cba0419cb54bd22ac0f5a0ed38",
+      "sha256": "49a18c5f25651703c2b4df47c81b676dc06c46e687a22f2eeb5b17ca70b56e40",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "652e17bba1e9450efef13dd3bd5d3d49b83bc3cba0419cb54bd22ac0f5a0ed38"
+        "value": "49a18c5f25651703c2b4df47c81b676dc06c46e687a22f2eeb5b17ca70b56e40"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "dc60a76a4b9a2d6313bd17ffa9b0df3e063c045751cb4047bf19118740301dab",
-        "tokenCount": 1119
+        "value": "c850ab04ecff42abe94a512cfd7f397c757bbec70c5a7597ade16185e3e79045",
+        "tokenCount": 1129
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "f251dcfa53f4c22d853ecf6a1104cec2dc57b5042f61ca773b812c0f7eb3f779",
-        "tokenCount": 1119
+        "value": "f02bc7cf62166c17d2982ff81faa743e500aafd15736d6f3cc1545bc238e10d4",
+        "tokenCount": 1129
       },
       "importers": [
         {
@@ -661,6 +661,12 @@
           "specifier": "../apps/all-app-live-tool-bindings.js"
         },
         {
+          "file": "test/architecture/release-readiness-hermetic.test.ts",
+          "line": 34,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/all-app-live-tool-bindings"
+        },
+        {
           "file": "test/browser/agent-supervisor-console-gateway.test.ts",
           "line": 11,
           "kind": "static-import",
@@ -691,7 +697,7 @@
           "specifier": "../../src/services/apps/all-app-live-tool-bindings"
         }
       ],
-      "importerCount": 12,
+      "importerCount": 13,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -22278,7 +22284,7 @@
         },
         {
           "file": "src/services/apps/all-app-live-tool-bindings.ts",
-          "line": 9,
+          "line": 10,
           "kind": "static-import",
           "specifier": "../mcp/all-app-tool-gateway.js"
         },

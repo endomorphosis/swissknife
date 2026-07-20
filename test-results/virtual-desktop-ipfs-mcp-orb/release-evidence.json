@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.virtual-desktop-release-evidence.v2",
   "task_id": "SVD-114",
-  "generated_at": "2026-07-19T11:06:20.874Z",
+  "generated_at": "2026-07-19T23:29:36.497Z",
   "freshness_policy": {
     "maximum_age_ms": 86400000,
     "future_skew_ms": 60000,
@@ -12,118 +12,118 @@
       "task_id": "SVD-102",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-binding-gap-ledger.json",
       "status": "present",
-      "generated_at": "2026-07-18T19:09:17.663Z",
-      "age_ms": 57423211,
+      "generated_at": "2026-07-19T23:21:49.177Z",
+      "age_ms": 467320,
       "freshness": "fresh",
-      "sha256": "c3eac244073f57370ca1359175c5e0ce360caebc337ff7446cd6b4ca332dadb8"
+      "sha256": "b860a100a60251bd54022b2e7e5790688d53dad06c47dc29620152fd5062bae6"
     },
     "live_bindings": {
       "task_id": "SVD-104",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json",
       "status": "present",
-      "generated_at": "2026-07-18T19:20:34.924Z",
-      "age_ms": 56745950,
+      "generated_at": "2026-07-19T23:21:48.115Z",
+      "age_ms": 468382,
       "freshness": "fresh",
-      "sha256": "af7937753c829f1c7fbc94e1d62d8ad68172d8b0e1969ae0b60961d17e59ffb7"
+      "sha256": "60de0276e08431414f9037652e794052735a9ad6ee5d136bfe0e771974f8b1e6"
     },
     "tool_disposition_catalog": {
       "task_id": "SVD-105",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-disposition-catalog.json",
       "status": "present",
-      "generated_at": "2026-07-18T19:20:35.604Z",
-      "age_ms": 56745270,
+      "generated_at": "2026-07-19T23:21:48.833Z",
+      "age_ms": 467664,
       "freshness": "fresh",
-      "sha256": "6da4b66beb456bcf3563ae3a9e5d0481550c2e9a219750982d6a83d963563e38"
+      "sha256": "be452cc9fc91db8a2e50595ef370e47db2c06f9798ccd5488356d0d93a593eda"
     },
     "live_behavior": {
       "task_id": "SVD-106",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json",
       "status": "present",
-      "generated_at": "2026-07-19T11:00:12.606Z",
-      "age_ms": 368268,
+      "generated_at": "2026-07-19T23:22:43.826Z",
+      "age_ms": 412671,
       "freshness": "fresh",
-      "sha256": "2a82e3eee14762b28b26a21a3f3027c0542832e1bf8ee7ab3a8b9ceeb5a1269d"
+      "sha256": "09c840764bde8b7aff0da7d0ba727c25357fd4368086151414114e96aa2aced7"
     },
     "gateway_executions": {
       "task_id": "SVD-126",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-gateway-executions.json",
       "status": "present",
-      "generated_at": "2026-07-19T11:01:18.701Z",
-      "age_ms": 302173,
+      "generated_at": "2026-07-19T23:23:45.008Z",
+      "age_ms": 351489,
       "freshness": "fresh",
-      "sha256": "1323dcbc3186b19d34d2330be3b17a8e3caba41c98bc42de4f8f17306f1db496"
+      "sha256": "47324348885acfad8b5237d08298e86cf823b0235681db3acbfd60bf3c19ad09"
     },
     "profile_interoperability": {
       "task_id": "SVD-127",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json",
       "status": "present",
-      "generated_at": "2026-07-19T11:01:22.128Z",
-      "age_ms": 298746,
+      "generated_at": "2026-07-19T23:23:48.448Z",
+      "age_ms": 348049,
       "freshness": "fresh",
-      "sha256": "0829123e4f2d9072ad147f6fb63bf6a9fd2591c273096e91d187618f2a59cb83"
+      "sha256": "18131a77888e32b69e847e9e952a0f55a6732e25045b8429ae13bdd31c1a4034"
     },
     "action_handoff": {
       "task_id": "SVD-110",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json",
       "status": "present",
-      "generated_at": "2026-07-19T11:01:27.460Z",
-      "age_ms": 293414,
+      "generated_at": "2026-07-19T23:23:53.704Z",
+      "age_ms": 342793,
       "freshness": "fresh",
-      "sha256": "3f982bd326497e1bda11de3c8166a83bc03015c294623c92dc68478df4aa81b4"
+      "sha256": "990bf4b6705915e4a38f58d4188b0e8f47c05219ac21f5f537d3d2fbec099bfa"
     },
     "meta_simulator": {
       "task_id": "SVD-111",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json",
       "status": "present",
-      "generated_at": "2026-07-19T11:01:32.585Z",
-      "age_ms": 288289,
+      "generated_at": "2026-07-19T23:23:58.898Z",
+      "age_ms": 337599,
       "freshness": "fresh",
-      "sha256": "aec379da56aa48d3c1fac8849beee06b1b9bd63ea0aa4465147993dcf065ee08"
+      "sha256": "4ed54bed6a4679003cd522f6947db0512f3c0175c235a04497c9d82e4391713a"
     },
     "ui_accessibility": {
       "task_id": "SVD-112",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-ui-ux-accessibility.json",
       "status": "present",
-      "generated_at": "2026-07-18T19:16:35.922Z",
-      "age_ms": 56984952,
+      "generated_at": "2026-07-19T23:28:59.023Z",
+      "age_ms": 37474,
       "freshness": "fresh",
-      "sha256": "e4f962b301fff1433f68cdae41ef37aff90a4d5ce82bff42765ad5181c5c69c5"
+      "sha256": "b054250bc5bac452b7dfc025c3017971908f9ff508ee07b9e701a67a073d55ce"
     },
     "dispatch_artifact_store": {
       "task_id": "SVD-113",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/supervisor-dispatch-artifact-store.json",
       "status": "present",
-      "generated_at": "2026-07-19T11:06:18.668Z",
-      "age_ms": 2206,
+      "generated_at": "2026-07-19T23:28:55.204Z",
+      "age_ms": 41293,
       "freshness": "fresh",
-      "sha256": "6100568bf147845ccd3a24b7ae48e41c95d64be6a8f30ec858eaed75706659ce"
+      "sha256": "5153ae0556f80893742a825ea999710862f1d5c9f3f94eeea2639937d0c5ec90"
     },
     "merge_reconciliation": {
       "task_id": "SVD-116",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/submodule-merge-reconciliation.json",
       "status": "present",
-      "generated_at": "2026-07-19T11:06:20.785Z",
-      "age_ms": 89,
+      "generated_at": "2026-07-19T23:29:36.414Z",
+      "age_ms": 83,
       "freshness": "fresh",
-      "sha256": "8cb4a27d52f8c9a6802d8fdb0167059446e309bb0d983085178e69ce0a4dc06b"
+      "sha256": "87694124eedd3bf7d54d4a15c813df46bf2b632d43ac7c9a1f73274928bca947"
     },
     "app_backend_contract": {
       "task_id": "SWR-113",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
       "status": "present",
-      "generated_at": "2026-07-19T10:56:02.004Z",
-      "age_ms": 618870,
+      "generated_at": "2026-07-19T23:18:38.435Z",
+      "age_ms": 658062,
       "freshness": "fresh",
-      "sha256": "c4c4980dac911ab49da5fe55a3edfa2aa6c9be007b497816fc9df22ad360d8aa"
+      "sha256": "656293b39145c8acbad6aa8e91063a8028be7ad2f6f128ab24ea21d3ad1afd98"
     },
     "peer_interoperability": {
       "task_id": "SVD-100",
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json",
       "status": "present",
-      "generated_at": "2026-07-19T07:44:05.470Z",
-      "age_ms": 12135404,
+      "generated_at": "2026-07-19T23:21:46.470Z",
+      "age_ms": 470027,
       "freshness": "fresh",
-      "sha256": "f97d0869dad99806472ca49014f652ee7cc17f6b4de05dcb687417cf869dfe69"
+      "sha256": "dccd7c5cfed1968c7847ed03662ea2d96c3168f45fb2c7f4c7a8980547ecd7fd"
     }
   },
   "application_count": 45,

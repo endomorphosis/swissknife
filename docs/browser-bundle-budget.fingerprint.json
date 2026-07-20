@@ -2,20 +2,20 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "browser-bundle-budget",
   "label": "Browser bundle budget evidence (SWR-016)",
-  "generatedAt": "2026-07-19T10:41:57.474Z",
+  "generatedAt": "2026-07-20T00:30:12.813Z",
   "evidenceFiles": [
     "docs/browser-bundle-budget.md",
     "docs/browser-bundle-budget.json"
   ],
   "evidenceHashes": {
-    "docs/browser-bundle-budget.md": "48a16e569811d30c37ff07b977bdf606c92595cd9689862134be80808f710199",
-    "docs/browser-bundle-budget.json": "27f23a0d17a118aef006583995fc61e4006400bfa6861ca6ae2ed30634f1df76"
+    "docs/browser-bundle-budget.md": "615d2ed906bc0cade23fc86486ab2e49f713c17f0e328a2d5be531b6b057d27b",
+    "docs/browser-bundle-budget.json": "7a5ae7ea8dc43fb309551a35339ea7a956304bfdfd90010d94eb1c81a61e203d"
   },
-  "sourceFingerprint": "199162140fd8967eb2053e3b0cc6728b858d3c2ddb9c2879d643fb2242145ef7",
+  "sourceFingerprint": "1305e212fbc899e92d835ab184e9a8e1ec20bd12884a6c952acb31f3016bb277",
   "sourceFiles": [
     {
       "path": "package.json",
-      "sha256": "0a44cf0c9b0224b201edac90f99e51ed07b10dd5b682531b23b4e2c2941bb76e"
+      "sha256": "b475fb20e516099cb73afa5f678e2b6c7aea1b5efba4d0f076ef2d94306dc9b0"
     },
     {
       "path": "scripts/audit-web-bundle.mjs",
@@ -23,7 +23,7 @@
     },
     {
       "path": "src/module-ownership.json",
-      "sha256": "5bc6d255691ee3613e5f9cb573c3b3b0194e0b3f2e37da2d43a203c119b8b093"
+      "sha256": "bccee45ba5bd7ae64d6cfa1181a3ef3f16e9e79bcef96deda4f4fd4cf4d44726"
     },
     {
       "path": "vite.web.config.ts",

@@ -32,8 +32,8 @@ Index basenames are reported through the per-file ledger and index classificatio
 | Unclassified normalized-content collisions | 0 |
 | Behavioral-equivalence groups | 0 |
 | Unclassified behavioral-equivalence groups | 0 |
-| Total import specifiers targeting duplicate paths | 1941 |
-| Unique importer files | 617 |
+| Total import specifiers targeting duplicate paths | 1942 |
+| Unique importer files | 618 |
 
 ## Policy
 
@@ -54,7 +54,7 @@ Index basenames are reported through the per-file ledger and index classificatio
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `src/services/apps/agent-supervisor-expanded-io-envelopes.ts` | `service-apps` (app-surface-runtime) | `service-apps` (app-surface-runtime) | `universal` | `canonical-implementation` | 6 | none | `f13f04daa540146f91c3a97ebc401c178a7aea388de442f31c5eb0522d2dc03b` | `1cda15184ad99a460f2ba56c194d2ee50e03f844e97b00a597c2f072ad2e34b2` | `2c014747e589bace3a6ac45813c764111d3e829c27b935d0afab962f5ac1218b` | none |
 | `src/services/apps/all-app-executable-backend-contract.ts` | `service-apps` (app-surface-runtime) | `service-apps` (app-surface-runtime) | `universal` | `canonical-implementation` | 17 | `module-manifest:src/services/apps/all-app-executable-backend-contract.ts` | `e470db67b500ca44394a4bdca4a5a7ca54c734e8a8719bcfc0a8cc8151c64092` | `84c4278c353f7cfddc86c7b50dbabed78527ec32139d7420163faf39d26bb1ae` | `0e14b6df3e55455a284058cd40bab44905ac6666747099c79c1a56066adc2fc7` | none |
-| `src/services/apps/all-app-live-tool-bindings.ts` | `service-apps` (app-surface-runtime) | `service-apps` (app-surface-runtime) | `universal` | `canonical-implementation` | 12 | `module-manifest:src/services/apps/all-app-live-tool-bindings.ts` | `652e17bba1e9450efef13dd3bd5d3d49b83bc3cba0419cb54bd22ac0f5a0ed38` | `dc60a76a4b9a2d6313bd17ffa9b0df3e063c045751cb4047bf19118740301dab` | `f251dcfa53f4c22d853ecf6a1104cec2dc57b5042f61ca773b812c0f7eb3f779` | none |
+| `src/services/apps/all-app-live-tool-bindings.ts` | `service-apps` (app-surface-runtime) | `service-apps` (app-surface-runtime) | `universal` | `canonical-implementation` | 13 | `module-manifest:src/services/apps/all-app-live-tool-bindings.ts` | `49a18c5f25651703c2b4df47c81b676dc06c46e687a22f2eeb5b17ca70b56e40` | `c850ab04ecff42abe94a512cfd7f397c757bbec70c5a7597ade16185e3e79045` | `f02bc7cf62166c17d2982ff81faa743e500aafd15736d6f3cc1545bc238e10d4` | none |
 | `src/services/apps/all-tools-app-binding-matrix.ts` | `service-apps` (app-surface-runtime) | `service-apps` (app-surface-runtime) | `universal` | `canonical-implementation` | 8 | `module-manifest:src/services/apps/all-tools-app-binding-matrix.ts` | `cbae8c6703ee4f0dd21bdcb376edb3d609a2c7ce69fea7e563eaa67b4788c372` | `03e8942385ffb64d617382382389b05ab9329f96faa50798adc83e244ad41c56` | `8b10195efd376ae372af223daca1c218d25b5308544fa9901bcaad95e7d29704` | none |
 | `src/services/apps/all-tools-composite-workflows.ts` | `service-apps` (app-surface-runtime) | `service-apps` (app-surface-runtime) | `universal` | `canonical-implementation` | 4 | `module-manifest:src/services/apps/all-tools-composite-workflows.ts` | `5211cc002a88a20ba59f29b90d6fbe35c1ee35ec2d205916182fb140df4929c2` | `362b1b9279cab8f00b4e0df9d86f9e964a29700de6138d7d8c663d2165cfd0bd` | `4f8589e4e1e3abe99c8a5017903e10f87ad58db1c001a6a658992e13da477acd` | none |
 | `src/services/apps/all-tools-policy-classifier.ts` | `service-apps` (app-surface-runtime) | `service-apps` (app-surface-runtime) | `universal` | `canonical-implementation` | 7 | `module-manifest:src/services/apps/all-tools-policy-classifier.ts` | `0949ce3910af7dcbc6479f9707321ea7dc50256e60f8bf4784fdce32ca0ecd13` | `76a4d5d47c5a22294478bc1b0cb2e2b15f27b40e7454ae64a819b74ef67ac32d` | `60a9926071d150dbd2dfc4a89796e337c5cf0a0e5913a9301b07606c0fe378bf` | none |
