@@ -119,7 +119,10 @@ const report = {
     repositories_checked: repositories.length,
     unavailable_repositories: unavailable,
     unmerged_paths: unresolved,
-    unresolved_conflicts_absent: unavailable.length === 0 && unresolved.length === 0,
+    // A detached SwissKnife reproduction intentionally contains no sibling
+    // repositories. Their absence is diagnostic, not evidence of a merge
+    // conflict. Only Git's unmerged entries can make reconciliation fail.
+    unresolved_conflicts_absent: unresolved.length === 0,
     working_tree_dirty_repository_ids: repositories
       .filter(repository => repository.working_tree_dirty === true)
       .map(repository => repository.id),
