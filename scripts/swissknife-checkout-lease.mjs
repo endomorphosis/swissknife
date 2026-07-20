@@ -544,15 +544,34 @@ async function readLeaseOwner(context) {
   }
 }
 
-export async function inspectLease(context) {
+export async function inspectLease(
+  context,
+  { allowStaleNamespaceMigration = false } = {},
+) {
   const owner = await readLeaseOwner(context);
   if (owner === null)
     return { state: "available", reason: "no_lease", owner: null };
   validateRecordedOwner(owner);
-  if (
-    owner.namespace.id !== context.namespaceId ||
-    owner.namespace.commonDirectory !== context.commonDirectory
-  ) {
+  const namespaceMatches =
+    owner.namespace.id === context.namespaceId &&
+    owner.namespace.commonDirectory === context.commonDirectory;
+  if (!namespaceMatches) {
+    // A parent repository can be restored onto a replacement filesystem while
+    // retaining its canonical Git common-directory path.  Normal inspection
+    // must still fail closed, but explicit reclamation may archive that old
+    // record after proving its owner is gone.  Never relax a path mismatch:
+    // it could name an unrelated repository namespace.
+    if (
+      allowStaleNamespaceMigration &&
+      owner.namespace.commonDirectory === context.commonDirectory
+    ) {
+      const identity = await verifyOwnerIdentity(owner);
+      return {
+        ...identity,
+        owner,
+        namespaceMigrationRequired: true,
+      };
+    }
     throw new LeaseError(
       "Lease namespace metadata does not match the parent repository common directory",
       {
@@ -632,7 +651,11 @@ async function quarantineVerifiedStale(context, inspection) {
   // have replaced the directory between our first inspection and claim
   // creation; never rename that replacement merely because the old record was
   // stale (the critical stale-reclaim ABA race).
-  const current = await inspectLease(context);
+  const current = await inspectLease(context, {
+    allowStaleNamespaceMigration: Boolean(
+      inspection.namespaceMigrationRequired,
+    ),
+  });
   if (
     current.owner?.leaseId !== inspection.owner.leaseId ||
     current.state !== "stale_verified"
@@ -1346,7 +1369,13 @@ export async function main(argv = process.argv.slice(2)) {
   if (!path.isAbsolute(options.inventory))
     options.inventory = path.resolve(process.cwd(), options.inventory);
   const inventory = await loadInventory(options.inventory);
-  const inspection = await inspectLease(context);
+  const inspection = await inspectLease(context, {
+    // Namespace IDs incorporate the parent Git common-directory inode.  An
+    // explicit reclaim can therefore migrate a stale record after a restore
+    // replaces that directory, but all ordinary checks continue to fail
+    // closed on the mismatch.
+    allowStaleNamespaceMigration: options.mode === "--reclaim",
+  });
   validateOwnerRegistration(inspection, inventory);
 
   if (options.mode === "--check" || options.mode === "--status") {

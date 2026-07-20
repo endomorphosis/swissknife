@@ -70,10 +70,15 @@ If the wrapper is gone but its recorded protected child still has the exact
 identity, the lease remains active. This prevents a killed Node wrapper from
 allowing a second lane to start while its supervisor child is still running.
 Different hostname, unreadable `/proc`, permission errors, missing identity,
-truncated JSON, unknown schema, and Git or PID namespace mismatch are
-**unverifiable**, not stale, and fail closed. In particular, a different PID
-namespace may hide a still-live process with the same namespace-local PID; it
-is never proof of death.
+truncated JSON, unknown schema, and PID namespace mismatch are **unverifiable**,
+not stale, and fail closed. In particular, a different PID namespace may hide a
+still-live process with the same namespace-local PID; it is never proof of
+death. A Git namespace mismatch also fails closed for normal checks and
+launches. The sole exception is explicit `--reclaim` when the recorded and
+current canonical parent common-directory paths are identical and the recorded
+owner has separately been proven stale. This supports a restored parent Git
+directory with a new filesystem identity without allowing automatic takeover or
+cross-repository reclamation.
 
 Verified-stale metadata is moved to a unique audit directory before the atomic
 acquisition retry. There is no age timeout and no force-release option. The

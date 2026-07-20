@@ -364,6 +364,66 @@ test("check fails closed and leaves corrupt owner bytes untouched", async (t) =>
   assert.equal(await readFile(ownerPath, "utf8"), "{broken");
 });
 
+test("explicit reclaim can archive a verified-stale namespace from a replaced Git directory", async (t) => {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const context = await resolveCheckout(item.checkout);
+  const child = spawn(process.execPath, ["-e", "setTimeout(() => {}, 10_000)"], {
+    stdio: "ignore",
+  });
+  t.after(() => {
+    if (child.exitCode === null && child.signalCode === null)
+      child.kill("SIGKILL");
+  });
+  await new Promise((resolve, reject) => {
+    child.once("spawn", resolve);
+    child.once("error", reject);
+  });
+  const childIdentity = await readProcessIdentity(child.pid);
+  await acquireLease(context, item.lane, item.childCommand);
+
+  const ownerPath = path.join(context.leaseDirectory, "owner.json");
+  const owner = JSON.parse(await readFile(ownerPath, "utf8"));
+  owner.namespace.id = "superseded-common-directory-instance";
+  owner.owner = {
+    pid: child.pid,
+    hostname: (await import("node:os")).hostname(),
+    processIdentity: childIdentity,
+  };
+  await writeFile(ownerPath, `${JSON.stringify(owner, null, 2)}\n`);
+  child.kill("SIGKILL");
+  await new Promise((resolve) => child.once("exit", resolve));
+
+  await assert.rejects(
+    inspectLease(context),
+    (error) => error.code === "namespace_mismatch",
+    "ordinary inspection remains fail-closed",
+  );
+
+  const reclaim = execFileSync(
+    process.execPath,
+    [
+      SCRIPT,
+      "--checkout",
+      item.checkout,
+      "--inventory",
+      item.inventoryPath,
+      "--reclaim",
+      "--json",
+    ],
+    { encoding: "utf8" },
+  );
+  const result = JSON.parse(reclaim);
+  assert.equal(result.state, "available");
+  assert.match(result.reason, /reclaimed_after_pid_absent/);
+  assert.equal((await inspectLease(context)).state, "available");
+  assert.ok(
+    (await readdir(context.commonDirectory)).some((name) =>
+      name.startsWith("swissknife-checkout-lease-v1.reclaimed-"),
+    ),
+  );
+});
+
 test("parent worktrees contend through one common Git-directory namespace", async (t) => {
   const item = await fixture();
   t.after(() => rm(item.root, { recursive: true, force: true }));
