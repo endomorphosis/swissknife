@@ -269,6 +269,7 @@ test-results/virtual-desktop-ipfs-mcp-orb/*
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator.json
 !test-results/virtual-desktop-ipfs-mcp-orb/swissknife-all-tools-peer-evidence.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-binding-gap-ledger.json
+!test-results/virtual-desktop-ipfs-mcp-orb/svd-132.json
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/
 test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/*
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-backend/
@@ -279,6 +280,9 @@ test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/*
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/expanded-meta-io/*.png
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/
 !test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator/*.png
+!test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/
+!test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/*/
+!test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/*/*.png
 !test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json
 !test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md
 !test-results/meta-glasses-virtual-os/
