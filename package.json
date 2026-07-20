@@ -264,6 +264,7 @@
     "pretest:e2e:playwright": "npm run browser:toolchain:verify",
     "test:e2e:playwright": "npx playwright test",
     "test:e2e:meta-glasses": "node scripts/run-with-owned-port.mjs --env-var SWISSKNIFE_META_GLASSES_E2E_PORT --preferred 3001 -- node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.meta-glasses.config.ts",
+    "test:e2e:app-audit-runner": "node scripts/run-with-owned-port.mjs --env-var SWISSKNIFE_APP_AUDIT_RUNNER_E2E_PORT --preferred 3001 -- node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.app-audit-runner.config.ts",
     "test:e2e:libp2p-browser": "node scripts/run_playwright_test.mjs test -c build-tools/configs/playwright.libp2p-browser.config.ts",
     "automation:screenshots": "node scripts/automation/update-screenshots.js",
     "docs:generate-only": "node scripts/automation/generate-docs-only.js",
