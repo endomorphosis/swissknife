@@ -6,7 +6,7 @@
   },
   "provenance": {
     "taskId": "SWR-137",
-    "sourceRevision": "bf8649a1870aa6647015db5cf2e496ede45c408f",
+    "sourceRevision": "9252e108bf10b80593adc3e36b441b75affe51b3",
     "recoveryProvenance": {
       "path": "docs/phase-21-recovery-provenance.json",
       "available": false
@@ -468,8 +468,8 @@
     },
     "summary": {
       "producerManifestFiles": 1,
-      "ownedEntrypoints": 8,
-      "releaseBehaviorFiles": 8,
+      "ownedEntrypoints": 9,
+      "releaseBehaviorFiles": 9,
       "violations": 0
     },
     "producerManifestFiles": [
@@ -493,6 +493,12 @@
         "owner": "release-readiness",
         "runtime": "host-release",
         "auditDecision": "SWR-141 provenance helper that captures clean-checkout reproduction, source fingerprints, evidence fingerprints, output hashes, and GO/NO_GO blockers"
+      },
+      {
+        "path": "scripts/capture-refactor-main-reconciliation.cjs",
+        "owner": "release-readiness",
+        "runtime": "host-release",
+        "auditDecision": "SWR-162 merge receipt producer that classifies integrated commits and rejects stale attempt, diagnostic, rescue, and recovery refs without mutating branch state"
       },
       {
         "path": "scripts/lib/pick-free-port.mjs",
@@ -528,6 +534,7 @@
     "releaseBehaviorFiles": [
       "build-tools/configs/playwright.live-behavior-proof.config.ts",
       "build-tools/configs/playwright.live-gateway.config.ts",
+      "scripts/capture-refactor-main-reconciliation.cjs",
       "scripts/lib/pick-free-port.mjs",
       "scripts/lib/release-readiness-evidence-producers.mjs",
       "scripts/lib/release-reproduction-attestation.mjs",
@@ -542,14 +549,14 @@
   "restoredServiceDuplicatePolicyViolations": [],
   "restoredServiceDuplicateInventory": {
     "schemaVersion": 2,
-    "generatedDate": "2026-07-19",
+    "generatedDate": "2026-07-20",
     "taskId": "SWR-137",
     "source": {
       "manifestPath": "src/module-ownership.json",
       "serviceRoot": "src/services",
       "auditScript": "scripts/audit-source-modules.mjs",
       "phase16CleanupEvidence": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16",
-      "sourceRevision": "bf8649a1870aa6647015db5cf2e496ede45c408f",
+      "sourceRevision": "9252e108bf10b80593adc3e36b441b75affe51b3",
       "recoveryProvenance": {
         "path": "docs/phase-21-recovery-provenance.json",
         "available": false
@@ -1204,7 +1211,7 @@
           },
           {
             "file": "test/architecture/release-readiness-hermetic.test.ts",
-            "line": 34,
+            "line": 35,
             "kind": "static-import",
             "specifier": "../../src/services/apps/all-app-live-tool-bindings"
           },

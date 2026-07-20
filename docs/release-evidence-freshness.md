@@ -11,21 +11,7 @@ is the active default release-blocking group for the SVD-066 supervisor-managed 
 | Evidence | Default scope | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- | --- |
 | Browser libp2p interoperability evidence (SWR-138) | historical | ✅ fresh | 2026-07-15T14:26:49.648Z | npm run evidence:libp2p-browser |
-| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-20T00:30:12.813Z | npm run build:web |
-| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ❌ stale | 2026-07-19T23:48:01.849Z | npm run services:audit |
-| Freshness-aware virtual desktop release evidence (SVD-114) | active | ❌ stale | 2026-07-19T23:29:36.832Z | node scripts/build-virtual-desktop-release-evidence.cjs |
-
-## Module-boundary / service-boundary audit evidence (SWR-024)
-
-- Status: **stale**
-- Recorded fingerprint: `6d1ef5f77b4497a206388a750b270a15a197fcd16756c23b91e8b8651158381a`
-- Current fingerprint: `bf7063cb61a0ea8fcf39ab29b2e1f27e7b02f512f210298b4a1c3b742d49f6e3`
-- Regenerate with: `npm run services:audit`
-
-## Freshness-aware virtual desktop release evidence (SVD-114)
-
-- Status: **stale**
-- Recorded fingerprint: `4143dc06afa5179e3ec2a0ad22ebc12c19573f9b820d3a06395e24a715638f4b`
-- Current fingerprint: `a8b1df2ba5fe8cbdf0860ec077f14fd3d5571f8a3813ecbb22d8359f2e9756f0`
-- Regenerate with: `node scripts/build-virtual-desktop-release-evidence.cjs`
+| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-20T07:38:43.324Z | npm run build:web |
+| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-20T07:35:47.175Z | npm run services:audit |
+| Freshness-aware virtual desktop release evidence (SVD-114) | active | ✅ fresh | 2026-07-20T07:52:17.212Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 

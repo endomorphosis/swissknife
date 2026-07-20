@@ -2,16 +2,16 @@
   "schema": "swr_029_evidence_freshness_receipt_v1",
   "id": "virtual-desktop-release-evidence",
   "label": "Freshness-aware virtual desktop release evidence (SVD-114)",
-  "generatedAt": "2026-07-19T23:29:36.832Z",
+  "generatedAt": "2026-07-20T07:52:17.212Z",
   "evidenceFiles": [
     "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
     "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md"
   ],
   "evidenceHashes": {
-    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "59a4b3907b90a18e428d730730110c44156760ef1bf3af9016dfa0ce606c788d",
-    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "465ad920073896905b16d8c0a4d037a85298c136a7bc80043ac7a489e82ec0d4"
+    "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "1dacfe5997e8e76c773b19237767f86013091d9fa6f9c0955b7ddec7a3c8b451",
+    "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "c5131bba8c35c2fc0d11dc6dc758455bf0d92814144757922a77d3a4bfde782d"
   },
-  "sourceFingerprint": "4143dc06afa5179e3ec2a0ad22ebc12c19573f9b820d3a06395e24a715638f4b",
+  "sourceFingerprint": "0f1dea9cf2ec7cd291279e44de64d7d395a9708a0f2c81c6b642c9bb918a2d13",
   "sourceFiles": [
     {
       "path": "../tmp/swissknife_all_tools_supervisor/state/submodule-merge-diagnostics.json",
@@ -43,7 +43,7 @@
     },
     {
       "path": "scripts/capture-mcp-live-probe-evidence.cjs",
-      "sha256": "e872b71c156a1bd37b60f347eacf3070e269bc51fa5f4503f940dd27bcb08243"
+      "sha256": "2f8f70742dd1ba2ae93b0ea59f24590cdb13dbddde8c0df8c2d40c11655399ee"
     },
     {
       "path": "scripts/capture-swissknife-all-tools-peer-evidence.cjs",
@@ -59,11 +59,11 @@
     },
     {
       "path": "scripts/lib/release-readiness-evidence-producers.mjs",
-      "sha256": "49a61c81d0cef13b62e1689a057852eeb8decc5b2dfcb5077094bf11948a332a"
+      "sha256": "8bf749f4f2975eaecaa05277f1c2e99bf3745bd9813df2113353c20beb23442f"
     },
     {
       "path": "scripts/lib/release-reproduction-attestation.mjs",
-      "sha256": "6c3167783d5324c42bb741307da68e0fded26c4704fe18db4d0d20f41c85f2ef"
+      "sha256": "eeb889d781c66798aadf2eb10069abfa2a3e4c4952b02dbfb2ba5006010b8164"
     },
     {
       "path": "scripts/release-readiness-gate.mjs",
@@ -119,43 +119,43 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json",
-      "sha256": "09c840764bde8b7aff0da7d0ba727c25357fd4368086151414114e96aa2aced7"
+      "sha256": "7ba73497ed17db1788bbc480d9029980b1d8d7401c21facf3e9fb22f24eb8520"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-binding-gap-ledger.json",
-      "sha256": "b860a100a60251bd54022b2e7e5790688d53dad06c47dc29620152fd5062bae6"
+      "sha256": "6130a6acaa1a7dc4f20c055df9b6641082f85fce40b64d75af7131d727260c98"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-gateway-executions.json",
-      "sha256": "47324348885acfad8b5237d08298e86cf823b0235681db3acbfd60bf3c19ad09"
+      "sha256": "fbffd676d2edf6ed3958f7f553a08ce777224aa07d79a35ebe5e05872f85a890"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-tool-bindings.json",
-      "sha256": "60de0276e08431414f9037652e794052735a9ad6ee5d136bfe0e771974f8b1e6"
+      "sha256": "bfedf1789718e43db6236e676cc84fe2630af8d199699bb94c81e9bb8ebb8e9f"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json",
-      "sha256": "18131a77888e32b69e847e9e952a0f55a6732e25045b8429ae13bdd31c1a4034"
+      "sha256": "2ba0fb755c909cfa28a08d496dabb096335610bb2cbd3c47bd0a7c287734cc98"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json",
-      "sha256": "4ed54bed6a4679003cd522f6947db0512f3c0175c235a04497c9d82e4391713a"
+      "sha256": "350945a36ef873a6f217941c294199f8ee3b2508cf956610e1fa39883d2f639d"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json",
-      "sha256": "990bf4b6705915e4a38f58d4188b0e8f47c05219ac21f5f537d3d2fbec099bfa"
+      "sha256": "5962e934c08c0035e709a8e82768fc78f0d29d4668b8f99cc906683ebbbe317d"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-app-ui-ux-accessibility.json",
-      "sha256": "b054250bc5bac452b7dfc025c3017971908f9ff508ee07b9e701a67a073d55ce"
+      "sha256": "0193bef0be2865f419473dbc0b7f3adde7cd235156f0d4088d29c0e37e77fabe"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-disposition-catalog.json",
-      "sha256": "be452cc9fc91db8a2e50595ef370e47db2c06f9798ccd5488356d0d93a593eda"
+      "sha256": "717a14ce20359c689d54e6277c6342280a997768c90a5fea722d76ea373023c6"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-backend-contract.json",
-      "sha256": "656293b39145c8acbad6aa8e91063a8028be7ad2f6f128ab24ea21d3ad1afd98"
+      "sha256": "9dc592b65bf3065566a9f3fc31dafc477b6f01509b96ef049e76b67689e33de9"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-behavior-proof/01-terminal-error.png",
@@ -711,7 +711,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/004-agent-supervisor-agent-supervisor-ipfs-kit-py-retrieve-content.png",
-      "sha256": "088fd0928e393913e53e6934ca5191d0f9fbbd158832bdfd3032522a848bd45e"
+      "sha256": "3627fe8cbca286b3dfd882a546c7af2d8cd60261fe35de1e788afb72ab3eecf3"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/005-ai-chat-ai-chat-ipfs-accelerate-py-submit-inference.png",
@@ -751,7 +751,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/014-datasets-browser-datasets-browser-ipfs-datasets-py-query-catalog.png",
-      "sha256": "9b9d4f43c5842804287b7c6686403780568f2ef08e160df9a92153cb94738d7f"
+      "sha256": "6122e63acdcb84f83405c7c39bebfb1f82bccc29747ba6530e5db03fabe4831f"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/015-device-manager-device-manager-ipfs-accelerate-py-inspect-hardware.png",
@@ -771,7 +771,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/019-friends-list-friends-list-ipfs-datasets-py-record-provenance.png",
-      "sha256": "c7e55e8f2945c5bb7c3951ac9b4959ca62413b5aa906cc9cc19703fbb80b0224"
+      "sha256": "79e8426e2feec00159343f74bffd6cc6a316b6150f3789a3ae23a270eb64ae17"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/020-friends-list-friends-list-ipfs-kit-py-exchange-peer-messages.png",
@@ -859,7 +859,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/041-music-studio-unified-music-studio-unified-ipfs-kit-py-retrieve-content.png",
-      "sha256": "0f9d04f49b46e17cd7a3204dd4a13c90cb0b8779d7f969fe2f94cf4cb673adda"
+      "sha256": "e3a6cd1b80fde1e74cf77aa43282e2952ce0d8183272c0d4f0312524f5e921de"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/042-music-studio-music-studio-ipfs-kit-py-retrieve-content.png",
@@ -923,7 +923,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/057-p2p-chat-p2p-chat-ipfs-kit-py-exchange-peer-messages.png",
-      "sha256": "dc8fb984bd98dfb76765a3b7fe9e82c95ba0a1bc7b449f39eab5cd9b2c44197b"
+      "sha256": "61e7d7796ea5380094b6f349c978bf862d798f877349732658fcefa5ce121a3e"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/058-p2p-network-p2p-network-ipfs-accelerate-py-inspect-hardware.png",
@@ -967,11 +967,11 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/068-task-manager-task-manager-ipfs-datasets-py-record-provenance.png",
-      "sha256": "75b58448398a7d53416c1aea2c48a0aa08551aa8afa1ed9b38833415c97efc1c"
+      "sha256": "f811b25006e76d0f5a1f34ed6ce7fdcf9fb056ff3a093be5a04917af956562eb"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/069-terminal-terminal-ipfs-accelerate-py-inspect-model-catalog.png",
-      "sha256": "20f7a3b4128c13726cfd67e154fcf148b33f25aeea037889b8f0ac477f9ab343"
+      "sha256": "ca0f0d835739486748ea6e30d1343d6173880db41ad27d2f22c8736f5d31ff48"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/070-terminal-terminal-ipfs-datasets-py-query-catalog.png",
@@ -1027,7 +1027,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/083-agent-supervisor-supervisor-goals-read.png",
-      "sha256": "68e223e0754f9a39443cc9c1ef30fb3f2798c8416b9e77ce14d7d2e3c4e90a41"
+      "sha256": "29ccf82c7ed5df627cbaf2e3eb00f46070ce977acc3bc41a13ccb31fc0b546ed"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/084-agent-supervisor-supervisor-health-read.png",
@@ -1043,7 +1043,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/087-agent-supervisor-supervisor-policy-assist.png",
-      "sha256": "5c1a1b26211dce0978823975fc77e57906bbbb9d8bb97596732641c7eaff6ccd"
+      "sha256": "b3bb73b92004ed3cb66c7abb5a3c81f77860f13f990f3be4c8c0b60482c12204"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/088-agent-supervisor-supervisor-profile-g-read.png",
@@ -1055,7 +1055,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/090-agent-supervisor-supervisor-queue-read.png",
-      "sha256": "61a34d9a70eb266971a17c5a0de7eef116d90ddf68c3d56f159ec6b4948e01cc"
+      "sha256": "a68f9bde41b4d5d93b962dc0d864047c3f9f81e31d029e3bbe5716704e46f8a4"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/091-agent-supervisor-supervisor-receipts-persist.png",
@@ -1071,7 +1071,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/094-agent-supervisor-supervisor-run-history-search.png",
-      "sha256": "784d12fda3ca32ab07a41375bbd37cf34a7d31383a43be1275aa4fdd8d1c80d3"
+      "sha256": "7a3be4aeeae9e87f6c61fbd55ca4906b30aa0bc41c9725e858cec958e241e076"
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof/095-agent-supervisor-supervisor-schedule-claim.png",
@@ -1119,7 +1119,7 @@
     },
     {
       "path": "test-results/virtual-desktop-ipfs-mcp-orb/supervisor-dispatch-artifact-store.json",
-      "sha256": "5153ae0556f80893742a825ea999710862f1d5c9f3f94eeea2639937d0c5ec90"
+      "sha256": "c9accf9bbf2329a20372925ef25e918528561fe2e57d9b76bb09e5a2690fb71d"
     },
     {
       "path": "test/e2e/all-app-live-behavior-proof.spec.ts",

@@ -7,7 +7,7 @@
     "serviceRoot": "src/services",
     "auditScript": "scripts/audit-source-modules.mjs",
     "phase16CleanupEvidence": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16",
-    "sourceRevision": "bf8649a1870aa6647015db5cf2e496ede45c408f",
+    "sourceRevision": "9252e108bf10b80593adc3e36b441b75affe51b3",
     "recoveryProvenance": {
       "path": "docs/phase-21-recovery-provenance.json",
       "available": false
@@ -662,7 +662,7 @@
         },
         {
           "file": "test/architecture/release-readiness-hermetic.test.ts",
-          "line": 34,
+          "line": 35,
           "kind": "static-import",
           "specifier": "../../src/services/apps/all-app-live-tool-bindings"
         },

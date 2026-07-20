@@ -28,8 +28,8 @@ The Playwright smoke opens apps through desktop icon paths, records visible load
 ## Complete Catalog Routing
 
 - ipfs_accelerate_py: available; flat=122; hierarchical=122; routed through MCP Control, Supervisor Console, Terminal
-- ipfs_datasets_py: available; flat=14; hierarchical=10; routed through MCP Control, Supervisor Console, Terminal
-- ipfs_kit_py: available; flat=32; hierarchical=28; routed through MCP Control, Supervisor Console, Terminal
+- ipfs_datasets_py: available; flat=275; hierarchical=271; routed through MCP Control, Supervisor Console, Terminal
+- ipfs_kit_py: available; flat=153; hierarchical=149; routed through MCP Control, Supervisor Console, Terminal
 
 ## Required UI States
 
@@ -55,7 +55,7 @@ Each receipt is recorded from a Playwright browser page and asserts that no Node
 | model-browser | tool_backed | ipfs_accelerate_py, ipfs_datasets_py, ipfs_kit_py | MCP Control | loading, success, fallback, error | yes | test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/08-model-browser.png |
 | huggingface | tool_backed | ipfs_accelerate_py, ipfs_datasets_py, ipfs_kit_py | Supervisor Console | loading, success, fallback, error | yes | test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/09-huggingface.png |
 | openrouter | manifest_only | ipfs_accelerate_py, ipfs_datasets_py | MCP Control | loading, success, fallback, error | yes | test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/10-openrouter.png |
-| ipfs-explorer | tool_backed | ipfs_kit_py | MCP Control | loading, success, fallback, error | yes | test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/11-ipfs-explorer.png |
+| ipfs-explorer | tool_backed | ipfs_datasets_py, ipfs_kit_py | MCP Control | loading, success, fallback, error | yes | test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/11-ipfs-explorer.png |
 | device-manager | tool_backed | ipfs_accelerate_py, ipfs_kit_py | Supervisor Console | loading, success, fallback, error | yes | test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/12-device-manager.png |
 | settings | manifest_only | local | local-only | loading, success, fallback, error | yes | test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/13-settings.png |
 | mcp-control | tool_backed | ipfs_accelerate_py, ipfs_datasets_py, ipfs_kit_py | Supervisor Console | loading, success, fallback, error | yes | test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/14-mcp-control.png |
@@ -96,32 +96,32 @@ Each receipt is recorded from a Playwright browser page and asserts that no Node
 | App | Backends | App-visible | Fallback/desktop | States | Screenshot |
 | --- | --- | ---: | ---: | --- | --- |
 | accelerate-panel | ipfs_accelerate_py | 4 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/accelerate-panel.png |
-| agent-supervisor | ipfs_accelerate_py, ipfs_datasets_py, ipfs_kit_py | 16 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/agent-supervisor.png |
+| agent-supervisor | ipfs_accelerate_py, ipfs_datasets_py, ipfs_kit_py | 19 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/agent-supervisor.png |
 | ai-chat | ipfs_accelerate_py | 5 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/ai-chat.png |
-| api-keys | ipfs_kit_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/api-keys.png |
-| cinema | ipfs_kit_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/cinema.png |
-| datasets-browser | ipfs_datasets_py | 13 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/datasets-browser.png |
+| api-keys | ipfs_kit_py | 0 | 9 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/api-keys.png |
+| cinema | ipfs_kit_py | 1 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/cinema.png |
+| datasets-browser | ipfs_datasets_py | 61 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/datasets-browser.png |
 | device-manager | ipfs_accelerate_py | 12 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/device-manager.png |
-| file-manager | ipfs_kit_py | 6 | 1 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/file-manager.png |
+| file-manager | ipfs_kit_py | 69 | 7 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/file-manager.png |
 | friends-list | ipfs_kit_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/friends-list.png |
-| github | ipfs_accelerate_py, ipfs_datasets_py | 15 | 2 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/github.png |
+| github | ipfs_accelerate_py, ipfs_datasets_py | 22 | 2 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/github.png |
 | huggingface | ipfs_accelerate_py | 7 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/huggingface.png |
 | idl-explorer | ipfs_kit_py, ipfs_datasets_py, ipfs_accelerate_py | 3 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/idl-explorer.png |
 | image-viewer | ipfs_kit_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/image-viewer.png |
-| ipfs-explorer | ipfs_kit_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/ipfs-explorer.png |
-| mcp-control | ipfs_kit_py, ipfs_datasets_py, ipfs_accelerate_py | 12 | 1 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/mcp-control.png |
-| mcp-plus-plus | ipfs_kit_py, ipfs_datasets_py, ipfs_accelerate_py | 47 | 3 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/mcp-plus-plus.png |
-| media-player | ipfs_kit_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/media-player.png |
-| model-browser | ipfs_accelerate_py, ipfs_datasets_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/model-browser.png |
+| ipfs-explorer | ipfs_kit_py | 7 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/ipfs-explorer.png |
+| mcp-control | ipfs_kit_py, ipfs_datasets_py, ipfs_accelerate_py | 20 | 3 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/mcp-control.png |
+| mcp-plus-plus | ipfs_kit_py, ipfs_datasets_py, ipfs_accelerate_py | 70 | 6 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/mcp-plus-plus.png |
+| media-player | ipfs_kit_py | 13 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/media-player.png |
+| model-browser | ipfs_accelerate_py, ipfs_datasets_py | 35 | 1 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/model-browser.png |
 | navi | ipfs_accelerate_py | 2 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/navi.png |
-| neural-network-designer | ipfs_accelerate_py, ipfs_datasets_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/neural-network-designer.png |
-| neural-photoshop | ipfs_accelerate_py, ipfs_datasets_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/neural-photoshop.png |
-| notes | ipfs_datasets_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/notes.png |
+| neural-network-designer | ipfs_accelerate_py, ipfs_datasets_py | 26 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/neural-network-designer.png |
+| neural-photoshop | ipfs_accelerate_py, ipfs_datasets_py | 18 | 8 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/neural-photoshop.png |
+| notes | ipfs_datasets_py | 39 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/notes.png |
 | orb-auto-ui | ipfs_kit_py, ipfs_datasets_py, ipfs_accelerate_py | 14 | 1 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/orb-auto-ui.png |
 | p2p-chat | ipfs_kit_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/p2p-chat.png |
 | p2p-chat-unified | ipfs_kit_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/p2p-chat-unified.png |
 | p2p-network | ipfs_kit_py, ipfs_accelerate_py | 9 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/p2p-network.png |
-| peertube | ipfs_kit_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/peertube.png |
-| system-monitor | ipfs_kit_py, ipfs_accelerate_py | 14 | 1 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/system-monitor.png |
+| peertube | ipfs_kit_py | 5 | 1 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/peertube.png |
+| system-monitor | ipfs_kit_py, ipfs_accelerate_py | 33 | 5 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/system-monitor.png |
 | training-manager | ipfs_accelerate_py, ipfs_datasets_py | 20 | 4 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/training-manager.png |
-| vibecode | ipfs_datasets_py | 0 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/vibecode.png |
+| vibecode | ipfs_datasets_py | 33 | 0 | success, fallback, error | test-results/virtual-desktop-ipfs-mcp-orb/tool-ui-smoke-screenshots/vibecode.png |

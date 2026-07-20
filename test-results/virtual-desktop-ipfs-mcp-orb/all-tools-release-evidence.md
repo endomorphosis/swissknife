@@ -1,7 +1,7 @@
 # Freshness-Aware Virtual Desktop Release Evidence
 
 Task: SVD-114
-Generated: 2026-07-19T23:29:36.497Z
+Generated: 2026-07-20T07:52:16.770Z
 Decision: **GO**
 
 ## Freshness policy
@@ -19,16 +19,16 @@ Decision: **GO**
 
 | Input | Task | Freshness | Captured |
 | --- | --- | --- | --- |
-| binding_gap_ledger | SVD-102 | fresh | 2026-07-19T23:21:49.177Z |
-| live_bindings | SVD-104 | fresh | 2026-07-19T23:21:48.115Z |
-| tool_disposition_catalog | SVD-105 | fresh | 2026-07-19T23:21:48.833Z |
-| live_behavior | SVD-106 | fresh | 2026-07-19T23:22:43.826Z |
-| gateway_executions | SVD-126 | fresh | 2026-07-19T23:23:45.008Z |
-| profile_interoperability | SVD-127 | fresh | 2026-07-19T23:23:48.448Z |
-| action_handoff | SVD-110 | fresh | 2026-07-19T23:23:53.704Z |
-| meta_simulator | SVD-111 | fresh | 2026-07-19T23:23:58.898Z |
-| ui_accessibility | SVD-112 | fresh | 2026-07-19T23:28:59.023Z |
-| dispatch_artifact_store | SVD-113 | fresh | 2026-07-19T23:28:55.204Z |
-| merge_reconciliation | SVD-116 | fresh | 2026-07-19T23:29:36.414Z |
-| app_backend_contract | SWR-113 | fresh | 2026-07-19T23:18:38.435Z |
-| peer_interoperability | SVD-100 | fresh | 2026-07-19T23:21:46.470Z |
+| binding_gap_ledger | SVD-102 | fresh | 2026-07-20T07:43:25.627Z |
+| live_bindings | SVD-104 | fresh | 2026-07-20T07:43:24.234Z |
+| tool_disposition_catalog | SVD-105 | fresh | 2026-07-20T07:43:25.152Z |
+| live_behavior | SVD-106 | fresh | 2026-07-20T07:44:22.127Z |
+| gateway_executions | SVD-126 | fresh | 2026-07-20T07:46:09.956Z |
+| profile_interoperability | SVD-127 | fresh | 2026-07-20T07:46:13.122Z |
+| action_handoff | SVD-110 | fresh | 2026-07-20T07:46:18.206Z |
+| meta_simulator | SVD-111 | fresh | 2026-07-20T07:46:25.909Z |
+| ui_accessibility | SVD-112 | fresh | 2026-07-20T07:51:32.911Z |
+| dispatch_artifact_store | SVD-113 | fresh | 2026-07-20T07:51:28.431Z |
+| merge_reconciliation | SVD-116 | fresh | 2026-07-20T07:52:12.429Z |
+| app_backend_contract | SWR-113 | fresh | 2026-07-20T07:38:56.294Z |
+| peer_interoperability | SVD-100 | fresh | 2026-07-20T07:43:21.114Z |

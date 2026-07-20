@@ -1,16 +1,16 @@
 # Refactor Main Reconciliation Receipt
 
-Generated: 2026-07-20T00:04:10.775Z
+Generated: 2026-07-20T07:52:16.674Z
 Task: SWR-162
 Decision: **GO**
 
 ## Checkout
 
-Head: `bf8649a1870aa6647015db5cf2e496ede45c408f`
+Head: `9252e108bf10b80593adc3e36b441b75affe51b3`
 Branch: `automation/swissknife-refactor-integration`
 Selected upstream: `origin/main`
-Integration base: `bf8649a1870aa6647015db5cf2e496ede45c408f`
-Working tree status entries: 138
+Integration base: `f9415b10d38443690c7cc5a9221946427506c318`
+Working tree status entries: 80
 Unmerged paths: 0
 Conflict marker paths: 0
 
@@ -18,7 +18,14 @@ Conflict marker paths: 0
 
 | Commit | Subject | Changed paths |
 | --- | --- | ---: |
-| none | no new commits relative to selected mainline base | 0 |
+| `e53e2e237153` | SWR-162: reconcile validated refactor lane | 138 |
+| `cda2bfd428a2` | SWR-162: support staged parent gitlink validation | 1 |
+| `6c50b79a7d3d` | SWR-162: lease MCP dashboard evidence port | 4 |
+| `eb87ca3041e6` | fix(release): tolerate absent sibling repos in clean clone | 1 |
+| `af88cacefc3f` | fix(release): allow standalone reconciliation receipt | 2 |
+| `4cecea515242` | fix(release): validate standalone reconciliation evidence | 2 |
+| `61c087a52e57` | fix(release): compare freshness contracts across clones | 1 |
+| `9252e108bf10` | fix(mcp): retry queued datasets read probes | 1 |
 
 ## Preserved Integrated Attempt Refs
 
@@ -44,6 +51,8 @@ Conflict marker paths: 0
 
 ## Task Status Evidence
 
+- Parent task board: present
+- Parent task board required for this checkout: yes
 - SWR-160: completed
 - SWR-161: completed
 - SWR-162: ready

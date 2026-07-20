@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-20T00:30:12.832Z",
+  "generatedAt": "2026-07-20T07:52:17.213Z",
   "results": [
     {
       "id": "libp2p-browser-playwright",
@@ -25,7 +25,7 @@
       "id": "browser-bundle-budget",
       "label": "Browser bundle budget evidence (SWR-016)",
       "status": "fresh",
-      "updated": true,
+      "updated": false,
       "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
@@ -37,57 +37,49 @@
         "docs/browser-bundle-budget.md": "615d2ed906bc0cade23fc86486ab2e49f713c17f0e328a2d5be531b6b057d27b",
         "docs/browser-bundle-budget.json": "7a5ae7ea8dc43fb309551a35339ea7a956304bfdfd90010d94eb1c81a61e203d"
       },
-      "recordedFingerprint": "1305e212fbc899e92d835ab184e9a8e1ec20bd12884a6c952acb31f3016bb277",
-      "currentFingerprint": "1305e212fbc899e92d835ab184e9a8e1ec20bd12884a6c952acb31f3016bb277",
-      "recordedAt": "2026-07-20T00:30:12.813Z",
+      "recordedFingerprint": "d42626e0928351de4212de3f1ee75e2fef7e398a68ba75a24688efebb29e6d05",
+      "currentFingerprint": "d42626e0928351de4212de3f1ee75e2fef7e398a68ba75a24688efebb29e6d05",
+      "recordedAt": "2026-07-20T07:38:43.324Z",
       "regenerateHint": "npm run build:web"
     },
     {
       "id": "module-boundary-audit",
       "label": "Module-boundary / service-boundary audit evidence (SWR-024)",
-      "status": "stale",
+      "status": "fresh",
       "updated": false,
       "releaseBlocking": false,
       "missingEvidenceFiles": [],
       "missingSourceFiles": [],
       "recordedEvidenceHashes": {
-        "docs/service-boundary-audit.json": "bfc66983e08ee05e33782f57ee8b5ef9ff290b942d9228a2cb0239d1302e2af5"
+        "docs/service-boundary-audit.json": "1891fa8f93965f7d375c655ede2cbcde98559c6879dfa01ad9ce86775a1b25d5"
       },
       "currentEvidenceHashes": {
-        "docs/service-boundary-audit.json": "bfc66983e08ee05e33782f57ee8b5ef9ff290b942d9228a2cb0239d1302e2af5"
+        "docs/service-boundary-audit.json": "1891fa8f93965f7d375c655ede2cbcde98559c6879dfa01ad9ce86775a1b25d5"
       },
-      "recordedFingerprint": "6d1ef5f77b4497a206388a750b270a15a197fcd16756c23b91e8b8651158381a",
+      "recordedFingerprint": "bf7063cb61a0ea8fcf39ab29b2e1f27e7b02f512f210298b4a1c3b742d49f6e3",
       "currentFingerprint": "bf7063cb61a0ea8fcf39ab29b2e1f27e7b02f512f210298b4a1c3b742d49f6e3",
-      "recordedAt": "2026-07-19T23:48:01.849Z",
+      "recordedAt": "2026-07-20T07:35:47.175Z",
       "regenerateHint": "npm run services:audit"
     },
     {
       "id": "virtual-desktop-release-evidence",
       "label": "Freshness-aware virtual desktop release evidence (SVD-114)",
-      "status": "stale",
-      "updated": false,
+      "status": "fresh",
+      "updated": true,
       "releaseBlocking": true,
       "missingEvidenceFiles": [],
-      "missingSourceFiles": [
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-behavior-proof.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-live-gateway-executions.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-mcpplusplus-profile-interoperability.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json",
-        "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/live-behavior-proof",
-        "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/meta-device-simulator-proof",
-        "test-results/virtual-desktop-ipfs-mcp-orb/supervisor-dispatch-artifact-store.json"
-      ],
+      "missingSourceFiles": [],
       "recordedEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "59a4b3907b90a18e428d730730110c44156760ef1bf3af9016dfa0ce606c788d",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "465ad920073896905b16d8c0a4d037a85298c136a7bc80043ac7a489e82ec0d4"
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "1dacfe5997e8e76c773b19237767f86013091d9fa6f9c0955b7ddec7a3c8b451",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "c5131bba8c35c2fc0d11dc6dc758455bf0d92814144757922a77d3a4bfde782d"
       },
       "currentEvidenceHashes": {
-        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "59a4b3907b90a18e428d730730110c44156760ef1bf3af9016dfa0ce606c788d",
-        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "465ad920073896905b16d8c0a4d037a85298c136a7bc80043ac7a489e82ec0d4"
+        "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json": "1dacfe5997e8e76c773b19237767f86013091d9fa6f9c0955b7ddec7a3c8b451",
+        "test-results/virtual-desktop-ipfs-mcp-orb/all-tools-release-evidence.md": "c5131bba8c35c2fc0d11dc6dc758455bf0d92814144757922a77d3a4bfde782d"
       },
-      "recordedFingerprint": "4143dc06afa5179e3ec2a0ad22ebc12c19573f9b820d3a06395e24a715638f4b",
-      "currentFingerprint": "a8b1df2ba5fe8cbdf0860ec077f14fd3d5571f8a3813ecbb22d8359f2e9756f0",
-      "recordedAt": "2026-07-19T23:29:36.832Z",
+      "recordedFingerprint": "0f1dea9cf2ec7cd291279e44de64d7d395a9708a0f2c81c6b642c9bb918a2d13",
+      "currentFingerprint": "0f1dea9cf2ec7cd291279e44de64d7d395a9708a0f2c81c6b642c9bb918a2d13",
+      "recordedAt": "2026-07-20T07:52:17.212Z",
       "regenerateHint": "node scripts/build-virtual-desktop-release-evidence.cjs"
     }
   ]
