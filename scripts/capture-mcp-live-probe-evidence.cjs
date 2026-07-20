@@ -27,6 +27,7 @@ const mcpAnnounceFile = process.env.IPFS_ACCELERATE_PY_TASK_P2P_ANNOUNCE_FILE
 // mistaking queue pressure for an unavailable backend.
 const liveProbeTimeoutMs = Number(process.env.SWISSKNIFE_MCP_LIVE_PROBE_TIMEOUT_MS || 30000);
 const liveProbeConcurrency = Number(process.env.SWISSKNIFE_MCP_LIVE_PROBE_CONCURRENCY || 8);
+const datasetsReadProbeTimeoutMs = Number(process.env.SWISSKNIFE_MCP_DATASETS_READ_PROBE_TIMEOUT_MS || Math.max(liveProbeTimeoutMs, 60000));
 const requiredServiceRoles = new Set(['configured', 'configured_compat']);
 const requiredServices = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
 const mcpPlusPlusEligible = new Set(['eligible', 'required', 'advertised', true]);
@@ -396,13 +397,19 @@ async function verifyDescriptor(endpoint, descriptor) {
   }
 
   const args = readOnlyProbeArguments(descriptor);
-  const response = descriptor.route.kind === 'hierarchical'
-    ? await callTool(endpoint, 'tools_dispatch', {
+  const invoke = () => descriptor.route.kind === 'hierarchical'
+    ? callTool(endpoint, 'tools_dispatch', {
         category: descriptor.route.category,
         tool: descriptor.route.tool,
         params: args,
-      })
-    : await callTool(endpoint, descriptor.route.tool, {});
+      }, { timeoutMs: descriptor.service === 'ipfs_datasets_py' ? datasetsReadProbeTimeoutMs : liveProbeTimeoutMs })
+    : callTool(endpoint, descriptor.route.tool, {}, { timeoutMs: descriptor.service === 'ipfs_datasets_py' ? datasetsReadProbeTimeoutMs : liveProbeTimeoutMs });
+  let response = await invoke();
+  // The datasets compatibility adapter serializes its dashboard worker. Retry
+  // only an aborted read probe, once, after its bounded queue timeout.
+  if (descriptor.service === 'ipfs_datasets_py' && /aborted|aborterror/i.test(response.error ?? '')) {
+    response = await invoke();
+  }
   const accepted = response.status === 'passed' || isAcceptedReadProbeResponse(descriptor, response);
   const receipt = accepted ? dispatchReceipt(descriptor, response) : null;
   return {
@@ -730,9 +737,10 @@ async function jsonRpc(endpoint, method, params) {
   return response;
 }
 
-async function callTool(endpoint, name, args) {
+async function callTool(endpoint, name, args, options = {}) {
   const response = await fetchJson(endpoint, {
     body: { jsonrpc: '2.0', id: `${name}-${Date.now()}`, method: 'tools/call', params: { name, arguments: args } },
+    timeoutMs: options.timeoutMs,
   });
   if (!response.ok) {
     return { status: 'failed', error: response.error ?? `HTTP ${response.status}`, value: null, raw: response.json };
@@ -750,7 +758,7 @@ async function callTool(endpoint, name, args) {
 
 async function fetchJson(url, options = {}) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), liveProbeTimeoutMs);
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? liveProbeTimeoutMs);
   try {
     const response = await fetch(url, {
       method: options.method ?? 'POST',
