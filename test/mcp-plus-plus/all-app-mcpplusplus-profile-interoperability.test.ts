@@ -146,18 +146,24 @@ describe("SVD-127 application-originated MCP++ Profile A-H replay", () => {
       expect(path.transports.http).toMatchObject({
         application_originated: true,
         transport: "http",
-        policy_outcome: "allow",
+        policy_outcome: expect.stringMatching(/^(?:allow|require_confirmation)$/),
         persistence_verified: true,
         ucan_did_verified: true,
       });
       expect(path.transports.libp2p).toMatchObject({
         application_originated: true,
         transport: "libp2p",
-        policy_outcome: "allow",
+        policy_outcome: expect.stringMatching(/^(?:allow|require_confirmation)$/),
         persistence_verified: true,
         ucan_did_verified: true,
       });
       expect(path.transports.parity_verified).toBe(true);
+      for (const transport of [path.transports.http, path.transports.libp2p]) {
+        if (transport.policy_outcome === "require_confirmation") {
+          expect(transport.policy_dry_run).toBe(true);
+          expect(transport.confirmation_required).toBe(true);
+        }
+      }
     }
   });
   it("retains transport-specific CID, DID, policy, provenance, compaction, correlation, and recovery evidence", () => {
@@ -206,8 +212,8 @@ describe("SVD-127 application-originated MCP++ Profile A-H replay", () => {
       expect(
         profiles.find((item) => item.profile === "D")?.evidence,
       ).toMatchObject({
-        http_policy: { outcome: "allow" },
-        libp2p_policy: { outcome: "allow" },
+        http_policy: { outcome: expect.stringMatching(/^(?:allow|require_confirmation)$/) },
+        libp2p_policy: { outcome: expect.stringMatching(/^(?:allow|require_confirmation)$/) },
       });
     }
   });

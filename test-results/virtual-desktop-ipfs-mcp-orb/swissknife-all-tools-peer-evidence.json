@@ -1,12 +1,12 @@
 {
   "schema": "swissknife.all_tools_peer_interoperability_evidence.v1",
-  "generated_at": "2026-07-20T07:43:21.114Z",
+  "generated_at": "2026-07-22T00:27:29.725Z",
   "task_id": "SVD-100",
   "decision": "go",
   "scope": "SwissKnife MCP++ client discovery and approved fixture execution over independent HTTP and libp2p sessions",
   "client": {
     "implementation": "src/services/mcp/mcp-plus-plus-connector.ts",
-    "ucan_audience_did": "did:key:z6Mkw6ZXzSSPCxeyXU74BY9VH8cBqeaEYzSbZ48Psi8TKpuE"
+    "ucan_audience_did": "did:key:z6MkgF7snYgaBQ649xWWLH66D6zurecqU9SaHtdWEiSd1oBV"
   },
   "availability_evidence_policy": {
     "rule": "Availability is established only by an explicit name-level discovery observation and, for approved fixtures, a successful invocation. Aggregate counts are never availability evidence.",
@@ -48,13 +48,13 @@
       "announce": {
         "file": "ipfs-kit-mcp-p2p-announce.json",
         "protocol": "/mcp+p2p/1.0.0",
-        "peer_id": "12D3KooWJuaoVp3JY1Bj9FfLmdP4XvWdutwcemoxJNw8efV6XVTd",
-        "multiaddr": "/ip4/127.0.0.1/tcp/40129/p2p/12D3KooWJuaoVp3JY1Bj9FfLmdP4XvWdutwcemoxJNw8efV6XVTd"
+        "peer_id": "12D3KooWHSvE1bkC6QR9FRf57CNfhrmNW9RB3uVzdeqkKCyLDw9u",
+        "multiaddr": "/ip4/127.0.0.1/tcp/34373/p2p/12D3KooWHSvE1bkC6QR9FRf57CNfhrmNW9RB3uVzdeqkKCyLDw9u"
       },
       "transports": {
         "http": {
           "transport": "http",
-          "endpoint": "http://127.0.0.1:8014",
+          "endpoint": "http://127.0.0.1:31015",
           "connected": true,
           "selected_transport": "http",
           "no_transport_fallback": true,
@@ -400,7 +400,7 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu",
-            "identity_proof_cid": "bafkreiavxi7cgfofsfoem3ml54cid3ay4p6ebv6sn54d5gs4apqvf2t3ba",
+            "identity_proof_cid": "bafkreib3ccwvgacpa5leomcr6fp6xlggca6l2uuxoqwm4mgpshibikadse",
             "peer_id": null,
             "multiaddr": null,
             "peer_id_matches_announce": null,
@@ -411,8 +411,18 @@
             "arguments": {},
             "approval": "non-mutating status fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_kit_py-http",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_kit_py-http"
+            },
             "delegation": {
-              "proof_cid": "bafkreieeac7dqdcioi75abj33jg6hagqsd64vji6yjmv7bmktmjudeudne",
+              "proof_cid": "bafkreihpwrxuhn3qyuug4earcytvfstgwxnwjhkrolraskoq5bn7q4kybi",
               "valid": true,
               "validation_chain_length": 1
             },
@@ -424,12 +434,12 @@
             },
             "envelope": {
               "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
-              "envelope_cid": "bafkreie4yih7eqipd2lvvbusydene2fa5u5ocn4qi4h6jz2rlx3wkjihae",
+              "envelope_cid": "bafkreigor3u75235t3gjdigqanfyuivinfnp5qihzldzwfr5adhzbkyr64",
               "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
-              "intent_cid": "bafkreieluu46moey54xkoabq2s6xduer3iuycsjurd3eldmooxsiw76h2q",
-              "output_cid": "bafkreigtscxsvnzpdiqfesig6zm553fzcwdomtad6s3ngewewm4r7g6myy",
-              "receipt_cid": "bafkreiawsq5uy7gz7ujcv3uezbospp3lb3mdcurbzhdbsvn6velhwo7yhe",
-              "event_cid": "bafkreiatjszojn54ubl5twokleecl625qhvp2raogxopvjawch4ds34bzy",
+              "intent_cid": "bafkreig4ie5oqd5ijn6igh7oxusytahhigcg7lpn545lohoi6hlw2nu6ci",
+              "output_cid": "bafkreifscgxnse3by4cjozl4lmbwvuixjofzxw3zusig24ynbkx7po2y2y",
+              "receipt_cid": "bafkreigyda7d65vez7nuhmahzxln4l57rjhnmadixeys5xidtdbbshrcze",
+              "event_cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
@@ -451,7 +461,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreieluu46moey54xkoabq2s6xduer3iuycsjurd3eldmooxsiw76h2q",
+                  "cid": "bafkreig4ie5oqd5ijn6igh7oxusytahhigcg7lpn545lohoi6hlw2nu6ci",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -459,7 +469,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreie4yih7eqipd2lvvbusydene2fa5u5ocn4qi4h6jz2rlx3wkjihae",
+                  "cid": "bafkreigor3u75235t3gjdigqanfyuivinfnp5qihzldzwfr5adhzbkyr64",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -467,7 +477,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreigtscxsvnzpdiqfesig6zm553fzcwdomtad6s3ngewewm4r7g6myy",
+                  "cid": "bafkreifscgxnse3by4cjozl4lmbwvuixjofzxw3zusig24ynbkx7po2y2y",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -475,7 +485,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreiawsq5uy7gz7ujcv3uezbospp3lb3mdcurbzhdbsvn6velhwo7yhe",
+                  "cid": "bafkreigyda7d65vez7nuhmahzxln4l57rjhnmadixeys5xidtdbbshrcze",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -483,7 +493,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreiatjszojn54ubl5twokleecl625qhvp2raogxopvjawch4ds34bzy",
+                  "cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -496,7 +506,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreiatjszojn54ubl5twokleecl625qhvp2raogxopvjawch4ds34bzy"
+              "event_cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe"
             },
             "error": null
           },
@@ -504,7 +514,7 @@
         },
         "libp2p": {
           "transport": "libp2p",
-          "endpoint": "/ip4/127.0.0.1/tcp/40129/p2p/12D3KooWJuaoVp3JY1Bj9FfLmdP4XvWdutwcemoxJNw8efV6XVTd",
+          "endpoint": "/ip4/127.0.0.1/tcp/34373/p2p/12D3KooWHSvE1bkC6QR9FRf57CNfhrmNW9RB3uVzdeqkKCyLDw9u",
           "connected": true,
           "selected_transport": "libp2p",
           "no_transport_fallback": true,
@@ -850,9 +860,9 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu",
-            "identity_proof_cid": "bafkreicr6np22evlbtuzag4bixptbwb5jponeial2nwgfagdhk6pjgdvlq",
-            "peer_id": "12D3KooWJuaoVp3JY1Bj9FfLmdP4XvWdutwcemoxJNw8efV6XVTd",
-            "multiaddr": "/ip4/127.0.0.1/tcp/40129/p2p/12D3KooWJuaoVp3JY1Bj9FfLmdP4XvWdutwcemoxJNw8efV6XVTd",
+            "identity_proof_cid": "bafkreif4vgug2jm436w5nraxei7u7v3xqksfoa46cmceetap3xqnjpgz74",
+            "peer_id": "12D3KooWHSvE1bkC6QR9FRf57CNfhrmNW9RB3uVzdeqkKCyLDw9u",
+            "multiaddr": "/ip4/127.0.0.1/tcp/34373/p2p/12D3KooWHSvE1bkC6QR9FRf57CNfhrmNW9RB3uVzdeqkKCyLDw9u",
             "peer_id_matches_announce": true,
             "multiaddr_matches_announce": true
           },
@@ -861,8 +871,18 @@
             "arguments": {},
             "approval": "non-mutating status fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_kit_py-libp2p",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_kit_py-libp2p"
+            },
             "delegation": {
-              "proof_cid": "bafkreifptnrbaq2xwdasknhbw3frnkq5hdebcysdk6ylr7iy7lydk36s4q",
+              "proof_cid": "bafkreibxevprvu5vvlevdrol7xjiqmzvwcgwndudlf3inabwnd5ldkp3zm",
               "valid": true,
               "validation_chain_length": 1
             },
@@ -874,12 +894,12 @@
             },
             "envelope": {
               "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
-              "envelope_cid": "bafkreiduysgyryfw2ugygghjkqqmmzmnh5ggkf3h6pqlpxcqewdeza5r4q",
+              "envelope_cid": "bafkreig6cubzidcghdu5mba2g4iceejogalwzdzhqzuopl2t7ianea7fzy",
               "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
-              "intent_cid": "bafkreig54y6gg4khypyjfwdwtjnh5uvgdxhpfxl6dhrudwhsjfkiaoz53e",
-              "output_cid": "bafkreicojwq5zrzdxnxbydtgxg3psarfilvpigvbx2gg2wyyb3n4ndsogq",
-              "receipt_cid": "bafkreidkyehj6mwu4jvosq27gxdhloyx5n4xglw4v7rfu7v4oa3ttlaqiy",
-              "event_cid": "bafkreicklqb3h3xgvu3ngsb2rd2rbfori5ejs6eijbvxffhibrpm7gtbci",
+              "intent_cid": "bafkreidqm3epdshjnozddgql3yanj6nc2bwlyg7uv7xpnvzozdjvkvcfqy",
+              "output_cid": "bafkreibddvfzedqfcegdrpnl34sjx2wverfbg2ipo5k7jszc73pxrx3gdq",
+              "receipt_cid": "bafkreietpgetr6hr7urmfwsys5lp5h6csmvo56kkejlnfz6xfrw3bc7mi4",
+              "event_cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
@@ -897,47 +917,47 @@
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreig54y6gg4khypyjfwdwtjnh5uvgdxhpfxl6dhrudwhsjfkiaoz53e",
+                  "cid": "bafkreidqm3epdshjnozddgql3yanj6nc2bwlyg7uv7xpnvzozdjvkvcfqy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreiduysgyryfw2ugygghjkqqmmzmnh5ggkf3h6pqlpxcqewdeza5r4q",
+                  "cid": "bafkreig6cubzidcghdu5mba2g4iceejogalwzdzhqzuopl2t7ianea7fzy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreicojwq5zrzdxnxbydtgxg3psarfilvpigvbx2gg2wyyb3n4ndsogq",
+                  "cid": "bafkreibddvfzedqfcegdrpnl34sjx2wverfbg2ipo5k7jszc73pxrx3gdq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreidkyehj6mwu4jvosq27gxdhloyx5n4xglw4v7rfu7v4oa3ttlaqiy",
+                  "cid": "bafkreietpgetr6hr7urmfwsys5lp5h6csmvo56kkejlnfz6xfrw3bc7mi4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreicklqb3h3xgvu3ngsb2rd2rbfori5ejs6eijbvxffhibrpm7gtbci",
+                  "cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 }
               ]
             },
@@ -946,7 +966,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreicklqb3h3xgvu3ngsb2rd2rbfori5ejs6eijbvxffhibrpm7gtbci"
+              "event_cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki"
             },
             "error": null
           },
@@ -963,8 +983,18 @@
             "arguments": {},
             "approval": "non-mutating status fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_kit_py-http",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_kit_py-http"
+            },
             "delegation": {
-              "proof_cid": "bafkreieeac7dqdcioi75abj33jg6hagqsd64vji6yjmv7bmktmjudeudne",
+              "proof_cid": "bafkreihpwrxuhn3qyuug4earcytvfstgwxnwjhkrolraskoq5bn7q4kybi",
               "valid": true,
               "validation_chain_length": 1
             },
@@ -976,12 +1006,12 @@
             },
             "envelope": {
               "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
-              "envelope_cid": "bafkreie4yih7eqipd2lvvbusydene2fa5u5ocn4qi4h6jz2rlx3wkjihae",
+              "envelope_cid": "bafkreigor3u75235t3gjdigqanfyuivinfnp5qihzldzwfr5adhzbkyr64",
               "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
-              "intent_cid": "bafkreieluu46moey54xkoabq2s6xduer3iuycsjurd3eldmooxsiw76h2q",
-              "output_cid": "bafkreigtscxsvnzpdiqfesig6zm553fzcwdomtad6s3ngewewm4r7g6myy",
-              "receipt_cid": "bafkreiawsq5uy7gz7ujcv3uezbospp3lb3mdcurbzhdbsvn6velhwo7yhe",
-              "event_cid": "bafkreiatjszojn54ubl5twokleecl625qhvp2raogxopvjawch4ds34bzy",
+              "intent_cid": "bafkreig4ie5oqd5ijn6igh7oxusytahhigcg7lpn545lohoi6hlw2nu6ci",
+              "output_cid": "bafkreifscgxnse3by4cjozl4lmbwvuixjofzxw3zusig24ynbkx7po2y2y",
+              "receipt_cid": "bafkreigyda7d65vez7nuhmahzxln4l57rjhnmadixeys5xidtdbbshrcze",
+              "event_cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
@@ -1003,7 +1033,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreieluu46moey54xkoabq2s6xduer3iuycsjurd3eldmooxsiw76h2q",
+                  "cid": "bafkreig4ie5oqd5ijn6igh7oxusytahhigcg7lpn545lohoi6hlw2nu6ci",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1011,7 +1041,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreie4yih7eqipd2lvvbusydene2fa5u5ocn4qi4h6jz2rlx3wkjihae",
+                  "cid": "bafkreigor3u75235t3gjdigqanfyuivinfnp5qihzldzwfr5adhzbkyr64",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1019,7 +1049,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreigtscxsvnzpdiqfesig6zm553fzcwdomtad6s3ngewewm4r7g6myy",
+                  "cid": "bafkreifscgxnse3by4cjozl4lmbwvuixjofzxw3zusig24ynbkx7po2y2y",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1027,7 +1057,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreiawsq5uy7gz7ujcv3uezbospp3lb3mdcurbzhdbsvn6velhwo7yhe",
+                  "cid": "bafkreigyda7d65vez7nuhmahzxln4l57rjhnmadixeys5xidtdbbshrcze",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1035,7 +1065,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreiatjszojn54ubl5twokleecl625qhvp2raogxopvjawch4ds34bzy",
+                  "cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -1048,7 +1078,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreiatjszojn54ubl5twokleecl625qhvp2raogxopvjawch4ds34bzy"
+              "event_cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe"
             },
             "error": null
           },
@@ -1057,8 +1087,18 @@
             "arguments": {},
             "approval": "non-mutating status fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_kit_py-libp2p",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_kit_py-libp2p"
+            },
             "delegation": {
-              "proof_cid": "bafkreifptnrbaq2xwdasknhbw3frnkq5hdebcysdk6ylr7iy7lydk36s4q",
+              "proof_cid": "bafkreibxevprvu5vvlevdrol7xjiqmzvwcgwndudlf3inabwnd5ldkp3zm",
               "valid": true,
               "validation_chain_length": 1
             },
@@ -1070,12 +1110,12 @@
             },
             "envelope": {
               "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
-              "envelope_cid": "bafkreiduysgyryfw2ugygghjkqqmmzmnh5ggkf3h6pqlpxcqewdeza5r4q",
+              "envelope_cid": "bafkreig6cubzidcghdu5mba2g4iceejogalwzdzhqzuopl2t7ianea7fzy",
               "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
-              "intent_cid": "bafkreig54y6gg4khypyjfwdwtjnh5uvgdxhpfxl6dhrudwhsjfkiaoz53e",
-              "output_cid": "bafkreicojwq5zrzdxnxbydtgxg3psarfilvpigvbx2gg2wyyb3n4ndsogq",
-              "receipt_cid": "bafkreidkyehj6mwu4jvosq27gxdhloyx5n4xglw4v7rfu7v4oa3ttlaqiy",
-              "event_cid": "bafkreicklqb3h3xgvu3ngsb2rd2rbfori5ejs6eijbvxffhibrpm7gtbci",
+              "intent_cid": "bafkreidqm3epdshjnozddgql3yanj6nc2bwlyg7uv7xpnvzozdjvkvcfqy",
+              "output_cid": "bafkreibddvfzedqfcegdrpnl34sjx2wverfbg2ipo5k7jszc73pxrx3gdq",
+              "receipt_cid": "bafkreietpgetr6hr7urmfwsys5lp5h6csmvo56kkejlnfz6xfrw3bc7mi4",
+              "event_cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
@@ -1093,47 +1133,47 @@
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreig54y6gg4khypyjfwdwtjnh5uvgdxhpfxl6dhrudwhsjfkiaoz53e",
+                  "cid": "bafkreidqm3epdshjnozddgql3yanj6nc2bwlyg7uv7xpnvzozdjvkvcfqy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreiduysgyryfw2ugygghjkqqmmzmnh5ggkf3h6pqlpxcqewdeza5r4q",
+                  "cid": "bafkreig6cubzidcghdu5mba2g4iceejogalwzdzhqzuopl2t7ianea7fzy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreicojwq5zrzdxnxbydtgxg3psarfilvpigvbx2gg2wyyb3n4ndsogq",
+                  "cid": "bafkreibddvfzedqfcegdrpnl34sjx2wverfbg2ipo5k7jszc73pxrx3gdq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreidkyehj6mwu4jvosq27gxdhloyx5n4xglw4v7rfu7v4oa3ttlaqiy",
+                  "cid": "bafkreietpgetr6hr7urmfwsys5lp5h6csmvo56kkejlnfz6xfrw3bc7mi4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreicklqb3h3xgvu3ngsb2rd2rbfori5ejs6eijbvxffhibrpm7gtbci",
+                  "cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 }
               ]
             },
@@ -1142,7 +1182,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreicklqb3h3xgvu3ngsb2rd2rbfori5ejs6eijbvxffhibrpm7gtbci"
+              "event_cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki"
             },
             "error": null
           }
@@ -5211,20 +5251,20 @@
       "service": "ipfs_datasets_py",
       "server": "ipfs-datasets-mcp++",
       "approved_fixture": {
-        "tool": "tools_list_categories",
+        "tool": "list_indices",
         "arguments": {},
         "approval": "non-mutating catalog fixture"
       },
       "announce": {
         "file": "ipfs-datasets-mcp-p2p-announce.json",
         "protocol": "/mcp+p2p/1.0.0",
-        "peer_id": "12D3KooWFd7kAycbVqJj322H5x2QZf6xiEwNKf8dtd8on6aVYZ2s",
-        "multiaddr": "/ip4/127.0.0.1/tcp/39679/p2p/12D3KooWFd7kAycbVqJj322H5x2QZf6xiEwNKf8dtd8on6aVYZ2s"
+        "peer_id": "12D3KooWJLa4NRDRjwNPXyV78X2Gk1Fmmsk9jdA1yvwN1ac5oT7f",
+        "multiaddr": "/ip4/127.0.0.1/tcp/35285/p2p/12D3KooWJLa4NRDRjwNPXyV78X2Gk1Fmmsk9jdA1yvwN1ac5oT7f"
       },
       "transports": {
         "http": {
           "transport": "http",
-          "endpoint": "http://127.0.0.1:3002",
+          "endpoint": "http://127.0.0.1:31002",
           "connected": true,
           "selected_transport": "http",
           "no_transport_fallback": true,
@@ -5814,41 +5854,51 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkkgF8EaWd4nwRodPwicSYJbuhKiBoxQXQi7wMCw4FHNtc",
-            "identity_proof_cid": "bafkreigkx2kyqw4gkdppnuluvoevebrtvveutkjh2bcdzxvb7duwkrmnim",
+            "identity_proof_cid": "bafkreigqc2p54zqaqgkathl7gqgh63u65kolcl3k7ytpzx2e476vimoaja",
             "peer_id": null,
             "multiaddr": null,
             "peer_id_matches_announce": null,
             "multiaddr_matches_announce": null
           },
           "fixture": {
-            "tool": "tools_list_categories",
+            "tool": "list_indices",
             "arguments": {},
             "approval": "non-mutating catalog fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_datasets_py-http",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_datasets_py-http"
+            },
             "delegation": {
-              "proof_cid": "bafkreiexfvdliqvw2scxfg34wcknv6vt35q2goh5ethlbg5yf4ccyzcebq",
+              "proof_cid": "bafkreidjqss4x5toc6jg2qcy76wwfacbffaebke3hhwbqhcrotosoe5n5y",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:a26503613b674bfd52146df89ccc3c333854c69670a5ddee0cdc9ba8966a97cb",
-              "result_contract_fingerprint": "sha256:7455b078876989c5f1afea31b0d55864ee6c484dca008ee5cc70d5325b68a933"
+              "semantic_fingerprint": "sha256:f0cf7c881c57c86a01d6683e96ec03880cd98b2c14a62a74912f7a4a837e5637",
+              "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "envelope": {
               "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
-              "envelope_cid": "bafkreicp4ifptuna7i4vn42ktl7u7htjtmso7zka46pkqdraesqtdabuti",
-              "input_cid": "bafkreibvfaoxlij335t4urtndlrf536kwrmmp4rqvo4s3iyf2boqmwkzwm",
-              "intent_cid": "bafkreifn5eadn7jjto7ud7ww2dkrwg6twtxpzrugt6rownswsclrdguuy4",
-              "output_cid": "bafkreidu3hyqm5llquwornbkbrohftp5xskqldgemyvpe4ckzw2ntqg7m4",
-              "receipt_cid": "bafkreicp47athzl72yjhcvvichmbvfdx64shtzoajyogcwjy7glhlqn77e",
-              "event_cid": "bafkreidzxt7l3p4t3knmvpmi6zfvuf2deltqrmd2xyshovingrvolsp6su",
+              "envelope_cid": "bafkreib76ecomwjz3sdqkjefov6y36kqrafqeoixbbngawjumftaduhfg4",
+              "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
+              "intent_cid": "bafkreiakeoam6folwzkttqew5ts6yoftsieoaqqqh2df22pdqbk6ayg52u",
+              "output_cid": "bafkreidnkqspadder4dd4ku5fg4crh4ia22j36mqcifrkkhjiszibkoaxi",
+              "receipt_cid": "bafkreih7natmz6f2af27lgkaggpktmiaasq6whynrm27yx4b5bdo2ukqwy",
+              "event_cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:a26503613b674bfd52146df89ccc3c333854c69670a5ddee0cdc9ba8966a97cb",
-              "result_contract_fingerprint": "sha256:7455b078876989c5f1afea31b0d55864ee6c484dca008ee5cc70d5325b68a933"
+              "result_semantic_fingerprint": "sha256:e9a7f03db3ff803dc4c68c1dc3555233dac1a9a9444fc9ab3d8d325575dd3626",
+              "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "cid_retrieval": {
               "expected_cid_count": 6,
@@ -5857,7 +5907,7 @@
               "artifacts": [
                 {
                   "kind": "input",
-                  "cid": "bafkreibvfaoxlij335t4urtndlrf536kwrmmp4rqvo4s3iyf2boqmwkzwm",
+                  "cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5865,7 +5915,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreifn5eadn7jjto7ud7ww2dkrwg6twtxpzrugt6rownswsclrdguuy4",
+                  "cid": "bafkreiakeoam6folwzkttqew5ts6yoftsieoaqqqh2df22pdqbk6ayg52u",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5873,7 +5923,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreicp4ifptuna7i4vn42ktl7u7htjtmso7zka46pkqdraesqtdabuti",
+                  "cid": "bafkreib76ecomwjz3sdqkjefov6y36kqrafqeoixbbngawjumftaduhfg4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5881,7 +5931,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreidu3hyqm5llquwornbkbrohftp5xskqldgemyvpe4ckzw2ntqg7m4",
+                  "cid": "bafkreidnkqspadder4dd4ku5fg4crh4ia22j36mqcifrkkhjiszibkoaxi",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5889,7 +5939,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreicp47athzl72yjhcvvichmbvfdx64shtzoajyogcwjy7glhlqn77e",
+                  "cid": "bafkreih7natmz6f2af27lgkaggpktmiaasq6whynrm27yx4b5bdo2ukqwy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5897,7 +5947,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreidzxt7l3p4t3knmvpmi6zfvuf2deltqrmd2xyshovingrvolsp6su",
+                  "cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -5910,7 +5960,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreidzxt7l3p4t3knmvpmi6zfvuf2deltqrmd2xyshovingrvolsp6su"
+              "event_cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje"
             },
             "error": null
           },
@@ -5918,7 +5968,7 @@
         },
         "libp2p": {
           "transport": "libp2p",
-          "endpoint": "/ip4/127.0.0.1/tcp/39679/p2p/12D3KooWFd7kAycbVqJj322H5x2QZf6xiEwNKf8dtd8on6aVYZ2s",
+          "endpoint": "/ip4/127.0.0.1/tcp/35285/p2p/12D3KooWJLa4NRDRjwNPXyV78X2Gk1Fmmsk9jdA1yvwN1ac5oT7f",
           "connected": true,
           "selected_transport": "libp2p",
           "no_transport_fallback": true,
@@ -6508,41 +6558,51 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkkgF8EaWd4nwRodPwicSYJbuhKiBoxQXQi7wMCw4FHNtc",
-            "identity_proof_cid": "bafkreihuqqx5uozpkdoqzwy7h2s7u4ymctomphfysmnkcuhpn7dl4upplm",
-            "peer_id": "12D3KooWFd7kAycbVqJj322H5x2QZf6xiEwNKf8dtd8on6aVYZ2s",
-            "multiaddr": "/ip4/127.0.0.1/tcp/39679/p2p/12D3KooWFd7kAycbVqJj322H5x2QZf6xiEwNKf8dtd8on6aVYZ2s",
+            "identity_proof_cid": "bafkreihgd6ogdtysgsz67boimnesik4m6cm5yran6xi5pubdx2xnfr7sqy",
+            "peer_id": "12D3KooWJLa4NRDRjwNPXyV78X2Gk1Fmmsk9jdA1yvwN1ac5oT7f",
+            "multiaddr": "/ip4/127.0.0.1/tcp/35285/p2p/12D3KooWJLa4NRDRjwNPXyV78X2Gk1Fmmsk9jdA1yvwN1ac5oT7f",
             "peer_id_matches_announce": true,
             "multiaddr_matches_announce": true
           },
           "fixture": {
-            "tool": "tools_list_categories",
+            "tool": "list_indices",
             "arguments": {},
             "approval": "non-mutating catalog fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_datasets_py-libp2p",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_datasets_py-libp2p"
+            },
             "delegation": {
-              "proof_cid": "bafkreihxrbgkf2mk7cwswhqwdxw4o3g5iicfr5cca63jingt4qwnrsf65u",
+              "proof_cid": "bafkreiao5phhc6djmudwwklh6h7j3ry4nonmzmdu2zvylekbirx74mn75a",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:a26503613b674bfd52146df89ccc3c333854c69670a5ddee0cdc9ba8966a97cb",
-              "result_contract_fingerprint": "sha256:7455b078876989c5f1afea31b0d55864ee6c484dca008ee5cc70d5325b68a933"
+              "semantic_fingerprint": "sha256:9e51c2634af457bdf1dd5b6eca869dc075fefbb0ac3a84f5c0385cb9bd20b074",
+              "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "envelope": {
               "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
-              "envelope_cid": "bafkreiavzrrk4gmwjosbzvmwajoocf64gwd7kknyvzdrm2el7g5rgqd67a",
-              "input_cid": "bafkreibvfaoxlij335t4urtndlrf536kwrmmp4rqvo4s3iyf2boqmwkzwm",
-              "intent_cid": "bafkreienelxl5ed5vkifc4d2vqzic35uwkhfnoda2xnbruueul43vxabay",
-              "output_cid": "bafkreicyvdsk5l2ll73nk3aasmazbhg3prgy5rhbzneirdx7ibgx6fm5nq",
-              "receipt_cid": "bafkreihzwxrpb5vnr5nijzpha7dtg2wk4n2mjbzmeftvrdoiuh55wvimla",
-              "event_cid": "bafkreigxbop6zwlvqtocewjvatfifw2562fmasntvrj7zncxy5y5nz44bu",
+              "envelope_cid": "bafkreihtu6g2slhv7zbglc3jejwvm2sjjg5uozh7epszokygbkjqlfdduu",
+              "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
+              "intent_cid": "bafkreiaij5caiul3yqgeujonocpxurybq24qcorwcwzh2r4keqkootz4iy",
+              "output_cid": "bafkreiaps5xfhrzpgrlfbzfoqeuww34tm5ypqeo7kabchtqatm4xwd2klm",
+              "receipt_cid": "bafkreiegzoyeo6wstkznfvoyeya64m3jx5ql2rmj7kr26472ntzofrhuby",
+              "event_cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:a26503613b674bfd52146df89ccc3c333854c69670a5ddee0cdc9ba8966a97cb",
-              "result_contract_fingerprint": "sha256:7455b078876989c5f1afea31b0d55864ee6c484dca008ee5cc70d5325b68a933"
+              "result_semantic_fingerprint": "sha256:68a60e4c8f293048c86ce87c9f48f801e424fb8a5052c13c1284c9831ca786dd",
+              "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "cid_retrieval": {
               "expected_cid_count": 6,
@@ -6551,51 +6611,51 @@
               "artifacts": [
                 {
                   "kind": "input",
-                  "cid": "bafkreibvfaoxlij335t4urtndlrf536kwrmmp4rqvo4s3iyf2boqmwkzwm",
+                  "cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreienelxl5ed5vkifc4d2vqzic35uwkhfnoda2xnbruueul43vxabay",
+                  "cid": "bafkreiaij5caiul3yqgeujonocpxurybq24qcorwcwzh2r4keqkootz4iy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreiavzrrk4gmwjosbzvmwajoocf64gwd7kknyvzdrm2el7g5rgqd67a",
+                  "cid": "bafkreihtu6g2slhv7zbglc3jejwvm2sjjg5uozh7epszokygbkjqlfdduu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreicyvdsk5l2ll73nk3aasmazbhg3prgy5rhbzneirdx7ibgx6fm5nq",
+                  "cid": "bafkreiaps5xfhrzpgrlfbzfoqeuww34tm5ypqeo7kabchtqatm4xwd2klm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreihzwxrpb5vnr5nijzpha7dtg2wk4n2mjbzmeftvrdoiuh55wvimla",
+                  "cid": "bafkreiegzoyeo6wstkznfvoyeya64m3jx5ql2rmj7kr26472ntzofrhuby",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreigxbop6zwlvqtocewjvatfifw2562fmasntvrj7zncxy5y5nz44bu",
+                  "cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 }
               ]
             },
@@ -6604,7 +6664,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreigxbop6zwlvqtocewjvatfifw2562fmasntvrj7zncxy5y5nz44bu"
+              "event_cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe"
             },
             "error": null
           },
@@ -6612,39 +6672,49 @@
         }
       },
       "fixture": {
-        "tool": "tools_list_categories",
+        "tool": "list_indices",
         "arguments": {},
         "approval": "non-mutating catalog fixture",
         "transport_results": {
           "http": {
-            "tool": "tools_list_categories",
+            "tool": "list_indices",
             "arguments": {},
             "approval": "non-mutating catalog fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_datasets_py-http",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_datasets_py-http"
+            },
             "delegation": {
-              "proof_cid": "bafkreiexfvdliqvw2scxfg34wcknv6vt35q2goh5ethlbg5yf4ccyzcebq",
+              "proof_cid": "bafkreidjqss4x5toc6jg2qcy76wwfacbffaebke3hhwbqhcrotosoe5n5y",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:a26503613b674bfd52146df89ccc3c333854c69670a5ddee0cdc9ba8966a97cb",
-              "result_contract_fingerprint": "sha256:7455b078876989c5f1afea31b0d55864ee6c484dca008ee5cc70d5325b68a933"
+              "semantic_fingerprint": "sha256:f0cf7c881c57c86a01d6683e96ec03880cd98b2c14a62a74912f7a4a837e5637",
+              "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "envelope": {
               "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
-              "envelope_cid": "bafkreicp4ifptuna7i4vn42ktl7u7htjtmso7zka46pkqdraesqtdabuti",
-              "input_cid": "bafkreibvfaoxlij335t4urtndlrf536kwrmmp4rqvo4s3iyf2boqmwkzwm",
-              "intent_cid": "bafkreifn5eadn7jjto7ud7ww2dkrwg6twtxpzrugt6rownswsclrdguuy4",
-              "output_cid": "bafkreidu3hyqm5llquwornbkbrohftp5xskqldgemyvpe4ckzw2ntqg7m4",
-              "receipt_cid": "bafkreicp47athzl72yjhcvvichmbvfdx64shtzoajyogcwjy7glhlqn77e",
-              "event_cid": "bafkreidzxt7l3p4t3knmvpmi6zfvuf2deltqrmd2xyshovingrvolsp6su",
+              "envelope_cid": "bafkreib76ecomwjz3sdqkjefov6y36kqrafqeoixbbngawjumftaduhfg4",
+              "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
+              "intent_cid": "bafkreiakeoam6folwzkttqew5ts6yoftsieoaqqqh2df22pdqbk6ayg52u",
+              "output_cid": "bafkreidnkqspadder4dd4ku5fg4crh4ia22j36mqcifrkkhjiszibkoaxi",
+              "receipt_cid": "bafkreih7natmz6f2af27lgkaggpktmiaasq6whynrm27yx4b5bdo2ukqwy",
+              "event_cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:a26503613b674bfd52146df89ccc3c333854c69670a5ddee0cdc9ba8966a97cb",
-              "result_contract_fingerprint": "sha256:7455b078876989c5f1afea31b0d55864ee6c484dca008ee5cc70d5325b68a933"
+              "result_semantic_fingerprint": "sha256:e9a7f03db3ff803dc4c68c1dc3555233dac1a9a9444fc9ab3d8d325575dd3626",
+              "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "cid_retrieval": {
               "expected_cid_count": 6,
@@ -6653,7 +6723,7 @@
               "artifacts": [
                 {
                   "kind": "input",
-                  "cid": "bafkreibvfaoxlij335t4urtndlrf536kwrmmp4rqvo4s3iyf2boqmwkzwm",
+                  "cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6661,7 +6731,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreifn5eadn7jjto7ud7ww2dkrwg6twtxpzrugt6rownswsclrdguuy4",
+                  "cid": "bafkreiakeoam6folwzkttqew5ts6yoftsieoaqqqh2df22pdqbk6ayg52u",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6669,7 +6739,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreicp4ifptuna7i4vn42ktl7u7htjtmso7zka46pkqdraesqtdabuti",
+                  "cid": "bafkreib76ecomwjz3sdqkjefov6y36kqrafqeoixbbngawjumftaduhfg4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6677,7 +6747,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreidu3hyqm5llquwornbkbrohftp5xskqldgemyvpe4ckzw2ntqg7m4",
+                  "cid": "bafkreidnkqspadder4dd4ku5fg4crh4ia22j36mqcifrkkhjiszibkoaxi",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6685,7 +6755,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreicp47athzl72yjhcvvichmbvfdx64shtzoajyogcwjy7glhlqn77e",
+                  "cid": "bafkreih7natmz6f2af27lgkaggpktmiaasq6whynrm27yx4b5bdo2ukqwy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6693,7 +6763,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreidzxt7l3p4t3knmvpmi6zfvuf2deltqrmd2xyshovingrvolsp6su",
+                  "cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -6706,39 +6776,49 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreidzxt7l3p4t3knmvpmi6zfvuf2deltqrmd2xyshovingrvolsp6su"
+              "event_cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje"
             },
             "error": null
           },
           "libp2p": {
-            "tool": "tools_list_categories",
+            "tool": "list_indices",
             "arguments": {},
             "approval": "non-mutating catalog fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_datasets_py-libp2p",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_datasets_py-libp2p"
+            },
             "delegation": {
-              "proof_cid": "bafkreihxrbgkf2mk7cwswhqwdxw4o3g5iicfr5cca63jingt4qwnrsf65u",
+              "proof_cid": "bafkreiao5phhc6djmudwwklh6h7j3ry4nonmzmdu2zvylekbirx74mn75a",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:a26503613b674bfd52146df89ccc3c333854c69670a5ddee0cdc9ba8966a97cb",
-              "result_contract_fingerprint": "sha256:7455b078876989c5f1afea31b0d55864ee6c484dca008ee5cc70d5325b68a933"
+              "semantic_fingerprint": "sha256:9e51c2634af457bdf1dd5b6eca869dc075fefbb0ac3a84f5c0385cb9bd20b074",
+              "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "envelope": {
               "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
-              "envelope_cid": "bafkreiavzrrk4gmwjosbzvmwajoocf64gwd7kknyvzdrm2el7g5rgqd67a",
-              "input_cid": "bafkreibvfaoxlij335t4urtndlrf536kwrmmp4rqvo4s3iyf2boqmwkzwm",
-              "intent_cid": "bafkreienelxl5ed5vkifc4d2vqzic35uwkhfnoda2xnbruueul43vxabay",
-              "output_cid": "bafkreicyvdsk5l2ll73nk3aasmazbhg3prgy5rhbzneirdx7ibgx6fm5nq",
-              "receipt_cid": "bafkreihzwxrpb5vnr5nijzpha7dtg2wk4n2mjbzmeftvrdoiuh55wvimla",
-              "event_cid": "bafkreigxbop6zwlvqtocewjvatfifw2562fmasntvrj7zncxy5y5nz44bu",
+              "envelope_cid": "bafkreihtu6g2slhv7zbglc3jejwvm2sjjg5uozh7epszokygbkjqlfdduu",
+              "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
+              "intent_cid": "bafkreiaij5caiul3yqgeujonocpxurybq24qcorwcwzh2r4keqkootz4iy",
+              "output_cid": "bafkreiaps5xfhrzpgrlfbzfoqeuww34tm5ypqeo7kabchtqatm4xwd2klm",
+              "receipt_cid": "bafkreiegzoyeo6wstkznfvoyeya64m3jx5ql2rmj7kr26472ntzofrhuby",
+              "event_cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:a26503613b674bfd52146df89ccc3c333854c69670a5ddee0cdc9ba8966a97cb",
-              "result_contract_fingerprint": "sha256:7455b078876989c5f1afea31b0d55864ee6c484dca008ee5cc70d5325b68a933"
+              "result_semantic_fingerprint": "sha256:68a60e4c8f293048c86ce87c9f48f801e424fb8a5052c13c1284c9831ca786dd",
+              "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
             },
             "cid_retrieval": {
               "expected_cid_count": 6,
@@ -6747,51 +6827,51 @@
               "artifacts": [
                 {
                   "kind": "input",
-                  "cid": "bafkreibvfaoxlij335t4urtndlrf536kwrmmp4rqvo4s3iyf2boqmwkzwm",
+                  "cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreienelxl5ed5vkifc4d2vqzic35uwkhfnoda2xnbruueul43vxabay",
+                  "cid": "bafkreiaij5caiul3yqgeujonocpxurybq24qcorwcwzh2r4keqkootz4iy",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreiavzrrk4gmwjosbzvmwajoocf64gwd7kknyvzdrm2el7g5rgqd67a",
+                  "cid": "bafkreihtu6g2slhv7zbglc3jejwvm2sjjg5uozh7epszokygbkjqlfdduu",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreicyvdsk5l2ll73nk3aasmazbhg3prgy5rhbzneirdx7ibgx6fm5nq",
+                  "cid": "bafkreiaps5xfhrzpgrlfbzfoqeuww34tm5ypqeo7kabchtqatm4xwd2klm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreihzwxrpb5vnr5nijzpha7dtg2wk4n2mjbzmeftvrdoiuh55wvimla",
+                  "cid": "bafkreiegzoyeo6wstkznfvoyeya64m3jx5ql2rmj7kr26472ntzofrhuby",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreigxbop6zwlvqtocewjvatfifw2562fmasntvrj7zncxy5y5nz44bu",
+                  "cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 }
               ]
             },
@@ -6800,7 +6880,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreigxbop6zwlvqtocewjvatfifw2562fmasntvrj7zncxy5y5nz44bu"
+              "event_cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe"
             },
             "error": null
           }
@@ -6820,7 +6900,7 @@
         "cid_retrieval_match": true,
         "event_visibility_match": true,
         "non_gating_exact_result_observation": {
-          "matches": true,
+          "matches": false,
           "required": false,
           "rationale": "Live status payload values may change between independent transport requests; outcome and response-contract parity are release gates."
         },
@@ -11229,27 +11309,27 @@
         },
         {
           "name": "list_indices",
-          "disposition": "denied",
-          "disposition_reason": "Tool is not in the SVD-100 approved non-mutating fixture allowlist; invocation was intentionally not attempted.",
-          "approved_fixture": false,
+          "disposition": "executed",
+          "disposition_reason": "Approved non-mutating fixture was explicitly discovered, descriptor-backed, and executed on both transports.",
+          "approved_fixture": true,
           "static_descriptor_present": false,
           "availability_inferred_from_count": false,
           "observations": {
             "http": {
-              "status": "denied",
+              "status": "executed",
               "connected": true,
               "discovered": true,
               "descriptor_method": true,
-              "invocation_attempted": false,
-              "invocation_succeeded": false
+              "invocation_attempted": true,
+              "invocation_succeeded": true
             },
             "libp2p": {
-              "status": "denied",
+              "status": "executed",
               "connected": true,
               "discovered": true,
               "descriptor_method": true,
-              "invocation_attempted": false,
-              "invocation_succeeded": false
+              "invocation_attempted": true,
+              "invocation_succeeded": true
             }
           }
         },
@@ -13595,27 +13675,27 @@
         },
         {
           "name": "tools_list_categories",
-          "disposition": "executed",
-          "disposition_reason": "Approved non-mutating fixture was explicitly discovered, descriptor-backed, and executed on both transports.",
-          "approved_fixture": true,
+          "disposition": "denied",
+          "disposition_reason": "Tool is not in the SVD-100 approved non-mutating fixture allowlist; invocation was intentionally not attempted.",
+          "approved_fixture": false,
           "static_descriptor_present": false,
           "availability_inferred_from_count": false,
           "observations": {
             "http": {
-              "status": "executed",
+              "status": "denied",
               "connected": true,
               "discovered": true,
               "descriptor_method": true,
-              "invocation_attempted": true,
-              "invocation_succeeded": true
+              "invocation_attempted": false,
+              "invocation_succeeded": false
             },
             "libp2p": {
-              "status": "executed",
+              "status": "denied",
               "connected": true,
               "discovered": true,
               "descriptor_method": true,
-              "invocation_attempted": true,
-              "invocation_succeeded": true
+              "invocation_attempted": false,
+              "invocation_succeeded": false
             }
           }
         },
@@ -14126,8 +14206,8 @@
       "announce": {
         "file": "ipfs-accelerate-mcp-p2p-announce.json",
         "protocol": "/mcp+p2p/1.0.0",
-        "peer_id": "12D3KooWGKwLp3okonr6PgrGE6GLg1W4PxcZHczRHCd61cNGetnx",
-        "multiaddr": "/ip4/127.0.0.1/tcp/41715/p2p/12D3KooWGKwLp3okonr6PgrGE6GLg1W4PxcZHczRHCd61cNGetnx"
+        "peer_id": "12D3KooWMc5SzXUwDbXPPPKR1vAx5VE1yEVchjMWFCu3qDaZwe65",
+        "multiaddr": "/ip4/127.0.0.1/tcp/40779/p2p/12D3KooWMc5SzXUwDbXPPPKR1vAx5VE1yEVchjMWFCu3qDaZwe65"
       },
       "transports": {
         "http": {
@@ -14416,7 +14496,7 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkgPkf8stf2vgAeEdETTtcPNd6WUMZaxNcPLpPFmStWiFz",
-            "identity_proof_cid": "bafkreigb3kjjfkwgupqee2bh2mfdzc66ycrcubdijnqjwrvsu2kpf2b2ni",
+            "identity_proof_cid": "bafkreic6ciwihcpe6eitykohvl225wyus7mc7fe4c423wkf526i4zpquq4",
             "peer_id": null,
             "multiaddr": null,
             "peer_id_matches_announce": null,
@@ -14427,29 +14507,39 @@
             "arguments": {},
             "approval": "non-mutating health fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_accelerate_py-http",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_accelerate_py-http"
+            },
             "delegation": {
-              "proof_cid": "bafkreicexl3sr3zviurytpkmsr6jgv4sbwl72fstm5svqnd73wleqterea",
+              "proof_cid": "bafkreiazlbgbuk64tyeej5h62d6oeho6qkakoypo5uro7vght7kgglsn3a",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:f3832265590a715ba0725d0959c9bd2ff2b99ee1a40ff60adbcb566db624e00c",
+              "semantic_fingerprint": "sha256:552ee2607e4c4ff8fde0db90f7d78c1fa1abbff4c4977ce8cb2a7efbd48d2626",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "envelope": {
               "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
-              "envelope_cid": "bafkreibv5jtppn5ng2vq2a5m4pnbg2f3n63w7mu5hpyeolju7rr3ez3xva",
+              "envelope_cid": "bafkreihrbiwkd5wqlrhew4gvlwkiip2lxvqoiddxztzjeqtnz6mkbpylcq",
               "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
-              "intent_cid": "bafkreihjw6jcxssahv3kp6rq3p2evjzhtioh23mhqjuno3kdsqrrjgvjae",
-              "output_cid": "bafkreifszm23jfwbfw7xbqw32jpzczo4pmbrkm6jmug7ntna332ie4bdtq",
-              "receipt_cid": "bafkreihhuodveyri76m5ngnc3hwgclv6xj7g5ai7prfmdesgxnpmo2zy6a",
-              "event_cid": "bafkreicjqx2j32ubrpgkiogvateis4bzubmf436fkedxet54luekcqahr4",
+              "intent_cid": "bafkreiamcsrhhrrdva6i5nv3aacujqqfganf56omixm7mten2squawfctm",
+              "output_cid": "bafkreiaavajhzpxx2ehjnbcbabji5oj75j4ho76h3kglwcqferjdpkoaji",
+              "receipt_cid": "bafkreihemndv5su6ozkqmt3kat22ohh5shvoxidu2eagk4n4lbqrxmpz7a",
+              "event_cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:b2cb35b496c12dbf70c2dbd25f9165dc7b031533c9650df6cda0def48270239c",
+              "result_semantic_fingerprint": "sha256:00a8127cbef7d10e96844100528eb93fea78777fc7da8cbb0a05245237a9c04a",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "cid_retrieval": {
@@ -14467,7 +14557,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreihjw6jcxssahv3kp6rq3p2evjzhtioh23mhqjuno3kdsqrrjgvjae",
+                  "cid": "bafkreiamcsrhhrrdva6i5nv3aacujqqfganf56omixm7mten2squawfctm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14475,7 +14565,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreibv5jtppn5ng2vq2a5m4pnbg2f3n63w7mu5hpyeolju7rr3ez3xva",
+                  "cid": "bafkreihrbiwkd5wqlrhew4gvlwkiip2lxvqoiddxztzjeqtnz6mkbpylcq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14483,7 +14573,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreifszm23jfwbfw7xbqw32jpzczo4pmbrkm6jmug7ntna332ie4bdtq",
+                  "cid": "bafkreiaavajhzpxx2ehjnbcbabji5oj75j4ho76h3kglwcqferjdpkoaji",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14491,7 +14581,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreihhuodveyri76m5ngnc3hwgclv6xj7g5ai7prfmdesgxnpmo2zy6a",
+                  "cid": "bafkreihemndv5su6ozkqmt3kat22ohh5shvoxidu2eagk4n4lbqrxmpz7a",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14499,7 +14589,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreicjqx2j32ubrpgkiogvateis4bzubmf436fkedxet54luekcqahr4",
+                  "cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14512,7 +14602,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreicjqx2j32ubrpgkiogvateis4bzubmf436fkedxet54luekcqahr4"
+              "event_cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq"
             },
             "error": null
           },
@@ -14520,7 +14610,7 @@
         },
         "libp2p": {
           "transport": "libp2p",
-          "endpoint": "/ip4/127.0.0.1/tcp/41715/p2p/12D3KooWGKwLp3okonr6PgrGE6GLg1W4PxcZHczRHCd61cNGetnx",
+          "endpoint": "/ip4/127.0.0.1/tcp/40779/p2p/12D3KooWMc5SzXUwDbXPPPKR1vAx5VE1yEVchjMWFCu3qDaZwe65",
           "connected": true,
           "selected_transport": "libp2p",
           "no_transport_fallback": true,
@@ -14804,9 +14894,9 @@
             "profile_advertised": true,
             "verified": true,
             "remote_did": "did:key:z6MkgPkf8stf2vgAeEdETTtcPNd6WUMZaxNcPLpPFmStWiFz",
-            "identity_proof_cid": "bafkreign35cvwmqik2johxvnrtdwdhkawsxypucdzaexvc2eik27mjkofa",
-            "peer_id": "12D3KooWGKwLp3okonr6PgrGE6GLg1W4PxcZHczRHCd61cNGetnx",
-            "multiaddr": "/ip4/127.0.0.1/tcp/41715/p2p/12D3KooWGKwLp3okonr6PgrGE6GLg1W4PxcZHczRHCd61cNGetnx",
+            "identity_proof_cid": "bafkreie5bnna3cyzu3p7fbv5vhr76v5ikmcokadcytvnamcnlx5nvl5tri",
+            "peer_id": "12D3KooWMc5SzXUwDbXPPPKR1vAx5VE1yEVchjMWFCu3qDaZwe65",
+            "multiaddr": "/ip4/127.0.0.1/tcp/40779/p2p/12D3KooWMc5SzXUwDbXPPPKR1vAx5VE1yEVchjMWFCu3qDaZwe65",
             "peer_id_matches_announce": true,
             "multiaddr_matches_announce": true
           },
@@ -14815,29 +14905,39 @@
             "arguments": {},
             "approval": "non-mutating health fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_accelerate_py-libp2p",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_accelerate_py-libp2p"
+            },
             "delegation": {
-              "proof_cid": "bafkreidfllmgt3lskgylxly77ms62qw6fhd2iukagjys7kufk54eynmthe",
+              "proof_cid": "bafkreieheio2rmiatu224hdutpiqmiz74bsftwt3posh7esenhrl6qxzgi",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:62fcc9c097d280f918beda1045469c853b4b547fbe1e2c851e1e541bce7ec656",
+              "semantic_fingerprint": "sha256:e22a252b17b306ae06a31e05dd9de3960b8722fb24aed2dcdd3112be721aa389",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "envelope": {
               "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
-              "envelope_cid": "bafkreifpqddvorlysgoy3uvuwqhyyxqdv2ufynmvvtkl5nwhlkth7hs4le",
+              "envelope_cid": "bafkreiapdqfi67xo3xvgevugkxqckgr6xl32r2ungjiuxdwmhwr27riiym",
               "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
-              "intent_cid": "bafkreihvncvwcjfuscclu7dmsvqk3mzplc6yr3i3lmu5y7hg2vrge55uji",
-              "output_cid": "bafkreihfugrdyokvnksuxllwcfdggdhy5wzrp3o5yhzatddh3avjx6yc2y",
-              "receipt_cid": "bafkreignzsxq555wja5qvhadqxwjqfpugnz24cy3qtjevncp5fap7f3uua",
-              "event_cid": "bafkreiae74tvsxvfwxovurrk2abvlskmxdfcwckfhjhr6elfccvkx6uefe",
+              "intent_cid": "bafkreienpu2a5wzewmfovlthxmckswkjz7y325vcoqki3m4zdjr3zwoez4",
+              "output_cid": "bafkreidbfhb6hsoz26jwtxrnhhlncxjhzudtvnhlsyl7rurfyncx2zxqtm",
+              "receipt_cid": "bafkreihtovce7fwsie2mvbw6tn3oafgaqsezjmn5ngt4nnu2u45tj4spom",
+              "event_cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:e5a1a23c39556aa54bad761146630cf8edb317edddc1f2098c67d82a9bfb02d6",
+              "result_semantic_fingerprint": "sha256:6129c3e3c9d9d79369de2d39d6d15d27cd073ab4eb9617f8d225c3457d66f09b",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "cid_retrieval": {
@@ -14851,47 +14951,47 @@
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreihvncvwcjfuscclu7dmsvqk3mzplc6yr3i3lmu5y7hg2vrge55uji",
+                  "cid": "bafkreienpu2a5wzewmfovlthxmckswkjz7y325vcoqki3m4zdjr3zwoez4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreifpqddvorlysgoy3uvuwqhyyxqdv2ufynmvvtkl5nwhlkth7hs4le",
+                  "cid": "bafkreiapdqfi67xo3xvgevugkxqckgr6xl32r2ungjiuxdwmhwr27riiym",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreihfugrdyokvnksuxllwcfdggdhy5wzrp3o5yhzatddh3avjx6yc2y",
+                  "cid": "bafkreidbfhb6hsoz26jwtxrnhhlncxjhzudtvnhlsyl7rurfyncx2zxqtm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreignzsxq555wja5qvhadqxwjqfpugnz24cy3qtjevncp5fap7f3uua",
+                  "cid": "bafkreihtovce7fwsie2mvbw6tn3oafgaqsezjmn5ngt4nnu2u45tj4spom",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreiae74tvsxvfwxovurrk2abvlskmxdfcwckfhjhr6elfccvkx6uefe",
+                  "cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 }
               ]
             },
@@ -14900,7 +15000,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreiae74tvsxvfwxovurrk2abvlskmxdfcwckfhjhr6elfccvkx6uefe"
+              "event_cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i"
             },
             "error": null
           },
@@ -14917,29 +15017,39 @@
             "arguments": {},
             "approval": "non-mutating health fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_accelerate_py-http",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_accelerate_py-http"
+            },
             "delegation": {
-              "proof_cid": "bafkreicexl3sr3zviurytpkmsr6jgv4sbwl72fstm5svqnd73wleqterea",
+              "proof_cid": "bafkreiazlbgbuk64tyeej5h62d6oeho6qkakoypo5uro7vght7kgglsn3a",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:f3832265590a715ba0725d0959c9bd2ff2b99ee1a40ff60adbcb566db624e00c",
+              "semantic_fingerprint": "sha256:552ee2607e4c4ff8fde0db90f7d78c1fa1abbff4c4977ce8cb2a7efbd48d2626",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "envelope": {
               "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
-              "envelope_cid": "bafkreibv5jtppn5ng2vq2a5m4pnbg2f3n63w7mu5hpyeolju7rr3ez3xva",
+              "envelope_cid": "bafkreihrbiwkd5wqlrhew4gvlwkiip2lxvqoiddxztzjeqtnz6mkbpylcq",
               "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
-              "intent_cid": "bafkreihjw6jcxssahv3kp6rq3p2evjzhtioh23mhqjuno3kdsqrrjgvjae",
-              "output_cid": "bafkreifszm23jfwbfw7xbqw32jpzczo4pmbrkm6jmug7ntna332ie4bdtq",
-              "receipt_cid": "bafkreihhuodveyri76m5ngnc3hwgclv6xj7g5ai7prfmdesgxnpmo2zy6a",
-              "event_cid": "bafkreicjqx2j32ubrpgkiogvateis4bzubmf436fkedxet54luekcqahr4",
+              "intent_cid": "bafkreiamcsrhhrrdva6i5nv3aacujqqfganf56omixm7mten2squawfctm",
+              "output_cid": "bafkreiaavajhzpxx2ehjnbcbabji5oj75j4ho76h3kglwcqferjdpkoaji",
+              "receipt_cid": "bafkreihemndv5su6ozkqmt3kat22ohh5shvoxidu2eagk4n4lbqrxmpz7a",
+              "event_cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:b2cb35b496c12dbf70c2dbd25f9165dc7b031533c9650df6cda0def48270239c",
+              "result_semantic_fingerprint": "sha256:00a8127cbef7d10e96844100528eb93fea78777fc7da8cbb0a05245237a9c04a",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "cid_retrieval": {
@@ -14957,7 +15067,7 @@
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreihjw6jcxssahv3kp6rq3p2evjzhtioh23mhqjuno3kdsqrrjgvjae",
+                  "cid": "bafkreiamcsrhhrrdva6i5nv3aacujqqfganf56omixm7mten2squawfctm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14965,7 +15075,7 @@
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreibv5jtppn5ng2vq2a5m4pnbg2f3n63w7mu5hpyeolju7rr3ez3xva",
+                  "cid": "bafkreihrbiwkd5wqlrhew4gvlwkiip2lxvqoiddxztzjeqtnz6mkbpylcq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14973,7 +15083,7 @@
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreifszm23jfwbfw7xbqw32jpzczo4pmbrkm6jmug7ntna332ie4bdtq",
+                  "cid": "bafkreiaavajhzpxx2ehjnbcbabji5oj75j4ho76h3kglwcqferjdpkoaji",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14981,7 +15091,7 @@
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreihhuodveyri76m5ngnc3hwgclv6xj7g5ai7prfmdesgxnpmo2zy6a",
+                  "cid": "bafkreihemndv5su6ozkqmt3kat22ohh5shvoxidu2eagk4n4lbqrxmpz7a",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -14989,7 +15099,7 @@
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreicjqx2j32ubrpgkiogvateis4bzubmf436fkedxet54luekcqahr4",
+                  "cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
@@ -15002,7 +15112,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreicjqx2j32ubrpgkiogvateis4bzubmf436fkedxet54luekcqahr4"
+              "event_cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq"
             },
             "error": null
           },
@@ -15011,29 +15121,39 @@
             "arguments": {},
             "approval": "non-mutating health fixture",
             "status": "executed",
+            "governance": {
+              "operation_class": "safe_read",
+              "mutates_remote_state": false,
+              "confirmation_required": false,
+              "confirmation_state": "not_required",
+              "dry_run": false,
+              "policy_decision_id": "svd-181-policy-ipfs_accelerate_py-libp2p",
+              "policy_outcome": "allow",
+              "correlation_id": "svd-181-safe-read-ipfs_accelerate_py-libp2p"
+            },
             "delegation": {
-              "proof_cid": "bafkreidfllmgt3lskgylxly77ms62qw6fhd2iukagjys7kufk54eynmthe",
+              "proof_cid": "bafkreieheio2rmiatu224hdutpiqmiz74bsftwt3posh7esenhrl6qxzgi",
               "valid": true,
               "validation_chain_length": 1
             },
             "plain_call": {
               "returned": true,
               "outcome": "success",
-              "semantic_fingerprint": "sha256:62fcc9c097d280f918beda1045469c853b4b547fbe1e2c851e1e541bce7ec656",
+              "semantic_fingerprint": "sha256:e22a252b17b306ae06a31e05dd9de3960b8722fb24aed2dcdd3112be721aa389",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "envelope": {
               "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
-              "envelope_cid": "bafkreifpqddvorlysgoy3uvuwqhyyxqdv2ufynmvvtkl5nwhlkth7hs4le",
+              "envelope_cid": "bafkreiapdqfi67xo3xvgevugkxqckgr6xl32r2ungjiuxdwmhwr27riiym",
               "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
-              "intent_cid": "bafkreihvncvwcjfuscclu7dmsvqk3mzplc6yr3i3lmu5y7hg2vrge55uji",
-              "output_cid": "bafkreihfugrdyokvnksuxllwcfdggdhy5wzrp3o5yhzatddh3avjx6yc2y",
-              "receipt_cid": "bafkreignzsxq555wja5qvhadqxwjqfpugnz24cy3qtjevncp5fap7f3uua",
-              "event_cid": "bafkreiae74tvsxvfwxovurrk2abvlskmxdfcwckfhjhr6elfccvkx6uefe",
+              "intent_cid": "bafkreienpu2a5wzewmfovlthxmckswkjz7y325vcoqki3m4zdjr3zwoez4",
+              "output_cid": "bafkreidbfhb6hsoz26jwtxrnhhlncxjhzudtvnhlsyl7rurfyncx2zxqtm",
+              "receipt_cid": "bafkreihtovce7fwsie2mvbw6tn3oafgaqsezjmn5ngt4nnu2u45tj4spom",
+              "event_cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i",
               "receipt_success": true,
               "artifact_persistence_complete": true,
               "result_outcome": "success",
-              "result_semantic_fingerprint": "sha256:e5a1a23c39556aa54bad761146630cf8edb317edddc1f2098c67d82a9bfb02d6",
+              "result_semantic_fingerprint": "sha256:6129c3e3c9d9d79369de2d39d6d15d27cd073ab4eb9617f8d225c3457d66f09b",
               "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
             },
             "cid_retrieval": {
@@ -15047,47 +15167,47 @@
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "intent",
-                  "cid": "bafkreihvncvwcjfuscclu7dmsvqk3mzplc6yr3i3lmu5y7hg2vrge55uji",
+                  "cid": "bafkreienpu2a5wzewmfovlthxmckswkjz7y325vcoqki3m4zdjr3zwoez4",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "envelope",
-                  "cid": "bafkreifpqddvorlysgoy3uvuwqhyyxqdv2ufynmvvtkl5nwhlkth7hs4le",
+                  "cid": "bafkreiapdqfi67xo3xvgevugkxqckgr6xl32r2ungjiuxdwmhwr27riiym",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "output",
-                  "cid": "bafkreihfugrdyokvnksuxllwcfdggdhy5wzrp3o5yhzatddh3avjx6yc2y",
+                  "cid": "bafkreidbfhb6hsoz26jwtxrnhhlncxjhzudtvnhlsyl7rurfyncx2zxqtm",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "receipt",
-                  "cid": "bafkreignzsxq555wja5qvhadqxwjqfpugnz24cy3qtjevncp5fap7f3uua",
+                  "cid": "bafkreihtovce7fwsie2mvbw6tn3oafgaqsezjmn5ngt4nnu2u45tj4spom",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 },
                 {
                   "kind": "event",
-                  "cid": "bafkreiae74tvsxvfwxovurrk2abvlskmxdfcwckfhjhr6elfccvkx6uefe",
+                  "cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i",
                   "found": true,
                   "verified": true,
                   "returned_cid_matches": true,
-                  "backend": "helia"
+                  "backend": "disk"
                 }
               ]
             },
@@ -15096,7 +15216,7 @@
               "history_observed": true,
               "execution_event_present": true,
               "provenance_visible": true,
-              "event_cid": "bafkreiae74tvsxvfwxovurrk2abvlskmxdfcwckfhjhr6elfccvkx6uefe"
+              "event_cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i"
             },
             "error": null
           }
@@ -27026,27 +27146,27 @@
     {
       "service": "ipfs_datasets_py",
       "name": "list_indices",
-      "disposition": "denied",
-      "disposition_reason": "Tool is not in the SVD-100 approved non-mutating fixture allowlist; invocation was intentionally not attempted.",
-      "approved_fixture": false,
+      "disposition": "executed",
+      "disposition_reason": "Approved non-mutating fixture was explicitly discovered, descriptor-backed, and executed on both transports.",
+      "approved_fixture": true,
       "static_descriptor_present": false,
       "availability_inferred_from_count": false,
       "observations": {
         "http": {
-          "status": "denied",
+          "status": "executed",
           "connected": true,
           "discovered": true,
           "descriptor_method": true,
-          "invocation_attempted": false,
-          "invocation_succeeded": false
+          "invocation_attempted": true,
+          "invocation_succeeded": true
         },
         "libp2p": {
-          "status": "denied",
+          "status": "executed",
           "connected": true,
           "discovered": true,
           "descriptor_method": true,
-          "invocation_attempted": false,
-          "invocation_succeeded": false
+          "invocation_attempted": true,
+          "invocation_succeeded": true
         }
       }
     },
@@ -29483,27 +29603,27 @@
     {
       "service": "ipfs_datasets_py",
       "name": "tools_list_categories",
-      "disposition": "executed",
-      "disposition_reason": "Approved non-mutating fixture was explicitly discovered, descriptor-backed, and executed on both transports.",
-      "approved_fixture": true,
+      "disposition": "denied",
+      "disposition_reason": "Tool is not in the SVD-100 approved non-mutating fixture allowlist; invocation was intentionally not attempted.",
+      "approved_fixture": false,
       "static_descriptor_present": false,
       "availability_inferred_from_count": false,
       "observations": {
         "http": {
-          "status": "executed",
+          "status": "denied",
           "connected": true,
           "discovered": true,
           "descriptor_method": true,
-          "invocation_attempted": true,
-          "invocation_succeeded": true
+          "invocation_attempted": false,
+          "invocation_succeeded": false
         },
         "libp2p": {
-          "status": "executed",
+          "status": "denied",
           "connected": true,
           "discovered": true,
           "descriptor_method": true,
-          "invocation_attempted": true,
-          "invocation_succeeded": true
+          "invocation_attempted": false,
+          "invocation_succeeded": false
         }
       }
     },

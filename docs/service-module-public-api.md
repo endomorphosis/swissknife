@@ -8,7 +8,7 @@ Service implementations have exactly one owning family. Cross-family consumers m
 
 | Family | Owner | Runtime | Browser-safe entrypoint | Public entrypoints |
 | --- | --- | --- | --- | --- |
-| `service-apps` | app-surface-runtime | `universal` | `src/services/apps/app-manifest.ts` | 14 |
+| `service-apps` | app-surface-runtime | `universal` | `src/services/apps/app-manifest.ts` | 15 |
 | `service-glasses` | glasses-surface-runtime | `split` | none | 7 |
 | `service-integrations` | external-integration-service-runtime | `split` | none | 4 |
 | `service-ipfs` | ipfs-descriptor-runtime | `split` | `src/services/ipfs/ipfs-browser.ts` | 9 |
@@ -30,6 +30,7 @@ Owner: app-surface-runtime. Runtime: `universal`.
 
 Public entrypoints:
 
+- `src/services/apps/all-app-backend-status-contract.ts`
 - `src/services/apps/all-app-executable-backend-contract.ts`
 - `src/services/apps/all-app-live-tool-bindings.ts`
 - `src/services/apps/all-tools-app-binding-matrix.ts`

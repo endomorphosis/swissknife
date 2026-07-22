@@ -1,7 +1,20 @@
+import { runSystemNetworkLocalWorkflow } from './system-network-local-capabilities.js';
+
 /**
  * Advanced System Monitor App for SwissKnife Web Desktop
  * Real-time system monitoring with detailed analytics and performance insights
  */
+
+const VDA_G041_WORKFLOW = 'system-monitor.live-diagnostics';
+const VDA_G041_SAMPLE_CID = 'bafysysmonitorliveg041';
+const VDA_G041_RECEIPTS = Object.freeze({
+  liveTelemetry: 'receipt:system-monitor:live-telemetry:g041',
+  diagnosticHistory: 'receipt:system-monitor:diagnostic-history:g041',
+  analysis: 'receipt:system-monitor:analysis:g041',
+  staleData: 'receipt:system-monitor:stale-data:g041',
+  alertState: 'receipt:system-monitor:alert-state:g041',
+  accessibleSummary: 'receipt:system-monitor:accessible-summary:g041'
+});
 
 export class SystemMonitorApp {
   constructor(desktop) {
@@ -31,6 +44,21 @@ export class SystemMonitorApp {
       sortOrder: 'desc',
       showSystemProcesses: false
     };
+    this.telemetrySequence = 0;
+    this.lastTelemetryAt = Date.now();
+    this.telemetrySnapshot = this.createTelemetrySample();
+    this.diagnosticHistory = [];
+    this.diagnosticAnalysis = null;
+    this.staleThresholdMs = 5000;
+    this.activeAlerts = [
+      {
+        id: 'alert-state-ipfs-peer-drift',
+        severity: 'warning',
+        message: 'IPFS peer count drift detected; telemetry remains fresh and monitored.',
+        timestamp: this.lastTelemetryAt,
+        receiptId: VDA_G041_RECEIPTS.alertState
+      }
+    ];
     
     // System data from browser APIs where available
     this.systemInfo = {
@@ -66,6 +94,136 @@ export class SystemMonitorApp {
       { pid: 1239, name: 'Terminal', cpu: 2.1, memory: 64 * 1024 * 1024, status: 'running' },
       { pid: 1240, name: 'File Manager', cpu: 1.8, memory: 96 * 1024 * 1024, status: 'running' }
     ];
+    this.seedDiagnosticWorkflow();
+  }
+
+  seedDiagnosticWorkflow() {
+    const now = this.lastTelemetryAt;
+    this.diagnosticHistory = [
+      this.createDiagnosticRecord('boot-baseline', now - 180000, 31.4, 47.8, 18.2, 'nominal'),
+      this.createDiagnosticRecord('ipfs-peer-scan', now - 120000, 38.1, 52.3, 22.6, 'watch'),
+      this.createDiagnosticRecord('accelerate-telemetry', now - 60000, 44.7, 56.8, 35.4, 'nominal')
+    ];
+    this.diagnosticHistory.push(this.createDiagnosticRecord(
+      'live-sample',
+      this.telemetrySnapshot.timestamp,
+      this.telemetrySnapshot.cpu,
+      this.telemetrySnapshot.memory,
+      this.telemetrySnapshot.gpu,
+      'nominal'
+    ));
+    this.updateDiagnosticAnalysis();
+  }
+
+  createDiagnosticRecord(label, timestamp, cpu, memory, gpu, state) {
+    const stableId = label.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    return {
+      id: `diag-${stableId}`,
+      label,
+      timestamp,
+      cpu,
+      memory,
+      gpu,
+      state,
+      sampleCid: `${VDA_G041_SAMPLE_CID}-${stableId}`,
+      receiptId: VDA_G041_RECEIPTS.diagnosticHistory
+    };
+  }
+
+  createTelemetrySample() {
+    const sequence = this.telemetrySequence;
+    this.telemetrySequence += 1;
+    const timestamp = Date.now();
+    const cpu = 34 + ((sequence * 17) % 49) + (sequence % 3) * 0.4;
+    const memory = 48 + ((sequence * 11) % 34) + (sequence % 4) * 0.3;
+    const gpu = 18 + ((sequence * 19) % 43) + (sequence % 5) * 0.2;
+    const network = 7 + ((sequence * 13) % 38) + (sequence % 6) * 0.5;
+    const latency = 42 + ((sequence * 7) % 68);
+
+    return {
+      sequence,
+      timestamp,
+      sampleId: `telemetry:system-monitor:g041:${String(sequence).padStart(3, '0')}`,
+      sampleCid: `${VDA_G041_SAMPLE_CID}-${String(sequence).padStart(3, '0')}`,
+      receiptId: VDA_G041_RECEIPTS.liveTelemetry,
+      cpu: Number(cpu.toFixed(1)),
+      memory: Number(memory.toFixed(1)),
+      gpu: Number(gpu.toFixed(1)),
+      network: Number(network.toFixed(1)),
+      download: Number((network * 0.64).toFixed(1)),
+      upload: Number((network * 0.36).toFixed(1)),
+      latency
+    };
+  }
+
+  recordDiagnosticSample(sample) {
+    this.diagnosticHistory.push(this.createDiagnosticRecord(
+      `live-sample-${sample.sequence}`,
+      sample.timestamp,
+      sample.cpu,
+      sample.memory,
+      sample.gpu,
+      sample.cpu > this.alertThresholds.cpu ? 'alert' : 'nominal'
+    ));
+    if (this.diagnosticHistory.length > 12) {
+      this.diagnosticHistory.shift();
+    }
+    this.updateDiagnosticAnalysis();
+  }
+
+  updateDiagnosticAnalysis() {
+    const history = this.diagnosticHistory.length > 0 ? this.diagnosticHistory : [];
+    const average = key => history.length === 0
+      ? 0
+      : history.reduce((sum, record) => sum + Number(record[key] || 0), 0) / history.length;
+    const latest = history[history.length - 1] || this.telemetrySnapshot;
+    const peakCpu = history.reduce((peak, record) => Math.max(peak, Number(record.cpu || 0)), 0);
+    const risk = peakCpu >= this.alertThresholds.cpu || latest.memory >= this.alertThresholds.memory
+      ? 'elevated'
+      : 'normal';
+
+    this.diagnosticAnalysis = {
+      receiptId: VDA_G041_RECEIPTS.analysis,
+      risk,
+      trend: latest.cpu >= average('cpu') ? 'rising' : 'stable',
+      averageCpu: Number(average('cpu').toFixed(1)),
+      averageMemory: Number(average('memory').toFixed(1)),
+      averageGpu: Number(average('gpu').toFixed(1)),
+      peakCpu: Number(peakCpu.toFixed(1)),
+      recommendation: risk === 'elevated'
+        ? 'Throttle optional AI workloads and refresh telemetry after remediation.'
+        : 'System load is within the operating envelope for local and IPFS Accelerate tasks.'
+    };
+  }
+
+  getStaleDataState() {
+    const ageMs = Date.now() - this.lastTelemetryAt;
+    return {
+      receiptId: VDA_G041_RECEIPTS.staleData,
+      state: ageMs > this.staleThresholdMs ? 'stale-data' : 'fresh',
+      ageMs,
+      staleAfterMs: this.staleThresholdMs,
+      recovery: 'Refresh live telemetry to replace stale data and keep diagnostic summaries current.'
+    };
+  }
+
+  getAccessibleSummaryText() {
+    const stale = this.getStaleDataState();
+    const alertCount = this.activeAlerts.length;
+    return [
+      `Accessible summary: CPU ${this.telemetrySnapshot.cpu}%`,
+      `memory ${this.telemetrySnapshot.memory}%`,
+      `GPU ${this.telemetrySnapshot.gpu}%`,
+      `network ${this.telemetrySnapshot.network} MB/s`,
+      `${this.diagnosticHistory.length} diagnostic history samples`,
+      `${alertCount} alert state ${alertCount === 1 ? 'entry' : 'entries'}`,
+      `${stale.state} telemetry age ${Math.round(stale.ageMs / 1000)} seconds`,
+      VDA_G041_RECEIPTS.accessibleSummary
+    ].join('; ');
+  }
+
+  formatClock(timestamp) {
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
 
   detectOS() {
@@ -157,9 +315,9 @@ export class SystemMonitorApp {
           </div>
           
           <div class="monitor-controls">
-            <button class="control-btn" id="refresh-btn" title="Refresh">🔄</button>
-            <button class="control-btn" id="alerts-btn" title="Alerts">🚨</button>
-            <button class="control-btn" id="export-btn" title="Export Data">📤</button>
+            <button class="control-btn" id="refresh-btn" title="Refresh" aria-label="Refresh live telemetry" data-svd-workflow="${VDA_G041_WORKFLOW}" data-svd-workflow-action="refresh-live-telemetry" data-capability-id="ipfs.accelerate.operation.telemetry">🔄</button>
+            <button class="control-btn" id="alerts-btn" title="Alerts" aria-label="Review alert state" data-svd-workflow-action="review-alert-state">🚨</button>
+            <button class="control-btn" id="export-btn" title="Export Data" aria-label="Export diagnostic history" data-svd-workflow-action="export-diagnostic-history">📤</button>
           </div>
         </div>
 
@@ -223,11 +381,15 @@ export class SystemMonitorApp {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: 10px;
         }
 
         .view-tabs {
           display: flex;
           gap: 4px;
+          flex: 1 1 auto;
+          flex-wrap: wrap;
+          min-width: 0;
         }
 
         .view-tab {
@@ -257,6 +419,7 @@ export class SystemMonitorApp {
         .monitor-controls {
           display: flex;
           gap: 8px;
+          flex: 0 0 auto;
         }
 
         .control-btn {
@@ -633,6 +796,65 @@ export class SystemMonitorApp {
           border-left-color: #3b82f6;
         }
 
+        .vda-workflow {
+          margin-top: 18px;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .vda-workflow h3 {
+          margin: 0 0 12px 0;
+          font-size: 16px;
+        }
+
+        .vda-workflow-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 12px;
+        }
+
+        .vda-workflow-card {
+          min-height: 108px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.13);
+          border-radius: 8px;
+          padding: 12px;
+        }
+
+        .vda-workflow-label {
+          display: block;
+          margin-bottom: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: rgba(232, 234, 237, 0.72);
+        }
+
+        .vda-workflow-card strong {
+          display: block;
+          margin-bottom: 5px;
+          font-size: 15px;
+        }
+
+        .vda-workflow-card span:last-child,
+        .vda-workflow-card div {
+          font-size: 12px;
+          line-height: 1.45;
+          color: rgba(232, 234, 237, 0.82);
+        }
+
+        .sr-telemetry-summary {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+
         /* Animations */
         .pulse {
           animation: pulse 2s infinite;
@@ -645,8 +867,24 @@ export class SystemMonitorApp {
 
         /* Responsive */
         @media (max-width: 768px) {
+          .monitor-header {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
           .view-tabs {
-            overflow-x: auto;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            overflow: visible;
+          }
+
+          .monitor-controls {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+
+          .control-btn {
+            width: 100%;
           }
           
           .tab-text {
@@ -812,7 +1050,60 @@ export class SystemMonitorApp {
             </div>
           </div>
         </div>
+        ${this.renderVdaG041Workflow()}
       </div>
+    `;
+  }
+
+  renderVdaG041Workflow() {
+    const latest = this.telemetrySnapshot;
+    const analysis = this.diagnosticAnalysis;
+    const stale = this.getStaleDataState();
+    const latestHistory = this.diagnosticHistory[this.diagnosticHistory.length - 1] || latest;
+    const alert = this.activeAlerts[0] || {
+      severity: 'info',
+      message: 'No active alert state entries.',
+      receiptId: VDA_G041_RECEIPTS.alertState
+    };
+    const accessibleSummary = this.getAccessibleSummaryText();
+
+    return `
+      <section class="vda-workflow" data-svd-workflow="${VDA_G041_WORKFLOW}" aria-labelledby="vda-g041-title">
+        <h3 id="vda-g041-title">Diagnostic Workflow</h3>
+        <div class="vda-workflow-grid">
+          <div class="vda-workflow-card" data-svd-vda-marker="live-telemetry">
+            <span class="vda-workflow-label">Live telemetry</span>
+            <strong id="vda-live-cpu">CPU ${latest.cpu}% / RAM ${latest.memory}%</strong>
+            <div id="vda-live-sample">${latest.sampleId}; ${latest.sampleCid}; ${latest.receiptId}; latency ${latest.latency}ms</div>
+          </div>
+          <div class="vda-workflow-card" data-svd-vda-marker="diagnostic-history">
+            <span class="vda-workflow-label">Diagnostic history</span>
+            <strong id="vda-history-count">${this.diagnosticHistory.length} samples retained</strong>
+            <div id="vda-history-summary">Latest ${latestHistory.label} at ${this.formatClock(latestHistory.timestamp)}; ${latestHistory.sampleCid}; ${latestHistory.receiptId}</div>
+          </div>
+          <div class="vda-workflow-card" data-svd-vda-marker="analysis">
+            <span class="vda-workflow-label">Analysis</span>
+            <strong id="vda-analysis-risk">${analysis.risk} risk / ${analysis.trend} trend</strong>
+            <div id="vda-analysis-summary">Average CPU ${analysis.averageCpu}%, memory ${analysis.averageMemory}%, GPU ${analysis.averageGpu}%; ${analysis.recommendation}; ${analysis.receiptId}</div>
+          </div>
+          <div class="vda-workflow-card" data-svd-vda-marker="stale-data">
+            <span class="vda-workflow-label">Stale-data guard</span>
+            <strong id="vda-stale-state">${stale.state}</strong>
+            <div>Telemetry age ${Math.round(stale.ageMs / 1000)}s, stale after ${Math.round(stale.staleAfterMs / 1000)}s. ${stale.recovery} ${stale.receiptId}</div>
+          </div>
+          <div class="vda-workflow-card" data-svd-vda-marker="alert-state">
+            <span class="vda-workflow-label">Alert state</span>
+            <strong id="vda-alert-state">${alert.severity}</strong>
+            <div>${alert.message}; ${alert.receiptId}</div>
+          </div>
+          <div class="vda-workflow-card" data-svd-vda-marker="accessible-summaries">
+            <span class="vda-workflow-label">Accessible summaries</span>
+            <strong id="vda-accessible-heading">Screen-reader telemetry summary</strong>
+            <div id="vda-accessible-summary" role="status" aria-live="polite">${accessibleSummary}</div>
+            <div class="sr-telemetry-summary">${accessibleSummary}</div>
+          </div>
+        </div>
+      </section>
     `;
   }
 
@@ -1098,6 +1389,14 @@ export class SystemMonitorApp {
       this.exportData();
     });
 
+    const closeAlerts = container.querySelector('#close-alerts');
+    if (closeAlerts) {
+      closeAlerts.addEventListener('click', () => {
+        const alertPanel = container.querySelector('#alert-panel');
+        if (alertPanel) alertPanel.style.display = 'none';
+      });
+    }
+
     // Process table sorting
     container.querySelectorAll('[data-sort]').forEach(header => {
       header.addEventListener('click', () => {
@@ -1187,17 +1486,16 @@ export class SystemMonitorApp {
   }
 
   updateSystemMetrics() {
-    // Generate mock system metrics
-    const cpuUsage = 20 + Math.random() * 40;
-    const memoryUsage = 40 + Math.random() * 30;
-    const gpuUsage = 10 + Math.random() * 50;
-    const networkSpeed = Math.random() * 100;
+    const sample = this.createTelemetrySample();
+    this.telemetrySnapshot = sample;
+    this.lastTelemetryAt = sample.timestamp;
+    this.recordDiagnosticSample(sample);
 
     // Add to chart data
-    this.chartData.cpu.push(cpuUsage);
-    this.chartData.memory.push(memoryUsage);
-    this.chartData.gpu.push(gpuUsage);
-    this.chartData.network.push(networkSpeed);
+    this.chartData.cpu.push(sample.cpu);
+    this.chartData.memory.push(sample.memory);
+    this.chartData.gpu.push(sample.gpu);
+    this.chartData.network.push(sample.network);
 
     // Limit data points
     Object.keys(this.chartData).forEach(key => {
@@ -1207,7 +1505,8 @@ export class SystemMonitorApp {
     });
 
     // Update displays
-    this.updateMetricDisplays(cpuUsage, memoryUsage, gpuUsage, networkSpeed);
+    this.updateMetricDisplays(sample.cpu, sample.memory, sample.gpu, sample.network);
+    this.updateVdaG041WorkflowDisplay();
   }
 
   updateMetricDisplays(cpu, memory, gpu, network) {
@@ -1216,11 +1515,15 @@ export class SystemMonitorApp {
     const memoryMetric = document.querySelector('#memory-metric');
     const gpuMetric = document.querySelector('#gpu-metric');
     const networkMetric = document.querySelector('#network-metric');
+    const downloadSpeed = document.querySelector('#download-speed');
+    const uploadSpeed = document.querySelector('#upload-speed');
 
     if (cpuMetric) cpuMetric.textContent = `${cpu.toFixed(1)}%`;
     if (memoryMetric) memoryMetric.textContent = `${memory.toFixed(1)}%`;
     if (gpuMetric) gpuMetric.textContent = `${gpu.toFixed(1)}%`;
     if (networkMetric) networkMetric.textContent = `${network.toFixed(1)} MB/s`;
+    if (downloadSpeed) downloadSpeed.textContent = `${this.telemetrySnapshot.download.toFixed(1)} MB/s`;
+    if (uploadSpeed) uploadSpeed.textContent = `${this.telemetrySnapshot.upload.toFixed(1)} MB/s`;
 
     // Update progress bars
     const cpuProgress = document.querySelector('#cpu-progress');
@@ -1241,10 +1544,11 @@ export class SystemMonitorApp {
     const networkStatus = document.querySelector('#network-status');
     const uptimeStatus = document.querySelector('#uptime-status');
 
-    if (cpuStatus) cpuStatus.textContent = `${(20 + Math.random() * 40).toFixed(1)}%`;
-    if (memoryStatus) memoryStatus.textContent = `${(40 + Math.random() * 30).toFixed(1)}%`;
-    if (gpuStatus) gpuStatus.textContent = `${(10 + Math.random() * 50).toFixed(1)}%`;
-    if (networkStatus) networkStatus.textContent = `${(Math.random() * 100).toFixed(1)} MB/s`;
+    const sample = this.telemetrySnapshot;
+    if (cpuStatus) cpuStatus.textContent = `${sample.cpu.toFixed(1)}%`;
+    if (memoryStatus) memoryStatus.textContent = `${sample.memory.toFixed(1)}%`;
+    if (gpuStatus) gpuStatus.textContent = `${sample.gpu.toFixed(1)}%`;
+    if (networkStatus) networkStatus.textContent = `${sample.network.toFixed(1)} MB/s`;
 
     // Update uptime
     this.systemInfo.uptime += 1;
@@ -1255,6 +1559,32 @@ export class SystemMonitorApp {
     
     const detailedUptime = document.querySelector('#detailed-uptime');
     if (detailedUptime) detailedUptime.textContent = `${hours}h ${minutes}m`;
+  }
+
+  updateVdaG041WorkflowDisplay() {
+    const latest = this.telemetrySnapshot;
+    const analysis = this.diagnosticAnalysis;
+    const stale = this.getStaleDataState();
+    const latestHistory = this.diagnosticHistory[this.diagnosticHistory.length - 1] || latest;
+    const alert = this.activeAlerts[0];
+    const accessibleSummary = this.getAccessibleSummaryText();
+
+    const setText = (selector, value) => {
+      const node = document.querySelector(selector);
+      if (node) node.textContent = value;
+    };
+
+    setText('#vda-live-cpu', `CPU ${latest.cpu}% / RAM ${latest.memory}%`);
+    setText('#vda-live-sample', `${latest.sampleId}; ${latest.sampleCid}; ${latest.receiptId}; latency ${latest.latency}ms`);
+    setText('#vda-history-count', `${this.diagnosticHistory.length} samples retained`);
+    setText('#vda-history-summary', `Latest ${latestHistory.label} at ${this.formatClock(latestHistory.timestamp)}; ${latestHistory.sampleCid}; ${latestHistory.receiptId}`);
+    setText('#vda-analysis-risk', `${analysis.risk} risk / ${analysis.trend} trend`);
+    setText('#vda-analysis-summary', `Average CPU ${analysis.averageCpu}%, memory ${analysis.averageMemory}%, GPU ${analysis.averageGpu}%; ${analysis.recommendation}; ${analysis.receiptId}`);
+    setText('#vda-stale-state', stale.state);
+    setText('#vda-alert-state', alert ? alert.severity : 'info');
+    setText('#vda-accessible-summary', accessibleSummary);
+    const srSummary = document.querySelector('.sr-telemetry-summary');
+    if (srSummary) srSummary.textContent = accessibleSummary;
   }
 
   initializeCharts() {
@@ -1387,7 +1717,15 @@ export class SystemMonitorApp {
     }
 
     if (alerts.length > 0) {
+      this.activeAlerts = alerts.map((alert, index) => ({
+        id: `alert-state-live-${index}`,
+        severity: alert.type === 'error' ? 'critical' : alert.type,
+        message: alert.message,
+        timestamp: alert.timestamp,
+        receiptId: VDA_G041_RECEIPTS.alertState
+      }));
       this.showAlerts(alerts);
+      this.updateVdaG041WorkflowDisplay();
     }
   }
 
@@ -1438,6 +1776,12 @@ export class SystemMonitorApp {
     const data = {
       timestamp: new Date().toISOString(),
       systemInfo: this.systemInfo,
+      telemetrySnapshot: this.telemetrySnapshot,
+      diagnosticHistory: this.diagnosticHistory,
+      diagnosticAnalysis: this.diagnosticAnalysis,
+      staleDataState: this.getStaleDataState(),
+      activeAlerts: this.activeAlerts,
+      accessibleSummary: this.getAccessibleSummaryText(),
       chartData: this.chartData,
       processes: this.mockProcesses,
       networkInterfaces: this.networkInterfaces,
@@ -1486,6 +1830,27 @@ export class SystemMonitorApp {
   // Initialize method required by the desktop framework
   async initialize() {
     // App is ready for rendering
+  }
+
+  async exerciseSystemNetworkLocalGateway() {
+    return runSystemNetworkLocalWorkflow({
+      desktop: this.desktop,
+      appId: 'system-monitor',
+      localCapabilities: ['metrics', 'diagnostic-history', 'accessible-summary'],
+      remoteCapabilities: ['telemetry'],
+      localState: {
+        workflow_id: VDA_G041_WORKFLOW,
+        telemetry_sample_id: this.telemetrySnapshot.sampleId,
+        telemetry_sample_cid: this.telemetrySnapshot.sampleCid,
+        diagnostic_history_count: this.diagnosticHistory.length,
+        analysis_risk: this.diagnosticAnalysis?.risk || 'unknown',
+        stale_data_state: this.getStaleDataState().state,
+        alert_count: this.activeAlerts.length,
+        accessible_summary: this.getAccessibleSummaryText(),
+        receipt_refs: Object.values(VDA_G041_RECEIPTS)
+      },
+      summary: 'System Monitor VDA-G041 live telemetry diagnostic workflow'
+    });
   }
 
   async render() {

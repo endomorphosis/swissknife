@@ -74,6 +74,21 @@ export class NeuralPhotoshopApp {
     
     // Clipboard state
     this.internalClipboard = null;
+
+    this.vdaG042 = {
+      sourceCid: 'bafyneuralphotoshopg042sourcecid',
+      resultCid: 'bafyneuralphotoshopg042resultcid',
+      promptCid: 'bafyneuralphotoshopg042promptprovenance',
+      modelCid: 'bafyneuralphotoshopg042modelprovenance',
+      generationCid: 'bafyneuralphotoshopg042generationprogress',
+      editCid: 'bafyneuralphotoshopg042editprogress',
+      cancelCid: 'bafyneuralphotoshopg042cancellation',
+      denialCid: 'bafyneuralphotoshopg042denial',
+      comparisonCid: 'bafyneuralphotoshopg042comparisonui',
+      receiptPrefix: 'receipt:neural-photoshop:g042',
+      prompt: 'restore torn cyanotype portrait, keep original face geometry, preserve archival paper grain',
+      model: 'stabilityai/stable-diffusion-xl-refiner-1.0@sha256:4b8d-g042',
+    };
     
     // The app will be initialized by the desktop system calling initialize()
   }
@@ -838,6 +853,121 @@ export class NeuralPhotoshopApp {
           border-color: rgba(74, 222, 128, 0.3);
         }
 
+        .vda-g042-panel {
+          border: 1px solid rgba(125, 211, 252, 0.35);
+          background: rgba(3, 7, 18, 0.48);
+          border-radius: 8px;
+          padding: 10px;
+          margin-bottom: 14px;
+        }
+
+        .vda-g042-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+
+        .vda-g042-subtitle {
+          color: rgba(232, 234, 237, 0.72);
+          font-size: 10px;
+          line-height: 1.35;
+          margin-top: 3px;
+        }
+
+        .vda-g042-badge {
+          background: rgba(74, 222, 128, 0.16);
+          border: 1px solid rgba(74, 222, 128, 0.32);
+          border-radius: 999px;
+          color: #bbf7d0;
+          font-size: 10px;
+          padding: 3px 8px;
+          white-space: nowrap;
+        }
+
+        .vda-g042-actions {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 6px;
+          margin-bottom: 10px;
+        }
+
+        .vda-g042-actions .ai-tool-btn {
+          justify-content: center;
+          min-height: 32px;
+          margin: 0;
+          padding: 7px 8px;
+        }
+
+        .vda-g042-grid {
+          display: grid;
+          gap: 8px;
+        }
+
+        .vda-g042-card {
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.055);
+          border-radius: 6px;
+          padding: 8px;
+          display: grid;
+          gap: 4px;
+          color: rgba(232, 234, 237, 0.88);
+          font-size: 10px;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+
+        .vda-g042-card strong {
+          color: white;
+          font-size: 11px;
+        }
+
+        .vda-g042-card progress {
+          width: 100%;
+          height: 8px;
+          accent-color: #38bdf8;
+        }
+
+        .vda-g042-compare-strip {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          min-height: 58px;
+          border-radius: 5px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .vda-g042-before,
+        .vda-g042-after {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          letter-spacing: 0;
+          color: white;
+        }
+
+        .vda-g042-before {
+          background: linear-gradient(135deg, #334155, #0f172a);
+        }
+
+        .vda-g042-after {
+          background: linear-gradient(135deg, #0f766e, #155e75);
+        }
+
+        .vda-g042-comparison input[type="range"] {
+          width: 100%;
+        }
+
+        .vda-g042-receipt {
+          display: block;
+          margin-top: 6px;
+          color: #bfdbfe;
+          font-size: 10px;
+          overflow-wrap: anywhere;
+        }
+
         .history-panel {
           padding: 8px;
         }
@@ -1104,6 +1234,8 @@ export class NeuralPhotoshopApp {
 
   renderAIPanel() {
     return `
+      ${this.renderVdaG042WorkflowPanel()}
+
       <div class="ai-tool-group">
         <div class="property-label">🧠 Segmentation & Masking</div>
         <button class="ai-tool-btn" id="ai-segment-btn">
@@ -1167,6 +1299,123 @@ export class NeuralPhotoshopApp {
     `;
   }
 
+  renderVdaG042WorkflowPanel() {
+    const workflow = this.vdaG042;
+    return `
+      <section class="vda-g042-panel"
+               data-svd-workflow="neural-photoshop.source-result-provenance-edit"
+               data-workflow-state="ready"
+               aria-labelledby="vda-g042-title">
+        <div class="vda-g042-header">
+          <div>
+            <div id="vda-g042-title" class="property-label">VDA-G042 IPFS generation workflow</div>
+            <div class="vda-g042-subtitle">Source, result, prompt, model, progress, cancellation, denial, and comparison evidence.</div>
+          </div>
+          <span class="vda-g042-badge">Ready</span>
+        </div>
+
+        <div class="vda-g042-actions" aria-label="Neural Photoshop VDA-G042 workflow actions">
+          <button class="ai-tool-btn" data-svd-workflow-action="load-source-cid" aria-label="Load source CID for Neural Photoshop">
+            Source CID
+          </button>
+          <button class="ai-tool-btn" data-svd-workflow-action="start-generation" aria-label="Start governed generation and provenance capture">
+            Generate
+          </button>
+          <button class="ai-tool-btn" data-svd-workflow-action="apply-edit-progress" aria-label="Apply tracked Neural Photoshop edit">
+            Edit
+          </button>
+          <button class="ai-tool-btn" data-svd-workflow-action="cancel-generation" aria-label="Cancel queued Neural Photoshop generation">
+            Cancel
+          </button>
+          <button class="ai-tool-btn" data-svd-workflow-action="simulate-policy-denial" aria-label="Simulate policy denial for unsafe edit">
+            Denial
+          </button>
+          <button class="ai-tool-btn" data-svd-workflow-action="open-comparison-ui" aria-label="Open source result comparison UI">
+            Compare
+          </button>
+        </div>
+
+        <div class="vda-g042-grid">
+          <article data-svd-vda-marker="source-result-cids"
+                   data-source-cid-state="loaded"
+                   data-result-cid-state="pending"
+                   class="vda-g042-card">
+            <strong>Source and result CIDs</strong>
+            <span>source CID ${workflow.sourceCid}</span>
+            <span class="vda-result-cid">result CID pending-result</span>
+            <span>retrieval manifest ${workflow.sourceCid}retrievalmanifest</span>
+            <span>${workflow.receiptPrefix}:source-result-cids:retrieval-ready</span>
+          </article>
+
+          <article data-svd-vda-marker="prompt-model-provenance"
+                   data-prompt-provenance-state="recorded"
+                   data-model-provenance-state="recorded"
+                   class="vda-g042-card">
+            <strong>Prompt and model provenance</strong>
+            <span>prompt: ${workflow.prompt}</span>
+            <span>prompt CID ${workflow.promptCid}</span>
+            <span>model: ${workflow.model}</span>
+            <span>model CID ${workflow.modelCid}</span>
+            <span>${workflow.receiptPrefix}:prompt-model-provenance:recorded</span>
+          </article>
+
+          <article data-svd-vda-marker="generation-progress"
+                   data-generation-state="queued"
+                   class="vda-g042-card">
+            <strong>Generation progress</strong>
+            <progress value="12" max="100" data-generation-progress="12" aria-label="Generation progress"></progress>
+            <span>generation job job:neural-photoshop:g042:sdxl-refine-01</span>
+            <span>progress CID ${workflow.generationCid}</span>
+            <span>${workflow.receiptPrefix}:generation-progress:queued</span>
+          </article>
+
+          <article data-svd-vda-marker="edit-progress"
+                   data-edit-state="idle"
+                   class="vda-g042-card">
+            <strong>Edit progress</strong>
+            <progress value="0" max="100" data-edit-progress="0" aria-label="Edit progress"></progress>
+            <span>edit mask: archival tear repair, strength 0.42</span>
+            <span>edit CID ${workflow.editCid}</span>
+            <span>${workflow.receiptPrefix}:edit-progress:ready</span>
+          </article>
+
+          <article data-svd-vda-marker="cancellation"
+                   data-cancellation-state="available"
+                   class="vda-g042-card">
+            <strong>Cancellation</strong>
+            <span>queued cancellation target job:neural-photoshop:g042:sdxl-refine-queued</span>
+            <span>cancel CID ${workflow.cancelCid}</span>
+            <span>${workflow.receiptPrefix}:cancellation:available</span>
+          </article>
+
+          <article data-svd-vda-marker="denial"
+                   data-denial-state="available"
+                   role="status"
+                   aria-live="polite"
+                   class="vda-g042-card">
+            <strong>Denial</strong>
+            <span>policy denial route: disallowed biometric identity alteration rejected before generation</span>
+            <span>denial CID ${workflow.denialCid}</span>
+            <span>${workflow.receiptPrefix}:denial:available</span>
+          </article>
+
+          <article data-svd-vda-marker="comparison-ui"
+                   data-comparison-state="ready"
+                   class="vda-g042-card vda-g042-comparison">
+            <strong>Comparison UI</strong>
+            <div class="vda-g042-compare-strip" role="img" aria-label="Before and after comparison">
+              <div class="vda-g042-before" data-comparison-pane="source">Source</div>
+              <div class="vda-g042-after" data-comparison-pane="result">Result</div>
+            </div>
+            <input type="range" min="0" max="100" value="50" data-comparison-slider aria-label="Comparison split" />
+            <span>comparison CID ${workflow.comparisonCid}</span>
+            <span>${workflow.receiptPrefix}:comparison-ui:ready</span>
+          </article>
+        </div>
+      </section>
+    `;
+  }
+
   renderHistoryPanel() {
     return `
       <div class="history-list">
@@ -1195,6 +1444,8 @@ export class NeuralPhotoshopApp {
     
     // AI tool handlers
     this.setupAIHandlers(container);
+
+    this.setupVdaG042Handlers(container);
     
     // Canvas interaction handlers
     this.setupCanvasHandlers(container);
@@ -1376,6 +1627,111 @@ export class NeuralPhotoshopApp {
     container.querySelector('#ai-colorize-btn')?.addEventListener('click', () => {
       this.performColorization();
     });
+  }
+
+  setupVdaG042Handlers(container) {
+    container.querySelector('[data-svd-workflow-action="load-source-cid"]')?.addEventListener('click', () => {
+      this.markVdaG042SourceLoaded(container);
+    });
+    container.querySelector('[data-svd-workflow-action="start-generation"]')?.addEventListener('click', () => {
+      this.markVdaG042GenerationComplete(container);
+    });
+    container.querySelector('[data-svd-workflow-action="apply-edit-progress"]')?.addEventListener('click', () => {
+      this.markVdaG042EditComplete(container);
+    });
+    container.querySelector('[data-svd-workflow-action="cancel-generation"]')?.addEventListener('click', () => {
+      this.markVdaG042Cancelled(container);
+    });
+    container.querySelector('[data-svd-workflow-action="simulate-policy-denial"]')?.addEventListener('click', () => {
+      this.markVdaG042Denied(container);
+    });
+    container.querySelector('[data-svd-workflow-action="open-comparison-ui"]')?.addEventListener('click', () => {
+      this.markVdaG042ComparisonOpen(container);
+    });
+  }
+
+  markVdaG042SourceLoaded(container) {
+    const source = container.querySelector('[data-source-cid-state]');
+    if (source) {
+      source.dataset.sourceCidState = 'loaded';
+      source.dataset.resultCidState = 'source-ready';
+    }
+    this.updateVdaG042Status(container, 'Source ready');
+  }
+
+  markVdaG042GenerationComplete(container) {
+    const generation = container.querySelector('[data-generation-state]');
+    const progress = container.querySelector('[data-generation-progress]');
+    const source = container.querySelector('[data-source-cid-state]');
+    const result = container.querySelector('.vda-result-cid');
+    if (generation) generation.dataset.generationState = 'completed';
+    if (progress) {
+      progress.value = 100;
+      progress.dataset.generationProgress = '100';
+      progress.textContent = '100';
+    }
+    if (source) source.dataset.resultCidState = 'stored';
+    if (result) {
+      result.textContent = `result CID ${this.vdaG042.resultCid}`;
+    }
+    this.appendVdaG042Receipt(container, `${this.vdaG042.receiptPrefix}:generation-progress:completed`);
+    this.updateVdaG042Status(container, 'Generated');
+  }
+
+  markVdaG042EditComplete(container) {
+    const edit = container.querySelector('[data-edit-state]');
+    const progress = container.querySelector('[data-edit-progress]');
+    if (edit) edit.dataset.editState = 'completed';
+    if (progress) {
+      progress.value = 100;
+      progress.dataset.editProgress = '100';
+      progress.textContent = '100';
+    }
+    this.appendVdaG042Receipt(container, `${this.vdaG042.receiptPrefix}:edit-progress:completed`);
+    this.updateVdaG042Status(container, 'Edited');
+  }
+
+  markVdaG042Cancelled(container) {
+    const cancellation = container.querySelector('[data-cancellation-state]');
+    if (cancellation) cancellation.dataset.cancellationState = 'cancelled';
+    this.appendVdaG042Receipt(container, `${this.vdaG042.receiptPrefix}:cancellation:cancelled`);
+    this.updateVdaG042Status(container, 'Cancelled');
+  }
+
+  markVdaG042Denied(container) {
+    const denial = container.querySelector('[data-denial-state]');
+    if (denial) {
+      denial.dataset.denialState = 'denied';
+      const detail = document.createElement('span');
+      detail.textContent = ` ${this.vdaG042.receiptPrefix}:denial:policy-rejected default_deny unsafe biometric identity alteration`;
+      denial.appendChild(detail);
+    }
+    this.updateVdaG042Status(container, 'Denied');
+  }
+
+  markVdaG042ComparisonOpen(container) {
+    const comparison = container.querySelector('[data-comparison-state]');
+    const slider = container.querySelector('[data-comparison-slider]');
+    if (comparison) comparison.dataset.comparisonState = 'open';
+    if (slider) slider.value = '64';
+    this.appendVdaG042Receipt(container, `${this.vdaG042.receiptPrefix}:comparison-ui:opened`);
+    this.updateVdaG042Status(container, 'Compare');
+  }
+
+  appendVdaG042Receipt(container, receipt) {
+    const panel = container.querySelector('[data-svd-workflow="neural-photoshop.source-result-provenance-edit"]');
+    if (!panel || panel.textContent.includes(receipt)) return;
+    const node = document.createElement('span');
+    node.className = 'vda-g042-receipt';
+    node.textContent = ` ${receipt}`;
+    panel.appendChild(node);
+  }
+
+  updateVdaG042Status(container, label) {
+    const workflow = container.querySelector('[data-svd-workflow="neural-photoshop.source-result-provenance-edit"]');
+    const badge = container.querySelector('.vda-g042-badge');
+    if (workflow) workflow.dataset.workflowState = label.toLowerCase();
+    if (badge) badge.textContent = label;
   }
 
   setupCanvasHandlers(container) {

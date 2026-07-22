@@ -12,6 +12,10 @@ import {
 import type { BrowserMediatedToolCall } from '../../src/services/mcp/all-app-tool-gateway.js'
 import { ALL_APP_EXECUTABLE_BACKEND_CONTRACT } from '../../src/services/apps/all-app-executable-backend-contract.js'
 import { ALL_APP_LIVE_TOOL_BINDINGS } from '../../src/services/apps/all-app-live-tool-bindings.js'
+import {
+  buildAllAppBackendStatusContract,
+  buildBackendStatusMatrixEvidence,
+} from '../../src/services/apps/all-app-backend-status-contract.js'
 
 const PROFILE_REPLAY_CLIENT_DID = 'did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu'
 const profileReplayConnectorCache = new Map<string, Promise<InstanceType<typeof import('../../src/services/mcp/mcp-plus-plus-connector.js').MCPPPServerConnector>>>()
@@ -229,6 +233,8 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
         owner: binding.owner,
         label: source?.ui_control.label ?? binding.ui_control_id,
         mutates_remote_state: source?.mediated_intent.mutates_remote_state === true,
+        confirmation_required: source?.ui_control.confirmation !== 'none',
+        confirmation_policy: source?.ui_control.confirmation ?? 'none',
         transport: selectedTool && binding.gateway.transports.includes('http') ? 'http' : null,
         transports: selectedTool ? binding.gateway.transports : [],
         selected_tool_id: selectedTool,
@@ -241,6 +247,36 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
   }
   const install = (server: { middlewares: { use(handler: (request: import('node:http').IncomingMessage, response: import('node:http').ServerResponse, next: () => void) => void): void } }) => {
     server.middlewares.use((request, response, next) => {
+      const serviceRequest = request.url?.match(/^\/mcp\/services\/(ipfs_kit_py|ipfs_datasets_py|ipfs_accelerate_py)(\/mcp(?:\/[^?]*)?)(?:\?.*)?$/)
+      if (serviceRequest && (request.method === 'GET' || request.method === 'POST')) {
+        const [, owner, servicePath] = serviceRequest
+        const endpoint = endpointFor[owner as keyof typeof endpointFor]
+        const query = request.url?.includes('?') ? request.url.slice(request.url.indexOf('?')) : ''
+        const chunks: Buffer[] = []
+        request.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
+        request.on('end', () => {
+          const body = Buffer.concat(chunks)
+          void fetch(`${endpoint.replace(/\/mcp$/, '')}${servicePath}${query}`, {
+            method: request.method,
+            headers: {
+              accept: request.headers.accept ?? 'application/json',
+              ...(request.headers['content-type'] ? { 'content-type': request.headers['content-type'] } : {}),
+            },
+            ...(body.length > 0 ? { body } : {}),
+          }).then(async upstream => {
+            const payload = Buffer.from(await upstream.arrayBuffer())
+            response.writeHead(upstream.status, {
+              'content-type': upstream.headers.get('content-type') ?? 'application/json',
+              'cache-control': 'no-store',
+            })
+            response.end(payload)
+          }).catch(error => {
+            response.writeHead(503, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+            response.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
+          })
+        })
+        return
+      }
       if (request.method === 'GET' && request.url?.split('?')[0] === '/mcp/tools/bindings') {
         const url = new URL(request.url, 'http://swissknife.local')
         void controls().then(allControls => {
@@ -248,6 +284,34 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
           const filtered = appId ? allControls.filter(control => control.app_id === appId) : allControls
           response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
           response.end(JSON.stringify({ schema: 'swissknife.live-tool-control-catalog.v1', controls: filtered }))
+        }).catch(error => {
+          response.writeHead(503, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+          response.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
+        })
+        return
+      }
+      if (request.method === 'GET' && request.url?.split('?')[0] === '/mcp/apps/backend-status') {
+        const url = new URL(request.url, 'http://swissknife.local')
+        void controls().then(allControls => {
+          const contract = buildAllAppBackendStatusContract({
+            controls: allControls.map(control => ({
+              binding_id: String(control.binding_id),
+              status: control.status === 'available' ? 'available' : 'unavailable',
+              selected_tool_id: typeof control.selected_tool_id === 'string' ? control.selected_tool_id : null,
+              transport: control.transport === 'http' || control.transport === 'libp2p' ? control.transport : null,
+              transports: Array.isArray(control.transports)
+                ? control.transports.filter((transport): transport is 'http' | 'libp2p' => transport === 'http' || transport === 'libp2p')
+                : [],
+            })),
+          })
+          const appId = url.searchParams.get('app_id')
+          const app = appId ? contract.apps.find(candidate => candidate.app_id === appId || candidate.aliases.includes(appId)) : null
+          response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+          response.end(JSON.stringify({
+            schema: 'swissknife.all-app-backend-status-catalog.v1',
+            app: app ?? null,
+            matrix: appId ? undefined : buildBackendStatusMatrixEvidence(contract, new Date().toISOString()),
+          }))
         }).catch(error => {
           response.writeHead(503, { 'content-type': 'application/json', 'cache-control': 'no-store' })
           response.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  MCP_PLUS_PLUS_DESKTOP_SERVICES,
   MCPPlusPlusDesktopClient,
 } from '../../web/js/core/mcp-plus-plus-desktop-client.js';
 
@@ -13,6 +14,11 @@ const services = [{
 }];
 
 describe('MCP++ virtual desktop browser client', () => {
+  it('uses only same-origin mediated service routes by default', () => {
+    expect(MCP_PLUS_PLUS_DESKTOP_SERVICES.every(service => service.baseUrl === `/mcp/services/${service.id}`)).toBe(true);
+    expect(JSON.stringify(MCP_PLUS_PLUS_DESKTOP_SERVICES)).not.toMatch(/(?:localhost|127\.0\.0\.1|:\d{4})/);
+  });
+
   it('collects protocol diagnostics and exposes live supervisor health', async () => {
     const fetch = vi.fn(async (url: string, options: RequestInit = {}) => responseFor(url, options));
     const client = new MCPPlusPlusDesktopClient({ fetch, services, timeoutMs: 50 });

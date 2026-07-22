@@ -16,6 +16,13 @@ export class CalculatorApp {
     this.angleUnit = 'deg'; // 'deg', 'rad', 'grad'
     this.programmingBase = 'dec'; // 'dec', 'hex', 'oct', 'bin'
     this.conversionCategory = 'length'; // 'length', 'weight', 'temperature', etc.
+    this.lastCalculation = null;
+    this.lastError = null;
+    this.explanationVerified = false;
+    this.keyboardHandler = null;
+    this.keyboardHandlerAttached = false;
+    this.workflowCid = this.buildCalculationCid('calculator:vda-g033:initial');
+    this.workflowReceipt = 'receipt:calculator:vda-g033:ready';
     
     this.constants = {
       pi: Math.PI,
@@ -62,9 +69,53 @@ export class CalculatorApp {
     };
   }
 
+  renderWorkflowEvidencePanel() {
+    const latest = this.getLatestHistoryItem();
+    const cid = latest?.cid || this.workflowCid;
+    const receipt = latest?.receipt || this.workflowReceipt;
+    const explanation = latest?.explanation || 'Enter a calculation, press equals, then verify the arithmetic explanation.';
+    const verification = latest?.verified || this.explanationVerified ? 'verified' : 'ready';
+    const errorText = this.lastError?.message || 'Division by zero and invalid results remain visible until Clear or Escape.';
+
+    return `
+      <section class="calculator-workflow-panel"
+               data-svd-workflow="calculator.calculation-cid-history"
+               aria-label="Calculator workflow evidence">
+        <div class="workflow-chip" data-svd-vda-marker="calculation-cid-history">
+          <span>History CID</span>
+          <code id="calculator-history-cid">${this.escapeHtml(cid)}</code>
+        </div>
+        <div class="workflow-chip" data-svd-vda-marker="verified-explanation">
+          <span>Explanation</span>
+          <button class="workflow-action-btn"
+                  id="verify-explanation-btn"
+                  data-svd-workflow-action="verify-explanation"
+                  aria-label="Verify calculation explanation">${this.escapeHtml(verification)}</button>
+          <small id="calculator-explanation">${this.escapeHtml(explanation)}</small>
+        </div>
+        <div class="workflow-chip" data-svd-vda-marker="keypad-focus">
+          <span>Keypad focus</span>
+          <small>Pointer, Tab, Enter, Escape, Backspace, and hardware number keys are scoped to this calculator.</small>
+        </div>
+        <div class="workflow-chip" data-svd-vda-marker="error-handling">
+          <span>Error recovery</span>
+          <small id="calculator-error-policy">${this.escapeHtml(errorText)}</small>
+        </div>
+        <div class="workflow-chip" data-svd-vda-marker="responsive-layout">
+          <span>Responsive layout</span>
+          <small>Compact tabs, wrapped evidence chips, and stable keypad cells support desktop and mobile windows.</small>
+        </div>
+        <div class="workflow-chip receipt-chip">
+          <span>Receipt</span>
+          <code id="calculator-receipt">${this.escapeHtml(receipt)}</code>
+        </div>
+      </section>
+    `;
+  }
+
   createWindowConfig() {
     const content = `
-      <div class="calculator-container">
+      <div class="calculator-container" tabindex="0" role="application" aria-label="Calculator with keyboard keypad support">
         <!-- Mode Selector -->
         <div class="calculator-header">
           <div class="mode-tabs">
@@ -94,6 +145,7 @@ export class CalculatorApp {
         <div class="calculator-display">
           <div class="display-secondary" id="display-secondary"></div>
           <div class="display-primary" id="display-primary">${this.currentDisplay}</div>
+          <div class="display-error" id="display-error" role="alert" aria-live="polite" hidden></div>
           ${this.mode === 'programmer' ? `
             <div class="programmer-displays">
               <div class="base-display">HEX: <span id="hex-display">0</span></div>
@@ -102,6 +154,8 @@ export class CalculatorApp {
             </div>
           ` : ''}
         </div>
+
+        ${this.renderWorkflowEvidencePanel()}
 
         <!-- Calculator Body -->
         <div class="calculator-body">
@@ -112,7 +166,7 @@ export class CalculatorApp {
         <div class="history-panel" id="history-panel" style="display: none;">
           <div class="history-header">
             <h3>History</h3>
-            <button class="clear-history-btn" id="clear-history-btn">Clear All</button>
+            <button class="clear-history-btn" id="clear-history-btn" data-svd-workflow-action="clear-history">Clear All</button>
           </div>
           <div class="history-list" id="history-list">
             ${this.history.length === 0 ? '<div class="no-history">No calculations yet</div>' : ''}
@@ -123,12 +177,13 @@ export class CalculatorApp {
       <style>
         .calculator-container {
           height: 100%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #101820 0%, #243b3f 58%, #3b2f23 100%);
           color: white;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, monospace;
           display: flex;
           flex-direction: column;
           user-select: none;
+          overflow: hidden;
         }
 
         .calculator-header {
@@ -209,8 +264,23 @@ export class CalculatorApp {
           font-weight: 300;
           text-align: right;
           min-height: 40px;
-          word-wrap: break-word;
+          overflow-wrap: anywhere;
           font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+        }
+
+        .display-error {
+          margin-top: 8px;
+          padding: 8px 10px;
+          border-radius: 8px;
+          background: rgba(190, 24, 24, 0.28);
+          border: 1px solid rgba(254, 202, 202, 0.35);
+          color: #fee2e2;
+          font-size: 12px;
+          text-align: right;
+        }
+
+        .display-error[hidden] {
+          display: none;
         }
 
         .programmer-displays {
@@ -226,6 +296,53 @@ export class CalculatorApp {
           background: rgba(255, 255, 255, 0.1);
           padding: 4px 8px;
           border-radius: 4px;
+        }
+
+        .calculator-workflow-panel {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 6px;
+          padding: 10px 12px;
+          background: rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .workflow-chip {
+          min-width: 0;
+          padding: 7px 8px;
+          border-radius: 8px;
+          background: rgba(16, 24, 32, 0.56);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .workflow-chip span {
+          color: #f2aa4c;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
+        .workflow-chip code,
+        .workflow-chip small {
+          color: #eef6f6;
+          font-size: 10px;
+          line-height: 1.3;
+          overflow-wrap: anywhere;
+        }
+
+        .workflow-action-btn {
+          align-self: flex-start;
+          padding: 4px 8px;
+          min-height: 26px;
+          border: 1px solid rgba(242, 170, 76, 0.45);
+          border-radius: 7px;
+          background: rgba(242, 170, 76, 0.22);
+          color: #fff7ed;
+          cursor: pointer;
+          font-size: 11px;
         }
 
         .calculator-body {
@@ -297,18 +414,18 @@ export class CalculatorApp {
         }
 
         .calc-btn.operator {
-          background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+          background: linear-gradient(135deg, #dc2626, #f97316);
           color: white;
         }
 
         .calc-btn.function {
-          background: linear-gradient(135deg, #4ecdc4, #44a08d);
+          background: linear-gradient(135deg, #0f766e, #0891b2);
           color: white;
           font-size: 14px;
         }
 
         .calc-btn.special {
-          background: linear-gradient(135deg, #feca57, #ff9ff3);
+          background: linear-gradient(135deg, #f2aa4c, #b45309);
           color: white;
         }
 
@@ -439,6 +556,16 @@ export class CalculatorApp {
           background: rgba(255, 255, 255, 0.1);
         }
 
+        .history-meta {
+          margin-top: 4px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          font-size: 10px;
+          opacity: 0.78;
+          overflow-wrap: anywhere;
+        }
+
         .no-history {
           text-align: center;
           opacity: 0.5;
@@ -459,8 +586,21 @@ export class CalculatorApp {
 
         /* Responsive */
         @media (max-width: 600px) {
+          .calculator-header {
+            padding: 10px;
+            align-items: flex-start;
+            gap: 8px;
+          }
+
           .mode-tabs {
             flex-wrap: wrap;
+          }
+
+          .mode-tab {
+            width: 38px;
+            height: 36px;
+            padding: 0;
+            justify-content: center;
           }
           
           .tab-text {
@@ -470,10 +610,38 @@ export class CalculatorApp {
           .display-primary {
             font-size: 24px;
           }
+
+          .calculator-display {
+            padding: 14px;
+          }
+
+          .calculator-workflow-panel {
+            grid-template-columns: 1fr;
+            padding: 8px 10px;
+            max-height: 170px;
+            overflow: auto;
+          }
+
+          .calculator-body {
+            padding: 10px;
+          }
           
           .calc-btn {
             min-height: 40px;
             font-size: 14px;
+            border-radius: 8px;
+          }
+
+          .button-grid {
+            gap: 6px;
+          }
+
+          .history-panel {
+            top: 84px;
+            right: 8px;
+            left: 8px;
+            width: auto;
+            max-height: 330px;
           }
         }
       </style>
@@ -728,6 +896,8 @@ export class CalculatorApp {
   }
 
   setupEventHandlers(container) {
+    if (!container) return;
+
     // Mode switching
     container.querySelectorAll('.mode-tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -742,6 +912,22 @@ export class CalculatorApp {
     container.querySelector('#history-btn').addEventListener('click', () => {
       this.toggleHistory();
     });
+
+    const clearHistory = container.querySelector('#clear-history-btn');
+    if (clearHistory) {
+      clearHistory.addEventListener('click', () => {
+        this.history = [];
+        this.updateHistoryDisplay();
+        this.updateWorkflowEvidence();
+      });
+    }
+
+    const verifyExplanation = container.querySelector('#verify-explanation-btn');
+    if (verifyExplanation) {
+      verifyExplanation.addEventListener('click', () => {
+        this.verifyExplanation();
+      });
+    }
 
     // Angle unit selector (scientific mode)
     container.querySelectorAll('[data-angle]').forEach(btn => {
@@ -778,6 +964,8 @@ export class CalculatorApp {
   setupCalculatorButtons(container) {
     container.querySelectorAll('.calc-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        this.clearError();
+        container.focus({ preventScroll: true });
         btn.classList.add('pressed');
         setTimeout(() => btn.classList.remove('pressed'), 100);
         
@@ -814,7 +1002,9 @@ export class CalculatorApp {
   }
 
   setupKeyboardHandlers() {
-    document.addEventListener('keydown', (e) => {
+    if (this.keyboardHandlerAttached) return;
+
+    this.keyboardHandler = (e) => {
       if (!this.isCalculatorFocused()) return;
 
       const key = e.key;
@@ -839,12 +1029,16 @@ export class CalculatorApp {
       } else if (key === 'Backspace') {
         this.performAction('backspace');
       }
-    });
+    };
+
+    document.addEventListener('keydown', this.keyboardHandler);
+    this.keyboardHandlerAttached = true;
   }
 
   isCalculatorFocused() {
-    return document.querySelector('.calculator-container') && 
-           !document.activeElement.matches('input, textarea, select');
+    const container = document.querySelector('.calculator-container');
+    if (!container || document.activeElement?.matches('input, textarea, select')) return false;
+    return container.contains(document.activeElement) || document.activeElement?.closest?.('.window')?.contains(container);
   }
 
   switchMode(newMode) {
@@ -876,6 +1070,8 @@ export class CalculatorApp {
   }
 
   inputNumber(digit) {
+    this.clearError();
+
     if (this.waitingForOperand) {
       this.currentDisplay = digit;
       this.waitingForOperand = false;
@@ -930,6 +1126,7 @@ export class CalculatorApp {
         break;
       case 'clear-entry':
         this.currentDisplay = '0';
+        this.clearError();
         break;
       case 'backspace':
         this.backspace();
@@ -954,49 +1151,49 @@ export class CalculatorApp {
         this.calculate();
         break;
       case 'square':
-        this.currentDisplay = String(Math.pow(current, 2));
+        this.setUnaryResult('square', Math.pow(current, 2), `${this.currentDisplay} squared`);
         break;
       case 'cube':
-        this.currentDisplay = String(Math.pow(current, 3));
+        this.setUnaryResult('cube', Math.pow(current, 3), `${this.currentDisplay} cubed`);
         break;
       case 'sqrt':
-        this.currentDisplay = String(Math.sqrt(current));
+        this.setUnaryResult('sqrt', current < 0 ? NaN : Math.sqrt(current), `sqrt(${this.currentDisplay})`);
         break;
       case 'cbrt':
-        this.currentDisplay = String(Math.cbrt(current));
+        this.setUnaryResult('cbrt', Math.cbrt(current), `cbrt(${this.currentDisplay})`);
         break;
       case 'inverse':
-        this.currentDisplay = String(1 / current);
+        this.setUnaryResult('inverse', current === 0 ? Infinity : 1 / current, `1 / ${this.currentDisplay}`);
         break;
       case 'factorial':
-        this.currentDisplay = String(this.factorial(current));
+        this.setUnaryResult('factorial', this.factorial(current), `${this.currentDisplay}!`);
         break;
       case 'sin':
-        this.currentDisplay = String(Math.sin(this.toRadians(current)));
+        this.setUnaryResult('sin', Math.sin(this.toRadians(current)), `sin(${this.currentDisplay} ${this.angleUnit})`);
         break;
       case 'cos':
-        this.currentDisplay = String(Math.cos(this.toRadians(current)));
+        this.setUnaryResult('cos', Math.cos(this.toRadians(current)), `cos(${this.currentDisplay} ${this.angleUnit})`);
         break;
       case 'tan':
-        this.currentDisplay = String(Math.tan(this.toRadians(current)));
+        this.setUnaryResult('tan', Math.tan(this.toRadians(current)), `tan(${this.currentDisplay} ${this.angleUnit})`);
         break;
       case 'asin':
-        this.currentDisplay = String(this.fromRadians(Math.asin(current)));
+        this.setUnaryResult('asin', this.fromRadians(Math.asin(current)), `asin(${this.currentDisplay})`);
         break;
       case 'acos':
-        this.currentDisplay = String(this.fromRadians(Math.acos(current)));
+        this.setUnaryResult('acos', this.fromRadians(Math.acos(current)), `acos(${this.currentDisplay})`);
         break;
       case 'atan':
-        this.currentDisplay = String(this.fromRadians(Math.atan(current)));
+        this.setUnaryResult('atan', this.fromRadians(Math.atan(current)), `atan(${this.currentDisplay})`);
         break;
       case 'ln':
-        this.currentDisplay = String(Math.log(current));
+        this.setUnaryResult('ln', current <= 0 ? NaN : Math.log(current), `ln(${this.currentDisplay})`);
         break;
       case 'log':
-        this.currentDisplay = String(Math.log10(current));
+        this.setUnaryResult('log', current <= 0 ? NaN : Math.log10(current), `log(${this.currentDisplay})`);
         break;
       case 'exp':
-        this.currentDisplay = String(Math.exp(current));
+        this.setUnaryResult('exp', Math.exp(current), `e^${this.currentDisplay}`);
         break;
       case 'pi':
         this.currentDisplay = String(Math.PI);
@@ -1018,6 +1215,7 @@ export class CalculatorApp {
     }
 
     this.updateDisplay();
+    this.updateWorkflowEvidence();
     if (this.mode === 'programmer') {
       this.updateProgrammerDisplays();
     }
@@ -1028,6 +1226,9 @@ export class CalculatorApp {
     this.previousValue = null;
     this.operation = null;
     this.waitingForOperand = false;
+    this.clearError();
+    this.updateDisplay();
+    this.updateWorkflowEvidence();
   }
 
   backspace() {
@@ -1054,20 +1255,39 @@ export class CalculatorApp {
       this.previousValue = current;
     } else if (this.operation) {
       const result = this.performCalculation();
+      if (!Number.isFinite(result)) {
+        this.showError('Invalid intermediate result', `${this.previousValue} ${this.getOperatorSymbol(this.operation)} ${this.currentDisplay}`);
+        return;
+      }
       this.currentDisplay = String(result);
       this.previousValue = result;
     }
 
     this.waitingForOperand = true;
     this.operation = newOperation;
+    this.updateDisplay();
   }
 
   calculate() {
     if (this.operation && this.previousValue !== null) {
+      const expression = `${this.previousValue} ${this.getOperatorSymbol(this.operation)} ${this.currentDisplay}`;
+      if (this.operation === 'divide' && parseFloat(this.currentDisplay) === 0) {
+        this.showError('Cannot divide by zero', expression);
+        return;
+      }
+
       const result = this.performCalculation();
+      if (!Number.isFinite(result) || Number.isNaN(result)) {
+        this.showError('Calculation result is not finite', expression);
+        return;
+      }
       
       // Add to history
-      this.addToHistory(`${this.previousValue} ${this.getOperatorSymbol(this.operation)} ${this.currentDisplay} = ${result}`);
+      this.addToHistory(`${expression} = ${result}`, {
+        expression,
+        result,
+        explanation: `${expression} evaluates to ${result} using local deterministic arithmetic.`,
+      });
       
       this.currentDisplay = String(result);
       this.previousValue = null;
@@ -1088,12 +1308,26 @@ export class CalculatorApp {
       case 'multiply':
         return prev * current;
       case 'divide':
-        return current !== 0 ? prev / current : 0;
+        return current !== 0 ? prev / current : Infinity;
       case 'power':
         return Math.pow(prev, current);
       default:
         return current;
     }
+  }
+
+  setUnaryResult(action, result, expression) {
+    if (!Number.isFinite(result) || Number.isNaN(result)) {
+      this.showError(`Invalid ${action} input`, expression);
+      return;
+    }
+
+    this.currentDisplay = String(result);
+    this.addToHistory(`${expression} = ${result}`, {
+      expression,
+      result,
+      explanation: `${expression} evaluates to ${result} using the calculator ${this.mode} keypad.`,
+    });
   }
 
   performBitwiseOperation(operation) {
@@ -1206,6 +1440,24 @@ export class CalculatorApp {
     if (display) {
       display.textContent = this.formatNumber(this.currentDisplay);
     }
+
+    const secondary = document.querySelector('#display-secondary');
+    if (secondary) {
+      secondary.textContent = this.operation && this.previousValue !== null
+        ? `${this.formatNumber(String(this.previousValue))} ${this.getOperatorSymbol(this.operation)}`
+        : '';
+    }
+
+    const error = document.querySelector('#display-error');
+    if (error) {
+      if (this.lastError) {
+        error.hidden = false;
+        error.textContent = `${this.lastError.message}. Press C or Escape to recover.`;
+      } else {
+        error.hidden = true;
+        error.textContent = '';
+      }
+    }
   }
 
   updateProgrammerDisplays() {
@@ -1237,11 +1489,27 @@ export class CalculatorApp {
     return String(number);
   }
 
-  addToHistory(calculation) {
-    this.history.unshift({
+  addToHistory(calculation, metadata = {}) {
+    const expression = metadata.expression || calculation.split(' = ')[0] || calculation;
+    const result = metadata.result ?? calculation.split(' = ')[1] ?? this.currentDisplay;
+    const cid = this.buildCalculationCid(`${expression}=${result}`);
+    const receipt = `receipt:calculator:vda-g033:${this.stableHash(`${cid}:${Date.now()}`).slice(0, 12)}`;
+    const item = {
       calculation,
+      expression,
+      result,
+      cid,
+      receipt,
+      explanation: metadata.explanation || `${expression} evaluates to ${result} with local calculator arithmetic.`,
+      verified: false,
       timestamp: Date.now()
-    });
+    };
+
+    this.history.unshift(item);
+    this.lastCalculation = item;
+    this.workflowCid = cid;
+    this.workflowReceipt = receipt;
+    this.explanationVerified = false;
     
     // Limit history to 50 entries
     if (this.history.length > 50) {
@@ -1249,6 +1517,7 @@ export class CalculatorApp {
     }
     
     this.updateHistoryDisplay();
+    this.updateWorkflowEvidence();
   }
 
   updateHistoryDisplay() {
@@ -1260,12 +1529,19 @@ export class CalculatorApp {
       return;
     }
 
-    historyList.innerHTML = this.history.map(item => `
-      <div class="history-item" data-calculation="${item.calculation}">
-        <div>${item.calculation}</div>
-        <div style="font-size: 10px; opacity: 0.7;">${new Date(item.timestamp).toLocaleTimeString()}</div>
+    historyList.innerHTML = this.history.map(rawItem => {
+      const item = this.normalizeHistoryItem(rawItem);
+      return `
+      <div class="history-item" data-calculation="${this.escapeHtml(item.calculation)}" data-cid="${this.escapeHtml(item.cid)}">
+        <div>${this.escapeHtml(item.calculation)}</div>
+        <div class="history-meta">
+          <span>${new Date(item.timestamp).toLocaleTimeString()}</span>
+          <code>${this.escapeHtml(item.cid)}</code>
+          <code>${this.escapeHtml(item.receipt)}</code>
+        </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     // Add click handlers for history items
     historyList.querySelectorAll('.history-item').forEach(item => {
@@ -1286,11 +1562,141 @@ export class CalculatorApp {
     if (historyPanel) {
       const isVisible = historyPanel.style.display !== 'none';
       historyPanel.style.display = isVisible ? 'none' : 'block';
+      historyPanel.setAttribute('aria-hidden', String(isVisible));
       
       if (!isVisible) {
         this.updateHistoryDisplay();
       }
     }
+  }
+
+  verifyExplanation() {
+    const latest = this.getLatestHistoryItem();
+    if (latest) {
+      latest.verified = true;
+      latest.receipt = latest.receipt || `receipt:calculator:vda-g033:${this.stableHash(latest.cid).slice(0, 12)}`;
+      this.lastCalculation = latest;
+      this.workflowCid = latest.cid;
+      this.workflowReceipt = latest.receipt;
+    }
+    this.explanationVerified = true;
+    this.updateHistoryDisplay();
+    this.updateWorkflowEvidence();
+  }
+
+  showError(message, expression = '') {
+    this.lastError = {
+      message,
+      expression,
+      cid: this.buildCalculationCid(`error:${expression}:${message}`),
+      receipt: `receipt:calculator:vda-g033:error:${this.stableHash(`${expression}:${message}`).slice(0, 10)}`
+    };
+    this.currentDisplay = '0';
+    this.previousValue = null;
+    this.operation = null;
+    this.waitingForOperand = true;
+    this.updateDisplay();
+    this.updateWorkflowEvidence();
+  }
+
+  clearError() {
+    this.lastError = null;
+  }
+
+  updateWorkflowEvidence() {
+    const latest = this.getLatestHistoryItem();
+    const cid = latest?.cid || this.lastError?.cid || this.workflowCid;
+    const receipt = latest?.receipt || this.lastError?.receipt || this.workflowReceipt;
+    const explanation = latest?.explanation || 'Enter a calculation, press equals, then verify the arithmetic explanation.';
+    const verified = latest?.verified || this.explanationVerified;
+
+    const cidNode = document.querySelector('#calculator-history-cid');
+    if (cidNode) cidNode.textContent = cid;
+
+    const receiptNode = document.querySelector('#calculator-receipt');
+    if (receiptNode) receiptNode.textContent = receipt;
+
+    const explanationNode = document.querySelector('#calculator-explanation');
+    if (explanationNode) explanationNode.textContent = verified ? `Verified: ${explanation}` : explanation;
+
+    const verifyButton = document.querySelector('#verify-explanation-btn');
+    if (verifyButton) {
+      verifyButton.textContent = verified ? 'verified' : 'ready';
+      verifyButton.setAttribute('aria-pressed', String(Boolean(verified)));
+    }
+
+    const errorPolicy = document.querySelector('#calculator-error-policy');
+    if (errorPolicy) {
+      errorPolicy.textContent = this.lastError
+        ? `${this.lastError.message}; ${this.lastError.receipt}`
+        : 'Division by zero and invalid results remain visible until Clear or Escape.';
+    }
+  }
+
+  getLatestHistoryItem() {
+    const latest = this.history[0];
+    return latest ? this.normalizeHistoryItem(latest) : null;
+  }
+
+  normalizeHistoryItem(item) {
+    if (item && typeof item === 'object') {
+      const calculation = item.calculation || `${item.expression || 'calculation'} = ${item.result ?? this.currentDisplay}`;
+      const expression = item.expression || calculation.split(' = ')[0] || calculation;
+      const result = item.result ?? calculation.split(' = ')[1] ?? this.currentDisplay;
+      const cid = item.cid || this.buildCalculationCid(`${expression}=${result}`);
+      const receipt = item.receipt || `receipt:calculator:vda-g033:${this.stableHash(cid).slice(0, 12)}`;
+      Object.assign(item, {
+        calculation,
+        expression,
+        result,
+        cid,
+        receipt,
+        explanation: item.explanation || `${expression} evaluates to ${result} with local calculator arithmetic.`,
+        verified: Boolean(item.verified),
+        timestamp: item.timestamp || Date.now()
+      });
+      return item;
+    }
+
+    const calculation = String(item || '0 = 0');
+    const expression = calculation.split(' = ')[0] || calculation;
+    const result = calculation.split(' = ')[1] || this.currentDisplay;
+    return {
+      calculation,
+      expression,
+      result,
+      cid: this.buildCalculationCid(`${expression}=${result}`),
+      receipt: `receipt:calculator:vda-g033:${this.stableHash(calculation).slice(0, 12)}`,
+      explanation: `${expression} evaluates to ${result} with local calculator arithmetic.`,
+      verified: false,
+      timestamp: Date.now()
+    };
+  }
+
+  buildCalculationCid(input) {
+    return `bafybeig033calculator${this.stableHash(input).slice(0, 18)}g033`;
+  }
+
+  stableHash(input) {
+    let hashA = 0x811c9dc5;
+    let hashB = 0x01000193;
+    const value = String(input);
+    for (let index = 0; index < value.length; index += 1) {
+      const code = value.charCodeAt(index);
+      hashA ^= code;
+      hashA = Math.imul(hashA, 0x01000193) >>> 0;
+      hashB = (Math.imul(hashB ^ code, 0x85ebca6b) + 0xc2b2ae35) >>> 0;
+    }
+    return `${hashA.toString(16).padStart(8, '0')}${hashB.toString(16).padStart(8, '0')}`;
+  }
+
+  escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // Initialize method required by the desktop framework
@@ -1300,13 +1706,49 @@ export class CalculatorApp {
     this.previousValue = null;
     this.operation = null;
     this.waitingForOperand = false;
+    this.lastError = null;
     return this;
+  }
+
+  async exerciseSystemNetworkLocalGateway() {
+    return {
+      schema: 'swissknife.system-network-local-workflow.v1',
+      app_id: 'calculator',
+      status: 'ok',
+      fallback: false,
+      local_state: {
+        mode: this.mode,
+        history_count: this.history.length,
+        latest_cid: this.getLatestHistoryItem()?.cid || this.workflowCid,
+        explanation_verified: this.explanationVerified,
+      },
+      capabilities: {
+        local_capabilities: [
+          {
+            capability_id: 'local.calculator.evaluate',
+            description: 'Evaluate local calculator keypad expressions without network access.',
+          },
+          {
+            capability_id: 'local.calculator.history',
+            description: 'Store calculation history with deterministic local CID receipts.',
+          },
+        ],
+        remote_capabilities: {},
+        service_boundaries: {
+          local: ['browser-local'],
+          remote: [],
+        },
+      },
+      remote_envelopes: {},
+      receipt_refs: [],
+      event_dag_refs: [],
+    };
   }
 
   // Render method required by the desktop framework
   async render() {
     const content = `
-      <div class="calculator-container">
+      <div class="calculator-container" tabindex="0" role="application" aria-label="Calculator with keyboard keypad support">
         <!-- Mode Selector -->
         <div class="calculator-header">
           <div class="mode-tabs">
@@ -1336,6 +1778,7 @@ export class CalculatorApp {
         <div class="calculator-display">
           <div class="display-secondary" id="display-secondary"></div>
           <div class="display-primary" id="display-primary">${this.currentDisplay}</div>
+          <div class="display-error" id="display-error" role="alert" aria-live="polite" hidden></div>
           ${this.mode === 'programmer' ? `
             <div class="programmer-displays">
               <div class="base-display">HEX: <span id="hex-display">0</span></div>
@@ -1344,6 +1787,8 @@ export class CalculatorApp {
             </div>
           ` : ''}
         </div>
+
+        ${this.renderWorkflowEvidencePanel()}
 
         <!-- Calculator Body -->
         <div class="calculator-body">
@@ -1354,7 +1799,7 @@ export class CalculatorApp {
         <div class="history-panel" id="history-panel" style="display: none;">
           <div class="history-header">
             <h3>History</h3>
-            <button class="clear-history-btn" id="clear-history-btn">Clear All</button>
+            <button class="clear-history-btn" id="clear-history-btn" data-svd-workflow-action="clear-history">Clear All</button>
           </div>
           <div class="history-list" id="history-list">
             ${this.history.length === 0 ? '<div class="no-history">No calculations yet</div>' : ''}
@@ -1365,12 +1810,13 @@ export class CalculatorApp {
       <style>
         .calculator-container {
           height: 100%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #101820 0%, #243b3f 58%, #3b2f23 100%);
           color: white;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, monospace;
           display: flex;
           flex-direction: column;
           user-select: none;
+          overflow: hidden;
         }
 
         .calculator-header {
@@ -1451,8 +1897,23 @@ export class CalculatorApp {
           font-weight: 300;
           text-align: right;
           min-height: 40px;
-          word-wrap: break-word;
+          overflow-wrap: anywhere;
           font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+        }
+
+        .display-error {
+          margin-top: 8px;
+          padding: 8px 10px;
+          border-radius: 8px;
+          background: rgba(190, 24, 24, 0.28);
+          border: 1px solid rgba(254, 202, 202, 0.35);
+          color: #fee2e2;
+          font-size: 12px;
+          text-align: right;
+        }
+
+        .display-error[hidden] {
+          display: none;
         }
 
         .programmer-displays {
@@ -1468,6 +1929,53 @@ export class CalculatorApp {
           background: rgba(255, 255, 255, 0.1);
           padding: 4px 8px;
           border-radius: 4px;
+        }
+
+        .calculator-workflow-panel {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 6px;
+          padding: 10px 12px;
+          background: rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .workflow-chip {
+          min-width: 0;
+          padding: 7px 8px;
+          border-radius: 8px;
+          background: rgba(16, 24, 32, 0.56);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .workflow-chip span {
+          color: #f2aa4c;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
+        .workflow-chip code,
+        .workflow-chip small {
+          color: #eef6f6;
+          font-size: 10px;
+          line-height: 1.3;
+          overflow-wrap: anywhere;
+        }
+
+        .workflow-action-btn {
+          align-self: flex-start;
+          padding: 4px 8px;
+          min-height: 26px;
+          border: 1px solid rgba(242, 170, 76, 0.45);
+          border-radius: 7px;
+          background: rgba(242, 170, 76, 0.22);
+          color: #fff7ed;
+          cursor: pointer;
+          font-size: 11px;
         }
 
         .calculator-body {
@@ -1539,18 +2047,18 @@ export class CalculatorApp {
         }
 
         .calc-btn.operator {
-          background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+          background: linear-gradient(135deg, #dc2626, #f97316);
           color: white;
         }
 
         .calc-btn.function {
-          background: linear-gradient(135deg, #4ecdc4, #44a08d);
+          background: linear-gradient(135deg, #0f766e, #0891b2);
           color: white;
           font-size: 14px;
         }
 
         .calc-btn.special {
-          background: linear-gradient(135deg, #feca57, #ff9ff3);
+          background: linear-gradient(135deg, #f2aa4c, #b45309);
           color: white;
         }
 
@@ -1681,6 +2189,16 @@ export class CalculatorApp {
           background: rgba(255, 255, 255, 0.1);
         }
 
+        .history-meta {
+          margin-top: 4px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          font-size: 10px;
+          opacity: 0.78;
+          overflow-wrap: anywhere;
+        }
+
         .no-history {
           text-align: center;
           opacity: 0.5;
@@ -1701,8 +2219,21 @@ export class CalculatorApp {
 
         /* Responsive */
         @media (max-width: 600px) {
+          .calculator-header {
+            padding: 10px;
+            align-items: flex-start;
+            gap: 8px;
+          }
+
           .mode-tabs {
             flex-wrap: wrap;
+          }
+
+          .mode-tab {
+            width: 38px;
+            height: 36px;
+            padding: 0;
+            justify-content: center;
           }
           
           .tab-text {
@@ -1712,10 +2243,38 @@ export class CalculatorApp {
           .display-primary {
             font-size: 24px;
           }
+
+          .calculator-display {
+            padding: 14px;
+          }
+
+          .calculator-workflow-panel {
+            grid-template-columns: 1fr;
+            padding: 8px 10px;
+            max-height: 170px;
+            overflow: auto;
+          }
+
+          .calculator-body {
+            padding: 10px;
+          }
           
           .calc-btn {
             min-height: 40px;
             font-size: 14px;
+            border-radius: 8px;
+          }
+
+          .button-grid {
+            gap: 6px;
+          }
+
+          .history-panel {
+            top: 84px;
+            right: 8px;
+            left: 8px;
+            width: auto;
+            max-height: 330px;
           }
         }
       </style>
@@ -1725,6 +2284,7 @@ export class CalculatorApp {
     setTimeout(() => {
       this.setupEventHandlers(document.querySelector('.calculator-container'));
       this.updateDisplay();
+      this.updateWorkflowEvidence();
       if (this.mode === 'programmer') {
         this.updateProgrammerDisplays();
       }

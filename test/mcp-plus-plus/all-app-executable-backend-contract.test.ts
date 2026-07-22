@@ -24,6 +24,7 @@ import {
 } from '../../src/services/apps/virtual-desktop-app-manifest';
 import { ipfsDatasetsBackendBindings } from '../../src/services/ipfs/mcp-ipfs-datasets-descriptor-pack';
 import { ipfsAccelerateBackendBindings } from '../../src/services/ipfs/mcp-ipfs-accelerate-descriptor-pack';
+import { MCPPP_META_TOOL_NAMES } from '../../src/services/mcp/mcp-plus-plus-connector';
 
 describe('SVD-103 all-app executable backend disposition contract', () => {
   it('is versioned and conforms to its checked-in JSON Schema', () => {
@@ -135,7 +136,12 @@ describe('SVD-103 all-app executable backend disposition contract', () => {
     ), 'utf8')) as { tools: Array<{ name: string }> };
     const descriptorToolIds = {
       ipfs_kit_py: new Set(kitManifest.tools.map(tool => tool.name)),
-      ipfs_datasets_py: new Set(ipfsDatasetsBackendBindings.map(binding => binding.tool_function)),
+      // The datasets server intentionally exposes the four standard MCP++
+      // hierarchy operations at runtime in addition to its static domain pack.
+      ipfs_datasets_py: new Set([
+        ...ipfsDatasetsBackendBindings.map(binding => binding.tool_function),
+        ...MCPPP_META_TOOL_NAMES,
+      ]),
       ipfs_accelerate_py: new Set(ipfsAccelerateBackendBindings.map(binding => binding.tool_function)),
     };
     for (const binding of bindings) {

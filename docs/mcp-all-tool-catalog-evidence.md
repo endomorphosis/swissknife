@@ -1,6 +1,6 @@
 # MCP All-Tool Catalog Evidence
 
-Generated: 2026-07-20T07:38:56.506Z
+Generated: 2026-07-22T00:23:52.023Z
 
 Decision: **go**
 
@@ -17,7 +17,7 @@ Decision: **go**
 | Expected live descriptors | 538 |
 | Live reconciled descriptors | 538 |
 | Read dispatch receipts | 265 |
-| Policy-gated evidence entries | 423 |
+| Policy-gated evidence entries | 422 |
 | Direct-only descriptors | 47 |
 | Host-only descriptors | 108 |
 | Advertised libp2p endpoints | 1 |
@@ -27,8 +27,8 @@ Decision: **go**
 
 | Service | Endpoint | Flat tools | Hierarchical tools | Facade | Missing expected | Unexplained flat | Read receipts | Policy gated |
 | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |
-| ipfs_kit_py | http://127.0.0.1:8014/mcp | 149 | 149 | yes | 0 | 0 | 79 | 98 |
-| ipfs_datasets_py | http://127.0.0.1:3002/mcp | 271 | 271 | yes | 0 | 0 | 158 | 119 |
+| ipfs_kit_py | http://127.0.0.1:31015/mcp | 149 | 149 | yes | 0 | 0 | 79 | 98 |
+| ipfs_datasets_py | http://127.0.0.1:31002/mcp | 271 | 271 | yes | 0 | 0 | 158 | 118 |
 | ipfs_accelerate_py | http://127.0.0.1:3003/mcp | 118 | 122 | yes | 0 | 0 | 0 | 206 |
 
 ## MCP++ / libp2p

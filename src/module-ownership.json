@@ -941,6 +941,7 @@
       "src/components/browser/*.tsx",
       "src/hooks/browser/*.ts",
       "src/screens/browser/*.tsx",
+      "src/services/apps/all-app-backend-status-contract.ts",
       "src/services/apps/all-app-executable-backend-contract.ts",
       "src/services/apps/all-app-live-tool-bindings.ts",
       "src/services/apps/all-tools-policy-classifier.ts",
@@ -978,6 +979,7 @@
       "web/src/**/*.tsx"
     ],
     "browserSafeServiceFiles": [
+      "src/services/apps/all-app-backend-status-contract.ts",
       "src/services/apps/all-app-executable-backend-contract.ts",
       "src/services/apps/all-app-live-tool-bindings.ts",
       "src/services/apps/all-tools-policy-classifier.ts",
@@ -1999,6 +2001,7 @@
         "screens"
       ],
       "publicEntrypoints": [
+        "src/services/apps/all-app-backend-status-contract.ts",
         "src/services/apps/all-app-executable-backend-contract.ts",
         "src/services/apps/all-app-live-tool-bindings.ts",
         "src/services/apps/all-tools-app-binding-matrix.ts",

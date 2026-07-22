@@ -52,7 +52,8 @@ export interface ApplicationGatewayExecution {
   selected_transport: "http" | "libp2p" | null;
   correlation_id: string;
   request: { route: string; same_origin: boolean };
-  policy: { outcome?: string; decision_id?: string };
+  policy: { outcome?: string; decision_id?: string; consent?: string; dry_run?: boolean };
+  invocation?: { dry_run?: boolean; confirmation_required?: boolean };
   response: { outcome: string; ok: boolean; http_status: number };
   recovery: { action?: string; correlation_id_preserved?: boolean } | null;
   receipt_refs: readonly string[];
@@ -116,8 +117,10 @@ export interface ApplicationTransportObservation {
   ucan_did_verified: true;
   remote_did: string;
   identity_proof_cid: string;
-  policy_outcome: "allow";
+  policy_outcome: "allow" | "require_confirmation";
   policy_decision_id: string;
+  policy_dry_run: boolean;
+  confirmation_required: boolean;
   persistence_verified: true;
   recovery: { observed: boolean; correlation_id_preserved: boolean };
 }
@@ -186,6 +189,15 @@ function transportObservation(
   execution: ApplicationGatewayExecution | undefined,
   transport: "http" | "libp2p",
 ): ApplicationTransportObservation {
+  const expectedPolicyOutcome = binding.mediated_intent.mutates_remote_state
+    ? "require_confirmation"
+    : "allow";
+  const governedDryRunPassed = !binding.mediated_intent.mutates_remote_state || (
+    execution?.policy.consent === "granted" &&
+    execution.policy.dry_run === true &&
+    execution.invocation?.dry_run === true &&
+    execution.invocation.confirmation_required === true
+  );
   if (
     !execution ||
     execution.selected_transport !== transport ||
@@ -199,7 +211,8 @@ function transportObservation(
     execution.browser_observed_urls.length === 0 ||
     !execution.correlation_id.startsWith(`desktop:${binding.binding_id}:`) ||
     execution.app_id !== app.app_id ||
-    execution.policy.outcome !== "allow" ||
+    execution.policy.outcome !== expectedPolicyOutcome ||
+    !governedDryRunPassed ||
     !execution.policy.decision_id ||
     execution.persistence?.status !== "persisted" ||
     !execution.no_backend_urls_or_credentials_exposed ||
@@ -252,14 +265,16 @@ function transportObservation(
     ucan_did_verified: true,
     remote_did: observed.remote_did,
     identity_proof_cid: cid(observed.identity_proof_cid, "identity proof"),
-    policy_outcome: "allow",
+    policy_outcome: expectedPolicyOutcome,
     policy_decision_id:
       execution.policy.decision_id ??
       (() => {
         throw new Error(
-          `SVD-127 application replay omitted the allow policy decision for ${binding.binding_id}.`,
+          `SVD-127 application replay omitted the governed policy decision for ${binding.binding_id}.`,
         );
       })(),
+    policy_dry_run: execution.policy.dry_run === true,
+    confirmation_required: execution.invocation?.confirmation_required === true,
     persistence_verified: true,
     recovery: {
       observed: execution.recovery !== null,
@@ -309,7 +324,7 @@ function profileObservations(
         capability,
         outcome: "executed",
         rationale:
-          "Both application replays retain their call-bound allow policy decisions.",
+          "Both application replays retain their call-bound allow or confirmation-gated dry-run policy decisions.",
         evidence: {
           ...common,
           http_policy: {

@@ -72,6 +72,19 @@
     flex-wrap: wrap;
 }
 
+.strudel-ai-daw.compact-controls-enabled .transport-bar {
+    gap: 10px;
+    padding: 8px 10px;
+}
+
+.strudel-ai-daw.compact-controls-enabled .menu-btn,
+.strudel-ai-daw.compact-controls-enabled .transport-btn,
+.strudel-ai-daw.compact-controls-enabled .svd-g045-actions button {
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: 11px;
+}
+
 .transport-controls {
     display: flex;
     align-items: center;
@@ -228,11 +241,119 @@
     font-weight: 500;
 }
 
+.svd-g045-workflow {
+    background: #101514;
+    border-bottom: 1px solid #263634;
+    padding: 10px 14px;
+    display: grid;
+    gap: 10px;
+}
+
+.svd-g045-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.svd-g045-header h4 {
+    margin: 0;
+    font-size: 13px;
+    color: #e6fff4;
+}
+
+.svd-g045-header p {
+    margin: 3px 0 0;
+    font-size: 11px;
+    color: #8fa7a0;
+    line-height: 1.35;
+}
+
+.svd-g045-status {
+    color: #05100c;
+    background: #7bdca9;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.svd-g045-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.svd-g045-actions button {
+    color: #dff8ed;
+    background: #182522;
+    border: 1px solid #34524a;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.svd-g045-actions button:hover {
+    border-color: #7bdca9;
+    background: #21342f;
+}
+
+.svd-g045-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.svd-g045-grid > div {
+    min-width: 0;
+    background: #0b0f0e;
+    border: 1px solid #22322e;
+    border-radius: 6px;
+    padding: 8px;
+    color: #bdd4cc;
+    font-size: 11px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.svd-g045-grid progress {
+    display: block;
+    width: 100%;
+    height: 6px;
+    margin-top: 6px;
+}
+
 /* Main Content */
 .daw-main {
     display: flex;
     flex: 1;
     min-height: 0;
+}
+
+@media (max-width: 760px) {
+    .daw-menubar,
+    .transport-bar {
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .menu-section,
+    .transport-controls,
+    .tempo-section,
+    .master-section,
+    .status-section {
+        flex-wrap: wrap;
+    }
+
+    .svd-g045-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .svd-g045-header {
+        flex-direction: column;
+    }
 }
 
 /* Pattern Sidebar */

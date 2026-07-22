@@ -15,6 +15,18 @@ export class FriendsListApp {
     this.friends = new Map();
     this.identityLinks = new Map();
     this.pendingInvites = new Map();
+    this.blockedContacts = new Map();
+    this.relationshipPolicy = {
+      policy_id: 'relationship-policy:vda-g037:default-confirm',
+      visibility: 'mutual-consent',
+      invitation: 'confirm-before-adding',
+      blocked_contact_behavior: 'suppress-presence-and-messages',
+      provenance_required: true,
+      redaction: 'public handles only until accepted',
+      receipt: 'receipt:friends-list:g037:relationship-policy',
+      cid: 'bafyfriendsg037relationshippolicy',
+    };
+    this.vdaG037 = this.createVdaG037State();
     
     // IPLD and P2P integration
     this.ipfsNode = null;
@@ -91,9 +103,21 @@ export class FriendsListApp {
       status: 'online',
       lastSeen: new Date(),
       identities: {
-        github: { username: 'alice-dev', verified: true },
-        huggingface: { username: 'alice-ml', verified: true },
-        libp2p: { peer_id: '12D3KooWGRUVh1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ', connected: true }
+        github: { username: 'alice-dev', verified: true, provenance_cid: 'bafyfriendsg037alicegithub' },
+        huggingface: { username: 'alice-ml', verified: true, provenance_cid: 'bafyfriendsg037alicehuggingface' },
+        libp2p: { peer_id: '12D3KooWGRUVh1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ', connected: true, provenance_cid: 'bafyfriendsg037alicelibp2p' }
+      },
+      provenance: {
+        source: 'ipfs_datasets_py.record_provenance',
+        cid: 'bafyfriendsg037aliceprovenance',
+        receipt: 'receipt:friends-list:g037:contact-provenance:alice',
+        event_dag: 'event:friends-list:g037:alice-contact-link',
+      },
+      relationship: {
+        state: 'accepted',
+        policy: this.relationshipPolicy.policy_id,
+        since: '2025-08-15T09:30:00.000Z',
+        visibility: 'presence-and-profile',
       },
       tags: ['developer', 'ai-researcher', 'p2p-enthusiast'],
       mutualFriends: 5,
@@ -107,9 +131,21 @@ export class FriendsListApp {
       status: 'away',
       lastSeen: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
       identities: {
-        github: { username: 'bob-blockchain', verified: true },
-        twitter: { username: 'bob_crypto', verified: false },
-        ipfs: { peer_id: 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG', online: true }
+        github: { username: 'bob-blockchain', verified: true, provenance_cid: 'bafyfriendsg037bobgithub' },
+        twitter: { username: 'bob_crypto', verified: false, provenance_cid: 'bafyfriendsg037bobtwitter' },
+        ipfs: { peer_id: 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG', online: true, provenance_cid: 'bafyfriendsg037bobipfs' }
+      },
+      provenance: {
+        source: 'ipfs_datasets_py.record_provenance',
+        cid: 'bafyfriendsg037bobprovenance',
+        receipt: 'receipt:friends-list:g037:contact-provenance:bob',
+        event_dag: 'event:friends-list:g037:bob-contact-link',
+      },
+      relationship: {
+        state: 'accepted',
+        policy: this.relationshipPolicy.policy_id,
+        since: '2025-09-01T15:10:00.000Z',
+        visibility: 'presence-and-profile',
       },
       tags: ['blockchain', 'web3', 'ipfs'],
       mutualFriends: 3,
@@ -123,9 +159,21 @@ export class FriendsListApp {
       status: 'offline',
       lastSeen: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
       identities: {
-        huggingface: { username: 'charlie-transformers', verified: true },
-        discord: { username: 'CharlieAI#1234', verified: true },
-        github: { username: 'charlie-ml', verified: false }
+        huggingface: { username: 'charlie-transformers', verified: true, provenance_cid: 'bafyfriendsg037charliehuggingface' },
+        discord: { username: 'CharlieAI#1234', verified: true, provenance_cid: 'bafyfriendsg037charliediscord' },
+        github: { username: 'charlie-ml', verified: false, provenance_cid: 'bafyfriendsg037charliegithub' }
+      },
+      provenance: {
+        source: 'ipfs_datasets_py.record_provenance',
+        cid: 'bafyfriendsg037charlieprovenance',
+        receipt: 'receipt:friends-list:g037:contact-provenance:charlie',
+        event_dag: 'event:friends-list:g037:charlie-contact-link',
+      },
+      relationship: {
+        state: 'accepted',
+        policy: this.relationshipPolicy.policy_id,
+        since: '2025-07-22T11:05:00.000Z',
+        visibility: 'profile-only-when-offline',
       },
       tags: ['machine-learning', 'nlp', 'data-science'],
       mutualFriends: 8,
@@ -141,8 +189,57 @@ export class FriendsListApp {
       message: 'Hey! Found you through the SwissKnife P2P network. Want to connect?',
       platforms: ['github', 'huggingface'],
       timestamp: new Date(Date.now() - 10 * 60 * 1000),
-      mutualFriends: 2
+      mutualFriends: 2,
+      state: 'pending-inbound',
+      provenance_cid: 'bafyfriendsg037evainvite',
+      receipt: 'receipt:friends-list:g037:invitation-state:eva',
+      policy: this.relationshipPolicy.policy_id,
     });
+
+    this.blockedContacts.set('blocked-1', {
+      id: 'blocked-1',
+      did: 'did:key:z6MblockedContactPolicyFixtureG037',
+      name: 'Spam Relay',
+      state: 'blocked',
+      blockedAt: new Date(Date.now() - 45 * 60 * 1000),
+      reason: 'Unsolicited invite bursts',
+      cid: 'bafyfriendsg037blockedstate',
+      receipt: 'receipt:friends-list:g037:blocking-state:spam-relay',
+    });
+  }
+
+  createVdaG037State() {
+    const generatedAt = new Date();
+    return {
+      workflowId: 'friends-list.contact-provenance-policy-state',
+      vdaId: 'VDA-G037',
+      generatedAt,
+      freshnessState: 'fresh',
+      emptyStateVisible: false,
+      selectedAction: 'ready',
+      checkpointRefs: [
+        'bafyfriendsg037contactprovenance',
+        'bafyfriendsg037relationshippolicy',
+        'bafyfriendsg037invitationstate',
+        'bafyfriendsg037blockingstate',
+        'bafyfriendsg037freshnesscursor',
+        'bafyfriendsg037accessibleempty',
+        'bafyfriendsg037eventdag',
+      ],
+      receiptRefs: [
+        'receipt:friends-list:g037:contact-provenance',
+        'receipt:friends-list:g037:relationship-policy',
+        'receipt:friends-list:g037:invitation-state',
+        'receipt:friends-list:g037:blocking-state',
+        'receipt:friends-list:g037:freshness',
+        'receipt:friends-list:g037:accessible-empty-state',
+      ],
+      eventRefs: [
+        'event:friends-list:g037:alice-contact-link',
+        'event:friends-list:g037:bob-contact-link',
+        'event:friends-list:g037:charlie-contact-link',
+      ],
+    };
   }
   
   async initialize() {
@@ -280,7 +377,7 @@ export class FriendsListApp {
   
   getHTML() {
     return `
-      <div class="friends-container">
+      <div class="friends-container" data-svd-workflow="${this.escapeHtml(this.vdaG037.workflowId)}" data-svd-vda-id="${this.escapeHtml(this.vdaG037.vdaId)}">
         <!-- Header -->
         <div class="friends-header">
           <div class="header-title">
@@ -288,14 +385,14 @@ export class FriendsListApp {
             <h2>Friends & Network</h2>
           </div>
           <div class="header-actions">
-            <button id="add-friend-btn" class="action-btn primary">
-              <span>➕</span> Add Friend
+            <button id="add-friend-btn" class="action-btn primary" type="button" aria-label="Add friend and review contact provenance">
+              <span aria-hidden="true">➕</span> Add Friend
             </button>
-            <button id="identity-manager-btn" class="action-btn">
-              <span>🆔</span> Manage Identity
+            <button id="identity-manager-btn" class="action-btn" type="button" aria-label="Manage identity and relationship policy">
+              <span aria-hidden="true">🆔</span> Manage Identity
             </button>
-            <button id="network-status-btn" class="action-btn status-online">
-              <span>🔗</span> Online
+            <button id="network-status-btn" class="action-btn status-online" type="button" aria-label="Refresh network freshness state">
+              <span aria-hidden="true">🔗</span> Online
             </button>
           </div>
         </div>
@@ -311,7 +408,7 @@ export class FriendsListApp {
             Pending (<span id="pending-count">0</span>)
           </button>
           <button class="nav-tab" data-tab="identity">
-            <span class="tab-icon">��</span>
+            <span class="tab-icon">ID</span>
             Identity Links
           </button>
           <button class="nav-tab" data-tab="discovery">
@@ -347,6 +444,12 @@ export class FriendsListApp {
             </div>
             <div class="friends-list" id="friends-list">
               <!-- Friends will be populated by JavaScript -->
+            </div>
+            <div id="friends-empty-state" class="friends-empty-state hidden" role="status" aria-live="polite" data-svd-vda-marker="accessible-empty-state" data-empty-state="available" tabindex="0">
+              <div class="placeholder-icon" aria-hidden="true">∅</div>
+              <h4>No matching contacts</h4>
+              <p>No results match the current filters. Clear search or import contacts to rebuild the list.</p>
+              <button type="button" id="clear-empty-filter-btn" class="btn-secondary" data-svd-workflow-action="restore-accessible-empty-state">Clear filters</button>
             </div>
           </div>
           
@@ -386,11 +489,11 @@ export class FriendsListApp {
             <div class="panel-header">
               <h3>Discover Friends</h3>
               <div class="discovery-controls">
-                <button id="scan-network-btn" class="discovery-btn">
-                  <span>📡</span> Scan P2P Network
+                <button id="scan-network-btn" class="discovery-btn" type="button">
+                  <span aria-hidden="true">📡</span> Scan P2P Network
                 </button>
-                <button id="import-contacts-btn" class="discovery-btn">
-                  <span>📤</span> Import Contacts
+                <button id="import-contacts-btn" class="discovery-btn" type="button">
+                  <span aria-hidden="true">📤</span> Import Contacts
                 </button>
               </div>
             </div>
@@ -403,6 +506,8 @@ export class FriendsListApp {
             </div>
           </div>
         </div>
+
+        ${this.renderVdaG037WorkflowPanel()}
         
         <!-- Add Friend Modal -->
         <div id="add-friend-modal" class="modal hidden">
@@ -520,6 +625,68 @@ export class FriendsListApp {
       </div>
     `;
   }
+
+  renderVdaG037WorkflowPanel() {
+    const freshnessEpoch = this.vdaG037.generatedAt.getTime();
+    const invitation = Array.from(this.pendingInvites.values())[0];
+    const blocked = Array.from(this.blockedContacts.values())[0];
+    const contactCount = this.friends.size;
+    const provenanceCount = Array.from(this.friends.values()).filter(friend => friend.provenance?.cid).length;
+    const refs = [...this.vdaG037.checkpointRefs, ...this.vdaG037.receiptRefs, ...this.vdaG037.eventRefs];
+
+    return `
+      <section class="friends-workflow-panel" aria-label="VDA-G037 Friends List workflow evidence">
+        <div class="workflow-panel-header">
+          <div>
+            <h3>VDA-G037 workflow</h3>
+            <p>${this.escapeHtml(this.vdaG037.workflowId)}</p>
+          </div>
+          <span id="friends-workflow-action-state" class="workflow-state" role="status" aria-live="polite">${this.escapeHtml(this.vdaG037.selectedAction)}</span>
+        </div>
+        <div class="workflow-marker-grid">
+          <article class="workflow-card" data-svd-vda-marker="contact-provenance" data-provenance-state="recorded">
+            <h4>Contact provenance</h4>
+            <p>${provenanceCount}/${contactCount} contacts have dataset provenance and platform proof records.</p>
+            <code>bafyfriendsg037contactprovenance</code>
+            <code>receipt:friends-list:g037:contact-provenance</code>
+          </article>
+          <article class="workflow-card" data-svd-vda-marker="relationship-policy" data-relationship-policy-state="active">
+            <h4>Relationship policy</h4>
+            <p>${this.escapeHtml(this.relationshipPolicy.visibility)}; ${this.escapeHtml(this.relationshipPolicy.invitation)}; ${this.escapeHtml(this.relationshipPolicy.blocked_contact_behavior)}.</p>
+            <code>${this.escapeHtml(this.relationshipPolicy.cid)}</code>
+            <code>${this.escapeHtml(this.relationshipPolicy.receipt)}</code>
+          </article>
+          <article class="workflow-card" data-svd-vda-marker="invitation-blocking-state" data-invitation-state="${this.escapeHtml(invitation?.state || 'none')}" data-blocking-state="${this.escapeHtml(blocked?.state || 'none')}">
+            <h4>Invite and block state</h4>
+            <p>Invitation ${this.escapeHtml(invitation?.state || 'none')} from ${this.escapeHtml(invitation?.name || 'none')}; blocked contact ${this.escapeHtml(blocked?.name || 'none')} is ${this.escapeHtml(blocked?.state || 'none')}.</p>
+            <code>bafyfriendsg037invitationstate</code>
+            <code>bafyfriendsg037blockingstate</code>
+          </article>
+          <article class="workflow-card" data-svd-vda-marker="freshness" data-freshness-state="${this.escapeHtml(this.vdaG037.freshnessState)}" data-freshness-epoch-ms="${freshnessEpoch}">
+            <h4>Freshness</h4>
+            <p>Last network sync ${this.formatTimeAgo(this.vdaG037.generatedAt)}; gateway cursor within 120 seconds.</p>
+            <code>bafyfriendsg037freshnesscursor</code>
+            <code>receipt:friends-list:g037:freshness</code>
+          </article>
+          <article class="workflow-card" data-svd-vda-marker="accessible-empty-state" data-empty-state="${this.vdaG037.emptyStateVisible ? 'visible' : 'available'}">
+            <h4>Accessible empty state</h4>
+            <p>Search results expose role=status, aria-live, keyboard focus, and clear-filter recovery.</p>
+            <code>bafyfriendsg037accessibleempty</code>
+            <code>receipt:friends-list:g037:accessible-empty-state</code>
+          </article>
+        </div>
+        <div class="workflow-actions" aria-label="Friends List VDA-G037 workflow actions">
+          <button type="button" data-svd-workflow-action="review-contact-provenance">Review provenance</button>
+          <button type="button" data-svd-workflow-action="apply-relationship-policy">Apply policy</button>
+          <button type="button" data-svd-workflow-action="process-invitation-state">Process invite</button>
+          <button type="button" data-svd-workflow-action="toggle-blocking-state">Toggle block</button>
+          <button type="button" data-svd-workflow-action="refresh-freshness">Refresh freshness</button>
+          <button type="button" data-svd-workflow-action="show-accessible-empty-state">Show empty state</button>
+        </div>
+        <p class="workflow-refs">${refs.map(ref => `<code>${this.escapeHtml(ref)}</code>`).join(' ')}</p>
+      </section>
+    `;
+  }
   
   getCSS() {
     return `
@@ -530,7 +697,8 @@ export class FriendsListApp {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: #ffffff;
         font-family: system-ui, -apple-system, sans-serif;
-        overflow: hidden;
+        overflow: auto;
+        min-width: 0;
       }
       
       /* Header */
@@ -542,6 +710,7 @@ export class FriendsListApp {
         background: rgba(0, 0, 0, 0.2);
         border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         flex-shrink: 0;
+        gap: 1rem;
       }
       
       .header-title {
@@ -563,6 +732,9 @@ export class FriendsListApp {
       .header-actions {
         display: flex;
         gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        min-width: 0;
       }
       
       .action-btn {
@@ -578,6 +750,7 @@ export class FriendsListApp {
         transition: all 0.2s ease;
         font-size: 0.9rem;
         font-weight: 500;
+        min-width: 0;
       }
       
       .action-btn:hover {
@@ -597,17 +770,20 @@ export class FriendsListApp {
       
       /* Navigation Tabs */
       .nav-tabs {
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         background: rgba(0, 0, 0, 0.1);
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         flex-shrink: 0;
+        min-width: 0;
       }
       
       .nav-tab {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 0.5rem;
-        padding: 1rem 1.5rem;
+        padding: 0.85rem 0.6rem;
         background: none;
         border: none;
         color: rgba(255, 255, 255, 0.7);
@@ -616,6 +792,9 @@ export class FriendsListApp {
         border-bottom: 3px solid transparent;
         font-size: 0.9rem;
         font-weight: 500;
+        min-width: 0;
+        text-align: center;
+        overflow-wrap: anywhere;
       }
       
       .nav-tab:hover, .nav-tab.active {
@@ -630,27 +809,32 @@ export class FriendsListApp {
       
       /* Content Panels */
       .content-panels {
-        flex: 1;
+        flex: 1 1 auto;
         position: relative;
-        overflow: hidden;
+        overflow: auto;
+        min-height: 320px;
+        min-width: 0;
       }
       
       .content-panel {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        display: none;
+        position: static;
         opacity: 0;
         visibility: hidden;
         transition: all 0.3s ease;
-        overflow-y: auto;
+        overflow: visible;
         padding: 1.5rem;
+        min-width: 0;
       }
       
       .content-panel.active {
+        display: block;
         opacity: 1;
         visibility: visible;
+      }
+
+      .friends-container.filters-collapsed #friends-panel > .panel-header {
+        display: none;
       }
       
       .panel-header {
@@ -675,7 +859,8 @@ export class FriendsListApp {
         background: rgba(255, 255, 255, 0.1);
         border-radius: 8px;
         padding: 0.5rem;
-        min-width: 250px;
+        flex: 1 1 250px;
+        min-width: 0;
       }
       
       .search-bar input {
@@ -710,9 +895,14 @@ export class FriendsListApp {
       .filter-controls {
         display: flex;
         gap: 0.75rem;
+        flex: 1 1 280px;
+        flex-wrap: wrap;
+        min-width: 0;
       }
       
       .filter-controls select {
+        flex: 1 1 130px;
+        min-width: 0;
         padding: 0.5rem;
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -730,7 +920,7 @@ export class FriendsListApp {
       /* Friends List */
       .friends-list {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
         gap: 1rem;
       }
       
@@ -832,6 +1022,25 @@ export class FriendsListApp {
         gap: 0.25rem;
         margin-bottom: 0.75rem;
         flex-wrap: wrap;
+      }
+
+      .friend-provenance,
+      .relationship-policy-chip {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+        padding: 0.4rem 0.5rem;
+        border-radius: 6px;
+        background: rgba(15, 23, 42, 0.38);
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 0.72rem;
+      }
+
+      .friend-provenance span,
+      .relationship-policy-chip span {
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
       
       .friend-tag {
@@ -1087,6 +1296,122 @@ export class FriendsListApp {
         font-size: 1.25rem;
         color: rgba(255, 255, 255, 0.9);
       }
+
+      .friends-empty-state {
+        margin-top: 1rem;
+        text-align: center;
+        padding: 2rem 1rem;
+        background: rgba(15, 23, 42, 0.58);
+        border: 1px dashed rgba(125, 211, 252, 0.55);
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.86);
+      }
+
+      .friends-empty-state:focus {
+        outline: 2px solid #7dd3fc;
+        outline-offset: 2px;
+      }
+
+      .friends-workflow-panel {
+        margin: 0 1.5rem 1.5rem;
+        padding: 1rem;
+        background: rgba(8, 47, 73, 0.68);
+        border: 1px solid rgba(125, 211, 252, 0.24);
+        border-radius: 8px;
+        flex-shrink: 0;
+      }
+
+      .workflow-panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 0.75rem;
+      }
+
+      .workflow-panel-header h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .workflow-panel-header p {
+        margin: 0.25rem 0 0;
+        color: rgba(255, 255, 255, 0.68);
+        font-size: 0.78rem;
+      }
+
+      .workflow-state {
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        background: rgba(34, 197, 94, 0.16);
+        border: 1px solid rgba(34, 197, 94, 0.34);
+        color: #bbf7d0;
+        font-size: 0.78rem;
+        white-space: nowrap;
+      }
+
+      .workflow-marker-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 0.75rem;
+      }
+
+      .workflow-card {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 8px;
+        padding: 0.75rem;
+        min-width: 0;
+      }
+
+      .workflow-card h4 {
+        margin: 0 0 0.35rem;
+        font-size: 0.85rem;
+      }
+
+      .workflow-card p {
+        margin: 0 0 0.5rem;
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 0.76rem;
+        line-height: 1.35;
+      }
+
+      .workflow-card code,
+      .workflow-refs code {
+        display: inline-block;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        color: #bae6fd;
+        font-size: 0.7rem;
+      }
+
+      .workflow-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+
+      .workflow-actions button {
+        padding: 0.45rem 0.65rem;
+        border: 1px solid rgba(125, 211, 252, 0.35);
+        border-radius: 6px;
+        background: rgba(14, 165, 233, 0.14);
+        color: #e0f2fe;
+        cursor: pointer;
+        font-size: 0.78rem;
+      }
+
+      .workflow-actions button:hover {
+        background: rgba(14, 165, 233, 0.24);
+      }
+
+      .workflow-refs {
+        margin: 0.75rem 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
       
       /* Modal Styles */
       .modal {
@@ -1290,21 +1615,27 @@ export class FriendsListApp {
         }
         
         .header-actions {
-          justify-content: center;
+          justify-content: stretch;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
         
         .nav-tabs {
-          overflow-x: auto;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         
         .nav-tab {
-          white-space: nowrap;
-          min-width: max-content;
+          min-width: 0;
         }
         
         .panel-header {
           flex-direction: column;
           align-items: stretch;
+        }
+
+        .content-panels {
+          flex-basis: auto;
+          min-height: 300px;
         }
         
         .friends-list {
@@ -1313,6 +1644,14 @@ export class FriendsListApp {
         
         .platforms-grid {
           grid-template-columns: 1fr;
+        }
+
+        .friends-workflow-panel {
+          margin: 0 1rem 1rem;
+        }
+
+        .workflow-panel-header {
+          flex-direction: column;
         }
         
         .modal-content {
@@ -1432,6 +1771,95 @@ export class FriendsListApp {
     networkStatusBtn?.addEventListener('click', () => {
       this.toggleNetworkStatus();
     });
+
+    const clearEmptyFilterBtn = container.querySelector('#clear-empty-filter-btn');
+    clearEmptyFilterBtn?.addEventListener('click', () => {
+      this.restoreAccessibleEmptyState();
+    });
+
+    container.querySelectorAll('[data-svd-workflow-action]').forEach(control => {
+      control.addEventListener('click', () => {
+        const action = control.dataset.svdWorkflowAction;
+        if (action) this.handleVdaG037Action(action);
+      });
+    });
+  }
+
+  handleVdaG037Action(action) {
+    this.vdaG037.selectedAction = action;
+    const actionState = document.querySelector('#friends-workflow-action-state');
+    if (actionState) actionState.textContent = action;
+
+    if (action === 'review-contact-provenance') {
+      document.querySelectorAll('[data-svd-vda-marker="contact-provenance"]').forEach(node => {
+        node.dataset.provenanceState = 'reviewed';
+      });
+    }
+
+    if (action === 'apply-relationship-policy') {
+      document.querySelectorAll('[data-svd-vda-marker="relationship-policy"]').forEach(node => {
+        node.dataset.relationshipPolicyState = 'active';
+      });
+    }
+
+    if (action === 'process-invitation-state') {
+      const invite = Array.from(this.pendingInvites.values())[0];
+      if (invite) invite.state = 'reviewed-pending-confirmation';
+      document.querySelectorAll('[data-svd-vda-marker="invitation-blocking-state"]').forEach(node => {
+        node.dataset.invitationState = invite?.state || 'none';
+      });
+    }
+
+    if (action === 'toggle-blocking-state') {
+      const blocked = Array.from(this.blockedContacts.values())[0];
+      if (blocked) {
+        blocked.state = blocked.state === 'blocked' ? 'blocked-reviewed' : 'blocked';
+      }
+      document.querySelectorAll('[data-svd-vda-marker="invitation-blocking-state"]').forEach(node => {
+        node.dataset.blockingState = blocked?.state || 'none';
+      });
+    }
+
+    if (action === 'refresh-freshness') {
+      this.vdaG037.generatedAt = new Date();
+      this.vdaG037.freshnessState = 'fresh';
+      document.querySelectorAll('[data-svd-vda-marker="freshness"]').forEach(node => {
+        node.dataset.freshnessState = 'fresh';
+        node.dataset.freshnessEpochMs = String(this.vdaG037.generatedAt.getTime());
+      });
+    }
+
+    if (action === 'show-accessible-empty-state') {
+      this.showAccessibleEmptyState();
+    }
+
+    if (action === 'restore-accessible-empty-state') {
+      this.restoreAccessibleEmptyState();
+    }
+  }
+
+  showAccessibleEmptyState() {
+    const friendsSearch = document.querySelector('#friends-search');
+    if (friendsSearch) friendsSearch.value = 'no-matching-vda-g037-contact';
+    this.vdaG037.emptyStateVisible = true;
+    document.querySelector('.friends-container')?.classList.add('filters-collapsed');
+    this.filterFriends('no-matching-vda-g037-contact');
+    const emptyState = document.querySelector('#friends-empty-state');
+    emptyState?.focus?.();
+    document.querySelectorAll('[data-svd-vda-marker="accessible-empty-state"]').forEach(node => {
+      node.dataset.emptyState = 'visible';
+    });
+  }
+
+  restoreAccessibleEmptyState() {
+    const friendsSearch = document.querySelector('#friends-search');
+    if (friendsSearch) friendsSearch.value = '';
+    this.vdaG037.emptyStateVisible = false;
+    document.querySelector('.friends-container')?.classList.remove('filters-collapsed');
+    this.filterFriends('');
+    document.querySelectorAll('[data-svd-vda-marker="accessible-empty-state"]').forEach(node => {
+      node.dataset.emptyState = 'available';
+    });
   }
   
   renderFriendsList() {
@@ -1445,47 +1873,57 @@ export class FriendsListApp {
     const friendsArray = Array.from(this.friends.values());
     
     friendsList.innerHTML = friendsArray.map(friend => `
-      <div class="friend-card" data-friend-id="${friend.id}">
+      <div class="friend-card" data-friend-id="${this.escapeHtml(friend.id)}" data-relationship-state="${this.escapeHtml(friend.relationship?.state || 'unknown')}" data-provenance-cid="${this.escapeHtml(friend.provenance?.cid || '')}">
         <div class="friend-card-header">
           <div class="friend-avatar ${friend.status}">
-            ${friend.avatar ? `<img src="${friend.avatar}" alt="${friend.name}">` : friend.name.charAt(0)}
+            ${friend.avatar ? `<img src="${this.escapeHtml(friend.avatar)}" alt="${this.escapeHtml(friend.name)}">` : this.escapeHtml(friend.name.charAt(0))}
           </div>
           <div class="friend-info">
-            <h4>${friend.name}</h4>
+            <h4>${this.escapeHtml(friend.name)}</h4>
             <div class="friend-status">
               ${friend.status === 'online' ? '🟢 Online' : 
                 friend.status === 'away' ? '🟡 Away' : 
-                `🔴 Last seen ${this.formatTimeAgo(friend.lastSeen)}`}
+                `🔴 Last seen ${this.escapeHtml(this.formatTimeAgo(friend.lastSeen))}`}
             </div>
           </div>
         </div>
         
         <div class="friend-platforms">
           ${Object.entries(friend.identities).map(([platform, data]) => `
-            <div class="platform-badge ${data.verified ? 'verified' : ''}">
+            <div class="platform-badge ${data.verified ? 'verified' : ''}" data-platform="${this.escapeHtml(platform)}" data-platform-provenance-cid="${this.escapeHtml(data.provenance_cid || '')}">
               ${this.getPlatformIcon(platform)}
-              <span>${data.username || data.peer_id?.substring(0, 8) + '...' || 'Connected'}</span>
+              <span>${this.escapeHtml(data.username || (data.peer_id ? `${data.peer_id.substring(0, 8)}...` : 'Connected'))}</span>
               ${data.verified ? '✓' : ''}
             </div>
           `).join('')}
         </div>
+
+        <div class="friend-provenance">
+          <span>Provenance ${this.escapeHtml(friend.provenance?.cid || 'missing')}</span>
+          <span>${this.escapeHtml(friend.provenance?.receipt || 'receipt missing')}</span>
+        </div>
+
+        <div class="relationship-policy-chip">
+          <span>${this.escapeHtml(friend.relationship?.state || 'unknown')}</span>
+          <span>${this.escapeHtml(friend.relationship?.visibility || 'unknown visibility')}</span>
+        </div>
         
         <div class="friend-tags">
           ${friend.tags.map(tag => `
-            <span class="friend-tag">${tag}</span>
+            <span class="friend-tag">${this.escapeHtml(tag)}</span>
           `).join('')}
         </div>
         
         <div class="friend-meta">
-          <span>${friend.mutualFriends} mutual friends</span>
-          <span>Added ${this.formatDate(friend.addedDate)}</span>
+          <span>${this.escapeHtml(String(friend.mutualFriends))} mutual friends</span>
+          <span>Added ${this.escapeHtml(this.formatDate(friend.addedDate))}</span>
         </div>
         
         <div class="friend-quick-actions">
-          <button class="quick-action-btn message" onclick="event.stopPropagation(); window.friendsListGlobal?.startChatWithFriend('${friend.id}', '${friend.name}')" title="Send Message">
+          <button class="quick-action-btn message" onclick="event.stopPropagation(); window.friendsListGlobal?.startChatWithFriend('${this.escapeJsString(friend.id)}', '${this.escapeJsString(friend.name)}')" title="Send Message" aria-label="Send message to ${this.escapeHtml(friend.name)}">
             💬
           </button>
-          <button class="quick-action-btn profile" onclick="event.stopPropagation(); window.friendsListGlobal?.showFriendProfile('${friend.id}')" title="View Profile">
+          <button class="quick-action-btn profile" onclick="event.stopPropagation(); window.friendsListGlobal?.showFriendProfile('${this.escapeJsString(friend.id)}')" title="View Profile" aria-label="View profile for ${this.escapeHtml(friend.name)}">
             👤
           </button>
         </div>
@@ -1528,29 +1966,37 @@ export class FriendsListApp {
       return;
     }
     
-    pendingList.innerHTML = invitesArray.map(invite => `
-      <div class="invite-card" data-invite-id="${invite.id}">
+    const blockedArray = Array.from(this.blockedContacts.values());
+
+    pendingList.innerHTML = `
+      ${invitesArray.map(invite => `
+      <div class="invite-card" data-invite-id="${this.escapeHtml(invite.id)}" data-invitation-state="${this.escapeHtml(invite.state || 'pending')}" data-provenance-cid="${this.escapeHtml(invite.provenance_cid || '')}">
         <div class="invite-header">
           <div class="friend-avatar">
-            ${invite.avatar ? `<img src="${invite.avatar}" alt="${invite.name}">` : invite.name.charAt(0)}
+            ${invite.avatar ? `<img src="${this.escapeHtml(invite.avatar)}" alt="${this.escapeHtml(invite.name)}">` : this.escapeHtml(invite.name.charAt(0))}
           </div>
           <div class="friend-info">
-            <h4>${invite.name}</h4>
+            <h4>${this.escapeHtml(invite.name)}</h4>
             <div class="friend-status">
-              ${invite.mutualFriends} mutual friends • ${this.formatTimeAgo(invite.timestamp)}
+              ${this.escapeHtml(String(invite.mutualFriends))} mutual friends • ${this.escapeHtml(this.formatTimeAgo(invite.timestamp))}
             </div>
           </div>
         </div>
         
         <div class="invite-message">
-          "${invite.message}"
+          "${this.escapeHtml(invite.message)}"
+        </div>
+
+        <div class="relationship-policy-chip">
+          <span>${this.escapeHtml(invite.provenance_cid || 'invite provenance missing')}</span>
+          <span>${this.escapeHtml(invite.receipt || 'invite receipt missing')}</span>
         </div>
         
         <div class="friend-platforms">
           ${invite.platforms.map(platform => `
             <div class="platform-badge">
               ${this.getPlatformIcon(platform)}
-              <span>${platform}</span>
+              <span>${this.escapeHtml(platform)}</span>
             </div>
           `).join('')}
         </div>
@@ -1564,7 +2010,30 @@ export class FriendsListApp {
           </button>
         </div>
       </div>
-    `).join('');
+      `).join('')}
+      <div class="blocked-list" aria-label="Blocked contacts">
+        ${blockedArray.map(blocked => `
+          <div class="invite-card blocked-card" data-blocking-state="${this.escapeHtml(blocked.state)}" data-blocked-contact-id="${this.escapeHtml(blocked.id)}">
+            <div class="invite-header">
+              <div class="friend-avatar offline">${this.escapeHtml(blocked.name.charAt(0))}</div>
+              <div class="friend-info">
+                <h4>${this.escapeHtml(blocked.name)}</h4>
+                <div class="friend-status">Blocked ${this.escapeHtml(this.formatTimeAgo(blocked.blockedAt))} • ${this.escapeHtml(blocked.reason)}</div>
+              </div>
+            </div>
+            <div class="relationship-policy-chip">
+              <span>${this.escapeHtml(blocked.cid)}</span>
+              <span>${this.escapeHtml(blocked.receipt)}</span>
+            </div>
+            <div class="invite-actions">
+              <button class="invite-btn decline" type="button" data-action="toggle-block" data-blocked-contact-id="${this.escapeHtml(blocked.id)}" data-svd-workflow-action="toggle-blocking-state">
+                Review block
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
     
     // Add click handlers for invite actions
     const inviteButtons = pendingList.querySelectorAll('.invite-btn');
@@ -1572,6 +2041,10 @@ export class FriendsListApp {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const action = btn.dataset.action;
+        if (btn.dataset.svdWorkflowAction) {
+          this.handleVdaG037Action(btn.dataset.svdWorkflowAction);
+        }
+        if (action === 'toggle-block') return;
         const inviteId = btn.dataset.inviteId;
         this.handleInviteAction(inviteId, action);
       });
@@ -1896,6 +2369,7 @@ export class FriendsListApp {
     const statusFilter = document.querySelector('#status-filter')?.value || 'all';
     const platformFilter = document.querySelector('#platform-filter')?.value || 'all';
     const friendCards = document.querySelectorAll('.friend-card');
+    let visibleCount = 0;
     
     friendCards.forEach(card => {
       const friendId = card.dataset.friendId;
@@ -1917,10 +2391,23 @@ export class FriendsListApp {
       
       if (matchesSearch && matchesStatus && matchesPlatform) {
         card.style.display = 'block';
+        visibleCount += 1;
       } else {
         card.style.display = 'none';
       }
     });
+
+    const emptyState = document.querySelector('#friends-empty-state');
+    if (emptyState) {
+      const shouldShowEmpty = friendCards.length > 0 && visibleCount === 0;
+      emptyState.classList.toggle('hidden', !shouldShowEmpty);
+      emptyState.dataset.emptyState = shouldShowEmpty ? 'visible' : 'available';
+      document.querySelector('.friends-container')?.classList.toggle('filters-collapsed', shouldShowEmpty);
+      this.vdaG037.emptyStateVisible = shouldShowEmpty;
+      document.querySelectorAll('[data-svd-vda-marker="accessible-empty-state"]').forEach(node => {
+        node.dataset.emptyState = shouldShowEmpty ? 'visible' : 'available';
+      });
+    }
   }
   
   handleInviteAction(inviteId, action) {
@@ -2133,6 +2620,23 @@ export class FriendsListApp {
       day: 'numeric',
       year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
     });
+  }
+
+  escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  escapeJsString(value) {
+    return String(value ?? '')
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r');
   }
   
   cleanup() {

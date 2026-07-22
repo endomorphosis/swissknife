@@ -358,6 +358,70 @@ note("c2 eb2 f2 g2").slow(4)
 
     async render() {
         return `
+            <style>
+                .unified-music-studio,
+                .unified-music-studio * {
+                    box-sizing: border-box;
+                    min-width: 0;
+                }
+                .unified-music-studio .studio-header,
+                .unified-music-studio .header-left,
+                .unified-music-studio .header-controls,
+                .unified-music-studio .transport-controls,
+                .unified-music-studio .status-bar,
+                .unified-music-studio .status-center,
+                .unified-music-studio .code-controls,
+                .unified-music-studio .visualizer-controls,
+                .unified-music-studio .live-controls {
+                    flex-wrap: wrap;
+                }
+                .unified-music-studio .studio-main {
+                    overflow: auto !important;
+                }
+                .unified-music-studio .composer-view,
+                .unified-music-studio .mixer-view,
+                .unified-music-studio .effects-view,
+                .unified-music-studio .performance-view {
+                    width: 100%;
+                }
+                .unified-music-studio textarea {
+                    max-width: 100%;
+                }
+                @media (max-width: 700px) {
+                    .unified-music-studio .studio-header {
+                        align-items: flex-start !important;
+                        gap: 10px;
+                    }
+                    .unified-music-studio .header-left,
+                    .unified-music-studio .header-controls,
+                    .unified-music-studio .status-left,
+                    .unified-music-studio .status-center,
+                    .unified-music-studio .status-right {
+                        width: 100%;
+                    }
+                    .unified-music-studio .composer-view,
+                    .unified-music-studio .mixer-view,
+                    .unified-music-studio .effects-view,
+                    .unified-music-studio .performance-view {
+                        flex-direction: column !important;
+                        overflow-y: auto;
+                    }
+                    .unified-music-studio .side-panels,
+                    .unified-music-studio .master-section,
+                    .unified-music-studio .presets-panel,
+                    .unified-music-studio .live-coding-panel {
+                        width: 100% !important;
+                    }
+                    .unified-music-studio .performance-grid {
+                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                    }
+                    .unified-music-studio .performance-controls,
+                    .unified-music-studio .status-bar,
+                    .unified-music-studio .status-center {
+                        align-items: stretch !important;
+                    }
+                }
+            </style>
             <div class="unified-music-studio" style="height: 100%; display: flex; flex-direction: column; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
                 <!-- Header -->
                 <div class="studio-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: rgba(0,0,0,0.3); border-bottom: 2px solid rgba(255,255,255,0.1);">

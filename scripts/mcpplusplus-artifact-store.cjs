@@ -24,6 +24,7 @@ const DEFAULT_HELIA_REPO = path.join(
 );
 const DEFAULT_IPFS_KIT_ENDPOINT = "http://127.0.0.1:8014/mcp/artifacts";
 const DEFAULT_MCPPLUSPLUS_BOOTSTRAP_PEERS = [...bootstrapConfig.peers];
+const DEFAULT_DHT_BACKGROUND_QUERY_INTERVAL_MS = 60 * 60 * 1000;
 const heliaRuntimes = new Map();
 
 function cacheRoot() {
@@ -105,11 +106,116 @@ function heliaPositiveInteger(name, fallback) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function heliaNonNegativeInteger(name, fallback) {
+  const parsed = Number.parseInt(process.env[name] || "", 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function heliaBoolean(name, fallback) {
+  const value = process.env[name];
+  if (value === undefined || value === "") return fallback;
+  if (/^(1|true|yes|on)$/i.test(value)) return true;
+  if (/^(0|false|no|off)$/i.test(value)) return false;
+  return fallback;
+}
+
+function heliaDhtClientMode() {
+  // Desktop compatibility adapters are content-routing clients by default.
+  // They keep DHT lookup/provide support but do not become public DHT routing
+  // peers merely because an announced address happens to be publicly dialable.
+  return heliaBoolean("MCPPLUSPLUS_HELIA_DHT_CLIENT_MODE", true);
+}
+
+function heliaPublicListenEnabled() {
+  return heliaBoolean("MCPPLUSPLUS_HELIA_PUBLIC_LISTEN", false);
+}
+
+function heliaDhtOptions() {
+  return {
+    clientMode: heliaDhtClientMode(),
+    // DHT lookups and provider announcements happen on demand. Avoid the
+    // startup self-query that recursively grows a desktop adapter's routing
+    // table from the public IPFS network before any MCP++ CID needs it.
+    allowQueryWithZeroPeers: true,
+    initialQuerySelfInterval: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_INITIAL_QUERY_INTERVAL_MS",
+      DEFAULT_DHT_BACKGROUND_QUERY_INTERVAL_MS,
+    ),
+    querySelfInterval: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_QUERY_INTERVAL_MS",
+      DEFAULT_DHT_BACKGROUND_QUERY_INTERVAL_MS,
+    ),
+    // A desktop client does not route the public DHT. Keep its routing table
+    // and maintenance queues deliberately small while retaining lookups.
+    kBucketSize: heliaPositiveInteger("MCPPLUSPLUS_HELIA_DHT_K_BUCKET_SIZE", 1),
+    alpha: heliaPositiveInteger("MCPPLUSPLUS_HELIA_DHT_ALPHA", 1),
+    disjointPaths: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_DISJOINT_PATHS",
+      1,
+    ),
+    prefixLength: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_PREFIX_LENGTH",
+      1,
+    ),
+    routingTableUpdateQueueConcurrency: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_UPDATE_CONCURRENCY",
+      1,
+    ),
+    routingTableUpdateMaxQueueSize: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_UPDATE_QUEUE_SIZE",
+      4,
+    ),
+    pingNewContactConcurrency: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_PING_CONCURRENCY",
+      1,
+    ),
+    pingNewContactMaxQueueSize: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_PING_QUEUE_SIZE",
+      4,
+    ),
+    maxInboundStreams: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_MAX_INBOUND_STREAMS",
+      4,
+    ),
+    maxOutboundStreams: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_MAX_OUTBOUND_STREAMS",
+      4,
+    ),
+    networkDialTimeout: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_DHT_DIAL_TIMEOUT_MS",
+      3_000,
+    ),
+  };
+}
+
 function heliaResourceLimits() {
   return {
-    max_connections: heliaPositiveInteger("MCPPLUSPLUS_HELIA_MAX_CONNECTIONS", 32),
-    max_parallel_dials: heliaPositiveInteger("MCPPLUSPLUS_HELIA_MAX_PARALLEL_DIALS", 4),
-    dial_timeout_ms: heliaPositiveInteger("MCPPLUSPLUS_HELIA_DIAL_TIMEOUT_MS", 10_000),
+    // Compatibility adapters retain a networked Helia node by default. Keep
+    // its discovery services useful without allowing a long-running desktop
+    // process to accumulate an unbounded public-DHT peer set. Deployments
+    // that intentionally act as routing peers can raise these explicitly.
+    max_connections: heliaPositiveInteger("MCPPLUSPLUS_HELIA_MAX_CONNECTIONS", 4),
+    // Bootstrap and mDNS still discover peers, while direct content and
+    // configured-peer dials remain available. A compatibility adapter does
+    // not need libp2p's default public-DHT auto-dial floor.
+    min_connections: heliaNonNegativeInteger(
+      "MCPPLUSPLUS_HELIA_MIN_CONNECTIONS",
+      0,
+    ),
+    max_parallel_dials: heliaPositiveInteger("MCPPLUSPLUS_HELIA_MAX_PARALLEL_DIALS", 1),
+    auto_dial_max_queue_length: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_AUTO_DIAL_MAX_QUEUE_LENGTH",
+      1,
+    ),
+    max_peer_addrs_to_dial: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_MAX_PEER_ADDRS_TO_DIAL",
+      2,
+    ),
+    max_incoming_pending_connections: heliaPositiveInteger(
+      "MCPPLUSPLUS_HELIA_MAX_INCOMING_PENDING_CONNECTIONS",
+      2,
+    ),
+    dial_timeout_ms: heliaPositiveInteger("MCPPLUSPLUS_HELIA_DIAL_TIMEOUT_MS", 3_000),
   };
 }
 
@@ -178,6 +284,7 @@ async function getHeliaRuntime() {
         { withHTTP },
         { bootstrap },
         { libp2pDefaults, withLibp2p },
+        { kadDHT },
         { FsBlockstore },
         { FsDatastore },
         { CID },
@@ -187,6 +294,7 @@ async function getHeliaRuntime() {
         import("@helia/http"),
         import("@libp2p/bootstrap"),
         import("@helia/libp2p"),
+        import("@libp2p/kad-dht"),
         import("blockstore-fs"),
         import("datastore-fs"),
         import("multiformats/cid"),
@@ -206,6 +314,7 @@ async function getHeliaRuntime() {
             withBitswap,
             withHTTP,
             bootstrap,
+            kadDHT,
             libp2pDefaults,
             withLibp2p,
             options: heliaOptions,
@@ -244,6 +353,7 @@ function createNetworkedHelia({
   withBitswap,
   withHTTP,
   bootstrap,
+  kadDHT,
   libp2pDefaults,
   withLibp2p,
   options,
@@ -257,16 +367,37 @@ function createNetworkedHelia({
   libp2p.connectionManager = {
     ...libp2p.connectionManager,
     maxConnections: resourceLimits.max_connections,
+    minConnections: resourceLimits.min_connections,
     maxParallelDials: resourceLimits.max_parallel_dials,
+    autoDialMaxQueueLength: resourceLimits.auto_dial_max_queue_length,
+    maxPeerAddrsToDial: resourceLimits.max_peer_addrs_to_dial,
+    maxIncomingPendingConnections:
+      resourceLimits.max_incoming_pending_connections,
     dialTimeout: resourceLimits.dial_timeout_ms,
   };
-  // The browser owns WebRTC-direct. Avoid a native ICE UDP listener for every
-  // long-lived host adapter while keeping TCP, WebSocket, and relay listeners.
+  const dhtOptions = heliaDhtOptions();
+  libp2p.services = {
+    ...libp2p.services,
+    dht: kadDHT(dhtOptions),
+  };
+  // Browser clients use WebRTC-direct and relay paths. The host-side
+  // compatibility adapters instead bind loopback TCP/WebSocket listeners by
+  // default, which prevents them from unintentionally becoming public DHT
+  // infrastructure. Dedicated routing deployments can opt into public
+  // listening with MCPPLUSPLUS_HELIA_PUBLIC_LISTEN=1.
+  const defaultListenAddresses = (libp2p.addresses?.listen || []).filter(
+    (address) => !address.includes("webrtc-direct"),
+  );
   libp2p.addresses = {
     ...libp2p.addresses,
-    listen: (libp2p.addresses?.listen || []).filter(
-      (address) => !address.includes("webrtc-direct"),
-    ),
+    listen: heliaPublicListenEnabled()
+      ? defaultListenAddresses
+      : [
+          "/ip4/127.0.0.1/tcp/0",
+          "/ip6/::1/tcp/0",
+          "/ip4/127.0.0.1/tcp/0/ws",
+          "/ip6/::1/tcp/0/ws",
+        ],
   };
   const localDiscovery = libp2p.peerDiscovery[0];
   libp2p.peerDiscovery =
@@ -363,12 +494,23 @@ async function getHeliaNetworkStatus() {
     node_repo: runtime.node_repo,
     peer_id: runtime.networked ? runtime.helia.libp2p.peerId.toString() : null,
     peer_discovery: runtime.peer_discovery,
+    dht_mode: runtime.networked
+      ? runtime.helia.libp2p.services.dht?.getMode?.() || null
+      : null,
+    dht_options: runtime.networked ? heliaDhtOptions() : null,
+    public_listen: runtime.networked ? heliaPublicListenEnabled() : false,
     resource_limits: runtime.resource_limits,
     multiaddrs: runtime.networked
       ? runtime.helia.libp2p
           .getMultiaddrs()
           .map((address) => address.toString())
       : [],
+    active_connection_count: runtime.networked
+      ? runtime.helia.libp2p.getConnections().length
+      : 0,
+    active_peer_count: runtime.networked
+      ? runtime.helia.libp2p.getPeers().length
+      : 0,
     connected_peers: runtime.connected_peers,
   };
 }

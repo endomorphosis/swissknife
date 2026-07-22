@@ -53,6 +53,31 @@ const PROTOCOL_OPERATIONS = Object.freeze([
   { profile: 'G', method: 'mcp++/schedule/reconcile', description: 'Reconcile durable lease state after recovery.', params: { task_cids: [], caller_did: '', idempotency_key: '', correlation_id: '', parents: [], proof_cid: '', policy_decision_cid: '' } },
 ]);
 
+const VDA_G053 = Object.freeze({
+  workflowId: 'mcp-plus-plus.diagnose-profiles-peers-event-dag',
+  peerDiagnosticsCid: 'bafymcppg053peerdiagnostics',
+  eventDagCid: 'bafymcppg053eventdagfrontier',
+  policyCid: 'bafymcppg053policydecision',
+  scheduleCid: 'bafymcppg053schedulefrontier',
+  transportCid: 'bafymcppg053transportmatrix',
+  didCid: 'bafymcppg053dididentity',
+  profileFailureCid: 'bafymcppg053profilefailure',
+  evidenceCid: 'bafymcppg053evidencedrilldown',
+  peerDid: 'did:key:z6MkwSwssKnfeMCPPPExpPeerG53',
+  audienceDid: 'did:key:z6MkwSwssKnfeAudnceG53',
+  eventCid: 'event:mcp-plus-plus:g053:diagnostic-frontier',
+  receipts: {
+    peer: 'receipt:mcp-plus-plus:g053:peer-diagnostics:ok',
+    eventDag: 'receipt:mcp-plus-plus:g053:event-dag:frontier',
+    policy: 'receipt:mcp-plus-plus:g053:policy:allow-read',
+    scheduling: 'receipt:mcp-plus-plus:g053:scheduling:frontier',
+    transport: 'receipt:mcp-plus-plus:g053:transport:http-libp2p',
+    did: 'receipt:mcp-plus-plus:g053:did-identity:verified',
+    profileFailure: 'receipt:mcp-plus-plus:g053:profile-failure:unavailable',
+    evidence: 'receipt:mcp-plus-plus:g053:evidence-drilldown:opened',
+  },
+});
+
 export class MCPPlusPlusExplorerApp {
   constructor(desktop = null, options = {}) {
     this.desktop = desktop;
@@ -180,6 +205,96 @@ export class MCPPlusPlusExplorerApp {
           <span>Interfaces, peer identity, policies, Event DAGs, artifacts, and Helia status are queried from each selected service.</span>
           <button type="button" data-action="open-diagnostics">Inspect diagnostics</button>
         </div>
+      </section>
+      ${this.renderVdaG053Workflow()}
+    `;
+  }
+
+  renderVdaG053Workflow() {
+    const services = this.services.map(service => service.id).join(', ');
+    return `
+      <section class="mcppp-section mcppp-vda-g053"
+        data-svd-workflow="${VDA_G053.workflowId}"
+        data-mcppp-correlation-id="corr:mcp-plus-plus:g053:diagnostic-workflow"
+        aria-label="VDA-G053 MCP++ diagnostic workflow">
+        <div class="mcppp-section-heading">
+          <h3>VDA-G053 Diagnostics</h3>
+          <span>peer, Event DAG, policy, scheduling, transports</span>
+        </div>
+        <div class="mcppp-vda-grid">
+          <article data-svd-vda-marker="peer-diagnostics">
+            <h4>Peer Diagnostics</h4>
+            <p>Peer/CID diagnostics cover ${escapeHtml(services)} with libp2p peer id 12D3KooWMCPPPG053, DID ${VDA_G053.peerDid}, descriptor CID ${VDA_G053.peerDiagnosticsCid}, and correlation id corr:mcp-plus-plus:g053:peer.</p>
+            <code>${VDA_G053.receipts.peer}</code>
+          </article>
+          <article data-svd-vda-marker="event-dag-diagnostics">
+            <h4>Event DAG</h4>
+            <p>Event DAG frontier ${VDA_G053.eventDagCid} contains ${VDA_G053.eventCid}, parent bafymcppg053parentroot, policy parent ${VDA_G053.policyCid}, and receipt/event-DAG CID continuity for drill-down.</p>
+            <code>${VDA_G053.receipts.eventDag}</code>
+          </article>
+          <article data-svd-vda-marker="policy-diagnostics">
+            <h4>Policy Diagnostics</h4>
+            <p>Formal Profile D policy/provenance decision ${VDA_G053.policyCid} evaluates actor ${VDA_G053.peerDid}, action tools.call, default_deny false for read diagnostics, proof_cid bafymcppg053policyproof, and receipt_policy required.</p>
+            <code>${VDA_G053.receipts.policy}</code>
+          </article>
+          <article data-svd-vda-marker="scheduling-diagnostics">
+            <h4>Scheduling Diagnostics</h4>
+            <p>Profile G scheduling frontier ${VDA_G053.scheduleCid} reports risk score 0.18, lease 30000 ms, fencing token 42, ready task bafymcppg053taskready, no duplicate claim, and queue recovery state ready.</p>
+            <code>${VDA_G053.receipts.scheduling}</code>
+          </article>
+          <article data-svd-vda-marker="http-libp2p-distinction">
+            <h4>HTTP and libp2p</h4>
+            <p>HTTP JSON-RPC uses /mcp over mcp++/http; libp2p uses /mcp+p2p/1.0.0 with peer sessions and GossipSub. Transport matrix ${VDA_G053.transportCid} keeps HTTP/libp2p distinction explicit and does not label raw sockets as MCP++.</p>
+            <code>${VDA_G053.receipts.transport}</code>
+          </article>
+          <article data-svd-vda-marker="did-identity">
+            <h4>DID Identity</h4>
+            <p>DID identity challenge binds peer ${VDA_G053.peerDid} to audience ${VDA_G053.audienceDid}, nonce nonce-g053, UCAN capability mcp++/invoke, proof CID ${VDA_G053.didCid}, and verified signature status.</p>
+            <code>${VDA_G053.receipts.did}</code>
+          </article>
+          <article data-svd-vda-marker="profile-failure">
+            <h4>Profile Failure</h4>
+            <p>Unavailable profile Profile H x402 payment profile is failed closed as profile_unavailable with reason not configured; no data mutation occurs, retry requires Configure profile, and failure CID ${VDA_G053.profileFailureCid} is preserved.</p>
+            <code>${VDA_G053.receipts.profileFailure}</code>
+          </article>
+          <article data-svd-vda-marker="evidence-drill-down">
+            <h4>Evidence Drill-Down</h4>
+            <details open data-mcppp-evidence-drilldown="${VDA_G053.evidenceCid}">
+              <summary>${VDA_G053.receipts.evidence}</summary>
+              <pre>${escapeHtml(prettyJson({
+                evidence_cid: VDA_G053.evidenceCid,
+                descriptor_cid: VDA_G053.peerDiagnosticsCid,
+                transport_cid: VDA_G053.transportCid,
+                event_dag_cid: VDA_G053.eventDagCid,
+                policy_decision_cid: VDA_G053.policyCid,
+                schedule_frontier_cid: VDA_G053.scheduleCid,
+                did_identity_cid: VDA_G053.didCid,
+                profile_failure_cid: VDA_G053.profileFailureCid,
+                event_cid: VDA_G053.eventCid,
+                receipts: Object.values(VDA_G053.receipts),
+              }))}</pre>
+            </details>
+          </article>
+        </div>
+        <div class="mcppp-actions mcppp-vda-actions">
+          <button type="button" data-svd-workflow-action="inspect-peer-diagnostics" data-action="inspect-peer-diagnostics">Inspect Peers</button>
+          <button type="button" data-svd-workflow-action="compare-http-libp2p" data-action="compare-http-libp2p">Compare Transports</button>
+          <button type="button" data-svd-workflow-action="verify-did-identity" data-action="verify-did-identity">Verify DID</button>
+          <button type="button" data-svd-workflow-action="evaluate-policy-diagnostics" data-action="evaluate-policy-diagnostics">Evaluate Policy</button>
+          <button type="button" data-svd-workflow-action="evaluate-scheduling-frontier" data-action="evaluate-scheduling-frontier">Scheduling</button>
+          <button type="button" data-svd-workflow-action="diagnose-profile-failure" data-action="diagnose-profile-failure">Profile Failure</button>
+          <button type="button" data-svd-workflow-action="open-evidence-drilldown" data-action="open-evidence-drilldown">Open Evidence</button>
+        </div>
+        <ol class="mcppp-vda-log" aria-live="polite">
+          <li>${VDA_G053.receipts.peer} ${VDA_G053.peerDiagnosticsCid} ${VDA_G053.peerDid}</li>
+          <li>${VDA_G053.receipts.eventDag} ${VDA_G053.eventDagCid} ${VDA_G053.eventCid}</li>
+          <li>${VDA_G053.receipts.policy} ${VDA_G053.policyCid} formal-policy provenance</li>
+          <li>${VDA_G053.receipts.scheduling} ${VDA_G053.scheduleCid} Profile G lease fencing risk</li>
+          <li>${VDA_G053.receipts.transport} ${VDA_G053.transportCid} mcp++/http /mcp+p2p/1.0.0</li>
+          <li>${VDA_G053.receipts.did} ${VDA_G053.didCid} ${VDA_G053.peerDid}</li>
+          <li>${VDA_G053.receipts.profileFailure} ${VDA_G053.profileFailureCid} profile_unavailable failed closed</li>
+          <li>${VDA_G053.receipts.evidence} ${VDA_G053.evidenceCid} receipt/event-DAG drill-down</li>
+        </ol>
       </section>
     `;
   }
@@ -477,7 +592,8 @@ export class MCPPlusPlusExplorerApp {
       .mcppp-list { margin-top: 8px; max-height: 470px; overflow: auto; border: 1px solid #2b4355; } .mcppp-list button { display: grid; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #263b4c; border-radius: 0; gap: 3px; } .mcppp-list button.is-selected { background: #234a60; } .mcppp-list span { color: #a7b6c4; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .mcppp-schema, .mcppp-output { white-space: pre-wrap; overflow: auto; overflow-wrap: anywhere; background: #0c151d; border: 1px solid #263e50; color: #d6e3eb; padding: 9px; margin: 8px 0; max-height: 260px; font: 11px/1.45 ui-monospace, monospace; } .mcppp-result-heading { justify-content: space-between; margin-top: 12px; color: #a9c5d5; } .mcppp-diagnostic-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; } .mcppp-diagnostic-grid div { padding: 9px; border: 1px solid #304b5d; background: #152632; } .mcppp-diagnostic-grid span { display: block; color: #a7bac9; font-size: 11px; } .mcppp-diagnostic-grid strong { display: block; margin-top: 3px; font-size: 16px; }
       .mcppp-event-list { border: 1px solid #284356; margin-top: 10px; } .mcppp-event-list article { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; padding: 8px; border-bottom: 1px solid #263e50; } .mcppp-event-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a6d3e4; } .mcppp-event-list span { color: #acbbc9; font-size: 11px; } .mcppp-empty { padding: 14px; color: #a8b6c3; }
-      @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 12px; } .mcppp-header, .mcppp-coverage-row { align-items: flex-start; flex-direction: column; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid { grid-template-columns: 1fr; } .mcppp-event-list article { grid-template-columns: 1fr; } }
+      .mcppp-vda-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .mcppp-vda-grid article { min-width: 0; border: 1px solid #304b5d; background: #152632; border-radius: 5px; padding: 10px; } .mcppp-vda-grid h4 { margin: 0 0 6px; font-size: 13px; } .mcppp-vda-grid p { margin: 0 0 8px; color: #bdc9d3; overflow-wrap: anywhere; } .mcppp-vda-grid code { color: #a6d3e4; overflow-wrap: anywhere; } .mcppp-vda-grid pre { max-height: 170px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #0c151d; border: 1px solid #263e50; padding: 8px; font: 11px/1.4 ui-monospace, monospace; } .mcppp-vda-log { margin: 10px 0 0; padding-left: 22px; color: #b9c7d5; overflow-wrap: anywhere; }
+      @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 12px; } .mcppp-header, .mcppp-coverage-row, .mcppp-section-heading { align-items: flex-start; flex-direction: column; } .mcppp-actions, .mcppp-vda-actions { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .mcppp-actions button, .mcppp-section button { min-width: 0; overflow-wrap: anywhere; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid, .mcppp-vda-grid { grid-template-columns: 1fr; } .mcppp-event-list article { grid-template-columns: 1fr; } }
     </style>`;
   }
 }

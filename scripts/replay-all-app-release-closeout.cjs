@@ -19,6 +19,22 @@ const evidenceRoot = path.join(projectRoot, 'test-results', 'virtual-desktop-ipf
 const outputPath = path.join(evidenceRoot, 'independent-all-app-release-replay.json');
 const REQUIRED_PROFILES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 const REQUIRED_MODALITIES = ['display', 'camera', 'microphone', 'speaker', 'input'];
+const REQUIRED_KDA_KEYS = Object.freeze({
+  ipfs_kit_py: 'K',
+  ipfs_datasets_py: 'D',
+  ipfs_accelerate_py: 'A',
+});
+const REQUIRED_SVD_182_ACCEPTANCE = [
+  'every_canonical_app_traced', 'every_primary_workflow_passed',
+  'every_kda_disposition_and_receipt_passed', 'every_ui_ux_record_passed',
+  'every_applicable_orb_idl_state_passed', 'every_applicable_meta_simulator_state_passed',
+];
+const REQUIRED_SVD_181_ACCEPTANCE = [
+  'every_canonical_app_covered', 'primary_roles_separate_from_diagnostic_status',
+  'real_safe_read_over_http_and_libp2p_for_each_reachable_server',
+  'did_descriptor_cid_policy_receipt_event_dag_preserved',
+  'governed_writes_confirmation_gated_dry_run', 'direct_backend_details_exposed_to_apps',
+];
 
 const INPUTS = {
   release_evidence: ['release-evidence.json', 'SVD-114', 'swissknife.virtual-desktop-release-evidence.v2'],
@@ -31,6 +47,11 @@ const INPUTS = {
   meta_simulator: ['all-app-meta-device-simulator-proof.json', 'SVD-111', 'swissknife.all-app-meta-device-simulator-proof.v1'],
   ui_accessibility: ['all-app-ui-ux-accessibility.json', 'SVD-112', 'swissknife.all-app-ui-ux-accessibility.v1'],
   dispatch_artifact_store: ['supervisor-dispatch-artifact-store.json', 'SVD-113', 'swissknife.supervisor-dispatch-artifact-store-evidence.v1'],
+  app_improvement_index: ['app-improvement/index.json', 'SVD-133', 'swissknife.virtual-desktop-all-app-improvement.v1'],
+  app_improvement_screenshots: ['app-improvement/screenshot-index.json', 'SVD-180', 'swissknife.virtual-desktop-app-improvement.screenshot-index.v1'],
+  app_improvement_ui: ['app-improvement/ui-ux-accessibility.json', 'SVD-180', 'swissknife.virtual-desktop-app-improvement.ui-ux-accessibility.v1'],
+  all_app_tool_matrix: ['app-improvement/all-app-tool-matrix.json', 'SVD-181', 'swissknife.virtual-desktop.all-app-tool-matrix.v1'],
+  kda_receipt_catalog: ['app-improvement/http-libp2p-kda-receipt-catalog.json', 'SVD-181', 'swissknife.mcpplusplus.http-libp2p-kda-receipt-catalog.v1'],
 };
 
 function sha256(value) {
@@ -43,6 +64,14 @@ function unique(values) {
 
 function isPassingDecision(value) {
   return ['GO', 'PASSED', 'PASS'].includes(String(value ?? '').toUpperCase());
+}
+
+function isCid(value) {
+  return typeof value === 'string' && /^b[a-z2-7]{58}$/.test(value);
+}
+
+function isDid(value) {
+  return typeof value === 'string' && /^did:key:/.test(value);
 }
 
 function readInput(id, definition, finding) {
@@ -91,6 +120,7 @@ function replay({ now = new Date().toISOString() } = {}) {
   validateMetaSimulator(data.meta_simulator, bindingAppIds, inputs.meta_simulator.path, finding);
   validateUiGate(data.ui_accessibility, appIds, inputs.ui_accessibility.path, finding);
   validateCidEventDagPersistence(data.dispatch_artifact_store, inputs.dispatch_artifact_store.path, finding);
+  validateAllAppImprovementReleaseTrace(data, inputs, appIds, finding);
 
   const namedFindings = findings.sort((left, right) => `${left.task_id}:${left.code}`.localeCompare(`${right.task_id}:${right.code}`));
   return {
@@ -111,6 +141,10 @@ function replay({ now = new Date().toISOString() } = {}) {
       all_tools_dispositions: { entry_count: Array.isArray(data.tool_dispositions.entries) ? data.tool_dispositions.entries.length : 0 },
       transport_profiles: REQUIRED_PROFILES,
       simulator_modalities: REQUIRED_MODALITIES,
+      app_improvement_traces: {
+        expected_app_count: appIds.length,
+        observed_trace_count: data.release_evidence?.all_app_improvement_release_gate?.trace_count ?? 0,
+      },
     },
     findings: namedFindings,
     decision: {
@@ -241,6 +275,146 @@ function validateCidEventDagPersistence(store, evidencePath, finding) {
   }
 }
 
+function validateAllAppImprovementReleaseTrace(data, inputs, appIds, finding) {
+  const releaseGate = data.release_evidence?.all_app_improvement_release_gate;
+  const traces = Array.isArray(releaseGate?.traces) ? releaseGate.traces : [];
+  const traceIds = traces.map(trace => trace?.app_id).filter(Boolean);
+  const releaseGatePassed = releaseGate?.schema === 'swissknife.virtual-desktop-all-app-release-trace.v1'
+    && releaseGate?.task_id === 'SVD-182' && releaseGate?.decision === 'GO'
+    && releaseGate?.required_app_count === appIds.length && releaseGate?.trace_count === appIds.length
+    && releaseGate?.passing_app_count === appIds.length && releaseGate?.blocker_count === 0
+    && Array.isArray(releaseGate?.remaining_gap_task_ids) && releaseGate.remaining_gap_task_ids.length === 0
+    && sameIds(Object.keys(releaseGate?.acceptance ?? {}).sort(), [...REQUIRED_SVD_182_ACCEPTANCE].sort())
+    && REQUIRED_SVD_182_ACCEPTANCE.every(key => releaseGate.acceptance[key] === true)
+    && sameUnorderedIds(traceIds, appIds) && traces.every(trace => trace?.status === 'passed'
+      && trace?.primary_workflow?.status === 'passed'
+      && trace?.backend_disposition?.status === 'passed'
+      && trace?.ui_ux?.status === 'passed'
+      && ['passed', 'not_applicable'].includes(trace?.orb_idl?.status)
+      && ['passed', 'not_applicable'].includes(trace?.meta_simulator?.status));
+  if (!releaseGatePassed) finding('SVD-182', 'all_app_release_trace_incomplete', inputs.release_evidence.path,
+    'The release receipt does not contain exactly one passing SVD-182 trace for every canonical app.',
+    'Rebuild SVD-182 from current SVD-133, SVD-180, SVD-181, ORB/IDL, and Meta simulator evidence.');
+
+  const improvementApps = Array.isArray(data.app_improvement_index?.apps) ? data.app_improvement_index.apps : [];
+  const improvementPassed = data.app_improvement_index?.scope === 'all'
+    && data.app_improvement_index?.summary?.failed === 0
+    && data.app_improvement_index?.summary?.passed === appIds.length
+    && sameUnorderedIds(improvementApps.map(app => app?.app_id), appIds)
+    && improvementApps.every(app => app?.pass === true
+      && app?.desktop?.primary_control?.action_succeeded === true
+      && app?.mobile?.primary_control?.action_succeeded === true
+      && app?.desktop?.states?.recovery?.closed_to_desktop === true
+      && app?.mobile?.states?.recovery?.closed_to_desktop === true
+      && typeof app?.manifest_ux_scenarios?.success === 'string'
+      && typeof app?.manifest_ux_scenarios?.error === 'string'
+      && typeof app?.manifest_ux_scenarios?.fallback === 'string');
+  if (!improvementPassed) finding('SVD-133', 'primary_workflow_index_incomplete', inputs.app_improvement_index.path,
+    'The current app-improvement index does not prove a named primary action and failure/recovery path for all canonical apps.',
+    'Regenerate the complete app-improvement index from the canonical desktop.');
+
+  const screenshots = data.app_improvement_screenshots;
+  const ui = data.app_improvement_ui;
+  const uiApps = Array.isArray(ui?.applications) ? ui.applications : [];
+  const uiPassed = screenshots?.task_id === 'SVD-180' && screenshots?.screenshot_count === appIds.length * 2
+    && Array.isArray(screenshots?.screenshots) && screenshots.screenshots.length === appIds.length * 2
+    && screenshots.screenshots.every(row => row?.exists === true && row?.bytes > 0 && row?.layout_pass === true)
+    && ui?.status === 'passed' && Object.values(ui?.acceptance ?? {}).every(value => value === true)
+    && sameUnorderedIds(uiApps.map(app => app?.app_id), appIds) && uiApps.every(app => app?.pass === true);
+  if (!uiPassed) finding('SVD-180', 'app_improvement_ui_incomplete', inputs.app_improvement_ui.path,
+    'The phase-25 desktop/narrow UI/UX report or its 90-entry screenshot index is incomplete.',
+    'Re-run the SVD-180 viewport matrix and accessibility validation.');
+
+  const matrix = data.all_app_tool_matrix;
+  const matrixApps = Array.isArray(matrix?.apps) ? matrix.apps : [];
+  const liveBindings = Array.isArray(data.live_bindings?.bindings) ? data.live_bindings.bindings : [];
+  const matrixPassed = matrix?.status === 'passed' && sameUnorderedIds(matrixApps.map(app => app?.app_id), appIds)
+    && sameIds(Object.keys(matrix?.acceptance ?? {}).sort(), [...REQUIRED_SVD_181_ACCEPTANCE].sort())
+    && REQUIRED_SVD_181_ACCEPTANCE.every(key => key === 'direct_backend_details_exposed_to_apps'
+      ? matrix.acceptance[key] === false : matrix.acceptance[key] === true)
+    && matrixApps.every(app => Array.isArray(app?.diagnostic_kda_status?.rows)
+      && app.diagnostic_kda_status.rows.length === 3
+      && new Set(app.diagnostic_kda_status.rows.map(row => row?.owner)).size === 3
+      && new Set(app.diagnostic_kda_status.rows.map(row => row?.kda_key)).size === 3
+      && app.diagnostic_kda_status.rows.every(row => row?.diagnostic_only === true
+        && REQUIRED_KDA_KEYS[row?.owner] === row?.kda_key && row?.state && row?.reason)
+      && Array.isArray(app?.semantic_backend_roles?.roles)
+      && backendRolesMatchBindings(app, liveBindings.filter(binding => binding?.app_id === app?.app_id))
+      && app.semantic_backend_roles.roles.every(role => Array.isArray(role?.executions) && role.executions.length > 0
+        && role.executions.every(execution => execution?.correlation_id && isCid(execution?.descriptor_cid)
+          && execution?.did_identity?.verified === true && isDid(execution?.did_identity?.remote_did)
+          && isCid(execution?.did_identity?.identity_proof_cid) && execution?.policy?.decision_id
+          && isCid(execution?.receipt_cid) && isCid(execution?.event_dag_cid)
+          && execution?.persistence_status === 'persisted'
+          && compiledExecutionPolicyPasses(role, execution))));
+  if (!matrixPassed) finding('SVD-181', 'all_app_tool_matrix_incomplete', inputs.all_app_tool_matrix.path,
+    'The all-app matrix does not preserve distinct K/D/A dispositions and call-bound live receipts for every semantic role.',
+    'Regenerate SVD-181 from current gateway and peer evidence.');
+
+  const catalog = data.kda_receipt_catalog;
+  const servers = Array.isArray(catalog?.servers) ? catalog.servers : [];
+  const catalogPassed = catalog?.status === 'passed' && servers.length === 3
+    && new Set(servers.map(server => server?.owner)).size === 3
+    && new Set(servers.map(server => server?.kda_key)).size === 3
+    && servers.every(server => REQUIRED_KDA_KEYS[server?.owner] === server?.kda_key)
+    && servers.every(server => ['http', 'libp2p'].every(transport => {
+      const row = server?.transports?.[transport];
+      return row?.real_safe_read === true && row?.application_safe_read === true && row?.no_transport_fallback === true
+        && isCid(row?.receipt_cid) && isCid(row?.event_dag_cid) && isCid(row?.descriptor_cid)
+        && isCid(row?.identity_proof_cid) && isDid(row?.remote_did)
+        && row?.policy?.policy_outcome === 'allow';
+    }));
+  if (!catalogPassed) finding('SVD-181', 'kda_receipt_catalog_incomplete', inputs.kda_receipt_catalog.path,
+    'The K/D/A server catalog lacks a real safe-read receipt over HTTP or libp2p.',
+    'Re-run SVD-181 independent server reads and preserve DID, descriptor, policy, receipt, and event-DAG evidence.');
+}
+
+function compiledExecutionPolicyPasses(role, execution) {
+  if (role?.mutates_remote_state === true) {
+    return execution?.operation_class === 'governed_write_request'
+      && execution?.execution_mode === 'confirmation_gated_dry_run'
+      && execution?.policy?.outcome === 'require_confirmation'
+      && execution?.policy?.consent === 'granted'
+      && execution?.policy?.dry_run === true
+      && execution?.confirmation?.required === true
+      && execution?.confirmation?.policy !== 'none'
+      && execution?.confirmation?.dry_run === true;
+  }
+  return execution?.operation_class === 'read_request'
+    && ['real_safe_read', 'safe_read_dry_run'].includes(execution?.execution_mode)
+    && execution?.policy?.outcome === 'allow'
+    && execution?.policy?.consent === 'not_required'
+    && execution?.confirmation?.required === false
+    && execution?.confirmation?.dry_run === (execution.execution_mode === 'safe_read_dry_run');
+}
+
+function backendRolesMatchBindings(app, expectedBindings) {
+  const roles = app?.semantic_backend_roles?.roles ?? [];
+  if (roles.length !== expectedBindings.length) return false;
+  if (new Set(roles.map(role => role?.binding_id)).size !== roles.length) return false;
+  return expectedBindings.every(binding => {
+    const role = roles.find(candidate => candidate?.binding_id === binding?.binding_id);
+    const expectedTransports = [...new Set(binding?.transports ?? [])].sort();
+    const observedTransports = [...new Set((role?.executions ?? []).map(execution => execution?.transport))].sort();
+    return role?.owner === binding?.owner && sameIds(observedTransports, expectedTransports);
+  });
+}
+
+function sameIds(observed, expected) {
+  return Array.isArray(observed) && observed.length === expected.length
+    && observed.every((value, index) => value === expected[index])
+    && new Set(observed).size === observed.length;
+}
+
+function sameUnorderedIds(observed, expected) {
+  if (!Array.isArray(observed) || !Array.isArray(expected)
+    || observed.length !== expected.length
+    || new Set(observed).size !== observed.length
+    || new Set(expected).size !== expected.length) return false;
+  const expectedSet = new Set(expected);
+  return observed.every(value => expectedSet.has(value));
+}
+
 function atomicWriteJson(target, value) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const temporary = `${target}.${process.pid}.tmp`;
@@ -257,4 +431,14 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { _test: { replay, validateApplicationCatalog, validateProfiles, validateDispositionCatalog, REQUIRED_PROFILES } };
+module.exports = {
+  _test: {
+    replay,
+    validateApplicationCatalog,
+    validateProfiles,
+    validateDispositionCatalog,
+    validateAllAppImprovementReleaseTrace,
+    compiledExecutionPolicyPasses,
+    REQUIRED_PROFILES,
+  },
+};

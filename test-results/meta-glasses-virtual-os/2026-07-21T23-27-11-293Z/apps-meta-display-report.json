@@ -1,0 +1,1681 @@
+{
+  "runId": "2026-07-21T23-27-11-293Z",
+  "launch_readiness_receipt_v1": {
+    "schema": "launch_readiness_receipt_v1",
+    "gate": "LaunchReadinessGate",
+    "objective": "VAIOS-G697",
+    "validation": "Playwright launch replay",
+    "surface": "meta-glasses-virtual-os",
+    "requiredHops": [
+      "phone-hosted Swissknife virtual desktop",
+      "desktop peer offload",
+      "Hallucinate App mediation",
+      "Meta glasses terminal"
+    ],
+    "status": "failed",
+    "evidence": {
+      "discoveredAppCount": 45,
+      "renderedMetaDisplayCount": 45,
+      "command": "npm --prefix swissknife run test:e2e:meta-glasses"
+    }
+  },
+  "discoveredApps": [
+    {
+      "appId": "terminal",
+      "title": "SwissKnife Terminal",
+      "iconLabel": "Terminal"
+    },
+    {
+      "appId": "vibecode",
+      "title": "VibeCode - AI Streamlit Editor",
+      "iconLabel": "VibeCode"
+    },
+    {
+      "appId": "music-studio-unified",
+      "title": "🎵 Music Studio - AI-powered Digital Audio Workstation",
+      "iconLabel": "Music Studio"
+    },
+    {
+      "appId": "ai-chat",
+      "title": "AI Chat",
+      "iconLabel": "AI Chat"
+    },
+    {
+      "appId": "file-manager",
+      "title": "File Manager",
+      "iconLabel": "Files"
+    },
+    {
+      "appId": "task-manager",
+      "title": "Task Manager",
+      "iconLabel": "Tasks"
+    },
+    {
+      "appId": "todo",
+      "title": "Todo & Goals",
+      "iconLabel": "Todo"
+    },
+    {
+      "appId": "model-browser",
+      "title": "AI Model Manager",
+      "iconLabel": "AI Models"
+    },
+    {
+      "appId": "huggingface",
+      "title": "🤗 Hugging Face Hub",
+      "iconLabel": "Hugging Face"
+    },
+    {
+      "appId": "openrouter",
+      "title": "🔄 OpenRouter Hub",
+      "iconLabel": "OpenRouter"
+    },
+    {
+      "appId": "ipfs-explorer",
+      "title": "IPFS Explorer",
+      "iconLabel": "IPFS"
+    },
+    {
+      "appId": "device-manager",
+      "title": "Device Manager",
+      "iconLabel": "Devices"
+    },
+    {
+      "appId": "settings",
+      "title": "Settings",
+      "iconLabel": "Settings"
+    },
+    {
+      "appId": "mcp-control",
+      "title": "MCP Control",
+      "iconLabel": "MCP Control"
+    },
+    {
+      "appId": "api-keys",
+      "title": "API Keys",
+      "iconLabel": "API Keys"
+    },
+    {
+      "appId": "github",
+      "title": "GitHub",
+      "iconLabel": "GitHub"
+    },
+    {
+      "appId": "oauth-login",
+      "title": "OAuth Login",
+      "iconLabel": "OAuth"
+    },
+    {
+      "appId": "cron",
+      "title": "AI Cron",
+      "iconLabel": "AI Cron"
+    },
+    {
+      "appId": "navi",
+      "title": "NAVI",
+      "iconLabel": "NAVI"
+    },
+    {
+      "appId": "p2p-network",
+      "title": "P2P Network Manager",
+      "iconLabel": "P2P Network"
+    },
+    {
+      "appId": "p2p-chat-unified",
+      "title": "P2P Chat - Unified real-time and offline messaging",
+      "iconLabel": "P2P Chat"
+    },
+    {
+      "appId": "neural-network-designer",
+      "title": "Neural Network Designer",
+      "iconLabel": "NN Designer"
+    },
+    {
+      "appId": "training-manager",
+      "title": "Training Manager",
+      "iconLabel": "Training"
+    },
+    {
+      "appId": "calculator",
+      "title": "Calculator",
+      "iconLabel": "Calculator"
+    },
+    {
+      "appId": "clock",
+      "title": "Clock & Timers",
+      "iconLabel": "Clock"
+    },
+    {
+      "appId": "calendar",
+      "title": "Calendar & Events",
+      "iconLabel": "Calendar"
+    },
+    {
+      "appId": "peertube",
+      "title": "PeerTube - P2P Video Player",
+      "iconLabel": "PeerTube"
+    },
+    {
+      "appId": "friends-list",
+      "title": "Friends & Network",
+      "iconLabel": "Friends"
+    },
+    {
+      "appId": "image-viewer",
+      "title": "Image Viewer",
+      "iconLabel": "Images"
+    },
+    {
+      "appId": "notes",
+      "title": "Notes",
+      "iconLabel": "Notes"
+    },
+    {
+      "appId": "media-player",
+      "title": "Media Player",
+      "iconLabel": "Media Player"
+    },
+    {
+      "appId": "system-monitor",
+      "title": "System Monitor",
+      "iconLabel": "Monitor"
+    },
+    {
+      "appId": "neural-photoshop",
+      "title": "Art - AI Image Editor",
+      "iconLabel": "Art"
+    },
+    {
+      "appId": "cinema",
+      "title": "Cinema - Professional Video Editor",
+      "iconLabel": "Cinema"
+    },
+    {
+      "appId": "strudel",
+      "title": "Strudel - Live Coding Music",
+      "iconLabel": "Strudel"
+    },
+    {
+      "appId": "strudel-ai-daw",
+      "title": "Strudel AI DAW",
+      "iconLabel": "Strudel AI"
+    },
+    {
+      "appId": "music-studio",
+      "title": "Music Studio - Classic",
+      "iconLabel": "Studio Classic"
+    },
+    {
+      "appId": "p2p-chat",
+      "title": "P2P Chat - Classic",
+      "iconLabel": "P2P Classic"
+    },
+    {
+      "appId": "datasets-browser",
+      "title": "Datasets Browser",
+      "iconLabel": "Datasets"
+    },
+    {
+      "appId": "accelerate-panel",
+      "title": "Accelerate Panel",
+      "iconLabel": "Accelerate"
+    },
+    {
+      "appId": "idl-explorer",
+      "title": "IDL Explorer",
+      "iconLabel": "IDL"
+    },
+    {
+      "appId": "glasses-preview",
+      "title": "Glasses Preview",
+      "iconLabel": "Glasses"
+    },
+    {
+      "appId": "orb-auto-ui",
+      "title": "ORB Auto-UI",
+      "iconLabel": "ORB UI"
+    },
+    {
+      "appId": "mcp-plus-plus",
+      "title": "MCP++ Explorer",
+      "iconLabel": "MCP++"
+    },
+    {
+      "appId": "agent-supervisor",
+      "title": "Agent Supervisor",
+      "iconLabel": "Supervisor"
+    }
+  ],
+  "snapshots": [
+    {
+      "appId": "terminal",
+      "title": "SwissKnife Terminal",
+      "iconLabel": "Terminal",
+      "windowTitle": "SwissKnife Terminal",
+      "text": "🖥️\nSwissKnife Terminal\n−\n□\n×\nTerminal\n×\n+\n🤖\n🌐\n⚙️\n\nWelcome to SwissKnife Terminal\n=============================\n\nA powerful terminal with AI assistance, P2P connectivity, and SwissKnife integration.\n\nAvailable commands:\n• help - Show all available commands\n• ai [query] - Get AI assistance  \n• p2p - Connect to P2P network\n• ipfs - IPFS storage commands\n• desktop - Desktop management\n\nType 'help' for a complete list of commands.\n\nswissknife@desktop:/home/swissknife$\nReady\nSession: main | swissknife@swissknife-256color\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n3\nSwissKnife Terminal: retrieve content\nready\nSwissKnife Terminal: query catalog\nready\nSwissKnife Terminal: inspect model catalog\nready",
+      "buttonCount": 11,
+      "inputCount": 1,
+      "canvasCount": 0,
+      "interactiveCount": 12,
+      "hasLoadError": false
+    },
+    {
+      "appId": "vibecode",
+      "title": "VibeCode - AI Streamlit Editor",
+      "iconLabel": "VibeCode",
+      "windowTitle": "VibeCode Editor",
+      "text": "🎯\nVibeCode Editor\n−\n□\n×\n📄 New\n💾 Save\n▶️ Run\n🤖 AI\n⚙️\nPreview will appear here when you run your Streamlit app\nReady\nPython | Streamlit | Line 1, Col 1\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n3\nVibeCode: list virtual files\nready\nVibeCode: record provenance\nready\nVibeCode: submit inference\nready",
+      "buttonCount": 13,
+      "inputCount": 2,
+      "canvasCount": 0,
+      "interactiveCount": 15,
+      "hasLoadError": false
+    },
+    {
+      "appId": "music-studio-unified",
+      "title": "🎵 Music Studio - AI-powered Digital Audio Workstation",
+      "iconLabel": "Music Studio",
+      "windowTitle": "Music Studio",
+      "text": "🎵\nMusic Studio\n−\n□\n×\n🎵 Music Studio\n▶️\n⏹️\n⏺️\nBPM:\n🎼 Composer\n🎛️ Mixer\n✨ Effects\n🎭 Performance\n🤖 AI\n🎼 PATTERN EDITOR\n▶️ Run\n🗑️ Clear\n💾 Save\nQuick patterns:\n🥁 Drums\n🎸 Bass\n🎹 Melody\n🌊 Ambient\n📊 Visualizer\n🌊 Wave\n📊 Spectrum\n🤖 AI Assistant\n🥁 Generate Drums\n🎸 Generate Bass\n🎹 Generate Melody\n✨ Improve Pattern\nStyle:\nAmbient\nTechno\nDrum & Bass\nJazz\nExperimental\n📚 Pattern Library\nBasic Beat\n\"bd ~ sn ~\"\nAcid Bass\nnote(\"c2 ~ c3 ~\").slow(2)\nAmbient Pad\n\"c4 e4 g4\".chord().slow(8)\nTechno Loop\n\"bd*4\".layer(\"~ ~ sn ~\")\n♫ 120 BPM • 4 tracks • Stopped\n🎚️ Master: 80%\n🎵 Pattern: Active\n0 peers connected\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nMusic Studio: retrieve content\nready\nMusic Studio: inspect job state\nready",
+      "buttonCount": 26,
+      "inputCount": 3,
+      "canvasCount": 1,
+      "interactiveCount": 30,
+      "hasLoadError": false
+    },
+    {
+      "appId": "ai-chat",
+      "title": "AI Chat",
+      "iconLabel": "AI Chat",
+      "windowTitle": "AI Chat",
+      "text": "🤖\nAI Chat\n−\n□\n×\n🤖 AI Assistant\n+\nAI Provider:\n🤖\nOpenAI\n🧠\nAnthropic\n🌟\nGoogle\n🏠\nLocal Models\nModel: \ngpt-4\ngpt-4-turbo\ngpt-3.5-turbo\nContext Sources:\n🖥️\nDesktop State\n📁\nFile Contents\n💻\nCode Context\n⚙️\nSystem Info\n🌐\nP2P Network\n📦\nIPFS Content\nCurrent Session\nJust now\nMESSAGES:\n0\nTOKENS:\n0\n🎤\nVoice\n🧠\nContext\n🌐\nTranslate\nConnected\n📤\n⚙️\n🤖\nEnhanced AI Assistant\n\nI'm your intelligent assistant with access to your desktop context, files, and system information.\n\n🎤 Voice Input\n🧠 Smart Context\n💻 Code Generation\n🌐 Multi-language\n🖥️ Desktop Analysis\n💻 Code Assistant\n📊 System Health\n📎\n💻\n🎤\n➤\n0 characters • ~0 tokens\nCtrl+K: Commands • Ctrl+/: Help\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n3\nAI Chat: retrieve content\nready\nAI Chat: query catalog\nready\nAI Chat: submit inference\nready",
+      "buttonCount": 19,
+      "inputCount": 8,
+      "canvasCount": 0,
+      "interactiveCount": 27,
+      "hasLoadError": false
+    },
+    {
+      "appId": "file-manager",
+      "title": "File Manager",
+      "iconLabel": "Files",
+      "windowTitle": "File Manager",
+      "text": "📁\nFile Manager\n−\n□\n×\n⬅️\n➡️\n⬆️\n🔄\n📁\n🔍\n📁+\n📤\n📥\n🔗\nName\nSize\nDate\nType\n⊞\n☰\n⚙️\n💾\nLocal Storage\n🌐\nIPFS Network\n☁️\nCloud Storage\n🔗\nP2P Network\n👥\nCollaborative Workspace\nQUICK ACCESS\n📄\nDocuments\n🖼️\nPictures\n📥\nDownloads\n🧠\nAI Models\n🔗\nP2P Shared\nSTORAGE INFO\nLocal Storage\n156 GB / 240 GB\nIPFS Cache\n4.5 GB / 10 GB\nFILE OPERATIONS\n✂️\nCut\n📋\nCopy\n📥\nPaste\n🗑️\nDelete\nAI TOOLS\n🤖\nAuto Organize\n🔍\nFind Duplicates\n🏷️\nSmart Tags\n8 items\nShow hidden files\n📁\nAI Models\n🖼️\ndesktop-screenshot.png\n2 MB\n📁\nDocuments\n📝\nneural-network-v2.js\n239.9 KB\n📁\nPictures\n📄\nproject-notes.md\n15.1 KB\n📦\nshared-model-bert.zip\n418.6 MB\n📝\ntraining-data.json\n12 MB\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nMCP++ actions\n2\nFile Manager: retrieve content\nready\nFile Manager: record provenance\nready",
+      "buttonCount": 37,
+      "inputCount": 5,
+      "canvasCount": 0,
+      "interactiveCount": 42,
+      "hasLoadError": false
+    },
+    {
+      "appId": "task-manager",
+      "title": "Task Manager",
+      "iconLabel": "Tasks",
+      "windowTitle": "Task Manager",
+      "text": "⚡\nTask Manager\n−\n□\n×\n⚡ Processes 📊 Performance 🌐 Network 🔗 P2P Tasks\n⏸️ 📤 ⚙️\n \nAll Processes\nHigh CPU\nHigh Memory\nWeb Processes\nSystem Processes\n🔄 Refresh\n⚠️ End Task\n\tProcess Name 📝\tPID 🆔\tCPU % 🔥\tMemory 🧠\tStatus 📊\tActions ⚡\n🔥 CPU USAGE\n0%\nCores: - Speed: -\n🧠 MEMORY USAGE\n0%\nUsed: - Total: -\n🎮 GPU USAGE\n0%\nType: - Memory: -\n🌐 NETWORK\n0 MB/s\nDown: - Up: -\n📈 Performance History\n⚠️ System Alerts\nACTIVE CONNECTIONS\n0\nBANDWIDTH USAGE\n0 MB/s\nLATENCY\n0ms\nPACKET LOSS\n0%\n🔗 Active Network Connections\nProtocol\tLocal Address\tRemote Address\tState\tProcess\tBandwidth\nCONNECTED PEERS\n0\nACTIVE TASKS\n0\nCOMPLETED TASKS\n0\nNETWORK LOAD\n0%\n🔄 Enable Task Sharing 📡 Broadcast Availability ⚡ Optimize Network\n🎯 Distributed Tasks\nAll Tasks\nRunning\nCompleted\nFailed\nLocal\nRemote\n🔄 Refresh\n🌐 Peer Network\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nTask Manager: record provenance\nready\nTask Manager: inspect job state\nready",
+      "buttonCount": 18,
+      "inputCount": 4,
+      "canvasCount": 1,
+      "interactiveCount": 23,
+      "hasLoadError": false
+    },
+    {
+      "appId": "todo",
+      "title": "Todo & Goals",
+      "iconLabel": "Todo",
+      "windowTitle": "Todo & Goals",
+      "text": "📋\nTodo & Goals\n−\n□\n×\n📋 Todo & Goals\nPlain Text Goal Management\n🎤 Voice\n📝 Todos\n🎯 Goals\n📊 Graph\n💡 Low\n📋 Medium\n🔥 High\n⚡ Urgent\nAdd Todo\n💡 Voice commands: \"Add todo: [task]\" | \"Mark [task] complete\" | \"Set [task] priority high\"\n⚡ Urgent Tasks\n0\n🔥 High Priority\n0\n📋 Medium Priority\n0\n💡 Low Priority\n0\n✅ Completed\n0\n📋\n0\ntodos • 🎯\n0\ngoals\n🎤 Voice:\nReady\n• Last updated:\nNever\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nMCP++ actions\n2\nTodo and Goals: retrieve content\nready\nTodo and Goals: record provenance\nready",
+      "buttonCount": 11,
+      "inputCount": 3,
+      "canvasCount": 0,
+      "interactiveCount": 14,
+      "hasLoadError": false
+    },
+    {
+      "appId": "model-browser",
+      "title": "AI Model Manager",
+      "iconLabel": "AI Models",
+      "windowTitle": "AI Model Browser",
+      "text": "🧠\nAI Model Browser\n−\n□\n×\n🔍\nAll\nLanguage\nVision\nCode\nEmbedding\nInstalled\n🔄 Refresh\n📥 Import\n💬\nDialoGPT Medium\n\nby Microsoft\n\nA state-of-the-art large-scale pretrained dialogue response generation model\n📁 1.2 GB\n⬇️ 125.0K\n❤️ 450\nlanguage\nconversational\npytorch\ngpt\n🔗\nAll MiniLM L6 v2\n\nby Sentence Transformers\n\nSentence embedding model for semantic search\n📁 80 MB\n⬇️ 2.5M\n❤️ 890\nembedding\nsentence-similarity\npytorch\nembeddings\n💻\nCodeBERT Base\n\nby Microsoft\n\nPre-trained model for programming language understanding\n📁 500 MB\n⬇️ 75.0K\n❤️ 320\ncode\ncode\nprogramming\nbert\n👁️\nCLIP ViT Base\n\nby OpenAI\n\nVision transformer for image-text understanding\n📁 600 MB\n⬇️ 150.0K\n❤️ 670\nvision\nvision\nmultimodal\nclip\n🤖\nNo Model Selected\n\nSelect a model from the list to see details and options.\n\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n3\nAI Model Manager: retrieve content\nready\nAI Model Manager: query catalog\nready\nAI Model Manager: inspect model catalog\nready",
+      "buttonCount": 16,
+      "inputCount": 1,
+      "canvasCount": 0,
+      "interactiveCount": 17,
+      "hasLoadError": false
+    },
+    {
+      "appId": "huggingface",
+      "title": "🤗 Hugging Face Hub",
+      "iconLabel": "Hugging Face",
+      "windowTitle": "🤗 Hugging Face Hub",
+      "text": "🤗\n🤗 Hugging Face Hub\n−\n□\n×\n🤗\nHugging Face Hub\nNot Connected\n⚙️\nSettings\n🔑\nConnect\n🧠\nModels\n3\n📊\nDatasets\n2\n⚡\nInference\n0\n🚀\nDeployments\n1\n🎮\nPlayground\n🧠 AI Models Hub\n\nBrowse and manage 100,000+ AI models from Hugging Face\n\n🔍\nAll Tasks\nText Generation\nText Classification\nImage Classification\nSpeech Recognition\nTranslation\nAll Libraries\nTransformers\nPyTorch\nTensorFlow\nJAX\n🔄\nRefresh\nGPT-2\n📥\n1.5M\n❤️\n2.5K\nText Generation\nby openai\npytorch\ntransformer\ntext-generation\n📥\nLoad\n🧪\nTest\n🚀\nDeploy\nAvailable for inference\nDistilBERT Base Uncased\n📥\n800.0K\n❤️\n1.2K\nText Classification\nby huggingface\npytorch\nbert\nclassification\n📥\nLoad\n🧪\nTest\n🚀\nDeploy\nAvailable for inference\nBART Large CNN\n📥\n600.0K\n❤️\n900\nSummarization\nby facebook\npytorch\nbart\nsummarization\n📥\nLoad\n🧪\nTest\n🚀\nDeploy\nAvailable for inference\n← Previous\nPage 1 of 1000+\nNext →\n🌐\nAPI Status: Disconnected\n💾\nCache: 0 items\n⏱️\nLast refresh: Never\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n3\nHugging Face Hub: retrieve content\nready\nHugging Face Hub: query catalog\nready\nHugging Face Hub: inspect model catalog\nready",
+      "buttonCount": 21,
+      "inputCount": 3,
+      "canvasCount": 0,
+      "interactiveCount": 24,
+      "hasLoadError": false
+    },
+    {
+      "appId": "openrouter",
+      "title": "🔄 OpenRouter Hub",
+      "iconLabel": "OpenRouter",
+      "windowTitle": "🔄 OpenRouter Hub",
+      "text": "🔄\n🔄 OpenRouter Hub\n−\n□\n×\n🔄\nOpenRouter Hub\nNot Connected\n⚙️\nSettings\n🔑\nConnect\n🤖\nModels\n4\n💬\nChat\n0\n🎮\nPlayground\n📊\nAnalytics\n🏢\nProviders\n4\n🔍\nAll Providers\nOpenAI\nAnthropic\nGoogle\nMistral AI\nSort by Name\nSort by Provider\nSort by Price\nSort by Context Length\nTOTAL MODELS\n4\nPROVIDERS\n4\nFAVORITES\n0\n🤖 OPENAI\nGPT-4\n⭐\nℹ️\nOpenAI\nContext: 8K\nInput: $0.03/1K\nOutput: $0.06/1K\nchat\nreasoning\ncode\nTry Model\n✓ Default\n🧠 ANTHROPIC\nClaude 3 Opus\n⭐\nℹ️\nAnthropic\nContext: 200K\nInput: $0.015/1K\nOutput: $0.075/1K\nchat\nanalysis\nlong-context\nTry Model\nSet Default\n🌟 GOOGLE\nGemini Pro\n⭐\nℹ️\nGoogle\nContext: 33K\nInput: $0.0005/1K\nOutput: $0.0015/1K\nchat\nmultimodal\nvision\nTry Model\nSet Default\n🚀 MISTRAL AI\nMistral 7B Instruct\n⭐\nℹ️\nMistral AI\nContext: 33K\nInput: $0.0002/1K\nOutput: $0.0002/1K\nchat\ninstruct\nefficient\nTry Model\nSet Default\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nexternal-provider\nprovider-handoff\nexternal-provider\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nComplete or cancel the external provider handoff; do not substitute an owner backend call.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nOpenRouter Hub: record provenance\nready\nOpenRouter Hub: submit inference\nready",
+      "buttonCount": 23,
+      "inputCount": 3,
+      "canvasCount": 0,
+      "interactiveCount": 26,
+      "hasLoadError": false
+    },
+    {
+      "appId": "ipfs-explorer",
+      "title": "IPFS Explorer",
+      "iconLabel": "IPFS",
+      "windowTitle": "IPFS Explorer",
+      "text": "🌐\nIPFS Explorer\n−\n□\n×\n🗂️ Explorer 📌 Pinning 🌐 Network 📊 Analytics\n📁+ 📁 ⚙️\n← → 🏠 🔄\n Go\nipfs.io\ngateway.ipfs.io\ncloudflare-ipfs.com\ndweb.link\n📋\n⊞\n🔗 QUICK ACCESS\n📂 IPFS Welcome\n🖼️ Sample Images\n🎵 Audio Files\n📌 RECENT PINS\n📊 NETWORK STATUS\nPeers\n0\nBandwidth\n0 KB/s\nStorage\n0 MB\nLoading IPFS content...\n📌\n0\nTOTAL PINS\n💾\n0 MB\nPINNED DATA\n🔄\nSynced\nSYNC STATUS\n⚡\n0/s\nPIN RATE\n📌 Bulk Pin 🤖 Auto Pin 📤 Export List 📥 Import List\n📌 Pinned Content\nAll Pins\nLocal Only\nRemote Pins\nRecursive\n \n🌐 IPFS Network Overview\n🔗 CONNECTED PEERS\n0\n⬇️ DOWNLOAD SPEED\n0 KB/s\n⬆️ UPLOAD SPEED\n0 KB/s\n📶 DHT SIZE\n0\n🔍 Discover Peers 🧪 Test Connectivity ⚡ Optimize Routing 🔧 Diagnostics\n👥 Connected Peers\n🌐 Gateway Performance\n📊 IPFS Usage Analytics\n📈\n1.2 GB\nData Retrieved\n📤\n456 MB\nData Shared\n🔄\n89%\nCache Hit Rate\n⚡\n245ms\nAvg Latency\n📈 Bandwidth Usage (24h)\n📊 Content Types\n💡 Usage Insights\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nMCP++ actions\n1\nIPFS Explorer: retrieve content\nready",
+      "buttonCount": 30,
+      "inputCount": 8,
+      "canvasCount": 2,
+      "interactiveCount": 40,
+      "hasLoadError": false
+    },
+    {
+      "appId": "device-manager",
+      "title": "Device Manager",
+      "iconLabel": "Devices",
+      "windowTitle": "Device Manager",
+      "text": "🔧\nDevice Manager\n−\n□\n×\n🔧 Hardware 🌐 Network Devices 📊 Performance 💿 Drivers\n🔍 ⚡ 📤 ⚙️\n💻 System Information\nDevice Name Loading...\nOperating System Loading...\nBrowser Loading...\nArchitecture Loading...\n🔍 Device Details\n🌐\n0\nNETWORK INTERFACES\n📶\n0\nWIFI NETWORKS\n🔗\n0\nP2P PEERS\n🔊\n0\nBLUETOOTH DEVICES\n📶 Scan WiFi 🔗 Discover P2P 🔊 Scan Bluetooth 🔧 Diagnostics\n🌐 Network Interfaces\n📶 WiFi Networks\n🔗 P2P Peers\n🔊 Bluetooth Devices\n⚡ Hardware Performance\n🔥 CPU Benchmark 🧠 Memory Test 🎮 GPU Test 💾 Storage Test 🌐 Network Test 🚀 Full System Test\n📊 Recent Benchmark Results\n📈 Performance History\n📊 Real-Time Monitoring\n🔥 CPU Performance\nTemperature: --°C Frequency: -- MHz\n🧠 Memory Usage\nAvailable: -- GB Speed: -- MHz\n🎮 GPU Performance\nMemory: -- MB Temperature: --°C\n🌐 Network Activity\nLatency: -- ms Throughput: -- MB/s\n💿 Device Drivers\nTOTAL DRIVERS\n0\nUP TO DATE\n0\nOUTDATED\n0\nMISSING\n0\n🔍 Scan Drivers ⬆️ Update All 💾 Backup Drivers ♻️ Restore Drivers\n📋 Driver Details\n💡 Recommendations\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nDevice Manager: retrieve content\nready\nDevice Manager: inspect hardware\nready",
+      "buttonCount": 27,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 27,
+      "hasLoadError": false
+    },
+    {
+      "appId": "settings",
+      "title": "Settings",
+      "iconLabel": "Settings",
+      "windowTitle": "Settings",
+      "text": "⚙️\nSettings\n−\n□\n×\n⚙️\nGeneral\n🤖\nAI & Models\n🌐\nP2P Network\n🎨\nAppearance\n🔒\nSecurity\nℹ️\nAbout\nSystem Status\nMemory: 0 MB\nP2P Peers: 0\nActive Models: 0\nGeneral Settings\nReset to Defaults\nSave Changes\n🏠 General Preferences\n\nConfigure basic application settings and user preferences\n\nUsername\n Your display name in the application\nLanguage\nEnglish\nEspañol\nFrançais\nDeutsch\n Application interface language\nEnable Auto-Save\nAutomatically save your work periodically\nEnable Notifications\nShow system and application notifications\nK/D/A backend status\nbrowser_local\nK\nIPFS Kit\nlocal-only\nmanifest\nbrowser-local\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nContinue with the browser-local workflow; no backend dispatch is expected for this role.\nD\nIPFS Datasets\nlocal-only\nmanifest\nbrowser-local\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nContinue with the browser-local workflow; no backend dispatch is expected for this role.\nA\nIPFS Accelerate\nlocal-only\nmanifest\nbrowser-local\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nContinue with the browser-local workflow; no backend dispatch is expected for this role.",
+      "buttonCount": 5,
+      "inputCount": 4,
+      "canvasCount": 0,
+      "interactiveCount": 9,
+      "hasLoadError": false
+    },
+    {
+      "appId": "mcp-control",
+      "title": "MCP Control",
+      "iconLabel": "MCP Control",
+      "windowTitle": "MCP Control",
+      "text": "🔌\nMCP Control\n−\n□\n×\n🔌 MCP Server Control Center\n🟢 0 host daemon commands running\n🌐 0 browser-connected remotes\n🔍 Auto-discovery ON\n🔄 Refresh 📋 Templates 🖥️ Add Host Daemon 🌐 Add Browser Remote 🔍 Discovery 📊 Metrics 🔄 libp2p\n📂 Categories\n🔍 All Servers 0\n🖥️ Host Daemon 0\n🌐 Browser Remote 0\n⚙️ Core 0\n🔗 Integrations 0\n🗄️ Databases 0\n☁️ Cloud 0\n🛠️ Custom 0\n📊 Quick Stats\nActive Host Daemons:\n0\nBrowser Remote Connections:\n0\nTotal Connections:\n0\nAuto-start Enabled:\n0\nTemplates Available:\n8\nBrowser libp2p Defaults\nRefresh\nEnabled by default: 8 configured, 0 gaps\nListen: /webrtc\nLoader: literal-browser-imports\nUpdated: 4:27:28 PM\nlibp2p Core\nlibp2p\nconfigured from createLibp2p\nWebRTC\n@libp2p/webrtc\nconfigured from webRTC\nWebSockets\n@libp2p/websockets\nconfigured from webSockets\nCircuit Relay v2\n@libp2p/circuit-relay-v2\nconfigured from circuitRelayTransport\nIdentify\n@libp2p/identify\nconfigured from identify\nNoise\n@chainsafe/libp2p-noise\nconfigured from noise\nYamux\n@chainsafe/libp2p-yamux\nconfigured from yamux\nGossipSub\n@chainsafe/libp2p-gossipsub\nconfigured from gossipsub\n🔔 Recent Activity\nNo recent activity\nAll Status\nRunning\nConnected\nStopped\nError\nAll Types\nHost Daemon\nBrowser Remote\n🔌\nNo MCP Servers Configured\n\nAdd your first MCP server to get started with Model Context Protocol integration.\n\n\"Host Daemon\" entries record a command line for a host process to run — the browser never executes it. \"Browser Remote\" entries are HTTP(S), WebSocket, or libp2p endpoints the browser build connects to directly.\n\n📋 Browse Templates 🖥️ Add Host Daemon Command 🌐 Add Browser Remote\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n3\nMCP Control: inspect tool registry\nready\nMCP Control: inspect tool registry\nready\nMCP Control: inspect tool registry\nready",
+      "buttonCount": 36,
+      "inputCount": 19,
+      "canvasCount": 0,
+      "interactiveCount": 55,
+      "hasLoadError": false
+    },
+    {
+      "appId": "api-keys",
+      "title": "API Keys",
+      "iconLabel": "API Keys",
+      "windowTitle": "API Keys",
+      "text": "🔑\nAPI Keys\n−\n□\n×\n🔒\nSecure API Vault\n\nEnter your vault password to access encrypted API keys\n\nRemember for this session\n🔓 Unlock Vault\n🛡️\nAES-256 Encryption\n⏰\nAuto-lock after 15 minutes\n🌐\nP2P Secure Sharing\nK/D/A backend status\npolicy_blocked\nK\nIPFS Kit\ndenied\npolicy\npolicy-denied\nCorrelation\nrequired\nPolicy\ndeny\nReceipt\npending receipt\nRecovery\nReview the credential-isolation policy and continue with the browser-local recovery workflow.\nD\nIPFS Datasets\ndenied\npolicy\npolicy-denied\nCorrelation\nrequired\nPolicy\ndeny\nReceipt\npending receipt\nRecovery\nReview the credential-isolation policy and continue with the browser-local recovery workflow.\nA\nIPFS Accelerate\ndenied\npolicy\npolicy-denied\nCorrelation\nrequired\nPolicy\ndeny\nReceipt\npending receipt\nRecovery\nReview the credential-isolation policy and continue with the browser-local recovery workflow.",
+      "buttonCount": 4,
+      "inputCount": 2,
+      "canvasCount": 0,
+      "interactiveCount": 6,
+      "hasLoadError": false
+    },
+    {
+      "appId": "github",
+      "title": "GitHub",
+      "iconLabel": "GitHub",
+      "windowTitle": "GitHub",
+      "text": "🐙\nGitHub\n−\n□\n×\n🐙 GitHub Integration\n\nConnect your GitHub account to manage repositories, issues, and pull requests.\n\n🔑 Personal Access Token\n\nUse a GitHub Personal Access Token for authentication.\n\nGitHub Token:\nGenerate a token at GitHub Settings → Developer settings → Personal access tokens\nConnect with Token\nOR\n🔐 OAuth\n\nSign in with your GitHub account using OAuth (requires OAuth Login app configuration).\n\n🔐 Sign in with GitHub\nRequired Permissions\n✅ repo - Access to repositories\n✅ issues - Manage issues\n✅ pull_requests - Manage pull requests\n✅ user - Access user information\n✅ workflow - Access GitHub Actions\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nexternal-provider\nprovider-handoff\nexternal-provider\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nComplete or cancel the external provider handoff; do not substitute an owner backend call.\nMCP++ actions\n2\nGitHub: retrieve content\nready\nGitHub: record provenance\nready",
+      "buttonCount": 7,
+      "inputCount": 1,
+      "canvasCount": 0,
+      "interactiveCount": 8,
+      "hasLoadError": false
+    },
+    {
+      "appId": "oauth-login",
+      "title": "OAuth Login",
+      "iconLabel": "OAuth",
+      "windowTitle": "OAuth Login",
+      "text": "🔐\nOAuth Login\n−\n□\n×\n🔐 OAuth Login System\n🔑 0 active sessions\n🔄 Refresh ⚙️ Configure 🚪 Logout All\n🔐\nWelcome to SwissKnife\n\nChoose your preferred sign-in method to get started\n\n🔴\nContinue with Google\nSign in to your Google account\n→\n🔵\nContinue with Facebook\nSign in to your Facebook account\n→\n🐙\nContinue with GitHub\nConfiguration required\nSetup\n🟦\nContinue with Microsoft\nSign in to your Microsoft account\n→\n🟣\nContinue with Discord\nSign in to your Discord account\n→\nor\n⚙️ Advanced Configuration & Management\nK/D/A backend status\nexternal_provider\nK\nIPFS Kit\nexternal-provider\nprovider-handoff\nexternal-provider\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nComplete or cancel the external provider handoff; do not substitute an owner backend call.\nD\nIPFS Datasets\nexternal-provider\nprovider-handoff\nexternal-provider\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nComplete or cancel the external provider handoff; do not substitute an owner backend call.\nA\nIPFS Accelerate\nexternal-provider\nprovider-handoff\nexternal-provider\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nComplete or cancel the external provider handoff; do not substitute an owner backend call.",
+      "buttonCount": 28,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 28,
+      "hasLoadError": false
+    },
+    {
+      "appId": "cron",
+      "title": "AI Cron",
+      "iconLabel": "AI Cron",
+      "windowTitle": "AI Cron Scheduler",
+      "text": "⏰\nAI Cron Scheduler\n−\n□\n×\n⏰ Scheduler 📋 Templates 📜 History 📊 Monitoring\n➕ 📥 📤 ⚙️\n⏰\n0\nSCHEDULED TASKS\n🏃\n0\nRUNNING TASKS\n✅\n0\nCOMPLETED TODAY\n🔗\n0\nP2P DISTRIBUTED\n⏸️ Pause All\n▶️ Resume All\n🚀 Run Now\nAll Tasks\nActive\nPaused\nAI Tasks\nML Tasks\nP2P Tasks\n \n📋 Scheduled Tasks\n🏃 Currently Running\n📋 Task Templates\n✨ Create Custom 📥 Import Template\nAll 🤖 AI 🧠 ML 💾 Storage 🔍 Monitoring 🌐 Network\n📜 Execution History\nAll Executions\nSuccessful\nFailed\nToday\nThis Week\n 🗑️ Clear History 📤 Export\nTask Name\tExecution Time\tDuration\tStatus\tOutput\tActions\n📊 Task Monitoring\n⚡ SYSTEM LOAD\n0%\n🔗 P2P NETWORK\nDisconnected\n🤖 AI PROCESSING\n0\n📊 SUCCESS RATE\n100%\n🚨 Active Alerts\n📋 Recent Logs\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nAI Cron: record provenance\nready\nAI Cron: inspect job state\nready",
+      "buttonCount": 32,
+      "inputCount": 11,
+      "canvasCount": 0,
+      "interactiveCount": 43,
+      "hasLoadError": false
+    },
+    {
+      "appId": "navi",
+      "title": "NAVI",
+      "iconLabel": "NAVI",
+      "windowTitle": "NAVI",
+      "text": "NAVI\n−\n□\n×\n🤖\nNAVI\nYour AI Assistant\n🎤 ⚙️ 🗑️\n💬 Conversation\nHelpful\nCasual\nProfessional\nCreative\n \nGPT-4\nClaude 3\nLLaMA 2\n🤖\nHello! I'm NAVI, your AI assistant. I can help you with:\n🖥️ Controlling your desktop and applications\n📁 Managing files and organizing data\n🤖 AI-powered analysis and assistance\n🎤 Voice commands and interactions\n📊 System monitoring and optimization\n🔗 P2P network coordination\nTry saying \"help\" to see available commands, or just ask me anything!\n 🎤 📤\n❓ Help 📊 Status 💡 Suggest ⚙️ Automate\n🧠 Context Awareness\n👁️\n🖥️ Active Apps\n📁 Recent Files\n🔗 P2P Network\n📊 System Health\n🎯 Suggestions\nListening...\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nMCP++ actions\n1\nNAVI: query catalog\nready",
+      "buttonCount": 15,
+      "inputCount": 3,
+      "canvasCount": 0,
+      "interactiveCount": 18,
+      "hasLoadError": false
+    },
+    {
+      "appId": "p2p-network",
+      "title": "P2P Network Manager",
+      "iconLabel": "P2P Network",
+      "windowTitle": "P2P Network Manager",
+      "text": "🔗\nP2P Network Manager\n−\n□\n×\n🌐 P2P Network Manager\nDisconnected\nNetwork\nPeers\nModels\nTasks\nWorkspaces\nWorkers\nCloudFlare\nHybrid Workers\n🤗 Hugging Face\nTransport\n🌐 P2P Network Status\nConnection Status\n\nDisconnected\n\nActive Peers\n\n0\n\nNetwork Tasks\n\n0\n\nBrowser libp2p Defaults\nEnabled by default: 8 configured, 0 gaps\n🔄\nRefresh\nDefault listen multiaddrs: /webrtc · Loader: literal-browser-imports · Updated: 4:27:35 PM\nlibp2p Core\nlibp2p\nconfigured from createLibp2p\nWebRTC\n@libp2p/webrtc\nconfigured from webRTC\nWebSockets\n@libp2p/websockets\nconfigured from webSockets\nCircuit Relay v2\n@libp2p/circuit-relay-v2\nconfigured from circuitRelayTransport\nIdentify\n@libp2p/identify\nconfigured from identify\nNoise\n@chainsafe/libp2p-noise\nconfigured from noise\nYamux\n@chainsafe/libp2p-yamux\nconfigured from yamux\nGossipSub\n@chainsafe/libp2p-gossipsub\nconfigured from gossipsub\nConnect to Network\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nP2P Network Manager: inspect peer network\nready\nP2P Network Manager: inspect hardware\nready",
+      "buttonCount": 20,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 20,
+      "hasLoadError": false
+    },
+    {
+      "appId": "p2p-chat-unified",
+      "title": "P2P Chat - Unified real-time and offline messaging",
+      "iconLabel": "P2P Chat",
+      "windowTitle": "P2P Chat - Unified",
+      "text": "💬\nP2P Chat - Unified\n−\n□\n×\nP2P Chat\n\npeer-local-g030 on /swissknife/chat/unified/g030\n\nConnected\nSearch conversations\nOnline\nOffline\nA\nAlice\nReady on pubsub topic /swissknife/chat/unified/g030.\nonline\nB\nBob\nQueued offline delivery will replay when Bob reconnects.\noffline +1\nC\nCasey\nNo messages yet\naway\nAlice\nonline peer, trust verified, topic /swissknife/chat/unified/g030\nAudio fallback\nReady on pubsub topic /swissknife/chat/unified/g030.\n4:22:36 PM pubsub delivered receipt:p2p-chat-unified:g030:pubsub:received\nSend pubsub message\nQueue offline\nMessages include moderation context, delivery receipts, and offline replay metadata before persistence.\nVDA-G030 unified chat workflow\n\nPubsub delivery, offline queue replay, moderation context, receipt visibility, audio fallback, and clear offline recovery are active.\n\nPublish pubsub delivery\nQueue offline delivery\nReview moderation context\nEmit receipt\nActivate audio fallback\nRecover offline delivery\nPubsub/offline delivery\nTopic /swissknife/chat/unified/g030 publishes via libp2p pubsub when online and stores offline payloads at bafyp2pchatg030pubsubdelivery and bafyp2pchatg030offlinequeue for store-and-forward replay.\nModeration context\np2p-chat.moderated-topic.v1 decision allow risk low CID bafyp2pchatg030moderationcontext receipt receipt:p2p-chat-unified:g030:moderation:baseline.\nReceipt\nDelivery ack receipt:p2p-chat-unified:g030:delivery:ack, offline receipt:p2p-chat-unified:g030:offline:queued, moderation receipt:p2p-chat-unified:g030:moderation:reviewed, and recovery receipt:p2p-chat-unified:g030:recovery:replayed are visible.\nAudio fallback\nMicrophone capture is optional; text transcript fallback is available before recording. CID bafyp2pchatg030audiofallback receipt receipt:p2p-chat-unified:g030:audio:fallback-ready transcript \"Voice message fallback transcript for the unified P2P chat workflow.\".\nClear offline recovery\nQueued messages show retry state, reconnect action, replay receipt receipt:p2p-chat-unified:g030:recovery:replayed, and recovery CID bafyp2pchatg030offlinerecovery.\nCheckpoint refs\nbafyp2pchatg030pubsubdelivery\nbafyp2pchatg030offlinequeue\nbafyp2pchatg030moderationcontext\nbafyp2pchatg030receiptbundle\nbafyp2pchatg030audiofallback\nbafyp2pchatg030offlinerecovery\nReceipts\nreceipt:p2p-chat-unified:g030:pubsub:published\nreceipt:p2p-chat-unified:g030:offline:queued\nreceipt:p2p-chat-unified:g030:moderation:reviewed\nreceipt:p2p-chat-unified:g030:delivery:ack\nreceipt:p2p-chat-unified:g030:audio:fallback\nreceipt:p2p-chat-unified:g030:recovery:replayed\nreceipt:p2p-chat-unified:g030:catalog:ready\nreceipt:p2p-chat-unified:g030:pubsub:ready\nreceipt:p2p-chat-unified:g030:offline:ready\nreceipt:p2p-chat-unified:g030:recovery:ready\nreceipt:p2p-chat-unified:g030:pubsub:received\nRecovery state\n\n1 offline message(s) queued with visible reconnect and recover controls.\n\n3 peers\n1 offline queued\n4 receipts\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nMCP++ actions\n2\nP2P Chat: exchange peer messages\nready\nP2P Chat: record provenance\nready",
+      "buttonCount": 19,
+      "inputCount": 2,
+      "canvasCount": 0,
+      "interactiveCount": 21,
+      "hasLoadError": false
+    },
+    {
+      "appId": "neural-network-designer",
+      "title": "Neural Network Designer",
+      "iconLabel": "NN Designer",
+      "windowTitle": "Neural Network Designer",
+      "text": "🧠\nNeural Network Designer\n−\n□\n×\nUntitled Network\n✏️ Edit\n🆕 New\n📂 Load\n💾 Save\n📤 Export\n✅ Validate\n🚀 Train\n🌐 Deploy\n↶ Undo\n↷ Redo\n🗑️ Clear\nVDA-G031 Neural Network Workflow\n\nGraph artifact, data contract validation, compile/train planning, invalid edge feedback, and result receipts.\n\nBuild VDA-G031 graph artifacts\nGraph Artifacts\n\nArtifact CID bafynndg031graphartifact\n\n0 layers and 0 valid directed edges.\n\nRefresh graph artifact\nSchema Validation\n\nDataset vision-cifar10-mini input [32,32,3] target [10].\n\nStatus: pending CID bafynndg031schemacontract\n\nValidate contract\nCompile/Train Plan\n\nadam lr 0.001, 12 epochs, batch 32.\n\nStatus: pending CID bafynndg031compiletrainplan\n\nPlan compile/train\nInvalid Edge Feedback\n\ng031_output_logits -> g031_dense_features\n\nRejected output-to-hidden edge: output layers cannot feed hidden layers and the proposed edge would create a cycle. CID bafynndg031invalidedgefeedback\n\nShow invalid edge\nResult Receipts\n\nStatus: pending artifact pending\n\nreceipt:neural-network-designer:g031:graph-artifact receipt:neural-network-designer:g031:schema-validation receipt:neural-network-designer:g031:compile-train-plan receipt:neural-network-designer:g031:invalid-edge-feedback receipt:neural-network-designer:g031:result-artifact\n\nSubmit compile workflow\nReady to build VDA-G031 graph artifacts.\nCheckpoint refs: bafynndg031graphartifact bafynndg031schemacontract bafynndg031compiletrainplan bafynndg031invalidedgefeedback bafynndg031resultartifact\nActions:\nNo workflow actions recorded yet.\n🧱 Layer Types\n📥\nInput Layer\n🔗\nDense/Linear\n🔲\nConv2D\n⬇️\nMaxPool2D\n🎯\nDropout\n📊\nBatchNorm\n👁️\nAttention\n🔄\nTransformer\n📤\nOutput Layer\n🔗 Connection Tools\n🔗 Connect Layers\n⚡ Auto Connect\n🗑️ Clear Connections\n⚙️ Properties\nSelect a layer to view its properties\n📊 Network Summary\nTOTAL LAYERS:\n0\nPARAMETERS:\n0\nCONNECTIONS:\n0\nMEMORY:\n11.2%\n📂 Version Control\nv1.0.0\n💾\n📜 History 🌐 Share\nLayers:\n0\nP2P:\nDisconnected\nIPFS:\nReady\nCanvas: 800x600\nZoom: 100%\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nNeural Network Designer: retrieve content\nready\nNeural Network Designer: inspect model catalog\nready",
+      "buttonCount": 30,
+      "inputCount": 4,
+      "canvasCount": 1,
+      "interactiveCount": 35,
+      "hasLoadError": false
+    },
+    {
+      "appId": "training-manager",
+      "title": "Training Manager",
+      "iconLabel": "Training",
+      "windowTitle": "Training Manager",
+      "text": "🎯\nTraining Manager\n−\n□\n×\nStart governed training job\n🎯 New Training\n📊 Import Dataset\n🧠 Load Model\nIPFS Accelerate: Disconnected\nHugging Face: Unavailable\nP2P: Fallback\n⏸️ Pause All\n▶️ Resume All\nPROVENANCE\nbafyb30476ddg032\nipfs_datasets_py.load_dataset / train=80 validation=20\nCAPACITY QUEUE\n2 slots / position 1\nheavy_compute requires queue admission and receipt\nTELEMETRY\n384 samples/s\nloss down; accuracy up; receipt receipt:training-manager:telemetry:g032\nCANCELLATION CONFIRMATION\narmed\nType STOP-G032 before cancellation is accepted.\nCHECKPOINTS\nbafy65d6cdceg032\nlatest epoch 6; artifacts stored through IPFS Kit receipts.\nRESUME RECOVERY\ncheckpoint_available\nResume recovery will requeue the job with checkpoint and provenance refs intact.\nTRAINING JOBS\n1\nACTIVE\n0\nCOMPLETED\n1\nTOTAL\n⏸️\nVDA-G032 governed resume candidate\nresnet50 • dataset-vda-g032-curated\n62%\n👁️\nEpoch: 6/10\nLoss: 0.3842\nAccuracy: 0.842\nQueue: #1\nCheckpoints: 2\nJOB DETAILS\n⏸️ Pause\n▶️ Resume\n🛑 Stop\nVDA-G032 governed resume candidate\n⏸️ Paused\nConfiguration\nArchitecture:\nresnet50\nDataset:\ndataset-vda-g032-curated\nOptimizer:\nadam\nLearning Rate:\n0.001\nBatch Size:\n32\nEpochs:\n10\nProgress\nCurrent Epoch:\n6/10\nTraining Loss:\n0.3842\nTraining Accuracy:\n0.842\nValidation Loss:\n0.4218\nValidation Accuracy:\n0.817\nElapsed Time:\n0s\nP2P & IPFS\nDistributed Training:\nEnabled\nIPFS Versioning:\nEnabled\nNetwork Sharing:\nEnabled\nModel CID:\nNot saved\nTraining-data provenance\nDataset CID\nbafyb30476ddg032\nManifest CID\nbafy9656b1ccg032\nSource\nipfs_datasets_py.load_dataset\nPolicy\nallow-with-receipt\nReceipt\nreceipt:training-manager:dataset-provenance:v1\nCapacity queue\nQueue\nqueue:training-manager:accelerate:g032\nSlots\n1/2 active\nQueued\n1 waiting; this job position 1\nCapacity\nwebgpu-preferred-webgl-fallback\nTraining telemetry\nStep\nwarmup\nThroughput\n384 samples/s\nMemory\n1536 MB\nReceipt\nreceipt:training-manager:telemetry:g032\nCancellation confirmation\nState\narmed\nRequired phrase\nSTOP-G032\nReceipt\nreceipt:training-manager:cancellation-policy:g032\nCheckpoints\nEpoch 3\nbafy91177e00g032\nreceipt:training-manager:checkpoint:3:g032\nEpoch 6\nbafy5148e671g032\nreceipt:training-manager:checkpoint:6:g032\nResume recovery\nState\ncheckpoint_available\nCheckpoint\nbafy5148e671g032\nEpoch\n6\nRecovery\nResume recovery ready from checkpoint epoch 6 with queue token preserved.\nResume checkpoint\nTraining Log\n4:27:38 PM\nGoverned training configuration validated.\n4:27:38 PM\nDataset provenance bound to bafyb30476ddg032.\n4:27:38 PM\nCapacity queue admission requested: queue:training-manager:accelerate:g032.\n4:27:38 PM\nRecovered paused job from checkpoint manifest.\n4:27:38 PM\nCapacity queue token preserved for resume recovery.\nMODEL VERSIONS\n🔄 Refresh\n\nNo model versions yet\n\nTrain a model to create versions\n\nTraining Progress\n📊 Toggle Charts\nQUEUE\n1/2\n1 queued; position 1\nTHROUGHPUT\n384 samples/s\nwarmup; receipt:training-manager:telemetry:g032\nCHECKPOINTS\n2\nbafy5148e671g032\nRESUME\ncheckpoint_available\nbafy5148e671g032\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n3\nTraining Manager: retrieve content\nready\nTraining Manager: query catalog\nready\nTraining Manager: inspect job state\nready",
+      "buttonCount": 23,
+      "inputCount": 16,
+      "canvasCount": 0,
+      "interactiveCount": 39,
+      "hasLoadError": false
+    },
+    {
+      "appId": "calculator",
+      "title": "Calculator",
+      "iconLabel": "Calculator",
+      "windowTitle": "Calculator",
+      "text": "🧮\nCalculator\n−\n□\n×\n🧮\nStandard\n🔬\nScientific\n💻\nProgrammer\n🔄\nConverter\n📜\n0\nHISTORY CID\nbafybeig033calculator97b87a12db6c0405g033\nEXPLANATION\nready\nEnter a calculation, press equals, then verify the arithmetic explanation.\nKEYPAD FOCUS\nPointer, Tab, Enter, Escape, Backspace, and hardware number keys are scoped to this calculator.\nERROR RECOVERY\nDivision by zero and invalid results remain visible until Clear or Escape.\nRESPONSIVE LAYOUT\nCompact tabs, wrapped evidence chips, and stable keypad cells support desktop and mobile windows.\nRECEIPT\nreceipt:calculator:vda-g033:ready\nC\nCE\n⌫\n÷\n7\n8\n9\n×\n4\n5\n6\n−\n1\n2\n3\n+\n0\n.\n=\nK/D/A backend status\nbrowser_local\nK\nIPFS Kit\nlocal-only\nmanifest\nbrowser-local\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nContinue with the browser-local workflow; no backend dispatch is expected for this role.\nD\nIPFS Datasets\nlocal-only\nmanifest\nbrowser-local\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nContinue with the browser-local workflow; no backend dispatch is expected for this role.\nA\nIPFS Accelerate\nlocal-only\nmanifest\nbrowser-local\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nContinue with the browser-local workflow; no backend dispatch is expected for this role.",
+      "buttonCount": 29,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 29,
+      "hasLoadError": false
+    },
+    {
+      "appId": "clock",
+      "title": "Clock & Timers",
+      "iconLabel": "Clock",
+      "windowTitle": "Clock & Timers",
+      "text": "🕐\nClock & Timers\n−\n□\n×\n🕐\nClock\n⏱️\nStopwatch\n⏲️\nTimer\n⏰\nAlarms\n⚙️\n⛶\nVDA-G034 governed clock workflow\n\nTimer receipt, reminder policy, scheduling state, permission recovery, and accurate compact UI.\n\nStatus: ready\nTimer receipt\n\nFocus timer 01:30.00 ready.\n\nbafyclockg034timerreceipt\nreceipt:clock:g034:timer-issued\nReminder policy\n\nnotification-first with in-app banner fallback, quiet hours honored, receipt required\n\nbafyclockg034reminderpolicy\nScheduling state\n\nVDA-G034 Review at 05:12 PM pending.\n\nbafyclockg034schedulingstate\nPermission recovery\n\nRetry permission, then recover to in-app banner and desktop badge when browser notifications are denied.\n\nbafyclockg034permissionrecovery\nCompact UI\n\nLocal time, next timer, reminder policy, and permission state fit without overflow.\n\nbafyclockg034compactui\nStart receipt timer\nApply reminder policy\nSchedule reminder\nRecover permission\nVerify compact UI\nLocal\n16:27:41\nTimer\nreceipt:clock:g034:timer-issued\nPolicy\ndefault\nPermission\ndenied\nReceipts: receipt:clock:g034:timer-issued receipt:clock:g034:reminder-policy receipt:clock:g034:scheduling-state receipt:clock:g034:permission-recovery receipt:clock:g034:compact-ui receipt:clock:g034:event-dag Checkpoints: bafyclockg034timerreceipt bafyclockg034reminderpolicy bafyclockg034schedulingstate bafyclockg034permissionrecovery bafyclockg034compactui bafyclockg034eventdag\n16:27:41\nTuesday, July 21, 2026\nAmerica/Los_Angeles\nLocal\n16:27:41\nNew York\n19:27:41\nLondon\n00:27:41\nTokyo\n08:27:41\nSydney\n09:27:41\nK/D/A backend status\nbrowser_local\nK\nIPFS Kit\nlocal-only\nmanifest\nbrowser-local\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nContinue with the browser-local workflow; no backend dispatch is expected for this role.\nD\nIPFS Datasets\nlocal-only\nmanifest\nbrowser-local\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nContinue with the browser-local workflow; no backend dispatch is expected for this role.\nA\nIPFS Accelerate\nlocal-only\nmanifest\nbrowser-local\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nContinue with the browser-local workflow; no backend dispatch is expected for this role.",
+      "buttonCount": 15,
+      "inputCount": 13,
+      "canvasCount": 0,
+      "interactiveCount": 28,
+      "hasLoadError": false
+    },
+    {
+      "appId": "calendar",
+      "title": "Calendar & Events",
+      "iconLabel": "Calendar",
+      "windowTitle": "Calendar & Events",
+      "text": "📅\nCalendar & Events\n−\n□\n×\n‹\nToday\n›\nJuly 2026\nMonth\nWeek\nDay\nAgenda\n+ New Event\n⚙️\n📤\nVDA-G035 governed calendar workflow\n\nArtifact-backed events, semantic_search retrieval, reminder receipts, conflict handling, and compact mobile summary.\n\nStatus: ready\nArtifact-backed events\n\n4 events persisted with artifact CID and Event DAG checkpoint.\n\nbafycalg035eventartifact\nbafycalg035eventdag\nSemantic search\n\nsemantic_search query \"policy reminder\" matched Reminder Policy Check.\n\nbafycalg035semanticindex\nReminders\n\n4 reminders scheduled with permission fallback and receipt refs.\n\nbafycalg035reminderpolicy\nConflict handling\n\nResolved by keeping Artifact Planning Review primary and moving Semantic Search Sync to the next free 30 minute slot.\n\nbafycalg035conflictresolution\nMobile summary\n\n4 events; next Artifact Planning Review; 4 reminders; 1 conflict resolved; 3 semantic result(s).\n\nbafycalg035mobilesummary\nPersist artifact\nRun semantic search\nSchedule reminder\nResolve conflict\nRefresh mobile summary\nSearch calendar\nReceipts: receipt:calendar:g035:event-artifact receipt:calendar:g035:semantic-search receipt:calendar:g035:reminder-policy receipt:calendar:g035:conflict-resolution receipt:calendar:g035:mobile-summary receipt:calendar:g035:event-dag\nEvents: event:calendar:g035:event-created event:calendar:g035:semantic-indexed event:calendar:g035:reminder-scheduled event:calendar:g035:conflict-resolved event:calendar:g035:mobile-summary-rendered\n4 events; next Artifact Planning Review; 4 reminders; 1 conflict resolved; 3 semantic result(s).\nMon\nTue\nWed\nThu\nFri\nSat\nSun\n29\n30\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n \n23\n24\n25\n26\n27\n28\n29\n30\n31\n1\n2\n3\n4\n5\n6\n7\n8\n9\nMini Calendar\nJul 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nCategories\n💼\nWork\n🏠\nPersonal\n💻\nDevelopment\n🤝\nBusiness\n🏥\nHealth\n📚\nEducation\n🎉\nSocial\nUpcoming Events\n💼 Artifact Planning Review\n09:30\n💻 Semantic Search Sync\n10:00\n🤝 Reminder Policy Check\n14:00\n🏠 Mobile Summary Walkthrough\n08:45\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nMCP++ actions\n2\nCalendar and Events: retrieve content\nready\nCalendar and Events: record provenance\nready",
+      "buttonCount": 25,
+      "inputCount": 12,
+      "canvasCount": 0,
+      "interactiveCount": 37,
+      "hasLoadError": false
+    },
+    {
+      "appId": "peertube",
+      "title": "PeerTube - P2P Video Player",
+      "iconLabel": "PeerTube",
+      "windowTitle": "PeerTube - P2P Video Player",
+      "text": "📺\nPeerTube - P2P Video Player\n−\n□\n×\n📺\nPeerTube\n🔍\n📤 Upload\n🏠 Join Room\n👥\n0\n🏠\nHome\n🔥\nTrending\n📺\nSubscriptions\n📚\nLibrary\nCATEGORIES\n💻\nTechnology\n📚\nEducation\n🎬\nEntertainment\n🎵\nMusic\n🎮\nGaming\n🔬\nScience\n🎨\nArt & Design\n📰\nNews\nWATCH TOGETHER\n🚀 Create Room\n🔗 Join\nFeatured Videos\n⊞\n☰\n🎬\n5:30\nWelcome to PeerTube\nSwissKnife Team\n👁️ 1,234\n👍 89\n🎬\n12:45\nBuilding Decentralized Applications\nTech Academy\n👁️ 5,678\n👍 234\n🎬\n8:20\nFuture of P2P Networks\nFuture Network\n👁️ 3,456\n👍 156\nVDA-G036 governed playback\n\nCID playback, captions, diagnostics, buffering recovery, missing-content recovery, and media fallback.\n\nVDA-G036\nCID playback\nRetrieved bafypeertubeg036videocidplayback through retrieval manifest bafypeertubeg036retrievalmanifest; playback state ready; receipt:peertube:g036:cid-playback:retrieved\nCaptions\nCaption catalog bafypeertubeg036captioncatalog provides English VTT, transcript summary, and keyboard-visible caption toggle; receipt:peertube:g036:captions:enabled\nDiagnostics\nTranscode and quality diagnostics bafypeertubeg036transcodediagnostics: source 1080p, selected 720p, dropped frames 0, gateway RTT 34ms; receipt:peertube:g036:diagnostics:quality-profile\nBuffering recovery\nBuffering recovery bafypeertubeg036bufferrecovery: switched from 1080p to 720p and resumed after 2.1s; receipt:peertube:g036:buffering:recovered\nMissing content recovery\nMissing content recovery bafypeertubeg036missingcontentrecovery: unavailable segment 004 redirected to mirrored CID provider; receipt:peertube:g036:missing-content:switched-source\nMedia fallback\nMedia fallback bafypeertubeg036mediafallback: fallback target audio-summary with still frame and transcript when video codec or gateway retrieval fails; receipt:peertube:g036:media-fallback:audio-summary\nRetrieve CID playback\nCaptions\nDiagnostics\nBuffer recovery\nMissing content\nMedia fallback\nreceipt:peertube:g036:cid-playback:retrieved mapped bafypeertubeg036videocidplayback through IPFS retrieval manifest bafypeertubeg036retrievalmanifest\nreceipt:peertube:g036:captions:enabled caption catalog bafypeertubeg036captioncatalog includes English VTT and transcript summary\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nexternal-provider\nprovider-handoff\nexternal-provider\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nComplete or cancel the external provider handoff; do not substitute an owner backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nPeerTube: retrieve content\nready\nPeerTube: submit inference\nready",
+      "buttonCount": 39,
+      "inputCount": 7,
+      "canvasCount": 0,
+      "interactiveCount": 46,
+      "hasLoadError": false
+    },
+    {
+      "appId": "friends-list",
+      "title": "Friends & Network",
+      "iconLabel": "Friends",
+      "windowTitle": "Friends & Network",
+      "text": "👥\nFriends & Network\n−\n□\n×\n👥\nFriends & Network\n➕\nAdd Friend\n🆔\nManage Identity\n🔗\nOnline\n👥\nFriends (\n3\n)\n⏰\nPending (\n1\n)\nID\nIdentity Links\n🔍\nDiscover\n🔍\nAll Status\nOnline\nAway\nOffline\nAll Platforms\nGitHub\nHugging Face\nlibp2p\nIPFS\nA\nAlice Cooper\n🟢 Online\n🐙\nalice-dev\n✓\n🤗\nalice-ml\n✓\n🔗\n12D3KooW...\nProvenance bafyfriendsg037aliceprovenance\nreceipt:friends-list:g037:contact-provenance:alice\naccepted\npresence-and-profile\ndeveloper\nai-researcher\np2p-enthusiast\n5 mutual friends\nAdded Aug 14, 2025\n💬\n👤\nB\nBob Wilson\n🟡 Away\n🐙\nbob-blockchain\n✓\n🐦\nbob_crypto\n🌐\nQmYwAPJz...\nProvenance bafyfriendsg037bobprovenance\nreceipt:friends-list:g037:contact-provenance:bob\naccepted\npresence-and-profile\nblockchain\nweb3\nipfs\n3 mutual friends\nAdded Aug 31, 2025\n💬\n👤\nC\nCharlie Data\n🔴 Last seen 2h ago\n🤗\ncharlie-transformers\n✓\n💬\nCharlieAI#1234\n✓\n🐙\ncharlie-ml\nProvenance bafyfriendsg037charlieprovenance\nreceipt:friends-list:g037:contact-provenance:charlie\naccepted\nprofile-only-when-offline\nmachine-learning\nnlp\ndata-science\n8 mutual friends\nAdded Jul 21, 2025\n💬\n👤\nVDA-G037 workflow\n\nfriends-list.contact-provenance-policy-state\n\nready\nContact provenance\n\n3/3 contacts have dataset provenance and platform proof records.\n\nbafyfriendsg037contactprovenance\nreceipt:friends-list:g037:contact-provenance\nRelationship policy\n\nmutual-consent; confirm-before-adding; suppress-presence-and-messages.\n\nbafyfriendsg037relationshippolicy\nreceipt:friends-list:g037:relationship-policy\nInvite and block state\n\nInvitation pending-inbound from Eva Martinez; blocked contact Spam Relay is blocked.\n\nbafyfriendsg037invitationstate\nbafyfriendsg037blockingstate\nFreshness\n\nLast network sync just now; gateway cursor within 120 seconds.\n\nbafyfriendsg037freshnesscursor\nreceipt:friends-list:g037:freshness\nAccessible empty state\n\nSearch results expose role=status, aria-live, keyboard focus, and clear-filter recovery.\n\nbafyfriendsg037accessibleempty\nreceipt:friends-list:g037:accessible-empty-state\nReview provenance\nApply policy\nProcess invite\nToggle block\nRefresh freshness\nShow empty state\n\nbafyfriendsg037contactprovenance\nbafyfriendsg037relationshippolicy\nbafyfriendsg037invitationstate\nbafyfriendsg037blockingstate\nbafyfriendsg037freshnesscursor\nbafyfriendsg037accessibleempty\nbafyfriendsg037eventdag\nreceipt:friends-list:g037:contact-provenance\nreceipt:friends-list:g037:relationship-policy\nreceipt:friends-list:g037:invitation-state\nreceipt:friends-list:g037:blocking-state\nreceipt:friends-list:g037:freshness\nreceipt:friends-list:g037:accessible-empty-state\nevent:friends-list:g037:alice-contact-link\nevent:friends-list:g037:bob-contact-link\nevent:friends-list:g037:charlie-contact-link\n\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nMCP++ actions\n2\nFriends and Network: exchange peer messages\nready\nFriends and Network: record provenance\nready",
+      "buttonCount": 41,
+      "inputCount": 6,
+      "canvasCount": 0,
+      "interactiveCount": 47,
+      "hasLoadError": false
+    },
+    {
+      "appId": "image-viewer",
+      "title": "Image Viewer",
+      "iconLabel": "Images",
+      "windowTitle": "Image Viewer",
+      "text": "🖼️\nImage Viewer\n−\n□\n×\nOpen\nRetrieve CID\nPrev\n1 of 2\nNext\nZoom -\n100%\nZoom +\nFit\nPan\nRotate -\nRotate +\nEdit\nSidebar\nIMAGES (2)\ncid-ridge-lake.svg\n1600x1000 - SVG - ipfs_kit CID\nocr-contact-sheet.png\n1200x800 - PNG - local cache\nIMAGE INFO\nName:\ncid-ridge-lake.svg\nCID:\nbafyimageviewerg038sourcecidretrieval\nFormat:\nSVG\nDimensions:\n1600x1000\nSize:\n180.0 KB\nSource:\nipfs_kit CID\nZoom:\n100%\nPan:\n0, 0\nADJUSTMENTS\nBrightness\n100\nContrast\n100\nSaturation\n100\nHue\n0\nBlur\n0\nReset filters Auto adjust\nVDA-G038 WORKFLOW\nCID retrieval\nbafyimageviewerg038sourcecidretrieval\nbafyimageviewerg038retrievalmanifest\nreceipt:image-viewer:g038:cid-retrieval:retrieved\nMetadata/OCR\nbafyimageviewerg038metadataocr\nOCR: ridge trail sign and lake marker visible.\nreceipt:image-viewer:g038:metadata-ocr:parsed\nEnhancement job\nbafyimageviewerg038enhancementjob\nreceipt:image-viewer:g038:enhancement-job:completed\nZoom/pan\nbafyimageviewerg038zoompanstate\n100% at 0, 0\nreceipt:image-viewer:g038:zoom-pan:applied\nUnsupported format\nbafyimageviewerg038unsupportedformat\ndiagram.tiff rejected with recovery: choose JPG, PNG, GIF, WebP, BMP, or SVG.\nreceipt:image-viewer:g038:unsupported-format:rejected\nAlt text\nbafyimageviewerg038alttext\nCID-backed landscape sample with lake, ridge, and visible label.\nreceipt:image-viewer:g038:alt-text:available\nRetrieve CID\nMetadata/OCR\nEnhance\nZoom/pan\nUnsupported\nAlt text\nreceipt:image-viewer:g038:cid-retrieval:retrieved mapped bafyimageviewerg038sourcecidretrieval through bafyimageviewerg038retrievalmanifest\nreceipt:image-viewer:g038:metadata-ocr:parsed metadata CID bafyimageviewerg038metadataocr includes EXIF summary and OCR text\nMetadata/OCR\nEnhance\nUnsupported state\nAlt text\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nImage Viewer: retrieve content\nready\nImage Viewer: submit inference\nready",
+      "buttonCount": 31,
+      "inputCount": 6,
+      "canvasCount": 0,
+      "interactiveCount": 37,
+      "hasLoadError": false
+    },
+    {
+      "appId": "notes",
+      "title": "Notes",
+      "iconLabel": "Notes",
+      "windowTitle": "Notes",
+      "text": "📝\nNotes\n−\n□\n×\n📝 Notes\n+\nLast Modified\nDate Created\nTitle\nSize\n☰\nTags\nprovenance\nsummary\nsync\nkeyboard\nwelcome\ntutorial\nmarkdown\nai\nresearch\np2p\nml\nmeetings\nplanning\ntasks\nVDA-G039 Provenance Notebook\n⭐\nVDA-G039 Provenance Notebook This CID-backed note demonstrates semantic_search, provenance receipts, summary generation, conflict recovery, citation\n30m ago\n34 words\nMeeting Notes - Project Planning\nProject Planning Meeting Date: 7/21/2026 Attendees: Development Team Agenda 1. SwissKnife Desktop Enhancement 2. P2P Network Optimization 3. AI Model\n30m ago\n65 words\nWelcome to SwissKnife Notes\n⭐\nWelcome to SwissKnife Notes! 📝 This is your intelligent note-taking companion with advanced features: Features - Markdown Support: Write with rich\n1h ago\n105 words\nAI Research Notes\nAI Research Progress Current Projects - P2P Neural Network Training - Distributed Model Inference - IPFS-based Model Storage Key Findings - Distribu\n2h ago\n47 words\n4\nNOTES\n251\nWORDS\nVDA-G039 provenance-rich notes workflow\n\nNote CIDs, semantic_search retrieval, provenance ledger, summary job, conflict recovery, and keyboard-safe editing.\n\nStatus: ready\nNote CIDs\n\n4 notes indexed in notebook manifest.\n\nbafynotesg039notecid\nbafynotesg039notebookmanifest\nCitation link\nreceipt:notes:g039:note-cids\nSemantic search\n\nsemantic_search \"provenance summary sync\" matched VDA-G039 Provenance Notebook with 3 result(s).\n\nbafynotesg039semanticindex\nreceipt:notes:g039:semantic-search\nProvenance\n\nnotes.create by did:key:z6MkNotesWorkflowOperator.\n\nbafynotesg039provenanceledger\nreceipt:notes:g039:provenance\nSummary\n\nVDA-G039 Provenance Notebook: VDA-G039 Provenance Notebook This CID-backed note demonstrates semantic_search, provenance receipts, summary generation, conflict recovery,. Tags provenance, summary, sync, keyboard. Summary CID bafynotesg039summaryjob.\n\nbafynotesg039summaryjob\nreceipt:notes:g039:summary\nConflict recovery\n\nRecovered by preserving the newer local title, merging remote citation links, and retaining provenance receipts.\n\nbafynotesg039conflictlocal\nbafynotesg039conflictremote\nbafynotesg039conflictrecovery\nreceipt:notes:g039:conflict-recovery\nKeyboard-safe editing\n\nCtrl+S save; Ctrl+K semantic search; Ctrl+Enter summary; Escape editor focus recovery\n\nbafynotesg039keyboardedit\nreceipt:notes:g039:keyboard-safe-editing\nPersist note CID\nRun semantic search\nRecord provenance\nGenerate summary\nRecover conflict\nVerify keyboard editing\nReceipts: receipt:notes:g039:note-cids receipt:notes:g039:semantic-search receipt:notes:g039:provenance receipt:notes:g039:summary receipt:notes:g039:conflict-recovery receipt:notes:g039:keyboard-safe-editing receipt:notes:g039:sync-dag\nEvents: event:notes:g039:note-created event:notes:g039:semantic-indexed event:notes:g039:provenance-recorded event:notes:g039:summary-generated event:notes:g039:conflict-recovered event:notes:g039:keyboard-edit-verified\nSync DAG: bafynotesg039syncdag\n📝\nWelcome to SwissKnife Notes\n\nCreate, organize, and manage your notes with AI-powered features. Start by creating a new note or selecting one from the sidebar.\n\nCreate New Note\nImport Notes\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nA\nIPFS Accelerate\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nMCP++ actions\n2\nNotes: retrieve content\nready\nNotes: record provenance\nready",
+      "buttonCount": 16,
+      "inputCount": 2,
+      "canvasCount": 0,
+      "interactiveCount": 18,
+      "hasLoadError": false
+    },
+    {
+      "appId": "media-player",
+      "title": "Media Player",
+      "iconLabel": "Media Player",
+      "windowTitle": "Media Player",
+      "text": "🎵\nMedia Player\n−\n□\n×\n🎵\nSwissKnife Media Player\n−\n□\nChill Lo-Fi Beat\nSwissKnife Studio - Desktop Vibes\n00:00 / 00:00\n⏮\n▶\n⏹\n⏭\n🔊\n🔀\n🔁\n📋\n🎛️\n📁\n⚙️\nVDA-G040\nCID Audio Workflow\nCID media ready\nCID media\n\nIPFS audio CID bafymediaplayerg040audiocidplayback streams from retrieval manifest bafymediaplayerg040retrievalmanifest with gateway RTT 42 ms and pinned range cache.\n\nreceipt:media-player:g040:cid-media\nCaptions and metadata\n\nVTT caption catalog bafymediaplayerg040captionmetadata is enabled with transcript cues, album art metadata, artist credits, duration, codec, and provenance tags.\n\nreceipt:media-player:g040:captions-metadata\nDiagnostics\n\nQuality diagnostics wrote bafymediaplayerg040transcodediagnostics: transcode recommendation AAC 160 kbps, normalized loudness -18 LUFS, packet jitter 3 ms, gateway RTT healthy.\n\nreceipt:media-player:g040:diagnostics\nSeek and volume\n\nSeek checkpoint bafymediaplayerg040seekvolume clamps scrubber to 01:12 / 03:24, records volume 62%, mute-safe resume, and headphone output bounded below policy max.\n\nreceipt:media-player:g040:seek-volume\nMissing codec\n\nMissing codec recovery bafymediaplayerg040missingcodec rejects unsupported ALAC-in-OGG, keeps controls visible, and recommends AAC preview fallback target aac-preview.\n\nreceipt:media-player:g040:missing-codec\nBackground audio recovery\n\nBackground audio recovered after route loss via bafymediaplayerg040backgroundaudiorecovery; resume token restored playback, captions, and volume after desktop focus returned.\n\nreceipt:media-player:g040:background-audio\nbafymediaplayerg040playbacksession bafymediaplayerg040retrievalmanifest bafymediaplayerg040captionmetadata bafymediaplayerg040transcodediagnostics bafymediaplayerg040seekvolume bafymediaplayerg040missingcodec bafymediaplayerg040backgroundaudiorecovery\nRetrieve CID media\nCaptions metadata\nRun diagnostics\nSeek volume\nMissing codec\nRecover audio\nreceipt:media-player:g040:cid-media receipt:media-player:g040:captions-metadata receipt:media-player:g040:diagnostics receipt:media-player:g040:seek-volume receipt:media-player:g040:missing-codec receipt:media-player:g040:background-audio\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nMedia Player: retrieve content\nready\nMedia Player: submit inference\nready",
+      "buttonCount": 29,
+      "inputCount": 4,
+      "canvasCount": 1,
+      "interactiveCount": 34,
+      "hasLoadError": false
+    },
+    {
+      "appId": "system-monitor",
+      "title": "System Monitor",
+      "iconLabel": "Monitor",
+      "windowTitle": "System Monitor",
+      "text": "📊\nSystem Monitor\n−\n□\n×\n📊\nOverview\n⚡\nProcesses\n🌐\nNetwork\n💾\nStorage\n📈\nPerformance\n🔄\n🚨\n📤\n🖥️\nCPU: 0%\n🧠\nRAM: 0%\n🎮\nGPU: 0%\n🌐\nNetwork: 0 MB/s\n⏱️\nUptime: 0h 0m\n🖥️\nCPU USAGE\n0%\nHigh-performance CPU (16+ cores)\n🧠\nMEMORY USAGE\n0%\n32.0 GB Total\n🎮\nGPU USAGE\n0%\nANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)\n🌐\nNETWORK ACTIVITY\n0 MB/s\n↓ 0 MB/s ↑ 0 MB/s\nSystem Information\nℹ️\nSYSTEM DETAILS\nOS: Windows 1.0.0\nArchitecture: x64\nCPU Cores: 28\nUptime: 0h 0m\n🔗\nP2P NETWORK\nStatus: Connected\nPeers: 12 active\nShared Models: 8\nData Transferred: 2.4 GB\n🌐\nIPFS NODE\nStatus: Online\nPeers: 234 connected\nPinned Content: 45 items\nStorage Used: 1.2 GB\nDiagnostic Workflow\nLIVE TELEMETRY\nCPU 34% / RAM 48%\ntelemetry:system-monitor:g041:000; bafysysmonitorliveg041-000; receipt:system-monitor:live-telemetry:g041; latency 42ms\nDIAGNOSTIC HISTORY\n4 samples retained\nLatest live-sample at 04:27:49 PM; bafysysmonitorliveg041-live-sample; receipt:system-monitor:diagnostic-history:g041\nANALYSIS\nnormal risk / stable trend\nAverage CPU 37%, memory 51.2%, GPU 23.5%; System load is within the operating envelope for local and IPFS Accelerate tasks.; receipt:system-monitor:analysis:g041\nSTALE-DATA GUARD\nfresh\nTelemetry age 0s, stale after 5s. Refresh live telemetry to replace stale data and keep diagnostic summaries current. receipt:system-monitor:stale-data:g041\nALERT STATE\nwarning\nIPFS peer count drift detected; telemetry remains fresh and monitored.; receipt:system-monitor:alert-state:g041\nACCESSIBLE SUMMARIES\nScreen-reader telemetry summary\nAccessible summary: CPU 34%; memory 48%; GPU 18%; network 7 MB/s; 4 diagnostic history samples; 1 alert state entry; fresh telemetry age 0 seconds; receipt:system-monitor:accessible-summary:g041\nAccessible summary: CPU 34%; memory 48%; GPU 18%; network 7 MB/s; 4 diagnostic history samples; 1 alert state entry; fresh telemetry age 0 seconds; receipt:system-monitor:accessible-summary:g041\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n1\nSystem Monitor: inspect telemetry\nready",
+      "buttonCount": 13,
+      "inputCount": 0,
+      "canvasCount": 4,
+      "interactiveCount": 17,
+      "hasLoadError": false
+    },
+    {
+      "appId": "neural-photoshop",
+      "title": "Art - AI Image Editor",
+      "iconLabel": "Art",
+      "windowTitle": "Art - AI Image Editor",
+      "text": "🎨\nArt - AI Image Editor\n−\n□\n×\n📄 New\n📁 Open\n💾 Save\n📤 Export\n↶ Undo\n↷ Redo\n📋 Copy\n📄 Paste\n✂️ Cut\n25%\n50%\n75%\n100%\n150%\n200%\nFit\n🛠️ TOOLS\n−\n👆\nSelect\n🖌️\nBrush\n🧽\nEraser\n⬚\nSelection\n🪢\nLasso\n🪄\nMagic Wand\n📋\nClone\n🩹\nHealing\n🔄\nTransform\n✂️\nCrop\n📝\nText\n⬛\nShape\n⚙️ PROPERTIES\n−\nSelect a tool to see its properties\n1024 × 1024 px | RGB | 300 DPI\nX: 0, Y: 0\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nNeural Photoshop: retrieve content\nready\nNeural Photoshop: submit inference\nready",
+      "buttonCount": 53,
+      "inputCount": 4,
+      "canvasCount": 2,
+      "interactiveCount": 59,
+      "hasLoadError": false
+    },
+    {
+      "appId": "cinema",
+      "title": "Cinema - Professional Video Editor",
+      "iconLabel": "Cinema",
+      "windowTitle": "Cinema - Professional Video Editor",
+      "text": "🎬\nCinema - Professional Video Editor\n−\n□\n×\n🎬\nCinema - Professional Video Editor\nProject CID bafycinemag043projectcid\n👆\nSelect\n✂️\nCut\n🌅\nFade\n📝\nText\n✨\nEffects\n🔄\nTransition\n🔊\nAudio\n🎨\nColor\n📹\nStabilize\n⚡\nRender\n🎬 Proxy Preview Ready\n\nbafycinemag043playbackfallback\n⏮️\n▶️\n⏭️\n00:00 / 00:00\nTimeline\n📹 Video\n🔊 Audio\n📝 Text\n🎞️\nDrop video clips here to start editing\nMulti-track timeline with precision controls\nVDA-G043\nProject Render Workflow\nQueue 1 active\nLoad CIDs\nRights\nRender\nFail Export\nFallback\nTimeline\nProject/media CIDs\n\nOrbital Cutdown Trailer stores project CID bafycinemag043projectcid, media CID bafycinemag043mediacid, and Event DAG bafycinemag043eventdag.\n\nreceipt:cinema:g043:project-media-cids\nRights metadata\n\nClip launch-deck-master.mov license CC-BY-4.0 + creator release SK-CIN-2026-043; rights CID bafycinemag043rightsmetadata.\n\nreceipt:cinema:g043:rights-metadata\nRender queue\n\nJob render-job-cinema-g043-1080p queued at 72% with queue CID bafycinemag043renderqueue.\n\n receipt:cinema:g043:render-queue\nFailed export\n\nProRes 4444 export failed: encoder unavailable; MP4/H.264 fallback queued; failure CID bafycinemag043failedexport.\n\nreceipt:cinema:g043:failed-export\nPlayback fallback\n\nProxy playback active from webm preview while original media gateway retries; fallback CID bafycinemag043playbackfallback.\n\nreceipt:cinema:g043:playback-fallback\nStable timeline controls\n\nPlayhead 42s of 128s, zoom 1.25x, snap enabled, timeline CID bafycinemag043timelinecontrols.\n\nPlayhead \nZoom \nreceipt:cinema:g043:stable-timeline-controls\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nCinema: retrieve content\nready\nCinema: inspect job state\nready",
+      "buttonCount": 21,
+      "inputCount": 2,
+      "canvasCount": 0,
+      "interactiveCount": 23,
+      "hasLoadError": false
+    },
+    {
+      "appId": "strudel",
+      "title": "Strudel - Live Coding Music",
+      "iconLabel": "Strudel",
+      "windowTitle": "🎵 Music Studio",
+      "text": "🎵\n🎵 Music Studio\n−\n□\n×\n🎵 My Music Studio\n\nMake beautiful music in just a few clicks!\n\n❓ Help Me\n🎼 Choose Your Song\n🎸\n🎸 Playing God (Polyphia)\nListen to beautiful Polyphia music\nChoose This Song\n🎨\n✨ My Creation\nCreate your own music with AI help\nChoose This Song\n▶️\nPlay Music\n⏹️\nStop Music\n🔊 Volume Control\n🔉\n70%\n🔊\n🎵 Now Playing\nPick a song to get started! 👆\nVDA-G044\nSession Recovery Workflow\nRestore ready\nLoad CIDs\nPattern\nAssist\nCompile\nAudio\nRestore\nSession/sample CIDs\n\nSession strudel-session-g044-polyrhythm-sketch uses session CID bafystrudelg044sessioncid, sample CID bafystrudelg044samplecid, and event DAG bafystrudelg044eventdag.\n\nreceipt:strudel:g044:session-sample-cids\nPattern context\n\nPattern CID bafystrudelg044patterncontext: stack(s(\"bd*4\"), note(\"c4 eb4 g4 bb4\").s(\"sawtooth\").slow(2))\n\n140 BPM, D minor, 4 bar loop, low-pass 800Hz, room 0.3, gain from local volume\n\nreceipt:strudel:g044:pattern-context\nOptional assistance\n\nOptional assistant suggests a safer bass variation without changing the saved pattern. Assistance CID bafystrudelg044optionalassistance; user can keep composing without it.\n\nreceipt:strudel:g044:optional-assistance\nCompile/audio errors\n\nCompile error line 1: unexpected closing bracket after slow(2); previous pattern remains armed. Compile error CID bafystrudelg044compileerror.\n\nAudio backend error: AudioContext suspended by browser policy; silent visual fallback active. Audio error CID bafystrudelg044audioerror.\n\nreceipt:strudel:g044:compile-error receipt:strudel:g044:audio-error\nSession restore\n\nRestored pattern, volume 70%, and selected samples from restore CID bafystrudelg044restoredsession.\n\nreceipt:strudel:g044:session-restore\nWorkflow ready for warm-kick-trimmed.wav.\n🎉 Welcome to your Music Studio! Pick a song to get started! 🎵\n👋 Welcome! Let's make music together!\nGot it! ✅\nSkip tutorial\nK/D/A backend status\ntool_backed\nK\nIPFS Kit\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nD\nIPFS Datasets\nunavailable\nmanifest\ncapability-unavailable\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\nnot required\nRecovery\nUse the app roles that are declared live; keep this unavailable role visible instead of inventing a backend call.\nA\nIPFS Accelerate\nlive\nmediated-gateway\nmediated-gateway\nCorrelation\nrequired\nPolicy\nnot_evaluated\nReceipt\npending receipt\nRecovery\nThe operation was denied by policy. Review the decision and explicitly confirm if permitted.\nMCP++ actions\n2\nStrudel: retrieve content\nready\nStrudel: inspect job state\nready",
+      "buttonCount": 20,
+      "inputCount": 1,
+      "canvasCount": 0,
+      "interactiveCount": 21,
+      "hasLoadError": false
+    },
+    {
+      "appId": "strudel-ai-daw",
+      "title": "Strudel AI DAW",
+      "iconLabel": "Strudel AI",
+      "windowTitle": "Strudel AI DAW",
+      "text": "🎼\nStrudel AI DAW\n−\n□\n×\n❌ App Load Error\n\nFailed to load StrudelAIDAWApp\n\nError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/strudel-ai-daw.js\n\nClose",
+      "buttonCount": 4,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 4,
+      "hasLoadError": true
+    },
+    {
+      "appId": "music-studio",
+      "title": "Music Studio - Classic",
+      "iconLabel": "Studio Classic",
+      "windowTitle": "Music Studio Classic",
+      "text": "🎸\nMusic Studio Classic\n−\n□\n×\n❌ App Load Error\n\nFailed to load MusicStudioApp\n\nError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/music-studio.js\n\nClose",
+      "buttonCount": 4,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 4,
+      "hasLoadError": true
+    },
+    {
+      "appId": "p2p-chat",
+      "title": "P2P Chat - Classic",
+      "iconLabel": "P2P Classic",
+      "windowTitle": "P2P Chat Classic",
+      "text": "💭\nP2P Chat Classic\n−\n□\n×\n❌ App Load Error\n\nFailed to load P2PChatApp\n\nError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/p2p-chat.js\n\nClose",
+      "buttonCount": 4,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 4,
+      "hasLoadError": true
+    },
+    {
+      "appId": "datasets-browser",
+      "title": "Datasets Browser",
+      "iconLabel": "Datasets",
+      "windowTitle": "IPFS Datasets Browser",
+      "text": "▦\nIPFS Datasets Browser\n−\n□\n×\nIPFS Datasets Browser\n\nDataset catalog, semantic search, provenance, preparation jobs, schema filters, error recovery, and progress receipts are governed through ipfs_datasets_py descriptors.\n\nVDA-G048 READY\nDataset CID\nSelected dataset: customer-support-intents\nDataset CID: bafydatasetg048customerintent\nCatalog receipt: receipt:datasets-browser:g048:catalog:loaded\nDescriptor: ipfs_datasets_py.list_datasets -> ipfs.datasets.operation.list_datasets\nSemantic Operation\nPrimary semantic_search query \"refund policy escalation\" targets bafydatasetg048customerintent, top_k 5, filter language=en and split=train. Result CID: bafydatasetg048semanticresults. receipt:datasets-browser:g048:semantic:primary.\nProvenance Operation\nrecord_provenance links bafydatasetg048customerintent, bafydatasetg048semanticresults, operator did:key:zDatasetG048, and event:datasets-browser:g048:semantic-query. Provenance CID: bafydatasetg048provenance. receipt:datasets-browser:g048:provenance:recorded.\nPreparation Job\nPreparation job dataset-prep-g048 normalizes schema, builds vector_index, pins shards, and records progress. Job CID: bafydatasetg048preparationjob. receipt:datasets-browser:g048:preparation:queued.\nSchema and Filters\nSchema\nsupport-intent-v2\nchat-transcript-v1\nSplit\ntrain\nvalidation\nSchema CID: bafydatasetg048schema\nFilter CID: bafydatasetg048filter\nSchema Error Recovery\nInvalid filter field customer.password was rejected before transport with schema error bafydatasetg048schemaerror; recovery keeps descriptor fallback visible and links receipt:datasets-browser:g048:error:schema-validation.\nProgress\n72% complete, 18 shards indexed, event frontier bafydatasetg048progress. receipt:datasets-browser:g048:progress:updated.\nSearch\nProvenance\nPrepare\nApply Filters\nRecover Error\nProgress\nreceipt:datasets-browser:g048:catalog:loaded bafydatasetg048customerintent\nreceipt:datasets-browser:g048:semantic:primary bafydatasetg048semanticresults\nreceipt:datasets-browser:g048:provenance:recorded bafydatasetg048provenance\nreceipt:datasets-browser:g048:preparation:queued bafydatasetg048preparationjob\nreceipt:datasets-browser:g048:error:schema-validation bafydatasetg048schemaerror\nreceipt:datasets-browser:g048:progress:updated bafydatasetg048progress\nevent:datasets-browser:g048:semantic-query event:datasets-browser:g048:preparation-progress",
+      "buttonCount": 9,
+      "inputCount": 2,
+      "canvasCount": 0,
+      "interactiveCount": 11,
+      "hasLoadError": false
+    },
+    {
+      "appId": "accelerate-panel",
+      "title": "Accelerate Panel",
+      "iconLabel": "Accelerate",
+      "windowTitle": "IPFS Accelerate Panel",
+      "text": "▶\nIPFS Accelerate Panel\n−\n□\n×\nIPFS Accelerate Panel\n\nModel artifacts, hardware routing, inference queue, and recovery receipts are governed through ipfs_accelerate_py descriptors.\n\nVDA-G049 READY\nModel Artifacts\nModel: sentence-transformers/all-MiniLM-L6-v2\nWeights CID: bafyaccelerateg049modelweights\nTokenizer CID: bafyaccelerateg049tokenizer\nResult CID: bafyaccelerateg049primaryresult\nEvaluation Policy\nPolicy CID: bafyaccelerateg049evalpolicy. Prompts are redacted in receipts, max tokens are capped at 256, destructive operations require confirmation, and artifacts retain provenance.\nHardware Fit\nSelected target: WebGPU preferred, WebNN fallback, CPU recovery.\nFit score: 0.91 for 384-dim embedding workload.\nMemory fit: 1.2 GB required / 8 GB available.\nPrimary Execution\nReady to enqueue deterministic inference job accelerate-g049-primary with receipt:accelerate-panel:g049:run:primary-execution.\nQueue, Log, Cancel\nQueue job: accelerate-g049-primary accepted with receipt:accelerate-panel:g049:queue:accepted.\nLog frontier: log:accelerate-panel:g049:queued, log:accelerate-panel:g049:completed.\nCancellation receipt: receipt:accelerate-panel:g049:cancel:queued-job.\nNo-Capacity Recovery\nIf WebGPU and WebNN capacity are unavailable, the workflow retries on CPU batch mode and records receipt:accelerate-panel:g049:recovery:no-capacity.\nRun Inference\nArtifacts\nHardware\nCancel\nRecover\nreceipt:accelerate-panel:g049:model-artifacts bafyaccelerateg049modelweights\nreceipt:accelerate-panel:g049:queue:accepted\nreceipt:accelerate-panel:g049:run:primary-execution\nreceipt:accelerate-panel:g049:cancel:queued-job\nreceipt:accelerate-panel:g049:recovery:no-capacity",
+      "buttonCount": 8,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 8,
+      "hasLoadError": false
+    },
+    {
+      "appId": "idl-explorer",
+      "title": "IDL Explorer",
+      "iconLabel": "IDL",
+      "windowTitle": "ORB IDL Explorer",
+      "text": "⌘\nORB IDL Explorer\n−\n□\n×\n❌ App Load Error\n\nFailed to load IDLExplorerApp\n\nError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/core/mcp-descriptor-registry.js\n\nClose",
+      "buttonCount": 4,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 4,
+      "hasLoadError": true
+    },
+    {
+      "appId": "glasses-preview",
+      "title": "Glasses Preview",
+      "iconLabel": "Glasses",
+      "windowTitle": "Meta Glasses Preview",
+      "text": "◉\nMeta Glasses Preview\n−\n□\n×\nMeta Glasses Preview\n\nORB handoff packets are replayed through the supported device simulator with privacy policy, denied device states, analysis, and fallback evidence visible.\n\nVDA-G051 READY\nSimulator Replay Bundle\nReplay bundle CID: bafyglassg051simulatorreplaybundle\nPacket IDs: handoff:app:glasses-preview:primary:87acee7931c44321, svd-071:glasses-preview:display.output:f124143761c4\nPacket CIDs: bafyglassg051displaypacket, bafyglassg051camerapacket, bafyglassg051microphonepacket, bafyglassg051speakerpacket\nreceipt:glasses-preview:g051:replay-bundle:loaded\nPrivacy Policy\nPolicy CID: bafyglassg051privacypolicy. Camera, microphone, display, and speaker requests default to denied in desktop replay. Raw media capture is false, transcript text is redacted, rollback mode is no-mutation, and receipts are preserved through denial and recovery.\nDisplay State\ndisplay state denied for meta_glasses.display.render. Fallback target mobile-card via display-webapp bridge. receipt:glasses-preview:g051:denial:display.\nCamera State\ncamera state denied for meta_glasses.camera.photo and meta_glasses.camera.video. Raw media captured: false. Fallback target mobile-card. receipt:glasses-preview:g051:denial:camera.\nMicrophone State\nmicrophone state denied for meta_glasses.microphone.capture. Redacted transcript fallback routes to audio-summary and mobile-card. receipt:glasses-preview:g051:denial:microphone.\nSpeaker State\nspeaker state denied for meta_glasses.audio.playback. Audio playback uses audio-summary fallback with mobile-card target. receipt:glasses-preview:g051:denial:speaker.\nDisplay and Audio Analysis\nAnalysis CID: bafyglassg051displayaudioanalysis. Display projection is safe_display_fallback_projection; microphone transcript and speaker playback are summarized without raw media. receipt:glasses-preview:g051:analysis:display-audio.\nFallback Proof\nFallback proof CID: bafyglassg051fallbackproof. Selected fallback target mobile-card remains visible for display, camera, mic, and speaker denial. receipt:glasses-preview:g051:fallback:mobile-card.\nReplay Bundle\nDisplay Denial\nCamera Denial\nMic Denial\nSpeaker Denial\nAnalysis\nFallback\nreceipt:glasses-preview:g051:replay-bundle:loaded bafyglassg051simulatorreplaybundle\nreceipt:glasses-preview:g051:denial:display bafyglassg051displaypacket\nreceipt:glasses-preview:g051:denial:camera bafyglassg051camerapacket\nreceipt:glasses-preview:g051:denial:microphone bafyglassg051microphonepacket\nreceipt:glasses-preview:g051:denial:speaker bafyglassg051speakerpacket\nreceipt:glasses-preview:g051:analysis:display-audio bafyglassg051displayaudioanalysis\nreceipt:glasses-preview:g051:fallback:mobile-card bafyglassg051fallbackproof fallback target mobile-card",
+      "buttonCount": 10,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 10,
+      "hasLoadError": false
+    },
+    {
+      "appId": "orb-auto-ui",
+      "title": "ORB Auto-UI",
+      "iconLabel": "ORB UI",
+      "windowTitle": "ORB Auto UI",
+      "text": "◇\nORB Auto UI\n−\n□\n×\n❌ App Load Error\n\nFailed to load ORBAutoUILauncher\n\nError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/core/mcp-descriptor-registry.js\n\nClose",
+      "buttonCount": 4,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 4,
+      "hasLoadError": true
+    },
+    {
+      "appId": "mcp-plus-plus",
+      "title": "MCP++ Explorer",
+      "iconLabel": "MCP++",
+      "windowTitle": "MCP++ Explorer",
+      "text": "※\nMCP++ Explorer\n−\n□\n×\n❌ App Load Error\n\nFailed to load MCPPlusPlusExplorer\n\nError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/mcp-plus-plus-explorer.js\n\nClose",
+      "buttonCount": 4,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 4,
+      "hasLoadError": true
+    },
+    {
+      "appId": "agent-supervisor",
+      "title": "Agent Supervisor",
+      "iconLabel": "Supervisor",
+      "windowTitle": "Agent Supervisor",
+      "text": "◬\nAgent Supervisor\n−\n□\n×\n❌ App Load Error\n\nFailed to load AgentSupervisorConsole\n\nError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/agent-supervisor.js\n\nClose",
+      "buttonCount": 4,
+      "inputCount": 0,
+      "canvasCount": 0,
+      "interactiveCount": 4,
+      "hasLoadError": true
+    }
+  ],
+  "metaDisplayResults": [
+    {
+      "appId": "terminal",
+      "interfaceCid": "sha256:4b3e49a24b6cb695007241165e150f639e579b84562d016910cbf7d7b189ef0d",
+      "widgetCid": "sha256:f2fb88600aaaccbb45df4a71ab567b631580dfe3b115191fb66c6c94cc90c732",
+      "receiptCid": "sha256:1c86d90ec4e2fd1da8365d17c07253e97931d453133cb15bb45c3534e1394cc3",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "vibecode",
+      "interfaceCid": "sha256:1403117ba891e7a55a0532ca6d3bcd62f4760f2392b7701d844223b1de48a1bc",
+      "widgetCid": "sha256:893272f2cea380abdf4cc757024681189b51107afed94a0d45e7f8d51e5ce972",
+      "receiptCid": "sha256:e253c4b0f661766ef1b7106f01a687fa09ab3f5f00c1989ebff96698f5a4ff8e",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "music-studio-unified",
+      "interfaceCid": "sha256:ac95aa130888dfcbb9b84ec9e634fa0f6fa615037ca5960030f35731d9e1941e",
+      "widgetCid": "sha256:93db88924ca78d44461f2f5d6ae70569a689528fd1b7d2814418a7e9c7be2f6b",
+      "receiptCid": "sha256:3ed84ac268a336f5ed99fcb124ddf6b0ea53be2754791b0ad3ca48124e2b7d29",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "ai-chat",
+      "interfaceCid": "sha256:7440007903a4e94e2b39c7b153953894b2e2b08c2407a219409b3a447ad3a4b2",
+      "widgetCid": "sha256:290ea10eb5e070ee31f66bd0e5ae2cdd6b7ce3f3971dac66515de9c83dc6824e",
+      "receiptCid": "sha256:608d6d39ab807337357af0ec7e1df09380ed162db0b405754af200ca88c0b9e2",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "file-manager",
+      "interfaceCid": "sha256:2d1c75959e5df4a74b983f1dfbe09db1492ed3ce9b7c67fc772b9e72eb28ffed",
+      "widgetCid": "sha256:17c6902538c20102b4070873953c0e8d0aabd1c226838819225af7dcb3fc35da",
+      "receiptCid": "sha256:55419bff97c289969fd478c0e5c04ba4e2ef85cb97871c8aaf046edd6fb075bb",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "task-manager",
+      "interfaceCid": "sha256:1e98c0c682c58ba8391bfb523db291bd1db782cbeb2eff931f495a2c88b63827",
+      "widgetCid": "sha256:fe0097340c1b9c050a65bbe061e3a709087576cc2ac40390c2e471e92f573c73",
+      "receiptCid": "sha256:cee090a69e919041f0921023b6ceb628c18d743e9366e9333a36a3fcca64f099",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "todo",
+      "interfaceCid": "sha256:41f5d76cfa901727d3cf9745c7aa65d6a08c34dd3308bbca5df4d91ac926ac4c",
+      "widgetCid": "sha256:2ce13acc3d567836babc04431b37eb8525ad8d42b293852f59a3c9fedf2f0f27",
+      "receiptCid": "sha256:934a0fbb31b2c66a8920ea70c94603ad3622d81bd5a4ff93fe65656d1029324b",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "model-browser",
+      "interfaceCid": "sha256:7d344ee2b29725e64e00d1a7550f6c126a51c5d1a7de76e0aec4ffceb839bc48",
+      "widgetCid": "sha256:af0926f76b72e03ed8895e09e49b414ed9ed6a16a8c269de76cc2a3c34802e87",
+      "receiptCid": "sha256:0c831e0900b07f7979a382643f9e230e26063cdac65e7d4238b701105419475c",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "huggingface",
+      "interfaceCid": "sha256:5319f0e2c928bac94d7c6f4ea3cb810683995c820d41c8db17dd3f8d197a1f52",
+      "widgetCid": "sha256:1648c88ada2b5b778bb0d8210557867ccecf7ae03562e899783a672447bb996d",
+      "receiptCid": "sha256:3e4e679e983d84a8610888cc6bef196d49602d456023b098450055d487d08d92",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "openrouter",
+      "interfaceCid": "sha256:59be98a0d70c014e2c476f12c0f429dfad35f9eadd999957bb550243d5d51c1a",
+      "widgetCid": "sha256:4988fec7db93eafde7328aea42d9a191315952191b27f3541e495fbde677b84f",
+      "receiptCid": "sha256:f47b55e98bc1c99b4407c6bcc4a7f8e0174eb86ebf9d5fab72ba2f1c7ea2a075",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "ipfs-explorer",
+      "interfaceCid": "sha256:7a0bee8017a9e224dd8ab7e89f6148d381b8abb52838cb0d39a3ae5fb09dd204",
+      "widgetCid": "sha256:f9321d0cfea5258a7e1a636bc1cc8afc311c1466951435db614055dda45cdd87",
+      "receiptCid": "sha256:046b8ede51fb2f954211105ad9ada8795480dbc59b13c9b0eeb43714a163406d",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "device-manager",
+      "interfaceCid": "sha256:9d30a46b9b78fed8891c9da5eb8da2547a79a053df31e358c2b55e34ab471228",
+      "widgetCid": "sha256:133cbe1dd99c425de93c834daeea9b9e4b976b421f7253bbb0baf658bce9d1b6",
+      "receiptCid": "sha256:4e37b2bb1a0c0a1290c4476fdfcb6be7b12c329f9c845ffd008830fbf1a26fe9",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "settings",
+      "interfaceCid": "sha256:4b59ea57adeab1f5f4b8a7f0346f7644ec81dfb5f58741c1e4e21517ed372260",
+      "widgetCid": "sha256:b17f5548fac1e6dd9875928981758a90d637f0cf3d2aaab7affa6a5ef9e5b8b6",
+      "receiptCid": "sha256:b3b230efd1cfc7484cee0e01d9d2662085e05f5a0da2c0b0b62432e9c71cdd53",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "mcp-control",
+      "interfaceCid": "sha256:63b1990b4dc17e4f1339bb16bf2541924e873dc49f9d39ef90bfd17d25bfa5fe",
+      "widgetCid": "sha256:b7a3b0c11e4a1d1622808a58e4117d5d7aaf52c11c609b11c70b6415a8b0c5aa",
+      "receiptCid": "sha256:fa3fb4c36cf7e8022b749349357a0d263140c14bde4e01bb507d5eebd4d22afd",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "api-keys",
+      "interfaceCid": "sha256:8d693360dadc90923f8db6887e55d0da550a27065949cf0e1022c199793490e4",
+      "widgetCid": "sha256:e71baf2648bf386ed3432804496ea18f7e074b168ffbc97feb370c4fb5e6bb5a",
+      "receiptCid": "sha256:4cc41297d90f075254e36a141907e8ce2c8ae2e9f8720354ac10be82455a35a1",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "github",
+      "interfaceCid": "sha256:2ae170e5035694d1a86095af02f494af0338145748482fbcdab3ac256f5450c6",
+      "widgetCid": "sha256:0ca61a4ab8339c48d1c84973e07a9ba2b58f80e48eb06dbe167abb57e97703eb",
+      "receiptCid": "sha256:eb88954dd9320517568628af849e7a8c5ffa1b8122c70a762f5b7154c5c76e44",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "oauth-login",
+      "interfaceCid": "sha256:1c296a6ea0b27c5aad859f074ab4547e88ffe08e8a615a208336ede539bbb9e5",
+      "widgetCid": "sha256:68cc487f1f597862a496309c77b2c2d27cc7da7f53a4f8fe7e636f20c0348625",
+      "receiptCid": "sha256:608c886a58e2b0a0b819cc3d4abab2441dfafcd459d25d96f4c6e9d35004ccd5",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "cron",
+      "interfaceCid": "sha256:0cae3482bf56881374f90877a9a71e86e62a3812f71049857875dee1d2af684d",
+      "widgetCid": "sha256:92a60be4ab2ce142b9a17cf9e116119e9a2639bb819cadb00e0436c2a5df835c",
+      "receiptCid": "sha256:503f679f4b73f3147ac43cc5ad1a86c307680c196dd6265ca72df68668c57be7",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "navi",
+      "interfaceCid": "sha256:dac99c4119274f35838fa367b28c383d5c80d07bbdfc76f6ceb1a02ad771bf09",
+      "widgetCid": "sha256:56100250699827bda249f2b03fde985c7c8bee3f583c54602427f74139e76fe4",
+      "receiptCid": "sha256:ba43a59fcef656a94d6429c5787b82909f7e5ab2f74aaa97c5cfe5e34d442a92",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "p2p-network",
+      "interfaceCid": "sha256:c30579581913a0647510891fdb9202feee73285983c463a83c375f71e8a89356",
+      "widgetCid": "sha256:d2395f65f8dc2f5841f8fecd0a2eda661a80f63800d2bf275f47a0f201618c96",
+      "receiptCid": "sha256:c9c41c1af37c5cf01c8b7738dcd1a30de05414f22ccdef4973e834277d54c93e",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "p2p-chat-unified",
+      "interfaceCid": "sha256:469301ba4373575d48781f619412b9ea717f6626caf8fffda8c81adc28d0f775",
+      "widgetCid": "sha256:2e6dc293218281774c573bce646bfdc3517a45c824b27d9f51bfd6e512ed9fec",
+      "receiptCid": "sha256:303cefedea5b948c691b99b3081dda12f37d32bf88a3daa95edd4b540150d28a",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "neural-network-designer",
+      "interfaceCid": "sha256:9f2f9bc4d9512a5e830ba06f75f31c45a8c75d7d3afc8b7cf3ad4bdff99a2630",
+      "widgetCid": "sha256:0cddc663f7703c43384a3b61a9e5f04cdfb5b2c8a610cb8ea2a4451efd4edded",
+      "receiptCid": "sha256:55a2d7e7b3a5555f34229f295a4649d22dfb2ea9a44f36d4f77a6450d97f7c84",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "training-manager",
+      "interfaceCid": "sha256:8bb4df51d300991494b3d9432812be9d206ce19a8700c54337c00a721f9646b3",
+      "widgetCid": "sha256:3ba406a168f4baf3c5ed80ab3c41b0f47eea760c9e3e48a45afb17deae706ed4",
+      "receiptCid": "sha256:ba6db41f5cf194e618e5a4778013dbac28238dbb466a0ae7c50461a341123e76",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "calculator",
+      "interfaceCid": "sha256:7058ce047009ede4258ad07c9638010784b8709b17ae6f1d025a7ab2a3be1e9f",
+      "widgetCid": "sha256:1064825419046e4026f666fd30dc63cfc9df47ba7a3e8f8507d4b4c1bf0ba8c8",
+      "receiptCid": "sha256:b003652db2a4f5e6b7684cabaf6ee99d270e26cfac76eac946ccca0234b3ee9e",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "clock",
+      "interfaceCid": "sha256:aae513ca79225df84935bdafc6319fcb2deae7c9c3dada481d8a5160c3f30c5c",
+      "widgetCid": "sha256:41f5cf304b37bab1931f5a190e9d1be6dacc936a437beefc42da5aa6f5b75979",
+      "receiptCid": "sha256:c4079a5f8244946d067134958eff61cc912d438121c05e7aa89554ebb03acce6",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "calendar",
+      "interfaceCid": "sha256:57f34d0fb66f5efcaf6f2f7d5aa15ade2d430bc8f3c3c89f91d8f19dcb26e5a4",
+      "widgetCid": "sha256:b378130d2bb73426e3a7e1e3423800def45ce300d63cc4b1fcf7ff34b111a727",
+      "receiptCid": "sha256:a770562937ef64b4ab30d5303712f9712779596710e2e68f0eda9c6e48ad4e7a",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "peertube",
+      "interfaceCid": "sha256:cd91a1ad4717a25f902e4b107ad9e7c4cf97d8bbe23f1589c23c7a6a8e9600d6",
+      "widgetCid": "sha256:2b63f5f3daa4e5471634423b515701867b8c5756960bb6519cd8e9835b2a489f",
+      "receiptCid": "sha256:bd870771670d73493463cc6536ceaa12ac33f7124f4e0b1b669f01ac5be9a2f4",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "friends-list",
+      "interfaceCid": "sha256:4c51117cee90ba113e16ff7f242ecad54b6a8df7feaf5532ebcd68841c136b1d",
+      "widgetCid": "sha256:108b87eb5659385305868f2280a464f09c085bdab4718b5578bd8a818d11af87",
+      "receiptCid": "sha256:1bf528b6c149b324ef631f1d63fb47959dd4c5eaa82553fa58872cc1a4c69df7",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "image-viewer",
+      "interfaceCid": "sha256:4ae2256f141f5b1e6c8089907ba6bacba449e4b220fbf2358af340bced067a59",
+      "widgetCid": "sha256:7a86383bcf7a1b79e24989a5ff47e050c4f7c3efc067a580facfdbe67cd707ef",
+      "receiptCid": "sha256:fdc96d31c72347bcb180b18a09ba1cfbfbfae05786a46514accd67946a0d32a7",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "notes",
+      "interfaceCid": "sha256:fa389132d1bedfdb184593a89f8dc292f4f19a81a74174bf667f97c2f344964f",
+      "widgetCid": "sha256:29c1d140481e1c4909e0da2e790812f9391f462f94de23cbe97f35c5d3088308",
+      "receiptCid": "sha256:cf87103b852e6211fb11ae2b3b5926dfc17c42413842aeb89af7d10d05f0f30a",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "media-player",
+      "interfaceCid": "sha256:174d5cc63c2020bb30ee36d9757dd462f61cdc20952139d74cd2449928320c43",
+      "widgetCid": "sha256:7b681040bd964fb49ef99fd92e65bfee6156c0769e64f654f505a72ffbdc91cc",
+      "receiptCid": "sha256:0e8644e9da9d9c3ce460a9a861b0381812421b7ca3cd64a0590ab651eeed5d55",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "system-monitor",
+      "interfaceCid": "sha256:fa8719fb803a220a65395c41295470297629c71ba791ac35ec60de7a4a98de42",
+      "widgetCid": "sha256:0734e80e8a6105610e2692991db516852b5e45df347c6a8212ccaaf58e26785c",
+      "receiptCid": "sha256:0216ae529c4905cef60c7224a7e317d086ae00795ec77ba2e60701926681688d",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "neural-photoshop",
+      "interfaceCid": "sha256:ef9428b85057ab60fcdce4b75796ae9f39529df1e25ea581d0c9c12a019a88c6",
+      "widgetCid": "sha256:d545ba9e2fa0c74780edb2b818f063163f04be7ae78e375cdd20f56182944869",
+      "receiptCid": "sha256:7404fb95e228fe9ebc28549a139720b8e7e2f6766c1bcdce541004cd0e1e65e1",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "cinema",
+      "interfaceCid": "sha256:67b46d9e26b2e69cdf59d048cd1143ab4d632ac173330eadcab60c10c55f16af",
+      "widgetCid": "sha256:704ce53c8922faa7d46951fa6e6413897264d5484b9f9b7f3bc40651e6eb9426",
+      "receiptCid": "sha256:15ebeb054d308a0f10a169a0eb34c196bf05942faf598cd8a3665623d6d4fdc6",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "strudel",
+      "interfaceCid": "sha256:6ea465298df0b90ddf36e02f60561a4be9fa509cd4f2c01b8efb6ba358398541",
+      "widgetCid": "sha256:a4dd3c60b76da2eeb11f83b13677706b17d86006657ae332549d38241e4df04a",
+      "receiptCid": "sha256:c4b4a16fc936ab429d30a16f5f7c152b0a0d7de56ff8dead59c5cde480112055",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "strudel-ai-daw",
+      "interfaceCid": "sha256:58ba1f3138eb0ee3ffd46ed6b764df9fc498fe0f81a18a35deb2b7e9e79c0a17",
+      "widgetCid": "sha256:4b9dace3365414c2f7026466f39dfc42019613622e8950eb3a3828d520f4ccb1",
+      "receiptCid": "sha256:9a0744188488556e252f0f15051c6e8dd867ff867887305276e6899b5fe10d9e",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "music-studio",
+      "interfaceCid": "sha256:ad22fa690fc1485fed3a2d4adfb36ddb7f6215b8f1699e2b947db72c65328cf3",
+      "widgetCid": "sha256:6678c13679ec09031744dedb470c8095f6c2e9f661fa35cb2b2eb65bc1c167de",
+      "receiptCid": "sha256:52388fa64247c49c5db54bca8ac6d640883a3faab196c8b093789947cc992986",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "p2p-chat",
+      "interfaceCid": "sha256:fb1e6810bef63072c2a8bc40f6e669b08d964b832bbba68bf9ebe8cd10600802",
+      "widgetCid": "sha256:529269f2555b814460ee7dd1909be5b89b656f8bdcb1b6189307307e4d0c325a",
+      "receiptCid": "sha256:ba25d15b13e1b7e1341f16725392db92a4e5ac44ec3b8bee3936761394e472e7",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "datasets-browser",
+      "interfaceCid": "sha256:8a808d29008164534d26dbe81930ed946d4e77d8f80ebd40ac5266470ed8621b",
+      "widgetCid": "sha256:4118b92e631367629818d736eadfa64d34247d713da35e8a358aa6321add8d54",
+      "receiptCid": "sha256:8ddf62da60ff138a0447c10900e413d201df0038361ef1e81edeba2859d060d5",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "accelerate-panel",
+      "interfaceCid": "sha256:fb1ea8ca074758e14a1f586501c4be82185fa36c8bf0b096e91ff2b8aca381f1",
+      "widgetCid": "sha256:1c188b808e754317e0119bf0428d663ffd763e8716cf03facc1bce60f2fdb17b",
+      "receiptCid": "sha256:a4bb80d5d0d9752892913858a089485b0af373bed6c26cf85c6f0a28ec07ab91",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "idl-explorer",
+      "interfaceCid": "sha256:175ce136a82ba69031b7fb768bd121cbd6036d728b9dcbaecc9c162599738268",
+      "widgetCid": "sha256:6b709c281c7f2227f5ef1838cb4a9f7b64f57badbeddc7f06a970603e2d2494c",
+      "receiptCid": "sha256:e01fbabbb57fdcc49ff0964c22ce10a48b345dd06096acad61a01db857b1fcf6",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "glasses-preview",
+      "interfaceCid": "sha256:8e3e2b5c0a4a6bb1ffc7692d64bc723e87c66d2862d0efe16e3c4e34dee4d0fa",
+      "widgetCid": "sha256:b3b217f5f8e7ce5f0961a6d6ddf9aac4217c0e7438aed051e572103e8ba5e368",
+      "receiptCid": "sha256:d97371e1cabab50f4e4d4cc31c30ec8eb874fb2b102c6c6c32f9ac90c9517cff",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "orb-auto-ui",
+      "interfaceCid": "sha256:ef09748c23841200c1af0f1099bbb22d2715508860a6c245b49923e5b3599eb7",
+      "widgetCid": "sha256:296fcb5f803f5dce83a7c5101cdbebb563094fd648d2d241c2d9db37ef3a1fc5",
+      "receiptCid": "sha256:743ec0a6e6ad9c9e66604ddbb2486dec46c389f5dd0468a7c3404234f329f759",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "mcp-plus-plus",
+      "interfaceCid": "sha256:184df794ad6f2cf6e27e410b3dc068ee691ad0986b9d0604801a3e34bf8f35e7",
+      "widgetCid": "sha256:adc874c7bb42926f665c87689c4fb2d622baa17ed2c467940fcab8dd0217b55b",
+      "receiptCid": "sha256:342e8e12a17952dab7a74164897fe3bb2ad08c400f723ceaa359d2c8b3e19afe",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    },
+    {
+      "appId": "agent-supervisor",
+      "interfaceCid": "sha256:10d61577ad08ef6654b335ea345569da5128bf493fd65826613119b67ab7f067",
+      "widgetCid": "sha256:bbaeb859fae5d81613c862df51991bced1acab3e595fa1736b1049e211953dae",
+      "receiptCid": "sha256:644b3282ae57c565bb94a6be2bfd7066b803fe136c842b7f665cac4a40827d1f",
+      "focusOrder": [
+        "open",
+        "dismiss"
+      ],
+      "viewport": {
+        "width": 600,
+        "height": 600
+      },
+      "readiness": "display_webapp_ready",
+      "renderPath": "display-webapp",
+      "mobileActionTypes": [
+        "mobile_render_display_widget"
+      ]
+    }
+  ],
+  "failures": {
+    "openFailures": [
+      "strudel-ai-daw: window contains a load-error marker",
+      "music-studio: window contains a load-error marker",
+      "p2p-chat: window contains a load-error marker",
+      "idl-explorer: window contains a load-error marker",
+      "orb-auto-ui: window contains a load-error marker",
+      "mcp-plus-plus: window contains a load-error marker",
+      "agent-supervisor: window contains a load-error marker"
+    ],
+    "templateFailures": [],
+    "browserErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load app component StrudelAIDAWApp: TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/strudel-ai-daw.js",
+      "Failed to launch Strudel AI DAW: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)",
+      "Failed to load app component MusicStudioApp: TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/music-studio.js",
+      "Failed to launch Music Studio Classic: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)",
+      "Failed to load app component P2PChatApp: TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/p2p-chat.js",
+      "Failed to launch P2P Chat Classic: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)",
+      "Failed to launch IPFS Datasets Browser: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)",
+      "Failed to launch IPFS Accelerate Panel: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)",
+      "Failed to load app component IDLExplorerApp: TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/core/mcp-descriptor-registry.js",
+      "Failed to launch ORB IDL Explorer: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)",
+      "Failed to launch Meta Glasses Preview: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)",
+      "Failed to load app component ORBAutoUILauncher: TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/core/mcp-descriptor-registry.js",
+      "Failed to launch ORB Auto UI: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)",
+      "Failed to load app component MCPPlusPlusExplorer: TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/mcp-plus-plus-explorer.js",
+      "Failed to launch MCP++ Explorer: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)",
+      "Failed to load app component AgentSupervisorConsole: TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:3002/js/apps/agent-supervisor.js",
+      "Failed to launch Agent Supervisor: TypeError: Failed to fetch at controlsFor (http://127.0.0.1:3002/js/live-tool-gateway.js:56:7) at mountLiveToolGateway (http://127.0.0.1:3002/js/live-tool-gateway.js:13:26) at SwissKnifeDesktop.launchApp (http://127.0.0.1:3002/js/main-simple.js:618:19)"
+    ]
+  }
+}

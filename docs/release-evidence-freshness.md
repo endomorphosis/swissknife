@@ -11,7 +11,7 @@ is the active default release-blocking group for the SVD-066 supervisor-managed 
 | Evidence | Default scope | Status | Last certified | Regenerate with |
 | --- | --- | --- | --- | --- |
 | Browser libp2p interoperability evidence (SWR-138) | historical | ✅ fresh | 2026-07-15T14:26:49.648Z | npm run evidence:libp2p-browser |
-| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-20T07:38:43.324Z | npm run build:web |
-| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-20T07:35:47.175Z | npm run services:audit |
-| Freshness-aware virtual desktop release evidence (SVD-114) | active | ✅ fresh | 2026-07-20T07:52:17.212Z | node scripts/build-virtual-desktop-release-evidence.cjs |
+| Browser bundle budget evidence (SWR-016) | historical | ✅ fresh | 2026-07-21T23:17:27.183Z | npm run build:web |
+| Module-boundary / service-boundary audit evidence (SWR-024) | historical | ✅ fresh | 2026-07-22T00:00:33.871Z | npm run services:audit |
+| Freshness-aware virtual desktop release evidence (SVD-114) | active | ✅ fresh | 2026-07-22T00:40:10.389Z | node scripts/build-virtual-desktop-release-evidence.cjs |
 

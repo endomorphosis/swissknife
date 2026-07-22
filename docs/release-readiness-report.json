@@ -1,27 +1,32 @@
 {
   "schemaVersion": 2,
-  "taskId": "SWR-141",
-  "supersedesTaskId": "SWR-110",
-  "generatedAt": "2026-07-20T07:52:17.539Z",
-  "startedAt": "2026-07-20T07:35:28.501Z",
-  "durationMs": 1009038,
-  "commitSha": "9252e108bf10b80593adc3e36b441b75affe51b3",
+  "taskId": "SWR-110",
+  "generatedAt": "2026-07-22T00:40:11.480Z",
+  "startedAt": "2026-07-22T00:22:09.864Z",
+  "durationMs": 1081616,
+  "commitSha": "e7d2d6f0de1e3eea296707d1a7503deae77014a1",
   "overallStatus": "passed",
   "releaseDecision": "GO",
   "goNoGo": "GO",
+  "remainingGapTaskIds": [],
+  "remainingGaps": [],
+  "nextTasks": [],
   "summary": {
-    "total": 27,
-    "passed": 27,
+    "total": 22,
+    "passed": 22,
     "failed": 0,
-    "releaseDecision": "GO"
+    "skipped": 0,
+    "releaseDecision": "GO",
+    "remainingGapTaskCount": 0
   },
   "virtualDesktopReleaseEvidence": {
     "status": "present",
     "path": "test-results/virtual-desktop-ipfs-mcp-orb/release-evidence.json",
-    "generatedAt": "2026-07-20T07:52:16.770Z",
+    "generatedAt": "2026-07-22T00:40:09.879Z",
     "decision": "go",
     "blockerCount": 0,
     "warningCount": 0,
+    "blockerTaskIds": [],
     "representativeDecision": null,
     "allToolsDecision": null,
     "hierarchicalMcp": {
@@ -38,6 +43,26 @@
       "staleLiveServiceEvidence": [],
       "availabilityMismatches": [],
       "missingFacadeByService": []
+    },
+    "allAppImprovementReleaseGate": {
+      "status": "present",
+      "schema": "swissknife.virtual-desktop-all-app-release-trace.v1",
+      "taskId": "SVD-182",
+      "decision": "GO",
+      "requiredAppCount": 45,
+      "traceCount": 45,
+      "passingAppCount": 45,
+      "blockerCount": 0,
+      "failingAppIds": [],
+      "remainingGapTaskIds": [],
+      "acceptance": {
+        "every_canonical_app_traced": true,
+        "every_primary_workflow_passed": true,
+        "every_kda_disposition_and_receipt_passed": true,
+        "every_ui_ux_record_passed": true,
+        "every_applicable_orb_idl_state_passed": true,
+        "every_applicable_meta_simulator_state_passed": true
+      }
     },
     "appMatrixGate": {
       "status": "present",
@@ -110,899 +135,24 @@
       "allToolsBlockers": []
     },
     "blockers": [],
+    "namedGaps": [],
     "warnings": []
   },
   "independentAllAppReleaseReplay": {
     "path": "test-results/virtual-desktop-ipfs-mcp-orb/independent-all-app-release-replay.json",
     "status": "present",
-    "generatedAt": "2026-07-20T07:52:17.293Z",
+    "generatedAt": "2026-07-22T00:40:10.470Z",
     "decision": "GO",
     "blockerCount": 0,
     "blockerTaskIds": [],
     "findingCount": 0
   },
-  "phase21Handoff": {
-    "taskId": "SWR-142",
-    "generatedAt": "2026-07-20T08:10:40.332Z",
-    "decision": "NO_GO",
-    "blockers": [
-      "board:SWR-142 is already marked completed before the handoff checks agree",
-      "lease:lease status is unavailable"
-    ],
-    "board": {
-      "path": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
-      "status": "present",
-      "taskCount": 156,
-      "tasks": {
-        "SWR-001": {
-          "title": "Restore strict service-boundary audit",
-          "status": "completed"
-        },
-        "SWR-002": {
-          "title": "Harden browser and host entrypoint boundaries",
-          "status": "completed"
-        },
-        "SWR-003": {
-          "title": "Resolve TypeScript TS6305 project-output drift",
-          "status": "completed"
-        },
-        "SWR-004": {
-          "title": "Consolidate test lanes and scripts",
-          "status": "completed"
-        },
-        "SWR-005": {
-          "title": "Enforce pure TS/WASM prover and ZKP browser runtime",
-          "status": "completed"
-        },
-        "SWR-006": {
-          "title": "Clarify apps, glasses, IPFS, and MCP ownership",
-          "status": "completed"
-        },
-        "SWR-007": {
-          "title": "Extend module-boundary discipline beyond services",
-          "status": "completed"
-        },
-        "SWR-008": {
-          "title": "Clean browser dependencies and bundle budgets",
-          "status": "completed"
-        },
-        "SWR-009": {
-          "title": "Wire CI and release readiness gates",
-          "status": "completed"
-        },
-        "SWR-010": {
-          "title": "Keep refactor documentation and evidence current",
-          "status": "completed"
-        },
-        "SWR-011": {
-          "title": "Build repository-wide browser compatibility inventory",
-          "status": "completed"
-        },
-        "SWR-012": {
-          "title": "Add top-level source module ownership manifest",
-          "status": "completed"
-        },
-        "SWR-013": {
-          "title": "Split CLI and process entrypoints from browser runtime",
-          "status": "completed"
-        },
-        "SWR-014": {
-          "title": "Enforce UI import boundaries for browser surfaces",
-          "status": "completed"
-        },
-        "SWR-015": {
-          "title": "Harden browser libp2p bootstrap and defaults",
-          "status": "completed"
-        },
-        "SWR-016": {
-          "title": "Track libp2p and browser bundle budgets",
-          "status": "completed"
-        },
-        "SWR-017": {
-          "title": "Define browser IPFS transport strategy",
-          "status": "completed"
-        },
-        "SWR-018": {
-          "title": "Make browser storage runtime explicit",
-          "status": "completed"
-        },
-        "SWR-019": {
-          "title": "Separate Web Worker and Node worker runtimes",
-          "status": "completed"
-        },
-        "SWR-020": {
-          "title": "Split model/provider adapters by browser and host capability",
-          "status": "completed"
-        },
-        "SWR-021": {
-          "title": "Make Pyodide optional and sandboxed, never default runtime",
-          "status": "completed"
-        },
-        "SWR-022": {
-          "title": "Harden browser ZKP artifact loading and integrity",
-          "status": "completed"
-        },
-        "SWR-023": {
-          "title": "Normalize app manifests and lazy imports for the web bundle",
-          "status": "completed"
-        },
-        "SWR-024": {
-          "title": "Add repository module-boundary audit",
-          "status": "completed"
-        },
-        "SWR-025": {
-          "title": "Decompose typecheck into browser-safe lanes",
-          "status": "completed"
-        },
-        "SWR-026": {
-          "title": "Clean legacy web JavaScript from active type/build lanes",
-          "status": "completed"
-        },
-        "SWR-027": {
-          "title": "Make MCP dashboard browser truth explicit",
-          "status": "completed"
-        },
-        "SWR-028": {
-          "title": "Add browser libp2p Playwright evidence",
-          "status": "completed"
-        },
-        "SWR-029": {
-          "title": "Wire browser bundle policy into release gates",
-          "status": "completed"
-        },
-        "SWR-030": {
-          "title": "Harden supervisor usage for SwissKnife refactor tasks",
-          "status": "completed"
-        },
-        "SWR-031": {
-          "title": "Review completed SwissKnife refactor commit set",
-          "status": "completed"
-        },
-        "SWR-032": {
-          "title": "Re-run clean release-readiness gate and archive output",
-          "status": "completed"
-        },
-        "SWR-033": {
-          "title": "Confirm browser bundle host-leakage and Pyodide policy",
-          "status": "completed"
-        },
-        "SWR-034": {
-          "title": "Refresh browser libp2p Playwright evidence",
-          "status": "completed"
-        },
-        "SWR-035": {
-          "title": "Prepare SwissKnife main-branch merge package",
-          "status": "completed"
-        },
-        "SWR-036": {
-          "title": "Create residual browser-compatibility follow-up board",
-          "status": "completed"
-        },
-        "SWR-037": {
-          "title": "Audit package exports and browser entry conditions",
-          "status": "completed"
-        },
-        "SWR-038": {
-          "title": "Enforce browser dependency allowlist and Node builtin denylist",
-          "status": "completed"
-        },
-        "SWR-039": {
-          "title": "Make libp2p browser defaults visible in app settings and MCP control",
-          "status": "completed"
-        },
-        "SWR-040": {
-          "title": "Harden browser WASM asset, integrity, and isolation policy",
-          "status": "completed"
-        },
-        "SWR-041": {
-          "title": "Add browser deployment policy for CSP, workers, storage, and offline mode",
-          "status": "completed"
-        },
-        "SWR-042": {
-          "title": "Remediate residual browser inventory host-only and unknown items",
-          "status": "completed"
-        },
-        "SWR-043": {
-          "title": "Add browser smoke matrix across desktop, mobile, and constrained capabilities",
-          "status": "completed"
-        },
-        "SWR-044": {
-          "title": "Wire phase-11 browser hardening into release readiness",
-          "status": "completed"
-        },
-        "SWR-045": {
-          "title": "Perform final SwissKnife merge dry-run and residual-risk signoff",
-          "status": "completed"
-        },
-        "SWR-046": {
-          "title": "Add browser package-consumer fixture",
-          "status": "completed"
-        },
-        "SWR-047": {
-          "title": "Add browser libp2p bootstrap and relay matrix",
-          "status": "completed"
-        },
-        "SWR-048": {
-          "title": "Add service worker and offline cache compatibility gate",
-          "status": "completed"
-        },
-        "SWR-049": {
-          "title": "Add browser security headers and cross-origin isolation evidence",
-          "status": "completed"
-        },
-        "SWR-050": {
-          "title": "Add browser observability without host leakage",
-          "status": "completed"
-        },
-        "SWR-051": {
-          "title": "Add browser API contract tests for MCP, IPFS, storage, workers, and ZKP",
-          "status": "completed"
-        },
-        "SWR-052": {
-          "title": "Final browser compatibility release candidate gate",
-          "status": "completed"
-        },
-        "SWR-053": {
-          "title": "Add browser import-map and CDN packaging policy",
-          "status": "completed"
-        },
-        "SWR-054": {
-          "title": "Add browser dependency upgrade and lockfile drift gate",
-          "status": "completed"
-        },
-        "SWR-055": {
-          "title": "Add real-device browser test checklist and evidence template",
-          "status": "completed"
-        },
-        "SWR-056": {
-          "title": "Add browser error taxonomy and user-visible capability states",
-          "status": "completed"
-        },
-        "SWR-057": {
-          "title": "Add browser performance budget and startup regression gate",
-          "status": "completed"
-        },
-        "SWR-058": {
-          "title": "Add browser rollback and feature-flag safety plan",
-          "status": "completed"
-        },
-        "SWR-059": {
-          "title": "Add browser architecture decision records",
-          "status": "completed"
-        },
-        "SWR-060": {
-          "title": "Final supervisor closeout and handoff report",
-          "status": "completed"
-        },
-        "SWR-061": {
-          "title": "Audit and remediate restored duplicate service files",
-          "status": "completed"
-        },
-        "SWR-062": {
-          "title": "Rename legacy sprint service files into descriptive owned modules",
-          "status": "completed"
-        },
-        "SWR-063": {
-          "title": "Define canonical service public APIs after duplicate cleanup",
-          "status": "completed"
-        },
-        "SWR-064": {
-          "title": "Re-run browser compatibility inventory after service de-duplication",
-          "status": "completed"
-        },
-        "SWR-065": {
-          "title": "Make browser libp2p the default in web-facing service consumers",
-          "status": "completed"
-        },
-        "SWR-066": {
-          "title": "Enforce post-cleanup browser no-host-leakage gates",
-          "status": "completed"
-        },
-        "SWR-067": {
-          "title": "Prove browser ZKP paths use real TS/WASM proof backends by default",
-          "status": "completed"
-        },
-        "SWR-068": {
-          "title": "Add browser package-consumer regression for canonical service APIs",
-          "status": "completed"
-        },
-        "SWR-069": {
-          "title": "Refresh release readiness after service duplicate cleanup",
-          "status": "completed"
-        },
-        "SWR-070": {
-          "title": "Supervisor handoff for the reopened service/browser refactor phase",
-          "status": "completed"
-        },
-        "SWR-071": {
-          "title": "Make restored duplicate service files a failing audit gate",
-          "status": "completed"
-        },
-        "SWR-072": {
-          "title": "Remove restored root service duplicates and retarget imports",
-          "status": "completed"
-        },
-        "SWR-073": {
-          "title": "Rename legacy sprint service files into descriptive module-owned files",
-          "status": "completed"
-        },
-        "SWR-074": {
-          "title": "Canonicalize logic language and deontic NLP service ownership",
-          "status": "completed"
-        },
-        "SWR-075": {
-          "title": "Reconcile web JavaScript libp2p runtime with canonical TypeScript services",
-          "status": "completed"
-        },
-        "SWR-076": {
-          "title": "Add browser runtime package fixture for service de-duplication regressions",
-          "status": "completed"
-        },
-        "SWR-077": {
-          "title": "Refresh browser inventory and no-host-leakage evidence after cleanup",
-          "status": "completed"
-        },
-        "SWR-078": {
-          "title": "Re-verify browser ZKP uses real TS/WASM paths after service cleanup",
-          "status": "completed"
-        },
-        "SWR-079": {
-          "title": "Run release-readiness and merge-hygiene report for Phase 14",
-          "status": "completed"
-        },
-        "SWR-080": {
-          "title": "Supervisor closeout for Phase 14 regression-proofing",
-          "status": "completed"
-        },
-        "SWR-081": {
-          "title": "Close the ipfs_datasets_py flat-to-hierarchical catalog gap",
-          "status": "completed"
-        },
-        "SWR-082": {
-          "title": "Add normalized category/name aliasing for datasets hierarchical dispatch",
-          "status": "completed"
-        },
-        "SWR-083": {
-          "title": "Promote the hierarchical MCP evidence report into the release gate",
-          "status": "completed"
-        },
-        "SWR-084": {
-          "title": "Expand all-tools bindings from three generated app families to every intended virtual desktop app",
-          "status": "completed"
-        },
-        "SWR-085": {
-          "title": "Add end-to-end UI/UX smoke coverage for tool-backed virtual desktop apps",
-          "status": "completed"
-        },
-        "SWR-086": {
-          "title": "Use the Meta glasses simulator for ORB/IDL handoff evidence",
-          "status": "completed"
-        },
-        "SWR-087": {
-          "title": "Preserve accelerate compatibility adapter readiness and PID evidence",
-          "status": "completed"
-        },
-        "SWR-088": {
-          "title": "Supervisor closeout for exhaustive MCP hierarchy and app coverage",
-          "status": "completed"
-        },
-        "SWR-089": {
-          "title": "Remove restored duplicate service files and sprint-named service regressions",
-          "status": "completed"
-        },
-        "SWR-090": {
-          "title": "Make module ownership the single source of truth for service containment",
-          "status": "completed"
-        },
-        "SWR-091": {
-          "title": "Lock browser package exports and default browser entrypoints",
-          "status": "completed"
-        },
-        "SWR-092": {
-          "title": "Keep libp2p enabled by default in browser-safe runtime paths",
-          "status": "completed"
-        },
-        "SWR-093": {
-          "title": "Split host-only adapters from browser-safe service contracts",
-          "status": "completed"
-        },
-        "SWR-094": {
-          "title": "Verify real browser ZKP and WASM paths after containment cleanup",
-          "status": "completed"
-        },
-        "SWR-095": {
-          "title": "Add a browser/service duplicate regression sentinel to release readiness",
-          "status": "completed"
-        },
-        "SWR-096": {
-          "title": "Prove all tool-backed virtual desktop apps remain browser-compatible",
-          "status": "completed"
-        },
-        "SWR-097": {
-          "title": "Keep Meta glasses and ORB/IDL evidence simulator-driven",
-          "status": "completed"
-        },
-        "SWR-098": {
-          "title": "Preserve ipfs_accelerate_py supervisor/adapter evidence without hiding browser constraints",
-          "status": "completed"
-        },
-        "SWR-099": {
-          "title": "Phase 16 supervisor closeout and merge-readiness report",
-          "status": "completed"
-        },
-        "SWR-100": {
-          "title": "Freeze the exhaustive app-to-backend capability contract",
-          "status": "completed"
-        },
-        "SWR-101": {
-          "title": "Prove complete MCP and MCP++/libp2p catalog reachability",
-          "status": "completed"
-        },
-        "SWR-102": {
-          "title": "Generate exhaustive per-app UI/UX workflow scenarios",
-          "status": "completed"
-        },
-        "SWR-103": {
-          "title": "Make the virtual desktop app matrix a release-blocking gate",
-          "status": "completed"
-        },
-        "SWR-104": {
-          "title": "Define browser-safe agent-supervisor gateway capabilities",
-          "status": "completed"
-        },
-        "SWR-105": {
-          "title": "Build the Agent Supervisor virtual-desktop application",
-          "status": "completed"
-        },
-        "SWR-106": {
-          "title": "Add governed prompt steering for goals, subgoals, and tasks",
-          "status": "completed"
-        },
-        "SWR-107": {
-          "title": "Verify the Supervisor Console against all three IPFS server families",
-          "status": "completed"
-        },
-        "SWR-108": {
-          "title": "Extend ORB/IDL contracts for the complete desktop and Supervisor Console",
-          "status": "completed"
-        },
-        "SWR-109": {
-          "title": "Run Meta glasses simulator modality and handoff workflows",
-          "status": "completed"
-        },
-        "SWR-110": {
-          "title": "Gate complete desktop, all-tools, and simulator evidence in release readiness",
-          "status": "completed"
-        },
-        "SWR-111": {
-          "title": "Phase 17 supervisor closeout and operational handoff",
-          "status": "completed"
-        },
-        "SWR-112": {
-          "title": "Repair the virtual-desktop release evidence generator and canonical output",
-          "status": "completed"
-        },
-        "SWR-113": {
-          "title": "Reconcile the canonical app contract with per-app behavior evidence",
-          "status": "completed"
-        },
-        "SWR-114": {
-          "title": "Materialize the Agent Supervisor Console as a canonical desktop app module",
-          "status": "completed"
-        },
-        "SWR-115": {
-          "title": "Normalize Meta glasses simulator modality evidence and artifact names",
-          "status": "completed"
-        },
-        "SWR-116": {
-          "title": "Run the exhaustive behavior and evidence release gate from clean outputs",
-          "status": "completed"
-        },
-        "SWR-117": {
-          "title": "Phase 18 supervisor closeout and evidence-contract handoff",
-          "status": "completed"
-        },
-        "SWR-118": {
-          "title": "Inventory and classify every restored duplicate service implementation",
-          "status": "completed"
-        },
-        "SWR-119": {
-          "title": "Remove restored duplicate service copies and retarget imports to canonical modules",
-          "status": "completed"
-        },
-        "SWR-120": {
-          "title": "Make service duplicate prevention content-aware and merge-resistant",
-          "status": "completed"
-        },
-        "SWR-121": {
-          "title": "Rebuild browser import closure and default libp2p evidence after duplicate removal",
-          "status": "completed"
-        },
-        "SWR-122": {
-          "title": "Re-run canonical desktop and release evidence from the duplicate-free tree",
-          "status": "completed"
-        },
-        "SWR-123": {
-          "title": "Phase 19 duplicate-remediation and browser closure handoff",
-          "status": "completed"
-        },
-        "SWR-124": {
-          "title": "Repair active source and evidence merge conflicts before further refactoring",
-          "status": "completed"
-        },
-        "SWR-125": {
-          "title": "Move remaining root service implementations behind owned service-family entrypoints",
-          "status": "completed"
-        },
-        "SWR-126": {
-          "title": "Make module ownership an executable dependency and public-API contract",
-          "status": "completed"
-        },
-        "SWR-127": {
-          "title": "Close browser app capability boundaries and eliminate unknown executable runtime paths",
-          "status": "completed"
-        },
-        "SWR-128": {
-          "title": "Prove default-enabled libp2p interoperability in real browser contexts",
-          "status": "completed"
-        },
-        "SWR-129": {
-          "title": "Make browser proof and ZKP entrypoints real TypeScript or WebAssembly execution paths",
-          "status": "completed"
-        },
-        "SWR-130": {
-          "title": "Exercise every browser app through its owned capability and runtime state matrix",
-          "status": "completed"
-        },
-        "SWR-131": {
-          "title": "Rebuild all release evidence from a conflict-free source tree and require freshness coherence",
-          "status": "completed"
-        },
-        "SWR-132": {
-          "title": "Enforce a non-destructive shared-checkout supervisor contract",
-          "status": "completed"
-        },
-        "SWR-133": {
-          "title": "Phase 20 refactor, browser-runtime, and supervisor handoff",
-          "status": "completed"
-        },
-        "SWR-134": {
-          "title": "Reconcile board completion claims with the current SwissKnife checkout",
-          "status": "completed"
-        },
-        "SWR-135": {
-          "title": "Establish a non-destructive single-writer lease for every SwissKnife supervisor lane",
-          "status": "completed"
-        },
-        "SWR-136": {
-          "title": "Recover and commit a conflict-free Phase 20 baseline with source-to-evidence provenance",
-          "status": "completed"
-        },
-        "SWR-137": {
-          "title": "Revalidate service containment and browser import closure from the recovered baseline",
-          "status": "completed"
-        },
-        "SWR-138": {
-          "title": "Exercise default browser libp2p interoperability across Chromium, Firefox, and WebKit",
-          "status": "completed"
-        },
-        "SWR-139": {
-          "title": "Prove browser theorem and ZKP execution across supported engines without simulated defaults",
-          "status": "completed"
-        },
-        "SWR-140": {
-          "title": "Verify all browser application states with offline and remote-capability isolation",
-          "status": "completed"
-        },
-        "SWR-141": {
-          "title": "Produce a hermetic clean-checkout release reproduction and provenance attestation",
-          "status": "completed"
-        },
-        "SWR-142": {
-          "title": "Phase 21 recovery and reproducibility handoff",
-          "status": "completed"
-        },
-        "SWR-143": {
-          "title": "Inventory restored service duplicates by basename, normalized content, and behavior",
-          "status": "completed"
-        },
-        "SWR-144": {
-          "title": "Canonicalize restored service implementations and retarget every importer",
-          "status": "completed"
-        },
-        "SWR-145": {
-          "title": "Enforce merge-resistant service ownership and browser-safe public entrypoints",
-          "status": "completed"
-        },
-        "SWR-146": {
-          "title": "Pin a portable browser-validation Node toolchain for supervisor lanes",
-          "status": "completed"
-        },
-        "SWR-147": {
-          "title": "Resolve implementation retry-budget failure for SWR-143",
-          "status": "completed"
-        },
-        "SWR-148": {
-          "title": "Resolve merge retry-budget failure for SWR-146",
-          "status": "completed"
-        },
-        "SWR-149": {
-          "title": "Resolve validation retry-budget failure for SWR-144",
-          "status": "completed"
-        },
-        "SWR-150": {
-          "title": "Resolve merge retry-budget failure for SWR-137",
-          "status": "completed"
-        },
-        "SWR-153": {
-          "title": "Reconcile advertised datasets MCP capabilities with real callable handlers",
-          "status": "completed"
-        },
-        "SWR-154": {
-          "title": "Make clean-checkout compatibility-adapter cleanup ownership-safe",
-          "status": "completed"
-        },
-        "SWR-160": {
-          "title": "Refactor the SVD-131 cold-start release orchestration into stable ownership boundaries",
-          "status": "completed"
-        },
-        "SWR-161": {
-          "title": "Extend duplicate, import-boundary, and browser-host audits for the post-SVD-131 release surface",
-          "status": "completed"
-        },
-        "SWR-162": {
-          "title": "Reconcile validated refactor-lane output into SwissKnife main without replaying stale task attempts",
-          "status": "ready"
-        },
-        "SWR-163": {
-          "title": "Resolve validation retry-budget failure for SWR-160",
-          "status": "completed"
-        }
-      },
-      "dependencyStatuses": {
-        "SWR-135": "completed",
-        "SWR-136": "completed",
-        "SWR-137": "completed",
-        "SWR-138": "completed",
-        "SWR-139": "completed",
-        "SWR-140": "completed",
-        "SWR-141": "completed"
-      },
-      "swr142Status": "completed",
-      "blockers": [
-        "SWR-142 is already marked completed before the handoff checks agree"
-      ]
-    },
-    "checkout": {
-      "swissknifeHead": "9252e108bf10b80593adc3e36b441b75affe51b3",
-      "swissknifeBranch": "automation/swissknife-refactor-integration",
-      "detached": false,
-      "preRunStatusEntryCount": 0,
-      "parentRepositoryCommit": "f07416ad1e801ac2e3fca3235f5af5ad6a218c8c",
-      "parentGitlinkSha": "9252e108bf10b80593adc3e36b441b75affe51b3",
-      "parentGitlinkMatchesHead": true,
-      "parentStatusEntries": [
-        "M  swissknife"
-      ]
-    },
-    "lease": {
-      "ok": false,
-      "status": "unavailable",
-      "reason": "{ |   \"ok\": false, |   \"error\": \"namespace_mismatch\", |   \"message\": \"Lease namespace metadata does not match the parent repository common directory\", |   \"details\": { |     \"expectedId\": \"3362f5c49ce81991c003c4cec456b575d5b96d1ce0b3670716ee44ae673f976c\", |     \"recordedId\": \"d503a4f259f8ff40ef7e085866521d279790603ab12c4a27e73df1a1193197d1\", |     \"expectedCommonDirectory\": \"/home/barberb/barberb/lift_coding/.git\", |     \"recordedCommonDirectory\": \"/home/barberb/barberb/lift_coding/.git\" |   } | }",
-      "owner": null
-    },
-    "supervisorStates": [
-      {
-        "path": "tmp/swissknife_refactor_integration_supervisor/state/swissknife_refactor_integration_supervisor_status.json",
-        "readable": true,
-        "active": false,
-        "status": "running",
-        "runId": "20260720T013220Z",
-        "lane": "swissknife_refactor_integration",
-        "board": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md",
-        "supervisorPid": 2069027,
-        "daemonPid": 2506253,
-        "supervisorAlive": false,
-        "daemonAlive": false,
-        "logPath": "tmp/swissknife_refactor_integration_supervisor/state/swissknife_refactor_integration_implementation_daemon_20260720T013220Z.log",
-        "updatedAt": "2026-07-20T01:32:42.900783+00:00"
-      }
-    ],
-    "activeSupervisorCount": 0,
-    "activeWriterCoveredByLease": false,
-    "duplicateCounts": {
-      "serviceDuplicateBasenames": 0,
-      "unapprovedServiceDuplicateBasenames": 0,
-      "duplicateContentHashes": 1,
-      "unapprovedDuplicateContentHashes": 0,
-      "normalizedContentCollisions": 1,
-      "unclassifiedNormalizedContentCollisions": 0,
-      "behavioralEquivalenceGroups": 0,
-      "unclassifiedBehavioralEquivalenceGroups": 0,
-      "inventoryDuplicateBasenames": 0,
-      "inventoryDuplicatePaths": 0
-    },
-    "conflictCounts": {
-      "swissknifeUnmergedIndexEntries": 0,
-      "parentUnmergedIndexEntries": 0,
-      "unresolvedMergeMarkers": 0,
-      "ownershipConflicts": 0,
-      "browserUnsafeImports": 0,
-      "forbiddenImports": 0
-    },
-    "browserReceipts": {
-      "requiredEngines": [
-        "chromium",
-        "firefox",
-        "webkit"
-      ],
-      "libp2p": {
-        "evidencePath": "docs/browser-libp2p-evidence.md",
-        "fingerprintPath": "docs/browser-libp2p-evidence.fingerprint.json",
-        "fingerprintStatus": "fresh",
-        "fingerprintGeneratedAt": "2026-07-15T14:26:49.648Z",
-        "sourceFingerprint": "4c2088af81490904af0404cee1c968b583f068fc2917951e53fdbc9dbdaf7483",
-        "engines": [
-          {
-            "engine": "chromium",
-            "receiptPath": "test-results/libp2p-browser/swr-138-chromium.json",
-            "sourceControlledEvidence": "docs/browser-libp2p-evidence.md",
-            "fingerprintPath": "docs/browser-libp2p-evidence.fingerprint.json",
-            "rawReceiptPresent": false,
-            "fingerprintStatus": "fresh",
-            "recordedAt": "2026-07-15T14:26:49.648Z"
-          },
-          {
-            "engine": "firefox",
-            "receiptPath": "test-results/libp2p-browser/swr-138-firefox.json",
-            "sourceControlledEvidence": "docs/browser-libp2p-evidence.md",
-            "fingerprintPath": "docs/browser-libp2p-evidence.fingerprint.json",
-            "rawReceiptPresent": false,
-            "fingerprintStatus": "fresh",
-            "recordedAt": "2026-07-15T14:26:49.648Z"
-          },
-          {
-            "engine": "webkit",
-            "receiptPath": "test-results/libp2p-browser/swr-138-webkit.json",
-            "sourceControlledEvidence": "docs/browser-libp2p-evidence.md",
-            "fingerprintPath": "docs/browser-libp2p-evidence.fingerprint.json",
-            "rawReceiptPresent": false,
-            "fingerprintStatus": "fresh",
-            "recordedAt": "2026-07-15T14:26:49.648Z"
-          }
-        ]
-      },
-      "proof": {
-        "contractPath": "docs/browser-proof-runtime-evidence.json",
-        "observedPath": "test-results/browser-proof-runtime/observed-three-engine-runtime.json",
-        "contractTaskId": "SWR-139",
-        "outcome": "passed",
-        "generatedAt": "2026-07-20T07:38:12.598Z",
-        "assertionCount": 81,
-        "assertionsPerEngine": 27,
-        "engines": [
-          {
-            "engine": "chromium",
-            "outcome": "passed",
-            "assertionCount": 27
-          },
-          {
-            "engine": "firefox",
-            "outcome": "passed",
-            "assertionCount": 27
-          },
-          {
-            "engine": "webkit",
-            "outcome": "passed",
-            "assertionCount": 27
-          }
-        ],
-        "theoremBackend": "typescript-truth-table",
-        "zkpBackend": "browser-schnorr-wasm",
-        "wasmHelperSha256": "59fb1c30446716179bab2e5691bbf344aa2a60d123f7101fc0ee731e96976e0c"
-      }
-    },
-    "hermeticRelease": {
-      "reportPath": "docs/release-readiness-report.json",
-      "attestationPath": "docs/release-reproduction-attestation.json",
-      "releaseDecision": "GO",
-      "attestationDecision": "GO",
-      "blockerCount": 0,
-      "blockerIds": [],
-      "cleanCheckoutStatus": "passed",
-      "cleanCheckoutFailure": null,
-      "canonicalPayloadSha256": "928376771a3a3d1f293ac46b0939ba8cdb3fd41737e1be58018fcdb2a175c4de"
-    }
-  },
-  "releaseReproductionAttestation": {
-    "path": "docs/release-reproduction-attestation.json",
-    "markdownPath": "docs/release-reproduction-attestation.md",
-    "decision": "GO",
-    "blockerCount": 0,
-    "blockerIds": [],
-    "parentGitlinkSha": "9252e108bf10b80593adc3e36b441b75affe51b3",
-    "parentGitlinkMatchesHead": true,
-    "preRunStatusEntryCount": 0,
-    "lockfileSha256": "584a3304603b208797b50faee86f00f5a6fe987d2289f382ae4f7b93a62dbc21",
-    "sourceFingerprint": "f26330d7c95584d62cdef61728b76d2f95ae540efb80da578d3ff938aae98239",
-    "cleanCheckout": {
-      "status": "passed",
-      "failureReason": null,
-      "commit": "9252e108bf10b80593adc3e36b441b75affe51b3",
-      "commandCount": 5,
-      "commands": [
-        {
-          "command": "git clone --no-hardlinks --no-checkout /home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife /tmp/swissknife-release-reproduction-Qh5KHW/swissknife",
-          "ok": true,
-          "status": 0,
-          "durationMs": 723
-        },
-        {
-          "command": "git checkout --detach 9252e108bf10b80593adc3e36b441b75affe51b3",
-          "ok": true,
-          "status": 0,
-          "durationMs": 1564
-        },
-        {
-          "command": "git clean -ffdX",
-          "ok": true,
-          "status": 0,
-          "durationMs": 31
-        },
-        {
-          "command": "npm ci",
-          "ok": true,
-          "status": 0,
-          "durationMs": 70108
-        },
-        {
-          "command": "npm run release:readiness",
-          "ok": true,
-          "status": 0,
-          "durationMs": 1017372
-        }
-      ],
-      "childReleaseDecision": "GO",
-      "childAttestationDecision": "GO",
-      "childAttestationHash": "a9236771f0c4fdf23da71771ba4abeb3e6c70b72e54a20091bec393ed9afc3b1",
-      "comparisons": {
-        "source_fingerprint": {
-          "candidate": "f26330d7c95584d62cdef61728b76d2f95ae540efb80da578d3ff938aae98239",
-          "reproduction": "f26330d7c95584d62cdef61728b76d2f95ae540efb80da578d3ff938aae98239",
-          "matches": true
-        },
-        "git_tree": {
-          "candidate": "09c604fbfb9673f50549e40df4849b9a1241fc93",
-          "reproduction": "09c604fbfb9673f50549e40df4849b9a1241fc93",
-          "matches": true
-        },
-        "lockfile_hash": {
-          "candidate": "584a3304603b208797b50faee86f00f5a6fe987d2289f382ae4f7b93a62dbc21",
-          "reproduction": "584a3304603b208797b50faee86f00f5a6fe987d2289f382ae4f7b93a62dbc21",
-          "matches": true
-        },
-        "evidence_freshness_contract": {
-          "candidate": "ccaf80b06197aba2bfa668ce194fdc26b72330cbfb50e70ca68762e9e1e2f29c",
-          "reproduction": "ccaf80b06197aba2bfa668ce194fdc26b72330cbfb50e70ca68762e9e1e2f29c",
-          "matches": true
-        }
-      }
-    }
-  },
   "gates": [
-    {
-      "id": "release-readiness-manifest",
-      "label": "Release evidence producer manifest ownership preflight (SVD-131)",
-      "status": "passed",
-      "durationMs": 4,
-      "tail": [],
-      "findings": []
-    },
     {
       "id": "browser-service-regression-sentinel",
       "label": "Browser/service duplicate regression sentinel (SWR-095)",
       "status": "passed",
-      "durationMs": 106,
+      "durationMs": 78,
       "tail": [],
       "findings": []
     },
@@ -1010,7 +160,7 @@
       "id": "services-audit",
       "label": "Service-boundary audit (services:audit)",
       "status": "passed",
-      "durationMs": 18326,
+      "durationMs": 5642,
       "tail": [],
       "findings": []
     },
@@ -1018,7 +168,7 @@
       "id": "module-boundary-audit",
       "label": "Repository module-boundary audit (audit:module-boundary)",
       "status": "passed",
-      "durationMs": 17693,
+      "durationMs": 5783,
       "tail": [],
       "findings": []
     },
@@ -1026,7 +176,7 @@
       "id": "typecheck",
       "label": "TypeScript project typecheck (typecheck)",
       "status": "passed",
-      "durationMs": 10235,
+      "durationMs": 8827,
       "tail": [],
       "findings": []
     },
@@ -1034,7 +184,7 @@
       "id": "test-fast",
       "label": "Fast unit test lane (test:fast)",
       "status": "passed",
-      "durationMs": 109243,
+      "durationMs": 36648,
       "tail": [],
       "findings": []
     },
@@ -1042,7 +192,7 @@
       "id": "test-browser-compat",
       "label": "Browser compatibility lane (test:browser-compat)",
       "status": "passed",
-      "durationMs": 21984,
+      "durationMs": 18192,
       "tail": [],
       "findings": []
     },
@@ -1050,7 +200,7 @@
       "id": "build-web",
       "label": "Web bundle build + host-leakage/budget audit (build:web)",
       "status": "passed",
-      "durationMs": 17018,
+      "durationMs": 15114,
       "tail": [],
       "findings": []
     },
@@ -1058,7 +208,7 @@
       "id": "bundle-host-leakage",
       "label": "Web bundle host-leakage re-audit (audit:bundle-host-leakage)",
       "status": "passed",
-      "durationMs": 8789,
+      "durationMs": 8765,
       "tail": [],
       "findings": []
     },
@@ -1066,39 +216,15 @@
       "id": "evidence-mcp-glasses",
       "label": "MCP/glasses manifest + capability coverage evidence (evidence:mcp-glasses)",
       "status": "passed",
-      "durationMs": 222830,
+      "durationMs": 216602,
       "tail": [],
       "findings": []
     },
     {
-      "id": "all-tools-peer-interoperability",
-      "label": "All-tools HTTP/browser-libp2p peer interoperability evidence (SVD-100)",
+      "id": "release-baseline-catalogs",
+      "label": "Current peer, executable binding, disposition, and gap catalogues (SVD-100/SVD-102/SVD-104/SVD-105)",
       "status": "passed",
-      "durationMs": 48461,
-      "tail": [],
-      "findings": []
-    },
-    {
-      "id": "application-live-tool-bindings",
-      "label": "All-app executable live tool binding catalog (SVD-104)",
-      "status": "passed",
-      "durationMs": 786,
-      "tail": [],
-      "findings": []
-    },
-    {
-      "id": "all-tools-disposition-catalog",
-      "label": "All backend tools disposition catalog (SVD-105)",
-      "status": "passed",
-      "durationMs": 918,
-      "tail": [],
-      "findings": []
-    },
-    {
-      "id": "application-live-binding-gap-ledger",
-      "label": "All-app live binding gap ledger (SVD-102)",
-      "status": "passed",
-      "durationMs": 902,
+      "durationMs": 9422,
       "tail": [],
       "findings": []
     },
@@ -1106,7 +232,7 @@
       "id": "application-live-behavior-proof",
       "label": "Current real application behavior proof (SVD-106)",
       "status": "passed",
-      "durationMs": 56448,
+      "durationMs": 50985,
       "tail": [],
       "findings": []
     },
@@ -1114,7 +240,7 @@
       "id": "application-gateway-evidence",
       "label": "Application-originated browser gateway calls (SVD-126)",
       "status": "passed",
-      "durationMs": 108587,
+      "durationMs": 53535,
       "tail": [],
       "findings": []
     },
@@ -1122,7 +248,7 @@
       "id": "mcpplusplus-profile-interoperability",
       "label": "Profiles A-H HTTP/browser-libp2p transport matrix (SVD-127)",
       "status": "passed",
-      "durationMs": 5018,
+      "durationMs": 4990,
       "tail": [],
       "findings": []
     },
@@ -1130,7 +256,15 @@
       "id": "meta-device-simulator-replay",
       "label": "Hardware-free Meta glasses device simulator replay (SVD-099/SVD-111)",
       "status": "passed",
-      "durationMs": 310251,
+      "durationMs": 270092,
+      "tail": [],
+      "findings": []
+    },
+    {
+      "id": "all-app-improvement-release-evidence",
+      "label": "All-app primary workflow, UI/UX, K/D/A, and live MCP++ evidence (SVD-133/SVD-180/SVD-181)",
+      "status": "passed",
+      "durationMs": 371457,
       "tail": [],
       "findings": []
     },
@@ -1138,15 +272,7 @@
       "id": "dispatch-artifact-persistence",
       "label": "Supervisor dispatch artifact CID/event-DAG persistence (SVD-113)",
       "status": "passed",
-      "durationMs": 2215,
-      "tail": [],
-      "findings": []
-    },
-    {
-      "id": "application-ui-ux-accessibility",
-      "label": "All-app UI/UX accessibility and recovery evidence (SVD-112)",
-      "status": "passed",
-      "durationMs": 42173,
+      "durationMs": 1926,
       "tail": [],
       "findings": []
     },
@@ -1154,15 +280,7 @@
       "id": "submodule-merge-reconciliation",
       "label": "Submodule/workspace merge reconciliation (SVD-116)",
       "status": "passed",
-      "durationMs": 1540,
-      "tail": [],
-      "findings": []
-    },
-    {
-      "id": "refactor-main-reconciliation",
-      "label": "Validated refactor-lane main reconciliation receipt (SWR-162)",
-      "status": "passed",
-      "durationMs": 4258,
+      "durationMs": 1853,
       "tail": [],
       "findings": []
     },
@@ -1170,7 +288,7 @@
       "id": "virtual-desktop-release-evidence",
       "label": "Virtual desktop release evidence aggregation (hierarchical MCP + all-tools)",
       "status": "passed",
-      "durationMs": 528,
+      "durationMs": 586,
       "tail": [],
       "findings": []
     },
@@ -1178,25 +296,25 @@
       "id": "independent-all-app-release-replay",
       "label": "Independent all-app release closeout replay (SVD-115)",
       "status": "passed",
-      "durationMs": 113,
+      "durationMs": 125,
       "tail": [],
       "findings": []
     },
     {
       "id": "evidence-freshness",
-      "label": "Browser/libp2p release evidence freshness certification",
+      "label": "Browser/libp2p release evidence freshness (evidence:freshness:check)",
       "status": "passed",
-      "durationMs": 183,
+      "durationMs": 424,
       "tail": [],
       "findings": []
     },
     {
       "id": "evidence-dashboard-consumer",
       "label": "MCP dashboard catalog/launch-gate receipt consistency (evidence:dashboard-consumer)",
-      "status": "skipped",
-      "durationMs": 0,
+      "status": "passed",
+      "durationMs": 507,
       "tail": [],
-      "skipReason": "sibling hallucinate_app checkout not present (standalone swissknife checkout)"
+      "findings": []
     },
     {
       "id": "skipped-gate-policy",

@@ -17,6 +17,8 @@ interface GatewayControl {
   owner: string;
   label: string;
   mutates_remote_state: boolean;
+  confirmation_required: boolean;
+  confirmation_policy: "none" | "policy" | "always";
   transport: "http" | null;
   selected_tool_id: string | null;
   transports: Array<"http" | "libp2p">;
@@ -161,6 +163,13 @@ test("executes every materialized binding from its canonical desktop application
         replayControls(transport).includes(control),
       );
       if (appControls.length === 0) continue;
+      // MCP Control owns the reviewed, argument-free K/D/A registry reads.
+      // Those six calls (three owners x two transports) are real reads. Every
+      // other application path remains a no-side-effect dry run unless its
+      // declaration is itself safely non-mutating and separately reviewed.
+      await page.evaluate((realSafeReadApp) => {
+        window.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ = !realSafeReadApp;
+      }, appId === "mcp-control");
       const icon = page.locator(`.icon[data-app="${appId}"]`).first();
       await expect(
         icon,
@@ -241,39 +250,67 @@ test("executes every materialized binding from its canonical desktop application
       ),
     ),
   ).toHaveProperty("size", expectedReplayCount);
-  expect(
-    events.every(
-      (event) =>
-        event.call.route === "/mcp/tools/call" &&
-        event.http_status === 200 &&
-        event.result.receipt?.persistence?.status === "persisted" &&
-        /^b[a-z2-7]{58}$/.test(event.result.receipt?.receipt_id ?? "") &&
-        /^b[a-z2-7]{58}$/.test(
-          event.result.receipt?.event_dag_refs?.[0] ?? "",
-        ) &&
-        // These values are collected from the server-side connector that made
-        // this exact application request.  Do not let a later report compiler
-        // replace them with a peer fixture or descriptor projection.
-        event.result.result?.application_transport_observation?.transport ===
-          event.call.transport &&
-        /^b[a-z2-7]{58}$/.test(
-          event.result.result?.application_transport_observation
-            ?.descriptor_cid ?? "",
-        ) &&
-        event.result.result?.application_transport_observation
-          ?.ucan_did_verified === true &&
-        /^did:key:/.test(
-          event.result.result?.application_transport_observation?.remote_did ??
-            "",
-        ) &&
-        /^b[a-z2-7]{58}$/.test(
-          event.result.result?.application_transport_observation
-            ?.identity_proof_cid ?? "",
-        ) &&
-        event.result.result?.application_transport_observation
-          ?.correlation_id === event.call.correlation_id,
-    ),
-  ).toBe(true);
+  const invalidObservations = events
+    .map((event) => {
+      const observation = event.result.result?.application_transport_observation;
+      return {
+        app_id: event.control.app_id,
+        binding_id: event.control.binding_id,
+        transport: event.call.transport,
+        outcome: event.result.outcome,
+        http_status: event.http_status,
+        receipt_status: event.result.receipt?.persistence?.status ?? null,
+        receipt_id: event.result.receipt?.receipt_id ?? null,
+        event_cid: event.result.receipt?.event_dag_refs?.[0] ?? null,
+        observation: observation ?? null,
+        checks: {
+          route: event.call.route === "/mcp/tools/call",
+          http_status: event.http_status === 200,
+          persisted:
+            event.result.receipt?.persistence?.status === "persisted",
+          receipt_cid: /^b[a-z2-7]{58}$/.test(
+            event.result.receipt?.receipt_id ?? "",
+          ),
+          event_cid: /^b[a-z2-7]{58}$/.test(
+            event.result.receipt?.event_dag_refs?.[0] ?? "",
+          ),
+          // These values are collected from the server-side connector that made
+          // this exact application request. Do not let a later report compiler
+          // replace them with a peer fixture or descriptor projection.
+          observation_transport:
+            observation?.transport === event.call.transport,
+          descriptor_cid: /^b[a-z2-7]{58}$/.test(
+            observation?.descriptor_cid ?? "",
+          ),
+          ucan_did_verified: observation?.ucan_did_verified === true,
+          remote_did: /^did:key:/.test(observation?.remote_did ?? ""),
+          identity_proof_cid: /^b[a-z2-7]{58}$/.test(
+            observation?.identity_proof_cid ?? "",
+          ),
+          correlation_id:
+            observation?.correlation_id === event.call.correlation_id,
+        },
+      };
+    })
+    .filter((entry) => !Object.values(entry.checks).every(Boolean));
+  expect(invalidObservations).toEqual([]);
+
+  const invalidGovernance = events.filter((event) => {
+    const dryRun = event.call.input.policy.dry_run === true;
+    if (event.control.mutates_remote_state) {
+      return !event.control.confirmation_required
+        || !dryRun
+        || event.call.input.policy.outcome !== "require_confirmation"
+        || event.call.input.policy.consent !== "granted";
+    }
+    if (event.control.app_id === "mcp-control") {
+      return dryRun
+        || event.call.input.policy.outcome !== "allow"
+        || event.call.input.policy.consent !== "not_required";
+    }
+    return event.call.input.policy.outcome !== "allow";
+  });
+  expect(invalidGovernance).toEqual([]);
 
   const browserOrigin = new URL(page.url()).origin;
   expect(observedMcpRequests).toHaveLength(expectedReplayCount);
@@ -293,10 +330,18 @@ test("executes every materialized binding from its canonical desktop application
     invocation: {
       narrow_non_mutating_input: !event.control.mutates_remote_state,
       dry_run: event.call.input.policy.dry_run === true,
-      confirmation_or_policy:
-        event.call.input.policy.dry_run === true
-          ? "confirmed_dry_run"
-          : "not_required",
+      operation_class: event.control.mutates_remote_state
+        ? "governed_write_request"
+        : "read_request",
+      confirmation_required: event.control.confirmation_required,
+      real_safe_read:
+        !event.control.mutates_remote_state &&
+        event.call.input.policy.dry_run === false,
+      confirmation_or_policy: event.control.mutates_remote_state
+        ? "confirmation_gated_dry_run"
+        : event.call.input.policy.dry_run === false
+          ? "safe_read_not_required"
+          : "safe_read_dry_run",
     },
     request: { route: event.call.route, same_origin: true },
     policy: event.call.input.policy,

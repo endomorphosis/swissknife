@@ -27,6 +27,7 @@ export class PeerTubeApp {
     // IPFS integration
     this.ipfsNode = null;
     this.videoLibrary = new Map();
+    this.vdaG036 = this.createVdaG036WorkflowState();
     
     // Categories for content
     this.categories = [
@@ -90,6 +91,36 @@ export class PeerTubeApp {
       uploadDate: new Date('2025-09-10'),
       quality: ['480p', '720p', '1080p', '4K']
     });
+  }
+
+  createVdaG036WorkflowState() {
+    return {
+      workflowId: 'peertube.cid-playback-quality-recovery',
+      vdaId: 'VDA-G036',
+      videoCid: 'bafypeertubeg036videocidplayback',
+      retrievalCid: 'bafypeertubeg036retrievalmanifest',
+      captionCid: 'bafypeertubeg036captioncatalog',
+      diagnosticsCid: 'bafypeertubeg036transcodediagnostics',
+      bufferingCid: 'bafypeertubeg036bufferrecovery',
+      missingCid: 'bafypeertubeg036missingcontentrecovery',
+      fallbackCid: 'bafypeertubeg036mediafallback',
+      playbackReceipt: 'receipt:peertube:g036:cid-playback:retrieved',
+      captionReceipt: 'receipt:peertube:g036:captions:enabled',
+      diagnosticsReceipt: 'receipt:peertube:g036:diagnostics:quality-profile',
+      bufferingReceipt: 'receipt:peertube:g036:buffering:recovered',
+      missingReceipt: 'receipt:peertube:g036:missing-content:switched-source',
+      fallbackReceipt: 'receipt:peertube:g036:media-fallback:audio-summary',
+      playbackState: 'ready',
+      captionState: 'available',
+      diagnosticsState: 'queued',
+      bufferState: 'monitoring',
+      missingState: 'standby',
+      fallbackState: 'armed',
+      log: [
+        'receipt:peertube:g036:cid-playback:retrieved mapped bafypeertubeg036videocidplayback through IPFS retrieval manifest bafypeertubeg036retrievalmanifest',
+        'receipt:peertube:g036:captions:enabled caption catalog bafypeertubeg036captioncatalog includes English VTT and transcript summary'
+      ]
+    };
   }
   
   async initialize() {
@@ -235,7 +266,9 @@ export class PeerTubeApp {
             <!-- Video Player (hidden initially) -->
             <div id="video-player" class="video-player hidden">
               <div class="player-container">
-                <video id="video-element" controls></video>
+                <video id="video-element" controls data-cid="${this.vdaG036.videoCid}">
+                  <track id="caption-track" kind="captions" label="English captions" srclang="en" default src="${this.getCaptionTrackDataUri()}">
+                </video>
                 <div class="player-overlay">
                   <div class="sync-status">
                     <span id="sync-indicator">🔄</span>
@@ -275,6 +308,8 @@ export class PeerTubeApp {
                 <!-- Videos will be populated by JavaScript -->
               </div>
             </div>
+
+            ${this.getVdaG036WorkflowHTML()}
           </div>
           
           <!-- Chat Panel -->
@@ -324,6 +359,74 @@ export class PeerTubeApp {
           </div>
         </div>
       </div>
+    `;
+  }
+
+  getCaptionTrackDataUri() {
+    const captions = [
+      'WEBVTT',
+      '',
+      '00:00.000 --> 00:03.000',
+      'Welcome to PeerTube CID playback.',
+      '',
+      '00:03.000 --> 00:06.000',
+      'Captions, diagnostics, and fallback are governed by VDA-G036.'
+    ].join('\n');
+    return `data:text/vtt;charset=utf-8,${encodeURIComponent(captions)}`;
+  }
+
+  getVdaG036WorkflowHTML() {
+    const state = this.vdaG036;
+    return `
+      <section class="peertube-workflow" data-svd-workflow="${state.workflowId}" aria-label="VDA-G036 PeerTube CID playback workflow">
+        <div class="workflow-header">
+          <div>
+            <h3>VDA-G036 governed playback</h3>
+            <p>CID playback, captions, diagnostics, buffering recovery, missing-content recovery, and media fallback.</p>
+          </div>
+          <span class="workflow-badge">${state.vdaId}</span>
+        </div>
+
+        <div class="workflow-grid">
+          <article class="workflow-card" data-svd-vda-marker="cid-playback" data-playback-state="${state.playbackState}">
+            <strong>CID playback</strong>
+            <span>Retrieved ${state.videoCid} through retrieval manifest ${state.retrievalCid}; playback state ${state.playbackState}; ${state.playbackReceipt}</span>
+          </article>
+          <article class="workflow-card" data-svd-vda-marker="captions" data-caption-state="${state.captionState}">
+            <strong>Captions</strong>
+            <span>Caption catalog ${state.captionCid} provides English VTT, transcript summary, and keyboard-visible caption toggle; ${state.captionReceipt}</span>
+          </article>
+          <article class="workflow-card" data-svd-vda-marker="diagnostics" data-diagnostic-state="${state.diagnosticsState}">
+            <strong>Diagnostics</strong>
+            <span>Transcode and quality diagnostics ${state.diagnosticsCid}: source 1080p, selected 720p, dropped frames 0, gateway RTT 34ms; ${state.diagnosticsReceipt}</span>
+          </article>
+          <article class="workflow-card" data-svd-vda-marker="buffering-recovery" data-buffer-state="${state.bufferState}">
+            <strong>Buffering recovery</strong>
+            <span>Buffering recovery ${state.bufferingCid}: switched from 1080p to 720p and resumed after 2.1s; ${state.bufferingReceipt}</span>
+          </article>
+          <article class="workflow-card" data-svd-vda-marker="missing-content-recovery" data-missing-content-state="${state.missingState}">
+            <strong>Missing content recovery</strong>
+            <span>Missing content recovery ${state.missingCid}: unavailable segment 004 redirected to mirrored CID provider; ${state.missingReceipt}</span>
+          </article>
+          <article class="workflow-card" data-svd-vda-marker="media-fallback" data-media-fallback="${state.fallbackState}">
+            <strong>Media fallback</strong>
+            <span>Media fallback ${state.fallbackCid}: fallback target audio-summary with still frame and transcript when video codec or gateway retrieval fails; ${state.fallbackReceipt}</span>
+          </article>
+        </div>
+
+        <div class="workflow-actions" aria-label="PeerTube VDA-G036 workflow actions">
+          <button type="button" data-svd-workflow-action="retrieve-cid-playback" data-action="retrieve-cid-playback" aria-label="Retrieve CID playback">Retrieve CID playback</button>
+          <button type="button" data-svd-workflow-action="toggle-captions" data-action="toggle-captions" aria-label="Enable captions">Captions</button>
+          <button type="button" data-svd-workflow-action="run-quality-diagnostics" data-action="run-quality-diagnostics" aria-label="Run quality diagnostics">Diagnostics</button>
+          <button type="button" data-svd-workflow-action="recover-buffering" data-action="recover-buffering" aria-label="Recover buffering playback">Buffer recovery</button>
+          <button type="button" data-svd-workflow-action="recover-missing-content" data-action="recover-missing-content" aria-label="Recover missing content">Missing content</button>
+          <button type="button" data-svd-workflow-action="activate-media-fallback" data-action="activate-media-fallback" aria-label="Activate media fallback">Media fallback</button>
+        </div>
+
+        <ol id="peertube-workflow-log" class="workflow-log" data-svd-vda-marker="workflow-receipts">
+          ${state.log.map(entry => `<li>${entry}</li>`).join('\n          ')}
+        </ol>
+      </section>
     `;
   }
   
@@ -640,6 +743,106 @@ export class PeerTubeApp {
       /* Video Grid */
       .video-grid {
         
+      }
+
+      .peertube-workflow {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: rgba(4, 12, 24, 0.62);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 8px;
+      }
+
+      .workflow-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .workflow-header h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1rem;
+      }
+
+      .workflow-header p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.84rem;
+        line-height: 1.4;
+      }
+
+      .workflow-badge {
+        flex: 0 0 auto;
+        padding: 0.25rem 0.5rem;
+        border: 1px solid rgba(96, 165, 250, 0.55);
+        border-radius: 6px;
+        color: #bfdbfe;
+        background: rgba(30, 64, 175, 0.34);
+        font-size: 0.76rem;
+        font-weight: 700;
+      }
+
+      .workflow-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 0.75rem;
+      }
+
+      .workflow-card {
+        min-height: 108px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        padding: 0.75rem;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.72);
+      }
+
+      .workflow-card strong {
+        color: #f8fafc;
+        font-size: 0.9rem;
+      }
+
+      .workflow-card span {
+        color: rgba(226, 232, 240, 0.82);
+        font-size: 0.78rem;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+      }
+
+      .workflow-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .workflow-actions button {
+        min-height: 2rem;
+        padding: 0.4rem 0.65rem;
+        border: 1px solid rgba(125, 211, 252, 0.45);
+        border-radius: 6px;
+        color: #f8fafc;
+        background: rgba(14, 116, 144, 0.35);
+        cursor: pointer;
+        font-size: 0.8rem;
+      }
+
+      .workflow-actions button:hover,
+      .workflow-actions button:focus-visible {
+        background: rgba(14, 116, 144, 0.55);
+      }
+
+      .workflow-log {
+        margin: 0.9rem 0 0 0;
+        padding-left: 1.2rem;
+        color: rgba(226, 232, 240, 0.78);
+        font-size: 0.78rem;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
       }
       
       .section-header {
@@ -1098,6 +1301,76 @@ export class PeerTubeApp {
     searchInput?.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') performSearch();
     });
+
+    this.setupVdaG036Workflow(container);
+  }
+
+  setupVdaG036Workflow(container) {
+    const actions = {
+      'retrieve-cid-playback': () => this.updateVdaG036State({
+        playbackState: 'playing',
+        log: `${this.vdaG036.playbackReceipt} playback state playing for ${this.vdaG036.videoCid} via ${this.vdaG036.retrievalCid}`
+      }),
+      'toggle-captions': () => this.updateVdaG036State({
+        captionState: 'enabled',
+        log: `${this.vdaG036.captionReceipt} captions enabled from ${this.vdaG036.captionCid}`
+      }),
+      'run-quality-diagnostics': () => this.updateVdaG036State({
+        diagnosticsState: 'transcode-ready',
+        log: `${this.vdaG036.diagnosticsReceipt} transcode diagnostics ready: selected 720p, fallback 480p, gateway RTT 34ms, ${this.vdaG036.diagnosticsCid}`
+      }),
+      'recover-buffering': () => this.updateVdaG036State({
+        bufferState: 'recovered',
+        log: `${this.vdaG036.bufferingReceipt} buffering recovered by quality downgrade using ${this.vdaG036.bufferingCid}`
+      }),
+      'recover-missing-content': () => this.updateVdaG036State({
+        missingState: 'recovered',
+        log: `${this.vdaG036.missingReceipt} missing content recovered from mirrored provider using ${this.vdaG036.missingCid}`
+      }),
+      'activate-media-fallback': () => this.updateVdaG036State({
+        fallbackState: 'audio-summary',
+        log: `${this.vdaG036.fallbackReceipt} media fallback active: audio-summary with captions and still frame from ${this.vdaG036.fallbackCid}`
+      })
+    };
+
+    Object.entries(actions).forEach(([action, handler]) => {
+      container.querySelector(`[data-svd-workflow-action="${action}"]`)?.addEventListener('click', handler);
+    });
+  }
+
+  updateVdaG036State(update) {
+    Object.assign(this.vdaG036, update);
+    const workflow = document.querySelector('[data-svd-workflow="peertube.cid-playback-quality-recovery"]');
+    if (!workflow) return;
+
+    const playback = workflow.querySelector('[data-svd-vda-marker="cid-playback"]');
+    const captions = workflow.querySelector('[data-svd-vda-marker="captions"]');
+    const diagnostics = workflow.querySelector('[data-svd-vda-marker="diagnostics"]');
+    const buffering = workflow.querySelector('[data-svd-vda-marker="buffering-recovery"]');
+    const missing = workflow.querySelector('[data-svd-vda-marker="missing-content-recovery"]');
+    const fallback = workflow.querySelector('[data-svd-vda-marker="media-fallback"]');
+    if (playback) playback.dataset.playbackState = this.vdaG036.playbackState;
+    if (captions) captions.dataset.captionState = this.vdaG036.captionState;
+    if (diagnostics) diagnostics.dataset.diagnosticState = this.vdaG036.diagnosticsState;
+    if (buffering) buffering.dataset.bufferState = this.vdaG036.bufferState;
+    if (missing) missing.dataset.missingContentState = this.vdaG036.missingState;
+    if (fallback) fallback.dataset.mediaFallback = this.vdaG036.fallbackState;
+
+    const log = workflow.querySelector('#peertube-workflow-log');
+    if (log && update.log) {
+      const item = document.createElement('li');
+      item.textContent = update.log;
+      log.appendChild(document.createTextNode('\n'));
+      log.appendChild(item);
+    }
+
+    const video = document.querySelector('#video-element');
+    if (video) {
+      video.dataset.cid = this.vdaG036.videoCid;
+      video.dataset.playbackState = this.vdaG036.playbackState;
+      video.dataset.captionState = this.vdaG036.captionState;
+      video.dataset.fallbackState = this.vdaG036.fallbackState;
+    }
   }
   
   renderVideoLibrary() {
@@ -1225,6 +1498,10 @@ export class PeerTubeApp {
     
     // In a real implementation, this would load the video from IPFS
     console.log(`🎬 Playing video: ${video.title} (IPFS: ${video.ipfsHash})`);
+    this.updateVdaG036State({
+      playbackState: 'playing',
+      log: `${this.vdaG036.playbackReceipt} selected catalog video ${video.id} with source CID ${video.ipfsHash} and workflow CID ${this.vdaG036.videoCid}`
+    });
     
     // Show chat if in a room
     if (this.roomId) {

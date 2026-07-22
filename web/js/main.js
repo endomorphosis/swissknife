@@ -1126,8 +1126,7 @@ class SwissKnifeDesktop {
                         const UnifiedP2PChatApp = UnifiedP2PChatModule.UnifiedP2PChatApp;
                         appInstance = new UnifiedP2PChatApp(this);
                         await appInstance.initialize();
-                        const chatContent = await appInstance.render();
-                        contentElement.innerHTML = chatContent;
+                        await appInstance.mount(contentElement);
                         
                         // Store global reference for event handlers
                         window.unifiedP2PChatInstance = appInstance;

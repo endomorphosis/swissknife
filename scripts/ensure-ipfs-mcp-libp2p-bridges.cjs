@@ -13,43 +13,10 @@ const leaseFileNames = {
   ipfs_datasets_py: 'ipfs-datasets-compat-endpoint.json',
   ipfs_accelerate_py: 'ipfs-accelerate-compat-endpoint.json',
 };
-const bridgeLeaseFileNames = {
-  ipfs_kit_py: 'ipfs-kit-mcp-p2p-endpoint.json',
-  ipfs_datasets_py: 'ipfs-datasets-mcp-p2p-endpoint.json',
-  ipfs_accelerate_py: 'ipfs-accelerate-mcp-p2p-endpoint.json',
-};
-const BRIDGE_FALLBACK_PORT_LIMIT = 64;
 const bridges = [
-  {
-    service: 'ipfs_kit_py',
-    endpoint: leasedMcpEndpoint('ipfs_kit_py', 'http://127.0.0.1:8014/mcp'),
-    port: leasedBridgePort('ipfs_kit_py', 9114),
-    defaultPort: 9114,
-    fallbackPortStart: 39114,
-    announce: 'ipfs-kit-mcp-p2p-announce.json',
-    pid: 'ipfs-kit-mcp-p2p.pid',
-    log: 'ipfs-kit-mcp-p2p.log',
-  },
-  {
-    service: 'ipfs_datasets_py',
-    endpoint: leasedMcpEndpoint('ipfs_datasets_py', 'http://127.0.0.1:3002/mcp'),
-    port: leasedBridgePort('ipfs_datasets_py', 9112),
-    defaultPort: 9112,
-    fallbackPortStart: 39112,
-    announce: 'ipfs-datasets-mcp-p2p-announce.json',
-    pid: 'ipfs-datasets-mcp-p2p.pid',
-    log: 'ipfs-datasets-mcp-p2p.log',
-  },
-  {
-    service: 'ipfs_accelerate_py',
-    endpoint: leasedMcpEndpoint('ipfs_accelerate_py', 'http://127.0.0.1:3003/mcp'),
-    port: leasedBridgePort('ipfs_accelerate_py', 9113),
-    defaultPort: 9113,
-    fallbackPortStart: 39113,
-    announce: 'ipfs-accelerate-mcp-p2p-announce.json',
-    pid: 'ipfs-accelerate-mcp-p2p.pid',
-    log: 'ipfs-accelerate-mcp-p2p.log',
-  },
+  { service: 'ipfs_kit_py', endpoint: leasedMcpEndpoint('ipfs_kit_py', 'http://127.0.0.1:8014/mcp'), port: 9114, announce: 'ipfs-kit-mcp-p2p-announce.json', pid: 'ipfs-kit-mcp-p2p.pid', log: 'ipfs-kit-mcp-p2p.log' },
+  { service: 'ipfs_datasets_py', endpoint: leasedMcpEndpoint('ipfs_datasets_py', 'http://127.0.0.1:3002/mcp'), port: 9112, announce: 'ipfs-datasets-mcp-p2p-announce.json', pid: 'ipfs-datasets-mcp-p2p.pid', log: 'ipfs-datasets-mcp-p2p.log' },
+  { service: 'ipfs_accelerate_py', endpoint: leasedMcpEndpoint('ipfs_accelerate_py', 'http://127.0.0.1:3003/mcp'), port: 9113, announce: 'ipfs-accelerate-mcp-p2p-announce.json', pid: 'ipfs-accelerate-mcp-p2p.pid', log: 'ipfs-accelerate-mcp-p2p.log' },
 ];
 
 function leasedMcpEndpoint(service, fallback) {
@@ -60,24 +27,6 @@ function leasedMcpEndpoint(service, fallback) {
     }
   } catch (_error) {
     // A first run has no lease; the conventional local endpoint is still valid.
-  }
-  return fallback;
-}
-
-function leasedBridgePort(service, fallback) {
-  try {
-    const lease = JSON.parse(fs.readFileSync(path.join(evidenceRoot, bridgeLeaseFileNames[service]), 'utf8'));
-    if (
-      lease.schema === 'swissknife.mcp-libp2p-bridge-endpoint.v1'
-      && lease.service === service
-      && Number.isInteger(lease.port)
-      && lease.port >= 1024
-      && lease.port <= 65535
-    ) {
-      return lease.port;
-    }
-  } catch (_error) {
-    // A first run has no bridge lease; use the conventional local bridge port.
   }
   return fallback;
 }
@@ -109,55 +58,21 @@ async function ensureBridge(bridge) {
   // reported success. Independently verify the announced multiaddr's own
   // TCP port is live before trusting this bridge as fresh evidence.
   const multiaddrReady = announceValid && (await multiaddrPortReady(announcePath));
-  const ownedPid = healthPortReady ? findOwnedBridgeProcess(bridge) : null;
-  if (healthPortReady && announceValid && multiaddrReady && ownedPid) {
-    fs.writeFileSync(path.join(evidenceRoot, bridge.pid), `${ownedPid}\n`, 'utf8');
-    writeBridgeEndpointLease(bridge.service, bridge.port);
-    return {
-      service: bridge.service,
-      ready: true,
-      action: 'already_running',
-      port: bridge.port,
-      pid: ownedPid,
-      announce_file: path.relative(projectRoot, announcePath),
-    };
+  if (healthPortReady && announceValid && multiaddrReady) {
+    return { service: bridge.service, ready: true, action: 'already_running', announce_file: path.relative(projectRoot, announcePath) };
   }
 
   const portWasReady = healthPortReady;
   if (portWasReady) {
-    if (!ownedPid) {
-      const fallback = await availableFallbackBridge(bridge);
-      if (fallback) return ensureBridge(fallback);
-      return {
-        service: bridge.service,
-        ready: false,
-        action: 'stale_listener_not_owned_by_swissknife_bridge',
-        port: bridge.port,
-        announce_file: path.relative(projectRoot, announcePath),
-      };
-    }
-    const stopped = await stopOwnedStaleBridge(bridge, ownedPid);
+    const stopped = await stopOwnedStaleBridge(bridge);
     if (!stopped) {
       return {
         service: bridge.service,
         ready: false,
-        action: 'owned_stale_bridge_did_not_stop',
-        port: bridge.port,
+        action: 'stale_listener_not_owned_by_swissknife_bridge',
         announce_file: path.relative(projectRoot, announcePath),
       };
     }
-  }
-
-  if (!(await canListen('127.0.0.1', bridge.port))) {
-    const fallback = await availableFallbackBridge(bridge);
-    if (fallback) return ensureBridge(fallback);
-    return {
-      service: bridge.service,
-      ready: false,
-      action: 'listener_not_owned_by_swissknife_bridge',
-      port: bridge.port,
-      announce_file: path.relative(projectRoot, announcePath),
-    };
   }
 
   const logPath = path.join(evidenceRoot, bridge.log);
@@ -178,12 +93,10 @@ async function ensureBridge(bridge) {
   fs.closeSync(logFd);
   fs.writeFileSync(path.join(evidenceRoot, bridge.pid), `${child.pid}\n`, 'utf8');
   const ready = await waitForBridge(bridge.port, announcePath, bridge.service);
-  if (ready) writeBridgeEndpointLease(bridge.service, bridge.port);
   return {
     service: bridge.service,
     ready,
     action: 'started',
-    port: bridge.port,
     pid: child.pid,
     announce_file: path.relative(projectRoot, announcePath),
     log_path: path.relative(projectRoot, logPath),
@@ -208,10 +121,13 @@ function readAnnounce(filePath, service, endpoint) {
   }
 }
 
-async function stopOwnedStaleBridge(bridge, knownPid = null) {
+async function stopOwnedStaleBridge(bridge) {
   const pidPath = path.join(evidenceRoot, bridge.pid);
-  let pid;
-  try { pid = knownPid ?? Number(fs.readFileSync(pidPath, 'utf8').trim()); } catch (_error) { pid = findOwnedBridgeProcess(bridge); }
+  let pid = null;
+  try { pid = Number(fs.readFileSync(pidPath, 'utf8').trim()); } catch (_error) {}
+  if (!Number.isInteger(pid) || pid <= 1 || !ownedBridgeProcess(pid, bridge)) {
+    pid = findOwnedBridgeProcess(bridge);
+  }
   if (!Number.isInteger(pid) || pid <= 1 || !ownedBridgeProcess(pid, bridge)) return false;
   try { process.kill(pid, 'SIGTERM'); } catch (_error) { return false; }
   const deadline = Date.now() + 10000;
@@ -220,33 +136,6 @@ async function stopOwnedStaleBridge(bridge, knownPid = null) {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   return false;
-}
-
-async function availableFallbackBridge(bridge) {
-  for (let offset = 0; offset < BRIDGE_FALLBACK_PORT_LIMIT; offset += 1) {
-    const port = bridge.fallbackPortStart + offset;
-    if (!(await canListen('127.0.0.1', port))) continue;
-    return { ...bridge, port };
-  }
-  return null;
-}
-
-function writeBridgeEndpointLease(service, port) {
-  const fileName = bridgeLeaseFileNames[service];
-  if (!fileName) return;
-  fs.writeFileSync(
-    path.join(evidenceRoot, fileName),
-    `${JSON.stringify({
-      schema: 'swissknife.mcp-libp2p-bridge-endpoint.v1',
-      service,
-      host: '127.0.0.1',
-      port,
-      leased_at: new Date().toISOString(),
-      owner: 'scripts/ensure-ipfs-mcp-libp2p-bridges.cjs',
-      ownership: 'never reuse, inspect, kill, or masquerade as a foreign listener',
-    }, null, 2)}\n`,
-    'utf8',
-  );
 }
 
 function findOwnedBridgeProcess(bridge) {
@@ -265,9 +154,7 @@ function findOwnedBridgeProcess(bridge) {
 function ownedBridgeProcess(pid, bridge) {
   try {
     const args = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8').replace(/\0/g, ' ');
-    const cwd = fs.realpathSync(`/proc/${pid}/cwd`);
-    return cwd === projectRoot
-      && args.includes('ipfs_mcp_libp2p_bridge.py')
+    return args.includes('ipfs_mcp_libp2p_bridge.py')
       && args.includes(`--service ${bridge.service}`)
       && args.includes(`--port ${bridge.port}`);
   } catch (_error) {
@@ -323,15 +210,5 @@ function portReady(port) {
     socket.once('connect', () => { socket.destroy(); resolve(true); });
     socket.once('timeout', () => { socket.destroy(); resolve(false); });
     socket.once('error', () => { socket.destroy(); resolve(false); });
-  });
-}
-
-function canListen(host, port) {
-  return new Promise(resolve => {
-    const server = net.createServer();
-    server.once('error', () => resolve(false));
-    server.listen({ host, port, exclusive: true }, () => {
-      server.close(error => resolve(!error));
-    });
   });
 }

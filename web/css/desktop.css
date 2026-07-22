@@ -753,6 +753,181 @@ body, html {
     transition: opacity 0.2s ease;
 }
 
+.all-app-backend-status-panel {
+    padding: 12px;
+    background: #10161d;
+    border-top: 1px solid #2f3945;
+    color: #e5e7eb;
+    font: 13px system-ui, sans-serif;
+}
+
+.window-content {
+    padding-bottom: 56px;
+    scroll-padding-bottom: 64px;
+}
+
+.live-tool-gateway-host {
+    scroll-margin-bottom: 64px;
+}
+
+.live-tool-gateway-panel {
+    padding: 12px;
+    background: #111820;
+    color: #e5e7eb;
+    font: 13px system-ui, sans-serif;
+}
+
+.live-tool-gateway-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.live-tool-gateway-controls {
+    display: grid;
+    gap: 8px;
+}
+
+.live-tool-gateway-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+}
+
+.live-tool-gateway-control button {
+    width: 100%;
+    box-sizing: border-box;
+    background: #26384f;
+    color: #f8fafc;
+    border: 1px solid #45617f;
+    padding: 6px 10px;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.live-tool-gateway-control button:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.live-tool-gateway-control output {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+    color: #bdd7ff;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+    white-space: normal;
+}
+
+.all-app-backend-status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.all-app-backend-status-header span {
+    color: #bdd7ff;
+    overflow-wrap: anywhere;
+}
+
+.all-app-backend-status-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.all-app-backend-status-row {
+    display: grid;
+    grid-template-columns: minmax(88px, 0.8fr) minmax(160px, 1.2fr) minmax(220px, 2fr);
+    gap: 10px;
+    align-items: start;
+    padding: 8px;
+    border: 1px solid #2f3945;
+    background: #151e27;
+}
+
+.all-app-backend-status-family {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.all-app-backend-status-family span,
+.all-app-backend-status-facts span:first-child {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 6px;
+    border: 1px solid #45617f;
+    color: #bdd7ff;
+}
+
+.all-app-backend-status-family strong,
+.all-app-backend-status-facts span,
+.all-app-backend-status-detail dd {
+    overflow-wrap: anywhere;
+}
+
+.all-app-backend-status-facts {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.all-app-backend-status-detail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 10px;
+    margin: 0;
+    min-width: 0;
+}
+
+.all-app-backend-status-detail div {
+    min-width: 0;
+}
+
+.all-app-backend-status-detail dt {
+    color: #9fb3c8;
+    font-size: 11px;
+}
+
+.all-app-backend-status-detail dd {
+    margin: 0;
+    color: #f8fafc;
+}
+
+@media (max-width: 768px) {
+    .all-app-backend-status-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .all-app-backend-status-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .all-app-backend-status-detail {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .live-tool-gateway-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .live-tool-gateway-control {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .desktop-icons {
@@ -799,5 +974,10 @@ body, html {
     
     .taskbar-icon {
         font-size: 14px;
+    }
+
+    .all-app-backend-status-row,
+    .all-app-backend-status-detail {
+        grid-template-columns: 1fr;
     }
 }

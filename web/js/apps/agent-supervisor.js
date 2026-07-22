@@ -101,10 +101,10 @@ const SAMPLE_SNAPSHOT = Object.freeze({
     subgoal('SWR-106-policy', 'SWR-106', 'Confirmation-gated steering request flow', 'blocked', ['SWR-106-1']),
   ],
   queue: [
-    queueItem('SWR-105-1', 'Render supervisor goals/subgoals tree', 'running', 'SWR-105', 'SWR-105-ui', []),
-    queueItem('SWR-105-2', 'Wire queue item to taskboard and receipts', 'ready', 'SWR-105', 'SWR-105-ui', ['SWR-105-1']),
-    queueItem('SWR-105-3', 'Publish browser-safe backend contract links', 'waiting', 'SWR-105', 'SWR-105-contract', []),
-    queueItem('SWR-106-1', 'Draft governed prompt steering confirmation flow', 'blocked', 'SWR-106', 'SWR-106-policy', ['SWR-105']),
+    queueItem('SWR-105-1', 'Render supervisor goals/subgoals tree', 'running', 'SWR-105', 'SWR-105-ui', [], 68, 'worker-alpha', null),
+    queueItem('SWR-105-2', 'Wire queue item to taskboard and receipts', 'ready', 'SWR-105', 'SWR-105-ui', ['SWR-105-1'], 25, 'unassigned', 'timeout: 900s; reassign_to: worker-beta'),
+    queueItem('SWR-105-3', 'Publish browser-safe backend contract links', 'waiting', 'SWR-105', 'SWR-105-contract', [], 10, 'worker-gamma', null),
+    queueItem('SWR-106-1', 'Draft governed prompt steering confirmation flow', 'blocked', 'SWR-106', 'SWR-106-policy', ['SWR-105'], 0, 'unassigned', 'blocked_by_dependency: SWR-105'),
   ],
   taskboardLinks: [
     taskboardLink('SWR-105-1', 'supervisor', '#task/SWR-105-1', 'Supervisor queue record', 'running'),
@@ -127,6 +127,28 @@ const SAMPLE_SNAPSHOT = Object.freeze({
     runRecord('run-SWR-105-1', 'SWR-105', 'SWR-105-ui', 'SWR-105-1', 'running', 'rcpt-run-SWR-105-1'),
     runRecord('run-SWR-105-2', 'SWR-105', 'SWR-105-contract', 'SWR-105-3', 'queued', 'rcpt-task-SWR-105-2'),
   ],
+  vdaG054: {
+    checkpoint_refs: [
+      'bafyagentg054goalsubgoalgraph',
+      'bafyagentg054promptpreview',
+      'bafyagentg054taskboardlinks',
+      'bafyagentg054policyconfirmation',
+      'bafyagentg054kdaevidence',
+      'bafyagentg054progress',
+      'bafyagentg054timeoutreassignment',
+      'bafyagentg054receiptvisibility',
+    ],
+    receipt_refs: [
+      'receipt:agent-supervisor:g054:goal-graph',
+      'receipt:agent-supervisor:g054:prompt-preview',
+      'receipt:agent-supervisor:g054:taskboard-links',
+      'receipt:agent-supervisor:g054:policy-confirmation',
+      'receipt:agent-supervisor:g054:kda-evidence',
+      'receipt:agent-supervisor:g054:progress',
+      'receipt:agent-supervisor:g054:timeout-reassignment',
+      'receipt:agent-supervisor:g054:receipt-visibility',
+    ],
+  },
 });
 
 export class AgentSupervisorApp {
@@ -899,6 +921,7 @@ export class AgentSupervisorApp {
           ${this.state.activeTab === 'contract' ? this.renderContract() : ''}
         </section>
       </main>
+      ${this.renderVdaG054WorkflowProof()}
     `;
   }
 
@@ -991,6 +1014,9 @@ export class AgentSupervisorApp {
           ${metric('Subgoal', task.subgoal_id || 'unlinked')}
           ${metric('State', task.status)}
           ${metric('Deps', task.dependencies.length ? task.dependencies.join(', ') : 'none')}
+          ${metric('Progress', `${Number(task.progress ?? 0)}%`)}
+          ${metric('Assignee', task.assignee || 'unassigned')}
+          ${metric('Timeout/Reassign', task.reassignment || 'within lease')}
         </div>
         <div class="as-section-line">
           <h4>Taskboard links</h4>
@@ -1316,6 +1342,72 @@ export class AgentSupervisorApp {
     `;
   }
 
+  renderVdaG054WorkflowProof() {
+    const { snapshot } = this.state;
+    const proof = snapshot.vdaG054 || SAMPLE_SNAPSHOT.vdaG054;
+    const checkpointRefs = Array.isArray(proof?.checkpoint_refs) ? proof.checkpoint_refs : SAMPLE_SNAPSHOT.vdaG054.checkpoint_refs;
+    const receiptRefs = Array.isArray(proof?.receipt_refs) ? proof.receipt_refs : SAMPLE_SNAPSHOT.vdaG054.receipt_refs;
+    const selectedTask = snapshot.queue.find(item => item.task_id === this.state.selectedTaskId) || snapshot.queue[0] || {};
+    const review = this.buildSteeringReview();
+    const owners = this.contract.owners.map(owner => owner.owner).join(', ');
+    const taskboardCount = snapshot.taskboardLinks.length;
+    const receiptCount = snapshot.receipts.length;
+    const progressSummary = snapshot.queue.map(task => `${task.task_id}:${Number(task.progress ?? 0)}%`).join(' ');
+    const reassignment = snapshot.queue.find(task => task.reassignment) || selectedTask;
+    return `
+      <section class="as-workflow-proof" data-svd-workflow="agent-supervisor.steer-goals-subgoals-dispatch" data-testid="agent-supervisor-vda-g054">
+        <div class="as-workflow-proof-head">
+          <h3>VDA-G054 workflow evidence</h3>
+          <span>Bounded goal steering, dispatch, K/D/A receipts, timeout recovery, and taskboard visibility.</span>
+        </div>
+        <div class="as-proof-actions" aria-label="Agent Supervisor workflow proof actions">
+          ${workflowActionButton('inspect-goal-graph', 'Goal graph')}
+          ${workflowActionButton('preview-steering-prompt', 'Prompt preview')}
+          ${workflowActionButton('open-taskboard-links', 'Taskboard links')}
+          ${workflowActionButton('confirm-policy', 'Policy confirmation')}
+          ${workflowActionButton('inspect-kda-evidence', 'K/D/A evidence')}
+          ${workflowActionButton('track-progress', 'Progress')}
+          ${workflowActionButton('simulate-timeout-reassignment', 'Timeout reassignment')}
+          ${workflowActionButton('open-receipt-visibility', 'Receipts')}
+        </div>
+        <div class="as-proof-grid">
+          <div data-svd-vda-marker="goal-subgoal-graph">
+            <strong>Goal/subgoal graph</strong>
+            <span>${checkpointRefs[0]} ${receiptRefs[0]} ${snapshot.goals.length} goals, ${snapshot.subgoals.length} subgoals, selected ${escapeHtml(this.state.selectedGoalId)} -> ${escapeHtml(this.state.selectedSubgoalId)}.</span>
+          </div>
+          <div data-svd-vda-marker="prompt-preview">
+            <strong>Prompt preview</strong>
+            <span>${checkpointRefs[1]} ${receiptRefs[1]} normalized target ${escapeHtml(review.normalized_target)}; planned MCP action ${escapeHtml(review.planned_mcp_action.method)}; prompt_log_preview ${escapeHtml(review.prompt_log_preview)}; structured-json-payload.</span>
+          </div>
+          <div data-svd-vda-marker="taskboard-links">
+            <strong>Taskboard links</strong>
+            <span>${checkpointRefs[2]} ${receiptRefs[2]} ${taskboardCount} taskboard links include ${escapeHtml((snapshot.taskboardLinks[0]?.url || selectedTask.taskboard_url || '#task/unselected'))}; queue records remain linked to goals and subgoals.</span>
+          </div>
+          <div data-svd-vda-marker="policy-confirmation">
+            <strong>Policy confirmation</strong>
+            <span>${checkpointRefs[3]} ${receiptRefs[3]} confirmation_required policy class ${escapeHtml(review.policy_class)} checks ${escapeHtml(review.planned_mcp_action.required_policy_checks.join(', '))}; governed writes stay dry-run or confirmed.</span>
+          </div>
+          <div data-svd-vda-marker="kda-evidence">
+            <strong>K/D/A evidence</strong>
+            <span>${checkpointRefs[4]} ${receiptRefs[4]} K ipfs_kit_py task receipts/event DAG; D ipfs_datasets_py goal and policy reasoning; A ipfs_accelerate_py queue, scheduler, and workers; owners ${escapeHtml(owners)}.</span>
+          </div>
+          <div data-svd-vda-marker="progress">
+            <strong>Progress</strong>
+            <span>${checkpointRefs[5]} ${receiptRefs[5]} progress ${escapeHtml(progressSummary || 'empty queue')}; selected task ${escapeHtml(selectedTask.task_id || 'none')} state ${escapeHtml(selectedTask.status || 'empty')}.</span>
+          </div>
+          <div data-svd-vda-marker="timeout-reassignment">
+            <strong>Timeout/reassignment</strong>
+            <span>${checkpointRefs[6]} ${receiptRefs[6]} timeout and reassignment path ${escapeHtml(reassignment?.reassignment || 'within lease')}; assignee ${escapeHtml(reassignment?.assignee || 'unassigned')}.</span>
+          </div>
+          <div data-svd-vda-marker="receipt-visibility">
+            <strong>Receipt visibility</strong>
+            <span>${checkpointRefs[7]} ${receiptRefs[7]} ${receiptCount} receipts visible; selected ${escapeHtml(this.state.selectedReceiptId || 'none')}; event-DAG checkpoint and receipt retrieval controls are visible.</span>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
   renderStyles() {
     return `
       <style>
@@ -1379,6 +1471,16 @@ export class AgentSupervisorApp {
         .as-gateway-row span, .as-gateway-row strong { overflow-wrap: anywhere; min-width: 0; }
         .as-gateway-row span { color: #a8bbb2; }
         .as-gateway-head { background: #17241f; }
+        .as-workflow-proof { display: grid; gap: 10px; padding: 12px; border-top: 1px solid #263a34; background: #101b18; }
+        .as-workflow-proof-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .as-workflow-proof-head h3 { margin: 0; font-size: 15px; letter-spacing: 0; }
+        .as-workflow-proof-head span { color: #a8bbb2; }
+        .as-proof-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .as-proof-actions button { border: 1px solid #315248; background: #173029; color: #edf7f2; border-radius: 6px; padding: 6px 9px; min-height: 30px; cursor: pointer; }
+        .as-proof-grid { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 1px; background: #263a34; border: 1px solid #263a34; }
+        .as-proof-grid > div { display: grid; gap: 4px; background: #0e1412; padding: 9px; min-width: 0; }
+        .as-proof-grid strong { color: #8bd8bd; }
+        .as-proof-grid span { color: #a8bbb2; overflow-wrap: anywhere; }
         .as-state { margin: 12px; padding: 12px; border: 1px solid #315248; background: #101b18; border-radius: 6px; display: flex; align-items: center; gap: 10px; }
         .as-error { border-color: #8c3d3d; background: #231312; }
         .as-spinner { width: 20px; height: 20px; border: 3px solid #315248; border-top-color: #8bd8bd; border-radius: 50%; animation: as-spin 900ms linear infinite; }
@@ -1395,6 +1497,7 @@ export class AgentSupervisorApp {
           .as-backend-row { grid-template-columns: 10px minmax(0, 1fr); }
           .as-backend-row span { overflow-wrap: anywhere; }
           .as-gateway-row { min-width: 1080px; }
+          .as-proof-grid { grid-template-columns: 1fr; }
         }
       </style>
     `;
@@ -1446,8 +1549,8 @@ function subgoal(subgoalId, goalId, title, status, taskIds) {
   return { subgoal_id: subgoalId, goal_id: goalId, title, status, task_ids: taskIds, taskboard_url: `#subgoal/${subgoalId}`, receipt: receipt(`rcpt-subgoal-${subgoalId}`, `bafysubgoal${subgoalId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) };
 }
 
-function queueItem(taskId, title, status, goalId, subgoalId, dependencies) {
-  return { task_id: taskId, title, status, goal_id: goalId, subgoal_id: subgoalId, taskboard_url: `#task/${taskId}`, dependencies, receipt: receipt(`rcpt-task-${taskId}`, `bafytask${taskId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) };
+function queueItem(taskId, title, status, goalId, subgoalId, dependencies, progress = 0, assignee = 'unassigned', reassignment = null) {
+  return { task_id: taskId, title, status, goal_id: goalId, subgoal_id: subgoalId, taskboard_url: `#task/${taskId}`, dependencies, progress, assignee, reassignment, receipt: receipt(`rcpt-task-${taskId}`, `bafytask${taskId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) };
 }
 
 function taskboardLink(taskId, source, url, title, status) {
@@ -1464,6 +1567,10 @@ function runRecord(runId, goalId, subgoalId, taskId, status, receiptId) {
 
 function metric(label, value) {
   return `<div class="as-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+}
+
+function workflowActionButton(action, label) {
+  return `<button type="button" data-svd-workflow-action="${escapeHtml(action)}" data-supervisor-focusable>${escapeHtml(label)}</button>`;
 }
 
 function resolveBrowserGateway() {

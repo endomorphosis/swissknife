@@ -73,6 +73,41 @@ export class CinemaApp {
         { name: 'Cross Fade', duration: 0.7, type: 'blend' }
       ]
     };
+
+    this.cinemaWorkflow = {
+      workflowId: 'cinema.project-media-render-provenance',
+      vdaId: 'VDA-G043',
+      projectCid: 'bafycinemag043projectcid',
+      mediaCid: 'bafycinemag043mediacid',
+      rightsCid: 'bafycinemag043rightsmetadata',
+      renderQueueCid: 'bafycinemag043renderqueue',
+      failedExportCid: 'bafycinemag043failedexport',
+      playbackFallbackCid: 'bafycinemag043playbackfallback',
+      timelineCid: 'bafycinemag043timelinecontrols',
+      eventDagCid: 'bafycinemag043eventdag',
+      receiptPrefix: 'receipt:cinema:g043',
+      projectName: 'Orbital Cutdown Trailer',
+      mediaTitle: 'launch-deck-master.mov',
+      rightsLicense: 'CC-BY-4.0 + creator release SK-CIN-2026-043',
+      renderJob: 'render-job-cinema-g043-1080p',
+      failedExport: 'ProRes 4444 export failed: encoder unavailable; MP4/H.264 fallback queued',
+      fallback: 'Proxy playback active from webm preview while original media gateway retries',
+      timeline: {
+        duration: 128,
+        playhead: 42,
+        zoom: 1.25,
+        snap: true
+      }
+    };
+    this.renderQueue = [
+      {
+        id: this.cinemaWorkflow.renderJob,
+        format: 'mp4',
+        status: 'queued',
+        progress: 72,
+        cid: this.cinemaWorkflow.renderQueueCid
+      }
+    ];
     
     // Initialize components
     this.initializeComponents();
@@ -264,6 +299,121 @@ export class CinemaApp {
       duration: this.currentProject.timeline.duration
     };
   }
+
+  renderCinemaWorkflowPanel() {
+    const workflow = this.cinemaWorkflow;
+    return `
+      <section class="cinema-vda-workflow"
+               data-svd-workflow="${workflow.workflowId}"
+               aria-label="Cinema project media render workflow"
+               style="
+                 background: rgba(255,255,255,0.06);
+                 border: 1px solid rgba(255,255,255,0.14);
+                 border-radius: 8px;
+                 padding: 12px;
+                 margin-bottom: 18px;
+                 display: grid;
+                 gap: 10px;
+               ">
+        <div style="display: flex; justify-content: space-between; gap: 10px; align-items: flex-start;">
+          <div>
+            <div style="font-size: 11px; color: #7dd3fc; font-weight: 700;">${workflow.vdaId}</div>
+            <h3 style="margin: 2px 0 0; font-size: 14px; color: #fff;">Project Render Workflow</h3>
+          </div>
+          <span data-render-queue-state="queued"
+                style="font-size: 11px; color: #fde68a;">Queue 1 active</span>
+        </div>
+
+        <div class="cinema-workflow-actions" style="
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 6px;
+        ">
+          <button data-svd-workflow-action="load-project-media-cids"
+                  aria-label="Load project and media CIDs"
+                  style="background: #2563eb; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Load CIDs</button>
+          <button data-svd-workflow-action="verify-rights-metadata"
+                  aria-label="Verify rights metadata"
+                  style="background: #0f766e; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Rights</button>
+          <button data-svd-workflow-action="submit-render-queue"
+                  aria-label="Submit render queue job"
+                  style="background: #7c3aed; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Render</button>
+          <button data-svd-workflow-action="simulate-failed-export"
+                  aria-label="Simulate failed export"
+                  style="background: #b45309; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Fail Export</button>
+          <button data-svd-workflow-action="activate-playback-fallback"
+                  aria-label="Activate playback fallback"
+                  style="background: #0369a1; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Fallback</button>
+          <button data-svd-workflow-action="stabilize-timeline-controls"
+                  aria-label="Stabilize timeline controls"
+                  style="background: #4d7c0f; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Timeline</button>
+        </div>
+
+        <article data-svd-vda-marker="project-media-cids"
+                 data-project-cid-state="loaded"
+                 data-media-cid-state="loaded"
+                 data-project-cid="${workflow.projectCid}"
+                 data-media-cid="${workflow.mediaCid}"
+                 style="background: rgba(0,0,0,0.18); border-radius: 6px; padding: 8px;">
+          <strong style="font-size: 12px;">Project/media CIDs</strong>
+          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.76);">${workflow.projectName} stores project CID ${workflow.projectCid}, media CID ${workflow.mediaCid}, and Event DAG ${workflow.eventDagCid}.</p>
+          <small>${workflow.receiptPrefix}:project-media-cids</small>
+        </article>
+
+        <article data-svd-vda-marker="rights-metadata"
+                 data-rights-state="verified"
+                 data-rights-cid="${workflow.rightsCid}"
+                 style="background: rgba(0,0,0,0.18); border-radius: 6px; padding: 8px;">
+          <strong style="font-size: 12px;">Rights metadata</strong>
+          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.76);">Clip ${workflow.mediaTitle} license ${workflow.rightsLicense}; rights CID ${workflow.rightsCid}.</p>
+          <small>${workflow.receiptPrefix}:rights-metadata</small>
+        </article>
+
+        <article data-svd-vda-marker="render-queue"
+                 data-render-queue-state="queued"
+                 data-render-job-id="${workflow.renderJob}"
+                 style="background: rgba(0,0,0,0.18); border-radius: 6px; padding: 8px;">
+          <strong style="font-size: 12px;">Render queue</strong>
+          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.76);">Job ${workflow.renderJob} queued at 72% with queue CID ${workflow.renderQueueCid}.</p>
+          <progress value="72" max="100" data-render-progress="queued" style="width: 100%; height: 8px;"></progress>
+          <small>${workflow.receiptPrefix}:render-queue</small>
+        </article>
+
+        <article data-svd-vda-marker="failed-export"
+                 data-export-state="failed-recoverable"
+                 data-failed-export-cid="${workflow.failedExportCid}"
+                 style="background: rgba(127,29,29,0.24); border-radius: 6px; padding: 8px;">
+          <strong style="font-size: 12px;">Failed export</strong>
+          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.78);">${workflow.failedExport}; failure CID ${workflow.failedExportCid}.</p>
+          <small>${workflow.receiptPrefix}:failed-export</small>
+        </article>
+
+        <article data-svd-vda-marker="playback-fallback"
+                 data-playback-fallback-state="active"
+                 data-playback-state="fallback-preview"
+                 style="background: rgba(12,74,110,0.28); border-radius: 6px; padding: 8px;">
+          <strong style="font-size: 12px;">Playback fallback</strong>
+          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.78);">${workflow.fallback}; fallback CID ${workflow.playbackFallbackCid}.</p>
+          <small>${workflow.receiptPrefix}:playback-fallback</small>
+        </article>
+
+        <article data-svd-vda-marker="stable-timeline-controls"
+                 data-timeline-state="stable"
+                 data-timeline-cid="${workflow.timelineCid}"
+                 style="background: rgba(20,83,45,0.24); border-radius: 6px; padding: 8px;">
+          <strong style="font-size: 12px;">Stable timeline controls</strong>
+          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.78);">Playhead ${workflow.timeline.playhead}s of ${workflow.timeline.duration}s, zoom ${workflow.timeline.zoom}x, snap enabled, timeline CID ${workflow.timelineCid}.</p>
+          <label style="display: block; font-size: 10px; color: rgba(255,255,255,0.7);">Playhead
+            <input type="range" min="0" max="${workflow.timeline.duration}" value="${workflow.timeline.playhead}" data-timeline-control="playhead" data-timeline-state="stable" style="width: 100%;">
+          </label>
+          <label style="display: block; font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 4px;">Zoom
+            <input type="range" min="50" max="400" value="125" data-timeline-control="zoom" data-timeline-state="stable" style="width: 100%;">
+          </label>
+          <small>${workflow.receiptPrefix}:stable-timeline-controls</small>
+        </article>
+      </section>
+    `;
+  }
   
   // GUI Methods for Virtual Desktop Integration
   createInterface(container) {
@@ -286,6 +436,43 @@ export class CinemaApp {
         flex-direction: column;
         overflow: hidden;
       ">
+        <style>
+          .cinema-app button:focus-visible,
+          .cinema-app input:focus-visible {
+            outline: 2px solid #7dd3fc;
+            outline-offset: 2px;
+          }
+          @media (max-width: 700px) {
+            .cinema-content {
+              flex-direction: column !important;
+              overflow-y: auto !important;
+            }
+            .cinema-content .tool-panel {
+              width: auto !important;
+              min-height: 74px;
+              flex-direction: row !important;
+              overflow-x: auto;
+              border-right: 0 !important;
+              border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+            .cinema-content .editing-area {
+              min-height: 460px;
+            }
+            .cinema-content .preview-area {
+              min-height: 250px;
+            }
+            .cinema-content .video-preview {
+              width: min(92vw, 480px) !important;
+              height: auto !important;
+              aspect-ratio: 16 / 9;
+            }
+            .cinema-content .properties-panel {
+              width: auto !important;
+              border-left: 0 !important;
+              border-top: 1px solid rgba(255,255,255,0.1);
+            }
+          }
+        </style>
         <!-- Header -->
         <div class="cinema-header" style="
           background: rgba(0,0,0,0.3);
@@ -305,7 +492,7 @@ export class CinemaApp {
             margin-left: auto;
             font-size: 12px;
             color: rgba(255,255,255,0.7);
-          ">Ready for Professional Video Editing</div>
+          ">Project CID ${this.cinemaWorkflow.projectCid}</div>
         </div>
         
         <!-- Main Content -->
@@ -375,9 +562,9 @@ export class CinemaApp {
                 justify-content: center;
                 color: rgba(255,255,255,0.6);
                 font-size: 16px;
-              ">
-                🎬 Video Preview Area
-                <br><small>Drop video files here or use Import</small>
+              " data-playback-fallback-state="active" data-playback-state="fallback-preview">
+                🎬 Proxy Preview Ready
+                <br><small>${this.cinemaWorkflow.playbackFallbackCid}</small>
               </div>
               
               <!-- Playback Controls -->
@@ -520,9 +707,12 @@ export class CinemaApp {
               ">
                 <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px;">Resolution: 1920x1080</div>
                 <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px;">Frame Rate: 30fps</div>
-                <div style="font-size: 12px; color: rgba(255,255,255,0.7);">Duration: 00:00:00</div>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px;">Duration: 00:02:08</div>
+                <div style="font-size: 11px; color: rgba(255,255,255,0.65); word-break: break-word;">${this.cinemaWorkflow.mediaCid}</div>
               </div>
             </div>
+
+            ${this.renderCinemaWorkflowPanel()}
             
             <div class="panel-section">
               <h3 style="
@@ -646,6 +836,13 @@ export class CinemaApp {
         console.log(isPlaying ? 'Video paused' : 'Video playing');
       });
     }
+
+    const workflowButtons = container.querySelectorAll('[data-svd-workflow-action]');
+    workflowButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.handleCinemaWorkflowAction(container, btn.dataset.svdWorkflowAction);
+      });
+    });
     
     // AI tool buttons
     const aiToolBtns = container.querySelectorAll('.ai-tool-btn');
@@ -666,6 +863,43 @@ export class CinemaApp {
         }, 2000);
       });
     });
+  }
+
+  handleCinemaWorkflowAction(container, action) {
+    const workflow = this.cinemaWorkflow;
+    const status = container.querySelector('[data-render-queue-state]');
+    const setText = message => {
+      if (status) status.textContent = message;
+    };
+
+    if (action === 'load-project-media-cids') {
+      this.currentProject = {
+        id: workflow.projectCid,
+        name: workflow.projectName,
+        mediaCid: workflow.mediaCid,
+        rightsCid: workflow.rightsCid,
+        created: new Date('2026-07-21T09:00:00-07:00'),
+        timeline: { tracks: [{ id: 'video-1', clips: [workflow.mediaCid] }], duration: workflow.timeline.duration },
+        settings: { resolution: '1920x1080', fps: 30 }
+      };
+      setText('CIDs loaded');
+    } else if (action === 'verify-rights-metadata') {
+      setText('Rights verified');
+    } else if (action === 'submit-render-queue') {
+      this.renderQueue[0].status = 'queued';
+      setText('Render queued');
+    } else if (action === 'simulate-failed-export') {
+      this.renderQueue[0].status = 'failed-recoverable';
+      setText('Export fallback ready');
+    } else if (action === 'activate-playback-fallback') {
+      setText('Proxy playback active');
+    } else if (action === 'stabilize-timeline-controls') {
+      this.timeline.currentTime = workflow.timeline.playhead;
+      this.timeline.duration = workflow.timeline.duration;
+      this.timeline.zoom = workflow.timeline.zoom;
+      setText('Timeline stable');
+    }
+    console.log(`🎬 Cinema workflow action: ${action}`);
   }
   
   selectTool(toolName) {

@@ -298,8 +298,12 @@ test('fresh release evidence distinguishes executable browser bindings from the 
       selected_tool_id: 'ipfs_cat',
       selected_transport: 'http',
       correlation_id: 'desktop:terminal:1',
+      invocation: {
+        operation_class: 'read_request', narrow_non_mutating_input: true,
+        confirmation_required: false, dry_run: true, confirmation_or_policy: 'safe_read_dry_run',
+      },
       request: { route: '/mcp/tools/call', same_origin: true },
-      policy: { outcome: 'allow', decision_id: 'desktop-policy:terminal' },
+      policy: { outcome: 'allow', decision_id: 'desktop-policy:terminal', consent: 'not_required', dry_run: true },
       response: { outcome: 'executed', ok: true },
       receipt_refs: ['bafkreifpvbepoilyb5hnhj5zph7cj52xnd2pgw6imbksjzx2rsfyzud5qa'],
       event_dag_refs: ['bafkreiglfkcp2zglgxtvkmhtb5wbibtc4oxtfirupnvxha5vr2eisjodh4'],
@@ -379,4 +383,226 @@ test('fresh release evidence rejects every unclassified backend tool with a reme
   assert.equal(findings[0].code, 'unclassified_backend_tool');
   assert.equal(findings[0].transport, 'libp2p');
   assert.match(findings[0].remediation, /Classify/);
+});
+
+test('all-app workflow evidence accepts the canonical primary control only with explicit failure and recovery paths', () => {
+  const viewport = name => ({
+    opened: true,
+    primary_control: { probe_id: `terminal-${name}-primary`, name: 'Retrieve content', action_succeeded: true },
+    states: { recovery: { closed_to_desktop: true } },
+    app_workflow: null,
+  });
+  const app = {
+    pass: true,
+    manifest_ux_scenarios: {
+      success: 'The retrieved content and receipt are visible.',
+      error: 'A policy-aware error identifies the failed request.',
+      fallback: 'Retry locally or close the window and return to the desktop.',
+    },
+    desktop: viewport('desktop'),
+    mobile: viewport('mobile'),
+  };
+
+  const valid = releaseEvidence.buildPrimaryWorkflowTrace('terminal', 'SVD-135', app);
+  assert.equal(valid.status, 'passed');
+  assert.equal(valid.evidence_kind, 'canonical_primary_control');
+  assert.equal(valid.owner_task_id, 'SVD-135');
+
+  const missingRecovery = structuredClone(app);
+  missingRecovery.manifest_ux_scenarios.fallback = '';
+  assert.equal(releaseEvidence.buildPrimaryWorkflowTrace('terminal', 'SVD-135', missingRecovery).status, 'failed');
+});
+
+test('all-app backend evidence requires diagnostic K/D/A plus call-bound receipts for every semantic role', () => {
+  const owners = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
+  const cid = `b${'a'.repeat(58)}`;
+  const catalog = new Map(owners.map(owner => [owner, {
+    owner,
+    transports: Object.fromEntries(['http', 'libp2p'].map(transport => [transport, {
+      real_safe_read: true, application_safe_read: true, no_transport_fallback: true,
+      policy: { policy_outcome: 'allow' },
+      receipt_cid: cid,
+      event_dag_cid: cid,
+      descriptor_cid: cid,
+      remote_did: `did:key:${owner}-${transport}`,
+    }])),
+  }]));
+  const execution = {
+    transport: 'http', operation_class: 'read_request', execution_mode: 'real_safe_read',
+    correlation_id: 'corr-1', policy: { decision_id: 'allow-1', outcome: 'allow', consent: 'not_required' },
+    confirmation: { required: false, dry_run: false },
+    did_identity: { verified: true, remote_did: 'did:key:peer', identity_proof_cid: cid },
+    descriptor_cid: cid, receipt_cid: cid, event_dag_cid: cid,
+    persistence_status: 'persisted', outcome: 'executed', same_origin_mediator: true,
+    direct_backend_details_exposed: false,
+  };
+  const toolRecord = {
+    disposition: 'tool_backed',
+    diagnostic_kda_status: { rows: owners.map((owner, index) => ({
+      owner, kda_key: ['K', 'D', 'A'][index], diagnostic_only: true, state: 'reachable', reason: 'Independent safe read passed.',
+    })) },
+    semantic_backend_roles: { roles: [{
+      binding_id: 'terminal.ipfs_kit_py.retrieve', owner: owners[0], semantic_role: 'retrieve content',
+      policy_class: 'safe_read', mutates_remote_state: false, executions: [execution],
+    }] },
+    proof: { diagnostic_status_is_not_semantic_assignment: true },
+  };
+
+  const expectedBindings = [{
+    app_id: 'terminal', binding_id: 'terminal.ipfs_kit_py.retrieve', owner: owners[0], transports: ['http'],
+  }];
+  assert.equal(releaseEvidence.buildBackendAndReceiptTrace('terminal', toolRecord, catalog, expectedBindings).status, 'passed');
+  const missingReceipt = structuredClone(toolRecord);
+  delete missingReceipt.semantic_backend_roles.roles[0].executions[0].receipt_cid;
+  const invalid = releaseEvidence.buildBackendAndReceiptTrace('terminal', missingReceipt, catalog, expectedBindings);
+  assert.equal(invalid.status, 'failed');
+  assert.deepEqual(invalid.failing_binding_ids, ['terminal.ipfs_kit_py.retrieve']);
+
+  const conflatedKda = structuredClone(toolRecord);
+  conflatedKda.diagnostic_kda_status.rows[0].kda_key = 'D';
+  assert.equal(releaseEvidence.buildBackendAndReceiptTrace('terminal', conflatedKda, catalog, expectedBindings).status, 'failed');
+
+  const ungovernedRead = structuredClone(toolRecord);
+  ungovernedRead.semantic_backend_roles.roles[0].executions[0].policy.outcome = 'require_confirmation';
+  assert.equal(releaseEvidence.buildBackendAndReceiptTrace('terminal', ungovernedRead, catalog, expectedBindings).status, 'failed');
+
+  const fallbackCatalog = structuredClone(Object.fromEntries(catalog));
+  fallbackCatalog[owners[0]].transports.http.no_transport_fallback = false;
+  assert.equal(releaseEvidence.buildBackendAndReceiptTrace(
+    'terminal', toolRecord, new Map(Object.entries(fallbackCatalog)), expectedBindings,
+  ).status, 'failed');
+
+  const forgedLocal = structuredClone(toolRecord);
+  forgedLocal.disposition = 'browser_local';
+  forgedLocal.semantic_backend_roles.roles = [];
+  const reconciled = releaseEvidence.buildBackendAndReceiptTrace('terminal', forgedLocal, catalog, expectedBindings);
+  assert.equal(reconciled.status, 'failed');
+  assert.equal(reconciled.canonical_binding_reconciliation.status, 'failed');
+});
+
+test('ORB/IDL and Meta simulator evidence is explicit for both applicable and non-applicable apps', () => {
+  const notApplicable = releaseEvidence.buildOrbMetaTrace('calculator', [], [], [], 'browser_local');
+  assert.equal(notApplicable.orb_idl.status, 'not_applicable');
+  assert.match(notApplicable.orb_idl.rationale, /browser_local/);
+  assert.equal(notApplicable.meta_simulator.status, 'not_applicable');
+
+  const missing = releaseEvidence.buildOrbMetaTrace(
+    'terminal', [{ binding_id: 'terminal.ipfs_kit_py.retrieve' }], [], [], 'tool_backed',
+  );
+  assert.equal(missing.orb_idl.status, 'failed');
+  assert.deepEqual(missing.orb_idl.missing_binding_ids, ['terminal.ipfs_kit_py.retrieve']);
+  assert.equal(missing.meta_simulator.status, 'failed');
+});
+
+test('ORB/IDL trace accepts multiple governed action packets for one binding and replays each packet', () => {
+  const bindingId = 'agent-supervisor.ipfs_accelerate_py.control';
+  const cid = `sha256:${'a'.repeat(64)}`;
+  const packet = packetId => ({
+    app_id: 'agent-supervisor', binding_id: bindingId, packet_id: packetId,
+    interface_cid: cid, peer_did: 'did:key:supervisor-peer',
+    correlation_id: `correlation-${packetId}`, receipt_refs: [{ ref: `receipt:${packetId}`, cid }],
+    event_dag_refs: [{ ref: `event-dag:${packetId}`, cid }],
+  });
+  const replay = packetId => ({
+    app_id: 'agent-supervisor', packet_id: packetId, status: 'passed',
+    compiled_packet_verified: true, receipt_event_dag_preserved: true,
+    modalities: Object.fromEntries(['display', 'camera', 'microphone', 'speaker', 'input'].map(modality => [modality, {
+      flows: ['primary', 'permission_denied', 'route_unavailable'].map(scenario => ({
+        scenario, receipt_refs_preserved: true, event_dag_refs_preserved: true, physical_hardware_claimed: false,
+      })),
+    }])),
+  });
+
+  const result = releaseEvidence.buildOrbMetaTrace(
+    'agent-supervisor', [{ binding_id: bindingId }],
+    [packet('packet-1'), packet('packet-2')], [replay('packet-1'), replay('packet-2')], 'tool_backed',
+  );
+
+  assert.equal(result.orb_idl.status, 'passed');
+  assert.deepEqual(result.orb_idl.packet_ids, ['packet-1', 'packet-2']);
+  assert.equal(result.meta_simulator.status, 'passed');
+  assert.deepEqual(result.meta_simulator.packet_ids, ['packet-1', 'packet-2']);
+});
+
+test('app improvement gap owners are stable by app ID rather than catalog position', () => {
+  const expected = {
+    terminal: 'SVD-135', vibecode: 'SVD-136', 'music-studio-unified': 'SVD-137', 'ai-chat': 'SVD-138',
+    'file-manager': 'SVD-139', 'task-manager': 'SVD-140', todo: 'SVD-141', 'model-browser': 'SVD-142',
+    huggingface: 'SVD-143', openrouter: 'SVD-144', 'ipfs-explorer': 'SVD-145', 'device-manager': 'SVD-146',
+    settings: 'SVD-147', 'mcp-control': 'SVD-148', 'api-keys': 'SVD-149', github: 'SVD-150',
+    'oauth-login': 'SVD-151', cron: 'SVD-152', navi: 'SVD-153', 'p2p-network': 'SVD-154',
+    'p2p-chat-unified': 'SVD-155', 'neural-network-designer': 'SVD-156', 'training-manager': 'SVD-157',
+    calculator: 'SVD-158', clock: 'SVD-159', calendar: 'SVD-160', peertube: 'SVD-161',
+    'friends-list': 'SVD-162', 'image-viewer': 'SVD-163', notes: 'SVD-164', 'media-player': 'SVD-165',
+    'system-monitor': 'SVD-166', 'neural-photoshop': 'SVD-167', cinema: 'SVD-168', strudel: 'SVD-169',
+    'strudel-ai-daw': 'SVD-170', 'music-studio': 'SVD-171', 'p2p-chat': 'SVD-172',
+    'datasets-browser': 'SVD-173', 'accelerate-panel': 'SVD-174', 'idl-explorer': 'SVD-175',
+    'glasses-preview': 'SVD-176', 'orb-auto-ui': 'SVD-177', 'mcp-plus-plus': 'SVD-178',
+    'agent-supervisor': 'SVD-179',
+  };
+
+  assert.deepEqual(releaseEvidence.APP_IMPROVEMENT_TASK_BY_APP_ID, expected);
+  assert.equal(new Set(Object.values(expected)).size, 45);
+  assert.equal(releaseEvidence.appImprovementTaskId('ai-chat'), 'SVD-138');
+  assert.equal(releaseEvidence.appImprovementTaskId('unknown-app'), null);
+});
+
+test('release validation accepts only fully evidenced confirmation-gated governed dry runs', () => {
+  const cid = `b${'a'.repeat(58)}`;
+  const binding = {
+    app_id: 'terminal', binding_id: 'terminal.ipfs_kit_py.retrieve_content', owner: 'ipfs_kit_py', transports: ['http'],
+  };
+  const execution = {
+    app_id: binding.app_id, binding_id: binding.binding_id, owner: binding.owner,
+    selected_tool_id: 'ipfs_cat', selected_transport: 'http', correlation_id: 'desktop:terminal:1',
+    invocation: {
+      operation_class: 'governed_write_request', confirmation_required: true, dry_run: true,
+      confirmation_or_policy: 'confirmation_gated_dry_run',
+    },
+    request: { same_origin: true, route: '/mcp/tools/call' },
+    response: { outcome: 'executed', ok: true },
+    policy: { outcome: 'require_confirmation', decision_id: 'policy-1', consent: 'granted', dry_run: true },
+    receipt_refs: [cid], event_dag_refs: [cid],
+    persistence: { status: 'persisted', receipt_cid: cid, event_cid: cid },
+    transport_observation: {
+      transport: 'http', descriptor_cid: cid, ucan_did_verified: true, remote_did: 'did:key:peer',
+      identity_proof_cid: cid, correlation_id: 'desktop:terminal:1',
+    },
+    recovery: { correlation_id_preserved: true }, browser_observed_urls: ['/mcp/tools/call'],
+    no_backend_urls_or_credentials_exposed: true,
+  };
+
+  assert.equal(releaseEvidence.validLiveGatewayExecution(execution, binding, true), true);
+  for (const missing of ['consent', 'dry_run']) {
+    const invalid = structuredClone(execution);
+    delete invalid.policy[missing];
+    assert.equal(releaseEvidence.validLiveGatewayExecution(invalid, binding, true), false);
+  }
+  const invalidConfirmation = structuredClone(execution);
+  invalidConfirmation.invocation.confirmation_required = false;
+  assert.equal(releaseEvidence.validLiveGatewayExecution(invalidConfirmation, binding, true), false);
+  const forgedAllow = structuredClone(execution);
+  forgedAllow.policy.outcome = 'allow';
+  forgedAllow.policy.consent = 'not_required';
+  assert.equal(releaseEvidence.validLiveGatewayExecution(forgedAllow, binding, true), false);
+});
+
+test('profile transport validation preserves explicit governed dry-run evidence', () => {
+  const cid = `b${'a'.repeat(58)}`;
+  const observation = {
+    transport: 'libp2p', application_originated: true, selected_tool_id: 'ipfs_cat',
+    correlation_id: 'desktop:ai-chat:1', descriptor_cid: cid, receipt_cid: cid, event_cid: cid,
+    ucan_did_verified: true, remote_did: 'did:key:peer', identity_proof_cid: cid,
+    policy_outcome: 'require_confirmation', policy_decision_id: 'policy-1',
+    policy_dry_run: true, confirmation_required: true, persistence_verified: true,
+    recovery: { observed: true, correlation_id_preserved: true },
+  };
+  assert.equal(releaseEvidence.validApplicationTransportObservation(observation, 'libp2p'), true);
+  for (const missing of ['policy_dry_run', 'confirmation_required']) {
+    const invalid = structuredClone(observation);
+    delete invalid[missing];
+    assert.equal(releaseEvidence.validApplicationTransportObservation(invalid, 'libp2p'), false);
+  }
+  const safeRead = { ...observation, policy_outcome: 'allow', policy_dry_run: false, confirmation_required: false };
+  assert.equal(releaseEvidence.validApplicationTransportObservation(safeRead, 'libp2p'), true);
 });

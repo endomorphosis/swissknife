@@ -1,0 +1,835 @@
+{
+  "schema": "swissknife.mcpplusplus.http-libp2p-kda-receipt-catalog.v1",
+  "task_id": "SVD-181",
+  "generated_at": "2026-07-22T00:39:32.187Z",
+  "status": "passed",
+  "source_peer_evidence": {
+    "schema": "swissknife.all_tools_peer_interoperability_evidence.v1",
+    "task_id": "SVD-100",
+    "generated_at": "2026-07-22T00:27:29.725Z",
+    "decision": "go"
+  },
+  "evidence_policy": {
+    "safe_read_definition": "A real, non-mutating request with dry_run=false, an allow decision, no confirmation requirement, and a persisted receipt/event DAG.",
+    "independent_transport_sessions_required": true,
+    "transport_fallback_forbidden": true,
+    "count_only_inference_forbidden": true,
+    "application_path_required": "mcp-control canonical desktop control"
+  },
+  "summary": {
+    "server_count": 3,
+    "transport_count": 6,
+    "real_safe_read_count": 6,
+    "application_safe_read_count": 6,
+    "persisted_receipt_count": 12
+  },
+  "servers": [
+    {
+      "owner": "ipfs_kit_py",
+      "kda_key": "K",
+      "label": "IPFS Kit",
+      "semantic_backend_role": "content-addressed storage, retrieval, peer networking, and receipt persistence",
+      "diagnostic_status_role": "Reachability, identity, descriptor, receipt, and event-DAG diagnostics only; this row does not assign an application semantic role.",
+      "safe_read_tool": "files_stat",
+      "safe_read_approval": "non-mutating status fixture",
+      "transports": {
+        "http": {
+          "transport": "http",
+          "real_safe_read": true,
+          "application_safe_read": true,
+          "no_transport_fallback": true,
+          "tool_id": "files_stat",
+          "correlation_id": "svd-181-safe-read-ipfs_kit_py-http",
+          "policy": {
+            "operation_class": "safe_read",
+            "mutates_remote_state": false,
+            "confirmation_required": false,
+            "confirmation_state": "not_required",
+            "dry_run": false,
+            "policy_decision_id": "svd-181-policy-ipfs_kit_py-http",
+            "policy_outcome": "allow",
+            "correlation_id": "svd-181-safe-read-ipfs_kit_py-http"
+          },
+          "remote_did": "did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu",
+          "identity_proof_cid": "bafkreib3ccwvgacpa5leomcr6fp6xlggca6l2uuxoqwm4mgpshibikadse",
+          "peer_id": null,
+          "descriptor_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
+          "descriptor_cids": [
+            "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q"
+          ],
+          "negotiated_profiles": [
+            "cid-envelope",
+            "event-dag",
+            "idl",
+            "p2p-transport",
+            "ucan"
+          ],
+          "envelope_cids": {
+            "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
+            "envelope_cid": "bafkreigor3u75235t3gjdigqanfyuivinfnp5qihzldzwfr5adhzbkyr64",
+            "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
+            "intent_cid": "bafkreig4ie5oqd5ijn6igh7oxusytahhigcg7lpn545lohoi6hlw2nu6ci",
+            "output_cid": "bafkreifscgxnse3by4cjozl4lmbwvuixjofzxw3zusig24ynbkx7po2y2y",
+            "receipt_cid": "bafkreigyda7d65vez7nuhmahzxln4l57rjhnmadixeys5xidtdbbshrcze",
+            "event_cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe",
+            "receipt_success": true,
+            "artifact_persistence_complete": true,
+            "result_outcome": "success",
+            "result_semantic_fingerprint": "sha256:c584d1b592e94f9ecdc1737b3ada06e8ac96d651ea008190840542c6ff6602ed",
+            "result_contract_fingerprint": "sha256:b086caf4784c887c9285b4f3f74f222982917df819fc9a8af472beab25a55a53"
+          },
+          "receipt_cid": "bafkreigyda7d65vez7nuhmahzxln4l57rjhnmadixeys5xidtdbbshrcze",
+          "event_dag_cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe",
+          "cid_retrieval": {
+            "expected_cid_count": 6,
+            "all_expected_cids_present": true,
+            "all_found_verified": true,
+            "artifacts": [
+              {
+                "kind": "input",
+                "cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "intent",
+                "cid": "bafkreig4ie5oqd5ijn6igh7oxusytahhigcg7lpn545lohoi6hlw2nu6ci",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "envelope",
+                "cid": "bafkreigor3u75235t3gjdigqanfyuivinfnp5qihzldzwfr5adhzbkyr64",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "output",
+                "cid": "bafkreifscgxnse3by4cjozl4lmbwvuixjofzxw3zusig24ynbkx7po2y2y",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "receipt",
+                "cid": "bafkreigyda7d65vez7nuhmahzxln4l57rjhnmadixeys5xidtdbbshrcze",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "event",
+                "cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              }
+            ]
+          },
+          "event_dag": {
+            "profile_advertised": true,
+            "history_observed": true,
+            "execution_event_present": true,
+            "provenance_visible": true,
+            "event_cid": "bafkreidjwnmdn7g7l4rymikroknttoeemxmfxzh65tbe3ksb6tlak7zgfe"
+          },
+          "canonical_application_read": {
+            "app_id": "mcp-control",
+            "binding_id": "mcp-control.ipfs_kit_py.inspect_tool_registry",
+            "owner": "ipfs_kit_py",
+            "selected_tool_id": "node_id",
+            "correlation_id": "desktop:mcp-control.ipfs_kit_py.inspect_tool_registry:1784680113803:y53du5w2",
+            "policy": {
+              "decision_id": "desktop-policy:mcp-control.ipfs_kit_py.inspect_tool_registry",
+              "outcome": "allow",
+              "reason": "Narrow non-mutating desktop read request.",
+              "consent": "not_required",
+              "dry_run": false
+            },
+            "receipt_cid": "bafkreiboaez5tyilgycqglvu4itujbtbsrcvmdzhzbddofpaby33lktfxe",
+            "event_dag_cid": "bafkreicr32w3fttbzgvnmkq7iwuzc344yziyzqsnlafnhu2fjgp2zit454",
+            "descriptor_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
+            "remote_did": "did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu",
+            "identity_proof_cid": "bafkreihxtopt7fbxw5hp6az5rwnhziiykl2gfwnirv7o7ddytwl5jtowke"
+          }
+        },
+        "libp2p": {
+          "transport": "libp2p",
+          "real_safe_read": true,
+          "application_safe_read": true,
+          "no_transport_fallback": true,
+          "tool_id": "files_stat",
+          "correlation_id": "svd-181-safe-read-ipfs_kit_py-libp2p",
+          "policy": {
+            "operation_class": "safe_read",
+            "mutates_remote_state": false,
+            "confirmation_required": false,
+            "confirmation_state": "not_required",
+            "dry_run": false,
+            "policy_decision_id": "svd-181-policy-ipfs_kit_py-libp2p",
+            "policy_outcome": "allow",
+            "correlation_id": "svd-181-safe-read-ipfs_kit_py-libp2p"
+          },
+          "remote_did": "did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu",
+          "identity_proof_cid": "bafkreif4vgug2jm436w5nraxei7u7v3xqksfoa46cmceetap3xqnjpgz74",
+          "peer_id": "12D3KooWHSvE1bkC6QR9FRf57CNfhrmNW9RB3uVzdeqkKCyLDw9u",
+          "descriptor_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
+          "descriptor_cids": [
+            "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q"
+          ],
+          "negotiated_profiles": [
+            "cid-envelope",
+            "event-dag",
+            "idl",
+            "p2p-transport",
+            "ucan"
+          ],
+          "envelope_cids": {
+            "interface_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
+            "envelope_cid": "bafkreig6cubzidcghdu5mba2g4iceejogalwzdzhqzuopl2t7ianea7fzy",
+            "input_cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
+            "intent_cid": "bafkreidqm3epdshjnozddgql3yanj6nc2bwlyg7uv7xpnvzozdjvkvcfqy",
+            "output_cid": "bafkreibddvfzedqfcegdrpnl34sjx2wverfbg2ipo5k7jszc73pxrx3gdq",
+            "receipt_cid": "bafkreietpgetr6hr7urmfwsys5lp5h6csmvo56kkejlnfz6xfrw3bc7mi4",
+            "event_cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki",
+            "receipt_success": true,
+            "artifact_persistence_complete": true,
+            "result_outcome": "success",
+            "result_semantic_fingerprint": "sha256:c584d1b592e94f9ecdc1737b3ada06e8ac96d651ea008190840542c6ff6602ed",
+            "result_contract_fingerprint": "sha256:b086caf4784c887c9285b4f3f74f222982917df819fc9a8af472beab25a55a53"
+          },
+          "receipt_cid": "bafkreietpgetr6hr7urmfwsys5lp5h6csmvo56kkejlnfz6xfrw3bc7mi4",
+          "event_dag_cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki",
+          "cid_retrieval": {
+            "expected_cid_count": 6,
+            "all_expected_cids_present": true,
+            "all_found_verified": true,
+            "artifacts": [
+              {
+                "kind": "input",
+                "cid": "bafkreicsgk4pv77pwpfnowijyqhgyqyzismbxvwcbi273paesiwcjh4pwm",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "intent",
+                "cid": "bafkreidqm3epdshjnozddgql3yanj6nc2bwlyg7uv7xpnvzozdjvkvcfqy",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "envelope",
+                "cid": "bafkreig6cubzidcghdu5mba2g4iceejogalwzdzhqzuopl2t7ianea7fzy",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "output",
+                "cid": "bafkreibddvfzedqfcegdrpnl34sjx2wverfbg2ipo5k7jszc73pxrx3gdq",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "receipt",
+                "cid": "bafkreietpgetr6hr7urmfwsys5lp5h6csmvo56kkejlnfz6xfrw3bc7mi4",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "event",
+                "cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              }
+            ]
+          },
+          "event_dag": {
+            "profile_advertised": true,
+            "history_observed": true,
+            "execution_event_present": true,
+            "provenance_visible": true,
+            "event_cid": "bafkreicpzpmucan7mgj7qkfveoulbpazwc7pfhtta3ymldxafvo2hxnwki"
+          },
+          "canonical_application_read": {
+            "app_id": "mcp-control",
+            "binding_id": "mcp-control.ipfs_kit_py.inspect_tool_registry",
+            "owner": "ipfs_kit_py",
+            "selected_tool_id": "node_id",
+            "correlation_id": "desktop:mcp-control.ipfs_kit_py.inspect_tool_registry:1784680130591:vvot0x03",
+            "policy": {
+              "decision_id": "desktop-policy:mcp-control.ipfs_kit_py.inspect_tool_registry",
+              "outcome": "allow",
+              "reason": "Narrow non-mutating desktop read request.",
+              "consent": "not_required",
+              "dry_run": false
+            },
+            "receipt_cid": "bafkreieielro26qfgvghxdpruxiwyudvycs5sg25ojxu4gci2i65ye5eti",
+            "event_dag_cid": "bafkreienu4zdnndlgputr5qikqczd3f5gegv3rw54oomzkbxlzveut4y3m",
+            "descriptor_cid": "bafkreigtrlsydtivo7l5hzgxu7eo5d633crbdjd44pdn63nkxkbsvsso2q",
+            "remote_did": "did:key:z6MkvAUPBCMQzakz16QeKSg68XSeewjGUvpzUjxQGD33qwKu",
+            "identity_proof_cid": "bafkreiet2ifmr4mo5tjlobq6dzoa4ybbeundoxagpinab5wt2evsxleiai"
+          }
+        }
+      }
+    },
+    {
+      "owner": "ipfs_datasets_py",
+      "kda_key": "D",
+      "label": "IPFS Datasets",
+      "semantic_backend_role": "dataset discovery, semantic indexing, and provenance",
+      "diagnostic_status_role": "Reachability, identity, descriptor, receipt, and event-DAG diagnostics only; this row does not assign an application semantic role.",
+      "safe_read_tool": "list_indices",
+      "safe_read_approval": "non-mutating catalog fixture",
+      "transports": {
+        "http": {
+          "transport": "http",
+          "real_safe_read": true,
+          "application_safe_read": true,
+          "no_transport_fallback": true,
+          "tool_id": "list_indices",
+          "correlation_id": "svd-181-safe-read-ipfs_datasets_py-http",
+          "policy": {
+            "operation_class": "safe_read",
+            "mutates_remote_state": false,
+            "confirmation_required": false,
+            "confirmation_state": "not_required",
+            "dry_run": false,
+            "policy_decision_id": "svd-181-policy-ipfs_datasets_py-http",
+            "policy_outcome": "allow",
+            "correlation_id": "svd-181-safe-read-ipfs_datasets_py-http"
+          },
+          "remote_did": "did:key:z6MkkgF8EaWd4nwRodPwicSYJbuhKiBoxQXQi7wMCw4FHNtc",
+          "identity_proof_cid": "bafkreigqc2p54zqaqgkathl7gqgh63u65kolcl3k7ytpzx2e476vimoaja",
+          "peer_id": null,
+          "descriptor_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
+          "descriptor_cids": [
+            "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi"
+          ],
+          "negotiated_profiles": [
+            "cid-envelope",
+            "event-dag",
+            "idl",
+            "p2p-transport",
+            "ucan"
+          ],
+          "envelope_cids": {
+            "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
+            "envelope_cid": "bafkreib76ecomwjz3sdqkjefov6y36kqrafqeoixbbngawjumftaduhfg4",
+            "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
+            "intent_cid": "bafkreiakeoam6folwzkttqew5ts6yoftsieoaqqqh2df22pdqbk6ayg52u",
+            "output_cid": "bafkreidnkqspadder4dd4ku5fg4crh4ia22j36mqcifrkkhjiszibkoaxi",
+            "receipt_cid": "bafkreih7natmz6f2af27lgkaggpktmiaasq6whynrm27yx4b5bdo2ukqwy",
+            "event_cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje",
+            "receipt_success": true,
+            "artifact_persistence_complete": true,
+            "result_outcome": "success",
+            "result_semantic_fingerprint": "sha256:e9a7f03db3ff803dc4c68c1dc3555233dac1a9a9444fc9ab3d8d325575dd3626",
+            "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
+          },
+          "receipt_cid": "bafkreih7natmz6f2af27lgkaggpktmiaasq6whynrm27yx4b5bdo2ukqwy",
+          "event_dag_cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje",
+          "cid_retrieval": {
+            "expected_cid_count": 6,
+            "all_expected_cids_present": true,
+            "all_found_verified": true,
+            "artifacts": [
+              {
+                "kind": "input",
+                "cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "intent",
+                "cid": "bafkreiakeoam6folwzkttqew5ts6yoftsieoaqqqh2df22pdqbk6ayg52u",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "envelope",
+                "cid": "bafkreib76ecomwjz3sdqkjefov6y36kqrafqeoixbbngawjumftaduhfg4",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "output",
+                "cid": "bafkreidnkqspadder4dd4ku5fg4crh4ia22j36mqcifrkkhjiszibkoaxi",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "receipt",
+                "cid": "bafkreih7natmz6f2af27lgkaggpktmiaasq6whynrm27yx4b5bdo2ukqwy",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "event",
+                "cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              }
+            ]
+          },
+          "event_dag": {
+            "profile_advertised": true,
+            "history_observed": true,
+            "execution_event_present": true,
+            "provenance_visible": true,
+            "event_cid": "bafkreiegnmd3jgqkp7lnrczjmuhyx57okcsvteoftjny6sfjazsrmutjje"
+          },
+          "canonical_application_read": {
+            "app_id": "mcp-control",
+            "binding_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry",
+            "owner": "ipfs_datasets_py",
+            "selected_tool_id": "tools_list_categories",
+            "correlation_id": "desktop:mcp-control.ipfs_datasets_py.inspect_tool_registry:1784680113804:4w9lphf3",
+            "policy": {
+              "decision_id": "desktop-policy:mcp-control.ipfs_datasets_py.inspect_tool_registry",
+              "outcome": "allow",
+              "reason": "Narrow non-mutating desktop read request.",
+              "consent": "not_required",
+              "dry_run": false
+            },
+            "receipt_cid": "bafkreigtisffsc75hrzji3ter4mpc5hdikxusufwsxydotxoquevmlddv4",
+            "event_dag_cid": "bafkreia2kjprkzxmmgjayumrrfj26fwrvlw2mjdqqzueya4e6t4wsftdj4",
+            "descriptor_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
+            "remote_did": "did:key:z6MkkgF8EaWd4nwRodPwicSYJbuhKiBoxQXQi7wMCw4FHNtc",
+            "identity_proof_cid": "bafkreic5k6zdrsi5pukfypnrwag7n627kpsarfmmvvflu572peuwcctviq"
+          }
+        },
+        "libp2p": {
+          "transport": "libp2p",
+          "real_safe_read": true,
+          "application_safe_read": true,
+          "no_transport_fallback": true,
+          "tool_id": "list_indices",
+          "correlation_id": "svd-181-safe-read-ipfs_datasets_py-libp2p",
+          "policy": {
+            "operation_class": "safe_read",
+            "mutates_remote_state": false,
+            "confirmation_required": false,
+            "confirmation_state": "not_required",
+            "dry_run": false,
+            "policy_decision_id": "svd-181-policy-ipfs_datasets_py-libp2p",
+            "policy_outcome": "allow",
+            "correlation_id": "svd-181-safe-read-ipfs_datasets_py-libp2p"
+          },
+          "remote_did": "did:key:z6MkkgF8EaWd4nwRodPwicSYJbuhKiBoxQXQi7wMCw4FHNtc",
+          "identity_proof_cid": "bafkreihgd6ogdtysgsz67boimnesik4m6cm5yran6xi5pubdx2xnfr7sqy",
+          "peer_id": "12D3KooWJLa4NRDRjwNPXyV78X2Gk1Fmmsk9jdA1yvwN1ac5oT7f",
+          "descriptor_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
+          "descriptor_cids": [
+            "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi"
+          ],
+          "negotiated_profiles": [
+            "cid-envelope",
+            "event-dag",
+            "idl",
+            "p2p-transport",
+            "ucan"
+          ],
+          "envelope_cids": {
+            "interface_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
+            "envelope_cid": "bafkreihtu6g2slhv7zbglc3jejwvm2sjjg5uozh7epszokygbkjqlfdduu",
+            "input_cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
+            "intent_cid": "bafkreiaij5caiul3yqgeujonocpxurybq24qcorwcwzh2r4keqkootz4iy",
+            "output_cid": "bafkreiaps5xfhrzpgrlfbzfoqeuww34tm5ypqeo7kabchtqatm4xwd2klm",
+            "receipt_cid": "bafkreiegzoyeo6wstkznfvoyeya64m3jx5ql2rmj7kr26472ntzofrhuby",
+            "event_cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe",
+            "receipt_success": true,
+            "artifact_persistence_complete": true,
+            "result_outcome": "success",
+            "result_semantic_fingerprint": "sha256:68a60e4c8f293048c86ce87c9f48f801e424fb8a5052c13c1284c9831ca786dd",
+            "result_contract_fingerprint": "sha256:58b3ef0f87165a0ab9ad4030a4adcdcf0eae83846cdc0160b27d28e2aec6c0de"
+          },
+          "receipt_cid": "bafkreiegzoyeo6wstkznfvoyeya64m3jx5ql2rmj7kr26472ntzofrhuby",
+          "event_dag_cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe",
+          "cid_retrieval": {
+            "expected_cid_count": 6,
+            "all_expected_cids_present": true,
+            "all_found_verified": true,
+            "artifacts": [
+              {
+                "kind": "input",
+                "cid": "bafkreihsmqy24eplboifgak77cz7pywtudchhacij5qgjkcuk2z6np7key",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "intent",
+                "cid": "bafkreiaij5caiul3yqgeujonocpxurybq24qcorwcwzh2r4keqkootz4iy",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "envelope",
+                "cid": "bafkreihtu6g2slhv7zbglc3jejwvm2sjjg5uozh7epszokygbkjqlfdduu",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "output",
+                "cid": "bafkreiaps5xfhrzpgrlfbzfoqeuww34tm5ypqeo7kabchtqatm4xwd2klm",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "receipt",
+                "cid": "bafkreiegzoyeo6wstkznfvoyeya64m3jx5ql2rmj7kr26472ntzofrhuby",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "event",
+                "cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              }
+            ]
+          },
+          "event_dag": {
+            "profile_advertised": true,
+            "history_observed": true,
+            "execution_event_present": true,
+            "provenance_visible": true,
+            "event_cid": "bafkreibe4ixti3vtn6ksqdyn47h64qbk3wipqau52chxbjsoxgg444abpe"
+          },
+          "canonical_application_read": {
+            "app_id": "mcp-control",
+            "binding_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry",
+            "owner": "ipfs_datasets_py",
+            "selected_tool_id": "tools_list_categories",
+            "correlation_id": "desktop:mcp-control.ipfs_datasets_py.inspect_tool_registry:1784680132401:kzxcrfsp",
+            "policy": {
+              "decision_id": "desktop-policy:mcp-control.ipfs_datasets_py.inspect_tool_registry",
+              "outcome": "allow",
+              "reason": "Narrow non-mutating desktop read request.",
+              "consent": "not_required",
+              "dry_run": false
+            },
+            "receipt_cid": "bafkreicp7i6duzgfp5ezihvz5li5xnaejfedgwrlfbcxstyjnrxc5uwyzq",
+            "event_dag_cid": "bafkreie6uhvnw7zjmnwrgrx5pwfm5rtdxscfbixlivrb2xgnialtu6uoum",
+            "descriptor_cid": "bafkreiea6ifqo536vjhu5iab3gccs3e6mp2hsabokmm7juyh64wz6a2mpi",
+            "remote_did": "did:key:z6MkkgF8EaWd4nwRodPwicSYJbuhKiBoxQXQi7wMCw4FHNtc",
+            "identity_proof_cid": "bafkreigwbt5ne46zotlhazvdx3ysll6nvidnjjldw3qru43z74bp43yzhu"
+          }
+        }
+      }
+    },
+    {
+      "owner": "ipfs_accelerate_py",
+      "kda_key": "A",
+      "label": "IPFS Accelerate",
+      "semantic_backend_role": "model execution, hardware selection, scheduling, and telemetry",
+      "diagnostic_status_role": "Reachability, identity, descriptor, receipt, and event-DAG diagnostics only; this row does not assign an application semantic role.",
+      "safe_read_tool": "get_server_status",
+      "safe_read_approval": "non-mutating health fixture",
+      "transports": {
+        "http": {
+          "transport": "http",
+          "real_safe_read": true,
+          "application_safe_read": true,
+          "no_transport_fallback": true,
+          "tool_id": "get_server_status",
+          "correlation_id": "svd-181-safe-read-ipfs_accelerate_py-http",
+          "policy": {
+            "operation_class": "safe_read",
+            "mutates_remote_state": false,
+            "confirmation_required": false,
+            "confirmation_state": "not_required",
+            "dry_run": false,
+            "policy_decision_id": "svd-181-policy-ipfs_accelerate_py-http",
+            "policy_outcome": "allow",
+            "correlation_id": "svd-181-safe-read-ipfs_accelerate_py-http"
+          },
+          "remote_did": "did:key:z6MkgPkf8stf2vgAeEdETTtcPNd6WUMZaxNcPLpPFmStWiFz",
+          "identity_proof_cid": "bafkreic6ciwihcpe6eitykohvl225wyus7mc7fe4c423wkf526i4zpquq4",
+          "peer_id": null,
+          "descriptor_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
+          "descriptor_cids": [
+            "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km"
+          ],
+          "negotiated_profiles": [
+            "cid-envelope",
+            "event-dag",
+            "idl",
+            "p2p-transport",
+            "ucan"
+          ],
+          "envelope_cids": {
+            "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
+            "envelope_cid": "bafkreihrbiwkd5wqlrhew4gvlwkiip2lxvqoiddxztzjeqtnz6mkbpylcq",
+            "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
+            "intent_cid": "bafkreiamcsrhhrrdva6i5nv3aacujqqfganf56omixm7mten2squawfctm",
+            "output_cid": "bafkreiaavajhzpxx2ehjnbcbabji5oj75j4ho76h3kglwcqferjdpkoaji",
+            "receipt_cid": "bafkreihemndv5su6ozkqmt3kat22ohh5shvoxidu2eagk4n4lbqrxmpz7a",
+            "event_cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq",
+            "receipt_success": true,
+            "artifact_persistence_complete": true,
+            "result_outcome": "success",
+            "result_semantic_fingerprint": "sha256:00a8127cbef7d10e96844100528eb93fea78777fc7da8cbb0a05245237a9c04a",
+            "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
+          },
+          "receipt_cid": "bafkreihemndv5su6ozkqmt3kat22ohh5shvoxidu2eagk4n4lbqrxmpz7a",
+          "event_dag_cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq",
+          "cid_retrieval": {
+            "expected_cid_count": 6,
+            "all_expected_cids_present": true,
+            "all_found_verified": true,
+            "artifacts": [
+              {
+                "kind": "input",
+                "cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "intent",
+                "cid": "bafkreiamcsrhhrrdva6i5nv3aacujqqfganf56omixm7mten2squawfctm",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "envelope",
+                "cid": "bafkreihrbiwkd5wqlrhew4gvlwkiip2lxvqoiddxztzjeqtnz6mkbpylcq",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "output",
+                "cid": "bafkreiaavajhzpxx2ehjnbcbabji5oj75j4ho76h3kglwcqferjdpkoaji",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "receipt",
+                "cid": "bafkreihemndv5su6ozkqmt3kat22ohh5shvoxidu2eagk4n4lbqrxmpz7a",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              },
+              {
+                "kind": "event",
+                "cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "helia"
+              }
+            ]
+          },
+          "event_dag": {
+            "profile_advertised": true,
+            "history_observed": true,
+            "execution_event_present": true,
+            "provenance_visible": true,
+            "event_cid": "bafkreiczlge5kodktvwilsoklmd7nkqwj2bfzj6uq4w5tgeszfpvhnkdqq"
+          },
+          "canonical_application_read": {
+            "app_id": "mcp-control",
+            "binding_id": "mcp-control.ipfs_accelerate_py.inspect_tool_registry",
+            "owner": "ipfs_accelerate_py",
+            "selected_tool_id": "HealthChecker.check_detailed",
+            "correlation_id": "desktop:mcp-control.ipfs_accelerate_py.inspect_tool_registry:1784680113805:r6xx8khr",
+            "policy": {
+              "decision_id": "desktop-policy:mcp-control.ipfs_accelerate_py.inspect_tool_registry",
+              "outcome": "allow",
+              "reason": "Narrow non-mutating desktop read request.",
+              "consent": "not_required",
+              "dry_run": false
+            },
+            "receipt_cid": "bafkreig64qmvcgwzltuollb3yppvydciqt6e4kjt3dcrc3ubhef4txtezu",
+            "event_dag_cid": "bafkreifcuhh26p4dwkvvvpngb6tnt4rjwrmojpekwt2gz6ty475bgnl7ku",
+            "descriptor_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
+            "remote_did": "did:key:z6MkgPkf8stf2vgAeEdETTtcPNd6WUMZaxNcPLpPFmStWiFz",
+            "identity_proof_cid": "bafkreiarbmbifwvjglzjj3cty3moduwelrxrxmy7vst6vczeunrs6hbfdm"
+          }
+        },
+        "libp2p": {
+          "transport": "libp2p",
+          "real_safe_read": true,
+          "application_safe_read": true,
+          "no_transport_fallback": true,
+          "tool_id": "get_server_status",
+          "correlation_id": "svd-181-safe-read-ipfs_accelerate_py-libp2p",
+          "policy": {
+            "operation_class": "safe_read",
+            "mutates_remote_state": false,
+            "confirmation_required": false,
+            "confirmation_state": "not_required",
+            "dry_run": false,
+            "policy_decision_id": "svd-181-policy-ipfs_accelerate_py-libp2p",
+            "policy_outcome": "allow",
+            "correlation_id": "svd-181-safe-read-ipfs_accelerate_py-libp2p"
+          },
+          "remote_did": "did:key:z6MkgPkf8stf2vgAeEdETTtcPNd6WUMZaxNcPLpPFmStWiFz",
+          "identity_proof_cid": "bafkreie5bnna3cyzu3p7fbv5vhr76v5ikmcokadcytvnamcnlx5nvl5tri",
+          "peer_id": "12D3KooWMc5SzXUwDbXPPPKR1vAx5VE1yEVchjMWFCu3qDaZwe65",
+          "descriptor_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
+          "descriptor_cids": [
+            "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km"
+          ],
+          "negotiated_profiles": [
+            "cid-envelope",
+            "event-dag",
+            "idl",
+            "p2p-transport",
+            "ucan"
+          ],
+          "envelope_cids": {
+            "interface_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
+            "envelope_cid": "bafkreiapdqfi67xo3xvgevugkxqckgr6xl32r2ungjiuxdwmhwr27riiym",
+            "input_cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
+            "intent_cid": "bafkreienpu2a5wzewmfovlthxmckswkjz7y325vcoqki3m4zdjr3zwoez4",
+            "output_cid": "bafkreidbfhb6hsoz26jwtxrnhhlncxjhzudtvnhlsyl7rurfyncx2zxqtm",
+            "receipt_cid": "bafkreihtovce7fwsie2mvbw6tn3oafgaqsezjmn5ngt4nnu2u45tj4spom",
+            "event_cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i",
+            "receipt_success": true,
+            "artifact_persistence_complete": true,
+            "result_outcome": "success",
+            "result_semantic_fingerprint": "sha256:6129c3e3c9d9d79369de2d39d6d15d27cd073ab4eb9617f8d225c3457d66f09b",
+            "result_contract_fingerprint": "sha256:18259d2fed20267a57f38e8f5555b4ba2607025e43b6d3039d3c87d8b91fe96a"
+          },
+          "receipt_cid": "bafkreihtovce7fwsie2mvbw6tn3oafgaqsezjmn5ngt4nnu2u45tj4spom",
+          "event_dag_cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i",
+          "cid_retrieval": {
+            "expected_cid_count": 6,
+            "all_expected_cids_present": true,
+            "all_found_verified": true,
+            "artifacts": [
+              {
+                "kind": "input",
+                "cid": "bafkreiebjccbhbkomua5jso4ceybofmhhuutg227vdnb3g7f2fryk4hwya",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "intent",
+                "cid": "bafkreienpu2a5wzewmfovlthxmckswkjz7y325vcoqki3m4zdjr3zwoez4",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "envelope",
+                "cid": "bafkreiapdqfi67xo3xvgevugkxqckgr6xl32r2ungjiuxdwmhwr27riiym",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "output",
+                "cid": "bafkreidbfhb6hsoz26jwtxrnhhlncxjhzudtvnhlsyl7rurfyncx2zxqtm",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "receipt",
+                "cid": "bafkreihtovce7fwsie2mvbw6tn3oafgaqsezjmn5ngt4nnu2u45tj4spom",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              },
+              {
+                "kind": "event",
+                "cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i",
+                "found": true,
+                "verified": true,
+                "returned_cid_matches": true,
+                "backend": "disk"
+              }
+            ]
+          },
+          "event_dag": {
+            "profile_advertised": true,
+            "history_observed": true,
+            "execution_event_present": true,
+            "provenance_visible": true,
+            "event_cid": "bafkreifynkqvpenn6qwsv4asj4oqhtda4zaamvr62mumewwvzexy722j3i"
+          },
+          "canonical_application_read": {
+            "app_id": "mcp-control",
+            "binding_id": "mcp-control.ipfs_accelerate_py.inspect_tool_registry",
+            "owner": "ipfs_accelerate_py",
+            "selected_tool_id": "HealthChecker.check_detailed",
+            "correlation_id": "desktop:mcp-control.ipfs_accelerate_py.inspect_tool_registry:1784680134156:isd70zk9",
+            "policy": {
+              "decision_id": "desktop-policy:mcp-control.ipfs_accelerate_py.inspect_tool_registry",
+              "outcome": "allow",
+              "reason": "Narrow non-mutating desktop read request.",
+              "consent": "not_required",
+              "dry_run": false
+            },
+            "receipt_cid": "bafkreiclkrvruum5gvo2asqn47rxvga676qmiah4i6vwm5ma2fwugjccuu",
+            "event_dag_cid": "bafkreie5w3nj5auci6mmuzg3fwd7w2edrzp6q3fgdyrxypbbjhiaycbdom",
+            "descriptor_cid": "bafkreieforcfnzh4w7vxu34d3ihmor2tacjuwptd6slvtb7nk5tttcq2km",
+            "remote_did": "did:key:z6MkgPkf8stf2vgAeEdETTtcPNd6WUMZaxNcPLpPFmStWiFz",
+            "identity_proof_cid": "bafkreiexvjewukyxpfuc6waezyuciga3ei4iwr4kunyj5dywznooaopaw4"
+          }
+        }
+      }
+    }
+  ]
+}

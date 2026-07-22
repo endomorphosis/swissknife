@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
-  "generatedDate": "2026-07-20",
+  "generatedDate": "2026-07-22",
   "taskId": "SWR-137",
   "source": {
     "manifestPath": "src/module-ownership.json",
     "serviceRoot": "src/services",
     "auditScript": "scripts/audit-source-modules.mjs",
     "phase16CleanupEvidence": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16",
-    "sourceRevision": "9252e108bf10b80593adc3e36b441b75affe51b3",
+    "sourceRevision": "e7d2d6f0de1e3eea296707d1a7503deae77014a1",
     "recoveryProvenance": {
       "path": "docs/phase-21-recovery-provenance.json",
       "available": false
@@ -336,7 +336,7 @@
     "indexShadowCopies": 0,
     "duplicateContentHashes": 1,
     "unapprovedDuplicateContentHashes": 0,
-    "executableServiceFiles": 445,
+    "executableServiceFiles": 447,
     "basenameCollisions": 1,
     "indexEntrypointBasenameCollisions": 1,
     "unclassifiedBasenameCollisions": 0,
@@ -344,8 +344,8 @@
     "unclassifiedNormalizedContentCollisions": 0,
     "behavioralEquivalenceGroups": 0,
     "unclassifiedBehavioralEquivalenceGroups": 0,
-    "totalImporters": 1942,
-    "uniqueImporterFiles": 618
+    "totalImporters": 1958,
+    "uniqueImporterFiles": 624
   },
   "serviceFiles": [
     {
@@ -381,7 +381,7 @@
         },
         {
           "file": "src/services/apps/index.ts",
-          "line": 7,
+          "line": 8,
           "kind": "export-from",
           "specifier": "./agent-supervisor-expanded-io-envelopes.js"
         },
@@ -435,6 +435,93 @@
       "collisionIds": []
     },
     {
+      "path": "src/services/apps/all-app-backend-status-contract.ts",
+      "basename": "all-app-backend-status-contract.ts",
+      "extension": ".ts",
+      "sizeBytes": 28250,
+      "lineCount": 720,
+      "contentKind": "service-implementation",
+      "sha256": "88aeb5d9aaf914da49b41505d7bd3bfbcf79891d80be960cee183558990231cd",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "88aeb5d9aaf914da49b41505d7bd3bfbcf79891d80be960cee183558990231cd"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "bee62d512ee8b57c49aa917f26b662b7bb2fb543df1096250495ffe252394044",
+        "tokenCount": 815
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "5ba5059f710bb1b6c316a7cf6f7b9554eec45e8123cad8c2f7da5240dff13c7a",
+        "tokenCount": 815
+      },
+      "importers": [
+        {
+          "file": "build-tools/configs/vite.web.config.ts",
+          "line": 15,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/all-app-backend-status-contract.js"
+        },
+        {
+          "file": "src/services/apps/index.ts",
+          "line": 7,
+          "kind": "export-from",
+          "specifier": "./all-app-backend-status-contract.js"
+        },
+        {
+          "file": "src/services/mcp/all-app-cross-service-proof.ts",
+          "line": 7,
+          "kind": "static-import",
+          "specifier": "../apps/all-app-backend-status-contract.js"
+        },
+        {
+          "file": "test/browser/all-app-backend-status-contract.test.ts",
+          "line": 3,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/all-app-backend-status-contract"
+        },
+        {
+          "file": "web/src/all-app-backend-status-panel.ts",
+          "line": 1,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/all-app-backend-status-contract.js"
+        }
+      ],
+      "importerCount": 5,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/apps/all-app-backend-status-contract.ts",
+          "conditions": [],
+          "target": "src/services/apps/all-app-backend-status-contract.ts"
+        }
+      ],
+      "runtimeClass": "universal",
+      "runtimeClassification": "universal",
+      "browserClassification": "browser-safe-service-file",
+      "declaredOwner": {
+        "module": "service-apps",
+        "owner": "app-surface-runtime",
+        "runtimeClassification": "universal",
+        "browserReachability": "allowed through app manifest and capability contract modules",
+        "browserClassification": "browser-safe-service-file"
+      },
+      "canonicalOwner": {
+        "module": "service-apps",
+        "owner": "app-surface-runtime",
+        "runtimeClassification": "universal",
+        "browserReachability": "allowed through app manifest and capability contract modules",
+        "browserClassification": "browser-safe-service-file"
+      },
+      "module": "service-apps",
+      "owner": "app-surface-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
       "path": "src/services/apps/all-app-executable-backend-contract.ts",
       "basename": "all-app-executable-backend-contract.ts",
       "extension": ".ts",
@@ -472,6 +559,12 @@
           "specifier": "../src/services/apps/all-app-executable-backend-contract.js"
         },
         {
+          "file": "src/services/apps/all-app-backend-status-contract.ts",
+          "line": 1,
+          "kind": "static-import",
+          "specifier": "./all-app-executable-backend-contract.js"
+        },
+        {
           "file": "src/services/apps/all-app-live-tool-bindings.ts",
           "line": 1,
           "kind": "static-import",
@@ -492,6 +585,12 @@
         {
           "file": "src/services/mcp/agent-supervisor-console-gateway.ts",
           "line": 35,
+          "kind": "static-import",
+          "specifier": "../apps/all-app-executable-backend-contract.js"
+        },
+        {
+          "file": "src/services/mcp/all-app-cross-service-proof.ts",
+          "line": 1,
           "kind": "static-import",
           "specifier": "../apps/all-app-executable-backend-contract.js"
         },
@@ -550,6 +649,12 @@
           "specifier": "../../src/services/apps/all-app-executable-backend-contract"
         },
         {
+          "file": "test/mcp-plus-plus/all-app-cross-service-proof.test.ts",
+          "line": 2,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/all-app-executable-backend-contract"
+        },
+        {
           "file": "test/mcp-plus-plus/all-app-executable-backend-contract.test.ts",
           "line": 4,
           "kind": "static-import",
@@ -562,7 +667,7 @@
           "specifier": "../../src/services/apps/all-app-executable-backend-contract"
         }
       ],
-      "importerCount": 17,
+      "importerCount": 20,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -597,25 +702,25 @@
       "path": "src/services/apps/all-app-live-tool-bindings.ts",
       "basename": "all-app-live-tool-bindings.ts",
       "extension": ".ts",
-      "sizeBytes": 8118,
-      "lineCount": 196,
+      "sizeBytes": 7996,
+      "lineCount": 193,
       "contentKind": "service-implementation",
-      "sha256": "49a18c5f25651703c2b4df47c81b676dc06c46e687a22f2eeb5b17ca70b56e40",
+      "sha256": "652e17bba1e9450efef13dd3bd5d3d49b83bc3cba0419cb54bd22ac0f5a0ed38",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "49a18c5f25651703c2b4df47c81b676dc06c46e687a22f2eeb5b17ca70b56e40"
+        "value": "652e17bba1e9450efef13dd3bd5d3d49b83bc3cba0419cb54bd22ac0f5a0ed38"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "c850ab04ecff42abe94a512cfd7f397c757bbec70c5a7597ade16185e3e79045",
-        "tokenCount": 1129
+        "value": "dc60a76a4b9a2d6313bd17ffa9b0df3e063c045751cb4047bf19118740301dab",
+        "tokenCount": 1119
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "f02bc7cf62166c17d2982ff81faa743e500aafd15736d6f3cc1545bc238e10d4",
-        "tokenCount": 1129
+        "value": "f251dcfa53f4c22d853ecf6a1104cec2dc57b5042f61ca773b812c0f7eb3f779",
+        "tokenCount": 1119
       },
       "importers": [
         {
@@ -629,6 +734,12 @@
           "line": 3,
           "kind": "static-import",
           "specifier": "../src/services/apps/all-app-live-tool-bindings.js"
+        },
+        {
+          "file": "src/services/apps/all-app-backend-status-contract.ts",
+          "line": 12,
+          "kind": "static-import",
+          "specifier": "./all-app-live-tool-bindings.js"
         },
         {
           "file": "src/services/apps/index.ts",
@@ -661,14 +772,14 @@
           "specifier": "../apps/all-app-live-tool-bindings.js"
         },
         {
-          "file": "test/architecture/release-readiness-hermetic.test.ts",
-          "line": 35,
+          "file": "test/browser/agent-supervisor-console-gateway.test.ts",
+          "line": 11,
           "kind": "static-import",
           "specifier": "../../src/services/apps/all-app-live-tool-bindings"
         },
         {
-          "file": "test/browser/agent-supervisor-console-gateway.test.ts",
-          "line": 11,
+          "file": "test/browser/all-app-backend-status-contract.test.ts",
+          "line": 13,
           "kind": "static-import",
           "specifier": "../../src/services/apps/all-app-live-tool-bindings"
         },
@@ -697,7 +808,7 @@
           "specifier": "../../src/services/apps/all-app-live-tool-bindings"
         }
       ],
-      "importerCount": 13,
+      "importerCount": 14,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -1561,25 +1672,25 @@
       "path": "src/services/apps/index.ts",
       "basename": "index.ts",
       "extension": ".ts",
-      "sizeBytes": 340,
-      "lineCount": 8,
+      "sizeBytes": 394,
+      "lineCount": 9,
       "contentKind": "approved-index-barrel",
-      "sha256": "42a8e0cd3461ad64565b68a821e4569380aca2b80dd2170efa57396c2b2921a6",
+      "sha256": "a52784e4661228443835813b7ae5de4507f27a350486276b8a644e30a369831d",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "42a8e0cd3461ad64565b68a821e4569380aca2b80dd2170efa57396c2b2921a6"
+        "value": "a52784e4661228443835813b7ae5de4507f27a350486276b8a644e30a369831d"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "d39010af5e92ee666ada6d89c5eef15a15a3a3d94324a0d84a5da5c9d24b85e1",
-        "tokenCount": 25
+        "value": "56580053d1e76b5922f4f0d8eaeb596c613b8a8cca013f73dc6a93507af47672",
+        "tokenCount": 30
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "747527e080f0a36d7ab1a3f327a99ad17f9dddd5ab991b7d85840ed4a781c05e",
-        "tokenCount": 25
+        "value": "bf19f5dc369308786cb4ace590f7ab6d5be3e0800fddca6256951826e2a796b1",
+        "tokenCount": 30
       },
       "importers": [
         {
@@ -2213,6 +2324,12 @@
           "specifier": "../src/services/apps/virtual-desktop-app-manifest.ts"
         },
         {
+          "file": "src/services/apps/all-app-backend-status-contract.ts",
+          "line": 16,
+          "kind": "static-import",
+          "specifier": "./virtual-desktop-app-manifest.js"
+        },
+        {
           "file": "src/services/apps/all-app-executable-backend-contract.ts",
           "line": 1,
           "kind": "static-import",
@@ -2279,6 +2396,18 @@
           "specifier": "../apps/virtual-desktop-app-manifest.js"
         },
         {
+          "file": "src/services/mcp/all-app-cross-service-proof.ts",
+          "line": 11,
+          "kind": "static-import",
+          "specifier": "../apps/virtual-desktop-app-manifest.js"
+        },
+        {
+          "file": "test/browser/all-app-backend-status-contract.test.ts",
+          "line": 12,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/virtual-desktop-app-manifest"
+        },
+        {
           "file": "test/e2e/all-app-live-backend-behavior.spec.ts",
           "line": 7,
           "kind": "static-import",
@@ -2311,6 +2440,12 @@
         {
           "file": "test/e2e/mcp-dashboard.spec.ts",
           "line": 12,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/virtual-desktop-app-manifest"
+        },
+        {
+          "file": "test/e2e/virtual-desktop-all-app-improvement.spec.ts",
+          "line": 5,
           "kind": "static-import",
           "specifier": "../../src/services/apps/virtual-desktop-app-manifest"
         },
@@ -2363,7 +2498,7 @@
           "specifier": "../../src/services/apps/virtual-desktop-app-manifest"
         }
       ],
-      "importerCount": 29,
+      "importerCount": 33,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -22196,28 +22331,90 @@
       "collisionIds": []
     },
     {
-      "path": "src/services/mcp/all-app-mcpplusplus-profile-interoperability.ts",
-      "basename": "all-app-mcpplusplus-profile-interoperability.ts",
+      "path": "src/services/mcp/all-app-cross-service-proof.ts",
+      "basename": "all-app-cross-service-proof.ts",
       "extension": ".ts",
-      "sizeBytes": 18778,
-      "lineCount": 539,
+      "sizeBytes": 32800,
+      "lineCount": 691,
       "contentKind": "service-implementation",
-      "sha256": "850c31a60f1aeb23c9b0188fba4fdeada5c73f5735dc4009f69861b56840ed6b",
+      "sha256": "c3eabb747d9f875df303aea6ad6e019c25d7a704225d6721b47b56a5e6abe8e3",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "850c31a60f1aeb23c9b0188fba4fdeada5c73f5735dc4009f69861b56840ed6b"
+        "value": "c3eabb747d9f875df303aea6ad6e019c25d7a704225d6721b47b56a5e6abe8e3"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "dc88bcfa63a44c22564fedc3f6701e93d8f3c60cb983197aba39a575594807c9",
-        "tokenCount": 2495
+        "value": "e37239fa8155fa1cdbc399e89839c9504f31d9ebdb4eb2cbb4fdc9892d4fe067",
+        "tokenCount": 5127
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "43cccb2fed0039507eb37f51825010e208776cb68291c7d1bbd6b3e42f9e0715",
-        "tokenCount": 2495
+        "value": "de4dae2501e4fd37ae32d9dc698f35c8f99530ef4bed6785bbc0183b1efdf243",
+        "tokenCount": 5127
+      },
+      "importers": [
+        {
+          "file": "scripts/build-all-app-tool-matrix.ts",
+          "line": 4,
+          "kind": "static-import",
+          "specifier": "../src/services/mcp/all-app-cross-service-proof.js"
+        },
+        {
+          "file": "test/mcp-plus-plus/all-app-cross-service-proof.test.ts",
+          "line": 6,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/all-app-cross-service-proof"
+        }
+      ],
+      "importerCount": 2,
+      "publicEntrypoints": [],
+      "runtimeClass": "split",
+      "runtimeClassification": "split",
+      "browserClassification": "split-runtime-requires-entrypoint-review",
+      "declaredOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "canonicalOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "module": "service-mcp",
+      "owner": "mcp-protocol-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/mcp/all-app-mcpplusplus-profile-interoperability.ts",
+      "basename": "all-app-mcpplusplus-profile-interoperability.ts",
+      "extension": ".ts",
+      "sizeBytes": 19596,
+      "lineCount": 554,
+      "contentKind": "service-implementation",
+      "sha256": "65d9fdad8d031741a44b77deae6ac080427b9af5bbf3075924d5d649e1039470",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "65d9fdad8d031741a44b77deae6ac080427b9af5bbf3075924d5d649e1039470"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "35792f2a5d3bb394343aa4572591b97910c7e6476823f02adb530f977f41706f",
+        "tokenCount": 2610
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "79c7445dfe441577944740c21a9d029d1b2c0ea5070bea0f2185f80b04bfb756",
+        "tokenCount": 2610
       },
       "importers": [
         {
@@ -22284,7 +22481,7 @@
         },
         {
           "file": "src/services/apps/all-app-live-tool-bindings.ts",
-          "line": 10,
+          "line": 9,
           "kind": "static-import",
           "specifier": "../mcp/all-app-tool-gateway.js"
         },
@@ -25465,13 +25662,13 @@
       "importers": [
         {
           "file": "build-tools/configs/vite.web.config.ts",
-          "line": 17,
+          "line": 21,
           "kind": "dynamic-import",
           "specifier": "../../src/services/mcp/mcp-plus-plus-connector.js"
         },
         {
           "file": "build-tools/configs/vite.web.config.ts",
-          "line": 306,
+          "line": 370,
           "kind": "dynamic-import",
           "specifier": "../../src/services/mcp/mcp-plus-plus-connector.js"
         },
@@ -25504,6 +25701,12 @@
           "line": 17,
           "kind": "export-from",
           "specifier": "./mcp-plus-plus-connector.js"
+        },
+        {
+          "file": "test/mcp-plus-plus/all-app-executable-backend-contract.test.ts",
+          "line": 27,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/mcp-plus-plus-connector"
         },
         {
           "file": "test/mcp-plus-plus/connector-http.test.ts",
@@ -25554,7 +25757,7 @@
           "specifier": "../../src/services/mcp/mcp-plus-plus-connector"
         }
       ],
-      "importerCount": 15,
+      "importerCount": 16,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -25661,7 +25864,7 @@
       "importers": [
         {
           "file": "build-tools/configs/vite.web.config.ts",
-          "line": 385,
+          "line": 449,
           "kind": "dynamic-import",
           "specifier": "../../src/services/mcp/mcp-plus-plus-profile-c.js"
         },
@@ -36366,10 +36569,10 @@
     "approvedIndexBarrels": [
       {
         "path": "src/services/apps/index.ts",
-        "sha256": "42a8e0cd3461ad64565b68a821e4569380aca2b80dd2170efa57396c2b2921a6",
+        "sha256": "a52784e4661228443835813b7ae5de4507f27a350486276b8a644e30a369831d",
         "contentHash": {
           "algorithm": "sha256",
-          "value": "42a8e0cd3461ad64565b68a821e4569380aca2b80dd2170efa57396c2b2921a6"
+          "value": "a52784e4661228443835813b7ae5de4507f27a350486276b8a644e30a369831d"
         },
         "module": "service-apps",
         "owner": "app-surface-runtime",

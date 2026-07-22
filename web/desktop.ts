@@ -1,6 +1,7 @@
 // Temporary clean bootstrap replacing corrupted main.ts
 import '/css/desktop.css';
 import { loadApp, type AppLoadResult } from './src/apps/app-manifest-loader';
+import { bindAllAppBackendStatusPanel, renderAllAppBackendStatusPanel } from './src/all-app-backend-status-panel';
 import { bindLiveToolGatewayPanel, renderLiveToolGatewayPanel } from './src/live-tool-gateway-panel';
 
 interface App { id:string; title:string; loader:(el:HTMLElement)=>void; }
@@ -58,7 +59,7 @@ class MiniDesktop {
   private apps = new Map<string, App>();
   private desktop!: HTMLElement;
   private taskbar!: HTMLElement;
-  private z=10;
+  private z=1000;
   constructor(){ this.init(); }
   private init(){
     this.desktop=document.getElementById('desktop')||this.mk('desktop','desktop');
@@ -124,7 +125,7 @@ class MiniDesktop {
     await renderAppLoadResult(content, result, this);
     return result;
   }
-  private makeWindow(title:string, appId = 'unknown'){ const w=document.createElement('div'); w.className='window'; w.dataset.appId=appId; Object.assign(w.style,{position:'absolute',left:'80px',top:'70px',width:'560px',height:'420px',background:'#181818',border:'1px solid #333',display:'flex',flexDirection:'column',zIndex:String(++this.z)}); w.innerHTML=`<div class="titlebar" style="background:#262626;color:#eee;padding:4px 8px;font-size:12px;cursor:move;display:flex;gap:6px;align-items:center"><span>🧪</span><div class="window-title" style="flex:1">${escapeHtml(title)}</div><button data-x style="background:#444;color:#fff;border:none;padding:2px 6px;border-radius:4px;cursor:pointer;font-size:11px">✕</button></div><div class="window-content" style="flex:1;overflow:auto;background:#111"></div>`; this.desktop.appendChild(w); (w.querySelector('[data-x]') as HTMLButtonElement).onclick=()=>w.remove(); return w; }
+  private makeWindow(title:string, appId = 'unknown'){ const w=document.createElement('div'); w.className='window'; w.dataset.appId=appId; Object.assign(w.style,{position:'absolute',left:'80px',top:'70px',width:'560px',height:'420px',background:'#181818',border:'1px solid #333',display:'flex',flexDirection:'column',zIndex:String(++this.z)}); w.innerHTML=`<div class="titlebar" style="background:#262626;color:#eee;padding:4px 8px;font-size:12px;cursor:move;display:flex;gap:6px;align-items:center"><span>🧪</span><div class="window-title" style="flex:1">${escapeHtml(title)}</div><button data-x style="background:#444;color:#fff;border:none;padding:2px 6px;border-radius:4px;cursor:pointer;font-size:11px">✕</button></div><div class="window-content" style="flex:1;overflow:auto;background:#111;padding-bottom:56px;scroll-padding-bottom:64px"></div>`; this.desktop.appendChild(w); (w.querySelector('[data-x]') as HTMLButtonElement).onclick=()=>w.remove(); return w; }
 }
 
 /**
@@ -136,6 +137,7 @@ class MiniDesktop {
  */
 export async function renderAppLoadResult(container: HTMLElement, result: AppLoadResult, desktop?: unknown): Promise<void> {
   const smokePanel = renderToolSmokePanel(result.app_id);
+  const backendStatusPanel = renderAllAppBackendStatusPanel(result.app_id);
   const liveGatewayPanel = renderLiveToolGatewayPanel(result.app_id);
   if (result.status === 'loaded') {
     const moduleRecord = result.module as {
@@ -147,14 +149,19 @@ export async function renderAppLoadResult(container: HTMLElement, result: AppLoa
         container.insertAdjacentHTML('beforeend', smokePanel);
         bindToolSmokePanel(container, result.app_id);
       }
+      if (backendStatusPanel) {
+        container.insertAdjacentHTML('beforeend', backendStatusPanel);
+        bindAllAppBackendStatusPanel(container, result.app_id);
+      }
       if (liveGatewayPanel) {
         container.insertAdjacentHTML('beforeend', liveGatewayPanel);
         bindLiveToolGatewayPanel(container, result.app_id);
       }
       return;
     }
-    container.innerHTML = `<div style="padding:8px;color:#ddd;font:13px system-ui">Loaded app "${escapeHtml(result.app_id)}".</div>${smokePanel}${liveGatewayPanel}`;
+    container.innerHTML = `<div style="padding:8px;color:#ddd;font:13px system-ui">Loaded app "${escapeHtml(result.app_id)}".</div>${smokePanel}${backendStatusPanel}${liveGatewayPanel}`;
     bindToolSmokePanel(container, result.app_id);
+    bindAllAppBackendStatusPanel(container, result.app_id);
     bindLiveToolGatewayPanel(container, result.app_id);
     return;
   }
@@ -166,8 +173,9 @@ export async function renderAppLoadResult(container: HTMLElement, result: AppLoa
     result.descriptor_ref ? `<div style="opacity:.7">descriptor: ${escapeHtml(result.descriptor_ref)}</div>` : '',
   ].filter(Boolean).join('');
 
-  container.innerHTML = `<div style="padding:8px;color:#ddd;font:13px system-ui"><strong>${statusLabel}: ${escapeHtml(result.app_id)}</strong>${details}</div>${smokePanel}${liveGatewayPanel}`;
+  container.innerHTML = `<div style="padding:8px;color:#ddd;font:13px system-ui"><strong>${statusLabel}: ${escapeHtml(result.app_id)}</strong>${details}</div>${smokePanel}${backendStatusPanel}${liveGatewayPanel}`;
   bindToolSmokePanel(container, result.app_id);
+  bindAllAppBackendStatusPanel(container, result.app_id);
   bindLiveToolGatewayPanel(container, result.app_id);
 }
 

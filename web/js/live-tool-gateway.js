@@ -108,11 +108,13 @@ async function invokeControl(button, output, control) {
       payload,
       policy: {
         decision_id: `desktop-policy:${control.binding_id}`,
-        outcome: "allow",
-        reason: dryRun
-          ? "Desktop control executes through the owner adapter as a no-side-effect dry run."
-          : "Narrow non-mutating desktop read request.",
-        consent: dryRun ? "granted" : "not_required",
+        outcome: governed ? "require_confirmation" : "allow",
+        reason: governed
+          ? "The governed desktop request is explicitly confirmed and executes only as a no-side-effect dry run."
+          : dryRun
+            ? "The desktop read executes through the owner adapter as a no-side-effect dry run."
+            : "Narrow non-mutating desktop read request.",
+        consent: governed ? "granted" : "not_required",
         dry_run: dryRun,
       },
     },

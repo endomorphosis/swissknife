@@ -27,6 +27,11 @@ const outputPaths = {
   discoveryValidationMirror: path.join(projectRoot, 'data', 'swissknife_virtual_desktop', 'discovery', 'all-tools-no-new-unknowns.md'),
 };
 const REQUIRED_SERVICES = ['ipfs_kit_py', 'ipfs_datasets_py', 'ipfs_accelerate_py'];
+const REQUIRED_KDA_KEYS = Object.freeze({
+  ipfs_kit_py: 'K',
+  ipfs_datasets_py: 'D',
+  ipfs_accelerate_py: 'A',
+});
 const REQUIRED_PROFILES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 const REQUIRED_TRANSPORTS = ['http', 'libp2p'];
 const REQUIRED_MODALITIES = ['display', 'camera', 'microphone', 'speaker', 'input'];
@@ -187,6 +192,11 @@ const FRESH_RELEASE_INPUTS = [
   ['ui_accessibility', 'all-app-ui-ux-accessibility.json', 'SVD-112', 'swissknife.all-app-ui-ux-accessibility.v1'],
   ['dispatch_artifact_store', 'supervisor-dispatch-artifact-store.json', 'SVD-113', 'swissknife.supervisor-dispatch-artifact-store-evidence.v1'],
   ['merge_reconciliation', 'submodule-merge-reconciliation.json', 'SVD-116', 'swissknife.submodule-merge-reconciliation-evidence.v1'],
+  ['app_improvement_index', 'app-improvement/index.json', 'SVD-133', 'swissknife.virtual-desktop-all-app-improvement.v1'],
+  ['app_improvement_screenshot_index', 'app-improvement/screenshot-index.json', 'SVD-180', 'swissknife.virtual-desktop-app-improvement.screenshot-index.v1'],
+  ['app_improvement_ui', 'app-improvement/ui-ux-accessibility.json', 'SVD-180', 'swissknife.virtual-desktop-app-improvement.ui-ux-accessibility.v1'],
+  ['all_app_tool_matrix', 'app-improvement/all-app-tool-matrix.json', 'SVD-181', 'swissknife.virtual-desktop.all-app-tool-matrix.v1'],
+  ['kda_receipt_catalog', 'app-improvement/http-libp2p-kda-receipt-catalog.json', 'SVD-181', 'swissknife.mcpplusplus.http-libp2p-kda-receipt-catalog.v1'],
 ];
 
 function buildFreshReleaseReport({ now = Date.now() } = {}) {
@@ -215,6 +225,7 @@ function buildFreshReleaseReport({ now = Date.now() } = {}) {
   validateFreshTransportEvidence(inputs.profile_interoperability.data, add);
   validateFreshSimulatorEvidence(inputs.meta_simulator.data, add);
   validateFreshMergeReconciliation(inputs.merge_reconciliation.data, add);
+  const allAppReleaseGate = validateAllAppImprovementReleaseEvidence(inputs, contract.data, add);
 
   const namedGaps = dedupeFreshFindings(findings);
   const decision = namedGaps.length === 0 ? 'GO' : 'NO_GO';
@@ -231,6 +242,7 @@ function buildFreshReleaseReport({ now = Date.now() } = {}) {
     },
     artifacts: Object.fromEntries(Object.entries(inputs).map(([id, input]) => [id, freshArtifactView(input)])),
     application_count: appIds.length,
+    all_app_improvement_release_gate: allAppReleaseGate,
     virtual_desktop_app_matrix_gate: matrix,
     swr110_release_gate: {
       decision: decision === 'GO' ? 'go' : 'no_go', release_decision: decision,
@@ -296,6 +308,488 @@ function dedupeFreshFindings(findings) {
 }
 function freshArtifactView(input) { return { task_id: input.task_id, path: input.path, status: input.status, generated_at: input.generated_at, age_ms: input.age_ms, freshness: input.freshness, sha256: input.sha256 }; }
 function freshFindingSummary(item) { return `${item.task_id}: app=${item.application ?? '-'} tool=${item.tool ?? '-'} owner=${item.owner ?? '-'} transport=${item.transport ?? '-'} modality=${item.modality ?? '-'} — ${item.reason ?? item.code}`; }
+
+// Key ownership by stable app ID rather than canonical catalog position. The
+// manifest may reorder its apps, while these task IDs are fixed by the phase-25
+// backlog; positional attribution would route verified gaps to the wrong task.
+const APP_IMPROVEMENT_TASK_BY_APP_ID = Object.freeze({
+  terminal: 'SVD-135',
+  vibecode: 'SVD-136',
+  'music-studio-unified': 'SVD-137',
+  'ai-chat': 'SVD-138',
+  'file-manager': 'SVD-139',
+  'task-manager': 'SVD-140',
+  todo: 'SVD-141',
+  'model-browser': 'SVD-142',
+  huggingface: 'SVD-143',
+  openrouter: 'SVD-144',
+  'ipfs-explorer': 'SVD-145',
+  'device-manager': 'SVD-146',
+  settings: 'SVD-147',
+  'mcp-control': 'SVD-148',
+  'api-keys': 'SVD-149',
+  github: 'SVD-150',
+  'oauth-login': 'SVD-151',
+  cron: 'SVD-152',
+  navi: 'SVD-153',
+  'p2p-network': 'SVD-154',
+  'p2p-chat-unified': 'SVD-155',
+  'neural-network-designer': 'SVD-156',
+  'training-manager': 'SVD-157',
+  calculator: 'SVD-158',
+  clock: 'SVD-159',
+  calendar: 'SVD-160',
+  peertube: 'SVD-161',
+  'friends-list': 'SVD-162',
+  'image-viewer': 'SVD-163',
+  notes: 'SVD-164',
+  'media-player': 'SVD-165',
+  'system-monitor': 'SVD-166',
+  'neural-photoshop': 'SVD-167',
+  cinema: 'SVD-168',
+  strudel: 'SVD-169',
+  'strudel-ai-daw': 'SVD-170',
+  'music-studio': 'SVD-171',
+  'p2p-chat': 'SVD-172',
+  'datasets-browser': 'SVD-173',
+  'accelerate-panel': 'SVD-174',
+  'idl-explorer': 'SVD-175',
+  'glasses-preview': 'SVD-176',
+  'orb-auto-ui': 'SVD-177',
+  'mcp-plus-plus': 'SVD-178',
+  'agent-supervisor': 'SVD-179',
+});
+
+function appImprovementTaskId(appId) {
+  return APP_IMPROVEMENT_TASK_BY_APP_ID[appId] ?? null;
+}
+
+/**
+ * SVD-182 joins the phase-25 all-app evidence at name level.  The outer
+ * SVD-114 receipt remains backward compatible, but a release can no longer
+ * pass because aggregate counts happen to agree while an individual app is
+ * missing its workflow, K/D/A disposition, viewport proof, handoff state, or
+ * call-bound MCP++ receipt.
+ */
+function validateAllAppImprovementReleaseEvidence(inputs, contract, add) {
+  const index = inputs.app_improvement_index?.data;
+  const screenshotIndex = inputs.app_improvement_screenshot_index?.data;
+  const ui = inputs.app_improvement_ui?.data;
+  const toolMatrix = inputs.all_app_tool_matrix?.data;
+  const receiptCatalog = inputs.kda_receipt_catalog?.data;
+  const handoff = inputs.action_handoff?.data;
+  const simulator = inputs.meta_simulator?.data;
+  const canonicalApps = Array.isArray(contract?.apps) ? contract.apps : [];
+  const canonicalIds = canonicalApps.map(app => app.app_id).filter(nonEmpty);
+  const traceFindings = [];
+  const recordGap = details => {
+    const normalized = normalizeReleaseFinding(details);
+    traceFindings.push(normalized);
+    add(details);
+  };
+
+  validateAllAppReleaseEnvelope(index, screenshotIndex, ui, toolMatrix, receiptCatalog, canonicalIds, recordGap);
+
+  const indexApps = rowsById(index?.apps, 'app_id');
+  const uiApps = rowsById(ui?.applications, 'app_id');
+  const toolApps = rowsById(toolMatrix?.apps, 'app_id');
+  const screenshotRows = Array.isArray(screenshotIndex?.screenshots) ? screenshotIndex.screenshots : [];
+  const handoffPackets = Array.isArray(handoff?.packets) ? handoff.packets : [];
+  const simulatorPackets = Array.isArray(simulator?.packets) ? simulator.packets : [];
+  const catalogServers = rowsById(receiptCatalog?.servers, 'owner');
+  const liveBindings = Array.isArray(inputs.live_bindings?.data?.bindings) ? inputs.live_bindings.data.bindings : [];
+
+  const traces = canonicalApps.map((contractApp) => {
+    const appId = contractApp.app_id;
+    const mappedAppTaskId = appImprovementTaskId(appId);
+    const appTaskId = mappedAppTaskId ?? 'SVD-182';
+    if (!mappedAppTaskId) recordGap({
+      code: 'missing_app_improvement_task_owner', application: appId, tool: 'primary-workflow',
+      owner: 'SVD-182', transport: 'not_applicable', modality: 'not_applicable', task_id: 'SVD-182',
+      evidence_path: '../implementation_plan/docs/37-swissknife-virtual-desktop-ipfs-mcp-orb-meta-glasses-plan-2026-07-07.md',
+      reason: `Canonical app ${appId} has no explicit phase-25 app-improvement task owner.`,
+      remediation: 'Add the backlog-owned app-to-task mapping before closing this release gap.',
+    });
+    const improvement = indexApps.get(appId);
+    const uiRecord = uiApps.get(appId);
+    const toolRecord = toolApps.get(appId);
+    const workflow = buildPrimaryWorkflowTrace(appId, appTaskId, improvement);
+    if (workflow.status !== 'passed') recordGap({
+      code: 'missing_primary_workflow_proof', application: appId, tool: workflow.control_id,
+      owner: appTaskId, transport: 'browser', modality: 'desktop+narrow', task_id: appTaskId,
+      evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/index.json',
+      reason: workflow.failure_reason,
+      remediation: `Re-run and repair ${appTaskId} until the named primary action and reviewer-readable failure/recovery path pass on desktop and narrow viewports.`,
+    });
+
+    const uiTrace = buildUiUxTrace(appId, uiRecord, screenshotRows);
+    if (uiTrace.status !== 'passed') recordGap({
+      code: 'missing_app_ui_ux_proof', application: appId, tool: workflow.control_id,
+      owner: 'SVD-180', transport: 'browser', modality: 'desktop+narrow', task_id: 'SVD-180',
+      evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/ui-ux-accessibility.json',
+      reason: uiTrace.failure_reason,
+      remediation: 'Regenerate the all-app viewport matrix and accessibility evidence, including both indexed screenshots.',
+    });
+
+    const backendTrace = buildBackendAndReceiptTrace(
+      appId, toolRecord, catalogServers, liveBindings.filter(binding => binding?.app_id === appId),
+    );
+    if (backendTrace.status !== 'passed') recordGap({
+      code: 'missing_app_kda_or_live_receipt_proof', application: appId,
+      tool: backendTrace.failing_binding_ids.join(',') || 'backend-disposition', owner: 'SVD-181',
+      transport: backendTrace.transports.join(',') || 'http,libp2p', modality: 'desktop', task_id: 'SVD-181',
+      evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/all-app-tool-matrix.json',
+      reason: backendTrace.failure_reason,
+      remediation: 'Regenerate SVD-181 from current canonical desktop calls and independent HTTP/libp2p peer reads; do not infer success from server counts.',
+    });
+
+    const orbMetaTrace = buildOrbMetaTrace(appId, backendTrace.semantic_roles, handoffPackets, simulatorPackets, toolRecord?.disposition);
+    if (orbMetaTrace.orb_idl.status === 'failed') recordGap({
+      code: 'missing_app_orb_idl_state', application: appId,
+      tool: orbMetaTrace.orb_idl.missing_binding_ids.join(',') || 'orb-idl', owner: 'SVD-110',
+      transport: 'mcp++', modality: 'display,input', task_id: 'SVD-110',
+      evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json',
+      reason: orbMetaTrace.orb_idl.failure_reason,
+      remediation: 'Regenerate SVD-110 and preserve a complete packet for every applicable app binding.',
+    });
+    if (orbMetaTrace.meta_simulator.status === 'failed') recordGap({
+      code: 'missing_app_meta_simulator_state', application: appId,
+      tool: orbMetaTrace.meta_simulator.missing_packet_ids.join(',') || 'meta-simulator', owner: 'SVD-111',
+      transport: 'simulator', modality: REQUIRED_MODALITIES.join(','), task_id: 'SVD-111',
+      evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json',
+      reason: orbMetaTrace.meta_simulator.failure_reason,
+      remediation: 'Replay every applicable SVD-110 packet through the hardware-free Meta simulator with all required modalities and preserved provenance.',
+    });
+
+    const status = [workflow.status, uiTrace.status, backendTrace.status, orbMetaTrace.orb_idl.status, orbMetaTrace.meta_simulator.status]
+      .every(value => value === 'passed' || value === 'not_applicable') ? 'passed' : 'failed';
+    return {
+      app_id: appId,
+      app_task_id: appTaskId,
+      status,
+      primary_workflow: workflow,
+      backend_disposition: backendTrace,
+      ui_ux: uiTrace,
+      orb_idl: orbMetaTrace.orb_idl,
+      meta_simulator: orbMetaTrace.meta_simulator,
+      evidence_paths: {
+        app_improvement: `test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/${appId}.json`,
+        ui_ux: 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/ui-ux-accessibility.json',
+        tool_matrix: 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/all-app-tool-matrix.json',
+        receipt_catalog: 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/http-libp2p-kda-receipt-catalog.json',
+        orb_idl: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-orb-idl-action-handoff.json',
+        meta_simulator: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json',
+      },
+    };
+  });
+
+  const failingAppIds = traces.filter(trace => trace.status !== 'passed').map(trace => trace.app_id);
+  const decision = traceFindings.length === 0 && traces.length === canonicalIds.length && failingAppIds.length === 0 ? 'GO' : 'NO_GO';
+  return {
+    schema: 'swissknife.virtual-desktop-all-app-release-trace.v1',
+    task_id: 'SVD-182',
+    decision,
+    required_app_count: canonicalIds.length,
+    trace_count: traces.length,
+    passing_app_count: traces.length - failingAppIds.length,
+    failing_app_ids: failingAppIds,
+    blocker_count: traceFindings.length,
+    remaining_gap_task_ids: unique(traceFindings.map(item => item.task_id)),
+    acceptance: {
+      every_canonical_app_traced: traces.length === canonicalIds.length && sameSet(traces.map(trace => trace.app_id), canonicalIds),
+      every_primary_workflow_passed: traces.every(trace => trace.primary_workflow.status === 'passed'),
+      every_kda_disposition_and_receipt_passed: traces.every(trace => trace.backend_disposition.status === 'passed'),
+      every_ui_ux_record_passed: traces.every(trace => trace.ui_ux.status === 'passed'),
+      every_applicable_orb_idl_state_passed: traces.every(trace => ['passed', 'not_applicable'].includes(trace.orb_idl.status)),
+      every_applicable_meta_simulator_state_passed: traces.every(trace => ['passed', 'not_applicable'].includes(trace.meta_simulator.status)),
+    },
+    traces,
+  };
+}
+
+function validateAllAppReleaseEnvelope(index, screenshots, ui, matrix, catalog, canonicalIds, add) {
+  const checks = [
+    ['SVD-133', index, index?.scope === 'all' && index?.summary?.failed === 0 && index?.summary?.passed === canonicalIds.length,
+      'app improvement index is not an all-app zero-failure run'],
+    ['SVD-180', screenshots, screenshots?.task_id === 'SVD-180' && screenshots?.screenshot_count === canonicalIds.length * 2,
+      'screenshot index is not the SVD-180 desktop+narrow viewport matrix'],
+    ['SVD-180', ui, ui?.status === 'passed' && allTrue(ui?.acceptance) && ui?.applications?.length === canonicalIds.length,
+      'UI/UX accessibility evidence is absent, incomplete, or failing'],
+    ['SVD-181', matrix, matrix?.status === 'passed' && allAppAcceptancePassed(matrix?.acceptance) && matrix?.apps?.length === canonicalIds.length,
+      'all-app tool matrix is absent, incomplete, or failing'],
+    ['SVD-181', catalog, catalog?.status === 'passed' && catalog?.servers?.length === REQUIRED_SERVICES.length,
+      'HTTP/libp2p K/D/A receipt catalog is absent, incomplete, or failing'],
+  ];
+  for (const [taskId, data, passed, reason] of checks) {
+    if (passed) continue;
+    add({ code: 'invalid_all_app_release_source', application: 'all-apps', tool: 'release-source', owner: taskId,
+      transport: 'not_applicable', modality: 'not_applicable', task_id: taskId,
+      evidence_path: data === index ? 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/index.json'
+        : data === screenshots ? 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/screenshot-index.json'
+          : data === ui ? 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/ui-ux-accessibility.json'
+            : data === matrix ? 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/all-app-tool-matrix.json'
+              : 'test-results/virtual-desktop-ipfs-mcp-orb/app-improvement/http-libp2p-kda-receipt-catalog.json',
+      reason, remediation: `Regenerate and validate ${taskId} before rebuilding release evidence.` });
+  }
+}
+
+function buildPrimaryWorkflowTrace(appId, appTaskId, app) {
+  const desktop = app?.desktop;
+  const narrow = app?.mobile;
+  const explicit = desktop?.app_workflow ?? narrow?.app_workflow ?? null;
+  const successDescription = app?.manifest_ux_scenarios?.success;
+  const failureDescription = app?.manifest_ux_scenarios?.error;
+  const recoveryDescription = app?.manifest_ux_scenarios?.fallback;
+  const passed = app?.pass === true
+    && desktop?.opened === true && narrow?.opened === true
+    && desktop?.primary_control?.action_succeeded === true && narrow?.primary_control?.action_succeeded === true
+    && nonEmpty(desktop?.primary_control?.name) && nonEmpty(narrow?.primary_control?.name)
+    && nonEmpty(successDescription) && nonEmpty(failureDescription) && nonEmpty(recoveryDescription)
+    && desktop?.states?.recovery?.closed_to_desktop === true && narrow?.states?.recovery?.closed_to_desktop === true
+    && (!explicit || explicit.complete === true);
+  return {
+    status: passed ? 'passed' : 'failed',
+    evidence_kind: explicit ? 'app_specific_workflow' : 'canonical_primary_control',
+    workflow_id: explicit?.workflow_id ?? `${appId}.canonical-primary-control`,
+    vda_id: explicit?.vda_id ?? null,
+    owner_task_id: appTaskId,
+    control_id: desktop?.primary_control?.probe_id ?? `${appId}-primary-control`,
+    desktop_action: desktop?.primary_control?.name ?? null,
+    narrow_action: narrow?.primary_control?.name ?? null,
+    description: successDescription ?? null,
+    failure_path: failureDescription ?? null,
+    recovery_path: recoveryDescription ?? null,
+    explicit_workflow_complete: explicit?.complete ?? null,
+    failure_reason: passed ? null : 'The app lacks a passing named primary action, reviewer-readable success/failure/recovery description, or close-to-desktop recovery on one of the required viewports.',
+  };
+}
+
+function buildUiUxTrace(appId, uiRecord, screenshotRows) {
+  const desktopShot = screenshotRows.find(row => row?.app_id === appId && row?.viewport === 'desktop');
+  const narrowShot = screenshotRows.find(row => row?.app_id === appId && row?.viewport === 'narrow');
+  const viewports = uiRecord?.viewports;
+  const viewportPassed = name => viewports?.[name]?.pass === true
+    && viewports[name].opened === true
+    && viewports[name].layout?.pass === true
+    && viewports[name].keyboard?.focus_after_tab === true
+    && viewports[name].states?.readable === true
+    && viewports[name].recovery?.closed_to_desktop === true;
+  const shotPassed = shot => shot?.exists === true && shot?.bytes > 0 && shot?.layout_pass === true
+    && nonEmpty(shot?.path) && isValidPngReceipt(shot.path);
+  const passed = uiRecord?.pass === true && viewportPassed('desktop') && viewportPassed('narrow')
+    && shotPassed(desktopShot) && shotPassed(narrowShot)
+    && Array.isArray(uiRecord?.recovery_path?.guidance) && uiRecord.recovery_path.guidance.length > 0;
+  return {
+    status: passed ? 'passed' : 'failed',
+    desktop: { status: viewportPassed('desktop') && shotPassed(desktopShot) ? 'passed' : 'failed', screenshot: desktopShot?.path ?? null },
+    narrow: { status: viewportPassed('narrow') && shotPassed(narrowShot) ? 'passed' : 'failed', screenshot: narrowShot?.path ?? null },
+    recovery_guidance: uiRecord?.recovery_path?.guidance ?? [],
+    failure_reason: passed ? null : 'Desktop/narrow layout, focus, readable state, recovery guidance, or indexed PNG evidence is missing or failing.',
+  };
+}
+
+function buildBackendAndReceiptTrace(appId, toolRecord, catalogServers, expectedBindings = null) {
+  const kdaRows = Array.isArray(toolRecord?.diagnostic_kda_status?.rows) ? toolRecord.diagnostic_kda_status.rows : [];
+  const semanticRoles = Array.isArray(toolRecord?.semantic_backend_roles?.roles) ? toolRecord.semantic_backend_roles.roles : [];
+  const kdaPassed = kdaRows.length === REQUIRED_SERVICES.length
+    && new Set(kdaRows.map(row => row.owner)).size === REQUIRED_SERVICES.length
+    && new Set(kdaRows.map(row => row.kda_key)).size === REQUIRED_SERVICES.length
+    && kdaRows.every(row => REQUIRED_SERVICES.includes(row.owner)
+      && row.kda_key === REQUIRED_KDA_KEYS[row.owner]
+      && row.diagnostic_only === true && nonEmpty(row.state) && nonEmpty(row.reason));
+  const failingBindingIds = [];
+  const transports = new Set();
+  const liveReceipts = [];
+  for (const role of semanticRoles) {
+    const executions = Array.isArray(role?.executions) ? role.executions : [];
+    if (!nonEmpty(role?.binding_id) || !nonEmpty(role?.owner) || !nonEmpty(role?.semantic_role) || executions.length === 0) {
+      failingBindingIds.push(role?.binding_id ?? 'unknown-binding');
+      continue;
+    }
+    let rolePassed = true;
+    for (const execution of executions) {
+      transports.add(execution?.transport);
+      const safeReadPolicy = role?.mutates_remote_state !== true
+        && execution?.operation_class === 'read_request'
+        && ['real_safe_read', 'safe_read_dry_run'].includes(execution?.execution_mode)
+        && execution?.policy?.outcome === 'allow'
+        && execution?.policy?.consent === 'not_required'
+        && execution?.confirmation?.required === false
+        && execution?.confirmation?.dry_run === (execution.execution_mode === 'safe_read_dry_run');
+      const governedWritePolicy = role?.mutates_remote_state === true
+        && execution?.operation_class === 'governed_write_request'
+        && execution?.execution_mode === 'confirmation_gated_dry_run'
+        && execution?.policy?.outcome === 'require_confirmation'
+        && execution?.policy?.consent === 'granted'
+        && execution?.policy?.dry_run === true
+        && execution?.confirmation?.required === true
+        && execution?.confirmation?.policy !== 'none'
+        && execution?.confirmation?.dry_run === true;
+      const valid = ['http', 'libp2p'].includes(execution?.transport)
+        && nonEmpty(execution?.correlation_id) && nonEmpty(execution?.policy?.decision_id)
+        && execution?.did_identity?.verified === true && /^did:key:/.test(execution?.did_identity?.remote_did ?? '')
+        && isCid(execution?.did_identity?.identity_proof_cid) && isCid(execution?.descriptor_cid)
+        && isCid(execution?.receipt_cid) && isCid(execution?.event_dag_cid)
+        && execution?.persistence_status === 'persisted' && execution?.outcome === 'executed'
+        && execution?.same_origin_mediator === true && execution?.direct_backend_details_exposed === false
+        && (safeReadPolicy || governedWritePolicy);
+      rolePassed &&= valid;
+      liveReceipts.push({ binding_id: role.binding_id, owner: role.owner, transport: execution?.transport ?? null,
+        correlation_id: execution?.correlation_id ?? null, descriptor_cid: execution?.descriptor_cid ?? null,
+        remote_did: execution?.did_identity?.remote_did ?? null, policy_decision_id: execution?.policy?.decision_id ?? null,
+        receipt_cid: execution?.receipt_cid ?? null, event_dag_cid: execution?.event_dag_cid ?? null,
+        operation_class: execution?.operation_class ?? null, execution_mode: execution?.execution_mode ?? null,
+        policy_outcome: execution?.policy?.outcome ?? null, consent: execution?.policy?.consent ?? null,
+        confirmation_required: execution?.confirmation?.required ?? null,
+        dry_run: execution?.confirmation?.dry_run ?? null, status: valid ? 'passed' : 'failed' });
+    }
+    if (!rolePassed) failingBindingIds.push(role.binding_id);
+  }
+  const expected = Array.isArray(expectedBindings) ? expectedBindings : null;
+  const expectedById = new Map((expected ?? []).map(binding => [binding?.binding_id, binding]));
+  const roleIds = semanticRoles.map(role => role?.binding_id).filter(nonEmpty);
+  const duplicateRoleIds = roleIds.filter((bindingId, index) => roleIds.indexOf(bindingId) !== index);
+  const bindingReconciliationFailures = [...duplicateRoleIds];
+  failingBindingIds.push(...duplicateRoleIds);
+  if (expected) {
+    for (const binding of expected) {
+      const role = semanticRoles.find(candidate => candidate?.binding_id === binding?.binding_id);
+      if (!role || role.owner !== binding.owner) {
+        const failure = binding?.binding_id ?? `${appId}:invalid-expected-binding`;
+        failingBindingIds.push(failure);
+        bindingReconciliationFailures.push(failure);
+        continue;
+      }
+      const expectedTransports = unique(Array.isArray(binding.transports) ? binding.transports : []);
+      const observedTransports = unique((role.executions ?? []).map(execution => execution?.transport).filter(Boolean));
+      if (!sameSet(expectedTransports, observedTransports)) {
+        failingBindingIds.push(binding.binding_id);
+        bindingReconciliationFailures.push(binding.binding_id);
+      }
+    }
+    for (const role of semanticRoles) {
+      if (!expectedById.has(role?.binding_id)) {
+        const failure = role?.binding_id ?? `${appId}:unexpected-binding`;
+        failingBindingIds.push(failure);
+        bindingReconciliationFailures.push(failure);
+      }
+    }
+  }
+  const dispositionAllowsNoRoles = ['browser_local', 'policy_blocked', 'external_provider'].includes(toolRecord?.disposition)
+    && (!expected || expected.length === 0);
+  if (semanticRoles.length === 0 && !dispositionAllowsNoRoles) {
+    failingBindingIds.push(`${appId}:missing-semantic-role`);
+    bindingReconciliationFailures.push(`${appId}:missing-semantic-role`);
+  }
+  if (expected?.length && toolRecord?.disposition !== 'tool_backed') {
+    failingBindingIds.push(`${appId}:invalid-disposition`);
+    bindingReconciliationFailures.push(`${appId}:invalid-disposition`);
+  }
+  const diagnosticReceipts = kdaRows.map(row => {
+    const server = catalogServers.get(row.owner);
+    const transportRows = ['http', 'libp2p'].map(transport => ({
+      transport, receipt_cid: server?.transports?.[transport]?.receipt_cid ?? null,
+      event_dag_cid: server?.transports?.[transport]?.event_dag_cid ?? null,
+      descriptor_cid: server?.transports?.[transport]?.descriptor_cid ?? null,
+      remote_did: server?.transports?.[transport]?.remote_did ?? null,
+      real_safe_read: server?.transports?.[transport]?.real_safe_read === true,
+      application_safe_read: server?.transports?.[transport]?.application_safe_read === true,
+      no_transport_fallback: server?.transports?.[transport]?.no_transport_fallback === true,
+      policy_outcome: server?.transports?.[transport]?.policy?.policy_outcome ?? null,
+    }));
+    return { owner: row.owner, kda_key: row.kda_key, state: row.state, reason: row.reason, transports: transportRows };
+  });
+  const catalogPassed = diagnosticReceipts.length === REQUIRED_SERVICES.length
+    && diagnosticReceipts.every(row => row.transports.every(transport => transport.real_safe_read
+      && transport.application_safe_read && transport.no_transport_fallback
+      && transport.policy_outcome === 'allow'
+      && isCid(transport.receipt_cid) && isCid(transport.event_dag_cid)
+      && isCid(transport.descriptor_cid) && /^did:key:/.test(transport.remote_did ?? '')));
+  const passed = Boolean(toolRecord) && kdaPassed && catalogPassed && failingBindingIds.length === 0
+    && toolRecord?.proof?.diagnostic_status_is_not_semantic_assignment === true;
+  return {
+    status: passed ? 'passed' : 'failed',
+    disposition: toolRecord?.disposition ?? null,
+    semantic_roles: semanticRoles.map(role => ({ binding_id: role.binding_id, owner: role.owner,
+      semantic_role: role.semantic_role, policy_class: role.policy_class, mutates_remote_state: role.mutates_remote_state })),
+    diagnostic_kda: diagnosticReceipts,
+    live_mcp_receipts: liveReceipts,
+    transports: [...transports].filter(Boolean).sort(),
+    failing_binding_ids: unique(failingBindingIds),
+    canonical_binding_reconciliation: expected ? {
+      status: bindingReconciliationFailures.length === 0 ? 'passed' : 'failed',
+      expected_binding_ids: unique(expected.map(binding => binding?.binding_id).filter(nonEmpty)),
+      observed_binding_ids: unique(roleIds),
+      failing_binding_ids: unique(bindingReconciliationFailures),
+    } : { status: 'not_evaluated', expected_binding_ids: [], observed_binding_ids: unique(roleIds) },
+    no_live_receipt_rationale: semanticRoles.length === 0 && dispositionAllowsNoRoles
+      ? `No application MCP++ receipt is required because the canonical disposition is ${toolRecord.disposition}; K/D/A remains diagnostic-only.` : null,
+    failure_reason: passed ? null : 'The app lacks a complete three-row K/D/A disposition, an allowed no-role rationale, or call-bound DID/descriptor/policy/receipt/event-DAG proof for every semantic binding.',
+  };
+}
+
+function buildOrbMetaTrace(appId, semanticRoles, handoffPackets, simulatorPackets, disposition) {
+  const bindingIds = unique(semanticRoles.map(role => role.binding_id).filter(nonEmpty));
+  if (bindingIds.length === 0) {
+    const rationale = `Not applicable: ${disposition ?? 'non-tool-backed'} declares no primary mediated application binding.`;
+    return {
+      orb_idl: { status: 'not_applicable', rationale, packet_ids: [], missing_binding_ids: [], failure_reason: null },
+      meta_simulator: { status: 'not_applicable', rationale, packet_ids: [], missing_packet_ids: [], failure_reason: null },
+    };
+  }
+  const packets = handoffPackets.filter(packet => packet?.app_id === appId && bindingIds.includes(packet?.binding_id));
+  const missingBindingIds = bindingIds.filter(bindingId => !packets.some(packet => packet.binding_id === bindingId));
+  const invalidPackets = packets.filter(packet => !nonEmpty(packet?.packet_id) || !isContentAddress(packet?.interface_cid)
+    || !/^did:key:/.test(packet?.peer_did ?? '') || !nonEmpty(packet?.correlation_id)
+    || !Array.isArray(packet?.receipt_refs) || packet.receipt_refs.length === 0 || !packet.receipt_refs.every(isEvidenceReference)
+    || !Array.isArray(packet?.event_dag_refs) || packet.event_dag_refs.length === 0 || !packet.event_dag_refs.every(isEvidenceReference));
+  const packetIds = packets.map(packet => packet?.packet_id).filter(nonEmpty);
+  const duplicatePacketIds = packetIds.filter((packetId, index) => packetIds.indexOf(packetId) !== index);
+  // A binding can legitimately expose multiple governed actions (notably the
+  // Agent Supervisor control plane). Require complete unique packets and
+  // binding coverage, not an invalid one-packet-per-binding cardinality.
+  const orbPassed = missingBindingIds.length === 0 && invalidPackets.length === 0
+    && packets.length >= bindingIds.length && duplicatePacketIds.length === 0;
+  const replayed = simulatorPackets.filter(packet => packets.some(source => source.packet_id === packet?.packet_id));
+  const missingPacketIds = packets.filter(packet => !replayed.some(replay => replay.packet_id === packet.packet_id)).map(packet => packet.packet_id);
+  const replayPacketIds = replayed.map(packet => packet?.packet_id).filter(nonEmpty);
+  const duplicateReplayPacketIds = replayPacketIds.filter((packetId, index) => replayPacketIds.indexOf(packetId) !== index);
+  const invalidReplays = replayed.filter(packet => packet?.status !== 'passed' || packet?.compiled_packet_verified !== true
+    || packet?.receipt_event_dag_preserved !== true || !REQUIRED_MODALITIES.every(modality => {
+      const flows = packet?.modalities?.[modality]?.flows;
+      return Array.isArray(flows) && REQUIRED_REPLAY_SCENARIOS.every(scenario => flows.some(flow => flow?.scenario === scenario
+        && flow?.receipt_refs_preserved === true && flow?.event_dag_refs_preserved === true
+        && flow?.physical_hardware_claimed === false));
+    }));
+  const metaPassed = orbPassed && missingPacketIds.length === 0 && invalidReplays.length === 0
+    && duplicateReplayPacketIds.length === 0 && replayed.length === packets.length;
+  return {
+    orb_idl: { status: orbPassed ? 'passed' : 'failed', rationale: null,
+      packet_ids: packetIds, missing_binding_ids: unique([...missingBindingIds, ...invalidPackets.map(packet => packet.binding_id)]),
+      duplicate_packet_ids: unique(duplicatePacketIds),
+      failure_reason: orbPassed ? null : 'One or more applicable semantic bindings lacks a complete call-bound ORB/IDL packet.' },
+    meta_simulator: { status: metaPassed ? 'passed' : 'failed', rationale: null,
+      packet_ids: replayed.map(packet => packet.packet_id), missing_packet_ids: unique([...missingPacketIds, ...invalidReplays.map(packet => packet.packet_id)]),
+      duplicate_packet_ids: unique(duplicateReplayPacketIds),
+      physical_hardware_claimed: false,
+      failure_reason: metaPassed ? null : 'One or more applicable ORB/IDL packets lacks a complete hardware-free Meta replay for every modality and scenario.' },
+  };
+}
+
+function rowsById(rows, idField) {
+  const map = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const id = row?.[idField];
+    if (!nonEmpty(id) || map.has(id)) continue;
+    map.set(id, row);
+  }
+  return map;
+}
+
+function allAppAcceptancePassed(acceptance) {
+  return acceptance && Object.entries(acceptance).every(([key, value]) =>
+    key === 'direct_backend_details_exposed_to_apps' ? value === false : value === true);
+}
 
 /**
  * SVD-102 is not merely an informational coverage graph.  A tool-backed
@@ -422,8 +916,8 @@ function validateFreshToolBackedPairs(bindings, behavior, add, {
         modality: 'desktop',
         task_id: taskId,
         evidence_path: evidencePath,
-        reason: 'The claimed execution is not a complete canonical browser-mediated call for this exact app, owner, binding, and allowed transport.',
-        remediation: 'Recapture the real desktop call with matching app/owner/binding fields, canonical browser origin, allow decision, request/response, correlation ID, descriptor, receipt, event-DAG, persistence, and recovery evidence.',
+        reason: 'The claimed execution is not a complete canonical browser-mediated call for this exact app, owner, binding, allowed transport, and allow-or-confirmation-gated policy outcome.',
+        remediation: 'Recapture the real desktop call with matching app/owner/binding fields, canonical browser origin, an allow decision or explicitly confirmed dry run, request/response, correlation ID, descriptor, receipt, event-DAG, persistence, and recovery evidence.',
       });
     }
   }
@@ -435,6 +929,21 @@ function validLiveGatewayExecution(execution, binding, canonicalGatewayOrigin) {
   const observation = execution?.transport_observation;
   const receiptRefs = Array.isArray(execution?.receipt_refs) ? execution.receipt_refs : [];
   const eventRefs = Array.isArray(execution?.event_dag_refs) ? execution.event_dag_refs : [];
+  const safeReadPassed = execution?.policy?.outcome === 'allow'
+    && execution?.policy?.consent === 'not_required'
+    && execution?.invocation?.operation_class === 'read_request'
+    && execution?.invocation?.narrow_non_mutating_input === true
+    && execution?.invocation?.confirmation_required === false
+    && execution?.policy?.dry_run === execution?.invocation?.dry_run
+    && ['safe_read_dry_run', 'safe_read_not_required'].includes(execution?.invocation?.confirmation_or_policy);
+  const governedDryRunPassed = execution?.policy?.outcome === 'require_confirmation'
+      && execution?.policy?.consent === 'granted'
+      && execution?.policy?.dry_run === true
+      && execution?.invocation?.operation_class === 'governed_write_request'
+      && execution?.invocation?.confirmation_required === true
+      && execution?.invocation?.dry_run === true
+      && execution?.invocation?.confirmation_or_policy === 'confirmation_gated_dry_run';
+  const policyPassed = safeReadPassed || governedDryRunPassed;
   return canonicalGatewayOrigin
     && execution?.app_id === binding?.app_id
     && execution?.owner === binding?.owner
@@ -445,7 +954,7 @@ function validLiveGatewayExecution(execution, binding, canonicalGatewayOrigin) {
     && execution?.request?.same_origin === true
     && nonEmpty(execution?.request?.route)
     && execution?.response?.outcome === 'executed' && execution?.response?.ok === true
-    && execution?.policy?.outcome === 'allow' && nonEmpty(execution?.policy?.decision_id)
+    && policyPassed && nonEmpty(execution?.policy?.decision_id)
     && receiptRefs.some(isCid) && eventRefs.some(isCid)
     && execution?.persistence?.status === 'persisted'
     && isCid(execution?.persistence?.receipt_cid) && isCid(execution?.persistence?.event_cid)
@@ -529,7 +1038,7 @@ function validateFreshTransportEvidence(profile, add) {
     const libp2p = path?.transports?.libp2p;
     for (const [transport, observation] of [['http', http], ['libp2p', libp2p]]) {
       if (!validApplicationTransportObservation(observation, transport)) {
-        add({ code: 'incomplete_application_transport_observation', application, tool: binding, transport, task_id: 'SVD-127', evidence_path: evidencePath, reason: `The ${transport} replay is missing a call-bound descriptor/receipt/event CID, verified UCAN DID, allow decision, correlation ID, or recovery record.`, remediation: 'Repeat the visible desktop replay on this exact transport and preserve the complete mediator observation.' });
+        add({ code: 'incomplete_application_transport_observation', application, tool: binding, transport, task_id: 'SVD-127', evidence_path: evidencePath, reason: `The ${transport} replay is missing a call-bound descriptor/receipt/event CID, verified UCAN DID, allow-or-confirmation-gated policy decision, correlation ID, or recovery record.`, remediation: 'Repeat the visible desktop replay on this exact transport and preserve the complete mediator observation.' });
       }
     }
     if (!http || !libp2p || http.selected_tool_id !== libp2p.selected_tool_id || path?.transports?.parity_verified !== true) {
@@ -558,6 +1067,10 @@ function validateFreshTransportEvidence(profile, add) {
   if (profile.coverage?.scheduling_enabled !== false || profile.coverage?.payment_enabled !== false) add({ code: 'ungoverned_profile_enablement', task_id: 'SVD-127', evidence_path: evidencePath, reason: 'The report enables governed scheduling or settlement without its required governed workflow evidence.', remediation: 'Keep Profiles G/H unsupported until their prerequisites are enabled and replayed.' });
 }
 function validApplicationTransportObservation(observation, transport) {
+  const policyPassed = observation?.policy_outcome === 'allow'
+    || (observation?.policy_outcome === 'require_confirmation'
+      && observation?.policy_dry_run === true
+      && observation?.confirmation_required === true);
   return observation?.transport === transport
     && observation?.application_originated === true
     && nonEmpty(observation?.selected_tool_id)
@@ -568,13 +1081,20 @@ function validApplicationTransportObservation(observation, transport) {
     && observation?.ucan_did_verified === true
     && /^did:key:/.test(observation?.remote_did ?? '')
     && isCid(observation?.identity_proof_cid)
-    && observation?.policy_outcome === 'allow'
+    && policyPassed
     && nonEmpty(observation?.policy_decision_id)
     && observation?.persistence_verified === true
     && observation?.recovery?.observed === true
     && observation?.recovery?.correlation_id_preserved === true;
 }
 function isCid(value) { return typeof value === 'string' && /^b[a-z2-7]{58}$/.test(value); }
+function isContentAddress(value) {
+  return isCid(value) || (typeof value === 'string' && /^sha256:[a-f0-9]{64}$/.test(value));
+}
+function isEvidenceReference(value) {
+  return isContentAddress(value) || (value && typeof value === 'object'
+    && nonEmpty(value.ref) && isContentAddress(value.cid));
+}
 function validateFreshSimulatorEvidence(simulator, add) {
   if (!simulator) return;
   for (const replay of simulator.replays ?? []) if (replay.modality && isPlaceholderExecution(replay)) add({ code: 'placeholder_execution_claim', application: replay.app_id ?? null, modality: replay.modality, task_id: 'SVD-111', evidence_path: 'test-results/virtual-desktop-ipfs-mcp-orb/all-app-meta-device-simulator-proof.json', remediation: 'Replay the compiled packet in the device simulator and retain privacy, permission, rollback, and fallback observations.' });
@@ -599,7 +1119,21 @@ function renderFreshReleaseMarkdown(report) {
   const lines = ['# Freshness-Aware Virtual Desktop Release Evidence', '', `Task: ${report.task_id}`, `Generated: ${report.generated_at}`, `Decision: **${report.decision.status.replace('_', '-')}**`, '', '## Freshness policy', '', `- Maximum receipt age: ${report.freshness_policy.maximum_age_ms} ms.`, '- Evidence is rejected when absent, malformed, stale, future-dated, descriptor-only, static-only, fixture-only, or unclassified.', '', '## Blocking findings', '', '| Application | Tool | Owner | Transport | Modality | Task | Finding | Remediation |', '| --- | --- | --- | --- | --- | --- | --- | --- |'];
   lines.push(...(report.named_gaps.length ? report.named_gaps.map(item => `| ${item.application ?? '—'} | ${item.tool ?? '—'} | ${item.owner ?? '—'} | ${item.transport ?? '—'} | ${item.modality ?? '—'} | ${item.task_id} | ${item.code}: ${item.reason ?? '—'} | ${item.remediation} |`) : ['| — | — | — | — | — | — | None | — |']));
   lines.push('', '## Input receipts', '', '| Input | Task | Freshness | Captured |', '| --- | --- | --- | --- |', ...Object.entries(report.artifacts).map(([id, value]) => `| ${id} | ${value.task_id} | ${value.freshness} | ${value.generated_at ?? '—'} |`), '');
-  return lines.join('\n');
+  const gate = report.all_app_improvement_release_gate;
+  lines.push(
+    '## SVD-182 all-app release trace', '',
+    `- Decision: **${gate.decision}**`,
+    `- Passing apps: ${gate.passing_app_count}/${gate.required_app_count}`,
+    `- Remaining gap task IDs: ${gate.remaining_gap_task_ids.join(', ') || 'none'}`, '',
+    '| App | Workflow | K/D/A + MCP++ | UI/UX | ORB/IDL | Meta simulator | Status |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+    ...gate.traces.map(trace => `| \`${trace.app_id}\` | ${trace.primary_workflow.workflow_id} (${trace.primary_workflow.status}) | ${trace.backend_disposition.disposition ?? 'missing'} (${trace.backend_disposition.status}) | ${trace.ui_ux.status} | ${trace.orb_idl.status} | ${trace.meta_simulator.status} | **${trace.status}** |`),
+    '', '## Decision', '',
+    report.decision.status === 'GO'
+      ? 'GO is permitted because every required input and every per-app trace record passes.'
+      : `Release remains **NO-GO**. Close only the verified remaining task IDs: ${report.decision.blocker_task_ids.join(', ') || 'none'}.`,
+  );
+  return `${lines.join('\n')}\n`;
 }
 function replayIndependentAllAppCloseout() {
   // SVD-115 owns a separate read-only verifier. A NO_GO exit is expected to
@@ -2500,7 +3034,15 @@ module.exports = {
     validateFreshBindingLedger,
     validateFreshToolBackedPairs,
     validLiveGatewayExecution,
+    validApplicationTransportObservation,
     validateFreshCatalog,
+    validateAllAppImprovementReleaseEvidence,
+    buildPrimaryWorkflowTrace,
+    buildUiUxTrace,
+    buildBackendAndReceiptTrace,
+    buildOrbMetaTrace,
+    appImprovementTaskId,
+    APP_IMPROVEMENT_TASK_BY_APP_ID,
     buildFreshReleaseReport,
   },
 };

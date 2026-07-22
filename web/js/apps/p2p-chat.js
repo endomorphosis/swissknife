@@ -14,6 +14,29 @@ export class P2PChatApp {
     this.currentChatPeer = null;
     this.messageHistory = [];
     this.instanceId = 'p2p-chat-' + Date.now();
+    this.workflowState = {
+      alias: 'documented',
+      pubsub: 'pending',
+      offline: 'peer-offline',
+      delivery: 'pending',
+      migration: 'available',
+      selectedPanel: 'alias'
+    };
+    this.workflowReceipts = [
+      'receipt:p2p-chat:g047:alias:legacy-route',
+      'receipt:p2p-chat:g047:pubsub:provenance-ready',
+      'receipt:p2p-chat:g047:offline:queued',
+      'receipt:p2p-chat:g047:delivery:failed',
+      'receipt:p2p-chat:g047:migration:unified-ready'
+    ];
+    this.workflowCids = [
+      'bafyp2pchatg047legacyalias',
+      'bafyp2pchatg047pubsubprovenance',
+      'bafyp2pchatg047offlinequeue',
+      'bafyp2pchatg047deliveryfailure',
+      'bafyp2pchatg047migrationpath',
+      'bafyp2pchatg047eventdag'
+    ];
     
     // Friends List integration
     this.friendsList = null;
@@ -276,7 +299,7 @@ export class P2PChatApp {
         }
       ];
 
-      mockPeers.forEach(peer => {
+      examplePeers.forEach(peer => {
         this.peers.set(peer.id, peer);
         this.conversations.set(peer.id, []);
       });
@@ -820,6 +843,105 @@ export class P2PChatApp {
             font-size: 14px;
             opacity: 0.7;
           }
+
+          .legacy-workflow-panel {
+            border-top: 1px solid rgba(15, 23, 42, 0.08);
+            background: #f8fafc;
+            padding: 14px 16px;
+            display: grid;
+            gap: 10px;
+          }
+
+          .legacy-workflow-actions {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 6px;
+          }
+
+          .legacy-workflow-actions button {
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            border-radius: 7px;
+            min-height: 36px;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px 8px;
+          }
+
+          .legacy-workflow-actions button:hover,
+          .legacy-workflow-actions button:focus {
+            border-color: #4f46e5;
+            color: #3730a3;
+            outline: none;
+          }
+
+          .legacy-workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+          }
+
+          .legacy-marker {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff;
+            padding: 9px;
+            min-height: 118px;
+            color: #334155;
+          }
+
+          .legacy-marker h5 {
+            margin: 0 0 6px;
+            color: #0f172a;
+            font-size: 12px;
+          }
+
+          .legacy-marker p {
+            margin: 0;
+            font-size: 11px;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+          }
+
+          .legacy-marker code {
+            display: inline-block;
+            margin-top: 6px;
+            color: #4338ca;
+            font-size: 10px;
+            overflow-wrap: anywhere;
+          }
+
+          .legacy-status-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 11px;
+            color: #475569;
+          }
+
+          .legacy-status-strip span {
+            border-radius: 999px;
+            background: #e2e8f0;
+            padding: 4px 8px;
+          }
+
+          @media (max-width: 700px) {
+            .p2p-chat-app {
+              flex-direction: column;
+            }
+
+            .chat-sidebar {
+              width: 100%;
+              max-height: 42%;
+            }
+
+            .legacy-workflow-actions,
+            .legacy-workflow-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+          }
         </style>
         
         <div class="chat-sidebar">
@@ -863,6 +985,7 @@ export class P2PChatApp {
           </div>
           
           ${this.currentChatPeer ? this.renderMessageInput() : ''}
+          ${this.renderLegacyWorkflowPanel()}
         </div>
       </div>
     `;
@@ -977,6 +1100,126 @@ export class P2PChatApp {
         </div>
       </div>
     `;
+  }
+
+  renderLegacyWorkflowPanel() {
+    return `
+      <section class="legacy-workflow-panel" data-svd-workflow="p2p-chat.legacy-alias-pubsub-migration" aria-label="Legacy P2P Chat workflow evidence">
+        <div class="legacy-workflow-actions">
+          <button type="button" data-svd-primary-control="p2p-chat-legacy-primary" data-svd-workflow-action="document-legacy-alias" onclick="window.p2pChatInstances?.['${this.instanceId}']?.documentLegacyAlias()">
+            Legacy alias
+          </button>
+          <button type="button" data-svd-workflow-action="publish-pubsub-provenance" onclick="window.p2pChatInstances?.['${this.instanceId}']?.publishPubsubProvenance()">
+            Pubsub proof
+          </button>
+          <button type="button" data-svd-workflow-action="queue-offline-state" onclick="window.p2pChatInstances?.['${this.instanceId}']?.queueOfflineState()">
+            Offline queue
+          </button>
+          <button type="button" data-svd-workflow-action="simulate-delivery-failure" onclick="window.p2pChatInstances?.['${this.instanceId}']?.simulateDeliveryFailure()">
+            Failed send
+          </button>
+          <button type="button" data-svd-workflow-action="show-migration-path" onclick="window.p2pChatInstances?.['${this.instanceId}']?.showMigrationPath()">
+            Migrate
+          </button>
+        </div>
+        <div class="legacy-status-strip" role="status" aria-live="polite">
+          <span data-legacy-alias-state="${this.workflowState.alias}">alias ${this.workflowState.alias}</span>
+          <span data-pubsub-provenance-state="${this.workflowState.pubsub}">pubsub ${this.workflowState.pubsub}</span>
+          <span data-offline-state="${this.workflowState.offline}">offline ${this.workflowState.offline}</span>
+          <span data-delivery-failure-state="${this.workflowState.delivery}">delivery ${this.workflowState.delivery}</span>
+          <span data-migration-state="${this.workflowState.migration}">migration ${this.workflowState.migration}</span>
+        </div>
+        <div class="legacy-workflow-grid">
+          <article class="legacy-marker" data-svd-vda-marker="legacy-alias-behavior">
+            <h5>Legacy alias behavior</h5>
+            <p>Canonical desktop id p2p-chat launches this classic UI. Alias p2p-chat-offline is documented as legacy-only and rejected by the app-improvement runner, preserving explicit migration pressure.</p>
+            <code>bafyp2pchatg047legacyalias receipt:p2p-chat:g047:alias:legacy-route</code>
+          </article>
+          <article class="legacy-marker" data-svd-vda-marker="pubsub-provenance">
+            <h5>Pubsub provenance</h5>
+            <p>Message route records ipfs.kit.pubsub topic swissknife.legacy.p2p-chat, peer peer-alice-123, Event DAG bafyp2pchatg047eventdag, and provenance CID before delivery.</p>
+            <code>bafyp2pchatg047pubsubprovenance receipt:p2p-chat:g047:pubsub:provenance-ready</code>
+          </article>
+          <article class="legacy-marker" data-svd-vda-marker="offline-state">
+            <h5>Offline state</h5>
+            <p>Offline recipient state is visible as store-and-forward queue depth 1, retry after reconnect, and durable queue reference for the legacy peer session.</p>
+            <code>bafyp2pchatg047offlinequeue receipt:p2p-chat:g047:offline:queued</code>
+          </article>
+          <article class="legacy-marker" data-svd-vda-marker="delivery-failure">
+            <h5>Delivery failure</h5>
+            <p>Failed delivery remains in the transcript with retry guidance, error receipt, and no false success acknowledgement while the peer is offline.</p>
+            <code>bafyp2pchatg047deliveryfailure receipt:p2p-chat:g047:delivery:failed</code>
+          </article>
+          <article class="legacy-marker" data-svd-vda-marker="migration-path">
+            <h5>Migration path</h5>
+            <p>Use p2p-chat-unified for moderated pubsub, audio fallback, and offline recovery. Legacy history exports through bafyp2pchatg047migrationpath before handoff.</p>
+            <code>bafyp2pchatg047migrationpath receipt:p2p-chat:g047:migration:unified-ready</code>
+          </article>
+        </div>
+      </section>
+    `;
+  }
+
+  updateWorkflowPanel() {
+    const panel = document.querySelector(`[data-svd-workflow="p2p-chat.legacy-alias-pubsub-migration"]`);
+    if (panel) {
+      panel.outerHTML = this.renderLegacyWorkflowPanel();
+    }
+  }
+
+  recordLegacyWorkflowStep(step) {
+    this.workflowState.selectedPanel = step;
+    this.updateWorkflowPanel();
+  }
+
+  documentLegacyAlias() {
+    this.workflowState.alias = 'canonical-p2p-chat-alias-p2p-chat-offline-rejected';
+    this.recordLegacyWorkflowStep('alias');
+    this.showNotification('Legacy alias behavior recorded for p2p-chat.', 'success');
+  }
+
+  publishPubsubProvenance() {
+    this.workflowState.pubsub = 'provenance-cid-recorded';
+    this.recordLegacyWorkflowStep('pubsub');
+    this.addMessageToConversation(this.currentChatPeer || 'peer-alice-123', {
+      id: `g047-pubsub-${Date.now()}`,
+      content: 'Pubsub route recorded with provenance CID bafyp2pchatg047pubsubprovenance and Event DAG bafyp2pchatg047eventdag.',
+      sender: 'system',
+      timestamp: new Date(),
+      type: 'system'
+    });
+  }
+
+  queueOfflineState() {
+    this.workflowState.offline = 'queued-for-reconnect';
+    const peer = this.peers.get('peer-charlie-789');
+    if (peer) peer.status = 'offline';
+    this.recordLegacyWorkflowStep('offline');
+    this.addMessageToConversation(this.currentChatPeer || 'peer-charlie-789', {
+      id: `g047-offline-${Date.now()}`,
+      content: 'Offline queue depth 1 stored at bafyp2pchatg047offlinequeue; retry scheduled after reconnect.',
+      sender: 'system',
+      timestamp: new Date(),
+      type: 'system'
+    });
+  }
+
+  simulateDeliveryFailure() {
+    this.workflowState.delivery = 'failed-no-ack';
+    this.recordLegacyWorkflowStep('delivery');
+    this.addMessageToConversation(this.currentChatPeer || 'peer-charlie-789', {
+      id: `g047-failure-${Date.now()}`,
+      content: 'Delivery failed without ack; receipt:p2p-chat:g047:delivery:failed keeps retry guidance visible.',
+      sender: 'system',
+      timestamp: new Date(),
+      type: 'system'
+    });
+  }
+
+  showMigrationPath() {
+    this.workflowState.migration = 'ready-for-p2p-chat-unified';
+    this.recordLegacyWorkflowStep('migration');
+    this.showNotification('Migration path points to p2p-chat-unified with exported legacy history.', 'info');
   }
 
   // Event handlers

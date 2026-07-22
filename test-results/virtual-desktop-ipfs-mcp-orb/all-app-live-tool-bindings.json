@@ -1,10 +1,9 @@
 {
   "schema": "swissknife.all-app-live-tool-bindings-evidence.v1",
   "task_id": "SVD-104",
-  "generated_at": "2026-07-20T07:43:24.234Z",
+  "generated_at": "2026-07-22T00:27:34.272Z",
   "capture_mode": "executable-browser-binding-catalog",
   "source_contract": {
-    "schema": "swissknife.all-app-executable-backend-contract.v1",
     "contract_id": "org.hallucinate.swissknife.all-app-executable-backend-contract",
     "version": "1.0.0"
   },

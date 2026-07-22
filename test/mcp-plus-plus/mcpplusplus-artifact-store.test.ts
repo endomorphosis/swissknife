@@ -150,6 +150,28 @@ describe("MCP++ Profile A/B artifact storage", () => {
     expect(provider.bootstrap_peers).toEqual(bootstrapConfig.peers);
     expect(provider.node_repo).toContain(path.join("producer", "network"));
     expect(provider.peer_discovery).toEqual(["mdns", "bootstrap"]);
+    expect(provider.dht_mode).toBe("client");
+    expect(provider.public_listen).toBe(false);
+    expect(provider.dht_options).toMatchObject({
+      clientMode: true,
+      allowQueryWithZeroPeers: true,
+      kBucketSize: 1,
+      alpha: 1,
+      disjointPaths: 1,
+      maxInboundStreams: 4,
+      maxOutboundStreams: 4,
+    });
+    expect(provider.resource_limits).toEqual({
+      max_connections: 4,
+      min_connections: 0,
+      max_parallel_dials: 1,
+      auto_dial_max_queue_length: 1,
+      max_peer_addrs_to_dial: 2,
+      max_incoming_pending_connections: 2,
+      dial_timeout_ms: 3_000,
+    });
+    expect(provider.active_connection_count).toBeGreaterThanOrEqual(0);
+    expect(provider.active_peer_count).toBeGreaterThanOrEqual(0);
     expect(
       provider.multiaddrs.some(
         (address: string) =>
@@ -157,6 +179,13 @@ describe("MCP++ Profile A/B artifact storage", () => {
           !address.includes("/p2p-circuit"),
       ),
     ).toBe(false);
+    expect(
+      provider.multiaddrs.every(
+        (address: string) =>
+          address.startsWith("/ip4/127.0.0.1/") ||
+          address.startsWith("/ip6/::1/"),
+      ),
+    ).toBe(true);
     expect(provider.background_services).toEqual(
       expect.arrayContaining([
         "autoNAT",

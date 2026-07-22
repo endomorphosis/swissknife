@@ -26,11 +26,8 @@ except ImportError:  # py-libp2p >= 0.3 moved service contexts to the anyio pack
     from libp2p.tools.anyio_service.context import background_trio_service
 from multiaddr import Multiaddr
 
-from ipfs_accelerate_py.p2p_tasks.mcp_p2p import read_u32_framed_json
-from ipfs_accelerate_py.p2p_tasks.mcp_p2p_protocol import PROTOCOL_MCP_P2P_V1
-
-
 MCP_PROTOCOL_VERSION = "2024-11-05"
+PROTOCOL_MCP_P2P_V1 = "/mcp+p2p/1.0.0"
 PROFILE_E_CAPABILITY = "mcp++/p2p-transport"
 PROFILE_A_CAPABILITY = "mcp++/mcp-idl"
 PROFILE_B_CAPABILITY = "mcp++/cid-envelope"
@@ -91,6 +88,58 @@ async def write_chunked_jsonrpc_frame(stream: Any, message: dict[str, Any]) -> N
     frame = len(body).to_bytes(4, "big") + body
     for offset in range(0, len(frame), MAX_LIBP2P_WRITE_BYTES):
         await stream.write(frame[offset:offset + MAX_LIBP2P_WRITE_BYTES])
+
+
+async def _read_exact(stream: Any, size: int, *, chunk_size: int = 4096) -> bytes:
+    """Read exactly one bounded frame segment from a libp2p stream."""
+
+    remaining = max(0, int(size))
+    chunks: list[bytes] = []
+    while remaining:
+        chunk = await stream.read(min(remaining, max(1, int(chunk_size))))
+        if not chunk:
+            raise EOFError("unexpected_eof")
+        chunks.append(bytes(chunk))
+        remaining -= len(chunk)
+    return b"".join(chunks)
+
+
+async def read_u32_framed_json(
+    stream: Any,
+    *,
+    max_frame_bytes: int = MAX_FRAME_BYTES,
+    chunk_size: int = 4096,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Read a bounded u32 JSON-RPC frame without importing a backend package.
+
+    The bridge only needs the MCP++ wire framing. Keeping that implementation
+    local avoids importing the accelerator package (and its optional ML stack)
+    into every long-running bridge process.
+    """
+
+    maximum = max(1, int(max_frame_bytes))
+    try:
+        header = await _read_exact(stream, 4, chunk_size=chunk_size)
+    except EOFError:
+        return None, "empty"
+    except Exception:
+        return None, "eof"
+    frame_size = int.from_bytes(header, byteorder="big", signed=False)
+    if frame_size > maximum:
+        return None, "frame_too_large"
+    try:
+        payload = await _read_exact(stream, frame_size, chunk_size=chunk_size)
+    except Exception:
+        return None, "eof"
+    try:
+        decoded = json.loads(payload.decode("utf-8"))
+    except UnicodeDecodeError:
+        return None, "invalid_json"
+    except json.JSONDecodeError:
+        return None, "invalid_json"
+    if not isinstance(decoded, dict):
+        return None, "invalid_message"
+    return decoded, None
 
 
 class HttpMcpRegistry:

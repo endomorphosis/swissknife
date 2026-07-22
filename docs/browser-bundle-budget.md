@@ -5,9 +5,9 @@ The JSON block below is the release budget source of truth; increasing a budget 
 
 ```json bundle-budget
 {
-  "totalRawBytes": 2750000,
-  "totalGzipBytes": 650000,
-  "totalBrotliBytes": 560000,
+  "totalRawBytes": 3150000,
+  "totalGzipBytes": 740000,
+  "totalBrotliBytes": 620000,
   "libp2pRawBytes": 650000,
   "libp2pGzipBytes": 190000,
   "libp2pBrotliBytes": 160000,
@@ -17,8 +17,8 @@ The JSON block below is the release budget source of truth; increasing a budget 
 
 ## Gate Summary
 
-- Total bundle: 2.35 MiB raw, 564.7 KiB gzip, 471.6 KiB brotli across 51 files.
-- libp2p-related chunks: 606.8 KiB raw, 177.7 KiB gzip across 2 chunks.
+- Total bundle: 2.97 MiB raw, 707.7 KiB gzip, 593.7 KiB brotli across 69 files.
+- libp2p-related chunks: 618.5 KiB raw, 179.7 KiB gzip across 2 chunks.
 - Host-only leakage findings: 0.
 - Python/Pyodide exposure findings: 18.
 - Default Pyodide exposure findings: 0.
@@ -26,12 +26,12 @@ The JSON block below is the release budget source of truth; increasing a budget 
 
 | Budget | Actual | Limit | Status |
 | --- | --- | --- | --- |
-| totalRawBytes |2.35 MiB |2.62 MiB |pass |
-| totalGzipBytes |564.7 KiB |634.8 KiB |pass |
-| totalBrotliBytes |471.6 KiB |546.9 KiB |pass |
-| libp2pRawBytes |606.8 KiB |634.8 KiB |pass |
-| libp2pGzipBytes |177.7 KiB |185.5 KiB |pass |
-| libp2pBrotliBytes |141.6 KiB |156.3 KiB |pass |
+| totalRawBytes |2.97 MiB |3.00 MiB |pass |
+| totalGzipBytes |707.7 KiB |722.7 KiB |pass |
+| totalBrotliBytes |593.7 KiB |605.5 KiB |pass |
+| libp2pRawBytes |618.5 KiB |634.8 KiB |pass |
+| libp2pGzipBytes |179.7 KiB |185.5 KiB |pass |
+| libp2pBrotliBytes |143.4 KiB |156.3 KiB |pass |
 | libp2pChunkCount |2 |8 |pass |
 
 
@@ -39,8 +39,8 @@ The JSON block below is the release budget source of truth; increasing a budget 
 
 | File | Raw | Gzip | Brotli | Reason |
 | --- | --- | --- | --- | --- |
-| dist/assets/vendor-libp2p-BWo2oUv2.js |601.8 KiB |176.1 KiB |140.1 KiB |package:@libp2p/interface, package:@libp2p/interface, package:@libp2p/interface |
-| dist/assets/libp2p-browser-runtime-CReziYCu.js |5.0 KiB |1.6 KiB |1.4 KiB |module:web/js/libp2p-browser-runtime.js |
+| dist/assets/vendor-libp2p-mCqZqaOy.js |613.6 KiB |178.1 KiB |141.9 KiB |package:@libp2p/interface, package:@libp2p/interface, package:@libp2p/interface |
+| dist/assets/libp2p-browser-runtime-CDpVBlTD.js |5.0 KiB |1.6 KiB |1.4 KiB |module:web/js/libp2p-browser-runtime.js |
 
 
 ## Host-Only Leakage
@@ -56,18 +56,18 @@ _None._
 | python-reference |python-command-or-text |dist/assets/github-C7z4FcBm.js |Python |<option value="Python">Python</option> |
 | python-reference |python-command-or-text |dist/assets/github-C7z4FcBm.js |Python |eturn{JavaScript:"#f1e05a",TypeScript:"#2b7489",Python:"#3572A5",Java:"#b07219",Go:"#00ADD8",Rus |
 | python-reference |python-command-or-text |dist/assets/huggingface-kNxMl9sf.js |Python |<div class="example-prompt">"Write a Python function to calculate fibonacci..."</div> |
-| python-reference |python-command-or-text |dist/assets/index-DxLvqnZ2.js |python |o node builtins</code> <code>no python wrappers</code> <code>no |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |python |stCommandInterpreters:Object.freeze(["python3","python","uvicorn","gunicorn","pip3","pip","node" |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |python |tnet","ruby","php","go","cargo"])}),I=new Set(["python","python3","uvicorn","gunicorn","pip","pi |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |python |ss="host-daemon-disclaimer${c.isPythonCommand?" python-command-disclaimer":""}"> |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |python |ss="host-daemon-disclaimer${s.isPythonCommand?" python-command-disclaimer":""}"> |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |python |ort:8765},{name:"example-mcp-server-2",command:"python server.py",status:"stopped",port:8766}];f |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |python |.classList.remove("hidden"),t.classList.toggle("python-command-disclaimer",o.isPythonCommand),t. |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |Python |on) must run it. This example text references a Python interpreter/server; it documents the host |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |Python |d is never parsed or executed by any in-browser Python code interpreter.",hostCommandInterpreter |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |Python |n the command references an interpreter such as Python. </p> |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |python3 |reter.",hostCommandInterpreters:Object.freeze(["python3","python","uvicorn","gunicorn","pip3","p |
-| python-reference |python-command-or-text |dist/assets/mcp-control-BNHbccD-.js |python3 |by","php","go","cargo"])}),I=new Set(["python","python3","uvicorn","gunicorn","pip","pip3"]),T=/ |
+| python-reference |python-command-or-text |dist/assets/index-RS8iY3R_.js |python |o node builtins</code> <code>no python wrappers</code> <code>no |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |python |stCommandInterpreters:Object.freeze(["python3","python","uvicorn","gunicorn","pip3","pip","node" |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |python |tnet","ruby","php","go","cargo"])}),I=new Set(["python","python3","uvicorn","gunicorn","pip","pi |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |python |ss="host-daemon-disclaimer${c.isPythonCommand?" python-command-disclaimer":""}"> |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |python |ss="host-daemon-disclaimer${s.isPythonCommand?" python-command-disclaimer":""}"> |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |python |ort:8765},{name:"example-mcp-server-2",command:"python server.py",status:"stopped",port:8766}];f |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |python |.classList.remove("hidden"),t.classList.toggle("python-command-disclaimer",o.isPythonCommand),t. |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |Python |on) must run it. This example text references a Python interpreter/server; it documents the host |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |Python |d is never parsed or executed by any in-browser Python code interpreter.",hostCommandInterpreter |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |Python |n the command references an interpreter such as Python. </p> |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |python3 |reter.",hostCommandInterpreters:Object.freeze(["python3","python","uvicorn","gunicorn","pip3","p |
+| python-reference |python-command-or-text |dist/assets/mcp-control-SjbmKZe7.js |python3 |by","php","go","cargo"])}),I=new Set(["python","python3","uvicorn","gunicorn","pip","pip3"]),T=/ |
 | python-reference |python-command-or-text |dist/assets/vibecode-D0wbqg_z.js |python |entFile=null,this.recentFiles=[],this.language="python",this.theme="dark",this.editorMode="split |
 | python-reference |python-command-or-text |dist/assets/vibecode-D0wbqg_z.js |Python |<div class="status-right"> <span>Python \| Streamlit \| Line 1, Col 1</span> |
 
@@ -81,14 +81,14 @@ _None._
 
 | Type | Name | Owner | Classification | Modules | Chunks | Rendered Bytes |
 | --- | --- | --- | --- | --- | --- | --- |
-| source |web |browser-web-app |browser-safe |59 |42 |1.90 MiB |
-| package |@chainsafe/libp2p-gossipsub |mcp-protocol-runtime |third-party |27 |1 |207.7 KiB |
+| source |web |browser-web-app |browser-safe |66 |46 |2.35 MiB |
+| package |@chainsafe/libp2p-gossipsub |mcp-protocol-runtime |third-party |27 |1 |207.8 KiB |
 | package |libp2p |mcp-protocol-runtime |third-party |25 |1 |137.4 KiB |
 | package |@noble/curves |third-party-runtime |third-party |10 |1 |126.8 KiB |
 | package |asn1js |third-party-runtime |third-party |1 |1 |95.6 KiB |
 | package |@libp2p/webrtc |mcp-protocol-runtime |third-party |18 |1 |74.9 KiB |
-| package |@libp2p/circuit-relay-v2 |mcp-protocol-runtime |third-party |12 |1 |68.7 KiB |
-| package |protons-runtime |third-party-runtime |third-party |24 |1 |59.9 KiB |
+| package |@libp2p/circuit-relay-v2 |mcp-protocol-runtime |third-party |12 |1 |68.6 KiB |
+| package |@multiformats/multiaddr-matcher |third-party-runtime |third-party |8 |1 |61.8 KiB |
 | package |@libp2p/utils |mcp-protocol-runtime |third-party |26 |1 |56.3 KiB |
 | package |multiformats |third-party-runtime |third-party |60 |1 |56.1 KiB |
 | package |@chainsafe/libp2p-yamux |mcp-protocol-runtime |third-party |8 |1 |37.7 KiB |
@@ -97,20 +97,20 @@ _None._
 | package |p-queue |third-party-runtime |third-party |3 |1 |33.2 KiB |
 | package |@noble/hashes |third-party-runtime |third-party |12 |1 |32.8 KiB |
 | package |@chainsafe/libp2p-noise |mcp-protocol-runtime |third-party |16 |1 |32.1 KiB |
+| package |protons-runtime |third-party-runtime |third-party |12 |1 |30.1 KiB |
 | package |@libp2p/peer-store |mcp-protocol-runtime |third-party |8 |1 |29.7 KiB |
 | package |@noble/ciphers |third-party-runtime |third-party |5 |1 |25.9 KiB |
+| package |uint8-varint |third-party-runtime |third-party |7 |1 |24.1 KiB |
 | package |@libp2p/identify |mcp-protocol-runtime |third-party |6 |1 |21.7 KiB |
+| package |interface-datastore |third-party-runtime |third-party |2 |1 |20.2 KiB |
 | package |uint8arraylist |third-party-runtime |third-party |1 |1 |18.9 KiB |
 | package |@libp2p/multistream-select |mcp-protocol-runtime |third-party |5 |1 |16.3 KiB |
-| package |@multiformats/multiaddr-matcher |third-party-runtime |third-party |2 |1 |15.3 KiB |
+| package |netmask |third-party-runtime |third-party |7 |1 |15.4 KiB |
 | package |mortice |third-party-runtime |third-party |7 |1 |14.5 KiB |
 | package |@libp2p/peer-record |mcp-protocol-runtime |third-party |7 |1 |13.4 KiB |
 | package |it-queue |third-party-runtime |third-party |5 |1 |12.9 KiB |
 | package |denque |third-party-runtime |third-party |2 |1 |12.9 KiB |
 | package |weald |third-party-runtime |third-party |3 |1 |12.5 KiB |
-| package |murmurhash3js-revisited |third-party-runtime |third-party |4 |1 |11.9 KiB |
-| package |@multiformats/dns |third-party-runtime |third-party |8 |1 |11.4 KiB |
-| package |pvtsutils |third-party-runtime |third-party |1 |1 |10.6 KiB |
 
 
 ## Package Inventory
@@ -118,11 +118,11 @@ _None._
 | Package | Declaration | Version | Owner | Bundled Modules | Rendered Bytes |
 | --- | --- | --- | --- | --- | --- |
 | @chainsafe/is-ip |not-declared | |third-party-runtime |3 |8.0 KiB |
-| @chainsafe/libp2p-gossipsub |optionalDependencies |^13.2.0 |mcp-protocol-runtime |27 |207.7 KiB |
+| @chainsafe/libp2p-gossipsub |optionalDependencies |^13.2.0 |mcp-protocol-runtime |27 |207.8 KiB |
 | @chainsafe/libp2p-noise |optionalDependencies |^15.1.2 |mcp-protocol-runtime |16 |32.1 KiB |
 | @chainsafe/libp2p-yamux |optionalDependencies |^6.0.2 |mcp-protocol-runtime |8 |37.7 KiB |
 | @chainsafe/netmask |not-declared | |third-party-runtime |5 |0 B |
-| @libp2p/circuit-relay-v2 |optionalDependencies |^1.1.5 |mcp-protocol-runtime |12 |68.7 KiB |
+| @libp2p/circuit-relay-v2 |optionalDependencies |^1.1.5 |mcp-protocol-runtime |12 |68.6 KiB |
 | @libp2p/crypto |not-declared | |mcp-protocol-runtime |22 |37.1 KiB |
 | @libp2p/gossipsub |not-declared | |mcp-protocol-runtime |0 |0 B |
 | @libp2p/identify |optionalDependencies |^2.1.5 |mcp-protocol-runtime |6 |21.7 KiB |
@@ -131,7 +131,7 @@ _None._
 | @libp2p/logger |not-declared | |mcp-protocol-runtime |2 |3.2 KiB |
 | @libp2p/mdns |not-declared | |mcp-protocol-runtime |0 |0 B |
 | @libp2p/multistream-select |not-declared | |mcp-protocol-runtime |5 |16.3 KiB |
-| @libp2p/peer-collections |not-declared | |mcp-protocol-runtime |9 |5.1 KiB |
+| @libp2p/peer-collections |not-declared | |mcp-protocol-runtime |27 |9.6 KiB |
 | @libp2p/peer-id |not-declared | |mcp-protocol-runtime |1 |7.6 KiB |
 | @libp2p/peer-id-factory |not-declared | |mcp-protocol-runtime |2 |1.0 KiB |
 | @libp2p/peer-record |not-declared | |mcp-protocol-runtime |7 |13.4 KiB |
@@ -141,9 +141,9 @@ _None._
 | @libp2p/webrtc |optionalDependencies |^4.1.10 |mcp-protocol-runtime |18 |74.9 KiB |
 | @libp2p/websockets |optionalDependencies |^8.2.0 |mcp-protocol-runtime |5 |9.6 KiB |
 | @multiformats/dns |not-declared | |third-party-runtime |8 |11.4 KiB |
-| @multiformats/mafmt |not-declared | |third-party-runtime |1 |5.6 KiB |
+| @multiformats/mafmt |not-declared | |third-party-runtime |1 |5.8 KiB |
 | @multiformats/multiaddr |dependencies |^12.1.14 |mcp-protocol-runtime |13 |37.5 KiB |
-| @multiformats/multiaddr-matcher |not-declared | |third-party-runtime |2 |15.3 KiB |
+| @multiformats/multiaddr-matcher |not-declared | |third-party-runtime |8 |61.8 KiB |
 | @multiformats/multiaddr-to-uri |not-declared | |third-party-runtime |1 |8.8 KiB |
 | @noble/ciphers |not-declared | |third-party-runtime |5 |25.9 KiB |
 | @noble/curves |not-declared | |third-party-runtime |10 |126.8 KiB |
@@ -161,11 +161,11 @@ _None._
 | eventemitter3 |not-declared | |third-party-runtime |4 |9.8 KiB |
 | get-iterator |not-declared | |third-party-runtime |1 |458 B |
 | hashlru |not-declared | |third-party-runtime |2 |1.3 KiB |
-| interface-datastore |not-declared | |third-party-runtime |1 |10.1 KiB |
+| interface-datastore |not-declared | |third-party-runtime |2 |20.2 KiB |
 | is-electron |not-declared | |third-party-runtime |2 |1012 B |
 | is-plain-obj |not-declared | |third-party-runtime |1 |406 B |
 | it-all |not-declared | |third-party-runtime |1 |1013 B |
-| it-byte-stream |not-declared | |third-party-runtime |2 |4.2 KiB |
+| it-byte-stream |not-declared | |third-party-runtime |2 |4.1 KiB |
 | it-drain |not-declared | |third-party-runtime |1 |981 B |
 | it-filter |not-declared | |third-party-runtime |1 |2.1 KiB |
 | it-foreach |not-declared | |third-party-runtime |1 |2.2 KiB |
@@ -190,21 +190,21 @@ _None._
 | ms |not-declared | |third-party-runtime |1 |3.5 KiB |
 | multiformats |not-declared | |third-party-runtime |60 |56.1 KiB |
 | murmurhash3js-revisited |not-declared | |third-party-runtime |4 |11.9 KiB |
-| netmask |not-declared | |third-party-runtime |3 |5.8 KiB |
+| netmask |not-declared | |third-party-runtime |7 |15.4 KiB |
 | p-defer |not-declared | |third-party-runtime |1 |181 B |
 | p-event |not-declared | |third-party-runtime |1 |2.6 KiB |
 | p-queue |not-declared | |third-party-runtime |3 |33.2 KiB |
 | p-timeout |not-declared | |third-party-runtime |2 |4.9 KiB |
 | progress-events |not-declared | |third-party-runtime |1 |429 B |
-| protons-runtime |not-declared | |third-party-runtime |24 |59.9 KiB |
+| protons-runtime |not-declared | |third-party-runtime |12 |30.1 KiB |
 | pvtsutils |not-declared | |third-party-runtime |1 |10.6 KiB |
 | pvutils |not-declared | |third-party-runtime |1 |4.7 KiB |
 | pyodide |optionalDependencies |^0.21.3 |browser-python-runtime |0 |0 B |
 | race-event |not-declared | |third-party-runtime |1 |5.1 KiB |
-| race-signal |not-declared | |third-party-runtime |1 |1.4 KiB |
-| uint8-varint |not-declared | |third-party-runtime |1 |5.1 KiB |
+| race-signal |not-declared | |third-party-runtime |8 |11.8 KiB |
+| uint8-varint |not-declared | |third-party-runtime |7 |24.1 KiB |
 | uint8arraylist |not-declared | |third-party-runtime |1 |18.9 KiB |
-| uint8arrays |not-declared | |third-party-runtime |13 |5.1 KiB |
+| uint8arrays |not-declared | |third-party-runtime |13 |5.0 KiB |
 | weald |not-declared | |third-party-runtime |3 |12.5 KiB |
 | wherearewe |not-declared | |third-party-runtime |1 |734 B |
 
@@ -213,24 +213,24 @@ _None._
 
 | File | Raw | Gzip | Brotli |
 | --- | --- | --- | --- |
-| dist/assets/vendor-libp2p-BWo2oUv2.js |601.8 KiB |176.1 KiB |140.1 KiB |
-| dist/assets/index-Ccg8_Iox.css |231.5 KiB |37.5 KiB |30.6 KiB |
-| dist/assets/p2p-network-D8y014Yp.js |94.9 KiB |17.2 KiB |14.4 KiB |
-| dist/assets/mcp-control-BNHbccD-.js |69.4 KiB |14.0 KiB |12.1 KiB |
-| dist/assets/index-DxLvqnZ2.js |68.6 KiB |16.9 KiB |14.3 KiB |
+| dist/assets/vendor-libp2p-mCqZqaOy.js |613.6 KiB |178.1 KiB |141.9 KiB |
+| dist/assets/index-Ch83T196.css |237.1 KiB |38.6 KiB |31.6 KiB |
+| dist/assets/index-RS8iY3R_.js |125.5 KiB |26.4 KiB |22.4 KiB |
+| dist/assets/p2p-network-DTfv6I2_.js |94.9 KiB |17.2 KiB |14.4 KiB |
+| dist/assets/neural-photoshop-BhEZWlH0.js |77.6 KiB |16.6 KiB |14.0 KiB |
+| dist/assets/training-manager-27Oo3RTx.js |71.9 KiB |15.8 KiB |13.6 KiB |
+| dist/assets/friends-list-C4H1AinA.js |70.4 KiB |14.9 KiB |12.5 KiB |
+| dist/assets/agent-supervisor-BFMBjoCj.js |70.0 KiB |16.4 KiB |14.2 KiB |
+| dist/assets/mcp-control-SjbmKZe7.js |69.4 KiB |14.0 KiB |12.1 KiB |
 | dist/assets/file-manager-vsY99IO3.js |65.9 KiB |14.0 KiB |11.7 KiB |
-| dist/assets/neural-photoshop-DFGyHC_i.js |65.3 KiB |14.2 KiB |11.9 KiB |
-| dist/assets/agent-supervisor-CKsdYr1J.js |63.9 KiB |15.0 KiB |13.0 KiB |
-| dist/assets/friends-list-C50UOwyX.js |51.9 KiB |11.3 KiB |9.4 KiB |
+| dist/assets/strudel-ai-daw-C2utE7Yz.js |62.4 KiB |16.1 KiB |13.8 KiB |
+| dist/assets/calculator-BZ_L5mrt.js |57.4 KiB |11.6 KiB |8.0 KiB |
 | dist/assets/ipfs-explorer-BI78ByE9.js |51.7 KiB |11.6 KiB |9.8 KiB |
-| dist/assets/training-manager-Vjh42uH5.js |48.4 KiB |10.2 KiB |8.8 KiB |
-| dist/assets/strudel-ai-daw-CGDq-bVn.js |47.5 KiB |11.9 KiB |10.4 KiB |
-| dist/assets/calculator-DxXtFSyX.js |42.2 KiB |6.4 KiB |5.4 KiB |
-| dist/assets/huggingface-kNxMl9sf.js |41.4 KiB |6.3 KiB |5.3 KiB |
-| dist/assets/api-keys-BudxLkI9.js |41.0 KiB |8.5 KiB |7.3 KiB |
-| dist/assets/system-monitor-DV0YDtb-.js |38.7 KiB |7.8 KiB |6.7 KiB |
-| dist/assets/image-viewer-DBuvJ1x3.js |36.7 KiB |7.3 KiB |6.2 KiB |
-| dist/assets/cron-a7QcC19M.js |34.9 KiB |8.1 KiB |7.0 KiB |
-| dist/assets/github-C7z4FcBm.js |34.8 KiB |6.5 KiB |5.6 KiB |
-| dist/assets/music-studio-unified-D96Hde8p.js |34.2 KiB |7.1 KiB |6.1 KiB |
+| dist/assets/mcp-plus-plus-explorer-B6somtcf.js |51.3 KiB |12.9 KiB |11.4 KiB |
+| dist/assets/notes-D5fyONzA.js |50.5 KiB |12.0 KiB |10.1 KiB |
+| dist/assets/system-monitor-B4XxWAI4.js |50.4 KiB |10.8 KiB |9.3 KiB |
+| dist/css/apps.css |49.9 KiB |7.3 KiB |6.2 KiB |
+| dist/assets/calendar-Cp209-fJ.js |45.2 KiB |9.7 KiB |8.4 KiB |
+| dist/assets/neural-network-designer-DcQRZV2x.js |44.6 KiB |10.4 KiB |9.1 KiB |
+| dist/assets/media-player-14IIWzMb.js |43.9 KiB |9.4 KiB |8.1 KiB |
 

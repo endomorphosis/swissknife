@@ -24,6 +24,68 @@ TodoApp.prototype.initialize = function() {
 
 TodoApp.prototype.createWindowConfig = function() {
     return `
+        <style>
+            .todo-app, .todo-app * {
+                box-sizing: border-box;
+                min-width: 0;
+            }
+            .todo-app .todo-header,
+            .todo-app .header-controls,
+            .todo-app .status-bar {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .todo-app .header-controls {
+                display: flex;
+                justify-content: flex-end;
+            }
+            .todo-app .quick-add-row {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) max-content max-content;
+                align-items: center;
+            }
+            .todo-app .todo-main,
+            .todo-app .todos-view,
+            .todo-app .goals-view,
+            .todo-app .graph-view,
+            .todo-app .todo-list,
+            .todo-app .goals-content,
+            .todo-app .graph-content {
+                overflow-x: hidden;
+            }
+            .todo-app .todo-item-row,
+            .todo-app .todo-item-title {
+                min-width: 0;
+            }
+            .todo-app .todo-item-title {
+                overflow-wrap: anywhere;
+            }
+            @media (max-width: 640px) {
+                .todo-app .todo-header {
+                    align-items: flex-start !important;
+                }
+                .todo-app .header-left,
+                .todo-app .header-controls,
+                .todo-app .quick-add-row,
+                .todo-app .status-left,
+                .todo-app .status-right {
+                    width: 100%;
+                }
+                .todo-app .header-controls {
+                    justify-content: flex-start;
+                }
+                .todo-app .quick-add-row {
+                    grid-template-columns: minmax(0, 1fr);
+                }
+                .todo-app .quick-add-row select,
+                .todo-app .quick-add-row button,
+                .todo-app .new-goal-input,
+                .todo-app .add-goal-btn {
+                    width: 100% !important;
+                    margin-left: 0 !important;
+                }
+            }
+        </style>
         <div class="todo-app" style="height: 100%; display: flex; flex-direction: column; background: #f8f9fa;">
             <!-- Header -->
             <div class="todo-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 2px solid #e9ecef; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
@@ -45,7 +107,7 @@ TodoApp.prototype.createWindowConfig = function() {
                 <div class="todos-view" id="todos-view" style="width: 100%; display: flex; flex-direction: column;">
                     <!-- Quick Add -->
                     <div class="quick-add" style="padding: 16px; background: white; border-bottom: 1px solid #e9ecef;">
-                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <div class="quick-add-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
                             <input type="text" class="new-todo-input" placeholder="Add a new todo... (voice commands supported)" style="flex: 1; padding: 10px; border: 2px solid #e9ecef; border-radius: 6px; font-size: 14px;">
                             <select class="todo-priority" style="padding: 10px; border: 2px solid #e9ecef; border-radius: 6px; background: white;">
                                 <option value="low">💡 Low</option>
@@ -408,7 +470,7 @@ TodoApp.prototype.createTodoElement = function(todo) {
     };
 
     div.innerHTML = `
-        <div style="display: flex; align-items: flex-start; gap: 12px;">
+        <div class="todo-item-row" style="display: flex; align-items: flex-start; gap: 12px;">
             <input type="checkbox" ${todo.completed ? 'checked' : ''} 
                    onchange="window.todoApp.toggleTodo(${todo.id})"
                    style="margin-top: 2px;">
@@ -417,7 +479,7 @@ TodoApp.prototype.createTodoElement = function(todo) {
                     <span style="color: ${priorityColors[todo.priority]}; font-size: 14px;">
                         ${priorityIcons[todo.priority]}
                     </span>
-                    <span style="font-weight: 500; ${todo.completed ? 'text-decoration: line-through;' : ''}">${todo.text}</span>
+                    <span class="todo-item-title" style="font-weight: 500; ${todo.completed ? 'text-decoration: line-through;' : ''}">${todo.text}</span>
                 </div>
                 <div style="font-size: 11px; color: #6c757d;">
                     Created: ${new Date(todo.createdAt).toLocaleDateString()}

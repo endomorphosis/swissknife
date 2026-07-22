@@ -1,7 +1,15 @@
 {
   "config": {
-    "configFile": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/build-tools/configs/playwright.meta-glasses.config.ts",
-    "rootDir": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e",
+    "argv": [
+      "/home/barberb/.local/share/node-v22.23.1-linux-x64/bin/node",
+      "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/node_modules/@playwright/test/cli.js",
+      "test",
+      "-c",
+      "build-tools/configs/playwright.meta-glasses.config.ts"
+    ],
+    "configFile": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/build-tools/configs/playwright.meta-glasses.config.ts",
+    "rootDir": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test/e2e",
+    "failOnFlakyTests": false,
     "forbidOnly": false,
     "fullyParallel": false,
     "globalSetup": null,
@@ -14,26 +22,9 @@
       "actualWorkers": 1
     },
     "preserveOutput": "always",
-    "reporter": [
-      [
-        "list",
-        null
-      ],
-      [
-        "json",
-        {
-          "outputFile": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test-results/meta-glasses-virtual-os/results.json"
-        }
-      ]
-    ],
-    "reportSlowTests": {
-      "max": 5,
-      "threshold": 300000
-    },
-    "quiet": false,
     "projects": [
       {
-        "outputDir": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test-results/playwright-artifacts/meta-glasses-virtual-os",
+        "outputDir": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test-results/playwright-artifacts/meta-glasses-virtual-os",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -41,7 +32,7 @@
         },
         "id": "meta-glasses-chromium",
         "name": "meta-glasses-chromium",
-        "testDir": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e",
+        "testDir": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/all-app-meta-device-simulator.spec.ts",
@@ -53,14 +44,32 @@
         "timeout": 240000
       }
     ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure/swissknife/test-results/meta-glasses-virtual-os/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
     "shard": null,
+    "tags": [],
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
-    "version": "1.55.0",
+    "version": "1.61.1",
     "workers": 1,
     "webServer": {
-      "command": "npm run desktop -- --port 3001 --strictPort",
-      "url": "http://127.0.0.1:3001",
+      "command": "npm run desktop -- --port 3004 --strictPort",
+      "url": "http://127.0.0.1:3004",
       "reuseExistingServer": false,
       "timeout": 120000
     }
@@ -95,12 +104,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 77486,
+                      "duration": 62317,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-07-20T07:46:25.940Z",
+                      "startTime": "2026-07-22T00:29:31.185Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -146,12 +155,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 167814,
+                      "duration": 144407,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-07-20T07:47:43.670Z",
+                      "startTime": "2026-07-22T00:30:33.766Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -197,12 +206,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2783,
+                      "duration": 2543,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-07-20T07:50:31.664Z",
+                      "startTime": "2026-07-22T00:32:58.274Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -248,12 +257,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2441,
+                      "duration": 2124,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-07-20T07:50:34.487Z",
+                      "startTime": "2026-07-22T00:33:00.847Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -292,12 +301,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 12,
+                  "duration": 6,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:36.977Z",
+                  "startTime": "2026-07-22T00:33:03.019Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -326,12 +335,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 16,
+                  "duration": 7,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.007Z",
+                  "startTime": "2026-07-22T00:33:03.039Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -351,46 +360,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 11,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.049Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.059Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-64ef8e7fadf8a30af4a7",
@@ -405,46 +394,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 8,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.072Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.083Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-e2867e28f16d7e3148b9",
@@ -459,46 +428,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 8,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.092Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.104Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-c209961366d565f3811d",
@@ -513,46 +462,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 9,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.108Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.124Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-ff00942b666192eecbb8",
@@ -567,46 +496,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 12,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.127Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.146Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-70d41913c4f9dfcd6a33",
@@ -621,46 +530,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 12,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.147Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.174Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-a5f4ff8d7840df4f84fd",
@@ -675,46 +564,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 10,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.162Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.199Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-6d0c0ba58f4144764ffb",
@@ -729,46 +598,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 10,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.182Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.223Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-c561dd1544dc508da2ca",
@@ -783,46 +632,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 12,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.197Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.245Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-81ce7b6934398939aae8",
@@ -837,46 +666,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 13,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.213Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.271Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-4bddb18f57e3dd5e7003",
@@ -891,46 +700,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 11,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.226Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.298Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-8ac313ddfd030a3fc95c",
@@ -945,46 +734,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 12,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.241Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.324Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-6a90f2c4f411b30f3486",
@@ -999,46 +768,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 12,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.255Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.350Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-0a749989ce71570dfabc",
@@ -1053,46 +802,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 13,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.269Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.377Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-350d648523e3beadf7c2",
@@ -1107,46 +836,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 12,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.283Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.404Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-0a7448645d4518cf5ee3",
@@ -1161,46 +870,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 0,
+                  "status": "passed",
+                  "duration": 12,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.298Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.428Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-9fae2f542f19d753f2be",
@@ -1215,46 +904,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 11,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.311Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.456Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-28afd7536e039245057b",
@@ -1269,46 +938,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 11,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.325Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.481Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-c5d4fd4fde12c3d17867",
@@ -1323,46 +972,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 11,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.339Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.505Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-2eb1d097be107777c159",
@@ -1377,46 +1006,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 11,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.354Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.529Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-414a7782a85579c83c98",
@@ -1431,46 +1040,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 9,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.368Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.552Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-371b0ecb20160df892f1",
@@ -1485,46 +1074,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 9,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.383Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.574Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-e73841c7c9251be94792",
@@ -1539,46 +1108,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 0,
+                  "status": "passed",
+                  "duration": 11,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.396Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.596Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-9cbfe460adfe21e40f8a",
@@ -1593,46 +1142,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 0,
+                  "status": "passed",
+                  "duration": 9,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.409Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.620Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-4fdc80d2ebda030d75a8",
@@ -1647,46 +1176,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 0,
+                  "status": "passed",
+                  "duration": 9,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.421Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.644Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-3fed9f3e64b40b8cf6c8",
@@ -1701,46 +1210,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 0,
+                  "status": "passed",
+                  "duration": 9,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.435Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.665Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-cc63e55f947d9033bb43",
@@ -1755,46 +1244,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 10,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.448Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.688Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-75cc42c5db51d541392c",
@@ -1809,46 +1278,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 0,
+                  "status": "passed",
+                  "duration": 9,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.464Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.710Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-a71343cac7a0bb1e1a0d",
@@ -1863,46 +1312,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 8,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.476Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.734Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-e16d102d524a7d1d9de3",
@@ -1917,46 +1346,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 0,
+                  "status": "passed",
+                  "duration": 8,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.491Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.753Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-69ea5740326a36e5c46f",
@@ -1971,46 +1380,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 1,
+                  "status": "passed",
+                  "duration": 9,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.503Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.774Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-6fcd993e0ca6620db3f5",
@@ -2025,46 +1414,26 @@
           "tests": [
             {
               "timeout": 240000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                  "location": {
-                    "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                    "line": 335,
-                    "column": 8
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "meta-glasses-chromium",
               "projectName": "meta-glasses-chromium",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 0,
+                  "status": "passed",
+                  "duration": 9,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.518Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "Cross-repository Hallucinate App daemon fixtures are not installed in this isolated SwissKnife checkout.",
-                      "location": {
-                        "file": "/home/barberb/barberb/copilot-worktrees/lift_coding/hallucinate-llc-psychic-adventure-swissknife-refactor-integration/swissknife/test/e2e/meta-glasses-virtual-os.spec.ts",
-                        "line": 335,
-                        "column": 8
-                      }
-                    }
-                  ],
+                  "startTime": "2026-07-22T00:33:03.795Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "fa34f6499311016549fd-cb3d9593e078880c5f2b",
@@ -2088,12 +1457,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 48496,
+                  "duration": 50241,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-20T07:50:37.530Z",
+                  "startTime": "2026-07-22T00:33:03.819Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2111,10 +1480,10 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-07-20T07:46:21.288Z",
-    "duration": 305120.562,
-    "expected": 7,
-    "skipped": 32,
+    "startTime": "2026-07-22T00:29:29.088Z",
+    "duration": 265433.421,
+    "expected": 39,
+    "skipped": 0,
     "unexpected": 0,
     "flaky": 0
   }

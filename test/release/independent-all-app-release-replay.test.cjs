@@ -38,3 +38,27 @@ test('the all-tools replay accepts explicit unavailable evidence but rejects unc
   replay.validateDispositionCatalog({ decision: 'GO', entries: [{}] }, 'fixture.json', (...args) => findings.push(args));
   assert.equal(findings.at(-1)[1], 'unclassified_tool_disposition');
 });
+
+test('the independent replay rejects ungoverned reads and write claims', () => {
+  const safeRead = {
+    operation_class: 'read_request', execution_mode: 'real_safe_read',
+    policy: { outcome: 'allow', consent: 'not_required' },
+    confirmation: { required: false, dry_run: false },
+  };
+  assert.equal(replay.compiledExecutionPolicyPasses({ mutates_remote_state: false }, safeRead), true);
+
+  const wrongReadPolicy = structuredClone(safeRead);
+  wrongReadPolicy.policy.outcome = 'require_confirmation';
+  assert.equal(replay.compiledExecutionPolicyPasses({ mutates_remote_state: false }, wrongReadPolicy), false);
+
+  const governedWrite = {
+    operation_class: 'governed_write_request', execution_mode: 'confirmation_gated_dry_run',
+    policy: { outcome: 'require_confirmation', consent: 'granted', dry_run: true },
+    confirmation: { required: true, policy: 'explicit', dry_run: true },
+  };
+  assert.equal(replay.compiledExecutionPolicyPasses({ mutates_remote_state: true }, governedWrite), true);
+
+  const liveWrite = structuredClone(governedWrite);
+  liveWrite.confirmation.dry_run = false;
+  assert.equal(replay.compiledExecutionPolicyPasses({ mutates_remote_state: true }, liveWrite), false);
+});

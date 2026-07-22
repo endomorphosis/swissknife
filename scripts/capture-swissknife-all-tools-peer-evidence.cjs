@@ -496,6 +496,17 @@ async function executeApprovedFixture(connector, config, observation) {
     return fixture;
   }
   try {
+    const correlationId = 'svd-181-safe-read-' + config.service + '-' + observation.transport;
+    fixture.governance = {
+      operation_class: 'safe_read',
+      mutates_remote_state: false,
+      confirmation_required: false,
+      confirmation_state: 'not_required',
+      dry_run: false,
+      policy_decision_id: 'svd-181-policy-' + config.service + '-' + observation.transport,
+      policy_outcome: 'allow',
+      correlation_id: correlationId,
+    };
     const capability = {
       resource: 'mcp++://' + config.service + '/tool/' + config.fixture.tool,
       ability: 'mcp++/invoke',
@@ -525,7 +536,7 @@ async function executeApprovedFixture(connector, config, observation) {
       ucanAudience: agentDid,
       parents: [],
       timestamp: new Date().toISOString(),
-      correlationId: 'svd-100-' + config.service,
+      correlationId,
     });
     const envelope = execution.envelope ?? {};
     const cidEntries = uniqueCidEntries({
@@ -797,6 +808,16 @@ function emptyFixtureObservation(fixture, status) {
     arguments: fixture.arguments,
     approval: fixture.approval,
     status,
+    governance: {
+      operation_class: 'safe_read',
+      mutates_remote_state: false,
+      confirmation_required: false,
+      confirmation_state: 'not_required',
+      dry_run: false,
+      policy_decision_id: null,
+      policy_outcome: 'allow',
+      correlation_id: null,
+    },
     delegation: { proof_cid: null, valid: false, validation_chain_length: 0 },
     plain_call: { returned: false, outcome: null, semantic_fingerprint: null, result_contract_fingerprint: null },
     envelope: {

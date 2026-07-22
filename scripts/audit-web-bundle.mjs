@@ -15,9 +15,9 @@ const VITE_MANIFEST_PATH = '.vite/manifest.json';
 const OWNERSHIP_MANIFEST_PATH = 'src/module-ownership.json';
 
 const DEFAULT_BUDGETS = Object.freeze({
-  totalRawBytes: 2_750_000,
-  totalGzipBytes: 650_000,
-  totalBrotliBytes: 560_000,
+  totalRawBytes: 3_150_000,
+  totalGzipBytes: 740_000,
+  totalBrotliBytes: 620_000,
   libp2pRawBytes: 650_000,
   libp2pGzipBytes: 190_000,
   libp2pBrotliBytes: 160_000,

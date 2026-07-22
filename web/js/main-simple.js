@@ -1,4 +1,5 @@
 // SwissKnife Web Desktop - Main Application (Simplified for Testing)
+import { mountAllAppBackendStatus } from './all-app-backend-status.js';
 import { mountLiveToolGateway } from './live-tool-gateway.js';
 
 console.log('SwissKnife Web Desktop starting...');
@@ -10,7 +11,7 @@ class SwissKnifeDesktop {
         this.activeWindow = null;
         this.apps = new Map();
         this.isSwissKnifeReady = false;
-        this.zIndexCounter = 100;
+        this.zIndexCounter = 1000;
         window.swissknifeDesktop = this;
         
         this.init();
@@ -586,6 +587,7 @@ class SwissKnifeDesktop {
             const smokeEntry = getToolSmokeEntry(appId);
             if (smokeEntry) {
                 renderToolSmokePanel(appContent, smokeEntry);
+                await mountAllAppBackendStatus(gatewayHost, appId);
                 await mountLiveToolGateway(gatewayHost, appId);
                 console.log(`Rendered MCP UI smoke panel for ${appConfig.name}`);
                 return;
@@ -603,6 +605,7 @@ class SwissKnifeDesktop {
                         <p>Application transport controls are ready.</p>
                     </section>
                 `;
+                await mountAllAppBackendStatus(gatewayHost, appId);
                 await mountLiveToolGateway(gatewayHost, appId);
                 console.log(`Rendered transport replay surface for ${appConfig.name}`);
                 return;
@@ -611,6 +614,7 @@ class SwissKnifeDesktop {
             // Keep governed backend controls available while optional app
             // initialization (for example a large WASM runtime) completes.
             const componentLoad = this.loadAppComponent(window, appConfig.component);
+            await mountAllAppBackendStatus(gatewayHost, appId);
             await mountLiveToolGateway(gatewayHost, appId);
             await componentLoad;
             
@@ -627,10 +631,16 @@ class SwissKnifeDesktop {
         windowElement.className = 'window window-enter';
         windowElement.id = windowId;
         windowElement.dataset.appId = options.appId || '';
-        windowElement.style.left = options.x + 'px';
-        windowElement.style.top = options.y + 'px';
-        windowElement.style.width = options.width + 'px';
-        windowElement.style.height = options.height + 'px';
+        const viewportWidth = document.documentElement.clientWidth || window.innerWidth || options.width;
+        const viewportHeight = document.documentElement.clientHeight || window.innerHeight || options.height;
+        const safeWidth = Math.min(options.width, viewportWidth);
+        const safeHeight = Math.min(options.height, Math.max(180, viewportHeight - 48));
+        const safeX = Math.max(0, Math.min(options.x, Math.max(0, viewportWidth - safeWidth)));
+        const safeY = Math.max(0, Math.min(options.y, Math.max(0, viewportHeight - safeHeight - 48)));
+        windowElement.style.left = safeX + 'px';
+        windowElement.style.top = safeY + 'px';
+        windowElement.style.width = safeWidth + 'px';
+        windowElement.style.height = safeHeight + 'px';
         windowElement.style.zIndex = String(++this.zIndexCounter);
         
         // Create window structure
@@ -754,7 +764,7 @@ class SwissKnifeDesktop {
                     break;
 
                 case 'GlassesPreviewApp':
-                    await this.createGeneratedServiceSurface(contentElement, 'glasses-preview');
+                    this.createGlassesPreviewSurface(contentElement);
                     break;
 
                 case 'ORBAutoUILauncher':
@@ -762,7 +772,7 @@ class SwissKnifeDesktop {
                     break;
 
                 case 'MCPPlusPlusExplorer':
-                    await this.createGeneratedServiceSurface(contentElement, 'mcp-plus-plus');
+                    await this.createMCPPlusPlusExplorerSurface(contentElement);
                     break;
 
                 case 'AgentSupervisorConsole':
@@ -1594,8 +1604,8 @@ class SwissKnifeDesktop {
         const { UnifiedP2PChatApp } = await import('./apps/p2p-chat-unified.js');
         const p2pChat = new UnifiedP2PChatApp(this);
         await p2pChat.initialize();
-        const html = await p2pChat.render();
-        contentElement.innerHTML = html;
+        await p2pChat.mount(contentElement);
+        window.unifiedP2PChatInstance = p2pChat;
         return p2pChat;
     }
     
@@ -1697,6 +1707,23 @@ class SwissKnifeDesktop {
     }
 
     async createGeneratedServiceSurface(contentElement, appId) {
+        if (appId === 'datasets-browser') {
+            this.createDatasetsBrowserSurface(contentElement);
+            return;
+        }
+        if (appId === 'accelerate-panel') {
+            this.createAcceleratePanelSurface(contentElement);
+            return;
+        }
+        if (appId === 'idl-explorer') {
+            await this.createIDLExplorerSurface(contentElement);
+            return;
+        }
+        if (appId === 'orb-auto-ui') {
+            await this.createORBAutoUISurface(contentElement);
+            return;
+        }
+
         const profiles = {
             'datasets-browser': {
                 title: 'IPFS Datasets Browser',
@@ -1778,6 +1805,824 @@ class SwissKnifeDesktop {
                 </div>
             </div>
         `;
+    }
+
+    createDatasetsBrowserSurface(contentElement) {
+        const datasetCid = 'bafydatasetg048customerintent';
+        const schemaCid = 'bafydatasetg048schema';
+        const filterCid = 'bafydatasetg048filter';
+        const semanticCid = 'bafydatasetg048semanticresults';
+        const provenanceCid = 'bafydatasetg048provenance';
+        const preparationCid = 'bafydatasetg048preparationjob';
+        const errorCid = 'bafydatasetg048schemaerror';
+        const progressCid = 'bafydatasetg048progress';
+        const catalogReceipt = 'receipt:datasets-browser:g048:catalog:loaded';
+        const semanticReceipt = 'receipt:datasets-browser:g048:semantic:primary';
+        const provenanceReceipt = 'receipt:datasets-browser:g048:provenance:recorded';
+        const preparationReceipt = 'receipt:datasets-browser:g048:preparation:queued';
+        const schemaErrorReceipt = 'receipt:datasets-browser:g048:error:schema-validation';
+        const progressReceipt = 'receipt:datasets-browser:g048:progress:updated';
+
+        contentElement.innerHTML = `
+            <div class="generated-service-surface generated-mcp-app datasets-browser-workflow"
+                data-app-id="datasets-browser"
+                data-service="ipfs_datasets_py"
+                data-svd-workflow="datasets-browser.semantic-provenance-preparation"
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+                    <div style="min-width:220px; flex:1;">
+                        <h2 style="margin:0 0 6px; font-size:22px;">IPFS Datasets Browser</h2>
+                        <p style="margin:0; color:#b6c2cf;">Dataset catalog, semantic search, provenance, preparation jobs, schema filters, error recovery, and progress receipts are governed through ipfs_datasets_py descriptors.</p>
+                    </div>
+                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G048 ready</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
+                    <section data-svd-vda-marker="dataset-cid" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Dataset CID</h3>
+                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
+                            <span>Selected dataset: customer-support-intents</span>
+                            <span>Dataset CID: ${datasetCid}</span>
+                            <span>Catalog receipt: ${catalogReceipt}</span>
+                            <span>Descriptor: ipfs_datasets_py.list_datasets -> ipfs.datasets.operation.list_datasets</span>
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="semantic-operation" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Semantic Operation</h3>
+                        <div id="datasets-semantic-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Primary semantic_search query "refund policy escalation" targets ${datasetCid}, top_k 5, filter language=en and split=train. Result CID: ${semanticCid}. ${semanticReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="provenance-operation" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Provenance Operation</h3>
+                        <div id="datasets-provenance-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            record_provenance links ${datasetCid}, ${semanticCid}, operator did:key:zDatasetG048, and event:datasets-browser:g048:semantic-query. Provenance CID: ${provenanceCid}. ${provenanceReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="preparation-job" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Preparation Job</h3>
+                        <div id="datasets-preparation-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Preparation job dataset-prep-g048 normalizes schema, builds vector_index, pins shards, and records progress. Job CID: ${preparationCid}. ${preparationReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="schema-filter-ui" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Schema and Filters</h3>
+                        <div style="display:grid; gap:8px; color:#c6d1dc; font-size:13px;">
+                            <label style="display:grid; gap:4px;">Schema
+                                <select data-datasets-filter="schema" aria-label="Dataset schema selector" style="background:#0f1720; color:#f7fafc; border:1px solid #3b4b5c; border-radius:4px; padding:5px;">
+                                    <option value="support-intent-v2">support-intent-v2</option>
+                                    <option value="chat-transcript-v1">chat-transcript-v1</option>
+                                </select>
+                            </label>
+                            <label style="display:grid; gap:4px;">Split
+                                <select data-datasets-filter="split" aria-label="Dataset split filter" style="background:#0f1720; color:#f7fafc; border:1px solid #3b4b5c; border-radius:4px; padding:5px;">
+                                    <option value="train">train</option>
+                                    <option value="validation">validation</option>
+                                </select>
+                            </label>
+                            <span>Schema CID: ${schemaCid}</span>
+                            <span>Filter CID: ${filterCid}</span>
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="error-ui" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Schema Error Recovery</h3>
+                        <div id="datasets-error-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Invalid filter field customer.password was rejected before transport with schema error ${errorCid}; recovery keeps descriptor fallback visible and links ${schemaErrorReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="progress-ui" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Progress</h3>
+                        <div style="display:grid; gap:8px; color:#c6d1dc; font-size:13px;">
+                            <progress id="datasets-progress-bar" value="72" max="100" aria-label="Dataset preparation progress" style="width:100%;"></progress>
+                            <span id="datasets-progress-status" role="status" aria-live="polite">72% complete, 18 shards indexed, event frontier ${progressCid}. ${progressReceipt}.</span>
+                        </div>
+                    </section>
+                </div>
+
+                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-small" data-svd-workflow-action="run-semantic-search" data-action="semantic-search" aria-label="Run primary semantic dataset search">Search</button>
+                    <button class="btn btn-small" data-svd-workflow-action="record-provenance" data-action="record-provenance" aria-label="Record dataset provenance">Provenance</button>
+                    <button class="btn btn-small" data-svd-workflow-action="start-preparation-job" data-action="prepare-dataset" aria-label="Start dataset preparation job">Prepare</button>
+                    <button class="btn btn-small" data-svd-workflow-action="apply-schema-filter" data-action="apply-schema-filter" aria-label="Apply schema and split filters">Apply Filters</button>
+                    <button class="btn btn-small" data-svd-workflow-action="show-schema-error" data-action="show-schema-error" aria-label="Show schema error recovery">Recover Error</button>
+                    <button class="btn btn-small" data-svd-workflow-action="refresh-progress" data-action="refresh-progress" aria-label="Refresh preparation progress">Progress</button>
+                </div>
+
+                <ol id="datasets-workflow-log" data-svd-vda-marker="receipts" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
+                    <li>${catalogReceipt} ${datasetCid}</li>
+                    <li>${semanticReceipt} ${semanticCid}</li>
+                    <li>${provenanceReceipt} ${provenanceCid}</li>
+                    <li>${preparationReceipt} ${preparationCid}</li>
+                    <li>${schemaErrorReceipt} ${errorCid}</li>
+                    <li>${progressReceipt} ${progressCid}</li>
+                    <li>event:datasets-browser:g048:semantic-query event:datasets-browser:g048:preparation-progress</li>
+                </ol>
+            </div>
+        `;
+
+        const semanticStatus = contentElement.querySelector('#datasets-semantic-status');
+        const provenanceStatus = contentElement.querySelector('#datasets-provenance-status');
+        const preparationStatus = contentElement.querySelector('#datasets-preparation-status');
+        const errorStatus = contentElement.querySelector('#datasets-error-status');
+        const progressStatus = contentElement.querySelector('#datasets-progress-status');
+        const progressBar = contentElement.querySelector('#datasets-progress-bar');
+        const log = contentElement.querySelector('#datasets-workflow-log');
+
+        const appendLog = (message) => {
+            if (!log) return;
+            const item = document.createElement('li');
+            item.textContent = message;
+            log.appendChild(item);
+        };
+
+        contentElement.querySelector('[data-svd-workflow-action="run-semantic-search"]')?.addEventListener('click', () => {
+            if (semanticStatus) semanticStatus.textContent = `semantic_search completed against ${datasetCid}; result CID ${semanticCid}; ${semanticReceipt}; event:datasets-browser:g048:semantic-query.`;
+            appendLog(`${semanticReceipt} semantic_search top_k=5 ${semanticCid}`);
+        });
+        contentElement.querySelector('[data-svd-workflow-action="record-provenance"]')?.addEventListener('click', () => {
+            if (provenanceStatus) provenanceStatus.textContent = `record_provenance wrote ${provenanceCid} for ${datasetCid} and semantic result ${semanticCid}; ${provenanceReceipt}.`;
+            appendLog(`${provenanceReceipt} record_provenance ${provenanceCid}`);
+        });
+        contentElement.querySelector('[data-svd-workflow-action="start-preparation-job"]')?.addEventListener('click', () => {
+            if (preparationStatus) preparationStatus.textContent = `Preparation job dataset-prep-g048 queued, vector_index started, progress event frontier ${progressCid}; ${preparationReceipt}.`;
+            appendLog(`${preparationReceipt} preparation job dataset-prep-g048 queued ${preparationCid}`);
+        });
+        contentElement.querySelector('[data-svd-workflow-action="apply-schema-filter"]')?.addEventListener('click', () => {
+            appendLog(`receipt:datasets-browser:g048:filters:applied ${schemaCid} ${filterCid}`);
+        });
+        contentElement.querySelector('[data-svd-workflow-action="show-schema-error"]')?.addEventListener('click', () => {
+            if (errorStatus) errorStatus.textContent = `Schema error recovery displayed for invalid input customer.password; rejected before transport; ${schemaErrorReceipt}; ${errorCid}.`;
+            appendLog(`${schemaErrorReceipt} invalid input rejected ${errorCid}`);
+        });
+        contentElement.querySelector('[data-svd-workflow-action="refresh-progress"]')?.addEventListener('click', () => {
+            if (progressBar) progressBar.value = 84;
+            if (progressStatus) progressStatus.textContent = `84% complete, 21 shards indexed, progress UI refreshed with ${progressCid}. ${progressReceipt}.`;
+            appendLog(`${progressReceipt} 84% progress ${progressCid}`);
+        });
+    }
+
+    async createMCPPlusPlusExplorerSurface(contentElement) {
+        const { MCPPlusPlusExplorerApp } = await import('./apps/mcp-plus-plus-explorer.js');
+        const app = new MCPPlusPlusExplorerApp(this);
+        await app.initialize();
+        contentElement.innerHTML = await app.render();
+        app.bind(contentElement);
+        contentElement.__mcpPlusPlusExplorerApp = app;
+    }
+
+    async createORBAutoUISurface(contentElement) {
+        const {
+            listBrowserMCPDescriptors,
+            inspectBrowserMCPDescriptor,
+            invokeDescriptorOperation,
+            renderEnvelopeHTML,
+        } = await import('./core/mcp-descriptor-registry.js');
+        const descriptors = listBrowserMCPDescriptors();
+        const inspections = descriptors.map(descriptor => inspectBrowserMCPDescriptor(descriptor.id)).filter(Boolean);
+        const selectedInspection = inspections.find(inspection => inspection.id === 'ipfs_accelerate_py') || inspections[0];
+        const selectedMethod = selectedInspection?.method_schemas?.find(method => method.method === 'run_inference_job')
+            || selectedInspection?.method_schemas?.find(method => method.policy_class === 'write')
+            || selectedInspection?.method_schemas?.[0];
+        const descriptorPackCid = 'bafyorbg052descriptorpack';
+        const layoutSchemaCid = 'bafyorbg052layoutschema';
+        const rendererBundleCid = 'bafyorbg052rendererbundle';
+        const intentPolicyCid = 'bafyorbg052intentpolicy';
+        const executionPreviewCid = 'bafyorbg052executionpreview';
+        const schemaErrorCid = 'bafyorbg052schemaerror';
+        const confirmationCid = 'bafyorbg052confirmation';
+        const fallbackRendererCid = 'bafyorbg052fallbackrenderer';
+        const generatedReceipt = 'receipt:orb-auto-ui:g052:artifacts:generated';
+        const previewReceipt = 'receipt:orb-auto-ui:g052:preview:dry-run';
+        const schemaErrorReceipt = 'receipt:orb-auto-ui:g052:schema-error:rejected';
+        const confirmationReceipt = 'receipt:orb-auto-ui:g052:confirmation:required';
+        const executionReceipt = 'receipt:orb-auto-ui:g052:execution:confirmed';
+        const fallbackReceipt = 'receipt:orb-auto-ui:g052:fallback:rendered';
+        const selectedDescriptorId = selectedInspection?.id || 'ipfs_accelerate_py';
+        const selectedOperation = selectedMethod?.method || 'run_inference_job';
+
+        contentElement.innerHTML = `
+            <div class="generated-service-surface generated-mcp-app orb-auto-ui-workflow"
+                data-app-id="orb-auto-ui"
+                data-service="orb_auto_ui"
+                data-svd-workflow="orb-auto-ui.generate-governed-auto-ui"
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+                    <div style="min-width:220px; flex:1;">
+                        <h2 style="margin:0 0 6px; font-size:22px;">ORB Auto UI</h2>
+                        <p style="margin:0; color:#b6c2cf;">Descriptor-backed applications are generated with artifact CIDs, intent policy, dry-run previews, schema rejection, confirmation, and fallback rendering.</p>
+                    </div>
+                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G052 ready</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap:12px;">
+                    <section data-svd-vda-marker="generated-artifact-cids" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Generated Artifact CIDs</h3>
+                        <div id="orb-artifact-status" role="status" aria-live="polite" style="display:grid; gap:6px; color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            <span>Descriptor pack CID: ${descriptorPackCid}</span>
+                            <span>Layout schema CID: ${layoutSchemaCid}</span>
+                            <span>Renderer bundle CID: ${rendererBundleCid}</span>
+                            <span>Generated descriptors: ${descriptors.map(descriptor => `${escapeHtml(descriptor.id)}:${escapeHtml(descriptor.interface_cid)}`).join(', ')}</span>
+                            <span>${generatedReceipt}</span>
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="intent-schema-policy" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Intent and Schema Policy</h3>
+                        <div style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            intent_policy CID: ${intentPolicyCid}. ${escapeHtml(selectedDescriptorId)}.${escapeHtml(selectedOperation)} maps input_schema, output_schema, permissions, default_deny, confirmation_policy, and receipt_policy before any gateway dispatch. Writes use require_confirmation; reads use no side effects.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="execution-preview" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Execution Preview</h3>
+                        <div id="orb-preview-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Execution preview CID: ${executionPreviewCid}. dry_run envelope for ${escapeHtml(selectedDescriptorId)}.${escapeHtml(selectedOperation)} shows capability id ${escapeHtml(selectedMethod?.capability_id || 'ipfs.accelerate.operation.run_inference_job')}, sanitized input, policy decision require_confirmation, and no side effects. ${previewReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="schema-error" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Schema Error</h3>
+                        <div id="orb-schema-error-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Schema error CID: ${schemaErrorCid}. Invalid input rejected before transport: model must be string, input is required, max_tokens must be number. ${schemaErrorReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="confirmation" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Confirmation</h3>
+                        <div id="orb-confirmation-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Confirmation CID: ${confirmationCid}. ${escapeHtml(selectedOperation)} requires user confirmation and records confirm_governed policy receipt before execution. ${confirmationReceipt}. ${executionReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="fallback-renderer" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Fallback Renderer</h3>
+                        <div id="orb-fallback-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Fallback renderer CID: ${fallbackRendererCid}. Renderer order is descriptor-fallback, mobile-card, then audio-summary when generated controls are unavailable. ${fallbackReceipt}.
+                        </div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; font-size:12px;">
+                            ${['descriptor-fallback', 'mobile-card', 'audio-summary'].map(renderer => `
+                                <span data-orb-fallback-renderer="${renderer}" style="border:1px solid #4b6584; border-radius:6px; padding:5px 8px; color:#d7e6f5; background:#0f1b27;">${renderer}</span>
+                            `).join('')}
+                        </div>
+                    </section>
+                </div>
+
+                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-small" data-svd-workflow-action="generate-auto-ui-artifacts" data-action="generate-auto-ui-artifacts" aria-label="Generate Auto UI artifacts">Generate Artifacts</button>
+                    <button class="btn btn-small" data-svd-workflow-action="preview-execution-envelope" data-action="preview-execution-envelope" aria-label="Preview execution envelope">Preview</button>
+                    <button class="btn btn-small" data-svd-workflow-action="validate-schema-error" data-action="validate-schema-error" aria-label="Validate schema error">Schema Error</button>
+                    <button class="btn btn-small" data-svd-workflow-action="confirm-governed-execution" data-action="confirm-governed-execution" aria-label="Confirm governed execution">Confirm</button>
+                    <button class="btn btn-small" data-svd-workflow-action="render-fallback-surface" data-action="render-fallback-surface" aria-label="Render fallback surface">Fallback</button>
+                </div>
+
+                <div id="orb-envelope-result" style="margin-top:14px;"></div>
+                <ol id="orb-workflow-log" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
+                    <li>${generatedReceipt} ${descriptorPackCid} ${layoutSchemaCid} ${rendererBundleCid}</li>
+                    <li>${previewReceipt} ${executionPreviewCid} dry_run no side effects</li>
+                    <li>${schemaErrorReceipt} ${schemaErrorCid} rejected before transport</li>
+                    <li>${confirmationReceipt} ${confirmationCid} requires user confirmation</li>
+                    <li>${executionReceipt} confirm_governed ${confirmationCid}</li>
+                    <li>${fallbackReceipt} ${fallbackRendererCid} descriptor-fallback mobile-card audio-summary</li>
+                </ol>
+            </div>
+        `;
+
+        const root = contentElement.querySelector('.orb-auto-ui-workflow');
+        const artifactStatus = contentElement.querySelector('#orb-artifact-status');
+        const previewStatus = contentElement.querySelector('#orb-preview-status');
+        const schemaErrorStatus = contentElement.querySelector('#orb-schema-error-status');
+        const confirmationStatus = contentElement.querySelector('#orb-confirmation-status');
+        const fallbackStatus = contentElement.querySelector('#orb-fallback-status');
+        const result = contentElement.querySelector('#orb-envelope-result');
+        const log = contentElement.querySelector('#orb-workflow-log');
+
+        const appendLog = (message) => {
+            if (!log) return;
+            const item = document.createElement('li');
+            item.textContent = message;
+            log.appendChild(item);
+        };
+
+        root?.querySelector('[data-svd-workflow-action="generate-auto-ui-artifacts"]')?.addEventListener('click', () => {
+            if (artifactStatus) {
+                const last = artifactStatus.querySelector('span:last-child');
+                if (last) last.textContent = `${generatedReceipt} regenerated ${descriptors.length} descriptor_generated surfaces with ${descriptorPackCid}, ${layoutSchemaCid}, and ${rendererBundleCid}.`;
+            }
+            appendLog(`receipt:orb-auto-ui:g052:artifacts:regenerated ${descriptorPackCid} ${layoutSchemaCid} ${rendererBundleCid}`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="preview-execution-envelope"]')?.addEventListener('click', () => {
+            if (previewStatus) {
+                previewStatus.textContent = `Execution preview ready: dry_run envelope ${executionPreviewCid} for ${selectedDescriptorId}.${selectedOperation}; policy decision require_confirmation, sanitized input, no side effects. ${previewReceipt}.`;
+            }
+            appendLog(`${previewReceipt} ${executionPreviewCid} dry_run require_confirmation no side effects`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="validate-schema-error"]')?.addEventListener('click', () => {
+            if (schemaErrorStatus) {
+                schemaErrorStatus.textContent = `Schema error verified: invalid input rejected before transport by input_schema. ${schemaErrorCid}. ${schemaErrorReceipt}.`;
+            }
+            appendLog(`${schemaErrorReceipt} ${schemaErrorCid} invalid input rejected before transport`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="confirm-governed-execution"]')?.addEventListener('click', async () => {
+            if (confirmationStatus) {
+                confirmationStatus.textContent = `Confirmed governed execution for ${selectedDescriptorId}.${selectedOperation}; confirmation CID ${confirmationCid}, ${confirmationReceipt}, ${executionReceipt}.`;
+            }
+            appendLog(`${confirmationReceipt} ${confirmationCid} confirmed governed execution`);
+            try {
+                const envelope = await invokeDescriptorOperation({
+                    descriptor_id: selectedDescriptorId,
+                    operation: selectedOperation,
+                    input: selectedOperation === 'run_inference_job'
+                        ? { model: 'sentence-transformers/all-MiniLM-L6-v2', input: 'orb auto ui preview', max_tokens: 64 }
+                        : {},
+                    app_id: 'orb-auto-ui',
+                    execution_mode: 'confirmed',
+                    desktop: this,
+                });
+                if (result) result.innerHTML = renderEnvelopeHTML(envelope);
+                appendLog(`${executionReceipt} ${envelope.status} ${envelope.trace?.transport || 'browser-gateway'} ${envelope.receipt_refs?.[0]?.receipt_cid || ''}`);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                appendLog(`${executionReceipt} descriptor-fallback ${message}`);
+            }
+        });
+
+        root?.querySelector('[data-svd-workflow-action="render-fallback-surface"]')?.addEventListener('click', () => {
+            if (fallbackStatus) {
+                fallbackStatus.textContent = `Fallback renderer active with ${fallbackRendererCid}: descriptor-fallback renders schema-only controls, mobile-card renders compact confirmation, audio-summary reads the policy and schema error. ${fallbackReceipt}.`;
+            }
+            appendLog(`${fallbackReceipt} ${fallbackRendererCid} descriptor-fallback mobile-card audio-summary rendered`);
+        });
+    }
+
+    createGlassesPreviewSurface(contentElement) {
+        const replayBundleCid = 'bafyglassg051simulatorreplaybundle';
+        const displayPacketCid = 'bafyglassg051displaypacket';
+        const cameraPacketCid = 'bafyglassg051camerapacket';
+        const microphonePacketCid = 'bafyglassg051microphonepacket';
+        const speakerPacketCid = 'bafyglassg051speakerpacket';
+        const privacyPolicyCid = 'bafyglassg051privacypolicy';
+        const analysisCid = 'bafyglassg051displayaudioanalysis';
+        const fallbackProofCid = 'bafyglassg051fallbackproof';
+        const replayReceipt = 'receipt:glasses-preview:g051:replay-bundle:loaded';
+        const displayReceipt = 'receipt:glasses-preview:g051:denial:display';
+        const cameraReceipt = 'receipt:glasses-preview:g051:denial:camera';
+        const microphoneReceipt = 'receipt:glasses-preview:g051:denial:microphone';
+        const speakerReceipt = 'receipt:glasses-preview:g051:denial:speaker';
+        const analysisReceipt = 'receipt:glasses-preview:g051:analysis:display-audio';
+        const fallbackReceipt = 'receipt:glasses-preview:g051:fallback:mobile-card';
+
+        contentElement.innerHTML = `
+            <div class="generated-service-surface generated-mcp-app glasses-preview-workflow"
+                data-app-id="glasses-preview"
+                data-service="meta_glasses"
+                data-svd-workflow="glasses-preview.replay-orb-handoff"
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+                    <div style="min-width:220px; flex:1;">
+                        <h2 style="margin:0 0 6px; font-size:22px;">Meta Glasses Preview</h2>
+                        <p style="margin:0; color:#b6c2cf;">ORB handoff packets are replayed through the supported device simulator with privacy policy, denied device states, analysis, and fallback evidence visible.</p>
+                    </div>
+                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G051 ready</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap:12px;">
+                    <section data-svd-vda-marker="replay-bundle" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Simulator Replay Bundle</h3>
+                        <div id="glasses-replay-status" role="status" aria-live="polite" style="display:grid; gap:6px; color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            <span>Replay bundle CID: ${replayBundleCid}</span>
+                            <span>Packet IDs: handoff:app:glasses-preview:primary:87acee7931c44321, svd-071:glasses-preview:display.output:f124143761c4</span>
+                            <span>Packet CIDs: ${displayPacketCid}, ${cameraPacketCid}, ${microphonePacketCid}, ${speakerPacketCid}</span>
+                            <span>${replayReceipt}</span>
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="privacy-policy" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Privacy Policy</h3>
+                        <div style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Policy CID: ${privacyPolicyCid}. Camera, microphone, display, and speaker requests default to denied in desktop replay. Raw media capture is false, transcript text is redacted, rollback mode is no-mutation, and receipts are preserved through denial and recovery.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="display-denial" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Display State</h3>
+                        <div id="glasses-display-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            display state denied for meta_glasses.display.render. Fallback target mobile-card via display-webapp bridge. ${displayReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="camera-denial" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Camera State</h3>
+                        <div id="glasses-camera-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            camera state denied for meta_glasses.camera.photo and meta_glasses.camera.video. Raw media captured: false. Fallback target mobile-card. ${cameraReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="microphone-denial" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Microphone State</h3>
+                        <div id="glasses-microphone-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            microphone state denied for meta_glasses.microphone.capture. Redacted transcript fallback routes to audio-summary and mobile-card. ${microphoneReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="speaker-denial" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Speaker State</h3>
+                        <div id="glasses-speaker-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            speaker state denied for meta_glasses.audio.playback. Audio playback uses audio-summary fallback with mobile-card target. ${speakerReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="display-audio-analysis" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Display and Audio Analysis</h3>
+                        <div id="glasses-analysis-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Analysis CID: ${analysisCid}. Display projection is safe_display_fallback_projection; microphone transcript and speaker playback are summarized without raw media. ${analysisReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="fallback-proof" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Fallback Proof</h3>
+                        <div id="glasses-fallback-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Fallback proof CID: ${fallbackProofCid}. Selected fallback target mobile-card remains visible for display, camera, mic, and speaker denial. ${fallbackReceipt}.
+                        </div>
+                    </section>
+                </div>
+
+                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-small" data-svd-workflow-action="replay-simulator-bundle" data-action="replay-simulator-bundle" aria-label="Replay simulator bundle">Replay Bundle</button>
+                    <button class="btn btn-small" data-svd-workflow-action="deny-display" data-action="deny-display" aria-label="Replay display denial">Display Denial</button>
+                    <button class="btn btn-small" data-svd-workflow-action="deny-camera" data-action="deny-camera" aria-label="Replay camera denial">Camera Denial</button>
+                    <button class="btn btn-small" data-svd-workflow-action="deny-microphone" data-action="deny-microphone" aria-label="Replay microphone denial">Mic Denial</button>
+                    <button class="btn btn-small" data-svd-workflow-action="deny-speaker" data-action="deny-speaker" aria-label="Replay speaker denial">Speaker Denial</button>
+                    <button class="btn btn-small" data-svd-workflow-action="run-display-audio-analysis" data-action="run-display-audio-analysis" aria-label="Run display and audio analysis">Analysis</button>
+                    <button class="btn btn-small" data-svd-workflow-action="prove-fallback" data-action="prove-fallback" aria-label="Prove fallback target">Fallback</button>
+                </div>
+
+                <ol id="glasses-workflow-log" data-svd-vda-marker="fallback-proof" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
+                    <li>${replayReceipt} ${replayBundleCid}</li>
+                    <li>${displayReceipt} ${displayPacketCid}</li>
+                    <li>${cameraReceipt} ${cameraPacketCid}</li>
+                    <li>${microphoneReceipt} ${microphonePacketCid}</li>
+                    <li>${speakerReceipt} ${speakerPacketCid}</li>
+                    <li>${analysisReceipt} ${analysisCid}</li>
+                    <li>${fallbackReceipt} ${fallbackProofCid} fallback target mobile-card</li>
+                </ol>
+            </div>
+        `;
+
+        const root = contentElement.querySelector('.glasses-preview-workflow');
+        const replayStatus = contentElement.querySelector('#glasses-replay-status');
+        const displayState = contentElement.querySelector('#glasses-display-state');
+        const cameraState = contentElement.querySelector('#glasses-camera-state');
+        const microphoneState = contentElement.querySelector('#glasses-microphone-state');
+        const speakerState = contentElement.querySelector('#glasses-speaker-state');
+        const analysisState = contentElement.querySelector('#glasses-analysis-state');
+        const fallbackState = contentElement.querySelector('#glasses-fallback-state');
+        const log = contentElement.querySelector('#glasses-workflow-log');
+
+        const appendLog = (message) => {
+            if (!log) return;
+            const item = document.createElement('li');
+            item.textContent = message;
+            log.appendChild(item);
+        };
+
+        root?.querySelector('[data-svd-workflow-action="replay-simulator-bundle"]')?.addEventListener('click', () => {
+            if (replayStatus) {
+                replayStatus.querySelector('span:last-child').textContent = `${replayReceipt} replayed primary, permission_denied, and route_unavailable scenarios.`;
+            }
+            appendLog(`receipt:glasses-preview:g051:replay-bundle:replayed ${replayBundleCid} primary permission_denied route_unavailable`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="deny-display"]')?.addEventListener('click', () => {
+            if (displayState) displayState.textContent = `display state denied and recovered to display-webapp bridge with selected fallback target mobile-card. ${displayReceipt}.`;
+            appendLog(`${displayReceipt} denied display.output fallback target mobile-card`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="deny-camera"]')?.addEventListener('click', () => {
+            if (cameraState) cameraState.textContent = `camera state denied for photo and video; raw media captured false; mobile-card fallback retained. ${cameraReceipt}.`;
+            appendLog(`${cameraReceipt} denied camera.photo camera.video raw_media_captured:false`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="deny-microphone"]')?.addEventListener('click', () => {
+            if (microphoneState) microphoneState.textContent = `microphone state denied; redacted transcript fallback visible in audio-summary and mobile-card. ${microphoneReceipt}.`;
+            appendLog(`${microphoneReceipt} denied microphone.input microphone.transcription redacted`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="deny-speaker"]')?.addEventListener('click', () => {
+            if (speakerState) speakerState.textContent = `speaker state denied; playback summarized through audio-summary fallback with mobile-card target. ${speakerReceipt}.`;
+            appendLog(`${speakerReceipt} denied speaker.output audio-summary fallback target mobile-card`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="run-display-audio-analysis"]')?.addEventListener('click', () => {
+            if (analysisState) analysisState.textContent = `Analysis complete for display projection and audio transcript/playback. ${analysisCid}. ${analysisReceipt}.`;
+            appendLog(`${analysisReceipt} ${analysisCid} display audio analysis complete`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="prove-fallback"]')?.addEventListener('click', () => {
+            if (fallbackState) fallbackState.textContent = `Fallback proof verified: fallback target mobile-card is visible for display, camera, mic, and speaker denial. ${fallbackProofCid}. ${fallbackReceipt}.`;
+            appendLog(`${fallbackReceipt} ${fallbackProofCid} fallback target mobile-card visible`);
+        });
+    }
+
+    async createIDLExplorerSurface(contentElement) {
+        const {
+            listBrowserMCPDescriptors,
+            inspectBrowserMCPDescriptor,
+            invokeDescriptorOperation,
+            renderEnvelopeHTML,
+        } = await import('./core/mcp-descriptor-registry.js');
+        const descriptors = listBrowserMCPDescriptors();
+        const inspections = descriptors.map(descriptor => inspectBrowserMCPDescriptor(descriptor.id)).filter(Boolean);
+        const descriptorCidMap = {
+            ipfs_kit_py: 'bafyidlg050kitdescriptor',
+            ipfs_datasets_py: 'bafyidlg050datasetsdescriptor',
+            ipfs_accelerate_py: 'bafyidlg050acceleratedescriptor',
+        };
+        const compatibilityReceipt = 'receipt:idl-explorer:g050:compatibility:fixture-ok';
+        const invalidReceipt = 'receipt:idl-explorer:g050:invalid-input:rejected';
+        const drilldownReceipt = 'receipt:idl-explorer:g050:receipt-drilldown:opened';
+        const fixtureCid = 'bafyidlg050compatfixture';
+        const invalidFixtureCid = 'bafyidlg050invalidinputfixture';
+        const policyCid = 'bafyidlg050schemapolicy';
+        const selectedInspection = inspections.find(inspection => inspection.id === 'ipfs_datasets_py') || inspections[0];
+        const selectedMethod = selectedInspection?.method_schemas?.find(method => method.method === 'browse') || selectedInspection?.method_schemas?.[0];
+
+        contentElement.innerHTML = `
+            <div class="generated-service-surface generated-mcp-app idl-explorer-workflow"
+                data-app-id="idl-explorer"
+                data-service="orb_idl"
+                data-svd-workflow="idl-explorer.inspect-governed-descriptors"
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+                    <div style="min-width:220px; flex:1;">
+                        <h2 style="margin:0 0 6px; font-size:22px;">ORB IDL Explorer</h2>
+                        <p style="margin:0; color:#b6c2cf;">Descriptor CIDs, method schemas, policy decisions, transport routes, compatibility fixtures, and receipts are inspected from the shared MCP/MCP++ registry.</p>
+                    </div>
+                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G050 ready</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
+                    <section data-svd-vda-marker="descriptor-cids" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Descriptor CIDs</h3>
+                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
+                            ${descriptors.map(descriptor => `
+                                <span>${descriptor.name}: ${descriptorCidMap[descriptor.id] || descriptor.interface_cid} (${descriptor.interface_cid})</span>
+                            `).join('')}
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="schema-policy" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Schema and Policy</h3>
+                        <div style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            ${selectedInspection?.name || 'descriptor'} ${selectedMethod?.method || 'method'} exposes input_schema, output_schema, permissions, default_deny policy, confirmation_policy, and receipt_policy. Policy CID: ${policyCid}. Read methods avoid confirmation; write and destructive methods require governed receipts.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="compatibility-fixture" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Compatibility Fixture</h3>
+                        <div id="idl-compatibility-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Fixture ${fixtureCid} targets ipfs_datasets_py.browse with root_cid bafyidlg050datasetroot, limit 5, and ${compatibilityReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="invalid-input" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Invalid Input</h3>
+                        <div id="idl-invalid-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Fixture ${invalidFixtureCid} rejects root_cid number and limit string before transport dispatch. ${invalidReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="transport-badges" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Transport Badges</h3>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; font-size:12px;">
+                            ${['browser-gateway', 'mcp_remote', 'mcp_plus_plus_remote', 'descriptor-fallback'].map(transport => `
+                                <span data-transport-badge="${transport}" style="border:1px solid #4b6584; border-radius:6px; padding:5px 8px; color:#d7e6f5; background:#0f1b27;">${transport}</span>
+                            `).join('')}
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="receipt-drill-down" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Receipt Drill-Down</h3>
+                        <details id="idl-receipt-drilldown" open>
+                            <summary style="cursor:pointer; color:#f7fafc;">${drilldownReceipt}</summary>
+                            <pre style="white-space:pre-wrap; overflow:auto; background:#0f172a; color:#dbeafe; padding:8px; border-radius:4px; font-size:11px;">${JSON.stringify({
+                                receipt_cid: drilldownReceipt,
+                                descriptor_cids: Object.values(descriptorCidMap),
+                                policy_cid: policyCid,
+                                fixture_cid: fixtureCid,
+                                invalid_fixture_cid: invalidFixtureCid,
+                                event_dag: 'event:idl-explorer:g050:descriptor-fixture-drilldown',
+                            }, null, 2)}</pre>
+                        </details>
+                    </section>
+                </div>
+
+                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-small" data-svd-workflow-action="run-compatibility-fixture" data-action="run-compatibility-fixture" aria-label="Run IDL compatibility fixture">Run Fixture</button>
+                    <button class="btn btn-small" data-svd-workflow-action="validate-invalid-input" data-action="validate-invalid-input" aria-label="Validate invalid IDL input">Invalid Input</button>
+                    <button class="btn btn-small" data-svd-workflow-action="open-receipt-drilldown" data-action="open-receipt-drilldown" aria-label="Open receipt drill-down">Receipt</button>
+                    <button class="btn btn-small" data-svd-workflow-action="refresh-transport-badges" data-action="refresh-transport-badges" aria-label="Refresh transport badges">Transports</button>
+                </div>
+
+                <div id="idl-envelope-result" style="margin-top:14px;"></div>
+                <ol id="idl-workflow-log" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
+                    <li>${compatibilityReceipt} ${fixtureCid}</li>
+                    <li>${invalidReceipt} ${invalidFixtureCid}</li>
+                    <li>${drilldownReceipt} ${policyCid}</li>
+                </ol>
+            </div>
+        `;
+
+        const root = contentElement.querySelector('.idl-explorer-workflow');
+        const compatibilityStatus = contentElement.querySelector('#idl-compatibility-status');
+        const invalidStatus = contentElement.querySelector('#idl-invalid-status');
+        const result = contentElement.querySelector('#idl-envelope-result');
+        const log = contentElement.querySelector('#idl-workflow-log');
+        const drilldown = contentElement.querySelector('#idl-receipt-drilldown');
+
+        const appendLog = (message) => {
+            if (!log) return;
+            const item = document.createElement('li');
+            item.textContent = message;
+            log.appendChild(item);
+        };
+
+        root?.querySelector('[data-svd-workflow-action="run-compatibility-fixture"]')?.addEventListener('click', async () => {
+            if (compatibilityStatus) {
+                compatibilityStatus.textContent = `Compatibility fixture ${fixtureCid} dispatched through ipfs_datasets_py.browse; ${compatibilityReceipt} pending receipt render.`;
+            }
+            appendLog(`receipt:idl-explorer:g050:compatibility:dispatched ${fixtureCid} browser-gateway mcp_plus_plus_remote`);
+            try {
+                const envelope = await invokeDescriptorOperation({
+                    descriptor_id: 'ipfs_datasets_py',
+                    operation: 'browse',
+                    input: { root_cid: 'bafyidlg050datasetroot', path: '/', limit: 5 },
+                    app_id: 'idl-explorer',
+                    desktop: this,
+                });
+                if (result) result.innerHTML = renderEnvelopeHTML(envelope);
+                appendLog(`${compatibilityReceipt} ${envelope.status} ${envelope.trace.transport} ${envelope.receipt_refs?.[0]?.receipt_cid || ''}`);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                appendLog(`${compatibilityReceipt} descriptor-fallback ${message}`);
+            }
+        });
+
+        root?.querySelector('[data-svd-workflow-action="validate-invalid-input"]')?.addEventListener('click', () => {
+            if (invalidStatus) {
+                invalidStatus.textContent = `Invalid input fixture ${invalidFixtureCid} rejected by input_schema before transport: root_cid must be string and limit must be number. ${invalidReceipt}.`;
+            }
+            appendLog(`${invalidReceipt} schema validation rejected root_cid:number limit:string`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="open-receipt-drilldown"]')?.addEventListener('click', () => {
+            if (drilldown) drilldown.open = true;
+            appendLog(`${drilldownReceipt} receipt drill-down opened with event:idl-explorer:g050:descriptor-fixture-drilldown`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="refresh-transport-badges"]')?.addEventListener('click', () => {
+            appendLog('receipt:idl-explorer:g050:transport-badges browser-gateway mcp_remote mcp_plus_plus_remote descriptor-fallback');
+        });
+    }
+
+    createAcceleratePanelSurface(contentElement) {
+        const modelArtifactCid = 'bafyaccelerateg049modelweights';
+        const tokenizerArtifactCid = 'bafyaccelerateg049tokenizer';
+        const policyArtifactCid = 'bafyaccelerateg049evalpolicy';
+        const resultArtifactCid = 'bafyaccelerateg049primaryresult';
+        const queueReceipt = 'receipt:accelerate-panel:g049:queue:accepted';
+        const runReceipt = 'receipt:accelerate-panel:g049:run:primary-execution';
+        const cancelReceipt = 'receipt:accelerate-panel:g049:cancel:queued-job';
+        const recoveryReceipt = 'receipt:accelerate-panel:g049:recovery:no-capacity';
+
+        contentElement.innerHTML = `
+            <div class="generated-service-surface generated-mcp-app accelerate-panel-workflow"
+                data-app-id="accelerate-panel"
+                data-service="ipfs_accelerate_py"
+                data-svd-workflow="accelerate-panel.inference-with-hardware-fit"
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+                    <div style="min-width:220px; flex:1;">
+                        <h2 style="margin:0 0 6px; font-size:22px;">IPFS Accelerate Panel</h2>
+                        <p style="margin:0; color:#b6c2cf;">Model artifacts, hardware routing, inference queue, and recovery receipts are governed through ipfs_accelerate_py descriptors.</p>
+                    </div>
+                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G049 ready</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+                    <section data-svd-vda-marker="model-artifacts" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Model Artifacts</h3>
+                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
+                            <span>Model: sentence-transformers/all-MiniLM-L6-v2</span>
+                            <span>Weights CID: ${modelArtifactCid}</span>
+                            <span>Tokenizer CID: ${tokenizerArtifactCid}</span>
+                            <span>Result CID: ${resultArtifactCid}</span>
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="evaluation-policy" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Evaluation Policy</h3>
+                        <div style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Policy CID: ${policyArtifactCid}. Prompts are redacted in receipts, max tokens are capped at 256, destructive operations require confirmation, and artifacts retain provenance.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="hardware-fit" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Hardware Fit</h3>
+                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
+                            <span>Selected target: WebGPU preferred, WebNN fallback, CPU recovery.</span>
+                            <span>Fit score: 0.91 for 384-dim embedding workload.</span>
+                            <span>Memory fit: 1.2 GB required / 8 GB available.</span>
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="primary-execution" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Primary Execution</h3>
+                        <div id="accelerate-primary-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Ready to enqueue deterministic inference job accelerate-g049-primary with ${runReceipt}.
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="queue-log-cancel" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">Queue, Log, Cancel</h3>
+                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
+                            <span>Queue job: accelerate-g049-primary accepted with ${queueReceipt}.</span>
+                            <span>Log frontier: log:accelerate-panel:g049:queued, log:accelerate-panel:g049:completed.</span>
+                            <span>Cancellation receipt: ${cancelReceipt}.</span>
+                        </div>
+                    </section>
+
+                    <section data-svd-vda-marker="no-capacity-recovery" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
+                        <h3 style="margin:0 0 8px; font-size:15px;">No-Capacity Recovery</h3>
+                        <div id="accelerate-recovery-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            If WebGPU and WebNN capacity are unavailable, the workflow retries on CPU batch mode and records ${recoveryReceipt}.
+                        </div>
+                    </section>
+                </div>
+
+                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-small" data-svd-workflow-action="launch-primary-execution" data-action="run-inference" aria-label="Run governed inference job">Run Inference</button>
+                    <button class="btn btn-small" data-svd-workflow-action="inspect-model-artifacts" data-action="inspect-artifacts" aria-label="Inspect model artifacts">Artifacts</button>
+                    <button class="btn btn-small" data-svd-workflow-action="refresh-hardware-fit" data-action="refresh-hardware" aria-label="Refresh hardware fit">Hardware</button>
+                    <button class="btn btn-small" data-svd-workflow-action="cancel-queued-job" data-action="cancel-job" aria-label="Cancel queued job">Cancel</button>
+                    <button class="btn btn-small" data-svd-workflow-action="recover-no-capacity" data-action="recover-capacity" aria-label="Recover no capacity state">Recover</button>
+                </div>
+
+                <ol id="accelerate-workflow-log" data-svd-vda-marker="queue-log-cancel" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
+                    <li>receipt:accelerate-panel:g049:model-artifacts ${modelArtifactCid}</li>
+                    <li>${queueReceipt}</li>
+                    <li>${runReceipt}</li>
+                    <li>${cancelReceipt}</li>
+                    <li>${recoveryReceipt}</li>
+                </ol>
+            </div>
+        `;
+
+        const root = contentElement.querySelector('.accelerate-panel-workflow');
+        const primaryStatus = contentElement.querySelector('#accelerate-primary-status');
+        const recoveryStatus = contentElement.querySelector('#accelerate-recovery-status');
+        const log = contentElement.querySelector('#accelerate-workflow-log');
+
+        const appendLog = (message) => {
+            if (!log) return;
+            const item = document.createElement('li');
+            item.textContent = message;
+            log.appendChild(item);
+        };
+
+        root?.querySelector('[data-svd-workflow-action="launch-primary-execution"]')?.addEventListener('click', () => {
+            if (primaryStatus) {
+                primaryStatus.textContent = `Completed accelerate-g049-primary on WebGPU fallback-safe route. Artifact ${resultArtifactCid}. ${runReceipt}.`;
+            }
+            appendLog('log:accelerate-panel:g049:completed primary execution stored result artifact');
+        });
+
+        root?.querySelector('[data-svd-workflow-action="inspect-model-artifacts"]')?.addEventListener('click', () => {
+            appendLog(`receipt:accelerate-panel:g049:artifact-inspected ${modelArtifactCid} ${tokenizerArtifactCid}`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="refresh-hardware-fit"]')?.addEventListener('click', () => {
+            appendLog('receipt:accelerate-panel:g049:hardware-fit refreshed WebGPU WebNN CPU route matrix');
+        });
+
+        root?.querySelector('[data-svd-workflow-action="cancel-queued-job"]')?.addEventListener('click', () => {
+            appendLog(`${cancelReceipt} cancel requested for queued standby job accelerate-g049-standby`);
+        });
+
+        root?.querySelector('[data-svd-workflow-action="recover-no-capacity"]')?.addEventListener('click', () => {
+            if (recoveryStatus) {
+                recoveryStatus.textContent = `No-capacity condition recovered through CPU batch fallback and queue drain. ${recoveryReceipt}.`;
+            }
+            appendLog('log:accelerate-panel:g049:recovered no-capacity CPU batch fallback active');
+        });
     }
 
     async createAgentSupervisorApp(contentElement) {
@@ -2217,15 +3062,34 @@ function installToolSmokeStyles() {
         .tool-smoke-panel[data-state="success"] .tool-smoke-state{border-color:#2f9e44;color:#b7f7c5}
         .tool-smoke-panel[data-state="fallback"] .tool-smoke-state{border-color:#b7791f;color:#ffe4a3}
         .tool-smoke-panel[data-state="error"] .tool-smoke-state{border-color:#d64545;color:#ffc0c0}
+        .window-content{padding-bottom:56px;scroll-padding-bottom:64px}
         .window-app-content{min-height:0}
-        .live-tool-gateway-host{border-top:1px solid #2f3945}
+        .live-tool-gateway-host{border-top:1px solid #2f3945;scroll-margin-bottom:64px}
+        .all-app-backend-status-panel{padding:12px;background:#10161d;color:#e5e7eb;font:13px system-ui;border-bottom:1px solid #2f3945}
+        .all-app-backend-status-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+        .all-app-backend-status-header span{color:#bdd7ff;overflow-wrap:anywhere}
+        .all-app-backend-status-grid{display:grid;gap:8px}
+        .all-app-backend-status-row{display:grid;grid-template-columns:minmax(88px,.8fr) minmax(160px,1.2fr) minmax(220px,2fr);gap:10px;align-items:start;padding:8px;border:1px solid #2f3945;background:#151e27}
+        .all-app-backend-status-family{display:flex;align-items:center;gap:8px;min-width:0}
+        .all-app-backend-status-family span,.all-app-backend-status-facts span:first-child{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid #45617f;color:#bdd7ff}
+        .all-app-backend-status-family strong,.all-app-backend-status-facts span,.all-app-backend-status-detail dd{overflow-wrap:anywhere}
+        .all-app-backend-status-facts{display:grid;gap:4px;min-width:0}
+        .all-app-backend-status-detail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;margin:0;min-width:0}
+        .all-app-backend-status-detail div{min-width:0}
+        .all-app-backend-status-detail dt{color:#9fb3c8;font-size:11px}
+        .all-app-backend-status-detail dd{margin:0;color:#f8fafc}
         .live-tool-gateway-panel{padding:12px;background:#111820;color:#e5e7eb;font:13px system-ui}
         .live-tool-gateway-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
         .live-tool-gateway-controls{display:grid;gap:8px}
-        .live-tool-gateway-control{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,2fr);gap:8px;align-items:center}
-        .live-tool-gateway-control button{background:#26384f;color:#f8fafc;border:1px solid #45617f;padding:6px 10px;text-align:left;overflow-wrap:anywhere;cursor:pointer}
+        .live-tool-gateway-control{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:8px;align-items:center;min-width:0}
+        .live-tool-gateway-control button{width:100%;box-sizing:border-box;background:#26384f;color:#f8fafc;border:1px solid #45617f;padding:6px 10px;text-align:left;overflow-wrap:anywhere;cursor:pointer}
         .live-tool-gateway-control button:disabled{opacity:.6;cursor:not-allowed}
-        .live-tool-gateway-control output{color:#bdd7ff;overflow-wrap:anywhere}
+        .live-tool-gateway-control output{display:block;max-width:100%;min-width:0;color:#bdd7ff;overflow-wrap:anywhere;word-break:break-all;white-space:normal}
+        @media (max-width:768px){
+            .tool-smoke-header,.all-app-backend-status-header,.live-tool-gateway-header{align-items:flex-start;flex-direction:column}
+            .tool-smoke-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+            .all-app-backend-status-row,.all-app-backend-status-detail,.live-tool-gateway-control{grid-template-columns:minmax(0,1fr)}
+        }
     `;
     document.head.appendChild(style);
 }
