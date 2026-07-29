@@ -45,7 +45,12 @@ const DEFAULT_INVENTORY = path.join(
   "docs",
   "supervisor-lane-inventory.json",
 );
-const HEARTBEAT_INTERVAL_MS = 30_000;
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
+const HEARTBEAT_INTERVAL_ENV =
+  "SWISSKNIFE_CHECKOUT_LEASE_HEARTBEAT_INTERVAL_MS";
+const HEARTBEAT_RETRY_ATTEMPTS = 3;
+const HEARTBEAT_RETRY_DELAY_MS = 100;
+const CHILD_TERMINATION_GRACE_MS = 2_000;
 const EXIT_USAGE = 64;
 const EXIT_REFUSED = 73;
 const EXIT_CONTRACT = 78;
@@ -69,6 +74,32 @@ function isMissing(error) {
 
 function isDestinationExists(error) {
   return ["EEXIST", "ENOTEMPTY", "EACCES", "EPERM"].includes(error?.code);
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function configuredHeartbeatIntervalMs() {
+  const raw = process.env[HEARTBEAT_INTERVAL_ENV];
+  if (raw === undefined || raw === "") return DEFAULT_HEARTBEAT_INTERVAL_MS;
+  if (!/^\d+$/.test(raw)) {
+    throw new LeaseError(`${HEARTBEAT_INTERVAL_ENV} must be an integer`, {
+      code: "invalid_heartbeat_interval",
+      exitCode: EXIT_CONTRACT,
+    });
+  }
+  const interval = Number(raw);
+  if (!Number.isSafeInteger(interval) || interval < 10 || interval > 30_000) {
+    throw new LeaseError(
+      `${HEARTBEAT_INTERVAL_ENV} must be between 10 and 30000 milliseconds`,
+      {
+        code: "invalid_heartbeat_interval",
+        exitCode: EXIT_CONTRACT,
+      },
+    );
+  }
+  return interval;
 }
 
 async function readJson(file) {
@@ -801,6 +832,103 @@ async function updateOwnedLease(context, leaseId, changes) {
   return updated;
 }
 
+function isOwnershipHeartbeatFailure(error) {
+  return ["ownership_changed", "self_identity_mismatch"].includes(error?.code);
+}
+
+async function refreshOwnedLeaseWithRetry(context, leaseId, changes) {
+  let lastError;
+  for (let attempt = 1; attempt <= HEARTBEAT_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      return await updateOwnedLease(context, leaseId, changes);
+    } catch (error) {
+      lastError = error;
+      if (isOwnershipHeartbeatFailure(error)) {
+        throw new LeaseError(
+          `Lease ownership lost during heartbeat: ${error.message}`,
+          {
+            code: "heartbeat_ownership_lost",
+            details: {
+              cause: error.code || "unexpected_error",
+              attempts: attempt,
+            },
+          },
+        );
+      }
+      if (attempt === HEARTBEAT_RETRY_ATTEMPTS) break;
+      process.stderr.write(
+        `SwissKnife lease heartbeat refresh failed ` +
+          `(attempt ${attempt}/${HEARTBEAT_RETRY_ATTEMPTS}); retrying: ${error.message}\n`,
+      );
+      await delay(HEARTBEAT_RETRY_DELAY_MS);
+    }
+  }
+  throw new LeaseError(
+    `Lease heartbeat refresh failed after ${HEARTBEAT_RETRY_ATTEMPTS} attempts: ${lastError.message}`,
+    {
+      code: "heartbeat_refresh_exhausted",
+      details: {
+        cause: lastError.code || "unexpected_error",
+        attempts: HEARTBEAT_RETRY_ATTEMPTS,
+      },
+    },
+  );
+}
+
+function signalProtectedChildGroup(child, signal) {
+  if (platform() === "linux") {
+    try {
+      process.kill(-child.pid, signal);
+      return true;
+    } catch (error) {
+      if (!isMissing(error)) throw error;
+    }
+  }
+  if (child.exitCode !== null || child.signalCode !== null) return false;
+  return child.kill(signal);
+}
+
+function protectedChildGroupIsAlive(child) {
+  if (platform() !== "linux")
+    return child.exitCode === null && child.signalCode === null;
+  try {
+    process.kill(-child.pid, 0);
+    return true;
+  } catch (error) {
+    if (isMissing(error)) return false;
+    throw error;
+  }
+}
+
+async function terminateProtectedChildGroup(child) {
+  try {
+    signalProtectedChildGroup(child, "SIGTERM");
+  } catch (error) {
+    process.stderr.write(
+      `SwissKnife lease could not send SIGTERM to protected child group: ${error.message}\n`,
+    );
+  }
+  const deadline = Date.now() + CHILD_TERMINATION_GRACE_MS;
+  while (Date.now() < deadline) {
+    await delay(25);
+    try {
+      if (!protectedChildGroupIsAlive(child)) return;
+    } catch (error) {
+      process.stderr.write(
+        `SwissKnife lease could not verify protected child-group shutdown: ${error.message}\n`,
+      );
+      break;
+    }
+  }
+  try {
+    signalProtectedChildGroup(child, "SIGKILL");
+  } catch (error) {
+    process.stderr.write(
+      `SwissKnife lease could not send SIGKILL to protected child group: ${error.message}\n`,
+    );
+  }
+}
+
 export async function releaseLease(context, leaseId) {
   const owner = await readLeaseOwner(context);
   if (!owner) return false;
@@ -1207,7 +1335,13 @@ function printResult(result, json = false) {
   );
 }
 
-async function runChild(context, owner, command, json) {
+async function runChild(
+  context,
+  owner,
+  command,
+  json,
+  { heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS } = {},
+) {
   const guardSource = String.raw`
 const { spawn } = require('node:child_process');
 const process = require('node:process');
@@ -1284,24 +1418,61 @@ child.on('exit', (code, signal) => {
     heartbeatAt: new Date().toISOString(),
   });
   if (platform() !== "win32") child.kill("SIGCONT");
+  let forwardedSignal = null;
+  let heartbeatFailure = null;
   let heartbeatUpdate = Promise.resolve();
   const heartbeat = setInterval(() => {
     heartbeatUpdate = heartbeatUpdate
-      .then(() =>
-        updateOwnedLease(context, owner.leaseId, {
-          heartbeatAt: new Date().toISOString(),
-          childPid: child.pid,
-        }),
-      )
+      .then(async () => {
+        if (
+          heartbeatFailure ||
+          child.exitCode !== null ||
+          child.signalCode !== null
+        ) {
+          return;
+        }
+        try {
+          await refreshOwnedLeaseWithRetry(context, owner.leaseId, {
+            heartbeatAt: new Date().toISOString(),
+            childPid: child.pid,
+          });
+        } catch (error) {
+          // An operator signal remains the authoritative shutdown reason when
+          // it arrives while a heartbeat retry is already in flight.
+          if (
+            forwardedSignal ||
+            child.exitCode !== null ||
+            child.signalCode !== null
+          ) {
+            return;
+          }
+          heartbeatFailure = error;
+          clearInterval(heartbeat);
+          process.stderr.write(
+            `SwissKnife lease heartbeat failed closed: ${error.message}\n`,
+          );
+          await terminateProtectedChildGroup(child);
+        }
+      })
       .catch((error) => {
-        process.stderr.write(
-          `SwissKnife lease heartbeat failed: ${error.message}\n`,
-        );
+        if (!heartbeatFailure) {
+          heartbeatFailure = new LeaseError(
+            `Lease heartbeat monitor failed unexpectedly: ${error.message}`,
+            {
+              code: "heartbeat_monitor_failed",
+              details: { cause: error.code || "unexpected_error" },
+            },
+          );
+          clearInterval(heartbeat);
+          process.stderr.write(
+            `SwissKnife lease heartbeat failed closed: ${heartbeatFailure.message}\n`,
+          );
+          return terminateProtectedChildGroup(child);
+        }
       });
-  }, HEARTBEAT_INTERVAL_MS);
+  }, heartbeatIntervalMs);
   heartbeat.unref();
 
-  let forwardedSignal = null;
   const forward = (signal) => {
     forwardedSignal = signal;
     if (child.exitCode === null && child.signalCode === null)
@@ -1326,8 +1497,16 @@ child.on('exit', (code, signal) => {
     // before moving the lease directory so it can never recreate or overwrite
     // a successor's owner record after release.
     await heartbeatUpdate;
-    await releaseLease(context, owner.leaseId);
+    try {
+      await releaseLease(context, owner.leaseId);
+    } catch (error) {
+      if (!heartbeatFailure) throw error;
+      process.stderr.write(
+        `SwissKnife lease release skipped after heartbeat failure: ${error.message}\n`,
+      );
+    }
   }
+  if (heartbeatFailure) throw heartbeatFailure;
   if (json) {
     process.stdout.write(
       `${JSON.stringify({ released: true, childExitCode: exitCode, childSignal }, null, 2)}\n`,
@@ -1352,6 +1531,10 @@ Options:
   --checkout <path>   SwissKnife repository root (default: script repository)
   --inventory <path> Lane inventory JSON
   --json              Emit machine-readable output
+
+Environment:
+  ${HEARTBEAT_INTERVAL_ENV}
+                      Heartbeat interval in milliseconds (10-30000; default 30000)
 
 --check validates every registered lane and reports lease health.  It does not
 take the lease.  --reclaim removes a lease only after recorded process identity
@@ -1439,8 +1622,11 @@ export async function main(argv = process.argv.slice(2)) {
       checkout: context.checkout,
     });
     validateImplementationCommand(options.command, lane);
+    const heartbeatIntervalMs = configuredHeartbeatIntervalMs();
     const owner = await acquireLease(context, lane, options.command);
-    return runChild(context, owner, options.command, options.json);
+    return runChild(context, owner, options.command, options.json, {
+      heartbeatIntervalMs,
+    });
   }
   throw new LeaseError(`Unsupported mode ${options.mode}`, {
     exitCode: EXIT_USAGE,
