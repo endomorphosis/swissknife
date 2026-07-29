@@ -192,9 +192,7 @@ function spawnLeaseRun(item, extraEnvironment = {}) {
 async function waitForProtectedChild(context, markerPath) {
   for (let attempt = 0; attempt < 500; attempt += 1) {
     try {
-      const owner = JSON.parse(
-        await readFile(path.join(context.leaseDirectory, "owner.json"), "utf8"),
-      );
+      const owner = (await inspectLease(context)).owner;
       const marker = await readFile(markerPath, "utf8");
       if (owner.childProcessGroupId && marker.includes("started")) return owner;
     } catch {
@@ -344,97 +342,114 @@ test("CLI refuses unsafe environment and mirrors a safe child nonzero exit", asy
   assert.equal((await inspectLease(context)).state, "available");
 });
 
-test("heartbeat ownership loss terminates the protected process group and exits nonzero", async (t) => {
-  const item = await fixture({ childSource: longRunningChildSource() });
-  const markerPath = path.join(item.root, "ownership-loss-child.log");
-  t.after(() => rm(item.root, { recursive: true, force: true }));
-  const context = await resolveCheckout(item.checkout);
-  const run = spawnLeaseRun(item, {
-    [HEARTBEAT_INTERVAL_ENV]: "100",
-    SWISSKNIFE_LEASE_TEST_MARKER: markerPath,
-  });
-  let owner;
-  t.after(() => cleanUpProtectedRun(run.child, owner));
-  owner = await waitForProtectedChild(context, markerPath);
-
-  const replacementOwner = {
-    ...owner,
-    leaseId: "11111111-1111-4111-8111-111111111111",
-  };
-  await replaceOwnerBytes(
-    context,
-    `${JSON.stringify(replacementOwner, null, 2)}\n`,
-  );
-
-  const result = await run.result;
-  assert.equal(result.code, 73);
-  assert.equal(result.signal, null);
-  assert.match(result.stderr, /heartbeat failed closed/);
-  assert.match(result.stderr, /ownership lost during heartbeat/i);
-  assert.doesNotMatch(result.stderr, /attempt 2\/3/);
-  assert.match(await readFile(markerPath, "utf8"), /SIGTERM/);
-  assert.equal(
-    JSON.parse(
+test(
+  "heartbeat ownership loss terminates the protected process group and exits nonzero",
+  { timeout: 10_000 },
+  async (t) => {
+    const item = await fixture({ childSource: longRunningChildSource() });
+    const markerPath = path.join(item.root, "ownership-loss-child.log");
+    t.after(() => rm(item.root, { recursive: true, force: true }));
+    const context = await resolveCheckout(item.checkout);
+    const run = spawnLeaseRun(item, {
+      [HEARTBEAT_INTERVAL_ENV]: "100",
+      SWISSKNIFE_LEASE_TEST_MARKER: markerPath,
+    });
+    let owner;
+    t.after(() => cleanUpProtectedRun(run.child, owner));
+    owner = await waitForProtectedChild(context, markerPath);
+    const immutableOwner = JSON.parse(
       await readFile(path.join(context.leaseDirectory, "owner.json"), "utf8"),
-    ).leaseId,
-    replacementOwner.leaseId,
-    "the wrapper must not release or overwrite the successor lease",
-  );
-  await waitForProcessGroupExit(owner.childProcessGroupId);
-});
+    );
+    assert.equal(immutableOwner.childPid, null);
+    assert.equal(immutableOwner.childProcessIdentity, null);
 
-test("persistent heartbeat refresh errors exhaust bounded retries before fail-closed termination", async (t) => {
-  const item = await fixture({
-    childSource: longRunningChildSource({ exitOnSigterm: false }),
-  });
-  const markerPath = path.join(item.root, "refresh-failure-child.log");
-  t.after(() => rm(item.root, { recursive: true, force: true }));
-  const context = await resolveCheckout(item.checkout);
-  const run = spawnLeaseRun(item, {
-    [HEARTBEAT_INTERVAL_ENV]: "100",
-    SWISSKNIFE_LEASE_TEST_MARKER: markerPath,
-  });
-  let owner;
-  t.after(() => cleanUpProtectedRun(run.child, owner));
-  owner = await waitForProtectedChild(context, markerPath);
-  await replaceOwnerBytes(context, "{broken");
+    const replacementOwner = {
+      ...owner,
+      leaseId: "11111111-1111-4111-8111-111111111111",
+    };
+    await replaceOwnerBytes(
+      context,
+      `${JSON.stringify(replacementOwner, null, 2)}\n`,
+    );
 
-  const result = await run.result;
-  assert.equal(result.code, 73);
-  assert.equal(result.signal, null);
-  assert.match(result.stderr, /attempt 1\/3/);
-  assert.match(result.stderr, /attempt 2\/3/);
-  assert.match(result.stderr, /failed after 3 attempts/);
-  assert.match(result.stderr, /heartbeat failed closed/);
-  assert.match(await readFile(markerPath, "utf8"), /SIGTERM/);
-  assert.equal(
-    await readFile(path.join(context.leaseDirectory, "owner.json"), "utf8"),
-    "{broken",
-  );
-  await waitForProcessGroupExit(owner.childProcessGroupId);
-});
+    const result = await run.result;
+    assert.equal(result.code, 73);
+    assert.equal(result.signal, null);
+    assert.match(result.stderr, /heartbeat failed closed/);
+    assert.match(result.stderr, /ownership lost during heartbeat/i);
+    assert.doesNotMatch(result.stderr, /attempt 2\/3/);
+    assert.match(await readFile(markerPath, "utf8"), /SIGTERM/);
+    assert.equal(
+      JSON.parse(
+        await readFile(path.join(context.leaseDirectory, "owner.json"), "utf8"),
+      ).leaseId,
+      replacementOwner.leaseId,
+      "the wrapper must not release or overwrite the successor lease",
+    );
+    await waitForProcessGroupExit(owner.childProcessGroupId);
+  },
+);
 
-test("operator SIGTERM remains a clean child shutdown and releases the lease", async (t) => {
-  const item = await fixture({ childSource: longRunningChildSource() });
-  const markerPath = path.join(item.root, "operator-sigterm-child.log");
-  t.after(() => rm(item.root, { recursive: true, force: true }));
-  const context = await resolveCheckout(item.checkout);
-  const run = spawnLeaseRun(item, {
-    SWISSKNIFE_LEASE_TEST_MARKER: markerPath,
-  });
-  let owner;
-  t.after(() => cleanUpProtectedRun(run.child, owner));
-  owner = await waitForProtectedChild(context, markerPath);
+test(
+  "persistent heartbeat refresh errors exhaust bounded retries before fail-closed termination",
+  { timeout: 10_000 },
+  async (t) => {
+    const item = await fixture({
+      childSource: longRunningChildSource({ exitOnSigterm: false }),
+    });
+    const markerPath = path.join(item.root, "refresh-failure-child.log");
+    t.after(() => rm(item.root, { recursive: true, force: true }));
+    const context = await resolveCheckout(item.checkout);
+    const run = spawnLeaseRun(item, {
+      [HEARTBEAT_INTERVAL_ENV]: "100",
+      SWISSKNIFE_LEASE_TEST_MARKER: markerPath,
+    });
+    let owner;
+    t.after(() => cleanUpProtectedRun(run.child, owner));
+    owner = await waitForProtectedChild(context, markerPath);
+    await replaceOwnerBytes(context, "{broken");
 
-  run.child.kill("SIGTERM");
-  const result = await run.result;
-  assert.equal(result.code, 0);
-  assert.equal(result.signal, null);
-  assert.doesNotMatch(result.stderr, /heartbeat failed/);
-  assert.match(await readFile(markerPath, "utf8"), /SIGTERM/);
-  assert.equal((await inspectLease(context)).state, "available");
-  await waitForProcessGroupExit(owner.childProcessGroupId);
-});
+    const result = await run.result;
+    assert.equal(result.code, 73);
+    assert.equal(result.signal, null);
+    assert.match(result.stderr, /attempt 1\/3/);
+    assert.match(result.stderr, /attempt 2\/3/);
+    assert.match(result.stderr, /failed after 3 attempts/);
+    assert.match(result.stderr, /heartbeat failed closed/);
+    assert.match(await readFile(markerPath, "utf8"), /SIGTERM/);
+    assert.equal(
+      await readFile(path.join(context.leaseDirectory, "owner.json"), "utf8"),
+      "{broken",
+    );
+    await waitForProcessGroupExit(owner.childProcessGroupId);
+  },
+);
+
+test(
+  "operator SIGTERM remains a clean child shutdown and releases the lease",
+  { timeout: 10_000 },
+  async (t) => {
+    const item = await fixture({ childSource: longRunningChildSource() });
+    const markerPath = path.join(item.root, "operator-sigterm-child.log");
+    t.after(() => rm(item.root, { recursive: true, force: true }));
+    const context = await resolveCheckout(item.checkout);
+    const run = spawnLeaseRun(item, {
+      SWISSKNIFE_LEASE_TEST_MARKER: markerPath,
+    });
+    let owner;
+    t.after(() => cleanUpProtectedRun(run.child, owner));
+    owner = await waitForProtectedChild(context, markerPath);
+
+    run.child.kill("SIGTERM");
+    const result = await run.result;
+    assert.equal(result.code, 0);
+    assert.equal(result.signal, null);
+    assert.doesNotMatch(result.stderr, /heartbeat failed/);
+    assert.match(await readFile(markerPath, "utf8"), /SIGTERM/);
+    assert.equal((await inspectLease(context)).state, "available");
+    await waitForProcessGroupExit(owner.childProcessGroupId);
+  },
+);
 
 test("a killed outer wrapper cannot be reclaimed while its protected child group is alive", async (t) => {
   const item = await fixture({ childSource: "setTimeout(() => {}, 700)" });
@@ -467,9 +482,7 @@ test("a killed outer wrapper cannot be reclaimed while its protected child group
   let owner;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
-      owner = JSON.parse(
-        await readFile(path.join(context.leaseDirectory, "owner.json"), "utf8"),
-      );
+      owner = (await inspectLease(context)).owner;
       if (owner.childProcessIdentity) break;
     } catch {
       // The atomic lease or protected-child update has not been published yet.

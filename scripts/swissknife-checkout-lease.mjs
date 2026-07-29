@@ -36,6 +36,7 @@ export const NAMESPACE_NAME = "swissknife-supervisor-checkout-lease-v1";
 export const LEASE_DIRECTORY_NAME = "swissknife-checkout-lease-v1";
 export const OWNER_FILE_NAME = "owner.json";
 const RECLAIM_CLAIM_NAME = "reclaim-claim.json";
+const OWNER_STATE_FILE_PREFIX = ".owner-state-";
 export const REQUIRED_DIRTY_ATTEMPTS = "0";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
@@ -137,6 +138,49 @@ async function atomicWriteJson(file, value) {
     await handle.close();
   }
   await rename(temporary, file);
+}
+
+function ownerGeneration(owner) {
+  const immutableOwner = {
+    schemaVersion: owner.schemaVersion,
+    leaseId: owner.leaseId,
+    namespace: owner.namespace,
+    owner: owner.owner,
+    lane: owner.lane,
+    command: owner.command,
+    acquiredAt: owner.acquiredAt,
+  };
+  return createHash("sha256")
+    .update(JSON.stringify(immutableOwner))
+    .digest("hex");
+}
+
+function ownerStateFilePath(context, owner) {
+  const generation = ownerGeneration(owner);
+  return path.join(
+    context.leaseDirectory,
+    `${OWNER_STATE_FILE_PREFIX}${generation}.json`,
+  );
+}
+
+async function readLeaseOwnerState(context, owner) {
+  try {
+    const state = await readJson(ownerStateFilePath(context, owner));
+    if (
+      state?.schemaVersion !== CONTRACT_VERSION ||
+      state?.leaseId !== owner.leaseId ||
+      state?.ownerGeneration !== ownerGeneration(owner) ||
+      typeof state?.heartbeatAt !== "string"
+    ) {
+      throw new LeaseError("Lease owner state metadata is invalid", {
+        code: "invalid_owner_state_metadata",
+      });
+    }
+    return state;
+  } catch (error) {
+    if (isMissing(error)) return null;
+    throw error;
+  }
 }
 
 function gitOutput(checkout, args) {
@@ -553,7 +597,7 @@ export async function verifyOwnerIdentity(owner) {
   return wrapper;
 }
 
-async function readLeaseOwner(context) {
+async function readLeaseOwnerRecord(context) {
   try {
     return await readJson(path.join(context.leaseDirectory, OWNER_FILE_NAME));
   } catch (error) {
@@ -573,6 +617,20 @@ async function readLeaseOwner(context) {
     }
     throw error;
   }
+}
+
+async function readLeaseOwner(context) {
+  const owner = await readLeaseOwnerRecord(context);
+  if (owner === null) return null;
+  const state = await readLeaseOwnerState(context, owner);
+  if (!state) return owner;
+  return {
+    ...owner,
+    heartbeatAt: state.heartbeatAt,
+    childPid: state.childPid,
+    childProcessIdentity: state.childProcessIdentity,
+    childProcessGroupId: state.childProcessGroupId,
+  };
 }
 
 export async function inspectLease(
@@ -805,7 +863,7 @@ export async function acquireLease(context, lane, command = []) {
   }
 }
 
-async function updateOwnedLease(context, leaseId, changes) {
+async function assertOwnedLease(context, leaseId) {
   const owner = await readLeaseOwner(context);
   if (!owner || owner.leaseId !== leaseId || owner.owner.pid !== process.pid) {
     throw new LeaseError(
@@ -824,11 +882,31 @@ async function updateOwnedLease(context, leaseId, changes) {
       },
     );
   }
+  return owner;
+}
+
+async function updateOwnedLease(context, leaseId, changes) {
+  const owner = await assertOwnedLease(context, leaseId);
   const updated = { ...owner, ...changes };
-  await atomicWriteJson(
-    path.join(context.leaseDirectory, OWNER_FILE_NAME),
-    updated,
-  );
+  const generation = ownerGeneration(owner);
+  await atomicWriteJson(ownerStateFilePath(context, owner), {
+    ...updated,
+    ownerGeneration: generation,
+  });
+  const currentOwner = await readLeaseOwnerRecord(context);
+  if (
+    !currentOwner ||
+    currentOwner.leaseId !== leaseId ||
+    currentOwner.owner?.pid !== process.pid ||
+    ownerGeneration(currentOwner) !== generation
+  ) {
+    throw new LeaseError(
+      "Lease ownership changed while publishing owner state",
+      {
+        code: "ownership_changed",
+      },
+    );
+  }
   return updated;
 }
 
@@ -1373,10 +1451,7 @@ child.on('exit', (code, signal) => {
       SWISSKNIFE_CHECKOUT_LEASE_ID: owner.leaseId,
       SWISSKNIFE_CHECKOUT_LEASE_LANE: owner.lane.id,
       SWISSKNIFE_CHECKOUT_LEASE_BOARD: owner.lane.board,
-      SWISSKNIFE_CHECKOUT_LEASE_OWNER_FILE: path.join(
-        context.leaseDirectory,
-        OWNER_FILE_NAME,
-      ),
+      SWISSKNIFE_CHECKOUT_LEASE_OWNER_FILE: ownerStateFilePath(context, owner),
       SWISSKNIFE_LEASE_CHILD_COMMAND: JSON.stringify(command),
     },
     stdio: "inherit",
@@ -1411,12 +1486,17 @@ child.on('exit', (code, signal) => {
       },
     );
   }
-  await updateOwnedLease(context, owner.leaseId, {
-    childPid: child.pid,
-    childProcessIdentity: childIdentity,
-    childProcessGroupId: platform() === "linux" ? child.pid : null,
-    heartbeatAt: new Date().toISOString(),
-  });
+  try {
+    await updateOwnedLease(context, owner.leaseId, {
+      childPid: child.pid,
+      childProcessIdentity: childIdentity,
+      childProcessGroupId: platform() === "linux" ? child.pid : null,
+      heartbeatAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    signalProtectedChildGroup(child, "SIGKILL");
+    throw error;
+  }
   if (platform() !== "win32") child.kill("SIGCONT");
   let forwardedSignal = null;
   let heartbeatFailure = null;
