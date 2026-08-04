@@ -1999,50 +1999,46 @@ class ModelShardingManager:
         """Process inputs based on sharding type."""
         if self.shard_type == "layer_based":
             # Layer-based processing handled in main method
-            pass
+            return None
+
         # For attention-feedforward sharding, process in parallel then combine
-        elif self.shard_type == "attention_feedforward":
-            # Process components in parallel
-            results = await asyncio.gather(*[component.process(inputs) for component in self.components])
-            
-            # Check for errors
+        if self.shard_type == "attention_feedforward":
+            results = await asyncio.gather(
+                *[component.process(inputs) for component in self.components]
+            )
             if any('error' in r for r in results):
-                errors = [f"{self.components[i].component_id}: {r['error']}" 
-                         for i, r in enumerate(results) if 'error' in r]
+                errors = [
+                    f"{self.components[i].component_id}: {r['error']}"
+                    for i, r in enumerate(results)
+                    if 'error' in r
+                ]
                 logger.error(f"Errors in components: {', '.join(errors)}")
                 return {'error': f"Components failed: {', '.join(errors)}"}
-            
-            # Combine results (implementation depends on model architecture)
-            current_output = self._combine_attention_feedforward_results(results)
-            return current_output
-        
+            return self._combine_attention_feedforward_results(results)
+
         # For component-based sharding (multimodal), process in parallel then combine
-        elif self.shard_type == "component":
-            # Process components in parallel
-            results = await asyncio.gather(*[component.process(inputs) for component in self.components])
-            
-            # Check for errors
-                if any('error' in r for r in results):
-                    errors = [f"{self.components[i].component_id}: {r['error']}" 
-                             for i, r in enumerate(results) if 'error' in r]
-                    logger.error(f"Errors in components: {', '.join(errors)}")
-                    return {'error': f"Components failed: {', '.join(errors)}"}
-                
-                # Combine results from different model components
-                current_output = self._combine_component_results(results)
-            
-            # Calculate total inference time
+        if self.shard_type == "component":
+            start_time = time.time()
+            results = await asyncio.gather(
+                *[component.process(inputs) for component in self.components]
+            )
+            if any('error' in r for r in results):
+                errors = [
+                    f"{self.components[i].component_id}: {r['error']}"
+                    for i, r in enumerate(results)
+                    if 'error' in r
+                ]
+                logger.error(f"Errors in components: {', '.join(errors)}")
+                return {'error': f"Components failed: {', '.join(errors)}"}
+
+            current_output = self._combine_component_results(results)
             inference_time = time.time() - start_time
-            
-            # Update metrics
             self.metrics['total_inference_time'] += inference_time
             self.metrics['inference_count'] += 1
             self.metrics['average_inference_time'] = (
                 self.metrics['total_inference_time'] / self.metrics['inference_count']
             )
-            
-            # Add metrics to result
-            result = {
+            return {
                 'output': current_output,
                 'metrics': {
                     'inference_time': inference_time,
@@ -2050,18 +2046,11 @@ class ModelShardingManager:
                     'num_shards': self.num_shards,
                     'shard_type': self.shard_type,
                     'average_inference_time': self.metrics['average_inference_time'],
-                    'memory_usage': self.metrics['memory_usage']
-                }
+                    'memory_usage': self.metrics.get('memory_usage'),
+                },
             }
-            
-            logger.info(f"Sharded inference completed in {inference_time:.2f}s")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error in sharded inference: {e}")
-            import traceback
-            traceback.print_exc()
-            return {'error': str(e)}
+
+        return {'error': f'Unsupported shard_type: {self.shard_type}'}
     
     def _combine_attention_feedforward_results(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
