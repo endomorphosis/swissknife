@@ -5,6 +5,8 @@ import {
   type ControlSurfaceMediationResult,
   type ControlSurfaceMediationReceipt,
   type ControlSurfaceInteractionEnvelope,
+  type ControlSurfaceRetainedIdentities,
+  type ControlSurfaceUIIRIdentity,
 } from './mcp-control-surface-mediator.js';
 import type { InterfaceDescriptor, MethodSignature } from './mcp-idl.js';
 import { computeCID } from './mcp-idl.js';
@@ -71,10 +73,25 @@ export interface ORBInvocationContext {
   correlation_id?: string;
   caller_did?: string;
   capabilities?: string[];
+  /** Formal-logic / deontic policy identity. Mandatory under UIIR mediation. */
   policy_cid?: string;
   parent_receipt_cids?: string[];
   control_surface?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+  /** Runtime state identity retained on receipts. */
+  state_id?: string;
+  /**
+   * Real bounded input for streaming authorization. Prefer `stream(handle, input, context)`;
+   * this field remains for callers that only have a context bag.
+   */
+  input?: unknown;
+  /** UIIR identity bundle — engages strict policy/input mediation (UIR-033). */
+  uiir?: ControlSurfaceUIIRIdentity;
+  /**
+   * Force UIIR mediation gates even without ui_ir_cid (policy identity + real
+   * input mandatory; presentation never authorizes).
+   */
+  require_uiir_mediation?: boolean;
 }
 
 /**
@@ -102,6 +119,8 @@ export interface ORBPolicyDecision {
   mediated_input?: unknown;
   /** Obligations spawned by a deontic (Profile-D) policy for this invocation. */
   obligations?: ORBObligation[];
+  /** Actor/delegation/UI/action/IDL/policy/state/decision/invocation IDs. */
+  retained_identities?: ControlSurfaceRetainedIdentities;
 }
 
 /** Result of a deontic policy evaluation, as consumed by the ORB. */
@@ -294,6 +313,10 @@ export interface ORBInvocationReceipt {
   parent_receipt_cids: string[];
   lifecycle: ORBLifecycleRecord[];
   issued_at: string;
+  /** End-to-end retained identities (presentation excluded — never authorizes). */
+  retained_identities?: ControlSurfaceRetainedIdentities;
+  /** True when transport was skipped because a correlated duplicate already executed. */
+  correlated_dedup?: boolean;
 }
 
 export interface ORBInvocationRequest {
@@ -312,6 +335,13 @@ export interface ORBStreamSubscription {
   correlation_id: string;
   receipt: ORBInvocationReceipt;
   events: AsyncIterable<ORBStreamEvent>;
+}
+
+export interface ORBStreamInvocationRequest {
+  handle: string;
+  /** Current real stream input — mandatory under UIIR mediation. */
+  input?: unknown;
+  context?: ORBInvocationContext;
 }
 
 export interface MCPCapabilityRouterOptions {
@@ -487,6 +517,11 @@ export class MCPCapabilityRouter {
   private readonly rateLimitState = new Map<string, { count: number; window_start: number }>();
   private readonly circuitBreakerState = new Map<string, { failures: number; open_until: number }>();
   private readonly idempotencyCache = new Map<string, ORBTransportInvocationResult>();
+  /**
+   * Correlated-input transport cache: same correlation_id + input + operation
+   * reaches transport at most once. Policy is still re-evaluated every call.
+   */
+  private readonly correlatedInvocationCache = new Map<string, ORBTransportInvocationResult>();
 
   constructor(options: MCPCapabilityRouterOptions = {}) {
     this.registry = options.registry;
@@ -633,11 +668,22 @@ export class MCPCapabilityRouter {
     context: ORBInvocationContext = {},
   ): Promise<ORBPolicyDecision> {
     const binding = this.requireBinding(handle);
+    // Every authorization re-evaluates current policy with the current real input.
+    // Presentation state is never consulted as a grant.
     const mediation = await control_surface_mediator({
       binding,
       input,
-      context,
+      context: {
+        correlation_id: context.correlation_id,
+        caller_did: context.caller_did,
+        metadata: context.metadata,
+        control_surface: context.control_surface,
+        policy_cid: context.policy_cid,
+        state_id: context.state_id,
+        uiir: context.uiir,
+      },
       policy_evaluator: this.controlSurfacePolicyEvaluator,
+      require_uiir_mediation: context.require_uiir_mediation || Boolean(context.uiir?.ui_ir_cid || context.uiir?.action_id),
     });
     const mediatedContext = {
       ...context,
@@ -645,6 +691,7 @@ export class MCPCapabilityRouter {
         ...context.metadata,
         mediation_receipt_id: mediation.mediation_receipt.receipt_id,
         control_surface_contract_ref: mediation.control_surface_contract_ref,
+        retained_identities: mediation.retained_identities,
       },
     };
     const decision = mediation.can_invoke
@@ -658,9 +705,10 @@ export class MCPCapabilityRouter {
         reasons: mediation.policy_decision.reasons,
         required_capabilities: [],
         granted_capabilities: context.capabilities ?? [],
+        retained_identities: mediation.retained_identities,
       });
     const mediatedDecision = attachControlSurfaceMediation(decision, mediation);
-    const finalDecision = await this.applyDeonticPolicy(mediatedDecision, binding, mediatedContext);
+    const finalDecision = await this.applyDeonticPolicy(mediatedDecision, binding, mediatedContext, input);
     binding.lifecycle.push(lifecycle(
       'authorize',
       finalDecision.outcome === 'permit' ? 'ok' : 'denied',
@@ -673,22 +721,47 @@ export class MCPCapabilityRouter {
    * Layer a formal-logic (deontic Profile-D) evaluation on top of an already
    * control-surface-mediated + capability-checked decision.
    *
-   * No-op unless a `deontic_evaluator` was configured and the context carries a
-   * `policy_cid`. A deontic DENY flips the outcome to deny (reasons merged);
-   * a PERMIT / OBLIGATION_SPAWNED attaches any spawned obligations so the
-   * receipt and caller can track them. Never overrides an existing deny.
+   * Under UIIR mediation, missing policy identity fails closed. Otherwise this
+   * is a no-op unless a `deontic_evaluator` was configured and the context
+   * carries a `policy_cid`. A deontic DENY flips the outcome to deny; a PERMIT
+   * / OBLIGATION_SPAWNED attaches obligations. Never overrides an existing deny.
+   * Re-evaluates on every call with the current policy identity.
    */
   private async applyDeonticPolicy(
     decision: ORBPolicyDecision,
     binding: ORBBoundOperation,
     context: ORBInvocationContext,
+    _input: unknown,
   ): Promise<ORBPolicyDecision> {
-    if (!this.deonticEvaluator || !context.policy_cid || decision.outcome === 'deny') {
+    const uiirActive = Boolean(
+      context.require_uiir_mediation
+      || context.uiir?.ui_ir_cid
+      || context.uiir?.action_id,
+    );
+
+    if (decision.outcome === 'deny') {
+      return decision;
+    }
+
+    if (uiirActive && !context.policy_cid) {
+      const { decision_cid: _cid, ...rest } = decision;
+      return createPolicyDecision({
+        ...rest,
+        outcome: 'deny',
+        reasons: uniqueStrings([
+          ...decision.reasons,
+          'UIIR mediation requires policy identity (policy_cid) for unary and streaming authorization.',
+        ]),
+      });
+    }
+
+    if (!this.deonticEvaluator || !context.policy_cid) {
       return decision;
     }
     const timestamp = typeof context.metadata?.timestamp === 'string'
       ? context.metadata.timestamp
       : undefined;
+    // Always re-evaluate the current policy — never reuse a prior deontic decision.
     const evaluation = await this.deonticEvaluator.evaluate({
       policy_cid: context.policy_cid,
       capability: this.deonticInvokeCapability(binding.operation.method),
@@ -702,6 +775,11 @@ export class MCPCapabilityRouter {
         ...rest,
         outcome: 'deny',
         reasons: uniqueStrings([...decision.reasons, ...evaluation.reasons]),
+        retained_identities: {
+          ...rest.retained_identities,
+          decision_cid: evaluation.decision_cid,
+          policy_cid: context.policy_cid,
+        },
       });
     }
     return createPolicyDecision({
@@ -710,12 +788,18 @@ export class MCPCapabilityRouter {
         ? uniqueStrings([...decision.reasons, ...evaluation.obligations.map(o => `Obligation: ${o.description}`)])
         : decision.reasons,
       obligations: evaluation.obligations.length > 0 ? evaluation.obligations : rest.obligations,
+      retained_identities: {
+        ...rest.retained_identities,
+        decision_cid: evaluation.decision_cid,
+        policy_cid: context.policy_cid,
+      },
     });
   }
 
   async invoke(request: ORBInvocationRequest): Promise<ORBInvocationResponse> {
     const binding = this.requireBinding(request.handle);
     const context = withCorrelationId(request.context);
+    // Re-evaluate current policy with the current real input on every invocation.
     const policyDecision = await this.authorize(binding.handle, request.input, context);
     const invocationInput = policyDecision.mediated_input ?? request.input;
 
@@ -729,6 +813,30 @@ export class MCPCapabilityRouter {
     }
 
     const adapter = this.getAdapter(binding.transport);
+    const correlationKey = this.correlatedInvocationKey(binding, invocationInput, context);
+    const correlatedCached = correlationKey
+      ? this.correlatedInvocationCache.get(correlationKey)
+      : undefined;
+    if (correlatedCached) {
+      // Policy was re-evaluated above; transport is not called again for the
+      // same correlation_id + input (duplicate correlated inputs call at most once).
+      binding.lifecycle.push(lifecycle('invoke', 'ok', 'correlated input dedup'));
+      const receipt = buildORBReceipt(
+        binding,
+        correlatedCached.output,
+        policyDecision,
+        context,
+        correlatedCached.output_refs ?? collectOutputRefs(correlatedCached.output),
+        correlatedCached.provenance_refs ?? collectProvenanceRefs(correlatedCached.output),
+        { correlated_dedup: true },
+      );
+      return {
+        output: correlatedCached.output,
+        receipt,
+        denied: false,
+      };
+    }
+
     const cached = this.getCachedIdempotentResult(binding, invocationInput, context);
     if (cached) {
       binding.lifecycle.push(lifecycle('invoke', 'ok', 'idempotency cache hit'));
@@ -752,6 +860,9 @@ export class MCPCapabilityRouter {
       binding.lifecycle.push(lifecycle('invoke', 'ok'));
       this.recordCircuitBreakerSuccess(binding);
       this.storeIdempotentResult(binding, invocationInput, context, result);
+      if (correlationKey) {
+        this.correlatedInvocationCache.set(correlationKey, result);
+      }
       const outputRefs = result.output_refs ?? collectOutputRefs(result.output);
       const provenanceRefs = result.provenance_refs ?? collectProvenanceRefs(result.output);
       const receipt = buildORBReceipt(binding, result.output, policyDecision, context, outputRefs, provenanceRefs);
@@ -767,10 +878,30 @@ export class MCPCapabilityRouter {
     }
   }
 
-  async stream(handle: string, context: ORBInvocationContext = {}): Promise<ORBStreamSubscription> {
-    const binding = this.requireBinding(handle);
-    const streamContext = withCorrelationId(context);
-    const policyDecision = await this.authorize(binding.handle, {}, streamContext);
+  /**
+   * Stream with optional real input for authorization.
+   *
+   * Overloads:
+   * - `stream(handle, context)` — legacy non-UIIR path (empty stream input)
+   * - `stream(handle, input, context)` — preferred; real input for policy re-eval
+   * - `stream({ handle, input, context })` — explicit request form
+   *
+   * Under UIIR mediation, missing real input and missing policy identity fail
+   * closed and never open the transport stream.
+   */
+  async stream(
+    handleOrRequest: string | ORBStreamInvocationRequest,
+    inputOrContext: unknown = {},
+    maybeContext?: ORBInvocationContext,
+  ): Promise<ORBStreamSubscription> {
+    const resolved = resolveStreamInvocationArgs(handleOrRequest, inputOrContext, maybeContext);
+    const binding = this.requireBinding(resolved.handle);
+    const streamContext = withCorrelationId(resolved.context);
+    const streamInput = resolved.input;
+
+    // Always authorize with the current real input (not a synthetic empty object
+    // when the caller supplied stream payload).
+    const policyDecision = await this.authorize(binding.handle, streamInput, streamContext);
     if (policyDecision.outcome === 'deny') {
       binding.lifecycle.push(lifecycle('stream', 'denied', policyDecision.reasons.join('; ') || undefined));
       const receipt = buildORBReceipt(binding, { error: 'ORB_STREAM_DENIED' }, policyDecision, streamContext, [], []);
@@ -800,6 +931,23 @@ export class MCPCapabilityRouter {
       receipt,
       events,
     };
+  }
+
+  private correlatedInvocationKey(
+    binding: ORBBoundOperation,
+    input: unknown,
+    context: ORBInvocationContext,
+  ): string | undefined {
+    if (!context.correlation_id) {
+      return undefined;
+    }
+    return [
+      context.correlation_id,
+      binding.interface_cid,
+      binding.service.id,
+      binding.operation.method,
+      computeCID(stableStringify(input ?? null)),
+    ].join(':');
   }
 
   async recover(handle: string, context: ORBInvocationContext = {}, reason?: string): Promise<ORBRecoveryResult> {
@@ -1096,8 +1244,24 @@ export function buildORBReceipt(
   context: ORBInvocationContext,
   outputRefs: string[],
   provenanceRefs: string[],
+  options: { correlated_dedup?: boolean } = {},
 ): ORBInvocationReceipt {
   const outputCid = computeCID(stableStringify(output));
+  const retainedIdentities: ControlSurfaceRetainedIdentities = {
+    ...policyDecision.retained_identities,
+    interface_cid: policyDecision.retained_identities?.interface_cid ?? binding.interface_cid,
+    correlation_id: policyDecision.retained_identities?.correlation_id ?? context.correlation_id,
+    policy_cid: policyDecision.retained_identities?.policy_cid ?? context.policy_cid,
+    state_id: policyDecision.retained_identities?.state_id ?? context.state_id,
+    ui_ir_cid: policyDecision.retained_identities?.ui_ir_cid ?? context.uiir?.ui_ir_cid,
+    action_id: policyDecision.retained_identities?.action_id ?? context.uiir?.action_id,
+    invocation_id: policyDecision.retained_identities?.invocation_id
+      ?? context.correlation_id
+      ?? policyDecision.decision_cid,
+    decision_id: policyDecision.retained_identities?.decision_id
+      ?? policyDecision.mediation_receipt?.policy_decision.decision_id,
+    decision_cid: policyDecision.retained_identities?.decision_cid ?? policyDecision.decision_cid,
+  };
   const receiptWithoutCid = {
     correlation_id: context.correlation_id ?? newORBId(),
     interface_cid: binding.interface_cid,
@@ -1116,6 +1280,8 @@ export function buildORBReceipt(
     parent_receipt_cids: context.parent_receipt_cids ?? [],
     lifecycle: binding.lifecycle.slice(),
     issued_at: new Date().toISOString(),
+    retained_identities: retainedIdentities,
+    correlated_dedup: options.correlated_dedup === true ? true : undefined,
   };
 
   return {
@@ -1170,7 +1336,67 @@ function attachControlSurfaceMediation(
     interaction_envelope: mediation.interaction_envelope,
     mediation_receipt: mediation.mediation_receipt,
     mediated_input: mediation.invocation_input,
+    retained_identities: {
+      ...mediation.retained_identities,
+      ...decisionWithoutCid.retained_identities,
+      decision_id: mediation.policy_decision.decision_id,
+      interaction_id: mediation.interaction_envelope.interaction_id,
+    },
   });
+}
+
+function resolveStreamInvocationArgs(
+  handleOrRequest: string | ORBStreamInvocationRequest,
+  inputOrContext: unknown,
+  maybeContext?: ORBInvocationContext,
+): { handle: string; input: unknown; context: ORBInvocationContext } {
+  if (typeof handleOrRequest === 'object' && handleOrRequest !== null) {
+    const request = handleOrRequest;
+    const context = request.context ?? {};
+    const input = request.input !== undefined
+      ? request.input
+      : (context.input !== undefined ? context.input : {});
+    return { handle: request.handle, input, context };
+  }
+
+  const handle = handleOrRequest;
+  if (maybeContext !== undefined) {
+    // stream(handle, input, context)
+    return { handle, input: inputOrContext, context: maybeContext };
+  }
+
+  // stream(handle, context?) — legacy form used by existing non-UIIR callers.
+  // If the second arg looks like an ORB context, treat it as context with
+  // empty/default stream input (or context.input when provided).
+  if (isORBInvocationContextLike(inputOrContext)) {
+    const context = inputOrContext as ORBInvocationContext;
+    const input = context.input !== undefined ? context.input : {};
+    return { handle, input, context };
+  }
+
+  // stream(handle, input) with no context bag
+  return {
+    handle,
+    input: inputOrContext,
+    context: {},
+  };
+}
+
+function isORBInvocationContextLike(value: unknown): value is ORBInvocationContext {
+  if (!isRecord(value)) {
+    return false;
+  }
+  // Prefer context detection when known context keys are present.
+  return 'correlation_id' in value
+    || 'capabilities' in value
+    || 'control_surface' in value
+    || 'policy_cid' in value
+    || 'caller_did' in value
+    || 'parent_receipt_cids' in value
+    || 'uiir' in value
+    || 'require_uiir_mediation' in value
+    || 'state_id' in value
+    || 'metadata' in value;
 }
 
 function normalizeTransport(transport: MCPUIServiceDescriptor['transport']): ORBTransportKind {
