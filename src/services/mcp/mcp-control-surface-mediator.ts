@@ -141,11 +141,43 @@ export interface ControlSurfaceORBLikeBinding {
   };
 }
 
+export interface ControlSurfaceUIIRIdentity {
+  /** Content id of the UI/UX IR declaration (never equated with interface_cid). */
+  ui_ir_cid?: string;
+  action_id?: string;
+  component_id?: string;
+  state_id?: string;
+  program_binding_id?: string;
+  mcp_idl_binding_id?: string;
+  /**
+   * Advisory presentation only. Visibility/enabled never authorizes; the
+   * mediator always re-evaluates formal policy with the current real input.
+   * Any explicit authorization claim (authorizes/authorized/permit/outcome)
+   * fails closed before the policy evaluator runs.
+   */
+  presentation?: {
+    visibility?: 'hidden' | 'disabled' | 'enabled' | string;
+    enabled?: boolean;
+    hidden?: boolean;
+    /** Explicit claim — always rejected (presentation never authorizes). */
+    authorizes?: boolean;
+    authorized?: boolean;
+    permit?: boolean;
+    outcome?: string;
+  };
+}
+
 export interface ControlSurfaceInvocationContext {
   correlation_id?: string;
   caller_did?: string;
   metadata?: Record<string, unknown>;
   control_surface?: Record<string, unknown>;
+  /** Optional deontic / Profile-D policy identity required for UIIR mediation. */
+  policy_cid?: string;
+  /** Optional runtime state identity retained on receipts. */
+  state_id?: string;
+  /** UIIR identity bundle for governed mediation (UIR-033). */
+  uiir?: ControlSurfaceUIIRIdentity;
 }
 
 export interface ControlSurfaceMediationRequest {
@@ -153,6 +185,11 @@ export interface ControlSurfaceMediationRequest {
   input: unknown;
   context: ControlSurfaceInvocationContext;
   policy_evaluator?: ControlSurfacePolicyEvaluator;
+  /**
+   * When true (or when `context.uiir.ui_ir_cid` is set), policy identity and
+   * current real input are mandatory and presentation cannot authorize.
+   */
+  require_uiir_mediation?: boolean;
 }
 
 export interface ControlSurfacePolicyEvaluationRequest {
@@ -293,6 +330,33 @@ export interface ControlSurfaceMediationResult {
   mediation_receipt: ControlSurfaceMediationReceipt;
   can_invoke: boolean;
   invocation_input: unknown;
+  /** Retained actor/delegation/UI/action/IDL/policy/state/decision identities. */
+  retained_identities?: ControlSurfaceRetainedIdentities;
+}
+
+/**
+ * Stable identity fields retained across mediation → ORB invocation receipts.
+ * Presentation visibility is intentionally excluded (never authorizes).
+ */
+export interface ControlSurfaceRetainedIdentities {
+  actor_id?: string;
+  delegation_chain?: string[];
+  ui_ir_cid?: string;
+  action_id?: string;
+  component_id?: string;
+  interface_cid?: string;
+  policy_cid?: string;
+  policy_bundle_id?: string;
+  policy_bundle_cid?: string;
+  compiled_policy_cid?: string;
+  state_id?: string;
+  decision_id?: string;
+  decision_cid?: string;
+  invocation_id?: string;
+  correlation_id?: string;
+  program_binding_id?: string;
+  mcp_idl_binding_id?: string;
+  interaction_id?: string;
 }
 
 interface ControlSurfaceMediationBase {
@@ -431,10 +495,28 @@ export function ensureControlSurfaceContract<T extends ControlSurfaceEnvelopeDes
 export async function control_surface_mediator(
   request: ControlSurfaceMediationRequest,
 ): Promise<ControlSurfaceMediationResult> {
+  return mediateControlSurfaceInvocation(request);
+}
+
+/**
+ * ControlSurfaceMediation@1 entry point. Every candidate action is evaluated
+ * against the current policy with the real bounded input. Presentation
+ * visibility never authorizes; missing policy identity under UIIR mediation
+ * fails closed before transport.
+ */
+export async function mediateControlSurfaceInvocation(
+  request: ControlSurfaceMediationRequest,
+): Promise<ControlSurfaceMediationResult> {
   const descriptor = ensureControlSurfaceContract(request.binding.descriptor);
   const contract = descriptor.control_surface_contract as ControlSurfaceContract;
   const method = request.binding.operation.method;
   const surfaceContext = resolveSurfaceContext(request.context, request.input);
+  const uiirIdentity = resolveUIIRIdentity(request);
+  const uiirMediation = Boolean(
+    request.require_uiir_mediation
+    || uiirIdentity.ui_ir_cid
+    || uiirIdentity.action_id,
+  );
   const surface = contract.control_surfaces.find(candidate => candidate.id === surfaceContext.surface);
   const intentBinding = contract.intent_bindings.find(candidate => candidate.method === method);
   const selectedLogicBindings = selectedLogicBindingsFor(contract, surface, intentBinding, surfaceContext.surface, method);
@@ -474,6 +556,17 @@ export async function control_surface_mediator(
     })),
   };
 
+  // Presentation never authorizes: reject any attempt to skip policy via UI state.
+  const presentationReasons = presentationAuthorizationDenialReasons(uiirIdentity.presentation);
+  const uiirGateReasons = uiirMediation
+    ? uiirMediationDenialReasons(request, uiirIdentity)
+    : [];
+  const prePolicyReasons = [
+    ...descriptorReasons,
+    ...presentationReasons,
+    ...uiirGateReasons,
+  ];
+
   const policyDecisionContext = {
     request,
     contract,
@@ -482,7 +575,7 @@ export async function control_surface_mediator(
     compiledPolicyCid,
     controlSurfaceContractRef,
     selectedLogicBindings,
-    descriptorReasons,
+    descriptorReasons: prePolicyReasons,
     method,
     targetRef,
     args,
@@ -502,14 +595,195 @@ export async function control_surface_mediator(
     now,
   });
 
+  const effect = policyDecision.effects[0];
+  const canInvoke = canInvokeControlSurfaceOutcome(policyDecision.outcome);
+  // rewrite/fallback may adjust arguments; still never invent a permit from presentation.
+  const invocationInput = canInvoke && effect && Object.keys(objectPayload(effect.arguments)).length > 0
+    ? effect.arguments
+    : request.input;
+
+  const retainedIdentities = retainControlSurfaceIdentities({
+    actor_id: surfaceContext.actor.id,
+    delegation_chain: surfaceContext.actor.delegation_chain,
+    ui_ir_cid: uiirIdentity.ui_ir_cid,
+    action_id: uiirIdentity.action_id,
+    component_id: uiirIdentity.component_id,
+    interface_cid: request.binding.interface_cid,
+    policy_cid: request.context.policy_cid,
+    policy_bundle_id: policyDecision.policy_bundle_ref.policy_id,
+    policy_bundle_cid: policyDecision.policy_bundle_ref.policy_cid,
+    compiled_policy_cid: policyDecision.compiled_policy_cid,
+    state_id: uiirIdentity.state_id ?? request.context.state_id,
+    decision_id: policyDecision.decision_id,
+    invocation_id: request.context.correlation_id
+      ?? interactionEnvelope.interaction_id,
+    correlation_id: request.context.correlation_id,
+    program_binding_id: uiirIdentity.program_binding_id,
+    mcp_idl_binding_id: uiirIdentity.mcp_idl_binding_id,
+    interaction_id: interactionEnvelope.interaction_id,
+  });
+
+  // Stamp retained identities onto the receipt metadata for end-to-end correlation.
+  mediationReceipt.metadata = {
+    ...mediationReceipt.metadata,
+    retained_identities: retainedIdentities,
+    uiir_mediation: uiirMediation,
+    presentation_never_authorizes: true,
+  };
+  policyDecision.metadata = {
+    ...policyDecision.metadata,
+    retained_identities: retainedIdentities,
+    uiir_mediation: uiirMediation,
+    presentation_never_authorizes: true,
+  };
+
   return {
     control_surface_contract_ref: controlSurfaceContractRef,
     interaction_envelope: interactionEnvelope,
     policy_decision: policyDecision,
     mediation_receipt: mediationReceipt,
-    can_invoke: canInvokeControlSurfaceOutcome(policyDecision.outcome),
-    invocation_input: request.input,
+    can_invoke: canInvoke,
+    invocation_input: invocationInput,
+    retained_identities: retainedIdentities,
   };
+}
+
+/**
+ * Explicit adapter: existing non-UIIR descriptors stay compatible by routing
+ * through the same fail-closed mediator without requiring a ui_ir_cid.
+ */
+export async function mediateLegacyControlSurfaceInvocation(
+  request: ControlSurfaceMediationRequest,
+): Promise<ControlSurfaceMediationResult> {
+  return mediateControlSurfaceInvocation({
+    ...request,
+    require_uiir_mediation: false,
+    context: {
+      ...request.context,
+      uiir: undefined,
+    },
+  });
+}
+
+function resolveUIIRIdentity(request: ControlSurfaceMediationRequest): ControlSurfaceUIIRIdentity {
+  const fromContext = request.context.uiir ?? {};
+  const metadata = objectPayload(request.context.metadata);
+  const metadataUiir = objectPayload(metadata.uiir);
+  const controlSurface = objectPayload(request.context.control_surface);
+  return {
+    ui_ir_cid: stringFrom(fromContext.ui_ir_cid)
+      ?? stringFrom(metadataUiir.ui_ir_cid)
+      ?? stringFrom(metadata.ui_ir_cid)
+      ?? stringFrom(controlSurface.ui_ir_cid),
+    action_id: stringFrom(fromContext.action_id)
+      ?? stringFrom(metadataUiir.action_id)
+      ?? stringFrom(metadata.action_id)
+      ?? stringFrom(controlSurface.action_id),
+    component_id: stringFrom(fromContext.component_id)
+      ?? stringFrom(metadataUiir.component_id)
+      ?? stringFrom(metadata.component_id),
+    state_id: stringFrom(fromContext.state_id)
+      ?? stringFrom(request.context.state_id)
+      ?? stringFrom(metadataUiir.state_id)
+      ?? stringFrom(metadata.state_id),
+    program_binding_id: stringFrom(fromContext.program_binding_id)
+      ?? stringFrom(metadataUiir.program_binding_id),
+    mcp_idl_binding_id: stringFrom(fromContext.mcp_idl_binding_id)
+      ?? stringFrom(metadataUiir.mcp_idl_binding_id),
+    presentation: fromContext.presentation
+      ?? (isRecord(metadataUiir.presentation) ? metadataUiir.presentation as ControlSurfaceUIIRIdentity['presentation'] : undefined)
+      ?? (isRecord(metadata.presentation) ? metadata.presentation as ControlSurfaceUIIRIdentity['presentation'] : undefined)
+      ?? (isRecord(controlSurface.presentation) ? controlSurface.presentation as ControlSurfaceUIIRIdentity['presentation'] : undefined),
+  };
+}
+
+/**
+ * Presentation is advisory. Any attempt to claim authorization from
+ * visibility/enabled/hidden fails closed before the policy evaluator runs.
+ */
+function presentationAuthorizationDenialReasons(
+  presentation: ControlSurfaceUIIRIdentity['presentation'] | undefined,
+): string[] {
+  if (!presentation) {
+    return [];
+  }
+  const claimedAuth = presentation.authorizes === true
+    || presentation.authorized === true
+    || presentation.permit === true
+    || presentation.outcome === 'permit'
+    || presentation.outcome === 'allow'
+    || presentation.outcome === 'PERMIT';
+  if (claimedAuth) {
+    return [
+      'UIIR presentation claimed authorization; hidden/enabled presentation never authorizes transport.',
+    ];
+  }
+  // Visibility alone is never a denial or grant — only explicit authorization claims fail.
+  return [];
+}
+
+/**
+ * UIIR mediation requires policy identity and a real current input. Missing
+ * either fails closed so input-sensitive and policy-bound rules cannot be
+ * bypassed.
+ */
+function uiirMediationDenialReasons(
+  request: ControlSurfaceMediationRequest,
+  uiirIdentity: ControlSurfaceUIIRIdentity,
+): string[] {
+  const reasons: string[] = [];
+  const policyCid = stringFrom(request.context.policy_cid)
+    ?? stringFrom(objectPayload(request.context.metadata).policy_cid);
+  if (!policyCid) {
+    reasons.push(
+      'UIIR mediation requires policy identity (policy_cid) for unary and streaming authorization.',
+    );
+  }
+  if (!hasRealMediationInput(request.input)) {
+    reasons.push(
+      'UIIR mediation requires the current real input; empty/missing input fails closed before transport.',
+    );
+  }
+  if (!uiirIdentity.ui_ir_cid && !uiirIdentity.action_id && request.require_uiir_mediation) {
+    reasons.push(
+      'UIIR mediation requires ui_ir_cid or action_id identity bindings.',
+    );
+  }
+  return reasons;
+}
+
+function hasRealMediationInput(input: unknown): boolean {
+  if (input === null || input === undefined) {
+    return false;
+  }
+  if (typeof input === 'string') {
+    return input.length > 0;
+  }
+  if (typeof input === 'number' || typeof input === 'boolean') {
+    return true;
+  }
+  if (Array.isArray(input)) {
+    return input.length > 0;
+  }
+  if (isRecord(input)) {
+    return Object.keys(input).length > 0;
+  }
+  return true;
+}
+
+function retainControlSurfaceIdentities(
+  partial: ControlSurfaceRetainedIdentities,
+): ControlSurfaceRetainedIdentities {
+  const retained: ControlSurfaceRetainedIdentities = {};
+  for (const [key, value] of Object.entries(partial) as Array<
+    [keyof ControlSurfaceRetainedIdentities, ControlSurfaceRetainedIdentities[keyof ControlSurfaceRetainedIdentities]]
+  >) {
+    if (value === undefined) continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    if (typeof value === 'string' && value.length === 0) continue;
+    (retained as Record<string, unknown>)[key] = Array.isArray(value) ? [...value] : value;
+  }
+  return retained;
 }
 
 interface PolicyDecisionContext {

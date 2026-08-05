@@ -562,6 +562,247 @@ export function createDeonticORBEvaluator(
 }
 
 // ---------------------------------------------------------------------------
+// UIIRORBBridge@1 — UI/UX IR bindings feed presentation, never authorization
+// ---------------------------------------------------------------------------
+
+/** Stable interface id for the UIIR ↔ deontic/ORB bridge (UIR-033). */
+export const UIIR_ORB_BRIDGE_INTERFACE = 'UIIRORBBridge@1' as const;
+
+/**
+ * Presentation classification projected onto a control. Advisory only: the
+ * runtime must re-evaluate formal policy on every invocation and must never
+ * treat visibility/enabled as a permit.
+ */
+export type UIIRPresentationVisibility = 'hidden' | 'disabled' | 'enabled';
+
+export interface UIIRPresentationState {
+  visibility: UIIRPresentationVisibility;
+  /** Deontic UI outcome for generators — not an authorization decision. */
+  deontic_outcome?: 'permit' | 'deny' | 'unavailable';
+  reasons?: string[];
+}
+
+/**
+ * Identity bundle retained end-to-end on mediation/invocation receipts.
+ * Presentation fields are intentionally absent: they never authorize.
+ */
+export interface UIIRMediationIdentity {
+  actor_id?: string;
+  delegation_chain?: string[];
+  ui_ir_cid?: string;
+  action_id?: string;
+  component_id?: string;
+  interface_cid?: string;
+  policy_cid?: string;
+  state_id?: string;
+  decision_id?: string;
+  decision_cid?: string;
+  invocation_id?: string;
+  correlation_id?: string;
+  program_binding_id?: string;
+  mcp_idl_binding_id?: string;
+}
+
+export interface UIIRActionBinding {
+  action_id: string;
+  method: string;
+  interface_cid: string;
+  ui_ir_cid?: string;
+  component_id?: string;
+  program_binding_id?: string;
+  mcp_idl_binding_id?: string;
+  /** Advisory presentation only — never used as an authorization grant. */
+  presentation: UIIRPresentationState;
+  deontic_state: DeonticOperationState;
+  decision_cid: string;
+  capability: string;
+  resource: string;
+  reasons: string[];
+  obligations: ActiveObligation[];
+}
+
+export interface UIIRORBBridgeProjection {
+  interface: typeof UIIR_ORB_BRIDGE_INTERFACE;
+  ui_ir_cid?: string;
+  interface_cid: string;
+  policy_cid: string;
+  /** True when this projection came from an explicit non-UIIR adapter. */
+  legacy_adapter: boolean;
+  actions: UIIRActionBinding[];
+  /** Ready for schema-driven UI generators; never authorizes transport. */
+  policy_decisions: Record<string, GeneratedUIPolicyDecision>;
+  projection: DeonticInterfaceProjection;
+}
+
+export interface ProjectUIIRDeonticOptions {
+  context?: DeonticProjectionContext;
+  engine?: PolicyEngine;
+  /** Optional content id of the UIIR declaration (distinct from interface_cid). */
+  ui_ir_cid?: string;
+  /**
+   * Optional map of method → action identity. When omitted, stable action ids
+   * are derived from method names.
+   */
+  action_ids?: Record<string, string>;
+  component_ids?: Record<string, string>;
+  program_binding_ids?: Record<string, string>;
+  mcp_idl_binding_ids?: Record<string, string>;
+}
+
+/**
+ * Map a deontic method projection to advisory presentation visibility.
+ *
+ * Hidden/disabled/enabled is presentation only. Callers must still authorize
+ * through the control-surface mediator + ORB path with policy identity and
+ * the current real input.
+ */
+export function presentationStateFromDeontic(
+  state: DeonticOperationState,
+  reasons: string[] = [],
+): UIIRPresentationState {
+  switch (state) {
+    case 'prohibited':
+      return { visibility: 'hidden', deontic_outcome: 'deny', reasons };
+    case 'unavailable':
+      return { visibility: 'disabled', deontic_outcome: 'unavailable', reasons };
+    case 'obligated':
+    case 'permitted':
+      return {
+        visibility: 'enabled',
+        deontic_outcome: 'permit',
+        reasons: reasons.length > 0 ? reasons : undefined,
+      };
+    default:
+      return { visibility: 'disabled', deontic_outcome: 'unavailable', reasons };
+  }
+}
+
+/**
+ * Fail closed if a caller attempts to treat presentation visibility as an
+ * authorization grant. Enabled/hidden never authorize transport.
+ */
+export function assertPresentationDoesNotAuthorize(
+  presentation: UIIRPresentationState | Record<string, unknown> | undefined,
+  claimedOutcome?: string,
+): { authorized: false; reasons: string[] } {
+  const visibility = typeof presentation === 'object' && presentation
+    ? String((presentation as { visibility?: unknown }).visibility ?? '')
+    : '';
+  const reasons = [
+    'UIIR presentation is advisory only and never authorizes transport invocation.',
+  ];
+  if (visibility === 'enabled' || visibility === 'hidden' || visibility === 'disabled') {
+    reasons.push(`Presentation visibility "${visibility}" cannot grant or deny runtime authorization.`);
+  }
+  if (claimedOutcome === 'permit' || claimedOutcome === 'allow' || claimedOutcome === 'PERMIT') {
+    reasons.push('Presentation-claimed permit is rejected; re-evaluate formal policy with current input.');
+  }
+  return { authorized: false, reasons };
+}
+
+/**
+ * Project an MCP-IDL interface + formal policy into UIIRORBBridge@1 action
+ * bindings. Presentation state is derived for UI generation only; every
+ * subsequent invoke must re-evaluate the current policy with real input.
+ */
+export function projectUIIRDeonticInterface(
+  descriptor: InterfaceDescriptor,
+  policy: Policy,
+  options: ProjectUIIRDeonticOptions = {},
+): UIIRORBBridgeProjection {
+  const engine = options.engine ?? new PolicyEngine();
+  const projection = projectDeonticInterface(descriptor, policy, options.context, engine);
+  const actions: UIIRActionBinding[] = projection.methods.map(method => {
+    const presentation = presentationStateFromDeontic(method.state, method.reasons);
+    return {
+      action_id: options.action_ids?.[method.method]
+        ?? `action:${projection.interface_cid}:${method.method}`,
+      method: method.method,
+      interface_cid: projection.interface_cid,
+      ui_ir_cid: options.ui_ir_cid,
+      component_id: options.component_ids?.[method.method],
+      program_binding_id: options.program_binding_ids?.[method.method],
+      mcp_idl_binding_id: options.mcp_idl_binding_ids?.[method.method],
+      presentation,
+      deontic_state: method.state,
+      decision_cid: method.decision_cid,
+      capability: method.capability,
+      resource: method.resource,
+      reasons: method.reasons,
+      obligations: method.obligations,
+    };
+  });
+
+  return {
+    interface: UIIR_ORB_BRIDGE_INTERFACE,
+    ui_ir_cid: options.ui_ir_cid,
+    interface_cid: projection.interface_cid,
+    policy_cid: projection.policy_cid,
+    legacy_adapter: false,
+    actions,
+    policy_decisions: projection.policy_decisions,
+    projection,
+  };
+}
+
+/**
+ * Explicit adapter: existing non-UIIR MCP-IDL / UI-profile descriptors remain
+ * compatible by projecting through the same bridge surface without a ui_ir_cid.
+ * This is the sole supported path for legacy descriptors into UIIR-aware
+ * mediation; callers must not invent a parallel authorization shortcut.
+ */
+export function adaptNonUIIRDescriptorToORBBridge(
+  descriptor: InterfaceDescriptor,
+  policy: Policy,
+  options: Omit<ProjectUIIRDeonticOptions, 'ui_ir_cid'> = {},
+): UIIRORBBridgeProjection {
+  const bridged = projectUIIRDeonticInterface(descriptor, policy, options);
+  return {
+    ...bridged,
+    ui_ir_cid: undefined,
+    legacy_adapter: true,
+  };
+}
+
+/**
+ * Resolve a single action binding from a bridge projection. Missing actions
+ * fail closed (no synthetic permit).
+ */
+export function resolveUIIRActionBinding(
+  bridge: UIIRORBBridgeProjection,
+  method: string,
+): UIIRActionBinding | undefined {
+  return bridge.actions.find(action => action.method === method || action.action_id === method);
+}
+
+/**
+ * Build the identity bundle retained on mediation/invocation receipts.
+ * Presentation visibility is intentionally omitted.
+ */
+export function retainUIIRMediationIdentity(
+  partial: UIIRMediationIdentity,
+): UIIRMediationIdentity {
+  const retained: UIIRMediationIdentity = {};
+  if (partial.actor_id) retained.actor_id = partial.actor_id;
+  if (partial.delegation_chain?.length) {
+    retained.delegation_chain = [...partial.delegation_chain];
+  }
+  if (partial.ui_ir_cid) retained.ui_ir_cid = partial.ui_ir_cid;
+  if (partial.action_id) retained.action_id = partial.action_id;
+  if (partial.component_id) retained.component_id = partial.component_id;
+  if (partial.interface_cid) retained.interface_cid = partial.interface_cid;
+  if (partial.policy_cid) retained.policy_cid = partial.policy_cid;
+  if (partial.state_id) retained.state_id = partial.state_id;
+  if (partial.decision_id) retained.decision_id = partial.decision_id;
+  if (partial.decision_cid) retained.decision_cid = partial.decision_cid;
+  if (partial.invocation_id) retained.invocation_id = partial.invocation_id;
+  if (partial.correlation_id) retained.correlation_id = partial.correlation_id;
+  if (partial.program_binding_id) retained.program_binding_id = partial.program_binding_id;
+  if (partial.mcp_idl_binding_id) retained.mcp_idl_binding_id = partial.mcp_idl_binding_id;
+  return retained;
+}
+
+// ---------------------------------------------------------------------------
 // Top-level orchestration: formal logic -> constrained, multi-device UI
 // ---------------------------------------------------------------------------
 
