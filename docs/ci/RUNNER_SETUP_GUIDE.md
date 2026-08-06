@@ -39,7 +39,7 @@ export GITHUB_TOKEN="github_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 ```bash
 cd /home/devel/swissknife
-./setup-swissknife-runner.sh
+./scripts/ci/setup-swissknife-runner.sh
 ```
 
 This script will:
@@ -271,7 +271,7 @@ sudo cp -r /opt/actions-runner-swissknife /backup/actions-runner-swissknife-$(da
 
 ## Next Steps
 
-1. ✅ Run the setup script: `./setup-swissknife-runner.sh`
+1. ✅ Run the setup script: `./scripts/ci/setup-swissknife-runner.sh`
 2. ✅ Verify runner appears online in GitHub
 3. ✅ Test with a simple workflow trigger
 4. ✅ Monitor first few builds for any issues

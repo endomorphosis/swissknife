@@ -16,7 +16,7 @@ fi
 
 if [[ ! -d "scripts/archive" ]]; then
     echo "❌ Error: Phase 1 not completed (scripts/archive directory not found)"
-    echo "   Please run ./phase1-create-structure.sh first"
+    echo "   Please run ./scripts/maintenance/phase1-create-structure.sh first"
     exit 1
 fi
 
@@ -128,6 +128,6 @@ echo ""
 echo "🎯 Next Steps:"
 echo "   1. Test that 'npm run test:hybrid' still works"
 echo "   2. Verify 'npm run build' still works"
-echo "   3. When ready, execute Phase 3: ./phase3-organize-configs.sh"
+echo "   3. When ready, execute Phase 3: ./scripts/maintenance/phase3-organize-configs.sh"
 echo ""
 echo "📄 Backup: File list saved to pre-phase2-file-list.txt"

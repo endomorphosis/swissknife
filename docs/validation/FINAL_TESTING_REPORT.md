@@ -23,7 +23,7 @@ Successfully completed 100% systematic testing of all 38 SwissKnife desktop appl
 ### Phase 1: Initial Testing (Apps 1-18)
 - Tested 18 applications (47% coverage)
 - Found 12 fully functional, 5 placeholders, 1 partial
-- Documented in DESKTOP_VERIFICATION_REPORT.md
+- Documented in docs/reports/DESKTOP_VERIFICATION_REPORT.md
 
 ### Phase 2: Extended Testing (Apps 19-27)
 - Tested 9 additional applications (71% coverage)
@@ -187,7 +187,7 @@ A previous AI agent may have "cleaned up" by replacing working app loaders with 
 4. **scripts/batch-test-apps.cjs** (status updates)
    - Updated 10 app statuses from PLACEHOLDER to REAL
 
-5. **DESKTOP_VERIFICATION_REPORT.md** (+50 lines)
+5. **docs/reports/DESKTOP_VERIFICATION_REPORT.md** (+50 lines)
    - Added placeholder fix section
    - Updated statistics
    - Updated app inventory

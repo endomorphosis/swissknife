@@ -112,7 +112,7 @@ To verify fixes:
 1. ✅ Apply all fixes to main-simple.js
 2. ⏳ Commit changes
 3. ⏳ Test each app
-4. ⏳ Update DESKTOP_VERIFICATION_REPORT.md
+4. ⏳ Update docs/reports/DESKTOP_VERIFICATION_REPORT.md
 5. ⏳ Update batch-test-apps.cjs with new statuses
 
 ---

@@ -124,8 +124,9 @@ echo "🎯 Creating .gitignore updates for organized structure..."
 
 # Add recommended .gitignore entries for organized structure
 if [[ -f ".gitignore" ]]; then
-    # Backup existing .gitignore
-    cp .gitignore .gitignore.pre-phase6
+    # Backup existing .gitignore into config archive
+    mkdir -p config/archive
+    cp .gitignore config/archive/gitignore.pre-phase6
     
     # Add organized structure entries if not already present
     gitignore_additions=(
@@ -152,7 +153,8 @@ fi
 echo ""
 echo "📋 Creating completion certificate..."
 
-cat > CLEANUP_COMPLETION_CERTIFICATE.md << 'CERTEOF'
+mkdir -p docs/reports
+cat > docs/reports/CLEANUP_COMPLETION_CERTIFICATE.md << 'CERTEOF'
 # SwissKnife Project Cleanup Completion Certificate
 
 ## 🎉 Cleanup Successfully Completed

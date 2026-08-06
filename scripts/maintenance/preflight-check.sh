@@ -330,7 +330,7 @@ generate_summary() {
     echo_info "1. Set GITHUB_TOKEN if not already set:"
     echo_info "   export GITHUB_TOKEN=\"github_pat_xxxxxxxxxxxxx\""
     echo_info "2. Run the setup script:"
-    echo_info "   ./setup-swissknife-runner.sh"
+    echo_info "   ./scripts/ci/setup-swissknife-runner.sh"
     echo_info "3. Monitor the runner:"
     echo_info "   https://github.com/endomorphosis/swissknife/settings/actions/runners"
     echo ""

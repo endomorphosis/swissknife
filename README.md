@@ -322,7 +322,7 @@ swissknife/
 - **[MULTI_ARCH_BUILD.md](./docs/MULTI_ARCH_BUILD.md)** - ✅ **NEW**: Comprehensive multi-architecture build guide (x86_64, ARM64)
 - **[ERROR_REPORTING_SETUP.md](./docs/ERROR_REPORTING_SETUP.md)** - ✅ **NEW**: Automated error reporting system setup and configuration
 
-- **[COLLABORATION_IMPLEMENTATION_PLAN.md](./COLLABORATION_IMPLEMENTATION_PLAN.md)** - ✅ Comprehensive collaborative features roadmap and architecture
+- **[COLLABORATION_IMPLEMENTATION_PLAN.md](./docs/applications/README.md)** - ✅ Comprehensive collaborative features roadmap and architecture
 - **[UNIFIED_INTEGRATION_PLAN.md](./UNIFIED_INTEGRATION_PLAN.md)** - ✅ Completed unified integration roadmap
 - **[PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md)** - Enterprise deployment automation with collaboration support
 - **[VITE_INTEGRATION_GUIDE.md](./VITE_INTEGRATION_GUIDE.md)** - Build system architecture and collaborative configurations

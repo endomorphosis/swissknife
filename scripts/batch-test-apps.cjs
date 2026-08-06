@@ -11,7 +11,7 @@ const path = require('path');
 
 // All 38 applications to test (100% COMPLETE - 38/38 tested)
 const applications = [
-  // Tested in previous batches (27) - from DESKTOP_VERIFICATION_REPORT.md
+  // Tested in previous batches (27) - from docs/reports/DESKTOP_VERIFICATION_REPORT.md
   { id: 'terminal', name: 'Terminal', tested: true, status: 'REAL' },
   { id: 'vibecode', name: 'VibeCode', tested: true, status: 'REAL' },
   { id: 'ai-chat', name: 'AI Chat', tested: true, status: 'REAL' },
