@@ -92,12 +92,12 @@ except ImportError:
     # If the module doesn't exist yet, create a mock class
     class hf_bert:
         def __init__(self, resources=None, metadata=None):
-        """Initialize the bert model.
-        
-        Args:
-            resources (dict): Dictionary of shared resources (torch, transformers, etc.)
-            metadata (dict): Configuration metadata
-        """
+            """Initialize the bert model.
+
+            Args:
+                resources (dict): Dictionary of shared resources (torch, transformers, etc.)
+                metadata (dict): Configuration metadata
+            """
             self.resources = resources or {}
             self.metadata = metadata or {}
             
