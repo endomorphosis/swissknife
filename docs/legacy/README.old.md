@@ -353,7 +353,7 @@ This project is distributed under the [AGPL License](LICENSE.md).
 - ✅ **Enhanced Maintainability**: Clear separation of concerns and improved discoverability
 - ✅ **Validated Stability**: All tests pass and builds work after reorganization
 
-See [CLEANUP_COMPLETION_CERTIFICATE.md](CLEANUP_COMPLETION_CERTIFICATE.md) and [../PROJECT_STRUCTURE.md](../PROJECT_STRUCTURE.md) for detailed information about the new organization.
+See [../reports/../reports/CLEANUP_COMPLETION_CERTIFICATE.md](../reports/../reports/../reports/CLEANUP_COMPLETION_CERTIFICATE.md) and [../PROJECT_STRUCTURE.md](../PROJECT_STRUCTURE.md) for detailed information about the new organization.
 
 ---
 

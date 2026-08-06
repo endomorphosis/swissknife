@@ -1,8 +1,8 @@
 {
-  "generated": "2026-08-05T05:20:24.844Z",
+  "generated": "2026-08-06T09:19:02.130Z",
   "summary": {
     "totalFiles": 662,
-    "brokenLinks": 14,
+    "brokenLinks": 13,
     "repairSuggestions": 0,
     "validationStatus": "FAIL"
   },
@@ -41,13 +41,6 @@
       "text": "AGPL License",
       "type": "link",
       "position": 11563
-    },
-    {
-      "file": "legacy/README.old.md",
-      "target": "CLEANUP_COMPLETION_CERTIFICATE.md",
-      "text": "CLEANUP_COMPLETION_CERTIFICATE.md",
-      "type": "link",
-      "position": 12114
     },
     {
       "file": "legacy/README_UPDATED.md",
@@ -110,7 +103,7 @@
   "recommendations": [
     {
       "priority": "high",
-      "issue": "14 broken links found",
+      "issue": "13 broken links found",
       "action": "Fix broken internal references using repair suggestions",
       "impact": "Critical for documentation accuracy score"
     }
