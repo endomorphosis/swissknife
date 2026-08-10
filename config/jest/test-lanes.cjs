@@ -52,6 +52,7 @@ const fastTestMatch = [
   '<rootDir>/test/mcp-plus-plus/wasm-prover-browser-purity.test.ts',
   '<rootDir>/test/mcp-plus-plus/dcr090-hermetic-fixtures.test.ts',
   '<rootDir>/test/mcp-plus-plus/desktop-contract-repair.e2e.test.ts',
+  '<rootDir>/test/mcp-plus-plus/connector-adversarial.test.ts',
 ];
 
 const serviceTestMatch = [
