@@ -24,7 +24,15 @@
       "const": "mcp_plus_plus_compatibility_receipt_v1"
     },
     "task_id": {
-      "enum": ["HAO-445", "MGW-574"]
+      "enum": [
+        "HAO-445",
+        "HAO-736",
+        "MGW-571",
+        "MGW-573",
+        "MGW-574",
+        "VAI-665",
+        "VAI-667"
+      ]
     },
     "session_id": {
       "type": "string",
@@ -35,11 +43,29 @@
     },
     "daemon_id": {
       "type": "string",
-      "enum": ["ipfs-datasets", "ipfs-accelerate", "ipfs-kit", "meta-wearables-dat-android"]
+      "enum": [
+        "ipfs-accelerate",
+        "ipfs-datasets",
+        "ipfs-kit",
+        "mcp-plus-plus",
+        "mcp_plus_plus",
+        "meta-wearables-dat-android",
+        "meta-wearables-dat-ios"
+      ]
     },
     "server_package": {
       "type": "string",
-      "enum": ["ipfs_datasets_py", "ipfs_accelerate_py", "ipfs_kit_py", "meta_wearables_dat_android"]
+      "enum": [
+        "Mcp-Plus-Plus",
+        "ipfs_accelerate",
+        "ipfs_accelerate_py",
+        "ipfs_datasets",
+        "ipfs_datasets_py",
+        "ipfs_kit",
+        "ipfs_kit_py",
+        "meta_wearables_dat_android",
+        "meta_wearables_dat_ios"
+      ]
     },
     "swissknife_consumer": {
       "type": "string",
@@ -86,7 +112,13 @@
     },
     "protocolNegotiation": {
       "type": "object",
-      "required": ["method", "protocol_version", "client_profiles", "server_profiles", "initialized"],
+      "required": [
+        "method",
+        "protocol_version",
+        "client_profiles",
+        "server_profiles",
+        "initialized"
+      ],
       "properties": {
         "method": {
           "const": "initialize"
@@ -127,7 +159,16 @@
     },
     "capabilityDescriptor": {
       "type": "object",
-      "required": ["descriptor_id", "interface_cid", "name", "namespace", "version", "methods", "requires", "compatibility_checked"],
+      "required": [
+        "descriptor_id",
+        "interface_cid",
+        "name",
+        "namespace",
+        "version",
+        "methods",
+        "requires",
+        "compatibility_checked"
+      ],
       "properties": {
         "descriptor_id": {
           "type": "string",
@@ -170,7 +211,11 @@
         },
         "compatibility_verdict": {
           "type": "string",
-          "enum": ["compatible", "downgraded", "incompatible"]
+          "enum": [
+            "compatible",
+            "downgraded",
+            "incompatible"
+          ]
         },
         "event_streams": {
           "type": "boolean"
@@ -180,11 +225,22 @@
     },
     "transport": {
       "type": "object",
-      "required": ["kind", "protocol_path"],
+      "required": [
+        "kind",
+        "protocol_path"
+      ],
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["stdio", "http", "websocket", "mcp-server", "local", "orb", "mcp-p2p"]
+          "enum": [
+            "stdio",
+            "http",
+            "websocket",
+            "mcp-server",
+            "local",
+            "orb",
+            "mcp-p2p"
+          ]
         },
         "endpoint": {
           "type": "string"
@@ -204,7 +260,11 @@
     },
     "toolCall": {
       "type": "object",
-      "required": ["tool_name", "arguments_hash", "dispatch_allowed"],
+      "required": [
+        "tool_name",
+        "arguments_hash",
+        "dispatch_allowed"
+      ],
       "properties": {
         "tool_name": {
           "type": "string",
@@ -228,14 +288,25 @@
         },
         "upstream_status": {
           "type": "string",
-          "enum": ["not_dispatched", "ok", "error", "timeout", "unavailable"]
+          "enum": [
+            "not_dispatched",
+            "ok",
+            "error",
+            "timeout",
+            "unavailable"
+          ]
         }
       },
       "additionalProperties": false
     },
     "policyContract": {
       "type": "object",
-      "required": ["interaction_envelope_id", "policy_decision_id", "policy_outcome", "mediation_receipt_id"],
+      "required": [
+        "interaction_envelope_id",
+        "policy_decision_id",
+        "policy_outcome",
+        "mediation_receipt_id"
+      ],
       "properties": {
         "interaction_envelope_id": {
           "type": "string",
@@ -247,7 +318,15 @@
         },
         "policy_outcome": {
           "type": "string",
-          "enum": ["allow", "deny", "require_confirmation", "defer", "rewrite", "fallback_surface", "rate_limit"]
+          "enum": [
+            "allow",
+            "deny",
+            "require_confirmation",
+            "defer",
+            "rewrite",
+            "fallback_surface",
+            "rate_limit"
+          ]
         },
         "policy_receipt_id": {
           "type": "string"
@@ -285,7 +364,9 @@
     },
     "receiptLineage": {
       "type": "object",
-      "required": ["receipt_cid"],
+      "required": [
+        "receipt_cid"
+      ],
       "properties": {
         "envelope_cid": {
           "$ref": "#/$defs/cid"
@@ -313,7 +394,10 @@
     },
     "lifecycleEvent": {
       "type": "object",
-      "required": ["event", "at"],
+      "required": [
+        "event",
+        "at"
+      ],
       "properties": {
         "event": {
           "type": "string",

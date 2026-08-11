@@ -3,9 +3,11 @@
   "$id": "https://hallucinate.app/contracts/control_surface_contract.schema.json",
   "title": "control_surface_contract",
   "description": "Descriptor section that binds interface methods and multimodal control surfaces to formal policy bundles, compiled logic artifacts, and mediation receipts.",
-  "$comment": "VAI-661 objective validation repair: interface contract swissknife mobile, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_mobile_interop.py. HAO-730 attempt 4 objective validation repair: interface contract swissknife mobile, goal_packet/interoperability/swissknife/06921590135c, data/hallucinate_multimodal_control/discovery/2026-07-08-hao-730-attempt-4-validation-confirmation.md, tests/integration/test_swissknife_mobile_interop.py. VAI-665 objective validation repair: interface contract swissknife Mcp-Plus-Plus, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_mcp_plus_plus_interop.py. VAI-662 objective validation repair: interface contract swissknife external/ipfs_accelerate, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_ipfs_accelerate_interop.py. MGW-571 objective validation repair: interface contract swissknife external/ipfs_datasets, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_ipfs_datasets_interop.py. HAO-735 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py. MGW-574 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, VAIOS-G705, swissknife/src/services/mcp/meta-wearables-dat-android-display-interop-descriptor.ts, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py.",
+  "$comment": "VAI-661 attempt 1 objective validation repair: interface contract swissknife mobile, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_mobile_interop.py. HAO-730 attempt 4 objective validation repair: interface contract swissknife mobile, goal_packet/interoperability/swissknife/06921590135c, data/hallucinate_multimodal_control/discovery/2026-07-08-hao-730-attempt-4-validation-confirmation.md, tests/integration/test_swissknife_mobile_interop.py. VAI-665 objective validation repair: interface contract swissknife Mcp-Plus-Plus, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_mcp_plus_plus_interop.py. VAI-662 objective validation repair: interface contract swissknife external/ipfs_accelerate, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_ipfs_accelerate_interop.py. MGW-571 objective validation repair: interface contract swissknife external/ipfs_datasets, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_ipfs_datasets_interop.py. HAO-735 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, goal_packet/interoperability/swissknife/06921590135c, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py. MGW-574 objective validation repair: interface contract swissknife external/meta-wearables-dat-android, VAIOS-G705, swissknife/src/services/mcp/meta-wearables-dat-android-display-interop-descriptor.ts, tests/integration/test_swissknife_external_meta_wearables_dat_android_interop.py. data/virtual_ai_os/discovery/2026-07-08-vai-661-attempt-1-1783554118-objective-validation-repair.md data/virtual_ai_os/discovery/2026-07-08-vai-661-objective-gap-d33307f93408.md agent_identity allowed_surfaces arguments_hash",
   "type": "object",
-  "required": ["control_surface_contract"],
+  "required": [
+    "control_surface_contract"
+  ],
   "properties": {
     "control_surface_contract": {
       "$ref": "#/$defs/controlSurfaceContract"
@@ -20,7 +22,10 @@
     },
     "policyBundleRef": {
       "type": "object",
-      "required": ["policy_id", "policy_cid"],
+      "required": [
+        "policy_id",
+        "policy_cid"
+      ],
       "properties": {
         "policy_id": {
           "type": "string",
@@ -39,18 +44,34 @@
         },
         "source": {
           "type": "string",
-          "enum": ["descriptor", "operator_profile", "runtime_override", "remote_client", "system_default"]
+          "enum": [
+            "descriptor",
+            "operator_profile",
+            "runtime_override",
+            "remote_client",
+            "system_default"
+          ]
         }
       },
       "additionalProperties": false
     },
     "compiledArtifactRef": {
       "type": "object",
-      "required": ["artifact_type", "cid"],
+      "required": [
+        "artifact_type",
+        "cid"
+      ],
       "properties": {
         "artifact_type": {
           "type": "string",
-          "enum": ["frame_logic", "event_calculus", "deontic_policy", "ucan", "explanation", "source_text"]
+          "enum": [
+            "frame_logic",
+            "event_calculus",
+            "deontic_policy",
+            "ucan",
+            "explanation",
+            "source_text"
+          ]
         },
         "cid": {
           "$ref": "#/$defs/cid"
@@ -67,7 +88,11 @@
     },
     "logicBinding": {
       "type": "object",
-      "required": ["binding_id", "policy_bundle_ref", "compiled_policy_cid"],
+      "required": [
+        "binding_id",
+        "policy_bundle_ref",
+        "compiled_policy_cid"
+      ],
       "properties": {
         "binding_id": {
           "type": "string",
@@ -87,7 +112,15 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["actor", "surface", "event", "method", "target", "context", "device"]
+            "enum": [
+              "actor",
+              "surface",
+              "event",
+              "method",
+              "target",
+              "context",
+              "device"
+            ]
           },
           "uniqueItems": true
         },
@@ -158,7 +191,13 @@
     },
     "controlSurface": {
       "type": "object",
-      "required": ["id", "kind", "event_types", "intent_resolver", "logic_bindings"],
+      "required": [
+        "id",
+        "kind",
+        "event_types",
+        "intent_resolver",
+        "logic_bindings"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -196,7 +235,12 @@
     },
     "intentBinding": {
       "type": "object",
-      "required": ["intent", "method", "allowed_surfaces", "logic_bindings"],
+      "required": [
+        "intent",
+        "method",
+        "allowed_surfaces",
+        "logic_bindings"
+      ],
       "properties": {
         "intent": {
           "type": "string",
@@ -238,7 +282,11 @@
     },
     "policyHooks": {
       "type": "object",
-      "required": ["compile_api", "evaluate_api", "decision_receipt"],
+      "required": [
+        "compile_api",
+        "evaluate_api",
+        "decision_receipt"
+      ],
       "properties": {
         "compile_api": {
           "type": "string",
@@ -255,7 +303,14 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["frame_logic", "event_calculus", "deontic_policy", "ucan", "explanation", "source_text"]
+            "enum": [
+              "frame_logic",
+              "event_calculus",
+              "deontic_policy",
+              "ucan",
+              "explanation",
+              "source_text"
+            ]
           },
           "uniqueItems": true
         }
@@ -290,11 +345,18 @@
     },
     "conflictResolution": {
       "type": "object",
-      "required": ["default"],
+      "required": [
+        "default"
+      ],
       "properties": {
         "default": {
           "type": "string",
-          "enum": ["deny_over_permit", "highest_priority", "require_confirmation", "most_specific_binding"]
+          "enum": [
+            "deny_over_permit",
+            "highest_priority",
+            "require_confirmation",
+            "most_specific_binding"
+          ]
         },
         "requires_explanation": {
           "type": "boolean"
@@ -312,7 +374,11 @@
     },
     "mediationReceipts": {
       "type": "object",
-      "required": ["decision_schema_ref", "receipt_schema_ref", "emit_for_outcomes"],
+      "required": [
+        "decision_schema_ref",
+        "receipt_schema_ref",
+        "emit_for_outcomes"
+      ],
       "properties": {
         "decision_schema_ref": {
           "type": "string",
@@ -327,13 +393,26 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "enum": ["allow", "deny", "require_confirmation", "defer", "rewrite", "fallback_surface", "rate_limit"]
+            "enum": [
+              "allow",
+              "deny",
+              "require_confirmation",
+              "defer",
+              "rewrite",
+              "fallback_surface",
+              "rate_limit"
+            ]
           },
           "uniqueItems": true
         },
         "store": {
           "type": "string",
-          "enum": ["audit_log", "operator_profile", "session_memory", "disabled"]
+          "enum": [
+            "audit_log",
+            "operator_profile",
+            "session_memory",
+            "disabled"
+          ]
         }
       },
       "additionalProperties": false

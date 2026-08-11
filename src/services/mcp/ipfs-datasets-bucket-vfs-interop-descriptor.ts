@@ -9,10 +9,10 @@
  * `.tools/ipfs_kit_py`. The scanner-visible contract for this pair is the
  * deprecations report schema, Bucket VFS implementation summary, dependency
  * light Bucket VFS demo, and unified bucket interface demo:
- * `external/ipfs_datasets/.tools/ipfs_kit_py/data/deprecations_report.schema.json`,
- * `external/ipfs_datasets/.tools/ipfs_kit_py/docs/implementation/BUCKET_VFS_INTERFACES_COMPLETE.md`,
- * `external/ipfs_datasets/.tools/ipfs_kit_py/examples/demo_bucket_vfs_interfaces.py`,
- * and `external/ipfs_datasets/.tools/ipfs_kit_py/examples/demo_unified_bucket_interface.py`.
+ * `external/ipfs_kit/data/deprecations_report.schema.json`,
+ * `external/ipfs_kit/docs/implementation/BUCKET_VFS_INTERFACES_COMPLETE.md`,
+ * `external/ipfs_kit/examples/demo_bucket_vfs_interfaces.py`,
+ * and `external/ipfs_kit/examples/demo_unified_bucket_interface.py`.
  * This module proves SwissKnife can interoperate with that Bucket VFS surface
  * as a canonical MCP-IDL (Profile A) interface descriptor registered on the
  * same `MCPPlusPlus` runtime registry as the pre-built `IPFS_KIT_INTERFACE`.
@@ -176,13 +176,13 @@ export const SWISSKNIFE_IPFS_DATASETS_INTEROP_DESCRIPTOR = {
     interaction_envelope: 'swissknife/contracts/interaction_envelope.schema.json',
     mediation_receipt: 'swissknife/contracts/mediation_receipt.schema.json',
     deprecations_report_schema:
-      'external/ipfs_datasets/.tools/ipfs_kit_py/data/deprecations_report.schema.json',
+      'external/ipfs_kit/data/deprecations_report.schema.json',
     bucket_vfs_interfaces_doc:
-      'external/ipfs_datasets/.tools/ipfs_kit_py/docs/implementation/BUCKET_VFS_INTERFACES_COMPLETE.md',
+      'external/ipfs_kit/docs/implementation/BUCKET_VFS_INTERFACES_COMPLETE.md',
     bucket_vfs_demo:
-      'external/ipfs_datasets/.tools/ipfs_kit_py/examples/demo_bucket_vfs_interfaces.py',
+      'external/ipfs_kit/examples/demo_bucket_vfs_interfaces.py',
     unified_bucket_demo:
-      'external/ipfs_datasets/.tools/ipfs_kit_py/examples/demo_unified_bucket_interface.py',
+      'external/ipfs_kit/examples/demo_unified_bucket_interface.py',
   },
   runtime_handoff: {
     source_surface: 'swissknife',
