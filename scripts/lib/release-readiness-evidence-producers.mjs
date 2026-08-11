@@ -126,6 +126,199 @@ export const RELEASE_EVIDENCE_PRODUCER_GATES = [
 export const INDEPENDENT_REPLAY_EVIDENCE_FILE = 'independent-all-app-release-replay.json';
 
 /**
+ * SWR-160 / release-readiness surface ownership: every executable entrypoint
+ * that participates in the release-readiness producer boundary must appear
+ * here exactly once. `scripts/audit-source-modules.mjs` and
+ * `docs/release-readiness-ownership.md` treat this export as the source of
+ * truth for ownership classification.
+ */
+// Plain array literal required: scripts/audit-source-modules.mjs parses this
+// export statically via `export const NAME = [ ... ]` (no Object.freeze wrap).
+export const RELEASE_READINESS_ENTRYPOINT_OWNERSHIP = [
+  {
+    path: 'scripts/lib/release-readiness-evidence-producers.mjs',
+    owner: 'release-readiness',
+    runtime: 'host-release',
+    auditDecision: 'Authoritative producer manifest for ownership, dependencies, artifact paths, default enablement, and evidence verification. No second executable producer list is permitted.',
+  },
+  {
+    path: 'scripts/release-readiness-gate.mjs',
+    owner: 'release-readiness',
+    runtime: 'host-release',
+    auditDecision: 'Production gate imports the manifest, cold-resets only manifest-owned artifacts, enforces dependencies, runs each default-enabled producer, and reports missing or invalid producer evidence.',
+  },
+  {
+    path: 'scripts/lib/release-reproduction-attestation.mjs',
+    owner: 'release-readiness',
+    runtime: 'host-release',
+    auditDecision: 'SWR-141 provenance helper that captures clean-checkout reproduction, source/evidence fingerprints, tool versions, and GO/NO_GO blockers.',
+  },
+  {
+    path: 'scripts/capture-refactor-main-reconciliation.cjs',
+    owner: 'release-readiness',
+    runtime: 'host-release',
+    auditDecision: 'SWR-162 merge receipt producer. Records accepted integration ranges and preserves rejected stale refs without merging them wholesale.',
+  },
+  {
+    path: 'scripts/lib/pick-free-port.mjs',
+    owner: 'release-readiness',
+    runtime: 'host-release',
+    auditDecision: 'Endpoint lease helper. Proves this process can bind a candidate port and returns explicit lease ownership metadata; never reuses or kills a foreign listener.',
+  },
+  {
+    path: 'scripts/run-with-owned-port.mjs',
+    owner: 'release-readiness',
+    runtime: 'host-release',
+    auditDecision: 'Wrapper exports the leased port to one child command. If the preferred port is occupied, the foreign listener is left untouched and a private verified-free port is used.',
+  },
+  {
+    path: 'build-tools/configs/playwright.live-behavior-proof.config.ts',
+    owner: 'release-readiness',
+    runtime: 'browser-playwright',
+    auditDecision: 'Dedicated current-behavior proof config. The spec owns its in-process fixture on an ephemeral port and writes real browser evidence and screenshots.',
+  },
+  {
+    path: 'build-tools/configs/playwright.live-gateway.config.ts',
+    owner: 'release-readiness',
+    runtime: 'browser-playwright',
+    auditDecision: 'Dedicated application-originated gateway config. Uses reuseExistingServer: false, a strict leased port, and never attaches to an existing foreign dev server.',
+  },
+  {
+    path: 'test/architecture/release-readiness-hermetic.test.ts',
+    owner: 'release-readiness',
+    runtime: 'host-release',
+    auditDecision: 'Hermetic regression coverage imports the production manifest and owned-port helper instead of a task-local producer list.',
+  },
+];
+
+/**
+ * Validate producer + ownership manifests for internal consistency.
+ * Returns an array of human-readable violation strings (empty when valid).
+ */
+export function validateReleaseReadinessManifest({
+  producers = RELEASE_EVIDENCE_PRODUCER_GATES,
+  ownership = RELEASE_READINESS_ENTRYPOINT_OWNERSHIP,
+  requiredEntrypoints = RELEASE_READINESS_ENTRYPOINT_OWNERSHIP.map((entry) => entry.path),
+} = {}) {
+  const violations = [];
+  const ownershipPaths = new Set();
+
+  for (const entry of ownership) {
+    if (!entry?.path) {
+      violations.push('ownership record is missing path');
+      continue;
+    }
+    if (ownershipPaths.has(entry.path)) {
+      violations.push(`duplicate ownership path: ${entry.path}`);
+    }
+    ownershipPaths.add(entry.path);
+    if (entry.owner !== 'release-readiness') {
+      violations.push(`ownership owner for ${entry.path} must be release-readiness`);
+    }
+    if (!entry.runtime || typeof entry.runtime !== 'string') {
+      violations.push(`ownership runtime missing for ${entry.path}`);
+    }
+    if (!entry.auditDecision || !String(entry.auditDecision).trim()) {
+      violations.push(`ownership auditDecision missing for ${entry.path}`);
+    }
+  }
+
+  for (const required of requiredEntrypoints) {
+    if (!ownershipPaths.has(required)) {
+      violations.push(`required entrypoint missing from ownership export: ${required}`);
+    }
+  }
+
+  const ids = new Set();
+  const claimedFiles = new Map();
+  for (const producer of producers) {
+    if (!producer?.id) {
+      violations.push('producer is missing id');
+      continue;
+    }
+    if (ids.has(producer.id)) {
+      violations.push(`duplicate producer id: ${producer.id}`);
+    }
+    ids.add(producer.id);
+
+    for (const file of producer.evidenceFiles ?? []) {
+      if (claimedFiles.has(file)) {
+        violations.push(
+          `duplicate evidence file ownership: ${file} claimed by ${claimedFiles.get(file)} and ${producer.id}`,
+        );
+      } else {
+        claimedFiles.set(file, producer.id);
+      }
+    }
+
+    for (const dep of producer.dependsOn ?? []) {
+      if (!ids.has(dep) && !producers.some((item) => item.id === dep)) {
+        // Dependency may appear later in the list; final pass below.
+      }
+    }
+  }
+
+  for (const producer of producers) {
+    for (const dep of producer.dependsOn ?? []) {
+      if (!ids.has(dep)) {
+        violations.push(`producer ${producer.id} depends on unknown producer ${dep}`);
+        continue;
+      }
+      const producerIndex = producers.findIndex((item) => item.id === producer.id);
+      const depIndex = producers.findIndex((item) => item.id === dep);
+      if (depIndex > producerIndex) {
+        violations.push(
+          `producer ${producer.id} depends on ${dep} which is declared later in the manifest order`,
+        );
+      }
+    }
+  }
+
+  return violations;
+}
+
+/**
+ * Expand the producer manifest into gate entries for `release-readiness-gate.mjs`.
+ * This is the only supported release-gate producer expansion boundary.
+ *
+ * `runProducer(producer)` must return `{ ok, status, durationMs, tail }` the
+ * same shape `runSingleProducerGate` expects.
+ */
+export function createReleaseEvidenceProducerGateEntries({
+  runProducer,
+  producers = RELEASE_EVIDENCE_PRODUCER_GATES,
+  evidenceRoot: evidenceRootDir = evidenceRoot,
+  repoRoot: repoRootDir = repoRoot,
+} = {}) {
+  if (typeof runProducer !== 'function') {
+    throw new Error('createReleaseEvidenceProducerGateEntries requires runProducer(producer)');
+  }
+
+  return producers.map((producer) => ({
+    id: producer.id,
+    label: producer.label,
+    defaultEnabled: producer.defaultEnabled !== false,
+    run: () =>
+      runSingleProducerGate(producer, {
+        runProducer: () => runProducer(producer),
+        evidenceRoot: evidenceRootDir,
+        repoRoot: repoRootDir,
+      }),
+  }));
+}
+
+/**
+ * Absolute paths for every evidence artifact the release-readiness surface owns
+ * (producer evidence + independent replay receipt).
+ */
+export function releaseReadinessEvidenceAbsolutePaths(
+  producers = RELEASE_EVIDENCE_PRODUCER_GATES,
+  evidenceRootDir = evidenceRoot,
+) {
+  return producerEvidenceAbsolutePaths(producers, evidenceRootDir);
+}
+
+/**
  * Absolute paths to every evidence file `producers` owns, resolved against
  * `evidenceRootDir`. Both arguments default to the real production manifest
  * and evidence root so existing callers do not need to change, but the
