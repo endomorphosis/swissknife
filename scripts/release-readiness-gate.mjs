@@ -51,8 +51,9 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   RELEASE_EVIDENCE_PRODUCER_GATES,
+  createReleaseEvidenceProducerGateEntries,
   resetReleaseEvidenceProducers,
-  runSingleProducerGate,
+  validateReleaseReadinessManifest,
 } from './lib/release-readiness-evidence-producers.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1701,18 +1702,52 @@ function main() {
     // every time -- so `npm run release:readiness` from a clean checkout
     // regenerates them itself instead of aggregating whatever gitignored
     // receipts happen to already exist in the working tree (see the
-    // cold-start reset above `main()`'s gate loop).
-    ...RELEASE_EVIDENCE_PRODUCER_GATES.map((producer) => ({
-      id: producer.id,
-      label: producer.label,
+    // cold-start reset above `main()`'s gate loop). Expansion goes through
+    // createReleaseEvidenceProducerGateEntries only (SWR-160 public API).
+    {
+      id: 'release-producer-manifest-preflight',
+      label: 'Release producer manifest ownership preflight (SWR-160)',
       run: () => {
-        const outcome = runSingleProducerGate(producer, { runProducer: () => runNpmScript(producer.npmScript) });
+        const violations = validateReleaseReadinessManifest();
+        if (violations.length === 0) {
+          return { ok: true, status: 0, durationMs: 0, tail: [], findings: [] };
+        }
+        const findings = [];
+        for (const violation of violations) {
+          pushFinding(findings, 'release-producer-manifest-preflight', violation, 'scripts/lib/release-readiness-evidence-producers.mjs');
+        }
+        return {
+          ok: false,
+          status: 1,
+          durationMs: 0,
+          tail: violations,
+          findings,
+        };
+      },
+    },
+    ...createReleaseEvidenceProducerGateEntries({
+      runProducer: (producer) => runNpmScript(producer.npmScript),
+    }).map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      run: () => {
+        const outcome = entry.run();
         const findings = [];
         for (const file of outcome.missingFiles ?? []) {
-          pushFinding(findings, `${producer.id}-missing-evidence-file`, `${producer.label} did not produce required evidence`, file);
+          pushFinding(
+            findings,
+            `${entry.id}-missing-evidence-file`,
+            `${entry.label} did not produce required evidence`,
+            file,
+          );
         }
         for (const dir of outcome.missingDirs ?? []) {
-          pushFinding(findings, `${producer.id}-missing-evidence-dir`, `${producer.label} did not produce required (non-empty) evidence directory`, dir);
+          pushFinding(
+            findings,
+            `${entry.id}-missing-evidence-dir`,
+            `${entry.label} did not produce required (non-empty) evidence directory`,
+            dir,
+          );
         }
         return { ...outcome, findings };
       },
