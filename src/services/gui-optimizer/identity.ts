@@ -65,8 +65,6 @@ export const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 const BASE32_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
 
 const PROVENANCE_KEYS = new Set([
-  'line',
-  'column',
   'start_line',
   'end_line',
   'start_column',
@@ -75,18 +73,21 @@ const PROVENANCE_KEYS = new Set([
   'checkout_path',
   'source_path',
   'file_path',
-  'path',
-  'comments',
-  'comment',
-  'span',
   'source_span',
-  'offset',
   'byte_offset',
   'char_offset',
 ]);
 
 const WS_RE = /[ \t]+/g;
-const ABS_PATH_RE = /^(\/|[A-Za-z]:[\\/])/;
+
+// Unicode White_Space from PropList.txt, spelled out so host ``trim``
+// behavior never becomes wire authority. U+001C and U+FEFF are intentionally
+// absent from this shared Python/TypeScript profile.
+const PROFILE_TRIM_CODE_POINTS = new Set([
+  0x0009, 0x000a, 0x000b, 0x000c, 0x000d, 0x0020, 0x0085, 0x00a0, 0x1680,
+  0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008,
+  0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000,
+]);
 
 const FACET_NAMES = [
   'structure',
@@ -98,6 +99,9 @@ const FACET_NAMES = [
   'actions',
   'localization',
 ] as const;
+
+const STABLE_IDENTIFIER_RE = /^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,255}$/;
+const EXTRACTOR_VERSION_RE = /^[A-Za-z0-9][A-Za-z0-9._@+-]{0,63}$/;
 
 // ---------------------------------------------------------------------------
 // Errors / types
@@ -272,6 +276,21 @@ function nfc(text: string, label = 'string'): string {
   const normalized = text.normalize('NFC');
   assertUnicodeScalarString(normalized, label);
   return normalized;
+}
+
+function trimProfileWhitespace(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && PROFILE_TRIM_CODE_POINTS.has(value.charCodeAt(start))) {
+    start += 1;
+  }
+  while (
+    end > start &&
+    PROFILE_TRIM_CODE_POINTS.has(value.charCodeAt(end - 1))
+  ) {
+    end -= 1;
+  }
+  return value.slice(start, end);
 }
 
 function compareUnicodeCodePoints(left: string, right: string): number {
@@ -525,7 +544,7 @@ function normalizedDiscriminator(value: string, label: string): string {
     throw new GuiIdentityError(`${label} must be a string`);
   }
   const normalized = nfc(value, label);
-  if (!normalized || normalized.trim() !== normalized) {
+  if (!normalized || trimProfileWhitespace(normalized) !== normalized) {
     throw new GuiIdentityError(
       `${label} must be non-empty and have no surrounding whitespace`,
     );
@@ -574,6 +593,33 @@ function concatBytes(chunks: readonly Uint8Array[]): Uint8Array {
   return out;
 }
 
+function requireIdentityPreimageMetadata(
+  preimage: Uint8Array,
+  domain: string,
+  schemaVersion: string,
+): void {
+  const normalizedDomain = normalizedDiscriminator(domain, 'domain');
+  const normalizedVersion = normalizedDiscriminator(
+    schemaVersion,
+    'schema_version',
+  );
+  const text = utf8Decode(preimage);
+  const prefix =
+    '{"canonicalization":' +
+    canonicalJson(CANONICAL_JSON_PROFILE) +
+    ',"domain":' +
+    canonicalJson(normalizedDomain) +
+    ',"identity_profile":' +
+    canonicalJson(IDENTITY_PROFILE_NAME) +
+    ',"payload":';
+  const suffix = ',"schema_version":' + canonicalJson(normalizedVersion) + '}';
+  if (!text.startsWith(prefix) || !text.endsWith(suffix)) {
+    throw new GuiIdentityError(
+      'retained canonical bytes do not bind the claimed metadata',
+    );
+  }
+}
+
 export function canonicalIdentity(
   payload: unknown,
   options: { domain: string; schemaVersion: string },
@@ -603,6 +649,18 @@ export const identityFor = canonicalIdentity;
 export function rehashIdentity(
   identity: GuiCanonicalIdentity,
 ): GuiCanonicalIdentity {
+  if (
+    identity.interface !== GUI_CANONICAL_IDENTITY_INTERFACE ||
+    identity.wire_schema_version !== GUI_CANONICAL_IDENTITY_SCHEMA ||
+    identity.profile !== IDENTITY_PROFILE_NAME
+  ) {
+    throw new GuiIdentityError('identity metadata does not match the profile');
+  }
+  requireIdentityPreimageMetadata(
+    identity.canonical_bytes,
+    identity.domain,
+    identity.schema_version,
+  );
   const digestHex = sha256Hex(identity.canonical_bytes);
   const digest = `sha256:${digestHex}`;
   const cid = cidV1FromDigest(hexToBytes(digestHex));
@@ -656,8 +714,7 @@ function normalizeValue(value: unknown): unknown {
   if (typeof value === 'string') {
     let text = nfc(value, 'material string');
     text = text.replace(WS_RE, ' ');
-    text = text.replace(/\n+/g, '\n').trim();
-    if (ABS_PATH_RE.test(text)) return '';
+    text = trimProfileWhitespace(text.replace(/\n+/g, '\n'));
     return text;
   }
   if (Array.isArray(value)) {
@@ -733,7 +790,12 @@ export function artifactDigest(
     'domain',
   );
   const normalized = normalizeMaterial(material);
-  const preimage = canonicalJsonBytes(normalized);
+  // Reuse the one canonical domain-separated preimage profile; artifact
+  // records retain those exact bytes so their declared domain is rehashable.
+  const preimage = identityPreimage(normalized, {
+    domain,
+    schemaVersion: GUI_ARTIFACT_DIGEST_SCHEMA,
+  });
   const digestHex = sha256Hex(preimage);
   return Object.freeze({
     interface: GUI_ARTIFACT_DIGEST_INTERFACE,
@@ -743,6 +805,33 @@ export function artifactDigest(
     domain,
     canonical_bytes: preimage,
   });
+}
+
+export function rehashArtifactDigest(
+  artifact: GuiArtifactDigest,
+): GuiArtifactDigest {
+  if (
+    artifact.interface !== GUI_ARTIFACT_DIGEST_INTERFACE ||
+    artifact.schema_version !== GUI_ARTIFACT_DIGEST_SCHEMA
+  ) {
+    throw new GuiIdentityError(
+      'artifact digest metadata does not match the profile',
+    );
+  }
+  requireIdentityPreimageMetadata(
+    artifact.canonical_bytes,
+    artifact.domain,
+    artifact.schema_version,
+  );
+  const digestHex = sha256Hex(artifact.canonical_bytes);
+  const digest = `sha256:${digestHex}`;
+  const cid = cidV1FromDigest(hexToBytes(digestHex));
+  if (digest !== artifact.digest || cid !== artifact.cid) {
+    throw new GuiIdentityError(
+      'artifact digest does not rehash from retained canonical bytes',
+    );
+  }
+  return Object.freeze({ ...artifact, digest, cid });
 }
 
 export function facetDigest(material: unknown): string {
@@ -760,25 +849,21 @@ export function buildStableIdentity(input: {
   packageNamespace: string;
   screenId?: string;
 }): UiComponentIdentity {
-  return decodeUiComponentIdentity({
+  return decodeStableIdentity({
     interface: UI_COMPONENT_IDENTITY_INTERFACE,
     schema_version: UI_COMPONENT_IDENTITY_SCHEMA,
     application_id: input.applicationId,
     qualified_name: input.qualifiedName,
     component_kind: input.componentKind,
     package_namespace: input.packageNamespace,
-    screen_id: input.screenId ?? '',
+    screen_id: input.screenId === undefined ? '' : input.screenId,
   });
 }
 
 export function stableIdentityRecord(
   identity: UiComponentIdentity | Record<string, unknown>,
 ): GuiCanonicalIdentity {
-  const decoded =
-    'interface' in identity &&
-    identity.interface === UI_COMPONENT_IDENTITY_INTERFACE
-      ? (identity as UiComponentIdentity)
-      : decodeUiComponentIdentity(identity);
+  const decoded = decodeStableIdentity(identity);
   return canonicalIdentity(componentIdentityToDict(decoded), {
     domain: DOMAIN_STABLE_IDENTITY,
     schemaVersion: UI_COMPONENT_IDENTITY_SCHEMA,
@@ -800,6 +885,24 @@ function componentIdentityToDict(
   };
 }
 
+function decodeStableIdentity(value: unknown): UiComponentIdentity {
+  if (!isPlainObject(value) || typeof value.screen_id !== 'string') {
+    throw new GuiIdentityError('screen_id must be a string');
+  }
+  if (value.screen_id !== '' && !STABLE_IDENTIFIER_RE.test(value.screen_id)) {
+    throw new GuiIdentityError('screen_id is not a stable identifier');
+  }
+  const decoded = decodeUiComponentIdentity(value);
+  return decoded;
+}
+
+function requireExtractorVersion(value: unknown): string {
+  if (typeof value !== 'string' || !EXTRACTOR_VERSION_RE.test(value)) {
+    throw new GuiIdentityError('extractorVersion is not a valid version token');
+  }
+  return value;
+}
+
 // ---------------------------------------------------------------------------
 // UiComponentVersionCompiler@1
 // ---------------------------------------------------------------------------
@@ -812,15 +915,22 @@ export function compileComponentVersion(
     optimizerSchemaVersion?: string;
   },
 ): UiComponentVersion {
-  const identity =
-    'interface' in stableIdentity &&
-    stableIdentity.interface === UI_COMPONENT_IDENTITY_INTERFACE
-      ? (stableIdentity as UiComponentIdentity)
-      : decodeUiComponentIdentity(stableIdentity);
+  const identity = decodeStableIdentity(stableIdentity);
+  if (!isPlainObject(material)) {
+    throw new GuiIdentityError(
+      'material must be a plain object of named facets',
+    );
+  }
+  if (!isPlainObject(options)) {
+    throw new GuiIdentityError('compiler options must be a plain object');
+  }
+  const extractorVersion = requireExtractorVersion(options.extractorVersion);
 
   const digests: Record<string, string> = {};
   for (const name of FACET_NAMES) {
-    const facet = material[name] ?? {};
+    const facet = Object.prototype.hasOwnProperty.call(material, name)
+      ? material[name]
+      : {};
     digests[`${name}_digest`] = facetDigest(facet);
   }
 
@@ -836,20 +946,22 @@ export function compileComponentVersion(
     styles_digest: digests.styles_digest,
     actions_digest: digests.actions_digest,
     localization_digest: digests.localization_digest,
-    extractor_version: options.extractorVersion,
+    extractor_version: extractorVersion,
     optimizer_schema_version:
-      options.optimizerSchemaVersion ?? UI_COMPONENT_VERSION_SCHEMA,
+      options.optimizerSchemaVersion === undefined
+        ? UI_COMPONENT_VERSION_SCHEMA
+        : options.optimizerSchemaVersion,
   });
 }
 
 export function componentVersionIdentity(
   version: UiComponentVersion | Record<string, unknown>,
 ): GuiCanonicalIdentity {
-  const decoded =
-    'interface' in version &&
-    version.interface === UI_COMPONENT_VERSION_INTERFACE
-      ? (version as UiComponentVersion)
-      : decodeUiComponentVersion(version);
+  if (!isPlainObject(version)) {
+    throw new GuiIdentityError('component version must be a plain object');
+  }
+  decodeStableIdentity(version.stable_identity);
+  const decoded = decodeUiComponentVersion(version);
   return canonicalIdentity(componentVersionToDict(decoded), {
     domain: DOMAIN_COMPONENT_VERSION,
     schemaVersion: UI_COMPONENT_VERSION_SCHEMA,
@@ -879,18 +991,29 @@ function componentVersionToDict(
 export function createComponentVersionCompiler(options: {
   extractorVersion: string;
 }): UiComponentVersionCompiler {
-  const extractorVersion = options.extractorVersion;
+  if (!isPlainObject(options)) {
+    throw new GuiIdentityError('compiler options must be a plain object');
+  }
+  const extractorVersion = requireExtractorVersion(options.extractorVersion);
   return Object.freeze({
     interface: UI_COMPONENT_VERSION_COMPILER_INTERFACE,
     schema_version: UI_COMPONENT_VERSION_COMPILER_SCHEMA,
     extractorVersion,
-    compile(stableIdentity, material, compileOptions) {
+    compile(
+      stableIdentity: UiComponentIdentity | Record<string, unknown>,
+      material: ComponentMaterial,
+      compileOptions?: { optimizerSchemaVersion?: string },
+    ) {
       return compileComponentVersion(stableIdentity, material, {
         extractorVersion,
         optimizerSchemaVersion: compileOptions?.optimizerSchemaVersion,
       });
     },
-    identityFor(stableIdentity, material, compileOptions) {
+    identityFor(
+      stableIdentity: UiComponentIdentity | Record<string, unknown>,
+      material: ComponentMaterial,
+      compileOptions?: { optimizerSchemaVersion?: string },
+    ) {
       const version = compileComponentVersion(stableIdentity, material, {
         extractorVersion,
         optimizerSchemaVersion: compileOptions?.optimizerSchemaVersion,

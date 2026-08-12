@@ -41,6 +41,7 @@ import {
   identityPreimage,
   normalizeMaterial,
   parseCidV1,
+  rehashArtifactDigest,
   rehashIdentity,
   sha256Digest,
   stableIdentityRecord,
@@ -96,6 +97,35 @@ const CROSS_RUNTIME_DIGEST =
 const CROSS_RUNTIME_CID =
   'bafkreigkfa7mw2fj45ncwfbwfdzmtceiw5e74d37x7bgsna5sve4dafzhq';
 
+const ARTIFACT_VECTOR_DOMAIN = 'gui.artifact-vector';
+const ARTIFACT_VECTOR_MATERIAL = {
+  facet: null,
+  label: '\u0085value\u0085',
+  route_path: '/docs/start',
+};
+const ARTIFACT_VECTOR_PREIMAGE =
+  '{"canonicalization":"gui-optimizer-canonical-json/v1",' +
+  '"domain":"gui.artifact-vector",' +
+  '"identity_profile":"gui-optimizer-canonical-identity/v1",' +
+  '"payload":{"facet":null,"label":"value",' +
+  '"route_path":"/docs/start"},' +
+  '"schema_version":"gui-artifact-digest/v1"}';
+const ARTIFACT_VECTOR_DIGEST =
+  'sha256:491a93ed0b5c2ee1a60a450cf6a65c331cbdf818541e3d3f5c90f0bd15aa80b6';
+const ARTIFACT_VECTOR_CID =
+  'bafkreicjdkj62c24f3q2mcsfbt3kmxbtds67qgcudy6t6xeq6c6rlkuawy';
+
+const TRIM_VECTOR_DOMAIN = '\u001cgui.trim\uFEFF';
+const TRIM_VECTOR_PREIMAGE =
+  '{"canonicalization":"gui-optimizer-canonical-json/v1",' +
+  '"domain":"\\u001cgui.trim\uFEFF",' +
+  '"identity_profile":"gui-optimizer-canonical-identity/v1",' +
+  '"payload":{},"schema_version":"trim-vector/v1"}';
+const TRIM_VECTOR_DIGEST =
+  'sha256:d7bddc07adbab269eb9cb770b95b6552bb01d348fb8ab3efe088478a1a013e10';
+const TRIM_VECTOR_CID =
+  'bafkreigxxxoapln2wju6xhfxoc4vwzksxma5gsh3rkz67yeii6fbuaj6ca';
+
 const EXTRACTOR = 'gui-static-scanner-1.0.0';
 
 function baseMaterial(
@@ -106,7 +136,7 @@ function baseMaterial(
       tag: 'form',
       children: ['input', 'button'],
       start_line: 10,
-      path: '/home/user/checkout/web/js/apps/agent-supervisor.js',
+      source_path: '/home/user/checkout/web/js/apps/agent-supervisor.js',
     },
     props: { name: 'goal', required: true, comments: 'ignore me' },
     state: { ready: true },
@@ -206,6 +236,26 @@ describe('TypeScriptGuiCanonicalIdentity@1 profile', () => {
         },
       ),
     ).toThrow(/unpaired Unicode surrogate/);
+  });
+
+  it('locks the explicit cross-runtime trim policy vector', () => {
+    expect(normalizeMaterial('\u0085value\u0085')).toBe('value');
+    expect(normalizeMaterial('\u001cvalue\uFEFF')).toBe('\u001cvalue\uFEFF');
+    expect(() =>
+      canonicalIdentity(
+        {},
+        { domain: '\u0085gui.trim', schemaVersion: 'trim-vector/v1' },
+      ),
+    ).toThrow(/surrounding whitespace/);
+    const identity = canonicalIdentity(
+      {},
+      { domain: TRIM_VECTOR_DOMAIN, schemaVersion: 'trim-vector/v1' },
+    );
+    expect(canonicalBytesToString(identity.canonical_bytes)).toBe(
+      TRIM_VECTOR_PREIMAGE,
+    );
+    expect(identity.digest).toBe(TRIM_VECTOR_DIGEST);
+    expect(identity.cid).toBe(TRIM_VECTOR_CID);
   });
 
   it('fails closed on JavaScript containers with no JSON counterpart', () => {
@@ -324,6 +374,25 @@ describe('golden identity vectors', () => {
       verifyIdentity(identity, { ...GOLDEN_PAYLOAD, kind: 'dialog' }),
     ).toThrow(GuiIdentityError);
   });
+
+  it('rejects forged claimed identity metadata', () => {
+    const identity = canonicalIdentity(GOLDEN_PAYLOAD, {
+      domain: GOLDEN_DOMAIN,
+      schemaVersion: GOLDEN_SCHEMA,
+    });
+    for (const change of [
+      { profile: 'forged-profile/v1' },
+      { interface: 'ForgedIdentity@1' },
+      { wire_schema_version: 'forged-identity/v1' },
+      { domain: 'gui.forged-domain' },
+      { schema_version: 'forged-schema/v1' },
+    ]) {
+      const forged = { ...identity, ...change } as typeof identity;
+      expect(() => verifyIdentity(forged, GOLDEN_PAYLOAD)).toThrow(
+        GuiIdentityError,
+      );
+    }
+  });
 });
 
 describe('stable logical identity', () => {
@@ -369,22 +438,62 @@ describe('stable logical identity', () => {
     });
     expect(stableIdentityRecord(a).cid).not.toBe(stableIdentityRecord(b).cid);
   });
+
+  it('validates interface-tagged identities and screen identifiers', () => {
+    const identity = buildStableIdentity({
+      applicationId: 'app:agent-supervisor',
+      qualifiedName: 'apps.agent-supervisor.ConsoleRoot',
+      componentKind: 'screen',
+      packageNamespace: 'swissknife.web.js.apps',
+      screenId: 'screen:agent-supervisor',
+    });
+    for (const malformed of [
+      { ...identity, application_id: 'contains whitespace' },
+      { ...identity, component_kind: 'not-a-kind' },
+      { ...identity, schema_version: 'forged-schema/v1' },
+      { ...identity, unexpected: true },
+      { ...identity, screen_id: null },
+      { ...identity, screen_id: 'contains whitespace' },
+      { ...identity, screen_id: `s${'x'.repeat(256)}` },
+    ]) {
+      expect(() => stableIdentityRecord(malformed as never)).toThrow();
+    }
+    for (const screenId of [
+      null,
+      'contains whitespace',
+      `s${'x'.repeat(256)}`,
+    ]) {
+      expect(() =>
+        buildStableIdentity({
+          applicationId: 'app:agent-supervisor',
+          qualifiedName: 'apps.agent-supervisor.ConsoleRoot',
+          componentKind: 'screen',
+          packageNamespace: 'swissknife.web.js.apps',
+          screenId: screenId as never,
+        }),
+      ).toThrow();
+    }
+  });
 });
 
 describe('material normalization and version compiler', () => {
-  it('drops provenance keys and absolute paths', () => {
+  it('drops explicit source provenance but preserves semantic path fields', () => {
     const normalized = normalizeMaterial({
       tag: 'button',
       start_line: 42,
       end_line: 44,
-      path: '/abs/checkout/file.tsx',
+      source_path: '/abs/checkout/file.tsx',
+      path: '/settings/profile',
+      href: '/help',
       label: '  Save   now  ',
-      comments: '// ignore',
+      source_span: { start_line: 42 },
     }) as Record<string, unknown>;
     expect(normalized).not.toHaveProperty('start_line');
     expect(normalized).not.toHaveProperty('end_line');
-    expect(normalized).not.toHaveProperty('path');
-    expect(normalized).not.toHaveProperty('comments');
+    expect(normalized).not.toHaveProperty('source_path');
+    expect(normalized).not.toHaveProperty('source_span');
+    expect(normalized.path).toBe('/settings/profile');
+    expect(normalized.href).toBe('/help');
     expect(normalized.label).toBe('Save now');
     expect(normalized.tag).toBe('button');
   });
@@ -403,8 +512,7 @@ describe('material normalization and version compiler', () => {
         tag: 'form',
         children: ['input', 'button'],
         start_line: 999,
-        path: '/other/checkout/web/js/apps/agent-supervisor.js',
-        comments: 'moved down the file',
+        source_path: '/other/checkout/web/js/apps/agent-supervisor.js',
       },
       styles: {
         tokens: ['color.primary'],
@@ -455,6 +563,72 @@ describe('material normalization and version compiler', () => {
     );
   });
 
+  it('keeps generic path-like and provenance-named fields identity-bearing', () => {
+    for (const field of [
+      'path',
+      'href',
+      'line',
+      'column',
+      'span',
+      'offset',
+      'comments',
+    ]) {
+      expect(facetDigest({ [field]: 'semantic-a' })).not.toBe(
+        facetDigest({ [field]: 'semantic-b' }),
+      );
+    }
+  });
+
+  it('distinguishes an explicitly null facet from an absent facet', () => {
+    const identity = buildStableIdentity({
+      applicationId: 'app:agent-supervisor',
+      qualifiedName: 'apps.agent-supervisor.GoalForm',
+      componentKind: 'form',
+      packageNamespace: 'swissknife.web.js.apps',
+      screenId: 'screen:agent-supervisor',
+    });
+    const explicitNull = compileComponentVersion(
+      identity,
+      { props: null },
+      { extractorVersion: EXTRACTOR },
+    );
+    const absent = compileComponentVersion(
+      identity,
+      {},
+      {
+        extractorVersion: EXTRACTOR,
+      },
+    );
+    expect(explicitNull.props_digest).toBe(facetDigest(null));
+    expect(absent.props_digest).toBe(facetDigest({}));
+    expect(explicitNull.props_digest).not.toBe(absent.props_digest);
+  });
+
+  it('rejects non-object material and invalid compiler versions early', () => {
+    const identity = buildStableIdentity({
+      applicationId: 'app:agent-supervisor',
+      qualifiedName: 'apps.agent-supervisor.GoalForm',
+      componentKind: 'form',
+      packageNamespace: 'swissknife.web.js.apps',
+      screenId: 'screen:agent-supervisor',
+    });
+    for (const material of [[], 'x', 3, new Date(), null]) {
+      expect(() =>
+        compileComponentVersion(identity, material as never, {
+          extractorVersion: EXTRACTOR,
+        }),
+      ).toThrow(/material/);
+    }
+    for (const extractorVersion of ['', null]) {
+      expect(() =>
+        createComponentVersionCompiler({ extractorVersion } as never),
+      ).toThrow(/extractorVersion/);
+      expect(() =>
+        compileComponentVersion(identity, {}, { extractorVersion } as never),
+      ).toThrow(/extractorVersion/);
+    }
+  });
+
   it('exposes UiComponentVersionCompiler@1 facade', () => {
     const compiler = createComponentVersionCompiler({
       extractorVersion: EXTRACTOR,
@@ -486,6 +660,40 @@ describe('material normalization and version compiler', () => {
     expect(rehashIdentity(record).cid).toBe(record.cid);
   });
 
+  it('closed-decodes interface-tagged component versions', () => {
+    const identity = buildStableIdentity({
+      applicationId: 'app:agent-supervisor',
+      qualifiedName: 'apps.agent-supervisor.GoalForm',
+      componentKind: 'form',
+      packageNamespace: 'swissknife.web.js.apps',
+      screenId: 'screen:agent-supervisor',
+    });
+    const version = compileComponentVersion(identity, baseMaterial(), {
+      extractorVersion: EXTRACTOR,
+    });
+    for (const malformed of [
+      { ...version, structure_digest: 'not-a-digest' },
+      { ...version, schema_version: 'forged-schema/v1' },
+      { ...version, extractor_version: '' },
+      {
+        ...version,
+        stable_identity: {
+          ...version.stable_identity,
+          component_kind: 'not-a-kind',
+        },
+      },
+      {
+        ...version,
+        stable_identity: {
+          ...version.stable_identity,
+          screen_id: 'contains whitespace',
+        },
+      },
+    ]) {
+      expect(() => componentVersionIdentity(malformed as never)).toThrow();
+    }
+  });
+
   it('artifact digests rehash and drop provenance', () => {
     const art = artifactDigest({ tokens: ['a', 'b'], start_line: 1 });
     expect(art.interface).toBe(GUI_ARTIFACT_DIGEST_INTERFACE);
@@ -493,10 +701,50 @@ describe('material normalization and version compiler', () => {
     expect(art.digest).toBe(facetDigest({ tokens: ['a', 'b'] }));
     expect(sha256Digest(art.canonical_bytes)).toBe(art.digest);
     expect(parseCidV1(art.cid).digest_label).toBe(art.digest);
+    expect(rehashArtifactDigest(art)).toEqual(art);
+  });
+
+  it('locks a cross-runtime domain-separated null artifact vector', () => {
+    const artifact = artifactDigest(ARTIFACT_VECTOR_MATERIAL, {
+      domain: ARTIFACT_VECTOR_DOMAIN,
+    });
+    expect(canonicalBytesToString(artifact.canonical_bytes)).toBe(
+      ARTIFACT_VECTOR_PREIMAGE,
+    );
+    expect(artifact.digest).toBe(ARTIFACT_VECTOR_DIGEST);
+    expect(artifact.cid).toBe(ARTIFACT_VECTOR_CID);
+    expect(rehashArtifactDigest(artifact)).toEqual(artifact);
+
+    const domainA = artifactDigest(ARTIFACT_VECTOR_MATERIAL, {
+      domain: 'gui.domain-a',
+    });
+    const domainB = artifactDigest(ARTIFACT_VECTOR_MATERIAL, {
+      domain: 'gui.domain-b',
+    });
+    expect(domainA.digest).not.toBe(domainB.digest);
+    expect(domainA.cid).not.toBe(domainB.cid);
+    expect(canonicalBytesToString(domainA.canonical_bytes)).not.toBe(
+      canonicalBytesToString(domainB.canonical_bytes),
+    );
+  });
+
+  it('artifact rehash rejects forged metadata and retained bytes', () => {
+    const artifact = artifactDigest(ARTIFACT_VECTOR_MATERIAL);
+    for (const change of [
+      { domain: 'gui.forged' },
+      { interface: 'ForgedArtifact@1' },
+      { schema_version: 'forged-artifact/v1' },
+      { digest: `sha256:${'0'.repeat(64)}` },
+    ]) {
+      const forged = { ...artifact, ...change } as typeof artifact;
+      expect(() => rehashArtifactDigest(forged)).toThrow(GuiIdentityError);
+    }
   });
 
   it('empty and provenance-only facets share a digest', () => {
-    expect(facetDigest({})).toBe(facetDigest({ start_line: 3, comments: 'x' }));
+    expect(facetDigest({})).toBe(
+      facetDigest({ start_line: 3, source_path: '/tmp/source.ts' }),
+    );
     expect(facetDigest({ a: 1 })).not.toBe(facetDigest({ a: 2 }));
   });
 });
