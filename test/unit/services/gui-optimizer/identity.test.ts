@@ -619,7 +619,7 @@ describe("material normalization and version compiler", () => {
         }),
       ).toThrow(/material/);
     }
-    for (const extractorVersion of ["", null]) {
+    for (const extractorVersion of ["", null, "x@y"]) {
       expect(() =>
         createComponentVersionCompiler({ extractorVersion } as never),
       ).toThrow(/extractorVersion/);

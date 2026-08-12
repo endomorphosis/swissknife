@@ -101,7 +101,7 @@ const FACET_NAMES = [
 ] as const;
 
 const STABLE_IDENTIFIER_RE = /^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,255}$/;
-const EXTRACTOR_VERSION_RE = /^[A-Za-z0-9][A-Za-z0-9._@+-]{0,63}$/;
+const EXTRACTOR_VERSION_RE = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$/;
 
 // ---------------------------------------------------------------------------
 // Errors / types
