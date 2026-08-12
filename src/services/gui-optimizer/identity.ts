@@ -11,7 +11,7 @@
  * Never imports semantic-index, proof-cache, or model-routing code.
  */
 
-import { hexToBytes, sha256Hex } from '../shared/shared-browser-crypto.js';
+import { hexToBytes, sha256Hex } from "../shared/shared-browser-crypto.js";
 import {
   CANONICAL_JSON_PROFILE,
   UI_COMPONENT_IDENTITY_INTERFACE,
@@ -23,59 +23,59 @@ import {
   type GuiComponentKind,
   type UiComponentIdentity,
   type UiComponentVersion,
-} from './models.js';
+} from "./models.js";
 
 // ---------------------------------------------------------------------------
 // Profile constants (fixed wire form — must match Python)
 // ---------------------------------------------------------------------------
 
 export const IDENTITY_PROFILE_NAME =
-  'gui-optimizer-canonical-identity/v1' as const;
+  "gui-optimizer-canonical-identity/v1" as const;
 export const GUI_CANONICAL_IDENTITY_INTERFACE =
-  'GuiCanonicalIdentity@1' as const;
+  "GuiCanonicalIdentity@1" as const;
 export const GUI_CANONICAL_IDENTITY_SCHEMA =
-  'gui-canonical-identity/v1' as const;
+  "gui-canonical-identity/v1" as const;
 /** TypeScript surface label for the same profile (board interface). */
 export const TYPESCRIPT_GUI_CANONICAL_IDENTITY_INTERFACE =
-  'TypeScriptGuiCanonicalIdentity@1' as const;
-export const GUI_ARTIFACT_DIGEST_INTERFACE = 'GuiArtifactDigest@1' as const;
-export const GUI_ARTIFACT_DIGEST_SCHEMA = 'gui-artifact-digest/v1' as const;
+  "TypeScriptGuiCanonicalIdentity@1" as const;
+export const GUI_ARTIFACT_DIGEST_INTERFACE = "GuiArtifactDigest@1" as const;
+export const GUI_ARTIFACT_DIGEST_SCHEMA = "gui-artifact-digest/v1" as const;
 export const UI_COMPONENT_VERSION_COMPILER_INTERFACE =
-  'UiComponentVersionCompiler@1' as const;
+  "UiComponentVersionCompiler@1" as const;
 export const UI_COMPONENT_VERSION_COMPILER_SCHEMA =
-  'ui-component-version-compiler/v1' as const;
+  "ui-component-version-compiler/v1" as const;
 
-export const DOMAIN_STABLE_IDENTITY = 'gui.stable-identity' as const;
-export const DOMAIN_COMPONENT_VERSION = 'gui.component-version' as const;
-export const DOMAIN_ARTIFACT = 'gui.artifact' as const;
-export const DOMAIN_APPLICATION = 'gui.application-identity' as const;
-export const DOMAIN_SCREEN = 'gui.screen-identity' as const;
+export const DOMAIN_STABLE_IDENTITY = "gui.stable-identity" as const;
+export const DOMAIN_COMPONENT_VERSION = "gui.component-version" as const;
+export const DOMAIN_ARTIFACT = "gui.artifact" as const;
+export const DOMAIN_APPLICATION = "gui.application-identity" as const;
+export const DOMAIN_SCREEN = "gui.screen-identity" as const;
 
 export const CID_VERSION = 1 as const;
-export const MULTICODEC_NAME = 'raw' as const;
+export const MULTICODEC_NAME = "raw" as const;
 export const MULTICODEC_CODE = 0x55 as const;
-export const MULTIHASH_NAME = 'sha2-256' as const;
+export const MULTIHASH_NAME = "sha2-256" as const;
 export const MULTIHASH_CODE = 0x12 as const;
 export const DIGEST_SIZE = 32 as const;
-export const MULTIBASE_NAME = 'base32' as const;
+export const MULTIBASE_NAME = "base32" as const;
 
 /** Narrower GUI interoperability domain; the Python IR primitive is broader. */
 export const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 
-const BASE32_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
+const BASE32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
 
 const PROVENANCE_KEYS = new Set([
-  'start_line',
-  'end_line',
-  'start_column',
-  'end_column',
-  'absolute_path',
-  'checkout_path',
-  'source_path',
-  'file_path',
-  'source_span',
-  'byte_offset',
-  'char_offset',
+  "start_line",
+  "end_line",
+  "start_column",
+  "end_column",
+  "absolute_path",
+  "checkout_path",
+  "source_path",
+  "file_path",
+  "source_span",
+  "byte_offset",
+  "char_offset",
 ]);
 
 const WS_RE = /[ \t]+/g;
@@ -90,14 +90,14 @@ const PROFILE_TRIM_CODE_POINTS = new Set([
 ]);
 
 const FACET_NAMES = [
-  'structure',
-  'props',
-  'state',
-  'handlers',
-  'accessibility',
-  'styles',
-  'actions',
-  'localization',
+  "structure",
+  "props",
+  "state",
+  "handlers",
+  "accessibility",
+  "styles",
+  "actions",
+  "localization",
 ] as const;
 
 const STABLE_IDENTIFIER_RE = /^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,255}$/;
@@ -110,7 +110,7 @@ const EXTRACTOR_VERSION_RE = /^[A-Za-z0-9][A-Za-z0-9._@+-]{0,63}$/;
 export class GuiIdentityError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'GuiIdentityError';
+    this.name = "GuiIdentityError";
   }
 }
 
@@ -130,7 +130,7 @@ export interface IdentityProfile {
 export const IDENTITY_PROFILE: IdentityProfile = Object.freeze({
   name: IDENTITY_PROFILE_NAME,
   canonicalization: CANONICAL_JSON_PROFILE,
-  digest: 'sha256',
+  digest: "sha256",
   digest_size: DIGEST_SIZE,
   cid_version: CID_VERSION,
   multicodec: MULTICODEC_NAME,
@@ -204,7 +204,7 @@ function utf8Decode(bytes: Uint8Array): string {
 function encodeVarint(value: number): number[] {
   if (!Number.isInteger(value) || value < 0) {
     throw new GuiIdentityError(
-      'unsigned varints cannot encode negative values',
+      "unsigned varints cannot encode negative values",
     );
   }
   const bytes: number[] = [];
@@ -220,7 +220,7 @@ function encodeVarint(value: number): number[] {
 function base32Encode(bytes: Uint8Array): string {
   let bits = 0;
   let value = 0;
-  let output = '';
+  let output = "";
   for (const byte of bytes) {
     value = (value << 8) | byte;
     bits += 8;
@@ -271,9 +271,9 @@ function assertUnicodeScalarString(text: string, label: string): void {
   }
 }
 
-function nfc(text: string, label = 'string'): string {
+function nfc(text: string, label = "string"): string {
   assertUnicodeScalarString(text, label);
-  const normalized = text.normalize('NFC');
+  const normalized = text.normalize("NFC");
   assertUnicodeScalarString(normalized, label);
   return normalized;
 }
@@ -301,7 +301,7 @@ function compareUnicodeCodePoints(left: string, right: string): number {
     const leftPoint = leftScalars[index].codePointAt(0);
     const rightPoint = rightScalars[index].codePointAt(0);
     if (leftPoint === undefined || rightPoint === undefined) {
-      throw new GuiIdentityError('map key contains an empty Unicode scalar');
+      throw new GuiIdentityError("map key contains an empty Unicode scalar");
     }
     const difference = leftPoint - rightPoint;
     if (difference !== 0) return difference;
@@ -310,7 +310,7 @@ function compareUnicodeCodePoints(left: string, right: string): number {
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
   }
   const proto = Object.getPrototypeOf(value);
@@ -342,7 +342,7 @@ export function cidV1FromDigest(digest: Uint8Array): string {
 }
 
 export function cidV1(data: Uint8Array | string): string {
-  const bytes = typeof data === 'string' ? utf8Encode(data) : data;
+  const bytes = typeof data === "string" ? utf8Encode(data) : data;
   return cidV1FromDigest(hexToBytes(sha256Hex(bytes)));
 }
 
@@ -356,13 +356,13 @@ export function parseCidV1(cid: string): {
   digest_label: string;
   cid: string;
 } {
-  if (typeof cid !== 'string' || !cid.startsWith('b')) {
+  if (typeof cid !== "string" || !cid.startsWith("b")) {
     throw new GuiIdentityError(
-      'CID must be a lowercase base32 multibase string',
+      "CID must be a lowercase base32 multibase string",
     );
   }
   if (cid !== cid.toLowerCase()) {
-    throw new GuiIdentityError('CID must be lowercase');
+    throw new GuiIdentityError("CID must be lowercase");
   }
   const raw = base32Decode(cid.slice(1));
   if (
@@ -373,13 +373,13 @@ export function parseCidV1(cid: string): {
     raw[3] !== DIGEST_SIZE
   ) {
     throw new GuiIdentityError(
-      'CID must be CIDv1 raw sha2-256 with a 32-byte digest',
+      "CID must be CIDv1 raw sha2-256 with a 32-byte digest",
     );
   }
   const digest = raw.slice(4);
   const recomputed = cidV1FromDigest(digest);
   if (recomputed !== cid) {
-    throw new GuiIdentityError('CID is not in canonical base32 form');
+    throw new GuiIdentityError("CID is not in canonical base32 form");
   }
   const hex = bytesToHex(digest);
   return {
@@ -396,8 +396,8 @@ export function parseCidV1(cid: string): {
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 // ---------------------------------------------------------------------------
@@ -409,7 +409,7 @@ export function canonicalJsonBytes(value: unknown): Uint8Array {
 }
 
 export function canonicalJson(value: unknown): string {
-  return encodeCanonical(value, '$');
+  return encodeCanonical(value, "$");
 }
 
 function canonicalNumber(value: number, label: string): string {
@@ -421,47 +421,47 @@ function canonicalNumber(value: number, label: string): string {
       `${label} integer-valued number exceeds the GUI safe-integer domain`,
     );
   }
-  if (Object.is(value, -0) || value === 0) return '0';
+  if (Object.is(value, -0) || value === 0) return "0";
 
   let source = value.toString().toLowerCase();
-  let sign = '';
-  if (source.startsWith('-')) {
-    sign = '-';
+  let sign = "";
+  if (source.startsWith("-")) {
+    sign = "-";
     source = source.slice(1);
   }
 
-  const exponentOffset = source.indexOf('e');
+  const exponentOffset = source.indexOf("e");
   const coefficient =
     exponentOffset === -1 ? source : source.slice(0, exponentOffset);
   const exponent =
     exponentOffset === -1 ? 0 : Number(source.slice(exponentOffset + 1));
-  const pointOffset = coefficient.indexOf('.');
+  const pointOffset = coefficient.indexOf(".");
   const point =
     (pointOffset === -1 ? coefficient.length : pointOffset) + exponent;
-  const digits = coefficient.replace('.', '');
+  const digits = coefficient.replace(".", "");
 
   let body: string;
   if (point <= 0) {
-    body = `0.${'0'.repeat(-point)}${digits}`;
+    body = `0.${"0".repeat(-point)}${digits}`;
   } else if (point >= digits.length) {
-    body = `${digits}${'0'.repeat(point - digits.length)}`;
+    body = `${digits}${"0".repeat(point - digits.length)}`;
   } else {
     body = `${digits.slice(0, point)}.${digits.slice(point)}`;
   }
-  if (body.includes('.')) {
-    body = body.replace(/0+$/, '').replace(/\.$/, '');
+  if (body.includes(".")) {
+    body = body.replace(/0+$/, "").replace(/\.$/, "");
   }
   return `${sign}${body}`;
 }
 
 function encodeCanonical(value: unknown, path: string): string {
-  if (value === null) return 'null';
-  if (value === true) return 'true';
-  if (value === false) return 'false';
-  if (typeof value === 'string') {
+  if (value === null) return "null";
+  if (value === true) return "true";
+  if (value === false) return "false";
+  if (typeof value === "string") {
     return JSON.stringify(nfc(value, path));
   }
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return canonicalNumber(value, `canonical JSON at ${path}`);
   }
   if (Array.isArray(value)) {
@@ -472,18 +472,18 @@ function encodeCanonical(value: unknown, path: string): string {
       }
       encoded.push(encodeCanonical(value[index], `${path}[${index}]`));
     }
-    return `[${encoded.join(',')}]`;
+    return `[${encoded.join(",")}]`;
   }
-  if (typeof value === 'object' && value !== null) {
+  if (typeof value === "object" && value !== null) {
     const record = value as Record<string, unknown>;
     // Support models with toDict/to_dict if present.
-    if (typeof (record as { to_dict?: unknown }).to_dict === 'function') {
+    if (typeof (record as { to_dict?: unknown }).to_dict === "function") {
       return encodeCanonical(
         (record as { to_dict: () => unknown }).to_dict(),
         path,
       );
     }
-    if (typeof (record as { toDict?: unknown }).toDict === 'function') {
+    if (typeof (record as { toDict?: unknown }).toDict === "function") {
       return encodeCanonical(
         (record as { toDict: () => unknown }).toDict(),
         path,
@@ -505,7 +505,7 @@ function encodeCanonical(value: unknown, path: string): string {
     const ready = new Map<string, unknown>();
     const originals = new Map<string, string>();
     for (const [key, item] of Object.entries(record)) {
-      if (typeof key !== 'string') {
+      if (typeof key !== "string") {
         throw new GuiIdentityError(`${path} map keys must be strings`);
       }
       const normalizedKey = nfc(key, `${path} map key`);
@@ -528,7 +528,7 @@ function encodeCanonical(value: unknown, path: string): string {
             `${path}.${key}`,
           )}`,
       )
-      .join(',')}}`;
+      .join(",")}}`;
   }
   throw new GuiIdentityError(
     `${path} is not JSON-serializable for identity: ${typeof value}`,
@@ -540,7 +540,7 @@ function encodeCanonical(value: unknown, path: string): string {
 // ---------------------------------------------------------------------------
 
 function normalizedDiscriminator(value: string, label: string): string {
-  if (typeof value !== 'string') {
+  if (typeof value !== "string") {
     throw new GuiIdentityError(`${label} must be a string`);
   }
   const normalized = nfc(value, label);
@@ -556,10 +556,10 @@ export function identityPreimage(
   payload: unknown,
   options: { domain: string; schemaVersion: string },
 ): Uint8Array {
-  const domain = normalizedDiscriminator(options.domain, 'domain');
+  const domain = normalizedDiscriminator(options.domain, "domain");
   const schemaVersion = normalizedDiscriminator(
     options.schemaVersion,
-    'schema_version',
+    "schema_version",
   );
   const payloadBytes = canonicalJsonBytes(payload);
   // Assemble envelope fields in map-key order with embedded payload bytes.
@@ -572,13 +572,13 @@ export function identityPreimage(
     ['"schema_version":', canonicalJsonBytes(schemaVersion)],
   ];
   const encoder = new TextEncoder();
-  parts.push(encoder.encode('{'));
+  parts.push(encoder.encode("{"));
   fields.forEach(([key, value], index) => {
-    if (index > 0) parts.push(encoder.encode(','));
+    if (index > 0) parts.push(encoder.encode(","));
     parts.push(encoder.encode(key));
     parts.push(value);
   });
-  parts.push(encoder.encode('}'));
+  parts.push(encoder.encode("}"));
   return concatBytes(parts);
 }
 
@@ -598,10 +598,10 @@ function requireIdentityPreimageMetadata(
   domain: string,
   schemaVersion: string,
 ): void {
-  const normalizedDomain = normalizedDiscriminator(domain, 'domain');
+  const normalizedDomain = normalizedDiscriminator(domain, "domain");
   const normalizedVersion = normalizedDiscriminator(
     schemaVersion,
-    'schema_version',
+    "schema_version",
   );
   const text = utf8Decode(preimage);
   const prefix =
@@ -612,10 +612,10 @@ function requireIdentityPreimageMetadata(
     ',"identity_profile":' +
     canonicalJson(IDENTITY_PROFILE_NAME) +
     ',"payload":';
-  const suffix = ',"schema_version":' + canonicalJson(normalizedVersion) + '}';
+  const suffix = ',"schema_version":' + canonicalJson(normalizedVersion) + "}";
   if (!text.startsWith(prefix) || !text.endsWith(suffix)) {
     throw new GuiIdentityError(
-      'retained canonical bytes do not bind the claimed metadata',
+      "retained canonical bytes do not bind the claimed metadata",
     );
   }
 }
@@ -632,10 +632,10 @@ export function canonicalIdentity(
     interface: GUI_CANONICAL_IDENTITY_INTERFACE,
     wire_schema_version: GUI_CANONICAL_IDENTITY_SCHEMA,
     profile: IDENTITY_PROFILE_NAME,
-    domain: normalizedDiscriminator(options.domain, 'domain'),
+    domain: normalizedDiscriminator(options.domain, "domain"),
     schema_version: normalizedDiscriminator(
       options.schemaVersion,
-      'schema_version',
+      "schema_version",
     ),
     canonical_bytes: preimage,
     digest,
@@ -654,7 +654,7 @@ export function rehashIdentity(
     identity.wire_schema_version !== GUI_CANONICAL_IDENTITY_SCHEMA ||
     identity.profile !== IDENTITY_PROFILE_NAME
   ) {
-    throw new GuiIdentityError('identity metadata does not match the profile');
+    throw new GuiIdentityError("identity metadata does not match the profile");
   }
   requireIdentityPreimageMetadata(
     identity.canonical_bytes,
@@ -666,7 +666,7 @@ export function rehashIdentity(
   const cid = cidV1FromDigest(hexToBytes(digestHex));
   if (digest !== identity.digest || cid !== identity.cid) {
     throw new GuiIdentityError(
-      'identity does not rehash from retained canonical bytes',
+      "identity does not rehash from retained canonical bytes",
     );
   }
   return Object.freeze({ ...identity, digest, cid });
@@ -689,7 +689,7 @@ export function verifyIdentity(
       utf8Decode(identity.canonical_bytes)
   ) {
     throw new GuiIdentityError(
-      'claimed identity does not match recomputed payload identity',
+      "claimed identity does not match recomputed payload identity",
     );
   }
   return recomputed;
@@ -704,56 +704,56 @@ export function normalizeMaterial(value: unknown): unknown {
 }
 
 function normalizeValue(value: unknown): unknown {
-  if (value === null || typeof value === 'boolean') {
+  if (value === null || typeof value === "boolean") {
     return value;
   }
-  if (typeof value === 'number') {
-    canonicalNumber(value, 'material');
+  if (typeof value === "number") {
+    canonicalNumber(value, "material");
     return value;
   }
-  if (typeof value === 'string') {
-    let text = nfc(value, 'material string');
-    text = text.replace(WS_RE, ' ');
-    text = trimProfileWhitespace(text.replace(/\n+/g, '\n'));
+  if (typeof value === "string") {
+    let text = nfc(value, "material string");
+    text = text.replace(WS_RE, " ");
+    text = trimProfileWhitespace(text.replace(/\n+/g, "\n"));
     return text;
   }
   if (Array.isArray(value)) {
     const normalized: unknown[] = [];
     for (let index = 0; index < value.length; index += 1) {
       if (!Object.prototype.hasOwnProperty.call(value, index)) {
-        throw new GuiIdentityError('material contains a sparse array slot');
+        throw new GuiIdentityError("material contains a sparse array slot");
       }
       normalized.push(normalizeValue(value[index]));
     }
     return normalized;
   }
-  if (typeof value === 'object' && value !== null) {
+  if (typeof value === "object" && value !== null) {
     const record = value as Record<string, unknown>;
-    if (typeof (record as { to_dict?: unknown }).to_dict === 'function') {
+    if (typeof (record as { to_dict?: unknown }).to_dict === "function") {
       return normalizeValue((record as { to_dict: () => unknown }).to_dict());
     }
-    if (typeof (record as { toDict?: unknown }).toDict === 'function') {
+    if (typeof (record as { toDict?: unknown }).toDict === "function") {
       return normalizeValue((record as { toDict: () => unknown }).toDict());
     }
     if (!isPlainObject(value)) {
-      throw new GuiIdentityError('material host object is not identity-safe');
+      throw new GuiIdentityError("material host object is not identity-safe");
     }
     if (Object.getOwnPropertySymbols(record).length > 0) {
-      throw new GuiIdentityError('material map keys must be strings');
+      throw new GuiIdentityError("material map keys must be strings");
     }
     if (
       Object.getOwnPropertyNames(record).length !== Object.keys(record).length
     ) {
-      throw new GuiIdentityError('material contains non-enumerable map fields');
+      throw new GuiIdentityError("material contains non-enumerable map fields");
     }
     const ready = new Map<string, unknown>();
     const originals = new Map<string, string>();
     for (const [key, item] of Object.entries(record)) {
-      const normalizedKey = nfc(key, 'material map key');
+      const normalizedKey = nfc(key, "material map key");
       if (originals.has(normalizedKey)) {
         const originalKey = originals.get(normalizedKey) ?? normalizedKey;
         throw new GuiIdentityError(
-          'material map keys collide after NFC normalization: ' +
+          "material map keys collide after NFC normalization: " +
             `${originalKey} and ${key}`,
         );
       }
@@ -787,7 +787,7 @@ export function artifactDigest(
 ): GuiArtifactDigest {
   const domain = normalizedDiscriminator(
     options?.domain ?? DOMAIN_ARTIFACT,
-    'domain',
+    "domain",
   );
   const normalized = normalizeMaterial(material);
   // Reuse the one canonical domain-separated preimage profile; artifact
@@ -815,7 +815,7 @@ export function rehashArtifactDigest(
     artifact.schema_version !== GUI_ARTIFACT_DIGEST_SCHEMA
   ) {
     throw new GuiIdentityError(
-      'artifact digest metadata does not match the profile',
+      "artifact digest metadata does not match the profile",
     );
   }
   requireIdentityPreimageMetadata(
@@ -828,7 +828,7 @@ export function rehashArtifactDigest(
   const cid = cidV1FromDigest(hexToBytes(digestHex));
   if (digest !== artifact.digest || cid !== artifact.cid) {
     throw new GuiIdentityError(
-      'artifact digest does not rehash from retained canonical bytes',
+      "artifact digest does not rehash from retained canonical bytes",
     );
   }
   return Object.freeze({ ...artifact, digest, cid });
@@ -856,7 +856,7 @@ export function buildStableIdentity(input: {
     qualified_name: input.qualifiedName,
     component_kind: input.componentKind,
     package_namespace: input.packageNamespace,
-    screen_id: input.screenId === undefined ? '' : input.screenId,
+    screen_id: input.screenId === undefined ? "" : input.screenId,
   });
 }
 
@@ -886,22 +886,77 @@ function componentIdentityToDict(
 }
 
 function decodeStableIdentity(value: unknown): UiComponentIdentity {
-  if (!isPlainObject(value) || typeof value.screen_id !== 'string') {
-    throw new GuiIdentityError('screen_id must be a string');
+  if (!isPlainObject(value) || typeof value.screen_id !== "string") {
+    throw new GuiIdentityError("screen_id must be a string");
   }
-  if (value.screen_id !== '' && !STABLE_IDENTIFIER_RE.test(value.screen_id)) {
-    throw new GuiIdentityError('screen_id is not a stable identifier');
+  if (value.screen_id !== "" && !STABLE_IDENTIFIER_RE.test(value.screen_id)) {
+    throw new GuiIdentityError("screen_id is not a stable identifier");
   }
   const decoded = decodeUiComponentIdentity(value);
   return decoded;
 }
 
 function requireExtractorVersion(value: unknown): string {
-  if (typeof value !== 'string' || !EXTRACTOR_VERSION_RE.test(value)) {
-    throw new GuiIdentityError('extractorVersion is not a valid version token');
+  if (typeof value !== "string" || !EXTRACTOR_VERSION_RE.test(value)) {
+    throw new GuiIdentityError("extractorVersion is not a valid version token");
   }
   return value;
 }
+
+function requireClosedOptionsObject(
+  value: unknown,
+  label: string,
+  allowedFields: ReadonlySet<string>,
+): Record<string, unknown> {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value) ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
+    throw new GuiIdentityError(`${label} must be an exact plain object`);
+  }
+  const record = value as Record<string, unknown>;
+  const enumerableNames = Object.keys(record);
+  if (
+    Object.getOwnPropertySymbols(record).length > 0 ||
+    Object.getOwnPropertyNames(record).length !== enumerableNames.length
+  ) {
+    throw new GuiIdentityError(
+      `${label} must contain enumerable string fields`,
+    );
+  }
+  for (const field of enumerableNames) {
+    if (!allowedFields.has(field)) {
+      throw new GuiIdentityError(`${label} contains unknown field ${field}`);
+    }
+  }
+  return record;
+}
+
+function optimizerSchemaVersionOption(
+  options: Record<string, unknown>,
+  label: string,
+): string | undefined {
+  if (
+    !Object.prototype.hasOwnProperty.call(options, "optimizerSchemaVersion")
+  ) {
+    return undefined;
+  }
+  if (typeof options.optimizerSchemaVersion !== "string") {
+    throw new GuiIdentityError(
+      `${label}.optimizerSchemaVersion must be a string`,
+    );
+  }
+  return options.optimizerSchemaVersion;
+}
+
+const DIRECT_COMPILER_OPTION_FIELDS = new Set([
+  "extractorVersion",
+  "optimizerSchemaVersion",
+]);
+const FACTORY_OPTION_FIELDS = new Set(["extractorVersion"]);
+const FACADE_COMPILE_OPTION_FIELDS = new Set(["optimizerSchemaVersion"]);
 
 // ---------------------------------------------------------------------------
 // UiComponentVersionCompiler@1
@@ -918,13 +973,21 @@ export function compileComponentVersion(
   const identity = decodeStableIdentity(stableIdentity);
   if (!isPlainObject(material)) {
     throw new GuiIdentityError(
-      'material must be a plain object of named facets',
+      "material must be a plain object of named facets",
     );
   }
-  if (!isPlainObject(options)) {
-    throw new GuiIdentityError('compiler options must be a plain object');
-  }
-  const extractorVersion = requireExtractorVersion(options.extractorVersion);
+  const checkedOptions = requireClosedOptionsObject(
+    options,
+    "compiler options",
+    DIRECT_COMPILER_OPTION_FIELDS,
+  );
+  const extractorVersion = requireExtractorVersion(
+    checkedOptions.extractorVersion,
+  );
+  const optimizerSchemaVersion = optimizerSchemaVersionOption(
+    checkedOptions,
+    "compiler options",
+  );
 
   const digests: Record<string, string> = {};
   for (const name of FACET_NAMES) {
@@ -948,9 +1011,9 @@ export function compileComponentVersion(
     localization_digest: digests.localization_digest,
     extractor_version: extractorVersion,
     optimizer_schema_version:
-      options.optimizerSchemaVersion === undefined
+      optimizerSchemaVersion === undefined
         ? UI_COMPONENT_VERSION_SCHEMA
-        : options.optimizerSchemaVersion,
+        : optimizerSchemaVersion,
   });
 }
 
@@ -958,7 +1021,7 @@ export function componentVersionIdentity(
   version: UiComponentVersion | Record<string, unknown>,
 ): GuiCanonicalIdentity {
   if (!isPlainObject(version)) {
-    throw new GuiIdentityError('component version must be a plain object');
+    throw new GuiIdentityError("component version must be a plain object");
   }
   decodeStableIdentity(version.stable_identity);
   const decoded = decodeUiComponentVersion(version);
@@ -991,10 +1054,14 @@ function componentVersionToDict(
 export function createComponentVersionCompiler(options: {
   extractorVersion: string;
 }): UiComponentVersionCompiler {
-  if (!isPlainObject(options)) {
-    throw new GuiIdentityError('compiler options must be a plain object');
-  }
-  const extractorVersion = requireExtractorVersion(options.extractorVersion);
+  const checkedOptions = requireClosedOptionsObject(
+    options,
+    "compiler factory options",
+    FACTORY_OPTION_FIELDS,
+  );
+  const extractorVersion = requireExtractorVersion(
+    checkedOptions.extractorVersion,
+  );
   return Object.freeze({
     interface: UI_COMPONENT_VERSION_COMPILER_INTERFACE,
     schema_version: UI_COMPONENT_VERSION_COMPILER_SCHEMA,
@@ -1004,9 +1071,23 @@ export function createComponentVersionCompiler(options: {
       material: ComponentMaterial,
       compileOptions?: { optimizerSchemaVersion?: string },
     ) {
+      const checkedCompileOptions =
+        compileOptions === undefined
+          ? {}
+          : requireClosedOptionsObject(
+              compileOptions,
+              "compiler facade options",
+              FACADE_COMPILE_OPTION_FIELDS,
+            );
+      const optimizerSchemaVersion = optimizerSchemaVersionOption(
+        checkedCompileOptions,
+        "compiler facade options",
+      );
       return compileComponentVersion(stableIdentity, material, {
         extractorVersion,
-        optimizerSchemaVersion: compileOptions?.optimizerSchemaVersion,
+        ...(optimizerSchemaVersion === undefined
+          ? {}
+          : { optimizerSchemaVersion }),
       });
     },
     identityFor(
@@ -1014,9 +1095,23 @@ export function createComponentVersionCompiler(options: {
       material: ComponentMaterial,
       compileOptions?: { optimizerSchemaVersion?: string },
     ) {
+      const checkedCompileOptions =
+        compileOptions === undefined
+          ? {}
+          : requireClosedOptionsObject(
+              compileOptions,
+              "compiler facade options",
+              FACADE_COMPILE_OPTION_FIELDS,
+            );
+      const optimizerSchemaVersion = optimizerSchemaVersionOption(
+        checkedCompileOptions,
+        "compiler facade options",
+      );
       const version = compileComponentVersion(stableIdentity, material, {
         extractorVersion,
-        optimizerSchemaVersion: compileOptions?.optimizerSchemaVersion,
+        ...(optimizerSchemaVersion === undefined
+          ? {}
+          : { optimizerSchemaVersion }),
       });
       return componentVersionIdentity(version);
     },
