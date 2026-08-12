@@ -849,14 +849,20 @@ export function buildStableIdentity(input: {
   packageNamespace: string;
   screenId?: string;
 }): UiComponentIdentity {
+  const checkedInput = requireClosedPlainObject(
+    input,
+    "stable identity input",
+    STABLE_IDENTITY_INPUT_FIELDS,
+    STABLE_IDENTITY_REQUIRED_FIELDS,
+  );
   return decodeStableIdentity({
     interface: UI_COMPONENT_IDENTITY_INTERFACE,
     schema_version: UI_COMPONENT_IDENTITY_SCHEMA,
-    application_id: input.applicationId,
-    qualified_name: input.qualifiedName,
-    component_kind: input.componentKind,
-    package_namespace: input.packageNamespace,
-    screen_id: input.screenId === undefined ? "" : input.screenId,
+    application_id: checkedInput.applicationId,
+    qualified_name: checkedInput.qualifiedName,
+    component_kind: checkedInput.componentKind,
+    package_namespace: checkedInput.packageNamespace,
+    screen_id: checkedInput.screenId === undefined ? "" : checkedInput.screenId,
   });
 }
 
@@ -903,10 +909,11 @@ function requireExtractorVersion(value: unknown): string {
   return value;
 }
 
-function requireClosedOptionsObject(
+function requireClosedPlainObject(
   value: unknown,
   label: string,
   allowedFields: ReadonlySet<string>,
+  requiredFields: ReadonlySet<string> = new Set(),
 ): Record<string, unknown> {
   if (
     typeof value !== "object" ||
@@ -929,6 +936,19 @@ function requireClosedOptionsObject(
   for (const field of enumerableNames) {
     if (!allowedFields.has(field)) {
       throw new GuiIdentityError(`${label} contains unknown field ${field}`);
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(record, field);
+    if (
+      descriptor === undefined ||
+      descriptor.get !== undefined ||
+      descriptor.set !== undefined
+    ) {
+      throw new GuiIdentityError(`${label}.${field} must be a data field`);
+    }
+  }
+  for (const field of requiredFields) {
+    if (!Object.prototype.hasOwnProperty.call(record, field)) {
+      throw new GuiIdentityError(`${label} is missing required field ${field}`);
     }
   }
   return record;
@@ -957,6 +977,19 @@ const DIRECT_COMPILER_OPTION_FIELDS = new Set([
 ]);
 const FACTORY_OPTION_FIELDS = new Set(["extractorVersion"]);
 const FACADE_COMPILE_OPTION_FIELDS = new Set(["optimizerSchemaVersion"]);
+const STABLE_IDENTITY_INPUT_FIELDS = new Set([
+  "applicationId",
+  "qualifiedName",
+  "componentKind",
+  "packageNamespace",
+  "screenId",
+]);
+const STABLE_IDENTITY_REQUIRED_FIELDS = new Set([
+  "applicationId",
+  "qualifiedName",
+  "componentKind",
+  "packageNamespace",
+]);
 
 // ---------------------------------------------------------------------------
 // UiComponentVersionCompiler@1
@@ -976,7 +1009,7 @@ export function compileComponentVersion(
       "material must be a plain object of named facets",
     );
   }
-  const checkedOptions = requireClosedOptionsObject(
+  const checkedOptions = requireClosedPlainObject(
     options,
     "compiler options",
     DIRECT_COMPILER_OPTION_FIELDS,
@@ -1054,7 +1087,7 @@ function componentVersionToDict(
 export function createComponentVersionCompiler(options: {
   extractorVersion: string;
 }): UiComponentVersionCompiler {
-  const checkedOptions = requireClosedOptionsObject(
+  const checkedOptions = requireClosedPlainObject(
     options,
     "compiler factory options",
     FACTORY_OPTION_FIELDS,
@@ -1074,7 +1107,7 @@ export function createComponentVersionCompiler(options: {
       const checkedCompileOptions =
         compileOptions === undefined
           ? {}
-          : requireClosedOptionsObject(
+          : requireClosedPlainObject(
               compileOptions,
               "compiler facade options",
               FACADE_COMPILE_OPTION_FIELDS,
@@ -1098,7 +1131,7 @@ export function createComponentVersionCompiler(options: {
       const checkedCompileOptions =
         compileOptions === undefined
           ? {}
-          : requireClosedOptionsObject(
+          : requireClosedPlainObject(
               compileOptions,
               "compiler facade options",
               FACADE_COMPILE_OPTION_FIELDS,

@@ -474,6 +474,69 @@ describe("stable logical identity", () => {
       ).toThrow();
     }
   });
+
+  it("closed-validates stable identity constructor input before projection", () => {
+    const validInput = {
+      applicationId: "app:agent-supervisor",
+      qualifiedName: "apps.agent-supervisor.ConsoleRoot",
+      componentKind: "screen",
+      packageNamespace: "swissknife.web.js.apps",
+      screenId: "screen:agent-supervisor",
+    };
+    expect(buildStableIdentity(validInput).screen_id).toBe(
+      "screen:agent-supervisor",
+    );
+    const { screenId: _screenId, ...validWithoutOptional } = validInput;
+    expect(buildStableIdentity(validWithoutOptional).screen_id).toBe("");
+
+    const nullPrototypeInput = Object.assign(
+      Object.create(null) as Record<string, unknown>,
+      validInput,
+    );
+    class StableIdentityInput {
+      applicationId = validInput.applicationId;
+      qualifiedName = validInput.qualifiedName;
+      componentKind = validInput.componentKind;
+      packageNamespace = validInput.packageNamespace;
+      screenId = validInput.screenId;
+    }
+    const inheritedPrototypeInput = Object.assign(
+      Object.create({ inherited: true }) as Record<string, unknown>,
+      validInput,
+    );
+    const nonEnumerableExtra = { ...validInput };
+    Object.defineProperty(nonEnumerableExtra, "hidden", {
+      enumerable: false,
+      value: true,
+    });
+    const symbolExtra = { ...validInput } as Record<PropertyKey, unknown>;
+    symbolExtra[Symbol("hidden")] = true;
+
+    for (const malformed of [
+      { ...validInput, unknown: true },
+      nullPrototypeInput,
+      new StableIdentityInput(),
+      nonEnumerableExtra,
+      symbolExtra,
+      inheritedPrototypeInput,
+    ]) {
+      expect(() => buildStableIdentity(malformed as never)).toThrow(
+        /stable identity input/,
+      );
+    }
+    for (const requiredField of [
+      "applicationId",
+      "qualifiedName",
+      "componentKind",
+      "packageNamespace",
+    ]) {
+      const missing = { ...validInput } as Record<string, unknown>;
+      delete missing[requiredField];
+      expect(() => buildStableIdentity(missing as never)).toThrow(
+        /missing required field/,
+      );
+    }
+  });
 });
 
 describe("material normalization and version compiler", () => {
