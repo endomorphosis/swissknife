@@ -1,25 +1,99 @@
 /**
- * VerifiedGuiOptimizer closed wire models (GuiStaticScanner@1 surface).
+ * VerifiedGuiOptimizer closed wire models (VGO-001 / VGO-002).
  *
- * Strict TypeScript types and decoders for GUI static analysis. Analysis
- * classification is independent of verification status. Decoders reject
- * unknown keys, invalid enums, non-finite numbers, and unsupported schema
- * versions. This module never executes repository source.
+ * Shared schema versions, enums, source spans, and dependency-edge fields
+ * mirror the authoritative Python registry in
+ * ipfs_datasets_py.logic.gui_optimizer. Scanner-local finding and scan-result
+ * surfaces sit on top of those shared types. Decoders reject unknown keys,
+ * invalid enums, non-finite numbers, and unsupported schema versions.
+ * This module never executes repository source.
  */
 
 // ---------------------------------------------------------------------------
-// Schema / extractor identity
+// Package / interface identity (VGO-001)
 // ---------------------------------------------------------------------------
 
-export const GUI_OPTIMIZER_SCHEMA_VERSION = 'gui-optimizer/v1' as const;
+export const PACKAGE_ID = 'ipfs-datasets.logic.gui-optimizer' as const;
+export const CANONICAL_JSON_PROFILE = 'gui-optimizer-canonical-json/v1' as const;
+
+/** Package-level label retained for scanner consumers; not a wire schema. */
+export const GUI_OPTIMIZER_SCHEMA_VERSION = CANONICAL_JSON_PROFILE;
+
 export const GUI_STATIC_EXTRACTOR_VERSION = 'gui-static-scanner@1.0.0' as const;
 export const GUI_STATIC_SCANNER_INTERFACE = 'GuiStaticScanner@1' as const;
 export const GUI_SOURCE_FINDING_INTERFACE = 'GuiSourceFinding@1' as const;
 export const GUI_EXTRACTION_CONFIDENCE_INTERFACE =
   'GuiExtractionConfidence@1' as const;
+export const GUI_STATIC_SCAN_RESULT_SCHEMA = 'gui-static-scan-result/v1' as const;
+export const GUI_SOURCE_FINDING_SCHEMA = 'gui-source-finding/v1' as const;
+
+export const GUI_APPLICATION_IDENTITY_INTERFACE =
+  'GuiApplicationIdentity@1' as const;
+export const GUI_SCREEN_IDENTITY_INTERFACE = 'GuiScreenIdentity@1' as const;
+export const UI_COMPONENT_IDENTITY_INTERFACE = 'UiComponentIdentity@1' as const;
+export const UI_COMPONENT_VERSION_INTERFACE = 'UiComponentVersion@1' as const;
+export const UI_DEPENDENCY_EDGE_INTERFACE = 'UiDependencyEdge@1' as const;
+export const SOURCE_SPAN_INTERFACE = 'SourceSpan@1' as const;
+
+export const GUI_APPLICATION_IDENTITY_SCHEMA =
+  'gui-application-identity/v1' as const;
+export const GUI_SCREEN_IDENTITY_SCHEMA = 'gui-screen-identity/v1' as const;
+export const UI_COMPONENT_IDENTITY_SCHEMA = 'ui-component-identity/v1' as const;
+export const UI_COMPONENT_VERSION_SCHEMA = 'ui-component-version/v1' as const;
+export const UI_DEPENDENCY_EDGE_SCHEMA = 'ui-dependency-edge/v1' as const;
+export const SOURCE_SPAN_SCHEMA = 'gui-source-span/v1' as const;
+
+/** Authoritative closed vocabulary of registered optimizer schema versions. */
+export const REGISTERED_OPTIMIZER_SCHEMA_VERSIONS = Object.freeze([
+  'gui-application-identity/v1',
+  'gui-screen-identity/v1',
+  'ui-component-identity/v1',
+  'ui-component-version/v1',
+  'ui-dependency-edge/v1',
+  'ui-state-definition/v1',
+  'ui-event-definition/v1',
+  'ui-transition-definition/v1',
+  'ui-action-binding/v1',
+  'ui-layout-constraint/v1',
+  'ui-accessibility-contract/v1',
+  'ui-semantic-capsule/v1',
+  'ui-change-set/v1',
+  'ui-invalidation-plan/v1',
+  'ui-evaluation-scenario/v1',
+  'ui-baseline/v1',
+  'ui-context-pack/v1',
+  'gui-improvement-proposal/v1',
+  'visual-regression-receipt/v1',
+  'accessibility-receipt/v1',
+  'interaction-receipt/v1',
+  'ui-constraint-receipt/v1',
+  'gui-improvement-receipt/v1',
+  'gui-source-span/v1',
+  'gui-viewport-spec/v1',
+  'visual-change-region/v1',
+  'ui-context-source/v1',
+  'ui-context-style/v1',
+  'ui-context-test/v1',
+  'ui-context-state-machine/v1',
+  'ui-context-formal-failure/v1',
+  'ui-context-accessibility-violation/v1',
+  'ui-context-visual-reference/v1',
+  'ui-context-screenshot-description/v1',
+  'ui-context-route/v1',
+  'ui-context-metric-baseline/v1',
+] as const);
+
+export const SCHEMA_VERSION_BY_INTERFACE = Object.freeze({
+  [GUI_APPLICATION_IDENTITY_INTERFACE]: GUI_APPLICATION_IDENTITY_SCHEMA,
+  [GUI_SCREEN_IDENTITY_INTERFACE]: GUI_SCREEN_IDENTITY_SCHEMA,
+  [UI_COMPONENT_IDENTITY_INTERFACE]: UI_COMPONENT_IDENTITY_SCHEMA,
+  [UI_COMPONENT_VERSION_INTERFACE]: UI_COMPONENT_VERSION_SCHEMA,
+  [UI_DEPENDENCY_EDGE_INTERFACE]: UI_DEPENDENCY_EDGE_SCHEMA,
+  [SOURCE_SPAN_INTERFACE]: SOURCE_SPAN_SCHEMA,
+} as const);
 
 // ---------------------------------------------------------------------------
-// Closed enums
+// Closed enums (VGO-001)
 // ---------------------------------------------------------------------------
 
 /** Analysis classification / extraction confidence (interchangeable labels). */
@@ -31,6 +105,7 @@ export const GUI_EXTRACTION_CONFIDENCE = Object.freeze([
 ] as const);
 export type GuiExtractionConfidence = (typeof GUI_EXTRACTION_CONFIDENCE)[number];
 export type GuiAnalysisClassification = GuiExtractionConfidence;
+export type ExtractionConfidence = GuiExtractionConfidence;
 
 export const GUI_VERIFICATION_STATUS = Object.freeze([
   'verified',
@@ -67,6 +142,7 @@ export const GUI_DEPENDENCY_RELATIONS = Object.freeze([
 ] as const);
 export type GuiDependencyRelation = (typeof GUI_DEPENDENCY_RELATIONS)[number];
 
+/** Scanner finding kinds (GuiSourceFinding@1 surface; not a Python enum). */
 export const GUI_FINDING_KINDS = Object.freeze([
   'component',
   'element',
@@ -101,17 +177,23 @@ export const GUI_FINDING_KINDS = Object.freeze([
   'import',
   'script',
   'widget',
+  'policy',
+  'parent',
+  'child',
 ] as const);
 export type GuiFindingKind = (typeof GUI_FINDING_KINDS)[number];
 
+/** ExtractionMethod (VGO-001). */
 export const GUI_EXTRACTION_METHODS = Object.freeze([
   'typescript_compiler_api',
-  'jsx_ast',
-  'template_literal_html',
-  'html_tokenizer',
-  'css_tokenizer',
-  'pattern_match',
-  'conservative_inference',
+  'jsx_parser',
+  'html_parser',
+  'css_parser',
+  'template_literal_scan',
+  'manifest_read',
+  'registry_read',
+  'heuristic_inference',
+  'manual_annotation',
 ] as const);
 export type GuiExtractionMethod = (typeof GUI_EXTRACTION_METHODS)[number];
 
@@ -125,23 +207,36 @@ export const GUI_SOURCE_LANGUAGES = Object.freeze([
 ] as const);
 export type GuiSourceLanguage = (typeof GUI_SOURCE_LANGUAGES)[number];
 
+/** UiComponentKind (VGO-001). */
 export const GUI_COMPONENT_KINDS = Object.freeze([
-  'react_function',
-  'react_class',
-  'html_template',
-  'web_component',
   'screen',
-  'fragment',
+  'dialog',
+  'form',
+  'button',
+  'link',
+  'input',
+  'label',
+  'menu',
+  'list',
+  'table',
+  'panel',
+  'tab',
+  'nav',
+  'icon',
+  'image',
+  'text',
+  'composite',
+  'host_boundary',
   'unknown',
 ] as const);
 export type GuiComponentKind = (typeof GUI_COMPONENT_KINDS)[number];
 
+/** CompletenessBoundary (VGO-001). */
 export const GUI_COMPLETENESS_BOUNDARIES = Object.freeze([
-  'file',
-  'component',
-  'screen',
-  'application',
+  'complete_within_boundary',
   'partial',
+  'best_effort',
+  'unknown',
 ] as const);
 export type GuiCompletenessBoundary =
   (typeof GUI_COMPLETENESS_BOUNDARIES)[number];
@@ -170,32 +265,37 @@ export class GuiModelDecodeError extends GuiModelValidationError {
 // Wire record types
 // ---------------------------------------------------------------------------
 
+/** SourceSpan@1 — mirrors Python SourceSpan (no byte offsets on wire). */
 export interface GuiSourceSpan {
+  readonly interface: typeof SOURCE_SPAN_INTERFACE;
+  readonly schema_version: typeof SOURCE_SPAN_SCHEMA;
   readonly path: string;
-  readonly start_offset: number;
-  readonly end_offset: number;
   readonly start_line: number;
   readonly start_column: number;
-  readonly end_line: number;
-  readonly end_column: number;
+  readonly end_line: number | null;
+  readonly end_column: number | null;
 }
 
 export interface GuiApplicationIdentity {
-  readonly schema_version: typeof GUI_OPTIMIZER_SCHEMA_VERSION;
+  readonly interface: typeof GUI_APPLICATION_IDENTITY_INTERFACE;
+  readonly schema_version: typeof GUI_APPLICATION_IDENTITY_SCHEMA;
   readonly application_id: string;
   readonly package_namespace: string;
-  readonly route_ids: readonly string[];
+  readonly display_name: string;
+  readonly repository_root: string;
 }
 
 export interface GuiScreenIdentity {
-  readonly schema_version: typeof GUI_OPTIMIZER_SCHEMA_VERSION;
+  readonly interface: typeof GUI_SCREEN_IDENTITY_INTERFACE;
+  readonly schema_version: typeof GUI_SCREEN_IDENTITY_SCHEMA;
   readonly application_id: string;
   readonly screen_id: string;
   readonly route_id: string;
 }
 
 export interface UiComponentIdentity {
-  readonly schema_version: typeof GUI_OPTIMIZER_SCHEMA_VERSION;
+  readonly interface: typeof UI_COMPONENT_IDENTITY_INTERFACE;
+  readonly schema_version: typeof UI_COMPONENT_IDENTITY_SCHEMA;
   readonly application_id: string;
   readonly screen_id: string;
   readonly qualified_name: string;
@@ -204,33 +304,39 @@ export interface UiComponentIdentity {
 }
 
 export interface UiComponentVersion {
-  readonly schema_version: typeof GUI_OPTIMIZER_SCHEMA_VERSION;
-  readonly component_identity: UiComponentIdentity;
+  readonly interface: typeof UI_COMPONENT_VERSION_INTERFACE;
+  readonly schema_version: typeof UI_COMPONENT_VERSION_SCHEMA;
+  readonly stable_identity: UiComponentIdentity;
   readonly structure_digest: string;
   readonly props_digest: string;
   readonly state_digest: string;
   readonly handlers_digest: string;
   readonly accessibility_digest: string;
-  readonly style_digest: string;
-  readonly action_digest: string;
+  readonly styles_digest: string;
+  readonly actions_digest: string;
+  readonly localization_digest: string;
   readonly extractor_version: string;
-  readonly optimizer_schema_version: typeof GUI_OPTIMIZER_SCHEMA_VERSION;
+  readonly optimizer_schema_version: string;
 }
 
+/** UiDependencyEdge@1 — mirrors Python wire keys exactly. */
 export interface UiDependencyEdge {
-  readonly schema_version: typeof GUI_OPTIMIZER_SCHEMA_VERSION;
-  readonly edge_id: string;
-  readonly source_identity: string;
-  readonly target_identity: string;
+  readonly interface: typeof UI_DEPENDENCY_EDGE_INTERFACE;
+  readonly schema_version: typeof UI_DEPENDENCY_EDGE_SCHEMA;
+  readonly source_component_id: string;
+  readonly target_component_id: string;
   readonly relation: GuiDependencyRelation;
-  readonly span: GuiSourceSpan | null;
   readonly extraction_method: GuiExtractionMethod;
-  readonly confidence: GuiExtractionConfidence;
   readonly extractor_version: string;
+  readonly confidence: GuiExtractionConfidence;
+  readonly source_span: GuiSourceSpan | null;
+  readonly notes: string;
 }
 
+/** GuiSourceFinding@1 — scanner-local finding record. */
 export interface GuiSourceFinding {
-  readonly schema_version: typeof GUI_OPTIMIZER_SCHEMA_VERSION;
+  readonly interface: typeof GUI_SOURCE_FINDING_INTERFACE;
+  readonly schema_version: typeof GUI_SOURCE_FINDING_SCHEMA;
   readonly finding_id: string;
   readonly kind: GuiFindingKind;
   readonly name: string;
@@ -244,12 +350,14 @@ export interface GuiSourceFinding {
   readonly evidence: string;
   readonly requires_raw_source: boolean;
   readonly language: GuiSourceLanguage;
+  /** Document-order ordinal used for identity disambiguation (not a line number). */
+  readonly occurrence: number;
 }
 
 export interface GuiStaticScanResult {
-  readonly schema_version: typeof GUI_OPTIMIZER_SCHEMA_VERSION;
+  readonly interface: typeof GUI_STATIC_SCANNER_INTERFACE;
+  readonly schema_version: typeof GUI_STATIC_SCAN_RESULT_SCHEMA;
   readonly extractor_version: string;
-  readonly interface_id: typeof GUI_STATIC_SCANNER_INTERFACE;
   readonly sources: readonly string[];
   readonly findings: readonly GuiSourceFinding[];
   readonly edges: readonly UiDependencyEdge[];
@@ -272,10 +380,14 @@ const METHOD_SET = new Set<string>(GUI_EXTRACTION_METHODS);
 const LANGUAGE_SET = new Set<string>(GUI_SOURCE_LANGUAGES);
 const COMPONENT_KIND_SET = new Set<string>(GUI_COMPONENT_KINDS);
 const COMPLETENESS_SET = new Set<string>(GUI_COMPLETENESS_BOUNDARIES);
+const REGISTERED_SCHEMA_SET = new Set<string>(REGISTERED_OPTIMIZER_SCHEMA_VERSIONS);
 
-const IDENTIFIER_RE = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/;
-const PATH_RE = /^(?!\/)(?!.*\.\.(?:\/|$))[A-Za-z0-9][A-Za-z0-9._+/-]{0,1023}$/;
-const DIGEST_RE = /^(sha256:)?[0-9a-f]{64}$/;
+const IDENTIFIER_RE = /^[A-Za-z0-9][A-Za-z0-9._:/#@-]{0,255}$/;
+const PATH_RE =
+  /^(?!\/)(?!\.\.(?:\/|$))(?!.*\/\.\.(?:\/|$))[A-Za-z0-9][A-Za-z0-9._+/-]{0,511}$/;
+const DIGEST_RE = /^sha256:[0-9a-f]{64}$/;
+// Allow package@version tokens used by GuiStaticScanner@1 (e.g. gui-static-scanner@1.0.0).
+const EXTRACTOR_VERSION_RE = /^[A-Za-z0-9][A-Za-z0-9._@+-]{0,63}$/;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -317,6 +429,14 @@ function requireString(value: unknown, field: string): string {
   return value;
 }
 
+function requireOptionalString(value: unknown, field: string): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value !== 'string') {
+    throw new GuiModelDecodeError(`${field} must be a string`);
+  }
+  return value;
+}
+
 function requireIdentifier(value: unknown, field: string): string {
   const text = requireString(value, field);
   if (!IDENTIFIER_RE.test(text)) {
@@ -345,6 +465,14 @@ function requireNonNegativeInt(value: unknown, field: string): number {
     );
   }
   return value;
+}
+
+function requirePositiveInt(value: unknown, field: string): number {
+  const n = requireNonNegativeInt(value, field);
+  if (n < 1) {
+    throw new GuiModelDecodeError(`${field} must be >= 1`);
+  }
+  return n;
 }
 
 function requireEnum<T extends string>(
@@ -394,14 +522,35 @@ function requireStringArray(value: unknown, field: string): readonly string[] {
   );
 }
 
+function requireExtractorVersion(value: unknown, field = 'extractor_version'): string {
+  const text = requireString(value, field);
+  if (!EXTRACTOR_VERSION_RE.test(text)) {
+    throw new GuiModelDecodeError(`${field} is not a valid extractor version`);
+  }
+  return text;
+}
+
+function requireDigest(value: unknown, field: string): string {
+  const text = requireString(value, field);
+  if (!DIGEST_RE.test(text)) {
+    throw new GuiModelDecodeError(`${field} must be a sha256: digest`);
+  }
+  return text;
+}
+
+function requireOptionalDigest(value: unknown, field: string): string {
+  if (value === null || value === undefined || value === '') return '';
+  return requireDigest(value, field);
+}
+
 // ---------------------------------------------------------------------------
 // Field sets
 // ---------------------------------------------------------------------------
 
 const SOURCE_SPAN_FIELDS = Object.freeze([
+  'interface',
+  'schema_version',
   'path',
-  'start_offset',
-  'end_offset',
   'start_line',
   'start_column',
   'end_line',
@@ -409,13 +558,16 @@ const SOURCE_SPAN_FIELDS = Object.freeze([
 ] as const);
 
 const APPLICATION_IDENTITY_FIELDS = Object.freeze([
+  'interface',
   'schema_version',
   'application_id',
   'package_namespace',
-  'route_ids',
+  'display_name',
+  'repository_root',
 ] as const);
 
 const SCREEN_IDENTITY_FIELDS = Object.freeze([
+  'interface',
   'schema_version',
   'application_id',
   'screen_id',
@@ -423,6 +575,7 @@ const SCREEN_IDENTITY_FIELDS = Object.freeze([
 ] as const);
 
 const COMPONENT_IDENTITY_FIELDS = Object.freeze([
+  'interface',
   'schema_version',
   'application_id',
   'screen_id',
@@ -432,32 +585,36 @@ const COMPONENT_IDENTITY_FIELDS = Object.freeze([
 ] as const);
 
 const COMPONENT_VERSION_FIELDS = Object.freeze([
+  'interface',
   'schema_version',
-  'component_identity',
+  'stable_identity',
   'structure_digest',
   'props_digest',
   'state_digest',
   'handlers_digest',
   'accessibility_digest',
-  'style_digest',
-  'action_digest',
+  'styles_digest',
+  'actions_digest',
+  'localization_digest',
   'extractor_version',
   'optimizer_schema_version',
 ] as const);
 
 const DEPENDENCY_EDGE_FIELDS = Object.freeze([
+  'interface',
   'schema_version',
-  'edge_id',
-  'source_identity',
-  'target_identity',
+  'source_component_id',
+  'target_component_id',
   'relation',
-  'span',
   'extraction_method',
-  'confidence',
   'extractor_version',
+  'confidence',
+  'source_span',
+  'notes',
 ] as const);
 
 const SOURCE_FINDING_FIELDS = Object.freeze([
+  'interface',
   'schema_version',
   'finding_id',
   'kind',
@@ -472,12 +629,13 @@ const SOURCE_FINDING_FIELDS = Object.freeze([
   'evidence',
   'requires_raw_source',
   'language',
+  'occurrence',
 ] as const);
 
 const SCAN_RESULT_FIELDS = Object.freeze([
+  'interface',
   'schema_version',
   'extractor_version',
-  'interface_id',
   'sources',
   'findings',
   'edges',
@@ -494,28 +652,41 @@ const SCAN_RESULT_FIELDS = Object.freeze([
 
 export function decodeGuiSourceSpan(raw: unknown): GuiSourceSpan {
   if (!isPlainObject(raw)) {
-    throw new GuiModelDecodeError('GuiSourceSpan must be an object');
+    throw new GuiModelDecodeError('SourceSpan must be an object');
   }
-  rejectUnknownKeys(raw, SOURCE_SPAN_FIELDS, 'GuiSourceSpan');
-  requireKeys(raw, SOURCE_SPAN_FIELDS, 'GuiSourceSpan');
-  const start = requireNonNegativeInt(raw.start_offset, 'start_offset');
-  const end = requireNonNegativeInt(raw.end_offset, 'end_offset');
-  if (end < start) {
-    throw new GuiModelDecodeError('end_offset must be >= start_offset');
+  rejectUnknownKeys(raw, SOURCE_SPAN_FIELDS, 'SourceSpan');
+  requireKeys(raw, SOURCE_SPAN_FIELDS, 'SourceSpan');
+  if (raw.interface !== SOURCE_SPAN_INTERFACE) {
+    throw new GuiModelDecodeError(
+      `unsupported SourceSpan interface: ${String(raw.interface)}`,
+    );
   }
-  const startLine = requireNonNegativeInt(raw.start_line, 'start_line');
-  const endLine = requireNonNegativeInt(raw.end_line, 'end_line');
-  if (startLine < 1 || endLine < 1) {
-    throw new GuiModelDecodeError('line numbers are 1-based and must be >= 1');
+  if (raw.schema_version !== SOURCE_SPAN_SCHEMA) {
+    throw new GuiModelDecodeError(
+      `unsupported SourceSpan schema_version: ${String(raw.schema_version)}`,
+    );
+  }
+  const startLine = requirePositiveInt(raw.start_line, 'start_line');
+  const startColumn = requireNonNegativeInt(raw.start_column, 'start_column');
+  const endLine =
+    raw.end_line === null
+      ? null
+      : requirePositiveInt(raw.end_line, 'end_line');
+  const endColumn =
+    raw.end_column === null
+      ? null
+      : requireNonNegativeInt(raw.end_column, 'end_column');
+  if (endLine !== null && endLine < startLine) {
+    throw new GuiModelDecodeError('end_line must be >= start_line');
   }
   return Object.freeze({
+    interface: SOURCE_SPAN_INTERFACE,
+    schema_version: SOURCE_SPAN_SCHEMA,
     path: requirePath(raw.path, 'path'),
-    start_offset: start,
-    end_offset: end,
     start_line: startLine,
-    start_column: requireNonNegativeInt(raw.start_column, 'start_column'),
+    start_column: startColumn,
     end_line: endLine,
-    end_column: requireNonNegativeInt(raw.end_column, 'end_column'),
+    end_column: endColumn,
   });
 }
 
@@ -537,19 +708,26 @@ export function decodeGuiApplicationIdentity(
   }
   rejectUnknownKeys(raw, APPLICATION_IDENTITY_FIELDS, 'GuiApplicationIdentity');
   requireKeys(raw, APPLICATION_IDENTITY_FIELDS, 'GuiApplicationIdentity');
-  if (raw.schema_version !== GUI_OPTIMIZER_SCHEMA_VERSION) {
+  if (raw.interface !== GUI_APPLICATION_IDENTITY_INTERFACE) {
+    throw new GuiModelDecodeError(
+      `unsupported interface: ${String(raw.interface)}`,
+    );
+  }
+  if (raw.schema_version !== GUI_APPLICATION_IDENTITY_SCHEMA) {
     throw new GuiModelDecodeError(
       `unsupported schema_version: ${String(raw.schema_version)}`,
     );
   }
   return Object.freeze({
-    schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
+    interface: GUI_APPLICATION_IDENTITY_INTERFACE,
+    schema_version: GUI_APPLICATION_IDENTITY_SCHEMA,
     application_id: requireIdentifier(raw.application_id, 'application_id'),
     package_namespace: requireIdentifier(
       raw.package_namespace,
       'package_namespace',
     ),
-    route_ids: requireStringArray(raw.route_ids, 'route_ids'),
+    display_name: requireOptionalString(raw.display_name, 'display_name'),
+    repository_root: requireOptionalString(raw.repository_root, 'repository_root'),
   });
 }
 
@@ -559,16 +737,22 @@ export function decodeGuiScreenIdentity(raw: unknown): GuiScreenIdentity {
   }
   rejectUnknownKeys(raw, SCREEN_IDENTITY_FIELDS, 'GuiScreenIdentity');
   requireKeys(raw, SCREEN_IDENTITY_FIELDS, 'GuiScreenIdentity');
-  if (raw.schema_version !== GUI_OPTIMIZER_SCHEMA_VERSION) {
+  if (raw.interface !== GUI_SCREEN_IDENTITY_INTERFACE) {
+    throw new GuiModelDecodeError(
+      `unsupported interface: ${String(raw.interface)}`,
+    );
+  }
+  if (raw.schema_version !== GUI_SCREEN_IDENTITY_SCHEMA) {
     throw new GuiModelDecodeError(
       `unsupported schema_version: ${String(raw.schema_version)}`,
     );
   }
   return Object.freeze({
-    schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
+    interface: GUI_SCREEN_IDENTITY_INTERFACE,
+    schema_version: GUI_SCREEN_IDENTITY_SCHEMA,
     application_id: requireIdentifier(raw.application_id, 'application_id'),
     screen_id: requireIdentifier(raw.screen_id, 'screen_id'),
-    route_id: requireIdentifier(raw.route_id, 'route_id'),
+    route_id: requireOptionalString(raw.route_id, 'route_id'),
   });
 }
 
@@ -578,15 +762,21 @@ export function decodeUiComponentIdentity(raw: unknown): UiComponentIdentity {
   }
   rejectUnknownKeys(raw, COMPONENT_IDENTITY_FIELDS, 'UiComponentIdentity');
   requireKeys(raw, COMPONENT_IDENTITY_FIELDS, 'UiComponentIdentity');
-  if (raw.schema_version !== GUI_OPTIMIZER_SCHEMA_VERSION) {
+  if (raw.interface !== UI_COMPONENT_IDENTITY_INTERFACE) {
+    throw new GuiModelDecodeError(
+      `unsupported interface: ${String(raw.interface)}`,
+    );
+  }
+  if (raw.schema_version !== UI_COMPONENT_IDENTITY_SCHEMA) {
     throw new GuiModelDecodeError(
       `unsupported schema_version: ${String(raw.schema_version)}`,
     );
   }
   return Object.freeze({
-    schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
+    interface: UI_COMPONENT_IDENTITY_INTERFACE,
+    schema_version: UI_COMPONENT_IDENTITY_SCHEMA,
     application_id: requireIdentifier(raw.application_id, 'application_id'),
-    screen_id: requireIdentifier(raw.screen_id, 'screen_id'),
+    screen_id: requireOptionalString(raw.screen_id, 'screen_id'),
     qualified_name: requireIdentifier(raw.qualified_name, 'qualified_name'),
     component_kind: requireEnum<GuiComponentKind>(
       raw.component_kind,
@@ -606,47 +796,45 @@ export function decodeUiComponentVersion(raw: unknown): UiComponentVersion {
   }
   rejectUnknownKeys(raw, COMPONENT_VERSION_FIELDS, 'UiComponentVersion');
   requireKeys(raw, COMPONENT_VERSION_FIELDS, 'UiComponentVersion');
-  if (raw.schema_version !== GUI_OPTIMIZER_SCHEMA_VERSION) {
+  if (raw.interface !== UI_COMPONENT_VERSION_INTERFACE) {
+    throw new GuiModelDecodeError(
+      `unsupported interface: ${String(raw.interface)}`,
+    );
+  }
+  if (raw.schema_version !== UI_COMPONENT_VERSION_SCHEMA) {
     throw new GuiModelDecodeError(
       `unsupported schema_version: ${String(raw.schema_version)}`,
     );
   }
-  if (raw.optimizer_schema_version !== GUI_OPTIMIZER_SCHEMA_VERSION) {
+  const optimizerSchema = requireString(
+    raw.optimizer_schema_version,
+    'optimizer_schema_version',
+  );
+  if (!REGISTERED_SCHEMA_SET.has(optimizerSchema)) {
     throw new GuiModelDecodeError(
-      `unsupported optimizer_schema_version: ${String(raw.optimizer_schema_version)}`,
+      `unregistered optimizer_schema_version: ${optimizerSchema}`,
     );
   }
-  const digestFields = [
-    'structure_digest',
-    'props_digest',
-    'state_digest',
-    'handlers_digest',
-    'accessibility_digest',
-    'style_digest',
-    'action_digest',
-  ] as const;
-  const digests: Record<(typeof digestFields)[number], string> = {
-    structure_digest: '',
-    props_digest: '',
-    state_digest: '',
-    handlers_digest: '',
-    accessibility_digest: '',
-    style_digest: '',
-    action_digest: '',
-  };
-  for (const field of digestFields) {
-    const value = requireString(raw[field], field);
-    if (!DIGEST_RE.test(value)) {
-      throw new GuiModelDecodeError(`${field} must be a sha256 digest`);
-    }
-    digests[field] = value;
-  }
   return Object.freeze({
-    schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
-    component_identity: decodeUiComponentIdentity(raw.component_identity),
-    ...digests,
-    extractor_version: requireString(raw.extractor_version, 'extractor_version'),
-    optimizer_schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
+    interface: UI_COMPONENT_VERSION_INTERFACE,
+    schema_version: UI_COMPONENT_VERSION_SCHEMA,
+    stable_identity: decodeUiComponentIdentity(raw.stable_identity),
+    structure_digest: requireDigest(raw.structure_digest, 'structure_digest'),
+    props_digest: requireDigest(raw.props_digest, 'props_digest'),
+    state_digest: requireDigest(raw.state_digest, 'state_digest'),
+    handlers_digest: requireDigest(raw.handlers_digest, 'handlers_digest'),
+    accessibility_digest: requireDigest(
+      raw.accessibility_digest,
+      'accessibility_digest',
+    ),
+    styles_digest: requireDigest(raw.styles_digest, 'styles_digest'),
+    actions_digest: requireDigest(raw.actions_digest, 'actions_digest'),
+    localization_digest: requireOptionalDigest(
+      raw.localization_digest,
+      'localization_digest',
+    ),
+    extractor_version: requireExtractorVersion(raw.extractor_version),
+    optimizer_schema_version: optimizerSchema,
   });
 }
 
@@ -656,33 +844,45 @@ export function decodeUiDependencyEdge(raw: unknown): UiDependencyEdge {
   }
   rejectUnknownKeys(raw, DEPENDENCY_EDGE_FIELDS, 'UiDependencyEdge');
   requireKeys(raw, DEPENDENCY_EDGE_FIELDS, 'UiDependencyEdge');
-  if (raw.schema_version !== GUI_OPTIMIZER_SCHEMA_VERSION) {
+  if (raw.interface !== UI_DEPENDENCY_EDGE_INTERFACE) {
+    throw new GuiModelDecodeError(
+      `unsupported interface: ${String(raw.interface)}`,
+    );
+  }
+  if (raw.schema_version !== UI_DEPENDENCY_EDGE_SCHEMA) {
     throw new GuiModelDecodeError(
       `unsupported schema_version: ${String(raw.schema_version)}`,
     );
   }
-  const span =
-    raw.span === null || raw.span === undefined
+  const sourceSpan =
+    raw.source_span === null || raw.source_span === undefined
       ? null
-      : decodeGuiSourceSpan(raw.span);
+      : decodeGuiSourceSpan(raw.source_span);
   return Object.freeze({
-    schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
-    edge_id: requireIdentifier(raw.edge_id, 'edge_id'),
-    source_identity: requireIdentifier(raw.source_identity, 'source_identity'),
-    target_identity: requireIdentifier(raw.target_identity, 'target_identity'),
+    interface: UI_DEPENDENCY_EDGE_INTERFACE,
+    schema_version: UI_DEPENDENCY_EDGE_SCHEMA,
+    source_component_id: requireIdentifier(
+      raw.source_component_id,
+      'source_component_id',
+    ),
+    target_component_id: requireIdentifier(
+      raw.target_component_id,
+      'target_component_id',
+    ),
     relation: requireEnum<GuiDependencyRelation>(
       raw.relation,
       'relation',
       RELATION_SET,
     ),
-    span,
     extraction_method: requireEnum<GuiExtractionMethod>(
       raw.extraction_method,
       'extraction_method',
       METHOD_SET,
     ),
+    extractor_version: requireExtractorVersion(raw.extractor_version),
     confidence: decodeGuiExtractionConfidence(raw.confidence),
-    extractor_version: requireString(raw.extractor_version, 'extractor_version'),
+    source_span: sourceSpan,
+    notes: requireOptionalString(raw.notes, 'notes'),
   });
 }
 
@@ -692,13 +892,19 @@ export function decodeGuiSourceFinding(raw: unknown): GuiSourceFinding {
   }
   rejectUnknownKeys(raw, SOURCE_FINDING_FIELDS, 'GuiSourceFinding');
   requireKeys(raw, SOURCE_FINDING_FIELDS, 'GuiSourceFinding');
-  if (raw.schema_version !== GUI_OPTIMIZER_SCHEMA_VERSION) {
+  if (raw.interface !== GUI_SOURCE_FINDING_INTERFACE) {
+    throw new GuiModelDecodeError(
+      `unsupported interface: ${String(raw.interface)}`,
+    );
+  }
+  if (raw.schema_version !== GUI_SOURCE_FINDING_SCHEMA) {
     throw new GuiModelDecodeError(
       `unsupported schema_version: ${String(raw.schema_version)}`,
     );
   }
   return Object.freeze({
-    schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
+    interface: GUI_SOURCE_FINDING_INTERFACE,
+    schema_version: GUI_SOURCE_FINDING_SCHEMA,
     finding_id: requireIdentifier(raw.finding_id, 'finding_id'),
     kind: requireEnum<GuiFindingKind>(raw.kind, 'kind', FINDING_KIND_SET),
     name: requireString(raw.name, 'name'),
@@ -711,7 +917,7 @@ export function decodeGuiSourceFinding(raw: unknown): GuiSourceFinding {
       'extraction_method',
       METHOD_SET,
     ),
-    extractor_version: requireString(raw.extractor_version, 'extractor_version'),
+    extractor_version: requireExtractorVersion(raw.extractor_version),
     attributes: requireStringRecord(raw.attributes, 'attributes'),
     evidence: requireString(raw.evidence, 'evidence'),
     requires_raw_source: requireBoolean(
@@ -723,6 +929,7 @@ export function decodeGuiSourceFinding(raw: unknown): GuiSourceFinding {
       'language',
       LANGUAGE_SET,
     ),
+    occurrence: requirePositiveInt(raw.occurrence, 'occurrence'),
   });
 }
 
@@ -732,14 +939,14 @@ export function decodeGuiStaticScanResult(raw: unknown): GuiStaticScanResult {
   }
   rejectUnknownKeys(raw, SCAN_RESULT_FIELDS, 'GuiStaticScanResult');
   requireKeys(raw, SCAN_RESULT_FIELDS, 'GuiStaticScanResult');
-  if (raw.schema_version !== GUI_OPTIMIZER_SCHEMA_VERSION) {
+  if (raw.interface !== GUI_STATIC_SCANNER_INTERFACE) {
     throw new GuiModelDecodeError(
-      `unsupported schema_version: ${String(raw.schema_version)}`,
+      `unsupported interface: ${String(raw.interface)}`,
     );
   }
-  if (raw.interface_id !== GUI_STATIC_SCANNER_INTERFACE) {
+  if (raw.schema_version !== GUI_STATIC_SCAN_RESULT_SCHEMA) {
     throw new GuiModelDecodeError(
-      `unsupported interface_id: ${String(raw.interface_id)}`,
+      `unsupported schema_version: ${String(raw.schema_version)}`,
     );
   }
   if (raw.executed_code !== false) {
@@ -752,9 +959,9 @@ export function decodeGuiStaticScanResult(raw: unknown): GuiStaticScanResult {
     throw new GuiModelDecodeError('edges must be an array');
   }
   return Object.freeze({
-    schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
-    extractor_version: requireString(raw.extractor_version, 'extractor_version'),
-    interface_id: GUI_STATIC_SCANNER_INTERFACE,
+    interface: GUI_STATIC_SCANNER_INTERFACE,
+    schema_version: GUI_STATIC_SCAN_RESULT_SCHEMA,
+    extractor_version: requireExtractorVersion(raw.extractor_version),
     sources: requireStringArray(raw.sources, 'sources'),
     findings: Object.freeze(raw.findings.map(decodeGuiSourceFinding)),
     edges: Object.freeze(raw.edges.map(decodeUiDependencyEdge)),
@@ -819,4 +1026,22 @@ export function requiresRawSourceForConfidence(
   value: GuiExtractionConfidence,
 ): boolean {
   return value === 'opaque' || value === 'heuristic';
+}
+
+export function makeSourceSpan(partial: {
+  path: string;
+  start_line: number;
+  start_column: number;
+  end_line?: number | null;
+  end_column?: number | null;
+}): GuiSourceSpan {
+  return Object.freeze({
+    interface: SOURCE_SPAN_INTERFACE,
+    schema_version: SOURCE_SPAN_SCHEMA,
+    path: partial.path,
+    start_line: partial.start_line,
+    start_column: partial.start_column,
+    end_line: partial.end_line ?? null,
+    end_column: partial.end_column ?? null,
+  });
 }
